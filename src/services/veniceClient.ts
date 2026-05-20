@@ -1,7 +1,6 @@
 import { extractImages } from "../utils/image";
 import { DIAG_HEADER_NAMES } from "../constants/venice";
-
-const LOCAL_PROXY_URL = "/api/venice";
+import { getVeniceProxyBase } from "./desktopBridge";
 
 function nowIso() {
   return new Date().toISOString();
@@ -101,7 +100,7 @@ export async function veniceFetch(
   } = {}
 ): Promise<{ data: any; response: Response; headers: any; diagnostics: any }> {
   const startedAt = nowIso();
-  const url = `${LOCAL_PROXY_URL}${endpoint}`;
+  const url = `${getVeniceProxyBase()}${endpoint}`;
   const maxAttempts = retry ? 3 : 1;
   let lastError: any = null;
 
@@ -257,7 +256,7 @@ export async function veniceStreamChat(
   }: { signal?: AbortSignal; dispatch?: any; onDelta: (delta: string) => void }
 ) {
   const startedAt = nowIso();
-  const response = await fetch(`${LOCAL_PROXY_URL}/chat/completions`, {
+  const response = await fetch(`${getVeniceProxyBase()}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

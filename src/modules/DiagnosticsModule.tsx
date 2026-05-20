@@ -1,16 +1,40 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import StorageService from "../services/storageService";
 import { summarizeDiagnostics } from "../services/veniceClient";
 import { Chip } from "../components/Chip";
 import { copyText } from "../utils/download";
+import { isElectron, desktopApp } from "../services/desktopBridge";
 
 function nowIso() {
   return new Date().toISOString();
 }
 
-export function DiagnosticsModule({ state, dispatch }: { state: any; dispatch: any }) {
+interface DiagnosticsModuleProps {
+  state: any;
+  dispatch: any;
+  apiKeyConfigured: boolean | null;
+}
+
+export function DiagnosticsModule({ state, dispatch, apiKeyConfigured }: DiagnosticsModuleProps) {
   const d = state.diagnostics;
   const rows = d?.headers ? Object.entries(d.headers) : [];
+
+  const [appVersion, setAppVersion] = useState<string | null>(null);
+  const [dataPath, setDataPath] = useState<string | null>(null);
+  const [encryptionAvailable, setEncryptionAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!isElectron()) return;
+    Promise.all([
+      desktopApp.getVersion(),
+      desktopApp.getDataPath(),
+      desktopApp.isEncryptionAvailable(),
+    ]).then(([ver, dp, enc]) => {
+      setAppVersion(ver);
+      setDataPath(dp);
+      setEncryptionAvailable(enc);
+    }).catch(() => {});
+  }, []);
 
   async function clearDiagnostics() {
     await StorageService.clearStore("diagnostics").catch(() => {});
@@ -54,6 +78,52 @@ export function DiagnosticsModule({ state, dispatch }: { state: any; dispatch: a
       </div>
 
       <div className="body grid">
+        {/* Desktop system info */}
+        <div className="panel pad">
+          <div className="panel-header">
+            <div className="panel-title">System</div>
+            <Chip tone={isElectron() ? "ok" : undefined}>
+              {isElectron() ? "Desktop" : "Web / Browser"}
+            </Chip>
+          </div>
+          <div className="grid three">
+            <div className="model-item">
+              <div className="tiny muted">Mode</div>
+              <div className="mono small">{isElectron() ? "Electron desktop" : "Browser / web server"}</div>
+            </div>
+            <div className="model-item">
+              <div className="tiny muted">App version</div>
+              <div className="mono small">{appVersion ?? (isElectron() ? "…" : "web")}</div>
+            </div>
+            <div className="model-item">
+              <div className="tiny muted">API key</div>
+              <div className="mono small">
+                {isElectron()
+                  ? apiKeyConfigured === true ? "Configured ✓" : apiKeyConfigured === false ? "Not set ✗" : "…"
+                  : "Server-side proxy"}
+              </div>
+            </div>
+            <div className="model-item">
+              <div className="tiny muted">Storage backend</div>
+              <div className="mono small">IndexedDB (renderer)</div>
+            </div>
+            {isElectron() && (
+              <>
+                <div className="model-item">
+                  <div className="tiny muted">Key encryption</div>
+                  <div className="mono small">
+                    {encryptionAvailable === null ? "…" : encryptionAvailable ? "OS safeStorage ✓" : "Plaintext (no OS crypto)"}
+                  </div>
+                </div>
+                <div className="model-item">
+                  <div className="tiny muted">Data path</div>
+                  <div className="mono small" style={{ wordBreak: "break-all" }}>{dataPath ?? "…"}</div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
         {!d && (
           <div className="notice small">
             No Venice request has completed yet.
