@@ -90,10 +90,12 @@ async function startServer() {
             `Bearer ${process.env.VENICE_API_KEY}`
           );
           if (req.method !== "GET" && req.body && Buffer.isBuffer(req.body)) {
+            proxyReq.removeHeader("Transfer-Encoding");
             proxyReq.setHeader("Content-Length", req.body.length);
             proxyReq.write(req.body);
           } else if (req.method === "GET") {
             proxyReq.removeHeader("Content-Length");
+            proxyReq.removeHeader("Transfer-Encoding");
           }
         },
         error: (err: any, req: any, res: any) => {
