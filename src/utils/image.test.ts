@@ -14,6 +14,7 @@ describe("galleryFilename", () => {
 
   it("uses the index when id is absent", () => {
     const item = { model: "test-model", prompt: "p", timestamp: 1 };
+    // When item.id is undefined, the index parameter is used as the fallback id
     expect(galleryFilename(item, 5)).toBe("test-model-5.png");
   });
 

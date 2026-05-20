@@ -147,9 +147,10 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
       );
 
       // Persist backup before any data is overwritten so it is recoverable.
+      const dateStr = new Date().toISOString().split('T')[0];
       await desktopFiles.exportJson(
         backup,
-        `venice-forge-pre-import-backup-${new Date().toISOString().slice(0, 10)}.json`
+        `venice-forge-pre-import-backup-${dateStr}.json`
       );
 
       const { payload, summary } = validateImportJson(json);

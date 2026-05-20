@@ -81,7 +81,7 @@ export const downloadAllGallery = async (items: GalleryImage[], addToast: (msg: 
   const max = Math.min(items.length, 50);
   for (let i = 0; i < max; i++) {
     const item = items[i];
-    await downloadImage(item.image, galleryFilename(item, item.timestamp));
+    await downloadImage(item.image, galleryFilename(item));
     await new Promise((resolve) => setTimeout(resolve, 300));
   }
   addToast(`Saved ${max} images.`, "success");
