@@ -13,5 +13,5 @@
     "paths": {}
   },
   "include": ["electron/**/*"],
-  "exclude": ["node_modules", "src", "dist", "dist-electron"]
+  "exclude": ["node_modules", "src", "dist", "dist-electron", "**/*.test.ts"]
 }

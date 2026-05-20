@@ -5,7 +5,8 @@ import { Field } from "../components/Field";
 import { Chip } from "../components/Chip";
 import { ModelSelect } from "../components/ModelSelect";
 import { StatusBlock } from "../components/StatusBlock";
-import { isElectron, desktopApiKey, desktopFiles } from "../services/desktopBridge";
+import { isElectron, desktopApiKey, desktopApp, desktopFiles } from "../services/desktopBridge";
+import { createExportPayload, validateImportJson } from "../services/exportImport";
 
 interface SettingsModuleProps {
   state: any;
@@ -119,9 +120,11 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
         StorageService.getItems("chats"),
         StorageService.getItems("settings"),
       ]);
+      const appVersion = await desktopApp.getVersion();
+      const payload = createExportPayload({ images, chats, settings }, appVersion);
       const ok = await desktopFiles.exportJson(
-        { exportedAt: new Date().toISOString(), images, chats, settings },
-        "venice-forge-export.json"
+        payload,
+        `venice-forge-export-${new Date().toISOString().slice(0, 10)}.json`
       );
       if (ok) setStatus("Data exported.");
     } catch (err: any) {
@@ -131,24 +134,37 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
 
   async function importData() {
     try {
-      const data = await desktopFiles.importJson() as any;
-      if (!data) return;
-      if (Array.isArray(data.images)) {
-        for (const img of data.images) await StorageService.saveItem("images", img);
-        const items = await StorageService.getItems("images");
-        dispatch({ type: "SET_GALLERY", items });
-      }
-      if (Array.isArray(data.chats)) {
-        for (const chat of data.chats) await StorageService.saveItem("chats", chat);
-        const items = await StorageService.getItems("chats");
-        dispatch({ type: "SET_CHATS", items });
-      }
-      if (Array.isArray(data.settings)) {
-        for (const s of data.settings) await StorageService.saveItem("settings", s);
-        const latestSettings = data.settings[0]?.value;
-        if (latestSettings) dispatch({ type: "SET_SETTINGS", settings: latestSettings });
-      }
-      setStatus("Data imported successfully.");
+      const json = await desktopFiles.importJsonString();
+      if (!json) return;
+      const [imagesBefore, chatsBefore, settingsBefore] = await Promise.all([
+        StorageService.getItems("images"),
+        StorageService.getItems("chats"),
+        StorageService.getItems("settings"),
+      ]);
+      const backup = createExportPayload(
+        { images: imagesBefore, chats: chatsBefore, settings: settingsBefore },
+        await desktopApp.getVersion()
+      );
+      const { payload, summary } = validateImportJson(json);
+
+      for (const img of payload.data.images) await StorageService.saveItem("images", img);
+      for (const chat of payload.data.chats) await StorageService.saveItem("chats", chat);
+      for (const s of payload.data.settings) await StorageService.saveItem("settings", s);
+
+      const [images, chats, settings] = await Promise.all([
+        StorageService.getItems("images"),
+        StorageService.getItems("chats"),
+        StorageService.getItems("settings"),
+      ]);
+      dispatch({ type: "SET_GALLERY", items: images });
+      dispatch({ type: "SET_CHATS", items: chats });
+      const latestSettings = settings[0]?.value;
+      if (latestSettings) dispatch({ type: "SET_SETTINGS", settings: latestSettings });
+
+      setStatus(
+        `Imported ${summary.imagesFound} images, ${summary.chatsFound} chats, ${summary.settingsFound} settings. ` +
+          `${summary.skippedRecords} records skipped. Pre-import backup prepared (${backup.data.images.length} images, ${backup.data.chats.length} chats).`
+      );
     } catch (err: any) {
       setStatusError(err.message || "Import failed.");
     }

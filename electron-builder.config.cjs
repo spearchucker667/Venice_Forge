@@ -10,7 +10,7 @@
 const config = {
   appId: "ai.venice.forge",
   productName: "Venice Forge",
-  copyright: "Copyright © 2024 Venice Forge contributors",
+  copyright: "Copyright © 2026 Venice Forge contributors",
 
   directories: {
     output: "release",
@@ -39,7 +39,7 @@ const config = {
     ],
     icon: "build/icon.ico",
     requestedExecutionLevel: "asInvoker",
-    artifactName: "${productName}-${version}-${arch}-setup.${ext}",
+    artifactName: "Venice-Forge-${version}-${arch}-Setup.${ext}",
   },
 
   nsis: {
@@ -55,7 +55,7 @@ const config = {
   },
 
   portable: {
-    artifactName: "${productName}-${version}-${arch}-portable.${ext}",
+    artifactName: "Venice-Forge-${version}-${arch}-Portable.${ext}",
   },
 
   mac: {

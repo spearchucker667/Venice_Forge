@@ -1,6 +1,6 @@
 import { extractImages } from "../utils/image";
 import { DIAG_HEADER_NAMES } from "../constants/venice";
-import { getVeniceProxyBase } from "./desktopBridge";
+import { desktopVenice, isElectron } from "./desktopBridge";
 
 function nowIso() {
   return new Date().toISOString();
@@ -76,6 +76,108 @@ export function normalizeError(status: number | null, rawMessage: string) {
   return status && map[status] ? `${map[status]}: ${base}` : base;
 }
 
+function readDesktopErrorBody(body: any): string {
+  return String(
+    body?.error?.message ||
+      body?.error ||
+      body?.message ||
+      body?.detail ||
+      body?.text ||
+      "Unknown Venice API error"
+  );
+}
+
+async function veniceFetchDesktop(
+  endpoint: string,
+  {
+    method = "GET",
+    body = undefined as any,
+    signal = undefined as AbortSignal | undefined,
+    dispatch = undefined as any,
+    headers = {},
+    retry = true,
+  } = {}
+): Promise<{ data: any; response: any; headers: any; diagnostics: any }> {
+  const maxAttempts = retry ? 3 : 1;
+  let lastError: any = null;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const startedAt = nowIso();
+    let diagHeaders: any = {};
+    let response: any = null;
+    try {
+      if (signal?.aborted) throw new DOMException("Request aborted", "AbortError");
+      response = await desktopVenice.request(
+        {
+          endpoint,
+          method: method as "GET" | "POST",
+          body,
+          headers,
+        },
+        signal
+      );
+      diagHeaders = response.headers || {};
+      const diag = summarizeDiagnostics({
+        endpoint,
+        method,
+        status: response.status,
+        ok: response.ok,
+        headers: diagHeaders,
+        error: "",
+        startedAt,
+        endedAt: nowIso(),
+      });
+      dispatch?.({ type: "SET_DIAGNOSTICS", diagnostics: diag });
+
+      if (!response.ok) {
+        const normalized = normalizeError(response.status, readDesktopErrorBody(response.body));
+        const retryable = [429, 500, 503].includes(response.status);
+        if (retryable && attempt < maxAttempts - 1) {
+          await sleep(
+            response.status === 429
+              ? computeRateLimitWait(diagHeaders, attempt)
+              : Math.min(1000 * Math.pow(2, attempt + 1), 8000),
+            signal
+          );
+          continue;
+        }
+        const error: any = new Error(normalized);
+        error.status = response.status;
+        error.diagnostics = diag;
+        throw error;
+      }
+
+      return { data: response.body, response, headers: diagHeaders, diagnostics: diag };
+    } catch (err: any) {
+      if (err?.name === "AbortError") throw err;
+      const normalized = err.message || "Desktop Venice transport failed.";
+      lastError = new Error(normalized);
+      lastError.status = err.status || response?.status || null;
+      dispatch?.({
+        type: "SET_DIAGNOSTICS",
+        diagnostics: summarizeDiagnostics({
+          endpoint,
+          method,
+          status: lastError.status,
+          ok: false,
+          headers: diagHeaders,
+          error: normalized,
+          startedAt,
+          endedAt: nowIso(),
+        }),
+      });
+
+      if ([429, 500, 503].includes(lastError.status) && attempt < maxAttempts - 1) {
+        await sleep(Math.min(1200 * Math.pow(2, attempt + 1), 9000), signal);
+        continue;
+      }
+      throw lastError;
+    }
+  }
+
+  throw lastError || new Error("Request failed");
+}
+
 function computeRateLimitWait(headers: any, attempt: number) {
   const raw = headers?.["x-ratelimit-reset-requests"];
   const n = Number(raw);
@@ -99,8 +201,19 @@ export async function veniceFetch(
     retry = true,
   } = {}
 ): Promise<{ data: any; response: Response; headers: any; diagnostics: any }> {
+  if (isElectron()) {
+    return veniceFetchDesktop(endpoint, {
+      method,
+      body,
+      signal,
+      dispatch,
+      headers,
+      retry,
+    }) as Promise<{ data: any; response: Response; headers: any; diagnostics: any }>;
+  }
+
   const startedAt = nowIso();
-  const url = `${getVeniceProxyBase()}${endpoint}`;
+  const url = `/api/venice${endpoint}`;
   const maxAttempts = retry ? 3 : 1;
   let lastError: any = null;
 
@@ -256,7 +369,37 @@ export async function veniceStreamChat(
   }: { signal?: AbortSignal; dispatch?: any; onDelta: (delta: string) => void }
 ) {
   const startedAt = nowIso();
-  const response = await fetch(`${getVeniceProxyBase()}/chat/completions`, {
+  if (isElectron()) {
+    const response = await desktopVenice.streamChat(
+      {
+        endpoint: "/chat/completions",
+        method: "POST",
+        body: payload,
+        headers: { "Content-Type": "application/json" },
+      },
+      onDelta,
+      signal
+    );
+    dispatch?.({
+      type: "SET_DIAGNOSTICS",
+      diagnostics: summarizeDiagnostics({
+        endpoint: "/chat/completions",
+        method: "POST",
+        status: response.status,
+        ok: response.ok,
+        headers: response.headers || {},
+        error: "",
+        startedAt,
+        endedAt: nowIso(),
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(normalizeError(response.status, readDesktopErrorBody(response.body)));
+    }
+    return;
+  }
+
+  const response = await fetch(`/api/venice/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

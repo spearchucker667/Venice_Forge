@@ -1,5 +1,7 @@
 node_modules/
-build/
+build/*
+!build/icon.ico
+!build/icon-placeholder.md
 dist/
 dist-electron/
 release/

@@ -46,7 +46,7 @@ export const DIAG_HEADER_NAMES = [
   "x-venice-is-blurred"
 ];
 
-export const DEFAULT_SYSTEM_PROMPT = "You are a precise, useful AI assistant inside a browser-only Venice API studio prototype.";
+export const DEFAULT_SYSTEM_PROMPT = "You are a precise, useful AI assistant inside Venice Forge.";
 
 export const STORE_NAMES = ["images", "chats", "settings", "diagnostics"];
 export const DB_NAME = "venice_canvas_studio_v1";

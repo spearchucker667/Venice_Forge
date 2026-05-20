@@ -22,8 +22,9 @@ export default function App() {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const [apiKeyConfigured, setApiKeyConfigured] = useState<boolean | null>(null);
   // bridgeReady gates all initial API calls: in web mode it is true immediately
-  // (bridge init is a no-op); in Electron it becomes true once getProxyUrl() resolves.
+  // (bridge init is a no-op); in Electron it becomes true once preload diagnostics resolve.
   const [bridgeReady, setBridgeReady] = useState(!isElectron());
+  const [firstRunRouted, setFirstRunRouted] = useState(false);
 
   // Initialise the desktop bridge (no-op in web mode)
   useEffect(() => {
@@ -70,6 +71,13 @@ export default function App() {
     if (!bridgeReady) return;
     refreshModels(dispatch);
   }, [bridgeReady]);
+
+  useEffect(() => {
+    if (isElectron() && apiKeyConfigured === false && !firstRunRouted) {
+      dispatch({ type: "SET_TAB", tab: "settings" });
+      setFirstRunRouted(true);
+    }
+  }, [apiKeyConfigured, firstRunRouted]);
 
   useEffect(() => {
     StorageService.saveItem("settings", {
@@ -130,7 +138,7 @@ export default function App() {
           </nav>
           <div className="status-rail-card">
             <div className="tiny muted">System</div>
-            <div className="small">Proxy Active</div>
+            <div className="small">{isElectron() ? "IPC Transport" : "Proxy Active"}</div>
           </div>
         </aside>
 
@@ -150,6 +158,11 @@ export default function App() {
 
         <main className="workspace-content">
           <ErrorBoundary>
+            {isElectron() && apiKeyConfigured === false && (
+              <div className="notice small" style={{ marginBottom: 16 }}>
+                Venice Forge needs a Venice API key before model, chat, and image requests can run. Add it in Config, then use Test connection.
+              </div>
+            )}
             {state.activeTab === "chat" && (
               <ChatModule state={state} dispatch={dispatch} />
             )}

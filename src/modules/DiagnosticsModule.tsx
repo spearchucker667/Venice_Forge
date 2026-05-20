@@ -4,6 +4,8 @@ import { summarizeDiagnostics } from "../services/veniceClient";
 import { Chip } from "../components/Chip";
 import { copyText } from "../utils/download";
 import { isElectron, desktopApp } from "../services/desktopBridge";
+import { redactSecrets } from "../services/redaction";
+import type { VeniceForgeDiagnostics } from "../types/desktop";
 
 function nowIso() {
   return new Date().toISOString();
@@ -19,22 +21,25 @@ export function DiagnosticsModule({ state, dispatch, apiKeyConfigured }: Diagnos
   const d = state.diagnostics;
   const rows = d?.headers ? Object.entries(d.headers) : [];
 
-  const [appVersion, setAppVersion] = useState<string | null>(null);
-  const [dataPath, setDataPath] = useState<string | null>(null);
-  const [encryptionAvailable, setEncryptionAvailable] = useState<boolean | null>(null);
+  const [desktopDiagnostics, setDesktopDiagnostics] = useState<VeniceForgeDiagnostics | null>(null);
 
   useEffect(() => {
     if (!isElectron()) return;
-    Promise.all([
-      desktopApp.getVersion(),
-      desktopApp.getDataPath(),
-      desktopApp.isEncryptionAvailable(),
-    ]).then(([ver, dp, enc]) => {
-      setAppVersion(ver);
-      setDataPath(dp);
-      setEncryptionAvailable(enc);
-    }).catch(() => {});
+    desktopApp.getDiagnostics().then(setDesktopDiagnostics).catch(() => {});
   }, []);
+
+  async function copyDiagnostics() {
+    const payload = redactSecrets({
+      system: desktopDiagnostics || (await desktopApp.getDiagnostics()),
+      latest: d || null,
+      log: state.diagnosticsLog || [],
+    });
+    await copyText(JSON.stringify(payload, null, 2));
+  }
+
+  async function openLogs() {
+    await desktopApp.openLogsFolder();
+  }
 
   async function clearDiagnostics() {
     await StorageService.clearStore("diagnostics").catch(() => {});
@@ -66,11 +71,15 @@ export function DiagnosticsModule({ state, dispatch, apiKeyConfigured }: Diagnos
         <div className="chip-row">
           <button
             className="btn"
-            onClick={() => copyText(JSON.stringify(d || {}, null, 2))}
-            disabled={!d}
+            onClick={copyDiagnostics}
           >
             Copy diagnostics
           </button>
+          {isElectron() && (
+            <button className="btn" onClick={openLogs}>
+              Open logs folder
+            </button>
+          )}
           <button className="btn danger" onClick={clearDiagnostics}>
             Reset display
           </button>
@@ -93,7 +102,7 @@ export function DiagnosticsModule({ state, dispatch, apiKeyConfigured }: Diagnos
             </div>
             <div className="model-item">
               <div className="tiny muted">App version</div>
-              <div className="mono small">{appVersion ?? (isElectron() ? "…" : "web")}</div>
+              <div className="mono small">{desktopDiagnostics?.appVersion ?? (isElectron() ? "…" : "web")}</div>
             </div>
             <div className="model-item">
               <div className="tiny muted">API key</div>
@@ -110,14 +119,36 @@ export function DiagnosticsModule({ state, dispatch, apiKeyConfigured }: Diagnos
             {isElectron() && (
               <>
                 <div className="model-item">
-                  <div className="tiny muted">Key encryption</div>
+                  <div className="tiny muted">Key storage mode</div>
                   <div className="mono small">
-                    {encryptionAvailable === null ? "…" : encryptionAvailable ? "OS safeStorage ✓" : "Plaintext (no OS crypto)"}
+                    {desktopDiagnostics?.storageMode ?? "…"}
                   </div>
                 </div>
                 <div className="model-item">
                   <div className="tiny muted">Data path</div>
-                  <div className="mono small" style={{ wordBreak: "break-all" }}>{dataPath ?? "…"}</div>
+                  <div className="mono small" style={{ wordBreak: "break-all" }}>{desktopDiagnostics?.userDataPath ?? "…"}</div>
+                </div>
+                <div className="model-item">
+                  <div className="tiny muted">Electron / Chrome</div>
+                  <div className="mono small">
+                    {desktopDiagnostics ? `${desktopDiagnostics.electronVersion} / ${desktopDiagnostics.chromeVersion}` : "…"}
+                  </div>
+                </div>
+                <div className="model-item">
+                  <div className="tiny muted">Node</div>
+                  <div className="mono small">{desktopDiagnostics?.nodeVersion ?? "…"}</div>
+                </div>
+                <div className="model-item">
+                  <div className="tiny muted">Transport</div>
+                  <div className="mono small">{desktopDiagnostics?.transport ?? "direct-ipc"}</div>
+                </div>
+                <div className="model-item">
+                  <div className="tiny muted">Logs</div>
+                  <div className="mono small" style={{ wordBreak: "break-all" }}>{desktopDiagnostics?.logsPath ?? "…"}</div>
+                </div>
+                <div className="model-item">
+                  <div className="tiny muted">Last API error</div>
+                  <div className="mono small">{desktopDiagnostics?.lastApiError || "none"}</div>
                 </div>
               </>
             )}

@@ -1,20 +1,35 @@
-/**
- * Electron preload script.
- *
- * Exposes a narrow, typed API surface to the renderer via contextBridge.
- * No Node.js APIs, no arbitrary IPC, no API key access for the renderer.
- *
- * All IPC channel names must be kept in sync with electron/ipc/handlers.ts.
- */
 import { contextBridge, ipcRenderer } from "electron";
 
+type VeniceRequest = {
+  endpoint: string;
+  method: "GET" | "POST";
+  body?: unknown;
+  headers?: Record<string, string>;
+  signalId?: string;
+};
+
 const veniceForge = {
-  /** True when running inside Electron desktop */
   isDesktop: true as const,
 
-  /** Returns the local proxy URL: http://127.0.0.1:{port}/api/venice */
-  getProxyUrl(): Promise<string> {
-    return ipcRenderer.invoke("venice:getProxyUrl");
+  venice: {
+    request(input: VeniceRequest) {
+      return ipcRenderer.invoke("venice:request", input);
+    },
+    streamChat(input: VeniceRequest, onDelta: (delta: string) => void) {
+      const signalId = input.signalId || crypto.randomUUID();
+      const listener = (_event: Electron.IpcRendererEvent, payload: { signalId: string; delta: string }) => {
+        if (payload.signalId === signalId && typeof payload.delta === "string") {
+          onDelta(payload.delta);
+        }
+      };
+      ipcRenderer.on("venice:streamDelta", listener);
+      return ipcRenderer
+        .invoke("venice:streamChat", { ...input, signalId })
+        .finally(() => ipcRenderer.removeListener("venice:streamDelta", listener));
+    },
+    abort(signalId: string) {
+      return ipcRenderer.invoke("venice:abort", signalId);
+    },
   },
 
   apiKey: {
@@ -42,14 +57,18 @@ const veniceForge = {
     isEncryptionAvailable(): Promise<boolean> {
       return ipcRenderer.invoke("app:isEncryptionAvailable");
     },
+    getDiagnostics() {
+      return ipcRenderer.invoke("app:getDiagnostics");
+    },
+    openLogsFolder(): Promise<{ ok: boolean; path: string }> {
+      return ipcRenderer.invoke("app:openLogsFolder");
+    },
   },
 
   files: {
-    /** Shows a save dialog then writes data to the chosen path. Returns canceled:true if dismissed. */
     saveJsonFile(data: string, defaultPath?: string): Promise<{ ok: boolean; canceled: boolean }> {
       return ipcRenderer.invoke("app:saveJsonFile", data, defaultPath);
     },
-    /** Shows an open dialog then reads the chosen file. Returns canceled:true if dismissed. */
     loadJsonFile(): Promise<{ canceled: boolean; data?: string }> {
       return ipcRenderer.invoke("app:loadJsonFile");
     },

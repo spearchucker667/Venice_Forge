@@ -1,69 +1,48 @@
-# Security Model — Venice Forge
+# Security Model
 
-## Overview
+Venice Forge is an Electron app with a sandboxed React renderer, a preload bridge, and a privileged main process.
 
-Venice Forge is an Electron desktop application. The primary security concern is protecting the user's Venice API key and preventing it from being exposed to renderer code (the web UI layer).
+## Renderer, Preload, Main
 
----
+- Renderer: no Node integration, sandbox enabled, context isolation enabled.
+- Preload: exposes only `window.veniceForge` with typed methods for Venice requests, API key status/actions, diagnostics, logs, and JSON file dialogs.
+- Main: owns filesystem access, OS dialogs, logging, secure storage, and Venice HTTPS requests.
+
+The renderer cannot access arbitrary IPC channels, shell execution, local files, or the raw Venice API key.
+
+## Venice Transport
+
+Desktop mode uses direct IPC, not a loopback proxy. The main process validates every request before sending HTTPS traffic to `api.venice.ai`.
+
+Allowed endpoints:
+
+- `GET /models`
+- `POST /chat/completions`
+- `POST /image/generate`
+- `POST /image/upscale`
+
+Validation rejects unsupported methods, non-relative endpoints, unexpected origins, and payloads larger than 25 MB. Authorization is injected only in the main process. Error messages and logs are redacted before they reach the UI.
+
+Web development mode still uses the Express `/api/venice` proxy from `server.ts` and requires `.env`.
 
 ## API Key Storage
 
-- The Venice API key is stored using **Electron `safeStorage`**, which provides OS-level encryption:
-  - **Windows**: DPAPI (Data Protection API) — key is encrypted per user/machine
-  - **macOS**: Keychain
-  - **Linux**: libsecret / Secret Service (may fall back to plaintext if unavailable; a warning is logged)
-- The encrypted key is saved to `secure-prefs.json` in the Electron `userData` directory.
-- The raw key is **never** written to disk unencrypted (except on Linux without Secret Service).
-- The raw key is **never** sent to the renderer process or stored in IndexedDB.
+On Windows, the API key is stored only when Electron `safeStorage` encryption is available. If Windows encryption is unavailable, saving fails with a user-readable error. On non-Windows platforms, plaintext fallback is disabled unless `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true` is explicitly set.
 
-## Renderer Isolation
+The key is never exported, imported, written to IndexedDB, copied into diagnostics, or exposed to the renderer.
 
-- `contextIsolation: true` — preload and renderer run in separate contexts
-- `nodeIntegration: false` — renderer cannot use Node.js APIs
-- `sandbox: true` — renderer runs in a sandboxed Chromium process
-- The preload exposes a narrow `window.veniceForge` API via `contextBridge`
-- The renderer can ask **whether** a key is configured, but **cannot read** the key
+## CSP and Navigation
 
-## Local Venice Proxy
+Development CSP allows the Vite dev server and HMR. Production CSP is restrictive and does not allow broad localhost or websocket connections. Unexpected navigation is blocked, malformed URLs fail closed, and trusted external HTTPS links open in the OS browser. Packaged production DevTools are disabled unless `VENICE_FORGE_DEBUG_DEVTOOLS=true`.
 
-- When the app starts, the main process starts a local Express server on `127.0.0.1` with a randomly assigned port
-- **Only loopback (127.0.0.1)** — no external network access
-- The proxy injects the Venice API key on every outgoing request
-- Only four endpoints are proxied: `/models`, `/chat/completions`, `/image/generate`, `/image/upscale`
-- All other paths return `403 Forbidden`
-- The proxy has in-memory rate limiting (120 req/min per IP)
+## Logs and Diagnostics
 
-## Navigation and Content Security Policy
+Logs are stored under Electron `userData/logs/venice-forge.log`, capped and rotated simply at 1 MB. Authorization headers, API-key-like values, bearer tokens, and secret-like fields are redacted. Diagnostics show app/runtime versions, storage mode, userData path, transport mode, API key configured state, and last sanitized API error.
 
-- Renderer navigation is restricted to `file://` (production) or `http://localhost:5173` (dev)
-- External URLs are opened in the OS browser, not in Electron
-- New window creation (`window.open`) is denied
-- CSP is applied via response headers:
-  - `default-src 'self'`
-  - `connect-src 'self' http://127.0.0.1:* ws://localhost:*` (allows the local proxy and Vite HMR)
-  - `img-src 'self' data: blob:` (allows base64 images from the API)
-  - No `unsafe-eval`, no `unsafe-inline` scripts
+## Not Protected Against
 
-## IPC Payload Validation
-
-- All IPC handlers validate input types and lengths before acting
-- API key input is validated: must be a non-empty string, max 512 characters
-- File paths are validated as strings before any filesystem operations
-- No arbitrary shell execution is exposed via IPC
-
-## What Is NOT Hardened (Known Risks)
-
-1. **Local proxy access from other local processes**: Any process on the same machine can call `http://127.0.0.1:{port}/api/venice`. For a single-user desktop app this is acceptable; the threat model assumes the local machine is not compromised.
-
-2. **IndexedDB data is not encrypted**: Chat history and generated images in IndexedDB are not encrypted. A user with access to the Chromium profile directory can read this data.
-
-3. **Linux key storage**: If the Secret Service / libsecret is not available (some minimal Linux desktops), the API key is stored in plaintext. A warning is logged.
-
-4. **No auto-update**: Updates must be installed manually. Users may run outdated versions with known vulnerabilities.
-
-5. **No code signing by default**: The packaged app is not signed. On Windows, SmartScreen may warn users. Sign with a certificate for trusted distribution.
-
-## Reporting Vulnerabilities
-
-Please report security issues privately before public disclosure.
-Open a GitHub Security Advisory or contact the maintainers directly.
+- Malware or a debugger running as the same OS user.
+- Screen capture, clipboard capture, or memory scraping by local compromise.
+- Unencrypted IndexedDB contents for images, chats, and non-secret settings.
+- Unsigned installer trust warnings.
+- Venice account misuse if the user pastes a compromised key.
