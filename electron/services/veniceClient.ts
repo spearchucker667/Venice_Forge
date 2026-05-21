@@ -254,7 +254,7 @@ export async function performVeniceRequest(
 export function readResponseError(response: VeniceIpcResponse): string {
   const body = response.body as any;
   const top = body?.error?.message || body?.error || body?.message;
-  if (top) return String(top);
+  if (top) return typeof top === "object" ? JSON.stringify(top) : String(top);
   // Venice DetailedError (Zod): { details: { _errors?: string[], field?: { _errors: string[] } } }
   const details = body?.details;
   if (details && typeof details === "object") {

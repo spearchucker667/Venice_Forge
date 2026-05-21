@@ -97,7 +97,7 @@ export function normalizeError(status: number | null, rawMessage: string) {
 function readDesktopErrorBody(body: any): string {
   // Standard Venice error: { error: string } or { error: { message: string } }
   const top = body?.error?.message || body?.error || body?.message;
-  if (top) return String(top);
+  if (top) return typeof top === "object" ? JSON.stringify(top) : String(top);
   // Venice DetailedError (Zod): { details: { _errors?: string[], field?: { _errors: string[] } } }
   const details = body?.details;
   if (details && typeof details === "object") {
@@ -114,7 +114,7 @@ function readDesktopErrorBody(body: any): string {
 
 export function readWebErrorBody(parsed: any, text: string, statusText: string): string {
   const top = parsed?.error?.message || parsed?.error || parsed?.message;
-  if (top) return String(top);
+  if (top) return typeof top === "object" ? JSON.stringify(top) : String(top);
   const details = parsed?.details;
   if (details && typeof details === "object") {
     if (Array.isArray(details._errors) && details._errors.length) return String(details._errors[0]);

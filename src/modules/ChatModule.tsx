@@ -145,16 +145,20 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
     } catch (err: any) {
       if (err.name !== "AbortError") {
         setError(err.message || "Chat request failed");
-        setMessages((prev) => {
-          const next = [...prev];
-          if (
-            next[next.length - 1]?.role === "assistant" &&
-            !next[next.length - 1].content
-          )
-            next.pop();
-          return next;
-        });
       }
+      setMessages((prev) => {
+        const next = [...prev];
+        if (
+          next[next.length - 1]?.role === "assistant" &&
+          !next[next.length - 1].content
+        ) {
+          next.pop(); // Remove empty assistant message
+          if (next[next.length - 1]?.role === "user") {
+            next.pop(); // Remove the user prompt that failed to get a response
+          }
+        }
+        return next;
+      });
     } finally {
       setLoading(false);
     }
