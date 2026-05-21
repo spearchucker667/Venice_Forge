@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { refreshModels } from './modelService';
 
 vi.mock('./veniceClient', () => ({ veniceFetch: vi.fn() }));
+
+import { refreshModels } from './modelService';
 import { veniceFetch } from './veniceClient';
 
 const dispatch = vi.fn();

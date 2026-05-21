@@ -146,10 +146,12 @@ async function serializeFormData(formData: FormData): Promise<SerializedFormData
   for (const [name, value] of formData.entries()) {
     if (value instanceof File) {
       const arrayBuffer = await value.arrayBuffer();
-      if (arrayBuffer.byteLength > MAX_SERIALIZED_UPLOAD_BYTES) {
+      const estimatedSerializedBytes = Math.ceil(arrayBuffer.byteLength * 4 / 3);
+      if (estimatedSerializedBytes > MAX_SERIALIZED_UPLOAD_BYTES) {
         throw new Error(`File too large. Maximum upload size is ${Math.floor(MAX_SERIALIZED_UPLOAD_BYTES / (1024 * 1024))} MiB.`);
       }
       const bytes = new Uint8Array(arrayBuffer);
+      // 0x8000 (32 KiB) chunks avoid stack overflow when spreading large typed arrays.
       const chunkSize = 0x8000;
       let binary = "";
       for (let i = 0; i < bytes.byteLength; i += chunkSize) {

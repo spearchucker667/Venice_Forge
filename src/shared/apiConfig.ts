@@ -28,7 +28,7 @@ export function parsePositiveIntEnv(
 export const VENICE_API_HOST = env("VENICE_API_HOST", "api.venice.ai");
 export const VENICE_API_BASE_PATH = env("VENICE_API_BASE_PATH", "/api/v1");
 export const VENICE_API_TIMEOUT_MS = parsePositiveIntEnv(
-  env("VENICE_API_TIMEOUT_MS", "60000"),
+  env("VENICE_API_TIMEOUT_MS", env("VENICE_TIMEOUT_MS", "60000")),
   60000,
   1000,
   300000
