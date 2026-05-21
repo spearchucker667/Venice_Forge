@@ -26,12 +26,13 @@ function rendererCsp(): string {
   ].join("; ");
 }
 
-const TRUSTED_EXTERNAL_HOSTS = new Set(["venice.ai", "docs.venice.ai", "github.com"]);
-
+// DSC-001: Any https: URL is allowed to open externally via the OS browser.
+// The security boundary is that external links never load inside the Electron
+// BrowserWindow — they are always delegated to shell.openExternal.
 export function isTrustedExternalUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.protocol === "https:" && TRUSTED_EXTERNAL_HOSTS.has(parsed.hostname);
+    return parsed.protocol === "https:";
   } catch {
     return false;
   }

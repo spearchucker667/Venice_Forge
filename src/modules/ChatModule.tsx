@@ -166,8 +166,9 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
   }
 
   function clear() {
-    setMessages([{ role: "assistant", content: "Conversation cleared." }]);
+    setMessages([]);
     setError("");
+    dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Conversation cleared.", type: "info" } });
   }
 
   const lastAssistant = [...messages]
@@ -360,7 +361,7 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
               setUserPrompt(e.target.value);
               if (promptTouched && e.target.value.trim()) setPromptTouched(false);
             }}
-            onBlur={() => { if (!userPrompt.trim()) setPromptTouched(true); }}
+
             placeholder="Ask Venice something…"
             aria-invalid={promptTouched && !userPrompt.trim()}
             aria-describedby="chat-prompt-error"

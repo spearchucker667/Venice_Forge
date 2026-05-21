@@ -36,19 +36,6 @@ function openKeyDB(): Promise<IDBDatabase> {
   });
 }
 
-function ab2str(buf: ArrayBuffer): string {
-  return String.fromCharCode.apply(null, Array.from(new Uint16Array(buf)));
-}
-
-function str2ab(str: string): ArrayBuffer {
-  const buf = new ArrayBuffer(str.length * 2);
-  const bufView = new Uint16Array(buf);
-  for (let i = 0, strLen = str.length; i < strLen; i++) {
-    bufView[i] = str.charCodeAt(i);
-  }
-  return buf;
-}
-
 export async function encryptData(data: any): Promise<any> {
   const key = await getOrCreateKey();
   const iv = crypto.getRandomValues(new Uint8Array(12));

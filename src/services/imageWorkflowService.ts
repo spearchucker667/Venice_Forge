@@ -97,18 +97,23 @@ export const downloadAllGallery = async (
   }
 
   let downloaded = 0;
+  let failed = 0;
   for (let i = 0; i < max; i++) {
     if (cancelSignal?.current) {
       addToast(`Download cancelled. Saved ${downloaded} of ${max} images.`, "info");
       return;
     }
     const item = items[i];
-    await downloadImage(item.image, galleryFilename(item));
-    downloaded++;
-    onProgress?.(downloaded, max);
+    try {
+      await downloadImage(item.image, galleryFilename(item));
+      downloaded++;
+    } catch {
+      failed++;
+    }
+    onProgress?.(downloaded + failed, max);
     if (i < max - 1) {
       await new Promise((resolve) => setTimeout(resolve, 300));
     }
   }
-  addToast(`Saved ${downloaded} images.`, "success");
+  addToast(`Saved ${downloaded} images${failed ? ` (${failed} failed)` : ''}.`, "success");
 };

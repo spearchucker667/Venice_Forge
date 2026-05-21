@@ -172,6 +172,9 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
 
   function cancel() {
     abortRef.current?.abort();
+    setResults((prev) =>
+      prev.map((r) => (r.status === "running" ? { ...r, status: "cancelled" } : r))
+    );
     setIsRunning(false);
   }
 

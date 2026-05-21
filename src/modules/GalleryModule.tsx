@@ -146,7 +146,7 @@ export function GalleryModule({ state, dispatch }: { state: AppState; dispatch: 
                   <button
                     className="btn"
                     onClick={async () => {
-                      await downloadImage(item.image, galleryFilename(item.prompt, item.timestamp));
+                      await downloadImage(item.image, galleryFilename(item));
                       dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Downloaded image", type: "info" } });
                     }}
                   >
@@ -207,7 +207,7 @@ export function GalleryModule({ state, dispatch }: { state: AppState; dispatch: 
         onClose={() => setExpanded(null)}
         onDownload={async () => {
           if (!expanded) return;
-          await downloadImage(expanded.image, galleryFilename(expanded.prompt, expanded.timestamp));
+          await downloadImage(expanded.image, galleryFilename(expanded));
           dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Downloaded image", type: "info" } });
         }}
         onUpscale={() => expanded && upscale(expanded)}

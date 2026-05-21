@@ -33,7 +33,7 @@ export interface ValidatedImport {
 }
 
 function byteLength(value: string): number {
-  return new TextEncoder().encode(value).length;
+  return new Blob([value]).size;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

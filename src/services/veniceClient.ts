@@ -549,8 +549,10 @@ export async function veniceStreamChat(
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
+    let parsed: any = null;
+    try { parsed = JSON.parse(text); } catch {}
     throw new Error(
-      normalizeError(response.status, text || response.statusText)
+      normalizeError(response.status, readWebErrorBody(parsed, text, response.statusText))
     );
   }
 

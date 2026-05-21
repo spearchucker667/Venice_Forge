@@ -126,33 +126,41 @@ export function registerIpcHandlers(): void {
   ipcMain.handle("app:openLogsFolder", () => openLogsFolder());
 
   ipcMain.handle("app:saveJsonFile", async (_event, data: unknown, defaultPath: unknown) => {
-    if (typeof data !== "string") throw new Error("Export data must be a string.");
-    if (Buffer.byteLength(data, "utf-8") > MAX_JSON_FILE_BYTES) {
-      throw new Error("Export data is too large.");
+    try {
+      if (typeof data !== "string") throw new Error("Export data must be a string.");
+      if (Buffer.byteLength(data, "utf-8") > MAX_JSON_FILE_BYTES) {
+        throw new Error("Export data is too large.");
+      }
+      const resolvedPath = typeof defaultPath === "string" ? defaultPath : "venice-forge-export.json";
+      const result = await dialog.showSaveDialog({
+        title: "Export Venice Forge data",
+        defaultPath: resolvedPath,
+        filters: [{ name: "JSON", extensions: ["json"] }],
+      });
+      if (result.canceled || !result.filePath) return { ok: false, canceled: true };
+      await fs.writeFile(result.filePath, data, "utf-8");
+      return { ok: true, canceled: false };
+    } catch (err) {
+      return { ok: false, error: sanitizeError(err) };
     }
-    const resolvedPath = typeof defaultPath === "string" ? defaultPath : "venice-forge-export.json";
-    const result = await dialog.showSaveDialog({
-      title: "Export Venice Forge data",
-      defaultPath: resolvedPath,
-      filters: [{ name: "JSON", extensions: ["json"] }],
-    });
-    if (result.canceled || !result.filePath) return { ok: false, canceled: true };
-    await fs.writeFile(result.filePath, data, "utf-8");
-    return { ok: true, canceled: false };
   });
 
   ipcMain.handle("app:loadJsonFile", async () => {
-    const result = await dialog.showOpenDialog({
-      title: "Import Venice Forge data",
-      filters: [{ name: "JSON", extensions: ["json"] }],
-      properties: ["openFile"],
-    });
-    if (result.canceled || !result.filePaths[0]) return { canceled: true };
-    const stat = await fs.stat(result.filePaths[0]);
-    if (stat.size > MAX_JSON_FILE_BYTES) {
-      throw new Error("Import file is too large.");
+    try {
+      const result = await dialog.showOpenDialog({
+        title: "Import Venice Forge data",
+        filters: [{ name: "JSON", extensions: ["json"] }],
+        properties: ["openFile"],
+      });
+      if (result.canceled || !result.filePaths[0]) return { canceled: true };
+      const stat = await fs.stat(result.filePaths[0]);
+      if (stat.size > MAX_JSON_FILE_BYTES) {
+        throw new Error("Import file is too large.");
+      }
+      const data = await fs.readFile(result.filePaths[0], "utf-8");
+      return { canceled: false, data };
+    } catch (err) {
+      return { canceled: false, error: sanitizeError(err) };
     }
-    const data = await fs.readFile(result.filePaths[0], "utf-8");
-    return { canceled: false, data };
   });
 }
