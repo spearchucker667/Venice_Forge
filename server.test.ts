@@ -1,6 +1,16 @@
 // @vitest-environment node
-import { describe, it, expect, beforeAll, beforeEach } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, vi } from "vitest";
 import request from "supertest";
+
+// Stub out the proxy so the augment (and other allowed) endpoint tests don't make
+// real network calls to api.venice.ai. The assertions only care about validation
+// behaviour (403/405 gating), not upstream responses.
+vi.mock("http-proxy-middleware", () => ({
+  createProxyMiddleware: () => (_req: any, res: any) => {
+    res.status(200).json({ mocked: true });
+  },
+}));
+
 import { createServerApp } from "./server";
 
 describe("server.ts proxy validation", () => {

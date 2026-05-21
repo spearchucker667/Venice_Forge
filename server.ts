@@ -11,15 +11,23 @@ export function createServerApp() {
   const app = express();
   app.disable("x-powered-by");
 
-  // Trust the first proxy hop so req.ip reflects the real client IP.
-  // Adjust the value if there are multiple proxy layers in front of this server.
-  app.set("trust proxy", 1);
+  // Trust proxy only when explicitly configured via TRUST_PROXY env var,
+  // to prevent IP spoofing when the server is accessed directly without a trusted reverse proxy.
+  if (process.env.TRUST_PROXY) {
+    const raw = process.env.TRUST_PROXY;
+    const numeric = Number(raw);
+    app.set("trust proxy", Number.isFinite(numeric) ? numeric : raw);
+  }
 
   // Security headers for all responses
   app.use((_req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Referrer-Policy", "no-referrer");
+    // In non-production environments Vite HMR uses WebSocket connections, so we
+    // widen connect-src to include ws: / wss:. In production only 'self' is allowed.
+    const isProduction = process.env.NODE_ENV === "production";
+    const connectSrc = isProduction ? "connect-src 'self'" : "connect-src 'self' ws: wss:";
     res.setHeader(
       "Content-Security-Policy",
       [
@@ -27,7 +35,7 @@ export function createServerApp() {
         "script-src 'self'",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: blob:",
-        "connect-src 'self'",
+        connectSrc,
         "font-src 'self' data:",
         "media-src 'self' blob:",
         "object-src 'none'",

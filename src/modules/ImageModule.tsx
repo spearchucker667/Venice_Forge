@@ -264,7 +264,7 @@ export function ImageModule({ state, dispatch }: { state: AppState; dispatch: Ap
     setSuccess("");
     setUpscaling(true);
     try {
-      const saved = await upscaleGalleryImage(item as GalleryImage, dispatch);
+      const saved = await upscaleGalleryImage(item as GalleryImage, dispatch, {});
       patch({ currentImage: saved.image, lastSavedImageId: saved.id });
       setExpanded(saved);
       setSuccess(`Enhanced/upscaled image saved to gallery: ${saved.id}`);

@@ -22,13 +22,18 @@ export const saveImageRecord = async (dispatch: AppDispatch, record: GalleryImag
   return saved;
 };
 
+interface UpscaleOptions {
+  model?: string;
+  onComplete?: () => void;
+  onError?: (err: Error) => void;
+}
+
 export const upscaleGalleryImage = async (
   item: GalleryImage,
   dispatch: AppDispatch,
-  model = "upscale-model",
-  onComplete?: () => void,
-  onError?: (err: Error) => void
+  options: UpscaleOptions = {}
 ) => {
+  const { model = "upscale-model", onComplete, onError } = options;
   try {
     const { data } = await veniceFetch("/image/upscale", {
       method: "POST",

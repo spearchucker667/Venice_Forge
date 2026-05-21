@@ -147,11 +147,16 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
       );
 
       // Persist backup before any data is overwritten so it is recoverable.
-      const dateStr = new Date().toISOString().split('T')[0];
-      await desktopFiles.exportJson(
+      // Include time in the filename so multiple imports on the same day don't collide.
+      const dateTimeStr = new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
+      const backupOk = await desktopFiles.exportJson(
         backup,
-        `venice-forge-pre-import-backup-${dateStr}.json`
+        `venice-forge-pre-import-backup-${dateTimeStr}.json`
       );
+      if (!backupOk) {
+        setStatusError("Pre-import backup could not be saved. Import aborted.");
+        return;
+      }
 
       const { payload, summary } = validateImportJson(json);
 

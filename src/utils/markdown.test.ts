@@ -10,8 +10,10 @@ describe("escapeHtml", () => {
     expect(escapeHtml("a & b")).toBe("a &amp; b");
   });
 
-  it("returns empty string for nullish input", () => {
+  it("returns empty string for empty string and nullish input", () => {
     expect(escapeHtml("")).toBe("");
+    expect(escapeHtml(null as any)).toBe("");
+    expect(escapeHtml(undefined as any)).toBe("");
   });
 });
 
