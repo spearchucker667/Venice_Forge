@@ -1,15 +1,33 @@
+// Code Owner: fayeblade (@spearchucker667)
+// Express web proxy and Vite dev-server bootstrap.
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import dotenv from "dotenv";
 import { ALLOWED_VENICE_ENDPOINTS, ALLOWED_VENICE_METHODS } from "./src/shared/validation";
+import { VENICE_API_HOST, VENICE_API_BASE_PATH } from "./src/shared/apiConfig";
 
 dotenv.config();
 
 export function createServerApp() {
   const app = express();
   app.disable("x-powered-by");
+
+  // Structured request logging (no bodies, no secrets)
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on("finish", () => {
+      const duration = Date.now() - start;
+      console.log(`${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
+    });
+    next();
+  });
+
+  // Health check endpoint (does not proxy to Venice)
+  app.get("/health", (_req, res) => {
+    res.status(200).json({ status: "ok", version: process.env.npm_package_version || "unknown" });
+  });
 
   // Trust proxy only when explicitly configured via TRUST_PROXY env var,
   // to prevent IP spoofing when the server is accessed directly without a trusted reverse proxy.
@@ -41,6 +59,7 @@ export function createServerApp() {
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'none'",
+        "frame-ancestors 'none'",
       ].join("; ")
     );
     next();
@@ -122,7 +141,7 @@ export function createServerApp() {
       limit: MAX_PROXY_BODY_BYTES
     }),
     createProxyMiddleware({
-      target: "https://api.venice.ai/api/v1",
+      target: `https://${VENICE_API_HOST}${VENICE_API_BASE_PATH}`,
       changeOrigin: true,
       pathRewrite: {
         "^/api/venice": "", // remove base path
@@ -143,14 +162,20 @@ export function createServerApp() {
           }
         },
         proxyRes: (proxyRes: any, req: any, res: any) => {
+          // Forward rate-limit headers so the client can respect them.
+          const retryAfter = proxyRes.headers["retry-after"];
+          if (retryAfter) res.setHeader("Retry-After", retryAfter);
+          const rlReset = proxyRes.headers["x-ratelimit-reset-requests"];
+          if (rlReset) res.setHeader("X-RateLimit-Reset-Requests", rlReset);
+
           if (proxyRes.statusCode >= 500) {
             circuitFailures++;
             if (circuitFailures >= CIRCUIT_MAX_FAILURES) {
               console.error(`[Circuit Breaker] Tripped! Opening for ${CIRCUIT_RESET_TIMEOUT_MS}ms`);
               circuitOpenUntil = Date.now() + CIRCUIT_RESET_TIMEOUT_MS;
             }
-          } else if (proxyRes.statusCode < 500) {
-             circuitFailures = 0; // Reset on success or client errors
+          } else if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
+             circuitFailures = 0; // Reset only on successful responses
           }
         },
         error: (err: any, req: any, res: any) => {
@@ -192,8 +217,9 @@ export async function startServer() {
   }
 
   if (process.env.NODE_ENV !== "test") {
-    app.listen(Number(PORT), "0.0.0.0", () => {
-      console.log(`Server running on http://localhost:${PORT}`);
+    const host = process.env.HOST || "127.0.0.1";
+    app.listen(Number(PORT), host, () => {
+      console.log(`Server running on http://${host}:${PORT}`);
     });
   }
 }

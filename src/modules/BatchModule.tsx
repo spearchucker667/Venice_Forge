@@ -5,6 +5,7 @@ import { extractImages } from "../utils/image";
 import { downloadImage } from "../utils/download";
 import { desktopFiles } from "../services/desktopBridge";
 import { IMAGE_BATCH_INTER_REQUEST_DELAY_MS } from "../constants/venice";
+import { buildChatPayload, buildImagePayload } from "../utils/payloadBuilders";
 import { Field } from "../components/Field";
 import { Chip } from "../components/Chip";
 import { Markdown } from "../utils/markdown";
@@ -26,6 +27,7 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
   const draft = state.batchDraft || { type: "text", promptsText: "" };
   const [results, setResults] = useState<any[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [promptsTouched, setPromptsTouched] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   function patch(updates: any) {
@@ -39,6 +41,7 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
   }, []);
 
   async function runBatch() {
+    setPromptsTouched(true);
     const lines = draft.promptsText
       .split("\n")
       .map((l: string) => l.trim())
@@ -66,20 +69,19 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
 
       try {
         if (draft.type === "text") {
-          const payload = {
-            model: state.selectedChatModel,
-            messages: [
+          const payload = buildChatPayload(
+            state.selectedChatModel,
+            [
               { role: "system", content: state.settings.defaultSystemPrompt },
               { role: "user", content: newResults[i].prompt },
             ],
-            venice_parameters: {
-              include_venice_system_prompt:
-                state.settings.includeVeniceSystemPrompt,
-              enable_web_search: state.settings.webSearch,
-              enable_web_scraping: state.settings.webScraping,
-              enable_web_citations: state.settings.webCitations,
-            },
-          };
+            {
+              includeVeniceSystemPrompt: state.settings.includeVeniceSystemPrompt,
+              webSearch: state.settings.webSearch,
+              webScraping: state.settings.webScraping,
+              webCitations: state.settings.webCitations,
+            }
+          );
           const { data } = await veniceFetch("/chat/completions", {
             method: "POST",
             body: payload,
@@ -105,22 +107,11 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
             )
           );
         } else {
-          const idraft = state.imageDraft;
-          const payload: any = {
-            model: state.selectedImageModel,
-            prompt: newResults[i].prompt,
-            width: Number(idraft.width),
-            height: Number(idraft.height),
-            aspect_ratio: idraft.aspectRatio,
-            steps: Number(idraft.steps),
-            cfg_scale: Number(idraft.cfg),
-            safe_mode: !!idraft.safeMode,
-            hide_watermark: !!idraft.disableWatermark,
-            return_binary: false,
-          };
-          if (idraft.negative.trim())
-            payload.negative_prompt = idraft.negative.trim();
-          if (idraft.style) payload.style_preset = idraft.style;
+          const payload = buildImagePayload(
+            state.selectedImageModel,
+            state.imageDraft,
+            newResults[i].prompt
+          );
 
           const { data } = await veniceFetch("/image/generate", {
             method: "POST",
@@ -135,16 +126,16 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
             id: crypto.randomUUID(),
             image: images[0],
             prompt: newResults[i].prompt,
-            negative: idraft.negative,
+            negative: state.imageDraft.negative,
             model: state.selectedImageModel,
-            width: idraft.width,
-            height: idraft.height,
-            aspectRatio: idraft.aspectRatio,
-            style: idraft.style,
-            cfg: idraft.cfg,
-            steps: idraft.steps,
-            safeMode: idraft.safeMode,
-            disableWatermark: !!idraft.disableWatermark,
+            width: state.imageDraft.width,
+            height: state.imageDraft.height,
+            aspectRatio: state.imageDraft.aspectRatio,
+            style: state.imageDraft.style,
+            cfg: state.imageDraft.cfg,
+            steps: state.imageDraft.steps,
+            safeMode: state.imageDraft.safeMode,
+            disableWatermark: !!state.imageDraft.disableWatermark,
             timestamp: Date.now(),
           });
 
@@ -229,17 +220,29 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
           <Field label="Prompts (One per line)">
             <textarea
               value={draft.promptsText}
-              onChange={(e) => patch({ promptsText: e.target.value })}
+              onChange={(e) => {
+                patch({ promptsText: e.target.value });
+                if (promptsTouched && e.target.value.trim()) setPromptsTouched(false);
+              }}
+              onBlur={() => { if (!draft.promptsText.trim()) setPromptsTouched(true); }}
               placeholder="Enter multiple prompts here, one per line..."
               style={{ minHeight: "180px" }}
+              aria-invalid={promptsTouched && !draft.promptsText.trim()}
+              aria-describedby="batch-prompts-error"
             />
+            {promptsTouched && !draft.promptsText.trim() && (
+              <div id="batch-prompts-error" className="validation-error" role="alert">
+                Please enter at least one prompt before running the batch.
+              </div>
+            )}
           </Field>
 
           <div className="chip-row">
             <button
               className="btn primary"
               onClick={runBatch}
-              disabled={isRunning || !draft.promptsText.trim()}
+              disabled={isRunning}
+              aria-disabled={isRunning || !draft.promptsText.trim()}
             >
               {isRunning ? "Running Batch..." : "Run Batch"}
             </button>

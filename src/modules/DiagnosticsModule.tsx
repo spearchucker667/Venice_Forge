@@ -230,6 +230,7 @@ export function DiagnosticsModule({ state, dispatch, apiKeyConfigured }: Diagnos
 
             <div className="table-wrap">
               <table>
+                <caption className="sr-only">Venice API response headers</caption>
                 <thead>
                   <tr>
                     <th>Header</th>
@@ -240,7 +241,7 @@ export function DiagnosticsModule({ state, dispatch, apiKeyConfigured }: Diagnos
                   {rows.map(([k, v]) => (
                     <tr key={k}>
                       <td className="mono">{k}</td>
-                      <td className="mono">{String(v)}</td>
+                      <td className="mono" style={{ wordBreak: "break-all" }}>{String(v)}</td>
                     </tr>
                   ))}
                   {!rows.length && (

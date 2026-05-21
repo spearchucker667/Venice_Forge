@@ -26,12 +26,9 @@
   },
   "exclude": [
     "node_modules",
-    "electron",
     "dist",
     "dist-electron",
     "release",
-    "vite.config.ts",
-    "**/*.test.ts",
-    "**/*.test.tsx"
+    "vite.config.ts"
   ]
 }

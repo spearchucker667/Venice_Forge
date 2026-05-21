@@ -34,7 +34,12 @@ export interface BatchDraft {
 }
 
 export interface AppSettings {
-  apiKey: string;
+  apiKey?: string;
+  defaultSystemPrompt: string;
+  includeVeniceSystemPrompt: boolean;
+  webSearch: string;
+  webScraping: boolean;
+  webCitations: boolean;
   theme: "dark" | "light" | "system";
   customModels: string[];
 }
@@ -63,6 +68,7 @@ export type AppAction =
   | { type: "SET_CHAT_DRAFT"; patch: Partial<AppState['chatDraft']> }
   | { type: "SET_IMAGE_DRAFT"; patch: Partial<ImageDraft> }
   | { type: "SET_BATCH_DRAFT"; patch: Partial<BatchDraft> }
+  | { type: "SET_ONLINE"; online: boolean }
   | { type: "ADD_TOAST"; toast: ToastMessage }
   | { type: "REMOVE_TOAST"; id: string };
 

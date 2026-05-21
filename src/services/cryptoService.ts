@@ -1,26 +1,27 @@
+// Code Owner: fayeblade (@spearchucker667)
+// IndexedDB at-rest encryption for chats and settings.
 const ALGO = "AES-GCM";
 const KEY_NAME = "venice-forge-key";
 
 async function getOrCreateKey(): Promise<CryptoKey> {
   const db = await openKeyDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction("keys", "readwrite");
+  const existing = await new Promise<any>((resolve, reject) => {
+    const tx = db.transaction("keys", "readonly");
     const req = tx.objectStore("keys").get(KEY_NAME);
-    req.onsuccess = async () => {
-      if (req.result) {
-        resolve(req.result.key);
-      } else {
-        const key = await crypto.subtle.generateKey(
-          { name: ALGO, length: 256 },
-          false,
-          ["encrypt", "decrypt"]
-        );
-        const putReq = tx.objectStore("keys").put({ id: KEY_NAME, key });
-        putReq.onsuccess = () => resolve(key);
-        putReq.onerror = () => reject(putReq.error);
-      }
-    };
+    req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
+  });
+  if (existing) return existing.key;
+  const key = await crypto.subtle.generateKey(
+    { name: ALGO, length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+  return new Promise<CryptoKey>((resolve, reject) => {
+    const tx = db.transaction("keys", "readwrite");
+    const putReq = tx.objectStore("keys").put({ id: KEY_NAME, key });
+    putReq.onsuccess = () => resolve(key);
+    putReq.onerror = () => reject(putReq.error);
   });
 }
 
@@ -78,7 +79,7 @@ export async function decryptData(encryptedPayload: any): Promise<any> {
     );
     return JSON.parse(new TextDecoder().decode(decrypted));
   } catch (e) {
-    console.error("Failed to decrypt data", e);
+    // Redacted: do not log decryption error details in production.
     return null;
   }
 }

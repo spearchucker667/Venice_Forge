@@ -22,8 +22,15 @@ function ToastItem({ toast, dispatch }: { toast: ToastMessage; dispatch: AppDisp
   const bgColor = toast.type === "error" ? "var(--error)" : toast.type === "success" ? "var(--accent-2)" : "var(--panel-strong)";
   const color = toast.type === "error" ? "#fff" : "var(--text)";
 
+  const live = toast.type === "error" ? "assertive" : "polite";
+  const role = toast.type === "error" ? "alert" : "status";
   return (
-    <div className={`toast-message toast-${toast.type}`} style={{ background: bgColor, color, padding: "12px 16px", borderRadius: 8, boxShadow: "var(--shadow)", fontSize: 14 }}>
+    <div
+      className={`toast-message toast-${toast.type}`}
+      style={{ background: bgColor, color, padding: "12px 16px", borderRadius: 8, boxShadow: "var(--shadow)", fontSize: 14 }}
+      role={role}
+      aria-live={live}
+    >
       {toast.message}
     </div>
   );

@@ -1,3 +1,5 @@
+// Code Owner: fayeblade (@spearchucker667)
+// Primary maintainer and security gatekeeper for the Electron main process.
 import { app, BrowserWindow, shell } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -20,12 +22,15 @@ function rendererCsp(): string {
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'none'",
+    "frame-ancestors 'none'",
   ].join("; ");
 }
 
 function isTrustedExternalUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
+    // WARNING: This allows ANY https: domain. For production hardening,
+    // consider maintaining an explicit allowlist (e.g., venice.ai, github.com).
     return parsed.protocol === "https:";
   } catch {
     return false;
@@ -38,8 +43,11 @@ function isAllowedAppNavigation(url: string): boolean {
     if (isDev) return parsed.origin === "http://localhost:5173";
     if (parsed.protocol !== "file:") return false;
     const rendererRoot = path.resolve(__dirname, "../dist");
-    const targetPath = path.resolve(fileURLToPath(parsed));
-    return targetPath === path.join(rendererRoot, "index.html") || targetPath.startsWith(`${rendererRoot}${path.sep}`);
+    // Normalize to resolve ".." and symlinks, then verify strict containment.
+    const targetPath = path.normalize(fileURLToPath(parsed));
+    const normalizedRoot = path.normalize(rendererRoot);
+    const indexHtml = path.join(normalizedRoot, "index.html");
+    return targetPath === indexHtml || targetPath.startsWith(`${normalizedRoot}${path.sep}`);
   } catch {
     return false;
   }

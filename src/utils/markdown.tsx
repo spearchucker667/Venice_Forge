@@ -9,6 +9,8 @@ export function escapeHtml(value: string) {
     .replaceAll("'", "&#039;");
 }
 
+// SECURITY: escapeHtml MUST run before any markdown replacement.
+// If you modify this function, ensure raw HTML cannot be injected.
 export function minimalMarkdown(text: string) {
   const escaped = escapeHtml(text || "");
   const codeBlocks: string[] = [];

@@ -1,3 +1,5 @@
+// Code Owner: fayeblade (@spearchucker667)
+// Shared endpoint allowlist consumed by both Electron IPC and the web proxy.
 export const ALLOWED_VENICE_ENDPOINTS = [
   "/models",
   "/chat/completions",

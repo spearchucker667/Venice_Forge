@@ -13,6 +13,15 @@ vi.mock("http-proxy-middleware", () => ({
 
 import { createServerApp } from "./server";
 
+describe("server.ts health endpoint", () => {
+  it("should return 200 and status ok on /health", async () => {
+    const app = createServerApp();
+    const res = await request(app).get("/health");
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("ok");
+  });
+});
+
 describe("server.ts proxy validation", () => {
   let app: any;
 

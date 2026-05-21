@@ -4,6 +4,7 @@ import { veniceFetch, veniceStreamChat } from "../services/veniceClient";
 import { DEFAULT_SYSTEM_PROMPT } from "../constants/venice";
 import { Markdown } from "../utils/markdown";
 import { copyText } from "../utils/download";
+import { buildChatPayload } from "../utils/payloadBuilders";
 import { Field } from "../components/Field";
 import { ModelSelect } from "../components/ModelSelect";
 import { ModelRefreshButton } from "../components/ModelRefreshButton";
@@ -18,6 +19,7 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
   const [userPrompt, setUserPrompt] = useState("");
   const [messages, setMessages] = useState<any[]>([
     {
+      id: "welcome",
       role: "assistant",
       content: "Ready. Send a prompt to call Venice /chat/completions.",
     },
@@ -36,6 +38,7 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
   const [reasoningEffort, setReasoningEffort] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [promptTouched, setPromptTouched] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -50,11 +53,12 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
   }, []);
 
   async function send() {
+    setPromptTouched(true);
     if (!userPrompt.trim() || loading) return;
     setError("");
     setLoading(true);
 
-    const userMessage = { role: "user", content: userPrompt.trim() };
+    const userMessage = { id: crypto.randomUUID(), role: "user", content: userPrompt.trim() };
     const conversation = [
       { role: "system", content: systemPrompt || DEFAULT_SYSTEM_PROMPT },
       ...messages.filter((m) => ["user", "assistant"].includes(m.role)),
@@ -63,28 +67,28 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
     setMessages((prev) => [
       ...prev,
       userMessage,
-      { role: "assistant", content: "" },
+      { id: crypto.randomUUID(), role: "assistant", content: "" },
     ]);
     setUserPrompt("");
 
-    const payload: any = {
-      model: state.selectedChatModel,
-      messages: conversation,
-      stream,
-      venice_parameters: {
-        include_venice_system_prompt: includeVeniceSystemPrompt,
-        enable_web_search: webSearch,
-        enable_web_scraping: !!webScraping,
-        enable_web_citations: !!webCitations,
-        enable_x_search: enableXSearch,
-        strip_thinking_response: stripThinking,
-        disable_thinking: disableThinking,
+    const payload = buildChatPayload(
+      state.selectedChatModel,
+      conversation,
+      {
+        includeVeniceSystemPrompt,
+        webSearch,
+        webScraping,
+        webCitations,
       },
-    };
-    if (characterSlug.trim())
-      payload.venice_parameters.character_slug = characterSlug.trim();
-    if (reasoningEffort)
-      payload.reasoning = { effort: reasoningEffort };
+      {
+        stream,
+        characterSlug,
+        reasoningEffort,
+        enableXSearch,
+        stripThinking,
+        disableThinking,
+      }
+    );
 
     abortRef.current = new AbortController();
 
@@ -98,7 +102,7 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
             acc += delta;
             setMessages((prev) => {
               const next = [...prev];
-              next[next.length - 1] = { role: "assistant", content: acc };
+              next[next.length - 1] = { ...next[next.length - 1], role: "assistant", content: acc };
               return next;
             });
           },
@@ -125,7 +129,7 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
           JSON.stringify(data);
         setMessages((prev) => {
           const next = [...prev];
-          next[next.length - 1] = { role: "assistant", content };
+          next[next.length - 1] = { ...next[next.length - 1], role: "assistant", content };
           return next;
         });
         await StorageService.saveItem("chats", {
@@ -328,7 +332,7 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
 
         <div className="message-list" aria-live="polite">
           {messages.map((m, idx) => (
-            <div key={idx} className={`message ${m.role}`}>
+            <div key={m.id || `${m.role}-${m.content?.slice(0, 8)}`} className={`message ${m.role}`}>
               <div className="message-head">
                 <strong>{m.role}</strong>
                 {m.role === "assistant" &&
@@ -350,20 +354,33 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
 
         <Field label="User prompt">
           <textarea
+            aria-label="User prompt"
             value={userPrompt}
-            onChange={(e) => setUserPrompt(e.target.value)}
+            onChange={(e) => {
+              setUserPrompt(e.target.value);
+              if (promptTouched && e.target.value.trim()) setPromptTouched(false);
+            }}
+            onBlur={() => { if (!userPrompt.trim()) setPromptTouched(true); }}
             placeholder="Ask Venice something…"
+            aria-invalid={promptTouched && !userPrompt.trim()}
+            aria-describedby="chat-prompt-error"
             onKeyDown={(e) => {
               if ((e.metaKey || e.ctrlKey) && e.key === "Enter") send();
             }}
           />
+          {promptTouched && !userPrompt.trim() && (
+            <div id="chat-prompt-error" className="validation-error" role="alert">
+              Please enter a prompt before sending.
+            </div>
+          )}
         </Field>
 
         <div className="chip-row">
           <button
             className="btn primary"
             onClick={send}
-            disabled={loading || !userPrompt.trim()}
+            disabled={loading}
+            aria-disabled={loading || !userPrompt.trim()}
           >
             Send
           </button>

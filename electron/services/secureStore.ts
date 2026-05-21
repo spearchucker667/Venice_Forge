@@ -1,3 +1,4 @@
+// Code Owner: fayeblade (@spearchucker667)
 /**
  * SecureStore: Stores the Venice API key encrypted using Electron's safeStorage
  * (DPAPI on Windows, Keychain on macOS, Secret Service on Linux).

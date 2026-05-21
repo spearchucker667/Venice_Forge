@@ -16,6 +16,8 @@ export function GalleryModule({ state, dispatch }: { state: AppState; dispatch: 
   const [upscalingId, setUpscalingId] = useState("");
 
   async function remove(id: string) {
+    const confirmed = window.confirm("Delete this image permanently? This cannot be undone.");
+    if (!confirmed) return;
     await StorageService.deleteItem("images", id);
     const items = await StorageService.getItems("images");
     dispatch({ type: "SET_GALLERY", items });
@@ -23,6 +25,8 @@ export function GalleryModule({ state, dispatch }: { state: AppState; dispatch: 
   }
 
   async function clearImages() {
+    const confirmed = window.confirm("Delete ALL gallery images permanently? This cannot be undone.");
+    if (!confirmed) return;
     await StorageService.clearStore("images");
     dispatch({ type: "SET_GALLERY", items: [] });
     setExpanded(null);
@@ -82,7 +86,16 @@ export function GalleryModule({ state, dispatch }: { state: AppState; dispatch: 
               <img
                 src={item.image}
                 alt={item.prompt || "Generated image"}
+                tabIndex={0}
+                role="button"
+                aria-label={`View image details: ${item.prompt || "Generated image"}`}
                 onClick={() => setExpanded(item)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setExpanded(item);
+                  }
+                }}
               />
               <div className="meta">
                 <div className="small">
@@ -134,10 +147,10 @@ export function GalleryModule({ state, dispatch }: { state: AppState; dispatch: 
         <div className="panel pad">
           <div className="panel-header">
             <div className="panel-title">Recent chat records</div>
-            <Chip>{(state as any).chats?.length || 0}</Chip>
+            <Chip>{state.chats?.length || 0}</Chip>
           </div>
           <div className="grid">
-            {((state as any).chats || []).slice(0, 8).map((c: any) => (
+            {(state.chats || []).slice(0, 8).map((c: any) => (
               <div className="model-item" key={c.id}>
                 <div className="small">
                   <strong>{c.model}</strong> ·{" "}
@@ -146,7 +159,7 @@ export function GalleryModule({ state, dispatch }: { state: AppState; dispatch: 
                 <div className="small muted">{c.prompt}</div>
               </div>
             ))}
-            {!((state as any).chats?.length) && (
+            {!(state.chats?.length) && (
               <div className="small muted">No saved chat completions yet.</div>
             )}
           </div>

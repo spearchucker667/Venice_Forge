@@ -1,3 +1,5 @@
+// Code Owner: fayeblade (@spearchucker667)
+// Root application shell — all state, routing, and bridge initialization lives here.
 import React, { useEffect, useReducer, useState } from "react";
 import { appReducer, initialState } from "./state/appReducer";
 import StorageService from "./services/storageService";
@@ -25,6 +27,19 @@ export default function App() {
   // (bridge init is a no-op); in Electron it becomes true once preload diagnostics resolve.
   const [bridgeReady, setBridgeReady] = useState(!isElectron());
   const [firstRunRouted, setFirstRunRouted] = useState(false);
+  const [dbReady, setDbReady] = useState(false);
+
+  // Network status listener
+  useEffect(() => {
+    const goOnline = () => dispatch({ type: "SET_ONLINE", online: true });
+    const goOffline = () => dispatch({ type: "SET_ONLINE", online: false });
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
 
   // Initialise the desktop bridge (no-op in web mode)
   useEffect(() => {
@@ -59,6 +74,17 @@ export default function App() {
           dispatch({ type: "SET_SETTINGS", settings: latestSettings });
       } catch (err) {
         console.warn("IndexedDB init failed", err);
+        dispatch({
+          type: "ADD_TOAST",
+          toast: {
+            id: crypto.randomUUID(),
+            message: "Local storage (IndexedDB) could not be opened. History and gallery will not persist.",
+            type: "error",
+            duration: 8000,
+          },
+        });
+      } finally {
+        if (mounted) setDbReady(true);
       }
     })();
     return () => {
@@ -84,7 +110,18 @@ export default function App() {
       id: "app-settings",
       value: state.settings,
       timestamp: Date.now(),
-    }).catch(() => {});
+    }).catch((err) => {
+      console.warn("Settings save failed", err);
+      dispatch({
+        type: "ADD_TOAST",
+        toast: {
+          id: crypto.randomUUID(),
+          message: "Failed to save settings to local storage.",
+          type: "error",
+          duration: 5000,
+        },
+      });
+    });
   }, [state.settings]);
 
   const activeLabel =
@@ -148,10 +185,11 @@ export default function App() {
             <TabButton
               key={id}
               id={id}
-              label={label.slice(0, 3)} // Short label or use icons if available
+              label={label}
               active={state.activeTab === id}
               onClick={(tab) => dispatch({ type: "SET_TAB", tab })}
               className="compact"
+              iconOnly
             />
           ))}
         </nav>
@@ -199,6 +237,27 @@ export default function App() {
           </ErrorBoundary>
         </main>
       </div>
+      {!state.isOnline && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: "8px 16px",
+            background: "var(--warn-bg, #b45309)",
+            color: "var(--warn-text, #fff)",
+            textAlign: "center",
+            fontSize: 12,
+            fontWeight: 600,
+            zIndex: 1000,
+          }}
+        >
+          You are offline. API requests are unavailable until connectivity is restored.
+        </div>
+      )}
       <ToastHost state={state} dispatch={dispatch} />
     </div>
   );

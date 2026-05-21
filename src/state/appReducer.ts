@@ -1,5 +1,6 @@
 import { FALLBACK_MODELS, DEFAULT_SYSTEM_PROMPT } from "../constants/venice";
 import { produce } from "immer";
+import type { AppAction } from "../types/app";
 
 function classifyModel(model: any) {
   const id = String(model.id || model.model || "").toLowerCase();
@@ -79,12 +80,15 @@ export const initialState = {
     webSearch: "off",
     webScraping: false,
     webCitations: false,
+    theme: "dark" as const,
+    customModels: [] as string[],
   },
   diagnostics: null as any,
   diagnosticsLog: [] as any[],
   gallery: [] as any[],
   chats: [] as any[],
   sourcePanelOpen: true,
+  isOnline: typeof navigator !== "undefined" ? navigator.onLine : true,
   modelLoadError: "",
   imageDraft: {
     prompt: "",
@@ -117,7 +121,7 @@ export const initialState = {
   toasts: [] as import("../types/app").ToastMessage[],
 };
 
-export const appReducer = produce((draft: typeof initialState, action: any) => {
+export const appReducer = produce((draft: typeof initialState, action: AppAction) => {
   switch (action.type) {
     case "SET_TAB":
       draft.activeTab = action.tab;
@@ -137,9 +141,18 @@ export const appReducer = produce((draft: typeof initialState, action: any) => {
     case "SET_SELECTED_IMAGE_MODEL":
       draft.selectedImageModel = action.model;
       break;
-    case "SET_SETTINGS":
-      Object.assign(draft.settings, action.settings);
+    case "SET_SETTINGS": {
+      // Explicit property whitelist to prevent prototype pollution.
+      const allowedKeys: (keyof typeof draft.settings)[] = [
+        "defaultSystemPrompt", "includeVeniceSystemPrompt", "webSearch", "webScraping", "webCitations", "theme", "customModels",
+      ];
+      for (const key of allowedKeys) {
+        if (key in action.settings) {
+          (draft.settings as any)[key] = action.settings[key];
+        }
+      }
       break;
+    }
     case "SET_DIAGNOSTICS": {
       const entry = {
         ...action.diagnostics,
@@ -170,6 +183,9 @@ export const appReducer = produce((draft: typeof initialState, action: any) => {
       break;
     case "SET_BATCH_DRAFT":
       Object.assign(draft.batchDraft, action.patch);
+      break;
+    case "SET_ONLINE":
+      draft.isOnline = action.online;
       break;
     case "ADD_TOAST":
       draft.toasts.push(action.toast);

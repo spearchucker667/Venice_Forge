@@ -1,7 +1,7 @@
 import { DB_NAME, DB_VERSION, STORE_NAMES } from "../constants/venice";
 import { encryptData, decryptData } from "./cryptoService";
 
-const ENCRYPTED_STORES = ["chats", "settings"];
+const ENCRYPTED_STORES = ["chats", "settings", "images"];
 
 const StorageService = {
   db: null as IDBDatabase | null,

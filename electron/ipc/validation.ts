@@ -1,3 +1,5 @@
+// Code Owner: fayeblade (@spearchucker667)
+// IPC input validation — critical security boundary between renderer and main process.
 export const MAX_VENICE_IPC_BODY_BYTES = 25 * 1024 * 1024;
 
 import {
@@ -6,6 +8,7 @@ import {
   VeniceIpcEndpoint,
   VeniceIpcMethod,
 } from "../../src/shared/validation";
+import { VENICE_API_HOST } from "../../src/shared/apiConfig";
 
 export interface VeniceIpcRequest {
   endpoint: string;
@@ -24,11 +27,11 @@ function parseEndpoint(endpoint: string): URL {
   if (!endpoint.startsWith("/")) throw new Error("Venice endpoint must be relative.");
   let parsed: URL;
   try {
-    parsed = new URL(endpoint, "https://api.venice.ai");
+    parsed = new URL(endpoint, `https://${VENICE_API_HOST}`);
   } catch {
     throw new Error("Venice endpoint is malformed.");
   }
-  if (parsed.origin !== "https://api.venice.ai") {
+  if (parsed.origin !== `https://${VENICE_API_HOST}`) {
     throw new Error("Venice endpoint must stay on the Venice API origin.");
   }
   return parsed;

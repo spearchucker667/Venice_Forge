@@ -4,10 +4,45 @@ import type { IncomingHttpHeaders } from "http";
 import { getApiKey } from "./secureStore";
 import { logError, setLastApiError } from "./logger";
 import { validateVeniceIpcRequest, type VeniceIpcRequest } from "../ipc/validation";
+import { VENICE_API_HOST, VENICE_API_BASE_PATH, VENICE_API_TIMEOUT_MS } from "../../src/shared/apiConfig";
 
-const VENICE_HOST = "api.venice.ai";
-const VENICE_BASE_PATH = "/api/v1";
+const VENICE_HOST = VENICE_API_HOST;
+const VENICE_BASE_PATH = VENICE_API_BASE_PATH;
 const activeRequests = new Map<string, { destroy: () => void }>();
+
+interface SerializedFormDataEntry {
+  name: string;
+  value: string;
+  filename?: string;
+  type?: string;
+  _isFile?: boolean;
+}
+
+interface SerializedFormData {
+  _isSerializedFormData: true;
+  entries: SerializedFormDataEntry[];
+}
+
+function buildMultipartBody(serialized: SerializedFormData): { body: Buffer; boundary: string } {
+  const boundary = `----VeniceForgeBoundary${Math.random().toString(36).slice(2)}`;
+  const parts: Buffer[] = [];
+
+  for (const entry of serialized.entries) {
+    parts.push(Buffer.from(`--${boundary}\r\n`));
+    if (entry._isFile && entry.filename) {
+      parts.push(Buffer.from(`Content-Disposition: form-data; name="${entry.name}"; filename="${entry.filename}"\r\n`));
+      parts.push(Buffer.from(`Content-Type: ${entry.type || "application/octet-stream"}\r\n\r\n`));
+      parts.push(Buffer.from(entry.value, "base64"));
+    } else {
+      parts.push(Buffer.from(`Content-Disposition: form-data; name="${entry.name}"\r\n\r\n`));
+      parts.push(Buffer.from(entry.value, "utf-8"));
+    }
+    parts.push(Buffer.from(`\r\n`));
+  }
+
+  parts.push(Buffer.from(`--${boundary}--\r\n`));
+  return { body: Buffer.concat(parts), boundary };
+}
 
 export interface VeniceIpcResponse {
   ok: boolean;
@@ -99,7 +134,19 @@ export async function performVeniceRequest(
   }
 
   return new Promise<VeniceIpcResponse>((resolve, reject) => {
-    const bodyText = request.body === undefined ? undefined : JSON.stringify(request.body);
+    let bodyText: string | Buffer | undefined;
+    let contentTypeOverride: string | undefined;
+
+    // Detect serialized FormData from the renderer and rebuild multipart body.
+    const serializedForm = request.body as SerializedFormData | undefined;
+    if (serializedForm && typeof serializedForm === "object" && serializedForm._isSerializedFormData) {
+      const { body, boundary } = buildMultipartBody(serializedForm);
+      bodyText = body;
+      contentTypeOverride = `multipart/form-data; boundary=${boundary}`;
+    } else {
+      bodyText = request.body === undefined ? undefined : JSON.stringify(request.body);
+    }
+
     const path = `${VENICE_BASE_PATH}${request.endpoint}`;
     const headers: Record<string, string | number> = {
       ...request.headers,
@@ -108,8 +155,8 @@ export async function performVeniceRequest(
     };
 
     if (bodyText !== undefined) {
-      headers["Content-Type"] = headers["Content-Type"] || "application/json";
-      headers["Content-Length"] = Buffer.byteLength(bodyText);
+      headers["Content-Type"] = contentTypeOverride || headers["Content-Type"] || "application/json";
+      headers["Content-Length"] = Buffer.isBuffer(bodyText) ? bodyText.length : Buffer.byteLength(bodyText);
     }
 
     const req = https.request(
@@ -118,7 +165,7 @@ export async function performVeniceRequest(
         path,
         method: request.method,
         headers,
-        timeout: 60_000,
+        timeout: VENICE_API_TIMEOUT_MS,
       },
       (res) => {
         const chunks: Buffer[] = [];
@@ -171,7 +218,6 @@ export async function performVeniceRequest(
     }
 
     req.on("error", (err) => {
-      cleanup();
       const message = err.message === "Request aborted" ? "Request aborted" : "Failed to reach Venice API.";
       if (message !== "Request aborted") {
         setLastApiError(message);

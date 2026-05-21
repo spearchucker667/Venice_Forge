@@ -29,4 +29,16 @@ describe("appReducer", () => {
     const state2 = appReducer(state1, { type: "REMOVE_TOAST", id: "t1" });
     expect(state2.toasts.length).toBe(0);
   });
+
+  // SEC-019 regression guard: prototype pollution via SET_SETTINGS
+  it("should ignore __proto__ and constructor keys in SET_SETTINGS", () => {
+    const nextState = appReducer(initialState, {
+      type: "SET_SETTINGS",
+      settings: { __proto__: { evil: true }, constructor: { evil: true }, defaultSystemPrompt: "updated" } as any,
+    });
+    expect(nextState.settings.defaultSystemPrompt).toBe("updated");
+    // Verify evil property was NOT added to the prototype
+    expect((Object.getPrototypeOf(nextState.settings) as any).evil).toBeUndefined();
+    expect(Object.getPrototypeOf(nextState.settings)).toBe(Object.prototype);
+  });
 });

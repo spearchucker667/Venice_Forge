@@ -6,6 +6,7 @@ export function TabButton({
   active,
   onClick,
   className = "",
+  iconOnly = false,
 }: {
   key?: React.Key;
   id: string;
@@ -13,6 +14,7 @@ export function TabButton({
   active: boolean;
   onClick: (id: string) => void;
   className?: string;
+  iconOnly?: boolean;
 }) {
   const icons: Record<string, string> = {
     chat: "✦",
@@ -29,13 +31,16 @@ export function TabButton({
       className={`nav-button ${active ? "active" : ""} ${className}`}
       onClick={() => onClick(id)}
       aria-current={active ? "page" : undefined}
+      title={label}
     >
       <span className="nav-icon" aria-hidden="true">
         {icons[id] || "•"}
       </span>
-      <span className="nav-copy">
-        <span className="nav-title">{label}</span>
-      </span>
+      {!iconOnly && (
+        <span className="nav-copy">
+          <span className="nav-title">{label}</span>
+        </span>
+      )}
     </button>
   );
 }

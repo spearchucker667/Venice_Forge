@@ -58,6 +58,10 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
   }
 
   async function clearAllHistory() {
+    const confirmed = window.confirm(
+      "This will permanently delete all saved images, chats, and settings from local storage. This action cannot be undone. Are you sure?"
+    );
+    if (!confirmed) return;
     await Promise.all(
       STORE_NAMES.map((store) => StorageService.clearStore(store))
     );
@@ -85,6 +89,8 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
   }
 
   async function deleteApiKey() {
+    const confirmed = window.confirm("Are you sure you want to delete the stored API key?");
+    if (!confirmed) return;
     try {
       await desktopApiKey.delete();
       onApiKeyChange(false);

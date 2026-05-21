@@ -1,6 +1,17 @@
+// Code Owner: fayeblade (@spearchucker667)
+// Single entry point for all Venice API calls from the renderer.
 import { extractImages } from "../utils/image";
 import { DIAG_HEADER_NAMES } from "../constants/venice";
+import { PROXY_BASE_PATH } from "../shared/apiConfig";
 import { desktopVenice, isElectron } from "./desktopBridge";
+
+// In-flight request deduplication (API-004)
+const inFlight = new Map<string, Promise<any>>();
+
+function dedupeKey(endpoint: string, method: string, body: unknown): string {
+  const bodyHash = body === undefined ? "" : JSON.stringify(body);
+  return `${method} ${endpoint} ${bodyHash}`;
+}
 
 function nowIso() {
   return new Date().toISOString();
@@ -20,6 +31,10 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
       );
     }
   });
+}
+
+function calculateBackoff(attempt: number, baseMs = 1000, maxMs = 8000): number {
+  return Math.min(baseMs * Math.pow(2, attempt), maxMs);
 }
 
 function looksLikeUnixTimestamp(n: number) {
@@ -87,6 +102,43 @@ function readDesktopErrorBody(body: any): string {
   );
 }
 
+interface SerializedFormDataEntry {
+  name: string;
+  value: string;
+  filename?: string;
+  type?: string;
+  _isFile?: boolean;
+}
+
+interface SerializedFormData {
+  _isSerializedFormData: true;
+  entries: SerializedFormDataEntry[];
+}
+
+async function serializeFormData(formData: FormData): Promise<SerializedFormData> {
+  const entries: SerializedFormDataEntry[] = [];
+  for (const [name, value] of formData.entries()) {
+    if (value instanceof File) {
+      const arrayBuffer = await value.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      entries.push({
+        name,
+        value: btoa(binary),
+        filename: value.name,
+        type: value.type,
+        _isFile: true,
+      });
+    } else {
+      entries.push({ name, value: String(value) });
+    }
+  }
+  return { _isSerializedFormData: true, entries };
+}
+
 async function veniceFetchDesktop(
   endpoint: string,
   {
@@ -95,9 +147,15 @@ async function veniceFetchDesktop(
     signal = undefined as AbortSignal | undefined,
     dispatch = undefined as any,
     headers = {},
+    isFormData = false,
     retry = true,
   } = {}
 ): Promise<{ data: any; response: any; headers: any; diagnostics: any }> {
+  // Serialize FormData before crossing the IPC boundary.
+  let serializedBody = body;
+  if (isFormData && body instanceof FormData) {
+    serializedBody = await serializeFormData(body);
+  }
   const maxAttempts = retry ? 3 : 1;
   let lastError: any = null;
 
@@ -136,7 +194,7 @@ async function veniceFetchDesktop(
           await sleep(
             response.status === 429
               ? computeRateLimitWait(diagHeaders, attempt)
-              : Math.min(1000 * Math.pow(2, attempt + 1), 8000),
+              : calculateBackoff(attempt + 1),
             signal
           );
           continue;
@@ -167,8 +225,9 @@ async function veniceFetchDesktop(
         }),
       });
 
-      if ([429, 500, 503].includes(lastError.status) && attempt < maxAttempts - 1) {
-        await sleep(Math.min(1200 * Math.pow(2, attempt + 1), 9000), signal);
+      const isNetworkFailure = lastError.status == null || lastError.status === 0;
+      if (([429, 500, 503].includes(lastError.status) || isNetworkFailure) && attempt < maxAttempts - 1) {
+        await sleep(calculateBackoff(attempt + 1, 1200, 9000), signal);
         continue;
       }
       throw lastError;
@@ -179,6 +238,13 @@ async function veniceFetchDesktop(
 }
 
 function computeRateLimitWait(headers: any, attempt: number) {
+  // Prefer standard Retry-After header (seconds)
+  const retryAfter = headers?.["retry-after"];
+  if (retryAfter) {
+    const n = Number(retryAfter);
+    if (Number.isFinite(n) && n >= 0) return Math.min(n * 1000, 60000);
+  }
+
   const raw = headers?.["x-ratelimit-reset-requests"];
   const n = Number(raw);
   if (Number.isFinite(n)) {
@@ -186,10 +252,10 @@ function computeRateLimitWait(headers: any, attempt: number) {
       return Math.max(0, Math.min(60000, n * 1000 - Date.now()));
     if (n >= 0 && n < 86400) return Math.min(60000, n * 1000);
   }
-  return Math.min(2000 * Math.pow(2, attempt), 16000);
+  return calculateBackoff(attempt, 2000, 16000);
 }
 
-export async function veniceFetch(
+async function _veniceFetch(
   endpoint: string,
   {
     method = "GET",
@@ -208,12 +274,13 @@ export async function veniceFetch(
       signal,
       dispatch,
       headers,
+      isFormData,
       retry,
     }) as Promise<{ data: any; response: Response; headers: any; diagnostics: any }>;
   }
 
   const startedAt = nowIso();
-  const url = `/api/venice${endpoint}`;
+  const url = `${PROXY_BASE_PATH}${endpoint}`;
   const maxAttempts = retry ? 3 : 1;
   let lastError: any = null;
 
@@ -228,6 +295,9 @@ export async function veniceFetch(
     let response: Response | null = null;
     let diagHeaders: any = {};
     try {
+      const fetchSignal = signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(60000)])
+        : AbortSignal.timeout(60000);
       response = await fetch(url, {
         method,
         headers: requestHeaders,
@@ -236,7 +306,7 @@ export async function veniceFetch(
           : body === undefined
           ? undefined
           : JSON.stringify(body),
-        signal,
+        signal: fetchSignal,
       });
 
       diagHeaders = parseDiagnosticsHeaders(response);
@@ -246,8 +316,8 @@ export async function veniceFetch(
       const contentType = response.headers.get("content-type") || "";
       if (contentType.includes("application/json")) {
         // use response! to bypass TS check inside catch closure
-        parsed = await response.json().catch(async () => {
-          text = await response!.text().catch(() => "");
+        parsed = await response.json().catch(() => {
+          response!.text().then((t) => { text = t; }).catch(() => {});
           return null;
         });
       } else if (
@@ -257,9 +327,10 @@ export async function veniceFetch(
       ) {
         const blob = await response.blob();
         parsed = {
-          dataUrl: await new Promise((resolve) => {
+          dataUrl: await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error("Failed to read response blob"));
             reader.readAsDataURL(blob);
           }),
         };
@@ -348,7 +419,7 @@ export async function veniceFetch(
         (isFetchFailure || [429, 500, 503].includes(lastError.status)) &&
         attempt < maxAttempts - 1
       ) {
-        await sleep(Math.min(1200 * Math.pow(2, attempt + 1), 9000), signal);
+        await sleep(calculateBackoff(attempt + 1, 1200, 9000), signal);
         continue;
       }
 
@@ -357,6 +428,35 @@ export async function veniceFetch(
   }
 
   throw lastError || new Error("Request failed");
+}
+
+export async function veniceFetch(
+  endpoint: string,
+  options: {
+    method?: string;
+    body?: any;
+    signal?: AbortSignal;
+    dispatch?: any;
+    headers?: Record<string, string>;
+    isFormData?: boolean;
+    retry?: boolean;
+    dedupe?: boolean;
+  } = {}
+): Promise<{ data: any; response: Response; headers: any; diagnostics: any }> {
+  const { dedupe = false, method = "GET", body } = options;
+  const key = dedupe ? dedupeKey(endpoint, method, body) : "";
+  if (dedupe && inFlight.has(key)) {
+    return inFlight.get(key)!;
+  }
+
+  const promise = _veniceFetch(endpoint, options);
+
+  if (dedupe) {
+    inFlight.set(key, promise);
+    promise.finally(() => inFlight.delete(key)).catch(() => {});
+  }
+
+  return promise;
 }
 
 export async function veniceStreamChat(
@@ -398,7 +498,7 @@ export async function veniceStreamChat(
     return;
   }
 
-  const response = await fetch(`/api/venice/chat/completions`, {
+  const response = await fetch(`${PROXY_BASE_PATH}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -436,28 +536,33 @@ export async function veniceStreamChat(
   const decoder = new TextDecoder();
   let buffer = "";
 
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
 
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split(/\r?\n/);
-    buffer = lines.pop() || "";
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() || "";
 
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed.startsWith("data:")) continue;
-      const data = trimmed.replace(/^data:\s*/, "");
-      if (data === "[DONE]") return;
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+        const data = trimmed.replace(/^data:\s*/, "");
+        if (data === "[DONE]") return;
 
-      try {
-        const json = JSON.parse(data);
-        const delta =
-          json?.choices?.[0]?.delta?.content ||
-          json?.choices?.[0]?.message?.content ||
-          "";
-        if (delta) onDelta(delta);
-      } catch {}
+        try {
+          const json = JSON.parse(data);
+          const delta =
+            json?.choices?.[0]?.delta?.content ||
+            json?.choices?.[0]?.message?.content ||
+            json?.choices?.[0]?.text ||
+            "";
+          if (delta) onDelta(delta);
+        } catch {}
+      }
     }
+  } finally {
+    reader.releaseLock();
   }
 }

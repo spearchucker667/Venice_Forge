@@ -44,6 +44,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   outline-offset: 2px;
 }
 a { color: var(--accent); }
+.validation-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin-top: 6px;
+}
 
 /* Layout base */
 .app-shell {

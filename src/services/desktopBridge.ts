@@ -1,3 +1,5 @@
+// Code Owner: fayeblade (@spearchucker667)
+// Electron vs. web mode abstraction — never call window.veniceForge directly from modules.
 import "../types/desktop";
 import type { VeniceForgeDiagnostics, VeniceForgeRequest, VeniceForgeResponse } from "../types/desktop";
 

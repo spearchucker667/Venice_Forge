@@ -23,9 +23,17 @@ const veniceForge = {
         }
       };
       ipcRenderer.on("venice:streamDelta", listener);
-      return ipcRenderer
-        .invoke("venice:streamChat", { ...input, signalId })
-        .finally(() => ipcRenderer.removeListener("venice:streamDelta", listener));
+      const pending = ipcRenderer.invoke("venice:streamChat", { ...input, signalId });
+      // If the renderer is killed before the stream ends, notify main to abort
+      // so the activeRequests Map does not leak.
+      const beforeUnload = () => {
+        ipcRenderer.invoke("venice:abort", signalId).catch(() => {});
+      };
+      (globalThis as any).addEventListener("beforeunload", beforeUnload);
+      return pending.finally(() => {
+        (globalThis as any).removeEventListener("beforeunload", beforeUnload);
+        ipcRenderer.removeListener("venice:streamDelta", listener);
+      });
     },
     abort(signalId: string) {
       return ipcRenderer.invoke("venice:abort", signalId);

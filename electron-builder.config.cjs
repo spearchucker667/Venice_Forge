@@ -58,17 +58,19 @@ const config = {
     artifactName: "Venice-Forge-${version}-${arch}-Portable.${ext}",
   },
 
-  mac: {
-    target: [{ target: "dmg", arch: ["x64", "arm64"] }],
-    icon: "build/icon.icns",
-    category: "public.app-category.productivity",
-  },
-
-  linux: {
-    target: [{ target: "AppImage", arch: ["x64"] }],
-    icon: "build/icon.png",
-    category: "Utility",
-  },
+  // macOS and Linux targets are disabled until icon assets (icon.icns, icon.png)
+  // are added and the platforms are smoke-tested.
+  // mac: {
+  //   target: [{ target: "dmg", arch: ["x64", "arm64"] }],
+  //   icon: "build/icon.icns",
+  //   category: "public.app-category.productivity",
+  // },
+  //
+  // linux: {
+  //   target: [{ target: "AppImage", arch: ["x64"] }],
+  //   icon: "build/icon.png",
+  //   category: "Utility",
+  // },
 };
 
 module.exports = config;
