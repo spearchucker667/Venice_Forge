@@ -5,6 +5,7 @@ import { Field } from "../components/Field";
 import { Chip } from "../components/Chip";
 import { ModelSelect } from "../components/ModelSelect";
 import { StatusBlock } from "../components/StatusBlock";
+import { ConfirmModal } from "../components/ConfirmModal";
 import { isElectron, desktopApiKey, desktopApp, desktopFiles } from "../services/desktopBridge";
 import { createExportPayload, validateImportJson } from "../services/exportImport";
 
@@ -14,6 +15,8 @@ interface SettingsModuleProps {
   apiKeyConfigured: boolean | null;
   onApiKeyChange: (configured: boolean) => void;
 }
+
+type PendingConfirm = { message: string; detail?: string; onConfirm: () => Promise<void> | void };
 
 export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChange }: SettingsModuleProps) {
   const [system, setSystem] = useState(state.settings.defaultSystemPrompt);
@@ -25,10 +28,15 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
   const [webCitations, setWebCitations] = useState(state.settings.webCitations);
   const [status, setStatus] = useState("");
   const [statusError, setStatusError] = useState("");
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
 
   // Desktop-only: API key entry
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [apiKeyTesting, setApiKeyTesting] = useState(false);
+
+  function confirm(message: string, detail: string, action: () => Promise<void> | void) {
+    setPendingConfirm({ message, detail, onConfirm: action });
+  }
 
   function saveDefaults() {
     dispatch({
@@ -58,17 +66,19 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
   }
 
   async function clearAllHistory() {
-    const confirmed = window.confirm(
-      "This will permanently delete all saved images, chats, and settings from local storage. This action cannot be undone. Are you sure?"
+    confirm(
+      "Delete all IndexedDB history?",
+      "This will permanently delete all saved images, chats, and settings from local storage. This action cannot be undone.",
+      async () => {
+        await Promise.all(
+          STORE_NAMES.map((store) => StorageService.clearStore(store))
+        );
+        dispatch({ type: "SET_GALLERY", items: [] });
+        dispatch({ type: "SET_CHATS", items: [] });
+        setStatus("IndexedDB history cleared.");
+        setStatusError("");
+      }
     );
-    if (!confirmed) return;
-    await Promise.all(
-      STORE_NAMES.map((store) => StorageService.clearStore(store))
-    );
-    dispatch({ type: "SET_GALLERY", items: [] });
-    dispatch({ type: "SET_CHATS", items: [] });
-    setStatus("IndexedDB history cleared.");
-    setStatusError("");
   }
 
   // Desktop-only handlers
@@ -89,16 +99,20 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
   }
 
   async function deleteApiKey() {
-    const confirmed = window.confirm("Are you sure you want to delete the stored API key?");
-    if (!confirmed) return;
-    try {
-      await desktopApiKey.delete();
-      onApiKeyChange(false);
-      setStatus("API key deleted.");
-      setStatusError("");
-    } catch (err: any) {
-      setStatusError(err.message || "Failed to delete API key.");
-    }
+    confirm(
+      "Delete the stored API key?",
+      "The Venice API key will be removed from OS-level secure storage. You will need to re-enter it to use the app.",
+      async () => {
+        try {
+          await desktopApiKey.delete();
+          onApiKeyChange(false);
+          setStatus("API key deleted.");
+          setStatusError("");
+        } catch (err: any) {
+          setStatusError(err.message || "Failed to delete API key.");
+        }
+      }
+    );
   }
 
   async function testApiKey() {
@@ -381,6 +395,23 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        open={!!pendingConfirm}
+        message={pendingConfirm?.message || ""}
+        detail={pendingConfirm?.detail}
+        confirmLabel="Delete"
+        onConfirm={async () => {
+          try {
+            await pendingConfirm?.onConfirm();
+            setPendingConfirm(null);
+          } catch (err) {
+            setStatusError(err instanceof Error ? err.message : "Operation failed");
+            setPendingConfirm(null);
+          }
+        }}
+        onCancel={() => setPendingConfirm(null)}
+      />
     </section>
   );
 }

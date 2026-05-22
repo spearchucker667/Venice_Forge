@@ -6,8 +6,11 @@ import { upscaleGalleryImage, downloadAllGallery } from "../services/imageWorkfl
 import { Chip } from "../components/Chip";
 import { StatusBlock } from "../components/StatusBlock";
 import { ImageActionModal } from "../components/ImageActionModal";
+import { ConfirmModal } from "../components/ConfirmModal";
 import { AppState, AppDispatch } from "../types/app";
 import { GalleryImage } from "../types/storage";
+
+type PendingConfirm = { message: string; detail?: string; onConfirm: () => Promise<void> | void };
 
 export function GalleryModule({ state, dispatch }: { state: AppState; dispatch: AppDispatch }) {
   const [expanded, setExpanded] = useState<GalleryImage | null>(null);
@@ -15,23 +18,36 @@ export function GalleryModule({ state, dispatch }: { state: AppState; dispatch: 
   const [error, setError] = useState("");
   const [upscalingId, setUpscalingId] = useState("");
   const [downloadProgress, setDownloadProgress] = useState<{ current: number; total: number } | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
   const cancelDownloadRef = useRef(false);
 
-  async function remove(id: string) {
-    const confirmed = window.confirm("Delete this image permanently? This cannot be undone.");
-    if (!confirmed) return;
-    await StorageService.deleteItem("images", id);
-    const items = await StorageService.getItems("images");
-    dispatch({ type: "SET_GALLERY", items });
-    if (expanded?.id === id) setExpanded(null);
+  function confirm(message: string, detail: string, action: () => Promise<void> | void) {
+    setPendingConfirm({ message, detail, onConfirm: action });
   }
 
-  async function clearImages() {
-    const confirmed = window.confirm("Delete ALL gallery images permanently? This cannot be undone.");
-    if (!confirmed) return;
-    await StorageService.clearStore("images");
-    dispatch({ type: "SET_GALLERY", items: [] });
-    setExpanded(null);
+  function remove(id: string) {
+    confirm(
+      "Delete this image?",
+      "This image will be permanently removed from the gallery. This cannot be undone.",
+      async () => {
+        await StorageService.deleteItem("images", id);
+        const items = await StorageService.getItems("images");
+        dispatch({ type: "SET_GALLERY", items });
+        if (expanded?.id === id) setExpanded(null);
+      }
+    );
+  }
+
+  function clearImages() {
+    confirm(
+      "Delete ALL gallery images?",
+      "Every saved image will be permanently deleted from IndexedDB. This cannot be undone.",
+      async () => {
+        await StorageService.clearStore("images");
+        dispatch({ type: "SET_GALLERY", items: [] });
+        setExpanded(null);
+      }
+    );
   }
 
   async function upscale(item: GalleryImage) {
@@ -212,6 +228,23 @@ export function GalleryModule({ state, dispatch }: { state: AppState; dispatch: 
         }}
         onUpscale={() => expanded && upscale(expanded)}
         onDelete={() => expanded && remove(expanded.id)}
+      />
+
+      <ConfirmModal
+        open={!!pendingConfirm}
+        message={pendingConfirm?.message || ""}
+        detail={pendingConfirm?.detail}
+        confirmLabel="Delete"
+        onConfirm={async () => {
+          try {
+            await pendingConfirm?.onConfirm();
+            setPendingConfirm(null);
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "Operation failed");
+            setPendingConfirm(null);
+          }
+        }}
+        onCancel={() => setPendingConfirm(null)}
       />
     </section>
   );

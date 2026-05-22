@@ -896,6 +896,11 @@ tr:last-child td { border-bottom: 0; }
   animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.confirm-modal {
+  display: block;
+  grid-template-columns: none;
+}
+
 .modal-image {
   min-height: 360px;
   border-radius: 20px;

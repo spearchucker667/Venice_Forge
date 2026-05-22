@@ -1,5 +1,6 @@
 import { app, dialog, ipcMain } from "electron";
 import fs from "fs/promises";
+import path from "path";
 import {
   deleteApiKey,
   getSecureStoreStatus,
@@ -9,14 +10,9 @@ import {
 import { getLastApiError, getLogsDir, logError, openLogsFolder } from "../services/logger";
 import { abortVeniceRequest, performVeniceRequest, readResponseError } from "../services/veniceClient";
 import { validateApiKeyInput, validateVeniceIpcRequest } from "./validation";
+import { redactErrorMessage } from "../../src/services/redaction";
 
 const MAX_JSON_FILE_BYTES = 25 * 1024 * 1024;
-
-function sanitizeError(err: unknown): string {
-  return String(err instanceof Error ? err.message : err || "Unknown error")
-    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [REDACTED]")
-    .replace(/\bvn-[A-Za-z0-9._~+/=-]{8,}\b/gi, "[REDACTED]");
-}
 
 async function testVeniceConnection(): Promise<{ ok: boolean; status?: number; message: string }> {
   if (!isApiKeyConfigured()) {
@@ -30,7 +26,7 @@ async function testVeniceConnection(): Promise<{ ok: boolean; status?: number; m
       message: response.ok ? "Connection successful" : readResponseError(response),
     };
   } catch (err) {
-    return { ok: false, status: 0, message: sanitizeError(err) };
+    return { ok: false, status: 0, message: redactErrorMessage(err) };
   }
 }
 
@@ -40,7 +36,7 @@ export function registerIpcHandlers(): void {
       validateVeniceIpcRequest(input);
       return await performVeniceRequest(input);
     } catch (err) {
-      const message = sanitizeError(err);
+      const message = redactErrorMessage(err);
       logError("Venice IPC request failed", message);
       return {
         ok: false,
@@ -68,7 +64,7 @@ export function registerIpcHandlers(): void {
         },
       });
     } catch (err) {
-      const message = sanitizeError(err);
+      const message = redactErrorMessage(err);
       logError("Venice stream request failed", message);
       return {
         ok: false,
@@ -131,17 +127,19 @@ export function registerIpcHandlers(): void {
       if (Buffer.byteLength(data, "utf-8") > MAX_JSON_FILE_BYTES) {
         throw new Error("Export data is too large.");
       }
-      const resolvedPath = typeof defaultPath === "string" ? defaultPath : "venice-forge-export.json";
+      const sanitizedFilename = path.basename(
+        typeof defaultPath === "string" ? defaultPath : "venice-forge-export.json"
+      );
       const result = await dialog.showSaveDialog({
         title: "Export Venice Forge data",
-        defaultPath: resolvedPath,
+        defaultPath: sanitizedFilename,
         filters: [{ name: "JSON", extensions: ["json"] }],
       });
       if (result.canceled || !result.filePath) return { ok: false, canceled: true };
       await fs.writeFile(result.filePath, data, "utf-8");
       return { ok: true, canceled: false };
     } catch (err) {
-      return { ok: false, error: sanitizeError(err) };
+      return { ok: false, error: redactErrorMessage(err) };
     }
   });
 
@@ -160,7 +158,7 @@ export function registerIpcHandlers(): void {
       const data = await fs.readFile(result.filePaths[0], "utf-8");
       return { canceled: false, data };
     } catch (err) {
-      return { canceled: false, error: sanitizeError(err) };
+      return { canceled: false, error: redactErrorMessage(err) };
     }
   });
 }
