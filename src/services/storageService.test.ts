@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 // @ts-ignore — fake-indexeddb ESM exports lack proper typings
 import FDBFactory from "fake-indexeddb/lib/FDBFactory";
 import StorageService from "./storageService";
@@ -58,5 +58,31 @@ describe("storageService", () => {
     const saved = await StorageService.saveItem("images", item);
     expect(saved.id).toBeDefined();
     expect(saved.timestamp).toBeDefined();
+  });
+
+  // BUG-001 regression guard: silently dropped decrypt records must be logged
+  it("warns when records fail decryption", async () => {
+    // Inject a corrupted encrypted wrapper directly into the store,
+    // bypassing saveItem so the envelope is NOT re-encrypted correctly.
+    const db = await StorageService.openDB();
+    await new Promise<void>((res, rej) => {
+      const tx = db.transaction("chats", "readwrite");
+      tx.objectStore("chats").put({
+        id: "corrupt-1",
+        timestamp: 1,
+        data: { _encrypted: true, iv: [0, 1, 2], data: [9, 9, 9] },
+        _isEncryptedWrapper: true,
+      });
+      tx.oncomplete = () => res();
+      tx.onerror = () => rej(tx.error);
+    });
+
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const items = await StorageService.getItems("chats");
+    expect(items).toHaveLength(0); // corrupt record was silently dropped
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('1 record(s) in "chats" could not be decrypted')
+    );
+    warnSpy.mockRestore();
   });
 });

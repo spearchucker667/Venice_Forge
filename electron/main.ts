@@ -1,6 +1,6 @@
 // Code Owner: fayeblade (@spearchucker667)
 // Primary maintainer and security gatekeeper for the Electron main process.
-import { app, BrowserWindow, shell } from "electron";
+import { app, BrowserWindow, dialog, shell } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import { registerIpcHandlers } from "./ipc/handlers";
@@ -36,6 +36,52 @@ export function isTrustedExternalUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * SEC-001: Show a native OS dialog asking the user to confirm before opening
+ * any external https: URL in the system browser. This prevents AI-generated or
+ * attacker-controlled links from silently navigating the user to phishing sites
+ * or local-network admin pages.
+ */
+const MAX_DISPLAY_URL_LENGTH = 60;
+
+function promptExternalLink(win: BrowserWindow, url: string): void {
+  let displayUrl: string;
+  try {
+    const parsed = new URL(url);
+    const protocolAndHost = `${parsed.protocol}//${parsed.host}`;
+    const fullPath = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    const availableLength = Math.max(0, MAX_DISPLAY_URL_LENGTH - protocolAndHost.length);
+    const truncatedPath =
+      fullPath.length > availableLength
+        ? `${fullPath.slice(0, Math.max(0, availableLength - 1))}…`
+        : fullPath;
+    displayUrl = `${protocolAndHost}${truncatedPath}`;
+  } catch {
+    displayUrl = url.slice(0, 120);
+  }
+
+  dialog
+    .showMessageBox(win, {
+      type: "question",
+      buttons: ["Open in browser", "Cancel"],
+      defaultId: 1,
+      cancelId: 1,
+      title: "Open External Link",
+      message: "Open this link in your system browser?",
+      detail: displayUrl,
+    })
+    .then(({ response }) => {
+      if (response === 0) {
+        shell.openExternal(url).catch((err) => {
+          logError("shell.openExternal failed", String(err));
+        });
+      }
+    })
+    .catch((err) => {
+      logError("promptExternalLink dialog error", String(err));
+    });
 }
 
 function isAllowedAppNavigation(url: string): boolean {
@@ -85,11 +131,11 @@ function createWindow(): BrowserWindow {
   win.webContents.on("will-navigate", (event, url) => {
     if (isAllowedAppNavigation(url)) return;
     event.preventDefault();
-    if (isTrustedExternalUrl(url)) shell.openExternal(url).catch(() => {});
+    if (isTrustedExternalUrl(url)) promptExternalLink(win, url);
   });
 
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (isTrustedExternalUrl(url)) shell.openExternal(url).catch(() => {});
+    if (isTrustedExternalUrl(url)) promptExternalLink(win, url);
     return { action: "deny" };
   });
 
@@ -155,10 +201,18 @@ if (!gotLock) {
     contents.on("will-navigate", (event, url) => {
       if (isAllowedAppNavigation(url)) return;
       event.preventDefault();
-      if (isTrustedExternalUrl(url)) shell.openExternal(url).catch(() => {});
+      if (isTrustedExternalUrl(url)) {
+        const win = BrowserWindow.fromWebContents(contents);
+        if (win) promptExternalLink(win, url);
+        else shell.openExternal(url).catch((err) => logError("shell.openExternal fallback failed", String(err)));
+      }
     });
     contents.setWindowOpenHandler(({ url }) => {
-      if (isTrustedExternalUrl(url)) shell.openExternal(url).catch(() => {});
+      if (isTrustedExternalUrl(url)) {
+        const win = BrowserWindow.fromWebContents(contents);
+        if (win) promptExternalLink(win, url);
+        else shell.openExternal(url).catch((err) => logError("shell.openExternal fallback failed", String(err)));
+      }
       return { action: "deny" };
     });
   });
