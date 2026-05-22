@@ -34,7 +34,7 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [apiKeyTesting, setApiKeyTesting] = useState(false);
 
-  function confirm(message: string, detail: string, action: () => void) {
+  function confirm(message: string, detail: string, action: () => Promise<void> | void) {
     setPendingConfirm({ message, detail, onConfirm: action });
   }
 

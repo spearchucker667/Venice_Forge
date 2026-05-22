@@ -21,7 +21,7 @@ export function GalleryModule({ state, dispatch }: { state: AppState; dispatch: 
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
   const cancelDownloadRef = useRef(false);
 
-  function confirm(message: string, detail: string, action: () => void) {
+  function confirm(message: string, detail: string, action: () => Promise<void> | void) {
     setPendingConfirm({ message, detail, onConfirm: action });
   }
 

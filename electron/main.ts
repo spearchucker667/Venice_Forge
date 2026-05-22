@@ -45,18 +45,19 @@ export function isTrustedExternalUrl(url: string): boolean {
  * or local-network admin pages.
  */
 const MAX_DISPLAY_URL_LENGTH = 60;
-const TRUNCATE_URL_LENGTH = MAX_DISPLAY_URL_LENGTH - 3; // room for ellipsis
 
 function promptExternalLink(win: BrowserWindow, url: string): void {
   let displayUrl: string;
   try {
     const parsed = new URL(url);
+    const protocolAndHost = `${parsed.protocol}//${parsed.host}`;
     const fullPath = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    const availableLength = Math.max(0, MAX_DISPLAY_URL_LENGTH - protocolAndHost.length);
     const truncatedPath =
-      fullPath.length > MAX_DISPLAY_URL_LENGTH
-        ? `${fullPath.slice(0, TRUNCATE_URL_LENGTH)}…`
+      fullPath.length > availableLength
+        ? `${fullPath.slice(0, Math.max(0, availableLength - 1))}…`
         : fullPath;
-    displayUrl = `${parsed.protocol}//${parsed.host}${truncatedPath}`;
+    displayUrl = `${protocolAndHost}${truncatedPath}`;
   } catch {
     displayUrl = url.slice(0, 120);
   }
