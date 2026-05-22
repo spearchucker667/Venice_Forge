@@ -1,3 +1,6 @@
+/** @fileoverview Registers IPC handlers for Venice API requests, API key
+ *  management, file dialogs, and application diagnostics. */
+
 import { app, dialog, ipcMain } from "electron";
 import fs from "fs/promises";
 import path from "path";
@@ -12,8 +15,12 @@ import { abortVeniceRequest, performVeniceRequest, readResponseError } from "../
 import { validateApiKeyInput, validateVeniceIpcRequest } from "./validation";
 import { redactErrorMessage } from "../../src/services/redaction";
 
+/** Maximum size in bytes for JSON import and export files. */
 const MAX_JSON_FILE_BYTES = 25 * 1024 * 1024;
 
+/** Tests connectivity to the Venice API using the stored API key.
+ *  @returns A result object indicating success or failure with a message.
+ */
 async function testVeniceConnection(): Promise<{ ok: boolean; status?: number; message: string }> {
   if (!isApiKeyConfigured()) {
     return { ok: false, message: "No API key configured." };
@@ -30,6 +37,7 @@ async function testVeniceConnection(): Promise<{ ok: boolean; status?: number; m
   }
 }
 
+/** Registers all IPC handlers used by the renderer process. */
 export function registerIpcHandlers(): void {
   ipcMain.handle("venice:request", async (_event, input: unknown) => {
     try {

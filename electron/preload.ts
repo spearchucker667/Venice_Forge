@@ -1,5 +1,9 @@
+/** @fileoverview Exposes a hardened contextBridge API to the renderer for Venice
+ *  API requests, secure key storage, and app diagnostics. */
+
 import { contextBridge, ipcRenderer } from "electron";
 
+/** Represents a Venice API request sent from the renderer to the main process. */
 type VeniceRequest = {
   endpoint: string;
   method: "GET" | "POST";
@@ -8,13 +12,24 @@ type VeniceRequest = {
   signalId?: string;
 };
 
+/** API surface exposed to the renderer via contextBridge. */
 const veniceForge = {
+  /** Marks the current environment as a desktop Electron build. */
   isDesktop: true as const,
 
   venice: {
+    /** Sends a single Venice API request through IPC and awaits the response.
+     *  @param input The Venice request payload.
+     *  @returns A promise resolving with the main process response.
+     */
     request(input: VeniceRequest) {
       return ipcRenderer.invoke("venice:request", input);
     },
+    /** Initiates a streaming chat completion and delivers deltas via IPC events.
+     *  @param input The Venice request payload.
+     *  @param onDelta Callback invoked for each streamed text delta.
+     *  @returns A promise that settles when the stream ends or errors.
+     */
     streamChat(input: VeniceRequest, onDelta: (delta: string) => void) {
       const signalId = input.signalId || crypto.randomUUID();
       const listener = (_event: Electron.IpcRendererEvent, payload: { signalId: string; delta: string }) => {
@@ -35,48 +50,86 @@ const veniceForge = {
         ipcRenderer.removeListener("venice:streamDelta", listener);
       });
     },
+    /** Signals the main process to abort an active Venice request.
+     *  @param signalId The identifier of the request to abort.
+     *  @returns A promise resolving when the abort signal is sent.
+     */
     abort(signalId: string) {
       return ipcRenderer.invoke("venice:abort", signalId);
     },
   },
 
   apiKey: {
+    /** Checks whether a Venice API key has been stored securely.
+     *  @returns A promise resolving to true when a key is configured.
+     */
     isConfigured(): Promise<boolean> {
       return ipcRenderer.invoke("apiKey:isConfigured");
     },
+    /** Stores the Venice API key using OS-level encryption.
+     *  @param key The API key to encrypt and store.
+     *  @returns A promise resolving with the operation result.
+     */
     set(key: string): Promise<{ ok: boolean }> {
       return ipcRenderer.invoke("apiKey:set", key);
     },
+    /** Removes the stored Venice API key.
+     *  @returns A promise resolving with the operation result.
+     */
     delete(): Promise<{ ok: boolean }> {
       return ipcRenderer.invoke("apiKey:delete");
     },
+    /** Verifies connectivity to the Venice API with the stored key.
+     *  @returns A promise resolving with the test result and status.
+     */
     test(): Promise<{ ok: boolean; status?: number; message: string }> {
       return ipcRenderer.invoke("apiKey:test");
     },
   },
 
   app: {
+    /** Returns the current application version.
+     *  @returns A promise resolving with the version string.
+     */
     getVersion(): Promise<string> {
       return ipcRenderer.invoke("app:getVersion");
     },
+    /** Returns the path to the application's user data directory.
+     *  @returns A promise resolving with the absolute path.
+     */
     getDataPath(): Promise<string> {
       return ipcRenderer.invoke("app:getDataPath");
     },
+    /** Checks whether OS-level encryption is available for secure storage.
+     *  @returns A promise resolving to true when encryption is available.
+     */
     isEncryptionAvailable(): Promise<boolean> {
       return ipcRenderer.invoke("app:isEncryptionAvailable");
     },
+    /** Retrieves application diagnostics and runtime information. */
     getDiagnostics() {
       return ipcRenderer.invoke("app:getDiagnostics");
     },
+    /** Opens the log folder in the system file manager.
+     *  @returns A promise resolving with the operation result.
+     */
     openLogsFolder(): Promise<{ ok: boolean; path: string }> {
       return ipcRenderer.invoke("app:openLogsFolder");
     },
   },
 
   files: {
+    /** Shows a save dialog and writes JSON data to the selected file.
+     *  @param data The JSON string to write.
+     *  @param defaultPath Optional default filename for the dialog.
+     *  @returns A promise resolving with the save result.
+     */
     saveJsonFile(data: string, defaultPath?: string): Promise<{ ok: boolean; canceled: boolean }> {
       return ipcRenderer.invoke("app:saveJsonFile", data, defaultPath);
     },
+    /** Shows an open dialog and reads JSON data from the selected file.
+     *  @returns A promise resolving with the loaded data or cancellation.
+     */
     loadJsonFile(): Promise<{ canceled: boolean; data?: string }> {
       return ipcRenderer.invoke("app:loadJsonFile");
     },
