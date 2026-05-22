@@ -82,9 +82,9 @@ describe("ChatModule", () => {
   });
 
   it("calls veniceFetch for non-streaming send and appends assistant reply", async () => {
-    (veniceFetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+    vi.mocked(veniceFetch).mockResolvedValue({
       data: { choices: [{ message: { content: "Hello from Venice!" } }] },
-    });
+    } as any);
 
     renderChat();
 
@@ -104,7 +104,7 @@ describe("ChatModule", () => {
   });
 
   it("calls veniceStreamChat when streaming is enabled", async () => {
-    (veniceStreamChat as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    vi.mocked(veniceStreamChat).mockResolvedValue(undefined);
 
     renderChat();
 
@@ -124,7 +124,7 @@ describe("ChatModule", () => {
   });
 
   it("shows an error message when veniceFetch rejects", async () => {
-    (veniceFetch as ReturnType<typeof vi.fn>).mockRejectedValue(
+    vi.mocked(veniceFetch).mockRejectedValue(
       new Error("503 Service Unavailable")
     );
 

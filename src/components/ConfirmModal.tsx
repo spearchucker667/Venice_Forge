@@ -31,21 +31,24 @@ export function ConfirmModal({
   const modalRef = useRef<HTMLDivElement>(null);
   const returnFocusRef = useRef<Element | null>(null);
 
+  const prevOverflowRef = useRef<string>("");
+
   useEffect(() => {
     if (open) {
       returnFocusRef.current = document.activeElement;
+      prevOverflowRef.current = document.body.style.overflow;
       document.body.style.overflow = "hidden";
       // Default focus on the safe/cancel action.
       setTimeout(() => cancelRef.current?.focus(), 50);
     } else {
-      document.body.style.overflow = "";
+      document.body.style.overflow = prevOverflowRef.current;
       if (returnFocusRef.current instanceof HTMLElement) {
         returnFocusRef.current.focus();
       }
       returnFocusRef.current = null;
     }
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = prevOverflowRef.current;
     };
   }, [open]);
 

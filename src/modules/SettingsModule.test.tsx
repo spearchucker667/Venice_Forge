@@ -155,12 +155,12 @@ describe("SettingsModule", () => {
 
   it("calls validateImportJson and dispatches state when import succeeds", async () => {
     const { isElectron, desktopFiles } = await import("../services/desktopBridge");
-    (isElectron as ReturnType<typeof vi.fn>).mockReturnValue(true);
-    (desktopFiles.importJsonString as ReturnType<typeof vi.fn>).mockResolvedValue(
+    vi.mocked(isElectron).mockReturnValue(true);
+    vi.mocked(desktopFiles.importJsonString).mockResolvedValue(
       JSON.stringify({ version: 1, data: { images: [], chats: [], settings: [] } })
     );
     // Pre-import backup save dialog should succeed.
-    (desktopFiles.exportJson as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+    vi.mocked(desktopFiles.exportJson).mockResolvedValue(true);
 
     renderSettings();
 

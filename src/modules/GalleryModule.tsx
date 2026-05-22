@@ -10,7 +10,7 @@ import { ConfirmModal } from "../components/ConfirmModal";
 import { AppState, AppDispatch } from "../types/app";
 import { GalleryImage } from "../types/storage";
 
-type PendingConfirm = { message: string; detail?: string; onConfirm: () => void };
+type PendingConfirm = { message: string; detail?: string; onConfirm: () => Promise<void> | void };
 
 export function GalleryModule({ state, dispatch }: { state: AppState; dispatch: AppDispatch }) {
   const [expanded, setExpanded] = useState<GalleryImage | null>(null);
@@ -235,7 +235,15 @@ export function GalleryModule({ state, dispatch }: { state: AppState; dispatch: 
         message={pendingConfirm?.message || ""}
         detail={pendingConfirm?.detail}
         confirmLabel="Delete"
-        onConfirm={() => { pendingConfirm?.onConfirm(); setPendingConfirm(null); }}
+        onConfirm={async () => {
+          try {
+            await pendingConfirm?.onConfirm();
+            setPendingConfirm(null);
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "Operation failed");
+            setPendingConfirm(null);
+          }
+        }}
         onCancel={() => setPendingConfirm(null)}
       />
     </section>

@@ -16,7 +16,7 @@ interface SettingsModuleProps {
   onApiKeyChange: (configured: boolean) => void;
 }
 
-type PendingConfirm = { message: string; detail?: string; onConfirm: () => void };
+type PendingConfirm = { message: string; detail?: string; onConfirm: () => Promise<void> | void };
 
 export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChange }: SettingsModuleProps) {
   const [system, setSystem] = useState(state.settings.defaultSystemPrompt);
@@ -397,7 +397,15 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
         message={pendingConfirm?.message || ""}
         detail={pendingConfirm?.detail}
         confirmLabel="Delete"
-        onConfirm={() => { pendingConfirm?.onConfirm(); setPendingConfirm(null); }}
+        onConfirm={async () => {
+          try {
+            await pendingConfirm?.onConfirm();
+            setPendingConfirm(null);
+          } catch (err) {
+            setStatusError(err instanceof Error ? err.message : "Operation failed");
+            setPendingConfirm(null);
+          }
+        }}
         onCancel={() => setPendingConfirm(null)}
       />
     </section>

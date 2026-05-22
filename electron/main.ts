@@ -51,11 +51,12 @@ function promptExternalLink(win: BrowserWindow, url: string): void {
   let displayUrl: string;
   try {
     const parsed = new URL(url);
-    const pathname =
-      parsed.pathname.length > MAX_DISPLAY_URL_LENGTH
-        ? `${parsed.pathname.slice(0, TRUNCATE_URL_LENGTH)}…`
-        : parsed.pathname;
-    displayUrl = `${parsed.protocol}//${parsed.host}${pathname}`;
+    const fullPath = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    const truncatedPath =
+      fullPath.length > MAX_DISPLAY_URL_LENGTH
+        ? `${fullPath.slice(0, TRUNCATE_URL_LENGTH)}…`
+        : fullPath;
+    displayUrl = `${parsed.protocol}//${parsed.host}${truncatedPath}`;
   } catch {
     displayUrl = url.slice(0, 120);
   }
@@ -64,7 +65,7 @@ function promptExternalLink(win: BrowserWindow, url: string): void {
     .showMessageBox(win, {
       type: "question",
       buttons: ["Open in browser", "Cancel"],
-      defaultId: 0,
+      defaultId: 1,
       cancelId: 1,
       title: "Open External Link",
       message: "Open this link in your system browser?",

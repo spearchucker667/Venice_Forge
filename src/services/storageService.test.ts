@@ -61,7 +61,7 @@ describe("storageService", () => {
   });
 
   // BUG-001 regression guard: silently dropped decrypt records must be logged
-  it("emits a console.warn for each record that fails decryption", async () => {
+  it("warns when records fail decryption", async () => {
     // Inject a corrupted encrypted wrapper directly into the store,
     // bypassing saveItem so the envelope is NOT re-encrypted correctly.
     const db = await StorageService.openDB();
