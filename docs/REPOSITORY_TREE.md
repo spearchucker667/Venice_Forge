@@ -13,13 +13,14 @@ This document is the public map for the Venice Forge repository. It reflects the
 │   │   ├── config.yml
 │   │   └── feature_request.md
 │   ├── workflows/
-│   │   ├── ci.yml
-│   │   └── windows-release.yml
-│   ├── copilot-instructions.md
+│   │   ├── ci.yml                     # Main CI/CD pipeline (lint, test, build)
+│   ├── macos-release.yml          # macOS build, dmg/zip generation, checksums
+│   └── windows-release.yml        # Windows build, NSIS setup/portable generation, checksums
 │   ├── dependabot.yml
 │   └── pull_request_template.md
 ├── build/
-│   ├── icon.ico
+│   ├── icon.icns                  # macOS application icon bundle
+│   ├── icon.ico                   # Windows application icon bundle
 │   └── icon-placeholder.md
 ├── docs/
 │   ├── ABOUT.md
@@ -38,6 +39,8 @@ This document is the public map for the Venice Forge repository. It reflects the
 ├── scripts/
 │   ├── create-cjs-package.cjs
 │   ├── generate-placeholder-icon.cjs
+│   ├── verify-dist-mac.cjs
+│   ├── verify-dist-win.cjs
 │   ├── verify-dist.cjs
 │   └── verify-icon.cjs
 ├── src/
@@ -82,7 +85,7 @@ This document is the public map for the Venice Forge repository. It reflects the
 | Web proxy | `server.ts` | Local development Express server, Venice proxy, security headers, rate limiting, circuit breaker |
 | Shared validation | `src/shared/` | Venice endpoint and API host configuration shared by renderer, web proxy, and Electron IPC |
 | Build scripts | `scripts/` | CJS package marker generation and release artifact validation |
-| Release config | `electron-builder.config.cjs`, `.github/workflows/windows-release.yml` | Windows NSIS and portable executable packaging |
+| Release config | `electron-builder.config.cjs`, `.github/workflows/*-release.yml` | Windows and macOS application packaging |
 | Governance | `.github/`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `SUPPORT.md` | Public contribution, support, ownership, and automation metadata |
 
 ## Source Organization
@@ -118,5 +121,5 @@ The following paths are generated locally and are intentionally not part of the 
 - README badges and release ribbon are present.
 - `LICENSE`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`, and `SUPPORT.md` are present.
 - CI runs typecheck, tests, and build on Node 20 and 22.
-- Windows release workflow builds installer and portable artifacts, verifies them, and emits SHA-256 checksums.
+- Windows and macOS release workflows build targets, verify artifacts, and emit SHA-256 checksums.
 - Venice API legal/TOS notes are documented in [LEGAL.md](LEGAL.md).

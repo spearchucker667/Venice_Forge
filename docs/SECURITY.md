@@ -10,6 +10,10 @@ Venice Forge is an Electron app with a sandboxed React renderer, a preload bridg
 
 The renderer cannot access arbitrary IPC channels, shell execution, local files, or the raw Venice API key.
 
+## Local Builds
+
+Local builds are generated via `npm run dist:win` or `npm run dist:mac` using `electron-builder`. By default, these local builds are unsigned unless Apple Developer ID and Windows code signing credentials are provided via environment variables.
+
 ## Venice Transport
 
 Desktop mode uses direct IPC, not a loopback proxy. The main process validates every request before sending HTTPS traffic to `api.venice.ai`.
@@ -43,11 +47,11 @@ The Express proxy adds the following headers to every response:
 
 ## API Key Storage
 
-On Windows, the API key is stored only when Electron `safeStorage` encryption is available. If Windows encryption is unavailable, saving fails with a user-readable error. On non-Windows platforms, plaintext fallback is disabled unless `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true` is explicitly set.
+Storage API: Electron `safeStorage` (Windows DPAPI, macOS Keychain). If OS-level encryption is unavailable (e.g., missing dependencies or running on unsupported environments), the application will **refuse to start** to prevent storing the API key in plaintext. Plaintext fallback is explicitly blocked by default unless overridden via environment variables.
 
 The key is never exported, imported, written to IndexedDB, copied into diagnostics, or exposed to the renderer.
 
-Venice's API documentation also treats API keys as secrets and warns against exposing them in client-side code. Venice Forge's split Electron/web transport is designed around that boundary.
+On macOS and Windows, Venice Forge enforces strict network boundaries.
 
 ## CSP and Navigation
 

@@ -3,6 +3,20 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Override/mock window.localStorage specifically for Node 26 compatibility
+const localStorageStore: Record<string, string> = {};
+const localStorageMock = {
+  getItem: (key: string) => localStorageStore[key] || null,
+  setItem: (key: string, value: string) => { localStorageStore[key] = String(value); },
+  clear: () => { for (const key in localStorageStore) { delete localStorageStore[key]; } },
+  removeItem: (key: string) => { delete localStorageStore[key]; },
+};
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+  configurable: true,
+});
+
 vi.mock('./veniceClient', () => ({ veniceFetch: vi.fn() }));
 
 import { refreshModels } from './modelService';
@@ -12,13 +26,13 @@ import { veniceFetch } from './veniceClient';
 const dispatch = vi.fn();
 
 /** Resets localStorage, dispatch mocks, and veniceFetch before each test. */
-beforeEach(() => { localStorage.clear(); dispatch.mockReset(); vi.mocked(veniceFetch).mockReset(); });
+beforeEach(() => { window.localStorage.clear(); dispatch.mockReset(); vi.mocked(veniceFetch).mockReset(); });
 
 /** Tests for modelService cache behavior. */
 describe('modelService cache behavior', () => {
   /** Verifies that fresh cached data is returned without a network fetch. */
   it('returns fresh cache without fetch', async () => {
-    localStorage.setItem('venice-forge-models-cache', JSON.stringify({ grouped: { text: [{id:'a'}] }, fetchedAt: Date.now() }));
+    window.localStorage.setItem('venice-forge-models-cache', JSON.stringify({ grouped: { text: [{id:'a'}] }, fetchedAt: Date.now() }));
     await refreshModels(dispatch, false);
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_MODELS', fallback: false }));
     expect(veniceFetch).not.toHaveBeenCalled();
@@ -26,7 +40,7 @@ describe('modelService cache behavior', () => {
 
   /** Verifies dispatch of stale cache followed by a network refresh. */
   it('dispatches stale cache then refreshes', async () => {
-    localStorage.setItem('venice-forge-models-cache', JSON.stringify({ grouped: { text: [{id:'a'}] }, fetchedAt: Date.now()-9999999 }));
+    window.localStorage.setItem('venice-forge-models-cache', JSON.stringify({ grouped: { text: [{id:'a'}] }, fetchedAt: Date.now()-9999999 }));
     vi.mocked(veniceFetch).mockResolvedValue({ data: { data:[{id:'x',type:'text',name:'x'}] } } as any);
     await refreshModels(dispatch, false);
     expect(dispatch).toHaveBeenCalled();

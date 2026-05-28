@@ -23,7 +23,7 @@ interface ModelsCache {
  */
 function readCache(): ModelsCache | null {
   try {
-    const raw = localStorage.getItem(CACHE_KEY);
+    const raw = window.localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     const isStale = Date.now() - parsed.fetchedAt > CACHE_TTL_MS;
@@ -39,7 +39,7 @@ function readCache(): ModelsCache | null {
  */
 function writeCache(grouped: any): void {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ grouped, fetchedAt: Date.now() }));
+    window.localStorage.setItem(CACHE_KEY, JSON.stringify({ grouped, fetchedAt: Date.now() }));
   } catch {
     // localStorage may be full or unavailable.
   }

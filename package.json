@@ -7,7 +7,7 @@
   "private": true,
   "version": "1.0.1",
   "type": "module",
-  "main": "dist-electron/main.js",
+  "main": "dist-electron/electron/main.js",
   "homepage": "https://github.com/spearchucker667/Windows-Venice-API-connector#readme",
   "repository": {
     "type": "git",
@@ -30,6 +30,8 @@
     "generate:icon": "node scripts/generate-placeholder-icon.cjs",
     "verify:icon": "node scripts/verify-icon.cjs",
     "verify:dist": "node scripts/verify-dist.cjs",
+    "verify:dist:win": "node scripts/verify-dist-win.cjs",
+    "verify:dist:mac": "node scripts/verify-dist-mac.cjs",
     "lint": "tsc --noEmit",
     "lint:eslint": "eslint src electron server.ts",
     "test:coverage": "vitest run --coverage",
@@ -39,6 +41,9 @@
     "dist": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs",
     "dist:win": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --win",
     "dist:portable": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --win portable",
+    "dist:mac": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac",
+    "dist:mac:arm64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --arm64",
+    "dist:mac:x64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --x64",
     "ci": "npm ci && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {

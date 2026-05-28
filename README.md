@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/spearchucker667/Windows-Venice-API-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/spearchucker667/Windows-Venice-API-connector/actions/workflows/ci.yml)
 [![Windows Release](https://github.com/spearchucker667/Windows-Venice-API-connector/actions/workflows/windows-release.yml/badge.svg)](https://github.com/spearchucker667/Windows-Venice-API-connector/actions/workflows/windows-release.yml)
+[![macOS Release](https://github.com/spearchucker667/Windows-Venice-API-connector/actions/workflows/macos-release.yml/badge.svg)](https://github.com/spearchucker667/Windows-Venice-API-connector/actions/workflows/macos-release.yml)
 [![Release](https://img.shields.io/github/v/release/spearchucker667/Windows-Venice-API-connector?include_prereleases&label=release)](https://github.com/spearchucker667/Windows-Venice-API-connector/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Node 20/22](https://img.shields.io/badge/node-20%20%7C%2022-339933.svg)](package.json)
@@ -43,7 +44,7 @@ The full public file tree and ownership map live in [docs/REPOSITORY_TREE.md](do
 
 ## Requirements
 
-- Windows 10/11 for release builds
+- Windows 10/11 or macOS 13+ for release builds
 - Node.js 20 or 22
 - npm 10+
 - A Venice API key ([venice.ai](https://venice.ai))
@@ -71,7 +72,7 @@ Useful scripts:
 ```bash
 npm run verify:icon
 npm run dist:win
-npm run verify:dist
+npm run verify:dist:win
 ```
 
 Artifacts are written to `release/`:
@@ -79,13 +80,28 @@ Artifacts are written to `release/`:
 - `Venice-Forge-<version>-x64-Setup.exe` — NSIS installer
 - `Venice-Forge-<version>-x64-Portable.exe` — portable executable
 
-`build/icon.ico` is required before packaging. This repo includes a generated placeholder; run `npm run generate:icon` if it is missing, then replace it with final artwork before public release.
+## macOS Builds
 
-Local builds are unsigned unless standard electron-builder signing environment variables are set (`CSC_LINK`, `CSC_KEY_PASSWORD`, `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`). Unsigned installers can trigger Windows SmartScreen warnings.
+```bash
+npm run verify:icon
+npm run dist:mac
+npm run verify:dist:mac
+```
+
+Artifacts are written to `release/`:
+
+- `Venice-Forge-<version>-arm64.dmg` / `.zip` — Apple Silicon
+- `Venice-Forge-<version>-x64.dmg` / `.zip` — Intel
+
+`build/icon.ico` and `build/icon.icns` are required before packaging. This repo includes a generated placeholder; run `npm run generate:icon` if they are missing, then replace them with final artwork before public release.
+
+Local builds are unsigned unless standard electron-builder signing environment variables are set (`CSC_LINK`, `CSC_KEY_PASSWORD`, `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`). Unsigned installers can trigger Windows SmartScreen warnings or macOS Gatekeeper blocks. To bypass Gatekeeper for local unsigned builds on macOS, you may need to clear the quarantine flag (`xattr -dr com.apple.quarantine /path/to/Venice\ Forge.app`).
+
+Official public releases must be signed using Apple Developer ID credentials and notarized via Apple's notary service.
 
 ## API Key Setup
 
-**Desktop mode:** open **Config**, paste the Venice API key, click **Save key**, then **Test connection**. On Windows, Venice Forge refuses to store the key if Electron `safeStorage` encryption is unavailable.
+**Desktop mode:** open **Config**, paste the Venice API key, click **Save key**, then **Test connection**. Venice Forge refuses to store the key if Electron `safeStorage` encryption (DPAPI on Windows, Keychain on macOS) is unavailable.
 
 **Web mode:** copy `.env.example` to `.env` and set `VENICE_API_KEY`.
 
@@ -97,8 +113,8 @@ VENICE_API_KEY="your-venice-inference-key"
 
 | Data | Location |
 |------|----------|
-| API key | Electron `safeStorage` — `%APPDATA%\Venice Forge\secure-prefs.json` |
-| Logs | `%APPDATA%\Venice Forge\logs\venice-forge.log` |
+| API key | Electron `safeStorage` — Win: `%APPDATA%\Venice Forge\secure-prefs.json`<br>Mac: `~/Library/Application Support/Venice Forge/secure-prefs.json` |
+| Logs | Win: `%APPDATA%\Venice Forge\logs\venice-forge.log`<br>Mac: `~/Library/Application Support/Venice Forge/logs/venice-forge.log` |
 | Images, chats, settings | Renderer IndexedDB |
 | Exports | Versioned JSON with `version`, `exportedAt`, `appVersion`, and `data` |
 

@@ -1,0 +1,67 @@
+name: macOS Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  macos-release:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify generated icon
+        run: npm run verify:icon
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Package macOS artifacts
+        run: npm run dist:mac
+        env:
+          # Avoid requiring signing secrets by default for testing builds.
+          # electron-builder will perform ad-hoc code signing on macOS.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Generate SHA-256 checksums
+        run: |
+          cd release
+          for f in *.dmg *.zip; do
+            if [ -f "$f" ]; then
+              shasum -a 256 "$f" > "$f".sha256
+            fi
+          done
+
+      - name: Verify release artifacts
+        run: npm run verify:dist:mac
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: venice-forge-macos-${{ github.ref_name }}
+          path: |
+            release/*.dmg
+            release/*.zip
+            release/*.sha256
+          if-no-files-found: error

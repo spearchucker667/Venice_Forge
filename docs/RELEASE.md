@@ -1,4 +1,4 @@
-# Windows Release Checklist
+# Dual-Platform Release Checklist
 
 ## Version
 
@@ -8,7 +8,7 @@
 4. Confirm `README.md`, [LEGAL.md](LEGAL.md), [SECURITY.md](SECURITY.md), [REPOSITORY_TREE.md](REPOSITORY_TREE.md), and this checklist match the release.
 5. Confirm public-facing badges and GitHub templates still point at `spearchucker667/Windows-Venice-API-connector`.
 
-## Local Build
+## Local Windows Build
 
 Run on Windows PowerShell:
 
@@ -19,7 +19,7 @@ npm run typecheck
 npm test
 npm run build
 npm run dist:win
-npm run verify:dist
+npm run verify:dist:win
 ```
 
 Expected artifacts:
@@ -29,27 +29,43 @@ Expected artifacts:
 - `release/Venice-Forge-<version>-x64-Setup.exe.sha256`
 - `release/Venice-Forge-<version>-x64-Portable.exe.sha256`
 
-## Signing
+## Local macOS Build
 
-Signing is optional for local development. For distribution, configure electron-builder-compatible signing with one of:
+Run on macOS Bash/Zsh:
 
-- `CSC_LINK` and `CSC_KEY_PASSWORD`
-- `WIN_CSC_LINK` and `WIN_CSC_KEY_PASSWORD`
+```bash
+npm run clean
+npm install
+npm run typecheck
+npm test
+npm run build
+npm run dist:mac
+npm run verify:dist:mac
+```
 
-Do not commit certificates or passwords. If signing variables are missing, builds are unsigned and Windows SmartScreen may warn users.
+Expected artifacts:
+
+- `release/Venice-Forge-<version>-arm64.dmg` and `.zip`
+- `release/Venice-Forge-<version>-x64.dmg` and `.zip`
+- Associated `.sha256` checksums
+
+## Signing & Notarization
+
+### Windows
+Signing is optional for local development. Configure electron-builder-compatible signing with `CSC_LINK`/`CSC_KEY_PASSWORD` or `WIN_CSC_LINK`/`WIN_CSC_KEY_PASSWORD` for distribution. Unsigned builds may trigger SmartScreen.
+
+### macOS
+Local builds are ad-hoc signed. To distribute, you must configure macOS code signing (using `CSC_LINK` and `CSC_KEY_PASSWORD` containing a Developer ID Application certificate) and submit the build to Apple's notary service using notarization parameters. Unsigned/ad-hoc signed builds will trigger Gatekeeper warnings unless stripped of their quarantine flags via `xattr -dr com.apple.quarantine`.
 
 ## GitHub Actions
 
-Use `.github/workflows/windows-release.yml`.
+Use `.github/workflows/windows-release.yml` and `.github/workflows/macos-release.yml` for Windows and macOS builds.
 
 Triggers:
-
 - Manual `workflow_dispatch`
 - Version tags matching `v*`
 
-The workflow runs `npm ci`, typecheck, tests, build, `dist:win`, `verify:dist`, and uploads `release/*.exe`.
-
-It also generates SHA-256 checksum sidecar files for each `.exe` artifact and uploads them with the release artifact bundle.
+The workflows run `npm ci`, typecheck, tests, build, packaging commands (`dist:win` or `dist:mac`), checksum generation, and verification scripts (`verify:dist`), then upload the signed/unsigned bundles as release assets.
 
 ## Smoke Test
 
@@ -74,7 +90,7 @@ It also generates SHA-256 checksum sidecar files for each `.exe` artifact and up
 
 1. Create a tag: `git tag v<version> && git push origin v<version>`.
 2. Download artifacts from the workflow or use local `release/`.
-3. Smoke test on a clean Windows VM.
+3. Smoke test on clean Windows and macOS environments.
 4. Upload artifacts and checksums to the release.
 5. Note whether artifacts are signed or unsigned.
 6. Update the GitHub Release notes from `CHANGELOG.md`.

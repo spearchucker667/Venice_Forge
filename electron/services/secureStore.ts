@@ -68,14 +68,14 @@ export function setApiKey(key: string): void {
     store["apiKey"] = safeStorage.encryptString(key).toString("base64");
     store["apiKeyEncrypted"] = "true";
   } else {
-    if (process.platform === "win32") {
+    if (process.platform === "win32" || process.platform === "darwin") {
       throw new Error(
-        "Windows secure storage is unavailable. Venice Forge will not store the API key without OS encryption."
+        `${process.platform === "win32" ? "Windows" : "macOS"} secure storage is unavailable. Venice Forge will not store the API key without OS encryption.`
       );
     }
     if (!ALLOW_PLAINTEXT_FALLBACK) {
       throw new Error(
-        "OS secure storage is unavailable. Set VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true to allow documented non-Windows plaintext fallback."
+        "OS secure storage is unavailable. Set VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true to allow documented plaintext fallback."
       );
     }
     store["apiKey"] = key;
@@ -129,7 +129,7 @@ export function isEncryptionAvailable(): boolean {
  */
 export function getStorageMode(): SecureStorageMode {
   if (safeStorage.isEncryptionAvailable()) return "encrypted";
-  if (process.platform !== "win32" && ALLOW_PLAINTEXT_FALLBACK) return "plaintext-fallback";
+  if (process.platform !== "win32" && process.platform !== "darwin" && ALLOW_PLAINTEXT_FALLBACK) return "plaintext-fallback";
   return "unavailable";
 }
 

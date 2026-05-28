@@ -24,7 +24,7 @@ const config = {
   ],
 
   extraMetadata: {
-    main: "dist-electron/main.js",
+    main: "dist-electron/electron/main.js",
   },
 
   asar: true,
@@ -58,14 +58,36 @@ const config = {
     artifactName: "Venice-Forge-${version}-${arch}-Portable.${ext}",
   },
 
-  // macOS and Linux targets are disabled until icon assets (icon.icns, icon.png)
-  // are added and the platforms are smoke-tested.
-  // mac: {
-  //   target: [{ target: "dmg", arch: ["x64", "arm64"] }],
-  //   icon: "build/icon.icns",
-  //   category: "public.app-category.productivity",
-  // },
-  //
+  mac: {
+    target: [
+      { target: "dmg", arch: ["x64", "arm64"] },
+      { target: "zip", arch: ["x64", "arm64"] }
+    ],
+    icon: "build/icon.icns",
+    category: "public.app-category.productivity",
+    // hardenedRuntime and notarization should be configured via environment or 
+    // separate configs for production releases requiring Apple credentials.
+    // Local unsigned builds will work without credentials.
+  },
+
+  dmg: {
+    artifactName: "Venice-Forge-${version}-${arch}.${ext}",
+    contents: [
+      {
+        x: 130,
+        y: 220,
+      },
+      {
+        x: 410,
+        y: 220,
+        type: "link",
+        path: "/Applications",
+      },
+    ],
+  },
+
+  // Linux target is disabled until icon assets (icon.png)
+  // are added and the platform is smoke-tested.
   // linux: {
   //   target: [{ target: "AppImage", arch: ["x64"] }],
   //   icon: "build/icon.png",
