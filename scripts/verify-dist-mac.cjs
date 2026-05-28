@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const root = path.join(__dirname, "..");
 const releaseDir = path.join(root, "release");
@@ -14,6 +15,22 @@ function requireFile(filePath, minBytes) {
     throw new Error(`${path.relative(root, filePath)} is unexpectedly small (${stat.size} bytes)`);
   }
   return stat.size;
+}
+
+function verifyChecksum(filePath) {
+  const hash = crypto.createHash("sha256");
+  hash.update(fs.readFileSync(filePath));
+  const actualHash = hash.digest("hex");
+  
+  const checksumFile = `${filePath}.sha256`;
+  if (!fs.existsSync(checksumFile)) throw new Error(`Missing checksum file for ${path.basename(filePath)}`);
+  
+  const checksumContent = fs.readFileSync(checksumFile, "utf8").trim();
+  const expectedHash = checksumContent.split(/\s+/)[0];
+  
+  if (actualHash !== expectedHash) {
+    throw new Error(`Checksum mismatch for ${path.basename(filePath)}! Expected ${expectedHash}, got ${actualHash}`);
+  }
 }
 
 try {
@@ -55,8 +72,8 @@ try {
 
     requireFile(path.join(releaseDir, dmg), 5 * 1024 * 1024); // DMG is typically >5MB
     requireFile(path.join(releaseDir, zip), 5 * 1024 * 1024); // ZIP is typically >5MB
-    requireFile(path.join(releaseDir, `${dmg}.sha256`), 32);
-    requireFile(path.join(releaseDir, `${zip}.sha256`), 32);
+    verifyChecksum(path.join(releaseDir, dmg));
+    verifyChecksum(path.join(releaseDir, zip));
   }
 
   console.log(`[verify:dist:mac] OK checked architectures: ${archs.join(", ")}`);

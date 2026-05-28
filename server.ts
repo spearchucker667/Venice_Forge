@@ -10,7 +10,8 @@ import {
   ALLOWED_VENICE_METHODS,
   isAllowedVeniceRequest,
 } from "./src/shared/validation";
-import { VENICE_API_HOST, VENICE_API_BASE_PATH, parsePositiveIntEnv } from "./src/shared/apiConfig";
+import { VENICE_API_HOST, VENICE_API_BASE_PATH } from "./src/shared/apiConfig";
+import { AppConfig } from "./src/shared/configSchema";
 
 dotenv.config();
 
@@ -35,7 +36,7 @@ export function applyVeniceProxyHeaders(
     proxyReq.removeHeader(header);
   }
 
-  proxyReq.setHeader("Authorization", `Bearer ${process.env.VENICE_API_KEY}`);
+  proxyReq.setHeader("Authorization", `Bearer ${AppConfig.VENICE_API_KEY}`);
   proxyReq.setHeader("Host", VENICE_API_HOST);
 
   if (req.method !== "GET" && req.body && Buffer.isBuffer(req.body)) {
@@ -69,10 +70,8 @@ export function createServerApp() {
 
   // Trust proxy only when explicitly configured via TRUST_PROXY env var,
   // to prevent IP spoofing when the server is accessed directly without a trusted reverse proxy.
-  if (process.env.TRUST_PROXY) {
-    const raw = process.env.TRUST_PROXY;
-    const numeric = Number(raw);
-    app.set("trust proxy", Number.isFinite(numeric) ? numeric : raw);
+  if (AppConfig.TRUST_PROXY) {
+    app.set("trust proxy", AppConfig.TRUST_PROXY);
   }
 
   // Security headers for all responses
@@ -82,7 +81,7 @@ export function createServerApp() {
     res.setHeader("Referrer-Policy", "no-referrer");
     // In non-production environments Vite HMR uses WebSocket connections, so we
     // widen connect-src to include ws: / wss:. In production only 'self' is allowed.
-    const isProduction = process.env.NODE_ENV === "production";
+    const isProduction = AppConfig.NODE_ENV === "production";
     const connectSrc = isProduction ? "connect-src 'self'" : "connect-src 'self' ws: wss:";
     res.setHeader(
       "Content-Security-Policy",
@@ -104,8 +103,8 @@ export function createServerApp() {
   });
 
   // Simple Rate Limiting
-  const rateLimitWindowMs = parsePositiveIntEnv(process.env.RATE_LIMIT_WINDOW_MS, 60000, 1000, 3600000);
-  const rateLimitMax = parsePositiveIntEnv(process.env.RATE_LIMIT_MAX_REQUESTS, 60, 1, 10000);
+  const rateLimitWindowMs = AppConfig.RATE_LIMIT_WINDOW_MS;
+  const rateLimitMax = AppConfig.RATE_LIMIT_MAX_REQUESTS;
   const reqCounts = new Map<string, { count: number; resetTime: number }>();
 
   setInterval(() => {
@@ -118,7 +117,7 @@ export function createServerApp() {
   }, Math.max(10000, rateLimitWindowMs)).unref();
 
   app.use("/api/venice", (req, res, next) => {
-    if (!process.env.VENICE_API_KEY && process.env.NODE_ENV !== "test") {
+    if (!AppConfig.VENICE_API_KEY && AppConfig.NODE_ENV !== "test") {
       return res.status(500).json({ error: "VENICE_API_KEY is not configured on the server." });
     }
 
@@ -139,7 +138,7 @@ export function createServerApp() {
     next();
   });
 
-  const MAX_PROXY_BODY_BYTES = parsePositiveIntEnv(process.env.MAX_PROXY_BODY_BYTES, 26214400, 1024, 26214400);
+  const MAX_PROXY_BODY_BYTES = AppConfig.MAX_PROXY_BODY_BYTES;
 
   // Circuit Breaker State
   let circuitFailures = 0;
@@ -228,16 +227,16 @@ export function createServerApp() {
 
 export async function startServer() {
   const app = createServerApp();
-  const PORT = parsePositiveIntEnv(process.env.PORT, 3000, 1, 65535);
+  const PORT = AppConfig.PORT;
 
   // Vite middleware for development
-  if (process.env.NODE_ENV !== "production" && process.env.NODE_ENV !== "test") {
+  if (AppConfig.NODE_ENV !== "production" && AppConfig.NODE_ENV !== "test") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
-  } else if (process.env.NODE_ENV !== "test") {
+  } else if (AppConfig.NODE_ENV !== "test") {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     app.get("*", (req: any, res: any) => {
@@ -245,7 +244,7 @@ export async function startServer() {
     });
   }
 
-  if (process.env.NODE_ENV !== "test") {
+  if (AppConfig.NODE_ENV !== "test") {
     const host = process.env.HOST || "127.0.0.1";
     app.listen(Number(PORT), host, () => {
       console.log(`Server running on http://${host}:${PORT}`);
@@ -253,6 +252,6 @@ export async function startServer() {
   }
 }
 
-if (process.env.NODE_ENV !== "test") {
+if (AppConfig.NODE_ENV !== "test") {
   startServer();
 }

@@ -134,7 +134,7 @@ Desktop Venice API calls go through a narrow preload API and main-process IPC tr
 
 Production CSP does not allow localhost networking. Navigation is blocked except for the app files; trusted external HTTPS links open in the OS browser. Packaged production DevTools are disabled unless `VENICE_FORGE_DEBUG_DEVTOOLS=true`. Web proxy mode adds `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and `Content-Security-Policy` headers to all responses.
 
-See [docs/SECURITY.md](docs/SECURITY.md) for the full security model.
+Read our full [Privacy & Security Model](PRIVACY.md) and the technical [docs/SECURITY.md](docs/SECURITY.md) for more details.
 
 ## Legal and Terms
 

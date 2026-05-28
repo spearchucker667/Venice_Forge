@@ -10,6 +10,14 @@ Venice Forge is an Electron app with a sandboxed React renderer, a preload bridg
 
 The renderer cannot access arbitrary IPC channels, shell execution, local files, or the raw Venice API key.
 
+## Code Signing Policy
+
+Official public releases of Venice Forge MUST be cryptographically signed to establish trust and prevent malware tampering.
+- **Windows:** Authenticode signing using `CSC_LINK` and `CSC_KEY_PASSWORD` (or `WIN_CSC_LINK` / `WIN_CSC_KEY_PASSWORD`).
+- **macOS:** Apple Developer ID signing and Notarization using `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID`.
+
+Unsigned builds are only permitted for local development or CI/CD testing. Unsigned binaries will be explicitly labeled and may trigger OS trust warnings such as Windows SmartScreen or macOS Gatekeeper.
+
 ## Local Builds
 
 Local builds are generated via `npm run dist:win` or `npm run dist:mac` using `electron-builder`. By default, these local builds are unsigned unless Apple Developer ID and Windows code signing credentials are provided via environment variables.

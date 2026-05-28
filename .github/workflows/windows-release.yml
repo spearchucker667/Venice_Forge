@@ -37,7 +37,21 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Package Windows artifacts
+      - name: Enforce Windows signing credentials for public releases
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          if [[ -z "${{ secrets.CSC_LINK }}" || -z "${{ secrets.CSC_KEY_PASSWORD }}" || -z "${{ secrets.WIN_CSC_LINK }}" || -z "${{ secrets.WIN_CSC_KEY_PASSWORD }}" ]]; then
+            echo "Error: Missing Windows signing credentials for a public release."
+            exit 1
+          fi
+
+      - name: Package Windows artifacts (Development)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: npm run dist:win
+
+      - name: Package Windows artifacts (Public Release)
+        if: startsWith(github.ref, 'refs/tags/v')
         run: npm run dist:win
         env:
           CSC_LINK: ${{ secrets.CSC_LINK }}
@@ -52,10 +66,20 @@ jobs:
         run: npm run verify:dist:win
 
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: venice-forge-windows-${{ github.ref_name }}
           path: |
             release/*.exe
             release/*.sha256
           if-no-files-found: error
+
+      - name: Publish to GitHub Releases
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.exe
+            release/*.sha256
+          draft: false
+          prerelease: false

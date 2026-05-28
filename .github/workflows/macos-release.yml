@@ -37,12 +37,31 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Package macOS artifacts
+      - name: Enforce macOS signing credentials for public releases
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          if [[ -z "${{ secrets.CSC_LINK }}" || -z "${{ secrets.CSC_KEY_PASSWORD }}" || -z "${{ secrets.APPLE_ID }}" || -z "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" || -z "${{ secrets.APPLE_TEAM_ID }}" ]]; then
+            echo "Error: Missing macOS signing and notarization credentials for a public release."
+            exit 1
+          fi
+
+      - name: Package macOS artifacts (Development)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: npm run dist:mac
         env:
           # Avoid requiring signing secrets by default for testing builds.
           # electron-builder will perform ad-hoc code signing on macOS.
           CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Package macOS artifacts (Public Release)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npm run dist:mac
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Generate SHA-256 checksums
         run: npm run checksum:release
@@ -51,7 +70,7 @@ jobs:
         run: npm run verify:dist:mac
 
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: venice-forge-macos-${{ github.ref_name }}
           path: |
@@ -59,3 +78,14 @@ jobs:
             release/*.zip
             release/*.sha256
           if-no-files-found: error
+
+      - name: Publish to GitHub Releases
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.dmg
+            release/*.zip
+            release/*.sha256
+          draft: false
+          prerelease: false

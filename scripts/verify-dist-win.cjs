@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const root = path.join(__dirname, "..");
 const releaseDir = path.join(root, "release");
@@ -14,6 +15,22 @@ function requireFile(filePath, minBytes) {
     throw new Error(`${path.relative(root, filePath)} is unexpectedly small (${stat.size} bytes)`);
   }
   return stat.size;
+}
+
+function verifyChecksum(filePath) {
+  const hash = crypto.createHash("sha256");
+  hash.update(fs.readFileSync(filePath));
+  const actualHash = hash.digest("hex");
+  
+  const checksumFile = `${filePath}.sha256`;
+  if (!fs.existsSync(checksumFile)) throw new Error(`Missing checksum file for ${path.basename(filePath)}`);
+  
+  const checksumContent = fs.readFileSync(checksumFile, "utf8").trim();
+  const expectedHash = checksumContent.split(/\s+/)[0];
+  
+  if (actualHash !== expectedHash) {
+    throw new Error(`Checksum mismatch for ${path.basename(filePath)}! Expected ${expectedHash}, got ${actualHash}`);
+  }
 }
 
 try {
@@ -35,7 +52,7 @@ try {
     const setup = files.find((name) => setupPattern.test(name));
     if (!setup) throw new Error("Missing NSIS setup exe in release/.");
     requireFile(path.join(releaseDir, setup), 1024 * 1024);
-    requireFile(path.join(releaseDir, `${setup}.sha256`), 32);
+    verifyChecksum(path.join(releaseDir, setup));
   }
 
   if (checkPortable) {
@@ -43,7 +60,7 @@ try {
     const portable = files.find((name) => portablePattern.test(name));
     if (!portable) throw new Error("Missing portable exe in release/.");
     requireFile(path.join(releaseDir, portable), 1024 * 1024);
-    requireFile(path.join(releaseDir, `${portable}.sha256`), 32);
+    verifyChecksum(path.join(releaseDir, portable));
   }
 
   console.log(`[verify:dist:win] OK`);
