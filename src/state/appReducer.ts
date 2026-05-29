@@ -118,7 +118,7 @@ export const initialState = {
     webSearch: "off",
     webScraping: false,
     webCitations: false,
-    theme: "dark" as const,
+    theme: "dark" as "dark" | "light" | "system",
     customModels: [] as string[],
   },
   diagnostics: null as any,
@@ -225,7 +225,7 @@ export const appReducer = produce((draft: typeof initialState, action: AppAction
       ];
       for (const key of allowedKeys) {
         if (key in action.settings) {
-          const nextValue = (action.settings as any)[key];
+          const nextValue = (action.settings as Record<string, unknown>)[key];
           if (key === "defaultSystemPrompt") {
             if (typeof nextValue === "string") draft.settings.defaultSystemPrompt = nextValue;
             continue;
