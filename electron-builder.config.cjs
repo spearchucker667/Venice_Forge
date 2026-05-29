@@ -75,6 +75,10 @@ const config = {
     // to ad-hoc signing when no Apple Developer ID certificate is present.
   },
 
+  zip: {
+    artifactName: "Venice-Forge-${version}-${arch}.${ext}",
+  },
+
   dmg: {
     artifactName: "Venice-Forge-${version}-${arch}.${ext}",
     contents: [

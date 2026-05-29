@@ -4,6 +4,7 @@
 // Code Owner: fayeblade (@spearchucker667)
 // Primary maintainer and security gatekeeper for the Electron main process.
 import { app, BrowserWindow, dialog, shell } from "electron";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { registerIpcHandlers } from "./ipc/handlers";
@@ -106,9 +107,19 @@ function isAllowedAppNavigation(url: string): boolean {
     if (isDev) return parsed.origin === "http://localhost:5173";
     if (parsed.protocol !== "file:") return false;
     const rendererRoot = path.resolve(__dirname, "../../dist");
-    // Normalize to resolve ".." and symlinks, then verify strict containment.
-    const targetPath = path.normalize(fileURLToPath(parsed));
-    const normalizedRoot = path.normalize(rendererRoot);
+    // Normalize to resolve "..", then realpath to resolve symlinks, then verify strict containment.
+    let targetPath: string;
+    try {
+      targetPath = fs.realpathSync(path.normalize(fileURLToPath(parsed)));
+    } catch {
+      return false;
+    }
+    let normalizedRoot: string;
+    try {
+      normalizedRoot = fs.realpathSync(path.normalize(rendererRoot));
+    } catch {
+      return false;
+    }
     const indexHtml = path.join(normalizedRoot, "index.html");
     return targetPath === indexHtml || targetPath.startsWith(`${normalizedRoot}${path.sep}`);
   } catch {
