@@ -97,7 +97,7 @@ Artifacts are written to `release/`:
 
 `build/icon.ico` and `build/icon.icns` are required before packaging. This repo includes a generated placeholder; run `npm run generate:icon` if they are missing, then replace them with final artwork before public release.
 
-Local builds are unsigned unless standard electron-builder signing environment variables are set (`CSC_LINK`, `CSC_KEY_PASSWORD`, `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`). Unsigned installers can trigger Windows SmartScreen warnings or macOS Gatekeeper blocks. To bypass Gatekeeper for local unsigned builds on macOS, you may need to clear the quarantine flag (`xattr -dr com.apple.quarantine /path/to/Venice\ Forge.app`).
+Local builds are unsigned unless standard electron-builder signing environment variables are set (`CSC_LINK`, `CSC_KEY_PASSWORD`, `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`). Unsigned installers can trigger Windows SmartScreen warnings or macOS Gatekeeper blocks. To bypass Gatekeeper for local unsigned builds on macOS, you may need to clear the quarantine flag (`xattr -dr com.apple.quarantine "/path/to/Venice Forge.app"`).
 
 Official public releases must be signed using Apple Developer ID credentials and notarized via Apple's notary service.
 
