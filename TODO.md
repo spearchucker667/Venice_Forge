@@ -67,7 +67,7 @@
 
 ## High
 
-- [ ] **[BUG-003] Settings auto-save has no debounce — rapid changes race and can persist out-of-order state** `src/App.tsx:157`
+- [x] **[BUG-003] Settings auto-save has no debounce — rapid changes race and can persist out-of-order state** `src/App.tsx:157`
   - **Type:** Concurrency / Resource
   - **What:** `useEffect` watches `[dbReady, settingsHydrated, state.settings]` and fires `StorageService.saveItem` on every settings mutation. There is no debounce, leading to overlapping async writes.
   - **Why it matters:** If the user toggles multiple settings quickly, an earlier slow IndexedDB write can overwrite a later fast one, leaving persisted state inconsistent with in-memory state.
@@ -85,7 +85,7 @@
   - **Fix:** Add a debounce (e.g., 500 ms) or a sequential write queue so only the latest settings snapshot is persisted.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-004] IndexedDB init failure still marks `dbReady=true`, causing later writes to a broken database** `src/App.tsx:132`
+- [x] **[BUG-004] IndexedDB init failure still marks `dbReady=true`, causing later writes to a broken database** `src/App.tsx:132`
   - **Type:** Error Handling / Logic
   - **What:** The `finally` block in the IndexedDB bootstrap effect sets `dbReady(true)` and `settingsHydrated(true)` even when the `try` block threw. The settings auto-save effect then fires and attempts `StorageService.saveItem` on a null/broken DB connection.
   - **Evidence:**
@@ -103,7 +103,7 @@
   - **Fix:** Only set `dbReady`/`settingsHydrated` in the `try` block on success; set error flags in `catch` that gate downstream effects.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-005] `SET_CHAT_DRAFT`, `SET_IMAGE_DRAFT`, `SET_BATCH_DRAFT` reducers crash on null/undefined `patch`** `src/state/appReducer.ts:285`
+- [x] **[BUG-005] `SET_CHAT_DRAFT`, `SET_IMAGE_DRAFT`, `SET_BATCH_DRAFT` reducers crash on null/undefined `patch`** `src/state/appReducer.ts:285`
   - **Type:** Null Safety / Crash
   - **What:** `Object.assign(draft.chatDraft, action.patch)` throws a `TypeError` if `action.patch` is `null` or `undefined`. There is no guard.
   - **Evidence:**
@@ -115,7 +115,7 @@
   - **Fix:** Add `if (action.patch && typeof action.patch === "object")` guard before `Object.assign`.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-006] `dedupeKey` can throw unhandled `TypeError` on circular request bodies** `src/services/veniceClient.ts:28`
+- [x] **[BUG-006] `dedupeKey` can throw unhandled `TypeError` on circular request bodies** `src/services/veniceClient.ts:28`
   - **Type:** Error Handling / Crash
   - **What:** `JSON.stringify(body)` inside `dedupeKey` throws when `body` contains circular references. Because `dedupeKey` is called before the try/catch in `veniceFetch`, the exception propagates uncaught to the caller.
   - **Evidence:**
@@ -128,7 +128,7 @@
   - **Fix:** Wrap `JSON.stringify` in a try/catch and fall back to a hash of `Object.keys` or a placeholder.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-007] Import loops over stores sequentially with `await` inside `for…of` — slow, no transaction atomicity** `src/modules/SettingsModule.tsx:239`
+- [x] **[BUG-007] Import loops over stores sequentially with `await` inside `for…of` — slow, no transaction atomicity** `src/modules/SettingsModule.tsx:239`
   - **Type:** Performance / Logic
   - **What:** Import writes images, chats, and settings one-by-one with sequential `await` inside loops. If any single `saveItem` throws, previously saved records remain while the import is half-applied.
   - **Evidence:**
@@ -140,7 +140,7 @@
   - **Fix:** Wrap all writes in an IndexedDB transaction, or use `Promise.all` for each store batch. On failure, roll back or warn the user that partial data may exist.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-008] Rate-limit `reqCounts` Map grows unbounded under multi-IP traffic** `server.ts:110`
+- [x] **[BUG-008] Rate-limit `reqCounts` Map grows unbounded under multi-IP traffic** `server.ts:110`
   - **Type:** Resource / Performance
   - **What:** The cleanup `setInterval` only prunes entries whose `resetTime` has passed. If the server receives requests from a large number of unique IPs, the Map retains an entry per IP indefinitely until each individual window expires.
   - **Evidence:**
@@ -167,7 +167,7 @@
   - **Fix:** Move circuit/rate-limit state inside `createServerApp()` so each app instance is isolated.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-010] `console.error`, `console.warn` left in production renderer and server paths** — 17 occurrences
+- [x] **[BUG-010] `console.error`, `console.warn` left in production renderer and server paths** — 17 occurrences
   - **Type:** Code Quality / Maintainability
   - **What:** Multiple source files contain `console.*` calls that will emit in production builds.
   - **Locations:**
@@ -179,7 +179,7 @@
   - **Fix:** Replace with a conditional logger or a no-op in production. The server already gates request logging behind `NODE_ENV !== "production"`; extend that pattern.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-011] `AbortSignal.any` and `AbortSignal.timeout` may throw in older runtimes** `src/services/veniceClient.ts:504`
+- [x] **[BUG-011] `AbortSignal.any` and `AbortSignal.timeout` may throw in older runtimes** `src/services/veniceClient.ts:504`
   - **Type:** Compatibility / Crash
   - **What:** The web-mode fetch path uses `AbortSignal.any([signal, AbortSignal.timeout(60000)])`. These APIs shipped in Chromium 116+ / Node 20+. If the web build is opened in an older browser the call will throw a `TypeError` and break the request.
   - **Evidence:**
@@ -265,7 +265,7 @@
   - **Fix:** Read version from `package.json` at build or startup time and cache it.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-018] `veniceFetchDesktop` asserts `method as "GET" | "POST"`** `src/services/veniceClient.ts:351`
+- [x] **[BUG-018] `veniceFetchDesktop` asserts `method as "GET" | "POST"`** `src/services/veniceClient.ts:351`
   - **Type:** Type Safety
   - **What:** Even though validation already happened upstream, the function casts `method` instead of narrowing it.
   - **Evidence:**
@@ -275,7 +275,7 @@
   - **Fix:** Change the parameter type to the union or validate before the call.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-019] Explicit `any` in `veniceFetch` generic default** `src/services/veniceClient.ts:643`
+- [x] **[BUG-019] Explicit `any` in `veniceFetch` generic default** `src/services/veniceClient.ts:643`
   - **Type:** Type Safety
   - **What:** `export async function veniceFetch<T = any>(...)` disables TypeScript inference for consumers who omit the generic.
   - **Evidence:**
@@ -310,7 +310,7 @@
   - **Fix:** Prefer `unknown` for inputs and generics for outputs.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-022] Log rotation overwrites the single backup file** `electron/services/logger.ts:42`
+- [x] **[BUG-022] Log rotation overwrites the single backup file** `electron/services/logger.ts:42`
   - **Type:** Data Loss / Operational
   - **What:** When the log exceeds 1 MiB, it is renamed to `.1`, overwriting any previous `.1` file. Only one backup is ever kept.
   - **Evidence:**
@@ -389,7 +389,7 @@
   - **Fix:** Remove `"scripts/**"` and `"*.config.*"` from ignores, or add a separate lint pass for Node CJS scripts.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-028] `sleep` ignores already-aborted signals, allowing stale timeouts to proceed** `src/services/veniceClient.ts:47`
+- [x] **[BUG-028] `sleep` ignores already-aborted signals, allowing stale timeouts to proceed** `src/services/veniceClient.ts:47`
   - **Type:** Async / Logic
   - **What:** `sleep` adds an abort listener without checking `signal.aborted` first. If called with an already-aborted signal, the timeout continues instead of rejecting immediately. Callers currently check before invocation, but `sleep` is a public utility that should be robust.
   - **Evidence:**
@@ -409,7 +409,7 @@
   - **Fix:** Check `if (signal?.aborted) { reject(...); return; }` before setting the timeout.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-029] `modelService` swallows localStorage write failures silently** `src/services/modelService.ts:52`
+- [x] **[BUG-029] `modelService` swallows localStorage write failures silently** `src/services/modelService.ts:52`
   - **Type:** Logic / Maintainability
   - **What:** `writeCache` has an empty catch block. If localStorage is full or disabled, the app silently fails to cache models.
   - **Evidence:**
@@ -423,7 +423,7 @@
   - **Fix:** Surface a warning toast or log to the diagnostics reducer.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-030] `byteLength` uses `new Blob([value]).size` — slow for large strings** `src/services/exportImport.ts:58`
+- [x] **[BUG-030] `byteLength` uses `new Blob([value]).size` — slow for large strings** `src/services/exportImport.ts:58`
   - **Type:** Performance
   - **What:** `new Blob` allocates memory just to measure UTF-8 byte length.
   - **Evidence:**
@@ -445,7 +445,7 @@
   - **Fix:** Remove `dev:web` or make `dev` an alias that prints a selection prompt.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-032] AGENTS.md and AGENT_REINITIALIZATION.md falsely claim CI omits ESLint** `AGENTS.md` & `AGENT_REINITIALIZATION.md`
+- [x] **[BUG-032] AGENTS.md and AGENT_REINITIALIZATION.md falsely claim CI omits ESLint** `AGENTS.md` & `AGENT_REINITIALIZATION.md`
   - **Type:** Documentation
   - **What:** Both docs state that `.github/workflows/ci.yml` does not run `npm run lint:eslint`, but the workflow file clearly includes it.
   - **Evidence:**
@@ -541,22 +541,22 @@
 
 ## Documentation Defects
 
-- [ ] **[DOC-001] AGENTS.md claims CI omits ESLint, but `ci.yml` runs it** `AGENTS.md §Current Operational Reality`
+- [x] **[DOC-001] AGENTS.md claims CI omits ESLint, but `ci.yml` runs it** `AGENTS.md §Current Operational Reality`
   - **What:** Doc says "GitHub `ci.yml` currently runs typecheck/test/build, not ESLint."
   - **Fix:** Update to "CI runs lint:eslint, typecheck, test, and build."
   - **Confidence:** [VERIFIED]
 
-- [ ] **[DOC-002] AGENT_REINITIALIZATION.md section 9.2 incorrectly states ci.yml omits ESLint** `AGENT_REINITIALIZATION.md:366`
+- [x] **[DOC-002] AGENT_REINITIALIZATION.md section 9.2 incorrectly states ci.yml omits ESLint** `AGENT_REINITIALIZATION.md:366`
   - **What:** "`ci.yml` does not call `npm run lint:eslint`. `[VERIFIED]`" — directly contradicted by the workflow file.
   - **Fix:** Remove the false claim and update the command table.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[DOC-003] AGENT_REINITIALIZATION.md says lint budget is 120, actual is 96** `AGENT_REINITIALIZATION.md:14`
+- [x] **[DOC-003] AGENT_REINITIALIZATION.md says lint budget is 120, actual is 96** `AGENT_REINITIALIZATION.md:14`
   - **What:** "local `npm run lint:eslint` (`--max-warnings=120`)"
   - **Fix:** Change to 96 or update `package.json` to 120.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[DOC-004] `electron-builder.config.cjs` stale comment about Windows-only** `electron-builder.config.cjs:3`
+- [x] **[DOC-004] `electron-builder.config.cjs` stale comment about Windows-only** `electron-builder.config.cjs:3`
   - **What:** Comment says "Produces a Windows NSIS installer and a portable .exe" but config now builds macOS too.
   - **Fix:** Update header comment to reflect dual-platform support.
   - **Confidence:** [VERIFIED]
