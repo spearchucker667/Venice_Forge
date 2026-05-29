@@ -9,10 +9,11 @@ import { ConfirmModal } from "../components/ConfirmModal";
 import { isElectron, desktopApiKey, desktopApp, desktopFiles, desktopUpdates } from "../services/desktopBridge";
 import { createExportPayload, validateImportJson } from "../services/exportImport";
 import { VENICE_MAX_BODY_BYTES } from "../shared/limits";
+import type { AppState, AppDispatch } from "../types/app";
 
 interface SettingsModuleProps {
-  state: any;
-  dispatch: any;
+  state: AppState;
+  dispatch: AppDispatch;
   apiKeyConfigured: boolean | null;
   onApiKeyChange: (configured: boolean) => void;
 }
