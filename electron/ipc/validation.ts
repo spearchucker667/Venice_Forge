@@ -102,8 +102,9 @@ export function validateVeniceIpcRequest(input: unknown): VeniceIpcRequest {
     }
   }
 
-  if (request.signalId !== undefined && typeof request.signalId !== "string") {
-    throw new Error("Venice signalId must be a string.");
+  if (request.signalId !== undefined) {
+    if (typeof request.signalId !== "string") throw new Error("Venice signalId must be a string.");
+    if (request.signalId.length > 128) throw new Error("Venice signalId is too long.");
   }
 
   return {
