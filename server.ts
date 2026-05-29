@@ -122,7 +122,7 @@ export function createServerApp() {
   const MAX_RATE_LIMIT_ENTRIES = 10_000;
   const reqCounts = new Map<string, { count: number; resetTime: number }>();
 
-  setInterval(() => {
+  const rateLimitCleanupInterval = setInterval(() => {
     const now = Date.now();
     for (const [ip, record] of reqCounts.entries()) {
       if (now > record.resetTime) {
@@ -170,6 +170,11 @@ export function createServerApp() {
   app.use("/api/venice", (req, res, next) => {
     if (Date.now() < circuitOpenUntil) {
       return res.status(503).json({ error: "Service Unavailable: Circuit breaker open due to upstream failures." });
+    }
+    // Reset failure count when re-entering half-open state after timeout
+    if (circuitOpenUntil > 0 && circuitFailures >= CIRCUIT_MAX_FAILURES) {
+      circuitFailures = 0;
+      circuitOpenUntil = 0;
     }
     next();
   });
@@ -242,6 +247,10 @@ export function createServerApp() {
       },
     })
   );
+
+  (app as express.Application & { cleanupIntervals?: () => void }).cleanupIntervals = () => {
+    clearInterval(rateLimitCleanupInterval);
+  };
 
   return app;
 }

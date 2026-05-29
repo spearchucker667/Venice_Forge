@@ -33,14 +33,11 @@ export interface ImageDraft {
 /** Captures the current batch job form state. */
 export interface BatchDraft {
   type: "text" | "image";
-  prompts: string;
-  model: string;
-  systemPrompt: string;
+  promptsText: string;
 }
 
-/** User-configurable settings persisted across sessions. */
+/** User-configurable settings persisted across sessions. API keys are stored separately via safeStorage and never written here. */
 export interface AppSettings {
-  apiKey?: string;
   defaultSystemPrompt: string;
   includeVeniceSystemPrompt: boolean;
   webSearch: string;

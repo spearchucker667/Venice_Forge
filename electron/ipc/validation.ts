@@ -107,6 +107,10 @@ export function validateVeniceIpcRequest(input: unknown): VeniceIpcRequest {
     if (request.signalId.length > 128) throw new Error("Venice signalId is too long.");
   }
 
+  if (endpoint.search.length > 512) {
+    throw new Error("Venice endpoint query string is too long.");
+  }
+
   return {
     endpoint: `${endpoint.pathname}${endpoint.search}`,
     method: method as VeniceIpcMethod,

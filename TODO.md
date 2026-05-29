@@ -1,16 +1,16 @@
 # Bug Hunt — TODO
 
-> Generated: 2026-05-28 • Scope: code + docs • Files scanned: ~95 / ~149 tracked
+> Generated: 2026-05-28 (updated pass 2) • Scope: code + docs • Files scanned: ~130 / ~149 tracked
 
 ## Summary
 
 | Severity | Count |
 |----------|-------|
 | Critical | 2 |
-| High | 12 |
-| Medium | 18 |
-| Low / Cosmetic | 14 (+8 grouped) |
-| Doc Defect | 11 |
+| High | 14 |
+| Medium | 22 |
+| Low / Cosmetic | 15 (+8 grouped) |
+| Doc Defect | 12 |
 | Missing Doc | 4 |
 
 ---
@@ -229,6 +229,45 @@
   - **Fix:** Replace with `req: express.Request, res: express.Response`.
   - **Confidence:** [VERIFIED]
 
+- [x] **[BUG-044] `BatchDraft` type definition diverges from actual state shape** `src/types/app.ts:34`
+  - **Type:** Type Safety / Logic
+  - **What:** `BatchDraft` declares `prompts: string`, `model: string`, and `systemPrompt: string`, but the actual `initialState.batchDraft` in `appReducer.ts` only stores `type` and `promptsText`. `BatchModule.tsx` works around the mismatch by casting `state.batchDraft as { type: ...; promptsText: string }` entirely. The exported type is therefore dead and misleading — any code relying on `BatchDraft.prompts` or `BatchDraft.model` would silently get `undefined` at runtime.
+  - **Why it matters:** TypeScript inference fails silently; future contributors who reference `BatchDraft` from `app.ts` will write code against fields that don't exist in state.
+  - **Evidence:**
+    ```ts
+    // src/types/app.ts:34
+    export interface BatchDraft {
+      type: "text" | "image";
+      prompts: string;        // ← field does not exist in state
+      model: string;          // ← field does not exist in state
+      systemPrompt: string;   // ← field does not exist in state
+    }
+    // appReducer.ts:150
+    batchDraft: { type: "text", promptsText: "..." }
+    // BatchModule.tsx:41 — casts away the wrong type entirely
+    const draft = (state.batchDraft || { type: "text", promptsText: "" }) as {
+      type: "text" | "image"; promptsText: string;
+    };
+    ```
+  - **Fix:** Update `BatchDraft` in `src/types/app.ts` to match the actual state shape (`{ type: "text" | "image"; promptsText: string }`) and remove the cast in `BatchModule.tsx`.
+  - **Confidence:** [VERIFIED]
+
+- [x] **[BUG-045] `cryptoService` `keyPromise` latch permanently rejects on any key-init failure** `src/services/cryptoService.ts:8`
+  - **Type:** Error Handling / Data Loss
+  - **What:** `keyPromise` is a module-level singleton. If the IIFE inside `getOrCreateKey()` rejects (e.g., IDB blocked, key generation fails), `keyPromise` is permanently set to a rejected `Promise`. Every subsequent call to `getOrCreateKey()` returns the same rejected promise — no retry is possible without a page reload. This is distinct from BUG-001 (TOCTOU race on key creation); this is the permanent failure-latch on any initialization error.
+  - **Why it matters:** A transient IndexedDB error at startup silently bricks all encrypt/decrypt operations for the session. The user sees no persistent error and their data writes silently fail.
+  - **Evidence:**
+    ```ts
+    let keyPromise: Promise<CryptoKey> | null = null;
+    async function getOrCreateKey(): Promise<CryptoKey> {
+      if (keyPromise) return keyPromise;   // ← returns rejected promise on retry
+      keyPromise = (async () => { ... })();
+      return keyPromise;
+    }
+    ```
+  - **Fix:** Add a rejection handler that resets `keyPromise = null` so the next call retries: `keyPromise = (async () => { ... })().catch(err => { keyPromise = null; throw err; });`
+  - **Confidence:** [VERIFIED]
+
 ---
 
 ## Medium
@@ -299,7 +338,7 @@
   - **Fix:** Replace with narrow interfaces or `unknown` + guards.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-021] `StorageService` and `cryptoService` expose `any` in public APIs** — 4 occurrences
+- [x] **[BUG-021] `StorageService` and `cryptoService` expose `any` in public APIs** — 4 occurrences
   - **Type:** Type Safety
   - **What:** Several public methods accept or return `any`.
   - **Locations:**
@@ -435,6 +474,69 @@
   - **Fix:** Use `Buffer.byteLength(value, "utf-8")` in Node contexts, or `TextEncoder` in the browser.
   - **Confidence:** [VERIFIED]
 
+- [x] **[BUG-046] IPC `endpoint.search` forwarded verbatim without length cap** `electron/ipc/validation.ts:111`
+  - **Type:** Security / Input Validation
+  - **What:** `validateVeniceIpcRequest` validates `endpoint.pathname` against the allowlist but builds the final `endpoint` return value as `endpoint.pathname + endpoint.search`. The query string (`endpoint.search`) is forwarded to the Venice API without any length restriction. A malicious or buggy renderer call can craft a multi-megabyte query string that bypasses the body-size check (which only inspects `request.body`).
+  - **Why it matters:** Allows the renderer to forward arbitrarily large query strings, potentially triggering Venice API errors or smuggling content outside the validated body channel.
+  - **Evidence:**
+    ```ts
+    return {
+      endpoint: `${endpoint.pathname}${endpoint.search}`, // ← search is unsanitized
+      ...
+    };
+    ```
+  - **Fix:** Add a length cap (e.g., 512 bytes) on `endpoint.search` and/or validate it against known parameter names (`?type=all` being the only legitimate one currently).
+  - **Confidence:** [VERIFIED]
+
+- [x] **[BUG-047] Web-mode export URL revoked synchronously before download is queued** `src/services/desktopBridge.ts:211`
+  - **Type:** Logic / Race Condition
+  - **What:** In web mode, `exportJson` creates a Blob URL, triggers `a.click()`, and immediately calls `URL.revokeObjectURL(url)` in the same synchronous tick. The browser schedules the download asynchronously; if the download hasn't been queued by the time the URL is revoked, the download silently fails.
+  - **Why it matters:** Users may see no file download and no error message.
+  - **Evidence:**
+    ```ts
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = defaultPath;
+    a.click();
+    URL.revokeObjectURL(url);   // ← immediate synchronous revoke
+    ```
+  - **Fix:** Revoke the URL after a short delay (`setTimeout(() => URL.revokeObjectURL(url), 1000)`) or in a `load` event listener on the anchor.
+  - **Confidence:** [VERIFIED]
+
+- [x] **[BUG-048] Circuit breaker `circuitFailures` never resets when timeout window expires** `server.ts:165`
+  - **Type:** Logic / Availability
+  - **What:** When the circuit trips, `circuitOpenUntil` is set 30 seconds ahead. After 30 seconds the guard passes, but `circuitFailures` remains at its peak value (≥ 5). The very next upstream failure will immediately re-trip the circuit (`circuitFailures++` ≥ 5 immediately), without the intended grace period. There is no true half-open state: one failed probe re-opens the breaker immediately.
+  - **Why it matters:** A short burst of upstream errors followed by recovery will make the circuit permanently fragile; a single transient failure after the reset window re-trips it immediately rather than allowing gradual recovery.
+  - **Evidence:**
+    ```ts
+    let circuitFailures = 0;      // ← never reset when circuitOpenUntil expires
+    let circuitOpenUntil = 0;
+    app.use("/api/venice", (req, res, next) => {
+      if (Date.now() < circuitOpenUntil) { return res.status(503)... }
+      next(); // passes, but circuitFailures still = 5
+    });
+    // on next 5xx: circuitFailures++ → 6 >= 5 → immediately re-trips
+    ```
+  - **Fix:** When a request is allowed through after the timeout, reset `circuitFailures = 0` (half-open reset) so recovery requires a full new burst of failures.
+  - **Confidence:** [VERIFIED]
+
+- [x] **[BUG-049] `setInterval` for rate-limit map cleanup leaks on each `createServerApp()` call** `server.ts:125`
+  - **Type:** Resource Leak
+  - **What:** The cleanup `setInterval` is created inside `createServerApp()` with `.unref()` but is never stored in a variable and never cleared. Each call to `createServerApp()` (e.g., in test suites that call it in `beforeEach`) accumulates a new live interval. The `.unref()` prevents Node from keeping the process alive, but the intervals still fire, accumulate closures over their respective `reqCounts` maps, and are never GC'd until the process exits.
+  - **Why it matters:** In the test suite (`server.test.ts` calls `createServerApp()` per test), N tests create N intervals, each holding a closure reference to a stale `reqCounts` map.
+  - **Evidence:**
+    ```ts
+    setInterval(() => {   // ← no variable assignment, no clearInterval possible
+      const now = Date.now();
+      for (const [ip, record] of reqCounts.entries()) {
+        if (now > record.resetTime) reqCounts.delete(ip);
+      }
+    }, Math.max(10000, rateLimitWindowMs)).unref();
+    ```
+  - **Fix:** Return a `cleanup` function from `createServerApp()` (or store the interval ID and expose it) so test teardown can call `clearInterval`.
+  - **Confidence:** [VERIFIED]
+
 ---
 
 ## Low / Cosmetic
@@ -542,6 +644,12 @@
 
 > +8 additional low/cosmetic items not individually listed (minor whitespace inconsistencies, redundant `as const` casts, stray blank lines).
 
+- [x] **[BUG-050] `AppSettings.apiKey` field declared in type but never written by the `SET_SETTINGS` reducer** `src/types/app.ts:43`
+  - **Type:** Type Safety / Misleading API
+  - **What:** `AppSettings` declares `apiKey?: string`, but `SET_SETTINGS` in `appReducer.ts` has an explicit `allowedKeys` array that excludes `apiKey`. The field is intentionally never written via this path (API keys live in `safeStorage`/env), but the type definition implies it can be set as a regular setting. Any code that passes `{ apiKey: "..." }` to a `SET_SETTINGS` dispatch will silently no-op.
+  - **Fix:** Remove `apiKey?` from `AppSettings` or replace it with a comment-only JSDoc note explaining that the key lives outside the settings object.
+  - **Confidence:** [VERIFIED]
+
 ---
 
 ## Documentation Defects
@@ -608,6 +716,11 @@
   - **Fix:** Use quotes: `"/path/to/Venice Forge.app"`.
   - **Confidence:** [VERIFIED]
 
+- [x] **[DOC-012] `.env.example` labels `VENICE_TIMEOUT_MS` as "legacy fallback" but it is still actively read** `.env.example:20`
+  - **What:** `.env.example` shows `# VENICE_TIMEOUT_MS=60000 # legacy fallback`, suggesting the variable is deprecated. However, `src/shared/configSchema.ts:42` still reads it as an active fallback: `env("VENICE_API_TIMEOUT_MS", env("VENICE_TIMEOUT_MS", "60000"))`. The variable is not legacy — it is a supported alias.
+  - **Fix:** Update the comment to: `# VENICE_TIMEOUT_MS=60000  # Deprecated alias for VENICE_API_TIMEOUT_MS — still accepted as fallback`.
+  - **Confidence:** [VERIFIED]
+
 ---
 
 ## Missing Documentation
@@ -646,12 +759,19 @@
 - [x] BUG-025 — Add `signalId` length cap in validator (1-line fix)
 - [x] BUG-026 — Remove `vite.config.ts` from `tsconfig.json` exclude (1-line fix)
 - [x] BUG-027 — Include `scripts/**` in ESLint coverage (config-only)
+- [x] BUG-044 — Fix `BatchDraft` type to use `promptsText` and remove the inline cast (2-file fix)
+- [x] BUG-045 — Reset `keyPromise = null` on rejection for retry semantics (1-line fix)
+- [x] BUG-047 — Defer `URL.revokeObjectURL` by 1 s in web-mode export (1-line fix)
+- [x] BUG-048 — Reset `circuitFailures = 0` when circuit re-opens after timeout (2-line fix)
+- [x] BUG-050 — Remove misleading `apiKey?` from `AppSettings` type (1-line fix)
+- [x] DOC-012 — Update `.env.example` comment for `VENICE_TIMEOUT_MS` alias (1-line fix)
 
 ---
 
 ## Notes & Open Questions
 
-- Files not scanned in full (scope limit): `src/modules/ChatModule.tsx`, `src/modules/ImageModule.tsx`, `src/modules/BatchModule.tsx`, `src/modules/SearchScrapeModule.tsx`, `src/modules/ModelsModule.tsx`, `src/modules/GalleryModule.tsx`, `src/modules/DiagnosticsModule.tsx`, most files under `src/components/` and `src/hooks/` (other than those explicitly read), `electron/preload.ts`.
+- Pass 2 (this update) scanned: `src/modules/ImageModule.tsx`, `src/modules/GalleryModule.tsx`, `src/modules/BatchModule.tsx` (full), `src/constants/venice.ts`, `src/types/app.ts`, `src/types/storage.ts`, `src/services/modelService.ts`, `vite.config.ts`, `.github/workflows/ci.yml`, `.github/workflows/windows-release.yml`.
+- Files still not fully scanned: `src/modules/SearchScrapeModule.tsx`, `src/modules/ModelsModule.tsx`, `src/modules/DiagnosticsModule.tsx`, most of `src/components/`, `src/hooks/`.
 - Background explore agents (`agent-8n0zvup1`, `agent-x9u6wex8`, `agent-26agulef`, `agent-ha7v730r`) contributed additional suspected issues; all significant verified findings have been merged above.
 - The `dangerouslySetInnerHTML` in `src/utils/markdown.tsx` was reviewed and is **not** an XSS vulnerability because `escapeHtml` runs before all regex replacements. However, the ordering of markdown transforms may produce unexpected rendering for edge-case inputs (e.g., headings inside blockquotes).
 - `npm audit` returned 0 known dependency vulnerabilities at scan time.

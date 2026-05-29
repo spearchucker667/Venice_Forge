@@ -208,7 +208,7 @@ export const desktopFiles = {
       a.href = url;
       a.download = defaultPath;
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       return true;
     }
     const result = await window.veniceForge!.files.saveJsonFile(json, defaultPath);

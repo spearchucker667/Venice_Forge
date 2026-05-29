@@ -4,6 +4,19 @@
 const ALGO = "AES-GCM";
 const KEY_NAME = "venice-forge-key";
 
+/** Shape of a persisted key record in the key store. */
+interface KeyRecord {
+  id: string;
+  key: CryptoKey;
+}
+
+/** Shape of the encrypted payload wrapper produced by encryptData. */
+export interface EncryptedPayload {
+  _encrypted: true;
+  iv: number[];
+  data: number[];
+}
+
 /** Promise latch ensuring only one key-generation sequence runs at a time. */
 let keyPromise: Promise<CryptoKey> | null = null;
 
@@ -15,10 +28,10 @@ async function getOrCreateKey(): Promise<CryptoKey> {
   if (keyPromise) return keyPromise;
   keyPromise = (async () => {
     const db = await openKeyDB();
-    const existing = await new Promise<any>((resolve, reject) => {
+    const existing = await new Promise<KeyRecord | undefined>((resolve, reject) => {
       const tx = db.transaction("keys", "readonly");
       const req = tx.objectStore("keys").get(KEY_NAME);
-      req.onsuccess = () => resolve(req.result);
+      req.onsuccess = () => resolve(req.result as KeyRecord | undefined);
       req.onerror = () => reject(req.error);
     });
     if (existing) return existing.key;
@@ -33,7 +46,10 @@ async function getOrCreateKey(): Promise<CryptoKey> {
       putReq.onsuccess = () => resolve(key);
       putReq.onerror = () => reject(putReq.error);
     });
-  })();
+  })().catch((err) => {
+    keyPromise = null; // Allow retry on next call
+    throw err;
+  });
   return keyPromise;
 }
 
@@ -57,7 +73,7 @@ function openKeyDB(): Promise<IDBDatabase> {
  * @param data The value to encrypt.
  * @returns A promise resolving to the encrypted payload wrapper.
  */
-export async function encryptData(data: any): Promise<any> {
+export async function encryptData<T>(data: T): Promise<EncryptedPayload> {
   const key = await getOrCreateKey();
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const encoded = new TextEncoder().encode(JSON.stringify(data));
@@ -79,12 +95,13 @@ export async function encryptData(data: any): Promise<any> {
  * @param encryptedPayload The wrapper object produced by encryptData.
  * @returns A promise resolving to the decrypted value, or null on failure.
  */
-export async function decryptData(encryptedPayload: any): Promise<any> {
-  if (!encryptedPayload || !encryptedPayload._encrypted) return encryptedPayload;
+export async function decryptData<T>(encryptedPayload: EncryptedPayload | T): Promise<T | null> {
+  if (!encryptedPayload || !(encryptedPayload as EncryptedPayload)._encrypted) return encryptedPayload as T;
   try {
     const key = await getOrCreateKey();
-    const iv = new Uint8Array(encryptedPayload.iv);
-    const encrypted = new Uint8Array(encryptedPayload.data);
+    const payload = encryptedPayload as EncryptedPayload;
+    const iv = new Uint8Array(payload.iv);
+    const encrypted = new Uint8Array(payload.data);
     const decrypted = await crypto.subtle.decrypt(
       { name: ALGO, iv },
       key,

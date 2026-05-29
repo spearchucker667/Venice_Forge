@@ -105,7 +105,7 @@ const StorageService = {
           }
           results = decrypted.filter(Boolean);
         }
-        const sorted = results.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
+        const sorted = results.sort((a: { timestamp?: number }, b: { timestamp?: number }) => (b.timestamp || 0) - (a.timestamp || 0));
         resolve({ items: sorted as T[], decryptFailures });
       };
       req.onerror = () => reject(req.error);

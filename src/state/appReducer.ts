@@ -148,7 +148,7 @@ export const initialState = {
     disableWatermark: true,
   },
   batchDraft: {
-    type: "text", // 'text' or 'image'
+    type: "text" as "text" | "image",
     promptsText:
       "Explain quantum computing in one sentence.\nWrite a haiku about a robot.\nWhat is the capital of France?",
   },

@@ -13,7 +13,7 @@ import { Field } from "../components/Field";
 import { Chip } from "../components/Chip";
 import { Markdown } from "../utils/markdown";
 import { DiagPreview } from "../components/DiagnosticsPreview";
-import { ModuleProps } from "../types/app";
+import { ModuleProps, BatchDraft } from "../types/app";
 
 type BatchStatus = "pending" | "running" | "done" | "error" | "cancelled";
 
@@ -38,16 +38,13 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 }
 
 export function BatchModule({ state, dispatch }: ModuleProps) {
-  const draft = (state.batchDraft || { type: "text", promptsText: "" }) as {
-    type: "text" | "image";
-    promptsText: string;
-  };
+  const draft: BatchDraft = state.batchDraft || { type: "text" as const, promptsText: "" };
   const [results, setResults] = useState<BatchResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [promptsTouched, setPromptsTouched] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  function patch(updates: { type?: "text" | "image"; promptsText?: string }) {
+  function patch(updates: Partial<BatchDraft>) {
     dispatch({ type: "SET_BATCH_DRAFT", patch: updates });
   }
 
