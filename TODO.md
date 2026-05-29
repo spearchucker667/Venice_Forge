@@ -156,7 +156,7 @@
   - **Fix:** Cap total Map size (e.g., LRU eviction at 10 000 entries) or tighten the cleanup interval.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-009] Circuit-breaker state is module-level and leaks across `createServerApp()` calls** `server.ts:146`
+- [x] **[BUG-009] Circuit-breaker state is module-level and leaks across `createServerApp()` calls** `server.ts:146`
   - **Type:** Logic / Testing
   - **What:** `circuitFailures`, `circuitOpenUntil`, and `reqCounts` are declared at module scope. Tests or server restarts that invoke `createServerApp()` multiple times share mutable state.
   - **Evidence:**
@@ -191,7 +191,7 @@
   - **Fix:** Add a feature-detect fallback: `typeof AbortSignal !== "undefined" && AbortSignal.any ? … : manual timeout via setTimeout + abortController`.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-012] macOS `electron-builder` config omits `hardenedRuntime: true`** `electron-builder.config.cjs:64`
+- [x] **[BUG-012] macOS `electron-builder` config omits `hardenedRuntime: true`** `electron-builder.config.cjs:64`
   - **Type:** Config / Security
   - **What:** The `mac` block does not set `hardenedRuntime: true`. Apple notarization requires hardened runtime; without it, public releases may fail notarization or Gatekeeper checks.
   - **Evidence:**
@@ -217,7 +217,7 @@
   - **Fix:** Add a periodic sweep or a TTL on entries, or clear the map on `beforeunload`.
   - **Confidence:** [SUSPECTED → verify by stress-testing rapid deduped requests with page reloads]
 
-- [ ] **[BUG-014] Catch-all Express route uses `req: any, res: any`** `server.ts:244`
+- [x] **[BUG-014] Catch-all Express route uses `req: any, res: any`** `server.ts:244`
   - **Type:** Type Safety
   - **What:** The SPA fallback handler is untyped, bypassing TypeScript checks for header manipulation, path traversal via `req.path`, or incorrect `res.sendFile` usage.
   - **Evidence:**
@@ -233,7 +233,7 @@
 
 ## Medium
 
-- [ ] **[BUG-015] `server.ts` validation uses `as any` to bypass strict tuple `includes` typing** `server.ts:161`
+- [x] **[BUG-015] `server.ts` validation uses `as any` to bypass strict tuple `includes` typing** `server.ts:161`
   - **Type:** Type Safety
   - **What:** `ALLOWED_VENICE_METHODS.includes(method as any)` and `ALLOWED_VENICE_ENDPOINTS.includes(req.path as any)` use `as any` instead of narrowing.
   - **Evidence:**
@@ -244,7 +244,7 @@
   - **Fix:** Parse/narrow into the union type first, or use a runtime helper that returns the narrowed type.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-016] `validateVeniceIpcRequest` return value discarded in `venice:request` handler** `electron/ipc/handlers.ts:46`
+- [x] **[BUG-016] `validateVeniceIpcRequest` return value discarded in `venice:request` handler** `electron/ipc/handlers.ts:46`
   - **Type:** Logic / Redundancy
   - **What:** The handler calls `validateVeniceIpcRequest(input)` and ignores the sanitized result, then passes the raw `input` to `performVeniceRequest`. `performVeniceRequest` re-validates internally, so the request is still safe, but the first validation is pure overhead.
   - **Evidence:**
@@ -255,7 +255,7 @@
   - **Fix:** Use the validated object: `const request = validateVeniceIpcRequest(input); return await performVeniceRequest(request);`
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-017] Health check version falls back to "unknown" outside npm** `server.ts:70`
+- [x] **[BUG-017] Health check version falls back to "unknown" outside npm** `server.ts:70`
   - **Type:** Logic / Operational
   - **What:** `process.env.npm_package_version` is only injected by npm/yarn. When the production server bundle is started directly via `node dist/server.cjs`, the version becomes `"unknown"`.
   - **Evidence:**
@@ -337,7 +337,7 @@
   - **Fix:** Use `unknown` catch variables with runtime guards (`err instanceof Error`).
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-024] `loadJsonFile` success return lacks `ok: true`, inconsistent with `saveJsonFile`** `electron/ipc/handlers.ts:170`
+- [x] **[BUG-024] `loadJsonFile` success return lacks `ok: true`, inconsistent with `saveJsonFile`** `electron/ipc/handlers.ts:170`
   - **Type:** API Consistency / Logic
   - **What:** `app:loadJsonFile` returns `{ canceled: false, data }` on success, while `app:saveJsonFile` returns `{ ok: true, canceled: false }`. Renderer code must use `!result.canceled` as a proxy for success.
   - **Evidence:**
@@ -347,7 +347,7 @@
   - **Fix:** Return `{ ok: true, canceled: false, data }`.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-025] `signalId` length is not bounded in IPC request validator** `electron/ipc/validation.ts:105`
+- [x] **[BUG-025] `signalId` length is not bounded in IPC request validator** `electron/ipc/validation.ts:105`
   - **Type:** Security / Resource
   - **What:** The validator only checks `typeof request.signalId !== "string"`. A multi-megabyte `signalId` passes validation and is used as a Map key in `activeRequests`. The abort handler caps at 128 chars, but the request validator does not.
   - **Evidence:**
@@ -359,7 +359,7 @@
   - **Fix:** Add `request.signalId.length <= 128` in the validator.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-026] `tsconfig.json` excludes `vite.config.ts` from type-checking** `tsconfig.json:32`
+- [x] **[BUG-026] `tsconfig.json` excludes `vite.config.ts` from type-checking** `tsconfig.json:32`
   - **Type:** Type Safety / Config
   - **What:** `vite.config.ts` is listed in `"exclude"`, so `tsc --noEmit` never checks it. Type errors in the Vite config are only caught at runtime.
   - **Evidence:**
@@ -375,7 +375,7 @@
   - **Fix:** Create a separate `tsconfig.vite.json` that includes `vite.config.ts` and add it to the typecheck command, or include it in the main config.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-027] `eslint.config.mjs` ignores `scripts/**` and `*.config.*`** `eslint.config.mjs:41`
+- [x] **[BUG-027] `eslint.config.mjs` ignores `scripts/**` and `*.config.*`** `eslint.config.mjs:41`
   - **Type:** Config / Quality
   - **What:** The ignore list excludes all build scripts and config files from linting, meaning bugs in `scripts/verify-dist-*.cjs`, `electron-builder.config.cjs`, etc. are never caught by ESLint.
   - **Evidence:**
@@ -495,7 +495,7 @@
   - **Fix:** Add a minimal Playwright or Spectron check that the window title is "Venice Forge".
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-039] `buildMultipartBody` uses `Math.random()` for boundary token** `electron/services/veniceClient.ts:63`
+- [x] **[BUG-039] `buildMultipartBody` uses `Math.random()` for boundary token** `electron/services/veniceClient.ts:63`
   - **Type:** Security / Cosmic
   - **What:** Boundary generation is not cryptographically random. Collision probability is negligible for multipart, but it violates the principle of using `crypto.randomBytes` for tokens.
   - **Fix:** Replace with `crypto.randomBytes(16).toString("hex")`.
