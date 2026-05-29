@@ -471,7 +471,7 @@
   - **Fix:** Update header to mention dual-platform packaging.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-035] `JSDoc` for `looksLikeUnixTimestamp` is copy-pasted from another function** `src/services/veniceClient.ts:76`
+- [x] **[BUG-035] `JSDoc` for `looksLikeUnixTimestamp` is copy-pasted from another function** `src/services/veniceClient.ts:76`
   - **Type:** Documentation
   - **What:** The JSDoc reads "The number to evaluate" with no description of what the function actually does.
   - **Fix:** Write a proper description.
@@ -593,7 +593,7 @@
   - **Fix:** Align expected artifact names with actual `electron-builder` output, or set `zip.artifactName` in the config.
   - **Confidence:** [SUSPECTED]
 
-- [ ] **[DOC-010] `AGENT_REINITIALIZATION.md` section 8.4 still claims CI omits ESLint** `AGENT_REINITIALIZATION.md:314`
+- [x] **[DOC-010] `AGENT_REINITIALIZATION.md` section 8.4 still claims CI omits ESLint** `AGENT_REINITIALIZATION.md:314`
   - **What:** "CI workflow (`.github/workflows/ci.yml`) currently does not run `npm run lint:eslint`" — contradicted by the file.
   - **Fix:** Remove or correct the claim.
   - **Confidence:** [VERIFIED]
