@@ -1,27 +1,30 @@
-import React, { useState } from "react";
+import React, { useState, useId } from "react";
 
 export function CollapsibleSection({ title, children, defaultOpen = false }: { title: React.ReactNode, children: React.ReactNode, defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
+  const contentId = useId();
+  const headingId = useId();
 
   return (
-    <div className="collapsible-section" style={{ border: "1px solid var(--border-strong)", borderRadius: 8, background: "var(--panel-strong)", overflow: "hidden" }}>
+    <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden backdrop-blur-sm">
       <button
+        id={headingId}
         type="button"
         aria-expanded={open}
+        aria-controls={contentId}
         onClick={() => setOpen(!open)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            setOpen(!open);
-          }
-        }}
-        style={{ width: "100%", padding: "12px 16px", background: "transparent", border: "none", display: "flex", justifyContent: "space-between", alignItems: "center", color: "var(--text)", fontWeight: 600, fontSize: 12, cursor: "pointer" }}
+        className="flex w-full items-center justify-between px-4 py-3 text-xs font-semibold text-zinc-200 transition-colors duration-200 hover:bg-white/5"
       >
         <span>{title}</span>
-        <span aria-hidden="true" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 160ms ease" }}>▼</span>
+        <span aria-hidden="true" className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▼</span>
       </button>
       {open && (
-        <div style={{ padding: 16, borderTop: "1px solid var(--border-strong)" }}>
+        <div
+          id={contentId}
+          role="region"
+          aria-labelledby={headingId}
+          className="border-t border-white/10 p-4"
+        >
           {children}
         </div>
       )}

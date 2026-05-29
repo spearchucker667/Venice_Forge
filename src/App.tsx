@@ -197,7 +197,7 @@ export default function App() {
         </aside>
 
         {/* Mobile Nav Rail (tablet width) */}
-        <nav className="hidden w20 min-w-[80px] flex-col items-center gap-3 border-r border-white/5 bg-zinc-950/70 py-4 backdrop-blur-xl md:flex lg:hidden overflow-y-auto">
+        <nav className="hidden w-20 min-w-[80px] flex-col items-center gap-3 border-r border-white/5 bg-zinc-950/70 py-4 backdrop-blur-xl md:flex lg:hidden overflow-y-auto">
           {TABS.map(([id, label]) => (
             <TabButton
               key={id}

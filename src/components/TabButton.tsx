@@ -8,7 +8,6 @@ export function TabButton({
   className = "",
   iconOnly = false,
 }: {
-  key?: React.Key;
   id: string;
   label: string;
   active: boolean;

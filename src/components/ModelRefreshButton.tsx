@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { refreshModels } from "../services/modelService";
 import { Chip } from "./Chip";
+import { AppState, AppDispatch } from "../types/app";
 
 interface ModelRefreshButtonProps {
-  state: any;
-  dispatch: any;
+  state: AppState;
+  dispatch: AppDispatch;
 }
 
 export function ModelRefreshButton({ state, dispatch }: ModelRefreshButtonProps) {
@@ -26,9 +27,9 @@ export function ModelRefreshButton({ state, dispatch }: ModelRefreshButtonProps)
   const isLive = !state.usingFallbackModels;
 
   return (
-    <div className="chip-row" style={{ alignItems: "center", flexWrap: "wrap" }}>
+    <div className="flex flex-wrap items-center gap-3">
       <button
-        className="btn sm"
+        className="btn"
         onClick={handleRefresh}
         disabled={refreshing}
         title="Fetch all available models from the Venice API"

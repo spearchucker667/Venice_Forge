@@ -4,15 +4,16 @@ export function StatusBlock({ error, success }: { error?: string; success?: stri
   return (
     <>
       {error && (
-        <div className="error" role="alert" aria-live="assertive">
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400 shadow-sm animate-[fadeIn_0.3s_ease]" role="alert" aria-live="assertive">
           {error}
         </div>
       )}
       {success && (
-        <div className="success" role="status" aria-live="polite">
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400 shadow-sm animate-[fadeIn_0.3s_ease]" role="status" aria-live="polite">
           {success}
         </div>
       )}
     </>
   );
 }
+

@@ -13,8 +13,8 @@ export function Field({ label, children }: { label: string; children: React.Reac
   }
 
   return (
-    <div className="field">
-      <label htmlFor={targetId}>{label}</label>
+    <div className="grid gap-2.5">
+      <label htmlFor={targetId} className="text-[11px] font-bold uppercase tracking-[0.1em] text-zinc-500 font-display">{label}</label>
       {childWithId}
     </div>
   );

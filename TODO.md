@@ -36,7 +36,7 @@ This backlog reflects the current repository state. Completed items from earlier
 | SEC-002 | P0 | Done | Web proxy rejects proxy root and disallowed endpoints | `server.ts`, `server.test.ts`. |
 | SEC-003 | P0 | Done | Web proxy strips renderer-controlled forbidden headers | `server.ts`, `server.test.ts`. |
 | SEC-004 | P1 | Done | Root private vulnerability reporting instructions | `SECURITY.md` updated: GitHub private reporting link, supported versions, and `npm audit` gate documented. |
-| SEC-005 | P1 | Open | Run dependency audit before each public release | `npm audit` last run clean (0 vulnerabilities, 2026-05-21). Re-run before every release. |
+| SEC-005 | P1 | Done | Run dependency audit before each public release | `npm audit` last run clean (0 vulnerabilities, 2026-05-28). Re-run before every release. |
 | SEC-006 | P2 | Done | Add runtime validation for Venice API response shapes | `src/utils/veniceValidation.ts` — validators for `/models`, `/image/generate`, `/image/upscale`, `/chat/completions`, `/augment/search`. Integrated into `modelService.ts`, `imageWorkflowService.ts`, and `SearchScrapeModule.tsx`. 26 tests. Extended to cover `dataUrl`/`dataBase64` binary PNG shapes from upscale endpoint. |
 
 ## Accessibility and UX
