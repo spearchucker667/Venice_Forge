@@ -118,6 +118,11 @@ export default function App() {
           // Web mode uses the server-side .env key; no local key check needed.
           setApiKeyConfigured(true);
         }
+
+        if (mounted) {
+          setDbReady(true);
+          setSettingsHydrated(true);
+        }
       } catch (err) {
         console.warn("IndexedDB init failed", err);
         dispatch({
@@ -129,11 +134,6 @@ export default function App() {
             duration: 8000,
           },
         });
-      } finally {
-        if (mounted) {
-          setDbReady(true);
-          setSettingsHydrated(true);
-        }
       }
     })();
     return () => {
