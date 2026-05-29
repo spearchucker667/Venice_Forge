@@ -118,6 +118,7 @@ export function createServerApp() {
   // Simple Rate Limiting
   const rateLimitWindowMs = AppConfig.RATE_LIMIT_WINDOW_MS;
   const rateLimitMax = AppConfig.RATE_LIMIT_MAX_REQUESTS;
+  const MAX_RATE_LIMIT_ENTRIES = 10_000;
   const reqCounts = new Map<string, { count: number; resetTime: number }>();
 
   setInterval(() => {
@@ -148,6 +149,12 @@ export function createServerApp() {
       }
     }
     reqCounts.set(ip, record);
+    if (reqCounts.size > MAX_RATE_LIMIT_ENTRIES) {
+      const oldest = reqCounts.keys().next().value;
+      if (oldest !== undefined) {
+        reqCounts.delete(oldest);
+      }
+    }
     next();
   });
 
