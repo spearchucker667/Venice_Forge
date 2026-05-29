@@ -68,9 +68,10 @@ const config = {
     ],
     icon: "build/icon.icns",
     category: "public.app-category.productivity",
-    // hardenedRuntime and notarization should be configured via environment or 
-    // separate configs for production releases requiring Apple credentials.
-    // Local unsigned builds will work without credentials.
+    hardenedRuntime: true,
+    // Notarization credentials are provided via environment for public releases.
+    // Local unsigned builds will still work because electron-builder falls back
+    // to ad-hoc signing when no Apple Developer ID certificate is present.
   },
 
   dmg: {
