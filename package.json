@@ -18,7 +18,7 @@
   },
   "scripts": {
     "dev": "tsx server.ts",
-    "dev:web": "tsx server.ts",
+    "dev:web": "npm run dev",
     "dev:electron": "npm run build:electron && concurrently -n vite,electron -c cyan,yellow \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "build": "npm run build:web && npm run build:server && npm run build:electron",
     "build:web": "cross-env ELECTRON_BUILD=true vite build",
