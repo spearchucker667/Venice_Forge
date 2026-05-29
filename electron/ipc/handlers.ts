@@ -45,8 +45,8 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle("venice:request", async (_event, input: unknown) => {
     try {
-      validateVeniceIpcRequest(input);
-      return await performVeniceRequest(input);
+      const request = validateVeniceIpcRequest(input);
+      return await performVeniceRequest(request);
     } catch (err) {
       const message = redactErrorMessage(err);
       logError("Venice IPC request failed", message);
