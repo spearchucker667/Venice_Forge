@@ -76,13 +76,10 @@ const config = {
     ],
     icon: "build/icon.icns",
     category: "public.app-category.productivity",
+    artifactName: "Venice-Forge-${version}-${arch}.${ext}",
     // Hardened runtime is only valid when a signing identity is present.
     // Ad-hoc / unsigned builds (CI without credentials, local dev) omit it.
     ...(isCIRelease ? { hardenedRuntime: true } : {}),
-  },
-
-  zip: {
-    artifactName: "Venice-Forge-${version}-${arch}.${ext}",
   },
 
   dmg: {
