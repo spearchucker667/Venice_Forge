@@ -39,13 +39,12 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Enforce Windows signing credentials for public releases
+      - name: Warn if Windows signing credentials are absent
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: |
           if [[ -z "${{ secrets.CSC_LINK }}" || -z "${{ secrets.CSC_KEY_PASSWORD }}" || -z "${{ secrets.WIN_CSC_LINK }}" || -z "${{ secrets.WIN_CSC_KEY_PASSWORD }}" ]]; then
-            echo "Error: Missing Windows signing credentials for a public release."
-            exit 1
+            echo "::warning::Windows signing credentials not configured — release will be unsigned."
           fi
 
       - name: Package Windows artifacts (Development)

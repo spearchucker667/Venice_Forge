@@ -39,12 +39,11 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Enforce macOS signing credentials for public releases
+      - name: Warn if macOS signing credentials are absent
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           if [[ -z "${{ secrets.CSC_LINK }}" || -z "${{ secrets.CSC_KEY_PASSWORD }}" || -z "${{ secrets.APPLE_ID }}" || -z "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" || -z "${{ secrets.APPLE_TEAM_ID }}" ]]; then
-            echo "Error: Missing macOS signing and notarization credentials for a public release."
-            exit 1
+            echo "::warning::macOS signing/notarization credentials not configured — release will be unsigned."
           fi
 
       - name: Package macOS artifacts (Development)

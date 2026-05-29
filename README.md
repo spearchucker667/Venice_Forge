@@ -58,7 +58,6 @@ All documentation is organized in the [docs](docs/) directory and root level. Se
 ### Reference
 - **[docs/FAQ.md](docs/FAQ.md)** — Frequently asked questions.
 - **[docs/REPOSITORY_TREE.md](docs/REPOSITORY_TREE.md)** — Full file tree and module ownership.
-- **[docs/AGENTS/](docs/AGENTS/)** — AI agent setup guides (Copilot, Gemini).
 
 ### Repository Map
 

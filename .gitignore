@@ -1,4 +1,6 @@
 node_modules/
+docs/AGENTS/
+docs/HQE_AUDIT_REPORT.md
 build/*
 !build/icon.ico
 !build/icon.icns
