@@ -236,9 +236,9 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
 
       const { payload, summary } = validateImportJson(json);
 
-      for (const img of payload.data.images) await StorageService.saveItem("images", img);
-      for (const chat of payload.data.chats) await StorageService.saveItem("chats", chat);
-      for (const s of payload.data.settings) await StorageService.saveItem("settings", s);
+      await Promise.all(payload.data.images.map((img) => StorageService.saveItem("images", img)));
+      await Promise.all(payload.data.chats.map((chat) => StorageService.saveItem("chats", chat)));
+      await Promise.all(payload.data.settings.map((s) => StorageService.saveItem("settings", s)));
 
       const [images, chats, settings] = await Promise.all([
         StorageService.getItems("images"),
