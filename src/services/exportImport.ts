@@ -56,7 +56,7 @@ export interface ValidatedImport {
  * @returns The size in bytes.
  */
 function byteLength(value: string): number {
-  return new Blob([value]).size;
+  return new TextEncoder().encode(value).length;
 }
 
 /**
