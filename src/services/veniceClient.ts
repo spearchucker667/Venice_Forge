@@ -53,8 +53,13 @@ function nowIso() {
  * @param signal An optional abort signal to cancel the sleep early.
  * @returns A promise that restores after the delay or rejects if aborted.
  */
-function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+/** @internal exported for testing */
+export function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException("Request aborted", "AbortError"));
+      return;
+    }
     const id = setTimeout(resolve, ms);
     if (signal) {
       signal.addEventListener(

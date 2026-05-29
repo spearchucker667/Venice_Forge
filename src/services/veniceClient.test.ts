@@ -1,7 +1,7 @@
 /** @fileoverview Unit tests for veniceClient utility functions. */
 
 import { describe, expect, it } from "vitest";
-import { summarizeDiagnostics, normalizeError, readWebErrorBody, extractModelName, dedupeKey } from "./veniceClient";
+import { summarizeDiagnostics, normalizeError, readWebErrorBody, extractModelName, dedupeKey, sleep } from "./veniceClient";
 
 /** Tests for the veniceClient utility functions. */
 describe("veniceClient utilities", () => {
@@ -22,6 +22,23 @@ describe("veniceClient utilities", () => {
     it("treats undefined body as empty hash", () => {
       const key = dedupeKey("/models", "GET", undefined);
       expect(key).toBe("GET /models ");
+    });
+  });
+
+  /**
+   * BUG-028 regression: sleep must reject immediately on already-aborted signal.
+   */
+  describe("sleep", () => {
+    it("rejects immediately when passed an already-aborted signal", async () => {
+      const controller = new AbortController();
+      controller.abort();
+      await expect(sleep(1000, controller.signal)).rejects.toThrow("Request aborted");
+    });
+
+    it("resolves after delay when no signal is given", async () => {
+      const start = Date.now();
+      await sleep(50);
+      expect(Date.now() - start).toBeGreaterThanOrEqual(40);
     });
   });
 
