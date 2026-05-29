@@ -1,6 +1,7 @@
 // Code Owner: fayeblade (@spearchucker667)
 // Express web proxy and Vite dev-server bootstrap.
 import express from "express";
+import fs from "fs";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { createProxyMiddleware } from "http-proxy-middleware";
@@ -66,8 +67,16 @@ export function createServerApp() {
   }
 
   // Health check endpoint (does not proxy to Venice)
+  const appVersion = (() => {
+    try {
+      return JSON.parse(fs.readFileSync(path.join(process.cwd(), "package.json"), "utf-8")).version;
+    } catch {
+      return "unknown";
+    }
+  })();
+
   app.get("/health", (_req, res) => {
-    res.status(200).json({ status: "ok", version: process.env.npm_package_version || "unknown" });
+    res.status(200).json({ status: "ok", version: appVersion });
   });
 
   // Trust proxy only when explicitly configured via TRUST_PROXY env var,
