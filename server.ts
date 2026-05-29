@@ -268,8 +268,29 @@ export async function startServer() {
     app.use(vite.middlewares);
   } else if (AppConfig.NODE_ENV !== "test") {
     const distPath = path.join(process.cwd(), "dist");
+    const staticWindowMs = AppConfig.RATE_LIMIT_WINDOW_MS;
+    const staticMaxRequests = AppConfig.RATE_LIMIT_MAX_REQUESTS;
+    const staticRequestCounts = new Map<string, { count: number; resetTime: number }>();
+    const staticRateLimiter: express.RequestHandler = (req, res, next) => {
+      const ip = req.ip || "unknown";
+      const now = Date.now();
+      const record = staticRequestCounts.get(ip) || { count: 0, resetTime: now + staticWindowMs };
+
+      if (now > record.resetTime) {
+        record.count = 1;
+        record.resetTime = now + staticWindowMs;
+      } else {
+        record.count += 1;
+        if (record.count > staticMaxRequests) {
+          return res.status(429).json({ error: "Too many requests, please try again later." });
+        }
+      }
+      staticRequestCounts.set(ip, record);
+      return next();
+    };
+
     app.use(express.static(distPath));
-    app.get("*", (req: express.Request, res: express.Response) => {
+    app.get("*", staticRateLimiter, (req: express.Request, res: express.Response) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
