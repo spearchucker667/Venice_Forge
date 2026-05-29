@@ -168,7 +168,7 @@ export function registerIpcHandlers(): void {
         throw new Error("Import file is too large.");
       }
       const data = await fs.readFile(result.filePaths[0], "utf-8");
-      return { canceled: false, data };
+      return { ok: true, canceled: false, data };
     } catch (err) {
       return { canceled: false, error: redactErrorMessage(err) };
     }
