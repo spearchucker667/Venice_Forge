@@ -9,6 +9,8 @@ import dotenv from "dotenv";
 import {
   ALLOWED_VENICE_ENDPOINTS,
   ALLOWED_VENICE_METHODS,
+  VeniceIpcEndpoint,
+  VeniceIpcMethod,
   isAllowedVeniceRequest,
 } from "./src/shared/validation";
 import { VENICE_API_HOST, VENICE_API_BASE_PATH } from "./src/shared/apiConfig";
@@ -167,12 +169,12 @@ export function createServerApp() {
   app.use("/api/venice", (req, res, next) => {
     const method = req.method.toUpperCase();
 
-    if (!ALLOWED_VENICE_METHODS.includes(method as any)) {
+    if (!ALLOWED_VENICE_METHODS.includes(method as VeniceIpcMethod)) {
        return res.status(405).json({ error: "Method not allowed" });
     }
     
     // Check if path matches any allowed endpoint
-    const isAllowed = ALLOWED_VENICE_ENDPOINTS.includes(req.path as any);
+    const isAllowed = ALLOWED_VENICE_ENDPOINTS.includes(req.path as VeniceIpcEndpoint);
     if (!isAllowed) {
        return res.status(403).json({ error: `Endpoint ${req.path} not allowed` });
     }
