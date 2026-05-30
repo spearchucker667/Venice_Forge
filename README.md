@@ -160,9 +160,9 @@ Official public releases must be signed using Apple Developer ID credentials and
 
 ## API Key Setup
 
-**Desktop mode:** open **Config**, paste the Venice API key, click **Save key**, then **Test connection**. Venice Forge refuses to store the key if Electron `safeStorage` encryption (DPAPI on Windows, Keychain on macOS) is unavailable.
+**Desktop mode:** open **Config**, paste the Venice API key, click **Save key**, then **Test connection**. Venice Forge refuses to store the key if Electron `safeStorage` encryption (DPAPI on Windows, Keychain on macOS) is unavailable. You can also save an optional Jina API key in the same secure storage for the Jina AI research provider.
 
-**Web mode:** copy `.env.example` to `.env` and set `VENICE_API_KEY`.
+**Web mode:** copy `.env.example` to `.env` and set `VENICE_API_KEY`. Jina AI works without authentication in web mode (free tier); key storage is desktop-only.
 
 ### Optional Environment Variables
 
@@ -170,6 +170,8 @@ Official public releases must be signed using Apple Developer ID credentials and
 |----------|---------|
 | `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE` | Allow plaintext fallback when OS secure storage is unavailable (Linux/non-GNOME only). **Warning:** reduces security. |
 | `VENICE_FORGE_DEBUG_DEVTOOLS` | Allow DevTools in packaged production builds. Only enable for debugging. |
+| `NODE_ENV` | Runtime environment (`development`, `production`, `test`). Defaults to `development`. |
+| `VENICE_TIMEOUT_MS` | Deprecated alias for `VENICE_API_TIMEOUT_MS`. Still accepted as fallback. |
 
 ```
 VENICE_API_KEY="your-venice-inference-key"
@@ -179,10 +181,10 @@ VENICE_API_KEY="your-venice-inference-key"
 
 | Data | Location |
 |------|----------|
-| API key | Electron `safeStorage` — Win: `%APPDATA%\Venice Forge\secure-prefs.json`<br>Mac: `~/Library/Application Support/Venice Forge/secure-prefs.json` |
+| API keys | Electron `safeStorage` — Win: `%APPDATA%\Venice Forge\secure-prefs.json`<br>Mac: `~/Library/Application Support/Venice Forge/secure-prefs.json` |
 | Logs | Win: `%APPDATA%\Venice Forge\logs\venice-forge.log`<br>Mac: `~/Library/Application Support/Venice Forge/logs/venice-forge.log` |
 | Conversations (desktop) | `~/Library/Application Support/Venice Forge/chat-history/*.json` (macOS)<br>`%APPDATA%\Venice Forge\chat-history\*.json` (Windows) |
-| Images, legacy chats, settings, conversations | Renderer IndexedDB |
+| Images, legacy chats, settings, conversations, diagnostics | Renderer IndexedDB |
 | Exports | Versioned JSON with `version`, `exportedAt`, `appVersion`, and `data` |
 
 Import validates JSON size and schema, rejects unexpected stores, strips secret-like fields, and merges by ID rather than clearing existing data. API keys are never imported or exported. A backup of existing data is saved to disk before any import is applied.
@@ -199,7 +201,7 @@ Desktop Venice API calls go through a narrow preload API and main-process IPC tr
 - `POST /augment/scrape`
 - `POST /augment/text-parser`
 
-**Content safety screening** runs on every outgoing Venice request before the payload leaves the app — both in the Electron main process (IPC layer) and the Express web proxy. Requests that fail the content assessment are blocked or surfaced to the user without being forwarded. The guard implements advanced features including cross-sentence context detection and `negative_prompt` extraction. The proxy operates on a "fail-close" design (returning a 500 status) if the guard encounters any extraction errors. Raw prompt text is strictly never logged.
+**Content safety screening** runs on every outgoing Venice request before the payload leaves the app — at the renderer transport layer (`veniceClient.ts`), the Electron main process (IPC layer), and the Express web proxy. All prompt-sending UI modules also call the guard before invoking `veniceFetch`. Requests that fail the content assessment are blocked or surfaced to the user without being forwarded. The guard implements advanced features including cross-sentence context detection and `negative_prompt` extraction. The proxy operates on a "fail-close" design (returning a 500 status) if the guard encounters any extraction errors. Raw prompt text is strictly never logged.
 
 **External URL trust** — `shell.openExternal` only allows `https:` URLs with non-private hostnames. RFC 1918 addresses (10.x, 192.168.x, 172.16–31.x), loopback (127.x, `localhost`, `0.0.0.0`), and `::1` are blocked even if the scheme is HTTPS.
 

@@ -54,9 +54,9 @@ Web mode (development only):
 | State | useReducer + Immer | Centralised app state |
 | Storage | IndexedDB (via `StorageService`) | `images`, legacy `chats`, `settings`, `conversations` — all encrypted at rest (AES-GCM); `diagnostics` stored unencrypted (timing/status only, no raw prompts) |
 | Chat storage | Electron main-process filesystem (`chat-history/*.json`) | Conversation persistence with atomic writes and corruption recovery |
-| Content safety | `src/shared/safety/childExploitationGuard.ts` | Screens every outgoing Venice request at IPC and proxy boundary; evaluates `negative_prompt` and cross-sentence context; fails closed (500) on extraction errors; returns `SafetyGuardDecision`; never logs raw prompt text |
+| Content safety | `src/shared/safety/childExploitationGuard.ts` | Screens every outgoing Venice request at renderer transport, IPC, proxy, and module boundaries; evaluates `negative_prompt` and cross-sentence context; fails closed (500) on extraction errors; returns `SafetyGuardDecision`; never logs raw prompt text |
 
-| Secure storage | Electron `safeStorage` | API key (encrypted) |
+| Secure storage | Electron `safeStorage` | Venice and Jina API keys (encrypted) |
 | IPC bridge | Electron preload + `ipcMain` | Renderer ↔ main transport |
 | Web proxy | Express + http-proxy-middleware | Dev/web mode proxy |
 | Packaging | electron-builder | Windows NSIS/portable, macOS DMG/ZIP |
@@ -71,7 +71,7 @@ Web mode (development only):
 | Prompt | Streaming chat with Venice text models |
 | Create | Image generation with upscaling and gallery save |
 | Batch | Sequential prompt runs over multiple inputs |
-| Research | Web search, page scrape, and document parse via Venice augment endpoints |
+| Research | Multi-provider web search, page scraping, AI research synthesis, and public-profile discovery (Venice, Jina AI, or Generic HTTP) |
 | Catalog | Live model browser (type, traits, capability) |
 | Library | Local image gallery with bulk download and upscale |
 | Config | API key management, theme selection, import/export |
@@ -118,7 +118,7 @@ User input
 ## Further Reading
 
 - [README.md](../README.md) — Setup and usage
-- [docs/SECURITY.md](../SECURITY.md) — Full security model
+- [SECURITY.md](../SECURITY.md) — Full security model
 - [docs/RELEASE.md](RELEASE/release.md) — Release and signing process
 - [docs/LEGAL.md](LEGAL.md) — Legal and Venice terms coverage
 - [docs/REPOSITORY_TREE.md](REPOSITORY_TREE.md) — Repository structure

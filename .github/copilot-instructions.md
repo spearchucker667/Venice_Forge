@@ -41,7 +41,7 @@ Before opening a PR, follow `CONTRIBUTING.md`: run `npm run lint:eslint`, `npm r
 
 The renderer (`src/`) runs identically in both modes. Transport is selected at runtime by `isElectron()` in `src/services/desktopBridge.ts`:
 
-- **Electron mode**: renderer calls `window.veniceForge.*` (the contextBridge API exposed by `electron/preload.ts`), which invokes IPC channels handled in `electron/ipc/handlers.ts`. The main process holds the API key in `safeStorage` and makes HTTPS calls directly to `api.venice.ai`.
+- **Electron mode**: renderer calls `window.veniceForge.*` (the contextBridge API exposed by `electron/preload.ts`), which invokes IPC channels handled in `electron/ipc/handlers.ts`. The main process holds API keys (Venice + optional Jina) in `safeStorage` and makes HTTPS calls directly to `api.venice.ai` (and optionally to Jina endpoints).
 - **Web mode**: renderer calls `fetch('/api/venice/...')`, proxied by the Express server in `server.ts` to `api.venice.ai`. The server injects `Authorization` from `VENICE_API_KEY` in `.env`; browser Settings cannot save or forward an API key.
 
 All Venice API requests go through `src/services/veniceClient.ts` — `veniceFetch()` for non-streaming and `veniceStreamChat()` for chat streams. Both paths include up to 3 retries with exponential back-off for 429/500/503 responses.
@@ -53,7 +53,7 @@ Single global `useReducer` in `App.tsx` using `appReducer` from `src/state/appRe
 ### Storage
 
 - **IndexedDB** (`src/services/storageService.ts`): `images`, `chats`, `settings`, `diagnostics`, `conversations`. Encrypted-at-rest stores are `images`, `chats`, `settings`, and `conversations` via `src/services/cryptoService.ts` (AES-GCM).
-- **Electron `safeStorage`** (`electron/services/secureStore.ts`): API key only — encrypted by the OS keychain, never in plaintext.
+- **Electron `safeStorage`** (`electron/services/secureStore.ts`): Venice and Jina API keys — encrypted by the OS keychain, never in plaintext.
 - **Exports**: versioned JSON with `{ version, exportedAt, appVersion, data }`. Import merges by ID, never clears; strips secret-like fields; validates schema and size.
 
 ### IPC surface (Electron)
@@ -72,6 +72,18 @@ POST /augment/scrape
 POST /augment/text-parser
 ```
 
+### Research Subsystem
+
+The `src/research/` directory contains a pluggable provider system for search, scrape, and public-profile discovery:
+
+- **Providers**: `veniceResearchProvider.ts` (Venice `/augment/*`), `jinaResearchProvider.ts` (`r.jina.ai` / `s.jina.ai`), `genericHttpScrapeProvider.ts` (SSRF-safe fallback, disabled by default)
+- **Agent**: `researchRunner.ts` enforces budgets (`maxQueries`, `maxPages`, `totalJobTimeoutMs`); `researchSynthesis.ts` builds evidence-only prompts; `socialDiscovery.ts` generates platform-specific `site:` queries for public-profile discovery
+- **Key rule**: The renderer never sees raw API keys. Jina keys are stored via `safeStorage` alongside Venice keys.
+
+### Theme System
+
+`src/theme/` provides a token-based theme system with three built-in palettes (Forge Graphite, Forge Daylight, Forge Copper) and a live ThemeMaker UI. Themes persist to encrypted IndexedDB. See `docs/THEME_SYSTEM.md` for full token reference.
+
 ### Auto-Updates
 Auto-updates are fetched via GitHub Releases. The `electron/ipc/updates.ts` module securely exposes `checkForUpdates`, `downloadUpdate`, and `installUpdate` to the renderer while keeping download logic in the sandboxed main process.
 
@@ -81,7 +93,7 @@ Every outgoing Venice API request is screened by `assessChildExploitationSafety(
 
 - **Electron IPC** (`electron/ipc/handlers.ts`): assessed before the main-process Venice client makes the HTTPS call.
 - **Express proxy** (`server.ts`): assessed before `http-proxy-middleware` forwards the request.
-- **UI modules**: prompt-sending modules (`ChatModule`, `ImageModule`, `BatchModule`) call the guard and surface advisory UI when the decision is `warn`.
+- **UI modules**: prompt-sending modules (`ChatModule`, `ImageModule`, `BatchModule`, `SearchScrapeModule`) call the guard and surface advisory UI when the decision is `warn`.
 
 The public entry point is:
 

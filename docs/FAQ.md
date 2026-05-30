@@ -53,8 +53,8 @@ Both run `tsx server.ts` (the Express web proxy). `dev:web` is the explicit alia
 ## API Keys & Security
 
 ### Where is my API key stored?
-- **Desktop mode:** Encrypted with OS-level secure storage — DPAPI on Windows, Keychain on macOS. Never exposed to the renderer.
-- **Web mode:** In the server's `.env` file; never sent to the browser.
+- **Desktop mode:** Encrypted with OS-level secure storage — DPAPI on Windows, Keychain on macOS. Both the Venice API key and the optional Jina API key are stored here. Neither is ever exposed to the renderer.
+- **Web mode:** In the server's `.env` file; never sent to the browser. Jina AI works without authentication in web mode (free tier).
 
 ### What if secure storage is unavailable?
 On macOS and Windows, the app **refuses** to store the key if secure storage fails. On Linux, you can set the `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true` environment variable (e.g., in `.env` for web mode development) to allow a documented plaintext fallback. **This reduces security.**
@@ -66,7 +66,7 @@ Set `VENICE_FORGE_DEBUG_DEVTOOLS=true` in your environment before launching. Onl
 No. Venice Forge does not track users, log prompts, or monitor API key usage.
 
 ### Does Venice Forge have content moderation?
-Yes. Every outgoing Venice API request is screened by an on-device content safety guard before the payload is forwarded. The guard enforces cross-sentence context boundaries and `negative_prompt` extraction. Requests that fail the assessment are blocked at the IPC or proxy boundary and never reach Venice. The proxy uses a "fail-close" design (500 status) if any guard extraction fails. Raw prompt text is **never** logged by the safety system — only a coarse non-identifying hash is kept for local audit counters.
+Yes. Every outgoing Venice API request is screened by an on-device content safety guard before the payload is forwarded. The guard enforces cross-sentence context boundaries and `negative_prompt` extraction. Requests that fail the assessment are blocked at the renderer transport, IPC, proxy, or module boundary and never reach Venice. The proxy uses a "fail-close" design (500 status) if any guard extraction fails. Raw prompt text is **never** logged by the safety system — only a coarse non-identifying hash is kept for local audit counters.
 
 ### Is there an age restriction for using Venice Forge?
 Yes, **users must be 18 years or older**. Generative AI models can produce explicit or sensitive material, and there is an inherent legal and ethical risk of generating AI imagery that may inappropriately represent minors (CSAM). By using this software, users acknowledge this risk and assume all liability.
@@ -127,15 +127,15 @@ All built-in themes are verified against WCAG AA contrast standards. The ThemeMa
 - **Conversations (desktop):** Individual `.json` files in the OS app-data folder — one file per conversation with atomic writes and automatic corruption recovery.
   - Windows: `%APPDATA%\Venice Forge\chat-history\*.json`
   - macOS: `~/Library/Application Support/Venice Forge/chat-history/*.json`
-- **Images, legacy chats, settings, conversations:** Renderer IndexedDB (local only, encrypted at rest).
-- **API key:** OS secure storage (Windows DPAPI / macOS Keychain).
+- **Images, legacy chats, settings, conversations, diagnostics:** Renderer IndexedDB (local only; images, chats, settings, and conversations are encrypted at rest, diagnostics is not).
+- **API keys:** OS secure storage (Windows DPAPI / macOS Keychain).
 - **Logs:**
   - Windows: `%APPDATA%\Venice Forge\logs\venice-forge.log`
   - macOS: `~/Library/Application Support/Venice Forge/logs/venice-forge.log`
 
 ### Is my data encrypted?
 - **Conversations (desktop):** Stored as JSON on the local filesystem. These are **not encrypted** by Venice Forge — they rely on OS-level filesystem permissions. The Venice API itself is privacy-preserving by design.
-- **Images, legacy chats, settings (web / IndexedDB):** Encrypted with AES-GCM using a browser-managed key stored in same-origin IndexedDB. This reduces casual local inspection risk but is **not equivalent to OS credential storage**.
+- **Images, legacy chats, settings, and conversations (web / IndexedDB):** Encrypted with AES-GCM using a browser-managed key stored in same-origin IndexedDB. This reduces casual local inspection risk but is **not equivalent to OS credential storage**. The `diagnostics` store is not encrypted — it contains only sanitized timing and status metadata.
 
 ### Can I export my data?
 Yes. Use the **Config** tab → **Export**. Exports are versioned JSON with `version`, `exportedAt`, `appVersion`, and `data`. API keys are automatically redacted.

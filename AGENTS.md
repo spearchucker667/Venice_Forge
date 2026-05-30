@@ -63,6 +63,10 @@ The project has two runtime modes:
   - `exportImport.ts` — Versioned JSON export/import with secret redaction
   - `modelService.ts` — Model fetching and caching
 - **`src/state/`** — Global `appReducer` using Immer for immutable updates
+- **`src/theme/`** — Token-based theme system with built-in palettes and live ThemeMaker UI
+- **`src/research/`** — Pluggable research provider subsystem:
+  - `providers/veniceResearchProvider.ts`, `providers/jinaResearchProvider.ts`, `providers/genericHttpScrapeProvider.ts`
+  - `agent/researchRunner.ts`, `agent/researchSynthesis.ts`, `agent/socialDiscovery.ts`
 - **`src/shared/`** — Code shared between renderer, Electron main, and web proxy:
   - `validation.ts` — Allowed Venice endpoints and methods
   - `safety/` — Content safety guard (child exploitation detection)
@@ -245,6 +249,8 @@ Copy `.env.example` to `.env` for web-mode development:
 | `VENICE_API_HOST` | Upstream API host (default: api.venice.ai) |
 | `VENICE_API_BASE_PATH` | Upstream API base path (default: /api/v1) |
 | `VENICE_API_TIMEOUT_MS` | Request timeout (default: 60000) |
+| `VENICE_TIMEOUT_MS` | Deprecated alias for `VENICE_API_TIMEOUT_MS` — still accepted as fallback |
+| `NODE_ENV` | Runtime environment (`development`, `production`, `test`). Defaults to `development`. |
 | `DISABLE_HMR` | Set to `true` to disable Vite HMR |
 | `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE` | Allow plaintext fallback when OS secure storage unavailable (Linux/non-GNOME only). **Warning:** reduces security. |
 | `VENICE_FORGE_DEBUG_DEVTOOLS` | Allow DevTools in packaged production builds. Only for debugging. |
@@ -253,10 +259,10 @@ Copy `.env.example` to `.env` for web-mode development:
 
 | Data | Location |
 |------|----------|
-| API key (desktop) | Electron `safeStorage` → `%APPDATA%\Venice Forge\secure-prefs.json` (Win) or `~/Library/Application Support/Venice Forge/secure-prefs.json` (Mac) |
+| API keys (desktop) | Electron `safeStorage` → `%APPDATA%\Venice Forge\secure-prefs.json` (Win) or `~/Library/Application Support/Venice Forge/secure-prefs.json` (Mac). Stores both Venice and Jina keys. |
 | Logs (desktop) | `%APPDATA%\Venice Forge\logs\venice-forge.log` (Win) or `~/Library/Application Support/Venice Forge/logs/venice-forge.log` (Mac) |
 | Conversations (desktop) | `chat-history/*.json` in app data directory (atomic writes, corruption recovery) |
-| Images, legacy chats, settings, conversations | Renderer IndexedDB (4 stores encrypted, diagnostics unencrypted) |
+| Images, legacy chats, settings, conversations, diagnostics | Renderer IndexedDB (4 stores encrypted, diagnostics unencrypted) |
 
 ## Release and Deployment
 
@@ -277,3 +283,5 @@ When changing behavior, packaging, or legal assumptions, update these files:
 - `CHANGELOG.md`
 - `AGENTS.md` (this file)
 - `.github/copilot-instructions.md` (if commands, architecture, or storage changes)
+- `docs/RESEARCH_PROVIDERS.md`, `docs/JINA_PROVIDER.md`, `docs/PUBLIC_PROFILE_DISCOVERY.md` (if research provider behavior changes)
+- `docs/THEME_SYSTEM.md` (if theming or token changes)

@@ -38,8 +38,12 @@ This document is the public map for the Venice Forge repository. It reflects the
 │   ├── ABOUT.md
 │   ├── FAQ.md
 │   ├── HQE_AUDIT_REPORT.md
+│   ├── JINA_PROVIDER.md
 │   ├── LEGAL.md
+│   ├── PUBLIC_PROFILE_DISCOVERY.md
 │   ├── REPOSITORY_TREE.md
+│   ├── RESEARCH_PROVIDERS.md
+│   ├── THEME_SYSTEM.md
 │   ├── Venice_swagger_api.yaml
 │   └── venice_llm_info.md
 ├── electron/
@@ -91,6 +95,7 @@ This document is the public map for the Venice Forge repository. It reflects the
 │   │   ├── limits.ts
 │   │   ├── logger.ts
 │   │   └── validation.ts
+│   ├── research/             # Pluggable research provider subsystem (Venice, Jina, Generic HTTP)
 │   ├── state/
 │   ├── theme/                # Token types, built-in palettes, applyTheme, contrast utilities
 │   ├── types/
@@ -146,9 +151,10 @@ This document is the public map for the Venice Forge repository. It reflects the
 | `electron/services/chatStorage.ts` | Main-process filesystem storage for conversations (atomic writes, corruption recovery) |
 | `src/services/exportImport.ts` | Versioned JSON export/import with secret redaction |
 | `src/shared/validation.ts` | Allowed Venice endpoint and method list |
+| `src/research/` | Pluggable research providers, research runner, synthesis, and public-profile discovery |
 | `src/shared/safety/` | Content safety guard: detection engine, payload extractor, audit counters |
 | `electron/ipc/validation.ts` | Electron IPC request validation boundary |
-| `electron/services/secureStore.ts` | OS-encrypted API key persistence |
+| `electron/services/secureStore.ts` | OS-encrypted API key persistence (Venice + Jina keys) |
 | `electron/services/veniceClient.ts` | Main-process HTTPS client for `api.venice.ai` |
 | `electron/utils/urlSecurity.ts` | `isTrustedExternalUrl` and `isPrivateHostname` — pure hostname check, RFC 1918 + loopback blocking, no DNS |
 

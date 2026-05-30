@@ -8,7 +8,7 @@ Solution: Run `npm run generate:icon` to rebuild the placeholders.
 
 **SafeStorage Unavailable**
 Error: `macOS secure storage is unavailable` or `Windows secure storage is unavailable`.
-Solution: The app refuses to store the API key in plaintext. Ensure your OS key manager (DPAPI or Keychain) is functioning. For macOS, this may fail if you are running in a headless CI runner without a keychain unlocked.
+Solution: The app refuses to store API keys in plaintext. Ensure your OS key manager (DPAPI or Keychain) is functioning. For macOS, this may fail if you are running in a headless CI runner without a keychain unlocked.
 
 ## OS Security Warnings
 

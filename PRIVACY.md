@@ -5,14 +5,15 @@
 Venice Forge is designed with a strict "privacy-by-default" and "offline-first" architecture. Your data stays on your machine until you explicitly send it to the Venice API.
 
 ## API Key Security
-- **Desktop Mode (Production):** The Venice API key is encrypted at rest using OS-level secure storage (DPAPI on Windows, Keychain on macOS). It is **never** exposed to the application renderer, the React frontend, or any third-party tracking scripts.
+- **Desktop Mode (Production):** Both the Venice API key and the optional Jina API key are encrypted at rest using OS-level secure storage (DPAPI on Windows, Keychain on macOS). They are **never** exposed to the application renderer, the React frontend, or any third-party tracking scripts.
 - **Web Mode (Development):** The API key is held securely in the Node.js Express server (`.env`) and is never sent to the browser.
 - **No Telemetry:** We do not track you, we do not log your prompts, and we do not monitor your API key usage.
+- **Third-Party Research Providers:** When you use the Jina AI research provider, requests are sent directly to `r.jina.ai` and `s.jina.ai`. These connections are encrypted HTTPS and do not pass through any intermediary server. The Generic HTTP provider is disabled by default and only accesses URLs you explicitly provide.
 
 ## Data Storage
 - All your chats, generated images, settings, and local galleries are stored **locally** in your browser's IndexedDB.
 - We implement local encryption (AES-GCM) for your images, conversations, settings, and legacy chat databases. The `diagnostics` store is not encrypted — it contains only sanitized timing and status metadata, never raw prompt content.
-- **No Cloud Sync:** Your data is never synced to a remote server. The only network connections made are direct, encrypted HTTPS requests to `api.venice.ai` for model inference.
+- **No Cloud Sync:** Your data is never synced to a remote server. Network connections are direct, encrypted HTTPS requests to `api.venice.ai` for model inference, and optionally to `r.jina.ai` / `s.jina.ai` when using the Jina AI research provider.
 
 ## Network Architecture
 - Venice Forge restricts all outgoing network requests to a strict allowlist of Venice API endpoints.

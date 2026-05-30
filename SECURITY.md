@@ -40,11 +40,14 @@ The application connects to unrestricted AI endpoints that may generate explicit
 
 All outgoing Venice API requests are screened by a content safety guard
 (`src/shared/safety/childExploitationGuard.ts`) before the payload is
-forwarded. This runs at every enforcement boundary — Electron IPC and Express
-proxy. The guard implements advanced features such as cross-sentence context
-detection and `negative_prompt` extraction. The proxy operates on a "fail-close"
-design (returning a 500 status) if the guard encounters any extraction errors.
-Raw prompt text is never logged by the safety system.
+forwarded. This runs at every enforcement boundary — the renderer transport
+(`veniceClient.ts`), Electron IPC handlers, the Express web proxy, and every
+prompt-sending UI module (`ChatModule`, `ImageModule`, `BatchModule`,
+`SearchScrapeModule`). The guard implements advanced features such as
+cross-sentence context detection and `negative_prompt` extraction. The proxy
+operates on a "fail-close" design (returning a 500 status) if the guard
+encounters any extraction errors. Raw prompt text is never logged by the safety
+system.
 
 External URLs opened via `shell.openExternal` are validated by
 `electron/utils/urlSecurity.ts`: only `https:` with public routable hostnames

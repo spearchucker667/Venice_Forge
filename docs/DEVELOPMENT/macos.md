@@ -33,8 +33,8 @@ The build outputs will be in the `release/` directory:
 ## Security Posture
 
 ### API Key Storage
-The API key is securely persisted using the Electron `safeStorage` API, which binds directly to your macOS Keychain.
-If macOS Keychain is unavailable or errors out, Venice Forge will refuse to store the API key. There is no plaintext fallback available for macOS.
+API keys (Venice and optional Jina) are securely persisted using the Electron `safeStorage` API, which binds directly to your macOS Keychain.
+If macOS Keychain is unavailable or errors out, Venice Forge will refuse to store any API key. There is no plaintext fallback available for macOS.
 
 ### Gatekeeper and Quarantine
 Local builds are ad-hoc signed by `electron-builder` automatically, but they do not use an official Apple Developer ID certificate. As a result, downloading a local `.dmg` or `.zip` will trigger macOS Gatekeeper's quarantine flag.
