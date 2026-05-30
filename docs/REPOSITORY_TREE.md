@@ -44,10 +44,25 @@ This document is the public map for the Venice Forge repository. It reflects the
 │   └── venice_llm_info.md
 ├── electron/
 │   ├── ipc/
+│   │   ├── handlers.ts              # IPC handler registration (venice, apiKey, app, files, updates, chat)
+│   │   ├── updates.ts               # Auto-update IPC endpoints
+│   │   ├── validation.ts            # IPC request validation (endpoint/method allowlist)
+│   │   └── validation.test.ts       # IPC validation unit tests
 │   ├── services/
-│   ├── utils/                # Shared utilities (download, image, markdown, payload builders, validation)                # Pure utilities (navigation containment checks)
-│   ├── main.ts
-│   └── preload.ts
+│   │   ├── chatStorage.ts           # Main-process filesystem chat persistence (atomic writes, corruption recovery)
+│   │   ├── chatStorage.test.ts      # Chat storage unit tests
+│   │   ├── logger.ts                # Structured logging with rotation
+│   │   ├── logger.test.ts           # Logger unit tests
+│   │   ├── secureStore.ts           # OS-encrypted API key persistence (safeStorage)
+│   │   ├── veniceClient.ts          # Main-process HTTPS client for api.venice.ai
+│   │   ├── veniceClient.error.test.ts      # Error parsing tests
+│   │   ├── veniceClient.multipart.test.ts  # Multipart upload tests
+│   │   └── veniceClient.stream.test.ts     # Streaming response tests
+│   ├── utils/
+│   │   └── navigation.ts            # Path containment and symlink traversal checks
+│   ├── main.test.ts                 # Main process unit tests (navigation guards)
+│   ├── main.ts                      # Electron main entry (BrowserWindow, CSP, preload)
+│   └── preload.ts                   # Context-bridge preload (narrow renderer API surface)
 ├── scripts/
 │   ├── checksum-release.cjs
 │   ├── create-cjs-package.cjs
@@ -110,13 +125,16 @@ This document is the public map for the Venice Forge repository. It reflects the
 | `src/components/` | Reusable UI primitives and feature components |
 | `src/services/veniceClient.ts` | Only renderer entry point for Venice API calls |
 | `src/services/desktopBridge.ts` | Electron-vs-web transport abstraction |
-| `src/services/storageService.ts` | IndexedDB persistence for images, chats, settings, diagnostics |
-| `src/services/cryptoService.ts` | AES-GCM encryption for chats and settings |
+| `src/services/storageService.ts` | IndexedDB persistence for images, legacy chats, settings, diagnostics |
+| `src/services/chatStorage.ts` | Unified conversation storage abstraction (IPC in Electron, IndexedDB in web) |
+| `src/services/cryptoService.ts` | AES-GCM encryption for IndexedDB records |
+| `electron/services/chatStorage.ts` | Main-process filesystem storage for conversations (atomic writes, corruption recovery) |
 | `src/services/exportImport.ts` | Versioned JSON export/import with secret redaction |
 | `src/shared/validation.ts` | Allowed Venice endpoint and method list |
 | `electron/ipc/validation.ts` | Electron IPC request validation boundary |
 | `electron/services/secureStore.ts` | OS-encrypted API key persistence |
 | `electron/services/veniceClient.ts` | Main-process HTTPS client for `api.venice.ai` |
+| `electron/services/chatStorage.ts` | Atomic filesystem conversation storage with corruption recovery |
 
 ## Generated and Ignored Output
 

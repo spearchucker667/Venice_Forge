@@ -51,7 +51,9 @@ Web mode (development only):
 |-------|-----------|----------------|
 | UI | React 19 + Tailwind v4 | All user-facing screens |
 | State | useReducer + Immer | Centralised app state |
-| Storage | IndexedDB (via `StorageService`) | Images, chats, settings |
+| Storage | IndexedDB (via `StorageService`) | Images, legacy chats, settings |
+| Chat storage | Electron main-process filesystem (`chat-history/*.json`) | Conversation persistence with atomic writes and corruption recovery |
+
 | Secure storage | Electron `safeStorage` | API key (encrypted) |
 | IPC bridge | Electron preload + `ipcMain` | Renderer ↔ main transport |
 | Web proxy | Express + http-proxy-middleware | Dev/web mode proxy |
@@ -93,7 +95,9 @@ User input
                                         ↓
                                Response data
                                         ↓
-                            IndexedDB (images / chats)
+                            IndexedDB (images / legacy chats)
+                                        ↓
+                  Electron: chat-history/*.json (atomic writes)
                                         ↓
                             React state update → UI
 ```

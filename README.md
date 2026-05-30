@@ -19,7 +19,7 @@ See [docs/ABOUT.md](docs/ABOUT.md) for project background and architecture overv
 
 | Tab | Name | Description |
 |-----|------|-------------|
-| Prompt | Chat | Streaming chat completions with system-prompt control and conversation history |
+| Prompt | Chat | Multi-conversation streaming chat with system-prompt control, sidebar conversation management, and persistent history across restarts |
 | Create | Image generation | Single and batch image generation with upscaling and gallery save |
 | Batch | Batch runner | Run one prompt across multiple inputs or run many prompts in sequence |
 | Research | Web research | Venice-augmented web search, page scraping, and document text extraction |
@@ -156,7 +156,8 @@ VENICE_API_KEY="your-venice-inference-key"
 |------|----------|
 | API key | Electron `safeStorage` — Win: `%APPDATA%\Venice Forge\secure-prefs.json`<br>Mac: `~/Library/Application Support/Venice Forge/secure-prefs.json` |
 | Logs | Win: `%APPDATA%\Venice Forge\logs\venice-forge.log`<br>Mac: `~/Library/Application Support/Venice Forge/logs/venice-forge.log` |
-| Images, chats, settings | Renderer IndexedDB |
+| Conversations (desktop) | `~/Library/Application Support/Venice Forge/chat-history/*.json` (macOS)<br>`%APPDATA%\Venice Forge\chat-history\*.json` (Windows) |
+| Images, legacy chats, settings | Renderer IndexedDB |
 | Exports | Versioned JSON with `version`, `exportedAt`, `appVersion`, and `data` |
 
 Import validates JSON size and schema, rejects unexpected stores, strips secret-like fields, and merges by ID rather than clearing existing data. API keys are never imported or exported. A backup of existing data is saved to disk before any import is applied.
@@ -191,6 +192,7 @@ See [docs/LEGAL.md](docs/LEGAL.md) for the public-readiness legal notes, tradema
 | Packaging failure | `npm run clean && npm install && npm run dist:win` |
 | SmartScreen warning | Expected for unsigned local builds; see [docs/RELEASE/release.md](docs/RELEASE/release.md) for signing |
 | No API key prompt at launch | Open **Config**, save a key, then test connection |
+| Chat history not loading | Check the chat-history folder (see Storage above). Corrupted files are renamed to `.backup-{timestamp}` and skipped. |
 | `400` on chat/image | Usually a request schema mismatch — ensure the model ID is valid and all API parameters are correct strings |
 | `401` / `403` | Invalid key or insufficient key scope |
 | `429` | Venice rate limit; wait for the reset period shown in the Status tab |

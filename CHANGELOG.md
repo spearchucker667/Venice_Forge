@@ -13,6 +13,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 ## [1.0.2] — 2026-05-29
 
 ### Added
+- **Multi-Conversation Chat Persistence:** Full conversation model with sidebar management, atomic filesystem storage, and automatic legacy migration.
+  - Conversation model: `id`, `title`, `createdAt`, `updatedAt`, `model`, `systemPrompt`, `messages[]`.
+  - Electron main-process filesystem storage under `app.getPath("userData")/chat-history/` with atomic writes (temp file + rename) and corruption recovery (invalid files renamed to `.backup-{timestamp}`).
+  - Narrow IPC channels (`chat:list`, `chat:get`, `chat:save`, `chat:delete`) with strict payload validation and path-traversal prevention (UUID-only conversation IDs).
+  - Renderer unified storage abstraction: Electron → IPC; web → IndexedDB fallback.
+  - `ChatModule` refactored with left sidebar for conversation list, new chat, rename (double-click), delete (× with confirm modal), and conversation switch.
+  - `App.tsx` hydrates conversations on startup and auto-migrates legacy flat `chats` into a default "Migrated History" conversation.
+  - Export/import updated to include `conversations` array; IndexedDB schema bumped to version 2 with `conversations` encrypted store.
+  - 19 new tests across `electron/services/chatStorage.test.ts` and `src/services/chatStorage.test.ts`.
+- **Packaged App White-Screen Fix:** Resolved CORS failure on `file://` protocol in production Electron builds.
+  - `stripCrossorigin()` Vite plugin removes `crossorigin` attributes from `<script>` / `<link>` tags during Electron builds.
+  - `backgroundColor: "#0d1117"` added to `BrowserWindow` to prevent white flash before renderer paint.
+  - Production CSP expanded to allow `https://fonts.googleapis.com` and `https://fonts.gstatic.com`.
+  - Added `did-fail-load` and `render-process-gone` logging to main process for easier diagnosis.
 - **Theme System:** Complete token-based theming architecture with 17 semantic CSS variables mapped to Tailwind v4 utilities.
   - Built-in themes: Forge Graphite (dark), Forge Daylight (light), Forge Copper (dark).
   - ThemeMaker UI in Settings → Appearance with live preview, hex validation, and WCAG AA contrast warnings.

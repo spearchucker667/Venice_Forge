@@ -111,14 +111,18 @@ All built-in themes are verified against WCAG AA contrast standards. The ThemeMa
 ## Data & Storage
 
 ### Where is my data stored?
-- **Images, chats, settings:** Renderer IndexedDB (local only).
+- **Conversations (desktop):** Individual `.json` files in the OS app-data folder — one file per conversation with atomic writes and automatic corruption recovery.
+  - Windows: `%APPDATA%\Venice Forge\chat-history\*.json`
+  - macOS: `~/Library/Application Support/Venice Forge/chat-history/*.json`
+- **Images, legacy chats, settings:** Renderer IndexedDB (local only, encrypted at rest).
 - **API key:** OS secure storage (Windows DPAPI / macOS Keychain).
 - **Logs:**
   - Windows: `%APPDATA%\Venice Forge\logs\venice-forge.log`
   - macOS: `~/Library/Application Support/Venice Forge/logs/venice-forge.log`
 
 ### Is my data encrypted?
-Chats and settings are encrypted with AES-GCM using a browser-managed key stored in same-origin IndexedDB. This reduces casual local inspection risk but is **not equivalent to OS credential storage**.
+- **Conversations (desktop):** Stored as JSON on the local filesystem. These are **not encrypted** by Venice Forge — they rely on OS-level filesystem permissions. The Venice API itself is privacy-preserving by design.
+- **Images, legacy chats, settings (web / IndexedDB):** Encrypted with AES-GCM using a browser-managed key stored in same-origin IndexedDB. This reduces casual local inspection risk but is **not equivalent to OS credential storage**.
 
 ### Can I export my data?
 Yes. Use the **Config** tab → **Export**. Exports are versioned JSON with `version`, `exportedAt`, `appVersion`, and `data`. API keys are automatically redacted.
@@ -147,6 +151,7 @@ Check the logs folder (see Data & Storage above). Common causes:
 - Missing icons: run `npm run generate:icon`.
 - Secure storage unavailable: ensure your OS key manager is functioning.
 - Corrupted IndexedDB: clear site data for the app.
+- Corrupted conversation files: invalid `.json` files in the chat-history folder are automatically renamed to `.backup-{timestamp}`. You can safely delete old `.backup-*` files.
 
 ---
 
