@@ -12,6 +12,7 @@ import {
 } from "../services/imageWorkflowService";
 import { IMAGE_BATCH_INTER_REQUEST_DELAY_MS } from "../constants/venice";
 import { normalizeImageDraft } from "../utils/payloadBuilders";
+import { assessChildExploitationSafety } from "../shared/safety";
 import { DiagPreview } from "../components/DiagnosticsPreview";
 import { ImageActionModal } from "../components/ImageActionModal";
 import { ImageGenerationForm } from "../components/ImageGenerationForm";
@@ -75,6 +76,12 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
     }
     setError("");
     setSuccess("");
+    // Advisory safety check — no audit recording (transport layer records).
+    const guardDecision = assessChildExploitationSafety({ text: draft.prompt, endpoint: "/image/generate", method: "POST", source: "image" });
+    if (!guardDecision.allow || guardDecision.action === "block") {
+      setError(guardDecision.userMessage);
+      return;
+    }
     setLoading(true);
     const runId = ++runIdRef.current;
     abortRef.current = new AbortController();

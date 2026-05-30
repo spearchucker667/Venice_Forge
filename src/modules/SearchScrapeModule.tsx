@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { veniceFetch } from "../services/veniceClient";
+import { assessChildExploitationSafety } from "../shared/safety";
 import { Field } from "../components/Field";
 import { StatusBlock } from "../components/StatusBlock";
 import { Chip } from "../components/Chip";
@@ -52,6 +53,12 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
   async function runSearch() {
     if (!query.trim()) return;
     setError("");
+    // Advisory safety check — no audit recording (transport layer records).
+    const guardDecision = assessChildExploitationSafety({ text: query.trim(), endpoint: "/augment/search", method: "POST", source: "research" });
+    if (!guardDecision.allow || guardDecision.action === "block") {
+      setError(guardDecision.userMessage);
+      return;
+    }
     setLoading("search");
     setSearchResults([]);
     abortRef.current = new AbortController();

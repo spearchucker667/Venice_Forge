@@ -16,6 +16,7 @@ import {
 import { VENICE_API_HOST, VENICE_API_BASE_PATH } from "./src/shared/apiConfig";
 import { AppConfig } from "./src/shared/configSchema";
 import { warn, error } from "./src/shared/logger";
+import { assessChildExploitationSafety, recordDecision } from "./src/shared/safety";
 
 dotenv.config();
 
@@ -205,6 +206,24 @@ export function createServerApp() {
       type: "*/*", 
       limit: MAX_PROXY_BODY_BYTES
     }),
+    // Child exploitation safety guard — enforcement at web-proxy boundary.
+    (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      if (req.method !== "POST") { next(); return; }
+      const endpoint = req.path; // e.g. "/chat/completions"
+      const body: unknown = req.body instanceof Buffer ? req.body : undefined;
+      const decision = assessChildExploitationSafety({ endpoint, method: "POST", payload: body, source: "web-proxy" });
+      recordDecision(decision);
+      if (!decision.allow || decision.action === "block") {
+        res.status(451).json({
+          error: decision.userMessage,
+          reasonCode: decision.reasonCode,
+          category: decision.category,
+          severity: decision.severity,
+        });
+        return;
+      }
+      next();
+    },
     createProxyMiddleware({
       target: `https://${VENICE_API_HOST}${VENICE_API_BASE_PATH}`,
       changeOrigin: true,

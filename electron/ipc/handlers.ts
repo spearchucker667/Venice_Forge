@@ -22,6 +22,7 @@ import { validateApiKeyInput, validateVeniceIpcRequest } from "./validation";
 import { redactErrorMessage } from "../../src/services/redaction";
 import { registerUpdateHandlers } from "./updates";
 import { VENICE_MAX_BODY_BYTES } from "../../src/shared/limits";
+import { assessChildExploitationSafety, recordDecision, SafetyGuardBlockedError } from "../../src/shared/safety";
 import type { Conversation } from "../../src/types/conversation";
 
 /** Maximum size in bytes for JSON import and export files. */
@@ -53,8 +54,40 @@ export function registerIpcHandlers(): void {
   ipcMain.handle("venice:request", async (_event, input: unknown) => {
     try {
       const request = validateVeniceIpcRequest(input);
+      const decision = assessChildExploitationSafety({ endpoint: request.endpoint, method: request.method, payload: request.body, source: "ipc" });
+      recordDecision(decision);
+      if (!decision.allow || decision.action === "block") {
+        return {
+          ok: false,
+          status: 451,
+          statusText: "Blocked by local safety guard",
+          headers: {},
+          body: {
+            error: decision.userMessage,
+            reasonCode: decision.reasonCode,
+            category: decision.category,
+            severity: decision.severity,
+          },
+          contentType: "application/json",
+        };
+      }
       return await performVeniceRequest(request);
     } catch (err) {
+      if (err instanceof SafetyGuardBlockedError) {
+        return {
+          ok: false,
+          status: 451,
+          statusText: "Blocked by local safety guard",
+          headers: {},
+          body: {
+            error: err.decision.userMessage,
+            reasonCode: err.decision.reasonCode,
+            category: err.decision.category,
+            severity: err.decision.severity,
+          },
+          contentType: "application/json",
+        };
+      }
       const message = redactErrorMessage(err);
       logError("Venice IPC request failed", message);
       return {
@@ -74,6 +107,23 @@ export function registerIpcHandlers(): void {
       if (request.endpoint !== "/chat/completions" || request.method !== "POST") {
         throw new Error("Streaming is only available for POST /chat/completions.");
       }
+      const decision = assessChildExploitationSafety({ endpoint: request.endpoint, method: request.method, payload: request.body, source: "ipc" });
+      recordDecision(decision);
+      if (!decision.allow || decision.action === "block") {
+        return {
+          ok: false,
+          status: 451,
+          statusText: "Blocked by local safety guard",
+          headers: {},
+          body: {
+            error: decision.userMessage,
+            reasonCode: decision.reasonCode,
+            category: decision.category,
+            severity: decision.severity,
+          },
+          contentType: "application/json",
+        };
+      }
       return await performVeniceRequest(request, {
         onDelta: (delta) => {
           event.sender.send("venice:streamDelta", {
@@ -83,6 +133,21 @@ export function registerIpcHandlers(): void {
         },
       });
     } catch (err) {
+      if (err instanceof SafetyGuardBlockedError) {
+        return {
+          ok: false,
+          status: 451,
+          statusText: "Blocked by local safety guard",
+          headers: {},
+          body: {
+            error: err.decision.userMessage,
+            reasonCode: err.decision.reasonCode,
+            category: err.decision.category,
+            severity: err.decision.severity,
+          },
+          contentType: "application/json",
+        };
+      }
       const message = redactErrorMessage(err);
       logError("Venice stream request failed", message);
       return {

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import StorageService from "../services/storageService";
 import { veniceFetch } from "../services/veniceClient";
+import { assessChildExploitationSafety } from "../shared/safety";
 import { extractImages } from "../utils/image";
 import { isValidChatResponse } from "../utils/veniceValidation";
 import { normalizeImageDraft } from "../utils/payloadBuilders";
@@ -92,6 +93,24 @@ export function BatchModule({ state, dispatch }: ModuleProps) {
       setResults((prev) =>
         prev.map((r, idx) => (idx === i ? { ...r, status: "running" } : r))
       );
+
+      // Advisory safety check per item — no audit recording (transport layer records).
+      const itemGuard = assessChildExploitationSafety({
+        text: newResults[i].prompt,
+        endpoint: draft.type === "text" ? "/chat/completions" : "/image/generate",
+        method: "POST",
+        source: "batch",
+      });
+      if (!itemGuard.allow || itemGuard.action === "block") {
+        setResults((prev) =>
+          prev.map((r, idx) =>
+            idx === i
+              ? { ...r, prompt: "[blocked]", status: "error", response: itemGuard.userMessage }
+              : r
+          )
+        );
+        continue;
+      }
 
       try {
         if (draft.type === "text") {

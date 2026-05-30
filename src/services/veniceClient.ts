@@ -8,6 +8,7 @@ import type { VeniceForgeResponse } from "../types/desktop";
 import type { DiagnosticsEntry } from "../types/venice";
 import type { AppDispatch } from "../types/app";
 import { MIB, VENICE_MAX_RAW_UPLOAD_BYTES, VENICE_MAX_SERIALIZED_UPLOAD_BYTES } from "../shared/limits";
+import { assessChildExploitationSafety, recordDecision, SafetyGuardBlockedError } from "../shared/safety";
 
 /** Maximum raw upload file size accepted by the renderer. */
 export const MAX_RAW_UPLOAD_BYTES = VENICE_MAX_RAW_UPLOAD_BYTES;
@@ -716,6 +717,16 @@ export async function veniceFetch<T = any>(
   } = {}
 ): Promise<{ data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }> {
   const { dedupe = false, method = "GET", body } = options;
+
+  // Child exploitation safety guard — enforcement at transport boundary.
+  if (method === "POST" && body !== undefined) {
+    const decision = assessChildExploitationSafety({ endpoint, method, payload: body, source: "venice-client" });
+    recordDecision(decision);
+    if (!decision.allow || decision.action === "block") {
+      throw new SafetyGuardBlockedError(decision);
+    }
+  }
+
   const key = dedupe ? dedupeKey(endpoint, method, body) : "";
   if (dedupe && inFlight.has(key)) {
     return inFlight.get(key) as Promise<{ data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }>;
@@ -746,6 +757,16 @@ export async function veniceStreamChat(
 ) {
   const startedAt = nowIso();
   const payloadRecord = payload as Record<string, unknown> | null | undefined;
+
+  // Child exploitation safety guard — enforcement at transport boundary.
+  {
+    const decision = assessChildExploitationSafety({ endpoint: "/chat/completions", method: "POST", payload, source: "venice-client" });
+    recordDecision(decision);
+    if (!decision.allow || decision.action === "block") {
+      throw new SafetyGuardBlockedError(decision);
+    }
+  }
+
   if (isElectron()) {
     const response = await desktopVenice.streamChat(
       {
