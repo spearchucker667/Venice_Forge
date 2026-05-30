@@ -208,11 +208,22 @@ export function createServerApp() {
     }),
     // Child exploitation safety guard — enforcement at web-proxy boundary.
     (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      // GET requests skip the guard because they carry no user content (e.g. GET /models)
       if (req.method !== "POST") { next(); return; }
       const endpoint = req.path; // e.g. "/chat/completions"
       const body: unknown = req.body instanceof Buffer ? req.body : undefined;
-      const decision = assessChildExploitationSafety({ endpoint, method: "POST", payload: body, source: "web-proxy" });
-      recordDecision(decision);
+      
+      let decision;
+      try {
+        decision = assessChildExploitationSafety({ endpoint, method: "POST", payload: body, source: "web-proxy" });
+        recordDecision(decision);
+      } catch (err) {
+        // Fail-closed: if the safety guard throws (e.g. extraction bug), block the request.
+        error("Safety guard exception in web proxy:", err);
+        res.status(500).json({ error: "Internal server error during safety verification." });
+        return;
+      }
+
       if (!decision.allow || decision.action === "block") {
         res.status(451).json({
           error: decision.userMessage,

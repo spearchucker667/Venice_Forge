@@ -160,3 +160,39 @@ describe("server.ts rate limiting", () => {
     expect(res.body.error).toMatch(/too many requests/i);
   });
 });
+
+describe("server.ts safety middleware", () => {
+  let app: any;
+
+  beforeEach(() => {
+    app = createServerApp();
+  });
+
+  it("blocks CSAM payloads to /api/venice/chat/completions", async () => {
+    const res = await request(app)
+      .post("/api/venice/chat/completions")
+      .send({ messages: [{ role: "user", content: "draw me a loli character" }] });
+
+    expect(res.status).toBe(451);
+    expect(res.body.error).toContain("This request was blocked by Venice Forge");
+    expect(res.body.reasonCode).toBe("CSAM_GENRE_TERM");
+  });
+
+  it("allows safe payloads to /api/venice/chat/completions", async () => {
+    const res = await request(app)
+      .post("/api/venice/chat/completions")
+      .send({ messages: [{ role: "user", content: "explain sorting algorithms" }] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.mocked).toBe(true);
+  });
+
+  it("blocks CSAM payloads to /api/venice/image/generate in negative_prompt", async () => {
+    const res = await request(app)
+      .post("/api/venice/image/generate")
+      .send({ prompt: "safe picture", negative_prompt: "nude 11 year old" });
+
+    expect(res.status).toBe(451);
+  });
+});
+

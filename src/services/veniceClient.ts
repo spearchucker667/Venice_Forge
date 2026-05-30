@@ -719,6 +719,7 @@ export async function veniceFetch<T = any>(
   const { dedupe = false, method = "GET", body } = options;
 
   // Child exploitation safety guard — enforcement at transport boundary.
+  // Note: GET requests (e.g., /models) are skipped because they carry no user content.
   if (method === "POST" && body !== undefined) {
     const decision = assessChildExploitationSafety({ endpoint, method, payload: body, source: "venice-client" });
     recordDecision(decision);

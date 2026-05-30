@@ -75,4 +75,33 @@ describe("veniceClient web regressions", () => {
       })
     );
   });
+
+  it("blocks CSAM payloads from being sent via veniceFetch", async () => {
+    const dispatch = vi.fn() as unknown as AppDispatch;
+    globalThis.fetch = vi.fn(); // Should not be called
+
+    await expect(
+      veniceFetch("/chat/completions", {
+        method: "POST",
+        body: { messages: [{ role: "user", content: "draw me a loli character" }] },
+        dispatch
+      })
+    ).rejects.toThrow("This request was blocked by Venice Forge");
+
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it("blocks CSAM payloads from being sent via veniceStreamChat", async () => {
+    const dispatch = vi.fn() as unknown as AppDispatch;
+    globalThis.fetch = vi.fn(); // Should not be called
+
+    await expect(
+      veniceStreamChat(
+        { model: "venice-uncensored", messages: [{ role: "user", content: "draw me a loli character" }] },
+        { dispatch, onDelta: vi.fn() }
+      )
+    ).rejects.toThrow("This request was blocked by Venice Forge");
+
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
 });

@@ -121,7 +121,7 @@ function extractFromObject(
 }
 
 /** Attempts to extract text from a Buffer or binary blob with minimal parsing for text-parser endpoint. */
-function extractFromBuffer(buffer: Uint8Array): ExtractedField[] {
+function extractFromBuffer(buffer: Uint8Array, fieldNames: readonly string[]): ExtractedField[] {
   try {
     // Try parsing as UTF-8 JSON first
     const decoder = typeof TextDecoder !== "undefined"
@@ -130,7 +130,7 @@ function extractFromBuffer(buffer: Uint8Array): ExtractedField[] {
     const str = decoder.decode(buffer).slice(0, MAX_FIELD_CHARS * 4);
     const parsed: unknown = JSON.parse(str);
     if (isRecord(parsed)) {
-      return extractFromObject(parsed, ["text", "content", "prompt", "query"], "", 0);
+      return extractFromObject(parsed, fieldNames, "", 0);
     }
     if (typeof parsed === "string") {
       return [{ path: "body", value: parsed.slice(0, MAX_FIELD_CHARS) }];
@@ -173,12 +173,12 @@ export function extractPromptLikeFields(
       if (normEndpoint.startsWith(key)) return fields;
     }
     // Unknown endpoint — check common prompt-ish field names
-    return ["prompt", "query", "text", "content", "instruction", "message", "input", "messages"];
+    return ["prompt", "query", "text", "content", "instruction", "message", "input", "messages", "question"];
   })();
 
   // Buffer / Uint8Array (used in Express middleware)
   if (payload instanceof Uint8Array) {
-    return extractFromBuffer(payload);
+    return extractFromBuffer(payload, fieldNames);
   }
 
   // Plain string
