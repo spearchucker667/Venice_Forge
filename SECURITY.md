@@ -24,6 +24,17 @@ disclosure before any public details are posted.
 Only the latest release tag is actively maintained. Older versions do not
 receive security patches.
 
+## Content Safety
+
+All outgoing Venice API requests are screened by a content safety guard
+(`src/shared/safety/childExploitationGuard.ts`) before the payload is
+forwarded. This runs at every enforcement boundary — Electron IPC and Express
+proxy. Raw prompt text is never logged by the safety system.
+
+External URLs opened via `shell.openExternal` are validated by
+`electron/utils/urlSecurity.ts`: only `https:` with public routable hostnames
+is allowed. RFC 1918 and loopback addresses are blocked.
+
 ## Dependency Auditing
 
 Dependencies are audited with `npm audit` before each release. To run a

@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { checkPathContained } from "./utils/navigation";
+import { isTrustedExternalUrl } from "./utils/urlSecurity";
 
 describe("checkPathContained", () => {
   let tmpDir = "";
@@ -63,5 +64,43 @@ describe("checkPathContained", () => {
 
   it("returns false for a non-existent path", () => {
     expect(checkPathContained(path.join(rootDir, "does-not-exist.html"), rootDir)).toBe(false);
+  });
+});
+
+// BUG-008 regression guard: isTrustedExternalUrl must block private-network addresses
+describe("isTrustedExternalUrl", () => {
+  it("allows a public https URL", () => {
+    expect(isTrustedExternalUrl("https://venice.ai/docs")).toBe(true);
+  });
+  it("blocks http (non-https)", () => {
+    expect(isTrustedExternalUrl("http://venice.ai/")).toBe(false);
+  });
+  it("blocks localhost", () => {
+    expect(isTrustedExternalUrl("https://localhost/admin")).toBe(false);
+  });
+  it("blocks 127.x loopback", () => {
+    expect(isTrustedExternalUrl("https://127.0.0.1/")).toBe(false);
+  });
+  it("blocks 10.x private range", () => {
+    expect(isTrustedExternalUrl("https://10.0.0.1/")).toBe(false);
+  });
+  it("blocks 192.168.x private range", () => {
+    expect(isTrustedExternalUrl("https://192.168.1.1/admin")).toBe(false);
+  });
+  it("blocks 172.16–31 private range", () => {
+    expect(isTrustedExternalUrl("https://172.16.0.1/")).toBe(false);
+    expect(isTrustedExternalUrl("https://172.31.255.255/")).toBe(false);
+  });
+  it("allows 172.32.x (outside private range)", () => {
+    expect(isTrustedExternalUrl("https://172.32.0.1/")).toBe(true);
+  });
+  it("blocks 0.0.0.0", () => {
+    expect(isTrustedExternalUrl("https://0.0.0.0/")).toBe(false);
+  });
+  it("blocks ::1 IPv6 loopback", () => {
+    expect(isTrustedExternalUrl("https://[::1]/")).toBe(false);
+  });
+  it("rejects malformed URLs", () => {
+    expect(isTrustedExternalUrl("not-a-url")).toBe(false);
   });
 });

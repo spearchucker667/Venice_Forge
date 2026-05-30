@@ -254,4 +254,20 @@ describe("SettingsModule", () => {
 
     (isElectron as ReturnType<typeof vi.fn>).mockReturnValue(false);
   });
+
+  it("shows an import error when desktop file loading fails", async () => {
+    const { isElectron, desktopFiles } = await import("../services/desktopBridge");
+    vi.mocked(isElectron).mockReturnValue(true);
+    vi.mocked(desktopFiles.importJsonString).mockRejectedValue(new Error("Import file is too large."));
+
+    renderSettings();
+    await userEvent.click(screen.getByRole("button", { name: /import data/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent("Import file is too large.");
+    });
+    expect(validateImportJson).not.toHaveBeenCalled();
+
+    (isElectron as ReturnType<typeof vi.fn>).mockReturnValue(false);
+  });
 });

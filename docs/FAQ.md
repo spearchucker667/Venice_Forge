@@ -64,6 +64,9 @@ Set `VENICE_FORGE_DEBUG_DEVTOOLS=true` in your environment before launching. Onl
 ### Is there telemetry?
 No. Venice Forge does not track users, log prompts, or monitor API key usage.
 
+### Does Venice Forge have content moderation?
+Yes. Every outgoing Venice API request is screened by an on-device content safety guard before the payload is forwarded. Requests that fail the assessment are blocked at the IPC or proxy boundary and never reach Venice. Raw prompt text is **never** logged by the safety system — only a coarse non-identifying hash is kept for local audit counters.
+
 ---
 
 ## Packaging & Releases

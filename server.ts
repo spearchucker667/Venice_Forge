@@ -64,7 +64,7 @@ export function createServerApp() {
       const start = Date.now();
       res.on("finish", () => {
         const duration = Date.now() - start;
-        console.warn(`${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
+        warn(`${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
       });
       next();
     });

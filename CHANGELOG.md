@@ -8,6 +8,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 
 ## [Unreleased]
 
+### Added
+- **Content Safety Guard:** A layered child-exploitation safety guard (`src/shared/safety/`) screens every Venice API request before it leaves the app.
+  - `childExploitationGuard.ts` — multi-signal detection engine: hard term lists, CSAM genre labels, minor-age extraction (digit-preserving normalisation path), fuzzy bigram matching with allowlist, cross-field combined-text pass, and image-endpoint hard-block path. Produces a `SafetyGuardDecision` without throwing or logging raw prompt text.
+  - `promptPayloadExtractor.ts` — endpoint-aware field extractor that reads `prompt`, `messages[].content`, and serialised FormData entries from raw payloads.
+  - `guardAudit.ts` — in-memory audit counters (`allowed`, `warned`, `blocked`, by severity and category) with no raw user content stored.
+  - `index.ts` — public barrel re-exporting the full safety surface.
+  - Wired at every enforcement boundary: Electron IPC (`electron/ipc/handlers.ts`), Express proxy (`server.ts`), and all prompt-sending UI modules.
+  - 58 unit tests covering detection, normalization, FormData extraction, and audit counters.
+- **`electron/utils/urlSecurity.ts`:** Pure-function `isTrustedExternalUrl` and `isPrivateHostname` extracted from `electron/main.ts` into a testable utility. `isTrustedExternalUrl` now also blocks RFC 1918 addresses (10.x, 192.168.x, 172.16–31.x), loopback (127.x, `localhost`, `0.0.0.0`), and IPv6 loopback (`::1`). 11 regression tests added to `electron/main.test.ts`.
+
+### Changed
+- `electron/main.ts`: `isTrustedExternalUrl` delegated to `electron/utils/urlSecurity.ts`; private-network URLs are now blocked from `shell.openExternal` even over HTTPS.
+- `simpleHash` in `childExploitationGuard.ts`: truncation window widened from 256 → 1024 chars; JSDoc now marks it as "coarse, non-cryptographic — audit use only".
+
+### Fixed
+- **BUG-001:** `extractFromSerializedFormData` in `promptPayloadExtractor.ts` used `Array.isArray(entry)` — always false for the plain-object entries produced by `serializeFormData`. Safety scanner was silently blind to all FormData fields. Fixed to use `isRecord(entry)` and read `entry["name"]`/`entry["value"]`. Regression test added (`promptPayloadExtractor.test.ts`).
+- **BUG-002:** `app:loadJsonFile` IPC error path returned `{ canceled: false, error }` with no `ok: false`. `desktopBridge.importJsonString()` treated the missing field as a cancel and returned `null`, swallowing the error. Now returns `{ ok: false, canceled: false, error }`, `importJsonString()` throws on error, and `importData()` surfaces the message via `setStatusError()`.
+- **BUG-003:** `"shota"` existed in both `CSAM_GENRE_LABELS` and `FUZZY_ALLOWLIST`, creating a latent bypass risk. Removed from allowlist. Runtime invariant added that throws at module load if any CSAM label appears in the allowlist.
+- **BUG-005:** `simpleHash` truncated to 256 chars — two prompts sharing the same 256-char leet-folded prefix produced identical audit hashes. Truncation widened to 1024 chars.
+- **BUG-006:** `FUZZY_ALLOWLIST` contained 6 duplicate string literals (`"lori"` ×2, `"lore"` ×2, `"lock"` ×2). Duplicates removed.
+- **BUG-007:** `server.ts` request logger called `console.warn(...)` directly instead of the imported structured `warn` from `src/shared/logger`. Replaced with `warn(...)`.
+- **BUG-008:** `isTrustedExternalUrl` allowed all `https:` URLs including private-network addresses. Now blocks RFC 1918, loopback, and `::1` via pure hostname string parsing (no DNS resolution).
+- **BUG-009:** `ENCRYPTED_STORES` in `storageService.ts` excluded `diagnostics` silently. Added a comment explaining the intentional omission (sanitised timing/status metadata only; no raw prompts or keys).
+
 ---
 
 ## [1.0.2] — 2026-05-29

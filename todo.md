@@ -22,7 +22,7 @@ No critical issues found.
 
 ## High
 
-- [ ] **[BUG-001] `extractFromSerializedFormData` always returns empty — safety scanner blind to FormData fields** `src/shared/safety/promptPayloadExtractor.ts:54`
+- [x] **[BUG-001] `extractFromSerializedFormData` always returns empty — safety scanner blind to FormData fields** `src/shared/safety/promptPayloadExtractor.ts:54`
   - **Type:** Logic / Security
   - **What:** `serializeFormData` (veniceClient.ts:353) produces entries as plain objects `{ name, value, ... }`.  
     `extractFromSerializedFormData` checks `if (!Array.isArray(entry) || entry.length < 2) continue;` — this is **always true** for objects, so every entry is skipped and the function always returns `[]`.
@@ -47,7 +47,7 @@ No critical issues found.
     ```
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-002] `app:loadJsonFile` error path silently swallowed — user gets no feedback on file read failures** `electron/ipc/handlers.ts:245` / `src/services/desktopBridge.ts:226`
+- [x] **[BUG-002] `app:loadJsonFile` error path silently swallowed — user gets no feedback on file read failures** `electron/ipc/handlers.ts:245` / `src/services/desktopBridge.ts:226`
   - **Type:** Error Handling / UX
   - **What:** When `fs.readFile` or `fs.stat` throws (e.g. file too large, permissions denied), the handler returns `{ canceled: false, error: redactErrorMessage(err) }` — no `ok: false` field.  
     `desktopBridge.importJsonString()` checks `if (result.canceled || !result.data) return null;`. Since `result.data` is `undefined`, it returns `null`. `importData()` then does `if (!json) return;` — silently discarding the error. The user sees nothing happen.
@@ -71,7 +71,7 @@ No critical issues found.
 
 ## Medium
 
-- [ ] **[BUG-003] `FUZZY_ALLOWLIST` contains "shota" — a term also in `CSAM_GENRE_LABELS`** `src/shared/safety/childExploitationGuard.ts:106,422`
+- [x] **[BUG-003] `FUZZY_ALLOWLIST` contains "shota" — a term also in `CSAM_GENRE_LABELS`** `src/shared/safety/childExploitationGuard.ts:106,422`
   - **Type:** Logic / Security (defence-in-depth gap)
   - **What:** `"shota"` is in `CSAM_GENRE_LABELS` (line 106) and simultaneously in `FUZZY_ALLOWLIST` (line 422). The allowlist is checked at **P7 (fuzzy match)**; the `CSAM_GENRE_LABELS` exact check runs at **P0** before fuzzy — so no bypass currently exists. However, any refactoring that changes evaluation order, or a future code path that calls `fuzzyMatchesCritical` independently, could quietly exempt "shota" from fuzzy detection.
   - **Evidence:**
@@ -88,14 +88,14 @@ No critical issues found.
   - **Fix:** Remove `"shota"` (and any other CSAM terms) from `FUZZY_ALLOWLIST`. The allowlist is for common innocent words that fuzzy-match critical terms; CSAM terms do not belong in it. Add an invariant test asserting that `FUZZY_ALLOWLIST ∩ CSAM_GENRE_LABELS = ∅`.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-004] `assessChildExploitationSafety` computes `assessSingleNormalizedText` on every field twice** `src/shared/safety/childExploitationGuard.ts`
+- [x] **[BUG-004] `assessChildExploitationSafety` computes `assessSingleNormalizedText` on every field twice** `src/shared/safety/childExploitationGuard.ts`
   - **Type:** Performance / Redundancy
   - **What:** The blocking first pass (fields loop, ~line 798) calls `assessSingleNormalizedText(field, norms)` for each field and short-circuits on `block`. The warn third pass (fields loop, ~line 821) calls `assessSingleNormalizedText` again on the same fields for `WARN_THRESHOLD` detection. No results are cached between passes, so every field is normalized and scanned twice on every safe-context request.
   - **Why it matters:** For batch prompting with many concurrent requests, every assessment runs O(2 × fields) work. Safety assessment is on the hot path for every Venice API call.
   - **Fix:** Cache the `assessSingleNormalizedText` result per field in the first pass; reuse the cached result in the warn pass (or merge the logic into a single pass with separate accumulator flags for block vs warn).
   - **Confidence:** [VERIFIED — same `assessSingleNormalizedText` call signature in both passes]`
 
-- [ ] **[BUG-005] `simpleHash` truncates to 256 chars of leet-folded text — audit hashes unreliable for long prompts** `src/shared/safety/childExploitationGuard.ts` (simpleHash function)
+- [x] **[BUG-005] `simpleHash` truncates to 256 chars of leet-folded text — audit hashes unreliable for long prompts** `src/shared/safety/childExploitationGuard.ts` (simpleHash function)
   - **Type:** Logic / Audit Integrity
   - **What:** `simpleHash` reads only the first 256 chars and uses djb2 (non-cryptographic). Two distinct long prompts that share the same leet-folded 256-char prefix will produce identical `promptHash` values in the audit record. Since the hash is used for audit correlation, this creates phantom duplicates and makes audit trails for long prompts unreliable.
   - **Evidence:** The function is documented as "coarse" — but callers and audit consumers don't necessarily know that, and the 256-char truncation is not documented at the call site.
@@ -106,7 +106,7 @@ No critical issues found.
 
 ## Low / Cosmetic
 
-- [ ] **[BUG-006] `FUZZY_ALLOWLIST` contains duplicate entries** `src/shared/safety/childExploitationGuard.ts:421`
+- [x] **[BUG-006] `FUZZY_ALLOWLIST` contains duplicate entries** `src/shared/safety/childExploitationGuard.ts:421`
   - **Type:** Code Quality
   - **What:** The `Set` constructor receives duplicate literals: `"lori"` (×2), `"lore"` (×2), `"lock"` (×2). `Set` silently deduplicates at runtime — no functional impact — but the source code contains stale copy-paste artifacts.
   - **Evidence:**
@@ -119,7 +119,7 @@ No critical issues found.
   - **Fix:** Remove the six duplicate literals.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-007] `server.ts:67` uses `console.warn` for access logging instead of the structured logger** `server.ts:67`
+- [x] **[BUG-007] `server.ts:67` uses `console.warn` for access logging instead of the structured logger** `server.ts:67`
   - **Type:** Code Quality / Logging Consistency
   - **What:** The development/test request logger at line 67 calls `console.warn(...)` directly. Every other non-test log call in the codebase uses `warn`/`error` from `./src/shared/logger`. This means access log output bypasses any future structured-logging middleware applied to the `warn`/`error` function.
   - **Evidence:**
@@ -130,13 +130,13 @@ No critical issues found.
   - **Fix:** Replace with `warn(...)` (imported at line 18) or remove the block entirely (it's dev-only).
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-008] `isTrustedExternalUrl` allows any `https:` URL including private-network addresses** `electron/main.ts`
+- [x] **[BUG-008] `isTrustedExternalUrl` allows any `https:` URL including private-network addresses** `electron/main.ts`
   - **Type:** Security / Low (user-prompted)
   - **What:** `isTrustedExternalUrl` accepts any URL where `protocol === "https:"`. This includes `https://192.168.1.1/admin`, `https://10.0.0.0/`, `https://localhost/`. The user is prompted via `dialog.showMessageBox` before `shell.openExternal` is called, which mitigates direct exploitation. However, an attacker-controlled page that injects a link with a private-IP target can try to trick the user with a convincing display.
   - **Fix:** Additionally reject URLs whose hostname resolves to RFC 1918 ranges (127.x, 10.x, 192.168.x, 172.16–31.x) and `localhost`. A simple hostname check (no DNS involved) suffices.
   - **Confidence:** [VERIFIED — function defined in electron/main.ts, logic confirmed]
 
-- [ ] **[BUG-009] `diagnostics` store not encrypted; asymmetry undocumented** `src/services/storageService.ts:10`
+- [x] **[BUG-009] `diagnostics` store not encrypted; asymmetry undocumented** `src/services/storageService.ts:10`
   - **Type:** Low (intentional but undocumented)
   - **What:** `ENCRYPTED_STORES = ["chats", "settings", "images", "conversations"]` — the `diagnostics` store is deliberately excluded. Diagnostics contain sanitized API timing/response metadata (no raw prompts, no API keys), so the omission is defensible. However, no comment documents *why* diagnostics are unencrypted. A future developer adding sensitive content to diagnostics entries would not see a guard.
   - **Fix:** Add a one-line comment at `ENCRYPTED_STORES` explaining the intentional exclusion of `diagnostics`.
@@ -146,7 +146,7 @@ No critical issues found.
 
 ## Documentation Defects
 
-- [ ] **[DOC-001] `.github/copilot-instructions.md` describes 3 IndexedDB stores; codebase has 5** `.github/copilot-instructions.md:55,133,138`
+- [x] **[DOC-001] `.github/copilot-instructions.md` describes 3 IndexedDB stores; codebase has 5** `.github/copilot-instructions.md:55,133,138`
   - **What:**
     - Line 55: *"IndexedDB … images, chats, settings. All three stores are encrypted at rest"* — there are actually **five** stores (`images`, `chats`, `settings`, `diagnostics`, `conversations`), and four of them are encrypted (all except `diagnostics`).
     - Line 133: Export format example `{ images, chats, settings }` — omits `conversations`.
@@ -166,7 +166,7 @@ No critical issues found.
 
 ## Missing Documentation / Gaps
 
-- [ ] **[GAP-001] No regression test for `extractFromSerializedFormData` (BUG-001)** `src/shared/safety/promptPayloadExtractor.ts`
+- [x] **[GAP-001] No regression test for `extractFromSerializedFormData` (BUG-001)** `src/shared/safety/promptPayloadExtractor.ts`
   - The FormData extraction path has zero test coverage. After fixing BUG-001, add a test that creates a mock serialized FormData body `{ _isSerializedFormData: true, entries: [{ name: "prompt", value: "..." }] }` and asserts extracted fields are non-empty.
 
 - [ ] **[GAP-002] No test for `loadJsonFile` error path (BUG-002)** `electron/ipc/handlers.ts:245`
@@ -175,18 +175,18 @@ No critical issues found.
 - [ ] **[GAP-003] `docs/DEVELOPMENT` and `docs/AGENTS` directories not scanned** *(scope limit)*
   - These directories were present in the repo root but not opened during this scan. They may contain stale build instructions, architecture diagrams, or agent-usage examples that contradict current code. Recommend reviewing for freshness.
 
-- [ ] **[GAP-004] `assessChildExploitationSafety` public API has no JSDoc** `src/shared/safety/childExploitationGuard.ts`
+- [x] **[GAP-004] `assessChildExploitationSafety` public API has no JSDoc** `src/shared/safety/childExploitationGuard.ts`
   - The exported function signature (`input`, `AssessmentResult`) is the primary integration point for all callers (server.ts, handlers.ts, ChatModule, ImageModule, BatchModule). It has no JSDoc block documenting inputs, return shape, or side effects (audit logging, `recordDecision` call). Add at minimum a function-level `/** ... */` comment.
 
 ---
 
 ## Quick Wins (effort: < 30 min • impact: High+)
 
-- [ ] **BUG-001** — 2-line fix in `extractFromSerializedFormData`: replace array check with object-property read. Closes the FormData scanner blind spot.
-- [ ] **BUG-002** — Add `ok: false` to error return in `handlers.ts`, thread the error message through `desktopBridge` to the import UI.
-- [ ] **BUG-006** — Delete 6 duplicate literals from `FUZZY_ALLOWLIST`.
-- [ ] **BUG-003** — Remove `"shota"` from `FUZZY_ALLOWLIST`; add invariant test `FUZZY_ALLOWLIST ∩ CSAM_GENRE_LABELS = ∅`.
-- [ ] **DOC-001** — Update 3 lines in `.github/copilot-instructions.md` to match actual store counts.
+- [x] **BUG-001** — 2-line fix in `extractFromSerializedFormData`: replace array check with object-property read. Closes the FormData scanner blind spot.
+- [x] **BUG-002** — Add `ok: false` to error return in `handlers.ts`, thread the error message through `desktopBridge` to the import UI.
+- [x] **BUG-006** — Delete 6 duplicate literals from `FUZZY_ALLOWLIST`.
+- [x] **BUG-003** — Remove `"shota"` from `FUZZY_ALLOWLIST`; add invariant test `FUZZY_ALLOWLIST ∩ CSAM_GENRE_LABELS = ∅`.
+- [x] **DOC-001** — Update 3 lines in `.github/copilot-instructions.md` to match actual store counts.
 
 ---
 

@@ -51,8 +51,9 @@ Web mode (development only):
 |-------|-----------|----------------|
 | UI | React 19 + Tailwind v4 | All user-facing screens |
 | State | useReducer + Immer | Centralised app state |
-| Storage | IndexedDB (via `StorageService`) | Images, legacy chats, settings |
+| Storage | IndexedDB (via `StorageService`) | `images`, legacy `chats`, `settings`, `conversations` — all encrypted at rest (AES-GCM); `diagnostics` stored unencrypted (timing/status only, no raw prompts) |
 | Chat storage | Electron main-process filesystem (`chat-history/*.json`) | Conversation persistence with atomic writes and corruption recovery |
+| Content safety | `src/shared/safety/childExploitationGuard.ts` | Screens every outgoing Venice request at IPC and proxy boundary; returns `SafetyGuardDecision`; never logs raw prompt text |
 
 | Secure storage | Electron `safeStorage` | API key (encrypted) |
 | IPC bridge | Electron preload + `ipcMain` | Renderer ↔ main transport |
@@ -89,17 +90,20 @@ Web mode (development only):
 ```
 User input
   └─► React component
-        └─► veniceFetch() / desktopBridge IPC
-              ├─ Electron: main process validates → HTTPS → api.venice.ai
-              └─ Web:      Express /api/venice → HTTPS → api.venice.ai
-                                        ↓
-                               Response data
-                                        ↓
-                            IndexedDB (images / legacy chats)
-                                        ↓
-                  Electron: chat-history/*.json (atomic writes)
-                                        ↓
-                            React state update → UI
+        └─► assessChildExploitationSafety()   ← content safety screen
+              ├─ blocked: surface error, do not forward
+              └─ allowed:
+                    └─► veniceFetch() / desktopBridge IPC
+                          ├─ Electron: main process validates → HTTPS → api.venice.ai
+                          └─ Web:      Express /api/venice → HTTPS → api.venice.ai
+                                                    ↓
+                                           Response data
+                                                    ↓
+                                        IndexedDB (images / legacy chats)
+                                                    ↓
+                              Electron: chat-history/*.json (atomic writes)
+                                                    ↓
+                                        React state update → UI
 ```
 
 ## Non-Goals

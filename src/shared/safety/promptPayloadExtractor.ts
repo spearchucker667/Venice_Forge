@@ -51,8 +51,9 @@ function extractFromSerializedFormData(obj: Record<string, unknown>, fieldNames:
   const entries = obj["entries"];
   if (!Array.isArray(entries)) return results;
   for (const entry of entries) {
-    if (!Array.isArray(entry) || entry.length < 2) continue;
-    const [key, val] = entry;
+    if (!isRecord(entry)) continue;
+    const key = entry["name"];
+    const val = entry["value"];
     if (typeof key !== "string") continue;
     if (DENY_FIELD_NAMES.has(key)) continue;
     if (!fieldNames.includes("*") && !fieldNames.includes(key)) continue;

@@ -12,6 +12,7 @@ Please read and follow our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 - Do not commit secrets, `.env` files, generated release artifacts, or local logs.
 - Keep README, [docs/ABOUT.md](docs/ABOUT.md), [SECURITY.md](SECURITY.md), [docs/RELEASE/release.md](docs/RELEASE/release.md), and [docs/LEGAL.md](docs/LEGAL.md) current when behavior, packaging, or legal assumptions change.
 - Treat all Venice API keys as secrets. Never expose them to renderer code, frontend bundles, issue screenshots, or test fixtures.
+- Every new prompt-sending path **must** call `assessChildExploitationSafety()` before forwarding to Venice. Do not bypass the guard. Do not log raw prompt text. Safety tests must use synthetic/redacted fixtures only.
 
 ## Getting Started
 

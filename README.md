@@ -190,6 +190,10 @@ Desktop Venice API calls go through a narrow preload API and main-process IPC tr
 - `POST /augment/scrape`
 - `POST /augment/text-parser`
 
+**Content safety screening** runs on every outgoing Venice request before the payload leaves the app — both in the Electron main process (IPC layer) and the Express web proxy. Requests that fail the content assessment are blocked or surfaced to the user without being forwarded. Raw prompt text is never logged.
+
+**External URL trust** — `shell.openExternal` only allows `https:` URLs with non-private hostnames. RFC 1918 addresses (10.x, 192.168.x, 172.16–31.x), loopback (127.x, `localhost`, `0.0.0.0`), and `::1` are blocked even if the scheme is HTTPS.
+
 Production CSP does not allow localhost networking. Navigation is blocked except for the app files; trusted external HTTPS links open in the OS browser. Packaged production DevTools are disabled unless `VENICE_FORGE_DEBUG_DEVTOOLS=true`. Web proxy mode adds `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and `Content-Security-Policy` headers to all responses.
 
 Read our full [Privacy & Security Model](PRIVACY.md) and the technical [SECURITY.md](SECURITY.md) for more details.

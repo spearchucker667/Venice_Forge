@@ -234,7 +234,7 @@ export function registerIpcHandlers(): void {
         filters: [{ name: "JSON", extensions: ["json"] }],
         properties: ["openFile"],
       });
-      if (result.canceled || !result.filePaths[0]) return { canceled: true };
+      if (result.canceled || !result.filePaths[0]) return { ok: true, canceled: true };
       const stat = await fs.stat(result.filePaths[0]);
       if (stat.size > MAX_JSON_FILE_BYTES) {
         throw new Error("Import file is too large.");
@@ -242,7 +242,7 @@ export function registerIpcHandlers(): void {
       const data = await fs.readFile(result.filePaths[0], "utf-8");
       return { ok: true, canceled: false, data };
     } catch (err) {
-      return { canceled: false, error: redactErrorMessage(err) };
+      return { ok: false, canceled: false, error: redactErrorMessage(err) };
     }
   });
 

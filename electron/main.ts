@@ -9,6 +9,7 @@ import { fileURLToPath } from "url";
 import { registerIpcHandlers } from "./ipc/handlers";
 import { logError, logInfo } from "./services/logger";
 import { checkPathContained } from "./utils/navigation";
+import { isTrustedExternalUrl } from "./utils/urlSecurity";
 
 /** Indicates whether the app is running in development mode. */
 const isDev = !app.isPackaged;
@@ -42,22 +43,6 @@ function rendererCsp(): string {
     "form-action 'none'",
     "frame-ancestors 'none'",
   ].join("; ");
-}
-
-/** Determines whether a URL is a trusted external https: link.
- *  DSC-001: Any https: URL is allowed to open externally via the OS browser.
- *  The security boundary is that external links never load inside the Electron
- *  BrowserWindow — they are always delegated to shell.openExternal.
- *  @param url The URL to evaluate.
- *  @returns True when the URL uses the https: protocol.
- */
-export function isTrustedExternalUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
 }
 
 /** Maximum length for displaying a URL in the external link confirmation dialog. */

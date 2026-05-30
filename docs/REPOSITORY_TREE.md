@@ -59,8 +59,9 @@ This document is the public map for the Venice Forge repository. It reflects the
 │   │   ├── veniceClient.multipart.test.ts  # Multipart upload tests
 │   │   └── veniceClient.stream.test.ts     # Streaming response tests
 │   ├── utils/
-│   │   └── navigation.ts            # Path containment and symlink traversal checks
-│   ├── main.test.ts                 # Main process unit tests (navigation guards)
+│   │   ├── navigation.ts            # Path containment and symlink traversal checks
+│   │   └── urlSecurity.ts           # isTrustedExternalUrl + isPrivateHostname (no DNS, RFC 1918 blocking)
+│   ├── main.test.ts                 # Main process unit tests (navigation guards, isTrustedExternalUrl)
 │   ├── main.ts                      # Electron main entry (BrowserWindow, CSP, preload)
 │   └── preload.ts                   # Context-bridge preload (narrow renderer API surface)
 ├── scripts/
@@ -77,6 +78,20 @@ This document is the public map for the Venice Forge repository. It reflects the
 │   ├── modules/
 │   ├── services/
 │   ├── shared/
+│   │   ├── safety/
+│   │   │   ├── childExploitationGuard.ts    # Detection engine: term lists, age extraction, fuzzy match, image-endpoint block
+│   │   │   ├── childExploitationGuard.test.ts
+│   │   │   ├── guardAudit.ts                # In-memory audit counters (no raw prompt content stored)
+│   │   │   ├── index.ts                     # Public barrel re-exporting safety surface
+│   │   │   ├── promptPayloadExtractor.ts    # Endpoint-aware field extractor for raw API payloads
+│   │   │   └── promptPayloadExtractor.test.ts
+│   │   ├── apiConfig.ts
+│   │   ├── apiConfig.test.ts
+│   │   ├── configSchema.ts
+│   │   ├── legal.ts
+│   │   ├── limits.ts
+│   │   ├── logger.ts
+│   │   └── validation.ts
 │   ├── state/
 │   ├── theme/                # Token types, built-in palettes, applyTheme, contrast utilities
 │   ├── types/
@@ -110,9 +125,10 @@ This document is the public map for the Venice Forge repository. It reflects the
 | Segment | Path | Responsibility |
 |---------|------|----------------|
 | Renderer app | `src/` | React shell, tab modules, UI components, state, storage, import/export, Venice client facade |
-| Electron desktop | `electron/` | BrowserWindow, CSP, navigation guard, preload bridge, IPC handlers, safeStorage, HTTPS client |
+| Electron desktop | `electron/` | BrowserWindow, CSP, navigation guard, URL security, preload bridge, IPC handlers, safeStorage, HTTPS client |
 | Web proxy | `server.ts` | Local development Express server, Venice proxy, security headers, rate limiting, circuit breaker |
 | Shared validation | `src/shared/` | Venice endpoint and API host configuration shared by renderer, web proxy, and Electron IPC |
+| Content safety | `src/shared/safety/` | Child-exploitation safety guard: multi-signal detection, payload extraction, and audit counters; runs at every enforcement boundary |
 | Build scripts | `scripts/` | CJS package marker generation and release artifact validation |
 | Release config | `electron-builder.config.cjs`, `.github/workflows/*-release.yml` | Windows and macOS application packaging |
 | Governance | `.github/`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `SUPPORT.md` | Public contribution, support, ownership, and automation metadata |
@@ -125,16 +141,18 @@ This document is the public map for the Venice Forge repository. It reflects the
 | `src/components/` | Reusable UI primitives and feature components |
 | `src/services/veniceClient.ts` | Only renderer entry point for Venice API calls |
 | `src/services/desktopBridge.ts` | Electron-vs-web transport abstraction |
-| `src/services/storageService.ts` | IndexedDB persistence for images, legacy chats, settings, diagnostics |
+| `src/services/storageService.ts` | IndexedDB persistence for images, chats, settings, diagnostics, and conversations (5 stores; 4 encrypted — diagnostics intentionally excluded) |
 | `src/services/chatStorage.ts` | Unified conversation storage abstraction (IPC in Electron, IndexedDB in web) |
 | `src/services/cryptoService.ts` | AES-GCM encryption for IndexedDB records |
 | `electron/services/chatStorage.ts` | Main-process filesystem storage for conversations (atomic writes, corruption recovery) |
 | `src/services/exportImport.ts` | Versioned JSON export/import with secret redaction |
 | `src/shared/validation.ts` | Allowed Venice endpoint and method list |
+| `src/shared/safety/` | Content safety guard: detection engine, payload extractor, audit counters |
 | `electron/ipc/validation.ts` | Electron IPC request validation boundary |
 | `electron/services/secureStore.ts` | OS-encrypted API key persistence |
 | `electron/services/veniceClient.ts` | Main-process HTTPS client for `api.venice.ai` |
 | `electron/services/chatStorage.ts` | Atomic filesystem conversation storage with corruption recovery |
+| `electron/utils/urlSecurity.ts` | `isTrustedExternalUrl` and `isPrivateHostname` — pure hostname check, RFC 1918 + loopback blocking, no DNS |
 
 ## Generated and Ignored Output
 

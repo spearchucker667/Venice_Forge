@@ -131,7 +131,7 @@ const veniceForge = {
     /** Shows an open dialog and reads JSON data from the selected file.
      *  @returns A promise resolving with the loaded data or cancellation.
      */
-    loadJsonFile(): Promise<{ ok?: boolean; canceled: boolean; data?: string; error?: string }> {
+    loadJsonFile(): Promise<{ ok: boolean; canceled: boolean; data?: string; error?: string }> {
       return ipcRenderer.invoke("app:loadJsonFile");
     },
   },

@@ -67,7 +67,7 @@ export interface VeniceForgeApp {
 /** Exposes file dialog helpers for importing and exporting JSON data. */
 export interface VeniceForgeFiles {
   saveJsonFile(data: string, defaultPath?: string): Promise<{ ok: boolean; canceled: boolean }>;
-  loadJsonFile(): Promise<{ canceled: boolean; data?: string }>;
+  loadJsonFile(): Promise<{ ok: boolean; canceled: boolean; data?: string; error?: string }>;
 }
 
 /** Exposes Auto-Update helpers available through the preload bridge. */

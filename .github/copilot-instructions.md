@@ -52,7 +52,7 @@ Single global `useReducer` in `App.tsx` using `appReducer` from `src/state/appRe
 
 ### Storage
 
-- **IndexedDB** (`src/services/storageService.ts`): images, chats, settings. All three stores are encrypted at rest using `src/services/cryptoService.ts` (AES-GCM).
+- **IndexedDB** (`src/services/storageService.ts`): `images`, `chats`, `settings`, `diagnostics`, `conversations`. Encrypted-at-rest stores are `images`, `chats`, `settings`, and `conversations` via `src/services/cryptoService.ts` (AES-GCM).
 - **Electron `safeStorage`** (`electron/services/secureStore.ts`): API key only — encrypted by the OS keychain, never in plaintext.
 - **Exports**: versioned JSON with `{ version, exportedAt, appVersion, data }`. Import merges by ID, never clears; strips secret-like fields; validates schema and size.
 
@@ -74,6 +74,27 @@ POST /augment/text-parser
 
 ### Auto-Updates
 Auto-updates are fetched via GitHub Releases. The `electron/ipc/updates.ts` module securely exposes `checkForUpdates`, `downloadUpdate`, and `installUpdate` to the renderer while keeping download logic in the sandboxed main process.
+
+### Content Safety Guard
+
+Every outgoing Venice API request is screened by `assessChildExploitationSafety()` from `src/shared/safety/` **before** the payload leaves the app. This runs at every enforcement boundary:
+
+- **Electron IPC** (`electron/ipc/handlers.ts`): assessed before the main-process Venice client makes the HTTPS call.
+- **Express proxy** (`server.ts`): assessed before `http-proxy-middleware` forwards the request.
+- **UI modules**: prompt-sending modules (`ChatModule`, `ImageModule`, `BatchModule`) call the guard and surface advisory UI when the decision is `warn`.
+
+The public entry point is:
+
+```ts
+import { assessChildExploitationSafety, recordDecision } from "src/shared/safety";
+const decision = assessChildExploitationSafety({ endpoint, payload, text? });
+// decision.allow === false → block or warn
+recordDecision(decision); // updates in-memory audit counters
+```
+
+`SafetyGuardDecision` never contains raw prompt text — only `promptHash` (coarse djb2, audit use only), `action`, `severity`, `category`, and `reasonCode`.
+
+**`electron/utils/urlSecurity.ts`** provides `isTrustedExternalUrl(url)` for `shell.openExternal` — allows `https:` only and additionally blocks RFC 1918 addresses (10.x, 192.168.x, 172.16–31.x), loopback (127.x, `localhost`, `0.0.0.0`), and `::1`. Pure hostname string check — no DNS.
 
 ---
 
@@ -113,6 +134,9 @@ Each tab is a self-contained module file in `src/modules/`. Modules receive `{ s
 - Do not add new Venice endpoints without updating `src/shared/validation.ts`.
 - CSP is strict in production — no inline scripts, no external `connect-src`.
 - macOS requires `build/icon.icns` for packaging. Never weaken `safeStorage` — macOS Keychain and Windows DPAPI parity is required. Plaintext storage is completely disabled for Windows and macOS.
+- Every new prompt-sending path **must** call `assessChildExploitationSafety()` before forwarding to Venice. Never bypass the guard. Do not log raw prompt text anywhere in the codebase.
+- The `FUZZY_ALLOWLIST ∩ CSAM_GENRE_LABELS = ∅` invariant is enforced at module load — adding a term from `CSAM_GENRE_LABELS` to `FUZZY_ALLOWLIST` will throw at startup.
+- Safety tests must use synthetic/redacted fixtures only — never include actual genre labels or explicit strings as test data.
 
 ---
 
@@ -130,14 +154,14 @@ Bulk gallery download is capped at 50 images with a 300 ms inter-item delay to a
 
 ## Export / Import
 
-Export format is versioned: `{ version: 1, exportedAt, appVersion, data: { images, chats, settings } }`. The current version constant is `EXPORT_SCHEMA_VERSION` in `src/services/exportImport.ts`.
+Export format is versioned: `{ version: 1, exportedAt, appVersion, data: { images, chats, settings, conversations } }`. The current version constant is `EXPORT_SCHEMA_VERSION` in `src/services/exportImport.ts`.
 
 **Key rules enforced by `validateImportJson` and `createExportPayload`:**
 
 - Max payload: 25 MB (`MAX_IMPORT_JSON_BYTES`)
-- Only `images`, `chats`, and `settings` stores are allowed — unknown stores cause a hard rejection
+- Only `images`, `chats`, `settings`, and `conversations` stores are allowed — unknown stores cause a hard rejection
 - Every record must have a valid `id` (string) and `timestamp` (number); missing values are auto-generated
-- Store-specific shape requirements: `images` must have `image` (string); `chats` must have `prompt` or `response`; `settings` must have a plain-object `value`
+- Store-specific shape requirements: `images` must have `image` (string); `chats` must have `prompt` or `response`; `settings` must have a plain-object `value`; `conversations` must include `title` (string), `messages` (array), and `model` (string)
 - Import **merges by ID** — it never clears existing IndexedDB data
 - **API keys are never exported or imported** — both `createExportPayload` and `validateImportJson` run `redactSecrets()` (from `src/services/redaction.ts`) and strip any key whose name matches `/api[-_ ]?key|authorization|password|secret|token/i`
 

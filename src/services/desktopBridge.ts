@@ -223,7 +223,9 @@ export const desktopFiles = {
   async importJsonString(): Promise<string | null> {
     if (!isElectron()) return null;
     const result = await window.veniceForge!.files.loadJsonFile();
-    if (result.canceled || !result.data) return null;
+    if (result.canceled) return null;
+    if (!result.ok) throw new Error(result.error || "Failed to import JSON file.");
+    if (!result.data) throw new Error("Selected JSON file is empty.");
     return result.data;
   },
 };
