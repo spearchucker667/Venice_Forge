@@ -19,7 +19,7 @@
 [![Electron 42](https://img.shields.io/badge/electron-42-47848f.svg)](package.json)
 [![Venice API](https://img.shields.io/badge/API-Venice.ai-111827.svg)](https://docs.venice.ai/)
 
-<img width="1697" height="927" alt="ChatGPT Image May 28, 2026, 09_36_58 PM" src="https://github.com/user-attachments/assets/e992bed4-df0c-4693-a0c2-1b95e7ffc281" />
+<img width="2816" height="1536" alt="venice-forge-readme-hero-actual-ui-final" src="https://github.com/user-attachments/assets/6b9f703d-69d6-44d8-a2b5-fe0499791f8a" />
 
 
 See [docs/ABOUT.md](docs/ABOUT.md) for project background and architecture overview.
