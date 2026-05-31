@@ -125,4 +125,13 @@ describe("isTrustedExternalUrl", () => {
   it("rejects malformed URLs", () => {
     expect(isTrustedExternalUrl("not-a-url")).toBe(false);
   });
+  it("blocks '0' hostname", () => {
+    expect(isTrustedExternalUrl("https://0/")).toBe(false);
+  });
+  it("blocks '::' unspecified address", () => {
+    expect(isTrustedExternalUrl("https://[::]/")).toBe(false);
+  });
+  it("blocks full IPv6 loopback 0:0:0:0:0:0:0:1", () => {
+    expect(isTrustedExternalUrl("https://[0:0:0:0:0:0:0:1]/")).toBe(false);
+  });
 });

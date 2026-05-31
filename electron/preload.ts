@@ -42,13 +42,15 @@ const veniceForge = {
       const pending = ipcRenderer.invoke("venice:streamChat", { ...input, signalId });
       // If the renderer is killed before the stream ends, notify main to abort
       // so the activeRequests Map does not leak.
-      const beforeUnload = () => {
+      const abortOnLeave = () => {
         ipcRenderer.invoke("venice:abort", signalId).catch(() => {});
       };
       const global = globalThis as typeof globalThis & { addEventListener(type: string, listener: () => void): void; removeEventListener(type: string, listener: () => void): void };
-      global.addEventListener("beforeunload", beforeUnload);
+      global.addEventListener("beforeunload", abortOnLeave);
+      global.addEventListener("pagehide", abortOnLeave);
       return pending.finally(() => {
-        global.removeEventListener("beforeunload", beforeUnload);
+        global.removeEventListener("beforeunload", abortOnLeave);
+        global.removeEventListener("pagehide", abortOnLeave);
         ipcRenderer.removeListener("venice:streamDelta", listener);
       });
     },

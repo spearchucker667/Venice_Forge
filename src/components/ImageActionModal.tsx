@@ -41,7 +41,7 @@ export function ImageActionModal({
         returnFocusRef.current.focus();
       }
     };
-  }, [!!image]);
+  }, [image]);
 
   useFocusTrap(modalRef, !!image, onClose);
 

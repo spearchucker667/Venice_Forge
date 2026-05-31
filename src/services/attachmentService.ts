@@ -238,6 +238,7 @@ function escapeXml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
     .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
 }

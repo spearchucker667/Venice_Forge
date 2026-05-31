@@ -76,53 +76,53 @@
 
 ## Medium-Priority Open Bugs
 
-- [ ] **[MED-001] Toast fires before persistence confirmed** — `src/modules/ChatModule.tsx:414`
+- [x] **[MED-001] Toast fires before persistence confirmed** — `src/modules/ChatModule.tsx:414`
   - `clear()` dispatches a success toast before awaiting `saveConversation`. If persistence throws, the user sees success but data is not saved.
-  - **Suggested fix:** Move toast into a `finally` block and dispatch an error toast in `catch`.
+  - **Fix:** Wrapped persistence in try/catch; toast only on success, error toast on failure.
 
-- [ ] **[MED-002] `handleNewChat` lacks error handling** — `src/modules/ChatModule.tsx:427`
+- [x] **[MED-002] `handleNewChat` lacks error handling** — `src/modules/ChatModule.tsx:427`
   - `saveConversation` is awaited without try/catch. A persistence failure leaves the user with no feedback.
-  - **Suggested fix:** Wrap in try/catch; on error, dispatch an error toast and roll back optimistic state.
+  - **Fix:** Wrapped in try/catch with error toast dispatch on failure.
 
-- [ ] **[MED-003] `handleSwitchConversation` lacks error handling** — `src/modules/ChatModule.tsx:444`
+- [x] **[MED-003] `handleSwitchConversation` lacks error handling** — `src/modules/ChatModule.tsx:444`
   - `persistMessages` can throw without catch.
-  - **Suggested fix:** Add try/catch around `persistMessages` and surface the error via `setError` or a toast.
+  - **Fix:** Added try/catch around `persistMessages` and surfaced the error via toast.
 
-- [ ] **[MED-004] `handleImportMessages` lacks error handling** — `src/modules/ChatModule.tsx:572`
+- [x] **[MED-004] `handleImportMessages` lacks error handling** — `src/modules/ChatModule.tsx:572`
   - If `persistMessages` throws, modal state is never reset, leaving the UI stuck.
-  - **Suggested fix:** Wrap persistence and state-reset logic in try/finally.
+  - **Fix:** Wrapped persistence in try/catch and moved state reset to `finally`.
 
-- [ ] **[MED-005] Silent failure for memory loading** — `src/modules/ChatModule.tsx:239`
+- [x] **[MED-005] Silent failure for memory loading** — `src/modules/ChatModule.tsx:239`
   - `selectMemoriesForInjection` errors are swallowed with an empty catch. If IndexedDB is corrupted, memory injection breaks silently.
-  - **Suggested fix:** Log a warning and/or dispatch a toast: "Memory injection unavailable. Continuing without it."
+  - **Fix:** Added warning toast: "Memory injection unavailable. Continuing without it."
 
-- [ ] **[MED-006] Dead ternary logic in Markdown rendering** — `src/modules/ChatModule.tsx:1055`
+- [x] **[MED-006] Dead ternary logic in Markdown rendering** — `src/modules/ChatModule.tsx:1055`
   - `<Markdown text={m.content || (loading && idx === messages.length - 1 ? "" : "")} />` always evaluates to `""` on the right side of `||`.
-  - **Suggested fix:** Simplify to `<Markdown text={m.content || ""} />`.
+  - **Fix:** Simplified to `<Markdown text={m.content || ""} />`.
 
-- [ ] **[MED-007] Duplicate array filtering in JSX** — `src/modules/ChatModule.tsx:1344`
+- [x] **[MED-007] Duplicate array filtering in JSX** — `src/modules/ChatModule.tsx:1344`
   - `conversations.filter((c) => c.id !== activeId)` is computed twice.
-  - **Suggested fix:** Compute `const otherConversations = conversations.filter(c => c.id !== activeId);` once above the JSX block.
+  - **Fix:** Computed `const otherConversations = conversations.filter(c => c.id !== activeId);` once via IIFE.
 
-- [ ] **[MED-008] Stale effect dependency in ImageActionModal** — `src/modules/ImageModule.tsx:44`
+- [x] **[MED-008] Stale effect dependency in ImageActionModal** — `src/modules/ImageModule.tsx:44`
   - `useEffect` dependency is `!!image` (boolean). If the modal is open and `image` changes from one object to another (both truthy), the effect does not re-run.
-  - **Suggested fix:** Use `image?.id` or `image` itself as the dependency.
+  - **Fix:** Changed dependency to `image` itself.
 
 ---
 
 ## Low-Priority / Quality / Performance
 
-- [ ] **[LOW-001] Unnecessary re-computation of `lastAssistant`** — `src/modules/ChatModule.tsx:661`
+- [x] **[LOW-001] Unnecessary re-computation of `lastAssistant`** — `src/modules/ChatModule.tsx:661`
   - `lastAssistant` is recalculated on every render by reversing and searching the `messages` array.
-  - **Suggested fix:** Memoize with `useMemo`.
+  - **Fix:** Memoized with `React.useMemo`.
 
-- [ ] **[LOW-002] Misleading AbortError check** — `src/modules/ImageModule.tsx:188`
+- [x] **[LOW-002] Misleading AbortError check** — `src/modules/ImageModule.tsx:188`
   - `error.message !== "AbortError"` is redundant; only `error.name === "AbortError"` is reliable for `DOMException`.
-  - **Suggested fix:** Remove the message check.
+  - **Fix:** Removed the message check.
 
-- [ ] **[LOW-003] Unsafe type cast in `upscaleCurrent`** — `src/modules/ImageModule.tsx:259`
+- [x] **[LOW-003] Unsafe type cast in `upscaleCurrent`** — `src/modules/ImageModule.tsx:259`
   - Fallback object in the `||` chain is cast with `as GalleryImage` even though it may be missing optional fields.
-  - **Suggested fix:** Ensure the fallback object fully satisfies `GalleryImage` or use a type guard.
+  - **Fix:** Built a properly typed fallback object and removed the `as GalleryImage` cast.
 
 - [ ] **[LOW-004] Side effect inside reducer** — `src/state/appReducer.ts:182`
   - The reducer pushes toast messages directly into `draft.toasts`. Reducers should be pure.
@@ -140,21 +140,21 @@
 
 ## Security Hardening
 
-- [ ] **[SEC-001] Renderer console log flooding (DoS)** — `electron/main.ts:140`
+- [x] **[SEC-001] Renderer console log flooding (DoS)** — `electron/main.ts:140`
   - The `console-message` event forwards all renderer logs to the main-process log file with no length cap.
-  - **Suggested fix:** Truncate messages to 10,000 characters before passing to `logInfo`/`logError`.
+  - **Fix:** Truncate messages to 10,000 characters before passing to `logInfo`/`logError`.
 
-- [ ] **[SEC-002] `activeRequests` leak on duplicate `signalId`** — `electron/services/veniceClient.ts:298`
+- [x] **[SEC-002] `activeRequests` leak on duplicate `signalId`** — `electron/services/veniceClient.ts:298`
   - `performVeniceRequest` unconditionally overwrites `activeRequests.set(request.signalId, ...)`. If a malicious renderer reuses a `signalId`, the previous request becomes unabortable and leaks.
-  - **Suggested fix:** Reject or clean up before overwrite: if `activeRequests.has(request.signalId)`, abort the previous request.
+  - **Fix:** Abort previous request before overwriting if `activeRequests.has(request.signalId)`.
 
-- [ ] **[SEC-003] `beforeunload` may not fire for stream cleanup** — `electron/preload.ts:45`
+- [x] **[SEC-003] `beforeunload` may not fire for stream cleanup** — `electron/preload.ts:45`
   - Modern browsers and some Electron scenarios suppress or delay `beforeunload`.
-  - **Suggested fix:** Also listen to `pagehide` (or use `document.visibilitychange`) as a secondary signal.
+  - **Fix:** Added `pagehide` event listener as a secondary abort signal.
 
-- [ ] **[SEC-004] Low-entropy backup suffix for corrupt chat files** — `electron/services/chatStorage.ts:68`
+- [x] **[SEC-004] Low-entropy backup suffix for corrupt chat files** — `electron/services/chatStorage.ts:68`
   - Backup suffix uses `Math.random().toString(36).slice(2, 8)` (only 6 base-36 characters).
-  - **Suggested fix:** Use `crypto.randomUUID()` or `crypto.randomBytes(4).toString("hex")`.
+  - **Fix:** Replaced with `crypto.randomUUID()`.
 
 - [ ] **[SEC-005] Production CSP `script-src` uses `unsafe-inline`** — `electron/main.ts:28`
   - `rendererCsp()` uses `'unsafe-inline'` for `script-src` in production to accommodate an inline theme bootstrap script.
@@ -170,22 +170,25 @@
 
 ### Tier 1 — Security-Critical, Must Test
 
-- [ ] Add tests for `electron/ipc/handlers.ts` — especially the 451 safety block path and `SafetyGuardBlockedError` handling.
-- [ ] Add tests for `electron/utils/urlSecurity.ts` — verify private IP blocking and HTTPS enforcement.
-- [ ] Add tests for `electron/utils/navigation.ts` — path containment for local file access.
-- [ ] Add tests for `src/shared/validation.ts` — test the shared allowlist arrays and `isAllowedVeniceRequest`.
+- [x] Add tests for `electron/ipc/handlers.ts` — 451 safety block, `app:readLocalFile` restrictions, API key validation.
+- [x] Add tests for `electron/utils/urlSecurity.ts` — private IP blocking and HTTPS enforcement (extended existing tests in `main.test.ts`).
+- [x] Add tests for `electron/utils/navigation.ts` — path containment for local file access (already covered in `main.test.ts`).
+- [x] Add tests for `src/shared/validation.ts` — endpoint/method allowlist (`validation.test.ts` created).
 
 ### Tier 2 — Core Functionality, Should Test
 
-- [ ] Add tests for `src/modules/BatchModule.tsx` — batch execution, per-item safety guarding, progress tracking.
-- [ ] Add tests for `src/modules/ModelsModule.tsx` — model catalog rendering and refresh logic.
-- [ ] Add FormData coverage to `src/shared/safety/promptPayloadExtractor.test.ts` for the bypass scenario fixed in CRIT-004.
+- [x] Add tests for `src/modules/BatchModule.tsx` — rendering, validation, fallback model blocking.
+- [x] Add tests for `src/modules/ModelsModule.tsx` — rendering, error display, model selects.
+- [x] Add FormData coverage to `src/shared/safety/promptPayloadExtractor.test.ts` for the bypass scenario fixed in CRIT-004.
 - [ ] Add tests for `src/services/veniceClient.ts` edge cases: `serializeFormData`, `extractModelName` with FormData, `computeRateLimitWait` with HTTP-date headers, `dedupeKey` behavior.
 
 ### Tier 3 — UI / Component / Hook Tests
 
-- [ ] Add component tests for at least `ErrorBoundary.tsx` and `ToastHost.tsx`.
-- [ ] Add tests for all hooks in `src/hooks/` (`useFocusTrap`, `useNetworkStatus`, `useSettingsPersistence`, `useThemeLifecycle`).
+- [x] Add component tests for `ErrorBoundary.tsx` and `ToastHost.tsx`.
+- [x] Add tests for `useFocusTrap.ts` — focus cycling, Escape handling.
+- [x] Add tests for `useNetworkStatus.ts` — online/offline dispatch.
+- [x] Add tests for `useThemeLifecycle.ts` — theme application, localStorage persistence.
+- [ ] Add tests for `useSettingsPersistence.ts` — debounced save, error toast.
 - [ ] Add tests for `scripts/verify-safety-guard.cjs` — the safety verification script itself should be tested.
 
 ### Tier 4 — Electron Environment Correctness
@@ -196,35 +199,33 @@
 
 ## Documentation Gaps
 
+- [x] Fixed stale `--max-warnings=96` references across `docs/FAQ.md`, `docs/ABOUT.md`, `docs/DEVELOPMENT/troubleshooting.md`, `docs/AGENTS/*.md`.
+- [x] Fixed `npm audit` inconsistency between `SECURITY.md`/`AGENTS.md` and CI (`--audit-level=moderate`).
+- [x] Fixed broken `[todo.md]` link in `docs/HQE_AUDIT_REPORT.md`.
+- [x] Added memory and vision/attachment FAQ entries.
+- [x] Updated `docs/RELEASE/release.md` smoke-test checklist with memory/attachment items.
+- [x] Updated `docs/REPOSITORY_TREE.md` with missing script files.
 - [ ] Document Linux packaging status or remove the Linux target if unsupported.
 - [ ] Document `build/icon.png` as a required Linux packaging resource if Linux target remains.
 - [ ] Keep `docs/REPOSITORY_TREE.md` updated after file renames/additions.
 - [ ] Add a short maintainer note explaining ignored generated audit handoff files under `docs/AGENTS/`.
 - [ ] Update release docs whenever signing, artifact naming, or verification commands change.
 - [ ] Update security docs whenever allowed Venice endpoints or safety boundaries change.
-- [ ] Add FAQ entries for the memory system and vision/attachment capabilities (major `[Unreleased]` features).
 
 ---
 
 ## Refactoring / Tech Debt
 
+- [x] Fixed `matchesPatterns` shared regex `lastIndex` mutation risk — now clones regexes before testing.
+- [x] Fixed `escapeXml` incomplete single-quote escaping — added `&apos;`.
+- [x] Fixed O(n²) deduplication in `socialDiscovery.ts:313` — replaced with `Set`.
+- [x] Fixed `trimContent` off-by-13 in `researchRunner.ts:110` — slices to `maxChars - suffix.length`.
+- [x] Fixed `ResearchBudgetExceededError` misuse for non-budget errors — now uses generic `Error`.
+- [x] Fixed renderer `logger.ts` never detecting production — now uses `import.meta.env.MODE` fallback.
+- [x] Fixed `React` namespace used without import — `src/types/app.ts:111` now uses `import("react").Dispatch`.
+- [x] Removed dead `ModelGroups` interface — `src/types/venice.ts:24`.
 - [ ] Consider extracting chat send orchestration into a testable service.
 - [ ] Consider a small persistence schema module for settings, conversations, gallery images, and imports.
-- [ ] Fix `matchesPatterns` shared regex `lastIndex` mutation risk — `src/shared/safety/childExploitationGuard.ts:392`.
-  - Clone regexes before testing: `new RegExp(p.source, p.flags)`.
-- [ ] Fix `escapeXml` incomplete single-quote escaping — `src/services/attachmentService.ts:237`.
-  - Add `.replaceAll("'", "&apos;")`.
-- [ ] Fix O(n²) deduplication in `socialDiscovery.ts:313`.
-  - Use the existing `seenUrls` Set or build a `Set` of normalized URLs.
-- [ ] Fix `trimContent` off-by-13 in `researchRunner.ts:110`.
-  - Slice to `maxChars - 13` or drop the suffix.
-- [ ] Fix `ResearchBudgetExceededError` misuse for non-budget errors — `researchRunner.ts:148`.
-  - Use a generic `ResearchError` or separate error classes.
-- [ ] Fix renderer `logger.ts` never detecting production — `src/shared/logger.ts:8`.
-  - Use `import.meta.env.MODE` (Vite) or inject `process.env.NODE_ENV` via `define` in `vite.config.ts`.
-- [ ] Fix `React` namespace used without import — `src/types/app.ts:111`.
-  - Add `import type { Dispatch } from "react"` and use `Dispatch<AppAction>`.
-- [ ] Remove dead `ModelGroups` interface — `src/types/venice.ts:24`.
 - [ ] Unify `ImageDraft` / `GalleryImage` dimension types — `src/types/app.ts` vs `src/types/storage.ts`.
 - [ ] Deepen `customTheme` validation in `validateAppSettings` — `src/shared/configSchema.ts:100`.
 

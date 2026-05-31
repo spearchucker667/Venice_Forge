@@ -41,7 +41,7 @@ npm run build          # Build dist/ and dist-electron/
 ```
 
 ### Why does `npm run lint:eslint` fail?
-The project enforces a warning budget of **96**. Common causes:
+The project enforces **zero warnings** (`--max-warnings=0`). Common causes:
 - Using `any` instead of narrow types — replace with `unknown` + runtime guards.
 - Unused variables — prefix intentionally unused parameters with `_`.
 
@@ -128,10 +128,18 @@ All built-in themes are verified against WCAG AA contrast standards. The ThemeMa
   - Windows: `%APPDATA%\Venice Forge\chat-history\*.json`
   - macOS: `~/Library/Application Support/Venice Forge/chat-history/*.json`
 - **Images, legacy chats, settings, conversations, diagnostics:** Renderer IndexedDB (local only; images, chats, settings, and conversations are encrypted at rest, diagnostics is not).
+- **Memories:** Renderer IndexedDB `ai_memory` store (encrypted at rest).
 - **API keys:** OS secure storage (Windows DPAPI / macOS Keychain).
 - **Logs:**
   - Windows: `%APPDATA%\Venice Forge\logs\venice-forge.log`
   - macOS: `~/Library/Application Support/Venice Forge/logs/venice-forge.log`
+
+### How do memories work?
+Memories are persistent snippets you save during chat ("Save to Memory"). They are stored encrypted in IndexedDB and automatically injected into future messages in the same conversation (up to 5 memories, capped at 2,000 characters total). You can view, search, and delete memories from the Memory panel in the Chat tab.
+
+### Which models support image attachments?
+Venice Forge uses a fallback allowlist and pattern matching to detect vision-capable models (IDs matching `/vision/i`, `/-vl/i`, or `/gemini-2\.[05]/i`). If a model's vision capability is unknown, attachments are disabled by default. There is no live vision flag from the Venice API yet.
+
 
 ### Is my data encrypted?
 - **Conversations (desktop):** Stored as JSON on the local filesystem. These are **not encrypted** by Venice Forge — they rely on OS-level filesystem permissions. The Venice API itself is privacy-preserving by design.

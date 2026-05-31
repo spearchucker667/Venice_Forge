@@ -66,7 +66,7 @@ async function readConversationFile(filePath: string): Promise<Conversation | nu
     logError("Chat history file corrupt or unreadable", { path: filePath, error: String(err) });
     try {
       const timestamp = Date.now();
-      const randomSuffix = Math.random().toString(36).slice(2, 8);
+      const randomSuffix = crypto.randomUUID();
       const backupPath = `${filePath}.backup.${timestamp}.${randomSuffix}`;
       await fs.rename(filePath, backupPath);
       logInfo("Corrupt chat file backed up", backupPath);

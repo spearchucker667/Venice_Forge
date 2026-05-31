@@ -20,12 +20,7 @@ export interface ModelInfo {
   features?: unknown;
 }
 
-/** Groups of models by capability category. */
-export interface ModelGroups {
-  text: ModelInfo[];
-  image: ModelInfo[];
-  vision: ModelInfo[];
-}
+
 
 export interface DiagnosticsEntry {
   id: string;

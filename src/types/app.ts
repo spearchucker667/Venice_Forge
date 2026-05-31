@@ -108,7 +108,7 @@ export type AppAction =
   | { type: "REMOVE_TOAST"; id: string };
 
 /** Dispatch function type for the global application reducer. */
-export type AppDispatch = React.Dispatch<AppAction>;
+export type AppDispatch = import("react").Dispatch<AppAction>;
 
 /** Shared props type for feature modules that consume global state + dispatch. */
 export interface ModuleProps {

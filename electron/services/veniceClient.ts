@@ -296,6 +296,10 @@ export async function performVeniceRequest(
     };
 
     if (request.signalId) {
+      const previous = activeRequests.get(request.signalId);
+      if (previous) {
+        previous.destroy();
+      }
       activeRequests.set(request.signalId, {
         destroy: () => req.destroy(new Error("Request aborted")),
       });

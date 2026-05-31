@@ -140,4 +140,35 @@ describe("extractPromptLikeFields", () => {
     expect(fields[0].path).toBe("body_raw");
     expect(fields[0].value).toContain("some parsed text content");
   });
+
+  // CRIT-004 regression guard: native FormData must be handled in web mode
+  it("extracts prompt-like text from native FormData entries", () => {
+    const formData = new FormData();
+    formData.append("query", "summarize this page");
+    formData.append("model", "venice-model");
+    const fields = extractPromptLikeFields(formData, "/augment/search");
+
+    expect(fields).toEqual([
+      { path: "formData.query", value: "summarize this page" },
+    ]);
+  });
+
+  it("ignores deny-listed native FormData fields", () => {
+    const formData = new FormData();
+    formData.append("model", "venice-model");
+    formData.append("prompt", "draw a skyline");
+    const fields = extractPromptLikeFields(formData, "/image/generate");
+
+    expect(fields).toEqual([
+      { path: "formData.prompt", value: "draw a skyline" },
+    ]);
+  });
+
+  it("returns no fields for native FormData when endpoint has no extractable fields", () => {
+    const formData = new FormData();
+    formData.append("prompt", "should not be extracted for upscale endpoint");
+    const fields = extractPromptLikeFields(formData, "/image/upscale");
+
+    expect(fields).toEqual([]);
+  });
 });

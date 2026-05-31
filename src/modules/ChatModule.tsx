@@ -238,7 +238,10 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     try {
       memoryBlock = await selectMemoriesForInjection(activeConversation?.id);
     } catch {
-      // Memory is advisory — continue without it on error
+      dispatch({
+        type: "ADD_TOAST",
+        toast: { id: crypto.randomUUID(), message: "Memory injection unavailable. Continuing without it.", type: "warn" },
+      });
     }
 
     // Build the full text for safety guard (user prompt + attachment text + memory)
@@ -414,30 +417,40 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     cancel();
     commitMessages([]);
     setError("");
-    if (activeConversation) {
-      const updated: Conversation = { ...activeConversation, messages: [], updatedAt: Date.now() };
-      await saveConversation(updated);
-      const refreshed = state.conversations.map((c) => (c.id === updated.id ? updated : c));
-      dispatch({ type: "SET_CONVERSATIONS", items: refreshed });
+    try {
+      if (activeConversation) {
+        const updated: Conversation = { ...activeConversation, messages: [], updatedAt: Date.now() };
+        await saveConversation(updated);
+        const refreshed = state.conversations.map((c) => (c.id === updated.id ? updated : c));
+        dispatch({ type: "SET_CONVERSATIONS", items: refreshed });
+      }
+      dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Conversation cleared.", type: "info" } });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to clear conversation";
+      dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message, type: "error" } });
     }
-    dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Conversation cleared.", type: "info" } });
   }
 
   async function handleNewChat() {
     cancel();
     const conv = createConversation(state.selectedChatModel, systemPrompt || DEFAULT_SYSTEM_PROMPT);
     conv.model = state.selectedChatModel;
-    await saveConversation(conv);
-    const updated = [conv, ...state.conversations];
-    dispatch({ type: "SET_CONVERSATIONS", items: updated });
-    dispatch({ type: "SET_ACTIVE_CONVERSATION", id: conv.id });
-    commitMessages([
-      {
-        id: "welcome",
-        role: "assistant",
-        content: "Ready. Send a prompt to call Venice /chat/completions.",
-      },
-    ]);
+    try {
+      await saveConversation(conv);
+      const updated = [conv, ...state.conversations];
+      dispatch({ type: "SET_CONVERSATIONS", items: updated });
+      dispatch({ type: "SET_ACTIVE_CONVERSATION", id: conv.id });
+      commitMessages([
+        {
+          id: "welcome",
+          role: "assistant",
+          content: "Ready. Send a prompt to call Venice /chat/completions.",
+        },
+      ]);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to create conversation";
+      dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message, type: "error" } });
+    }
   }
 
   async function handleSwitchConversation(id: string) {
@@ -445,7 +458,12 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     if (activeConversation) {
       const messagesToPersist = messages.filter((m) => m.id !== "welcome");
       if (messagesToPersist.length > 0) {
-        await persistMessages(activeConversation, messagesToPersist);
+        try {
+          await persistMessages(activeConversation, messagesToPersist);
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : "Failed to save conversation";
+          dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message, type: "error" } });
+        }
       }
     }
     dispatch({ type: "SET_ACTIVE_CONVERSATION", id });
@@ -585,11 +603,17 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     }));
     const nextMessages = [...messagesRef.current, ...imported];
     commitMessages(nextMessages);
-    await persistMessages(activeConversation, nextMessages);
-    setShowImportPicker(false);
-    setImportConversationId(null);
-    _setImportSelectedIds(new Set());
-    setImportStage("select-conv");
+    try {
+      await persistMessages(activeConversation, nextMessages);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to import messages";
+      dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message, type: "error" } });
+    } finally {
+      setShowImportPicker(false);
+      setImportConversationId(null);
+      _setImportSelectedIds(new Set());
+      setImportStage("select-conv");
+    }
   }
 
   function toggleMessageSelection(id: string) {
@@ -657,9 +681,10 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     }
   }
 
-  const lastAssistant = [...messages]
-    .reverse()
-    .find((m) => m.role === "assistant" && m.content);
+  const lastAssistant = React.useMemo(
+    () => [...messages].reverse().find((m) => m.role === "assistant" && m.content),
+    [messages]
+  );
 
   const supportsVision = modelSupportsVision(state.selectedChatModel);
 
@@ -1052,7 +1077,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
 
                   {/* Content */}
                   <div className="text-xs leading-relaxed text-text-primary">
-                    <Markdown text={m.content || (loading && idx === messages.length - 1 ? "" : "")} />
+                    <Markdown text={m.content || ""} />
                   </div>
                 </div>
               </div>
@@ -1324,25 +1349,30 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
               {importStage === "select-conv" ? (
                 <>
                   <div className="text-[10px] text-text-muted">Select a conversation:</div>
-                  {conversations
-                    .filter((c) => c.id !== activeId)
-                    .map((c) => (
-                      <div
-                        key={c.id}
-                        className="flex items-center justify-between rounded border border-border/50 px-2 py-1.5 cursor-pointer hover:bg-surface-elevated/40"
-                        onClick={() => {
-                          setImportConversationId(c.id);
-                          _setImportSelectedIds(new Set(c.messages.map((m) => m.id)));
-                          setImportStage("select-messages");
-                        }}
-                      >
-                        <span className="text-xs text-text-primary truncate">{c.title}</span>
-                        <span className="text-[10px] text-text-muted">{c.messages.length} msgs</span>
-                      </div>
-                    ))}
-                  {conversations.filter((c) => c.id !== activeId).length === 0 && (
-                    <div className="text-[10px] text-text-muted">No other conversations.</div>
-                  )}
+                  {(() => {
+                    const otherConversations = conversations.filter((c) => c.id !== activeId);
+                    return (
+                      <>
+                        {otherConversations.map((c) => (
+                          <div
+                            key={c.id}
+                            className="flex items-center justify-between rounded border border-border/50 px-2 py-1.5 cursor-pointer hover:bg-surface-elevated/40"
+                            onClick={() => {
+                              setImportConversationId(c.id);
+                              _setImportSelectedIds(new Set(c.messages.map((m) => m.id)));
+                              setImportStage("select-messages");
+                            }}
+                          >
+                            <span className="text-xs text-text-primary truncate">{c.title}</span>
+                            <span className="text-[10px] text-text-muted">{c.messages.length} msgs</span>
+                          </div>
+                        ))}
+                        {otherConversations.length === 0 && (
+                          <div className="text-[10px] text-text-muted">No other conversations.</div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </>
               ) : (
                 <>

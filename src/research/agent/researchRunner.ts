@@ -45,13 +45,6 @@ export interface ResearchJobResult {
   error?: string;
 }
 
-class ResearchBudgetExceededError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ResearchBudgetExceededError";
-  }
-}
-
 import { sleep, createTimeoutSignal } from "../../utils/timeout";
 
 /** Generates simple search queries from a research question if none are supplied. */
@@ -110,7 +103,8 @@ function isDomainAllowed(url: string, budget: ResearchBudget): boolean {
 function trimContent(content: string | undefined, maxChars: number): string | undefined {
   if (!content) return content;
   if (content.length <= maxChars) return content;
-  return content.slice(0, maxChars) + "\n…[truncated]";
+  const suffix = "\n…[truncated]";
+  return content.slice(0, Math.max(0, maxChars - suffix.length)) + suffix;
 }
 
 /**
@@ -148,7 +142,7 @@ export async function runResearchJob(input: ResearchJobInput): Promise<ResearchJ
     assertNotAborted();
 
     if (!provider.supports.search) {
-      throw new ResearchBudgetExceededError("Provider does not support search.");
+      throw new Error("Provider does not support search.");
     }
 
     const queries = (explicitQueries && explicitQueries.length > 0)
@@ -156,7 +150,7 @@ export async function runResearchJob(input: ResearchJobInput): Promise<ResearchJ
       : generateQueries(question, budget.maxQueries);
 
     if (queries.length === 0) {
-      throw new ResearchBudgetExceededError("No queries generated.");
+      throw new Error("No queries generated.");
     }
 
     // Phase 1: Search

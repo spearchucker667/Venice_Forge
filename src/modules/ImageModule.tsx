@@ -185,7 +185,7 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
     } catch (err: unknown) {
       const error = err as { name?: string; message?: string };
       if (runIdRef.current !== runId) return;
-      if (error.name !== "AbortError" && error.message !== "AbortError") {
+      if (error.name !== "AbortError") {
         setError(error.message || "Image generation failed");
         if (successCount > 0) setSuccess(`Generated and auto-saved ${successCount} of ${batchCount} images.`);
       } else {
@@ -235,19 +235,19 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
   }
 
   async function upscaleCurrent() {
-    const item = expanded ||
+    const item: GalleryImage = expanded ||
       state.gallery.find((x) => x.id === draft.lastSavedImageId) || {
         id: draft.lastSavedImageId || "current-preview",
-        image: draft.currentImage,
+        image: draft.currentImage || "",
         prompt: draft.prompt,
         negative: draft.negative,
         model: state.selectedImageModel,
-        width: draft.width,
-        height: draft.height,
+        width: typeof draft.width === "number" ? draft.width : 0,
+        height: typeof draft.height === "number" ? draft.height : 0,
         aspectRatio: draft.aspectRatio,
         style: draft.style,
-        cfg: draft.cfg,
-        steps: draft.steps,
+        cfg: typeof draft.cfg === "number" ? draft.cfg : 0,
+        steps: typeof draft.steps === "number" ? draft.steps : 0,
         safeMode: draft.safeMode,
         timestamp: Date.now(),
       };
@@ -256,7 +256,7 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
     setSuccess("");
     setUpscaling(true);
     try {
-      const saved = await upscaleGalleryImage(item as GalleryImage, dispatch, {});
+      const saved = await upscaleGalleryImage(item, dispatch, {});
       patch({ currentImage: saved.image, lastSavedImageId: saved.id });
       setExpanded(saved);
       setSuccess(`Enhanced/upscaled image saved to gallery: ${saved.id}`);

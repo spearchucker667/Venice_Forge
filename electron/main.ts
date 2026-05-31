@@ -140,10 +140,11 @@ function createWindow(): BrowserWindow {
   win.webContents.on("console-message", (_event, level, message, line, sourceId) => {
     const levelStr = ["verbose", "info", "warning", "error"][level] ?? "info";
     const src = sourceId ? ` [${path.basename(sourceId)}:${line}]` : "";
+    const truncated = message.length > 10000 ? message.slice(0, 10000) + "…" : message;
     if (level >= 2) {
-      logError(`renderer-console-${levelStr}${src}`, message);
+      logError(`renderer-console-${levelStr}${src}`, truncated);
     } else {
-      logInfo(`renderer-console-${levelStr}${src}: ${message}`);
+      logInfo(`renderer-console-${levelStr}${src}: ${truncated}`);
     }
   });
 

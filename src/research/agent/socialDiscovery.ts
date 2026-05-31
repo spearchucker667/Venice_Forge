@@ -300,6 +300,7 @@ export async function runSocialDiscovery(
 
   const queries = generatePlatformQueries(input);
   const allResults: SearchResult[] = [];
+  const seenUrls = new Set<string>();
 
   try {
     for (const query of queries) {
@@ -310,7 +311,8 @@ export async function runSocialDiscovery(
       for (const r of results) {
         if (!r.url) continue;
         const norm = normalizeUrl(r.url);
-        if (allResults.some((x) => normalizeUrl(x.url || "") === norm)) continue;
+        if (seenUrls.has(norm)) continue;
+        seenUrls.add(norm);
         allResults.push(r);
       }
     }
