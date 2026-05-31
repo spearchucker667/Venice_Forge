@@ -245,15 +245,23 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     setLoading(true);
     const runId = ++runIdRef.current;
 
+    // Snapshot prompt and attachments so they can be restored if the request fails
+    const snapshotPrompt = trimmedPrompt;
+    const snapshotAttachments = [...attachments];
+
     const conv = await ensureActiveConversation();
 
     const supportsVision = modelSupportsVision(state.selectedChatModel);
     const userContent = buildMessageContent(trimmedPrompt, attachCtx.images, supportsVision);
     const userMessage: ChatUiMessage = { id: crypto.randomUUID(), role: "user", content: trimmedPrompt };
+    const assistantMsgId = crypto.randomUUID();
+
+    // Exclude the welcome placeholder from history and persistence
+    const baseMessages = messages.filter((m) => m.id !== "welcome");
 
     const history: Array<{ role: "system" | "user" | "assistant"; content: ChatMessageContent }> = [
       { role: "system", content: systemPrompt || DEFAULT_SYSTEM_PROMPT },
-      ...messages.filter((m) => ["user", "assistant"].includes(m.role)).map((m) => ({
+      ...baseMessages.filter((m) => ["user", "assistant"].includes(m.role)).map((m) => ({
         role: m.role as "user" | "assistant",
         content: m.content as ChatMessageContent,
       })),
@@ -263,7 +271,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     setMessages((prev) => [
       ...prev,
       userMessage,
-      { id: crypto.randomUUID(), role: "assistant", content: "" } as ChatUiMessage,
+      { id: assistantMsgId, role: "assistant", content: "" } as ChatUiMessage,
     ]);
     setUserPrompt("");
     setAttachments([]);
@@ -300,17 +308,22 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
             acc += delta;
             setMessages((prev) => {
               const next = [...prev];
-              next[next.length - 1] = { ...next[next.length - 1], role: "assistant", content: acc };
+              const lastIdx = next.length - 1;
+              if (lastIdx >= 0) {
+                next[lastIdx] = { ...next[lastIdx], role: "assistant", content: acc };
+              }
               return next;
             });
           },
         });
         if (runIdRef.current !== runId) return;
-        setMessages((prev) => {
-          const next = [...prev];
-          persistMessages(conv, next);
-          return next;
-        });
+        // Build final messages and persist without side effects in a state updater
+        const finalMessages: ChatUiMessage[] = [
+          ...baseMessages,
+          userMessage,
+          { id: assistantMsgId, role: "assistant" as const, content: acc },
+        ];
+        await persistMessages(conv, finalMessages);
       } else {
         const { data } = await veniceFetch("/chat/completions", {
           method: "POST",
@@ -325,34 +338,35 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
           data.choices[0]?.message?.content ||
           data.choices[0]?.text ||
           "";
-        setMessages((prev) => {
-          if (runIdRef.current !== runId) return prev;
-          const next = [...prev];
-          next[next.length - 1] = { ...next[next.length - 1], role: "assistant", content };
-          persistMessages(conv, next);
-          return next;
-        });
+        if (runIdRef.current !== runId) return;
+        // Set and persist final messages without side effects in a state updater
+        const finalMessages: ChatUiMessage[] = [
+          ...baseMessages,
+          userMessage,
+          { id: assistantMsgId, role: "assistant" as const, content },
+        ];
+        setMessages(finalMessages);
+        await persistMessages(conv, finalMessages);
       }
     } catch (err: unknown) {
       const error = err as { name?: string; message?: string };
       if (error.name !== "AbortError") {
         setError(error.message || "Chat request failed");
-      }
-      setMessages((prev) => {
-        if (runIdRef.current !== runId) return prev;
-        const next = [...prev];
-        if (
-          next[next.length - 1]?.role === "assistant" &&
-          !next[next.length - 1].content
-        ) {
-          next.pop();
-          if (next[next.length - 1]?.role === "user") {
-            next.pop();
-          }
+        // Restore prompt and attachments so the user can retry
+        if (runIdRef.current === runId) {
+          setUserPrompt(snapshotPrompt);
+          setAttachments(snapshotAttachments);
         }
-        persistMessages(conv, next);
-        return next;
-      });
+      }
+      if (runIdRef.current === runId) {
+        // Roll back messages to the pre-send state
+        const rollback: ChatUiMessage[] =
+          baseMessages.length > 0
+            ? baseMessages
+            : [{ id: "welcome", role: "assistant" as const, content: "Ready. Send a prompt to call Venice /chat/completions." }];
+        setMessages(rollback);
+        await persistMessages(conv, baseMessages);
+      }
     } finally {
       if (runIdRef.current === runId) {
         setLoading(false);
@@ -367,6 +381,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
   }
 
   async function clear() {
+    cancel();
     setMessages([]);
     setError("");
     if (activeConversation) {
@@ -379,6 +394,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
   }
 
   async function handleNewChat() {
+    cancel();
     const conv = createConversation(state.selectedChatModel, systemPrompt || DEFAULT_SYSTEM_PROMPT);
     conv.model = state.selectedChatModel;
     await saveConversation(conv);
@@ -395,8 +411,12 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
   }
 
   async function handleSwitchConversation(id: string) {
-    if (activeConversation && messages.length > 0) {
-      await persistMessages(activeConversation, messages);
+    cancel();
+    if (activeConversation) {
+      const messagesToPersist = messages.filter((m) => m.id !== "welcome");
+      if (messagesToPersist.length > 0) {
+        await persistMessages(activeConversation, messagesToPersist);
+      }
     }
     dispatch({ type: "SET_ACTIVE_CONVERSATION", id });
   }
@@ -423,7 +443,22 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
 
   async function handleSaveToMemory(content: string) {
     try {
-      // Summarize via a short Venice call (safety-guarded by veniceFetch)
+      // Safety guard before sending content to Venice for summarization
+      const guardDecision = assessChildExploitationSafety({
+        text: content.slice(0, 4000),
+        endpoint: "/chat/completions",
+        method: "POST",
+        source: "chat",
+      });
+      recordDecision(guardDecision);
+      if (!guardDecision.allow || guardDecision.action === "block") {
+        dispatch({
+          type: "ADD_TOAST",
+          toast: { id: crypto.randomUUID(), message: "Memory blocked by safety filter.", type: "error" },
+        });
+        return;
+      }
+      // Summarize via a short Venice call
       const { data } = await veniceFetch("/chat/completions", {
         method: "POST",
         body: {
@@ -476,14 +511,20 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     setSelectedMessageIds(new Set());
   }
 
-  async function loadMemories() {
+  const loadMemories = useCallback(async () => {
     try {
       const items = await listMemories();
       setMemories(items);
     } catch {
       setMemories([]);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (memoryPanelOpen) {
+      void loadMemories();
+    }
+  }, [memoryPanelOpen, loadMemories]);
 
   async function handleDeleteMemory(id: string) {
     try {
@@ -593,7 +634,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
   const supportsVision = modelSupportsVision(state.selectedChatModel);
 
   return (
-    <section className="flex h-full bg-bg">
+    <section className="flex h-full bg-bg relative">
       {/* Left sidebar */}
       <aside
         className={`flex flex-col border-r border-border/50 bg-bg/40 transition-all duration-200 ${
@@ -1065,8 +1106,8 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
                 type="button"
                 className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-text-primary hover:bg-surface-elevated"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={loading || !supportsVision}
-                title={supportsVision ? "Attach file" : "Vision not supported by this model"}
+                disabled={loading}
+                title="Attach file"
                 aria-label="Attach file"
               >
                 📎

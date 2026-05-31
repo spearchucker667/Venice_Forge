@@ -11,7 +11,7 @@ export const EXPORT_SCHEMA_VERSION = 1;
 export const MAX_IMPORT_JSON_BYTES = VENICE_MAX_BODY_BYTES;
 
 /** Ordered list of stores eligible for export and import. */
-const EXPORT_STORES = ["images", "chats", "settings", "conversations"] as const;
+const EXPORT_STORES = ["images", "chats", "settings", "conversations", "ai_memory"] as const;
 
 /** Per-field upper bounds to reject obviously malformed imports. */
 const MAX_RECORD_ID_LENGTH = 256;
@@ -27,6 +27,7 @@ export interface ExportData {
   chats: Record<string, unknown>[];
   settings: Record<string, unknown>[];
   conversations: Record<string, unknown>[];
+  ai_memory: Record<string, unknown>[];
 }
 
 /** Top-level structure of a Venice Forge data export. */
@@ -43,6 +44,7 @@ export interface ImportSummary {
   chatsFound: number;
   settingsFound: number;
   conversationsFound: number;
+  aiMemoryFound: number;
   skippedRecords: number;
 }
 
@@ -127,6 +129,24 @@ function sanitizeRecord(store: ExportStore, value: unknown): Record<string, unkn
     if (typeof record.title !== "string") return null;
     if (!Array.isArray(record.messages)) return null;
     if (typeof record.model !== "string") return null;
+    // Validate and sanitize individual messages — reject records with malformed shapes
+    record.messages = (record.messages as unknown[]).filter((msg): boolean => {
+      if (!isPlainObject(msg)) return false;
+      const m = msg as Record<string, unknown>;
+      return (
+        typeof m.id === "string" &&
+        (m.role === "system" || m.role === "user" || m.role === "assistant") &&
+        typeof m.content === "string"
+      );
+    }).map((msg) => {
+      const m = msg as Record<string, unknown>;
+      return {
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        timestamp: typeof m.timestamp === "number" ? m.timestamp : Date.now(),
+      };
+    });
     if (record.parentConversationId !== undefined && typeof record.parentConversationId !== "string") {
       delete record.parentConversationId;
     }
@@ -136,6 +156,21 @@ function sanitizeRecord(store: ExportStore, value: unknown): Record<string, unkn
       } else {
         delete record.forkedFromMessageIds;
       }
+    }
+  }
+
+  if (store === "ai_memory") {
+    if (typeof record.content !== "string") return null;
+    if (!isShortString(record.content, MAX_TEXT_FIELD_CHARS)) return null;
+    if (record.tags !== undefined) {
+      if (Array.isArray(record.tags)) {
+        record.tags = record.tags.filter((t: unknown) => typeof t === "string");
+      } else {
+        record.tags = [];
+      }
+    }
+    if (record.conversationId !== undefined && typeof record.conversationId !== "string") {
+      delete record.conversationId;
     }
   }
 
@@ -296,6 +331,7 @@ export function validateImportJson(json: string): ValidatedImport {
       chatsFound: payloadData.chats.length,
       settingsFound: payloadData.settings.length,
       conversationsFound: payloadData.conversations.length,
+      aiMemoryFound: payloadData.ai_memory.length,
       skippedRecords,
     },
   };

@@ -9,6 +9,7 @@ import { ConfirmModal } from "../components/ConfirmModal";
 import { ThemeMaker } from "../components/ThemeMaker";
 import { isElectron, desktopApiKey, desktopJinaApiKey, desktopApp, desktopFiles, desktopUpdates } from "../services/desktopBridge";
 import { listConversations, saveConversation } from "../services/chatStorage";
+import { listMemories, saveMemory } from "../services/memoryService";
 import { createExportPayload, validateImportJson } from "../services/exportImport";
 import { VENICE_MAX_BODY_BYTES } from "../shared/limits";
 import {
@@ -268,14 +269,15 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
 
   async function exportData() {
     try {
-      const [images, chats, settings, conversations] = await Promise.all([
+      const [images, chats, settings, conversations, memories] = await Promise.all([
         StorageService.getItems<import("../types/storage").GalleryImage>("images"),
         StorageService.getItems<import("../types/storage").ChatHistoryItem>("chats"),
         StorageService.getItems<Record<string, unknown>>("settings"),
         listConversations(),
+        listMemories(),
       ]);
       const appVersion = await desktopApp.getVersion();
-      const payload = createExportPayload({ images: images as unknown as Record<string, unknown>[], chats: chats as unknown as Record<string, unknown>[], settings, conversations: conversations as unknown as Record<string, unknown>[] }, appVersion);
+      const payload = createExportPayload({ images: images as unknown as Record<string, unknown>[], chats: chats as unknown as Record<string, unknown>[], settings, conversations: conversations as unknown as Record<string, unknown>[], ai_memory: memories as unknown as Record<string, unknown>[] }, appVersion);
       const ok = await desktopFiles.exportJson(
         payload,
         `venice-forge-export-${new Date().toISOString().slice(0, 10)}.json`
@@ -290,14 +292,15 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
     try {
       const json = await desktopFiles.importJsonString();
       if (!json) return;
-      const [imagesBefore, chatsBefore, settingsBefore, conversationsBefore] = await Promise.all([
+      const [imagesBefore, chatsBefore, settingsBefore, conversationsBefore, memoriesBefore] = await Promise.all([
         StorageService.getItems<import("../types/storage").GalleryImage>("images"),
         StorageService.getItems<import("../types/storage").ChatHistoryItem>("chats"),
         StorageService.getItems<Record<string, unknown>>("settings"),
         listConversations(),
+        listMemories(),
       ]);
       const backup = createExportPayload(
-        { images: imagesBefore as unknown as Record<string, unknown>[], chats: chatsBefore as unknown as Record<string, unknown>[], settings: settingsBefore, conversations: conversationsBefore as unknown as Record<string, unknown>[] },
+        { images: imagesBefore as unknown as Record<string, unknown>[], chats: chatsBefore as unknown as Record<string, unknown>[], settings: settingsBefore, conversations: conversationsBefore as unknown as Record<string, unknown>[], ai_memory: memoriesBefore as unknown as Record<string, unknown>[] },
         await desktopApp.getVersion()
       );
 
@@ -323,6 +326,15 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
           saveConversation(conv as unknown as import("../types/conversation").Conversation)
         )
       );
+      await Promise.all(
+        payload.data.ai_memory.map((mem) =>
+          saveMemory(
+            (mem.content as string) || "",
+            Array.isArray(mem.tags) ? (mem.tags as string[]) : [],
+            typeof mem.conversationId === "string" ? mem.conversationId : undefined
+          )
+        )
+      );
 
       const [images, chats, settings, conversations] = await Promise.all([
         StorageService.getItems<import("../types/storage").GalleryImage>("images"),
@@ -339,7 +351,7 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
       if (nextSettings) dispatch({ type: "SET_SETTINGS", settings: nextSettings });
 
       setStatus(
-        `Imported ${summary.imagesFound} images, ${summary.chatsFound} chats, ${summary.settingsFound} settings, ${summary.conversationsFound} conversations. ` +
+        `Imported ${summary.imagesFound} images, ${summary.chatsFound} chats, ${summary.settingsFound} settings, ${summary.conversationsFound} conversations, ${summary.aiMemoryFound} memories. ` +
           `${summary.skippedRecords} records skipped. Pre-import backup saved (${backup.data.images.length} images, ${backup.data.chats.length} chats, ${backup.data.conversations.length} conversations).`
       );
     } catch (err) {

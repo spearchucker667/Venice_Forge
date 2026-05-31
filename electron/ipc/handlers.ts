@@ -323,10 +323,18 @@ export function registerIpcHandlers(): void {
       if (typeof filePath !== "string" || filePath.length > 4096 || filePath.includes("\0")) {
         return { ok: false, error: "Invalid file path." };
       }
-      const resolved = path.resolve(filePath);
-      // Prevent obvious path traversal
-      if (resolved.includes("..")) {
-        return { ok: false, error: "Path traversal detected." };
+      // Resolve symlinks and normalize the path; path.resolve() already strips ".." segments
+      // so a post-resolve includes("..") check is always false and provides no protection.
+      // Instead, restrict reads to paths under the user's home directory.
+      let resolved: string;
+      try {
+        resolved = await fs.realpath(path.resolve(filePath));
+      } catch {
+        return { ok: false, error: "File not found." };
+      }
+      const homeDir = app.getPath("home");
+      if (resolved !== homeDir && !resolved.startsWith(homeDir + path.sep)) {
+        return { ok: false, error: "File is outside your home directory." };
       }
       const stat = await fs.stat(resolved).catch(() => null);
       if (!stat) {
