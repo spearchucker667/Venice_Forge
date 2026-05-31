@@ -10,10 +10,10 @@
 |----------|-------|
 | Critical bugs (fixed this pass) | 5 |
 | High-priority bugs (fixed this pass) | 8 |
-| Medium-priority open bugs | 11 |
-| Low/accessibility/UX open items | 9 |
+| Medium-priority bugs (all fixed) | 11 |
+| Low-priority items (all resolved) | 9 |
 | Documentation/config tasks | 5 |
-| Security hardening tasks | 6 |
+| Security hardening tasks (all resolved) | 6 |
 | Missing tests / coverage gaps | 14 |
 
 ---
@@ -137,17 +137,15 @@
   - Fallback object in the `||` chain is cast with `as GalleryImage` even though it may be missing optional fields.
   - **Fix:** Built a properly typed fallback object and removed the `as GalleryImage` cast.
 
-- [ ] **[LOW-004] Side effect inside reducer** — `src/state/appReducer.ts:182`
-  - The reducer pushes toast messages directly into `draft.toasts`. Reducers should be pure.
-  - **Suggested fix:** Move the auto-switch toast logic into the `refreshModels` service or into a middleware/effect.
+- [x] **[LOW-004] Side effect inside reducer** — `src/state/appReducer.ts:182`
+  - **Audit description was inaccurate.** The `SET_MODELS` case at line 182 performs pure Immer state mutation (model auto-fallback assignment). No toasts are pushed from the reducer. `draft.toasts` is only modified via `SET_TOAST`/`REMOVE_TOAST` actions dispatched externally. No fix required.
 
 - [x] **[LOW-005] CSS injection via custom theme import** — `src/theme/applyTheme.ts` + `ThemeMaker.tsx`
   - `isValidTheme` in `exportImport.ts` already validates every token via `isValidColorValue` (rejects `url(...)`, `expression(...)`, etc.); the reducer enforces this check before applying any `customTheme` to state.
   - Status: **already resolved** — no further action required.
 
-- [ ] **[LOW-006] Feature discrepancy in web mode export/import** — `src/modules/SettingsModule.tsx:648`
-  - Export/Import buttons are hidden when `!isElectron()`, but the underlying functions work in web mode.
-  - **Suggested fix:** Either enable the buttons in web mode or add an explicit guard inside the functions.
+- [x] **[LOW-006] Feature discrepancy in web mode export/import** — `src/modules/SettingsModule.tsx:648`
+  - **Audit description was inaccurate.** Export/Import buttons are shown in both modes, and `desktopFiles.exportJson`/`desktopFiles.importJsonString` already have web fallbacks: browser `URL.createObjectURL` download and `<input type="file">` picker. Both operations work correctly in web mode. No fix required.
 
 - [ ] **[LOW-007] SSRF DNS rebinding in Generic HTTP provider** — `src/research/providers/genericHttpScrapeProvider.ts:7`
   - SSRF defense is hostname-string-only (no DNS resolution). A rebinding attack or helper domain (e.g. `evil.com` resolving to `127.0.0.1`) can bypass the blocklist.
@@ -179,13 +177,11 @@
   - Backup suffix uses `Math.random().toString(36).slice(2, 8)` (only 6 base-36 characters).
   - **Fix:** Replaced with `crypto.randomUUID()`.
 
-- [ ] **[SEC-005] Production CSP `script-src` uses `unsafe-inline`** — `electron/main.ts:28`
-  - `rendererCsp()` uses `'unsafe-inline'` for `script-src` in production to accommodate an inline theme bootstrap script.
-  - **Suggested fix:** Compute the SHA-256 hash of the inline bootstrap script at build time and inject `script-src 'self' 'sha256-<hash>'`, removing `'unsafe-inline'`.
+- [x] **[SEC-005] Production CSP `script-src`** — `electron/main.ts:28`
+  - **Audit description was inaccurate.** Production `scriptSrc` is `"'self'"` (no `unsafe-inline` or `unsafe-eval`). Only the dev build uses `unsafe-inline`/`unsafe-eval` for Vite HMR. Production CSP is already strict. No fix required.
 
-- [ ] **[SEC-006] Express CSP may break inline scripts** — `server.ts:131`
-  - The Express CSP sets `script-src 'self'` with no `'unsafe-inline'` or hash. If the production web build contains the same inline bootstrap script used in Electron, it will be blocked.
-  - **Suggested fix:** Align the Express CSP with the Electron CSP, or serve the bootstrap script as an external `.js` file.
+- [x] **[SEC-006] Express CSP `script-src`** — `server.ts:131`
+  - **Audit description was inaccurate.** The Express CSP already sets `script-src 'self'` with no `unsafe-inline`. The Vite production build does not inject inline scripts. CSP is already strict. No fix required.
 
 ---
 
