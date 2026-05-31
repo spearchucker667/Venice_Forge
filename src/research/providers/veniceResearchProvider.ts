@@ -20,7 +20,7 @@ function nowIso(): string {
 }
 
 /** Normalizes a Venice /augment/search response into SearchResult items. */
-function normalizeSearch(data: unknown, query: string): SearchResult[] {
+function normalizeSearch(data: unknown, _query: string): SearchResult[] {
   if (!data || typeof data !== "object") return [];
   const d = data as Record<string, unknown>;
   const rawResults =

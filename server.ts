@@ -42,7 +42,7 @@ function getModuleDir(): string {
 
 type VeniceProxyRequest = {
   method?: string;
-  body?: unknown;
+  body?: Buffer;
 };
 
 type VeniceProxyOutboundRequest = {
@@ -65,15 +65,11 @@ export function applyVeniceProxyHeaders(
   proxyReq.setHeader("Host", VENICE_API_HOST);
 
   if (req.method !== "GET" && req.body) {
-    proxyReq.removeHeader("Transfer-Encoding");
-    let body: Buffer;
-    if (Buffer.isBuffer(req.body)) {
-      body = req.body;
-    } else if (typeof req.body === "string") {
-      body = Buffer.from(req.body, "utf-8");
-    } else {
-      body = Buffer.from(JSON.stringify(req.body), "utf-8");
+    if (!Buffer.isBuffer(req.body)) {
+      return;
     }
+    proxyReq.removeHeader("Transfer-Encoding");
+    const body = req.body;
     proxyReq.setHeader("Content-Length", body.length);
     proxyReq.write(body);
   } else if (req.method === "GET") {
@@ -259,6 +255,7 @@ export function createServerApp() {
           body = undefined;
         }
       }
+      req.body = body;
       
       let decision;
       try {
@@ -385,6 +382,7 @@ export async function startServer() {
     app.use(vite.middlewares);
   } else if (AppConfig.NODE_ENV !== "test") {
     const distPath = path.join(getModuleDir(), "dist");
+    const indexHtml = fs.readFileSync(path.join(distPath, "index.html"), "utf-8");
     const staticWindowMs = AppConfig.RATE_LIMIT_WINDOW_MS;
     const staticMaxRequests = AppConfig.RATE_LIMIT_MAX_REQUESTS;
     const MAX_STATIC_RATE_LIMIT_ENTRIES = 10_000;
@@ -419,8 +417,8 @@ export async function startServer() {
 
     app.use(staticRateLimiter);
     app.use(express.static(distPath));
-    app.get("*", (req: express.Request, res: express.Response) => {
-      res.sendFile(path.join(distPath, "index.html"));
+    app.get("*", staticRateLimiter, (_req: express.Request, res: express.Response) => {
+      res.type("html").send(indexHtml);
     });
     (app as express.Application & { staticRateLimiterCleanup?: ReturnType<typeof setInterval> | undefined }).staticRateLimiterCleanup = staticRateLimiterCleanup;
   }

@@ -1,14 +1,23 @@
 node_modules/
+
+# Generated/local agent handoff notes.
 docs/AGENTS/
 docs/HQE_AUDIT_REPORT.md
-build/*
-!build/icon.ico
-!build/icon.icns
-!build/icon-placeholder.md
-dist/
-dist-electron/
-release/
-coverage/
+
+# Build resources: keep packaging icons tracked, ignore generated scratch assets.
+/build/*
+!/build/icon.ico
+!/build/icon.icns
+!/build/icon.png
+!/build/icon-placeholder.md
+
+# Generated outputs.
+/dist/
+/dist-electron/
+/release/
+/coverage/
+
+# Local OS/editor/runtime files.
 .DS_Store
 *.log
 .env*

@@ -33,7 +33,7 @@ npm run dev:web        # Web proxy mode
 
 ### What is the full validation gate?
 ```bash
-npm run lint:eslint    # ESLint with --max-warnings=96
+npm run lint:eslint    # ESLint for src/, electron/, server.ts, and scripts/ with --max-warnings=96
 npm run typecheck      # TypeScript for renderer + Electron
 npm test               # Vitest unit and integration tests
 npm run verify:safety-guard # Security guard enforcement check

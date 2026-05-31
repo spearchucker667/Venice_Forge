@@ -40,7 +40,7 @@
     "verify:dist:portable": "node scripts/verify-dist.cjs --win --portable",
     "checksum:release": "node scripts/checksum-release.cjs",
     "lint": "npm run lint:eslint && npm run typecheck",
-    "lint:eslint": "eslint src electron server.ts scripts --max-warnings=96",
+    "lint:eslint": "eslint src electron server.ts scripts --max-warnings=0",
     "test:coverage": "vitest run --coverage",
     "smoke:electron": "vitest run tests/smoke/electron-smoke.test.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit --project tsconfig.electron.json",

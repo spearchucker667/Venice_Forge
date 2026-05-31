@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom/vitest";
-import { ImageModule } from "./ImageModule";
+import { ImageModule, waitForImageBatchDelay } from "./ImageModule";
 import { initialState } from "../state/appReducer";
 import { generateImageWithWatermarkFallback } from "../services/imageWorkflowService";
 
@@ -60,6 +60,7 @@ describe("ImageModule", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     cleanup();
   });
 
@@ -75,5 +76,29 @@ describe("ImageModule", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /generate/i })).not.toBeDisabled();
     });
+  });
+
+  it("removes the batch delay abort listener after the delay resolves", async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const removeSpy = vi.spyOn(controller.signal, "removeEventListener");
+
+    const promise = waitForImageBatchDelay(1000, controller.signal);
+    vi.advanceTimersByTime(1000);
+    await promise;
+
+    expect(removeSpy).toHaveBeenCalledWith("abort", expect.any(Function));
+  });
+
+  it("removes the batch delay abort listener after abort", async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const removeSpy = vi.spyOn(controller.signal, "removeEventListener");
+
+    const promise = waitForImageBatchDelay(1000, controller.signal);
+    controller.abort();
+
+    await expect(promise).rejects.toMatchObject({ name: "AbortError" });
+    expect(removeSpy).toHaveBeenCalledWith("abort", expect.any(Function));
   });
 });

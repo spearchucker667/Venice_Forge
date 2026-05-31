@@ -9,7 +9,7 @@ window.addEventListener("unhandledrejection", (event) => {
 window.addEventListener("error", (event) => {
   console.error("[venice-forge] Uncaught error:", event.error instanceof Error ? event.error.stack ?? event.error.message : event.message);
 });
-console.log("[venice-forge] crypto.subtle available:", typeof crypto !== "undefined" && !!crypto.subtle);
+console.warn("[venice-forge] crypto.subtle available:", typeof crypto !== "undefined" && !!crypto.subtle);
 
 const rootEl = document.getElementById("root");
 if (!rootEl) {

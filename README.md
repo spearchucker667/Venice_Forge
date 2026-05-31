@@ -115,7 +115,7 @@ Useful scripts:
 
 | Command | Description |
 |---------|-------------|
-| `npm run lint:eslint` | ESLint with `--max-warnings=96` budget |
+| `npm run lint:eslint` | ESLint for `src/`, `electron/`, `server.ts`, and `scripts/` with zero-warning enforcement |
 | `npm run typecheck` | TypeScript check for renderer and Electron |
 | `npm test` | Vitest unit and integration tests |
 | `npm run verify:safety-guard` | **Security Gate**: Enforces safety guard boundaries and no-log policies |
@@ -152,7 +152,7 @@ Artifacts are written to `release/`:
 - `Venice-Forge-<version>-arm64.dmg` / `.zip` — Apple Silicon
 - `Venice-Forge-<version>-x64.dmg` / `.zip` — Intel
 
-`build/icon.ico` and `build/icon.icns` are required before packaging. This repo includes a generated placeholder; run `npm run generate:icon` if they are missing, then replace them with final artwork before public release.
+`build/icon.ico` and `build/icon.icns` are required for Windows/macOS packaging. `build/icon.png` is required by the configured Linux AppImage target. This repo includes generated placeholder icons; run `npm run generate:icon` if they are missing, then replace them with final artwork before public release.
 
 Local builds are unsigned unless standard electron-builder signing environment variables are set (`CSC_LINK`, `CSC_KEY_PASSWORD`, `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`). Unsigned installers can trigger Windows SmartScreen warnings or macOS Gatekeeper blocks. To bypass Gatekeeper for local unsigned builds on macOS, you may need to clear the quarantine flag (`xattr -dr com.apple.quarantine "/path/to/Venice Forge.app"`).
 

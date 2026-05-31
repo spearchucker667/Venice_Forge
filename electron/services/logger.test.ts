@@ -49,4 +49,18 @@ describe("logger rotation", () => {
     expect(fs.readFileSync(`${TEST_LOG}.1`, "utf-8")).toBe(oversized);
     expect(fs.readFileSync(`${TEST_LOG}.2`, "utf-8")).toBe("old1");
   });
+
+  it("replaces the oldest backup when the 3-file ring is full", () => {
+    fs.writeFileSync(`${TEST_LOG}.1`, "old1", "utf-8");
+    fs.writeFileSync(`${TEST_LOG}.2`, "old2", "utf-8");
+    fs.writeFileSync(`${TEST_LOG}.3`, "old3", "utf-8");
+    const oversized = "x".repeat(1024 * 1024 + 1);
+    fs.writeFileSync(TEST_LOG, oversized, "utf-8");
+
+    ensureLogFile();
+
+    expect(fs.readFileSync(`${TEST_LOG}.1`, "utf-8")).toBe(oversized);
+    expect(fs.readFileSync(`${TEST_LOG}.2`, "utf-8")).toBe("old1");
+    expect(fs.readFileSync(`${TEST_LOG}.3`, "utf-8")).toBe("old2");
+  });
 });

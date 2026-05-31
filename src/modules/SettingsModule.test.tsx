@@ -282,4 +282,21 @@ describe("SettingsModule", () => {
 
     (isElectron as ReturnType<typeof vi.fn>).mockReturnValue(false);
   });
+
+  it("clears update-checking state when desktop check succeeds without updater events", async () => {
+    const { isElectron, desktopUpdates } = await import("../services/desktopBridge");
+    vi.mocked(isElectron).mockReturnValue(true);
+    vi.mocked(desktopUpdates.checkForUpdates).mockResolvedValue({ ok: true, version: "2.0.0" });
+
+    renderSettings();
+
+    await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/update check completed/i)).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: /check for updates/i })).toBeEnabled();
+
+    vi.mocked(isElectron).mockReturnValue(false);
+  });
 });

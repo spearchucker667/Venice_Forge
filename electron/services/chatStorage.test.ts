@@ -97,6 +97,18 @@ describe("chatStorage", () => {
     expect(list).toEqual([]);
   });
 
+  it("uses bounded directory iteration instead of eager readdir when listing conversations", async () => {
+    const readdirSpy = vi.spyOn(fs, "readdir");
+    const conv = makeConv();
+    await saveConversation(conv);
+
+    const list = await listConversations();
+
+    expect(list.map((item) => item.id)).toEqual([conv.id]);
+    expect(readdirSpy).not.toHaveBeenCalled();
+    readdirSpy.mockRestore();
+  });
+
   it("rejects invalid conversation schema", async () => {
     const bad = { id: "bad", title: 123 } as unknown as Conversation;
     const result = await saveConversation(bad);

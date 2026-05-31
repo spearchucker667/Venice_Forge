@@ -270,7 +270,7 @@ export async function runResearchJob(input: ResearchJobInput): Promise<ResearchJ
           scrapes.push(result);
           store.addScrape(result);
           pagesScraped++;
-        } catch (scrapeErr) {
+        } catch {
           // Individual scrape failures are non-fatal; continue to next URL
           // after a short cooldown to avoid hammering a failing host.
           await sleep(300, jobSignal).catch(() => {});

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { runSocialDiscovery, type SocialDiscoveryInput } from "./socialDiscovery";
 import type { ResearchProvider } from "../providerTypes";
 
@@ -40,6 +40,21 @@ describe("runSocialDiscovery", () => {
     expect(result.ok).toBe(true);
     expect(result.queriesUsed.length).toBeGreaterThan(0);
     expect(result.queriesUsed.some((q) => q.includes("site:github.com"))).toBe(true);
+  });
+
+  it("escapes backslashes before quotes in generated queries", async () => {
+    const provider = makeMockProvider([]);
+    const result = await runSocialDiscovery(
+      {
+        ...baseInput,
+        targetName: String.raw`Example \"Creator"`,
+        knownOrganization: String.raw`Org \"Name"`,
+      },
+      provider
+    );
+
+    expect(result.queriesUsed.some((q) => q.includes(String.raw`"Example \\\"Creator\""`))).toBe(true);
+    expect(result.queriesUsed.some((q) => q.includes(String.raw`"Org \\\"Name\""`))).toBe(true);
   });
 
   it("dedupes candidate URLs", async () => {

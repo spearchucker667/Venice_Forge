@@ -89,7 +89,7 @@ npm run dev:web        # Vite + Express web proxy mode
 ### Validation (run before any PR)
 
 ```bash
-npm run lint:eslint    # ESLint with --max-warnings=96 budget
+npm run lint:eslint    # ESLint for src/, electron/, server.ts, and scripts/ with zero-warning enforcement
 npm run typecheck      # TypeScript check for renderer + Electron
 npm test               # Vitest unit and integration tests
 npm run build          # Build dist/ (web) and dist-electron/ (main process)
@@ -149,6 +149,7 @@ Artifacts are written to `release/`. Windows produces NSIS installers and portab
   - `@typescript-eslint/no-explicit-any`: warn
   - `@typescript-eslint/no-unused-vars`: warn (allows `_` prefix)
   - `no-console`: warn (allows `console.warn` and `console.error`)
+  - Test files may use explicit `any` in mock boundaries; production code keeps the explicit-`any` warning enabled.
   - `react-hooks` recommended rules enabled
 - Ignored paths: `dist/`, `dist-electron/`, `release/`, `node_modules/`
 

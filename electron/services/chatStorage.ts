@@ -5,7 +5,6 @@
 
 import { app } from "electron";
 import fs from "fs/promises";
-import type { Dirent } from "fs";
 import path from "path";
 import type { Conversation, ConversationFile } from "../../src/types/conversation";
 import { logError, logInfo, logWarn } from "./logger";
@@ -23,6 +22,8 @@ const VALID_ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/;
  *  Prevents unbounded memory growth if the chat-history directory
  *  accumulates an exceptional number of files. */
 const MAX_LIST_CONVERSATIONS = 2000;
+const MAX_CONVERSATION_FILES_TO_SCAN = MAX_LIST_CONVERSATIONS * 2;
+const LIST_BATCH_SIZE = 50;
 
 /** Returns the absolute path to the chat-history directory. */
 export function getChatHistoryDir(): string {
@@ -76,6 +77,34 @@ async function readConversationFile(filePath: string): Promise<Conversation | nu
   }
 }
 
+async function listConversationFileNames(dir: string): Promise<string[]> {
+  const names: string[] = [];
+  let handle: Awaited<ReturnType<typeof fs.opendir>>;
+  try {
+    handle = await fs.opendir(dir);
+  } catch {
+    return names;
+  }
+
+  try {
+    for await (const entry of handle) {
+      if (entry.isFile() && entry.name.endsWith(".json")) {
+        names.push(entry.name);
+        if (names.length >= MAX_CONVERSATION_FILES_TO_SCAN) {
+          logWarn(
+            `chat-history directory scan reached ${MAX_CONVERSATION_FILES_TO_SCAN} JSON files; remaining files were skipped. Consider archiving old conversations.`
+          );
+          break;
+        }
+      }
+    }
+  } catch {
+    return names;
+  }
+
+  return names;
+}
+
 /** Type-guard for the on-disk conversation file schema. */
 function isValidConversationFile(value: unknown): value is ConversationFile {
   if (typeof value !== "object" || value === null) return false;
@@ -113,24 +142,14 @@ function isValidMessage(value: unknown): boolean {
 export async function listConversations(): Promise<Conversation[]> {
   await ensureDir();
   const dir = getChatHistoryDir();
-  let entries: Dirent[] = [];
-  try {
-    entries = await fs.readdir(dir, { withFileTypes: true });
-  } catch {
-    return [];
-  }
-
-  // Limit the number of files we process to prevent main-process freeze
-  const jsonFiles = entries.filter((e) => e.isFile() && e.name.endsWith(".json")).slice(0, MAX_LIST_CONVERSATIONS * 2);
+  const jsonFiles = await listConversationFileNames(dir);
 
   const conversations: Conversation[] = [];
-  // Process in batches to avoid blocking the main process
-  const BATCH_SIZE = 50;
-  for (let i = 0; i < jsonFiles.length; i += BATCH_SIZE) {
-    const batch = jsonFiles.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < jsonFiles.length; i += LIST_BATCH_SIZE) {
+    const batch = jsonFiles.slice(i, i + LIST_BATCH_SIZE);
     const batchResults = await Promise.all(
-      batch.map(async (entry) => {
-        const filePath = path.join(dir, entry.name);
+      batch.map(async (name) => {
+        const filePath = path.join(dir, name);
         return readConversationFile(filePath);
       })
     );

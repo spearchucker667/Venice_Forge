@@ -114,7 +114,7 @@ export async function decryptData<T>(encryptedPayload: EncryptedPayload | T): Pr
       encrypted
     );
     return JSON.parse(new TextDecoder().decode(decrypted));
-  } catch (e) {
+  } catch {
     // Redacted: do not log decryption error details in production.
     return null;
   }

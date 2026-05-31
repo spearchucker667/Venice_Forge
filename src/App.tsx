@@ -20,14 +20,13 @@ import { ToastHost } from "./components/ToastHost";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Chip } from "./components/Chip";
 import { TabButton } from "./components/TabButton";
-import { ConfirmModal } from "./components/ConfirmModal";
 import { FirstRunModal } from "./components/FirstRunModal";
 import { initDesktopBridge, isElectron, desktopApiKey } from "./services/desktopBridge";
 import { warn } from "./shared/logger";
-import { APP_DESCRIPTOR, FIRST_RUN_COPY, FIRST_RUN_ACK_KEY } from "./shared/legal";
+import { APP_DESCRIPTOR, FIRST_RUN_ACK_KEY } from "./shared/legal";
 import { GalleryImage, ChatHistoryItem } from "./types/storage";
 import { listConversations, saveConversation, createConversation } from "./services/chatStorage";
-import type { Conversation, ConversationMessage } from "./types/conversation";
+import type { ConversationMessage } from "./types/conversation";
 
 
 type SettingsRecord = { id: string; timestamp: number; value?: Record<string, unknown> };

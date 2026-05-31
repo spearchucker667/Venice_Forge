@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import { act, render, screen, waitFor, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom/vitest";
 import { ChatModule } from "./ChatModule";
@@ -100,6 +100,37 @@ describe("ChatModule", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Hello from Venice!")).toBeInTheDocument();
+    });
+  });
+
+  it("ignores rapid duplicate send attempts while the first send is preparing", async () => {
+    let resolveFetch!: () => void;
+    vi.mocked(veniceFetch).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = () =>
+            resolve({
+              data: { choices: [{ message: { content: "Single response" } }] },
+            } as any);
+        }) as any
+    );
+
+    renderChat({ usingFallbackModels: false });
+
+    await userEvent.type(screen.getByRole("textbox", promptSelector), "Only send once");
+    await userEvent.dblClick(screen.getByRole("button", sendBtnSelector));
+
+    await waitFor(() => {
+      expect(veniceFetch).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async () => {
+      resolveFetch();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Single response")).toBeInTheDocument();
     });
   });
 

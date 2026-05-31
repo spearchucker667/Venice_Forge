@@ -57,28 +57,34 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
   const [updateStatus, setUpdateStatus] = useState<string>("");
   const [isUpdateChecking, setIsUpdateChecking] = useState(false);
   const [updateDownloaded, setUpdateDownloaded] = useState(false);
+  const updateEventSeenRef = React.useRef(false);
 
   React.useEffect(() => {
     if (!isElectron()) return;
 
     const unsubs = [
       desktopUpdates.onUpdateAvailable((info: UpdateInfo) => {
+        updateEventSeenRef.current = true;
         setUpdateStatus(`Update available: v${info?.version || "new"}`);
         setIsUpdateChecking(false);
       }),
       desktopUpdates.onUpdateNotAvailable(() => {
+        updateEventSeenRef.current = true;
         setUpdateStatus("App is up to date.");
         setIsUpdateChecking(false);
       }),
       desktopUpdates.onDownloadProgress((progress: ProgressInfo) => {
+        updateEventSeenRef.current = true;
         setUpdateStatus(`Downloading update: ${Math.round(progress?.percent || 0)}%`);
       }),
       desktopUpdates.onUpdateDownloaded(() => {
+        updateEventSeenRef.current = true;
         setUpdateStatus("Update downloaded and ready to install.");
         setUpdateDownloaded(true);
         setIsUpdateChecking(false);
       }),
       desktopUpdates.onUpdateError((err: string) => {
+        updateEventSeenRef.current = true;
         setUpdateStatus(`Update error: ${err}`);
         setIsUpdateChecking(false);
       }),
@@ -89,12 +95,21 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
 
   async function checkForUpdates() {
     setIsUpdateChecking(true);
+    updateEventSeenRef.current = false;
     setUpdateStatus("Checking for updates...");
-    const res = await desktopUpdates.checkForUpdates();
-    if (!res.ok) {
-      setUpdateStatus(`Update check failed: ${res.error}`);
+    try {
+      const res = await desktopUpdates.checkForUpdates();
+      if (!res.ok) {
+        setUpdateStatus(`Update check failed: ${res.error}`);
+      } else if (!updateEventSeenRef.current) {
+        setUpdateStatus("Update check completed.");
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown update error";
+      setUpdateStatus(`Update check failed: ${message}`);
+    } finally {
+      setIsUpdateChecking(false);
     }
-    setIsUpdateChecking(false);
   }
 
   async function installUpdate() {

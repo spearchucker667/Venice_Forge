@@ -20,6 +20,30 @@ import { ImageGenerationPreview } from "../components/ImageGenerationPreview";
 import { ModuleProps, ImageDraft } from "../types/app";
 import { GalleryImage } from "../types/storage";
 
+export function waitForImageBatchDelay(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException("Request aborted", "AbortError"));
+      return;
+    }
+
+    const cleanup = () => {
+      clearTimeout(timeout);
+      signal.removeEventListener("abort", onAbort);
+    };
+    const onAbort = () => {
+      cleanup();
+      reject(new DOMException("Request aborted", "AbortError"));
+    };
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, ms);
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 export function ImageModule({ state, dispatch }: ModuleProps) {
   const draft = state.imageDraft;
   const [loading, setLoading] = useState(false);
@@ -93,12 +117,6 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
     const batchCount = normalizedDraft.imageCount as number;
     const batchId = crypto.randomUUID();
     let successCount = 0;
-    const delay = (ms: number, sig: AbortSignal) => new Promise<void>((resolve, reject) => {
-      if (sig.aborted) return reject(new DOMException("Request aborted", "AbortError"));
-      const timeout = setTimeout(resolve, ms);
-      sig.addEventListener("abort", () => { clearTimeout(timeout); reject(new DOMException("Request aborted", "AbortError")); }, { once: true });
-    });
-
     patch({ generationProgress: batchCount > 1 ? `Queued ${batchCount} images` : "", currentImages: [] });
 
     try {
@@ -107,7 +125,7 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
         if (signal.aborted) throw new DOMException("Request aborted", "AbortError");
         if (batchCount > 1 && i > 0) {
           patch({ generationProgress: "Waiting before next request to respect rate limits..." });
-          await delay(IMAGE_BATCH_INTER_REQUEST_DELAY_MS, signal);
+          await waitForImageBatchDelay(IMAGE_BATCH_INTER_REQUEST_DELAY_MS, signal);
         }
         if (batchCount > 1) {
           patch({ generationProgress: `Generating image ${i + 1} of ${batchCount}...` });

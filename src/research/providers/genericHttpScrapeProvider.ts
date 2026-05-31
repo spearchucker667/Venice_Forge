@@ -216,14 +216,59 @@ async function readWithLimit(
   return buffer;
 }
 
+function startsWithTag(lowerHtml: string, index: number, tagName: string): boolean {
+  if (!lowerHtml.startsWith(`<${tagName}`, index)) return false;
+  const next = lowerHtml[index + tagName.length + 1];
+  return next === undefined || next === ">" || next === "/" || /\s/.test(next);
+}
+
+function findRawTextTagEnd(html: string, lowerHtml: string, fromIndex: number, tagName: string): number {
+  let searchFrom = fromIndex;
+  const closingPrefix = `</${tagName}`;
+  while (searchFrom < lowerHtml.length) {
+    const closeStart = lowerHtml.indexOf(closingPrefix, searchFrom);
+    if (closeStart === -1) return html.length;
+    const next = lowerHtml[closeStart + closingPrefix.length];
+    if (next === undefined || next === ">" || /\s/.test(next)) {
+      const closeEnd = html.indexOf(">", closeStart + closingPrefix.length);
+      return closeEnd === -1 ? html.length : closeEnd + 1;
+    }
+    searchFrom = closeStart + closingPrefix.length;
+  }
+  return html.length;
+}
+
 /** Very basic tag stripper for HTML → plain text fallback. */
 function stripHtml(html: string): string {
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, " ")
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const lowerHtml = html.toLowerCase();
+  let text = "";
+  let index = 0;
+
+  while (index < html.length) {
+    const char = html[index];
+    if (char !== "<") {
+      text += char;
+      index++;
+      continue;
+    }
+
+    if (startsWithTag(lowerHtml, index, "script")) {
+      text += " ";
+      index = findRawTextTagEnd(html, lowerHtml, index + 1, "script");
+      continue;
+    }
+    if (startsWithTag(lowerHtml, index, "style")) {
+      text += " ";
+      index = findRawTextTagEnd(html, lowerHtml, index + 1, "style");
+      continue;
+    }
+
+    const tagEnd = html.indexOf(">", index + 1);
+    text += " ";
+    index = tagEnd === -1 ? html.length : tagEnd + 1;
+  }
+
+  return text.replace(/\s+/g, " ").trim();
 }
 
 function composeTimeoutSignal(ms: number, parent?: AbortSignal): AbortSignal {

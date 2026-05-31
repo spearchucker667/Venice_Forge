@@ -48,6 +48,8 @@ interface ChatUiMessage {
   importedFrom?: string;
 }
 
+type MessageUpdate = ChatUiMessage[] | ((prev: ChatUiMessage[]) => ChatUiMessage[]);
+
 function buildMessageContent(
   text: string,
   images: Array<{ name: string; dataUrl: string }>,
@@ -94,7 +96,9 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
   const [renameValue, setRenameValue] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
+  const sendInFlightRef = useRef(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<ChatUiMessage[]>([]);
 
   // New state for P2/P3 features
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -118,11 +122,19 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
   selectedModelRef.current = state.selectedChatModel;
   const systemPromptRef = useRef(systemPrompt);
   systemPromptRef.current = systemPrompt;
+  const commitMessages = useCallback((update: MessageUpdate) => {
+    setMessages((prev) => {
+      const current = messagesRef.current.length || prev.length ? messagesRef.current : prev;
+      const next = typeof update === "function" ? update(current) : update;
+      messagesRef.current = next;
+      return next;
+    });
+  }, []);
 
   // Sync local messages when active conversation changes
   useEffect(() => {
     if (activeConversation) {
-      setMessages(
+      commitMessages(
         activeConversation.messages.map((m) => ({
           id: m.id,
           role: m.role,
@@ -131,7 +143,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
       );
       setSystemPrompt(activeConversation.systemPrompt || state.settings.defaultSystemPrompt);
     } else {
-      setMessages([
+      commitMessages([
         {
           id: "welcome",
           role: "assistant",
@@ -144,7 +156,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     setAttachmentNotices([]);
     setSelectedMessageIds(new Set());
     setForkMode(false);
-  }, [activeId, state.settings.defaultSystemPrompt]);
+  }, [activeId, commitMessages, state.settings.defaultSystemPrompt]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -205,7 +217,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
 
   async function send() {
     const trimmedPrompt = userPrompt.trim();
-    if (!trimmedPrompt || loading) {
+    if (!trimmedPrompt || loading || sendInFlightRef.current) {
       if (!trimmedPrompt) setPromptTouched(true);
       return;
     }
@@ -216,6 +228,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     }
     setError("");
     setAttachmentNotices([]);
+    sendInFlightRef.current = true;
 
     // Assemble attachments
     const attachCtx = assembleAttachmentContext(attachments);
@@ -244,6 +257,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     recordDecision(guardDecision);
     if (!guardDecision.allow || guardDecision.action === "block") {
       setError(guardDecision.userMessage);
+      sendInFlightRef.current = false;
       return;
     }
 
@@ -255,7 +269,16 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     const snapshotPrompt = trimmedPrompt;
     const snapshotAttachments = [...attachments];
 
-    const conv = await ensureActiveConversation();
+    let conv: Conversation;
+    try {
+      conv = await ensureActiveConversation();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to prepare conversation.";
+      setError(message);
+      setLoading(false);
+      sendInFlightRef.current = false;
+      return;
+    }
 
     const supportsVision = modelSupportsVision(state.selectedChatModel);
     const userContent = buildMessageContent(trimmedPrompt, attachCtx.images, supportsVision);
@@ -263,7 +286,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     const assistantMsgId = crypto.randomUUID();
 
     // Exclude the welcome placeholder from history and persistence
-    const baseMessages = messages.filter((m) => m.id !== "welcome");
+    const baseMessages = messagesRef.current.filter((m) => m.id !== "welcome");
 
     const history: Array<{ role: "system" | "user" | "assistant"; content: ChatMessageContent }> = [
       { role: "system", content: systemPrompt || DEFAULT_SYSTEM_PROMPT },
@@ -274,7 +297,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
       { role: "user", content: userContent },
     ];
 
-    setMessages((prev) => [
+    commitMessages((prev) => [
       ...prev,
       userMessage,
       { id: assistantMsgId, role: "assistant", content: "" } as ChatUiMessage,
@@ -312,7 +335,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
           dispatch,
           onDelta: (delta: string) => {
             acc += delta;
-            setMessages((prev) => {
+            commitMessages((prev) => {
               const next = [...prev];
               const lastIdx = next.length - 1;
               if (lastIdx >= 0) {
@@ -351,7 +374,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
           userMessage,
           { id: assistantMsgId, role: "assistant" as const, content },
         ];
-        setMessages(finalMessages);
+        commitMessages(finalMessages);
         await persistMessages(conv, finalMessages);
       }
     } catch (err: unknown) {
@@ -370,25 +393,27 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
           baseMessages.length > 0
             ? baseMessages
             : [{ id: "welcome", role: "assistant" as const, content: "Ready. Send a prompt to call Venice /chat/completions." }];
-        setMessages(rollback);
+        commitMessages(rollback);
         await persistMessages(conv, baseMessages);
       }
     } finally {
       if (runIdRef.current === runId) {
         setLoading(false);
       }
+      sendInFlightRef.current = false;
     }
   }
 
   function cancel() {
     runIdRef.current++;
     abortRef.current?.abort();
+    sendInFlightRef.current = false;
     setLoading(false);
   }
 
   async function clear() {
     cancel();
-    setMessages([]);
+    commitMessages([]);
     setError("");
     if (activeConversation) {
       const updated: Conversation = { ...activeConversation, messages: [], updatedAt: Date.now() };
@@ -407,7 +432,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     const updated = [conv, ...state.conversations];
     dispatch({ type: "SET_CONVERSATIONS", items: updated });
     dispatch({ type: "SET_ACTIVE_CONVERSATION", id: conv.id });
-    setMessages([
+    commitMessages([
       {
         id: "welcome",
         role: "assistant",
@@ -559,8 +584,8 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
       content: m.content,
       importedFrom: source.title,
     }));
-    const nextMessages = [...messages, ...imported];
-    setMessages(nextMessages);
+    const nextMessages = [...messagesRef.current, ...imported];
+    commitMessages(nextMessages);
     await persistMessages(activeConversation, nextMessages);
     setShowImportPicker(false);
     setImportConversationId(null);

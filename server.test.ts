@@ -128,6 +128,22 @@ describe("server.ts proxy header sanitization", () => {
 
     delete process.env.VENICE_API_KEY;
   });
+
+  it("does not forward non-Buffer bodies from the proxy hook", () => {
+    const proxyReq = {
+      removeHeader: vi.fn(),
+      setHeader: vi.fn(),
+      write: vi.fn(),
+    };
+
+    applyVeniceProxyHeaders(proxyReq, {
+      method: "POST",
+      body: { messages: [] } as unknown as Buffer,
+    });
+
+    expect(proxyReq.write).not.toHaveBeenCalled();
+    expect(proxyReq.setHeader).not.toHaveBeenCalledWith("Content-Length", expect.any(Number));
+  });
 });
 
 describe("server.ts rate limiting", () => {

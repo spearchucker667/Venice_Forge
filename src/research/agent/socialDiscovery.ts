@@ -54,7 +54,7 @@ function nowIso(): string {
 }
 
 function escapeQuotes(value: string): string {
-  return value.replace(/"/g, '\\"');
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
 function generatePlatformQueries(input: SocialDiscoveryInput): string[] {

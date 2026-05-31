@@ -38,23 +38,46 @@ export function getLogPath(): string {
 /** @internal exported for testing */
 let logRotationLock = false;
 
+function getFileSize(filePath: string): number | null {
+  try {
+    return fs.statSync(filePath).size;
+  } catch {
+    return null;
+  }
+}
+
+function removeIfExists(filePath: string): void {
+  try {
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  } catch {
+    // Rotation cleanup is best-effort; writeLog must still append if possible.
+  }
+}
+
+function renameIfExists(from: string, to: string): void {
+  try {
+    if (fs.existsSync(from)) fs.renameSync(from, to);
+  } catch (err: unknown) {
+    const code = (err as { code?: string }).code;
+    if (code !== "ENOENT") throw err;
+  }
+}
+
 export function ensureLogFile(): void {
   fs.mkdirSync(getLogsDir(), { recursive: true });
   const logPath = getLogPath();
-  if (fs.existsSync(logPath) && fs.statSync(logPath).size > MAX_LOG_BYTES) {
+  const size = getFileSize(logPath);
+  if (size !== null && size > MAX_LOG_BYTES) {
     if (logRotationLock) return; // Skip rotation if another thread is rotating
     logRotationLock = true;
     try {
       const b3 = `${logPath}.3`;
       const b2 = `${logPath}.2`;
       const b1 = `${logPath}.1`;
-      if (fs.existsSync(b2)) {
-        fs.renameSync(b2, b3);
-      }
-      if (fs.existsSync(b1)) {
-        fs.renameSync(b1, b2);
-      }
-      fs.renameSync(logPath, b1);
+      removeIfExists(b3);
+      renameIfExists(b2, b3);
+      renameIfExists(b1, b2);
+      renameIfExists(logPath, b1);
     } catch {
       // Rotation failure is non-fatal; continue logging to current file
     } finally {

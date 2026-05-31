@@ -208,4 +208,32 @@ describe("genericHttpScrapeProvider", () => {
     const result = await provider.scrape!({ url: "https://example.com" });
     expect(result.text).toBe("Safe");
   });
+
+  it("strips script tags with malformed end-tag attributes", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      url: "https://example.com",
+      headers: new Map([["content-type", "text/html"]]),
+      body: {
+        getReader() {
+          const text = `<html><body>Before<script>alert(1)</script foo="bar">After</body></html>`;
+          const encoder = new TextEncoder();
+          const bytes = encoder.encode(text);
+          let done = false;
+          return {
+            async read() {
+              if (done) return { done: true, value: undefined };
+              done = true;
+              return { done: false, value: bytes };
+            },
+            releaseLock() {},
+          };
+        },
+      },
+    } as any);
+
+    const provider = createGenericHttpProvider({ enabled: true });
+    const result = await provider.scrape!({ url: "https://example.com" });
+    expect(result.text).toBe("Before After");
+  });
 });

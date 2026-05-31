@@ -91,6 +91,16 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
     };
   }, []);
 
+  const beginRun = useCallback(() => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    return {
+      runId: ++runIdRef.current,
+      signal: controller.signal,
+    };
+  }, []);
+
   async function runSearch() {
     if (!query.trim()) return;
     setError("");
@@ -102,13 +112,12 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
     }
     setLoading("search");
     setSearchResults([]);
-    abortRef.current = new AbortController();
-    const runId = ++runIdRef.current;
+    const { runId, signal } = beginRun();
     try {
       const { data } = await veniceFetch<Record<string, unknown>>("/augment/search", {
         method: "POST",
         body: { query: query.trim(), provider },
-        signal: abortRef.current.signal,
+        signal,
         dispatch,
       });
       if (runIdRef.current !== runId) return;
@@ -141,13 +150,12 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
     setError("");
     setLoading("scrape");
     setScrapeOutput("");
-    abortRef.current = new AbortController();
-    const runId = ++runIdRef.current;
+    const { runId, signal } = beginRun();
     try {
       const { data } = await veniceFetch<Record<string, unknown>>("/augment/scrape", {
         method: "POST",
         body: { url: url.trim() },
-        signal: abortRef.current.signal,
+        signal,
         dispatch,
       });
       if (runIdRef.current !== runId) return;
@@ -173,7 +181,7 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
     setError("");
     setLoading("parser");
     setParserOutput("");
-    abortRef.current = new AbortController();
+    const { runId, signal } = beginRun();
     try {
       const form = new FormData();
       form.append("file", file);
@@ -181,18 +189,20 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
       const { data } = await veniceFetch<Record<string, unknown>>("/augment/text-parser", {
         method: "POST",
         body: form,
-        signal: abortRef.current.signal,
+        signal,
         dispatch,
         isFormData: true,
       });
+      if (runIdRef.current !== runId) return;
       const parserData = data as Record<string, unknown>;
       setParserOutput(String(parserData.text || JSON.stringify(parserData, null, 2)));
     } catch (err: unknown) {
+      if (runIdRef.current !== runId) return;
       const error = err as { name?: string; message?: string };
       if (error.name !== "AbortError")
         setError(error.message || "Text parser failed");
     } finally {
-      setLoading("");
+      if (runIdRef.current === runId) setLoading("");
     }
   }
 
@@ -202,7 +212,7 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
     setLoading("ai-research");
     setResearchOutput("");
     setResearchCitations("");
-    abortRef.current = new AbortController();
+    const { runId, signal } = beginRun();
 
     const budget: ResearchBudget = {
       maxQueries: 4,
@@ -218,9 +228,10 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
         question: researchQuestion.trim(),
         provider: veniceResearchProvider,
         budget,
-        signal: abortRef.current.signal,
+        signal,
       });
 
+      if (runIdRef.current !== runId) return;
       if (!job.ok) {
         setError(job.error || "Research job failed.");
         return;
@@ -235,18 +246,20 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
         question: researchQuestion.trim(),
         evidence: job.evidence,
         model,
-        signal: abortRef.current.signal,
+        signal,
         dispatch,
         onDelta: (delta) => {
+          if (runIdRef.current !== runId) return;
           full += delta;
           setResearchOutput(full);
         },
       });
     } catch (err: unknown) {
+      if (runIdRef.current !== runId) return;
       const error = err as { name?: string; message?: string };
       if (error.name !== "AbortError") setError(error.message || "AI research failed");
     } finally {
-      setLoading("");
+      if (runIdRef.current === runId) setLoading("");
     }
   }
 
@@ -255,7 +268,7 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
     setError("");
     setLoading("profile-discovery");
     setProfileCandidates([]);
-    abortRef.current = new AbortController();
+    const { runId, signal } = beginRun();
 
     try {
       const result = await runSocialDiscovery(
@@ -268,10 +281,12 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
           allowedPlatforms,
           maxSearchDepth: maxDepth,
           authorized,
+          signal,
         },
         veniceResearchProvider
       );
 
+      if (runIdRef.current !== runId) return;
       if (!result.ok) {
         setError(result.error || "Profile discovery failed.");
         return;
@@ -279,10 +294,11 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
 
       setProfileCandidates(result.candidates);
     } catch (err: unknown) {
+      if (runIdRef.current !== runId) return;
       const error = err as { name?: string; message?: string };
       if (error.name !== "AbortError") setError(error.message || "Profile discovery failed");
     } finally {
-      setLoading("");
+      if (runIdRef.current === runId) setLoading("");
     }
   }
 
@@ -290,6 +306,12 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
     setAllowedPlatforms((prev) =>
       prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform]
     );
+  }
+
+  function cancelRun() {
+    runIdRef.current++;
+    abortRef.current?.abort();
+    setLoading("");
   }
 
   const tabBtn = useCallback(
@@ -631,13 +653,20 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
                 </span>
               </label>
 
-              <button
-                className="btn primary self-start"
-                onClick={runProfileDiscovery}
-                disabled={loading === "profile-discovery" || !targetName.trim() || !authorized}
-              >
-                {loading === "profile-discovery" ? "Discovering…" : "Discover public profiles"}
-              </button>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  className="btn primary self-start"
+                  onClick={runProfileDiscovery}
+                  disabled={loading === "profile-discovery" || !targetName.trim() || !authorized}
+                >
+                  {loading === "profile-discovery" ? "Discovering…" : "Discover public profiles"}
+                </button>
+                {loading === "profile-discovery" && (
+                  <button className="btn self-start" onClick={cancelRun}>
+                    Cancel
+                  </button>
+                )}
+              </div>
             </div>
 
             {profileCandidates.length > 0 && (

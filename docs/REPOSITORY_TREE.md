@@ -17,16 +17,13 @@ This document is the public map for the Venice Forge repository. It reflects the
 │   │   ├── macos-release.yml          # macOS build, dmg/zip generation, checksums
 │   │   └── windows-release.yml        # Windows build, NSIS setup/portable generation, checksums
 │   ├── dependabot.yml
+│   ├── copilot-instructions.md
 │   └── pull_request_template.md
 ├── build/
 │   ├── icon.icns                  # macOS application icon bundle
 │   ├── icon.ico                   # Windows application icon bundle
-
+│   └── icon.png                   # Linux/AppImage icon
 ├── docs/
-│   ├── AGENTS/
-│   │   ├── agents.md
-│   │   ├── agent-reinitialization.md
-│   │   └── gemini.md
 │   ├── DEVELOPMENT/
 │   │   ├── building.md
 │   │   ├── macos.md
@@ -37,7 +34,6 @@ This document is the public map for the Venice Forge repository. It reflects the
 │   │   └── signing-and-notarization.md
 │   ├── ABOUT.md
 │   ├── FAQ.md
-│   ├── HQE_AUDIT_REPORT.md
 │   ├── JINA_PROVIDER.md
 │   ├── LEGAL.md
 │   ├── PUBLIC_PROFILE_DISCOVERY.md
@@ -108,20 +104,29 @@ This document is the public map for the Venice Forge repository. It reflects the
 ├── CHANGELOG.md
 ├── CODE_OF_CONDUCT.md
 ├── CONTRIBUTING.md
+├── CLAUDE.md
+├── GEMINI.md
 ├── LICENSE
 ├── README.md
 ├── SECURITY.md
 ├── SUPPORT.md
-├── todo.md
+├── TODO.md
+├── AUDIT_REPORT_2026-05-31.md
+├── AGENTS.md
+├── .cursorrules
+├── .windsurfrules
 ├── electron-builder.config.cjs
+├── eslint.config.mjs
 ├── metadata.json
 ├── package-lock.json
 ├── package.json
 ├── server.test.ts
 ├── server.ts
 ├── tsconfig.electron.json
+├── tsconfig.electron.test.json
 ├── tsconfig.json
-└── vite.config.ts
+├── vite.config.ts
+└── vitest.config.ts
 ```
 
 ## Runtime Segments
