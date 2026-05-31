@@ -9,7 +9,7 @@ import { ConfirmModal } from "../components/ConfirmModal";
 import { ThemeMaker } from "../components/ThemeMaker";
 import { isElectron, desktopApiKey, desktopJinaApiKey, desktopApp, desktopFiles, desktopUpdates } from "../services/desktopBridge";
 import { listConversations, saveConversation } from "../services/chatStorage";
-import { listMemories, saveMemory } from "../services/memoryService";
+import { listMemories, upsertMemory } from "../services/memoryService";
 import { createExportPayload, validateImportJson } from "../services/exportImport";
 import { VENICE_MAX_BODY_BYTES } from "../shared/limits";
 import { validateAppSettings } from "../shared/configSchema";
@@ -342,19 +342,27 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
       await Promise.all(payload.data.images.map((img) => StorageService.saveItem("images", img)));
       await Promise.all(payload.data.chats.map((chat) => StorageService.saveItem("chats", chat)));
       await Promise.all(payload.data.settings.map((s) => StorageService.saveItem("settings", s)));
-      await Promise.all(
+      const convResults = await Promise.all(
         payload.data.conversations.map((conv) =>
           saveConversation(conv as unknown as import("../types/conversation").Conversation)
         )
       );
+      const failedConvCount = convResults.filter((ok) => !ok).length;
+      if (failedConvCount > 0) {
+        throw new Error(`Failed to import ${failedConvCount} conversation(s).`);
+      }
       await Promise.all(
-        payload.data.ai_memory.map((mem) =>
-          saveMemory(
-            (mem.content as string) || "",
-            Array.isArray(mem.tags) ? (mem.tags as string[]) : [],
-            typeof mem.conversationId === "string" ? mem.conversationId : undefined
-          )
-        )
+        payload.data.ai_memory.map((mem) => {
+          const id = typeof mem.id === "string" && mem.id ? mem.id : crypto.randomUUID();
+          const createdAt = typeof mem.timestamp === "number" ? mem.timestamp : Date.now();
+          return upsertMemory({
+            id,
+            content: (mem.content as string) || "",
+            createdAt,
+            tags: Array.isArray(mem.tags) ? (mem.tags as string[]) : [],
+            conversationId: typeof mem.conversationId === "string" ? mem.conversationId : undefined,
+          });
+        })
       );
 
       const [images, chats, settings, conversations] = await Promise.all([

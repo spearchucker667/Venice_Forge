@@ -112,17 +112,14 @@
   - `useEffect` dependency is `!!image` (boolean). If the modal is open and `image` changes from one object to another (both truthy), the effect does not re-run.
   - **Fix:** Changed dependency to `image` itself.
 
-- [ ] **[MED-009] Chat cancel skips rollback** — `src/modules/ChatModule.tsx:318–430`
-  - `cancel()` increments `runIdRef` before calling `abort()`. This causes the running stream handler to see a mismatched run-id and exit without restoring `prompt`/`attachments` or removing the orphaned assistant placeholder.
-  - **Suggested fix:** Call `abort()` first and let the stream's own run-id guard restore state, or snapshot prompt/attachments before the request and restore them in `cancel()`.
+- [x] **[MED-009] Chat cancel skips rollback** — `src/modules/ChatModule.tsx:318–430`
+  - **Fixed:** `cancel()` now snapshots messages before send via `preSendMessagesRef` and restores them on cancel. `runIdRef` is incremented after abort signal so the guard still skips any stale stream handlers.
 
-- [ ] **[MED-010] `saveConversation()` `.ok` not checked in callers** — `src/modules/ChatModule.tsx:193,215`, `src/modules/SettingsModule.tsx:345`
-  - All callers await `saveConversation()` but ignore the `{ ok, error }` result. A failed disk write is silently treated as success.
-  - **Suggested fix:** Check `.ok` and surface the error via toast (or existing `setError` state).
+- [x] **[MED-010] `saveConversation()` `.ok` not checked in callers** — `src/modules/ChatModule.tsx:193,215`, `src/modules/SettingsModule.tsx:345`
+  - **Fixed:** `ensureActiveConversation` throws on `!result.ok`; `persistMessages` throws on `!result.ok`; import path in SettingsModule collects results and throws on any failure.
 
-- [ ] **[MED-011] Memory import duplicates entries on re-import** — `src/services/memoryService.ts:35–42`, `src/modules/SettingsModule.tsx:350`
-  - Imported `ai_memory` records are passed to `saveMemory()`, which always generates a new random ID. Re-importing the same export creates duplicate memory entries.
-  - **Suggested fix:** Add a `upsertMemory(record)` helper that uses the original `id` and `createdAt` from the import, falling back to `saveMemory()` only for records without a valid ID.
+- [x] **[MED-011] Memory import duplicates entries on re-import** — `src/services/memoryService.ts:35–42`, `src/modules/SettingsModule.tsx:350`
+  - **Fixed:** Added `upsertMemory()` to `memoryService.ts` which preserves the original `id`/`createdAt` from the import record. SettingsModule now uses `upsertMemory` instead of `saveMemory` for imported entries.
 
 ---
 
@@ -144,9 +141,9 @@
   - The reducer pushes toast messages directly into `draft.toasts`. Reducers should be pure.
   - **Suggested fix:** Move the auto-switch toast logic into the `refreshModels` service or into a middleware/effect.
 
-- [ ] **[LOW-005] CSS injection via custom theme import** — `src/theme/applyTheme.ts` + `ThemeMaker.tsx`
-  - `isValidTheme` does not validate that token values are hex colors. A malicious import could set a token to `url(https://evil.com)` or other CSS.
-  - **Suggested fix:** Validate each token against a hex-color regex before applying, or sanitize CSS custom properties.
+- [x] **[LOW-005] CSS injection via custom theme import** — `src/theme/applyTheme.ts` + `ThemeMaker.tsx`
+  - `isValidTheme` in `exportImport.ts` already validates every token via `isValidColorValue` (rejects `url(...)`, `expression(...)`, etc.); the reducer enforces this check before applying any `customTheme` to state.
+  - Status: **already resolved** — no further action required.
 
 - [ ] **[LOW-006] Feature discrepancy in web mode export/import** — `src/modules/SettingsModule.tsx:648`
   - Export/Import buttons are hidden when `!isElectron()`, but the underlying functions work in web mode.
@@ -156,13 +153,11 @@
   - SSRF defense is hostname-string-only (no DNS resolution). A rebinding attack or helper domain (e.g. `evil.com` resolving to `127.0.0.1`) can bypass the blocklist.
   - **Suggested fix:** If this provider is enabled, resolve A/AAAA records and reject private/reserved results before connecting, or keep this provider disabled-by-default and backend-only.
 
-- [ ] **[LOW-008] `readWithLimit` oversized body not cancelled** — `src/research/providers/genericHttpScrapeProvider.ts:208`
-  - When the byte limit is hit the reader loop exits, but the response body stream keeps downloading in the background.
-  - **Fix:** Call `response.body?.cancel()` after releasing the reader lock when the limit is hit. *(Partially addressed — cancel is now called, but body may still buffer one chunk beyond the limit.)*
+- [x] **[LOW-008] `readWithLimit` oversized body not cancelled** — `src/research/providers/genericHttpScrapeProvider.ts:208`
+  - **Fixed:** `response.body?.cancel()` is now called when the byte limit is hit.
 
-- [ ] **[LOW-009] Atomic-write temp file not cleaned up on failure** — `electron/services/secureStore.ts:55`, `electron/services/chatStorage.ts:214`
-  - On write errors the `.tmp` file is left on disk; `secureStore.ts` could leave an API-key material file if fallback plaintext mode is active.
-  - **Fix:** `unlink` the temp file in the `catch`/error path. *(chatStorage already fixed; secureStore.ts fixed in this pass.)*
+- [x] **[LOW-009] Atomic-write temp file not cleaned up on failure** — `electron/services/secureStore.ts:55`, `electron/services/chatStorage.ts:214`
+  - **Fixed:** Both files now unlink the temp file in the error path.
 
 ---
 

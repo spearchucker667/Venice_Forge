@@ -43,6 +43,19 @@ export async function saveMemory(
   return entry;
 }
 
+/** Upserts a memory entry by its original ID (used during import to prevent duplicates).
+ *  If a record with the same id already exists it is replaced; otherwise it is inserted.
+ */
+export async function upsertMemory(entry: Memory): Promise<Memory> {
+  const normalised: Memory = {
+    ...entry,
+    content: entry.content.trim(),
+    tags: entry.tags.map((t) => t.trim().toLowerCase()).filter(Boolean),
+  };
+  await StorageService.saveItem(MEMORY_STORE, normalised as unknown as Record<string, unknown>);
+  return normalised;
+}
+
 /** Lists all memories, newest first. */
 export async function listMemories(): Promise<Memory[]> {
   return StorageService.getItems<Memory>(MEMORY_STORE);

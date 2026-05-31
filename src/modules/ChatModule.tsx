@@ -103,6 +103,8 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
   const sendInFlightRef = useRef(false);
   const endRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<ChatUiMessage[]>([]);
+  /** Snapshot of messages captured at the start of each send(), used by cancel() to roll back. */
+  const preSendMessagesRef = useRef<ChatUiMessage[]>([]);
 
   // New state for P2/P3 features
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -190,7 +192,8 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     if (activeConversation) return activeConversation;
     const conv = createConversation(state.selectedChatModel, systemPrompt || DEFAULT_SYSTEM_PROMPT);
     conv.model = state.selectedChatModel;
-    await saveConversation(conv);
+    const ok = await saveConversation(conv);
+    if (!ok) throw new Error("Failed to save new conversation.");
     const updated = [...conversations, conv];
     dispatch({ type: "SET_CONVERSATIONS", items: updated });
     dispatch({ type: "SET_ACTIVE_CONVERSATION", id: conv.id });
@@ -212,7 +215,8 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
         systemPrompt: systemPromptRef.current,
         title: conv.title === "New Chat" ? deriveTitle(newMessages) : conv.title,
       };
-      await saveConversation(updated);
+      const ok = await saveConversation(updated);
+      if (!ok) throw new Error("Failed to persist conversation.");
       const refreshed = conversationsRef.current.map((c) => (c.id === updated.id ? updated : c));
       dispatch({ type: "SET_CONVERSATIONS", items: refreshed });
     },
@@ -305,6 +309,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
 
     // Exclude the welcome placeholder from history and persistence
     const baseMessages = messagesRef.current.filter((m) => m.id !== "welcome");
+    preSendMessagesRef.current = baseMessages;
 
     const history: Array<{ role: "system" | "user" | "assistant"; content: ChatMessageContent }> = [
       { role: "system", content: systemPrompt || DEFAULT_SYSTEM_PROMPT },
@@ -423,10 +428,20 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
   }
 
   function cancel() {
+    const wasInFlight = sendInFlightRef.current;
     runIdRef.current++;
     abortRef.current?.abort();
     sendInFlightRef.current = false;
     setLoading(false);
+    // Roll back the optimistic user+assistant messages that send() already committed
+    if (wasInFlight) {
+      const rollback = preSendMessagesRef.current;
+      preSendMessagesRef.current = [];
+      const restored = rollback.length > 0
+        ? rollback
+        : [{ id: "welcome", role: "assistant" as const, content: "Ready. Send a prompt to call Venice /chat/completions." }];
+      commitMessages(restored);
+    }
   }
 
   async function clear() {
