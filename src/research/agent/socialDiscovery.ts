@@ -16,6 +16,8 @@ export interface SocialDiscoveryInput {
   allowedPlatforms: string[];
   maxSearchDepth: number;
   authorized: boolean;
+  signal?: AbortSignal;
+  timeoutMs?: number;
 }
 
 export interface SocialProfileCandidate {
@@ -51,33 +53,41 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+function escapeQuotes(value: string): string {
+  return value.replace(/"/g, '\\"');
+}
+
 function generatePlatformQueries(input: SocialDiscoveryInput): string[] {
   const { targetName, knownUsername, knownWebsite, knownOrganization, knownLocation } = input;
+  const safeTarget = escapeQuotes(targetName);
+  const safeUser = knownUsername ? escapeQuotes(knownUsername) : undefined;
+  const safeOrg = knownOrganization ? escapeQuotes(knownOrganization) : undefined;
+  const safeLoc = knownLocation ? escapeQuotes(knownLocation) : undefined;
   const queries: string[] = [];
 
   for (const platform of input.allowedPlatforms) {
     const domains = PLATFORM_DOMAINS[platform];
     if (domains && domains.length > 0) {
       for (const domain of domains) {
-        queries.push(`site:${domain} "${targetName}"`);
-        if (knownUsername) {
-          queries.push(`site:${domain} "${knownUsername}"`);
+        queries.push(`site:${domain} "${safeTarget}"`);
+        if (safeUser) {
+          queries.push(`site:${domain} "${safeUser}"`);
         }
-        if (knownOrganization) {
-          queries.push(`site:${domain} "${targetName}" "${knownOrganization}"`);
+        if (safeOrg) {
+          queries.push(`site:${domain} "${safeTarget}" "${safeOrg}"`);
         }
-        if (knownLocation) {
-          queries.push(`site:${domain} "${targetName}" "${knownLocation}"`);
+        if (safeLoc) {
+          queries.push(`site:${domain} "${safeTarget}" "${safeLoc}"`);
         }
       }
     } else if (platform === "Mastodon") {
-      queries.push(`"${targetName}" mastodon`);
-      if (knownUsername) queries.push(`"${knownUsername}" mastodon`);
+      queries.push(`"${safeTarget}" mastodon`);
+      if (safeUser) queries.push(`"${safeUser}" mastodon`);
     } else if (platform === "personal website") {
       if (knownWebsite) {
-        queries.push(`"${targetName}" "${knownWebsite}"`);
+        queries.push(`"${safeTarget}" "${knownWebsite}"`);
       } else {
-        queries.push(`"${targetName}" "personal website" OR "portfolio"`);
+        queries.push(`"${safeTarget}" "personal website" OR "portfolio"`);
       }
     }
   }
@@ -149,7 +159,7 @@ function detectPlatform(url: string): string {
         }
       }
     }
-    if (hostname.includes("mastodon")) return "Mastodon";
+    if (hostname === "mastodon" || hostname.endsWith(".mastodon") || hostname.startsWith("mastodon.")) return "Mastodon";
   } catch { /* ignore */ }
   return "unknown";
 }
@@ -270,6 +280,15 @@ export async function runSocialDiscovery(
     };
   }
 
+  if (!provider.supports.socialDiscovery) {
+    return {
+      ok: false,
+      candidates: [],
+      queriesUsed: [],
+      error: "Provider does not support social discovery.",
+    };
+  }
+
   if (!provider.supports.search) {
     return {
       ok: false,
@@ -284,7 +303,10 @@ export async function runSocialDiscovery(
 
   try {
     for (const query of queries) {
-      const results = await provider.search!({ query, maxResults: 10 });
+      if (input.signal?.aborted) {
+        throw new DOMException("Social discovery aborted", "AbortError");
+      }
+      const results = await provider.search!({ query, maxResults: 10, signal: input.signal, timeoutMs: input.timeoutMs });
       for (const r of results) {
         if (!r.url) continue;
         const norm = normalizeUrl(r.url);

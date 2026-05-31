@@ -35,9 +35,17 @@ export function buildCitations(evidence: ResearchEvidence): Citation[] {
   return citations;
 }
 
+function escapeMarkdownLinkText(text: string): string {
+  return text.replace(/\\/g, "\\\\").replace(/\]/g, "\\]");
+}
+
+function escapeMarkdownLinkUrl(url: string): string {
+  return url.replace(/\\/g, "\\\\").replace(/\)/g, "\\)");
+}
+
 export function formatCitationsMarkdown(citations: Citation[]): string {
   if (!citations.length) return "No citations available.";
   return citations
-    .map((c) => `${c.index}. [${c.title || "Source"}](${c.url})`)
+    .map((c) => `${c.index}. [${escapeMarkdownLinkText(c.title || "Source")}](${escapeMarkdownLinkUrl(c.url)})`)
     .join("\n");
 }

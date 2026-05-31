@@ -19,17 +19,20 @@ function checkGuardImportedAndCalled(file) {
     return;
   }
   const content = fs.readFileSync(filePath, 'utf-8');
-  if (!content.includes('assessChildExploitationSafety')) {
-    console.error(`❌ File ${file} does not call assessChildExploitationSafety`);
+  // Count occurrences to ensure the guard is called in multiple handlers, not just one.
+  const guardCalls = (content.match(/assessChildExploitationSafety/g) || []).length;
+  const recordCalls = (content.match(/recordDecision/g) || []).length;
+  if (guardCalls < 2) {
+    console.error(`❌ File ${file} calls assessChildExploitationSafety only ${guardCalls} time(s); expected at least 2`);
     failed = true;
   } else {
-    console.log(`✅ File ${file} calls assessChildExploitationSafety`);
+    console.log(`✅ File ${file} calls assessChildExploitationSafety (${guardCalls} times)`);
   }
-  if (!content.includes('recordDecision')) {
-    console.error(`❌ File ${file} does not call recordDecision`);
+  if (recordCalls < 2) {
+    console.error(`❌ File ${file} calls recordDecision only ${recordCalls} time(s); expected at least 2`);
     failed = true;
   } else {
-    console.log(`✅ File ${file} calls recordDecision`);
+    console.log(`✅ File ${file} calls recordDecision (${recordCalls} times)`);
   }
 }
 

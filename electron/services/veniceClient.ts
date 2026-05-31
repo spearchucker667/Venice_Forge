@@ -36,7 +36,15 @@ interface SerializedFormData {
  *  @returns A sanitized token safe for multipart headers.
  */
 export function sanitizeMultipartToken(value: string): string {
-  return value.replace(/[\x00-\x1F\x7F"\\]/g, "").trim();
+  let result = "";
+  for (const char of value) {
+    const code = char.charCodeAt(0);
+    if ((code >= 0 && code <= 31) || code === 127 || char === '"' || char === "\\") {
+      continue;
+    }
+    result += char;
+  }
+  return result.trim();
 }
 
 /** Validates and normalizes a multipart content-type string.

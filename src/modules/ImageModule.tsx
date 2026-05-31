@@ -259,8 +259,8 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
     patch({
       prompt: img.prompt,
       negative: img.negative || "",
-      width: img.width ? Number(img.width) : draft.width,
-      height: img.height ? Number(img.height) : draft.height,
+      width: img.width != null ? Number(img.width) : draft.width,
+      height: img.height != null ? Number(img.height) : draft.height,
       aspectRatio: img.aspectRatio || draft.aspectRatio,
       style: img.style || "",
       cfg: img.cfg || draft.cfg,

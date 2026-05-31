@@ -136,7 +136,7 @@ export function ImageGenerationForm({
                 min="1"
                 max="50"
                 value={draft.steps}
-                onChange={(e) => patch({ steps: e.target.value })}
+                onChange={(e) => patch({ steps: Number(e.target.value) })}
                 className="w-full rounded-lg border border-border/50 bg-surface/50 px-4 py-2.5 text-sm text-text-primary transition-all focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               />
             </Field>
@@ -147,7 +147,7 @@ export function ImageGenerationForm({
                 max="20"
                 step="0.5"
                 value={draft.cfg}
-                onChange={(e) => patch({ cfg: e.target.value })}
+                onChange={(e) => patch({ cfg: Number(e.target.value) })}
                 className="w-full rounded-lg border border-border/50 bg-surface/50 px-4 py-2.5 text-sm text-text-primary transition-all focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               />
             </Field>

@@ -652,7 +652,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
               className="btn primary"
               onClick={send}
               disabled={loading}
-              aria-disabled={loading || !userPrompt.trim()}
+              aria-disabled={loading}
             >
               Send
             </button>

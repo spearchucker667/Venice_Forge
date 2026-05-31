@@ -46,7 +46,7 @@ export function ImageGenerationPreview({
               </div>
             </div>
           ) : draft.currentImages && draft.currentImages.length > 1 ? (
-            <div className={`grid gap-2 p-2 ${draft.currentImages.length <= 2 ? "grid-cols-2" : draft.currentImages.length <= 4 ? "grid-cols-2" : "grid-cols-3"}`}>
+            <div className={`grid gap-2 p-2 ${draft.currentImages.length <= 2 ? "grid-cols-2" : "grid-cols-3"}`}>
               {draft.currentImages.map((savedDoc: GalleryImage, idx: number) => (
                 <button
                   key={savedDoc.id || idx}

@@ -36,20 +36,30 @@ export function getLogPath(): string {
 }
 
 /** @internal exported for testing */
+let logRotationLock = false;
+
 export function ensureLogFile(): void {
   fs.mkdirSync(getLogsDir(), { recursive: true });
   const logPath = getLogPath();
   if (fs.existsSync(logPath) && fs.statSync(logPath).size > MAX_LOG_BYTES) {
-    const b3 = `${logPath}.3`;
-    const b2 = `${logPath}.2`;
-    const b1 = `${logPath}.1`;
-    if (fs.existsSync(b2)) {
-      fs.renameSync(b2, b3);
+    if (logRotationLock) return; // Skip rotation if another thread is rotating
+    logRotationLock = true;
+    try {
+      const b3 = `${logPath}.3`;
+      const b2 = `${logPath}.2`;
+      const b1 = `${logPath}.1`;
+      if (fs.existsSync(b2)) {
+        fs.renameSync(b2, b3);
+      }
+      if (fs.existsSync(b1)) {
+        fs.renameSync(b1, b2);
+      }
+      fs.renameSync(logPath, b1);
+    } catch {
+      // Rotation failure is non-fatal; continue logging to current file
+    } finally {
+      logRotationLock = false;
     }
-    if (fs.existsSync(b1)) {
-      fs.renameSync(b1, b2);
-    }
-    fs.renameSync(logPath, b1);
   }
 }
 
@@ -108,8 +118,11 @@ export function getLastApiError(): string {
 /** Opens the log folder in the system file manager.
  *  @returns An object indicating success and the folder path.
  */
-export async function openLogsFolder(): Promise<{ ok: boolean; path: string }> {
+export async function openLogsFolder(): Promise<{ ok: boolean; path: string; error?: string }> {
   ensureLogFile();
-  await shell.openPath(getLogsDir());
+  const result = await shell.openPath(getLogsDir());
+  if (result) {
+    return { ok: false, path: getLogsDir(), error: result };
+  }
   return { ok: true, path: getLogsDir() };
 }

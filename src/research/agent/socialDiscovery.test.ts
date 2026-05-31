@@ -6,7 +6,7 @@ function makeMockProvider(results: Array<{ title: string; url: string; snippet?:
   return {
     id: "venice",
     label: "Mock",
-    supports: { search: true, scrape: false, socialDiscovery: false, documentParsing: false },
+    supports: { search: true, scrape: false, socialDiscovery: true, documentParsing: false },
     async search() {
       return results.map((r) => ({ provider: "venice" as const, ...r }));
     },
@@ -92,11 +92,22 @@ describe("runSocialDiscovery", () => {
     expect(candidate).not.toHaveProperty("address");
   });
 
+  it("returns error when provider lacks social discovery", async () => {
+    const provider: ResearchProvider = {
+      id: "venice",
+      label: "Mock",
+      supports: { search: true, scrape: false, socialDiscovery: false, documentParsing: false },
+    };
+    const result = await runSocialDiscovery(baseInput, provider);
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/does not support social discovery/i);
+  });
+
   it("returns error when provider lacks search", async () => {
     const provider: ResearchProvider = {
       id: "venice",
       label: "Mock",
-      supports: { search: false, scrape: false, socialDiscovery: false, documentParsing: false },
+      supports: { search: false, scrape: false, socialDiscovery: true, documentParsing: false },
     };
     const result = await runSocialDiscovery(baseInput, provider);
     expect(result.ok).toBe(false);

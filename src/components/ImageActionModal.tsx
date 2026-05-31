@@ -48,9 +48,10 @@ export function ImageActionModal({
 
   if (!image) return null;
 
-  const truncatedAlt = image.prompt?.length > 120
-    ? image.prompt.slice(0, 117) + "…"
-    : image.prompt;
+  const promptText = image.prompt || "Generated image";
+  const truncatedAlt = promptText.length > 120
+    ? promptText.slice(0, 117) + "…"
+    : promptText;
 
   return (
     <div

@@ -70,15 +70,16 @@ function buildHeaders(config: JinaProviderConfig, options?: ScrapeInput["options
     headers["X-Token-Budget"] = String(options.tokenBudget);
   }
 
-  // X-Timeout is in seconds, max 180 per Jina docs.
-  if (options && "timeoutMs" in options && typeof options.timeoutMs === "number" && options.timeoutMs > 0) {
-    const seconds = Math.min(180, Math.ceil(options.timeoutMs / 1000));
-    if (seconds > 0) {
-      headers["X-Timeout"] = String(seconds);
-    }
-  }
-
   return headers;
+}
+
+function buildTimeoutHeader(timeoutMs?: number): Record<string, string> {
+  if (typeof timeoutMs !== "number" || timeoutMs <= 0) return {};
+  const seconds = Math.min(180, Math.ceil(timeoutMs / 1000));
+  if (seconds > 0) {
+    return { "X-Timeout": String(seconds) };
+  }
+  return {};
 }
 
 function buildScrapeUrl(input: ScrapeInput): string {
@@ -249,6 +250,7 @@ export function createJinaProvider(config: JinaProviderConfig = {}): ResearchPro
       const key = config.getApiKey?.();
       if (key) headers["Authorization"] = `Bearer ${key}`;
       headers["Accept"] = "application/json";
+      Object.assign(headers, buildTimeoutHeader(input.timeoutMs));
 
       const data = await jinaFetch(url, headers, input.signal, input.timeoutMs);
       return normalizeSearch(input.query, data);
@@ -257,6 +259,7 @@ export function createJinaProvider(config: JinaProviderConfig = {}): ResearchPro
     async scrape(input: ScrapeInput): Promise<ScrapeResult> {
       const url = buildScrapeUrl(input);
       const headers = buildHeaders(config, input.options);
+      Object.assign(headers, buildTimeoutHeader(input.timeoutMs));
       const data = await jinaFetch(url, headers, input.signal, input.timeoutMs);
       return normalizeReader(input.url, data);
     },

@@ -102,8 +102,8 @@ function isValidMessage(value: unknown): boolean {
   if (typeof value !== "object" || value === null) return false;
   const m = value as Record<string, unknown>;
   if (!isValidId(m.id)) return false;
-  if (typeof m.role !== "string" || !["system", "user", "assistant"].includes(m.role)) return false;
-  if (typeof m.content !== "string") return false;
+  if (typeof m.role !== "string" || !["system", "user", "assistant", "tool"].includes(m.role)) return false;
+  if (typeof m.content !== "string" && !Array.isArray(m.content)) return false;
   if (typeof m.timestamp !== "number") return false;
   return true;
 }
@@ -119,18 +119,30 @@ export async function listConversations(): Promise<Conversation[]> {
     return [];
   }
 
+  // Limit the number of files we process to prevent main-process freeze
+  const jsonFiles = entries.filter((e) => e.isFile() && e.name.endsWith(".json")).slice(0, MAX_LIST_CONVERSATIONS * 2);
+
   const conversations: Conversation[] = [];
-  for (const entry of entries) {
-    if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
-    const filePath = path.join(dir, entry.name);
-    const conv = await readConversationFile(filePath);
-    if (conv) conversations.push(conv);
-    if (conversations.length >= MAX_LIST_CONVERSATIONS) {
-      logWarn(
-        `chat-history directory contains more than ${MAX_LIST_CONVERSATIONS} valid conversations; truncating list. Consider archiving old conversations.`
-      );
-      break;
+  // Process in batches to avoid blocking the main process
+  const BATCH_SIZE = 50;
+  for (let i = 0; i < jsonFiles.length; i += BATCH_SIZE) {
+    const batch = jsonFiles.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(
+      batch.map(async (entry) => {
+        const filePath = path.join(dir, entry.name);
+        return readConversationFile(filePath);
+      })
+    );
+    for (const conv of batchResults) {
+      if (conv) conversations.push(conv);
+      if (conversations.length >= MAX_LIST_CONVERSATIONS) {
+        logWarn(
+          `chat-history directory contains more than ${MAX_LIST_CONVERSATIONS} valid conversations; truncating list. Consider archiving old conversations.`
+        );
+        break;
+      }
     }
+    if (conversations.length >= MAX_LIST_CONVERSATIONS) break;
   }
 
   conversations.sort((a, b) => b.updatedAt - a.updatedAt);

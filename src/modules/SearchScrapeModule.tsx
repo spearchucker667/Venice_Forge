@@ -219,7 +219,8 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
         return;
       }
 
-      setResearchCitations(job.evidence.citations.join("\n"));
+      const citations = Array.isArray(job.evidence?.citations) ? job.evidence.citations : [];
+      setResearchCitations(citations.join("\n"));
 
       const model = state.selectedChatModel || "default";
       let full = "";

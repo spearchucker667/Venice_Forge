@@ -150,11 +150,15 @@ function createWindow(): BrowserWindow {
   }
 
   if (isDev) {
-    win.loadURL("http://localhost:5173").catch((err) => logError("Failed to load Vite dev server", err));
+    win.loadURL("http://localhost:5173").catch((err) => {
+      logError("Failed to load Vite dev server", err);
+      win.loadURL(`data:text/html,<h1>Failed to load dev server</h1><p>${encodeURIComponent(err.message)}</p>`);
+    });
     win.webContents.openDevTools({ mode: "detach" });
   } else {
     win.loadFile(path.join(__dirname, "../../dist/index.html")).catch((err) => {
       logError("Failed to load production renderer", err);
+      win.loadURL(`data:text/html,<h1>Failed to load application</h1><p>${encodeURIComponent(err.message)}</p><p>Please check the logs or reinstall the application.</p>`);
     });
   }
 

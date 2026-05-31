@@ -146,9 +146,10 @@ export function BatchModule({ state, dispatch }: ModuleProps) {
             )
           );
         } else {
+          const normalizedDraft = normalizeImageDraft(state.imageDraft);
           const { data } = await generateImageWithWatermarkFallback(
             state.selectedImageModel,
-            state.imageDraft,
+            normalizedDraft,
             {
               signal: abortRef.current.signal,
               dispatch,
@@ -168,7 +169,6 @@ export function BatchModule({ state, dispatch }: ModuleProps) {
           const images = extractImages(data);
           if (!images.length) throw new Error("No image data returned.");
 
-          const normalizedDraft = normalizeImageDraft(state.imageDraft);
           await StorageService.saveItem("images", {
             id: crypto.randomUUID(),
             image: images[0],

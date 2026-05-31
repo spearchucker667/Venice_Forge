@@ -211,6 +211,8 @@ async function readWithLimit(
     reader.releaseLock();
   }
 
+  // Flush any remaining buffered bytes (e.g. trailing multi-byte UTF-8 chars)
+  buffer += decoder.decode(undefined, { stream: false });
   return buffer;
 }
 

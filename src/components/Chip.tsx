@@ -5,6 +5,7 @@ const toneClasses: Record<string, string> = {
   warn: "text-warning border-warning/30 bg-warning/10",
   danger: "text-danger border-danger/30 bg-danger/10",
   running: "text-accent border-accent/40 bg-accent/10",
+  muted: "text-text-muted border-border/30 bg-surface/50",
   default: "text-text-primary border-border/50 bg-surface/80 shadow-sm"
 };
 
