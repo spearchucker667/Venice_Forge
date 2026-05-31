@@ -8,6 +8,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 
 ## [Unreleased]
 
+### Added
+- **Agentic Chat Workspace:** Complete chat overhaul with attachments, memory, fork/import, and dense UI.
+  - `src/services/memoryService.ts` — persistent memory layer backed by encrypted IndexedDB (`ai_memory` store). Supports `saveMemory`, `searchMemory`, `listMemories`, `deleteMemory`, and `selectMemoriesForInjection` with a 2,000-character budget cap.
+  - `src/services/attachmentService.ts` — file/URL/image attachment reading, validation, downscaling, and assembly. Supports text files (`.txt`, `.md`, `.ts`, `.tsx`, `.json`, `.py`, `.js`, etc.) and images (`PNG`, `JPEG`, `WEBP`). Enforces 256 KiB per-file and 1 MiB total context caps.
+  - `src/types/attachment.ts` — attachment type definitions (`file`, `url`, `image`).
+  - `src/components/AttachmentTray.tsx` — compact dismissible chip tray above the chat input.
+  - **Vision support:** `modelSupportsVision()` in `src/constants/venice.ts` uses a documented allowlist + regex fallback (with TODO for live API capability flag). Image attachments are passed as base64 `image_url` content parts when the selected model supports vision.
+  - **Safety guard on assembled payload:** `send()` in `ChatModule.tsx` now assembles all injected text (memory block + attachment context + user prompt) and runs `assessChildExploitationSafety` on the complete text before every Venice call, including the memory-summary sub-call.
+  - **Fork / Plug-in:** Conversations gain `parentConversationId` and `forkedFromMessageIds` fields. Per-message checkboxes in fork mode create a new conversation pre-seeded with selected messages. Import picker allows copying messages from other conversations with `<imported_context>` rendered label.
+  - **Dense chat layout:** Two-column full-height workspace (200px collapsible sidebar). Compact message bubbles (user right-aligned with subtle fill, assistant left-aligned with left border accent). Slim toolbar with inline-editable title, model selector, and overflow menu. Auto-expanding input textarea.
+  - **Code block copy buttons:** `Markdown` component now renders a ⎘ copy button on hover for each `<pre><code>` block.
+  - **Command palette:** `/` trigger in the input opens `/attach`, `/image`, and `/search` command buttons.
+  - `electron/ipc/handlers.ts` — new `app:readLocalFile` IPC handler for desktop file attachment reads (256 KiB cap, path traversal blocked).
+  - `src/services/desktopBridge.ts` — `desktopFileReader.readLocalFile()` bridge method.
+  - `src/utils/payloadBuilders.ts` — `buildChatPayload` accepts optional `memoryBlock` parameter; `ChatMessageContent` union supports string and vision content-part arrays.
+  - `src/services/exportImport.ts` — sanitizes `parentConversationId` and `forkedFromMessageIds` on conversation import; fields round-trip through export→import.
+
+### Changed
+- `src/constants/venice.ts` — bumped `DB_VERSION` from 2 → 3; added `ai_memory` to `STORE_NAMES`; added `VISION_CAPABLE_MODEL_IDS`, `VISION_CAPABLE_PATTERNS`, `modelSupportsVision()`, and attachment size constants.
+- `src/services/storageService.ts` — `ai_memory` added to `ENCRYPTED_STORES`.
+- `src/types/conversation.ts` — `Conversation` interface extended with `parentConversationId?` and `forkedFromMessageIds?`.
+- `src/modules/ChatModule.tsx` — major rewrite preserving all 28 existing features (model switching, streaming, markdown, persistence, system prompt, web search/scrape/citations, character slug, reasoning effort, strip think, disable thinking, xAI web+X search, conversation sidebar, new chat, rename, delete, copy last response, clear, cancel, keyboard shortcut, auto-scroll, loading indicator, safety guard, fallback model block, empty prompt validation, auto-title derivation).
+
 ## [1.0.3] — 2026-05-30
 
 ### Security

@@ -9,7 +9,7 @@ type StoreName = (typeof STORE_NAMES)[number];
 /** List of store names whose records are encrypted before persistence. */
 // diagnostics is intentionally excluded: it stores sanitized timing/status metadata
 // only (no raw prompts, no API keys), so encryption overhead is not warranted.
-const ENCRYPTED_STORES: StoreName[] = ["chats", "settings", "images", "conversations"];
+const ENCRYPTED_STORES: StoreName[] = ["chats", "settings", "images", "conversations", "ai_memory"];
 
 export interface GetItemsResult<T = unknown> {
   items: T[];

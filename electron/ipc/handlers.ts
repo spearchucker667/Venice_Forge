@@ -318,6 +318,35 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle("app:readLocalFile", async (_event, filePath: unknown) => {
+    try {
+      if (typeof filePath !== "string" || filePath.length > 4096 || filePath.includes("\0")) {
+        return { ok: false, error: "Invalid file path." };
+      }
+      const resolved = path.resolve(filePath);
+      // Prevent obvious path traversal
+      if (resolved.includes("..")) {
+        return { ok: false, error: "Path traversal detected." };
+      }
+      const stat = await fs.stat(resolved).catch(() => null);
+      if (!stat) {
+        return { ok: false, error: "File not found." };
+      }
+      if (!stat.isFile()) {
+        return { ok: false, error: "Not a regular file." };
+      }
+      // 256 KiB cap for text attachments
+      const MAX_TEXT_ATTACHMENT_BYTES = 256 * 1024;
+      if (stat.size > MAX_TEXT_ATTACHMENT_BYTES) {
+        return { ok: false, error: `File too large (${stat.size} bytes). Max: ${MAX_TEXT_ATTACHMENT_BYTES} bytes.` };
+      }
+      const content = await fs.readFile(resolved, { encoding: "utf-8" });
+      return { ok: true, content };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
   ipcMain.handle("chat:list", async () => {
     try {
       const conversations = await listConversations();

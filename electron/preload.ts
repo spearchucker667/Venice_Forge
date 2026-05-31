@@ -150,6 +150,13 @@ const veniceForge = {
     loadJsonFile(): Promise<{ ok: boolean; canceled: boolean; data?: string; error?: string }> {
       return ipcRenderer.invoke("app:loadJsonFile");
     },
+    /** Reads a local file directly (for attachment import).
+     *  @param filePath Absolute path to the file.
+     *  @returns A promise resolving with the file contents.
+     */
+    readLocalFile(filePath: string): Promise<{ ok: boolean; content?: string; error?: string }> {
+      return ipcRenderer.invoke("app:readLocalFile", filePath);
+    },
   },
 
   chat: {

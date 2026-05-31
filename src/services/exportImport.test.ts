@@ -184,4 +184,43 @@ describe("export/import schema validation", () => {
       expect(result.summary.skippedRecords).toBe(1);
     }
   });
+
+  /** Verifies that fork lineage fields round-trip through export and import. */
+  it("round-trips conversation fork lineage", () => {
+    const conversation = {
+      id: "conv-2",
+      title: "Forked Chat",
+      createdAt: 1,
+      updatedAt: 2,
+      model: "venice-uncensored",
+      messages: [{ id: "m1", role: "user" as const, content: "hi", timestamp: 1 }],
+      parentConversationId: "conv-1",
+      forkedFromMessageIds: ["m1"],
+    };
+
+    const payload = createExportPayload({ conversations: [conversation] }, "1.0.0");
+    const imported = validateImportJson(JSON.stringify(payload));
+    const conv = imported.payload.data.conversations[0];
+    expect(conv.parentConversationId).toBe("conv-1");
+    expect(conv.forkedFromMessageIds).toEqual(["m1"]);
+  });
+
+  it("sanitizes invalid fork lineage fields on import", () => {
+    const conversation = {
+      id: "conv-2",
+      title: "Bad Fork",
+      createdAt: 1,
+      updatedAt: 2,
+      model: "venice-uncensored",
+      messages: [{ id: "m1", role: "user" as const, content: "hi", timestamp: 1 }],
+      parentConversationId: 123,
+      forkedFromMessageIds: ["m1", 456, "m2"],
+    };
+
+    const payload = createExportPayload({ conversations: [conversation] }, "1.0.0");
+    const imported = validateImportJson(JSON.stringify(payload));
+    const conv = imported.payload.data.conversations[0];
+    expect(conv).not.toHaveProperty("parentConversationId");
+    expect(conv.forkedFromMessageIds).toEqual(["m1", "m2"]);
+  });
 });

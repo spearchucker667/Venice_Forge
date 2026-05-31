@@ -104,3 +104,55 @@ describe("buildImagePayload", () => {
     expect(payload.cfg_scale).toBe(1);
   });
 });
+
+/** Tests for memory block injection in buildChatPayload. */
+describe("buildChatPayload with memory block", () => {
+  it("prepends a memory system message when memoryBlock is provided", () => {
+    const payload = buildChatPayload(
+      "venice-uncensored",
+      [{ role: "user", content: "hello" }],
+      {},
+      {},
+      "Memory A\nMemory B"
+    );
+    const messages = payload.messages as Array<{ role: string; content: string }>;
+    expect(messages[0].role).toBe("system");
+    expect(messages[0].content).toContain("<memory>");
+    expect(messages[0].content).toContain("Memory A");
+    expect(messages[1].role).toBe("user");
+  });
+
+  it("does not add a system message when memoryBlock is empty", () => {
+    const payload = buildChatPayload(
+      "venice-uncensored",
+      [{ role: "user", content: "hello" }],
+      {},
+      {},
+      ""
+    );
+    const messages = payload.messages as Array<{ role: string; content: string }>;
+    expect(messages.length).toBe(1);
+    expect(messages[0].role).toBe("user");
+  });
+
+  it("supports array content for vision-capable models", () => {
+    const payload = buildChatPayload(
+      "llama-3.2-11b-vision",
+      [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Describe this image" },
+            { type: "image_url", image_url: { url: "data:image/png;base64,abc", detail: "low" } },
+          ],
+        },
+      ],
+      {}
+    );
+    const messages = payload.messages as Array<{ role: string; content: unknown }>;
+    expect(Array.isArray(messages[0].content)).toBe(true);
+    const parts = messages[0].content as Array<{ type: string }>;
+    expect(parts[0].type).toBe("text");
+    expect(parts[1].type).toBe("image_url");
+  });
+});

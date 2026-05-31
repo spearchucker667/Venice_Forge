@@ -17,6 +17,10 @@ export interface Conversation {
   model: string;
   systemPrompt?: string;
   messages: ConversationMessage[];
+  /** Parent conversation id when this conversation was forked. */
+  parentConversationId?: string;
+  /** Message ids that were selected when forking. */
+  forkedFromMessageIds?: string[];
 }
 
 /** Shape of a conversation as stored on disk by the main process. */

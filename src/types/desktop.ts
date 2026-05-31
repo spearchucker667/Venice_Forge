@@ -68,6 +68,7 @@ export interface VeniceForgeApp {
 export interface VeniceForgeFiles {
   saveJsonFile(data: string, defaultPath?: string): Promise<{ ok: boolean; canceled: boolean }>;
   loadJsonFile(): Promise<{ ok: boolean; canceled: boolean; data?: string; error?: string }>;
+  readLocalFile(filePath: string): Promise<{ ok: boolean; content?: string; error?: string }>;
 }
 
 /** Exposes Auto-Update helpers available through the preload bridge. */

@@ -1,9 +1,24 @@
 /** @fileoverview Shared payload builders for Venice API chat and image requests. */
 
+/** A content part for vision-capable models. */
+export interface ImageContentPart {
+  type: "image_url";
+  image_url: { url: string; detail?: "low" | "high" | "auto" };
+}
+
+/** A text content part. */
+export interface TextContentPart {
+  type: "text";
+  text: string;
+}
+
+/** Content for a single message — string for text-only models, array for vision. */
+export type ChatMessageContent = string | (TextContentPart | ImageContentPart)[];
+
 /** Represents a single message in a chat conversation. */
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
-  content: string;
+  content: ChatMessageContent;
 }
 
 /** Configures Venice-specific chat behaviour such as web search and citations. */
@@ -47,15 +62,34 @@ export function normalizeWebSearchMode(value: unknown): "off" | "on" | "auto" {
  * @param options Optional flags for streaming, characters, and reasoning.
  * @returns A record ready to be serialised and sent to /chat/completions.
  */
+/** Builds a system message from a plain string. */
+function makeSystemMessage(text: string): ChatMessage {
+  return { role: "system", content: text };
+}
+
+/** Builds a complete chat completion payload for the Venice API.
+ *
+ * @param model The target model identifier.
+ * @param messages An ordered array of chat messages.
+ * @param settings Venice-specific behaviour settings.
+ * @param options Optional flags for streaming, characters, and reasoning.
+ * @param memoryBlock Optional memory block text to prepend as a system message.
+ * @returns A record ready to be serialised and sent to /chat/completions.
+ */
 export function buildChatPayload(
   model: string,
   messages: ChatMessage[],
   settings: ChatSettings,
-  options: ChatPayloadOptions = {}
+  options: ChatPayloadOptions = {},
+  memoryBlock?: string
 ): Record<string, unknown> {
+  const assembled: ChatMessage[] = memoryBlock
+    ? [makeSystemMessage(`<memory>\n${memoryBlock}\n</memory>`), ...messages]
+    : [...messages];
+
   const payload: Record<string, unknown> = {
     model,
-    messages,
+    messages: assembled,
     venice_parameters: {
       include_venice_system_prompt: !!settings.includeVeniceSystemPrompt,
       // Venice requires string enum "auto" | "off" | "on" — never a boolean.

@@ -127,6 +127,16 @@ function sanitizeRecord(store: ExportStore, value: unknown): Record<string, unkn
     if (typeof record.title !== "string") return null;
     if (!Array.isArray(record.messages)) return null;
     if (typeof record.model !== "string") return null;
+    if (record.parentConversationId !== undefined && typeof record.parentConversationId !== "string") {
+      delete record.parentConversationId;
+    }
+    if (record.forkedFromMessageIds !== undefined) {
+      if (Array.isArray(record.forkedFromMessageIds)) {
+        record.forkedFromMessageIds = record.forkedFromMessageIds.filter((id: unknown) => typeof id === "string");
+      } else {
+        delete record.forkedFromMessageIds;
+      }
+    }
   }
 
   if (store === "settings" && !isPlainObject(record.value)) return null;

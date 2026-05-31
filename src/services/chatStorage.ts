@@ -15,7 +15,11 @@ function makeId(): string {
 }
 
 /** Creates a new empty conversation with sensible defaults. */
-export function createConversation(model: string, systemPrompt: string): Conversation {
+export function createConversation(
+  model: string,
+  systemPrompt: string,
+  options?: { parentConversationId?: string; forkedFromMessageIds?: string[] }
+): Conversation {
   const now = Date.now();
   return {
     id: makeId(),
@@ -25,6 +29,8 @@ export function createConversation(model: string, systemPrompt: string): Convers
     model,
     systemPrompt,
     messages: [],
+    parentConversationId: options?.parentConversationId,
+    forkedFromMessageIds: options?.forkedFromMessageIds,
   };
 }
 

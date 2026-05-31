@@ -1,37 +1,72 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { veniceFetch, veniceStreamChat } from "../services/veniceClient";
 import { assessChildExploitationSafety, recordDecision } from "../shared/safety";
-import { DEFAULT_SYSTEM_PROMPT } from "../constants/venice";
+import {
+  DEFAULT_SYSTEM_PROMPT,
+  modelSupportsVision,
+  MAX_ATTACHMENTS_PER_MESSAGE,
+} from "../constants/venice";
 import { Markdown } from "../utils/markdown";
 import { copyText } from "../utils/download";
-import { buildChatPayload } from "../utils/payloadBuilders";
+import { buildChatPayload, type ChatMessageContent } from "../utils/payloadBuilders";
 import { isValidChatResponse } from "../utils/veniceValidation";
 import { Field } from "../components/Field";
 import { ModelSelect } from "../components/ModelSelect";
 import { ModelRefreshButton } from "../components/ModelRefreshButton";
-import { DiagPreview } from "../components/DiagnosticsPreview";
+// import { DiagPreview } from "../components/DiagnosticsPreview";
 import { StatusBlock } from "../components/StatusBlock";
 import { CollapsibleSection } from "../components/CollapsibleSection";
 import { ConfirmModal } from "../components/ConfirmModal";
+import { AttachmentTray } from "../components/AttachmentTray";
 import { ModuleProps } from "../types/app";
 import type { Conversation, ConversationMessage } from "../types/conversation";
+import type { Attachment } from "../types/attachment";
 import {
   createConversation,
   saveConversation,
   deleteConversation,
   deriveTitle,
 } from "../services/chatStorage";
+import {
+  processFileAttachment,
+  scrapeUrlAttachment,
+  assembleAttachmentContext,
+} from "../services/attachmentService";
+import {
+  saveMemory,
+  selectMemoriesForInjection,
+  listMemories,
+  deleteMemory,
+  type MemoryBlock,
+} from "../services/memoryService";
+import type { Memory } from "../services/memoryService";
 
 interface ChatUiMessage {
   id: string;
   role: "system" | "user" | "assistant";
   content: string;
+  importedFrom?: string;
+}
+
+function buildMessageContent(
+  text: string,
+  images: Array<{ name: string; dataUrl: string }>,
+  supportsVision: boolean
+): ChatMessageContent {
+  if (!images.length || !supportsVision) return text;
+  const parts: ChatMessageContent = [
+    { type: "text", text },
+    ...images.map((img) => ({
+      type: "image_url" as const,
+      image_url: { url: img.dataUrl, detail: "auto" as const },
+    })),
+  ];
+  return parts;
 }
 
 export function ChatModule({ state, dispatch }: ModuleProps) {
   const conversations = state.conversations;
   const activeId = state.activeConversationId;
-
   const activeConversation = conversations.find((c) => c.id === activeId) || null;
 
   const [systemPrompt, setSystemPrompt] = useState(
@@ -61,6 +96,23 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
   const runIdRef = useRef(0);
   const endRef = useRef<HTMLDivElement>(null);
 
+  // New state for P2/P3 features
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [attachmentNotices, setAttachmentNotices] = useState<string[]>([]);
+  const [memoryPanelOpen, setMemoryPanelOpen] = useState(false);
+  const [forkMode, setForkMode] = useState(false);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showImportPicker, setShowImportPicker] = useState(false);
+  const [_importSelectedIds, _setImportSelectedIds] = useState<Set<string>>(new Set());
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [memories, setMemories] = useState<Memory[]>([]);
+  const [importStage, setImportStage] = useState<"select-conv" | "select-messages">("select-conv");
+  const [importConversationId, setImportConversationId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   // Sync local messages when active conversation changes
   useEffect(() => {
     if (activeConversation) {
@@ -82,6 +134,10 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
       ]);
       setSystemPrompt(state.settings.defaultSystemPrompt);
     }
+    setAttachments([]);
+    setAttachmentNotices([]);
+    setSelectedMessageIds(new Set());
+    setForkMode(false);
   }, [activeId, state.settings.defaultSystemPrompt, conversations]);
 
   useEffect(() => {
@@ -153,35 +209,68 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
       return;
     }
     setError("");
-    // Advisory safety check — records audit decision before blocking.
-    const guardDecision = assessChildExploitationSafety({ text: trimmedPrompt, endpoint: "/chat/completions", method: "POST", source: "chat" });
+    setAttachmentNotices([]);
+
+    // Assemble attachments
+    const attachCtx = assembleAttachmentContext(attachments);
+    setAttachmentNotices(attachCtx.notices);
+
+    // Select memories for injection
+    let memoryBlock: MemoryBlock = { text: "", used: 0, truncated: false };
+    try {
+      memoryBlock = await selectMemoriesForInjection(activeConversation?.id);
+    } catch {
+      // Memory is advisory — continue without it on error
+    }
+
+    // Build the full text for safety guard (user prompt + attachment text + memory)
+    const assembledText = [memoryBlock.text, attachCtx.text, trimmedPrompt]
+      .filter(Boolean)
+      .join("\n\n");
+
+    // Safety guard on the FINAL assembled payload
+    const guardDecision = assessChildExploitationSafety({
+      text: assembledText,
+      endpoint: "/chat/completions",
+      method: "POST",
+      source: "chat",
+    });
     recordDecision(guardDecision);
     if (!guardDecision.allow || guardDecision.action === "block") {
       setError(guardDecision.userMessage);
       return;
     }
+
     abortRef.current?.abort();
     setLoading(true);
     const runId = ++runIdRef.current;
 
     const conv = await ensureActiveConversation();
 
+    const supportsVision = modelSupportsVision(state.selectedChatModel);
+    const userContent = buildMessageContent(trimmedPrompt, attachCtx.images, supportsVision);
     const userMessage: ChatUiMessage = { id: crypto.randomUUID(), role: "user", content: trimmedPrompt };
-    const conversation = [
-      { role: "system" as const, content: systemPrompt || DEFAULT_SYSTEM_PROMPT },
-      ...messages.filter((m) => ["user", "assistant"].includes(m.role)),
-      userMessage,
+
+    const history: Array<{ role: "system" | "user" | "assistant"; content: ChatMessageContent }> = [
+      { role: "system", content: systemPrompt || DEFAULT_SYSTEM_PROMPT },
+      ...messages.filter((m) => ["user", "assistant"].includes(m.role)).map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content as ChatMessageContent,
+      })),
+      { role: "user", content: userContent },
     ];
+
     setMessages((prev) => [
       ...prev,
       userMessage,
       { id: crypto.randomUUID(), role: "assistant", content: "" } as ChatUiMessage,
     ]);
     setUserPrompt("");
+    setAttachments([]);
 
     const payload = buildChatPayload(
       state.selectedChatModel,
-      conversation,
+      history,
       {
         includeVeniceSystemPrompt,
         webSearch,
@@ -195,7 +284,8 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
         enableXSearch,
         stripThinking,
         disableThinking,
-      }
+      },
+      memoryBlock.text || undefined
     );
 
     abortRef.current = new AbortController();
@@ -331,29 +421,200 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     setRenameValue("");
   }
 
+  async function handleSaveToMemory(content: string) {
+    try {
+      // Summarize via a short Venice call (safety-guarded by veniceFetch)
+      const { data } = await veniceFetch("/chat/completions", {
+        method: "POST",
+        body: {
+          model: state.selectedChatModel,
+          messages: [
+            { role: "system", content: "Summarize the following into one concise sentence." },
+            { role: "user", content: content.slice(0, 4000) },
+          ],
+        },
+      });
+      const summary =
+        (data as unknown as { choices?: Array<{ message?: { content?: string } }> })?.choices?.[0]?.message?.content ||
+        content.slice(0, 200);
+      await saveMemory(summary, ["chat"], activeConversation?.id);
+      dispatch({
+        type: "ADD_TOAST",
+        toast: { id: crypto.randomUUID(), message: "Saved to memory.", type: "success" },
+      });
+    } catch {
+      dispatch({
+        type: "ADD_TOAST",
+        toast: { id: crypto.randomUUID(), message: "Failed to save memory.", type: "error" },
+      });
+    }
+  }
+
+  async function handleFork() {
+    if (!activeConversation || selectedMessageIds.size === 0) return;
+    const selectedMessages = messages.filter((m) => selectedMessageIds.has(m.id));
+    const conv = createConversation(
+      state.selectedChatModel,
+      systemPrompt || DEFAULT_SYSTEM_PROMPT,
+      {
+        parentConversationId: activeConversation.id,
+        forkedFromMessageIds: Array.from(selectedMessageIds),
+      }
+    );
+    conv.messages = selectedMessages.map((m): ConversationMessage => ({
+      id: m.id,
+      role: m.role,
+      content: m.content,
+      timestamp: Date.now(),
+    }));
+    conv.model = state.selectedChatModel;
+    await saveConversation(conv);
+    const updated = [conv, ...state.conversations];
+    dispatch({ type: "SET_CONVERSATIONS", items: updated });
+    dispatch({ type: "SET_ACTIVE_CONVERSATION", id: conv.id });
+    setForkMode(false);
+    setSelectedMessageIds(new Set());
+  }
+
+  async function loadMemories() {
+    try {
+      const items = await listMemories();
+      setMemories(items);
+    } catch {
+      setMemories([]);
+    }
+  }
+
+  async function handleDeleteMemory(id: string) {
+    try {
+      await deleteMemory(id);
+      setMemories((prev) => prev.filter((m) => m.id !== id));
+    } catch {
+      dispatch({
+        type: "ADD_TOAST",
+        toast: { id: crypto.randomUUID(), message: "Failed to delete memory.", type: "error" },
+      });
+    }
+  }
+
+  async function handleImportMessages() {
+    if (!importConversationId || !activeConversation) return;
+    const source = conversations.find((c) => c.id === importConversationId);
+    if (!source) return;
+    const selected = source.messages.filter((m) => _importSelectedIds.has(m.id));
+    if (!selected.length) {
+      setShowImportPicker(false);
+      return;
+    }
+    const imported: ChatUiMessage[] = selected.map((m) => ({
+      id: crypto.randomUUID(),
+      role: m.role as "user" | "assistant",
+      content: m.content,
+      importedFrom: source.title,
+    }));
+    const nextMessages = [...messages, ...imported];
+    setMessages(nextMessages);
+    await persistMessages(activeConversation, nextMessages);
+    setShowImportPicker(false);
+    setImportConversationId(null);
+    _setImportSelectedIds(new Set());
+    setImportStage("select-conv");
+  }
+
+  function toggleMessageSelection(id: string) {
+    setSelectedMessageIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleFileDrop(e: React.DragEvent) {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files);
+    await addFileAttachments(files);
+  }
+
+  async function addFileAttachments(files: File[]) {
+    const newAttachments: Attachment[] = [];
+    for (const file of files) {
+      if (attachments.length + newAttachments.length >= MAX_ATTACHMENTS_PER_MESSAGE) break;
+      try {
+        const att = await processFileAttachment(file);
+        newAttachments.push(att);
+      } catch (err) {
+        setAttachmentNotices((prev) => [...prev, err instanceof Error ? err.message : String(err)]);
+      }
+    }
+    setAttachments((prev) => [...prev, ...newAttachments]);
+  }
+
+  async function handleAttachUrl() {
+    const url = window.prompt("Enter URL to attach:");
+    if (!url) return;
+    try {
+      const att = await scrapeUrlAttachment(url);
+      setAttachments((prev) => [...prev, att].slice(0, MAX_ATTACHMENTS_PER_MESSAGE));
+    } catch (err) {
+      setAttachmentNotices((prev) => [...prev, err instanceof Error ? err.message : String(err)]);
+    }
+  }
+
+  function handleCommand(cmd: string) {
+    setCommandPaletteOpen(false);
+    const c = cmd.trim().toLowerCase();
+    if (c === "/attach" || c === "attach") {
+      fileInputRef.current?.click();
+    } else if (c === "/image" || c === "image") {
+      imageInputRef.current?.click();
+    } else if (c === "/search" || c === "search") {
+      handleAttachUrl();
+    } else {
+      setError(`Unknown command: ${cmd}. Available: /attach, /image, /search`);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      send();
+      return;
+    }
+    if (e.key === "/" && !userPrompt) {
+      setCommandPaletteOpen(true);
+    }
+  }
+
   const lastAssistant = [...messages]
     .reverse()
     .find((m) => m.role === "assistant" && m.content);
 
+  const supportsVision = modelSupportsVision(state.selectedChatModel);
+
   return (
     <section className="flex h-full bg-bg">
-      {/* Conversation sidebar */}
-      <aside className="w-64 min-w-[16rem] border-r border-border/50 bg-bg/40 flex flex-col">
-        <div className="p-4 border-b border-border/50">
+      {/* Left sidebar */}
+      <aside
+        className={`flex flex-col border-r border-border/50 bg-bg/40 transition-all duration-200 ${
+          sidebarCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-[200px] opacity-100"
+        }`}
+      >
+        <div className="flex items-center justify-between px-2 py-1.5 border-b border-border/50">
           <button
-            className="w-full btn primary text-sm"
+            className="text-xs font-medium text-accent hover:text-accent-hover"
             onClick={handleNewChat}
           >
             + New Chat
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+        <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
           {conversations.map((conv) => {
             const isActive = conv.id === activeId;
             return (
               <div
                 key={conv.id}
-                className={`group flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer transition-colors ${
+                className={`group flex items-center gap-1 rounded px-2 py-1 cursor-pointer transition-colors ${
                   isActive
                     ? "bg-accent/20 border border-accent/30"
                     : "hover:bg-surface-elevated/60 border border-transparent"
@@ -363,7 +624,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
                 {renamingId === conv.id ? (
                   <input
                     autoFocus
-                    className="flex-1 min-w-0 bg-surface/60 border border-border/50 rounded px-2 py-1 text-sm text-text-primary"
+                    className="flex-1 min-w-0 bg-surface/60 border border-border/50 rounded px-1.5 py-0.5 text-xs text-text-primary"
                     value={renameValue}
                     onChange={(e) => setRenameValue(e.target.value)}
                     onBlur={() => handleRenameSubmit(conv)}
@@ -379,7 +640,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
                 ) : (
                   <>
                     <span
-                      className="flex-1 min-w-0 truncate text-sm font-medium text-text-primary"
+                      className="flex-1 min-w-0 truncate text-xs font-medium text-text-primary"
                       onDoubleClick={() => {
                         setRenamingId(conv.id);
                         setRenameValue(conv.title);
@@ -389,7 +650,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
                       {conv.title}
                     </span>
                     <button
-                      className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger transition-opacity text-xs px-1"
+                      className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger transition-opacity text-[10px] px-0.5"
                       onClick={(e) => {
                         e.stopPropagation();
                         setDeleteTarget(conv);
@@ -404,39 +665,99 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
             );
           })}
           {conversations.length === 0 && (
-            <div className="flex flex-col items-center justify-center gap-3 px-3 py-8 text-center">
-              <img
-                src="./assets/branding/venice-keys-red.svg"
-                alt=""
-                className="h-10 w-10 opacity-20"
-                aria-hidden="true"
-              />
-              <div className="text-sm text-text-muted">
+            <div className="flex flex-col items-center justify-center gap-2 px-2 py-6 text-center">
+              <div className="text-xs text-text-muted">
                 No conversations yet.
                 <br />
-                Start a new chat to begin.
+                Start a new chat.
               </div>
             </div>
           )}
         </div>
       </aside>
 
+      {/* Main chat area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex-none p-6 border-b border-border/50 bg-bg/50 backdrop-blur-md">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-display font-semibold tracking-tight text-text-primary">Chat</h2>
-              <div className="text-sm text-text-secondary mt-1">
-                POST /chat/completions, non-streaming by default.
-              </div>
-            </div>
-            <DiagPreview diagnostics={state.diagnostics} />
+        {/* Toolbar */}
+        <div className="flex-none h-8 flex items-center gap-2 px-2 border-b border-border/50 bg-bg/50">
+          <button
+            className="text-text-muted hover:text-text-primary text-xs px-1"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {sidebarCollapsed ? "»" : "«"}
+          </button>
+
+          {renamingId === "toolbar-title" ? (
+            <input
+              autoFocus
+              className="flex-1 min-w-0 bg-transparent border-b border-accent text-xs text-text-primary outline-none"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onBlur={() => {
+                if (activeConversation) handleRenameSubmit(activeConversation);
+                setRenamingId(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && activeConversation) handleRenameSubmit(activeConversation);
+                if (e.key === "Escape") {
+                  setRenamingId(null);
+                  setRenameValue("");
+                }
+              }}
+            />
+          ) : (
+            <span
+              className="flex-1 min-w-0 truncate text-xs font-medium text-text-primary cursor-pointer"
+              onClick={() => {
+                if (activeConversation) {
+                  setRenamingId("toolbar-title");
+                  setRenameValue(activeConversation.title);
+                }
+              }}
+              title={activeConversation?.title || "New Chat"}
+            >
+              {activeConversation?.title || "New Chat"}
+            </span>
+          )}
+
+          <ModelSelect
+            value={state.selectedChatModel}
+            models={state.models.text}
+            onChange={(model) => dispatch({ type: "SET_SELECTED_CHAT_MODEL", model })}
+          />
+
+          <button
+            className="text-text-muted hover:text-text-primary text-xs px-1"
+            onClick={() => setMemoryPanelOpen(!memoryPanelOpen)}
+            aria-label="Memory panel"
+            title="Memory"
+          >
+            🧠
+          </button>
+
+          <div className="relative">
+            <button
+              className="text-text-muted hover:text-text-primary text-xs px-1"
+              onClick={() => setForkMode(!forkMode)}
+              aria-label="Toggle fork mode"
+              title="Fork"
+            >
+              {forkMode ? "✓" : "⋯"}
+            </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 min-h-0">
+        {/* Messages + Settings */}
+        <div
+          className="flex-1 overflow-y-auto flex flex-col gap-2 min-h-0 px-3 py-2"
+          onDrop={handleFileDrop}
+          onDragOver={(e) => e.preventDefault()}
+        >
+          {/* Model & Settings — kept for test parity */}
           <CollapsibleSection title="Model & Settings">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-1">
               <Field label="Model">
                 <ModelSelect
                   value={state.selectedChatModel}
@@ -451,32 +772,32 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
                   value={characterSlug}
                   onChange={(e) => setCharacterSlug(e.target.value)}
                   placeholder="alan-watts"
-                  className="w-full bg-surface/50 border border-border/50 rounded-lg px-4 py-2.5 text-text-primary placeholder-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+                  className="w-full bg-surface/50 border border-border/50 rounded-lg px-3 py-2 text-xs text-text-primary placeholder-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
                 />
               </Field>
             </div>
 
-            <div className="mt-4 p-1">
+            <div className="mt-2 p-1">
               <ModelRefreshButton state={state} dispatch={dispatch} />
             </div>
 
-            <div className="mt-6 p-1">
+            <div className="mt-4 p-1">
               <Field label="System prompt">
                 <textarea
                   value={systemPrompt}
                   onChange={(e) => setSystemPrompt(e.target.value)}
                   rows={3}
-                  className="w-full bg-surface/50 border border-border/50 rounded-lg px-4 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all min-h-[80px]"
+                  className="w-full bg-surface/50 border border-border/50 rounded-lg px-3 py-2 text-xs text-text-primary placeholder-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all min-h-[60px]"
                 />
               </Field>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 p-1">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 p-1">
               <Field label="Web search">
                 <select
                   value={webSearch}
                   onChange={(e) => setWebSearch(e.target.value)}
-                  className="w-full bg-surface/50 border border-border/50 rounded-lg px-4 py-2.5 text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none"
+                  className="w-full bg-surface/50 border border-border/50 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none"
                 >
                   <option value="off">off</option>
                   <option value="on">on</option>
@@ -484,59 +805,59 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
                 </select>
               </Field>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">Venice parameters</label>
-                <div className="flex flex-col gap-3 p-3 rounded-xl border border-border/50 bg-surface-elevated/40 backdrop-blur-sm">
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                <label className="block text-xs font-medium text-text-secondary mb-1">Venice parameters</label>
+                <div className="flex flex-col gap-2 p-2 rounded-lg border border-border/50 bg-surface-elevated/40">
+                  <label className="flex items-center gap-2 cursor-pointer group">
                     <input
                       type="checkbox"
                       checked={webScraping}
                       onChange={(e) => setWebScraping(e.target.checked)}
-                      className="w-4 h-4 rounded border-border/50 bg-surface/60 text-accent focus:ring-accent/50"
+                      className="w-3 h-3 rounded border-border/50 bg-surface/60 text-accent focus:ring-accent/50"
                     />
-                    <span className="text-sm font-medium text-text-secondary group-hover:text-text-primary transition-colors">Web scraping</span>
+                    <span className="text-xs font-medium text-text-secondary group-hover:text-text-primary transition-colors">Web scraping</span>
                   </label>
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                  <label className="flex items-center gap-2 cursor-pointer group">
                     <input
                       type="checkbox"
                       checked={webCitations}
                       onChange={(e) => setWebCitations(e.target.checked)}
-                      className="w-4 h-4 rounded border-border/50 bg-surface/60 text-accent focus:ring-accent/50"
+                      className="w-3 h-3 rounded border-border/50 bg-surface/60 text-accent focus:ring-accent/50"
                     />
-                    <span className="text-sm font-medium text-text-secondary group-hover:text-text-primary transition-colors">Citations</span>
+                    <span className="text-xs font-medium text-text-secondary group-hover:text-text-primary transition-colors">Citations</span>
                   </label>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">Response mode</label>
-                <div className="flex flex-col gap-3 p-3 rounded-xl border border-border/50 bg-surface-elevated/40 backdrop-blur-sm">
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                <label className="block text-xs font-medium text-text-secondary mb-1">Response mode</label>
+                <div className="flex flex-col gap-2 p-2 rounded-lg border border-border/50 bg-surface-elevated/40">
+                  <label className="flex items-center gap-2 cursor-pointer group">
                     <input
                       type="checkbox"
                       checked={includeVeniceSystemPrompt}
                       onChange={(e) => setIncludeVeniceSystemPrompt(e.target.checked)}
-                      className="w-4 h-4 rounded border-border/50 bg-surface/60 text-accent focus:ring-accent/50"
+                      className="w-3 h-3 rounded border-border/50 bg-surface/60 text-accent focus:ring-accent/50"
                     />
-                    <span className="text-sm font-medium text-text-secondary group-hover:text-text-primary transition-colors">Include Venice system prompt</span>
+                    <span className="text-xs font-medium text-text-secondary group-hover:text-text-primary transition-colors">Include Venice system prompt</span>
                   </label>
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                  <label className="flex items-center gap-2 cursor-pointer group">
                     <input
                       type="checkbox"
                       checked={stream}
                       onChange={(e) => setStream(e.target.checked)}
-                      className="w-4 h-4 rounded border-border/50 bg-surface/60 text-accent focus:ring-accent/50"
+                      className="w-3 h-3 rounded border-border/50 bg-surface/60 text-accent focus:ring-accent/50"
                     />
-                    <span className="text-sm font-medium text-text-secondary group-hover:text-text-primary transition-colors">Stream response</span>
+                    <span className="text-xs font-medium text-text-secondary group-hover:text-text-primary transition-colors">Stream response</span>
                   </label>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 p-1">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 p-1">
               <Field label="Reasoning effort">
                 <select
                   value={reasoningEffort}
                   onChange={(e) => setReasoningEffort(e.target.value)}
-                  className="w-full bg-surface/50 border border-border/50 rounded-lg px-4 py-2.5 text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none"
+                  className="w-full bg-surface/50 border border-border/50 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none"
                 >
                   <option value="">(model default)</option>
                   <option value="none">none</option>
@@ -549,130 +870,466 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
                 </select>
               </Field>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">Reasoning / thinking</label>
-                <div className="flex flex-col gap-3 p-3 rounded-xl border border-border/50 bg-surface-elevated/40 backdrop-blur-sm">
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                <label className="block text-xs font-medium text-text-secondary mb-1">Reasoning / thinking</label>
+                <div className="flex flex-col gap-2 p-2 rounded-lg border border-border/50 bg-surface-elevated/40">
+                  <label className="flex items-center gap-2 cursor-pointer group">
                     <input
                       type="checkbox"
                       checked={stripThinking}
                       onChange={(e) => setStripThinking(e.target.checked)}
-                      className="w-4 h-4 rounded border-border/50 bg-surface/60 text-accent focus:ring-accent/50"
+                      className="w-3 h-3 rounded border-border/50 bg-surface/60 text-accent focus:ring-accent/50"
                     />
-                    <span className="text-sm font-medium text-text-secondary group-hover:text-text-primary transition-colors">Strip &lt;think&gt; blocks</span>
+                    <span className="text-xs font-medium text-text-secondary group-hover:text-text-primary transition-colors">Strip &lt;think&gt; blocks</span>
                   </label>
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                  <label className="flex items-center gap-2 cursor-pointer group">
                     <input
                       type="checkbox"
                       checked={disableThinking}
                       onChange={(e) => setDisableThinking(e.target.checked)}
-                      className="w-4 h-4 rounded border-border/50 bg-surface/60 text-accent focus:ring-accent/50"
+                      className="w-3 h-3 rounded border-border/50 bg-surface/60 text-accent focus:ring-accent/50"
                     />
-                    <span className="text-sm font-medium text-text-secondary group-hover:text-text-primary transition-colors">Disable thinking</span>
+                    <span className="text-xs font-medium text-text-secondary group-hover:text-text-primary transition-colors">Disable thinking</span>
                   </label>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">Grok / xAI</label>
-                <div className="flex flex-col gap-3 p-3 rounded-xl border border-border/50 bg-surface-elevated/40 backdrop-blur-sm">
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                <label className="block text-xs font-medium text-text-secondary mb-1">Grok / xAI</label>
+                <div className="flex flex-col gap-2 p-2 rounded-lg border border-border/50 bg-surface-elevated/40">
+                  <label className="flex items-center gap-2 cursor-pointer group">
                     <input
                       type="checkbox"
                       checked={enableXSearch}
                       onChange={(e) => setEnableXSearch(e.target.checked)}
-                      className="w-4 h-4 rounded border-border/50 bg-surface/60 text-accent focus:ring-accent/50"
+                      className="w-3 h-3 rounded border-border/50 bg-surface/60 text-accent focus:ring-accent/50"
                     />
-                    <span className="text-sm font-medium text-text-secondary group-hover:text-text-primary transition-colors">xAI web + X search</span>
+                    <span className="text-xs font-medium text-text-secondary group-hover:text-text-primary transition-colors">xAI web + X search</span>
                   </label>
                 </div>
               </div>
             </div>
           </CollapsibleSection>
 
-          <div className="flex-1 overflow-y-auto space-y-4 pr-2" aria-live="polite">
+          {/* Message list */}
+          <div className="flex-1 space-y-2" aria-live="polite">
             {messages.map((m, idx) => (
-              <div key={m.id || `${m.role}-${m.content?.slice(0, 8)}`} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
-                <div className={`max-w-[85%] rounded-2xl px-5 py-4 shadow-sm backdrop-blur-md ${
-                  m.role === 'user'
-                    ? 'bg-accent text-text-primary rounded-tr-sm'
-                    : 'bg-surface-elevated border border-border/50 text-text-primary rounded-tl-sm shadow-[0_4px_24px_var(--overlay)]'
-                }`}>
-                  <div className={`flex items-center gap-2 mb-2 text-xs font-semibold tracking-wider uppercase text-accent`}>
-                    <span>{m.role}</span>
+              <div
+                key={m.id || `${m.role}-${m.content?.slice(0, 8)}`}
+                className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"} group`}
+              >
+                <div
+                  className={`max-w-[90%] relative ${
+                    m.role === "user"
+                      ? "bg-accent/15 rounded-r-lg rounded-bl-lg px-3 py-2"
+                      : "border-l-2 border-accent pl-3 pr-2 py-2"
+                  }`}
+                >
+                  {/* Fork checkbox */}
+                  {forkMode && m.role !== "system" && (
+                    <input
+                      type="checkbox"
+                      checked={selectedMessageIds.has(m.id)}
+                      onChange={() => toggleMessageSelection(m.id)}
+                      className="absolute -left-5 top-1.5 w-3 h-3"
+                      aria-label={`Select message ${idx + 1}`}
+                    />
+                  )}
+
+                  {/* Message actions (hover) */}
+                  <div className="absolute -top-4 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                    {m.role === "assistant" && m.content && (
+                      <button
+                        type="button"
+                        className="text-[10px] text-text-muted hover:text-accent"
+                        onClick={() => handleSaveToMemory(m.content)}
+                        title="Save to memory"
+                        aria-label="Save to memory"
+                      >
+                        🔖
+                      </button>
+                    )}
+                    {m.content && (
+                      <button
+                        type="button"
+                        className="text-[10px] text-text-muted hover:text-accent"
+                        onClick={() => copyText(m.content)}
+                        title="Copy message"
+                        aria-label="Copy message"
+                      >
+                        ⎘
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Role label */}
+                  <div className={`text-[10px] font-semibold tracking-wider uppercase mb-0.5 ${m.role === "user" ? "text-accent" : "text-text-muted"}`}>
+                    {m.role}
                     {m.role === "assistant" && idx === messages.length - 1 && loading && (
-                      <span className="flex items-center gap-1">
+                      <span className="ml-1 inline-flex gap-0.5">
                         <span className="w-1 h-1 bg-accent rounded-full animate-bounce [animation-delay:-0.3s]"></span>
                         <span className="w-1 h-1 bg-accent rounded-full animate-bounce [animation-delay:-0.15s]"></span>
                         <span className="w-1 h-1 bg-accent rounded-full animate-bounce"></span>
                       </span>
                     )}
                   </div>
-                  <div className="prose prose-invert max-w-none text-sm leading-relaxed prose-p:my-2 prose-pre:bg-surface/60 prose-pre:border prose-pre:border-border/50 prose-pre:rounded-xl">
-                    <Markdown
-                      text={
-                        m.content ||
-                        (loading && idx === messages.length - 1 ? "" : "")
-                      }
-                    />
+
+                  {/* Imported context bridge */}
+                  {m.importedFrom && (
+                    <div className="text-[9px] text-warning mb-0.5">
+                      &lt;imported_context from="{m.importedFrom}"&gt;
+                    </div>
+                  )}
+
+                  {/* Content */}
+                  <div className="text-xs leading-relaxed text-text-primary">
+                    <Markdown text={m.content || (loading && idx === messages.length - 1 ? "" : "")} />
                   </div>
                 </div>
               </div>
             ))}
             <div ref={endRef}></div>
           </div>
+        </div>
+
+        {/* Input zone */}
+        <div className="flex-none border-t border-border/50 bg-bg/50">
+          {/* Attachment tray */}
+          <AttachmentTray
+            attachments={attachments}
+            onRemove={(id) => setAttachments((prev) => prev.filter((a) => a.id !== id))}
+            disabled={loading}
+          />
+
+          {/* Attachment notices */}
+          {attachmentNotices.length > 0 && (
+            <div className="px-3 pb-1 space-y-0.5">
+              {attachmentNotices.map((n, i) => (
+                <div key={i} className="text-[10px] text-warning">{n}</div>
+              ))}
+            </div>
+          )}
+
+          {/* Fork actions */}
+          {forkMode && (
+            <div className="flex items-center gap-2 px-3 py-1 border-b border-border/30">
+              <span className="text-[10px] text-text-secondary">
+                {selectedMessageIds.size} selected
+              </span>
+              <button
+                className="text-[10px] px-2 py-0.5 rounded bg-accent text-accent-foreground disabled:opacity-50"
+                disabled={selectedMessageIds.size === 0}
+                onClick={handleFork}
+              >
+                Fork
+              </button>
+              <button
+                className="text-[10px] px-2 py-0.5 rounded bg-surface-elevated border border-border text-text-secondary"
+                onClick={() => {
+                  setForkMode(false);
+                  setSelectedMessageIds(new Set());
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {/* Command palette */}
+          {commandPaletteOpen && (
+            <div className="px-3 py-1 border-b border-border/30 flex gap-2 items-center">
+              <span className="text-[10px] text-text-muted">/</span>
+              {["attach", "image", "search"].map((cmd) => (
+                <button
+                  key={cmd}
+                  type="button"
+                  className="text-[10px] px-1.5 py-0.5 rounded bg-surface-elevated border border-border text-text-secondary hover:border-accent"
+                  onClick={() => handleCommand(cmd)}
+                >
+                  {cmd}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="text-[10px] text-text-muted hover:text-text-primary ml-auto"
+                onClick={() => setCommandPaletteOpen(false)}
+              >
+                Esc
+              </button>
+            </div>
+          )}
 
           <StatusBlock error={error} />
 
-          <div className="pt-2">
-            <Field label="User prompt">
-              <textarea
-                aria-label="User prompt"
-                value={userPrompt}
-                onChange={(e) => {
-                  setUserPrompt(e.target.value);
-                  if (promptTouched && e.target.value.trim()) setPromptTouched(false);
-                }}
-                placeholder="Ask Venice something…"
-                aria-invalid={promptTouched && !userPrompt.trim()}
-                aria-describedby="chat-prompt-error"
-                onKeyDown={(e) => {
-                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") send();
-                }}
-                className="w-full bg-surface/50 border border-border/50 rounded-xl px-5 py-4 text-text-primary placeholder-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all min-h-[100px] resize-y shadow-inner"
-              />
-              {promptTouched && !loading && !userPrompt.trim() && (
-                <div id="chat-prompt-error" className="mt-2 text-sm text-danger" role="alert">
-                  Please enter a prompt before sending.
-                </div>
-              )}
-            </Field>
+          <div className="flex items-end gap-2 px-3 py-2">
+            <div className="flex gap-1">
+              <button
+                type="button"
+                className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-text-primary hover:bg-surface-elevated"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading || !supportsVision}
+                title={supportsVision ? "Attach file" : "Vision not supported by this model"}
+                aria-label="Attach file"
+              >
+                📎
+              </button>
+              <button
+                type="button"
+                className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-text-primary hover:bg-surface-elevated"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={loading || !supportsVision}
+                title={supportsVision ? "Attach image" : "Vision not supported by this model"}
+                aria-label="Attach image"
+              >
+                🖼
+              </button>
+              <button
+                type="button"
+                className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-text-primary hover:bg-surface-elevated"
+                onClick={handleAttachUrl}
+                disabled={loading}
+                title="Attach URL"
+                aria-label="Attach URL"
+              >
+                🔗
+              </button>
+            </div>
+
+            <textarea
+              ref={textareaRef}
+              aria-label="User prompt"
+              value={userPrompt}
+              onChange={(e) => {
+                setUserPrompt(e.target.value);
+                if (promptTouched && e.target.value.trim()) setPromptTouched(false);
+                // Auto-expand
+                const el = e.target;
+                el.style.height = "auto";
+                const maxH = window.innerHeight * 0.3;
+                el.style.height = `${Math.min(el.scrollHeight, maxH)}px`;
+              }}
+              placeholder="Ask Venice something… (type / for commands)"
+              aria-invalid={promptTouched && !userPrompt.trim()}
+              aria-describedby="chat-prompt-error"
+              onKeyDown={handleKeyDown}
+              rows={1}
+              className="flex-1 min-w-0 bg-surface/50 border border-border/50 rounded-lg px-3 py-1.5 text-xs text-text-primary placeholder-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all resize-none overflow-y-auto"
+              style={{ height: "auto", maxHeight: "30vh" }}
+            />
+
+            <div className="flex flex-col gap-1">
+              <button
+                className="h-6 w-6 flex items-center justify-center rounded bg-accent text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
+                onClick={send}
+                disabled={loading}
+                aria-label="Send"
+                title="Send"
+              >
+                →
+              </button>
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 pb-4">
-            <button
-              className="btn primary"
-              onClick={send}
-              disabled={loading}
-              aria-disabled={loading}
-            >
-              Send
-            </button>
-            <button className="btn" onClick={cancel} disabled={!loading}>
+          {promptTouched && !loading && !userPrompt.trim() && (
+            <div id="chat-prompt-error" className="px-3 pb-2 text-xs text-danger" role="alert">
+              Please enter a prompt before sending.
+            </div>
+          )}
+
+          <div className="flex gap-2 px-3 pb-2">
+            <button className="text-[10px] text-text-muted hover:text-text-secondary" onClick={cancel} disabled={!loading}>
               Cancel
             </button>
-            <button className="btn" onClick={clear}>
-              Clear conversation
+            <button className="text-[10px] text-text-muted hover:text-text-secondary" onClick={clear}>
+              Clear
             </button>
             <button
-              className="btn"
+              className="text-[10px] text-text-muted hover:text-text-secondary"
               onClick={() => copyText(lastAssistant?.content || "")}
               disabled={!lastAssistant?.content}
             >
               Copy response
             </button>
+            <button
+              className="text-[10px] text-text-muted hover:text-text-secondary"
+              onClick={() => setShowImportPicker(true)}
+            >
+              Import
+            </button>
           </div>
         </div>
       </div>
 
+      {/* Hidden file inputs */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          const files = Array.from(e.target.files || []);
+          if (files.length) addFileAttachments(files);
+          e.target.value = "";
+        }}
+      />
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          const files = Array.from(e.target.files || []);
+          if (files.length) addFileAttachments(files);
+          e.target.value = "";
+        }}
+      />
+
+      {/* Memory panel */}
+      {memoryPanelOpen && (
+        <div className="absolute right-0 top-0 bottom-0 w-64 bg-bg border-l border-border/50 shadow-lg z-10 flex flex-col">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
+            <span className="text-xs font-medium text-text-primary">Memory</span>
+            <button
+              className="text-text-muted hover:text-text-primary text-xs"
+              onClick={() => setMemoryPanelOpen(false)}
+              aria-label="Close memory panel"
+            >
+              ×
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-2">
+            <div className="text-[10px] text-text-muted italic">
+              Memories are injected into prompts automatically.
+            </div>
+            <button
+              className="text-[10px] px-2 py-1 rounded bg-accent text-accent-foreground"
+              onClick={loadMemories}
+            >
+              Refresh
+            </button>
+            {memories.length === 0 && (
+              <div className="text-[10px] text-text-muted">No memories yet.</div>
+            )}
+            {memories.map((m) => (
+              <div key={m.id} className="rounded border border-border/50 bg-surface-elevated/40 p-2">
+                <div className="text-[10px] text-text-primary leading-snug">{m.content}</div>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-[9px] text-text-muted">
+                    {m.tags.join(", ") || "no tags"}
+                  </span>
+                  <button
+                    className="text-[9px] text-danger hover:text-danger/80"
+                    onClick={() => handleDeleteMemory(m.id)}
+                    aria-label="Delete memory"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Import picker modal */}
+      {showImportPicker && (
+        <div className="absolute inset-0 bg-overlay z-20 flex items-center justify-center">
+          <div className="bg-bg border border-border/50 rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-border/50">
+              <span className="text-xs font-medium text-text-primary">Import messages</span>
+              <button
+                className="text-text-muted hover:text-text-primary text-xs"
+                onClick={() => {
+                  setShowImportPicker(false);
+                  setImportConversationId(null);
+                  _setImportSelectedIds(new Set());
+                  setImportStage("select-conv");
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {importStage === "select-conv" ? (
+                <>
+                  <div className="text-[10px] text-text-muted">Select a conversation:</div>
+                  {conversations
+                    .filter((c) => c.id !== activeId)
+                    .map((c) => (
+                      <div
+                        key={c.id}
+                        className="flex items-center justify-between rounded border border-border/50 px-2 py-1.5 cursor-pointer hover:bg-surface-elevated/40"
+                        onClick={() => {
+                          setImportConversationId(c.id);
+                          _setImportSelectedIds(new Set(c.messages.map((m) => m.id)));
+                          setImportStage("select-messages");
+                        }}
+                      >
+                        <span className="text-xs text-text-primary truncate">{c.title}</span>
+                        <span className="text-[10px] text-text-muted">{c.messages.length} msgs</span>
+                      </div>
+                    ))}
+                  {conversations.filter((c) => c.id !== activeId).length === 0 && (
+                    <div className="text-[10px] text-text-muted">No other conversations.</div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="text-[10px] text-text-muted">Select messages to import:</div>
+                  {conversations
+                    .find((c) => c.id === importConversationId)
+                    ?.messages.map((m) => (
+                      <label
+                        key={m.id}
+                        className="flex items-start gap-2 rounded border border-border/50 px-2 py-1.5 cursor-pointer hover:bg-surface-elevated/40"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={_importSelectedIds.has(m.id)}
+                          onChange={() => {
+                            _setImportSelectedIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(m.id)) next.delete(m.id);
+                              else next.add(m.id);
+                              return next;
+                            });
+                          }}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] font-semibold text-text-muted uppercase">{m.role}</div>
+                          <div className="text-[10px] text-text-primary truncate">{m.content}</div>
+                        </div>
+                      </label>
+                    ))}
+                </>
+              )}
+            </div>
+            {importStage === "select-messages" && (
+              <div className="flex justify-end gap-2 px-4 py-2 border-t border-border/50">
+                <button
+                  className="text-[10px] px-2 py-1 rounded border border-border text-text-secondary"
+                  onClick={() => {
+                    setImportStage("select-conv");
+                    setImportConversationId(null);
+                    _setImportSelectedIds(new Set());
+                  }}
+                >
+                  Back
+                </button>
+                <button
+                  className="text-[10px] px-2 py-1 rounded bg-accent text-accent-foreground disabled:opacity-50"
+                  disabled={_importSelectedIds.size === 0}
+                  onClick={handleImportMessages}
+                >
+                  Import {_importSelectedIds.size}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirm */}
       {deleteTarget && (
         <ConfirmModal
           open={!!deleteTarget}

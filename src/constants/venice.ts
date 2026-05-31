@@ -72,13 +72,51 @@ export const DIAG_HEADER_NAMES = [
 export const DEFAULT_SYSTEM_PROMPT = "You are a precise, useful AI assistant inside Venice Forge.";
 
 /** IndexedDB object store names used by the application. */
-export const STORE_NAMES = ["images", "chats", "settings", "diagnostics", "conversations"];
+export const STORE_NAMES = ["images", "chats", "settings", "diagnostics", "conversations", "ai_memory"];
 
 /** Name of the IndexedDB database. */
 export const DB_NAME = "venice_canvas_studio_v1";
 
 /** Version of the IndexedDB schema. */
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
+
+/**
+ * Known vision-capable model ids and id-patterns.
+ * TODO: Replace with a live capability flag from the Venice API once available.
+ */
+export const VISION_CAPABLE_MODEL_IDS = new Set<string>([
+  "llama-3.2-11b-vision",
+  "qwen2.5-vl",
+  "qwen2.5-vl-72b",
+  "qwen2.5-vl-7b",
+  "gemini-2.0-flash",
+  "gemini-2.5-flash",
+]);
+
+/** Regex patterns that suggest a model supports vision. */
+export const VISION_CAPABLE_PATTERNS = [/vision/i, /-vl/i, /gemini-2\.[05]/i];
+
+/** Returns true if the given model id is believed to support vision. */
+export function modelSupportsVision(modelId: string): boolean {
+  const id = String(modelId || "").toLowerCase();
+  if (VISION_CAPABLE_MODEL_IDS.has(id)) return true;
+  return VISION_CAPABLE_PATTERNS.some((p) => p.test(id));
+}
+
+/** Maximum size of a single file attachment (text extraction). */
+export const MAX_ATTACHMENT_FILE_BYTES = 256 * 1024;
+
+/** Maximum total injected context from attachments per message. */
+export const MAX_TOTAL_ATTACHMENT_CONTEXT_BYTES = 1024 * 1024;
+
+/** Maximum attachments per message. */
+export const MAX_ATTACHMENTS_PER_MESSAGE = 5;
+
+/** Maximum memory block characters injected into a prompt. */
+export const MAX_MEMORY_BLOCK_CHARS = 2000;
+
+/** Maximum number of memories to inject. */
+export const MAX_INJECTED_MEMORIES = 5;
 
 /** Delay between batched image generation requests to avoid rate limits. */
 export const IMAGE_BATCH_INTER_REQUEST_DELAY_MS = 750;

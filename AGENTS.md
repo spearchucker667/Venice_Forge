@@ -238,6 +238,36 @@ Only these endpoints may be invoked. No arbitrary URL or method forwarding is pe
 - Only the latest release tag is actively maintained for security patches.
 - `npm audit` must be clean before release.
 
+## Chat Workspace Architecture
+
+### Memory Service
+`src/services/memoryService.ts` provides a persistent memory layer:
+- **Store:** `ai_memory` in IndexedDB, encrypted via `cryptoService.ts` (AES-GCM).
+- **Schema:** `{ id, content: string, createdAt, tags: string[], conversationId?: string }`.
+- **API:** `saveMemory(content, tags?, conversationId?)`, `listMemories()`, `deleteMemory(id)`, `searchMemory(query, tagFilter?)`, `selectMemoriesForInjection(conversationId?)`.
+- **Injection:** Up to 5 memories are selected (conversation-tagged first, then by recency) and capped to 2,000 characters total. Injected as a `<memory>` system block via `buildChatPayload`.
+
+### Attachment System
+`src/services/attachmentService.ts` handles file/URL/image attachments:
+- **Text files:** `.txt`, `.md`, `.ts`, `.tsx`, `.json`, `.py`, `.js`, and others. Read via browser `File.text()` or `desktopFileReader.readLocalFile()` (desktop IPC). Capped at 256 KiB per file.
+- **Images:** `PNG`, `JPEG`, `WEBP`. Downscaled to ≤1024px dimension if over 2 MiB. Passed as base64 `image_url` content parts only when `modelSupportsVision(modelId)` returns true.
+- **URLs:** Scraped via `veniceResearchProvider.scrape()`. Extracted text is injected as `<doc url="…">…</doc>`.
+- **Assembly:** `assembleAttachmentContext()` wraps text attachments in XML-like tags, separates images, and enforces a 1 MiB total text budget + 5 attachment cap.
+
+### Fork / Import Schema
+Conversation objects carry optional lineage fields:
+- `parentConversationId?: string` — the conversation this was forked from.
+- `forkedFromMessageIds?: string[]` — message IDs selected at fork time.
+- **Export/import:** `exportImport.ts` sanitizes and preserves these fields; invalid values are stripped and string arrays are filtered.
+- **Rendered UI:** Imported messages display an `<imported_context from="Title">` label above the message content (not in the API payload).
+
+### Model Capability Detection
+There is **no live vision flag** from the Venice API. The app uses a fallback:
+- `VISION_CAPABLE_MODEL_IDS` — explicit allowlist of known vision model IDs.
+- `VISION_CAPABLE_PATTERNS` — regexes matching vision-capable ID patterns (`/vision/i`, `/-vl/i`, `/gemini-2\.[05]/i`).
+- `modelSupportsVision(modelId)` — returns true for allowlist hits or pattern matches. **Defaults to OFF** (attachments disabled) when capability is unknown.
+- **TODO:** Replace with a live API capability flag once Venice exposes one.
+
 ## Environment Variables
 
 Copy `.env.example` to `.env` for web-mode development:
@@ -267,7 +297,8 @@ Copy `.env.example` to `.env` for web-mode development:
 | API keys (desktop) | Electron `safeStorage` → `%APPDATA%\Venice Forge\secure-prefs.json` (Win) or `~/Library/Application Support/Venice Forge/secure-prefs.json` (Mac). Stores both Venice and Jina keys. |
 | Logs (desktop) | `%APPDATA%\Venice Forge\logs\venice-forge.log` (Win) or `~/Library/Application Support/Venice Forge/logs/venice-forge.log` (Mac) |
 | Conversations (desktop) | `chat-history/*.json` in app data directory (atomic writes, corruption recovery) |
-| Images, legacy chats, settings, conversations, diagnostics | Renderer IndexedDB (4 stores encrypted, diagnostics unencrypted) |
+| Images, legacy chats, settings, conversations, diagnostics | Renderer IndexedDB (5 stores encrypted, diagnostics unencrypted) |
+| Memories | Renderer IndexedDB `ai_memory` store (AES-GCM encrypted) |
 
 ## Release and Deployment
 
