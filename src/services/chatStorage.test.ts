@@ -100,7 +100,7 @@ describe("chatStorage (web fallback)", () => {
   it("truncates long titles", () => {
     const long = "a".repeat(50);
     const msgs = [{ role: "user" as const, content: long }];
-    expect(deriveTitle(msgs)).toBe("a".repeat(37) + "…");
+    expect(deriveTitle(msgs)).toBe("a".repeat(39) + "…");
   });
 
   it("returns New Chat when no user messages exist", () => {

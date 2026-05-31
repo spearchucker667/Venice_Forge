@@ -81,7 +81,7 @@ export async function scrapeUrlAttachment(url: string, signal?: AbortSignal): Pr
     signal,
     options: { outputFormat: "text", removeImages: true },
   });
-  const text = result.text || result.content || result.markdown || "";
+  const text = result.text ?? result.content ?? result.markdown ?? "";
   return {
     id: crypto.randomUUID(),
     type: "url",
@@ -155,7 +155,8 @@ export async function processFileAttachment(file: File): Promise<Attachment> {
   }
   if (isSupportedTextFile(file)) {
     if (file.size > MAX_ATTACHMENT_FILE_BYTES) {
-      const text = (await file.text()).slice(0, MAX_ATTACHMENT_FILE_BYTES);
+      const slice = file.slice(0, MAX_ATTACHMENT_FILE_BYTES);
+      const text = await slice.text();
       return {
         id: crypto.randomUUID(),
         type: "file",
@@ -167,6 +168,15 @@ export async function processFileAttachment(file: File): Promise<Attachment> {
     return readTextFileAttachment(file);
   }
   throw new Error(`Unsupported file type: ${file.type || file.name}. Supported: text files and images (PNG, JPEG, WEBP).`);
+}
+
+function utf8ByteSlice(str: string, maxBytes: number): string {
+  const encoder = new TextEncoder();
+  const encoded = encoder.encode(str);
+  if (encoded.length <= maxBytes) return str;
+  const truncated = encoded.slice(0, maxBytes);
+  const decoder = new TextDecoder();
+  return decoder.decode(truncated, { stream: true });
 }
 
 /** Assembles attachments into injectable context text and image content parts. */
@@ -189,9 +199,10 @@ export function assembleAttachmentContext(
     if (totalTextBytes + encoded.length > MAX_TOTAL_ATTACHMENT_CONTEXT_BYTES) {
       const remaining = MAX_TOTAL_ATTACHMENT_CONTEXT_BYTES - totalTextBytes;
       if (remaining > 100) {
-        const slice = att.content.slice(0, remaining);
+        const slice = utf8ByteSlice(att.content, remaining);
         textParts.push(wrapAttachmentText(att.type, att.name, slice));
         notices.push(`"${att.name}" was truncated to fit the context budget.`);
+        totalTextBytes += new TextEncoder().encode(slice).length;
       } else {
         notices.push(`"${att.name}" was skipped due to context budget.`);
       }

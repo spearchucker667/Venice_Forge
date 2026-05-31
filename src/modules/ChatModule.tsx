@@ -112,6 +112,12 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const conversationsRef = useRef(state.conversations);
+  conversationsRef.current = state.conversations;
+  const selectedModelRef = useRef(state.selectedChatModel);
+  selectedModelRef.current = state.selectedChatModel;
+  const systemPromptRef = useRef(systemPrompt);
+  systemPromptRef.current = systemPrompt;
 
   // Sync local messages when active conversation changes
   useEffect(() => {
@@ -138,7 +144,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     setAttachmentNotices([]);
     setSelectedMessageIds(new Set());
     setForkMode(false);
-  }, [activeId, state.settings.defaultSystemPrompt, conversations]);
+  }, [activeId, state.settings.defaultSystemPrompt]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -186,15 +192,15 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
           timestamp: Date.now(),
         })),
         updatedAt: Date.now(),
-        model: state.selectedChatModel,
-        systemPrompt,
+        model: selectedModelRef.current,
+        systemPrompt: systemPromptRef.current,
         title: conv.title === "New Chat" ? deriveTitle(newMessages) : conv.title,
       };
       await saveConversation(updated);
-      const refreshed = state.conversations.map((c) => (c.id === updated.id ? updated : c));
+      const refreshed = conversationsRef.current.map((c) => (c.id === updated.id ? updated : c));
       dispatch({ type: "SET_CONVERSATIONS", items: refreshed });
     },
-    [dispatch, state.conversations, state.selectedChatModel, systemPrompt]
+    [dispatch]
   );
 
   async function send() {

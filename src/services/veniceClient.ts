@@ -34,7 +34,7 @@ if (typeof window !== "undefined") {
 /** @internal exported for testing */
 export function dedupeKey(endpoint: string, method: string, body: unknown): string {
   let bodyHash = "";
-  if (body !== undefined) {
+  if (body !== undefined && body !== null) {
     try {
       bodyHash = JSON.stringify(body);
     } catch {
@@ -766,7 +766,9 @@ export async function veniceFetch<T = unknown>(
 
   // Child exploitation safety guard — enforcement at transport boundary.
   // Note: GET requests (e.g., /models) are skipped because they carry no user content.
-  if (method === "POST" && body !== undefined) {
+  // In desktop mode the IPC handler also runs the guard, so we skip the renderer check
+  // to avoid duplicate execution and audit records.
+  if (method === "POST" && body !== undefined && !isElectron()) {
     const decision = assessChildExploitationSafety({ endpoint, method, payload: body, source: "venice-client" });
     recordDecision(decision);
     if (!decision.allow || decision.action === "block") {
@@ -806,7 +808,8 @@ export async function veniceStreamChat(
   const payloadRecord = payload as Record<string, unknown> | null | undefined;
 
   // Child exploitation safety guard — enforcement at transport boundary.
-  {
+  // In desktop mode the IPC handler also runs the guard, so we skip the renderer check.
+  if (!isElectron()) {
     const decision = assessChildExploitationSafety({ endpoint: "/chat/completions", method: "POST", payload, source: "venice-client" });
     recordDecision(decision);
     if (!decision.allow || decision.action === "block") {

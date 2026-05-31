@@ -20,6 +20,7 @@ import { AppConfig } from "./src/shared/configSchema";
 import { warn, error } from "./src/shared/logger";
 import { assessChildExploitationSafety, recordDecision } from "./src/shared/safety";
 import type { SafetyGuardDecision } from "./src/shared/safety";
+import { pathToFileURL } from "node:url";
 
 dotenv.config();
 
@@ -353,6 +354,21 @@ export function createServerApp() {
   };
 
   return app;
+}
+
+function isMainModule() {
+  try {
+    return import.meta.url === pathToFileURL(process.argv[1] || "").href;
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule()) {
+  startServer().catch((err) => {
+    console.error("Failed to start server:", err);
+    process.exit(1);
+  });
 }
 
 export async function startServer() {

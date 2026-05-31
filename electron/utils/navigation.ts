@@ -10,13 +10,15 @@ export function checkPathContained(targetPath: string, rootPath: string): boolea
   try {
     resolvedTarget = fs.realpathSync(path.normalize(targetPath));
   } catch {
-    return false;
+    if (process.platform !== "win32") return false;
+    resolvedTarget = path.resolve(path.normalize(targetPath));
   }
   let resolvedRoot: string;
   try {
     resolvedRoot = fs.realpathSync(path.normalize(rootPath));
   } catch {
-    return false;
+    if (process.platform !== "win32") return false;
+    resolvedRoot = path.resolve(path.normalize(rootPath));
   }
   const indexHtml = path.join(resolvedRoot, "index.html");
   if (process.platform === "win32") {

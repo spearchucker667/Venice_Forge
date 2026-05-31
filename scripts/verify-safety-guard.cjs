@@ -11,7 +11,7 @@ const enforcementFiles = [
 
 let failed = false;
 
-function checkGuardImportedAndCalled(file) {
+function checkGuardImportedAndCalled(file, minCalls = 2) {
   const filePath = path.join(repoRoot, file);
   if (!fs.existsSync(filePath)) {
     console.error(`❌ Missing enforcement file: ${file}`);
@@ -20,23 +20,28 @@ function checkGuardImportedAndCalled(file) {
   }
   const content = fs.readFileSync(filePath, 'utf-8');
   // Count occurrences to ensure the guard is called in multiple handlers, not just one.
-  const guardCalls = (content.match(/assessChildExploitationSafety/g) || []).length;
-  const recordCalls = (content.match(/recordDecision/g) || []).length;
-  if (guardCalls < 2) {
-    console.error(`❌ File ${file} calls assessChildExploitationSafety only ${guardCalls} time(s); expected at least 2`);
+  const guardCalls = (content.match(/assessChildExploitationSafety\s*\(/g) || []).length;
+  const recordCalls = (content.match(/recordDecision\s*\(/g) || []).length;
+  if (guardCalls < minCalls) {
+    console.error(`❌ File ${file} calls assessChildExploitationSafety only ${guardCalls} time(s); expected at least ${minCalls}`);
     failed = true;
   } else {
     console.log(`✅ File ${file} calls assessChildExploitationSafety (${guardCalls} times)`);
   }
-  if (recordCalls < 2) {
-    console.error(`❌ File ${file} calls recordDecision only ${recordCalls} time(s); expected at least 2`);
+  if (recordCalls < minCalls) {
+    console.error(`❌ File ${file} calls recordDecision only ${recordCalls} time(s); expected at least ${minCalls}`);
     failed = true;
   } else {
     console.log(`✅ File ${file} calls recordDecision (${recordCalls} times)`);
   }
 }
 
-enforcementFiles.forEach(checkGuardImportedAndCalled);
+enforcementFiles.forEach((file) => {
+  // server.ts has only one real call site (the middleware) plus the import,
+  // so we use a lower threshold to avoid counting the import statement.
+  const minCalls = file.includes('server.ts') ? 1 : 2;
+  checkGuardImportedAndCalled(file, minCalls);
+});
 
 function checkNoRawPromptLogging(dir) {
   const files = fs.readdirSync(dir);

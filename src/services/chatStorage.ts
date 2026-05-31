@@ -96,5 +96,5 @@ export function deriveTitle(messages: Array<{ role: string; content: string }>):
   if (!firstUser) return "New Chat";
   const text = firstUser.content.trim().replace(/\s+/g, " ");
   if (text.length <= 40) return text;
-  return text.slice(0, 37) + "…";
+  return text.slice(0, 39) + "…";
 }

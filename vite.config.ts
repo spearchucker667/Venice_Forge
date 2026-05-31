@@ -10,7 +10,7 @@ function stripCrossorigin(): Plugin {
   return {
     name: 'strip-crossorigin',
     transformIndexHtml(html) {
-      return html.replace(/\scrossorigin(?=\s|>)/g, '');
+      return html.replace(/\scrossorigin(?:=["'][^"']*["'])?(?=\s|>)/g, '');
     },
   };
 }

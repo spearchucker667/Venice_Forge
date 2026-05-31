@@ -1,6 +1,6 @@
 // Code Owner: fayeblade (@spearchucker667)
 // Image generation module — orchestrates params, preview, and history.
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import StorageService from "../services/storageService";
 import { extractImages, galleryFilename } from "../utils/image";
 import { downloadImage } from "../utils/download";
@@ -43,9 +43,9 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
     return Array.from(map.values()).slice(0, 10);
   }, [state.gallery]);
 
-  function patch(updates: Partial<ImageDraft>) {
+  const patch = useCallback((updates: Partial<ImageDraft>) => {
     dispatch({ type: "SET_IMAGE_DRAFT", patch: updates });
-  }
+  }, [dispatch]);
 
   useEffect(() => {
     const presets: Record<string, [number, number]> = {

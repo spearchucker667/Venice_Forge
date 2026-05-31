@@ -76,7 +76,13 @@ function openKeyDB(): Promise<IDBDatabase> {
 export async function encryptData<T>(data: T): Promise<EncryptedPayload> {
   const key = await getOrCreateKey();
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encoded = new TextEncoder().encode(JSON.stringify(data));
+  let json: string;
+  try {
+    json = JSON.stringify(data);
+  } catch {
+    throw new Error("Cannot encrypt circular or non-serializable data.");
+  }
+  const encoded = new TextEncoder().encode(json);
   const encrypted = await crypto.subtle.encrypt(
     { name: ALGO, iv },
     key,
