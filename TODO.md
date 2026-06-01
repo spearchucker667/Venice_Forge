@@ -11,9 +11,9 @@
 | Critical bugs (fixed this pass) | 5 |
 | High-priority bugs (fixed this pass) | 8 |
 | Medium-priority bugs (all fixed) | 11 |
-| Low-priority items (all resolved) | 9 |
+| Low-priority items (all resolved) | 12 |
 | Documentation/config tasks | 5 |
-| Security hardening tasks (all resolved) | 6 |
+| Security hardening tasks (all resolved) | 7 |
 | Missing tests / coverage gaps | 14 |
 
 ---
@@ -157,6 +157,18 @@
 - [x] **[LOW-009] Atomic-write temp file not cleaned up on failure** — `electron/services/secureStore.ts:55`, `electron/services/chatStorage.ts:214`
   - **Fixed:** Both files now unlink the temp file in the error path.
 
+- [x] **[LOW-010] `importJsonString` Promise never settles on file-picker cancel** — `src/services/desktopBridge.ts:223`
+  - In web mode, if the user opens the file picker and closes it without selecting a file, the `change` event never fires, leaving the caller's `await` hanging forever. The import button appears permanently stuck.
+  - **Fixed:** Added `cancel` event listener on the `<input>` element (Chrome 113+/Firefox 91+). DOM element and reader are cleaned up immediately in both success and cancel paths.
+
+- [x] **[LOW-011] `getModuleDir` uses `URL.pathname` instead of `fileURLToPath`** — `server.ts:38`
+  - On Windows, `new URL(import.meta.url).pathname` produces `/C:/path/...` which is an invalid Win32 path. `package.json` and `index.html` lookup would fail in production.
+  - **Fixed:** Changed to `path.dirname(fileURLToPath(new URL(import.meta.url)))`.
+
+- [x] **[LOW-012] ChatModule sync effect missing `activeConversation` dependency** — `src/modules/ChatModule.tsx`
+  - The effect that syncs messages when the active conversation changes depends on `[activeId, ...]` but reads `activeConversation`. If the conversation object changes without `activeId` changing (e.g. after a save), the UI stays stale.
+  - **Fixed:** Added `activeConversation` to the dependency array.
+
 ---
 
 ## Security Hardening
@@ -182,6 +194,11 @@
 
 - [x] **[SEC-006] Express CSP `script-src`** — `server.ts:131`
   - **Audit description was inaccurate.** The Express CSP already sets `script-src 'self'` with no `unsafe-inline`. The Vite production build does not inject inline scripts. CSP is already strict. No fix required.
+
+- [x] **[SEC-007] Update check hangs indefinitely — button permanently disabled** — `electron/ipc/updates.ts`
+  - `autoUpdater.checkForUpdates()` has no timeout. If GitHub Releases is unreachable, the IPC handler never resolves, leaving `isUpdateChecking === true` and the button permanently disabled ("non-responsive").
+  - In dev mode, the call threw a cryptic ENOENT error instead of a useful message.
+  - **Fixed:** Added 30 s `Promise.race` timeout in the IPC handler; added `app.isPackaged` dev-mode guard returning a friendly message; added 5-minute timeout on `downloadUpdate`; improved error message stripping in renderer.
 
 ---
 

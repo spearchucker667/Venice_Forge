@@ -101,8 +101,12 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
     try {
       const res = await desktopUpdates.checkForUpdates();
       if (!res.ok) {
-        setUpdateStatus(`Update check failed: ${res.error}`);
+        // Surface a clean message — strip "Error: " prefix from thrown errors.
+        const raw = res.error ?? "Unknown error";
+        const msg = raw.startsWith("Error: ") ? raw.slice(7) : raw;
+        setUpdateStatus(`Update check failed: ${msg}`);
       } else if (!updateEventSeenRef.current) {
+        // IPC resolved without an event (should not normally happen).
         setUpdateStatus("Update check completed.");
       }
     } catch (err: unknown) {

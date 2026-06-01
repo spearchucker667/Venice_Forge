@@ -20,7 +20,7 @@ import { AppConfig } from "./src/shared/configSchema";
 import { warn, error } from "./src/shared/logger";
 import { assessChildExploitationSafety, recordDecision } from "./src/shared/safety";
 import type { SafetyGuardDecision } from "./src/shared/safety";
-import { pathToFileURL } from "node:url";
+import { pathToFileURL, fileURLToPath } from "node:url";
 
 dotenv.config();
 
@@ -34,7 +34,7 @@ function getModuleDir(): string {
     }
   } catch { /* ignore */ }
   try {
-    return path.dirname(new URL(import.meta.url).pathname);
+    return path.dirname(fileURLToPath(new URL(import.meta.url)));
   } catch {
     return process.cwd();
   }

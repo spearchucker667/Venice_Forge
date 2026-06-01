@@ -1,6 +1,9 @@
-import { BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import { autoUpdater } from "electron-updater";
 import { logError, logInfo } from "../services/logger";
+
+/** Timeout (ms) for a manual update check before giving up. */
+const UPDATE_CHECK_TIMEOUT_MS = 30_000;
 
 // Do not auto-download; give user the choice via the UI.
 autoUpdater.autoDownload = false;
@@ -23,9 +26,20 @@ function broadcast(channel: string, payload?: unknown) {
 export function registerUpdateHandlers(): void {
   // IPC Handlers
   ipcMain.handle("app:checkForUpdates", async () => {
+    // In dev mode the app is not packaged so electron-updater cannot locate
+    // the app-update.yml manifest. Return a friendly message instead of a
+    // cryptic ENOENT stack trace.
+    if (!app.isPackaged) {
+      return { ok: false, error: "Update checks are only available in production builds." };
+    }
     try {
       logInfo("Checking for updates manually");
-      const result = await autoUpdater.checkForUpdates();
+      // Race the check against a 30-second timeout so a slow or unreachable
+      // GitHub releases endpoint does not leave the button permanently disabled.
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Update check timed out after 30 s.")), UPDATE_CHECK_TIMEOUT_MS)
+      );
+      const result = await Promise.race([autoUpdater.checkForUpdates(), timeoutPromise]);
       return { ok: true, version: result?.updateInfo?.version };
     } catch (err) {
       logError("Check for updates failed", String(err));
@@ -36,7 +50,10 @@ export function registerUpdateHandlers(): void {
   ipcMain.handle("app:downloadUpdate", async () => {
     try {
       logInfo("Triggering update download");
-      await autoUpdater.downloadUpdate();
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Download timed out.")), 5 * 60_000)
+      );
+      await Promise.race([autoUpdater.downloadUpdate(), timeoutPromise]);
       return { ok: true };
     } catch (err) {
       logError("Download update failed", String(err));

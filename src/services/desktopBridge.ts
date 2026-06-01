@@ -227,24 +227,26 @@ export const desktopFiles = {
         input.type = "file";
         input.accept = ".json,application/json";
         input.style.display = "none";
+
+        function cleanup() {
+          setTimeout(() => input.remove(), 0);
+        }
+
         input.addEventListener("change", () => {
           const file = input.files?.[0];
-          if (!file) {
-            resolve(null);
-            return;
-          }
+          if (!file) { cleanup(); resolve(null); return; }
           const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result));
-          reader.onerror = () => resolve(null);
+          reader.onload = () => { cleanup(); resolve(String(reader.result)); };
+          reader.onerror = () => { cleanup(); resolve(null); };
           reader.readAsText(file);
         });
+
+        // `cancel` fires in Chrome 113+/Firefox 91+ when the user dismisses
+        // the picker without selecting a file.
+        input.addEventListener("cancel", () => { cleanup(); resolve(null); });
+
         document.body.appendChild(input);
         input.click();
-        // Clean up after the dialog closes; browsers keep the element reference
-        // alive long enough for the change event to fire.
-        setTimeout(() => {
-          input.remove();
-        }, 60_000);
       });
     }
     const result = await window.veniceForge!.files.loadJsonFile();

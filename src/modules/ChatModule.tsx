@@ -162,7 +162,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     setAttachmentNotices([]);
     setSelectedMessageIds(new Set());
     setForkMode(false);
-  }, [activeId, commitMessages, state.settings.defaultSystemPrompt]);
+  }, [activeConversation, activeId, commitMessages, state.settings.defaultSystemPrompt]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
