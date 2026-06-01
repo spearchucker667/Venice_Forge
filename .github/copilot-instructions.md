@@ -29,9 +29,11 @@ npm run ci              # CI parity: npm ci + lint:eslint + typecheck + test + v
 npm run clean           # Remove dist/, dist-electron/, release/
 npm run dist:win        # Build Windows NSIS + portable installers
 npm run dist:mac        # Build macOS DMG + ZIP archives
+npm run verify:safety-guard  # Mandatory safety guard compliance check (also runs in CI)
+npm run smoke:electron  # Electron smoke tests in tests/smoke/
 ```
 
-Before opening a PR, follow `CONTRIBUTING.md`: run `npm run lint:eslint`, `npm run typecheck`, `npm test`, and `npm run build`.
+Before opening a PR: `npm run lint:eslint`, `npm run typecheck`, `npm test`, `npm run verify:safety-guard`, and `npm run build`.
 
 ---
 
@@ -205,3 +207,72 @@ Tests live next to the source files they cover: `src/services/foo.ts` → `src/s
 **Regression guards** — bugs that were fixed get a test with a `BUG-NNN` comment (e.g. `// BUG-002 regression guard`). Follow this convention when fixing a bug: add or annotate a test that would have caught it.
 
 **Rate-limit state isolation** — `server.test.ts` creates a fresh `app` in `beforeEach` (not `beforeAll`) for rate-limit tests to prevent state from bleeding between test cases. Do the same for any test that depends on in-process mutable state.
+
+---
+
+## Chat Workspace Architecture
+
+### Memory Service
+
+`src/services/memoryService.ts` — persistent memory layer stored in encrypted IndexedDB (`ai_memory` store, AES-GCM).
+- Schema: `{ id, content: string, createdAt, tags: string[], conversationId?: string }`
+- API: `saveMemory()`, `listMemories()`, `deleteMemory()`, `searchMemory()`, `selectMemoriesForInjection()`
+- Injection: up to 5 memories (conversation-tagged first, then by recency), capped at 2,000 chars total, injected as a `<memory>` system block via `buildChatPayload`
+
+### Attachment System
+
+`src/services/attachmentService.ts` — file/URL/image attachments:
+- **Text files**: `.txt`, `.md`, `.ts`, `.tsx`, `.json`, `.py`, `.js`, etc. Capped at 256 KiB per file.
+- **Images**: PNG/JPEG/WEBP, downscaled to ≤1024 px if over 2 MiB. Only passed to the API when `modelSupportsVision(modelId)` returns true.
+- **URLs**: scraped via `veniceResearchProvider.scrape()`, injected as `<doc url="…">…</doc>`.
+- `assembleAttachmentContext()` enforces 1 MiB total text budget + 5 attachment cap.
+
+### Model Capability Detection
+
+Venice API has no live vision flag. `modelSupportsVision(modelId)` checks `VISION_CAPABLE_MODEL_IDS` (allowlist) and `VISION_CAPABLE_PATTERNS` (`/vision/i`, `/-vl/i`, `/gemini-2\.[05]/i`). **Defaults to OFF** when capability is unknown.
+
+### Fork / Import Schema
+
+Conversation objects carry `parentConversationId?: string` and `forkedFromMessageIds?: string[]`. Imported messages display an `<imported_context from="Title">` label in UI (not sent to API).
+
+---
+
+## Environment Variables
+
+Copy `.env.example` to `.env` for web-mode dev:
+
+| Variable | Purpose |
+|----------|---------|
+| `VENICE_API_KEY` | Venice API key (required for web mode) |
+| `PORT` | Express port (default: 3000) |
+| `HOST` | Express bind host (default: 127.0.0.1) |
+| `VENICE_API_HOST` | Upstream API host (default: api.venice.ai) |
+| `VENICE_API_BASE_PATH` | Upstream base path (default: /api/v1) |
+| `VENICE_API_TIMEOUT_MS` | Request timeout ms (default: 60000) |
+| `RATE_LIMIT_WINDOW_MS` | Rate limit window (default: 60000) |
+| `RATE_LIMIT_MAX_REQUESTS` | Max requests per window (default: 60) |
+| `MAX_PROXY_BODY_BYTES` | Max proxy body (default: 26214400) |
+| `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE` | Plaintext key fallback (Linux/non-GNOME only — reduces security) |
+| `VENICE_FORGE_DEBUG_DEVTOOLS` | Enable DevTools in packaged builds (debug only) |
+
+---
+
+## Data Storage Locations
+
+| Data | Location |
+|------|----------|
+| API keys (desktop) | `safeStorage` → `%APPDATA%\Venice Forge\secure-prefs.json` (Win) / `~/Library/Application Support/Venice Forge/secure-prefs.json` (Mac) |
+| Logs (desktop) | Same app data dir under `logs/venice-forge.log` |
+| Conversations (desktop) | `chat-history/*.json` in app data dir (atomic writes, corruption recovery) |
+| Images, chats, settings, conversations, diagnostics | Renderer IndexedDB (5 stores; `diagnostics` unencrypted, rest AES-GCM) |
+| Memories | Renderer IndexedDB `ai_memory` (AES-GCM encrypted) |
+
+---
+
+## Files to Keep Current
+
+When changing behavior, packaging, or storage, also update:
+- `README.md`, `CHANGELOG.md`, `AGENTS.md`, `.github/copilot-instructions.md`
+- `docs/ABOUT.md`, `SECURITY.md`, `docs/RELEASE/release.md`, `docs/LEGAL.md`
+- `docs/RESEARCH_PROVIDERS.md`, `docs/JINA_PROVIDER.md`, `docs/PUBLIC_PROFILE_DISCOVERY.md` (research provider changes)
+- `docs/THEME_SYSTEM.md` (theming/token changes)
