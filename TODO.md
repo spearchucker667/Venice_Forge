@@ -1,6 +1,6 @@
 # Venice Forge — Repository TODO
 
-> Refreshed: 2026-06-01
+> Refreshed: 2026-06-01 (CSAM audit pass: 2026-06-01)
 > Scope: source, tests, docs, workflows, agent instructions, and repository hygiene
 > Baseline checks this pass: `npm run typecheck`, `npm run lint:eslint`, `npm run verify:safety-guard`, `npm audit --omit=dev`, `npm test`, `npm run build`
 
@@ -14,6 +14,7 @@
 | Low-priority items (all resolved) | 12 |
 | Documentation/config tasks (all complete) | 11 |
 | Security hardening tasks (all resolved) | 7 |
+| CSAM audit findings (all resolved) | 5 |
 | Refactoring / tech debt (all resolved or deferred) | 12 |
 | Missing tests / coverage gaps (all resolved) | 14 |
 | Feature completeness checklist (all verified) | 6 |
@@ -279,7 +280,37 @@
 
 ---
 
-## Resolved / Stale Prior Findings
+## CSAM Safety Guard Audit (June 2026)
+
+A comprehensive anti-CSAM safety guard audit was conducted in June 2026. All findings were resolved.
+
+- [x] **[ENFORCE-002] Jina research path missing renderer-layer guard** — `src/modules/SearchScrapeModule.tsx:runAiResearch()`
+  - `runAiResearch()` dispatched directly to the Jina provider (which uses direct `fetch()` outside the Venice transport chain) without first running the safety guard. This left the Jina path unguarded at the renderer layer.
+  - **Fix:** Added `assessChildExploitationSafety()` + `recordDecision()` call at the top of `runAiResearch()` before provider dispatch.
+
+- [x] **[ENFORCE-003] Profile discovery missing renderer-layer guard** — `src/modules/SearchScrapeModule.tsx:runProfileDiscovery()`
+  - `runProfileDiscovery()` had no renderer-level guard before passing the target name to social discovery queries.
+  - **Fix:** Added `assessChildExploitationSafety()` + `recordDecision()` call at the top of `runProfileDiscovery()` for defense-in-depth.
+
+- [x] **[VERIFY-002] SearchScrapeModule not in verify-safety-guard enforcement map** — `scripts/verify-safety-guard.cjs`
+  - The CI gate checked only `veniceClient.ts`, `handlers.ts`, and `server.ts`. The new renderer-layer guard paths in `SearchScrapeModule.tsx` were not verified.
+  - **Fix:** Added `SearchScrapeModule.tsx` to the enforcement map with a count check of ≥ 3 guard calls.
+
+- [x] **[VERIFY-003] Per-file exclusion logic allowed false negatives** — `scripts/verify-safety-guard.cjs`
+  - The log-scan exclusion (`promptHash`, `promptTouched`) was evaluated at the file level: a file containing a real prompt log AND the word `promptHash` would silently pass.
+  - **Fix:** Changed exclusion to per-match filtering so each line is independently evaluated.
+
+- [x] **[VERIFY-004] IPC handler check brittle to formatting** — `scripts/verify-safety-guard.cjs`
+  - The enforcement check for `handlers.ts` used a string-split on `});` which would silently pass on any minor formatting change.
+  - **Fix:** Replaced with a regex-based scan that counts guard call occurrences, independent of formatting.
+
+- [x] **[TEST-001] No fixture builder module; tests used natural-language unsafe strings** — `tests/safety/`
+  - Safety tests lacked a shared placeholder fixture scheme, creating risk of natural-language unsafe content in test files.
+  - **Fix:** Created `tests/safety/fixtureBuilders.ts` with `triggerInput()`, `obfuscatedInput()`, `benignInput()`, `crossSentenceInput()`, `benignYouthContextInput()` functions. Created `tests/safety/enforcementBoundaries.test.ts` with 29 new tests (obfuscation, false-positive regressions, decision content-freedom, audit counter content-freedom, payload extraction).
+
+---
+
+
 
 - [x] **[RESOLVED] Embedded adversarial research synthesis prompt removed** — `src/research/agent/researchSynthesis.ts`
 - [x] **[RESOLVED] Generic HTTP provider rejects redirects** — `src/research/providers/genericHttpScrapeProvider.ts`

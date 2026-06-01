@@ -49,6 +49,24 @@ operates on a "fail-close" design (returning a 500 status) if the guard
 encounters any extraction errors. Raw prompt text is never logged by the safety
 system.
 
+The Jina research provider (`r.jina.ai`/`s.jina.ai`) sends requests via direct
+`fetch()` outside the Venice transport chain. A renderer-layer guard runs in
+`SearchScrapeModule.tsx` (both `runAiResearch()` and `runProfileDiscovery()`)
+before any Jina or research dispatch, ensuring this path is also guarded.
+
+Safety-guard enforcement is verified by `scripts/verify-safety-guard.cjs`,
+which checks all enforcement boundaries (`veniceClient.ts`, `handlers.ts`,
+`server.ts`, `SearchScrapeModule.tsx`) as a CI gate. Run it with:
+
+```bash
+npm run verify:safety-guard
+```
+
+A comprehensive safety guard audit was conducted in May–June 2026 covering all
+request paths, payload extraction coverage, logging/diagnostics behavior, static
+verification script robustness, and test fixture safety. Findings are tracked in
+`TODO.md` under "CSAM Safety Guard Audit (June 2026)".
+
 > **Maintainer trigger:** Update this document whenever the allowed Venice API endpoint list (`src/shared/validation.ts`) or the safety guard enforcement boundaries change.
 
 External URLs opened via `shell.openExternal` are validated by
@@ -68,7 +86,7 @@ For Linux and other platforms, a plaintext fallback may be permitted if the `VEN
 
 ## Research Provider Security
 
-- **Jina AI**: Requests are sent directly to `r.jina.ai` and `s.jina.ai`. The Jina API key is redacted from all logs, diagnostics, and exports.
+- **Jina AI**: Requests are sent directly to `r.jina.ai` and `s.jina.ai`. The Jina API key is redacted from all logs, diagnostics, and exports. A renderer-layer safety guard runs before all Jina dispatch (see Content Safety above).
 - **Generic HTTP**: Disabled by default. When enabled, it uses a strict SSRF blocklist (no DNS resolution) and only allows `text/html`, `text/plain`, `application/xhtml+xml`, and `application/json` responses.
 - All research traffic respects the same endpoint allowlist and safety guard as Venice API calls.
 
@@ -93,9 +111,4 @@ npm audit
 
 A clean audit at the `moderate` level or higher (`npm audit --audit-level=moderate`) is a release gate requirement.
 
-Furthermore, safety-guard enforcement is actively verified by a dedicated
-script that ensures boundary completeness and strict no-logging rules:
-```bash
-npm run verify:safety-guard
-```
-This is a mandatory release and commit security gate.
+`npm run verify:safety-guard` is also a mandatory release and commit security gate — see the Content Safety section above for details.
