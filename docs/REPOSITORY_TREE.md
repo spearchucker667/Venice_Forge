@@ -104,7 +104,9 @@ This document is the public map for the Venice Forge repository. It reflects the
 │   ├── index.css
 │   └── main.tsx
 ├── public/
-│   └── bootstrap-theme.js     # External theme bootstrap script (CSP-safe, loaded before React mounts)
+│   ├── bootstrap-theme.js     # External theme bootstrap script (CSP-safe, loaded before React mounts)
+│   └── assets/
+│       └── branding/          # Venice AI brand assets (SVGs for logos, wordmarks, seals, keys)
 ├── .env.example
 ├── CHANGELOG.md
 ├── CODE_OF_CONDUCT.md
@@ -198,7 +200,7 @@ The following paths are generated locally and are intentionally not part of the 
 - `coverage/`
 - `.env`
 - `*.log`
-- `docs/AGENTS/` (agent session handoff files, generated during multi-agent workflows)
+- `docs/AGENTS/` — **Maintainer note:** This directory is gitignored and is **not committed to the repository**. It contains locally-generated agent session handoff files (`agents.md`, `gemini.md`, `agent-reinitialization.md`) that AI coding agents use to orient themselves. These are created and updated automatically during multi-agent workflows. If you clone the repository fresh, this directory will not exist — agents will regenerate it on first use. Do not commit these files; they may contain session-specific paths, intermediate state, or ephemeral context that is only valid locally.
 
 ## Public Readiness Checklist
 

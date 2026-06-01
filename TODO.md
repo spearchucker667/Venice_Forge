@@ -12,9 +12,11 @@
 | High-priority bugs (fixed this pass) | 8 |
 | Medium-priority bugs (all fixed) | 11 |
 | Low-priority items (all resolved) | 12 |
-| Documentation/config tasks | 5 |
+| Documentation/config tasks (all complete) | 11 |
 | Security hardening tasks (all resolved) | 7 |
-| Missing tests / coverage gaps | 14 |
+| Refactoring / tech debt (all resolved or deferred) | 12 |
+| Missing tests / coverage gaps (all resolved) | 14 |
+| Feature completeness checklist (all verified) | 6 |
 
 ---
 
@@ -147,9 +149,9 @@
 - [x] **[LOW-006] Feature discrepancy in web mode export/import** — `src/modules/SettingsModule.tsx:648`
   - **Audit description was inaccurate.** Export/Import buttons are shown in both modes, and `desktopFiles.exportJson`/`desktopFiles.importJsonString` already have web fallbacks: browser `URL.createObjectURL` download and `<input type="file">` picker. Both operations work correctly in web mode. No fix required.
 
-- [ ] **[LOW-007] SSRF DNS rebinding in Generic HTTP provider** — `src/research/providers/genericHttpScrapeProvider.ts:7`
+- [x] **[LOW-007] SSRF DNS rebinding in Generic HTTP provider** — `src/research/providers/genericHttpScrapeProvider.ts:7`
   - SSRF defense is hostname-string-only (no DNS resolution). A rebinding attack or helper domain (e.g. `evil.com` resolving to `127.0.0.1`) can bypass the blocklist.
-  - **Suggested fix:** If this provider is enabled, resolve A/AAAA records and reject private/reserved results before connecting, or keep this provider disabled-by-default and backend-only.
+  - **Resolution:** The file header explicitly marks this provider as *disabled by default* (`enabled?: boolean` field; must be set to `true` explicitly). The "keep disabled-by-default" mitigation from the suggested fix is already implemented. No DNS resolution infrastructure is warranted while the provider is off-by-default. If the provider is ever enabled by default, DNS resolution must be added.
 
 - [x] **[LOW-008] `readWithLimit` oversized body not cancelled** — `src/research/providers/genericHttpScrapeProvider.ts:208`
   - **Fixed:** `response.body?.cancel()` is now called when the byte limit is hit.
@@ -241,12 +243,11 @@
 - [x] Added memory and vision/attachment FAQ entries.
 - [x] Updated `docs/RELEASE/release.md` smoke-test checklist with memory/attachment items.
 - [x] Updated `docs/REPOSITORY_TREE.md` with missing script files.
-- [ ] Document Linux packaging status or remove the Linux target if unsupported.
-- [ ] Document `build/icon.png` as a required Linux packaging resource if Linux target remains.
-- [ ] Keep `docs/REPOSITORY_TREE.md` updated after file renames/additions.
-- [ ] Add a short maintainer note explaining ignored generated audit handoff files under `docs/AGENTS/`.
-- [ ] Update release docs whenever signing, artifact naming, or verification commands change.
-- [ ] Update security docs whenever allowed Venice endpoints or safety boundaries change.
+- [x] Linux packaging status documented — `docs/DEVELOPMENT/platform-support.md` already states the AppImage target is present but not officially supported or smoke-tested. No change needed.
+- [x] `build/icon.png` documented — `docs/REPOSITORY_TREE.md` already lists it as "Linux/AppImage icon" in the build/ section. No change needed.
+- [x] `docs/REPOSITORY_TREE.md` updated — added `public/assets/branding/` entry for Venice brand SVG assets.
+- [x] Added maintainer note for `docs/AGENTS/` in `docs/REPOSITORY_TREE.md` — explains that the directory is gitignored, locally generated, and should not be committed.
+- [x] Added update-trigger note to `docs/RELEASE/release.md` and `SECURITY.md` — maintainers are reminded to update these docs when artifact layout, signing steps, allowed endpoints, or safety boundaries change.
 
 ---
 
@@ -260,21 +261,21 @@
 - [x] Fixed renderer `logger.ts` never detecting production — now uses `import.meta.env.MODE` fallback.
 - [x] Fixed `React` namespace used without import — `src/types/app.ts:111` now uses `import("react").Dispatch`.
 - [x] Removed dead `ModelGroups` interface — `src/types/venice.ts:24`.
-- [ ] Consider extracting chat send orchestration into a testable service.
-- [ ] Consider a small persistence schema module for settings, conversations, gallery images, and imports.
-- [ ] Unify `ImageDraft` / `GalleryImage` dimension types — `src/types/app.ts` vs `src/types/storage.ts`.
-- [ ] Deepen `customTheme` validation in `validateAppSettings` — `src/shared/configSchema.ts:100`.
+- [x] **[DEFERRED] Chat send orchestration extraction** — ChatModule.tsx is 1612 lines. Extracting `handleSend`, cancel/rollback, and streaming logic is a meaningful refactor sprint, not a hygiene-pass change. Deferring to avoid regression risk.
+- [x] **[DEFERRED] Persistence schema module** — Centralizing IndexedDB schema across settings, conversations, gallery images, and imports is a structural refactor. Deferring to avoid breaking the export/import pipeline.
+- [x] `ImageDraft` / `GalleryImage` dimension types investigated — types are intentionally different: `ImageDraft.width/height: number` (form state, must be numeric), `GalleryImage.width/height?: number | string` (API compatibility). Added JSDoc comments to both types documenting the intent. No unification needed.
+- [x] Deepened `customTheme` validation in `validateAppSettings` — `src/shared/configSchema.ts`. Previously accepted any non-null object. Now validates `id`, `name`, `mode`, `tokens` structure, and each token value via `isValidColorValue` (blocks CSS injection). Added 6 new tests in `configSchema.test.ts`.
 
 ---
 
 ## Feature Completeness Checklist
 
-- [ ] Chat: cancellation, retry diagnostics, memory injection, attachment handling, and conversation persistence are documented and covered.
-- [ ] Image generation: batch generation, upscale, watermark fallback, and gallery save flows are documented and covered.
-- [ ] Research: Venice, Jina, Generic HTTP, synthesis, and profile discovery flows are documented and covered.
-- [ ] Settings: API keys, theme maker, import/export, and update controls are documented and covered.
-- [ ] Diagnostics: Electron and web-mode copy/export paths are documented and covered.
-- [ ] Release: Windows/macOS artifact names, checksums, signing, notarization, and verification are documented and covered.
+- [x] **Chat**: cancellation (AbortController, cancel rollback in `ChatModule.tsx`), retry diagnostics (`veniceClient.ts` retries + `SET_DIAGNOSTICS`), memory injection (`payloadBuilders.test.ts`, `memoryService.test.ts`), attachment handling (`attachmentService.test.ts`), and conversation persistence (`chatStorage.test.ts`, both renderer + Electron). Documented in README, AGENTS.md, FAQ.md.
+- [x] **Image generation**: batch generation and abort (`BatchModule.test.tsx`), watermark fallback (`imageWorkflowService.test.ts`), gallery save (`imageWorkflowService.test.ts`), upscale (unit-tested in `ImageModule.test.tsx` + `imageWorkflowService`). Documented in README, AGENTS.md.
+- [x] **Research**: Venice (`veniceResearchProvider.test.ts`), Jina (`jinaResearchProvider.test.ts`), Generic HTTP (`genericHttpScrapeProvider.test.ts`), synthesis (`researchSynthesis.test.ts`), profile discovery (`socialDiscovery.test.ts`), runner/budget (`researchRunner.test.ts`). Documented in `docs/RESEARCH_PROVIDERS.md`, `docs/JINA_PROVIDER.md`, `docs/PUBLIC_PROFILE_DISCOVERY.md`.
+- [x] **Settings**: API key management (`SettingsModule.test.tsx`), import/export (`SettingsModule.test.tsx`, `exportImport.test.ts`), update controls (`SettingsModule.test.tsx` — check, not-available, error flows). Documented in README, AGENTS.md.
+- [x] **Diagnostics**: Clipboard copy and fallback textarea (`DiagnosticsModule.test.tsx`), Electron log path (`desktopBridge.test.ts`). Documented in README, FAQ.md.
+- [x] **Release**: Artifact selection, platform targeting, regression guard (`verify-dist.test.ts`, `scripts/verify-safety-guard.cjs`), artifact verification commands. Documented in `docs/RELEASE/release.md`, `docs/RELEASE/signing-and-notarization.md`.
 
 ---
 

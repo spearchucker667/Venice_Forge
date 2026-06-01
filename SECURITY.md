@@ -49,6 +49,8 @@ operates on a "fail-close" design (returning a 500 status) if the guard
 encounters any extraction errors. Raw prompt text is never logged by the safety
 system.
 
+> **Maintainer trigger:** Update this document whenever the allowed Venice API endpoint list (`src/shared/validation.ts`) or the safety guard enforcement boundaries change.
+
 External URLs opened via `shell.openExternal` are validated by
 `electron/utils/urlSecurity.ts`: only `https:` with public routable hostnames
 is allowed. RFC 1918 and loopback addresses are blocked.

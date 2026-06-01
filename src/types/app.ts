@@ -15,7 +15,9 @@ export interface ChatRecord {
 export interface ImageDraft {
   prompt: string;
   negative: string;
+  /** Form state: always a parsed number (coerced by UI before dispatch). */
   width: number;
+  /** Form state: always a parsed number (coerced by UI before dispatch). */
   height: number;
   aspectRatio: string;
   steps: number | string;

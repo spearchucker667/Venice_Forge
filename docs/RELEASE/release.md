@@ -6,6 +6,8 @@
 2. Run `npm install` so `package-lock.json` stays in sync.
 3. Update `CHANGELOG.md` with the new version section.
 4. Confirm `README.md`, `AGENTS.md`, [LEGAL.md](../LEGAL.md), [SECURITY.md](../../SECURITY.md), [REPOSITORY_TREE.md](../REPOSITORY_TREE.md), `CHANGELOG.md`, and this checklist match the release.
+   - **Trigger:** Update this checklist and the linked docs whenever artifact filenames, signing steps, verification commands, or the release workflow changes.
+   - **Trigger:** Update `SECURITY.md` whenever allowed Venice endpoints, safety guard boundaries, or the supported version policy changes.
 5. Confirm public-facing badges and GitHub templates still point at `spearchucker667/Venice-API-connector`.
 
 ## Local Windows Build

@@ -27,7 +27,9 @@ export interface GalleryImage {
   prompt: string;
   negative?: string;
   model: string;
+  /** Optional: stored as-received from the API, which may return a number or a string. */
   width?: number | string;
+  /** Optional: stored as-received from the API, which may return a number or a string. */
   height?: number | string;
   aspectRatio?: string;
   style?: string;

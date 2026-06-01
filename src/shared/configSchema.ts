@@ -3,6 +3,7 @@
  * @fileoverview Central validation and typing for environment configuration.
  */
 import { VENICE_MAX_BODY_BYTES } from "./limits";
+import { isValidColorValue } from "../theme/validateColor";
 
 export interface EnvConfig {
   VENICE_API_KEY?: string;
@@ -98,9 +99,19 @@ export function validateAppSettings(raw: unknown): Record<string, unknown> {
     valid.appearanceMode = record.appearanceMode;
   }
   if (typeof record.customTheme === "object" && record.customTheme !== null) {
-    // Basic structural check for customTheme; full validation is handled by isValidTheme in exportImport if needed,
-    // or we just trust the shape here since it's a deep object.
-    valid.customTheme = record.customTheme;
+    const t = record.customTheme as Record<string, unknown>;
+    const isThemeValid =
+      typeof t.id === "string" &&
+      typeof t.name === "string" &&
+      (t.mode === "dark" || t.mode === "light") &&
+      typeof t.tokens === "object" &&
+      t.tokens !== null &&
+      Object.values(t.tokens as Record<string, unknown>).every(
+        (v) => typeof v === "string" && isValidColorValue(v)
+      );
+    if (isThemeValid) {
+      valid.customTheme = record.customTheme;
+    }
   }
 
   return valid;
