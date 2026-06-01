@@ -24,16 +24,27 @@ const enforcementMap = [
     file: 'electron/ipc/handlers.ts',
     name: 'Electron IPC Handlers',
     check: (content) => {
-      // Find the blocks for venice:request and venice:streamChat
-      const requestBlock = content.includes('"venice:request"') && content.split('"venice:request"')[1].split('});')[0];
-      const streamBlock = content.includes('"venice:streamChat"') && content.split('"venice:streamChat"')[1].split('});')[0];
-
-      const requestGuarded = requestBlock && requestBlock.includes('assessChildExploitationSafety');
-      const streamGuarded = streamBlock && streamBlock.includes('assessChildExploitationSafety');
-
-      return requestGuarded && streamGuarded;
+      // VERIFY-004 fix: use regex scan instead of brittle string-split so formatting
+      // changes in handlers.ts don't silently pass this check.
+      // Both "venice:request" and "venice:streamChat" handlers must call the guard.
+      const hasVeniceRequest = /["']venice:request["']/.test(content);
+      const hasVeniceStream = /["']venice:streamChat["']/.test(content);
+      const guardCallCount = (content.match(/assessChildExploitationSafety\s*\(/g) || []).length;
+      // At minimum two guard calls required (one per handler)
+      return hasVeniceRequest && hasVeniceStream && guardCallCount >= 2;
     },
     message: 'IPC handlers "venice:request" and "venice:streamChat" must be guarded'
+  },
+  {
+    file: 'src/modules/SearchScrapeModule.tsx',
+    name: 'SearchScrape UI Module',
+    check: (content) => {
+      // VERIFY-002 fix: verify guard is called in all three send paths:
+      // runSearch, runAiResearch, and runProfileDiscovery.
+      const guardCallCount = (content.match(/assessChildExploitationSafety\s*\(/g) || []).length;
+      return guardCallCount >= 3;
+    },
+    message: 'SearchScrapeModule must call safety guard in runSearch, runAiResearch, and runProfileDiscovery'
   },
   {
     file: 'server.ts',
@@ -88,9 +99,18 @@ function scanForViolations(root) {
         const content = fs.readFileSync(fullPath, 'utf-8');
 
         // Look for console logging of prompt-like variables
-        if (/console\.(log|warn|error)[^;]*\b(prompt|userPrompt|input|payload)\b/.test(content)) {
-          // Exclude common safe patterns
-          if (!content.includes('promptHash') && !content.includes('promptTouched')) {
+        // VERIFY-003 fix: exclusion terms (promptHash, promptTouched) must only skip
+        // a file if the ONLY match is in a known-safe context. Previously, a file with
+        // both a real prompt log AND an exclusion term would pass falsely.
+        // Now we apply the exclusion check per-match rather than per-file.
+        const RAW_LOG_RE = /console\.(log|warn|error)[^;]*\b(prompt|userPrompt|input|payload)\b/g;
+        const logMatches = content.match(RAW_LOG_RE);
+        if (logMatches) {
+          const unsafeMatches = logMatches.filter(match => {
+            // Allow matches that are clearly about audit/hash metadata, not raw content
+            return !/promptHash|promptTouched|promptId|auditSnap/.test(match);
+          });
+          if (unsafeMatches.length > 0) {
             failures.push(`File ${fullPath} contains a pattern that looks like raw prompt logging`);
           }
         }

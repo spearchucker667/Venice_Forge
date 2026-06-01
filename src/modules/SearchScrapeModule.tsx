@@ -207,6 +207,20 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
   async function runAiResearch() {
     if (!researchQuestion.trim()) return;
     setError("");
+    // ENFORCE-002: guard research question at the renderer layer before dispatching
+    // to any provider (Venice or Jina). Jina calls go via direct fetch() outside the
+    // Venice transport chain, so this is the only guard boundary for that path.
+    const researchGuard = assessChildExploitationSafety({
+      text: researchQuestion.trim(),
+      endpoint: "/augment/search",
+      method: "POST",
+      source: "research",
+    });
+    recordDecision(researchGuard);
+    if (!researchGuard.allow || researchGuard.action === "block") {
+      setError(researchGuard.userMessage);
+      return;
+    }
     setLoading("ai-research");
     setResearchOutput("");
     setResearchCitations("");
@@ -265,6 +279,19 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
   async function runProfileDiscovery() {
     if (!targetName.trim() || !authorized) return;
     setError("");
+    // ENFORCE-003: guard target name at renderer layer; downstream Venice calls are also
+    // guarded at transport level, but this provides an earlier fail-fast boundary.
+    const profileGuard = assessChildExploitationSafety({
+      text: targetName.trim(),
+      endpoint: "/augment/search",
+      method: "POST",
+      source: "research",
+    });
+    recordDecision(profileGuard);
+    if (!profileGuard.allow || profileGuard.action === "block") {
+      setError(profileGuard.userMessage);
+      return;
+    }
     setLoading("profile-discovery");
     setProfileCandidates([]);
     const { runId, signal } = beginRun();

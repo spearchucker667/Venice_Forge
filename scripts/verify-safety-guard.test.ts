@@ -18,88 +18,62 @@ describe("verify-safety-guard", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
+  /** Creates all required enforcement files in tmpDir with passing content. */
+  function createPassingMocks(dir: string, overrides: Record<string, string> = {}) {
+    const defaults: Record<string, { subdir: string; content: string }> = {
+      "veniceClient.ts": {
+        subdir: "src/services",
+        content: "function a() { assessChildExploitationSafety(); } function b() { assessChildExploitationSafety(); }",
+      },
+      "handlers.ts": {
+        subdir: "electron/ipc",
+        content: '"venice:request" handler { assessChildExploitationSafety(); } }); "venice:streamChat" handler { assessChildExploitationSafety(); } });',
+      },
+      "server.ts": {
+        subdir: "",
+        content: "app.use(() => { assessChildExploitationSafety(); recordDecision(); });",
+      },
+      "SearchScrapeModule.tsx": {
+        subdir: "src/modules",
+        content: "function r1() { assessChildExploitationSafety(); } function r2() { assessChildExploitationSafety(); } function r3() { assessChildExploitationSafety(); }",
+      },
+    };
+
+    for (const [file, { subdir, content }] of Object.entries(defaults)) {
+      const fileDir = subdir ? path.join(dir, subdir) : dir;
+      fs.mkdirSync(fileDir, { recursive: true });
+      fs.writeFileSync(path.join(fileDir, file), overrides[file] ?? content);
+    }
+  }
+
   describe("runEnforcementChecks", () => {
     it("passes when all enforcement files contain required guards", () => {
-      const srcDir = path.join(tmpDir, "src", "services");
-      fs.mkdirSync(srcDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(srcDir, "veniceClient.ts"),
-        "function a() { assessChildExploitationSafety(); } function b() { assessChildExploitationSafety(); }"
-      );
-
-      const electronDir = path.join(tmpDir, "electron", "ipc");
-      fs.mkdirSync(electronDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(electronDir, "handlers.ts"),
-        '"venice:request" handler { assessChildExploitationSafety(); } }); "venice:streamChat" handler { assessChildExploitationSafety(); } });'
-      );
-
-      fs.writeFileSync(
-        path.join(tmpDir, "server.ts"),
-        "app.use(() => { assessChildExploitationSafety(); recordDecision(); });"
-      );
-
+      createPassingMocks(tmpDir);
       const result = runEnforcementChecks(tmpDir);
       expect(result).toEqual([]);
     });
 
     it("fails when veniceClient.ts has fewer than 2 guard calls", () => {
-      const srcDir = path.join(tmpDir, "src", "services");
-      fs.mkdirSync(srcDir, { recursive: true });
-      fs.writeFileSync(path.join(srcDir, "veniceClient.ts"), "function a() { assessChildExploitationSafety(); }");
-
-      const electronDir = path.join(tmpDir, "electron", "ipc");
-      fs.mkdirSync(electronDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(electronDir, "handlers.ts"),
-        '"venice:request" { assessChildExploitationSafety(); } }); "venice:streamChat" { assessChildExploitationSafety(); } });'
-      );
-
-      fs.writeFileSync(path.join(tmpDir, "server.ts"), "assessChildExploitationSafety(); recordDecision();");
-
+      createPassingMocks(tmpDir, {
+        "veniceClient.ts": "function a() { assessChildExploitationSafety(); }",
+      });
       const result = runEnforcementChecks(tmpDir);
       expect(result.length).toBeGreaterThan(0);
       expect(result[0]).toContain("Renderer Transport");
     });
 
     it("fails when IPC handlers are missing guards", () => {
-      const srcDir = path.join(tmpDir, "src", "services");
-      fs.mkdirSync(srcDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(srcDir, "veniceClient.ts"),
-        "function a() { assessChildExploitationSafety(); } function b() { assessChildExploitationSafety(); }"
-      );
-
-      const electronDir = path.join(tmpDir, "electron", "ipc");
-      fs.mkdirSync(electronDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(electronDir, "handlers.ts"),
-        '"venice:request" { /* no guard */ } }); "venice:streamChat" { assessChildExploitationSafety(); } });'
-      );
-
-      fs.writeFileSync(path.join(tmpDir, "server.ts"), "assessChildExploitationSafety(); recordDecision();");
-
+      createPassingMocks(tmpDir, {
+        "handlers.ts": '"venice:request" { /* no guard */ } }); "venice:streamChat" { assessChildExploitationSafety(); } });',
+      });
       const result = runEnforcementChecks(tmpDir);
       expect(result.some((r: string) => r.includes("IPC handlers"))).toBe(true);
     });
 
     it("fails when server.ts is missing recordDecision", () => {
-      const srcDir = path.join(tmpDir, "src", "services");
-      fs.mkdirSync(srcDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(srcDir, "veniceClient.ts"),
-        "function a() { assessChildExploitationSafety(); } function b() { assessChildExploitationSafety(); }"
-      );
-
-      const electronDir = path.join(tmpDir, "electron", "ipc");
-      fs.mkdirSync(electronDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(electronDir, "handlers.ts"),
-        '"venice:request" { assessChildExploitationSafety(); } }); "venice:streamChat" { assessChildExploitationSafety(); } });'
-      );
-
-      fs.writeFileSync(path.join(tmpDir, "server.ts"), "assessChildExploitationSafety();");
-
+      createPassingMocks(tmpDir, {
+        "server.ts": "assessChildExploitationSafety();",
+      });
       const result = runEnforcementChecks(tmpDir);
       expect(result.some((r: string) => r.includes("Web Proxy Server"))).toBe(true);
     });
@@ -135,16 +109,32 @@ describe("verify-safety-guard", () => {
       expect(result).toEqual([]);
     });
 
-    it("allows promptHash and promptTouched safe patterns", () => {
+    it("allows files with both promptHash safe pattern AND other code (VERIFY-003 regression)", () => {
+      // VERIFY-003 fix: a file that mentions promptHash in one place but also has
+      // a safe audit log (e.g. logging promptHash directly, not user prompt) must pass.
       const srcDir = path.join(tmpDir, "src");
       fs.mkdirSync(srcDir, { recursive: true });
       fs.writeFileSync(
-        path.join(srcDir, "safe.ts"),
-        "console.log('hash', promptHash); console.log('touched', promptTouched);"
+        path.join(srcDir, "safeAudit.ts"),
+        "console.log('audit', promptHash); const x = promptHash; doSomething();"
       );
 
       const result = scanForViolations(tmpDir);
       expect(result).toEqual([]);
+    });
+
+    it("flags file that has both a real prompt log AND safe pattern (VERIFY-003 per-match check)", () => {
+      // A file with a real prompt log should still fail even if it also mentions promptHash
+      const srcDir = path.join(tmpDir, "src");
+      fs.mkdirSync(srcDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(srcDir, "mixed.ts"),
+        "console.log('hash', promptHash);\nconsole.log('the actual prompt is', userPrompt);\nconst x = 1;"
+      );
+
+      const result = scanForViolations(tmpDir);
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0]).toContain("mixed.ts");
     });
 
     it("ignores node_modules and dist directories", () => {
@@ -159,22 +149,7 @@ describe("verify-safety-guard", () => {
 
   describe("verifySafetyGuard", () => {
     it("returns ok=true when everything passes", () => {
-      const srcDir = path.join(tmpDir, "src", "services");
-      fs.mkdirSync(srcDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(srcDir, "veniceClient.ts"),
-        "function a() { assessChildExploitationSafety(); } function b() { assessChildExploitationSafety(); }"
-      );
-
-      const electronDir = path.join(tmpDir, "electron", "ipc");
-      fs.mkdirSync(electronDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(electronDir, "handlers.ts"),
-        '"venice:request" { assessChildExploitationSafety(); } }); "venice:streamChat" { assessChildExploitationSafety(); } });'
-      );
-
-      fs.writeFileSync(path.join(tmpDir, "server.ts"), "assessChildExploitationSafety(); recordDecision();");
-
+      createPassingMocks(tmpDir);
       const result = verifySafetyGuard(tmpDir);
       expect(result.ok).toBe(true);
     });
