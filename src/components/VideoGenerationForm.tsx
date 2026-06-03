@@ -154,13 +154,77 @@ export function VideoGenerationForm({
           )}
 
           {requiresImage && (
-            <Field label="Source image URL">
-              <input
-                value={draft.imageUrl}
-                onChange={(e) => patch({ imageUrl: e.target.value })}
-                placeholder="https://example.com/reference.png or data:image/..."
-                className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text-primary placeholder-text-muted transition-all focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-              />
+            <Field label="Source Image (Drag & Drop or URL)">
+              <div
+                className="group relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border/50 bg-surface/30 p-6 transition-all hover:border-accent/50 hover:bg-surface"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.currentTarget.classList.add("border-accent", "bg-accent/5");
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.currentTarget.classList.remove("border-accent", "bg-accent/5");
+                }}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.currentTarget.classList.remove("border-accent", "bg-accent/5");
+                  
+                  const file = e.dataTransfer.files?.[0];
+                  if (!file) return;
+                  if (!file.type.startsWith("image/")) {
+                    alert("Please drop an image file.");
+                    return;
+                  }
+                  
+                  try {
+                    const { processFileAttachment } = await import("../services/attachmentService");
+                    const attachment = await processFileAttachment(file);
+                    patch({ imageUrl: attachment.content });
+                  } catch (err: unknown) {
+                    const msg = err instanceof Error ? err.message : "Failed to process image";
+                    alert(msg);
+                  }
+                }}
+              >
+                <div className="mb-4 text-center">
+                  <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-surface-elevated text-text-muted group-hover:text-accent transition-colors">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                  </div>
+                  <p className="text-sm font-medium text-text-primary">Drag & drop an image</p>
+                  <p className="mt-1 text-xs text-text-muted">or click to browse files</p>
+                  <input 
+                    type="file" 
+                    accept="image/png, image/jpeg, image/webp" 
+                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const { processFileAttachment } = await import("../services/attachmentService");
+                        const attachment = await processFileAttachment(file);
+                        patch({ imageUrl: attachment.content });
+                      } catch (err: unknown) {
+                        const msg = err instanceof Error ? err.message : "Failed to process image";
+                        alert(msg);
+                      }
+                      e.target.value = ""; // reset input
+                    }}
+                  />
+                </div>
+                
+                <div className="w-full relative z-10">
+                  <input
+                    value={draft.imageUrl}
+                    onChange={(e) => patch({ imageUrl: e.target.value })}
+                    placeholder="https://example.com/reference.png or data:image/..."
+                    className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text-primary placeholder-text-muted transition-all focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                    onClick={(e) => e.stopPropagation()} // Prevent triggering the file input
+                  />
+                </div>
+              </div>
             </Field>
           )}
 
