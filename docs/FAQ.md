@@ -48,13 +48,11 @@ The project enforces **zero warnings** (`--max-warnings=0`). Common causes:
 ### Why are `dev` and `dev:web` the same command?
 Both run `tsx server.ts` (the Express web proxy). `dev:web` is the explicit alias used throughout documentation. `dev` is the shorthand default.
 
----
-
 ## API Keys & Security
 
 ### Where is my API key stored?
 - **Desktop mode:** Encrypted with OS-level secure storage — DPAPI on Windows, Keychain on macOS. Both the Venice API key and the optional Jina API key are stored here. Neither is ever exposed to the renderer.
-- **Web mode:** In the server's `.env` file; never sent to the browser. Jina AI works without authentication in web mode (free tier).
+- **Web mode:** In the server's `.env` file; never sent to the browser. Jina AI API keys can be stored in the browser's `localStorage` for testing.
 
 ### What if secure storage is unavailable?
 On macOS and Windows, the app **refuses** to store the key if secure storage fails. On Linux, you can set the `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true` environment variable (e.g., in `.env` for web mode development) to allow a documented plaintext fallback. **This reduces security.**

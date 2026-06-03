@@ -87,7 +87,7 @@ For Linux and other platforms, a plaintext fallback may be permitted if the `VEN
 ## Research Provider Security
 
 - **Jina AI**: Requests are sent directly to `r.jina.ai` and `s.jina.ai`. The Jina API key is redacted from all logs, diagnostics, and exports. A renderer-layer safety guard runs before all Jina dispatch (see Content Safety above).
-- **Generic HTTP**: Disabled by default. When enabled, it uses a strict SSRF blocklist (no DNS resolution) and only allows `text/html`, `text/plain`, `application/xhtml+xml`, and `application/json` responses.
+- **Generic HTTP**: Disabled by default. When enabled, it routes traffic through a backend proxy to perform DNS resolution and enforce strict SSRF blocklists on the resolved IP. Only allows `text/html`, `text/plain`, `application/xhtml+xml`, and `application/json` responses.
 - All research traffic respects the same endpoint allowlist and safety guard as Venice API calls.
 
 ## Not Protected Against

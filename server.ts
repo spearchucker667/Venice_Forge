@@ -21,6 +21,8 @@ import { warn, error } from "./src/shared/logger";
 import { assessChildExploitationSafety, recordDecision } from "./src/shared/safety";
 import type { SafetyGuardDecision } from "./src/shared/safety";
 import { pathToFileURL, fileURLToPath } from "node:url";
+import dns from "node:dns/promises";
+import { isPrivateHostname } from "./electron/utils/urlSecurity";
 
 dotenv.config();
 
@@ -172,12 +174,14 @@ export function createServerApp() {
       record.resetTime = now + rateLimitWindowMs;
     } else {
       record.count++;
-      if (record.count > rateLimitMax) {
-        return res.status(429).json({ error: "Too many requests, please try again later." });
-      }
     }
+    
     record.lastSeen = now;
     reqCounts.set(ip, record);
+
+    if (record.count > rateLimitMax) {
+      return res.status(429).json({ error: "Too many requests, please try again later." });
+    }
     if (reqCounts.size > MAX_RATE_LIMIT_ENTRIES) {
       let oldestKey: string | undefined;
       let oldestTime = Infinity;
@@ -199,6 +203,7 @@ export function createServerApp() {
   // Circuit Breaker State
   let circuitFailures = 0;
   let circuitOpenUntil = 0;
+  let circuitHalfOpen = false;
   const CIRCUIT_MAX_FAILURES = 5;
   const CIRCUIT_RESET_TIMEOUT_MS = 30000;
 
@@ -206,9 +211,9 @@ export function createServerApp() {
     if (Date.now() < circuitOpenUntil) {
       return res.status(503).json({ error: "Service Unavailable: Circuit breaker open due to upstream failures." });
     }
-    // Reset failure count when re-entering half-open state after timeout
-    if (circuitOpenUntil > 0 && circuitFailures >= CIRCUIT_MAX_FAILURES) {
-      circuitFailures = 0;
+    // Enter half-open state if timeout has expired
+    if (circuitOpenUntil > 0 && Date.now() >= circuitOpenUntil) {
+      circuitHalfOpen = true;
       circuitOpenUntil = 0;
     }
     next();
@@ -319,20 +324,23 @@ export function createServerApp() {
 
           if (proxyRes.statusCode && proxyRes.statusCode >= 500) {
             circuitFailures++;
-            if (circuitFailures >= CIRCUIT_MAX_FAILURES) {
+            if (circuitFailures >= CIRCUIT_MAX_FAILURES || circuitHalfOpen) {
               error(`[Circuit Breaker] Tripped! Opening for ${CIRCUIT_RESET_TIMEOUT_MS}ms`);
               circuitOpenUntil = Date.now() + CIRCUIT_RESET_TIMEOUT_MS;
+              circuitHalfOpen = false;
             }
           } else if (proxyRes.statusCode && proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
              circuitFailures = 0; // Reset only on successful responses
+             circuitHalfOpen = false;
           }
         },
         error: (err: Error, req: express.Request, res: express.Response | import('net').Socket) => {
           error("Proxy error:", err.message);
           circuitFailures++;
-          if (circuitFailures >= CIRCUIT_MAX_FAILURES) {
+          if (circuitFailures >= CIRCUIT_MAX_FAILURES || circuitHalfOpen) {
              error(`[Circuit Breaker] Tripped (Network Error)! Opening for ${CIRCUIT_RESET_TIMEOUT_MS}ms`);
              circuitOpenUntil = Date.now() + CIRCUIT_RESET_TIMEOUT_MS;
+             circuitHalfOpen = false;
           }
           if ("headersSent" in res && !res.headersSent) {
             res.writeHead(502, { "Content-Type": "application/json" });
@@ -371,6 +379,107 @@ if (isMainModule()) {
 export async function startServer() {
   const app = createServerApp();
   const PORT = AppConfig.PORT;
+  // Generic scrape proxy with SSRF protection (DNS resolution)
+  app.post("/api/proxy-scrape", express.json(), async (req, res) => {
+    try {
+      const url = req.body?.url;
+      if (typeof url !== "string") {
+        return res.status(400).json({ error: "Missing or invalid URL" });
+      }
+      
+      let parsed: URL;
+      try {
+        parsed = new URL(url);
+      } catch {
+        return res.status(400).json({ error: "Invalid URL format" });
+      }
+
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return res.status(400).json({ error: "Only http/https allowed" });
+      }
+
+      if (isPrivateHostname(parsed.hostname)) {
+        return res.status(403).json({ error: "Access to private hostnames blocked" });
+      }
+
+      let address: string;
+      try {
+        const lookupResult = await dns.lookup(parsed.hostname);
+        address = lookupResult.address;
+      } catch {
+        return res.status(400).json({ error: "DNS lookup failed" });
+      }
+
+      if (isPrivateHostname(address)) {
+        return res.status(403).json({ error: "Access to private IPs blocked" });
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      const fetchRes = await fetch(url, {
+        method: "GET",
+        signal: controller.signal,
+        redirect: "error",
+        credentials: "omit",
+        headers: {
+          Accept: "text/html, text/plain, application/xhtml+xml, application/json",
+        },
+      });
+
+      clearTimeout(timeoutId);
+
+      const contentType = fetchRes.headers.get("content-type") || "";
+      const ALLOWED_CONTENT_TYPES = ["text/html", "text/plain", "application/xhtml+xml", "application/json"];
+      const allowed = ALLOWED_CONTENT_TYPES.some((t) => contentType.toLowerCase().includes(t));
+      
+      if (!allowed) {
+        return res.status(415).json({ error: "Content-Type not allowed" });
+      }
+
+      const maxBytes = 2 * 1024 * 1024;
+      let bodyStr = "";
+      if (fetchRes.body) {
+        const reader = fetchRes.body.getReader();
+        const decoder = new TextDecoder();
+        let bytesRead = 0;
+        let limitHit = false;
+        try {
+          while (bytesRead < maxBytes) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            bytesRead += value.byteLength;
+            bodyStr += decoder.decode(value, { stream: true });
+            if (bytesRead >= maxBytes) {
+              limitHit = true;
+              break;
+            }
+          }
+        } finally {
+          reader.releaseLock();
+          if (limitHit) {
+            fetchRes.body.cancel().catch(() => {});
+          }
+        }
+        bodyStr += decoder.decode(undefined, { stream: false });
+      } else {
+        bodyStr = await fetchRes.text();
+      }
+
+      res.status(fetchRes.status).json({
+        url,
+        finalUrl: fetchRes.url,
+        contentType,
+        body: bodyStr,
+      });
+
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return res.status(504).json({ error: "Request timed out" });
+      }
+      return res.status(500).json({ error: err instanceof Error ? err.message : "Scrape failed" });
+    }
+  });
 
   // Vite middleware for development
   if (AppConfig.NODE_ENV !== "production" && AppConfig.NODE_ENV !== "test") {
@@ -386,7 +495,7 @@ export async function startServer() {
     const staticWindowMs = AppConfig.RATE_LIMIT_WINDOW_MS;
     const staticMaxRequests = AppConfig.RATE_LIMIT_MAX_REQUESTS;
     const MAX_STATIC_RATE_LIMIT_ENTRIES = 10_000;
-    const staticRequestCounts = new Map<string, { count: number; resetTime: number }>();
+    const staticRequestCounts = new Map<string, { count: number; resetTime: number; lastSeen: number }>();
     const staticRateLimiterCleanup = setInterval(() => {
       const now = Date.now();
       for (const [ip, record] of staticRequestCounts.entries()) {
@@ -396,21 +505,31 @@ export async function startServer() {
     const staticRateLimiter: express.RequestHandler = (req, res, next) => {
       const ip = req.ip || "unknown";
       const now = Date.now();
-      const record = staticRequestCounts.get(ip) || { count: 0, resetTime: now + staticWindowMs };
+      const record = staticRequestCounts.get(ip) || { count: 0, resetTime: now + staticWindowMs, lastSeen: now };
 
       if (now > record.resetTime) {
         record.count = 1;
         record.resetTime = now + staticWindowMs;
       } else {
         record.count += 1;
-        if (record.count > staticMaxRequests) {
-          return res.status(429).json({ error: "Too many requests, please try again later." });
-        }
       }
+      record.lastSeen = now;
       staticRequestCounts.set(ip, record);
+
+      if (record.count > staticMaxRequests) {
+        return res.status(429).json({ error: "Too many requests, please try again later." });
+      }
+      
       if (staticRequestCounts.size > MAX_STATIC_RATE_LIMIT_ENTRIES) {
-        const oldest = staticRequestCounts.keys().next().value;
-        if (oldest !== undefined) staticRequestCounts.delete(oldest);
+        let oldestKey: string | undefined;
+        let oldestTime = Infinity;
+        for (const [key, value] of staticRequestCounts.entries()) {
+          if (value.lastSeen < oldestTime) {
+            oldestTime = value.lastSeen;
+            oldestKey = key;
+          }
+        }
+        if (oldestKey !== undefined) staticRequestCounts.delete(oldestKey);
       }
       return next();
     };

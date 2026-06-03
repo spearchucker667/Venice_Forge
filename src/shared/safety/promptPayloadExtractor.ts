@@ -58,7 +58,23 @@ function extractFromSerializedFormData(obj: Record<string, unknown>, fieldNames:
     if (typeof key !== "string") continue;
     if (DENY_FIELD_NAMES.has(key)) continue;
     if (!fieldNames.includes("*") && !fieldNames.includes(key)) continue;
-    const strVal = safeStringify(val);
+    let strVal = "";
+    if (entry["_isFile"] === true && typeof val === "string") {
+      try {
+        // Decode base64 to utf-8 so the text-parser payload can be safety checked
+        if (typeof Buffer !== "undefined") {
+          strVal = Buffer.from(val, "base64").toString("utf-8").slice(0, MAX_FIELD_CHARS);
+        } else if (typeof atob === "function") {
+          // Fallback for browsers if needed, though this branch mostly runs in Node
+          strVal = decodeURIComponent(escape(atob(val))).slice(0, MAX_FIELD_CHARS);
+        }
+      } catch {
+        strVal = safeStringify(val) || "";
+      }
+    } else {
+      strVal = safeStringify(val) || "";
+    }
+    
     if (strVal && strVal.trim()) results.push({ path: `formData.${key}`, value: strVal });
   }
   return results;

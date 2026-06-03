@@ -11,6 +11,7 @@ import { MAX_RAW_UPLOAD_BYTES } from "../services/veniceClient";
 import { ModuleProps } from "../types/app";
 import { veniceResearchProvider } from "../research/providers/veniceResearchProvider";
 import { createJinaProvider } from "../research/providers/jinaResearchProvider";
+import { desktopJinaApiKey } from "../services/desktopBridge";
 import { runResearchJob, type ResearchBudget } from "../research/agent/researchRunner";
 import { synthesizeResearch } from "../research/agent/researchSynthesis";
 import { runSocialDiscovery, type SocialProfileCandidate } from "../research/agent/socialDiscovery";
@@ -236,7 +237,13 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
     };
 
     try {
-      const provider = researchProviderId === "jina" ? createJinaProvider() : veniceResearchProvider;
+      let jinaKey: string | undefined;
+      if (researchProviderId === "jina") {
+        try { jinaKey = await desktopJinaApiKey.get(); } catch { /* ignore */ }
+      }
+      const provider = researchProviderId === "jina" 
+        ? createJinaProvider(jinaKey ? { getApiKey: () => jinaKey } : undefined) 
+        : veniceResearchProvider;
       const job = await runResearchJob({
         question: researchQuestion.trim(),
         provider,

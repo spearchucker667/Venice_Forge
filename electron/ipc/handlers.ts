@@ -5,6 +5,8 @@ import { app, dialog, ipcMain, type WebContents } from "electron";
 import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
+import dns from "node:dns/promises";
+import { isPrivateHostname } from "../utils/urlSecurity";
 import {
   deleteApiKey,
   deleteJinaApiKey,
@@ -207,6 +209,14 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle("jinaApiKey:isConfigured", () => isJinaApiKeyConfigured());
 
+  ipcMain.handle("jinaApiKey:get", () => {
+    try {
+      return getJinaApiKey();
+    } catch {
+      return null;
+    }
+  });
+
   ipcMain.handle("jinaApiKey:set", (_event, key: unknown) => {
     try {
       const trimmed = typeof key === "string" ? key.trim() : "";
@@ -245,6 +255,109 @@ export function registerIpcHandlers(): void {
       };
     } catch (err) {
       return { ok: false, status: 0, message: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("app:proxyScrape", async (_event, url: unknown) => {
+    try {
+      if (typeof url !== "string") {
+        return { ok: false, error: "Missing or invalid URL" };
+      }
+
+      let parsed: URL;
+      try {
+        parsed = new URL(url);
+      } catch {
+        return { ok: false, error: "Invalid URL format" };
+      }
+
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return { ok: false, error: "Only http/https allowed" };
+      }
+
+      if (isPrivateHostname(parsed.hostname)) {
+        return { ok: false, error: "Access to private hostnames blocked" };
+      }
+
+      let address: string;
+      try {
+        const lookupResult = await dns.lookup(parsed.hostname);
+        address = lookupResult.address;
+      } catch {
+        return { ok: false, error: "DNS lookup failed" };
+      }
+
+      if (isPrivateHostname(address)) {
+        return { ok: false, error: "Access to private IPs blocked" };
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      const fetchRes = await fetch(url, {
+        method: "GET",
+        signal: controller.signal,
+        redirect: "error",
+        credentials: "omit",
+        headers: {
+          Accept: "text/html, text/plain, application/xhtml+xml, application/json",
+        },
+      });
+
+      clearTimeout(timeoutId);
+
+      const contentType = fetchRes.headers.get("content-type") || "";
+      const ALLOWED_CONTENT_TYPES = ["text/html", "text/plain", "application/xhtml+xml", "application/json"];
+      const allowed = ALLOWED_CONTENT_TYPES.some((t) => contentType.toLowerCase().includes(t));
+      
+      if (!allowed) {
+        return { ok: false, error: "Content-Type not allowed" };
+      }
+
+      const maxBytes = 2 * 1024 * 1024;
+      let bodyStr = "";
+      if (fetchRes.body) {
+        const reader = fetchRes.body.getReader();
+        const decoder = new TextDecoder();
+        let bytesRead = 0;
+        let limitHit = false;
+        try {
+          while (bytesRead < maxBytes) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            bytesRead += value.byteLength;
+            bodyStr += decoder.decode(value, { stream: true });
+            if (bytesRead >= maxBytes) {
+              limitHit = true;
+              break;
+            }
+          }
+        } finally {
+          reader.releaseLock();
+          if (limitHit) {
+            fetchRes.body.cancel().catch(() => {});
+          }
+        }
+        bodyStr += decoder.decode(undefined, { stream: false });
+      } else {
+        bodyStr = await fetchRes.text();
+      }
+
+      return {
+        ok: true,
+        data: {
+          url,
+          finalUrl: fetchRes.url,
+          contentType,
+          body: bodyStr,
+        }
+      };
+
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return { ok: false, error: "Request timed out" };
+      }
+      return { ok: false, error: err instanceof Error ? err.message : "Scrape failed" };
     }
   });
 

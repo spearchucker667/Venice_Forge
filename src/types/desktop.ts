@@ -9,6 +9,7 @@ export interface VeniceForgeApiKey {
   set(key: string): Promise<{ ok: boolean }>;
   delete(): Promise<{ ok: boolean }>;
   test(): Promise<{ ok: boolean; status?: number; message: string }>;
+  get?(): Promise<string | null>;
 }
 
 /** Describes a single request sent through the Electron IPC bridge. */
@@ -62,6 +63,7 @@ export interface VeniceForgeApp {
   isEncryptionAvailable(): Promise<boolean>;
   getDiagnostics(): Promise<VeniceForgeDiagnostics>;
   openLogsFolder(): Promise<{ ok: boolean; path: string }>;
+  proxyScrape(url: string): Promise<{ ok: boolean; data?: { url: string; finalUrl: string; contentType: string; body: string }; error?: string }>;
 }
 
 /** Exposes file dialog helpers for importing and exporting JSON data. */

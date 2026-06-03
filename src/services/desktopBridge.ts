@@ -190,6 +190,15 @@ export const desktopApp = {
     if (!isElectron()) return Promise.resolve({ ok: false, path: "" });
     return window.veniceForge!.app.openLogsFolder();
   },
+
+  /**
+   * Proxies a generic scrape request through the main process to enforce SSRF safety.
+   * @param url The URL to scrape.
+   */
+  proxyScrape(url: string): Promise<{ ok: boolean; data?: { url: string; finalUrl: string; contentType: string; body: string }; error?: string }> {
+    if (!isElectron()) return Promise.resolve({ ok: false, error: "Only available in desktop mode" });
+    return window.veniceForge!.app.proxyScrape(url);
+  },
 };
 
 /** Handles JSON file export and import, falling back to browser downloads in web mode. */
@@ -289,19 +298,37 @@ export const desktopChat = {
 export const desktopJinaApiKey = {
   async isConfigured(): Promise<boolean> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.isConfigured();
-    return false;
+    return !!localStorage.getItem("venice_jina_api_key");
+  },
+  async get(): Promise<string | undefined> {
+    if (isElectron() && window.veniceForge!.jinaApiKey.get) {
+      return (await window.veniceForge!.jinaApiKey.get()) || undefined;
+    }
+    return localStorage.getItem("venice_jina_api_key") || undefined;
   },
   async set(key: string): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.set(key);
-    throw new Error("Jina API key storage is desktop-only.");
+    localStorage.setItem("venice_jina_api_key", key.trim());
+    return { ok: true };
   },
   async delete(): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.delete();
+    localStorage.removeItem("venice_jina_api_key");
     return { ok: true };
   },
   async test(): Promise<{ ok: boolean; status?: number; message: string }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.test();
-    return { ok: false, message: "Jina key test is desktop-only." };
+    const key = localStorage.getItem("venice_jina_api_key");
+    if (!key) return { ok: false, message: "No API key configured." };
+    try {
+      const resp = await fetch("https://api.jina.ai/v1/models", {
+        headers: { "Authorization": `Bearer ${key}` }
+      });
+      if (resp.ok) return { ok: true, message: "Jina API key is valid." };
+      return { ok: false, status: resp.status, message: `Jina API returned ${resp.status}` };
+    } catch (err: any) {
+      return { ok: false, message: err.message || "Network error testing Jina API key" };
+    }
   },
 };
 

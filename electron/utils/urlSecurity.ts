@@ -39,14 +39,45 @@ export function isPrivateHostname(hostname: string): boolean {
 
 /** Expands short-form IPv4 addresses to dotted-quad notation. */
 function normalizeShortIpv4(h: string): string {
+  // Try to parse using POSIX inet_aton rules
+  // Handle hex (0x), octal (0), and decimal
+  const parsePart = (part: string) => {
+    if (/^0x[0-9a-f]+$/i.test(part)) return parseInt(part, 16);
+    if (/^0[0-7]+$/.test(part)) return parseInt(part, 8);
+    if (/^\d+$/.test(part)) return parseInt(part, 10);
+    return NaN;
+  };
+
   const segments = h.split(".");
-  if (segments.length < 2 || segments.length > 4) return h;
-  if (!segments.every(s => s !== "" && !Number.isNaN(Number(s)))) return h;
-  const padded = ["0", "0", "0", "0"];
-  for (let i = 0; i < segments.length; i++) {
-    padded[i] = segments[i];
+  if (segments.length < 1 || segments.length > 4) return h;
+  const parts = segments.map(parsePart);
+  if (parts.some(Number.isNaN)) return h;
+
+  const val = parts.pop()!;
+  
+  // Combine parts into a single 32-bit number
+  let num = 0;
+  if (parts.length === 0) {
+    num = val;
+  } else if (parts.length === 1) {
+    if (parts[0] > 0xff || val > 0xffffff) return h;
+    num = (parts[0] << 24) + val;
+  } else if (parts.length === 2) {
+    if (parts[0] > 0xff || parts[1] > 0xff || val > 0xffff) return h;
+    num = (parts[0] << 24) + (parts[1] << 16) + val;
+  } else if (parts.length === 3) {
+    if (parts[0] > 0xff || parts[1] > 0xff || parts[2] > 0xff || val > 0xff) return h;
+    num = (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + val;
   }
-  return padded.join(".");
+  
+  // Extract dotted quad from 32-bit number
+  // Use unsigned right shift to avoid sign extension
+  return [
+    (num >>> 24) & 0xff,
+    (num >>> 16) & 0xff,
+    (num >>> 8) & 0xff,
+    num & 0xff
+  ].join(".");
 }
 
 /** Determines whether a URL is a trusted external https: link.

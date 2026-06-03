@@ -15,15 +15,6 @@ import type {
   ScrapeResult,
 } from "../providerTypes";
 
-const ALLOWED_CONTENT_TYPES = [
-  "text/html",
-  "text/plain",
-  "application/xhtml+xml",
-  "application/json",
-];
-
-const DEFAULT_MAX_RESPONSE_BYTES = 2 * 1024 * 1024; // 2 MiB
-
 export interface GenericHttpConfig {
   /** Must be explicitly set to true to enable this provider. */
   enabled?: boolean;
@@ -196,44 +187,7 @@ function isIpv6InCidr(ip: string, network: string, prefix: number): boolean {
   return true;
 }
 
-/** Reads response text up to a byte limit without consuming the whole body first. */
-async function readWithLimit(
-  response: Response,
-  maxBytes: number
-): Promise<string> {
-  if (!response.body) {
-    return response.text().catch(() => "");
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let bytesRead = 0;
-  let limitHit = false;
-
-  try {
-    while (bytesRead < maxBytes) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      bytesRead += value.byteLength;
-      buffer += decoder.decode(value, { stream: true });
-      if (bytesRead >= maxBytes) {
-        limitHit = true;
-        break;
-      }
-    }
-  } finally {
-    reader.releaseLock();
-    if (limitHit) {
-      response.body?.cancel().catch(() => undefined);
-    }
-  }
-
-  // Flush any remaining buffered bytes (e.g. trailing multi-byte UTF-8 chars)
-  buffer += decoder.decode(undefined, { stream: false });
-  return buffer;
-}
-
+/** Returns true if string starts with a tag. */
 function startsWithTag(lowerHtml: string, index: number, tagName: string): boolean {
   if (!lowerHtml.startsWith(`<${tagName}`, index)) return false;
   const next = lowerHtml[index + tagName.length + 1];
@@ -290,10 +244,10 @@ function stripHtml(html: string): string {
 }
 
 import { createTimeoutSignal } from "../../utils/timeout";
+import { isElectron, desktopApp } from "../../services/desktopBridge";
 
 export function createGenericHttpProvider(config: GenericHttpConfig = {}): ResearchProvider {
   const enabled = config.enabled === true;
-  const maxBytes = config.maxResponseBytes ?? DEFAULT_MAX_RESPONSE_BYTES;
 
   return {
     id: "generic-http",
@@ -321,30 +275,32 @@ export function createGenericHttpProvider(config: GenericHttpConfig = {}): Resea
         ? createTimeoutSignal(input.timeoutMs, input.signal)
         : input.signal;
 
-      const response = await fetch(url, {
-        method: "GET",
-        signal,
-        redirect: "error",
-        // Do not send cookies or custom user headers
-        credentials: "omit",
-        headers: {
-          Accept: "text/html, text/plain, application/xhtml+xml, application/json",
-        },
-      });
+      let proxyData: { url: string; finalUrl: string; contentType: string; body: string };
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (isElectron()) {
+        const result = await desktopApp.proxyScrape(url);
+        if (!result.ok || !result.data) throw new Error(result.error || "Desktop proxy scrape failed");
+        proxyData = result.data;
+      } else {
+        const proxyRes = await fetch("/api/proxy-scrape", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+          signal,
+        });
+
+        if (!proxyRes.ok) {
+          let errMsg = `HTTP ${proxyRes.status}`;
+          try {
+            const errJson = await proxyRes.json();
+            if (errJson.error) errMsg = errJson.error;
+          } catch { /* ignore */ }
+          throw new Error(errMsg);
+        }
+        proxyData = await proxyRes.json();
       }
 
-      const contentType = response.headers.get("content-type") || "";
-      const allowed = ALLOWED_CONTENT_TYPES.some((t) =>
-        contentType.toLowerCase().includes(t)
-      );
-      if (!allowed) {
-        throw new Error(`Content-Type not allowed: ${contentType}`);
-      }
-
-      const body = await readWithLimit(response, maxBytes);
+      const { finalUrl, contentType, body } = proxyData;
 
       const isHtml =
         contentType.includes("text/html") ||
@@ -355,7 +311,7 @@ export function createGenericHttpProvider(config: GenericHttpConfig = {}): Resea
       return {
         provider: "generic-http" as ResearchProviderId,
         url,
-        finalUrl: response.url,
+        finalUrl,
         text,
         content: text,
         raw: body,

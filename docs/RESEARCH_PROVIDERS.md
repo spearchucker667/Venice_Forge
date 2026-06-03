@@ -74,6 +74,6 @@ The `SearchScrapeModule` renders a provider selector when running AI Research or
 ## Security Notes
 
 - All Venice-provider search/scrape traffic respects the existing endpoint allowlist; all research traffic is subject to the content safety guard.
-- The Generic HTTP blocklist is string-based (no DNS resolution) to prevent TOCTOU attacks.
+- The Generic HTTP provider relies on a backend proxy (`app:proxyScrape` in Desktop or `/api/proxy-scrape` in Web) which performs DNS resolution and enforces strict IP filtering prior to fetching, successfully blocking SSRF via custom domains or DNS rebinding.
 - Jina and Generic HTTP responses are stripped of `<script>` and `<style>` tags before display.
 - No cookies, custom user-agents, or JavaScript execution are performed by any provider.

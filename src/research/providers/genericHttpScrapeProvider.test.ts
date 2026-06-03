@@ -126,24 +126,12 @@ describe("genericHttpScrapeProvider", () => {
   it("fetches public URL when enabled", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
-      url: "https://example.com",
-      headers: new Map([["content-type", "text/html"]]),
-      body: {
-        getReader() {
-          const text = "<html><body>Hello</body></html>";
-          const encoder = new TextEncoder();
-          const bytes = encoder.encode(text);
-          let done = false;
-          return {
-            async read() {
-              if (done) return { done: true, value: undefined };
-              done = true;
-              return { done: false, value: bytes };
-            },
-            releaseLock() {},
-          };
-        },
-      },
+      json: async () => ({
+        url: "https://example.com",
+        finalUrl: "https://example.com",
+        contentType: "text/html",
+        body: "<html><body>Hello</body></html>",
+      }),
     } as any);
 
     const provider = createGenericHttpProvider({ enabled: true });
@@ -163,9 +151,9 @@ describe("genericHttpScrapeProvider", () => {
 
   it("rejects disallowed content types", async () => {
     fetchMock.mockResolvedValueOnce({
-      ok: true,
-      url: "https://example.com",
-      headers: new Map([["content-type", "application/pdf"]]),
+      ok: false,
+      status: 415,
+      json: async () => ({ error: "Content-Type not allowed" }),
     } as any);
 
     const provider = createGenericHttpProvider({ enabled: true });
@@ -195,24 +183,12 @@ describe("genericHttpScrapeProvider", () => {
   it("strips script and style tags", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
-      url: "https://example.com",
-      headers: new Map([["content-type", "text/html"]]),
-      body: {
-        getReader() {
-          const text = `<html><script>alert(1)</script><style>.x{}</style><body>Safe</body></html>`;
-          const encoder = new TextEncoder();
-          const bytes = encoder.encode(text);
-          let done = false;
-          return {
-            async read() {
-              if (done) return { done: true, value: undefined };
-              done = true;
-              return { done: false, value: bytes };
-            },
-            releaseLock() {},
-          };
-        },
-      },
+      json: async () => ({
+        url: "https://example.com",
+        finalUrl: "https://example.com",
+        contentType: "text/html",
+        body: `<html><script>alert(1)</script><style>.x{}</style><body>Safe</body></html>`,
+      }),
     } as any);
 
     const provider = createGenericHttpProvider({ enabled: true });
@@ -223,24 +199,12 @@ describe("genericHttpScrapeProvider", () => {
   it("strips script tags with malformed end-tag attributes", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
-      url: "https://example.com",
-      headers: new Map([["content-type", "text/html"]]),
-      body: {
-        getReader() {
-          const text = `<html><body>Before<script>alert(1)</script foo="bar">After</body></html>`;
-          const encoder = new TextEncoder();
-          const bytes = encoder.encode(text);
-          let done = false;
-          return {
-            async read() {
-              if (done) return { done: true, value: undefined };
-              done = true;
-              return { done: false, value: bytes };
-            },
-            releaseLock() {},
-          };
-        },
-      },
+      json: async () => ({
+        url: "https://example.com",
+        finalUrl: "https://example.com",
+        contentType: "text/html",
+        body: `<html><body>Before<script>alert(1)</script foo="bar">After</body></html>`,
+      }),
     } as any);
 
     const provider = createGenericHttpProvider({ enabled: true });
@@ -249,16 +213,16 @@ describe("genericHttpScrapeProvider", () => {
   });
 
   it("rejects redirects to prevent SSRF bypass (SEC-001)", async () => {
-    fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch (redirect)"));
+    // In proxy mode, redirect handling is done on the backend proxy.
+    // The test just ensures the frontend handles the proxy returning an error correctly.
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: "Scrape failed: redirect error" }),
+    } as any);
     const provider = createGenericHttpProvider({ enabled: true });
     await expect(
       provider.scrape!({ url: "https://example.com/redirect" })
     ).rejects.toThrow();
-
-    // Verify that fetch was called with redirect: 'error'
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({ redirect: "error" })
-    );
   });
 });

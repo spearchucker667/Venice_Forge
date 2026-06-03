@@ -113,6 +113,24 @@ interface SerializedFormData {
  * @param responseBody The parsed response body.
  * @returns The model identifier if found, otherwise null.
  */
+function findModelRecursively(obj: unknown, depth = 3): string | null {
+  if (!obj || typeof obj !== "object" || depth === 0) return null;
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const found = findModelRecursively(item, depth - 1);
+      if (found) return found;
+    }
+  } else {
+    const record = obj as Record<string, unknown>;
+    if (typeof record.model === "string") return record.model;
+    for (const val of Object.values(record)) {
+      const found = findModelRecursively(val, depth - 1);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 export function extractModelName(requestBody: unknown, responseBody: unknown): string | null {
   if (responseBody && typeof responseBody === "object") {
     const resp = responseBody as Record<string, unknown>;
@@ -132,10 +150,10 @@ export function extractModelName(requestBody: unknown, responseBody: unknown): s
         }) as Record<string, unknown> | undefined;
         if (entry && typeof entry.value === "string") return entry.value;
       }
-      if (typeof req.model === "string") return req.model;
     }
   }
-  return null;
+  
+  return findModelRecursively(responseBody) || findModelRecursively(requestBody);
 }
 
 /** Input fields for summarizing diagnostics. */

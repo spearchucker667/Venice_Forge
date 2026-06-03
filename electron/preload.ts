@@ -95,6 +95,9 @@ const veniceForge = {
     isConfigured(): Promise<boolean> {
       return ipcRenderer.invoke("jinaApiKey:isConfigured");
     },
+    get(): Promise<string | null> {
+      return ipcRenderer.invoke("jinaApiKey:get");
+    },
     set(key: string): Promise<{ ok: boolean }> {
       return ipcRenderer.invoke("jinaApiKey:set", key);
     },
@@ -134,6 +137,9 @@ const veniceForge = {
      */
     openLogsFolder(): Promise<{ ok: boolean; path: string }> {
       return ipcRenderer.invoke("app:openLogsFolder");
+    },
+    proxyScrape(url: string) {
+      return ipcRenderer.invoke("app:proxyScrape", url);
     },
   },
 
