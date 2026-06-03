@@ -71,9 +71,9 @@ export function applyVeniceProxyHeaders(
       return;
     }
     proxyReq.removeHeader("Transfer-Encoding");
-    const body = req.body;
-    proxyReq.setHeader("Content-Length", body.length);
-    proxyReq.write(body);
+    // Use Buffer.byteLength instead of .length to prevent CodeQL type confusion false positive
+    proxyReq.setHeader("Content-Length", Buffer.byteLength(req.body));
+    proxyReq.write(req.body);
   } else if (req.method === "GET") {
     proxyReq.removeHeader("Content-Length");
     proxyReq.removeHeader("Transfer-Encoding");

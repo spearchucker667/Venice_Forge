@@ -52,6 +52,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 ### Security
 - **Safety Guard Hardening:** Malformed serialized FormData no longer bypasses extraction; falls back to generic object scanning (C-001).
 - **Truncation Evasion Fix:** Oversized payloads are now scanned at both head and tail to prevent placing malicious content beyond the truncation boundary (C-002).
+- **Type Confusion Mitigation:** Replaced `body.length` with `Buffer.byteLength(req.body)` in proxy forwarding to resolve a CodeQL `js/type-confusion-through-parameter-tampering` static analysis alert.
 - **Homoglyph Expansion:** Added Cyrillic (`л`, `т`, `в`, `н`, `к`, `м`, `у`) and Greek (`α`, `β`, `γ`, `δ`, `ζ`, `η`, `κ`, `λ`, `μ`, `ν`, `π`, `ρ`, `σ`, `τ`, `φ`, `χ`, `ω`) lookalikes to normalization map (H-003).
 - **Age/Youth Detection:** Added spelled-out ages ("thirteen"–"seventeen") and youth nouns ("baby", "toddler", "boy", "girl", "juvenile", "adolescent") (H-002).
 - **URL Security:** `isPrivateHostname` now blocks IPv6 link-local (`fe80::`), IPv4-mapped IPv6 loopback (`::ffff:127.0.0.1`), and short-form IPv4 (`127.1`, `10.1`) (H-004).
