@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { Field } from "../components/Field";
 import { ModelSelect } from "../components/ModelSelect";
 import { Chip } from "../components/Chip";
@@ -26,7 +26,53 @@ function modelBadges(model: ModelInfo): string[] {
   return badges.slice(0, 4);
 }
 
+const FILTER_TAGS = [
+  "All",
+  "Video",
+  "Text to Video",
+  "Image to Video",
+  "Video to Video",
+  "Reference to Video",
+  "Upscale",
+  "Image Edit",
+  "Combine / Multi-Edit",
+  "Supports Audio",
+  "Private",
+  "Anonymized",
+  "Deprecated"
+];
+
+function matchesFilter(model: ModelInfo, filter: string): boolean {
+  if (filter === "All") return true;
+  const haystack = [
+    model.id,
+    model.name,
+    model.type,
+    JSON.stringify(model.traits || {}),
+    JSON.stringify(model.capabilities || {}),
+    JSON.stringify(model.features || {}),
+  ].join(" ").toLowerCase();
+
+  switch (filter) {
+    case "Video": return /video/.test(haystack);
+    case "Text to Video": return /text-to-video|text_to_video/.test(haystack);
+    case "Image to Video": return /image-to-video|image_to_video/.test(haystack);
+    case "Video to Video": return /video-to-video|video_to_video/.test(haystack);
+    case "Reference to Video": return /reference-to-video|reference_to_video/.test(haystack);
+    case "Upscale": return /upscale/.test(haystack);
+    case "Image Edit": return /edit|inpaint/.test(haystack);
+    case "Combine / Multi-Edit": return /multi-edit|multi_edit/.test(haystack);
+    case "Supports Audio": return /audio/.test(haystack);
+    case "Private": return /private/.test(haystack);
+    case "Anonymized": return /anonymized/.test(haystack);
+    case "Deprecated": return /deprecated/.test(haystack);
+    default: return true;
+  }
+}
+
 export function ModelsModule({ state, dispatch }: { state: AppState; dispatch: AppDispatch }) {
+  const [activeFilter, setActiveFilter] = useState("All");
+
   const groups = [
     "text",
     "image",
@@ -35,6 +81,7 @@ export function ModelsModule({ state, dispatch }: { state: AppState; dispatch: A
     "embeddings",
     "unknown",
   ];
+
   return (
     <section className="flex flex-col h-full bg-bg">
       <div className="flex-none p-6 border-b border-border/40 bg-bg">
@@ -58,11 +105,27 @@ export function ModelsModule({ state, dispatch }: { state: AppState; dispatch: A
           </div>
         )}
 
+        <div className="flex flex-wrap gap-2 pb-2">
+          {FILTER_TAGS.map((tag) => (
+            <button
+              key={tag}
+              onClick={() => setActiveFilter(tag)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                activeFilter === tag
+                  ? "bg-accent text-white border border-accent"
+                  : "bg-surface text-text-secondary border border-border/50 hover:bg-surface-elevated hover:text-text-primary"
+              }`}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Field label="Current chat model">
             <ModelSelect
               value={state.selectedChatModel}
-              models={state.models.text}
+              models={state.models.text?.filter(m => matchesFilter(m, activeFilter)) || []}
               onChange={(model: string) =>
                 dispatch({ type: "SET_SELECTED_CHAT_MODEL", model })
               }
@@ -71,7 +134,7 @@ export function ModelsModule({ state, dispatch }: { state: AppState; dispatch: A
           <Field label="Current image model">
             <ModelSelect
               value={state.selectedImageModel}
-              models={state.models.image}
+              models={state.models.image?.filter(m => matchesFilter(m, activeFilter)) || []}
               onChange={(model: string) =>
                 dispatch({ type: "SET_SELECTED_IMAGE_MODEL", model })
               }
@@ -80,7 +143,7 @@ export function ModelsModule({ state, dispatch }: { state: AppState; dispatch: A
           <Field label="Current video model">
             <ModelSelect
               value={state.selectedVideoModel}
-              models={state.models.video}
+              models={state.models.video?.filter(m => matchesFilter(m, activeFilter)) || []}
               onChange={(model: string) =>
                 dispatch({ type: "SET_SELECTED_VIDEO_MODEL", model })
               }
@@ -89,14 +152,17 @@ export function ModelsModule({ state, dispatch }: { state: AppState; dispatch: A
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {groups.map((group) => (
+          {groups.map((group) => {
+            const groupModels = (state.models[group] || []).filter(m => matchesFilter(m, activeFilter));
+            
+            return (
             <div className="flex flex-col h-full rounded-lg border border-border/50 bg-surface overflow-hidden" key={group}>
               <div className="flex items-center justify-between p-4 border-b border-border/50 bg-surface/30">
                 <strong className="text-sm font-semibold text-text-primary capitalize">{group}</strong>
-                <Chip tone={group === "video" ? "video" : ""}>{state.models[group]?.length || 0}</Chip>
+                <Chip tone={group === "video" ? "video" : ""}>{groupModels.length}</Chip>
               </div>
               <div className="flex-1 overflow-y-auto p-2 max-h-[400px] space-y-2">
-                {(state.models[group] || []).map((m: ModelInfo) => (
+                {groupModels.map((m: ModelInfo) => (
                   <button
                     type="button"
                     className="w-full rounded-lg p-3 bg-surface-elevated/55 border border-transparent text-left transition-colors hover:border-border hover:bg-surface-elevated"
@@ -123,7 +189,7 @@ export function ModelsModule({ state, dispatch }: { state: AppState; dispatch: A
                     </div>
                   </button>
                 ))}
-                {!state.models[group]?.length && (
+                {!groupModels.length && (
                   <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
                     <img
                       src="./assets/branding/venice-keys-red.svg"
@@ -131,12 +197,13 @@ export function ModelsModule({ state, dispatch }: { state: AppState; dispatch: A
                       className="h-8 w-8 opacity-15"
                       aria-hidden="true"
                     />
-                    <div className="text-sm text-text-muted">No models discovered.</div>
+                    <div className="text-sm text-text-muted">No models matched this filter.</div>
                   </div>
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

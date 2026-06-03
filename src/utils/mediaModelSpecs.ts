@@ -74,6 +74,9 @@ export function normalizeMediaModelSpec(model: ModelInfo): NormalizedMediaModelS
     beta: (rawSpec.beta as boolean | undefined) || false,
     directions: [],
     inputs: ["prompt"], // Assume prompt is needed by default unless stripped later
+    resolutions: rawSpec.resolutions as string[] | undefined,
+    aspectRatios: rawSpec.aspect_ratios as string[] | undefined,
+    durations: rawSpec.durations as string[] | undefined,
     pricing: rawSpec.pricing,
     raw: rawSpec,
     specSource: model.source === "fallback" ? "fallback" : (Object.keys(rawSpec).length > 0 ? "live-model-spec" : "inferred")

@@ -12,7 +12,7 @@
 > [!IMPORTANT]
 > **18+ Age Requirement**: You must be 18 years or older to use this application. This app connects to unrestricted AI endpoints that pose inherent risks, including the potential to generate explicit content or AI-generated images that inappropriately represent minors (CSAM). By proceeding, you confirm you are 18+ and assume all responsibility.
 >
-> **Venice Forge is an unofficial, third-party desktop client for the Venice API.** This project is not affiliated with, endorsed by, sponsored by, or maintained by Venice.ai, Inc. Venice names and marks are used solely for nominative identification of API compatibility. See [docs/LEGAL.md](docs/LEGAL.md) for full legal terms.
+> **Venice Forge is an unofficial, third-party desktop client for the Venice API.** This project is not affiliated with, endorsed by, sponsored by, or maintained by Venice.ai, Inc. Venice names and marks are used solely for nominative identification of API compatibility. This app requires a Venice API key for live model discovery and generation. See [docs/LEGAL.md](docs/LEGAL.md) for full legal terms.
 
 [![CI](https://github.com/spearchucker667/Venice-API-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/spearchucker667/Venice-API-connector/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/spearchucker667/Venice-API-connector?include_prereleases&label=release)](https://github.com/spearchucker667/Venice-API-connector/releases)
@@ -50,11 +50,11 @@ Eight integrated tabs covering chat, image generation, batch automation, researc
 | Tab | Name | What You Can Do |
 |-----|------|-----------------|
 | 💬 | **Chat** | Multi-turn streaming conversations with system prompts, file/image attachments, memory injection, persistent history, and chat forking |
-| 🖼️ | **Create** | Single and batch image generation with AI upscaling and local gallery management |
-| 🎬 | **Video** | Generate and queue text-to-video, image-to-video, and video-upscale jobs asynchronously via the Venice API |
+| 🖼️ | **Create** | Generate images, **Edit** (single image inpainting), **Combine** (multi-image referencing), and **Upscale** (separate from video upscaling) |
+| 🎬 | **Video** | Asynchronously queue text-to-video, image-to-video, video-to-video, reference-to-video, and video upscale jobs. Settings are model-dependent. Video upscale uses `topaz-video-upscale` when available |
 | 📋 | **Batch** | Automate: run one prompt across many inputs, or chain multiple prompts in sequence |
 | 🔍 | **Research** | Web search via Venice or Jina AI, page scraping, research synthesis, and public-profile discovery |
-| 📚 | **Catalog** | Browse live Venice model catalog with capability details; auto-refresh on API key save |
+| 📚 | **Catalog** | Browse live Venice model catalog with capability details; auto-refresh on API key save. App requires a Venice API key for live model discovery |
 | 🏞️ | **Library** | Local image gallery, saved chat files, and conversation history — with bulk download and upscale |
 | ⚙️ | **Config** | API key management, theme editor (Forge Graphite, Daylight, Copper, Dracula), model defaults, data import/export |
 | 📊 | **Diagnostics** | Transport mode, runtime info, rate-limit headers, and log viewer |
