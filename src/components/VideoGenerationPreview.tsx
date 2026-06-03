@@ -58,7 +58,7 @@ export function VideoGenerationPreview({
         )}
       </div>
       <div className="text-xs text-text-muted">
-        Prompt and controls persist when switching menus. Videos generation runs asynchronously via the queue.
+        Prompt and controls persist when switching menus. Video generation runs asynchronously via the queue.
       </div>
     </div>
   );

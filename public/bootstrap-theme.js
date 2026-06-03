@@ -15,7 +15,7 @@
       return validColor(val) ? val : fallback;
     }
     var isDracula = boot.selectedThemeId === 'builtin-dracula';
-    var isVenice = boot.selectedThemeId === 'builtin-venice' || !boot.selectedThemeId; // Default to Venice
+    var isVenice = boot.selectedThemeId === 'builtin-venice';
     var map = {
       '--bg': safeToken(t.background, isVenice ? '#050a0f' : isDracula ? '#282a36' : (boot.appearanceMode === 'light' ? '#f6f8fa' : '#0d1117')),
       '--surface': safeToken(t.surface, isVenice ? '#080f15' : isDracula ? '#44475a' : (boot.appearanceMode === 'light' ? '#ffffff' : '#161b22')),

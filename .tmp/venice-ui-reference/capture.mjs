@@ -1,7 +1,15 @@
-import { chromium } from 'playwright';
 import fs from 'fs';
 
 (async () => {
+  let chromium;
+  try {
+    ({ chromium } = await import('playwright'));
+  } catch {
+    throw new Error(
+      'Playwright is not installed. Install with `npm i -D playwright` or run via `npx -p playwright node .tmp/venice-ui-reference/capture.mjs`.'
+    );
+  }
+
   const browser = await chromium.launch();
   const page = await browser.newPage({
     viewport: { width: 1440, height: 900 }

@@ -18,6 +18,7 @@ export function TabButton({
   const icons: Record<string, string> = {
     chat: "✦",
     image: "▧",
+    video: "▸",
     batch: "▤",
     search: "⌕",
     models: "◎",

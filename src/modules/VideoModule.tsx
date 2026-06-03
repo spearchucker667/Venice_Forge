@@ -32,6 +32,12 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
 
     try {
       const res = await retrieveVideoGeneration(model, queueId, { signal, dispatch });
+      if (res.error) {
+        setError(res.error);
+        setLoading(false);
+        patch({ generationProgress: "", status: "ERROR" });
+        return;
+      }
       
       if (res.status === "COMPLETED") {
         setLoading(false);
@@ -80,7 +86,8 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
     setSuccess("");
     
     // Advisory safety check — records audit decision before blocking.
-    const guardDecision = assessChildExploitationSafety({ text: draft.prompt, endpoint: "/video/queue", method: "POST", source: "video" });
+    const guardText = [draft.prompt, draft.negative].filter((value) => value.trim()).join("\n");
+    const guardDecision = assessChildExploitationSafety({ text: guardText, endpoint: "/video/queue", method: "POST", source: "video" });
     recordDecision(guardDecision);
     if (!guardDecision.allow || guardDecision.action === "block") {
       setError(guardDecision.userMessage);
