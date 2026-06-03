@@ -22,10 +22,18 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
   const [upscalingId, setUpscalingId] = useState("");
   const [downloadProgress, setDownloadProgress] = useState<{ current: number; total: number } | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const cancelDownloadRef = useRef(false);
 
   function confirm(message: string, detail: string, action: () => Promise<void> | void) {
     setPendingConfirm({ message, detail, onConfirm: action });
+  }
+
+  function toggleSelection(id: string) {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
   }
 
   function removeImage(id: string) {
@@ -37,6 +45,7 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
         const items = await StorageService.getItems<GalleryImage>("images");
         dispatch({ type: "SET_GALLERY", items });
         if (expanded?.id === id) setExpanded(null);
+        if (selectedIds.has(id)) toggleSelection(id);
       }
     );
   }
@@ -49,6 +58,23 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
         await StorageService.clearStore("images");
         dispatch({ type: "SET_GALLERY", items: [] });
         setExpanded(null);
+        setSelectedIds(new Set());
+      }
+    );
+  }
+
+  function deleteSelected() {
+    confirm(
+      `Delete ${selectedIds.size} selected images?`,
+      "These images will be permanently removed from the gallery. This cannot be undone.",
+      async () => {
+        for (const id of selectedIds) {
+           await StorageService.deleteItem("images", id);
+        }
+        const items = await StorageService.getItems<GalleryImage>("images");
+        dispatch({ type: "SET_GALLERY", items });
+        setSelectedIds(new Set());
+        if (expanded && selectedIds.has(expanded.id)) setExpanded(null);
       }
     );
   }
@@ -114,6 +140,31 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
     }
   }
 
+  async function startDownloadSelected() {
+    const selectedItems = state.gallery.filter(i => selectedIds.has(i.id));
+    if (selectedItems.length === 0) return;
+    
+    cancelDownloadRef.current = false;
+    setDownloadProgress({ current: 0, total: selectedItems.length });
+    try {
+      await downloadAllGallery(
+        selectedItems,
+        (msg, type) => dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: msg, type } }),
+        {
+          onProgress: (current, total) => setDownloadProgress({ current, total }),
+          cancelSignal: cancelDownloadRef,
+        }
+      );
+      setSelectedIds(new Set());
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Download failed";
+      dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message, type: "error" } });
+    } finally {
+      setDownloadProgress(null);
+      cancelDownloadRef.current = false;
+    }
+  }
+
   function cancelDownloadAll() {
     cancelDownloadRef.current = true;
   }
@@ -122,7 +173,10 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
     (id: GalleryTab, label: string, count: number) => (
       <button
         key={id}
-        onClick={() => setActiveTab(id)}
+        onClick={() => {
+          setActiveTab(id);
+          setSelectedIds(new Set()); // Clear selection on tab change
+        }}
         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
           activeTab === id
             ? "bg-accent/20 text-accent border border-accent/30"
@@ -160,75 +214,109 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
           <>
             <div className="flex flex-wrap items-center gap-3">
               <Chip>{state.gallery.length} items</Chip>
-              {downloadProgress ? (
-                <div className="flex items-center gap-2">
-                  <Chip>Saving {downloadProgress.current}/{downloadProgress.total}…</Chip>
-                  <button className="btn danger sm" onClick={cancelDownloadAll}>Cancel</button>
-                </div>
-              ) : (
-                <button className="btn" onClick={startDownloadAll} disabled={!state.gallery.length}>
-                  Save all media
-                </button>
+              {selectedIds.size > 0 && (
+                <>
+                  <Chip tone="accent">{selectedIds.size} selected</Chip>
+                  <button className="btn" onClick={() => setSelectedIds(new Set(state.gallery.map(i => i.id)))}>Select All</button>
+                  <button className="btn" onClick={() => setSelectedIds(new Set())}>Deselect All</button>
+                  {downloadProgress ? (
+                    <div className="flex items-center gap-2">
+                      <Chip>Saving {downloadProgress.current}/{downloadProgress.total}…</Chip>
+                      <button className="btn danger sm" onClick={cancelDownloadAll}>Cancel</button>
+                    </div>
+                  ) : (
+                    <>
+                      <button className="btn" onClick={startDownloadSelected}>Download Selected</button>
+                      <button className="btn danger" onClick={deleteSelected}>Delete Selected</button>
+                    </>
+                  )}
+                </>
               )}
-              <button className="btn danger" onClick={clearImages} disabled={!state.gallery.length}>
-                Clear media gallery
-              </button>
+              {selectedIds.size === 0 && (
+                <>
+                  {downloadProgress ? (
+                    <div className="flex items-center gap-2">
+                      <Chip>Saving {downloadProgress.current}/{downloadProgress.total}…</Chip>
+                      <button className="btn danger sm" onClick={cancelDownloadAll}>Cancel</button>
+                    </div>
+                  ) : (
+                    <button className="btn" onClick={startDownloadAll} disabled={!state.gallery.length}>
+                      Save all media
+                    </button>
+                  )}
+                  <button className="btn danger" onClick={clearImages} disabled={!state.gallery.length}>
+                    Clear media gallery
+                  </button>
+                </>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-              {state.gallery.map((item: GalleryImage) => (
-                <div className="group relative flex flex-col rounded-2xl border border-border/50 bg-surface-elevated/40 overflow-hidden transition-all duration-300 hover:border-accent/50 hover:shadow-[0_8px_32px_var(--glow)]" key={item.id}>
-                  <button
-                    type="button"
-                    onClick={() => setExpanded(item)}
-                    aria-label={`View details: ${item.prompt || "Generated media"}`}
-                    aria-haspopup="dialog"
-                    aria-expanded={expanded?.id === item.id}
-                    className="w-full relative aspect-square overflow-hidden bg-surface/60 outline-none"
-                  >
-                    {item.mediaType === "video" ? (
-                      <video
-                        src={item.image}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        muted
-                        loop
-                        playsInline
-                        onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
-                        onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+              {state.gallery.map((item: GalleryImage) => {
+                const isSelected = selectedIds.has(item.id);
+                return (
+                  <div className={`group relative flex flex-col rounded-2xl border ${isSelected ? 'border-accent shadow-[0_0_15px_var(--glow)]' : 'border-border/50 hover:border-accent/50 hover:shadow-[0_8px_32px_var(--glow)]'} bg-surface-elevated/40 overflow-hidden transition-all duration-300`} key={item.id}>
+                    <div className="absolute top-3 left-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 data-[selected=true]:opacity-100" data-selected={isSelected}>
+                      <input 
+                        type="checkbox" 
+                        className="w-5 h-5 rounded cursor-pointer accent-accent"
+                        checked={isSelected}
+                        onChange={() => toggleSelection(item.id)}
+                        aria-label={`Select item: ${item.prompt || item.id}`}
                       />
-                    ) : (
-                      <img
-                        src={item.image}
-                        alt={item.prompt || "Generated image"}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  </button>
-                  <div className="flex flex-col p-4 gap-3 bg-bg">
-                    <div className="flex items-center flex-wrap gap-2 text-sm text-text-primary">
-                      <strong className="font-semibold">{item.model}</strong>
-                      {item.upscaled && <Chip className="scale-90 origin-left">upscaled</Chip>}
-                      {item.mediaType === "video" && <Chip className="scale-90 origin-left">video</Chip>}
-                      {item.batchCount && item.batchCount > 1 && <Chip className="scale-90 origin-left">Batch {item.batchIndex}/{item.batchCount}</Chip>}
                     </div>
-                    <div className="text-[11px] font-medium tracking-wide text-text-muted uppercase">
-                      {new Date(item.timestamp).toLocaleString()}
-                    </div>
-                    <div className="text-sm text-text-secondary line-clamp-2" title={item.prompt}>{item.prompt}</div>
-                    <div className="flex flex-wrap gap-2 pt-2 mt-auto">
-                      <button className="btn sm" onClick={async () => {
-                        await downloadImage(item.image, galleryFilename(item));
-                        dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Downloaded image", type: "info" } });
-                      }}>Download</button>
-                      <button className="btn sm" onClick={() => upscale(item)} disabled={upscalingId === item.id || item.image?.startsWith("http") || item.upscaled}>
-                        {upscalingId === item.id ? "Enhancing…" : "Enhance"}
-                      </button>
-                      <button className="btn danger sm ml-auto" onClick={() => removeImage(item.id)}>Delete</button>
+                    <button
+                      type="button"
+                      onClick={() => setExpanded(item)}
+                      aria-label={`View details: ${item.prompt || "Generated media"}`}
+                      aria-haspopup="dialog"
+                      aria-expanded={expanded?.id === item.id}
+                      className="w-full relative aspect-square overflow-hidden bg-surface/60 outline-none"
+                    >
+                      {item.mediaType === "video" ? (
+                        <video
+                          src={item.image}
+                          className={`w-full h-full object-cover transition-transform duration-500 ${isSelected ? 'scale-[0.98]' : 'group-hover:scale-105'}`}
+                          muted
+                          loop
+                          playsInline
+                          onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                          onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                        />
+                      ) : (
+                        <img
+                          src={item.image}
+                          alt={item.prompt || "Generated image"}
+                          className={`w-full h-full object-cover transition-transform duration-500 ${isSelected ? 'scale-[0.98]' : 'group-hover:scale-105'}`}
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                    </button>
+                    <div className="flex flex-col p-4 gap-3 bg-bg">
+                      <div className="flex items-center flex-wrap gap-2 text-sm text-text-primary">
+                        <strong className="font-semibold">{item.model}</strong>
+                        {item.upscaled && <Chip className="scale-90 origin-left">upscaled</Chip>}
+                        {item.mediaType === "video" && <Chip className="scale-90 origin-left">video</Chip>}
+                        {item.batchCount && item.batchCount > 1 && <Chip className="scale-90 origin-left">Batch {item.batchIndex}/{item.batchCount}</Chip>}
+                      </div>
+                      <div className="text-[11px] font-medium tracking-wide text-text-muted uppercase">
+                        {new Date(item.timestamp).toLocaleString()}
+                      </div>
+                      <div className="text-sm text-text-secondary line-clamp-2" title={item.prompt}>{item.prompt}</div>
+                      <div className="flex flex-wrap gap-2 pt-2 mt-auto">
+                        <button className="btn sm" onClick={async () => {
+                          await downloadImage(item.image, galleryFilename(item));
+                          dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Downloaded image", type: "info" } });
+                        }}>Download</button>
+                        <button className="btn sm" onClick={() => upscale(item)} disabled={upscalingId === item.id || item.image?.startsWith("http") || item.upscaled}>
+                          {upscalingId === item.id ? "Enhancing…" : "Enhance"}
+                        </button>
+                        <button className="btn danger sm ml-auto" onClick={() => removeImage(item.id)}>Delete</button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {!state.gallery.length && (

@@ -3,6 +3,7 @@ import { BUILTIN_VENICE, BUILTIN_DARK, BUILTIN_LIGHT, BUILTIN_COPPER, BUILTIN_DR
 import { COLOR_INPUT_FALLBACK } from "../theme/fallbacks";
 import { isValidColorValue } from "../theme/validateColor";
 import { ThemePreview } from "./ThemePreview";
+import { desktopFiles } from "../services/desktopBridge";
 import type { ModuleProps } from "../types/app";
 
 type ThemeMakerProps = ModuleProps;
@@ -93,6 +94,7 @@ export function ThemeMaker({ state, dispatch }: ThemeMakerProps) {
       type: "SET_SETTINGS",
       settings: { selectedThemeId: "custom", appearanceMode: draft.mode, customTheme: draft },
     });
+    dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Theme saved successfully", type: "success" } });
   }
 
   function handleReset() {
@@ -108,6 +110,31 @@ export function ThemeMaker({ state, dispatch }: ThemeMakerProps) {
       type: "SET_SETTINGS",
       settings: { selectedThemeId: "builtin-dark", appearanceMode: "dark", customTheme: null },
     });
+  }
+
+  async function handleExport() {
+    try {
+      await desktopFiles.exportJson(draft, "venice-forge-theme.json");
+    } catch (err) {
+      dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: err instanceof Error ? err.message : "Failed to export theme", type: "error" } });
+    }
+  }
+
+  async function handleImport() {
+    try {
+      const json = await desktopFiles.importJsonString();
+      if (!json) return;
+      const importedTheme = JSON.parse(json) as Theme;
+      if (importedTheme && importedTheme.mode && importedTheme.tokens && importedTheme.tokens.background) {
+        setDraft(importedTheme);
+        applyTheme(importedTheme);
+        dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Theme imported, make sure to save it.", type: "info" } });
+      } else {
+        throw new Error("Invalid theme file");
+      }
+    } catch (err) {
+      dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: err instanceof Error ? err.message : "Failed to import theme", type: "error" } });
+    }
   }
 
   const validColor = (v: string) => isValidColorValue(v);
@@ -185,6 +212,12 @@ export function ThemeMaker({ state, dispatch }: ThemeMakerProps) {
             </button>
             <button className="btn" onClick={handleReset}>
               Reset custom theme
+            </button>
+            <button className="btn" onClick={handleImport}>
+              Import theme
+            </button>
+            <button className="btn" onClick={handleExport}>
+              Export theme
             </button>
             <button className="btn ghost" onClick={handleRestoreDefaults}>
               Restore defaults

@@ -9,6 +9,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 ## [Unreleased]
 
 ### Added
+- **UI/UX Enhancements:**
+  - **Memory Management Overhaul:** New UI for adding, editing, searching, and categorizing AI memories via a dedicated modal.
+  - **Gallery Bulk Actions:** Multi-select support in the Library/Gallery tab for bulk exporting and deleting image/video generations.
+  - **Theme Export/Import:** Custom themes can now be exported and imported as standalone JSON files in the ThemeMaker panel.
+  - **Drag & Drop Context Reordering:** Drag and drop uploaded files in the Chat attachment tray to dictate context order.
 - **Venice UI reference integration and video restoration:** Applied the ZIP reference as maintainable tokens/layout patterns instead of bundling reference assets, restored the Video tab, video model state, async queue client, `/video/*` allowlist, and regression tests that keep video models visible/selectable.
 - **UI/UX Refresh:** Collapsible sidebar, Dracula theme, Lucide icons, font refresh, and improved attachment UX.
   - Collapsible desktop sidebar with `PanelLeftClose`/`PanelLeftOpen` toggle, brand mark with `Sparkles` icon, and `localStorage` persistence.

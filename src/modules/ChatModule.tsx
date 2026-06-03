@@ -20,6 +20,7 @@ import { AttachmentTray } from "../components/AttachmentTray";
 import { PaperclipIcon, ImageIcon, LinkIcon, SendIcon, XIcon } from "../components/icons";
 import { ModuleProps } from "../types/app";
 import type { Conversation, ConversationMessage } from "../types/conversation";
+import { MemoryManagerModal } from "../components/MemoryManagerModal";
 import type { Attachment } from "../types/attachment";
 import StorageService from "../services/storageService";
 import {
@@ -36,11 +37,8 @@ import {
 import {
   saveMemory,
   selectMemoriesForInjection,
-  listMemories,
-  deleteMemory,
   type MemoryBlock,
 } from "../services/memoryService";
-import type { Memory } from "../services/memoryService";
 
 interface ChatUiMessage {
   id: string;
@@ -117,7 +115,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
   const [showImportPicker, setShowImportPicker] = useState(false);
   const [_importSelectedIds, _setImportSelectedIds] = useState<Set<string>>(new Set());
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [memories, setMemories] = useState<Memory[]>([]);
+
   const [importStage, setImportStage] = useState<"select-conv" | "select-messages">("select-conv");
   const [importConversationId, setImportConversationId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -595,32 +593,6 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     setSelectedMessageIds(new Set());
   }
 
-  const loadMemories = useCallback(async () => {
-    try {
-      const items = await listMemories();
-      setMemories(items);
-    } catch {
-      setMemories([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (memoryPanelOpen) {
-      void loadMemories();
-    }
-  }, [memoryPanelOpen, loadMemories]);
-
-  async function handleDeleteMemory(id: string) {
-    try {
-      await deleteMemory(id);
-      setMemories((prev) => prev.filter((m) => m.id !== id));
-    } catch {
-      dispatch({
-        type: "ADD_TOAST",
-        toast: { id: crypto.randomUUID(), message: "Failed to delete memory.", type: "error" },
-      });
-    }
-  }
 
   async function handleImportMessages() {
     if (!importConversationId || !activeConversation) return;
@@ -1209,6 +1181,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
           <AttachmentTray
             attachments={attachments}
             onRemove={(id) => setAttachments((prev) => prev.filter((a) => a.id !== id))}
+            onReorder={setAttachments}
             disabled={loading}
           />
 
@@ -1446,52 +1419,10 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
         }}
       />
 
-      {/* Memory panel */}
-      {memoryPanelOpen && (
-        <div className="absolute right-0 top-0 bottom-0 w-64 bg-surface border-l border-border shadow-2xl z-10 flex flex-col">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-            <span className="text-xs font-medium text-text-primary">Memory</span>
-            <button
-              className="text-text-muted hover:text-text-primary text-xs"
-              onClick={() => setMemoryPanelOpen(false)}
-              aria-label="Close memory panel"
-            >
-              ×
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-2">
-            <div className="text-[10px] text-text-muted italic">
-              Memories are injected into prompts automatically.
-            </div>
-            <button
-              className="text-[10px] px-2 py-1 rounded bg-accent text-accent-foreground"
-              onClick={loadMemories}
-            >
-              Refresh
-            </button>
-            {memories.length === 0 && (
-              <div className="text-[10px] text-text-muted">No memories yet.</div>
-            )}
-            {memories.map((m) => (
-              <div key={m.id} className="rounded border border-border/50 bg-surface-elevated/40 p-2">
-                <div className="text-[10px] text-text-primary leading-snug">{m.content}</div>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-[9px] text-text-muted">
-                    {m.tags.join(", ") || "no tags"}
-                  </span>
-                  <button
-                    className="text-[9px] text-danger hover:text-danger/80"
-                    onClick={() => handleDeleteMemory(m.id)}
-                    aria-label="Delete memory"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <MemoryManagerModal
+        open={memoryPanelOpen}
+        onClose={() => setMemoryPanelOpen(false)}
+      />
 
       {/* Import picker modal */}
       {showImportPicker && (

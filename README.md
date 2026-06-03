@@ -49,14 +49,14 @@ Eight integrated tabs covering chat, image generation, batch automation, researc
 
 | Tab | Name | What You Can Do |
 |-----|------|-----------------|
-| 💬 | **Chat** | Multi-turn streaming conversations with system prompts, file/image attachments, memory injection, persistent history, and chat forking |
+| 💬 | **Chat** | Multi-turn streaming conversations with system prompts, file/image attachments, drag & drop context reordering, memory injection & management modal, persistent history, and chat forking |
 | 🖼️ | **Create** | Generate images, **Edit** (single image inpainting), **Combine** (multi-image referencing), and **Upscale** (separate from video upscaling) |
 | 🎬 | **Video** | Asynchronously queue text-to-video, image-to-video, video-to-video, reference-to-video, and video upscale jobs. Settings are model-dependent. Video upscale uses `topaz-video-upscale` when available |
 | 📋 | **Batch** | Automate: run one prompt across many inputs, or chain multiple prompts in sequence |
 | 🔍 | **Research** | Web search via Venice or Jina AI, page scraping, research synthesis, and public-profile discovery |
 | 📚 | **Catalog** | Browse live Venice model catalog with capability details; auto-refresh on API key save. App requires a Venice API key for live model discovery |
-| 🏞️ | **Library** | Local image gallery, saved chat files, and conversation history — with bulk download and upscale |
-| ⚙️ | **Config** | API key management, theme editor (Forge Graphite, Daylight, Copper, Dracula), model defaults, data import/export |
+| 🏞️ | **Library** | Local image gallery, saved chat files, and conversation history — with bulk multi-select download, deletion, and upscale |
+| ⚙️ | **Config** | API key management, theme editor (Forge Graphite, Daylight, Copper, Dracula) with custom JSON export/import, model defaults, data import/export |
 | 📊 | **Diagnostics** | Transport mode, runtime info, rate-limit headers, and log viewer |
 
 ---

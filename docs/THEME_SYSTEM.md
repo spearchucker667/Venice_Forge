@@ -148,6 +148,8 @@ Located in **Settings → Appearance → Theme Maker** (`src/components/ThemeMak
 
 ### Controls
 - **Save custom theme:** Persists to canonical IndexedDB settings + refreshes bootstrap cache.
+- **Export theme:** Saves the current custom theme as a standalone `.json` file using native OS dialogs.
+- **Import theme:** Loads a previously exported `.json` theme file, validating its schema and applying it.
 - **Reset custom theme:** Reverts editor to last saved custom theme.
 - **Restore defaults:** Switches to Forge Graphite and clears the custom theme.
 

@@ -15,10 +15,10 @@
 - [ ] **Account Syncing:** Explore potential integration with Venice Cloud syncing (if they launch OAuth-based data sync APIs) while preserving the current offline-first architecture.
 
 ### 2. Frontend / UI Improvements
-- [ ] **Memory Management Overhaul:** Enhance the UI for adding, editing, and categorizing AI memories. Add a "Search AI Memory" modal.
-- [ ] **Gallery Bulk Actions:** Add multi-select support to the Library/Gallery tab for bulk exporting or bulk deleting image and video generations.
-- [ ] **Theme Customization Panel:** Allow exporting and importing custom themes as standalone JSON files.
-- [ ] **Drag & Drop Reordering:** Allow users to drag and drop uploaded files in the Chat attachment tray to dictate context order.
+- [x] **Memory Management Overhaul:** Enhance the UI for adding, editing, and categorizing AI memories. Add a "Search AI Memory" modal.
+- [x] **Gallery Bulk Actions:** Add multi-select support to the Library/Gallery tab for bulk exporting or bulk deleting image and video generations.
+- [x] **Theme Customization Panel:** Allow exporting and importing custom themes as standalone JSON files.
+- [x] **Drag & Drop Reordering:** Allow users to drag and drop uploaded files in the Chat attachment tray to dictate context order.
 
 ### 3. Architecture & Security
 - [ ] **CSP Hardening:** Further harden the Content Security Policy to strictly enforce nonces on all inline scripts and styles.
