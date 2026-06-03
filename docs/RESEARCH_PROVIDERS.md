@@ -61,7 +61,7 @@ All providers share a common type contract and are consumed through the same UI 
 
 ## Provider Selection in UI
 
-The `SearchScrapeModule` renders a provider selector when running AI Research or Public Profile Discovery. "Auto" attempts Venice first, then falls back to Jina if the Venice key is not configured.
+The `SearchScrapeModule` renders a provider selector for AI Research with two explicit options: Venice and Jina AI. Public Profile Discovery currently uses the Venice research provider. There is no implemented "Auto" fallback mode.
 
 ## Adding a New Provider
 

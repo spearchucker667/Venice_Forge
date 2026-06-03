@@ -15,17 +15,21 @@ export function TabButton({
   className?: string;
   iconOnly?: boolean;
 }) {
-  const icons: Record<string, string> = {
-    chat: "✦",
-    image: "▧",
-    video: "▸",
-    batch: "▤",
-    search: "⌕",
-    models: "◎",
-    gallery: "◫",
-    settings: "⚙",
-    diagnostics: "◈",
-  };
+  function renderTabIcon(iconId: string): React.ReactNode {
+    const iconClass = "block h-4 w-4";
+    switch (iconId) {
+      case "chat": return <span className={iconClass}>✦</span>;
+      case "image": return <span className={iconClass}>▧</span>;
+      case "video": return <span className={iconClass}>▶</span>;
+      case "batch": return <span className={iconClass}>▤</span>;
+      case "search": return <span className={iconClass}>⌕</span>;
+      case "models": return <span className={iconClass}>◎</span>;
+      case "gallery": return <span className={iconClass}>◫</span>;
+      case "settings": return <span className={iconClass}>⚙</span>;
+      case "diagnostics": return <span className={iconClass}>◈</span>;
+      default: return <span className={iconClass}>•</span>;
+    }
+  }
 
   const baseClasses = "group relative flex items-center gap-3.5 rounded-xl border border-transparent bg-transparent text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] focus:outline-none w-full overflow-hidden";
   const layoutClasses = iconOnly
@@ -50,7 +54,7 @@ export function TabButton({
       title={label}
     >
       <span className={`${iconBase} ${iconState}`} aria-hidden="true">
-        {icons[id] || "•"}
+        {renderTabIcon(id)}
       </span>
       {!iconOnly && (
         <span className="truncate">

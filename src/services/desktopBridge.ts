@@ -300,12 +300,6 @@ export const desktopJinaApiKey = {
     if (isElectron()) return window.veniceForge!.jinaApiKey.isConfigured();
     return !!localStorage.getItem("venice_jina_api_key");
   },
-  async get(): Promise<string | undefined> {
-    if (isElectron() && window.veniceForge!.jinaApiKey.get) {
-      return (await window.veniceForge!.jinaApiKey.get()) || undefined;
-    }
-    return localStorage.getItem("venice_jina_api_key") || undefined;
-  },
   async set(key: string): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.set(key);
     localStorage.setItem("venice_jina_api_key", key.trim());
@@ -320,15 +314,19 @@ export const desktopJinaApiKey = {
     if (isElectron()) return window.veniceForge!.jinaApiKey.test();
     const key = localStorage.getItem("venice_jina_api_key");
     if (!key) return { ok: false, message: "No API key configured." };
+
     try {
-      const resp = await fetch("https://api.jina.ai/v1/models", {
-        headers: { "Authorization": `Bearer ${key}` }
+      const resp = await fetch("https://r.jina.ai/https://example.com", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${key}` },
       });
-      if (resp.ok) return { ok: true, message: "Jina API key is valid." };
-      return { ok: false, status: resp.status, message: `Jina API returned ${resp.status}` };
+      if (resp.ok) {
+        return { ok: true, status: resp.status, message: "Jina connection successful" };
+      }
+      return { ok: false, status: resp.status, message: `Jina returned ${resp.status}` };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      return { ok: false, message: msg || "Network error testing Jina API key" };
+      return { ok: false, status: 0, message: msg || "Network error testing Jina API key" };
     }
   },
 };
@@ -366,5 +364,54 @@ export const desktopUpdates = {
   onUpdateError(callback: (error: string) => void): () => void {
     if (!isElectron()) return () => {};
     return window.veniceForge!.updates.onUpdateError(callback);
+  },
+};
+
+/** Makes Jina API requests via the Electron main process (desktop) or direct browser fetch (web). */
+export const desktopJina = {
+  async request(input: {
+    url: string;
+    headers?: Record<string, string>;
+    timeoutMs?: number;
+  }): Promise<{ ok: boolean; status?: number; body?: unknown; contentType?: string; error?: string }> {
+    if (isElectron()) return window.veniceForge!.jina.request(input);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(),
+      typeof input.timeoutMs === "number" && input.timeoutMs > 0
+        ? Math.min(input.timeoutMs, 180000)
+        : 30000
+    );
+
+    const headers: Record<string, string> = { ...input.headers };
+    const key = localStorage.getItem("venice_jina_api_key");
+    if (key) headers["Authorization"] = `Bearer ${key}`;
+
+    try {
+      const response = await fetch(input.url, {
+        method: "GET",
+        headers,
+        signal: controller.signal,
+      });
+
+      const contentType = response.headers.get("content-type") || "";
+      const body = contentType.includes("application/json")
+        ? await response.json().catch(() => null)
+        : await response.text();
+
+      return {
+        ok: response.ok,
+        status: response.status,
+        body,
+        contentType,
+        error: response.ok ? undefined : `Jina returned ${response.status}`,
+      };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { ok: false, status: 0, error: msg || "Jina request failed" };
+    } finally {
+      clearTimeout(timeout);
+    }
   },
 };

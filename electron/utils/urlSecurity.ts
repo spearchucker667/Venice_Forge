@@ -1,39 +1,66 @@
-/** Returns true if the hostname is a loopback, link-local, or RFC 1918 private address. */
+/** Returns true if the hostname is loopback, private, link-local, CGNAT, ULA, multicast, or reserved. */
 export function isPrivateHostname(hostname: string): boolean {
-  // Strip IPv6 brackets: new URL("https://[::1]/").hostname === "[::1]"
-  const h = hostname.replace(/^\[|\]$/g, "").toLowerCase();
-  if (h === "localhost" || h === "0.0.0.0" || h === "0" || h === "::1" || h === "0:0:0:0:0:0:0:1" || h === "::") return true;
+  const h = hostname.replace(/^\[|\]$/g, "").split("%")[0].toLowerCase();
 
-  // IPv4-mapped IPv6: ::ffff:127.0.0.1 or ::ffff:7f00:1 (URL-normalized hex)
+  if (
+    h === "localhost" ||
+    h.endsWith(".localhost") ||
+    h.endsWith(".local") ||
+    h.endsWith(".internal") ||
+    h === "0" ||
+    h === "0.0.0.0" ||
+    h === "::" ||
+    h === "::1" ||
+    h === "0:0:0:0:0:0:0:0" ||
+    h === "0:0:0:0:0:0:0:1"
+  ) {
+    return true;
+  }
+
+  // IPv4-mapped IPv6: ::ffff:127.0.0.1 or ::ffff:7f00:1.
   if (h.startsWith("::ffff:")) {
     const rest = h.slice(7);
-    if (rest.includes(".")) {
-      return isPrivateHostname(rest);
-    }
+    if (rest.includes(".")) return isPrivateHostname(rest);
+
     const hexParts = rest.split(":");
     if (hexParts.length === 2) {
       const high = parseInt(hexParts[0], 16);
       const low = parseInt(hexParts[1], 16);
       if (!Number.isNaN(high) && !Number.isNaN(low)) {
-        const bytes = [(high >> 8) & 0xff, high & 0xff, (low >> 8) & 0xff, low & 0xff];
+        const bytes = [
+          (high >> 8) & 0xff,
+          high & 0xff,
+          (low >> 8) & 0xff,
+          low & 0xff,
+        ];
         return isPrivateHostname(bytes.join("."));
       }
     }
   }
 
-  // IPv6 link-local
-  if (h.startsWith("fe80:")) return true;
+  // IPv6 unique-local and link-local ranges.
+  if (h.startsWith("fc") || h.startsWith("fd") || h.startsWith("fe80:")) {
+    return true;
+  }
 
-  // Normalize short-form IPv4 (e.g., 127.1 → 127.0.0.1, 10.1 → 10.0.0.1)
+  // Normalize short-form IPv4 (127.1 → 127.0.0.1, 10.1 → 10.0.0.1).
   const normalized = normalizeShortIpv4(h);
   const parts = normalized.split(".").map(Number);
-  if (parts.length === 4 && parts.every(p => Number.isInteger(p) && p >= 0 && p <= 255)) {
+  if (parts.length === 4 && parts.every((p) => Number.isInteger(p) && p >= 0 && p <= 255)) {
     const [a, b] = parts;
-    if (a === 127) return true;                       // 127.0.0.0/8
+
+    if (a === 0) return true;                         // 0.0.0.0/8
     if (a === 10) return true;                        // 10.0.0.0/8
-    if (a === 192 && b === 168) return true;          // 192.168.0.0/16
+    if (a === 127) return true;                       // 127.0.0.0/8
+    if (a === 169 && b === 254) return true;          // 169.254.0.0/16
     if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+    if (a === 192 && b === 168) return true;          // 192.168.0.0/16
+    if (a === 100 && b >= 64 && b <= 127) return true; // 100.64.0.0/10 CGNAT
+    if (a === 192 && b === 0) return true;            // 192.0.0.0/24
+    if (a === 198 && (b === 18 || b === 19)) return true; // 198.18.0.0/15 benchmark
+    if (a >= 224) return true;                        // multicast + reserved
   }
+
   return false;
 }
 

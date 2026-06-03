@@ -46,6 +46,7 @@ interface ChatUiMessage {
   id: string;
   role: "system" | "user" | "assistant";
   content: string;
+  timestamp?: number;
   importedFrom?: string;
 }
 
@@ -145,6 +146,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
           id: m.id,
           role: m.role,
           content: m.content,
+          timestamp: m.timestamp,
         }))
       );
       setSystemPrompt(activeConversation.systemPrompt || state.settings.defaultSystemPrompt);
@@ -208,7 +210,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
           id: m.id,
           role: m.role,
           content: m.content,
-          timestamp: Date.now(),
+          timestamp: m.timestamp ?? Date.now(),
         })),
         updatedAt: Date.now(),
         model: selectedModelRef.current,
@@ -225,8 +227,9 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
 
   async function send() {
     const trimmedPrompt = userPrompt.trim();
-    if (!trimmedPrompt || loading || sendInFlightRef.current) {
-      if (!trimmedPrompt) setPromptTouched(true);
+    const hasAttachments = attachments.length > 0;
+    if ((!trimmedPrompt && !hasAttachments) || loading || sendInFlightRef.current) {
+      if (!trimmedPrompt && !hasAttachments) setPromptTouched(true);
       return;
     }
     setPromptTouched(false);
@@ -237,6 +240,8 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     setError("");
     setAttachmentNotices([]);
     sendInFlightRef.current = true;
+
+    const effectivePrompt = trimmedPrompt || "Analyze the attached content.";
 
     // Assemble attachments
     const attachCtx = assembleAttachmentContext(attachments);
@@ -254,7 +259,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     }
 
     // Build the full text for safety guard (user prompt + attachment text + memory)
-    const assembledText = [memoryBlock.text, attachCtx.text, trimmedPrompt]
+    const assembledText = [memoryBlock.text, attachCtx.text, effectivePrompt]
       .filter(Boolean)
       .join("\n\n");
 
@@ -303,8 +308,8 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
         },
       });
     }
-    const userContent = buildMessageContent(trimmedPrompt, attachCtx.images, supportsVision);
-    const userMessage: ChatUiMessage = { id: crypto.randomUUID(), role: "user", content: trimmedPrompt };
+    const userContent = buildMessageContent(effectivePrompt, attachCtx.images, supportsVision);
+    const userMessage: ChatUiMessage = { id: crypto.randomUUID(), role: "user", content: effectivePrompt, timestamp: Date.now() };
     const assistantMsgId = crypto.randomUUID();
 
     // Exclude the welcome placeholder from history and persistence
@@ -709,7 +714,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     }
     try {
       const parsed = new URL(url);
-      if (!parsed.protocol.startsWith("http")) {
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
         throw new Error("URL must use http or https protocol.");
       }
     } catch {

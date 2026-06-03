@@ -9,7 +9,15 @@ export interface VeniceForgeApiKey {
   set(key: string): Promise<{ ok: boolean }>;
   delete(): Promise<{ ok: boolean }>;
   test(): Promise<{ ok: boolean; status?: number; message: string }>;
-  get?(): Promise<string | null>;
+}
+
+/** Makes Jina API requests from the main process with the stored key attached. */
+export interface VeniceForgeJina {
+  request(input: {
+    url: string;
+    headers?: Record<string, string>;
+    timeoutMs?: number;
+  }): Promise<{ ok: boolean; status?: number; body?: unknown; contentType?: string; error?: string }>;
 }
 
 /** Describes a single request sent through the Electron IPC bridge. */
@@ -99,6 +107,7 @@ export interface VeniceForge {
   venice: VeniceForgeVenice;
   apiKey: VeniceForgeApiKey;
   jinaApiKey: VeniceForgeApiKey;
+  jina: VeniceForgeJina;
   app: VeniceForgeApp;
   files: VeniceForgeFiles;
   chat: VeniceForgeChat;

@@ -12,10 +12,7 @@ export type {
 
 export { veniceResearchProvider } from "./providers/veniceResearchProvider";
 
-export {
-  createJinaProvider,
-  type JinaProviderConfig,
-} from "./providers/jinaResearchProvider";
+export { createJinaProvider } from "./providers/jinaResearchProvider";
 
 export {
   createGenericHttpProvider,

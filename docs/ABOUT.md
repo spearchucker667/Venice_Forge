@@ -2,9 +2,9 @@
 
 ## What Is Venice Forge?
 
-Venice Forge is a **private AI creation studio** built as a dual-platform Windows and macOS Electron desktop application. It provides a unified interface for the [Venice API](https://venice.ai), covering text generation, image generation, web research, batch automation, and local data management — all without routing user content through any intermediary server beyond Venice itself.
+Venice Forge is a **private AI creation studio** built as a dual-platform Windows and macOS Electron desktop application. It provides a unified interface for the [Venice API](https://venice.ai), covering text generation, image generation, video generation, web research, batch automation, and local data management.
 
-The project ships as a packaged Electron desktop app for Windows and macOS, plus a Vite/Express web application for local development.
+The project ships as a packaged Electron desktop app for Windows and macOS, plus a Vite/Express web application for local development. Desktop Venice requests are sent from the Electron main process to `api.venice.ai`; web-development Venice requests go through the local Express proxy. Optional research features may contact Venice augment endpoints, Jina AI Reader/Search endpoints, or explicitly requested public URLs through the generic HTTP scrape proxy.
 
 Current public readiness status:
 

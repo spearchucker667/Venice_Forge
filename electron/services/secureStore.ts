@@ -228,13 +228,18 @@ export function getSecureStoreStatus(): {
   corrupted: boolean;
   error: string | null;
 } {
-  // Calling getApiKey() runs readStore() + decryption, capturing both
-  // file-read errors (via lastReadError reset) and DPAPI decrypt errors.
   getApiKey();
+  const apiKeyError = lastReadError;
+
+  getJinaApiKey();
+  const jinaKeyError = lastReadError;
+
+  const error = apiKeyError || jinaKeyError;
+
   return {
     mode: getStorageMode(),
     encryptionAvailable: safeStorage.isEncryptionAvailable(),
-    corrupted: !!lastReadError,
-    error: lastReadError,
+    corrupted: !!error,
+    error,
   };
 }

@@ -11,7 +11,6 @@ import { MAX_RAW_UPLOAD_BYTES } from "../services/veniceClient";
 import { ModuleProps } from "../types/app";
 import { veniceResearchProvider } from "../research/providers/veniceResearchProvider";
 import { createJinaProvider } from "../research/providers/jinaResearchProvider";
-import { desktopJinaApiKey } from "../services/desktopBridge";
 import { runResearchJob, type ResearchBudget } from "../research/agent/researchRunner";
 import { synthesizeResearch } from "../research/agent/researchSynthesis";
 import { runSocialDiscovery, type SocialProfileCandidate } from "../research/agent/socialDiscovery";
@@ -237,12 +236,8 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
     };
 
     try {
-      let jinaKey: string | undefined;
-      if (researchProviderId === "jina") {
-        try { jinaKey = await desktopJinaApiKey.get(); } catch { /* ignore */ }
-      }
       const provider = researchProviderId === "jina" 
-        ? createJinaProvider(jinaKey ? { getApiKey: () => jinaKey } : undefined) 
+        ? createJinaProvider()
         : veniceResearchProvider;
       const job = await runResearchJob({
         question: researchQuestion.trim(),
@@ -286,10 +281,19 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
   async function runProfileDiscovery() {
     if (!targetName.trim() || !authorized) return;
     setError("");
-    // ENFORCE-003: guard target name at renderer layer; downstream Venice calls are also
-    // guarded at transport level, but this provides an earlier fail-fast boundary.
+    // ENFORCE-003: guard all profile-discovery inputs at renderer layer; downstream
+    // Venice calls are also guarded at transport level, but this provides an earlier
+    // fail-fast boundary before query generation.
+    const profileGuardText = [
+      targetName.trim(),
+      knownUsername.trim(),
+      knownWebsite.trim(),
+      knownOrg.trim(),
+      knownLocation.trim(),
+    ].filter(Boolean).join("\n\n");
+
     const profileGuard = assessChildExploitationSafety({
-      text: targetName.trim(),
+      text: profileGuardText,
       endpoint: "/augment/search",
       method: "POST",
       source: "research",
@@ -731,10 +735,14 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
                         </div>
                         <span className="text-xs text-text-muted">Score: {c.confidenceScore}</span>
                       </div>
-                      <div className="text-sm text-text-secondary mb-1">
-                        {c.displayName || "Unknown name"}
-                        {c.handle && <span className="text-text-muted ml-2">@{c.handle}</span>}
-                      </div>
+<div className="text-sm text-text-secondary mb-1">
+                          {c.displayName || "Unknown name"}
+                          {c.handle && (
+                            <span className="text-text-muted ml-2">
+                              @{c.handle.replace(/^@+/, "")}
+                            </span>
+                          )}
+                        </div>
                       <a
                         href={safeHref(c.url)}
                         target="_blank"

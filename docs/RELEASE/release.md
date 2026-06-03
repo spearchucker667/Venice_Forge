@@ -64,13 +64,13 @@ Local builds are ad-hoc signed. To distribute, you must configure macOS code sig
 
 ## GitHub Actions
 
-Use `.github/workflows/windows-release.yml` and `.github/workflows/macos-release.yml` for Windows and macOS builds.
+Use `.github/workflows/release.yml` for both Windows and macOS builds.
 
 Triggers:
 - Manual `workflow_dispatch`
 - Version tags matching `v*`
 
-The workflows run `npm ci`, typecheck, tests, build, packaging commands (`dist:win` or `dist:mac`), checksum generation, and verification scripts (`verify:dist`), then upload the signed/unsigned bundles as release assets.
+The workflow runs separate Windows and macOS packaging jobs, executes `npm ci`, typecheck, tests, build, packaging commands (`dist:win` or `dist:mac`), checksum generation, and verification scripts (`verify:dist:*`), then uploads the signed or unsigned bundles as release assets.
 
 ## Architecture-Specific macOS Builds
 

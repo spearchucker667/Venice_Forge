@@ -80,7 +80,7 @@ export const veniceResearchProvider: ResearchProvider = {
   supports: {
     search: true,
     scrape: true,
-    socialDiscovery: false,
+    socialDiscovery: true,
     documentParsing: true,
   },
 

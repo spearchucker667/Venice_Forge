@@ -23,7 +23,7 @@ The key is encrypted with OS-level safeStorage (DPAPI on Windows, Keychain on ma
 
 ### Web Mode
 
-In web mode, Jina API keys are stored in the browser's `localStorage` (key: `venice_jina_api_key`). Setting the Jina key in the UI's Settings menu will persist it locally. You can also configure the server-side proxy environment for global authentication.
+In web mode, the Jina provider can run without a key for low-volume usage. The current Settings UI does not expose browser-based Jina key management. For development-only testing, a key may be placed manually in browser `localStorage` under `venice_jina_api_key`; do not treat this as secure storage.
 
 ### Removing the Key
 

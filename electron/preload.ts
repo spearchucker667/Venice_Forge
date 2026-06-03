@@ -95,9 +95,6 @@ const veniceForge = {
     isConfigured(): Promise<boolean> {
       return ipcRenderer.invoke("jinaApiKey:isConfigured");
     },
-    get(): Promise<string | null> {
-      return ipcRenderer.invoke("jinaApiKey:get");
-    },
     set(key: string): Promise<{ ok: boolean }> {
       return ipcRenderer.invoke("jinaApiKey:set", key);
     },
@@ -106,6 +103,16 @@ const veniceForge = {
     },
     test(): Promise<{ ok: boolean; status?: number; message: string }> {
       return ipcRenderer.invoke("jinaApiKey:test");
+    },
+  },
+
+  jina: {
+    request(input: {
+      url: string;
+      headers?: Record<string, string>;
+      timeoutMs?: number;
+    }): Promise<{ ok: boolean; status?: number; body?: unknown; contentType?: string; error?: string }> {
+      return ipcRenderer.invoke("jina:request", input);
     },
   },
 

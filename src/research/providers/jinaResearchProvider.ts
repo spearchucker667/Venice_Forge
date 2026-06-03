@@ -23,26 +23,17 @@ import type {
   SearchResult,
   ScrapeResult,
 } from "../providerTypes";
+import { desktopJina } from "../../services/desktopBridge";
 
 const JINA_READER_BASE = "https://r.jina.ai";
 const JINA_SEARCH_BASE = "https://s.jina.ai";
-
-export interface JinaProviderConfig {
-  /** Returns the Jina API key, or undefined if unauthenticated. */
-  getApiKey?: () => string | undefined;
-}
 
 function nowIso(): string {
   return new Date().toISOString();
 }
 
-function buildHeaders(config: JinaProviderConfig, options?: ScrapeInput["options"]): Record<string, string> {
+function buildHeaders(options?: ScrapeInput["options"]): Record<string, string> {
   const headers: Record<string, string> = {};
-
-  const key = config.getApiKey?.();
-  if (key) {
-    headers["Authorization"] = `Bearer ${key}`;
-  }
 
   if (options?.outputFormat === "json") {
     headers["Accept"] = "application/json";
@@ -92,31 +83,26 @@ function buildSearchUrl(input: SearchInput): string {
   return `${JINA_SEARCH_BASE}/${query}`;
 }
 
-import { createTimeoutSignal } from "../../utils/timeout";
-
 async function jinaFetch(
   url: string,
   headers: Record<string, string>,
-  signal?: AbortSignal,
   timeoutMs?: number
 ): Promise<unknown> {
-  const fetchSignal = timeoutMs ? createTimeoutSignal(timeoutMs, signal) : signal;
-  const response = await fetch(url, {
-    method: "GET",
-    headers,
-    signal: fetchSignal,
-  });
+  try {
+    const result = await desktopJina.request({
+      url,
+      headers: { ...headers },
+      timeoutMs,
+    });
 
-  if (!response.ok) {
-    const text = await response.text().catch(() => "Jina request failed");
-    throw new Error(`Jina ${response.status}: ${text.slice(0, 200)}`);
-  }
+    if (!result.ok) {
+      throw new Error(`Jina request failed: ${result.error || result.status}`);
+    }
 
-  const contentType = response.headers.get("content-type") || "";
-  if (contentType.includes("application/json")) {
-    return response.json().catch(() => null);
+    return result.body;
+  } catch (err) {
+    throw err instanceof Error ? err : new Error(String(err));
   }
-  return response.text();
 }
 
 /** Normalizes a Jina Reader response into ScrapeResult. */
@@ -210,7 +196,7 @@ function parseUrlsFromMarkdown(text: string): SearchResult[] {
   return results;
 }
 
-export function createJinaProvider(config: JinaProviderConfig = {}): ResearchProvider {
+export function createJinaProvider(): ResearchProvider {
   return {
     id: "jina",
     label: "Jina AI",
@@ -223,21 +209,18 @@ export function createJinaProvider(config: JinaProviderConfig = {}): ResearchPro
 
     async search(input: SearchInput): Promise<SearchResult[]> {
       const url = buildSearchUrl(input);
-      const headers: Record<string, string> = {};
-      const key = config.getApiKey?.();
-      if (key) headers["Authorization"] = `Bearer ${key}`;
+      const headers = buildTimeoutHeader(input.timeoutMs);
       headers["Accept"] = "application/json";
-      Object.assign(headers, buildTimeoutHeader(input.timeoutMs));
 
-      const data = await jinaFetch(url, headers, input.signal, input.timeoutMs);
+      const data = await jinaFetch(url, headers, input.timeoutMs);
       return normalizeSearch(input.query, data);
     },
 
     async scrape(input: ScrapeInput): Promise<ScrapeResult> {
       const url = buildScrapeUrl(input);
-      const headers = buildHeaders(config, input.options);
+      const headers = buildHeaders(input.options);
       Object.assign(headers, buildTimeoutHeader(input.timeoutMs));
-      const data = await jinaFetch(url, headers, input.signal, input.timeoutMs);
+      const data = await jinaFetch(url, headers, input.timeoutMs);
       return normalizeReader(input.url, data);
     },
   };

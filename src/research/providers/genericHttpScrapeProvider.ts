@@ -4,8 +4,10 @@
  * This provider is a minimal fallback for public web pages.
  * It is DISABLED by default and must be explicitly enabled.
  *
- * SSRF defense: hostnames and IP literals are checked against a static
- * blocklist BEFORE any network request. No DNS resolution is performed.
+ * SSRF defense: renderer-side URL validation is followed by a local proxy
+ * request through the Express server or Electron main process. The proxy
+ * performs DNS resolution and blocks private resolved IP addresses before
+ * opening the outbound connection.
  */
 
 import type {

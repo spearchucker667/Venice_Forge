@@ -173,6 +173,9 @@ export default function App() {
         }
       } catch (err) {
         warn("IndexedDB init failed", err);
+        if (mounted) {
+          setSettingsHydrated(true);
+        }
         dispatch({
           type: "ADD_TOAST",
           toast: {
@@ -249,14 +252,14 @@ export default function App() {
 
   // First-run legal acknowledgment
   useEffect(() => {
-    if (!dbReady) return;
+    if (!settingsHydrated) return;
     try {
       const ack = localStorage.getItem(FIRST_RUN_ACK_KEY);
       if (!ack) setShowFirstRun(true);
     } catch {
       // Storage unavailable — don't block the app
     }
-  }, [dbReady]);
+  }, [settingsHydrated]);
 
   function acknowledgeFirstRun() {
     try {
@@ -336,9 +339,13 @@ export default function App() {
             )}
             {state.sidebarCollapsed && (
               <div className="mb-4 flex justify-center">
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent">
-                  <SparklesIcon size={20} />
-                </div>
+                <img
+                  src="./assets/branding/venice-keys-red.svg"
+                  alt="Venice"
+                  title="Venice keys mark — used for API compatibility identification. Venice Forge is unofficial."
+                  className="h-10 w-10"
+                  style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.2))" }}
+                />
               </div>
             )}
             <button
@@ -433,7 +440,7 @@ export default function App() {
           <ErrorBoundary onReset={() => dispatch({ type: "SET_TAB", tab: "chat" })}>
             {isElectron() && apiKeyConfigured === false && (
               <div className="m-4 rounded-xl border border-warning/30 bg-warning/10 p-4 text-sm leading-relaxed text-warning shadow-sm">
-                Venice Forge needs a Venice API key before model, chat, and image requests can run. Add it in Config, then use Test connection.
+                Venice Forge needs a Venice API key before model, chat, image, video, batch, and research requests can run. Add it in Config, then use Test connection.
               </div>
             )}
             

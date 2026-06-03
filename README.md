@@ -172,8 +172,8 @@ Outputs to `release/`:
 
 ### Signing & Notarization
 
-- **Local builds:** Unsigned; may trigger SmartScreen (Windows) or Gatekeeper (macOS) warnings
-- **Official releases:** Signed via Apple Developer ID (macOS) and Windows code signing (Windows)
+- **Local builds:** Unsigned by default; may trigger SmartScreen (Windows) or Gatekeeper (macOS) warnings.
+- **Official releases:** Signed only when the release workflow is supplied valid Windows and/or Apple signing credentials. Release notes must state whether each artifact is signed or unsigned.
 - **macOS Gatekeeper workaround (local builds):** `xattr -dr com.apple.quarantine "/path/to/Venice Forge.app"`
 
 For detailed signing and notarization steps, see [docs/RELEASE/signing-and-notarization.md](docs/RELEASE/signing-and-notarization.md).

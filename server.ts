@@ -351,34 +351,6 @@ export function createServerApp() {
     })
   );
 
-  (app as express.Application & { cleanupIntervals?: () => void; staticRateLimiterCleanup?: ReturnType<typeof setInterval> }).cleanupIntervals = () => {
-    clearInterval(rateLimitCleanupInterval);
-    if ((app as express.Application & { staticRateLimiterCleanup?: ReturnType<typeof setInterval> }).staticRateLimiterCleanup) {
-      clearInterval((app as express.Application & { staticRateLimiterCleanup?: ReturnType<typeof setInterval> }).staticRateLimiterCleanup);
-    }
-  };
-
-  return app;
-}
-
-function isMainModule() {
-  try {
-    return import.meta.url === pathToFileURL(process.argv[1] || "").href;
-  } catch {
-    return false;
-  }
-}
-
-if (isMainModule()) {
-  startServer().catch((err) => {
-    console.error("Failed to start server:", err);
-    process.exit(1);
-  });
-}
-
-export async function startServer() {
-  const app = createServerApp();
-  const PORT = AppConfig.PORT;
   // Generic scrape proxy with SSRF protection (DNS resolution)
   app.post("/api/proxy-scrape", express.json(), async (req, res) => {
     try {
@@ -386,7 +358,7 @@ export async function startServer() {
       if (typeof url !== "string") {
         return res.status(400).json({ error: "Missing or invalid URL" });
       }
-      
+
       let parsed: URL;
       try {
         parsed = new URL(url);
@@ -496,6 +468,35 @@ export async function startServer() {
       return res.status(500).json({ error: err instanceof Error ? err.message : "Scrape failed" });
     }
   });
+
+  (app as express.Application & { cleanupIntervals?: () => void; staticRateLimiterCleanup?: ReturnType<typeof setInterval> }).cleanupIntervals = () => {
+    clearInterval(rateLimitCleanupInterval);
+    if ((app as express.Application & { staticRateLimiterCleanup?: ReturnType<typeof setInterval> }).staticRateLimiterCleanup) {
+      clearInterval((app as express.Application & { staticRateLimiterCleanup?: ReturnType<typeof setInterval> }).staticRateLimiterCleanup);
+    }
+  };
+
+  return app;
+}
+
+function isMainModule() {
+  try {
+    return import.meta.url === pathToFileURL(process.argv[1] || "").href;
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule()) {
+  startServer().catch((err) => {
+    console.error("Failed to start server:", err);
+    process.exit(1);
+  });
+}
+
+export async function startServer() {
+  const app = createServerApp();
+  const PORT = AppConfig.PORT;
 
   // Vite middleware for development
   if (AppConfig.NODE_ENV !== "production" && AppConfig.NODE_ENV !== "test") {

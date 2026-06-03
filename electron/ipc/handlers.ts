@@ -216,14 +216,6 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle("jinaApiKey:isConfigured", () => isJinaApiKeyConfigured());
 
-  ipcMain.handle("jinaApiKey:get", () => {
-    try {
-      return getJinaApiKey();
-    } catch {
-      return null;
-    }
-  });
-
   ipcMain.handle("jinaApiKey:set", (_event, key: unknown) => {
     try {
       const trimmed = typeof key === "string" ? key.trim() : "";
@@ -242,6 +234,66 @@ export function registerIpcHandlers(): void {
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("jina:request", async (_event, input: unknown) => {
+    try {
+      const request = input as { url?: unknown; headers?: unknown; timeoutMs?: unknown };
+      if (typeof request.url !== "string") {
+        return { ok: false, status: 400, error: "Missing Jina request URL." };
+      }
+
+      const parsed = new URL(request.url);
+      const allowedHosts = ["r.jina.ai", "s.jina.ai"];
+      if (parsed.protocol !== "https:" || !allowedHosts.includes(parsed.hostname)) {
+        return { ok: false, status: 403, error: "Only Jina Reader/Search HTTPS endpoints are allowed." };
+      }
+
+      const headers: Record<string, string> = {};
+      if (request.headers && typeof request.headers === "object" && !Array.isArray(request.headers)) {
+        for (const [key, value] of Object.entries(request.headers as Record<string, unknown>)) {
+          if (typeof value === "string" && !/^authorization$/i.test(key)) {
+            headers[key] = value;
+          }
+        }
+      }
+
+      const jinaKey = (() => { try { return getJinaApiKey(); } catch { return null; } })();
+      if (jinaKey) headers["Authorization"] = `Bearer ${jinaKey}`;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(
+        () => controller.abort(),
+        typeof request.timeoutMs === "number" && request.timeoutMs > 0
+          ? Math.min(request.timeoutMs, 180000)
+          : 30000
+      );
+
+      try {
+        const response = await fetch(parsed.toString(), {
+          method: "GET",
+          headers,
+          signal: controller.signal,
+        });
+
+        const contentType = response.headers.get("content-type") || "";
+        const body = contentType.includes("application/json")
+          ? await response.json().catch(() => null)
+          : await response.text();
+
+        return {
+          ok: response.ok,
+          status: response.status,
+          body,
+          contentType,
+          error: response.ok ? undefined : `Jina returned ${response.status}`,
+        };
+      } finally {
+        clearTimeout(timeout);
+      }
+    } catch (err) {
+      return { ok: false, status: 0, error: redactErrorMessage(err) };
     }
   });
 
