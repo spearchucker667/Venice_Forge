@@ -15,6 +15,7 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
   const [promptTouched, setPromptTouched] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const videoObjectUrlRef = useRef<string | null>(null);
 
   const patch = useCallback((updates: Partial<VideoDraft>) => {
     dispatch({ type: "SET_VIDEO_DRAFT", patch: updates });
@@ -24,6 +25,10 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
     return () => {
       abortRef.current?.abort();
       if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+      if (videoObjectUrlRef.current) {
+        URL.revokeObjectURL(videoObjectUrlRef.current);
+        videoObjectUrlRef.current = null;
+      }
     };
   }, []);
 
@@ -42,19 +47,24 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
       if (res.status === "COMPLETED") {
         setLoading(false);
         setSuccess("Video generation completed!");
-        
+
         if (res.blob) {
+          if (videoObjectUrlRef.current) {
+            URL.revokeObjectURL(videoObjectUrlRef.current);
+          }
           const url = URL.createObjectURL(res.blob);
-          patch({ 
-            generationProgress: "", 
+          videoObjectUrlRef.current = url;
+          patch({
+            generationProgress: "",
             status: "COMPLETED",
-            videoUrl: url
+            videoUrl: url,
           });
         } else {
-          // If the API provided a download URL instead of raw data in the response,
-          // it would be in the original queue response, but if we need it here, we'd handle it.
-          // For now, clear progress.
-          patch({ generationProgress: "", status: "COMPLETED" });
+          patch({
+            generationProgress: "",
+            status: "COMPLETED",
+            downloadUrl: draft.downloadUrl,
+          });
         }
         return; // Done!
       } else {
@@ -152,14 +162,22 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
   }
 
   function handleDownload() {
+    const a = document.createElement("a");
+
     if (draft.videoUrl) {
-      const a = document.createElement("a");
       a.href = draft.videoUrl;
       a.download = `venice-video-${Date.now()}.mp4`;
-      a.click();
     } else if (draft.downloadUrl) {
-      window.open(draft.downloadUrl, "_blank", "noopener,noreferrer");
+      a.href = draft.downloadUrl;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+    } else {
+      return;
     }
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   }
 
   return (

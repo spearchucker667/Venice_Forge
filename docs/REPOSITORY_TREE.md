@@ -116,13 +116,15 @@ This document is the public map for the Venice Forge repository. It reflects the
 ├── LICENSE
 ├── README.md
 ├── SECURITY.md
-├── SUPPORT.md
-├── TODO.md
-├── DISCLAIMER.md
-├── NOTICE.md
-├── PRIVACY.md
-├── TRADEMARKS.md
-├── THIRD_PARTY_NOTICES.md
+├── docs/
+│   ├── SUPPORT.md
+│   ├── TODO.md
+│   └── legal/
+│       ├── DISCLAIMER.md
+│       ├── NOTICE.md
+│       ├── PRIVACY.md
+│       ├── TRADEMARKS.md
+│       └── THIRD_PARTY_NOTICES.md
 ├── AGENTS.md
 ├── .cursorrules
 ├── .windsurfrules

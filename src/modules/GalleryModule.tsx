@@ -142,7 +142,7 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
           <div>
             <h2 className="text-2xl font-display font-semibold tracking-tight text-text-primary">Library</h2>
             <div className="text-sm text-text-secondary mt-1">
-              Generated images, uploaded files, and chat records are stored in IndexedDB.
+              Generated images and uploaded files are stored locally. Desktop chat records use the app chat-history folder; web-mode legacy chats use IndexedDB.
             </div>
           </div>
         </div>

@@ -1,324 +1,134 @@
 # Venice Forge — Agent Guide
 
-> This file is for AI coding agents. If you are a human contributor, start with [README.md](README.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+> Human contributors: start with [README.md](README.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Project Overview
+**Version:** 1.0.3 | **Stack:** React 19 + TS strict, Electron 42, Express 4, Vitest 4 | **Node:** 20 or 22, npm 10+
 
-Venice Forge is an unofficial, third-party desktop client for the [Venice API](https://venice.ai). It is a dual-platform Electron application for Windows and macOS, plus a Vite/Express web application for local development. The app provides a unified interface for text generation, image generation, web research, batch automation, and local data management.
+---
 
-- **Product name:** Venice Forge
-- **Version:** 1.0.3
-- **License:** MIT
-- **Maintainer:** fayeblade (@spearchucker667)
-- **Security contact:** GitHub private vulnerability reporting or private maintainer discussion (see [SECURITY.md](SECURITY.md))
-- **Repository:** https://github.com/spearchucker667/Venice-API-connector
-- **Requirements:** Node.js 20 or 22, npm 10+
-
-**Important legal note:** This project is not affiliated with, endorsed by, sponsored by, or certified by Venice.ai, Inc. Venice names and marks are used solely for nominative identification of API compatibility.
-
-## Technology Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Frontend UI | React 19, TypeScript strict, Tailwind CSS v4, Vite 6 |
-| Desktop shell | Electron 42, electron-builder 26 |
-| Web dev server | Express 4, http-proxy-middleware 4, esbuild |
-| State management | React `useReducer` + Immer |
-| Storage (renderer) | IndexedDB via `StorageService`, AES-GCM encrypted |
-| Storage (desktop chat) | Electron main-process filesystem (`chat-history/*.json`) |
-| Secure key storage | Electron `safeStorage` (DPAPI / Keychain) |
-| Testing | Vitest 4, jsdom, @testing-library/react, supertest |
-| Linting | ESLint 9 + typescript-eslint + react-hooks plugin |
-| CI/CD | GitHub Actions (Node 20/22 matrix) |
-
-## Architecture
-
-The project has two runtime modes:
-
-1. **Electron desktop (production):** Renderer (React) ↔ IPC preload bridge ↔ Main process (Node.js) ↔ `api.venice.ai`
-2. **Web mode (development):** Browser ↔ Vite dev server ↔ Express `/api/venice` proxy ↔ `api.venice.ai`
-
-### Key Directories
-
-| Path | Purpose |
-|------|---------|
-| `src/` | React renderer: components, modules, services, state, types, styles, theme |
-| `electron/` | Electron main process: BrowserWindow, preload, IPC handlers, secure storage, HTTPS client, logger |
-| `server.ts` | Express web proxy with Venice API forwarding, rate limiting, circuit breaker, security headers |
-| `scripts/` | Build and release verification helpers (CJS) |
-| `build/` | Application icons (`icon.ico`, `icon.icns`, `icon.png`) |
-| `docs/` | Project documentation (development, release, legal, FAQ) |
-| `.github/` | CI workflows, issue/PR templates, Dependabot config |
-
-### Source Organization
-
-- **`src/modules/`** — One file per app tab: `ChatModule`, `ImageModule`, `BatchModule`, `SearchScrapeModule`, `ModelsModule`, `GalleryModule`, `SettingsModule`, `DiagnosticsModule`
-- **`src/components/`** — Reusable UI primitives (`TabButton`, `Chip`, `ToastHost`, `ErrorBoundary`, `ConfirmModal`, etc.)
-- **`src/services/`** — Renderer-side services:
-  - `veniceClient.ts` — Single entry point for all Venice API calls (desktop + web transport)
-  - `desktopBridge.ts` — Electron-vs-web abstraction (never call `window.veniceForge` directly from modules)
-  - `storageService.ts` — IndexedDB persistence (images, legacy chats, settings, conversations, diagnostics)
-  - `chatStorage.ts` — Unified conversation storage abstraction (IPC in Electron, IndexedDB in web)
-  - `cryptoService.ts` — AES-GCM encryption for IndexedDB records
-  - `exportImport.ts` — Versioned JSON export/import with secret redaction
-  - `modelService.ts` — Model fetching and caching
-- **`src/state/`** — Global `appReducer` using Immer for immutable updates
-- **`src/theme/`** — Token-based theme system with built-in palettes and live ThemeMaker UI
-- **`src/research/`** — Pluggable research provider subsystem:
-  - `providers/veniceResearchProvider.ts`, `providers/jinaResearchProvider.ts`, `providers/genericHttpScrapeProvider.ts`
-  - `agent/researchRunner.ts`, `agent/researchSynthesis.ts`, `agent/socialDiscovery.ts`
-- **`src/shared/`** — Code shared between renderer, Electron main, and web proxy:
-  - `validation.ts` — Allowed Venice endpoints and methods
-  - `safety/` — Content safety guard (child exploitation detection)
-  - `apiConfig.ts`, `configSchema.ts` — API host and env configuration
-  - `logger.ts`, `limits.ts`, `legal.ts`
-- **`electron/ipc/`** — IPC handler registration and request validation
-- **`electron/services/`** — Main-process services: `veniceClient.ts`, `secureStore.ts`, `chatStorage.ts`, `logger.ts`
-- **`electron/utils/`** — `urlSecurity.ts` (trusted external URL validation), `navigation.ts` (path containment)
-
-## Build and Test Commands
+## Commands
 
 ### Development
-
 ```bash
-npm install
-npm run dev:electron   # Desktop app in development mode (recommended)
-npm run dev:web        # Vite + Express web proxy mode
+npm run dev:electron   # Desktop app (recommended; runs tsc for electron/ first)
+npm run dev:web        # Vite + Express proxy only
 ```
 
-### Validation (run before any PR)
-
+### Validation order (required before PR)
 ```bash
-npm run lint:eslint    # ESLint for src/, electron/, server.ts, and scripts/ with zero-warning enforcement
-npm run typecheck      # TypeScript check for renderer + Electron
-npm test               # Vitest unit and integration tests
-npm run build          # Build dist/ (web) and dist-electron/ (main process)
-npm run verify:icon    # Validate build icons exist
+npm run lint:eslint    # ESLint — zero warnings enforced
+npm run typecheck      # TypeScript: renderer + electron main (both tsconfigs)
+npm test               # Vitest (serial, --fileParallelism=false)
+npm run verify:safety-guard   # Mandatory safety guard check
+npm run build          # dist/ (renderer) + dist-electron/ (main) + dist/server.cjs
+```
+
+### Single test, single file
+```bash
+npx vitest run src/services/foo.test.ts
+npx vitest run server.test.ts -t "test name"
 ```
 
 ### Packaging
-
 ```bash
-# Windows
-npm run dist:win
-npm run checksum:release
-npm run verify:dist:win
-npm run verify:dist:portable
-
-# macOS
-npm run dist:mac
-npm run dist:mac:arm64
-npm run dist:mac:x64
-npm run checksum:release
-npm run verify:dist:mac
+npm run dist:win         # NSIS + portable
+npm run dist:mac         # DMG + ZIP (both archs)
+npm run dist:mac:arm64   # Apple Silicon only
+npm run dist:mac:x64      # Intel only
+npm run checksum:release  # SHA-256 after packaging
 ```
 
-Artifacts are written to `release/`. Windows produces NSIS installers and portable executables. macOS produces DMG and ZIP bundles for both x64 and arm64.
-
-### Other Useful Commands
-
-| Command | Description |
-|---------|-------------|
-| `npm run build:web` | Vite production build |
-| `npm run build:electron` | Compile Electron main process TypeScript |
-| `npm run build:server` | Bundle `server.ts` to `dist/server.cjs` via esbuild |
-| `npm run clean` | Remove `dist/`, `dist-electron/`, `release/` |
-| `npm run verify:safety-guard` | Run the script to enforce the safety guard boundaries and no-log policies |
-| `npm run test:watch` | Re-run tests on file changes |
-| `npm run test:coverage` | Run tests with v8 coverage report |
-| `npm run smoke:electron` | Run Electron smoke tests |
-| `npm run ci` | Full CI pipeline: `npm ci`, lint, typecheck, test, build |
-| `npm run dist` | Generic packaging for the current platform |
-| `npm run dist:mac:arm64` | macOS Apple Silicon single-arch build |
-| `npm run dist:mac:x64` | macOS Intel single-arch build |
-
-## Code Style Guidelines
-
-- **TypeScript strict mode** is enforced. Avoid `any`; use proper types.
-- Use `function` declarations for modules, not arrow functions.
-- CSS styling uses Tailwind v4 utility classes inline with JSX.
-- Prefer minimal, focused changes.
-- Every file that touches security-critical code should have a `// Code Owner:` header.
-- Branch naming convention: `feature/description`, `fix/description`, `security/description`, `docs/description`.
-
-### ESLint Configuration
-
-- Config: `eslint.config.mjs`
-- Parser: `typescript-eslint` with project references to `tsconfig.json`, `tsconfig.electron.json`, and `tsconfig.electron.test.json` (the latter allows ESLint to lint test files in `electron/`)
-- Key rules:
-  - `@typescript-eslint/no-explicit-any`: warn
-  - `@typescript-eslint/no-unused-vars`: warn (allows `_` prefix)
-  - `no-console`: warn (allows `console.warn` and `console.error`)
-  - Test files may use explicit `any` in mock boundaries; production code keeps the explicit-`any` warning enabled.
-  - `react-hooks` recommended rules enabled
-- Ignored paths: `dist/`, `dist-electron/`, `release/`, `node_modules/`
-
-### TypeScript Configuration
-
-- `tsconfig.json` — Renderer source (`src/`, `server.ts`)
-  - Target: ES2022, module: ESNext, moduleResolution: bundler
-  - JSX: react-jsx
-  - Path alias: `@/*` maps to `./*`
-  - `strict: true`, `noImplicitAny: true`
-- `tsconfig.electron.json` — Electron main process (`electron/`)
-  - Extends `tsconfig.json`
-  - Module: CommonJS, moduleResolution: node
-  - `outDir`: `dist-electron`
-  - Excludes tests and renderer source
-
-## Testing Instructions
-
-- **Framework:** Vitest 4 with jsdom environment
-- **Coverage:** v8 provider with thresholds: branches 70%, functions 80%, lines 80%, statements 80%
-- **Test location:** Tests live next to the source file: `src/services/foo.ts` → `src/services/foo.test.ts`
-- **File parallelism:** Disabled (`--fileParallelism=false`) to avoid IndexedDB and global state conflicts
-- **Server tests:** Must include `// @vitest-environment node` at the top
-- **Pure functions:** Prefer pure-function tests without mocking where possible
-- **Regression guards:** When fixing a bug, add a comment: `// BUG-NNN regression guard`
-
-### Coverage Exclusions
-
-`node_modules/`, `dist/`, `dist-electron/`, `release/`, `scripts/`, `**/*.test.ts`, `**/*.test.tsx`, `vite.config.ts`, `vitest.config.ts`, `server.ts`
-
-### Test Commands
-
+### Misc
 ```bash
-npm test                    # Run all tests once
-npm run verify:safety-guard # Mandatory check for safety guard compliance
-npm run test:watch          # Watch mode
-npm run test:coverage       # With coverage report
-npm run smoke:electron      # Electron smoke tests in tests/smoke/
+npm run ci               # parity with CI: npm ci + lint + typecheck + test + safety-guard + build
+npm run build:electron    # Only electron main/preload (output: dist-electron/)
+npm run build:web        # Only renderer (output: dist/)
+npm run build:server     # Only proxy (output: dist/server.cjs)
+npm run smoke:electron    # Electron smoke tests in tests/smoke/
+npm run test:coverage    # With v8 coverage report
+npm run clean            # Remove dist/ dist-electron/ release/
 ```
 
-## Security Considerations
+---
 
-This is a security-sensitive project. The following rules are non-negotiable.
+## Architecture
 
-### API Key Handling
-- The renderer process **never** reads the raw API key.
-- In Electron, keys are stored via `safeStorage` (OS-level encryption).
-- In web mode, the key lives only in the server-side `.env` file.
-- Never commit `.env` files, keys, tokens, or certificates.
-- Never expose keys in test fixtures, screenshots, or logs.
+**Two transports, same renderer.** `isElectron()` in `src/services/desktopBridge.ts` selects:
+- **Electron:** renderer → `window.veniceForge` (contextBridge) → IPC → main process → `api.venice.ai` (API key in `safeStorage`)
+- **Web:** renderer → `fetch('/api/venice/...')` → Express proxy → `api.venice.ai` (API key in `.env`)
 
-### Content Safety Guard
-- **Every new prompt-sending path must call `assessChildExploitationSafety()` and `recordDecision()`** before forwarding to Venice.
-- Do not bypass the guard. Be aware that the guard actively screens `negative_prompt` fields and analyzes cross-sentence contexts. Do not log raw prompt text.
-- Safety tests must use synthetic/redacted fixtures only.
-- The guard runs at every enforcement boundary: renderer (`veniceClient.ts`), Electron IPC handlers, and Express web proxy. The proxy uses a "fail-close" design (500 status) on extraction errors.
+**All Venice HTTP calls go through `veniceFetch()` or `veniceStreamChat()` in `src/services/veniceClient.ts`.** Never `fetch` directly, never call `window.veniceForge.venice` directly from modules. Pass `dispatch` to emit `SET_DIAGNOSTICS` automatically.
 
-### Security Audit (May 2026)
-This project underwent a comprehensive security audit of its safety guard capabilities in May 2026. The `verify-safety-guard.cjs` script was introduced as a mandatory gate to ensure adherence to 18+ legal constraints and robust CSAM protection.
+**Dual TypeScript build pipelines:**
+- Renderer (`src/`): Vite, `tsconfig.json` (ESNext, `noEmit`)
+- Electron main (`electron/`): `tsc --project tsconfig.electron.json` → CommonJS → `dist-electron/`; then `scripts/create-cjs-package.cjs` copies `package.json` as CJS
 
-### Allowed Venice Endpoints
-The IPC validator and web proxy share an allowlist in `src/shared/validation.ts`:
-- `GET /models`
-- `POST /chat/completions`
-- `POST /image/generate`
-- `POST /image/upscale`
-- `POST /augment/search`
-- `POST /augment/scrape`
-- `POST /augment/text-parser`
+**State:** Single global `useReducer` in `App.tsx` using Immer (`produce`). All action types in `src/types/app.ts` as a discriminated union.
 
-Only these endpoints may be invoked. No arbitrary URL or method forwarding is permitted.
+---
 
-### External URL Security
-- `shell.openExternal` only allows `https:` URLs with non-private hostnames.
-- RFC 1918 addresses (10.x, 192.168.x, 172.16–31.x), loopback, and `::1` are blocked even over HTTPS.
-- See `electron/utils/urlSecurity.ts`.
+## Testing
 
-### Electron Hardening
-- `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`
-- Content-Security-Policy is injected on every response
-- Navigation is blocked except to app files; external links open via user-confirmed native dialog
-- DevTools are disabled in packaged production builds unless `VENICE_FORGE_DEBUG_DEVTOOLS=true`
+- **Vitest 4**, jsdom by default. File-level `// @vitest-environment node` for server tests.
+- **Serial execution** (`--fileParallelism=false`): tests that touch IndexedDB or global state must not run in parallel.
+- Tests live next to source: `src/services/foo.ts` → `src/services/foo.test.ts`. Server test is `server.test.ts` at root.
+- Regression guards: `// BUG-NNN regression guard` comment in tests that would have caught a fixed bug.
+- Node-level tests (rate-limiting, etc.): create fresh `app` in `beforeEach`, not `beforeAll`, to isolate state.
 
-### Reporting Vulnerabilities
-- Do **not** open public issues for security bugs.
-- Use GitHub private vulnerability reporting or request a private maintainer discussion.
-- Only the latest release tag is actively maintained for security patches.
-- `npm audit --audit-level=moderate` must be clean before release.
+---
 
-## Chat Workspace Architecture
+## Security (non-negotiable)
 
-### Memory Service
-`src/services/memoryService.ts` provides a persistent memory layer:
-- **Store:** `ai_memory` in IndexedDB, encrypted via `cryptoService.ts` (AES-GCM).
-- **Schema:** `{ id, content: string, createdAt, tags: string[], conversationId?: string }`.
-- **API:** `saveMemory(content, tags?, conversationId?)`, `listMemories()`, `deleteMemory(id)`, `searchMemory(query, tagFilter?)`, `selectMemoriesForInjection(conversationId?)`.
-- **Injection:** Up to 5 memories are selected (conversation-tagged first, then by recency) and capped to 2,000 characters total. Injected as a `<memory>` system block via `buildChatPayload`.
+**API keys:** Never in renderer. Electron: `safeStorage` only. Web: `.env` only. Never commit either.
 
-### Attachment System
-`src/services/attachmentService.ts` handles file/URL/image attachments:
-- **Text files:** `.txt`, `.md`, `.ts`, `.tsx`, `.json`, `.py`, `.js`, and others. Read via browser `File.text()` or `desktopFileReader.readLocalFile()` (desktop IPC). Capped at 256 KiB per file.
-- **Images:** `PNG`, `JPEG`, `WEBP`. Downscaled to ≤1024px dimension if over 2 MiB. Passed as base64 `image_url` content parts only when `modelSupportsVision(modelId)` returns true.
-- **URLs:** Scraped via `veniceResearchProvider.scrape()`. Extracted text is injected as `<doc url="…">…</doc>`.
-- **Assembly:** `assembleAttachmentContext()` wraps text attachments in XML-like tags, separates images, and enforces a 1 MiB total text budget + 5 attachment cap.
+**Content Safety Guard:** Every outgoing prompt path must call `assessChildExploitationSafety()` and `recordDecision()` before forwarding to Venice. Guard runs at every boundary (renderer `veniceClient.ts`, Electron IPC, Express proxy). **Never log raw prompt text.** Safety tests must use synthetic fixtures only.
 
-### Fork / Import Schema
-Conversation objects carry optional lineage fields:
-- `parentConversationId?: string` — the conversation this was forked from.
-- `forkedFromMessageIds?: string[]` — message IDs selected at fork time.
-- **Export/import:** `exportImport.ts` sanitizes and preserves these fields; invalid values are stripped and string arrays are filtered.
-- **Rendered UI:** Imported messages display an `<imported_context from="Title">` label above the message content (not in the API payload).
+**Allowed endpoints only** (enforced in `src/shared/validation.ts` and `electron/ipc/validation.ts`):
+```
+GET  /models
+POST /chat/completions
+POST /image/generate
+POST /image/upscale
+POST /augment/search
+POST /augment/scrape
+POST /augment/text-parser
+```
 
-### Model Capability Detection
-There is **no live vision flag** from the Venice API. The app uses a fallback:
-- `VISION_CAPABLE_MODEL_IDS` — explicit allowlist of known vision model IDs.
-- `VISION_CAPABLE_PATTERNS` — regexes matching vision-capable ID patterns (`/vision/i`, `/-vl/i`, `/gemini-2\.[05]/i`).
-- `modelSupportsVision(modelId)` — returns true for allowlist hits or pattern matches. **Defaults to OFF** (attachments disabled) when capability is unknown.
-- **TODO:** Replace with a live API capability flag once Venice exposes one.
+**Startup invariant:** `FUZZY_ALLOWLIST ∩ CSAM_GENRE_LABELS = ∅` — adding a CSAM label to the allowlist throws at module load.
 
-## Environment Variables
+---
 
-Copy `.env.example` to `.env` for web-mode development:
+## Key File Locations
 
-| Variable | Purpose |
-|----------|---------|
-| `VENICE_API_KEY` | Venice API inference key (required for web mode) |
-| `PORT` | Express server port (default: 3000) |
-| `HOST` | Express bind host (default: 127.0.0.1) |
-| `RATE_LIMIT_WINDOW_MS` | Rate limit window (default: 60000) |
-| `RATE_LIMIT_MAX_REQUESTS` | Rate limit max requests per window (default: 60) |
-| `MAX_PROXY_BODY_BYTES` | Max proxy body size (default: 26214400) |
-| `TRUST_PROXY` | Express trust proxy setting (disabled by default) |
-| `VENICE_API_HOST` | Upstream API host (default: api.venice.ai) |
-| `VENICE_API_BASE_PATH` | Upstream API base path (default: /api/v1) |
-| `VENICE_API_TIMEOUT_MS` | Request timeout (default: 60000) |
-| `VENICE_TIMEOUT_MS` | Deprecated alias for `VENICE_API_TIMEOUT_MS` — still accepted as fallback |
-| `NODE_ENV` | Runtime environment (`development`, `production`, `test`). Defaults to `development`. |
-| `DISABLE_HMR` | Set to `true` to disable Vite HMR |
-| `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE` | Allow plaintext fallback when OS secure storage unavailable (Linux/non-GNOME only). **Warning:** reduces security. |
-| `VENICE_FORGE_DEBUG_DEVTOOLS` | Allow DevTools in packaged production builds. Only for debugging. |
+| Path | Purpose |
+|------|---------|
+| `src/modules/` | One file per tab: Chat, Image, Batch, SearchScrape, Models, Gallery, Settings, Diagnostics |
+| `src/services/veniceClient.ts` | Single Venice API entry point |
+| `src/services/desktopBridge.ts` | Electron-vs-web transport abstraction; use this instead of `window.veniceForge` |
+| `src/shared/safety/` | Content safety guard (`assessChildExploitationSafety`, `recordDecision`) |
+| `src/shared/validation.ts` | Allowed Venice endpoints allowlist |
+| `src/research/` | Plug-in research providers (Venice, Jina, generic) + agent |
+| `electron/preload.ts` | contextBridge API surface |
+| `electron/ipc/handlers.ts` | IPC channel handlers |
+| `electron/ipc/validation.ts` | IPC request validation |
+| `src/services/imageWorkflowService.ts` | Gallery image save with `saveImageRecord()` |
+| `src/utils/image.ts` | `extractImages()` normalises all Venice image response shapes |
+| `src/services/exportImport.ts` | Versioned JSON export/import; `redactSecrets()` scrubs API keys from strings |
 
-## Data Storage Locations
+---
 
-| Data | Location |
-|------|----------|
-| API keys (desktop) | Electron `safeStorage` → `%APPDATA%\Venice Forge\secure-prefs.json` (Win) or `~/Library/Application Support/Venice Forge/secure-prefs.json` (Mac). Stores both Venice and Jina keys. |
-| Logs (desktop) | `%APPDATA%\Venice Forge\logs\venice-forge.log` (Win) or `~/Library/Application Support/Venice Forge/logs/venice-forge.log` (Mac) |
-| Conversations (desktop) | `chat-history/*.json` in app data directory (atomic writes, corruption recovery) |
-| Images, legacy chats, settings, conversations, diagnostics | Renderer IndexedDB (5 stores encrypted, diagnostics unencrypted) |
-| Memories | Renderer IndexedDB `ai_memory` store (AES-GCM encrypted) |
+## Vision / Attachment Detection
 
-## Release and Deployment
+No live vision flag from Venice API. Use `modelSupportsVision(modelId)` which checks `VISION_CAPABLE_MODEL_IDS` (allowlist) and `VISION_CAPABLE_PATTERNS` (`/vision/i`, `/-vl/i`, `/gemini-2\.[05]/i`). **Defaults to OFF** when unknown.
 
-- CI runs on Ubuntu with a Node 20/22 matrix for lint, typecheck, test, and build.
-- `npm run verify:safety-guard` is run in CI and is also required locally before PRs and releases.
-- Release workflows (`windows-release.yml`, `macos-release.yml`) build signed/unsigned artifacts, verify them, and emit SHA-256 checksums.
-- Code signing is optional for local builds. Official releases require Apple Developer ID (macOS) and standard `CSC_LINK` / `CSC_KEY_PASSWORD` (Windows).
-- Auto-updates are fetched via GitHub Releases using `electron-updater`.
+Attachment service (`src/services/attachmentService.ts`): text files capped 256 KiB; images downscaled ≤1024 px if over 2 MiB; 1 MiB total text budget + 5 attachments cap.
 
-## Important Files to Keep Current
+---
 
-When changing behavior, packaging, or legal assumptions, update these files:
-- `README.md`
-- `docs/ABOUT.md`
-- `SECURITY.md`
-- `docs/RELEASE/release.md`
-- `docs/LEGAL.md`
-- `CHANGELOG.md`
-- `AGENTS.md` (this file)
-- `.github/copilot-instructions.md` (if commands, architecture, or storage changes)
-- `docs/RESEARCH_PROVIDERS.md`, `docs/JINA_PROVIDER.md`, `docs/PUBLIC_PROFILE_DISCOVERY.md` (if research provider behavior changes)
-- `docs/THEME_SYSTEM.md` (if theming or token changes)
+## Update These Files
+
+When changing behavior, packaging, or storage, also update:
+- `README.md`, `CHANGELOG.md`, `AGENTS.md`, `.github/copilot-instructions.md`
+- `docs/ABOUT.md`, `SECURITY.md`, `docs/RELEASE/release.md`, `docs/LEGAL.md`
+- `docs/RESEARCH_PROVIDERS.md`, `docs/JINA_PROVIDER.md`, `docs/PUBLIC_PROFILE_DISCOVERY.md` (research changes)
+- `docs/THEME_SYSTEM.md` (theming changes)

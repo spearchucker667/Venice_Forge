@@ -1,6 +1,15 @@
-# Comprehensive Bug & Defect Report
+# Venice Forge TODO
 
-## Critical Severity (Data Loss, Security, Crash, Core Logic Failure)
+## Active Tasks
+
+- [ ] Triage new audit findings from `docs/AUDIT_TODO.md` when present.
+- [ ] Keep README, About, Legal, Repository Tree, and release docs synchronized with implemented features.
+- [ ] Keep security tests current for renderer, IPC, proxy, storage, and safety-guard boundaries.
+- [ ] Keep UI documentation synchronized with the current Prompt/Create/Video/Batch/Research/Catalog/Library/Config/Status layout.
+
+## Resolved Defects
+
+### Critical Severity
 
 1. [FIXED] Jina API Key is Configured but Never Transmitted
    - **Location:** `src/modules/SearchScrapeModule.tsx`, `src/services/desktopBridge.ts`, and `electron/preload.ts`

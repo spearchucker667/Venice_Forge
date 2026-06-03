@@ -33,7 +33,7 @@ function classifyModel(model: ModelInfo) {
     return "image";
   if (/audio|voice|speech|tts|asr|transcri|music/.test(id + traits)) return "audio";
   if (/video|wan|motion|animate/.test(id + traits)) return "video";
-  if (/llama|qwen|deepseek|mistral|grok|dolphin|venice|chat|text|coder|reason|zai|glm|kimi|gemma|gemini|hermes|openai/.test(id + traits))
+  if (/llama|qwen|deepseek|mistral|grok|dolphin|chat|text|coder|reason|zai|glm|kimi|gemma|gemini|hermes|openai/.test(id + traits))
     return "text";
   return "unknown";
 }

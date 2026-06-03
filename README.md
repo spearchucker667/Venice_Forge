@@ -356,14 +356,14 @@ Latest changes: See [CHANGELOG.md](CHANGELOG.md)
 
 ## 🎯 Roadmap & TODO
 
-Active development tracked in [TODO.md](TODO.md). Current focus:
+Active development tracked in [docs/TODO.md](docs/TODO.md). Current focus:
 
 - Fixing remaining security and robustness issues
 - Expanding test coverage
 - Improving documentation and UX polish
 - Community contributions
 
-See [TODO.md](TODO.md) for the full list of open and completed items.
+See [docs/TODO.md](docs/TODO.md) for the full list of open and completed items.
 
 ---
 

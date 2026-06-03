@@ -4,10 +4,11 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import type * as http from "node:http";
-// Vite is dynamically imported inside the development-only branch so the
-// production bundle does not require vite (a devDependency).
-import { createProxyMiddleware } from "http-proxy-middleware";
+import dns from "node:dns/promises";
+import nodeHttp from "node:http";
+import nodeHttps from "node:https";
 import dotenv from "dotenv";
+import { createProxyMiddleware } from "http-proxy-middleware";
 import {
   ALLOWED_VENICE_ENDPOINTS,
   ALLOWED_VENICE_METHODS,
@@ -21,7 +22,6 @@ import { warn, error } from "./src/shared/logger";
 import { assessChildExploitationSafety, recordDecision } from "./src/shared/safety";
 import type { SafetyGuardDecision } from "./src/shared/safety";
 import { pathToFileURL, fileURLToPath } from "node:url";
-import dns from "node:dns/promises";
 import { isPrivateHostname } from "./electron/utils/urlSecurity";
 
 dotenv.config();
@@ -402,79 +402,95 @@ export async function startServer() {
         return res.status(403).json({ error: "Access to private hostnames blocked" });
       }
 
-      let address: string;
+      let lookupResult: { address: string; family: number };
       try {
-        const lookupResult = await dns.lookup(parsed.hostname);
-        address = lookupResult.address;
+        lookupResult = await dns.lookup(parsed.hostname);
       } catch {
         return res.status(400).json({ error: "DNS lookup failed" });
       }
 
-      if (isPrivateHostname(address)) {
+      if (isPrivateHostname(lookupResult.address)) {
         return res.status(403).json({ error: "Access to private IPs blocked" });
       }
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const scrapeResult = await new Promise<{
+        status: number;
+        finalUrl: string;
+        contentType: string;
+        body: string;
+      }>((resolve, reject) => {
+        const client = parsed.protocol === "https:" ? nodeHttps : nodeHttp;
+        const request = client.request(
+          {
+            protocol: parsed.protocol,
+            hostname: parsed.hostname,
+            port: parsed.port || undefined,
+            path: `${parsed.pathname}${parsed.search}`,
+            method: "GET",
+            timeout: 15000,
+            headers: {
+              Accept: "text/html, text/plain, application/xhtml+xml, application/json",
+              Host: parsed.host,
+            },
+            lookup: (_hostname, _options, callback) => {
+              callback(null, lookupResult.address, lookupResult.family);
+            },
+          },
+          (response) => {
+            const status = response.statusCode || 0;
+            if (status >= 300 && status < 400) {
+              response.destroy();
+              reject(new Error("Redirects are blocked by SSRF protection."));
+              return;
+            }
 
-      const fetchRes = await fetch(url, {
-        method: "GET",
-        signal: controller.signal,
-        redirect: "error",
-        credentials: "omit",
-        headers: {
-          Accept: "text/html, text/plain, application/xhtml+xml, application/json",
-        },
+            const contentType = String(response.headers["content-type"] || "");
+            const ALLOWED_CONTENT_TYPES = ["text/html", "text/plain", "application/xhtml+xml", "application/json"];
+            const allowed = ALLOWED_CONTENT_TYPES.some((t) => contentType.toLowerCase().includes(t));
+            if (!allowed) {
+              response.destroy();
+              reject(new Error("Content-Type not allowed"));
+              return;
+            }
+
+            const chunks: Buffer[] = [];
+            let bytesRead = 0;
+            const maxBytes = 2 * 1024 * 1024;
+
+            response.on("data", (chunk: Buffer) => {
+              bytesRead += chunk.length;
+              if (bytesRead > maxBytes) {
+                response.destroy(new Error("Response too large"));
+                return;
+              }
+              chunks.push(chunk);
+            });
+
+            response.on("end", () => {
+              resolve({
+                status,
+                finalUrl: url,
+                contentType,
+                body: Buffer.concat(chunks).toString("utf-8"),
+              });
+            });
+          }
+        );
+
+        request.on("timeout", () => request.destroy(new Error("Request timed out")));
+        request.on("error", reject);
+        request.end();
       });
 
-      clearTimeout(timeoutId);
-
-      const contentType = fetchRes.headers.get("content-type") || "";
-      const ALLOWED_CONTENT_TYPES = ["text/html", "text/plain", "application/xhtml+xml", "application/json"];
-      const allowed = ALLOWED_CONTENT_TYPES.some((t) => contentType.toLowerCase().includes(t));
-      
-      if (!allowed) {
-        return res.status(415).json({ error: "Content-Type not allowed" });
-      }
-
-      const maxBytes = 2 * 1024 * 1024;
-      let bodyStr = "";
-      if (fetchRes.body) {
-        const reader = fetchRes.body.getReader();
-        const decoder = new TextDecoder();
-        let bytesRead = 0;
-        let limitHit = false;
-        try {
-          while (bytesRead < maxBytes) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            bytesRead += value.byteLength;
-            bodyStr += decoder.decode(value, { stream: true });
-            if (bytesRead >= maxBytes) {
-              limitHit = true;
-              break;
-            }
-          }
-        } finally {
-          reader.releaseLock();
-          if (limitHit) {
-            fetchRes.body.cancel().catch(() => {});
-          }
-        }
-        bodyStr += decoder.decode(undefined, { stream: false });
-      } else {
-        bodyStr = await fetchRes.text();
-      }
-
-      res.status(fetchRes.status).json({
+      res.status(scrapeResult.status).json({
         url,
-        finalUrl: fetchRes.url,
-        contentType,
-        body: bodyStr,
+        finalUrl: scrapeResult.finalUrl,
+        contentType: scrapeResult.contentType,
+        body: scrapeResult.body,
       });
 
     } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
+      if (err instanceof Error && err.message === "Request timed out") {
         return res.status(504).json({ error: "Request timed out" });
       }
       return res.status(500).json({ error: err instanceof Error ? err.message : "Scrape failed" });

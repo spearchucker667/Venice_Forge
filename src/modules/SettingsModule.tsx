@@ -400,7 +400,7 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
       <div className="flex-none p-6 border-b border-border/40 bg-bg">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-display font-semibold tracking-tight text-text-primary">Settings</h2>
+            <h2 className="text-2xl font-display font-semibold tracking-tight text-text-primary">Config</h2>
             <div className="text-sm text-text-secondary mt-1">
               {isElectron() ? "Desktop app configuration and API key management." : "Client-side prototype defaults and key safety status."}
             </div>
