@@ -86,8 +86,8 @@ describe("downloadAllGallery", () => {
 
     const addToast = vi.fn();
     const items = [
-      { id: "1", image: "a", model: "m", timestamp: 1, mediaType: "image" as const },
-      { id: "2", image: "b", model: "m", timestamp: 1, mediaType: "image" as const }
+      { id: "1", image: "a", model: "m", timestamp: 1, mediaType: "image" as const, prompt: "" },
+      { id: "2", image: "b", model: "m", timestamp: 1, mediaType: "image" as const, prompt: "" }
     ];
     await downloadAllGallery(items, addToast);
     

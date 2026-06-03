@@ -106,8 +106,17 @@ if (checkWin) {
   }
 
   const latestYml = path.join(releaseDir, "latest.yml");
-  verifyFileExists(latestYml, 50); // small yaml file
+  verifyFileExists(latestYml, 50);
   verified.push("latest.yml");
+
+  const blockmapFiles = fs.readdirSync(releaseDir).filter((f) => f.endsWith(".blockmap"));
+  if (blockmapFiles.length === 0) {
+    fail("Missing .blockmap file(s) for Windows updater metadata.");
+  }
+  blockmapFiles.forEach((f) => {
+    verifyFileExists(path.join(releaseDir, f), 50);
+    verified.push(f);
+  });
 }
 
 if (checkMac) {
@@ -127,8 +136,17 @@ if (checkMac) {
   }
 
   const latestMacYml = path.join(releaseDir, "latest-mac.yml");
-  verifyFileExists(latestMacYml, 50); // small yaml file
+  verifyFileExists(latestMacYml, 50);
   verified.push("latest-mac.yml");
+
+  const macBlockmapFiles = fs.readdirSync(releaseDir).filter((f) => f.endsWith(".blockmap"));
+  if (macBlockmapFiles.length === 0) {
+    fail("Missing .blockmap file(s) for macOS updater metadata.");
+  }
+  macBlockmapFiles.forEach((f) => {
+    verifyFileExists(path.join(releaseDir, f), 50);
+    verified.push(f);
+  });
 }
 
 console.log("[verify:dist] Successfully verified artifacts:");

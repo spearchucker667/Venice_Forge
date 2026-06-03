@@ -37,7 +37,7 @@ API keys (Venice and optional Jina) are securely persisted using the Electron `s
 If macOS Keychain is unavailable or errors out, Venice Forge will refuse to store any API key. There is no plaintext fallback available for macOS.
 
 ### Gatekeeper and Quarantine
-Local builds are ad-hoc signed by `electron-builder` automatically, but they do not use an official Apple Developer ID certificate. As a result, downloading a local `.dmg` or `.zip` will trigger macOS Gatekeeper's quarantine flag.
+Local builds are unsigned by default. `electron-builder` does not apply an ad-hoc signature when signing credentials are absent, so local `.dmg` or `.zip` files will trigger macOS Gatekeeper's quarantine flag.
 
 For your own locally trusted builds, you can remove the quarantine flag using:
 ```bash

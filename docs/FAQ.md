@@ -100,7 +100,7 @@ npm run verify:dist:mac
 - All artifacts include `.sha256` checksum sidecars.
 
 ### Why does macOS Gatekeeper block my build?
-Local builds are ad-hoc signed without an Apple Developer ID certificate. For your own locally trusted builds:
+Local builds are unsigned by default without an Apple Developer ID certificate. For your own locally trusted builds:
 ```bash
 xattr -dr com.apple.quarantine "/Applications/Venice Forge.app"
 ```
