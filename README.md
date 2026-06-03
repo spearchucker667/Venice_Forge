@@ -51,6 +51,7 @@ Eight integrated tabs covering chat, image generation, batch automation, researc
 |-----|------|-----------------|
 | 💬 | **Chat** | Multi-turn streaming conversations with system prompts, file/image attachments, memory injection, persistent history, and chat forking |
 | 🖼️ | **Create** | Single and batch image generation with AI upscaling and local gallery management |
+| 🎬 | **Video** | Generate and queue AI videos asynchronously via the Venice API |
 | 📋 | **Batch** | Automate: run one prompt across many inputs, or chain multiple prompts in sequence |
 | 🔍 | **Research** | Web search via Venice or Jina AI, page scraping, research synthesis, and public-profile discovery |
 | 📚 | **Catalog** | Browse live Venice model catalog with capability details; auto-refresh on API key save |

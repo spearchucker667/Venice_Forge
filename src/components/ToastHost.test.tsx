@@ -23,6 +23,8 @@ function makeState(toasts: AppState["toasts"] = []): AppState {
     sourcePanelOpen: false,
     isOnline: true,
     toasts,
+    selectedVideoModel: "wan-2.6-text-to-video",
+    videoDraft: {} as any,
     settings: {
       defaultSystemPrompt: "",
       webSearch: "off",

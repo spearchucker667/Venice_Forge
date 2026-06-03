@@ -23,7 +23,10 @@ export const FALLBACK_MODELS = {
   audio: [
     { id: "tts-kokoro", type: "audio", name: "tts-kokoro", traits: ["fallback"], isFallback: true, source: "fallback" }
   ],
-  video: [],
+  video: [
+    { id: "wan-2.6-text-to-video", type: "video", name: "wan-2.6-text-to-video", traits: ["fallback"], isFallback: true, source: "fallback" },
+    { id: "topaz-video-upscale", type: "video", name: "topaz-video-upscale", traits: ["fallback"], isFallback: true, source: "fallback" }
+  ],
   embeddings: [
     { id: "text-embedding-bge-m3", type: "embeddings", name: "text-embedding-bge-m3", traits: ["fallback"], isFallback: true, source: "fallback" }
   ],
@@ -34,6 +37,7 @@ export const FALLBACK_MODELS = {
 export const TABS = [
   ["chat", "Prompt"],
   ["image", "Create"],
+  ["video", "Video"],
   ["batch", "Batch"],
   ["search", "Research"],
   ["models", "Catalog"],

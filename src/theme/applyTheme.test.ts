@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { applyTheme, resolveInitialTheme } from "./applyTheme";
-import { BUILTIN_DARK, BUILTIN_LIGHT, BUILTIN_COPPER } from "./themes";
+import { BUILTIN_VENICE, BUILTIN_DARK, BUILTIN_LIGHT, BUILTIN_COPPER } from "./themes";
 
 describe("applyTheme", () => {
   let setPropertySpy: ReturnType<typeof vi.spyOn>;
@@ -60,9 +60,9 @@ describe("resolveInitialTheme", () => {
     expect(resolveInitialTheme({ selectedThemeId: "builtin-dark" })).toBe(BUILTIN_DARK);
   });
 
-  it("falls back to BUILTIN_DARK when prefers-color-scheme is dark", () => {
+  it("falls back to BUILTIN_VENICE when prefers-color-scheme is dark", () => {
     window.matchMedia = vi.fn().mockReturnValue({ matches: true });
-    expect(resolveInitialTheme({})).toBe(BUILTIN_DARK);
+    expect(resolveInitialTheme({})).toBe(BUILTIN_VENICE);
   });
 
   it("falls back to BUILTIN_LIGHT when prefers-color-scheme is light", () => {
@@ -70,8 +70,8 @@ describe("resolveInitialTheme", () => {
     expect(resolveInitialTheme({})).toBe(BUILTIN_LIGHT);
   });
 
-  it("returns BUILTIN_DARK when no bootstrap is provided and prefers-color-scheme is dark", () => {
+  it("returns BUILTIN_VENICE when no bootstrap is provided and prefers-color-scheme is dark", () => {
     window.matchMedia = vi.fn().mockReturnValue({ matches: true });
-    expect(resolveInitialTheme()).toBe(BUILTIN_DARK);
+    expect(resolveInitialTheme()).toBe(BUILTIN_VENICE);
   });
 });

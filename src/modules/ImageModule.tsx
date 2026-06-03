@@ -302,7 +302,7 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
 
   return (
     <section className="flex flex-col h-full bg-bg">
-      <div className="flex-none p-6 border-b border-border/50 bg-bg/50 backdrop-blur-md">
+      <div className="flex-none p-6 border-b border-border/40 bg-bg">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-display font-semibold tracking-tight text-text-primary">Image generation</h2>

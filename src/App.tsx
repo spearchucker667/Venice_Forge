@@ -10,6 +10,7 @@ import { useSettingsPersistence } from "./hooks/useSettingsPersistence";
 import { useThemeLifecycle } from "./hooks/useThemeLifecycle";
 import { ChatModule } from "./modules/ChatModule";
 import { ImageModule } from "./modules/ImageModule";
+import { VideoModule } from "./modules/VideoModule";
 import { BatchModule } from "./modules/BatchModule";
 import { SearchScrapeModule } from "./modules/SearchScrapeModule";
 import { ModelsModule } from "./modules/ModelsModule";
@@ -267,9 +268,9 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-transparent">
+    <div className="flex h-screen flex-col bg-bg">
       {/* Header */}
-      <header className="relative z-20 flex h-16 items-center border-b border-border/50 bg-bg/70 px-6 backdrop-blur-xl after:absolute after:-bottom-px after:left-0 after:right-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-accent/50 after:to-transparent">
+      <header className="relative z-20 flex h-16 items-center border-b border-border/40 bg-bg px-6">
         <div className="flex w-full items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3.5">
             <img
@@ -280,10 +281,10 @@ export default function App() {
               style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}
             />
             <div>
-              <div className="whitespace-nowrap font-display text-lg font-bold tracking-tight text-text-primary [text-shadow:0_0_16px_var(--glow)]">
+              <div className="whitespace-nowrap font-display text-lg font-bold tracking-tight text-text-primary">
                 Venice Forge
               </div>
-              <div className="mt-0.5 hidden font-sans text-xs font-medium text-text-muted sm:block">
+              <div className="mt-0.5 hidden font-sans text-xs font-medium text-text-secondary sm:block">
                 {APP_DESCRIPTOR}
               </div>
               <div className="mt-0.5 hidden font-sans text-[10px] font-semibold uppercase tracking-wider text-warning sm:block">
@@ -317,7 +318,7 @@ export default function App() {
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop Sidebar */}
         <aside
-          className={`hidden flex-col justify-between border-r border-border/50 bg-bg/40 p-4 backdrop-blur-md transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] lg:flex ${
+          className={`hidden flex-col justify-between border-r border-border/40 bg-bg p-4 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] lg:flex ${
             state.sidebarCollapsed ? "w-20 min-w-[80px] items-center px-2" : "w-[280px] min-w-[280px]"
           }`}
         >
@@ -373,7 +374,7 @@ export default function App() {
               />
             ))}
           </nav>
-          <div className={`rounded-xl border border-border/50 bg-surface/60 shadow-lg backdrop-blur-md space-y-2 ${state.sidebarCollapsed ? "p-2 flex flex-col items-center gap-2" : "p-4"}`}>
+          <div className={`rounded-xl border border-border/40 bg-surface space-y-2 ${state.sidebarCollapsed ? "p-2 flex flex-col items-center gap-2" : "p-4"}`}>
             {!state.sidebarCollapsed && (
               <>
                 <div>
@@ -404,7 +405,7 @@ export default function App() {
         </aside>
 
         {/* Mobile Nav Rail (tablet width) */}
-        <nav className="hidden w-20 min-w-[80px] flex-col items-center gap-3 border-r border-border/50 bg-bg/70 py-4 backdrop-blur-xl md:flex lg:hidden overflow-y-auto">
+        <nav className="hidden w-20 min-w-[80px] flex-col items-center gap-3 border-r border-border/40 bg-bg py-4 md:flex lg:hidden overflow-y-auto">
           <div className="mb-2 px-2">
             <img
               src="./assets/branding/venice-keys-red.svg"
@@ -437,7 +438,7 @@ export default function App() {
             )}
             
             {/* Mobile horizontal tabs (small screens only) */}
-            <nav className="sticky top-0 z-10 flex gap-3 overflow-x-auto border-b border-border/50 bg-bg/80 p-4 backdrop-blur-xl md:hidden">
+            <nav className="sticky top-0 z-10 flex gap-3 overflow-x-auto border-b border-border/40 bg-bg p-4 md:hidden">
               {TABS.map(([id, label]) => (
                 <button
                   key={id}
@@ -455,6 +456,7 @@ export default function App() {
 
             {state.activeTab === "chat" && <ChatModule state={state} dispatch={dispatch} />}
             {state.activeTab === "image" && <ImageModule state={state} dispatch={dispatch} />}
+            {state.activeTab === "video" && <VideoModule state={state} dispatch={dispatch} />}
             {state.activeTab === "batch" && <BatchModule state={state} dispatch={dispatch} />}
             {state.activeTab === "search" && <SearchScrapeModule state={state} dispatch={dispatch} />}
             {state.activeTab === "models" && <ModelsModule state={state} dispatch={dispatch} />}

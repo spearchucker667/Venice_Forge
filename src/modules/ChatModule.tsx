@@ -1301,7 +1301,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
               {urlPopoverOpen && (
                 <div
                   ref={urlPopoverRef}
-                  className="absolute bottom-full left-0 mb-2 w-72 rounded-xl border border-border/50 bg-surface-elevated p-3 shadow-xl backdrop-blur-md z-20"
+                  className="absolute bottom-full left-0 mb-2 w-72 rounded-xl border border-border/40 bg-surface p-3 shadow-xl z-20"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-text-primary">Attach URL</span>
@@ -1364,7 +1364,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
               aria-describedby="chat-prompt-error"
               onKeyDown={handleKeyDown}
               rows={1}
-              className="flex-1 min-w-0 bg-surface/50 border border-border/50 rounded-lg px-3 py-1.5 text-xs text-text-primary placeholder-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all resize-none overflow-y-auto"
+              className="flex-1 min-w-0 bg-surface border border-border rounded-lg px-3 py-1.5 text-xs text-text-primary placeholder-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all resize-none overflow-y-auto"
               style={{ height: "auto", maxHeight: "30vh" }}
             />
 
@@ -1439,8 +1439,8 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
 
       {/* Memory panel */}
       {memoryPanelOpen && (
-        <div className="absolute right-0 top-0 bottom-0 w-64 bg-bg border-l border-border/50 shadow-lg z-10 flex flex-col">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
+        <div className="absolute right-0 top-0 bottom-0 w-64 bg-surface border-l border-border shadow-2xl z-10 flex flex-col">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border">
             <span className="text-xs font-medium text-text-primary">Memory</span>
             <button
               className="text-text-muted hover:text-text-primary text-xs"

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { BUILTIN_DARK, BUILTIN_LIGHT, BUILTIN_COPPER, BUILTIN_DRACULA, applyTheme, type Theme, type ThemeTokens } from "../theme";
+import { BUILTIN_VENICE, BUILTIN_DARK, BUILTIN_LIGHT, BUILTIN_COPPER, BUILTIN_DRACULA, applyTheme, type Theme, type ThemeTokens } from "../theme";
 import { COLOR_INPUT_FALLBACK } from "../theme/fallbacks";
 import { isValidColorValue } from "../theme/validateColor";
 import { ThemePreview } from "./ThemePreview";
@@ -49,6 +49,7 @@ export function ThemeMaker({ state, dispatch }: ThemeMakerProps) {
 
   const builtInMap: Record<string, Theme> = useMemo(
     () => ({
+      "builtin-venice": BUILTIN_VENICE,
       "builtin-dark": BUILTIN_DARK,
       "builtin-light": BUILTIN_LIGHT,
       "builtin-copper": BUILTIN_COPPER,
@@ -117,6 +118,7 @@ export function ThemeMaker({ state, dispatch }: ThemeMakerProps) {
         <label className="text-sm font-medium text-text-secondary">Theme</label>
         <div className="flex flex-wrap gap-2">
           {[
+            { id: "builtin-venice", label: "Venice Parity Dark" },
             { id: "builtin-dark", label: "Forge Graphite" },
             { id: "builtin-light", label: "Forge Daylight" },
             { id: "builtin-copper", label: "Forge Copper" },
