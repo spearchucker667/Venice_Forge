@@ -14,6 +14,8 @@ export const ALLOWED_VENICE_ENDPOINTS = [
   "/video/retrieve",
   "/video/quote",
   "/video/complete",
+  "/image/edit",
+  "/image/multi-edit",
 ] as const;
 
 /** HTTP methods permitted for Venice API requests. */
@@ -38,6 +40,8 @@ export const VENICE_ENDPOINT_METHODS: Record<VeniceIpcEndpoint, readonly VeniceI
   "/video/retrieve": ["POST"],
   "/video/quote": ["POST"],
   "/video/complete": ["POST"],
+  "/image/edit": ["POST"],
+  "/image/multi-edit": ["POST"],
 };
 
 /**

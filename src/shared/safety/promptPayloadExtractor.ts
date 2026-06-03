@@ -23,6 +23,8 @@ const ENDPOINT_FIELDS: Record<string, readonly string[]> = {
   "/video/retrieve": [],
   "/video/quote": ["prompt", "negative_prompt", "image_url", "video_url"],
   "/video/complete": [],
+  "/image/edit": ["prompt"],
+  "/image/multi-edit": ["prompt"],
 };
 
 /** Fields that should never be safety-checked (not user-controlled prompt content). */

@@ -123,7 +123,7 @@ describe("GalleryModule confirm modal", () => {
     const user = userEvent.setup();
     renderGallery();
 
-    const clearBtn = screen.getByRole("button", { name: /clear image gallery/i });
+    const clearBtn = screen.getByRole("button", { name: /clear media gallery/i });
     await user.click(clearBtn);
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
@@ -134,7 +134,7 @@ describe("GalleryModule confirm modal", () => {
     const user = userEvent.setup();
     renderGallery();
 
-    const clearBtn = screen.getByRole("button", { name: /clear image gallery/i });
+    const clearBtn = screen.getByRole("button", { name: /clear media gallery/i });
     await user.click(clearBtn);
 
     const dialog = screen.getByRole("dialog");

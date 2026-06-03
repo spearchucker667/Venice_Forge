@@ -22,6 +22,8 @@ describe("validation", () => {
         "/video/retrieve",
         "/video/quote",
         "/video/complete",
+        "/image/edit",
+        "/image/multi-edit",
       ]);
     });
   });
@@ -52,6 +54,8 @@ describe("validation", () => {
       expect(isAllowedVeniceRequest("/image/generate", "POST")).toBe(true);
       expect(isAllowedVeniceRequest("/video/queue", "POST")).toBe(true);
       expect(isAllowedVeniceRequest("/video/retrieve", "POST")).toBe(true);
+      expect(isAllowedVeniceRequest("/image/edit", "POST")).toBe(true);
+      expect(isAllowedVeniceRequest("/image/multi-edit", "POST")).toBe(true);
     });
 
     it("returns false for wrong method", () => {

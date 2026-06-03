@@ -10,6 +10,7 @@ import {
   refreshGallery,
   generateImageWithWatermarkFallback,
 } from "../services/imageWorkflowService";
+import { upscaleImage, editImage, multiEditImage } from "../services/mediaService";
 import { IMAGE_BATCH_INTER_REQUEST_DELAY_MS } from "../constants/venice";
 import { normalizeImageDraft } from "../utils/payloadBuilders";
 import { assessChildExploitationSafety, recordDecision } from "../shared/safety";
@@ -93,20 +94,34 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
 
   async function generate() {
     setPromptTouched(true);
-    if (!draft.prompt.trim() || loading) return;
+    const requiresPrompt = draft.imageMode !== "image-upscale";
+    if (requiresPrompt && !draft.prompt.trim()) return;
+    if (draft.imageMode !== "text-to-image" && draft.imageMode !== "image-multi-edit" && !draft.imageUrl.trim()) {
+      setError("This mode requires a source image URL.");
+      return;
+    }
+    if (draft.imageMode === "image-multi-edit" && (!draft.imageUrls || draft.imageUrls.length === 0)) {
+      setError("This mode requires source image URLs.");
+      return;
+    }
+    
+    if (loading) return;
     if (state.usingFallbackModels) {
       setError("Fallback models are active. Please refresh the model catalog before sending requests.");
       return;
     }
     setError("");
     setSuccess("");
-    // Advisory safety check — records audit decision before blocking.
-    const guardDecision = assessChildExploitationSafety({ text: draft.prompt, endpoint: "/image/generate", method: "POST", source: "image" });
-    recordDecision(guardDecision);
-    if (!guardDecision.allow || guardDecision.action === "block") {
-      setError(guardDecision.userMessage);
-      return;
+    
+    if (requiresPrompt) {
+      const guardDecision = assessChildExploitationSafety({ text: draft.prompt, endpoint: "/image/generate", method: "POST", source: "image" });
+      recordDecision(guardDecision);
+      if (!guardDecision.allow || guardDecision.action === "block") {
+        setError(guardDecision.userMessage);
+        return;
+      }
     }
+    
     abortRef.current?.abort();
     setLoading(true);
     const runId = ++runIdRef.current;
@@ -114,7 +129,7 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
     const signal = abortRef.current.signal;
 
     const normalizedDraft = normalizeImageDraft(draft);
-    const batchCount = normalizedDraft.imageCount as number;
+    const batchCount = draft.imageMode === "text-to-image" ? (normalizedDraft.imageCount as number) : 1;
     const batchId = crypto.randomUUID();
     let successCount = 0;
     patch({ generationProgress: batchCount > 1 ? `Queued ${batchCount} images` : "", currentImages: [] });
@@ -128,31 +143,51 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
           await waitForImageBatchDelay(IMAGE_BATCH_INTER_REQUEST_DELAY_MS, signal);
         }
         if (batchCount > 1) {
-          patch({ generationProgress: `Generating image ${i + 1} of ${batchCount}...` });
+          patch({ generationProgress: `Processing image ${i + 1} of ${batchCount}...` });
         }
 
-        const resRaw = await generateImageWithWatermarkFallback(
-          state.selectedImageModel,
-          normalizedDraft,
-          {
-            signal,
-            dispatch,
-            onWatermarkRetry: () => {
-              dispatch({
-                type: "ADD_TOAST",
-                toast: {
-                  id: crypto.randomUUID(),
-                  message: "Watermark parameter was rejected by this model/endpoint; retried without it.",
-                  type: "warn",
-                },
-              });
-            },
-          }
-        );
+        let generatedImage = "";
 
-        const images = extractImages(resRaw.data);
-        if (!images.length) throw new Error("Image response did not contain detectable base64 image data or a URL.");
-        const generatedImage = images[0];
+        if (draft.imageMode === "text-to-image") {
+          const resRaw = await generateImageWithWatermarkFallback(
+            state.selectedImageModel,
+            normalizedDraft,
+            {
+              signal,
+              dispatch,
+              onWatermarkRetry: () => {
+                dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Watermark parameter was rejected; retried without it.", type: "warn" } });
+              },
+            }
+          );
+          const images = extractImages(resRaw.data);
+          if (!images.length) throw new Error("Image response did not contain detectable base64 image data or a URL.");
+          generatedImage = images[0];
+        } else if (draft.imageMode === "image-edit") {
+          const blob = await editImage({
+            model: state.selectedImageModel,
+            prompt: draft.prompt,
+            image: draft.imageUrl,
+            aspect_ratio: draft.aspectRatio,
+            safe_mode: draft.safeMode
+          }, { signal, dispatch });
+          generatedImage = URL.createObjectURL(blob);
+        } else if (draft.imageMode === "image-multi-edit") {
+          const blob = await multiEditImage({
+            modelId: state.selectedImageModel,
+            prompt: draft.prompt,
+            images: draft.imageUrls,
+            aspect_ratio: draft.aspectRatio,
+            safe_mode: draft.safeMode
+          }, { signal, dispatch });
+          generatedImage = URL.createObjectURL(blob);
+        } else if (draft.imageMode === "image-upscale") {
+          const blob = await upscaleImage({
+            image: draft.imageUrl,
+            scale: draft.upscaleFactor,
+          }, { signal, dispatch });
+          generatedImage = URL.createObjectURL(blob);
+        }
 
         const saved = await saveRecordService(dispatch, {
           id: crypto.randomUUID(),
@@ -172,6 +207,8 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
           batchCount,
           disableWatermark: !!draft.disableWatermark,
           timestamp: Date.now(),
+          mediaType: "image",
+          workflow: draft.imageMode
         }, true);
 
         successCount++;
@@ -181,16 +218,16 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
       }
 
       if (runIdRef.current !== runId) return;
-      setSuccess(batchCount > 1 ? `Generated and auto-saved ${successCount} images.` : `Image generated and auto-saved to gallery: ${newImages[0].id}`);
+      setSuccess(batchCount > 1 ? `Processed and auto-saved ${successCount} images.` : `Image processed and auto-saved to gallery: ${newImages[0].id}`);
     } catch (err: unknown) {
       const error = err as { name?: string; message?: string };
       if (runIdRef.current !== runId) return;
       if (error.name !== "AbortError") {
-        setError(error.message || "Image generation failed");
-        if (successCount > 0) setSuccess(`Generated and auto-saved ${successCount} of ${batchCount} images.`);
+        setError(error.message || "Image processing failed");
+        if (successCount > 0) setSuccess(`Processed and auto-saved ${successCount} of ${batchCount} images.`);
       } else {
-        if (successCount > 0) setSuccess(`Generation cancelled. Saved ${successCount} images.`);
-        else setSuccess("Generation cancelled.");
+        if (successCount > 0) setSuccess(`Processing cancelled. Saved ${successCount} images.`);
+        else setSuccess("Processing cancelled.");
       }
     } finally {
       if (runIdRef.current === runId) {
@@ -224,6 +261,8 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
         steps: draft.steps,
         safeMode: draft.safeMode,
         timestamp: Date.now(),
+        mediaType: "image",
+        workflow: draft.imageMode
       });
       patch({ lastSavedImageId: saved.id });
       setSuccess(`Saved duplicate gallery copy: ${saved.id}`);
@@ -296,6 +335,7 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
       cfg: img.cfg || draft.cfg,
       steps: img.steps || draft.steps,
       safeMode: img.safeMode ?? draft.safeMode,
+      imageMode: img.workflow || "text-to-image"
     });
     dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Loaded prompt and settings", type: "info" } });
   }
@@ -305,8 +345,8 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
       <div className="flex-none p-6 border-b border-border/40 bg-bg">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-display font-semibold tracking-tight text-text-primary">Create</h2>
-            <div className="text-sm text-text-secondary mt-1">POST /image/generate. Images auto-save to IndexedDB gallery.</div>
+            <h2 className="text-2xl font-display font-semibold tracking-tight text-text-primary">Image Studio</h2>
+            <div className="text-sm text-text-secondary mt-1">Generate, edit, combine, and upscale images locally.</div>
           </div>
           <DiagPreview diagnostics={state.diagnostics} />
         </div>

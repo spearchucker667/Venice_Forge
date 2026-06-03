@@ -147,7 +147,7 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
           </div>
         </div>
         <div className="flex gap-2 mt-4">
-          {tabBtn("images", "Images", state.gallery.length)}
+          {tabBtn("images", "Media", state.gallery.length)}
           {tabBtn("files", "Files", state.files.length)}
           {tabBtn("chats", "Chats", state.chats?.length || 0)}
         </div>
@@ -159,7 +159,7 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
         {activeTab === "images" && (
           <>
             <div className="flex flex-wrap items-center gap-3">
-              <Chip>{state.gallery.length} images</Chip>
+              <Chip>{state.gallery.length} items</Chip>
               {downloadProgress ? (
                 <div className="flex items-center gap-2">
                   <Chip>Saving {downloadProgress.current}/{downloadProgress.total}…</Chip>
@@ -167,11 +167,11 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
                 </div>
               ) : (
                 <button className="btn" onClick={startDownloadAll} disabled={!state.gallery.length}>
-                  Save all gallery
+                  Save all media
                 </button>
               )}
               <button className="btn danger" onClick={clearImages} disabled={!state.gallery.length}>
-                Clear image gallery
+                Clear media gallery
               </button>
             </div>
 
@@ -181,22 +181,35 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
                   <button
                     type="button"
                     onClick={() => setExpanded(item)}
-                    aria-label={`View image details: ${item.prompt || "Generated image"}`}
+                    aria-label={`View details: ${item.prompt || "Generated media"}`}
                     aria-haspopup="dialog"
                     aria-expanded={expanded?.id === item.id}
                     className="w-full relative aspect-square overflow-hidden bg-surface/60 outline-none"
                   >
-                    <img
-                      src={item.image}
-                      alt={item.prompt || "Generated image"}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
+                    {item.mediaType === "video" ? (
+                      <video
+                        src={item.image}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        muted
+                        loop
+                        playsInline
+                        onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                        onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                      />
+                    ) : (
+                      <img
+                        src={item.image}
+                        alt={item.prompt || "Generated image"}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </button>
                   <div className="flex flex-col p-4 gap-3 bg-bg">
                     <div className="flex items-center flex-wrap gap-2 text-sm text-text-primary">
                       <strong className="font-semibold">{item.model}</strong>
                       {item.upscaled && <Chip className="scale-90 origin-left">upscaled</Chip>}
+                      {item.mediaType === "video" && <Chip className="scale-90 origin-left">video</Chip>}
                       {item.batchCount && item.batchCount > 1 && <Chip className="scale-90 origin-left">Batch {item.batchIndex}/{item.batchCount}</Chip>}
                     </div>
                     <div className="text-[11px] font-medium tracking-wide text-text-muted uppercase">

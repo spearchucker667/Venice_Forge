@@ -31,6 +31,10 @@ export interface ImageDraft {
   lastSavedImageId: string | null;
   generationProgress: string;
   batchQueueStatus: string;
+  imageUrl: string;
+  imageUrls: string[];
+  upscaleFactor: number;
+  imageMode: string;
 }
 
 /** Captures the current video generation form state. */
@@ -40,10 +44,12 @@ export interface VideoDraft {
   aspectRatio: string;
   duration: string;
   resolution: string;
+  upscaleFactor: number;
   audio: boolean;
   videoUrl: string;
   imageUrl: string;
   sourceVideoUrl: string;
+  videoMode: string;
   generationProgress: string;
   queueId: string | null;
   status: string | null;

@@ -1,10 +1,12 @@
 // Code Owner: fayeblade (@spearchucker667)
 // Video generation module — orchestrates params, preview, and polling.
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { queueVideoGeneration, retrieveVideoGeneration, type QueueVideoRequest } from "../services/videoGenerationService";
+import { queueVideo, retrieveVideo, type QueueVideoRequest } from "../services/mediaService";
 import { assessChildExploitationSafety, recordDecision } from "../shared/safety";
 import { VideoGenerationForm } from "../components/VideoGenerationForm";
 import { VideoGenerationPreview } from "../components/VideoGenerationPreview";
+import { saveImageRecord } from "../services/imageWorkflowService";
+import { normalizeMediaModelSpec } from "../utils/mediaModelSpecs";
 import type { ModuleProps, VideoDraft } from "../types/app";
 
 export function VideoModule({ state, dispatch }: ModuleProps) {
@@ -32,11 +34,30 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
     };
   }, []);
 
+  async function saveToGallery(blobUrl: string | null, downloadUrl: string | null, queueId: string, model: string) {
+    await saveImageRecord(dispatch, {
+      id: crypto.randomUUID(),
+      image: blobUrl || "", // Object URL or empty if fallback to downloadUrl
+      prompt: draft.prompt,
+      negative: draft.negative,
+      model,
+      timestamp: Date.now(),
+      mediaType: "video",
+      workflow: draft.videoMode,
+      queueId,
+      downloadUrl: downloadUrl || undefined,
+      duration: draft.duration,
+      resolution: draft.resolution,
+      upscaleFactor: draft.upscaleFactor,
+      audio: draft.audio
+    });
+  }
+
   async function pollStatus(queueId: string, model: string, signal: AbortSignal) {
     if (signal.aborted) return;
 
     try {
-      const res = await retrieveVideoGeneration(model, queueId, { signal, dispatch });
+      const res = await retrieveVideo(model, queueId, { signal, dispatch });
       if (res.error) {
         setError(res.error);
         setLoading(false);
@@ -59,12 +80,14 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
             status: "COMPLETED",
             videoUrl: url,
           });
+          await saveToGallery(url, draft.downloadUrl, queueId, model);
         } else {
           patch({
             generationProgress: "",
             status: "COMPLETED",
             downloadUrl: draft.downloadUrl,
           });
+          await saveToGallery(null, draft.downloadUrl, queueId, model);
         }
         return;
       }
@@ -84,11 +107,26 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
 
   async function generate() {
     setPromptTouched(true);
-    const selectedId = state.selectedVideoModel;
-    const requiresVideo = /video-to-video|topaz-video-upscale/i.test(selectedId);
-    const requiresImage = /image-to-video|reference-to-video/i.test(selectedId);
+    const selectedModel = state.models.video.find((m) => m.id === state.selectedVideoModel);
+    
     if (loading) return;
-    if (!requiresVideo && !draft.prompt.trim()) return;
+    if (state.usingFallbackModels) {
+      setError("Fallback models are active. Please refresh the model catalog before sending requests.");
+      return;
+    }
+    if (!selectedModel) {
+      setError("Selected model is not available in the video model catalog.");
+      return;
+    }
+
+    const spec = normalizeMediaModelSpec(selectedModel);
+    const inputs = spec.inputs || [];
+    const currentMode = draft.videoMode;
+    const promptRequired = inputs.includes("prompt") && !inputs.includes("video_url") && currentMode !== "video-upscale";
+    const requiresImage = inputs.includes("image_url");
+    const requiresVideo = inputs.includes("video_url");
+
+    if (promptRequired && !draft.prompt.trim()) return;
     if (requiresImage && !draft.imageUrl.trim()) {
       setError("This video model requires a source image URL.");
       return;
@@ -97,24 +135,18 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
       setError("This video model requires a source video URL.");
       return;
     }
-    if (state.usingFallbackModels) {
-      setError("Fallback models are active. Please refresh the model catalog before sending requests.");
-      return;
-    }
-    if (!state.models.video.some((model) => model.id === state.selectedVideoModel)) {
-      setError("Selected model is not available in the video model catalog.");
-      return;
-    }
 
     setError("");
     setSuccess("");
 
-    const guardText = [draft.prompt, draft.negative].filter((value) => value.trim()).join("\n");
-    const guardDecision = assessChildExploitationSafety({ text: guardText, endpoint: "/video/queue", method: "POST", source: "video" });
-    recordDecision(guardDecision);
-    if (!guardDecision.allow || guardDecision.action === "block") {
-      setError(guardDecision.userMessage);
-      return;
+    if (inputs.includes("prompt")) {
+      const guardText = [draft.prompt, draft.negative].filter((value) => value.trim()).join("\n");
+      const guardDecision = assessChildExploitationSafety({ text: guardText, endpoint: "/video/queue", method: "POST", source: "video" });
+      recordDecision(guardDecision);
+      if (!guardDecision.allow || guardDecision.action === "block") {
+        setError(guardDecision.userMessage);
+        return;
+      }
     }
 
     abortRef.current?.abort();
@@ -135,17 +167,19 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
     try {
       const payload: QueueVideoRequest = {
         model: state.selectedVideoModel,
-        prompt: draft.prompt,
-        negative_prompt: draft.negative || undefined,
-        aspect_ratio: draft.aspectRatio,
-        duration: draft.duration,
-        resolution: requiresVideo ? undefined : draft.resolution,
-        audio: draft.audio,
-        image_url: draft.imageUrl || undefined,
-        video_url: draft.sourceVideoUrl || undefined,
       };
 
-      const res = await queueVideoGeneration(payload, { signal, dispatch });
+      if (inputs.includes("prompt") && draft.prompt.trim()) payload.prompt = draft.prompt;
+      if (inputs.includes("negative_prompt") && draft.negative.trim()) payload.negative_prompt = draft.negative;
+      if (inputs.includes("aspect_ratio")) payload.aspect_ratio = draft.aspectRatio;
+      if (inputs.includes("duration")) payload.duration = draft.duration;
+      if (inputs.includes("resolution")) payload.resolution = draft.resolution;
+      if (inputs.includes("upscale_factor")) payload.upscale_factor = draft.upscaleFactor;
+      if (inputs.includes("audio")) payload.audio = draft.audio;
+      if (inputs.includes("image_url") && draft.imageUrl.trim()) payload.image_url = draft.imageUrl;
+      if (inputs.includes("video_url") && draft.sourceVideoUrl.trim()) payload.video_url = draft.sourceVideoUrl;
+
+      const res = await queueVideo(payload, { signal, dispatch });
 
       patch({
         queueId: res.queue_id,
