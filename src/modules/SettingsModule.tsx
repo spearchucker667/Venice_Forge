@@ -397,7 +397,7 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
 
   return (
     <section className="flex flex-col h-full bg-bg">
-      <div className="flex-none p-6 border-b border-border/50 bg-bg/50 backdrop-blur-md">
+      <div className="flex-none p-6 border-b border-border/40 bg-bg">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-display font-semibold tracking-tight text-text-primary">Settings</h2>
@@ -419,7 +419,7 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
 
         {/* API key management */}
         {isElectron() ? (
-          <div className="rounded-2xl border border-border/50 bg-surface-elevated/40 p-6 backdrop-blur-md shadow-xl">
+          <div className="rounded-2xl border border-border/40 bg-surface p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-text-primary">Venice API Key</h3>
               <Chip tone={apiKeyConfigured ? "ok" : "warn"}>
@@ -457,7 +457,7 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-border/50 bg-surface-elevated/40 p-6 backdrop-blur-md shadow-xl">
+          <div className="rounded-2xl border border-border/40 bg-surface p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-text-primary">Venice API Key</h3>
               <Chip tone="ok">Server key</Chip>
@@ -470,7 +470,7 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
 
         {/* Jina API key management (desktop-only) */}
         {isElectron() && (
-          <div className="rounded-2xl border border-border/50 bg-surface-elevated/40 p-6 backdrop-blur-md shadow-xl">
+          <div className="rounded-2xl border border-border/40 bg-surface p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-text-primary">Jina API Key</h3>
               <Chip tone={jinaKeyConfigured ? "ok" : "neutral"}>
@@ -511,7 +511,7 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
 
         {/* Application Updates (Desktop-only) */}
         {isElectron() && (
-          <div className="rounded-2xl border border-border/50 bg-surface-elevated/40 p-6 backdrop-blur-md shadow-xl">
+          <div className="rounded-2xl border border-border/40 bg-surface p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-text-primary">Application Updates</h3>
               <Chip tone={updateDownloaded ? "ok" : "neutral"}>
@@ -613,7 +613,7 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
           />
         </Field>
 
-        <div className="rounded-2xl border border-border/50 bg-surface-elevated/40 p-6 backdrop-blur-md shadow-xl">
+        <div className="rounded-2xl border border-border/40 bg-surface p-6 shadow-xl">
           <h3 className="text-lg font-medium text-text-primary mb-4">Appearance</h3>
           <ThemeMaker state={state} dispatch={dispatch} />
         </div>
@@ -668,7 +668,7 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
           </button>
         </div>
 
-        <div className="rounded-2xl border border-border/50 bg-surface-elevated/40 p-6 backdrop-blur-md shadow-xl space-y-5">
+        <div className="rounded-2xl border border-border/40 bg-surface p-6 shadow-xl space-y-5">
           <div className="flex items-center gap-3">
             <img
               src="./assets/branding/venice-logo-lockup-red.svg"

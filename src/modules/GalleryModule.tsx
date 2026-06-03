@@ -137,7 +137,7 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
 
   return (
     <section className="flex flex-col h-full bg-bg">
-      <div className="flex-none p-6 border-b border-border/50 bg-bg/50 backdrop-blur-md">
+      <div className="flex-none p-6 border-b border-border/40 bg-bg">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-display font-semibold tracking-tight text-text-primary">Library</h2>
@@ -193,7 +193,7 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </button>
-                  <div className="flex flex-col p-4 gap-3 bg-bg/80 backdrop-blur-md">
+                  <div className="flex flex-col p-4 gap-3 bg-bg">
                     <div className="flex items-center flex-wrap gap-2 text-sm text-text-primary">
                       <strong className="font-semibold">{item.model}</strong>
                       {item.upscaled && <Chip className="scale-90 origin-left">upscaled</Chip>}

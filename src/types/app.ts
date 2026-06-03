@@ -1,6 +1,5 @@
 /** @fileoverview Core application type definitions for state, actions, and UI models. */
 
-import { DiagnosticsEntry } from "./venice";
 import { GalleryImage, FileRecord } from "./storage";
 import type { Conversation } from "./conversation";
 import type { Theme } from "../theme/themeTypes";
@@ -32,6 +31,22 @@ export interface ImageDraft {
   lastSavedImageId: string | null;
   generationProgress: string;
   batchQueueStatus: string;
+}
+
+/** Captures the current video generation form state. */
+export interface VideoDraft {
+  prompt: string;
+  negative: string;
+  aspectRatio: string;
+  duration: string;
+  resolution: string;
+  audio: boolean;
+  videoUrl: string;
+  imageUrl: string;
+  generationProgress: string;
+  queueId: string | null;
+  status: string | null;
+  downloadUrl: string | null;
 }
 
 /** Captures the current batch job form state. */
@@ -83,7 +98,9 @@ export interface AppState {
   isOnline: boolean;
   modelLoadError: string;
   imageDraft: ImageDraft;
+  videoDraft: VideoDraft;
   batchDraft: BatchDraft;
+  selectedVideoModel: string;
   chatDraft: {
     systemPrompt: string;
     messages: ChatRecord[];
@@ -99,15 +116,17 @@ export type AppAction =
   | { type: "SET_MODELS"; models: Record<string, import("./venice").ModelInfo[]> | undefined; fallback?: boolean; error?: string }
   | { type: "SET_SELECTED_CHAT_MODEL"; model: string }
   | { type: "SET_SELECTED_IMAGE_MODEL"; model: string }
+  | { type: "SET_SELECTED_VIDEO_MODEL"; model: string }
   | { type: "SET_SETTINGS"; settings: Partial<AppSettings> }
-  | { type: "SET_DIAGNOSTICS"; diagnostics: Partial<DiagnosticsEntry> }
+  | { type: "SET_DIAGNOSTICS"; diagnostics: Partial<import("./venice").DiagnosticsEntry> }
   | { type: "SET_GALLERY"; items: GalleryImage[] }
+  | { type: "SET_IMAGE_DRAFT"; patch: Partial<ImageDraft> }
+  | { type: "SET_VIDEO_DRAFT"; patch: Partial<VideoDraft> }
   | { type: "SET_FILES"; items: FileRecord[] }
   | { type: "SET_CHATS"; items: import("./storage").ChatHistoryItem[] }
   | { type: "SET_CONVERSATIONS"; items: Conversation[] }
   | { type: "SET_ACTIVE_CONVERSATION"; id: string | null }
   | { type: "SET_CHAT_DRAFT"; patch: Partial<AppState['chatDraft']> }
-  | { type: "SET_IMAGE_DRAFT"; patch: Partial<ImageDraft> }
   | { type: "SET_BATCH_DRAFT"; patch: Partial<BatchDraft> }
   | { type: "SET_ONLINE"; online: boolean }
   | { type: "ADD_TOAST"; toast: ToastMessage }

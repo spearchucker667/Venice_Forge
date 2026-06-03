@@ -1,5 +1,5 @@
 import type { Theme } from './themeTypes';
-import { BUILTIN_DARK, BUILTIN_LIGHT, BUILTIN_COPPER, BUILTIN_DRACULA } from './themes';
+import { BUILTIN_VENICE, BUILTIN_DARK, BUILTIN_LIGHT, BUILTIN_COPPER, BUILTIN_DRACULA } from './themes';
 
 export function applyTheme(theme: Theme): void {
   const root = document.documentElement;
@@ -47,6 +47,9 @@ export function resolveInitialTheme(bootstrap?: Partial<{
   if (bootstrap?.selectedThemeId === 'builtin-dark') {
     return BUILTIN_DARK;
   }
+  if (bootstrap?.selectedThemeId === 'builtin-venice') {
+    return BUILTIN_VENICE;
+  }
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  return prefersDark ? BUILTIN_DARK : BUILTIN_LIGHT;
+  return prefersDark ? BUILTIN_VENICE : BUILTIN_LIGHT;
 }

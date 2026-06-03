@@ -240,7 +240,7 @@ export function BatchModule({ state, dispatch }: ModuleProps) {
 
   return (
     <section className="flex flex-col h-full bg-bg">
-      <div className="flex-none p-6 border-b border-border/50 bg-bg/50 backdrop-blur-md">
+      <div className="flex-none p-6 border-b border-border/40 bg-bg">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-display font-semibold tracking-tight text-text-primary">Batch Processing</h2>
@@ -322,7 +322,7 @@ export function BatchModule({ state, dispatch }: ModuleProps) {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border/50 bg-surface-elevated/40 p-6 backdrop-blur-md flex flex-col gap-6">
+          <div className="rounded-2xl border border-border/40 bg-surface p-6 flex flex-col gap-6">
             <div className="flex items-center justify-between border-b border-border/50 pb-4">
               <h3 className="text-lg font-medium text-text-primary">Batch Results</h3>
               <Chip>{results.length} tasks</Chip>

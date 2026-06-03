@@ -19,6 +19,10 @@ const ENDPOINT_FIELDS: Record<string, readonly string[]> = {
   "/augment/search": ["query", "question"],
   "/augment/scrape": ["instructions", "url"],
   "/augment/text-parser": ["text", "content", "prompt", "query"],
+  "/video/queue": ["prompt", "negative_prompt"],
+  "/video/retrieve": [],
+  "/video/quote": [],
+  "/video/complete": [],
 };
 
 /** Fields that should never be safety-checked (not user-controlled prompt content). */

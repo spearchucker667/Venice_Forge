@@ -366,7 +366,7 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
 
   return (
     <section className="flex flex-col h-full bg-bg">
-      <div className="flex-none p-6 border-b border-border/50 bg-bg/50 backdrop-blur-md">
+      <div className="flex-none p-6 border-b border-border/40 bg-bg">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-display font-semibold tracking-tight text-text-primary">Research</h2>
@@ -389,7 +389,7 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
         {subTab === "search" && (
           <>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="rounded-2xl border border-border/50 bg-surface-elevated/40 p-6 backdrop-blur-md flex flex-col gap-6">
+              <div className="rounded-2xl border border-border/40 bg-surface p-6 flex flex-col gap-6">
                 <div className="flex items-center justify-between border-b border-border/50 pb-4">
                   <h3 className="text-lg font-medium text-text-primary">Web search</h3>
                   <Chip>$0.01-class utility</Chip>
@@ -455,7 +455,7 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-border/50 bg-surface-elevated/40 p-6 backdrop-blur-md flex flex-col gap-6">
+              <div className="rounded-2xl border border-border/40 bg-surface p-6 flex flex-col gap-6">
                 <div className="flex items-center justify-between border-b border-border/50 pb-4">
                   <h3 className="text-lg font-medium text-text-primary">Web scrape</h3>
                   <Chip>markdown output</Chip>
@@ -496,7 +496,7 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-border/50 bg-surface-elevated/40 p-6 backdrop-blur-md flex flex-col gap-6">
+            <div className="rounded-2xl border border-border/40 bg-surface p-6 flex flex-col gap-6">
               <div className="flex items-center justify-between border-b border-border/50 pb-4">
                 <h3 className="text-lg font-medium text-text-primary">Text parser</h3>
                 <Chip>PDF / DOCX / XLSX / TXT</Chip>
@@ -535,7 +535,7 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
         )}
 
         {subTab === "ai-research" && (
-          <div className="rounded-2xl border border-border/50 bg-surface-elevated/40 p-6 backdrop-blur-md flex flex-col gap-6">
+          <div className="rounded-2xl border border-border/40 bg-surface p-6 flex flex-col gap-6">
             <div className="flex items-center justify-between border-b border-border/50 pb-4">
               <h3 className="text-lg font-medium text-text-primary">AI Research</h3>
               <Chip>evidence-only synthesis</Chip>
@@ -601,7 +601,7 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
 
         {subTab === "profile-discovery" && (
           <div className="space-y-8">
-            <div className="rounded-2xl border border-border/50 bg-surface-elevated/40 p-6 backdrop-blur-md flex flex-col gap-6">
+            <div className="rounded-2xl border border-border/40 bg-surface p-6 flex flex-col gap-6">
               <div className="flex items-center justify-between border-b border-border/50 pb-4">
                 <h3 className="text-lg font-medium text-text-primary">Public Profile Discovery</h3>
                 <Chip>public web only</Chip>
@@ -713,7 +713,7 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
             </div>
 
             {profileCandidates.length > 0 && (
-              <div className="rounded-2xl border border-border/50 bg-surface-elevated/40 p-6 backdrop-blur-md flex flex-col gap-4">
+              <div className="rounded-2xl border border-border/40 bg-surface p-6 flex flex-col gap-4">
                 <div className="flex items-center justify-between border-b border-border/50 pb-4">
                   <h3 className="text-lg font-medium text-text-primary">Candidate profiles</h3>
                   <Chip>{profileCandidates.length} found</Chip>

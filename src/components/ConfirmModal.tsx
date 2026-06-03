@@ -57,14 +57,14 @@ export function ConfirmModal({
 
   return (
     <div
-      className="fixed inset-0 z-[80] grid place-items-center bg-overlay/60 p-6 backdrop-blur-2xl animate-[fadeIn_0.3s_ease]"
+      className="fixed inset-0 z-[80] grid place-items-center bg-overlay/80 p-6 animate-[fadeIn_0.3s_ease]"
       onClick={onCancel}
       role="presentation"
     >
       <div
         ref={modalRef}
         tabIndex={-1}
-        className="w-full max-w-md rounded-2xl border border-border/50 bg-surface/90 p-6 shadow-[0_24px_64px_var(--overlay),0_0_0_1px_var(--glow)] backdrop-blur-xl animate-[slideUp_0.4s_cubic-bezier(0.16,1,0.3,1)] focus:outline-none"
+        className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl animate-[slideUp_0.4s_cubic-bezier(0.16,1,0.3,1)] focus:outline-none"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

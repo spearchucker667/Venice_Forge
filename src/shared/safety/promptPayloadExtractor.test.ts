@@ -171,4 +171,18 @@ describe("extractPromptLikeFields", () => {
 
     expect(fields).toEqual([]);
   });
+
+  it("extracts prompt and negative_prompt for /video/queue payloads", () => {
+    const payload = {
+      model: "wan-2.6-text-to-video",
+      prompt: "Create a cinematic ocean shot at sunset",
+      negative_prompt: "no text overlays",
+    };
+    const fields = extractPromptLikeFields(payload, "/video/queue");
+
+    expect(fields).toEqual([
+      { path: "prompt", value: "Create a cinematic ocean shot at sunset" },
+      { path: "negative_prompt", value: "no text overlays" },
+    ]);
+  });
 });

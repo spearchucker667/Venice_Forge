@@ -18,6 +18,7 @@ export function TabButton({
   const icons: Record<string, string> = {
     chat: "✦",
     image: "▧",
+    video: "▸",
     batch: "▤",
     search: "⌕",
     models: "◎",
@@ -32,12 +33,12 @@ export function TabButton({
     : "px-5 py-3.5 text-left";
 
   const stateClasses = active
-    ? "text-accent-fg border-accent/30 bg-gradient-to-r from-accent/20 to-accent/5 shadow-[inset_2px_0_0_var(--accent)]"
-    : "text-text-secondary hover:text-text-primary hover:bg-surface-elevated hover:translate-x-1";
+    ? "text-text-primary bg-surface-elevated font-semibold"
+    : "text-text-secondary hover:text-text-primary hover:bg-surface-elevated/50";
 
   const iconBase = "grid place-items-center w-5 text-base transition-all duration-300";
   const iconState = active
-    ? "text-accent-fg drop-shadow-[0_0_12px_var(--glow)]"
+    ? "text-text-primary"
     : "group-hover:text-text-primary";
 
   return (

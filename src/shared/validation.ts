@@ -10,6 +10,10 @@ export const ALLOWED_VENICE_ENDPOINTS = [
   "/augment/search",
   "/augment/scrape",
   "/augment/text-parser",
+  "/video/queue",
+  "/video/retrieve",
+  "/video/quote",
+  "/video/complete",
 ] as const;
 
 /** HTTP methods permitted for Venice API requests. */
@@ -30,6 +34,10 @@ export const VENICE_ENDPOINT_METHODS: Record<VeniceIpcEndpoint, readonly VeniceI
   "/augment/search": ["POST"],
   "/augment/scrape": ["POST"],
   "/augment/text-parser": ["POST"],
+  "/video/queue": ["POST"],
+  "/video/retrieve": ["POST"],
+  "/video/quote": ["POST"],
+  "/video/complete": ["POST"],
 };
 
 /**

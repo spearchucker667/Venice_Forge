@@ -18,6 +18,10 @@ describe("validation", () => {
         "/augment/search",
         "/augment/scrape",
         "/augment/text-parser",
+        "/video/queue",
+        "/video/retrieve",
+        "/video/quote",
+        "/video/complete",
       ]);
     });
   });

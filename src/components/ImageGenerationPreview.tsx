@@ -37,7 +37,7 @@ export function ImageGenerationPreview({
   return (
     <>
       <div className="space-y-3">
-        <div className="flex min-h-[200px] items-center justify-center overflow-hidden rounded-2xl border border-border/50 bg-surface/40">
+        <div className="flex min-h-[200px] items-center justify-center overflow-hidden rounded-2xl border border-border bg-surface">
           {draft.generationProgress ? (
             <div className="flex flex-col items-center gap-3 p-6">
               <div className="text-sm text-text-secondary">{draft.generationProgress}</div>
@@ -51,7 +51,7 @@ export function ImageGenerationPreview({
                 <button
                   key={savedDoc.id || idx}
                   onClick={() => onExpand(savedDoc)}
-                  className="overflow-hidden rounded-xl border border-border/50 transition-all duration-200 hover:scale-[1.02] hover:border-accent/30 hover:shadow-[0_0_16px_var(--glow)] focus:outline-none focus:ring-2 focus:ring-accent/50"
+                  className="overflow-hidden rounded-xl border border-border transition-all duration-200 hover:scale-[1.02] hover:border-accent hover:shadow-[0_0_16px_var(--glow)] focus:outline-none focus:ring-2 focus:ring-accent"
                   aria-label={`View image details: ${savedDoc.prompt || "Generated image"}`}
                 >
                   <img
@@ -90,7 +90,7 @@ export function ImageGenerationPreview({
               {recentHistory.map((img) => (
                 <div
                   key={img.id}
-                  className="flex items-center gap-3 rounded-2xl border border-border/50 bg-surface-elevated/40 p-4 backdrop-blur-sm transition-all duration-200 hover:border-border hover:bg-surface-elevated"
+                  className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 transition-all duration-200 hover:border-accent hover:bg-surface-elevated"
                 >
                   <img
                     src={img.image}

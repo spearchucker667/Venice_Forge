@@ -102,6 +102,7 @@ export const initialState = {
   usingFallbackModels: true,
   selectedChatModel: "venice-uncensored",
   selectedImageModel: "flux-dev",
+  selectedVideoModel: "wan-2.6-text-to-video",
   settings: {
     defaultSystemPrompt: DEFAULT_SYSTEM_PROMPT,
     includeVeniceSystemPrompt: true,
@@ -144,6 +145,20 @@ export const initialState = {
     batchQueueStatus: "",
     disableWatermark: true,
   },
+  videoDraft: {
+    prompt: "",
+    negative: "",
+    aspectRatio: "16:9",
+    duration: "5s",
+    resolution: "720p",
+    audio: true,
+    videoUrl: "",
+    imageUrl: "",
+    generationProgress: "",
+    queueId: null,
+    status: null,
+    downloadUrl: null,
+  },
   batchDraft: {
     type: "text" as "text" | "image",
     promptsText:
@@ -175,6 +190,7 @@ export const appReducer = produce((draft: AppState, action: AppAction) => {
 
       const chatModelExists = models.text.some((m) => m.id === draft.selectedChatModel);
       const imageModelExists = models.image.some((m) => m.id === draft.selectedImageModel);
+      const videoModelExists = models.video.some((m) => m.id === draft.selectedVideoModel);
 
       if (!chatModelExists) {
         const firstLive = models.text.find((m) => m.source === "live");
@@ -188,6 +204,12 @@ export const appReducer = produce((draft: AppState, action: AppAction) => {
         draft.selectedImageModel = firstLive?.id || fallback?.id || "flux-dev";
       }
 
+      if (!videoModelExists) {
+        const firstLive = models.video.find((m) => m.source === "live");
+        const fallback = models.video[0];
+        draft.selectedVideoModel = firstLive?.id || fallback?.id || "wan-2.6-text-to-video";
+      }
+
       draft.modelLoadError = action.error || "";
       break;
     }
@@ -196,6 +218,9 @@ export const appReducer = produce((draft: AppState, action: AppAction) => {
       break;
     case "SET_SELECTED_IMAGE_MODEL":
       draft.selectedImageModel = action.model;
+      break;
+    case "SET_SELECTED_VIDEO_MODEL":
+      draft.selectedVideoModel = action.model;
       break;
     case "SET_SETTINGS": {
       // Defensive: ignore non-object payloads that could crash the `in` operator.
@@ -304,6 +329,11 @@ export const appReducer = produce((draft: AppState, action: AppAction) => {
     case "SET_IMAGE_DRAFT":
       if (action.patch && typeof action.patch === "object") {
         draft.imageDraft = { ...draft.imageDraft, ...action.patch };
+      }
+      break;
+    case "SET_VIDEO_DRAFT":
+      if (action.patch && typeof action.patch === "object") {
+        draft.videoDraft = { ...draft.videoDraft, ...action.patch };
       }
       break;
     case "SET_BATCH_DRAFT":

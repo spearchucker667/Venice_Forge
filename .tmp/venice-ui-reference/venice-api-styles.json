@@ -1,0 +1,37 @@
+{
+  "background": "rgb(238, 237, 228)",
+  "color": "rgb(0, 0, 0)",
+  "fontFamily": "__aeonik_625d6f, __aeonik_Fallback_625d6f",
+  "elements": {
+    "header": {
+      "width": 954,
+      "height": 52.875,
+      "backgroundColor": "rgb(255, 255, 255)",
+      "color": "rgb(0, 0, 0)",
+      "borderRadius": "12px",
+      "borderColor": "rgb(230, 230, 230)",
+      "boxShadow": "none",
+      "padding": "0px"
+    },
+    "composer": {
+      "width": 212.5,
+      "height": 47,
+      "backgroundColor": "rgb(243, 243, 243)",
+      "color": "rgb(0, 0, 0)",
+      "borderRadius": "10px",
+      "borderColor": "rgb(0, 0, 0)",
+      "boxShadow": "none",
+      "padding": "12px 50px 12px 12px"
+    },
+    "button": {
+      "width": 28,
+      "height": 28,
+      "backgroundColor": "rgb(18, 93, 163)",
+      "color": "rgb(0, 0, 0)",
+      "borderRadius": "4px",
+      "borderColor": "rgb(0, 0, 0)",
+      "boxShadow": "none",
+      "padding": "0px"
+    }
+  }
+}
