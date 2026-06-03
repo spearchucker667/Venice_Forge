@@ -68,15 +68,15 @@ Web mode (development only):
 
 | Tab | Feature |
 |-----|---------|
-| Prompt | Streaming chat with Venice text models |
-| Create | Image generation with upscaling and gallery save |
-| Video | Generate and queue text-to-video, image-to-video, and video-upscale jobs asynchronously via the Venice API |
+| Chat | Streaming chat with Venice text models |
+| Create | Generate images, **Edit** (single image inpainting), **Combine** (multi-image referencing), and **Upscale** (separate from video upscaling) |
+| Video | Asynchronously queue text-to-video, image-to-video, video-to-video, reference-to-video, and video upscale jobs. Settings are model-dependent. |
 | Batch | Sequential prompt runs over multiple inputs |
 | Research | Multi-provider web search, page scraping, AI research synthesis, and public-profile discovery (Venice, Jina AI, or Generic HTTP) |
-| Catalog | Live model browser (type, traits, capability) |
+| Catalog | Live model browser (type, traits, capability). Requires API key for live discovery. |
 | Library | Local image gallery, uploaded files history, recent chats, bulk download and upscale |
 | Config | API key management, theme selection (4 built-in + custom), import/export |
-| Status | Diagnostics, rate-limit info, log access |
+| Diagnostics | Diagnostics, rate-limit info, log access |
 
 ## Technology Stack
 
