@@ -21,6 +21,7 @@ export function TabButton({
       case "chat": return <span className={iconClass}>✦</span>;
       case "image": return <span className={iconClass}>▧</span>;
       case "video": return <span className={iconClass}>▶</span>;
+      case "audio": return <span className={iconClass}>♫</span>;
       case "batch": return <span className={iconClass}>▤</span>;
       case "search": return <span className={iconClass}>⌕</span>;
       case "models": return <span className={iconClass}>◎</span>;

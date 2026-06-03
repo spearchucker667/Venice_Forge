@@ -112,6 +112,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
   const [forkMode, setForkMode] = useState(false);
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isAgentMode, setIsAgentMode] = useState(true);
   const [showImportPicker, setShowImportPicker] = useState(false);
   const [_importSelectedIds, _setImportSelectedIds] = useState<Set<string>>(new Set());
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -870,6 +871,23 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
           >
             {sidebarCollapsed ? "»" : "«"}
           </button>
+
+          <div className="flex bg-surface-elevated/50 rounded-lg p-0.5 ml-2 border border-border/40">
+            <button
+              className={`text-xs px-3 py-1 rounded-md transition-colors ${isAgentMode ? "bg-accent/20 text-accent font-medium border border-accent/30 shadow-sm" : "text-text-muted hover:text-text-primary border border-transparent"}`}
+              onClick={() => setIsAgentMode(true)}
+              title="Agentic Chat"
+            >
+              Agent
+            </button>
+            <button
+              className={`text-xs px-3 py-1 rounded-md transition-colors ${!isAgentMode ? "bg-accent/20 text-accent font-medium border border-accent/30 shadow-sm" : "text-text-muted hover:text-text-primary border border-transparent"}`}
+              onClick={() => setIsAgentMode(false)}
+              title="Classic Chat"
+            >
+              Classic
+            </button>
+          </div>
 
           {renamingId === "toolbar-title" ? (
             <input

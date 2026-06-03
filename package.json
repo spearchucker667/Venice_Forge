@@ -55,6 +55,9 @@
     "ci": "npm ci && npm run lint:eslint && npm run typecheck && npm test && npm run verify:safety-guard && npm run build"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/lora": "^5.2.8",
     "dotenv": "^16.4.5",
     "electron-updater": "^6.8.3",
     "express": "^4.21.2",
@@ -62,7 +65,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
-    "immer": "^11.1.8",
     "@tailwindcss/vite": "^4.1.14",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -71,8 +73,6 @@
     "@types/node": "^22.14.0",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
-    "react": "^19.0.1",
-    "react-dom": "^19.0.1",
     "@types/supertest": "^7.2.0",
     "@vitejs/plugin-react": "^5.0.4",
     "@vitest/coverage-v8": "^4.1.7",
@@ -85,7 +85,11 @@
     "eslint-plugin-react-hooks": "^6.0.0",
     "fake-indexeddb": "^6.2.5",
     "globals": "^16.0.0",
+    "immer": "^11.1.8",
     "jsdom": "^29.1.1",
+    "playwright": "^1.60.0",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1",
     "rimraf": "^6.0.1",
     "supertest": "^7.2.2",
     "tailwindcss": "^4.1.14",

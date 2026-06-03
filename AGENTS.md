@@ -106,7 +106,7 @@ POST /video/complete
 
 | Path | Purpose |
 |------|---------|
-| `src/modules/` | One file per tab: Chat, Image, Video, Batch, SearchScrape, Models, Gallery, Settings, Diagnostics |
+| `src/modules/` | One file per tab: Chat, Image, Video, Audio, Batch, SearchScrape, Models, Gallery, Settings, Diagnostics |
 | `src/services/veniceClient.ts` | Single Venice API entry point |
 | `src/services/desktopBridge.ts` | Electron-vs-web transport abstraction; use this instead of `window.veniceForge` |
 | `src/shared/safety/` | Content safety guard (`assessChildExploitationSafety`, `recordDecision`) |

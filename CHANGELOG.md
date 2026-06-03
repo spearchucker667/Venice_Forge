@@ -25,6 +25,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
   - **Library → Files tab:** New IndexedDB `files` store (encrypted at rest) persists chat file and URL attachments. GalleryModule gains tabbed layout (Images / Files / Chats).
   - **Research provider toggle:** AI Research sub-tab in `SearchScrapeModule` now supports switching between Venice and Jina AI providers.
   - **Model auto-fetch:** Saving a Venice API key in Settings automatically triggers `refreshModels()`.
+- **Venice UI Rebrand:** Complete visual and branding overhaul aligned with official Venice design system.
+  - Removed Google Fonts; now using locally bundled `@fontsource` packages (Inter, JetBrains Mono, Lora).
+  - Hardened Content-Security-Policy to block remote typography (fonts.googleapis.com, fonts.gstatic.com).
+  - Refactored UI shell primitives and custom scrollbars to automatically inherit deep-blue Venice colors (`--bg`, `--surface`, `--accent`).
+  - Implemented 'Agent vs Classic' chat toggle in the ChatModule toolbar.
+  - Renamed 'Create' and 'Video' tabs to 'Image Studio' and 'Video Studio'.
+  - Added new 'Audio Studio' tab mapped in routing and navigation, with custom musical note icon.
 - **Agentic Chat Workspace:** Complete chat overhaul with attachments, memory, fork/import, and dense UI.
   - `src/services/memoryService.ts` — persistent memory layer backed by encrypted IndexedDB (`ai_memory` store). Supports `saveMemory`, `searchMemory`, `listMemories`, `deleteMemory`, and `selectMemoriesForInjection` with a 2,000-character budget cap.
   - `src/services/attachmentService.ts` — file/URL/image attachment reading, validation, downscaling, and assembly. Supports text files (`.txt`, `.md`, `.ts`, `.tsx`, `.json`, `.py`, `.js`, etc.) and images (`PNG`, `JPEG`, `WEBP`). Enforces 256 KiB per-file and 1 MiB total context caps.

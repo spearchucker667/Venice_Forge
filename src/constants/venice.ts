@@ -36,9 +36,10 @@ export const FALLBACK_MODELS = {
 
 /** Ordered list of application tabs with their display labels. */
 export const TABS = [
-  ["chat", "Prompt"],
-  ["image", "Create"],
-  ["video", "Video"],
+  ["chat", "Chat"],
+  ["image", "Image Studio"],
+  ["video", "Video Studio"],
+  ["audio", "Audio Studio"],
   ["batch", "Batch"],
   ["search", "Research"],
   ["models", "Catalog"],

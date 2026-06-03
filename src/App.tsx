@@ -11,6 +11,7 @@ import { useThemeLifecycle } from "./hooks/useThemeLifecycle";
 import { ChatModule } from "./modules/ChatModule";
 import { ImageModule } from "./modules/ImageModule";
 import { VideoModule } from "./modules/VideoModule";
+import { AudioModule } from "./modules/AudioModule";
 import { BatchModule } from "./modules/BatchModule";
 import { SearchScrapeModule } from "./modules/SearchScrapeModule";
 import { ModelsModule } from "./modules/ModelsModule";
@@ -311,6 +312,7 @@ export default function App() {
             {state.activeTab === "chat" && <ChatModule state={state} dispatch={dispatch} />}
             {state.activeTab === "image" && <ImageModule state={state} dispatch={dispatch} />}
             {state.activeTab === "video" && <VideoModule state={state} dispatch={dispatch} />}
+            {state.activeTab === "audio" && <AudioModule state={state} dispatch={dispatch} />}
             {state.activeTab === "batch" && <BatchModule state={state} dispatch={dispatch} />}
             {state.activeTab === "search" && <SearchScrapeModule state={state} dispatch={dispatch} />}
             {state.activeTab === "models" && <ModelsModule state={state} dispatch={dispatch} />}

@@ -45,13 +45,14 @@ For development, see [Development](#-development) or [docs/ABOUT.md](docs/ABOUT.
 
 ## ✨ Features
 
-Eight integrated tabs covering chat, image generation, batch automation, research, and settings:
+Nine integrated tabs covering chat, media generation, batch automation, research, and settings:
 
 | Tab | Name | What You Can Do |
 |-----|------|-----------------|
-| 💬 | **Chat** | Multi-turn streaming conversations with system prompts, file/image attachments, drag & drop context reordering, memory injection & management modal, persistent history, and chat forking |
-| 🖼️ | **Create** | Generate images, **Edit** (single image inpainting), **Combine** (multi-image referencing), and **Upscale** (separate from video upscaling) |
-| 🎬 | **Video** | Asynchronously queue text-to-video, image-to-video, video-to-video, reference-to-video, and video upscale jobs. Settings are model-dependent. Video upscale uses `topaz-video-upscale` when available |
+| 💬 | **Chat** | Multi-turn streaming conversations with system prompts, file/image attachments, drag & drop context reordering, memory injection, persistent history, chat forking, and Agent vs Classic toggle |
+| 🖼️ | **Image Studio** | Generate images, **Edit** (single image inpainting), **Combine** (multi-image referencing), and **Upscale** (separate from video upscaling) |
+| 🎬 | **Video Studio** | Asynchronously queue text-to-video, image-to-video, video-to-video, reference-to-video, and video upscale jobs. Settings are model-dependent. Video upscale uses `topaz-video-upscale` when available |
+| ♫ | **Audio Studio** | Generate music, sound effects, and text-to-speech audio using multimodal capabilities |
 | 📋 | **Batch** | Automate: run one prompt across many inputs, or chain multiple prompts in sequence |
 | 🔍 | **Research** | Web search via Venice or Jina AI, page scraping, research synthesis, and public-profile discovery |
 | 📚 | **Catalog** | Browse live Venice model catalog with capability details; auto-refresh on API key save. App requires a Venice API key for live model discovery |

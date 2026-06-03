@@ -109,6 +109,13 @@ Raw hex values are intentionally **scoped** to:
 
 All component and module bodies consume **CSS variables / Tailwind semantic tokens** only.
 
+### Typography
+Typography is managed locally to ensure privacy and offline capability.
+- `@fontsource/inter` is mapped to `--font-sans`.
+- `@fontsource/lora` is mapped to `--font-display` and `--font-brand`.
+- `@fontsource/jetbrains-mono` is mapped to `--font-mono`.
+No external font requests (e.g., Google Fonts) are made, which is enforced by the Content Security Policy.
+
 ---
 
 ## Built-in Themes

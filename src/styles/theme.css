@@ -1,23 +1,31 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+@import "@fontsource/lora/400.css";
+@import "@fontsource/lora/500.css";
+@import "@fontsource/lora/600.css";
+@import "@fontsource/lora/700.css";
 @import "tailwindcss";
 
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-brand: 'Space Grotesk', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Lora', ui-sans-serif, system-ui, sans-serif;
+  --font-brand: 'Lora', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 
-  --color-brand-50: #f5f3ff;
-  --color-brand-100: #ede9fe;
-  --color-brand-200: #ddd6fe;
-  --color-brand-300: #c4b5fd;
-  --color-brand-400: #a78bfa;
-  --color-brand-500: #8b5cf6;
-  --color-brand-600: #7c3aed;
-  --color-brand-700: #6d28d9;
-  --color-brand-800: #5b21b6;
-  --color-brand-900: #4c1d95;
-  --color-brand-950: #2e1065;
+  --color-brand-50: #eaf4ff;
+  --color-brand-100: #d6eaff;
+  --color-brand-200: #b3d7ff;
+  --color-brand-300: #85c0ff;
+  --color-brand-400: #57a1ff;
+  --color-brand-500: #3c8fdd;
+  --color-brand-600: #125da3;
+  --color-brand-700: #0e4c8a;
+  --color-brand-800: #0a3a6b;
+  --color-brand-900: #072b52;
+  --color-brand-950: #041b36;
 
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -40,26 +48,26 @@
 
 :root {
   color-scheme: dark;
-  --bg: #080a0f;
-  --surface: #111318;
-  --surface-elevated: #181a20;
-  --border: #2a2d35;
-  --text-primary: #f7f5ed;
-  --text-secondary: #a6b0bc;
-  --text-muted: #687483;
-  --accent: #125da3;
-  --accent-hover: #3c8fdd;
-  --accent-fg: #ffffff;
+  --bg: #0A121A;
+  --surface: #0E2942;
+  --surface-elevated: #153A5C;
+  --border: #1E466B;
+  --text-primary: #F7F5ED;
+  --text-secondary: #B0C4DE;
+  --text-muted: #7A99B8;
+  --accent: #125DA3;
+  --accent-hover: #3C8FDD;
+  --accent-fg: #FFFFFF;
   --success: #22c55e;
   --warning: #d4a843;
   --danger: #ef4444;
-  --info: #3c8fdd;
-  --focus-ring: #3c8fdd;
-  --overlay: rgba(0,0,0,0.6);
-  --glow: rgba(18,93,163,0.22);
+  --info: #3C8FDD;
+  --focus-ring: #3C8FDD;
+  --overlay: rgba(10, 18, 26, 0.7);
+  --glow: rgba(60, 143, 221, 0.3);
   --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --display: 'Plus Jakarta Sans', var(--sans);
-  --brand: 'Space Grotesk', 'Plus Jakarta Sans', var(--sans);
+  --display: 'Lora', var(--sans);
+  --brand: 'Lora', var(--sans);
 }
 
 :root[data-theme-mode="light"] {
@@ -69,8 +77,8 @@
 /* Custom Scrollbars */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #1e2028; border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: #3a3d47; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--surface-elevated); }
 * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 
 * { box-sizing: border-box; }

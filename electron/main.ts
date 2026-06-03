@@ -26,7 +26,7 @@ if (allowProdDevTools) {
  */
 function rendererCsp(): string {
   const connectSrc = isDev ? "'self' http://localhost:5173 ws://localhost:5173" : "'self'";
-  const styleSrc = isDev ? "'self' 'unsafe-inline' http://localhost:5173" : "'self' 'unsafe-inline' https://fonts.googleapis.com";
+  const styleSrc = isDev ? "'self' 'unsafe-inline' http://localhost:5173" : "'self' 'unsafe-inline'";
   const scriptSrc = isDev ? "'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173" : "'self'";
 
   return [
@@ -35,7 +35,7 @@ function rendererCsp(): string {
     `style-src ${styleSrc}`,
     "img-src 'self' data: blob: https:",
     `connect-src ${connectSrc}`,
-    "font-src 'self' data: https://fonts.gstatic.com",
+    "font-src 'self' data:",
     "media-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",

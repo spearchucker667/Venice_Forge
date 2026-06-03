@@ -68,9 +68,10 @@ Web mode (development only):
 
 | Tab | Feature |
 |-----|---------|
-| Chat | Streaming chat with Venice text models, memory injection & management, drag & drop context reordering |
-| Create | Generate images, **Edit** (single image inpainting), **Combine** (multi-image referencing), and **Upscale** (separate from video upscaling) |
-| Video | Asynchronously queue text-to-video, image-to-video, video-to-video, reference-to-video, and video upscale jobs. Settings are model-dependent. |
+| Chat | Streaming chat with Venice text models, memory injection & management, drag & drop context reordering, Agent vs Classic toggle |
+| Image Studio | Generate images, **Edit** (single image inpainting), **Combine** (multi-image referencing), and **Upscale** (separate from video upscaling) |
+| Video Studio | Asynchronously queue text-to-video, image-to-video, video-to-video, reference-to-video, and video upscale jobs. Settings are model-dependent. |
+| Audio Studio | Generate music, sound effects, and text-to-speech audio using multimodal capabilities |
 | Batch | Sequential prompt runs over multiple inputs |
 | Research | Multi-provider web search, page scraping, AI research synthesis, and public-profile discovery (Venice, Jina AI, or Generic HTTP) |
 | Catalog | Live model browser (type, traits, capability). Requires API key for live discovery. |
