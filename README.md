@@ -399,4 +399,4 @@ Powered by [Venice API](https://docs.venice.ai/).
 
 ---
 
-**Made with ❤️ by the Venice Forge community. Not affiliated with Venice.ai, Inc.**
+**Not affiliated with Venice.ai, Inc.**
