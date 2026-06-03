@@ -326,8 +326,9 @@ export const desktopJinaApiKey = {
       });
       if (resp.ok) return { ok: true, message: "Jina API key is valid." };
       return { ok: false, status: resp.status, message: `Jina API returned ${resp.status}` };
-    } catch (err: any) {
-      return { ok: false, message: err.message || "Network error testing Jina API key" };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { ok: false, message: msg || "Network error testing Jina API key" };
     }
   },
 };
