@@ -19,9 +19,9 @@ const ENDPOINT_FIELDS: Record<string, readonly string[]> = {
   "/augment/search": ["query", "question"],
   "/augment/scrape": ["instructions", "url"],
   "/augment/text-parser": ["text", "content", "prompt", "query"],
-  "/video/queue": ["prompt", "negative_prompt"],
+  "/video/queue": ["prompt", "negative_prompt", "image_url", "video_url"],
   "/video/retrieve": [],
-  "/video/quote": [],
+  "/video/quote": ["prompt", "negative_prompt", "image_url", "video_url"],
   "/video/complete": [],
 };
 

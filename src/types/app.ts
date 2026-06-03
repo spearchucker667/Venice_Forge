@@ -43,6 +43,7 @@ export interface VideoDraft {
   audio: boolean;
   videoUrl: string;
   imageUrl: string;
+  sourceVideoUrl: string;
   generationProgress: string;
   queueId: string | null;
   status: string | null;
@@ -85,6 +86,7 @@ export interface AppState {
   usingFallbackModels: boolean;
   selectedChatModel: string;
   selectedImageModel: string;
+  selectedVideoModel: string;
   settings: AppSettings;
   diagnostics: import("./venice").DiagnosticsEntry | null;
   diagnosticsLog: import("./venice").DiagnosticsEntry[];
@@ -100,7 +102,6 @@ export interface AppState {
   imageDraft: ImageDraft;
   videoDraft: VideoDraft;
   batchDraft: BatchDraft;
-  selectedVideoModel: string;
   chatDraft: {
     systemPrompt: string;
     messages: ChatRecord[];

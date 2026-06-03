@@ -24,8 +24,9 @@ export const FALLBACK_MODELS = {
     { id: "tts-kokoro", type: "audio", name: "tts-kokoro", traits: ["fallback"], isFallback: true, source: "fallback" }
   ],
   video: [
-    { id: "wan-2.6-text-to-video", type: "video", name: "wan-2.6-text-to-video", traits: ["fallback"], isFallback: true, source: "fallback" },
-    { id: "topaz-video-upscale", type: "video", name: "topaz-video-upscale", traits: ["fallback"], isFallback: true, source: "fallback" }
+    { id: "wan-2.6-text-to-video", type: "video", name: "wan-2.6-text-to-video", traits: ["fallback", "text-to-video"], isFallback: true, source: "fallback" },
+    { id: "wan-2.6-image-to-video", type: "video", name: "wan-2.6-image-to-video", traits: ["fallback", "image-to-video"], isFallback: true, source: "fallback" },
+    { id: "topaz-video-upscale", type: "video", name: "topaz-video-upscale", traits: ["fallback", "upscale"], isFallback: true, source: "fallback" }
   ],
   embeddings: [
     { id: "text-embedding-bge-m3", type: "embeddings", name: "text-embedding-bge-m3", traits: ["fallback"], isFallback: true, source: "fallback" }
@@ -105,6 +106,38 @@ export function modelSupportsVision(modelId: string): boolean {
   const id = String(modelId || "").toLowerCase();
   if (VISION_CAPABLE_MODEL_IDS.has(id)) return true;
   return VISION_CAPABLE_PATTERNS.some((p) => p.test(id));
+}
+
+/** Regex patterns that identify Venice video generation or video upscaling models. */
+export const VIDEO_CAPABLE_PATTERNS = [
+  /video/i,
+  /text-to-video/i,
+  /image-to-video/i,
+  /reference-to-video/i,
+  /video-to-video/i,
+  /topaz-video-upscale/i,
+  /\bwan[-.]/i,
+  /\bkling[-.]/i,
+  /\bveo(?:3|\d|\.)/i,
+  /\bltx[-.]/i,
+  /\bpixverse[-.]/i,
+  /\bseedance[-.]/i,
+  /\brunway[-.]/i,
+];
+
+/** Returns true if the model id or traits indicate video generation/upscaling support. */
+export function modelSupportsVideo(model: { id?: string; name?: string; type?: string; model_type?: string; modelType?: string; traits?: unknown; capabilities?: unknown; features?: unknown }): boolean {
+  const haystack = [
+    model.id,
+    model.name,
+    model.type,
+    model.model_type,
+    model.modelType,
+    JSON.stringify(model.traits || {}),
+    JSON.stringify(model.capabilities || {}),
+    JSON.stringify(model.features || {}),
+  ].join(" ").toLowerCase();
+  return VIDEO_CAPABLE_PATTERNS.some((pattern) => pattern.test(haystack));
 }
 
 /** Maximum size of a single file attachment (text extraction). */

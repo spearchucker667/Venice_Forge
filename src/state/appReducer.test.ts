@@ -1,7 +1,7 @@
 /** @fileoverview Unit tests for the global application reducer. */
 
 import { describe, it, expect } from "vitest";
-import { appReducer, initialState } from "./appReducer";
+import { appReducer, flattenModels, initialState } from "./appReducer";
 
 /** Validates state transitions for each appReducer action type. */
 describe("appReducer", () => {
@@ -67,6 +67,21 @@ describe("appReducer", () => {
 
     const nullState = appReducer(initialState, { type: "SET_SETTINGS", settings: null as any });
     expect(nullState.settings).toEqual(initialState.settings);
+  });
+
+  it("keeps video models grouped and selected through model refresh", () => {
+    const grouped = flattenModels({
+      data: [
+        { id: "llama-3.3-70b", type: "text" },
+        { id: "flux-dev", type: "image" },
+        { id: "kling-2.6-pro-text-to-video", type: "video", traits: ["text-to-video"] },
+      ],
+    });
+    expect(grouped.video.map((model) => model.id)).toEqual(["kling-2.6-pro-text-to-video"]);
+
+    const nextState = appReducer(initialState, { type: "SET_MODELS", models: grouped, fallback: false });
+    expect(nextState.selectedVideoModel).toBe("kling-2.6-pro-text-to-video");
+    expect(nextState.models.video).toHaveLength(1);
   });
 
   /**

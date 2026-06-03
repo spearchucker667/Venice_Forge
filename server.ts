@@ -502,7 +502,9 @@ export async function startServer() {
   if (AppConfig.NODE_ENV !== "production" && AppConfig.NODE_ENV !== "test") {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      // Express middleware mode serves transformed HTML through a custom stack;
+      // disabling React Refresh avoids a blank page when the preamble is not detected.
+      server: { middlewareMode: true, hmr: false },
       appType: "spa",
     });
     app.use(vite.middlewares);

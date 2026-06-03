@@ -6,7 +6,7 @@ import { ModelSelect } from "./ModelSelect";
 import { ModelRefreshButton } from "./ModelRefreshButton";
 import { StatusBlock } from "./StatusBlock";
 import { CollapsibleSection } from "./CollapsibleSection";
-import { ModuleProps, VideoDraft } from "../types/app";
+import type { ModuleProps, VideoDraft } from "../types/app";
 
 interface VideoGenerationFormProps extends ModuleProps {
   draft: VideoDraft;
@@ -35,9 +35,20 @@ export function VideoGenerationForm({
     dispatch({ type: "SET_VIDEO_DRAFT", patch: updates });
   }
 
+  const selectedModel = state.models.video.find((model) => model.id === state.selectedVideoModel);
+  const selectedId = selectedModel?.id || state.selectedVideoModel;
+  const requiresImage = /image-to-video|reference-to-video/i.test(selectedId);
+  const requiresVideo = /video-to-video|topaz-video-upscale/i.test(selectedId);
+  const promptRequired = !requiresVideo;
+  const canSubmit =
+    !state.usingFallbackModels &&
+    (!promptRequired || !!draft.prompt.trim()) &&
+    (!requiresImage || !!draft.imageUrl.trim()) &&
+    (!requiresVideo || !!draft.sourceVideoUrl.trim());
+
   return (
     <div className="space-y-5">
-      <Field label="Model">
+      <Field label="Video model">
         <ModelSelect
           value={state.selectedVideoModel}
           models={state.models.video}
@@ -51,7 +62,7 @@ export function VideoGenerationForm({
         <ModelRefreshButton state={state} dispatch={dispatch} />
       </div>
 
-      <Field label="Prompt">
+      <Field label={promptRequired ? "Prompt" : "Prompt (optional)"}>
         <textarea
           value={draft.prompt}
           onChange={(e) => {
@@ -61,15 +72,23 @@ export function VideoGenerationForm({
           placeholder="A cinematic shot of a futuristic city..."
           rows={4}
           className="w-full resize-y rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text-primary placeholder-text-muted transition-all focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-          aria-invalid={promptTouched && !draft.prompt.trim()}
+          aria-invalid={promptTouched && promptRequired && !draft.prompt.trim()}
           aria-describedby="video-prompt-error"
         />
-        {promptTouched && !draft.prompt.trim() && (
+        {promptTouched && promptRequired && !draft.prompt.trim() && (
           <div id="video-prompt-error" className="mt-1.5 text-sm text-danger animate-[fadeIn_0.3s_ease]" role="alert">
             Please enter a prompt before generating.
           </div>
         )}
       </Field>
+
+      {(requiresImage || requiresVideo) && (
+        <div className="rounded-xl border border-info/25 bg-info/10 p-3 text-sm text-info">
+          {requiresVideo
+            ? "This selected model expects a source video URL. Resolution is controlled by the video model constraints."
+            : "This selected model expects a source image URL or data URL in addition to the motion prompt."}
+        </div>
+      )}
 
       <CollapsibleSection title="Advanced Settings">
         <div className="space-y-5">
@@ -78,6 +97,24 @@ export function VideoGenerationForm({
               value={draft.negative}
               onChange={(e) => patch({ negative: e.target.value })}
               placeholder="low quality, blurry, distorted"
+              className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text-primary placeholder-text-muted transition-all focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+          </Field>
+
+          <Field label="Source image URL">
+            <input
+              value={draft.imageUrl}
+              onChange={(e) => patch({ imageUrl: e.target.value })}
+              placeholder="https://example.com/reference.png or data:image/..."
+              className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text-primary placeholder-text-muted transition-all focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+          </Field>
+
+          <Field label="Source video URL">
+            <input
+              value={draft.sourceVideoUrl}
+              onChange={(e) => patch({ sourceVideoUrl: e.target.value })}
+              placeholder="https://example.com/source.mp4 or data:video/..."
               className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text-primary placeholder-text-muted transition-all focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </Field>
@@ -140,6 +177,7 @@ export function VideoGenerationForm({
       <div className="flex gap-3">
         {loading ? (
           <button
+            type="button"
             onClick={onCancel}
             className="flex-1 rounded-xl bg-danger/10 py-3.5 text-sm font-semibold text-danger shadow-sm transition-all hover:bg-danger/20"
           >
@@ -147,9 +185,10 @@ export function VideoGenerationForm({
           </button>
         ) : (
           <button
+            type="button"
             onClick={onGenerate}
-            disabled={!draft.prompt.trim() || state.usingFallbackModels}
-            className="flex-1 rounded-xl bg-accent py-3.5 text-sm font-semibold text-accent-fg shadow-md transition-all hover:scale-[1.02] hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
+            disabled={!canSubmit}
+            className="flex-1 rounded-xl bg-accent py-3.5 text-sm font-semibold text-accent-fg shadow-md transition-all hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
           >
             {draft.queueId ? "Queue Another Video" : "Queue Video Generation"}
           </button>

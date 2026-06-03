@@ -13,7 +13,7 @@
   border: 1px solid var(--border);
   color: var(--text-primary);
   background: var(--surface);
-  border-radius: 9999px;
+  border-radius: 8px;
   padding: 10px 24px;
   font-size: 14px;
   font-weight: 500;
@@ -23,11 +23,10 @@
   gap: 8px;
   min-height: 44px;
   transition: all 0.2s ease;
-  backdrop-filter: blur(8px);
 }
-.btn:hover:not(:disabled) { background: var(--surface-elevated); border-color: var(--border); transform: translateY(-1px); }
-.btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-hover)); color: var(--accent-fg); border: 1px solid var(--border); box-shadow: 0 4px 16px var(--glow); }
-.btn.primary:hover:not(:disabled) { background: linear-gradient(135deg, var(--accent-hover), var(--accent)); box-shadow: 0 6px 20px var(--glow); }
+.btn:hover:not(:disabled) { background: var(--surface-elevated); border-color: #3a3d47; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border: 1px solid var(--accent); box-shadow: none; }
+.btn.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); box-shadow: none; }
 .btn.danger { border-color: var(--danger); color: var(--danger); background: color-mix(in srgb, var(--danger) 5%, transparent); }
 .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 15%, transparent); }
 .btn.ghost { border-color: transparent; background: transparent; }

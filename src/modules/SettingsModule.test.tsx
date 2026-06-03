@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import { render, screen, waitFor, cleanup, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom/vitest";
 import { SettingsModule } from "./SettingsModule";
@@ -112,15 +112,18 @@ describe("SettingsModule", () => {
     cleanup();
   });
 
-  it("renders the save settings button", () => {
+  it("renders the save settings button", async () => {
     renderSettings();
+    await userEvent.click(screen.getAllByRole("button", { name: /defaults/i })[0]);
     expect(screen.getByRole("button", { name: /save settings/i })).toBeInTheDocument();
   });
 
   it("dispatches SET_SETTINGS with updated prompt when save is clicked", async () => {
     renderSettings();
-    // Find the system prompt textarea by its current value (the default system prompt).
-    // The Field component does not associate labels via htmlFor, so we query by display value.
+    await userEvent.click(screen.getAllByRole("button", { name: /defaults/i })[0]);
+
+    // Find the system prompt textarea by its current value (the default).
+    // The Field component does not associate labels via htmlFor, so we find by value.display value.
     const promptField = screen.getByDisplayValue(initialState.settings.defaultSystemPrompt);
     await userEvent.clear(promptField);
     await userEvent.type(promptField, "You are a pirate assistant.");
@@ -138,6 +141,7 @@ describe("SettingsModule", () => {
     renderSettings();
 
     // Click the destructive button — a ConfirmModal should appear.
+    await userEvent.click(screen.getAllByRole("button", { name: "Data & Storage" })[0]);
     await userEvent.click(screen.getByRole("button", { name: /clear indexeddb history/i }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText(/delete all indexeddb history/i)).toBeInTheDocument();
@@ -164,7 +168,7 @@ describe("SettingsModule", () => {
         webCitations: true,
       },
     });
-
+    await userEvent.click(screen.getAllByRole("button", { name: "Data & Storage" })[0]);
     await userEvent.click(screen.getByRole("button", { name: /clear local settings/i }));
 
     await waitFor(() => {
@@ -184,7 +188,7 @@ describe("SettingsModule", () => {
 
   it("dismisses the ConfirmModal when cancel is clicked and does NOT clear history", async () => {
     renderSettings();
-
+    await userEvent.click(screen.getAllByRole("button", { name: "Data & Storage" })[0]);
     await userEvent.click(screen.getByRole("button", { name: /clear indexeddb history/i }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 
@@ -198,7 +202,7 @@ describe("SettingsModule", () => {
     (isElectron as ReturnType<typeof vi.fn>).mockReturnValue(true);
 
     renderSettings();
-
+    await userEvent.click(screen.getAllByRole("button", { name: "Data & Storage" })[0]);
     await userEvent.click(screen.getByRole("button", { name: /export data/i }));
 
     await waitFor(() => {
@@ -248,7 +252,7 @@ describe("SettingsModule", () => {
       ]); // settings after import (new one not latest by timestamp)
 
     renderSettings();
-
+    await userEvent.click(screen.getAllByRole("button", { name: "Data & Storage" })[0]);
     await userEvent.click(screen.getByRole("button", { name: /import data/i }));
 
     await waitFor(() => {
@@ -273,6 +277,7 @@ describe("SettingsModule", () => {
     vi.mocked(desktopFiles.importJsonString).mockRejectedValue(new Error("Import file is too large."));
 
     renderSettings();
+    await userEvent.click(screen.getAllByRole("button", { name: "Data & Storage" })[0]);
     await userEvent.click(screen.getByRole("button", { name: /import data/i }));
 
     await waitFor(() => {
@@ -289,7 +294,7 @@ describe("SettingsModule", () => {
     vi.mocked(desktopUpdates.checkForUpdates).mockResolvedValue({ ok: true, version: "2.0.0" });
 
     renderSettings();
-
+    await userEvent.click(screen.getAllByRole("button", { name: "Updates" })[0]);
     await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
 
     await waitFor(() => {
@@ -312,8 +317,11 @@ describe("SettingsModule", () => {
 
     renderSettings();
 
-    // Simulate event from main process
-    notAvailableCallback();
+    act(() => {
+      notAvailableCallback();
+    });
+
+    await userEvent.click(screen.getAllByRole("button", { name: "Updates" })[0]);
 
     await waitFor(() => {
       expect(screen.getByText(/app is up to date/i)).toBeInTheDocument();

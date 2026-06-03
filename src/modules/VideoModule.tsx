@@ -1,11 +1,11 @@
 // Code Owner: fayeblade (@spearchucker667)
 // Video generation module — orchestrates params, preview, and polling.
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { queueVideoGeneration, retrieveVideoGeneration, QueueVideoRequest } from "../services/videoGenerationService";
+import { queueVideoGeneration, retrieveVideoGeneration, type QueueVideoRequest } from "../services/videoGenerationService";
 import { assessChildExploitationSafety, recordDecision } from "../shared/safety";
 import { VideoGenerationForm } from "../components/VideoGenerationForm";
 import { VideoGenerationPreview } from "../components/VideoGenerationPreview";
-import { ModuleProps, VideoDraft } from "../types/app";
+import type { ModuleProps, VideoDraft } from "../types/app";
 
 export function VideoModule({ state, dispatch }: ModuleProps) {
   const draft = state.videoDraft;
@@ -43,10 +43,10 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
         patch({ generationProgress: "", status: "ERROR" });
         return;
       }
-      
+
       if (res.status === "COMPLETED") {
         setLoading(false);
-        setSuccess("Video generation completed!");
+        setSuccess("Video generation completed.");
 
         if (res.blob) {
           if (videoObjectUrlRef.current) {
@@ -66,19 +66,17 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
             downloadUrl: draft.downloadUrl,
           });
         }
-        return; // Done!
-      } else {
-        // PROCESSING or other
-        patch({ status: res.status });
-        // Poll again in 5 seconds
-        if (!signal.aborted) {
-          pollTimerRef.current = setTimeout(() => pollStatus(queueId, model, signal), 5000);
-        }
+        return;
+      }
+
+      patch({ status: res.status });
+      if (!signal.aborted) {
+        pollTimerRef.current = setTimeout(() => void pollStatus(queueId, model, signal), 5000);
       }
     } catch (err: unknown) {
       if (signal.aborted) return;
-      const error = err as { name?: string; message?: string };
-      setError(error.message || "Failed to retrieve video status.");
+      const errorObject = err as { name?: string; message?: string };
+      setError(errorObject.message || "Failed to retrieve video status.");
       setLoading(false);
       patch({ generationProgress: "", status: "ERROR" });
     }
@@ -86,16 +84,31 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
 
   async function generate() {
     setPromptTouched(true);
-    if (!draft.prompt.trim() || loading) return;
+    const selectedId = state.selectedVideoModel;
+    const requiresVideo = /video-to-video|topaz-video-upscale/i.test(selectedId);
+    const requiresImage = /image-to-video|reference-to-video/i.test(selectedId);
+    if (loading) return;
+    if (!requiresVideo && !draft.prompt.trim()) return;
+    if (requiresImage && !draft.imageUrl.trim()) {
+      setError("This video model requires a source image URL.");
+      return;
+    }
+    if (requiresVideo && !draft.sourceVideoUrl.trim()) {
+      setError("This video model requires a source video URL.");
+      return;
+    }
     if (state.usingFallbackModels) {
       setError("Fallback models are active. Please refresh the model catalog before sending requests.");
+      return;
+    }
+    if (!state.models.video.some((model) => model.id === state.selectedVideoModel)) {
+      setError("Selected model is not available in the video model catalog.");
       return;
     }
 
     setError("");
     setSuccess("");
-    
-    // Advisory safety check — records audit decision before blocking.
+
     const guardText = [draft.prompt, draft.negative].filter((value) => value.trim()).join("\n");
     const guardDecision = assessChildExploitationSafety({ text: guardText, endpoint: "/video/queue", method: "POST", source: "video" });
     recordDecision(guardDecision);
@@ -103,20 +116,20 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
       setError(guardDecision.userMessage);
       return;
     }
-    
+
     abortRef.current?.abort();
     if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
-    
+
     setLoading(true);
     abortRef.current = new AbortController();
     const signal = abortRef.current.signal;
 
-    patch({ 
-      generationProgress: "Submitting request...", 
-      queueId: null, 
-      status: null, 
+    patch({
+      generationProgress: "Submitting request...",
+      queueId: null,
+      status: null,
       videoUrl: "",
-      downloadUrl: null
+      downloadUrl: null,
     });
 
     try {
@@ -126,27 +139,27 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
         negative_prompt: draft.negative || undefined,
         aspect_ratio: draft.aspectRatio,
         duration: draft.duration,
-        resolution: draft.resolution,
-        audio: draft.audio
+        resolution: requiresVideo ? undefined : draft.resolution,
+        audio: draft.audio,
+        image_url: draft.imageUrl || undefined,
+        video_url: draft.sourceVideoUrl || undefined,
       };
 
       const res = await queueVideoGeneration(payload, { signal, dispatch });
-      
-      patch({ 
+
+      patch({
         queueId: res.queue_id,
         downloadUrl: res.download_url || null,
         generationProgress: "Waiting in queue...",
-        status: "PROCESSING"
+        status: "PROCESSING",
       });
 
-      // Start polling
-      pollTimerRef.current = setTimeout(() => pollStatus(res.queue_id, state.selectedVideoModel, signal), 3000);
-
+      pollTimerRef.current = setTimeout(() => void pollStatus(res.queue_id, state.selectedVideoModel, signal), 3000);
     } catch (err: unknown) {
       if (signal.aborted) return;
-      const error = err as { name?: string; message?: string };
-      if (error.name !== "AbortError") {
-        setError(error.message || "Video generation failed to queue.");
+      const errorObject = err as { name?: string; message?: string };
+      if (errorObject.name !== "AbortError") {
+        setError(errorObject.message || "Video generation failed to queue.");
       }
       setLoading(false);
       patch({ generationProgress: "", status: null });
@@ -181,17 +194,17 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
   }
 
   return (
-    <section className="flex flex-col h-full bg-bg">
-      <div className="flex-none p-6 border-b border-border/40 bg-bg">
+    <section className="flex h-full flex-col bg-bg">
+      <div className="flex-none border-b border-border/40 bg-bg p-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-display font-semibold tracking-tight text-text-primary">Video Studio</h2>
-            <div className="text-sm text-text-secondary mt-1">Queue and generate AI videos asynchronously.</div>
+            <div className="mt-1 text-sm text-text-secondary">Queue text-to-video, image-to-video, and video upscaling jobs asynchronously.</div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+      <div className="grid flex-1 grid-cols-1 items-start gap-8 overflow-y-auto p-6 lg:grid-cols-[minmax(320px,520px)_1fr]">
         <VideoGenerationForm
           state={state}
           dispatch={dispatch}
@@ -205,15 +218,15 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
           onCancel={cancel}
         />
         <div className="flex flex-col gap-4">
-          <VideoGenerationPreview state={state} dispatch={dispatch} draft={draft} />
-          
+          <VideoGenerationPreview draft={draft} />
+
           {(draft.videoUrl || draft.downloadUrl) && !loading && (
             <div className="flex justify-center">
               <button
+                type="button"
                 onClick={handleDownload}
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-surface px-6 text-sm font-medium text-text-primary shadow-sm transition-all duration-200 hover:border-accent hover:bg-surface-elevated focus:outline-none focus:ring-2 focus:ring-accent"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                 Download Generated Video
               </button>
             </div>

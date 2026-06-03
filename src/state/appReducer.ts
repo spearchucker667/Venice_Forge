@@ -1,6 +1,6 @@
 /** @fileoverview Global application reducer and state helpers for Venice Forge. */
 
-import { FALLBACK_MODELS, DEFAULT_SYSTEM_PROMPT } from "../constants/venice";
+import { FALLBACK_MODELS, DEFAULT_SYSTEM_PROMPT, modelSupportsVideo } from "../constants/venice";
 import { produce } from "immer";
 import { isValidTheme } from "../services/exportImport";
 import { normalizeWebSearchMode } from "../utils/payloadBuilders";
@@ -25,7 +25,7 @@ function classifyModel(model: ModelInfo) {
   if (["text", "llm", "chat", "code"].includes(type)) return "text";
   if (["image", "inpaint", "upscale"].includes(type)) return "image";
   if (["tts", "asr", "audio", "music"].includes(type)) return "audio";
-  if (type === "video") return "video";
+  if (type === "video" || modelSupportsVideo(model)) return "video";
   if (["embedding", "embeddings"].includes(type)) return "embeddings";
 
   if (/embed/.test(id + traits)) return "embeddings";
@@ -92,10 +92,10 @@ export function withFallbackModels(groups: Record<string, ModelInfo[]>) {
   };
   if (!next.text.length) next.text = FALLBACK_MODELS.text;
   if (!next.image.length) next.image = FALLBACK_MODELS.image;
+  if (!next.video.length) next.video = FALLBACK_MODELS.video;
   return next;
 }
 
-/** Initial application state used to bootstrap the store. */
 export const initialState = {
   activeTab: "chat",
   models: withFallbackModels({}) as Record<string, import("../types/venice").ModelInfo[]>,
@@ -103,6 +103,7 @@ export const initialState = {
   selectedChatModel: "venice-uncensored",
   selectedImageModel: "flux-dev",
   selectedVideoModel: "wan-2.6-text-to-video",
+
   settings: {
     defaultSystemPrompt: DEFAULT_SYSTEM_PROMPT,
     includeVeniceSystemPrompt: true,
@@ -154,6 +155,7 @@ export const initialState = {
     audio: true,
     videoUrl: "",
     imageUrl: "",
+    sourceVideoUrl: "",
     generationProgress: "",
     queueId: null,
     status: null,
@@ -187,7 +189,6 @@ export const appReducer = produce((draft: AppState, action: AppAction) => {
       const models = withFallbackModels(action.models || {});
       draft.models = models;
       draft.usingFallbackModels = !!action.fallback;
-
       const chatModelExists = models.text.some((m) => m.id === draft.selectedChatModel);
       const imageModelExists = models.image.some((m) => m.id === draft.selectedImageModel);
       const videoModelExists = models.video.some((m) => m.id === draft.selectedVideoModel);

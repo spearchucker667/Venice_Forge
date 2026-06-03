@@ -72,6 +72,10 @@ POST /image/upscale
 POST /augment/search
 POST /augment/scrape
 POST /augment/text-parser
+POST /video/queue
+POST /video/retrieve
+POST /video/quote
+POST /video/complete
 ```
 
 ### Research Subsystem

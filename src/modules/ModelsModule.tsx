@@ -4,7 +4,27 @@ import { ModelSelect } from "../components/ModelSelect";
 import { Chip } from "../components/Chip";
 import { ModelRefreshButton } from "../components/ModelRefreshButton";
 import type { AppState, AppDispatch } from "../types/app";
+import type { ModelInfo } from "../types/venice";
 export { refreshModels } from "../services/modelService";
+
+function modelBadges(model: ModelInfo): string[] {
+  const haystack = [
+    model.id,
+    model.name,
+    model.type,
+    JSON.stringify(model.traits || {}),
+    JSON.stringify(model.capabilities || {}),
+    JSON.stringify(model.features || {}),
+  ].join(" ").toLowerCase();
+  const badges: string[] = [];
+  if (/private/.test(haystack)) badges.push("private");
+  if (/uncensored/.test(haystack)) badges.push("uncensored");
+  if (/text-to-video/.test(haystack)) badges.push("text to video");
+  if (/image-to-video|reference-to-video/.test(haystack)) badges.push("image to video");
+  if (/upscale/.test(haystack)) badges.push("upscale");
+  if (model.isFallback) badges.push("fallback");
+  return badges.slice(0, 4);
+}
 
 export function ModelsModule({ state, dispatch }: { state: AppState; dispatch: AppDispatch }) {
   const groups = [
@@ -57,27 +77,51 @@ export function ModelsModule({ state, dispatch }: { state: AppState; dispatch: A
               }
             />
           </Field>
+          <Field label="Current video model">
+            <ModelSelect
+              value={state.selectedVideoModel}
+              models={state.models.video}
+              onChange={(model: string) =>
+                dispatch({ type: "SET_SELECTED_VIDEO_MODEL", model })
+              }
+            />
+          </Field>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {groups.map((group) => (
-            <div className="flex flex-col h-full rounded-2xl border border-border/50 bg-surface-elevated/40 overflow-hidden" key={group}>
+            <div className="flex flex-col h-full rounded-lg border border-border/50 bg-surface overflow-hidden" key={group}>
               <div className="flex items-center justify-between p-4 border-b border-border/50 bg-surface/30">
                 <strong className="text-sm font-semibold text-text-primary capitalize">{group}</strong>
-                <Chip>{state.models[group]?.length || 0}</Chip>
+                <Chip tone={group === "video" ? "video" : ""}>{state.models[group]?.length || 0}</Chip>
               </div>
               <div className="flex-1 overflow-y-auto p-2 max-h-[400px] space-y-2">
-                {(state.models[group] || []).map((m: import("../types/venice").ModelInfo) => (
-                  <div className="rounded-xl p-3 bg-surface/50 border border-transparent transition-all hover:border-border" key={`${group}-${m.id}`}>
+                {(state.models[group] || []).map((m: ModelInfo) => (
+                  <button
+                    type="button"
+                    className="w-full rounded-lg p-3 bg-surface-elevated/55 border border-transparent text-left transition-colors hover:border-border hover:bg-surface-elevated"
+                    key={`${group}-${m.id}`}
+                    onClick={() => {
+                      if (group === "text") dispatch({ type: "SET_SELECTED_CHAT_MODEL", model: m.id });
+                      if (group === "image") dispatch({ type: "SET_SELECTED_IMAGE_MODEL", model: m.id });
+                      if (group === "video") dispatch({ type: "SET_SELECTED_VIDEO_MODEL", model: m.id });
+                    }}
+                  >
                     <div className="font-mono text-xs text-accent font-medium mb-1 break-all">{m.id}</div>
                     <div className="text-xs text-text-secondary">
                       {m.name || m.display_name || ""}
                     </div>
-                    <div className="text-[10px] text-text-muted uppercase tracking-wider mt-1">
-                      {m.type || "unknown"}{" "}
-                      {m.traits ? " · traits present" : ""}
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <Chip tone={group === "video" ? "video" : "muted"} className="uppercase tracking-wider">
+                        {m.type || group || "unknown"}
+                      </Chip>
+                      {modelBadges(m).map((badge) => (
+                        <Chip key={badge} tone="muted" className="uppercase tracking-wider">
+                          {badge}
+                        </Chip>
+                      ))}
                     </div>
-                  </div>
+                  </button>
                 ))}
                 {!state.models[group]?.length && (
                   <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">

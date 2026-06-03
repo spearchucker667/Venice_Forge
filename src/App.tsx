@@ -20,13 +20,11 @@ import { DiagnosticsModule } from "./modules/DiagnosticsModule";
 import { TABS } from "./constants/venice";
 import { ToastHost } from "./components/ToastHost";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { Chip } from "./components/Chip";
-import { TabButton } from "./components/TabButton";
 import { FirstRunModal } from "./components/FirstRunModal";
-import { PanelLeftCloseIcon, PanelLeftOpenIcon, SparklesIcon } from "./components/icons";
+import { VeniceShell } from "./components/VeniceShell";
 import { initDesktopBridge, isElectron, desktopApiKey } from "./services/desktopBridge";
 import { warn } from "./shared/logger";
-import { APP_DESCRIPTOR, FIRST_RUN_ACK_KEY } from "./shared/legal";
+import { FIRST_RUN_ACK_KEY } from "./shared/legal";
 import { GalleryImage, ChatHistoryItem } from "./types/storage";
 import { listConversations, saveConversation, createConversation } from "./services/chatStorage";
 import type { ConversationMessage } from "./types/conversation";
@@ -161,7 +159,7 @@ export default function App() {
             },
           });
         }
-        
+
         if (!isElectron()) {
           // Web mode uses the server-side .env key; no local key check needed.
           setApiKeyConfigured(true);
@@ -209,6 +207,7 @@ export default function App() {
   // the component layer instead of inside the reducer, keeping the reducer pure.
   const prevChatModelRef = useRef(state.selectedChatModel);
   const prevImageModelRef = useRef(state.selectedImageModel);
+  const prevVideoModelRef = useRef(state.selectedVideoModel);
   const prevModelsRef = useRef(state.models);
   useEffect(() => {
     const modelsChanged = prevModelsRef.current !== state.models;
@@ -235,11 +234,23 @@ export default function App() {
           },
         });
       }
+      if (prevVideoModelRef.current !== state.selectedVideoModel) {
+        dispatch({
+          type: "ADD_TOAST",
+          toast: {
+            id: crypto.randomUUID(),
+            message: `Previous video model was unavailable. Switched to ${state.selectedVideoModel}.`,
+            type: "warn",
+            duration: 6000,
+          },
+        });
+      }
     }
     prevChatModelRef.current = state.selectedChatModel;
     prevImageModelRef.current = state.selectedImageModel;
+    prevVideoModelRef.current = state.selectedVideoModel;
     prevModelsRef.current = state.models;
-  }, [state.models, state.selectedChatModel, state.selectedImageModel]);
+  }, [state.models, state.selectedChatModel, state.selectedImageModel, state.selectedVideoModel]);
 
   useEffect(() => {
     if (isElectron() && apiKeyConfigured === false && !firstRunRouted) {
@@ -271,196 +282,32 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-bg">
-      {/* Header */}
-      <header className="relative z-20 flex h-16 items-center border-b border-border/40 bg-bg px-6">
-        <div className="flex w-full items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3.5">
-            <img
-              src="./assets/branding/venice-keys-red.svg"
-              alt="Venice"
-              title="Venice keys mark — used for API compatibility identification. Venice Forge is unofficial."
-              className="h-9 w-9 shrink-0"
-              style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}
-            />
-            <div>
-              <div className="whitespace-nowrap font-display text-lg font-bold tracking-tight text-text-primary">
-                Venice Forge
-              </div>
-              <div className="mt-0.5 hidden font-sans text-xs font-medium text-text-secondary sm:block">
-                {APP_DESCRIPTOR}
-              </div>
-              <div className="mt-0.5 hidden font-sans text-[10px] font-semibold uppercase tracking-wider text-warning sm:block">
-                Unofficial third-party client
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-3">
-            {isElectron() ? (
-              <Chip tone={apiKeyConfigured ? "ok" : "warn"} className="hidden md:inline-flex">
-                {apiKeyConfigured ? "API key set" : "No API key"}
-              </Chip>
-            ) : (
-              <Chip tone="ok" className="hidden md:inline-flex">Proxy Active</Chip>
-            )}
-            <Chip tone={state.usingFallbackModels ? "warn" : "ok"} className="hidden md:inline-flex">
-              {state.usingFallbackModels ? "Fallback models" : "Live Models"}
-            </Chip>
-            <button
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-transparent bg-transparent px-4 text-sm font-medium text-text-primary transition-all duration-200 hover:border-border hover:bg-surface-elevated"
-              onClick={() => dispatch({ type: "SET_TAB", tab: "diagnostics" })}
-              title="System Status"
-            >
-              Status
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Workspace */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Desktop Sidebar */}
-        <aside
-          className={`hidden flex-col justify-between border-r border-border/40 bg-bg p-4 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] lg:flex ${
-            state.sidebarCollapsed ? "w-20 min-w-[80px] items-center px-2" : "w-[280px] min-w-[280px]"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            {!state.sidebarCollapsed && (
-              <div className="mb-4 px-2">
-                <img
-                  src="./assets/branding/venice-logo-lockup-red.svg"
-                  alt="Venice Forge"
-                  title="Venice Forge — unofficial third-party client for the Venice API"
-                  className="h-8 w-auto"
-                  style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.2))" }}
-                />
-              </div>
-            )}
-            {state.sidebarCollapsed && (
-              <div className="mb-4 flex justify-center">
-                <img
-                  src="./assets/branding/venice-keys-red.svg"
-                  alt="Venice"
-                  title="Venice keys mark — used for API compatibility identification. Venice Forge is unofficial."
-                  className="h-10 w-10"
-                  style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.2))" }}
-                />
-              </div>
-            )}
-            <button
-              onClick={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
-              className="mb-4 flex h-8 w-8 items-center justify-center rounded-lg text-text-muted hover:bg-surface-elevated hover:text-text-primary transition-colors"
-              title={state.sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              aria-label={state.sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {state.sidebarCollapsed ? <PanelLeftOpenIcon size={16} /> : <PanelLeftCloseIcon size={16} />}
-            </button>
-          </div>
-
-          {/* Brand mark in expanded mode */}
-          {!state.sidebarCollapsed && (
-            <div className="mb-3 flex items-center gap-2 px-2">
-              <div className="grid h-8 w-8 place-items-center rounded-lg bg-accent/10 text-accent">
-                <SparklesIcon size={16} />
-              </div>
-              <span className="text-xs font-semibold text-text-muted">Venice Forge</span>
+    <VeniceShell state={state} dispatch={dispatch} apiKeyConfigured={apiKeyConfigured}>
+      {/* Workspace Content */}
+      <main className="relative flex min-w-0 flex-1 flex-col overflow-y-auto bg-transparent">
+        <ErrorBoundary onReset={() => dispatch({ type: "SET_TAB", tab: "chat" })}>
+          {isElectron() && apiKeyConfigured === false && (
+            <div className="m-4 rounded-xl border border-warning/30 bg-warning/10 p-4 text-sm leading-relaxed text-warning shadow-sm">
+              Venice Forge needs a Venice API key before model, chat, image, video, batch, and research requests can run. Add it in Config, then use Test connection.
             </div>
           )}
 
-          <nav className={`flex flex-col gap-2 ${state.sidebarCollapsed ? "items-center" : ""}`}>
+          {/* Mobile horizontal tabs (small screens only) */}
+          <nav className="sticky top-0 z-10 flex gap-3 overflow-x-auto border-b border-border/40 bg-bg p-4 md:hidden">
             {TABS.map(([id, label]) => (
-              <TabButton
+              <button
                 key={id}
-                id={id}
-                label={label}
-                active={state.activeTab === id}
-                onClick={(tab) => dispatch({ type: "SET_TAB", tab })}
-                iconOnly={state.sidebarCollapsed}
-                className={state.sidebarCollapsed ? "h-16 w-16 !p-2" : ""}
-              />
+                onClick={() => dispatch({ type: "SET_TAB", tab: id })}
+                className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                  state.activeTab === id
+                    ? "bg-accent/20 text-accent-fg border border-accent/30"
+                    : "bg-transparent text-text-secondary hover:bg-surface-elevated hover:text-text-primary"
+                }`}
+              >
+                {label}
+              </button>
             ))}
           </nav>
-          <div className={`rounded-xl border border-border/40 bg-surface space-y-2 ${state.sidebarCollapsed ? "p-2 flex flex-col items-center gap-2" : "p-4"}`}>
-            {!state.sidebarCollapsed && (
-              <>
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-text-muted">System</div>
-                  <div className="mt-1 text-xs text-text-secondary">{isElectron() ? "IPC Transport" : "Proxy Active"}</div>
-                </div>
-                <div className="border-t border-border/50 pt-2">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-warning leading-tight">
-                    Unofficial client
-                  </div>
-                  <div className="mt-0.5 text-[10px] text-text-muted leading-tight">
-                    Not affiliated with Venice.ai
-                  </div>
-                </div>
-              </>
-            )}
-            {state.sidebarCollapsed && (
-              <>
-                <div className="grid h-8 w-8 place-items-center rounded-lg bg-surface-elevated text-text-muted" title={isElectron() ? "IPC Transport" : "Proxy Active"}>
-                  <span className="text-xs">{isElectron() ? "🖥" : "🌐"}</span>
-                </div>
-                <div className="grid h-8 w-8 place-items-center rounded-lg bg-warning/10 text-warning" title="Unofficial client — not affiliated with Venice.ai">
-                  <span className="text-xs">⚠</span>
-                </div>
-              </>
-            )}
-          </div>
-        </aside>
-
-        {/* Mobile Nav Rail (tablet width) */}
-        <nav className="hidden w-20 min-w-[80px] flex-col items-center gap-3 border-r border-border/40 bg-bg py-4 md:flex lg:hidden overflow-y-auto">
-          <div className="mb-2 px-2">
-            <img
-              src="./assets/branding/venice-keys-red.svg"
-              alt="Venice"
-              title="Venice keys mark — used for API compatibility identification. Venice Forge is unofficial."
-              className="h-8 w-8"
-              style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.2))" }}
-            />
-          </div>
-          {TABS.map(([id, label]) => (
-            <TabButton
-              key={id}
-              id={id}
-              label={label}
-              active={state.activeTab === id}
-              onClick={(tab) => dispatch({ type: "SET_TAB", tab })}
-              className="h-16 w-16 !p-2"
-              iconOnly
-            />
-          ))}
-        </nav>
-
-        {/* Workspace Content */}
-        <main className="relative flex min-w-0 flex-1 flex-col overflow-y-auto bg-transparent">
-          <ErrorBoundary onReset={() => dispatch({ type: "SET_TAB", tab: "chat" })}>
-            {isElectron() && apiKeyConfigured === false && (
-              <div className="m-4 rounded-xl border border-warning/30 bg-warning/10 p-4 text-sm leading-relaxed text-warning shadow-sm">
-                Venice Forge needs a Venice API key before model, chat, image, video, batch, and research requests can run. Add it in Config, then use Test connection.
-              </div>
-            )}
-            
-            {/* Mobile horizontal tabs (small screens only) */}
-            <nav className="sticky top-0 z-10 flex gap-3 overflow-x-auto border-b border-border/40 bg-bg p-4 md:hidden">
-              {TABS.map(([id, label]) => (
-                <button
-                  key={id}
-                  onClick={() => dispatch({ type: "SET_TAB", tab: id })}
-                  className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all ${
-                    state.activeTab === id 
-                      ? "bg-accent/20 text-accent-fg border border-accent/30" 
-                      : "bg-transparent text-text-secondary hover:bg-surface-elevated hover:text-text-primary"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </nav>
-
             {state.activeTab === "chat" && <ChatModule state={state} dispatch={dispatch} />}
             {state.activeTab === "image" && <ImageModule state={state} dispatch={dispatch} />}
             {state.activeTab === "video" && <VideoModule state={state} dispatch={dispatch} />}
@@ -476,9 +323,14 @@ export default function App() {
             )}
           </ErrorBoundary>
         </main>
-      </div>
-
-      {/* Offline Banner */}
+      <ToastHost state={state} dispatch={dispatch} />
+      <FirstRunModal
+        open={showFirstRun}
+        onAcknowledge={acknowledgeFirstRun}
+        onDismiss={() => {
+          setShowFirstRun(false);
+        }}
+      />
       {!state.isOnline && (
         <div
           role="status"
@@ -488,17 +340,6 @@ export default function App() {
           You are offline. API requests are unavailable until connectivity is restored.
         </div>
       )}
-      <ToastHost state={state} dispatch={dispatch} />
-
-      {/* First-run legal acknowledgment */}
-      <FirstRunModal
-        open={showFirstRun}
-        onAcknowledge={acknowledgeFirstRun}
-        onDismiss={() => {
-          // Non-blocking: user can dismiss without acknowledging, but modal will reappear
-          setShowFirstRun(false);
-        }}
-      />
-    </div>
+    </VeniceShell>
   );
 }

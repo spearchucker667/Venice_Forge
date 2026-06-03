@@ -8,11 +8,12 @@ function makeState(overrides: Partial<AppState> = {}): AppState {
   return {
     selectedChatModel: "venice-uncensored",
     selectedImageModel: "sd-xl",
+    selectedVideoModel: "wan-2.6-text-to-video",
     models: {
       text: [{ id: "m1", name: "Text Model", type: "text" }],
       image: [{ id: "m2", name: "Image Model", type: "image" }],
       audio: [],
-      video: [],
+      video: [{ id: "wan-2.6-text-to-video", name: "Wan Video", type: "video", traits: ["text-to-video"] }],
       embeddings: [],
       unknown: [],
     },
@@ -49,6 +50,21 @@ function makeState(overrides: Partial<AppState> = {}): AppState {
       lastSavedImageId: null,
       currentImages: [],
     },
+    videoDraft: {
+      prompt: "",
+      negative: "",
+      aspectRatio: "16:9",
+      duration: "5s",
+      resolution: "720p",
+      audio: true,
+      videoUrl: "",
+      imageUrl: "",
+      sourceVideoUrl: "",
+      generationProgress: "",
+      queueId: null,
+      status: null,
+      downloadUrl: null,
+    },
     batchDraft: { type: "text", promptsText: "" },
     online: true,
     ...overrides,
@@ -72,5 +88,7 @@ describe("ModelsModule", () => {
     render(<ModelsModule state={makeState()} dispatch={dispatch} />);
     expect(screen.getByText("Current chat model")).toBeInTheDocument();
     expect(screen.getByText("Current image model")).toBeInTheDocument();
+    expect(screen.getByText("Current video model")).toBeInTheDocument();
+    expect(screen.getAllByText("wan-2.6-text-to-video").length).toBeGreaterThan(0);
   });
 });

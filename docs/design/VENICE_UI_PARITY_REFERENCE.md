@@ -22,17 +22,19 @@
 - **Common gaps:** 8px to 16px.
 
 ## 4. Colors (Dark Mode Targets)
-- **App background:** `#050A0F` (rgb(5, 10, 15))
-- **Sidebar background:** `#050A0F` (or similar deep shade, matches app background or slightly offset)
-- **Surface:** `#080F15`
-- **Surface Elevated:** `#111922`
-- **Border:** `#1B2632` (or subtle white/gray alpha like `rgba(255, 255, 255, 0.3)`)
-- **Primary text:** `#F4F6F8` (approximate to captured `rgb(238, 237, 228)`)
+- **App background:** `#080A0F` (rgb(8, 10, 15))
+- **Sidebar background:** `#080A0F` (same continuous app canvas)
+- **Surface:** `#111318`
+- **Surface Elevated:** `#181A20`
+- **Hover/active:** `#1E2028`
+- **Input/control:** `#252830`
+- **Border:** `#2A2D35`
+- **Primary text:** `#F7F5ED`
 - **Secondary text:** `#A6B0BC`
-- **Muted text:** `#687483` (approximate to captured `rgb(153, 161, 175)`)
-- **Green credit/status (Success):** `#74D66A`
-- **Purple badge:** TBD based on context (often `#9F7AEA` or similar).
-- **Blue accent:** `#63B3ED` (rgb(99, 179, 237) observed on focus/composer borders) or `#2563EB`.
+- **Muted text:** `#687483`
+- **Green credit/status (Success):** `#22C55E`
+- **Purple badge:** `#4B3F72` background with `#C4B5FD` text.
+- **Blue accent:** `#125DA3`, hover/focus `#3C8FDD`.
 
 ## 5. Typography
 - **Approximate font stack:** `-apple-system, "system-ui", "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"`. The API page uses `__aeonik_625d6f`. We will stick to the standard system sans-serif or the project's default sans stack for parity without loading heavy custom webfonts unless Aeonik is available.
@@ -54,9 +56,7 @@
 - **Chips/badges/buttons:** Small border radii (`8px` to `12px` observed), subtle backgrounds.
 
 ## 7. Implementation Mapping
-- **New Theme:** Add `builtin-venice` (Venice Parity Dark) to `src/theme/themes.ts`.
-- **Shell:** Refactor `src/App.tsx` and `src/components/Sidebar.tsx` (or equivalent).
-- **Reusable Primitives:** 
-  - Need to create/update components in `src/components/` to match.
-  - E.g., `VenicePill`, `VeniceComposer`, `VeniceToolbar`.
-- **Modules:** Overhaul layout in `ChatModule.tsx`, `ImageModule.tsx` (Studio), `BatchModule.tsx`, etc.
+- **Theme tokens:** `src/styles/theme.css` now uses the ZIP's dark app colors as the default dark canvas.
+- **Shell/sidebar:** `src/components/VeniceShell.tsx`, `src/components/VeniceSidebar.tsx`, and `src/components/TabButton.tsx` use a continuous 260px dark rail, compact rounded nav rows, and subtle active states.
+- **Catalog:** `src/modules/ModelsModule.tsx` uses compact model cards with type/capability badges and direct model selection.
+- **Video support:** `src/modules/VideoModule.tsx`, `src/components/VideoGenerationForm.tsx`, and `src/services/videoGenerationService.ts` restore first-class video model selection and async queue flow.

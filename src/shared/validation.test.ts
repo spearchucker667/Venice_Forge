@@ -50,6 +50,8 @@ describe("validation", () => {
       expect(isAllowedVeniceRequest("/models", "GET")).toBe(true);
       expect(isAllowedVeniceRequest("/chat/completions", "POST")).toBe(true);
       expect(isAllowedVeniceRequest("/image/generate", "POST")).toBe(true);
+      expect(isAllowedVeniceRequest("/video/queue", "POST")).toBe(true);
+      expect(isAllowedVeniceRequest("/video/retrieve", "POST")).toBe(true);
     });
 
     it("returns false for wrong method", () => {

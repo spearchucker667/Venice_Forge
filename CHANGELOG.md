@@ -9,6 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 ## [Unreleased]
 
 ### Added
+- **Venice UI reference integration and video restoration:** Applied the ZIP reference as maintainable tokens/layout patterns instead of bundling reference assets, restored the Video tab, video model state, async queue client, `/video/*` allowlist, and regression tests that keep video models visible/selectable.
 - **UI/UX Refresh:** Collapsible sidebar, Dracula theme, Lucide icons, font refresh, and improved attachment UX.
   - Collapsible desktop sidebar with `PanelLeftClose`/`PanelLeftOpen` toggle, brand mark with `Sparkles` icon, and `localStorage` persistence.
   - New built-in **Forge Dracula** theme with Dracula-inspired palette (dark bg `#282a36`, purple/pink accents, WCAG AA compliant).

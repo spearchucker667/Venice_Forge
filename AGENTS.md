@@ -92,6 +92,10 @@ POST /image/upscale
 POST /augment/search
 POST /augment/scrape
 POST /augment/text-parser
+POST /video/queue
+POST /video/retrieve
+POST /video/quote
+POST /video/complete
 ```
 
 **Startup invariant:** `FUZZY_ALLOWLIST ∩ CSAM_GENRE_LABELS = ∅` — adding a CSAM label to the allowlist throws at module load.
@@ -102,7 +106,7 @@ POST /augment/text-parser
 
 | Path | Purpose |
 |------|---------|
-| `src/modules/` | One file per tab: Chat, Image, Batch, SearchScrape, Models, Gallery, Settings, Diagnostics |
+| `src/modules/` | One file per tab: Chat, Image, Video, Batch, SearchScrape, Models, Gallery, Settings, Diagnostics |
 | `src/services/veniceClient.ts` | Single Venice API entry point |
 | `src/services/desktopBridge.ts` | Electron-vs-web transport abstraction; use this instead of `window.veniceForge` |
 | `src/shared/safety/` | Content safety guard (`assessChildExploitationSafety`, `recordDecision`) |

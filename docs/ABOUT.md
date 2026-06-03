@@ -70,7 +70,7 @@ Web mode (development only):
 |-----|---------|
 | Prompt | Streaming chat with Venice text models |
 | Create | Image generation with upscaling and gallery save |
-| Video | Generate and queue AI videos asynchronously via the Venice API |
+| Video | Generate and queue text-to-video, image-to-video, and video-upscale jobs asynchronously via the Venice API |
 | Batch | Sequential prompt runs over multiple inputs |
 | Research | Multi-provider web search, page scraping, AI research synthesis, and public-profile discovery (Venice, Jina AI, or Generic HTTP) |
 | Catalog | Live model browser (type, traits, capability) |

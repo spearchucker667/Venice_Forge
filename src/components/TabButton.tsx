@@ -31,16 +31,16 @@ export function TabButton({
     }
   }
 
-  const baseClasses = "group relative flex items-center gap-3.5 rounded-xl border border-transparent bg-transparent text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] focus:outline-none w-full overflow-hidden";
+  const baseClasses = "group relative flex items-center gap-3 rounded-lg border border-transparent bg-transparent text-sm font-medium transition-colors duration-150 focus:outline-none w-full overflow-hidden";
   const layoutClasses = iconOnly
     ? "flex-col justify-center h-16 p-3 text-[11px] font-bold uppercase tracking-wider"
-    : "px-5 py-3.5 text-left";
+    : "px-3 py-[7px] text-left";
 
   const stateClasses = active
-    ? "text-text-primary bg-surface-elevated font-semibold"
-    : "text-text-secondary hover:text-text-primary hover:bg-surface-elevated/50";
+    ? "text-text-primary bg-surface-elevated font-medium"
+    : "text-text-muted hover:text-text-secondary hover:bg-surface-elevated";
 
-  const iconBase = "grid place-items-center w-5 text-base transition-all duration-300";
+  const iconBase = "grid place-items-center w-5 text-base transition-colors duration-150";
   const iconState = active
     ? "text-text-primary"
     : "group-hover:text-text-primary";

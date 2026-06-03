@@ -44,6 +44,7 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
   const [status, setStatus] = useState("");
   const [statusError, setStatusError] = useState("");
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
+  const [activeSection, setActiveSection] = useState("api-keys");
 
   // Desktop-only: API key entry
   const [apiKeyInput, setApiKeyInput] = useState("");
@@ -415,9 +416,72 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Rail Navigation */}
+        <div className="w-56 border-r border-border/40 bg-surface/30 p-4 space-y-1 overflow-y-auto hidden md:block">
+          {[
+            { id: "api-keys", label: "API Keys" },
+            { id: "defaults", label: "Defaults & Behavior" },
+            { id: "appearance", label: "Appearance" },
+            { id: "data", label: "Data & Storage" },
+            { id: "about", label: "About & Legal" }
+          ].map(section => (
+            <button
+              key={section.id}
+              onClick={() => setActiveSection(section.id)}
+              className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                activeSection === section.id
+                  ? "bg-accent/20 text-accent-fg border border-accent/30"
+                  : "text-text-secondary hover:bg-surface-elevated hover:text-text-primary"
+              }`}
+            >
+              {section.label}
+            </button>
+          ))}
+          {isElectron() && (
+            <button
+              onClick={() => setActiveSection("updates")}
+              className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                activeSection === "updates"
+                  ? "bg-accent/20 text-accent-fg border border-accent/30"
+                  : "text-text-secondary hover:bg-surface-elevated hover:text-text-primary"
+              }`}
+            >
+              Updates
+              {updateDownloaded && <span className="ml-2 inline-flex w-2 h-2 rounded-full bg-success"></span>}
+            </button>
+          )}
+        </div>
 
-        {/* API key management */}
+        {/* Mobile Navigation (horizontal scroll) */}
+        <div className="md:hidden flex-none border-b border-border/40 bg-surface/30 px-4 py-2 flex gap-2 overflow-x-auto">
+          {[
+            { id: "api-keys", label: "API Keys" },
+            { id: "defaults", label: "Defaults" },
+            { id: "appearance", label: "Appearance" },
+            { id: "data", label: "Data" },
+            { id: "about", label: "About" },
+            ...(isElectron() ? [{ id: "updates", label: "Updates" }] : [])
+          ].map(section => (
+            <button
+              key={section.id}
+              onClick={() => setActiveSection(section.id)}
+              className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                activeSection === section.id
+                  ? "bg-accent/20 text-accent-fg border border-accent/30"
+                  : "text-text-secondary hover:bg-surface-elevated hover:text-text-primary"
+              }`}
+            >
+              {section.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 max-w-4xl">
+          <StatusBlock success={status} error={statusError} />
+
+          {activeSection === "api-keys" && (
+            <div className="space-y-6">
         {isElectron() ? (
           <div className="rounded-2xl border border-border/40 bg-surface p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
@@ -508,9 +572,11 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
             </div>
           </div>
         )}
+        </div>
+        )}
 
         {/* Application Updates (Desktop-only) */}
-        {isElectron() && (
+        {activeSection === "updates" && isElectron() && (
           <div className="rounded-2xl border border-border/40 bg-surface p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-text-primary">Application Updates</h3>
@@ -543,7 +609,9 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {activeSection === "defaults" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Field label="Default web search">
             <select
               value={webSearch}
@@ -613,11 +681,6 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
           />
         </Field>
 
-        <div className="rounded-2xl border border-border/40 bg-surface p-6 shadow-xl">
-          <h3 className="text-lg font-medium text-text-primary mb-4">Appearance</h3>
-          <ThemeMaker state={state} dispatch={dispatch} />
-        </div>
-
         <div className="flex flex-wrap gap-6 p-4 rounded-xl border border-border/50 bg-surface-elevated/40 backdrop-blur-sm">
           <label className="flex items-center gap-3 cursor-pointer group">
             <input
@@ -648,27 +711,48 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
           </label>
         </div>
 
-        <StatusBlock success={status} error={statusError} />
-
         <div className="flex flex-wrap gap-3 pt-6 border-t border-border/50">
           <button className="btn primary" onClick={saveDefaults}>
             Save settings
           </button>
-          <button className="btn" onClick={clearSettings}>
-            Clear local settings
-          </button>
-          <button className="btn danger" onClick={clearAllHistory}>
-            Clear IndexedDB history
-          </button>
-          <button className="btn" onClick={exportData}>
-            Export data
-          </button>
-          <button className="btn" onClick={importData}>
-            Import data
-          </button>
         </div>
+        </div>
+        )}
 
-        <div className="rounded-2xl border border-border/40 bg-surface p-6 shadow-xl space-y-5">
+        {activeSection === "appearance" && (
+          <div className="rounded-2xl border border-border/40 bg-surface p-6 shadow-xl">
+            <h3 className="text-lg font-medium text-text-primary mb-4">Appearance</h3>
+            <ThemeMaker state={state} dispatch={dispatch} />
+          </div>
+        )}
+
+        {activeSection === "data" && (
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-border/40 bg-surface p-6 shadow-xl">
+              <h3 className="text-lg font-medium text-text-primary mb-4">Data Management</h3>
+              <div className="text-sm text-text-secondary mb-6 bg-surface/50 rounded-lg p-3 border border-border/50">
+                Manage your local IndexedDB storage, export backups, and restore data.
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <button className="btn" onClick={clearSettings}>
+                  Clear local settings
+                </button>
+                <button className="btn danger" onClick={clearAllHistory}>
+                  Clear IndexedDB history
+                </button>
+                <button className="btn" onClick={exportData}>
+                  Export data
+                </button>
+                <button className="btn" onClick={importData}>
+                  Import data
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "about" && (
+          <div className="rounded-2xl border border-border/40 bg-surface p-6 shadow-xl space-y-5">
           <div className="flex items-center gap-3">
             <img
               src="./assets/branding/venice-logo-lockup-red.svg"
@@ -727,6 +811,8 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
               Reset legal acknowledgment
             </button>
           </div>
+        </div>
+        )}
         </div>
       </div>
 

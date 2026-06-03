@@ -11,8 +11,8 @@ export interface QueueVideoRequest {
   aspect_ratio?: string;
   resolution?: string;
   audio?: boolean;
-  video_url?: string;
   image_url?: string;
+  video_url?: string;
   negative_prompt?: string;
 }
 
@@ -48,9 +48,7 @@ function blobFromDataUrl(dataUrl: string): Blob | null {
   return new Blob([decodeBase64(base64)], { type: mimeType || "video/mp4" });
 }
 
-/**
- * Queues a new video generation request.
- */
+/** Queues a new Venice video generation request. */
 export async function queueVideoGeneration(
   payload: QueueVideoRequest,
   options: { signal?: AbortSignal; dispatch?: AppDispatch } = {}
@@ -66,8 +64,8 @@ export async function queueVideoGeneration(
 
 /**
  * Retrieves the status or completed content of a queued video.
- * Note: veniceFetch normalizes binary video responses to `{ dataUrl }` (web)
- * or `{ dataBase64 }` (desktop), so this helper decodes those payloads to Blob.
+ * veniceFetch normalizes binary video responses to `{ dataUrl }` in web mode
+ * or `{ dataBase64 }` in Electron mode, so this helper decodes those payloads.
  */
 export async function retrieveVideoGeneration(
   model: string,

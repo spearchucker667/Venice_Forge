@@ -961,12 +961,13 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
 
         {/* Messages + Settings */}
         <div
-          className="flex-1 overflow-y-auto flex flex-col gap-2 min-h-0 px-3 py-2"
+          className="flex-1 overflow-y-auto flex flex-col min-h-0"
           onDrop={handleFileDrop}
           onDragOver={(e) => e.preventDefault()}
         >
-          {/* Model & Settings — kept for test parity */}
-          <CollapsibleSection title="Model & Settings">
+          <div className="flex-1 flex flex-col w-full max-w-4xl mx-auto px-4 py-6 gap-6">
+            {/* Model & Settings — kept for test parity */}
+            <CollapsibleSection title="Model & Settings">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-1">
               <Field label="Model">
                 <ModelSelect
@@ -1120,17 +1121,17 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
           </CollapsibleSection>
 
           {/* Message list */}
-          <div className="flex-1 space-y-2" aria-live="polite">
+          <div className="flex-1 space-y-6" aria-live="polite">
             {messages.map((m, idx) => (
               <div
                 key={m.id || `${m.role}-${m.content?.slice(0, 8)}`}
                 className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"} group`}
               >
                 <div
-                  className={`max-w-[90%] relative ${
+                  className={`relative w-full ${
                     m.role === "user"
-                      ? "bg-accent/15 rounded-r-lg rounded-bl-lg px-3 py-2"
-                      : "border-l-2 border-accent pl-3 pr-2 py-2"
+                      ? "bg-surface-elevated rounded-xl px-4 py-3"
+                      : "pl-2 pr-2 py-2"
                   }`}
                 >
                   {/* Fork checkbox */}
@@ -1198,10 +1199,12 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
             ))}
             <div ref={endRef}></div>
           </div>
+          </div>
         </div>
 
-        {/* Input zone */}
-        <div className="flex-none border-t border-border/50 bg-bg/50">
+        {/* Input zone - Centered Hero Composer */}
+        <div className="flex-none bg-gradient-to-t from-bg via-bg to-transparent pt-4 pb-6 px-4">
+          <div className="w-full max-w-3xl mx-auto bg-surface-elevated border border-border rounded-2xl shadow-lg flex flex-col overflow-hidden">
           {/* Attachment tray */}
           <AttachmentTray
             attachments={attachments}
@@ -1413,6 +1416,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
             >
               Import
             </button>
+          </div>
           </div>
         </div>
       </div>
