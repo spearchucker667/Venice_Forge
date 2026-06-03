@@ -60,7 +60,7 @@ Expected artifacts:
 Signing is optional for local development. Configure electron-builder-compatible signing with `CSC_LINK`/`CSC_KEY_PASSWORD` or `WIN_CSC_LINK`/`WIN_CSC_KEY_PASSWORD` for distribution. Unsigned builds may trigger SmartScreen.
 
 ### macOS
-Local builds are ad-hoc signed. To distribute, you must configure macOS code signing (using `CSC_LINK` and `CSC_KEY_PASSWORD` containing a Developer ID Application certificate) and submit the build to Apple's notary service using notarization parameters. Unsigned/ad-hoc signed builds will trigger Gatekeeper warnings unless stripped of their quarantine flags via `xattr -dr com.apple.quarantine`.
+Local macOS builds are unsigned unless valid signing credentials are supplied. Unsigned local builds will trigger Gatekeeper warnings and are not notarized.
 
 ## GitHub Actions
 

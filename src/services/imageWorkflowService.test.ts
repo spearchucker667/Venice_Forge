@@ -70,7 +70,28 @@ describe("downloadAllGallery", () => {
     );
 
     expect(onProgress).toHaveBeenCalledWith(1, 1);
-    expect(addToast).toHaveBeenLastCalledWith("Saved 0 images (1 failed).", "success");
+    expect(addToast).toHaveBeenLastCalledWith("Saved 0 items (1 failed).", "success");
+  });
+
+  it("handles empty gallery gracefully", async () => {
+    const addToast = vi.fn();
+    await downloadAllGallery([], addToast);
+    expect(addToast).toHaveBeenCalledWith("No media to download.", "info");
+  });
+
+  it("reports correctly when some fail and some succeed", async () => {
+    vi.mocked(downloadImage)
+      .mockResolvedValueOnce({ confirmed: true, usedFallback: false })
+      .mockResolvedValueOnce({ confirmed: false, usedFallback: true });
+
+    const addToast = vi.fn();
+    const items = [
+      { id: "1", image: "a", model: "m", timestamp: 1, mediaType: "image" as const },
+      { id: "2", image: "b", model: "m", timestamp: 1, mediaType: "image" as const }
+    ];
+    await downloadAllGallery(items, addToast);
+    
+    expect(addToast).toHaveBeenLastCalledWith("Saved 1 items (1 failed).", "success");
   });
 
   it("stops downloading when cancelSignal is triggered", async () => {

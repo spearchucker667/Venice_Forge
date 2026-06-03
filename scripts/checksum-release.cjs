@@ -12,9 +12,16 @@ if (!fs.existsSync(releaseDir)) {
 }
 
 const files = fs.readdirSync(releaseDir);
-const artifacts = files.filter(
-  (f) => f.endsWith(".exe") || f.endsWith(".dmg") || f.endsWith(".zip")
-);
+const artifacts = files.filter((f) => {
+  if (f.endsWith(".sha256")) return false;
+  return (
+    f.endsWith(".exe") ||
+    f.endsWith(".dmg") ||
+    f.endsWith(".zip") ||
+    f.endsWith(".yml") ||
+    f.endsWith(".blockmap")
+  );
+});
 
 if (artifacts.length === 0) {
   console.log("[checksum:release] No release artifacts found to checksum.");

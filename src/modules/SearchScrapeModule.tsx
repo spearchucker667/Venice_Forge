@@ -43,12 +43,12 @@ const ALL_PLATFORMS = [
   "personal website",
 ];
 
-/** Allow only http/https URLs; return "#" for anything else (javascript:, data:, etc.). */
+/** Allow only https URLs to match Electron external-link policy; return "#" for anything else. */
 export function safeHref(url: string | undefined): string {
   if (!url) return "#";
   try {
     const parsed = new URL(url);
-    return parsed.protocol === "https:" || parsed.protocol === "http:" ? url : "#";
+    return parsed.protocol === "https:" ? url : "#";
   } catch {
     return "#";
   }

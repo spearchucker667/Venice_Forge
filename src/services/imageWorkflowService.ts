@@ -150,25 +150,26 @@ export async function downloadAllGallery(
   const { onProgress, cancelSignal } = options;
 
   if (!items.length) {
-    addToast("No images to download.", "info");
+    addToast("No media to download.", "info");
     return;
   }
 
   const max = Math.min(items.length, 50);
   if (items.length > 50) {
-    addToast("Downloading first 50 images. Large downloads may take time.", "info");
+    addToast("Downloading first 50 items. Large downloads may take time.", "info");
   }
 
   let downloaded = 0;
   let failed = 0;
   for (let i = 0; i < max; i++) {
     if (cancelSignal?.current) {
-      addToast(`Download cancelled. Saved ${downloaded} of ${max} images.`, "info");
+      addToast(`Download cancelled. Saved ${downloaded} of ${max} items.`, "info");
       return;
     }
     const item = items[i];
     try {
-      const result = await downloadImage(item.image, galleryFilename(item));
+      const mediaSrc = item.mediaType === "video" ? (item.downloadUrl || item.image) : item.image;
+      const result = await downloadImage(mediaSrc, galleryFilename(item));
       if (result.confirmed) {
         downloaded++;
       } else {
@@ -182,5 +183,5 @@ export async function downloadAllGallery(
       await new Promise((resolve) => setTimeout(resolve, 300));
     }
   }
-  addToast(`Saved ${downloaded} images${failed ? ` (${failed} failed)` : ''}.`, "success");
+  addToast(`Saved ${downloaded} items${failed ? ` (${failed} failed)` : ''}.`, "success");
 }

@@ -2,7 +2,7 @@
 // Image generation module — orchestrates params, preview, and history.
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import StorageService from "../services/storageService";
-import { extractImages, galleryFilename } from "../utils/image";
+import { extractImages, galleryFilename, blobToDataUrl } from "../utils/image";
 import { downloadImage } from "../utils/download";
 import {
   upscaleGalleryImage,
@@ -171,7 +171,7 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
             aspect_ratio: draft.aspectRatio,
             safe_mode: draft.safeMode
           }, { signal, dispatch });
-          generatedImage = URL.createObjectURL(blob);
+          generatedImage = await blobToDataUrl(blob);
         } else if (draft.imageMode === "image-multi-edit") {
           const blob = await multiEditImage({
             modelId: state.selectedImageModel,
@@ -180,13 +180,13 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
             aspect_ratio: draft.aspectRatio,
             safe_mode: draft.safeMode
           }, { signal, dispatch });
-          generatedImage = URL.createObjectURL(blob);
+          generatedImage = await blobToDataUrl(blob);
         } else if (draft.imageMode === "image-upscale") {
           const blob = await upscaleImage({
             image: draft.imageUrl,
             scale: draft.upscaleFactor,
           }, { signal, dispatch });
-          generatedImage = URL.createObjectURL(blob);
+          generatedImage = await blobToDataUrl(blob);
         }
 
         const saved = await saveRecordService(dispatch, {

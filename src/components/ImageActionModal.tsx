@@ -47,9 +47,12 @@ export function ImageActionModal({
 
   if (!image) return null;
 
-  const promptText = image.prompt?.trim() || "Generated image";
+  const promptText = image.prompt?.trim() || "Generated media";
   const truncatedAlt =
     promptText.length > 120 ? promptText.slice(0, 117) + "…" : promptText;
+
+  const isVideo = image.mediaType === "video";
+  const mediaSrc = isVideo ? (image.downloadUrl || image.image) : image.image;
 
   return (
     <div
@@ -66,15 +69,26 @@ export function ImageActionModal({
         aria-modal="true"
         aria-labelledby="modal-title"
       >
-        {/* Image pane */}
+        {/* Image/Video pane */}
         <div className="flex flex-1 items-center justify-center overflow-hidden bg-surface/60 md:max-w-[55%]">
-          <img src={image.image} alt={truncatedAlt} className="max-h-[60vh] w-full object-contain md:max-h-full" />
+          {isVideo ? (
+            <video
+              src={mediaSrc}
+              className="max-h-[60vh] w-full object-contain md:max-h-full"
+              controls
+              playsInline
+            />
+          ) : (
+            <img src={mediaSrc} alt={truncatedAlt} className="max-h-[60vh] w-full object-contain md:max-h-full" />
+          )}
         </div>
 
         {/* Details pane */}
         <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-6">
           <div className="flex items-center justify-between">
-            <h2 id="modal-title" className="text-lg font-display font-semibold text-text-primary">Image details</h2>
+            <h2 id="modal-title" className="text-lg font-display font-semibold text-text-primary">
+              {isVideo ? "Video details" : "Image details"}
+            </h2>
             <button className="btn" onClick={onClose} aria-label="Close modal">Close</button>
           </div>
 
@@ -122,15 +136,17 @@ export function ImageActionModal({
             <button ref={downloadRef} className="btn" onClick={onDownload}>
               Download
             </button>
+            {!isVideo && (
+              <button
+                className="btn primary"
+                onClick={onUpscale}
+                disabled={isUpscaling || image.upscaled}
+              >
+                {isUpscaling ? "Upscaling..." : image.upscaled ? "Already upscaled" : "Enhance & upscale"}
+              </button>
+            )}
             <button
-              className="btn primary"
-              onClick={onUpscale}
-              disabled={isUpscaling || image.upscaled}
-            >
-              {isUpscaling ? "Upscaling..." : image.upscaled ? "Already upscaled" : "Enhance & upscale"}
-            </button>
-            <button
-              className="btn danger col-span-2"
+              className={`btn danger ${!isVideo ? "col-span-2" : ""}`}
               onClick={onDelete}
             >
               Delete

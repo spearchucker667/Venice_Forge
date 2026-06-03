@@ -36,24 +36,25 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
     setSelectedIds(next);
   }
 
-  function removeImage(id: string) {
+  function removeImage(item: GalleryImage) {
+    const mediaLabel = item.mediaType === "video" ? "video" : "image";
     confirm(
-      "Delete this image?",
-      "This image will be permanently removed from the gallery. This cannot be undone.",
+      `Delete this ${mediaLabel}?`,
+      `This ${mediaLabel} will be permanently removed from the gallery. This cannot be undone.`,
       async () => {
-        await StorageService.deleteItem("images", id);
+        await StorageService.deleteItem("images", item.id);
         const items = await StorageService.getItems<GalleryImage>("images");
         dispatch({ type: "SET_GALLERY", items });
-        if (expanded?.id === id) setExpanded(null);
-        if (selectedIds.has(id)) toggleSelection(id);
+        if (expanded?.id === item.id) setExpanded(null);
+        if (selectedIds.has(item.id)) toggleSelection(item.id);
       }
     );
   }
 
   function clearImages() {
     confirm(
-      "Delete ALL gallery images?",
-      "Every saved image will be permanently deleted from IndexedDB. This cannot be undone.",
+      "Delete ALL gallery media?",
+      "Every saved item will be permanently deleted from IndexedDB. This cannot be undone.",
       async () => {
         await StorageService.clearStore("images");
         dispatch({ type: "SET_GALLERY", items: [] });
@@ -65,8 +66,8 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
 
   function deleteSelected() {
     confirm(
-      `Delete ${selectedIds.size} selected images?`,
-      "These images will be permanently removed from the gallery. This cannot be undone.",
+      `Delete ${selectedIds.size} selected items?`,
+      "These items will be permanently removed from the gallery. This cannot be undone.",
       async () => {
         for (const id of selectedIds) {
            await StorageService.deleteItem("images", id);
@@ -305,13 +306,17 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
                       <div className="text-sm text-text-secondary line-clamp-2" title={item.prompt}>{item.prompt}</div>
                       <div className="flex flex-wrap gap-2 pt-2 mt-auto">
                         <button className="btn sm" onClick={async () => {
-                          await downloadImage(item.image, galleryFilename(item));
-                          dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Downloaded image", type: "info" } });
+                          const mediaSrc = item.mediaType === "video" ? (item.downloadUrl || item.image) : item.image;
+                          const mediaLabel = item.mediaType === "video" ? "video" : "image";
+                          await downloadImage(mediaSrc, galleryFilename(item));
+                          dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: `Downloaded ${mediaLabel}`, type: "info" } });
                         }}>Download</button>
-                        <button className="btn sm" onClick={() => upscale(item)} disabled={upscalingId === item.id || item.image?.startsWith("http") || item.upscaled}>
-                          {upscalingId === item.id ? "Enhancing…" : "Enhance"}
-                        </button>
-                        <button className="btn danger sm ml-auto" onClick={() => removeImage(item.id)}>Delete</button>
+                        {item.mediaType !== "video" && (
+                          <button className="btn sm" onClick={() => upscale(item)} disabled={upscalingId === item.id || item.image?.startsWith("http") || item.upscaled}>
+                            {upscalingId === item.id ? "Enhancing…" : "Enhance"}
+                          </button>
+                        )}
+                        <button className="btn danger sm ml-auto" onClick={() => removeImage(item)}>Delete</button>
                       </div>
                     </div>
                   </div>
@@ -392,11 +397,13 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
         onClose={() => setExpanded(null)}
         onDownload={async () => {
           if (!expanded) return;
-          await downloadImage(expanded.image, galleryFilename(expanded));
-          dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Downloaded image", type: "info" } });
+          const mediaSrc = expanded.mediaType === "video" ? (expanded.downloadUrl || expanded.image) : expanded.image;
+          const mediaLabel = expanded.mediaType === "video" ? "video" : "image";
+          await downloadImage(mediaSrc, galleryFilename(expanded));
+          dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: `Downloaded ${mediaLabel}`, type: "info" } });
         }}
         onUpscale={() => expanded && upscale(expanded)}
-        onDelete={() => expanded && removeImage(expanded.id)}
+        onDelete={() => expanded && removeImage(expanded)}
       />
 
       <ConfirmModal

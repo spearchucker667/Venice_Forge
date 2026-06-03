@@ -57,7 +57,7 @@ Eight integrated tabs covering chat, image generation, batch automation, researc
 | 📚 | **Catalog** | Browse live Venice model catalog with capability details; auto-refresh on API key save. App requires a Venice API key for live model discovery |
 | 🏞️ | **Library** | Local image gallery, saved chat files, and conversation history — with bulk multi-select download, deletion, and upscale |
 | ⚙️ | **Config** | API key management, theme editor (Forge Graphite, Daylight, Copper, Dracula) with custom JSON export/import, model defaults, data import/export |
-| 📊 | **Diagnostics** | Transport mode, runtime info, rate-limit headers, and log viewer |
+| 📊 | **Diagnostics** | Transport mode, runtime info, rate-limit headers, sanitized diagnostics export, and a desktop-only “Open logs folder” action |
 
 ---
 
@@ -198,7 +198,9 @@ For detailed signing and notarization steps, see [docs/RELEASE/signing-and-notar
 - Privacy: Secret-like fields are automatically stripped before export
 - Safety: A backup is always saved before import
 
-**Web Mode Only:** API keys are never stored locally; they live in `.env` on the server and are not accessible to the renderer.
+**Web Mode (Venice key):** The Venice API key lives in the Express server `.env` and is not exposed to the browser.  
+**Desktop Mode (Venice and Jina keys):** Both keys are stored via OS secure storage and are not exposed to the renderer.  
+**Web Mode (optional Jina override):** Development-only browser `localStorage` overrides may be used for low-volume Jina testing, but this is not secure storage and should not be documented as equivalent to desktop key isolation.
 
 ---
 
@@ -206,7 +208,7 @@ For detailed signing and notarization steps, see [docs/RELEASE/signing-and-notar
 
 **Core Security Principles:**
 1. **API key isolation** — Renderer cannot access raw keys (stored in OS secure storage)
-2. **Venice endpoint allowlist** — Only 7 approved Venice endpoints are callable
+2. **Venice endpoint allowlist** — Only the approved endpoints defined in `src/shared/validation.ts` are callable. The current allowlist includes chat, model discovery, search/scrape/text-parser, image generate/edit/upscale/multi-edit, and video queue/retrieve/quote/complete endpoints.
 3. **Content safety guard** — Every outgoing request is scanned for unsafe content before leaving the app
 4. **No telemetry** — Venice Forge collects zero analytics or tracking data
 5. **Trusted URL validation** — External links must be HTTPS with non-private hostnames
@@ -217,7 +219,7 @@ For detailed signing and notarization steps, see [docs/RELEASE/signing-and-notar
 - Fail-close design: errors result in 500 status (safe default)
 - Raw prompt text is never logged anywhere
 
-**For full details**, see [SECURITY.md](SECURITY.md) and [PRIVACY.md](PRIVACY.md).
+**For full details**, see [SECURITY.md](SECURITY.md) and [docs/legal/PRIVACY.md](docs/legal/PRIVACY.md).
 
 ---
 
@@ -281,9 +283,9 @@ All documentation is in the [docs](docs/) directory. Quick index:
 ### Legal & Governance
 - **[SECURITY.md](SECURITY.md)** — Security policy and vulnerability disclosure
 - **[docs/LEGAL.md](docs/LEGAL.md)** — Legal terms, disclaimers, and TOS
-- **[PRIVACY.md](PRIVACY.md)** — Privacy policy and data handling
+- **[docs/legal/PRIVACY.md](docs/legal/PRIVACY.md)** — Privacy policy and data handling
 - **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — Community standards
-- **[SUPPORT.md](SUPPORT.md)** — Support channels and issue routing
+- **[docs/SUPPORT.md](docs/SUPPORT.md)** — Support channels and issue routing
 
 ---
 
@@ -332,7 +334,7 @@ We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) and [CO
 This project is actively maintained. For issues, feature requests, or security reports:
 - **Issues:** [GitHub Issues](https://github.com/spearchucker667/Venice-API-connector/issues)
 - **Security:** Use [GitHub private vulnerability reporting](https://github.com/spearchucker667/Venice-API-connector/security/advisories)
-- **Support:** [SUPPORT.md](SUPPORT.md)
+- **Support:** [docs/SUPPORT.md](docs/SUPPORT.md)
 
 ---
 

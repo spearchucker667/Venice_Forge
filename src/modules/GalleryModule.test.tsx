@@ -86,6 +86,16 @@ describe("GalleryModule confirm modal", () => {
     expect(screen.getByText(/delete this image\?/i)).toBeInTheDocument();
   });
 
+  it("opens a confirm modal with video text when deleting a video (BUG-007 regression guard)", async () => {
+    const user = userEvent.setup();
+    renderGallery({ gallery: [{ ...sampleImage, mediaType: "video" }] });
+
+    const deleteBtn = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteBtn);
+
+    expect(screen.getByText(/delete this video\?/i)).toBeInTheDocument();
+  });
+
   it("does NOT delete when Cancel is clicked", async () => {
     const user = userEvent.setup();
     renderGallery();
@@ -127,7 +137,7 @@ describe("GalleryModule confirm modal", () => {
     await user.click(clearBtn);
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText(/delete all gallery images\?/i)).toBeInTheDocument();
+    expect(screen.getByText(/delete all gallery media\?/i)).toBeInTheDocument();
   });
 
   it("calls StorageService.clearStore on confirm for Clear gallery", async () => {

@@ -5,6 +5,7 @@ import { queueVideo, retrieveVideo, type QueueVideoRequest } from "../services/m
 import { assessChildExploitationSafety, recordDecision } from "../shared/safety";
 import { VideoGenerationForm } from "../components/VideoGenerationForm";
 import { VideoGenerationPreview } from "../components/VideoGenerationPreview";
+import { blobToDataUrl } from "../utils/image";
 import { saveImageRecord } from "../services/imageWorkflowService";
 import { normalizeMediaModelSpec } from "../utils/mediaModelSpecs";
 import type { ModuleProps, VideoDraft } from "../types/app";
@@ -34,10 +35,10 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
     };
   }, []);
 
-  async function saveToGallery(blobUrl: string | null, downloadUrl: string | null, queueId: string, model: string) {
+  async function saveToGallery(durableSource: string, downloadUrl: string | null, queueId: string, model: string) {
     await saveImageRecord(dispatch, {
       id: crypto.randomUUID(),
-      image: blobUrl || "", // Object URL or empty if fallback to downloadUrl
+      image: durableSource,
       prompt: draft.prompt,
       negative: draft.negative,
       model,
@@ -53,7 +54,12 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
     });
   }
 
-  async function pollStatus(queueId: string, model: string, signal: AbortSignal) {
+  async function pollStatus(
+    queueId: string,
+    model: string,
+    signal: AbortSignal,
+    queuedDownloadUrl: string | null
+  ) {
     if (signal.aborted) return;
 
     try {
@@ -73,28 +79,34 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
           if (videoObjectUrlRef.current) {
             URL.revokeObjectURL(videoObjectUrlRef.current);
           }
-          const url = URL.createObjectURL(res.blob);
-          videoObjectUrlRef.current = url;
+          const previewUrl = URL.createObjectURL(res.blob);
+          videoObjectUrlRef.current = previewUrl;
+
+          const durableSource = queuedDownloadUrl || await blobToDataUrl(res.blob);
           patch({
             generationProgress: "",
             status: "COMPLETED",
-            videoUrl: url,
+            videoUrl: previewUrl,
+            downloadUrl: queuedDownloadUrl,
           });
-          await saveToGallery(url, draft.downloadUrl, queueId, model);
+
+          await saveToGallery(durableSource, queuedDownloadUrl, queueId, model);
+        } else if (queuedDownloadUrl) {
+          patch({
+            generationProgress: "",
+            status: "COMPLETED",
+            downloadUrl: queuedDownloadUrl,
+          });
+          await saveToGallery(queuedDownloadUrl, queuedDownloadUrl, queueId, model);
         } else {
-          patch({
-            generationProgress: "",
-            status: "COMPLETED",
-            downloadUrl: draft.downloadUrl,
-          });
-          await saveToGallery(null, draft.downloadUrl, queueId, model);
+          throw new Error("Video completed but no durable media URL was returned.");
         }
         return;
       }
 
       patch({ status: res.status });
       if (!signal.aborted) {
-        pollTimerRef.current = setTimeout(() => void pollStatus(queueId, model, signal), 5000);
+        pollTimerRef.current = setTimeout(() => void pollStatus(queueId, model, signal, queuedDownloadUrl), 5000);
       }
     } catch (err: unknown) {
       if (signal.aborted) return;
@@ -188,7 +200,10 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
         status: "PROCESSING",
       });
 
-      pollTimerRef.current = setTimeout(() => void pollStatus(res.queue_id, state.selectedVideoModel, signal), 3000);
+      pollTimerRef.current = setTimeout(
+        () => void pollStatus(res.queue_id, state.selectedVideoModel, signal, res.download_url || null),
+        3000
+      );
     } catch (err: unknown) {
       if (signal.aborted) return;
       const errorObject = err as { name?: string; message?: string };

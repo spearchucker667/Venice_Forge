@@ -104,6 +104,10 @@ if (checkWin) {
     verifyChecksum(portableExe);
     verified.push(`Venice-Forge-${version}-${arch}-Portable.exe`);
   }
+
+  const latestYml = path.join(releaseDir, "latest.yml");
+  verifyFileExists(latestYml, 50); // small yaml file
+  verified.push("latest.yml");
 }
 
 if (checkMac) {
@@ -121,6 +125,10 @@ if (checkMac) {
     verifyChecksum(zip);
     verified.push(`Venice-Forge-${version}-${arch}.zip`);
   }
+
+  const latestMacYml = path.join(releaseDir, "latest-mac.yml");
+  verifyFileExists(latestMacYml, 50); // small yaml file
+  verified.push("latest-mac.yml");
 }
 
 console.log("[verify:dist] Successfully verified artifacts:");

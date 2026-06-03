@@ -75,9 +75,7 @@ jobs:
         with:
           name: venice-forge-macos-${{ github.ref_name }}
           path: |
-            release/*.dmg
-            release/*.zip
-            release/*.sha256
+            release/*
           if-no-files-found: error
 
   build-windows:
@@ -143,8 +141,7 @@ jobs:
         with:
           name: venice-forge-windows-${{ github.ref_name }}
           path: |
-            release/*.exe
-            release/*.sha256
+            release/*
           if-no-files-found: error
 
   publish:

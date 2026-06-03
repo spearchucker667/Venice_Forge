@@ -42,6 +42,16 @@ describe("galleryFilename", () => {
     expect(name).not.toContain("undefined");
     expect(name).toBe("fluently-xl-correct-id.png");
   });
+
+  it("assigns .mp4 extension for generic video media (BUG-004 regression guard)", () => {
+    const item = { mediaType: "video", model: "model-1", id: "123" };
+    expect(galleryFilename(item)).toBe("model-1-123.mp4");
+  });
+
+  it("assigns .webm extension for webm download URLs (BUG-004 regression guard)", () => {
+    const item = { mediaType: "video", downloadUrl: "https://example.com/file.webm?sig=123", model: "m", id: "i" };
+    expect(galleryFilename(item)).toBe("m-i.webm");
+  });
 });
 
 /** Tests for the normalizeImageData helper. */

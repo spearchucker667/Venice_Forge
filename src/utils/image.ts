@@ -95,5 +95,23 @@ export function galleryFilename(item: unknown, index = 0, suffix = "") {
   const record = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
   const safeModel = String(record.model || "venice").replace(/[^a-z0-9_-]+/gi, "-").slice(0, 40);
   const id = String(record.id || index).replace(/[^a-z0-9_-]+/gi, "-").slice(0, 60);
-  return `${safeModel}-${id}${suffix}.png`;
+
+  const ext =
+    record.mediaType === "video"
+      ? (/\.webm($|\?)/i.test(String(record.downloadUrl || record.image || "")) ? ".webm" : ".mp4")
+      : ".png";
+
+  return `${safeModel}-${id}${suffix}${ext}`;
+}
+
+export async function blobToDataUrl(blob: Blob): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Failed to serialize generated media."));
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("Generated media serialization returned a non-string result."));
+    };
+    reader.readAsDataURL(blob);
+  });
 }
