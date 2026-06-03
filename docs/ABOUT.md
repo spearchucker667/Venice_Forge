@@ -52,8 +52,8 @@ Web mode (development only):
 |-------|-----------|----------------|
 | UI | React 19 + Tailwind v4 | All user-facing screens |
 | State | useReducer + Immer | Centralised app state |
-| Storage | IndexedDB (via `StorageService`) | `images`, `files`, legacy `chats`, `settings`, `conversations`, `ai_memory` — all encrypted at rest (AES-GCM); `diagnostics` stored unencrypted (timing/status only, no raw prompts) |
-| Chat storage | Electron main-process filesystem (`chat-history/*.json`) | Conversation persistence with atomic writes and corruption recovery |
+| Storage | IndexedDB (via `StorageService`) | `images`, `files`, legacy `chats`, `settings`, `conversations`, and `ai_memory` are encrypted at rest with AES-GCM; `diagnostics` is stored unencrypted and should contain only sanitized timing/status metadata |
+| Chat storage | Electron main-process filesystem (`chat-history/*.json`) | Conversation persistence with atomic writes and corruption recovery; filesystem chat JSON is not separately encrypted by Venice Forge |
 | Content safety | `src/shared/safety/childExploitationGuard.ts` | Screens every outgoing Venice request at renderer transport, IPC, proxy, and module boundaries; evaluates `negative_prompt` and cross-sentence context; fails closed (500) on extraction errors; returns `SafetyGuardDecision`; never logs raw prompt text |
 
 | Secure storage | Electron `safeStorage` | Venice and Jina API keys (encrypted) |
