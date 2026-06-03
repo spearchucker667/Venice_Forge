@@ -412,7 +412,7 @@ export function createServerApp() {
             const status = response.statusCode || 0;
             if (status >= 300 && status < 400) {
               response.destroy();
-              reject(new Error("Redirects are blocked by SSRF protection."));
+              reject(new Error(`HTTP ${status} redirect blocked. Provide a direct URL.`));
               return;
             }
 
