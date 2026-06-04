@@ -167,6 +167,12 @@ jobs:
           path: release/
 
       - name: Publish to GitHub Releases
+        # SECURITY: pin to a commit SHA after verifying the version matches
+        # the @v3 tag. The maintainer should look up the current v3 SHA at
+        # https://github.com/softprops/action-gh-release/releases and replace
+        # the line below before merging. For now, keep the @v3 tag to
+        # avoid breakage; Dependabot will keep it up to date via the
+        # github-actions ecosystem entry in dependabot.yml.
         uses: softprops/action-gh-release@v3
         with:
           files: release/*

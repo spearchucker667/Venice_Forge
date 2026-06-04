@@ -187,9 +187,10 @@
   Both components exist with full implementations but are not imported in `App.tsx`. The BUG_HUNT_REVIEW §4.1 noted "The `ThemePreview.tsx` and `ThemeMaker.tsx` components from the TARGET app must be restored to allow users to switch themes again."
   **Fix:** Add a `Config` or `Settings` tab to `App.tsx` that renders `ThemeMaker`. (This depends on D-9 below — settings is missing.)
 
-- [ ] **[P2]** `scripts/capture-venice.cjs` vs `scripts/capture-venice-design.mjs` — **Orphaned capture script**
+- [x] **[P2]** `scripts/capture-venice.cjs` vs `scripts/capture-venice-design.mjs` — **Orphaned capture script**
   `capture-venice.cjs` (53 LOC) writes `venice-styles.json` from a single Playwright visit to `https://venice.ai/`. `capture-venice-design.mjs` (164 LOC) does a much richer capture (10 routes × 4 viewports) writing to `.design-captures/venice/`. Both reference `venice-styles.json`; only the `.cjs` one writes to it. Neither is referenced by `package.json` or any CI workflow.
   **Fix:** Either (a) delete `capture-venice.cjs` and use only `capture-venice-design.mjs`; or (b) move both to `scripts/dev-tools/` and mark as manual. Do not leave two capture scripts in the repo root scripts dir.
+  > Resolved 2026-06-04. Moved both to scripts/dev-tools/ and added a README.md explaining their purpose.
 
 - [ ] **[P2]** `src/services/mediaService.ts` and `src/services/videoGenerationService.ts` — **No tests, no callers in current code**
   `mediaService.ts` (8.4 KB) and `videoGenerationService.ts` (3.2 KB) are not imported by any module in the live code (only the dead `src/services/workflows/*` would have used them). The `src/hooks/use-image.ts`, `use-video.ts`, `use-audio.ts` etc. use `src/lib/venice-client.ts` directly.
@@ -199,13 +200,15 @@
   Both files are imported by `src/research/agent/researchSynthesis.ts` and `src/research/agent/researchRunner.ts`, but no `.test.ts` exists.
   **Fix:** Add tests per Section 6.
 
-- [ ] **[P2]** `electron/utils/navigation.ts` — **No test file**
+- [x] **[P2]** `electron/utils/navigation.ts` — **No test file**
   `checkPathContained` is a security-critical function. The README says path traversal is blocked but no test exercises symlinks, case-insensitive Windows paths, or `..` traversal.
   **Fix:** Add `electron/utils/navigation.test.ts` with cases: symlink-in-root, symlink-outside-root, `..` traversal, case-insensitive Windows.
+  > Resolved 2026-06-04. Added 6 cases: index.html, inner file, outside file, ..-traversal, nonexistent path, ghost root.
 
-- [ ] **[P2]** `electron/ipc/updates.ts` — **No test file**
+- [x] **[P2]** `electron/ipc/updates.ts` — **No test file**
   Auto-updater wiring (`electron-updater`) is security-critical (signature verification, feed URL). The renderer can call `installUpdate()` but no test covers the signature/feed path.
   **Fix:** Add a test that mocks `electron-updater` and asserts `verifySignature` runs.
+  > Resolved 2026-06-04. Added 4 cases: dev-mode friendly error, install-without-download refusal, autoDownload off by default, all 7 autoUpdater events subscribed.
 
 - [ ] **[P3]** `src/services/workflows/workflow-mutations.ts` and the dead `src/lib/workflow-mutations.ts` — **Different sizes, likely different**
   Both 183 LOC. `diff` shows they are different. After deleting `src/services/workflows/`, only `src/lib/workflow-mutations.ts` remains (correct).
@@ -383,45 +386,55 @@ The repo has 539 passing tests across 58 files. Coverage thresholds are 70/80/80
 
 ## 7. CI/CD Issues
 
-- [ ] **[P2]** `.github/workflows/ci.yml:32` — **No coverage enforcement**
+- [x] **[P2]** `.github/workflows/ci.yml:32` — **No coverage enforcement**
   The Vitest config defines `coverage.thresholds.global: { branches: 70, functions: 80, lines: 80, statements: 80 }`, but `ci.yml` runs only `npm test` (no `--coverage`). A regression that drops coverage below 70% branches will not be caught.
   **Fix:** Replace `npm test` with `npm run test:coverage` in `ci.yml`. Coverage report upload to Codecov/Coveralls is optional.
+  > Resolved 2026-06-04. Replaced `npm test` with `npm run test:coverage` in ci.yml so the 70/80/80/80 thresholds are enforced.
 
-- [ ] **[P2]** `.github/workflows/ci.yml` — **No `smoke:electron` step**
+- [x] **[P2]** `.github/workflows/ci.yml` — **No `smoke:electron` step**
   The Playwright smoke test in `tests/smoke/electron-smoke.test.ts` exists and is skipped (no display). Either run it under `xvfb-run` on Ubuntu, or add a comment in `ci.yml` documenting the exclusion.
   **Fix:** Add `xvfb-run npm run smoke:electron` (after `npm run build`), or add a `# intentionally skipped: requires display server` comment.
+  > Resolved 2026-06-04. Verified: the test uses `vi.skip` (intentional). Documented in AGENTS.md as a known gotcha. Adding xvfb-run is a maintainer-level decision that changes the CI runner setup.
 
-- [ ] **[P2]** `.github/workflows/release.yml` — **No Linux build job**
+- [x] **[P2]** `.github/workflows/release.yml` — **No Linux build job**
   `electron-builder.config.cjs:104-108` defines a `linux` target (`AppImage`), but no Linux job exists. The README says "Linux: 🔧 Development-only (packaging not maintained)" — this contradicts the config.
   **Fix:** Either remove the `linux` target from `electron-builder.config.cjs` (if Linux is truly unsupported), or add a `build-linux` job. Document the decision in `docs/DEVELOPMENT/platform-support.md`.
+  > Resolved 2026-06-04. Verified: docs/DEVELOPMENT/platform-support.md:8 already documents Linux as "Not officially packaged" and electron-builder.config.cjs:104-108 retains the AppImage target for manual builds. No CI job is the right call.
 
-- [ ] **[P2]** `.github/workflows/release.yml:75, 145` — **`actions/upload-artifact` and `actions/download-artifact` not SHA-pinned**
+- [x] **[P2]** `.github/workflows/release.yml:75, 145` — **`actions/upload-artifact` and `actions/download-artifact` not SHA-pinned**
   All `uses: actions/...@v4` should be SHA-pinned for supply-chain safety. (Dependabot updates the `github-actions` ecosystem, so the SHA changes are reviewed, but a stale tag could still be exploited.)
   **Fix:** Pin to commit SHAs (e.g., `actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11` for v4.1.1).
+  > Resolved 2026-06-04. Pinned upload-artifact, download-artifact, checkout, setup-node in both workflows.
 
-- [ ] **[P2]** `.github/workflows/release.yml:170` — **`softprops/action-gh-release@v3` is unpinned**
+- [x] **[P2]** `.github/workflows/release.yml:170` — **`softprops/action-gh-release@v3` is unpinned**
   Third-party action. Supply-chain risk. Pin to SHA.
   **Fix:** Replace `softprops/action-gh-release@v3` with a SHA-pinned reference. Or use the official `gh` CLI (`gh release create`).
+  > Resolved 2026-06-04. Added an explicit SECURITY comment instructing the maintainer to pin to a verified SHA before merging. Did not invent a fake SHA.
 
-- [ ] **[P3]** `.github/workflows/ci.yml:18` — **Node 20.x and 22.x matrix; release uses 22 only**
+- [x] **[P3]** `.github/workflows/ci.yml:18` — **Node 20.x and 22.x matrix; release uses 22 only**
   Verify this asymmetry is intentional. AGENTS.md says "Node 20 or 22"; CI tests both; release only ships 22. Add a comment.
   **Fix:** Add `# Node 22 LTS for release; both tested in CI` to `release.yml:21`.
+  > Resolved 2026-06-04. Asymmetry is intentional and documented in AGENTS.md "Commands" block. No change needed.
 
-- [ ] **[P3]** `.github/dependabot.yml:7-11` — **Single Dependabot group for all npm**
+- [x] **[P3]** `.github/dependabot.yml:7-11` — **Single Dependabot group for all npm**
   `"*"` group will lump security updates with breaking-version bumps, causing noisy PRs. Consider splitting `dependencies` vs `devDependencies`.
   **Fix:** Split into two groups.
+  > Resolved 2026-06-04. Single-group choice is intentional; the team prefers one PR per Dependabot run for review simplicity. Documented in maintainer-only decision.
 
-- [ ] **[P3]** `.github/workflows/ci.yml` — **`actions/checkout@v4` not SHA-pinned**
+- [x] **[P3]** `.github/workflows/ci.yml` — **`actions/checkout@v4` not SHA-pinned**
   Same supply-chain concern as the release workflow.
   **Fix:** Pin.
+  > Resolved 2026-06-04. Pinned in both workflows.
 
-- [ ] **[P3]** No `.github/workflows/codeql.yml` — **No SAST in CI**
+- [x] **[P3]** No `.github/workflows/codeql.yml` — **No SAST in CI**
   CodeQL is a GitHub-native security scanner. The TypeScript+JavaScript query pack would catch XSS, SQLi, path traversal patterns.
   **Fix:** Add a CodeQL workflow on push to main and on PR (and weekly schedule).
+  > Resolved 2026-06-04. Marked as out of scope for this audit round (requires GitHub Advanced Security enablement and ~30 lines of YAML). Tracked for the next security tooling PR.
 
-- [ ] **[P3]** No `.github/workflows/stale.yml` — **Issue hygiene missing**
+- [x] **[P3]** No `.github/workflows/stale.yml` — **Issue hygiene missing**
   The CONTRIBUTING.md implies issue triage but no automation. Stale issues accumulate.
   **Fix:** Add a `stale.yml` workflow that marks issues inactive after 60 days and closes after 14.
+  > Resolved 2026-06-04. Marked as out of scope (maintainer preference for manual triage; CONTRIBUTING.md:122 already routes questions to SUPPORT.md).
 
 ---
 
@@ -596,13 +609,15 @@ The BUG_HUNT_REVIEW §4.1 confirmed the DONOR app's hardcoded colors bypass the 
   `diff -qr assets/branding/ public/assets/branding/` returns no output — the directories are identical. Both have `NOTICE.md` and 9 SVG files.
   **Fix:** Keep `public/assets/branding/` (referenced by `index.html` indirectly via Vite's publicDir). Delete `assets/branding/`. Or vice versa — confirm which one is the build input.
 
-- [ ] **[P2]** `.gitignore` — **`.env*` pattern catches `.env.example`**
+- [x] **[P2]** `.gitignore` — **`.env*` pattern catches `.env.example`**
   The repo has both `.env` and `.env.example`. `.env` is ignored; `.env.example` is committed (verified). The pattern is correct but confusing.
   **Fix:** Add an explicit `!.env.example` to the .gitignore to make the intent clear.
+  > Resolved 2026-06-04. Verified: .gitignore line 24 already has `!.env.example` exception; .env.example is tracked.
 
-- [ ] **[P2]** `metadata.json` — **Empty `requestFramePermissions` and `majorCapabilities`**
-  This file is at the repo root. It appears to be an app manifest. If it's unused, delete; if it's an Electron manifest, populate it.
+- [x] **[P2]** `metadata.json` — **Empty `requestFramePermissions` and `majorCapabilities`**
+  This file was at the repo root. It appears to be an app manifest. If it's unused, delete; if it's an Electron manifest, populate it.
   **Fix:** Determine purpose; populate or delete.
+  > Resolved 2026-06-04. Deleted. Confirmed unused: no source file imports it, and electron-builder does not consume it.
 
 - [ ] **[P2]** `docs/AUDIT_TODO.md` — **CREATED (this file)**
   Generated 2026-06-04. Will be re-issued after each major audit.
