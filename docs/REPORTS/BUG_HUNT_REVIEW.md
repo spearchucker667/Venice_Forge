@@ -23,14 +23,9 @@ The following features are currently missing from the application:
 **Recommended Fix:** Restore the deleted modules from the git history (`git checkout HEAD^1 -- src/modules/`) and refactor them into the new `src/components/` structure. Update `App.tsx`'s `views` mapping and `sidebar.tsx` to include routing tabs for these features.
 
 ### 1.2 Data Persistence Disconnect (Chat & Image Storage)
-**Severity:** High
+**Status:** ✅ Fixed
 **Location:** `src/stores/chat-store.ts`, `src/components/image/image-view.tsx`
-**Description:** The ported DONOR components do not integrate with the TARGET app's robust backend storage layer:
-- **Chats:** `chat-store.ts` uses Zustand's `persist` middleware backed by a custom `createSafeStorage()` (which writes to browser IndexedDB/localStorage). It completely ignores the TARGET app's atomic, IPC-driven filesystem backend (`chat-history/*.json`).
-- **Images:** `image-view.tsx` manages generated images purely in React component state (`const [images, setImages] = useState<string[]>([])`). Images are lost instantly upon app refresh. It no longer calls `window.veniceForge.files.saveJsonFile` or uses `storageService.ts`.
-**Recommended Fix:** 
-- Rewrite `chat-store.ts` to hydrate from and persist to `window.veniceForge.chat.list() / save()`.
-- Re-integrate `src/services/imageWorkflowService.ts` into `image-view.tsx` to ensure all generations are written to IndexedDB and made available to the (to-be-restored) Library/Gallery view.
+**Description:** The ported DONOR components initially ignored the TARGET app's storage layer. This was resolved by writing a `subscribe` hook in `chat-store.ts` that syncs conversations to `window.veniceForge.chat.save()`, and updating `image-view.tsx` to commit generated images to `StorageService`.
 
 ---
 
@@ -56,16 +51,14 @@ The following features are currently missing from the application:
 ## 3. Logical & State Bugs
 
 ### 3.1 Unhandled Edge Case in Media Blob Resolution
-**Severity:** Medium
+**Status:** ✅ Fixed
 **Location:** `src/components/audio/audio-view.tsx`
-**Description:** If a media blob (TTS audio or TTS generation) fails to generate, the error handling correctly toasts the error. However, the component does not clear the previous `audioUrl` blob reference, leading to a mismatched UI state where an old audio file is playable despite a new prompt generating an error.
-**Recommended Fix:** Call `reset()` from `useBlobUrl()` at the start of the `handleTTS` generation flow.
+**Description:** Fixed by calling `setAudioBlob(null)` at the start of the `handleTTS` generation flow to ensure stale blobs are removed when new requests are fired.
 
 ### 3.2 Race Condition in Workflow Editor Debounced Save
-**Severity:** Low
+**Status:** ✅ Fixed
 **Location:** `src/components/workflows/workflows-view.tsx`
-**Description:** The `debouncedSave` uses a simple `setTimeout` of 200ms to save the canvas to the `workflow-store`. If the user rapidly switches tabs or unmounts the component before the 200ms timer fires, the final canvas state is lost.
-**Recommended Fix:** Implement a `useEffect` cleanup return that synchronously flushes the pending save on unmount, or use a robust debouncer with a `.flush()` method.
+**Description:** Fixed by implementing a `useEffect` cleanup hook that synchronously flushes the pending `saveTimer.current` on component unmount.
 
 ---
 
