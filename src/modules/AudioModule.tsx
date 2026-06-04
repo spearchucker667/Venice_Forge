@@ -4,6 +4,7 @@ import { ModuleProps } from '../types/app'
 import { GenerationView } from '../components/ui/generation-view'
 import { veniceFetch } from '../services/veniceClient'
 import { extractModelName } from '../services/veniceClient'
+import { downloadImage as downloadMedia } from '../utils/download'
 
 const AUDIO_EXAMPLES = [
   'Welcome to Venice Forge. The future of voice is here, and it speaks every language.',
@@ -124,15 +125,15 @@ export function AudioModule({ state, dispatch }: ModuleProps) {
 
   const controls = (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-2 p-1 bg-white/[0.03] rounded-lg border border-white/[0.05]">
+      <div className="flex gap-2 p-1 bg-surface-elevated rounded-lg border border-border">
         <button
-          className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${tab === 'tts' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'}`}
+          className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${tab === 'tts' ? 'bg-surface-elevated text-text-primary' : 'text-text-tertiary hover:text-text-primary'}`}
           onClick={() => setTab('tts')}
         >
           Text to Speech
         </button>
         <button
-          className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${tab === 'transcribe' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'}`}
+          className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${tab === 'transcribe' ? 'bg-surface-elevated text-text-primary' : 'text-text-tertiary hover:text-text-primary'}`}
           onClick={() => setTab('transcribe')}
         >
           Transcribe
@@ -142,9 +143,9 @@ export function AudioModule({ state, dispatch }: ModuleProps) {
       {tab === 'tts' && (
         <div className="flex flex-col gap-4">
           <div>
-            <label className="block text-[13px] font-medium text-white/60 mb-2">Text</label>
+            <label className="block text-[13px] font-medium text-text-secondary mb-2">Text</label>
             <textarea
-              className="w-full bg-[#0d0d11] border border-border/50 rounded-lg p-3 text-[14px] outline-none min-h-[160px] resize-none focus:border-white/20 transition-colors"
+              className="w-full bg-surface-secondary border border-border rounded-lg p-3 text-[14px] outline-none min-h-[160px] resize-none focus:border-white/20 transition-colors"
               placeholder="Enter text to synthesize..."
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -152,7 +153,7 @@ export function AudioModule({ state, dispatch }: ModuleProps) {
             {text === '' && (
               <div className="flex flex-wrap gap-2 mt-3">
                 {AUDIO_EXAMPLES.map((ex, i) => (
-                  <button key={i} className="text-left text-[12px] px-2.5 py-1.5 rounded-full bg-white/[0.03] hover:bg-white/[0.06] text-white/50 hover:text-white/80 transition-colors border border-white/[0.05]" onClick={() => setText(ex)}>
+                  <button key={i} className="text-left text-[12px] px-2.5 py-1.5 rounded-full bg-surface-elevated hover:bg-surface-elevated hover:bg-surface-elevated text-text-tertiary hover:text-text-primary transition-colors border border-border" onClick={() => setText(ex)}>
                     {ex.substring(0, 30)}...
                   </button>
                 ))}
@@ -161,20 +162,20 @@ export function AudioModule({ state, dispatch }: ModuleProps) {
           </div>
           <div className="flex flex-col gap-3">
             <div>
-              <label className="block text-[13px] font-medium text-white/60 mb-1.5">Voice</label>
-              <select className="w-full bg-white/[0.03] border border-border/50 rounded-lg px-3 py-2 text-[14px] outline-none" value={voice} onChange={(e) => setVoice(e.target.value)}>
-                {voiceOptions.map((v) => <option key={v.value} value={v.value} className="bg-[#111115]">{v.label}</option>)}
+              <label className="block text-[13px] font-medium text-text-secondary mb-1.5">Voice</label>
+              <select className="w-full bg-surface-elevated border border-border rounded-lg px-3 py-2 text-[14px] outline-none" value={voice} onChange={(e) => setVoice(e.target.value)}>
+                {voiceOptions.map((v) => <option key={v.value} value={v.value} className="bg-surface-elevated">{v.label}</option>)}
               </select>
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
-                <label className="block text-[13px] font-medium text-white/60 mb-1.5">Speed ({speed}x)</label>
+                <label className="block text-[13px] font-medium text-text-secondary mb-1.5">Speed ({speed}x)</label>
                 <input type="range" className="w-full" min="0.25" max="4.0" step="0.25" value={speed} onChange={(e) => setSpeed(parseFloat(e.target.value))} />
               </div>
               <div className="w-24">
-                <label className="block text-[13px] font-medium text-white/60 mb-1.5">Format</label>
-                <select className="w-full bg-white/[0.03] border border-border/50 rounded-lg px-3 py-2 text-[14px] outline-none" value={format} onChange={(e) => setFormat(e.target.value)}>
-                  {FORMATS.map(f => <option key={f} value={f} className="bg-[#111115]">{f.toUpperCase()}</option>)}
+                <label className="block text-[13px] font-medium text-text-secondary mb-1.5">Format</label>
+                <select className="w-full bg-surface-elevated border border-border rounded-lg px-3 py-2 text-[14px] outline-none" value={format} onChange={(e) => setFormat(e.target.value)}>
+                  {FORMATS.map(f => <option key={f} value={f} className="bg-surface-elevated">{f.toUpperCase()}</option>)}
                 </select>
               </div>
             </div>
@@ -192,21 +193,21 @@ export function AudioModule({ state, dispatch }: ModuleProps) {
       {tab === 'transcribe' && (
         <div className="flex flex-col gap-4">
           <div>
-            <label className="block text-[13px] font-medium text-white/60 mb-2">Audio File</label>
-            <div className="border border-dashed border-border/50 rounded-xl p-6 text-center hover:bg-white/[0.02] transition-colors cursor-pointer" onClick={() => fileRef.current?.click()}>
+            <label className="block text-[13px] font-medium text-text-secondary mb-2">Audio File</label>
+            <div className="border border-dashed border-border rounded-xl p-6 text-center hover:bg-surface-elevated transition-colors cursor-pointer" onClick={() => fileRef.current?.click()}>
               {file ? (
                 <div className="flex flex-col items-center gap-2">
                   <div className="text-[24px]">🎵</div>
-                  <div className="text-[14px] font-medium text-white/90">{file.name}</div>
-                  <div className="text-[12px] text-white/40">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                  <div className="text-[14px] font-medium text-text-primary">{file.name}</div>
+                  <div className="text-[12px] text-text-tertiary">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-2">
-                  <div className="w-10 h-10 rounded-full bg-white/[0.05] flex items-center justify-center text-white/40 mb-2">
+                  <div className="w-10 h-10 rounded-full bg-white/[0.05] flex items-center justify-center text-text-tertiary mb-2">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
                   </div>
-                  <div className="text-[14px] font-medium text-white/90">Click to upload</div>
-                  <div className="text-[12px] text-white/40">MP3, MP4, MPEG, MPGA, M4A, WAV, WEBM</div>
+                  <div className="text-[14px] font-medium text-text-primary">Click to upload</div>
+                  <div className="text-[12px] text-text-tertiary">MP3, MP4, MPEG, MPGA, M4A, WAV, WEBM</div>
                 </div>
               )}
             </div>
@@ -228,12 +229,12 @@ export function AudioModule({ state, dispatch }: ModuleProps) {
     <div className="flex flex-col h-full gap-4">
       {tab === 'tts' && (
         audioUrl ? (
-          <div className="bg-[#111115] rounded-xl border border-white/[0.05] p-6 flex flex-col items-center justify-center gap-6">
+          <div className="bg-surface-elevated rounded-xl border border-border p-6 flex flex-col items-center justify-center gap-6">
             <audio src={audioUrl} controls className="w-full max-w-md" autoPlay />
-            <a href={audioUrl} download={`tts-${Date.now()}.${format}`} className="text-[13px] text-white/60 hover:text-white underline">Download Audio</a>
+            <button onClick={() => downloadMedia(audioUrl, `tts-${Date.now()}.${format}`)} className="text-[13px] text-text-secondary hover:text-text-primary underline">Download Audio</button>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-white/30 text-[14px]">
+          <div className="flex-1 flex items-center justify-center text-text-tertiary text-[14px]">
             {loading ? 'Synthesizing voice...' : 'Enter text to generate audio'}
           </div>
         )
@@ -241,14 +242,14 @@ export function AudioModule({ state, dispatch }: ModuleProps) {
 
       {tab === 'transcribe' && (
         transcript ? (
-          <div className="bg-[#111115] rounded-xl border border-white/[0.05] p-6">
-            <h3 className="text-[14px] font-medium text-white/80 mb-4">Transcript</h3>
-            <div className="text-[15px] leading-relaxed text-white/90 whitespace-pre-wrap">
+          <div className="bg-surface-elevated rounded-xl border border-border p-6">
+            <h3 className="text-[14px] font-medium text-text-primary mb-4">Transcript</h3>
+            <div className="text-[15px] leading-relaxed text-text-primary whitespace-pre-wrap">
               {transcript}
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-white/30 text-[14px]">
+          <div className="flex-1 flex items-center justify-center text-text-tertiary text-[14px]">
             {loading ? 'Transcribing...' : 'Upload an audio file to transcribe'}
           </div>
         )

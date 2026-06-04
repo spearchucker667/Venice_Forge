@@ -48,7 +48,7 @@ function modelMenu(catalog: ModelCatalog | undefined): string {
   return `\n\nAvailable models per node type (use ONLY these ids; pick the one that best matches the user's intent or use the default if no preference):\n${sections.map((s) => `- ${s}`).join('\n')}`
 }
 
-const SYSTEM_PROMPT_BASE = `You are a workflow designer for OpenVenice. You help the user author visual workflows that chain Venice AI models.
+const SYSTEM_PROMPT_BASE = `You are a workflow designer for Venice Forge. You help the user author visual workflows that chain Venice AI models.
 
 You have these node types available:
 

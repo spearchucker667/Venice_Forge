@@ -49,7 +49,8 @@ function summarizeStep(step: RunStep): PlaygroundActivity {
   }
 }
 
-export function PlaygroundChat() {
+import { type ModuleProps } from "../../types/app"
+export function PlaygroundChat({ state: _state, dispatch }: ModuleProps) {
   const { messages, draft, isThinking, addMessage, updateMessage, setThinking, applyAgentPatches } = usePlaygroundStore()
   const hasKey = useAuthStore((s) => s.apiKey !== null)
   const agentModelId = useSettingsStore((s) => s.playgroundAgentModel) || DEFAULT_AGENT_MODEL
@@ -60,6 +61,18 @@ export function PlaygroundChat() {
   const [error, setError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (messages.length === 0) {
+      abortRef.current?.abort()
+    }
+  }, [messages.length])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -105,7 +118,7 @@ export function PlaygroundChat() {
           model: agentModelId,
           capabilities: agentCaps,
           signal: controller.signal,
-          dispatch: (window as any)._dispatch, // eslint-disable-line @typescript-eslint/no-explicit-any
+          dispatch: dispatch, 
           applyPatch: (patch: WorkflowPatch) => {
             try {
               const current = usePlaygroundStore.getState().draft
@@ -137,7 +150,7 @@ export function PlaygroundChat() {
           model: agentModelId,
           capabilities: agentCaps,
           signal: abortRef.current.signal,
-          dispatch: (window as any)._dispatch // eslint-disable-line @typescript-eslint/no-explicit-any
+          dispatch: dispatch 
         })
 
         let patchError: string | undefined

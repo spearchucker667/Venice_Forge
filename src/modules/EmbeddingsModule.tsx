@@ -71,7 +71,7 @@ export function EmbeddingsModule({ state, dispatch }: ModuleProps) {
         </label>
         <textarea
           id="embed-input"
-          className="w-full rounded-lg border border-border/50 bg-[#0d0d11] p-3 text-sm text-white/90 placeholder:text-white/25 outline-none focus:border-white/[0.22] transition-colors resize-none leading-relaxed"
+          className="w-full rounded-lg border border-border bg-surface-secondary p-3 text-sm text-text-primary placeholder:text-white/25 outline-none focus:border-white/[0.22] transition-colors resize-none leading-relaxed"
           placeholder="Enter text to embed…"
           rows={6}
           value={input}
@@ -104,7 +104,7 @@ export function EmbeddingsModule({ state, dispatch }: ModuleProps) {
                 key={p}
                 type="button"
                 onClick={() => setInput(p)}
-                className="text-left px-3 py-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.04] transition-all text-[14px] text-white/65 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
+                className="text-left px-3 py-2.5 rounded-lg border border-border bg-surface-elevated hover:border-white/[0.14] hover:bg-surface-elevated transition-all text-[14px] text-white/65 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
               >
                 {p}
               </button>
@@ -115,7 +115,7 @@ export function EmbeddingsModule({ state, dispatch }: ModuleProps) {
         <div className="flex items-center justify-center h-full">
           <div className="flex flex-col items-center gap-3">
             <div className="w-7 h-7 border border-white/[0.08] border-t-white/40 rounded-full animate-spin" />
-            <span className="text-white/55 text-center text-sm">Generating vector...</span>
+            <span className="text-text-secondary text-center text-sm">Generating vector...</span>
           </div>
         </div>
       ) : data && embedding ? (
@@ -130,16 +130,16 @@ export function EmbeddingsModule({ state, dispatch }: ModuleProps) {
               <span className="text-sm font-medium text-text-secondary">Vector ({dims} dimensions)</span>
               <button 
                 onClick={handleCopyVector} 
-                className="text-[13px] text-white/40 hover:text-white transition-colors"
+                className="text-[13px] text-text-tertiary hover:text-text-primary transition-colors"
               >
                 Copy JSON
               </button>
             </div>
-            <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-4 max-h-[calc(100vh-240px)] overflow-y-auto">
-              <code className="text-[14px] text-white/40 font-mono break-all leading-loose">
+            <div className="bg-surface-elevated border border-border rounded-lg p-4 max-h-[calc(100vh-240px)] overflow-y-auto">
+              <code className="text-[14px] text-text-tertiary font-mono break-all leading-loose">
                 [{displayValues?.map((n, i) => (
                   <span key={i}>
-                    <span className="text-white/70">{n.toFixed(6)}</span>
+                    <span className="text-text-primary">{n.toFixed(6)}</span>
                     {i < (displayValues.length) - 1 && <span className="text-white/20">, </span>}
                   </span>
                 ))}
@@ -149,7 +149,7 @@ export function EmbeddingsModule({ state, dispatch }: ModuleProps) {
             {dims > PREVIEW_COUNT && (
               <button
                 onClick={() => setExpanded(!expanded)}
-                className="text-[13px] text-white/40 hover:text-white mt-3 transition-colors underline underline-offset-2 block"
+                className="text-[13px] text-text-tertiary hover:text-text-primary mt-3 transition-colors underline underline-offset-2 block"
               >
                 {expanded ? `Show first ${PREVIEW_COUNT}` : `Show all ${dims} values`}
               </button>
@@ -157,7 +157,7 @@ export function EmbeddingsModule({ state, dispatch }: ModuleProps) {
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-center h-full text-white/30 text-[14px]">
+        <div className="flex items-center justify-center h-full text-text-tertiary text-[14px]">
           Embedding vectors appear here
         </div>
       )}
@@ -170,8 +170,8 @@ export function EmbeddingsModule({ state, dispatch }: ModuleProps) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-white/30">{label}</span>
-      <span className="text-white/80 bg-white/[0.04] border border-white/[0.06] rounded px-2 py-0.5 font-mono text-[13px]">
+      <span className="text-text-tertiary">{label}</span>
+      <span className="text-text-primary bg-surface-elevated border border-border rounded px-2 py-0.5 font-mono text-[13px]">
         {value}
       </span>
     </div>

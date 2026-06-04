@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ModuleProps } from '../types/app';
 import { GenerationView } from '../components/ui/generation-view';
 import { veniceFetch } from '../services/veniceClient';
+import { downloadImage as downloadMedia } from '../utils/download';
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_ATTEMPTS = 120; // ~6 minutes
@@ -42,7 +43,7 @@ function formatElapsedMusic(ms: number): string {
 
 function Tag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-[12px] text-white/55 bg-white/[0.04] border border-white/[0.06] rounded px-1.5 py-0.5">
+    <span className="text-[12px] text-text-secondary bg-surface-elevated border border-border rounded px-1.5 py-0.5">
       {children}
     </span>
   );
@@ -191,7 +192,7 @@ export function MusicModule({ state, dispatch }: ModuleProps) {
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="An upbeat electronic track with a driving bassline and ethereal synths…"
           rows={4}
-          className="w-full rounded-lg border border-border/50 bg-[#0d0d11] p-3 text-sm text-white/90 placeholder:text-white/25 outline-none focus:border-white/[0.22] transition-colors resize-none leading-relaxed"
+          className="w-full rounded-lg border border-border bg-surface-secondary p-3 text-sm text-text-primary placeholder:text-white/25 outline-none focus:border-white/[0.22] transition-colors resize-none leading-relaxed"
         />
       </div>
 
@@ -203,7 +204,7 @@ export function MusicModule({ state, dispatch }: ModuleProps) {
             onChange={(e) => setLyrics(e.target.value)}
             placeholder="Optional lyrics or vocal direction…"
             rows={3}
-            className="w-full rounded-lg border border-border/50 bg-[#0d0d11] p-3 text-sm text-white/90 placeholder:text-white/25 outline-none focus:border-white/[0.22] transition-colors resize-none leading-relaxed"
+            className="w-full rounded-lg border border-border bg-surface-secondary p-3 text-sm text-text-primary placeholder:text-white/25 outline-none focus:border-white/[0.22] transition-colors resize-none leading-relaxed"
           />
         </div>
       )}
@@ -212,7 +213,7 @@ export function MusicModule({ state, dispatch }: ModuleProps) {
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="block text-sm font-medium text-text-secondary">Duration</label>
-            <span className="text-[13px] text-white/40">{duration}s</span>
+            <span className="text-[13px] text-text-tertiary">{duration}s</span>
           </div>
           <input
             type="range"
@@ -257,7 +258,7 @@ export function MusicModule({ state, dispatch }: ModuleProps) {
       {error && (
         <div className="flex flex-col gap-2">
           <div className="text-red-400 text-sm">{error}</div>
-          <button onClick={reset} className="text-[13px] text-white/40 hover:text-white transition-colors underline underline-offset-2 self-start">
+          <button onClick={reset} className="text-[13px] text-text-tertiary hover:text-text-primary transition-colors underline underline-offset-2 self-start">
             Reset
           </button>
         </div>
@@ -269,55 +270,52 @@ export function MusicModule({ state, dispatch }: ModuleProps) {
     <div className="flex flex-col h-full">
       {audioUrl ? (
         <div className="animate-fade-in flex flex-col gap-6">
-          <div className="flex items-center justify-between border-b border-white/[0.05] pb-4">
+          <div className="flex items-center justify-between border-b border-border pb-4">
             <span className="text-sm font-medium text-text-secondary">Output Audio</span>
-            <a
-              href={audioUrl}
-              download="venice-music.mp3"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[14px] text-white/40 hover:text-white transition-colors flex items-center gap-1.5"
+            <button
+              onClick={() => downloadMedia(audioUrl, 'music.wav')}
+              className="text-[14px] text-text-tertiary hover:text-text-primary transition-colors flex items-center gap-1.5"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
               </svg>
               Download
-            </a>
+            </button>
           </div>
           <audio controls src={audioUrl} className="w-full rounded-md shadow-sm" />
           
-          <div className="bg-[#0c0c10] border border-white/[0.05] rounded-xl p-5 shadow-sm">
-            <p className="text-[15px] text-white/60 leading-relaxed font-medium">{prompt}</p>
+          <div className="bg-surface-secondary border border-border rounded-xl p-5 shadow-sm">
+            <p className="text-[15px] text-text-secondary leading-relaxed font-medium">{prompt}</p>
             {lyrics && (
-              <div className="mt-4 pt-4 border-t border-white/[0.05]">
-                <p className="text-[13px] uppercase tracking-wider text-white/30 font-semibold mb-2">Lyrics</p>
-                <p className="text-[14px] text-white/40 italic whitespace-pre-wrap">{lyrics}</p>
+              <div className="mt-4 pt-4 border-t border-border">
+                <p className="text-[13px] uppercase tracking-wider text-text-tertiary font-semibold mb-2">Lyrics</p>
+                <p className="text-[14px] text-text-tertiary italic whitespace-pre-wrap">{lyrics}</p>
               </div>
             )}
           </div>
           
-          <button onClick={reset} className="self-start text-[14px] text-white/40 hover:text-white transition-colors underline underline-offset-2 mt-2">
+          <button onClick={reset} className="self-start text-[14px] text-text-tertiary hover:text-text-primary transition-colors underline underline-offset-2 mt-2">
             Generate another track
           </button>
         </div>
       ) : (
-        <div className="flex items-center justify-center flex-1 text-white/30 text-[15px]">
+        <div className="flex items-center justify-center flex-1 text-text-tertiary text-[15px]">
           {isProcessing ? (
             <div className="flex flex-col items-center gap-4 animate-fade-in">
               <div className="w-8 h-8 border-[3px] border-white/10 border-t-white/60 rounded-full animate-spin" />
               <div className="flex flex-col items-center gap-1">
-                <span className="text-white/80 font-medium text-[15px]">
+                <span className="text-text-primary font-medium text-[15px]">
                   {status === 'queued' ? 'Queued — waiting for a slot' : 'Composing your track'}
                 </span>
                 {elapsedMs > 0 && (
-                  <span className="block text-[13px] text-white/40 font-mono tracking-wide">
+                  <span className="block text-[13px] text-text-tertiary font-mono tracking-wide">
                     {formatElapsedMusic(elapsedMs)} <span className="mx-1 text-white/20">·</span> typically 20s–90s
                   </span>
                 )}
               </div>
               <button
                 onClick={cancel}
-                className="mt-2 text-[13px] text-white/40 hover:text-white transition-colors underline underline-offset-2"
+                className="mt-2 text-[13px] text-text-tertiary hover:text-text-primary transition-colors underline underline-offset-2"
               >
                 Cancel Generation
               </button>
@@ -330,7 +328,7 @@ export function MusicModule({ state, dispatch }: ModuleProps) {
                   key={p}
                   type="button"
                   onClick={() => setPrompt(p)}
-                  className="text-left px-4 py-3 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.04] transition-all text-[14px] text-white/70 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40 leading-relaxed shadow-sm"
+                  className="text-left px-4 py-3 rounded-xl border border-border bg-surface-elevated hover:border-white/[0.14] hover:bg-surface-elevated transition-all text-[14px] text-text-primary focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40 leading-relaxed shadow-sm"
                 >
                   {p}
                 </button>
@@ -339,7 +337,7 @@ export function MusicModule({ state, dispatch }: ModuleProps) {
           ) : (
             <div className="flex flex-col items-center gap-2">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/20 mb-2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-              <span className="text-white/50 text-[15px]">Press Generate to create your track</span>
+              <span className="text-text-tertiary text-[15px]">Press Generate to create your track</span>
             </div>
           )}
         </div>

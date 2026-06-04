@@ -1,17 +1,17 @@
 # Venice UI Extraction Roadmap
 
-This document outlines the extraction of the Venice.ai design system from captured DOM/CSS, the donor `openvenice-master` repository, and the target integration into the `Venice-API-connector` local repository.
+This document outlines the extraction of the Venice.ai design system from captured DOM/CSS, the donor `donor-repo` repository, and the target integration into the `Venice-API-connector` local repository.
 
 ## 1. Discovery
-We have analyzed the current primary repository, the `openvenice-master` donor repo, and are actively running Playwright to capture the live design of `https://venice.ai`.
+We have analyzed the current primary repository, the `donor-repo` donor repo, and are actively running Playwright to capture the live design of `https://venice.ai`.
 - The local repo utilizes Vite, React, Electron, and pure CSS.
-- The `openvenice-master` repo utilizes Vite, React, Tailwind, and Zustand.
+- The `donor-repo` repo utilizes Vite, React, Tailwind, and Zustand.
 - The capture script extracts DOM, Computed Styles, Meta, and Screenshots across 4 viewports for 10 core routes.
 
 ## 2. Assets & Typography
 - **Fonts**: `Inter` (sans-serif), `JetBrains Mono` (monospace), `Lora` (display). The current repo already integrates these via `@fontsource`.
-- **Icons**: Transitioning from the current SVG sets to the sleek, minimalist Lucide-inspired SVG icons from `openvenice-master`.
-- **Logos**: Extracted from `.integration-src/openvenice-master/src/components/ui/logo.tsx`.
+- **Icons**: Transitioning from the current SVG sets to the sleek, minimalist Lucide-inspired SVG icons from `donor-repo`.
+- **Logos**: Extracted from `.integration-src/donor-repo/src/components/ui/logo.tsx`.
 
 ## 3. Design Tokens (CSS Variables)
 **Surface Scale (Dark Mode):**
@@ -24,11 +24,11 @@ We have analyzed the current primary repository, the `openvenice-master` donor r
 - `--color-accent: #6ee7d3;` (Venice Teal)
 - `--color-border-faint: rgba(255, 255, 255, 0.05);`
 
-These tokens exactly match the existing `src/styles/theme.css` in the primary repo, indicating the primary repo already has an accurate token foundation. We will refine Tailwind compatibility if needed, but since the primary repo is CSS-based, we will adapt the Tailwind classes from `openvenice-master` back into pure CSS, or migrate the primary repo to Tailwind (as `@tailwindcss/vite` is in its `devDependencies`). Wait! `package.json` has `@tailwindcss/vite` and `tailwindcss`!
+These tokens exactly match the existing `src/styles/theme.css` in the primary repo, indicating the primary repo already has an accurate token foundation. We will refine Tailwind compatibility if needed, but since the primary repo is CSS-based, we will adapt the Tailwind classes from `donor-repo` back into pure CSS, or migrate the primary repo to Tailwind (as `@tailwindcss/vite` is in its `devDependencies`). Wait! `package.json` has `@tailwindcss/vite` and `tailwindcss`!
 
 ## 4. Layout Architecture
 - **Primary Repo**: Double-sidebar (App Navigation + Module-specific sub-sidebars).
-- **Venice (openvenice-master)**: Unified collapsible sidebar. Nav groups ("Conversation", "Generate", "Build"). When the "Chat" tab is active, the Conversation History is injected directly into the primary sidebar below the navigation links.
+- **Venice (donor-repo)**: Unified collapsible sidebar. Nav groups ("Conversation", "Generate", "Build"). When the "Chat" tab is active, the Conversation History is injected directly into the primary sidebar below the navigation links.
 - **Goal**: Refactor `src/components/VeniceSidebar.tsx` to handle the unified layout logic, pulling the chat history out of `ChatModule.tsx`.
 
 ## 5. Components

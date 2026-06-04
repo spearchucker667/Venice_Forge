@@ -15,7 +15,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
   - **Theme Export/Import:** Custom themes can now be exported and imported as standalone JSON files in the ThemeMaker panel.
   - **Drag & Drop Context Reordering:** Drag and drop uploaded files in the Chat attachment tray to dictate context order.
   - **Drag & Drop Media Upload:** Drag and drop an image file directly onto the Source Image field in both the Video Creator and Image Creator modules.
-- **Venice-Style Feature Parity (OpenVenice Migration):**
+- **Venice-Style Feature Parity (Feature Migration):**
   - **Workflows:** Visual node editor for chaining models (Input → LLM → Image Gen → Output) with parallel branching and full parameter controls per node.
   - **Playground:** Conversational agent that builds and edits workflows on a live canvas as you describe them in plain language.
   - **Audio Studio:** Text-to-speech with 50+ voices across 9 languages and audio transcription via Whisper model.

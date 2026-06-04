@@ -363,8 +363,8 @@ export default function App() {
             {state.activeTab === "video" && <VideoModule state={state} dispatch={dispatch} />}
             {state.activeTab === "audio" && <AudioModule state={state} dispatch={dispatch} />}
             {state.activeTab === "music" && <MusicModule state={state} dispatch={dispatch} />}
-            {state.activeTab === "workflows" && <WorkflowsView />}
-            {state.activeTab === "playground" && <PlaygroundView />}
+            {state.activeTab === "workflows" && <WorkflowsView state={state} dispatch={dispatch} />}
+            {state.activeTab === "playground" && <PlaygroundView state={state} dispatch={dispatch} />}
             {state.activeTab === "embeddings" && <EmbeddingsModule state={state} dispatch={dispatch} />}
             {state.activeTab === "batch" && <BatchModule state={state} dispatch={dispatch} />}
             {state.activeTab === "search" && <SearchScrapeModule state={state} dispatch={dispatch} />}

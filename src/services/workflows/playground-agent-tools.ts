@@ -15,7 +15,7 @@
  */
 
 import { veniceFetch } from '../veniceClient'
-import type { AppDispatch } from '../../types/app' // eslint-disable-line @typescript-eslint/no-unused-vars
+import type { AppDispatch } from '../../types/app'
 import { generateId } from '../../utils/tailwind-utils'
 import { NODE_SCHEMAS } from './workflow-schema'
 import type { WorkflowPatch } from './workflow-mutations'
@@ -198,7 +198,7 @@ function nodeCatalog(): string {
     .join('\n\n')
 }
 
-const SYSTEM_PROMPT = `You are a workflow designer for OpenVenice. You build visual workflows that chain Venice AI models by calling tools.
+const SYSTEM_PROMPT = `You are a workflow designer for Venice Forge. You build visual workflows that chain Venice AI models by calling tools.
 
 Available node types:
 
@@ -245,7 +245,7 @@ interface ToolResult {
 }
 
 export interface RunOptions {
-  dispatch: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  dispatch: AppDispatch
   userMessage: string
   draft: { nodes: Node<VeniceNodeData>[]; edges: Edge[] }
   history: Array<{ role: 'user' | 'assistant'; content: string }>

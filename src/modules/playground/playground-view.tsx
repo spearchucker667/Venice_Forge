@@ -11,7 +11,8 @@ import { cn } from '../../utils/tailwind-utils'
 import { toast } from '../../state/toast-store-mock'
 import { DEFAULT_AGENT_MODEL } from '../../services/workflows/playground-agent'
 
-export function PlaygroundView() {
+import { type ModuleProps } from "../../types/app"
+export function PlaygroundView({ state, dispatch }: ModuleProps) {
   const draft = usePlaygroundStore((s) => s.draft)
   const isRunning = usePlaygroundStore((s) => s.isRunning)
   const linkedWorkflowId = usePlaygroundStore((s) => s.linkedWorkflowId)
@@ -44,7 +45,7 @@ export function PlaygroundView() {
     store.setRunResults(initial)
     try {
       await executeWorkflow(draft.nodes, draft.edges, {
-        dispatch: (window as any)._dispatch, // eslint-disable-line @typescript-eslint/no-explicit-any
+        dispatch, 
         onUpdate: (nodeId, result) => store.updateRunNode(nodeId, result),
       })
       toast.success('Workflow completed')
@@ -92,7 +93,7 @@ export function PlaygroundView() {
       id = promoteToWorkflow()
     }
     if (id) setActiveWorkflow(id)
-    ;(window as any)._dispatch({ type: 'SET_TAB', tab: 'workflows' }) // eslint-disable-line @typescript-eslint/no-explicit-any
+    dispatch({ type: "SET_TAB", tab: "workflows" }) 
   }
 
   const handleLoadWorkflow = (id: string) => {
@@ -112,17 +113,17 @@ export function PlaygroundView() {
 
   return (
     <div className="flex h-full">
-      <div className="w-[420px] shrink-0 border-r border-white/[0.06] flex flex-col">
-        <div className="flex items-center justify-between gap-2 px-3 h-11 border-b border-white/[0.06] bg-[#0a0a0a] shrink-0">
+      <div className="w-[420px] shrink-0 border-r border-border flex flex-col">
+        <div className="flex items-center justify-between gap-2 px-3 h-11 border-b border-border bg-surface shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-[14px] font-medium text-white/65 shrink-0">Playground</span>
-            <span className="text-[11px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/45 uppercase tracking-wider shrink-0">Agent</span>
+            <span className="text-[11px] px-1.5 py-0.5 rounded bg-surface-elevated hover:bg-surface-elevated text-white/45 uppercase tracking-wider shrink-0">Agent</span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0 min-w-0">
             <AgentModelPicker value={currentAgentModel} onChange={setPlaygroundAgentModel} />
             <button
               onClick={handleReset}
-              className="text-[12px] text-white/45 hover:text-white/80 transition-colors px-1.5 py-1 rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
+              className="text-[12px] text-white/45 hover:text-text-primary transition-colors px-1.5 py-1 rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
               title="Clear conversation"
             >
               Clear
@@ -130,18 +131,18 @@ export function PlaygroundView() {
           </div>
         </div>
         <div className="flex-1 min-h-0">
-          <PlaygroundChat />
+          <PlaygroundChat state={state} dispatch={dispatch} />
         </div>
       </div>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center gap-2 px-3 h-11 border-b border-white/[0.06] bg-[#0a0a0a] shrink-0">
+        <div className="flex items-center gap-2 px-3 h-11 border-b border-border bg-surface shrink-0">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             {linkedWorkflow ? (
-              <div className="flex items-center gap-1 min-w-0 px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.06]">
+              <div className="flex items-center gap-1 min-w-0 px-2 py-0.5 rounded bg-surface-elevated border border-border">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-white/35 shrink-0"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4 12.5-12.5z" /></svg>
                 <span className="text-[12.5px] text-white/65 truncate max-w-[180px]" title={linkedWorkflow.name}>{linkedWorkflow.name}</span>
-                <button onClick={handleUnlink} className="text-white/25 hover:text-white/60 transition-colors p-0.5 -mr-1 shrink-0" title="Unlink">
+                <button onClick={handleUnlink} className="text-white/25 hover:text-text-secondary transition-colors p-0.5 -mr-1 shrink-0" title="Unlink">
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                 </button>
               </div>
@@ -149,7 +150,7 @@ export function PlaygroundView() {
               <select
                 value=""
                 onChange={(e) => e.target.value && handleLoadWorkflow(e.target.value)}
-                className="bg-white/[0.03] border border-white/[0.06] rounded px-2 py-1 text-[12px] text-white/45 outline-none hover:border-white/[0.12] max-w-[200px]"
+                className="bg-surface-elevated border border-border rounded px-2 py-1 text-[12px] text-white/45 outline-none hover:border-white/[0.12] max-w-[200px]"
               >
                 <option value="">Edit saved workflow…</option>
                 {workflows.map((w) => (
@@ -157,7 +158,7 @@ export function PlaygroundView() {
                 ))}
               </select>
             ) : null}
-            <span className="text-[12px] text-white/30 font-mono shrink-0">{draft.nodes.length}n · {draft.edges.length}e</span>
+            <span className="text-[12px] text-text-tertiary font-mono shrink-0">{draft.nodes.length}n · {draft.edges.length}e</span>
             {validation.errors.length > 0 && (
               <span
                 className="w-1.5 h-1.5 rounded-full bg-red-400/80 shrink-0"
@@ -177,7 +178,7 @@ export function PlaygroundView() {
             <button
               onClick={resetDraft}
               disabled={!canExport || isRunning}
-              className="text-white/25 hover:text-white/55 transition-colors p-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="text-white/25 hover:text-text-secondary transition-colors p-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
               title="Reset canvas"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /></svg>
@@ -187,7 +188,7 @@ export function PlaygroundView() {
               disabled={!canRun}
               className={cn(
                 'flex items-center gap-1.5 text-[13px] font-medium px-2.5 py-1 rounded-md transition-colors',
-                canRun ? 'bg-green-500/20 text-green-300 border border-green-500/30 hover:bg-green-500/30' : 'bg-white/[0.05] text-white/25 border border-white/[0.06] cursor-not-allowed',
+                canRun ? 'bg-green-500/20 text-green-300 border border-green-500/30 hover:bg-green-500/30' : 'bg-white/[0.05] text-white/25 border border-border cursor-not-allowed',
               )}
               title={validation.errors.length > 0 ? validation.errors.map((e) => e.message).join('\n') : 'Run the workflow inline'}
             >
@@ -208,7 +209,7 @@ export function PlaygroundView() {
               disabled={!canExport || isRunning}
               className={cn(
                 'text-[13px] px-2.5 py-1 rounded-md border border-white/[0.08] transition-colors',
-                canExport && !isRunning ? 'text-white/60 hover:border-white/[0.15] hover:text-white/85' : 'text-white/20 opacity-40 cursor-not-allowed',
+                canExport && !isRunning ? 'text-text-secondary hover:border-white/[0.15] hover:text-white/85' : 'text-white/20 opacity-40 cursor-not-allowed',
               )}
               title={linkedWorkflow ? `Update "${linkedWorkflow.name}"` : 'Save as new workflow'}
             >
@@ -229,7 +230,7 @@ export function PlaygroundView() {
               disabled={!canExport || isRunning}
               className={cn(
                 'flex items-center gap-1.5 text-[13px] font-medium px-2.5 py-1 rounded-md transition-colors',
-                canExport && !isRunning ? 'bg-white text-black hover:bg-white/90' : 'bg-white/[0.05] text-white/30 cursor-not-allowed',
+                canExport && !isRunning ? 'bg-white text-black hover:bg-white/90' : 'bg-white/[0.05] text-text-tertiary cursor-not-allowed',
               )}
               title="Open in Workflows tab"
             >
