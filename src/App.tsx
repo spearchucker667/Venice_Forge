@@ -1,5 +1,3 @@
-// Code Owner: fayeblade (@spearchucker667)
-// Root application shell — all state, routing, and bridge initialization lives here.
 import React, { useEffect, useReducer, useRef, useState } from "react";
 import { appReducer, initialState } from "./state/appReducer";
 import { validateAppSettings } from "./shared/configSchema";
@@ -22,32 +20,46 @@ import { TABS } from "./constants/venice";
 import { ToastHost } from "./components/ToastHost";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { FirstRunModal } from "./components/FirstRunModal";
-import { VeniceShell } from "./components/VeniceShell";
+import { VeniceSidebar } from "./components/VeniceSidebar";
+import { VeniceHeader } from "./components/VeniceHeader";
 import { initDesktopBridge, isElectron, desktopApiKey } from "./services/desktopBridge";
 import { warn } from "./shared/logger";
 import { FIRST_RUN_ACK_KEY } from "./shared/legal";
 import { GalleryImage, ChatHistoryItem } from "./types/storage";
 import { listConversations, saveConversation, createConversation } from "./services/chatStorage";
 import type { ConversationMessage } from "./types/conversation";
-
+import type { ModelInfo } from "./types/venice";
 
 type SettingsRecord = { id: string; timestamp: number; value?: Record<string, unknown> };
+
+const TAB_SUBTITLES: Record<string, string> = {
+  chat: 'Conversational AI',
+  image: 'Generate images from text',
+  video: 'Generate video clips',
+  audio: 'Text-to-speech and transcription',
+  batch: 'Batch operations',
+  search: 'Search and scrape',
+  models: 'Browse available models',
+  gallery: 'Your generated media',
+  settings: 'Configure application',
+  diagnostics: 'System status',
+};
+
+const noModelSelectorTabs = new Set(["batch", "search", "gallery", "settings", "diagnostics"]);
 
 export default function App() {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const [apiKeyConfigured, setApiKeyConfigured] = useState<boolean | null>(null);
-  // bridgeReady gates all initial API calls: in web mode it is true immediately
-  // (bridge init is a no-op); in Electron it becomes true once preload diagnostics resolve.
   const [bridgeReady, setBridgeReady] = useState(!isElectron());
   const [firstRunRouted, setFirstRunRouted] = useState(false);
   const [dbReady, setDbReady] = useState(false);
   const [settingsHydrated, setSettingsHydrated] = useState(false);
   const [showFirstRun, setShowFirstRun] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useThemeLifecycle(state.settings, settingsHydrated);
   useNetworkStatus(dispatch);
 
-  // Initialise the desktop bridge (no-op in web mode)
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -72,9 +84,7 @@ export default function App() {
           },
         });
       } finally {
-        if (mounted) {
-          setBridgeReady(true);
-        }
+        if (mounted) setBridgeReady(true);
       }
     })();
     return () => { mounted = false; };
@@ -107,10 +117,8 @@ export default function App() {
           dispatch({ type: "SET_SETTINGS", settings: valid });
         }
 
-        // Load conversations (Electron filesystem or IndexedDB fallback)
         let conversations = await listConversations();
 
-        // Migrate old flat chat history into a default conversation if none exist yet
         if (conversations.length === 0 && chats.length > 0) {
           const lastChat = chats.reduce((latest, c) => (c.timestamp > latest.timestamp ? c : latest), chats[0]);
           const migrated = createConversation(
@@ -162,7 +170,6 @@ export default function App() {
         }
 
         if (!isElectron()) {
-          // Web mode uses the server-side .env key; no local key check needed.
           setApiKeyConfigured(true);
         }
 
@@ -186,26 +193,20 @@ export default function App() {
         });
       }
     })();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
-  // Gate initial model refresh until the proxy URL is resolved (critical in Electron)
   useEffect(() => {
     if (!bridgeReady) return;
     refreshModels(dispatch).catch(() => {});
   }, [bridgeReady]);
 
-  // Auto-fetch models when API key becomes configured
   useEffect(() => {
     if (apiKeyConfigured && bridgeReady && state.usingFallbackModels) {
       refreshModels(dispatch, true).catch(() => {});
     }
   }, [apiKeyConfigured, bridgeReady, state.usingFallbackModels]);
 
-  // LOW-004: Detect auto-switched models after SET_MODELS and dispatch toasts from
-  // the component layer instead of inside the reducer, keeping the reducer pure.
   const prevChatModelRef = useRef(state.selectedChatModel);
   const prevImageModelRef = useRef(state.selectedImageModel);
   const prevVideoModelRef = useRef(state.selectedVideoModel);
@@ -262,7 +263,6 @@ export default function App() {
 
   useSettingsPersistence(state.settings, dbReady, settingsHydrated, dispatch);
 
-  // First-run legal acknowledgment
   useEffect(() => {
     if (!settingsHydrated) return;
     try {
@@ -282,33 +282,75 @@ export default function App() {
     setShowFirstRun(false);
   }
 
-  return (
-    <VeniceShell state={state} dispatch={dispatch} apiKeyConfigured={apiKeyConfigured}>
-      {/* Workspace Content */}
-      <main className="relative flex min-w-0 flex-1 flex-col overflow-y-auto bg-transparent">
-        <ErrorBoundary onReset={() => dispatch({ type: "SET_TAB", tab: "chat" })}>
-          {isElectron() && apiKeyConfigured === false && (
-            <div className="m-4 rounded-xl border border-warning/30 bg-warning/10 p-4 text-sm leading-relaxed text-warning shadow-sm">
-              Venice Forge needs a Venice API key before model, chat, image, video, batch, and research requests can run. Add it in Config, then use Test connection.
-            </div>
-          )}
+  const handleOpenApiKey = () => {
+    dispatch({ type: "SET_TAB", tab: "settings" });
+  };
 
-          {/* Mobile horizontal tabs (small screens only) */}
-          <nav className="sticky top-0 z-10 flex gap-3 overflow-x-auto border-b border-border/40 bg-bg p-4 md:hidden">
-            {TABS.map(([id, label]) => (
-              <button
-                key={id}
-                onClick={() => dispatch({ type: "SET_TAB", tab: id })}
-                className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all ${
-                  state.activeTab === id
-                    ? "bg-accent/20 text-accent-fg border border-accent/30"
-                    : "bg-transparent text-text-secondary hover:bg-surface-elevated hover:text-text-primary"
-                }`}
+  const activeTabLabel = TABS.find(([id]) => id === state.activeTab)?.[1] || "";
+  const activeTabSubtitle = TAB_SUBTITLES[state.activeTab] || "";
+  const showModelSelector = !noModelSelectorTabs.has(state.activeTab);
+  const modelTypeMap: Record<string, string> = {
+    chat: 'text',
+    image: 'image',
+    video: 'video',
+    audio: 'tts',
+  };
+  const currentModelType = modelTypeMap[state.activeTab] || 'text';
+  const currentModel = state.activeTab === 'chat' ? state.selectedChatModel :
+                       state.activeTab === 'image' ? state.selectedImageModel :
+                       state.activeTab === 'video' ? state.selectedVideoModel : '';
+
+  return (
+    <div className="flex h-[100dvh] w-screen overflow-hidden" style={{ background: 'var(--bg)' }}>
+      {mobileSidebarOpen && (
+        <button
+          aria-label="Close menu"
+          className="md:hidden fixed inset-0 z-30"
+          style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
+      <VeniceSidebar
+        state={state}
+        dispatch={dispatch}
+        onMobileClose={() => setMobileSidebarOpen(false)}
+      />
+
+      <div className="flex flex-col flex-1 min-w-0">
+        <VeniceHeader
+          activeTab={state.activeTab}
+          activeTabLabel={activeTabLabel}
+          activeTabSubtitle={activeTabSubtitle}
+          showModelSelector={showModelSelector}
+          modelType={currentModelType}
+          currentModel={currentModel}
+          models={state.models as { text: ModelInfo[]; image: ModelInfo[]; video: ModelInfo[] }}
+          onModelChange={(model) => {
+            if (state.activeTab === 'chat') dispatch({ type: "SET_SELECTED_CHAT_MODEL", model });
+            else if (state.activeTab === 'image') dispatch({ type: "SET_SELECTED_IMAGE_MODEL", model });
+            else if (state.activeTab === 'video') dispatch({ type: "SET_SELECTED_VIDEO_MODEL", model });
+          }}
+          apiKeyConfigured={apiKeyConfigured}
+          onOpenApiKey={handleOpenApiKey}
+          onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
+        />
+
+        <main className="flex-1 min-h-0 overflow-hidden">
+          <ErrorBoundary onReset={() => dispatch({ type: "SET_TAB", tab: "chat" })}>
+            {isElectron() && apiKeyConfigured === false && (
+              <div
+                className="mx-4 mt-4 rounded-xl p-4 text-sm leading-relaxed shadow-sm"
+                style={{
+                  border: '1px solid var(--warning)',
+                  background: 'rgba(212, 168, 67, 0.1)',
+                  color: 'var(--warning)'
+                }}
               >
-                {label}
-              </button>
-            ))}
-          </nav>
+                Venice Forge needs a Venice API key before model, chat, image, video, batch, and research requests can run. Add it in Settings, then use Test connection.
+              </div>
+            )}
+
             {state.activeTab === "chat" && <ChatModule state={state} dispatch={dispatch} />}
             {state.activeTab === "image" && <ImageModule state={state} dispatch={dispatch} />}
             {state.activeTab === "video" && <VideoModule state={state} dispatch={dispatch} />}
@@ -325,23 +367,33 @@ export default function App() {
             )}
           </ErrorBoundary>
         </main>
+      </div>
+
       <ToastHost state={state} dispatch={dispatch} />
       <FirstRunModal
         open={showFirstRun}
         onAcknowledge={acknowledgeFirstRun}
-        onDismiss={() => {
-          setShowFirstRun(false);
-        }}
+        onDismiss={() => setShowFirstRun(false)}
       />
       {!state.isOnline && (
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-0 left-0 right-0 z-[1000] bg-warning/90 px-4 py-3 text-center font-display text-[13px] font-bold uppercase tracking-widest text-accent-fg shadow-[0_-4px_20px_var(--glow)] backdrop-blur-xl"
+          className="fixed bottom-0 left-0 right-0 z-[1000] px-4 py-3 text-center shadow-lg"
+          style={{
+            background: 'rgba(212, 168, 67, 0.9)',
+            backdropFilter: 'blur(12px)',
+            color: 'var(--accent-fg)',
+            fontFamily: 'var(--display)',
+            fontSize: '13px',
+            fontWeight: 700,
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase'
+          }}
         >
           You are offline. API requests are unavailable until connectivity is restored.
         </div>
       )}
-    </VeniceShell>
+    </div>
   );
 }

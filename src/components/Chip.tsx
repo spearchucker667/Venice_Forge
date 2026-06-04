@@ -1,21 +1,38 @@
 import React from 'react';
 
-const toneClasses: Record<string, string> = {
-  ok: "text-success border-success/30 bg-success/10",
-  warn: "text-warning border-warning/30 bg-warning/10",
-  danger: "text-danger border-danger/30 bg-danger/10",
-  running: "text-accent border-accent/40 bg-accent/10",
-  muted: "text-text-muted border-border/30 bg-surface/50",
-  video: "text-brand-300 border-brand-700/40 bg-brand-900/35",
-  default: "text-text-primary border-border/50 bg-surface/80 shadow-sm"
+interface ChipProps {
+  children: React.ReactNode;
+  tone?: string;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+const toneStyles: Record<string, { bg: string; color: string; border: string }> = {
+  ok: { bg: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid transparent' },
+  warn: { bg: 'rgba(212, 168, 67, 0.12)', color: 'var(--warning)', border: '1px solid transparent' },
+  danger: { bg: 'rgba(239, 68, 68, 0.12)', color: 'var(--danger)', border: '1px solid transparent' },
+  running: { bg: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid transparent' },
+  muted: { bg: 'var(--surface-elevated)', color: 'var(--text-muted)', border: '1px solid var(--border)' },
+  video: { bg: 'rgba(110, 231, 211, 0.08)', color: 'var(--accent)', border: '1px solid transparent' },
+  default: { bg: 'var(--surface)', color: 'var(--text-primary)', border: '1px solid var(--border)' }
 };
 
-export function Chip({ children, tone = "", className = "" }: { children: React.ReactNode; tone?: string; className?: string }) {
-  const baseClasses = "inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-[11px] font-medium leading-snug transition-all duration-200 border";
-  const appliedTone = toneClasses[tone] || toneClasses.default;
+export function Chip({ children, tone = "default", className = "", style }: ChipProps) {
+  const baseStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.25rem 0.625rem',
+    borderRadius: '9999px',
+    fontSize: '11px',
+    fontWeight: 500,
+    lineHeight: 1.4,
+    ...toneStyles[tone] || toneStyles.default,
+    ...style
+  };
 
   return (
-    <span className={`${baseClasses} ${appliedTone} ${className}`.trim()}>
+    <span className={className} style={baseStyle}>
       {children}
     </span>
   );

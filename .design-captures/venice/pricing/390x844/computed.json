@@ -1,0 +1,56 @@
+{
+  "html": {
+    "font-family": "__aeonik_625d6f, __aeonik_Fallback_625d6f",
+    "font-size": "16px",
+    "font-weight": "400",
+    "color": "rgb(0, 0, 0)",
+    "background-color": "rgba(0, 0, 0, 0)",
+    "border-radius": "0px",
+    "padding": "0px"
+  },
+  "body": {
+    "font-family": "__aeonik_625d6f, __aeonik_Fallback_625d6f",
+    "font-size": "16px",
+    "font-weight": "400",
+    "color": "rgb(0, 0, 0)",
+    "background-color": "rgb(238, 237, 228)",
+    "border-radius": "0px",
+    "padding": "0px"
+  },
+  "main": {
+    "font-family": "__aeonik_625d6f, __aeonik_Fallback_625d6f",
+    "font-size": "16px",
+    "font-weight": "400",
+    "color": "rgb(0, 0, 0)",
+    "background-color": "rgb(255, 255, 255)",
+    "border-radius": "0px",
+    "padding": "180px 0px 0px"
+  },
+  "header": {
+    "font-family": "__aeonik_625d6f, __aeonik_Fallback_625d6f",
+    "font-size": "16px",
+    "font-weight": "400",
+    "color": "rgb(0, 0, 0)",
+    "background-color": "rgb(255, 255, 255)",
+    "border-radius": "12px",
+    "padding": "0px"
+  },
+  "button": {
+    "font-family": "__aeonik_625d6f, __aeonik_Fallback_625d6f",
+    "font-size": "16px",
+    "font-weight": "400",
+    "color": "rgb(0, 0, 0)",
+    "background-color": "rgb(18, 93, 163)",
+    "border-radius": "4px",
+    "padding": "0px"
+  },
+  "textarea": {
+    "font-family": "__aeonik_625d6f, __aeonik_Fallback_625d6f",
+    "font-size": "16px",
+    "font-weight": "400",
+    "color": "rgb(0, 0, 0)",
+    "background-color": "rgb(243, 243, 243)",
+    "border-radius": "10px",
+    "padding": "14px 50px 14px 12px"
+  }
+}
