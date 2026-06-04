@@ -12,6 +12,7 @@ import { AudioView } from './components/audio/audio-view'
 import { MusicView } from './components/music/music-view'
 import { VideoView } from './components/video/video-view'
 import { EmbeddingsView } from './components/embeddings/embeddings-view'
+import { StatusView } from './components/StatusView'
 import { ErrorBoundary } from './components/ui/error-boundary'
 import { Toaster } from './components/ui/toaster'
 import { FIRST_RUN_ACK_KEY } from './shared/legal'
@@ -35,9 +36,10 @@ const views = {
   embeddings: EmbeddingsView,
   workflows: WorkflowsView,
   playground: PlaygroundView,
+  status: StatusView,
 } as const
 
-const TAB_ORDER: Tab[] = ['chat', 'image', 'audio', 'music', 'video', 'embeddings', 'workflows', 'playground']
+const TAB_ORDER: Tab[] = ['chat', 'image', 'audio', 'music', 'video', 'embeddings', 'workflows', 'playground', 'status']
 
 export function App() {
   const needsUnlock = useAuthStore((s) => s.hasEncrypted && !s.apiKey)

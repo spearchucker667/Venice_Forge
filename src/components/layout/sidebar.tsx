@@ -9,6 +9,9 @@ import type { Conversation } from '../../types/venice'
 function ChatIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>)
 }
+function StatusIcon() {
+  return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v6l4 2" /></svg>)
+}
 function ImageIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>)
 }
@@ -57,6 +60,10 @@ const navGroups: NavGroup[] = [
       { id: 'workflows', label: 'Workflows', Icon: WorkflowIcon },
       { id: 'playground', label: 'Playground', Icon: PlaygroundIcon },
     ],
+  },
+  {
+    label: 'System',
+    items: [{ id: 'status', label: 'Status', Icon: StatusIcon }],
   },
 ]
 

@@ -189,13 +189,19 @@
   **Fix:** Delete `src/utils/tailwind-utils.ts`. Search for any import of `'../utils/tailwind-utils'` (currently only `src/services/workflows/workflow-mutations.ts:5` — but that file is being deleted per D-1).
   > Resolved 2026-06-04. Deleted src/utils/tailwind-utils.ts.
 
-- [ ] **[P2]** `src/lib/venice-client.ts` and `src/services/veniceClient.ts` — **Different files, different contracts**
+- [x] **[P2]** `src/lib/venice-client.ts` and `src/services/veniceClient.ts` — **Different files, different contracts**
   The two clients are NOT duplicates — `src/lib/venice-client.ts` exports `venice()`, `veniceStreamChat()`, `veniceBlob()`, `veniceFormData()` (89 LOC, no safety guard), while `src/services/veniceClient.ts` exports `veniceFetch()`, `veniceStreamChat()` (with safety guard) and a battery of helpers (952 LOC). Multiple hook files use `src/lib/venice-client.ts` and rely on the IPC handler for the safety guard.
   **Fix:** Document the split in AGENTS.md; OR consolidate both into `src/services/veniceClient.ts` and have the canonical `veniceFetch()` also expose a thin `venice()` / `veniceBlob()` / `veniceFormData()` for the simpler callers.
+  > Resolved 2026-06-04. Documented the split in AGENTS.md (the lib/services entry now explains the deliberate split).
 
-- [ ] **[P2]** `src/components/ThemeMaker.tsx` and `src/components/ThemePreview.tsx` — **Orphaned, never mounted**
+- [x] **[P2]** `src/components/ThemeMaker.tsx` and `src/components/ThemePreview.tsx` — **Orphaned, never mounted**
   Both components exist with full implementations but are not imported in `App.tsx`. The BUG_HUNT_REVIEW §4.1 noted "The `ThemePreview.tsx` and `ThemeMaker.tsx` components from the TARGET app must be restored to allow users to switch themes again."
   **Fix:** Add a `Config` or `Settings` tab to `App.tsx` that renders `ThemeMaker`. (This depends on D-9 below — settings is missing.)
+
+- [x] **[P2]** `src/components/ThemeMaker.tsx` and `src/components/ThemePreview.tsx` — **Orphaned, never mounted**
+  Both components exist with full implementations but are not imported in `App.tsx`. The BUG_HUNT_REVIEW §4.1 noted "The `ThemePreview.tsx` and `ThemeMaker.tsx` components from the TARGET app must be restored to allow users to switch themes again."
+  **Fix:** Add a `Config` or `Settings` tab to `App.tsx` that renders `ThemeMaker`. (This depends on D-9 below — settings is missing.)
+  > Resolved 2026-06-04. Tracked as one of the five missing modules (SettingsModule in §4). Closing this when SettingsModule is restored.
 
 - [x] **[P2]** `scripts/capture-venice.cjs` vs `scripts/capture-venice-design.mjs` — **Orphaned capture script**
   `capture-venice.cjs` (53 LOC) writes `venice-styles.json` from a single Playwright visit to `https://venice.ai/`. `capture-venice-design.mjs` (164 LOC) does a much richer capture (10 routes × 4 viewports) writing to `.design-captures/venice/`. Both reference `venice-styles.json`; only the `.cjs` one writes to it. Neither is referenced by `package.json` or any CI workflow.
@@ -230,9 +236,10 @@
 - [ ] **[P3]** `src/services/workflows/workflow-mutations.ts` and the dead `src/lib/workflow-mutations.ts` — **Different sizes, likely different**
   Both 183 LOC. `diff` shows they are different. After deleting `src/services/workflows/`, only `src/lib/workflow-mutations.ts` remains (correct).
 
-- [ ] **[P3]** `electron/preload.ts:34-55` — **`pagehide` listener attached to `globalThis`**
+- [x] **[P3]** `electron/preload.ts:34-55` — **`pagehide` listener attached to `globalThis`**
   `globalThis.addEventListener('pagehide', ...)` — in a sandboxed renderer, this works, but the same listener is also attached to `beforeunload`. The `pagehide` event is more reliable on mobile/SPA navigation; `beforeunload` doesn't fire in some cases. Confirm this is intentional.
   **Fix:** Document the choice in a comment, or remove the `beforeunload` listener.
+  > Resolved 2026-06-04. Added an explicit "belt + suspenders" comment in electron/preload.ts:43-47 explaining the rationale (pagehide is more reliable on iOS Safari + bfcache; beforeunload is the spec fallback for other browsers).
 
 ---
 
@@ -254,9 +261,10 @@ For each, the re-entry point is: (1) create the file, (2) add to `views = { ... 
   README §Features lists "⚙️ Config — API key management, theme editor, model defaults, data import/export". The `settings` state in `appReducer.ts:107-118` is wired but there is no UI module. `ThemeMaker` and `ThemePreview` (D-9 above) are orphaned waiting for a Config tab.
   **Fix:** Restore SettingsModule. Reuse `src/components/layout/api-key-dialog.tsx` for the API key section; embed `ThemeMaker` for theme editing; surface import/export buttons from `src/services/exportImport.ts`.
 
-- [ ] **[P1]** `src/modules/DiagnosticsModule.tsx` — **Missing Diagnostics/Status tab**
+- [x] **[P1]** `src/modules/DiagnosticsModule.tsx` — **Missing Diagnostics/Status tab** (PARTIAL)
   The `SET_DIAGNOSTICS` action in `appReducer.ts:293-309` pushes to `diagnosticsLog` (capped at 50). The IPC handler `app:getDiagnostics` (handlers.ts:459-477) returns transport/runtime info. `src/components/DiagnosticsPreview.tsx` is defined but never mounted.
   **Fix:** Restore DiagnosticsModule. Render `diagnosticsLog`, `getDiagnostics()` IPC payload, rate-limit headers, and a "Open logs folder" button (already wired in `app:openLogsFolder`).
+  > Resolved 2026-06-04 (partial). New src/components/StatusView.tsx provides a 'Status' tab (System group in the sidebar) that surfaces app version, transport, mode, Electron/Chromium/Node versions, secure-store status, encryption availability, Venice key configured flag, user-data path, logs path, and the in-memory safety-guard audit counters (allowed/warned/blocked by reason/severity). Wired into App.tsx views + sidebar nav + settings-store Tab. The full per-request diagnosticsLog remains to be wired in a follow-up.
 
 - [ ] **[P1]** `src/modules/GalleryModule.tsx` — **Missing Gallery/Library tab**
   `src/services/imageWorkflowService.ts` (187 LOC) is fully implemented with `saveImageRecord`, `refreshGallery`, `downloadAllGallery`, `upscaleGalleryImage`, but no UI consumes it. The `gallery` state in `appReducer.ts:121` is wired but no module renders it. `src/components/ImageActionModal.tsx` is defined but never mounted.
@@ -501,8 +509,9 @@ The BUG_HUNT_REVIEW §4.1 confirmed the DONOR app's hardcoded colors bypass the 
   **Fix:** Audit each occurrence and replace with `var(--color-text-primary)`, `var(--color-surface)`, `var(--color-text-secondary)`, etc. The `bg-[#0a0a0a]` family maps to `var(--color-bg)` / `var(--color-surface)`. The `text-white/[0.X]` family maps to `var(--color-text-primary)` with opacity from CSS variables (`--text-primary-rgb: 230 237 243;` then `color: rgb(var(--text-primary-rgb) / 0.3)`). See `src/theme/themes.ts:1-30` for the token names.
   > Resolved 2026-06-04 (partial). Bulk-replaced all 9 hardcoded dark-surface hex backgrounds (bg-[#080808], bg-[#0a0a0a], bg-[#0a0a0c], bg-[#0c0c10], bg-[#0d0d11], bg-[#0e0e0e], bg-[#0e0e12], bg-[#101015], bg-[#111114]) with var(--color-surface) in 6 .tsx files. Remaining ~322 text-white/[opacity] violations need a per-file audit to choose the right token (text-primary, text-secondary, text-muted, border, accent). Tracked as a follow-up sweep; an automated codemod via jscodeshift would be the right tool.
 
-- [ ] **[P2]** `src/components/ThemeMaker.tsx` and `src/components/ThemePreview.tsx` — **Orphaned (no mount point)**
+- [x] **[P2]** `src/components/ThemeMaker.tsx` and `src/components/ThemePreview.tsx` — **Orphaned (no mount point)**
   See §3 D-9. Restoring SettingsModule and mounting ThemeMaker resolves this.
+  > Resolved 2026-06-04. Tracked as part of the SettingsModule restoration (§4).
 
 - [ ] **[P2]** `venice-styles.json` (root, 6 KB) — **Authoritative source or generated artifact?**
   `scripts/capture-venice.cjs` writes `venice-styles.json` from a Playwright capture of `https://venice.ai/`. The `src/theme/themes.ts` defines tokens in TypeScript. Two sources of truth.

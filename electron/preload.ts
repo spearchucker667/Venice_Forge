@@ -41,7 +41,12 @@ const veniceForge = {
       ipcRenderer.on("venice:streamDelta", listener);
       const pending = ipcRenderer.invoke("venice:streamChat", { ...input, signalId });
       // If the renderer is killed before the stream ends, notify main to abort
-      // so the activeRequests Map does not leak.
+      // so the activeRequests Map does not leak. We listen to BOTH
+      // beforeunload and pagehide because the two events are not
+      // interchangeable across browsers: beforeunload is unreliable
+      // on iOS Safari and may not fire on bfcache restores; pagehide is
+      // the spec-recommended event for "the page is being hidden" and
+      // fires in more cases (including bfcache). Belt + suspenders.
       const abortOnLeave = () => {
         ipcRenderer.invoke("venice:abort", signalId).catch(() => {});
       };
