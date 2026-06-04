@@ -127,19 +127,19 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
     <aside
       aria-label="Primary navigation"
       className={cn(
-        'flex flex-col h-full bg-surface border-r border-white/[0.05] transition-all duration-200 ease-out',
+        'flex flex-col h-full bg-surface border-r border-border transition-all duration-200 ease-out',
         'fixed top-0 left-0 z-40 w-72 h-[100dvh] md:static md:h-full md:w-auto',
         mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
         sidebarOpen ? 'md:w-64' : 'md:w-[60px]',
       )}
     >
-      <div className={cn('flex items-center gap-2.5 h-14 shrink-0 border-b border-white/[0.04]', expanded ? 'px-4' : 'md:px-3 md:justify-center px-4')}>
+      <div className={cn('flex items-center gap-2.5 h-14 shrink-0 border-b border-border', expanded ? 'px-4' : 'md:px-3 md:justify-center px-4')}>
         <VeniceLogo size={20} />
         {expanded && <VeniceWordmark className="text-[15px] tracking-tight" />}
         <button
           onClick={onMobileClose}
           aria-label="Close menu"
-          className="md:hidden ml-auto p-1 text-white/45 hover:text-white/80 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
+          className="md:hidden ml-auto p-1 text-text-secondary hover:text-text-primary rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
@@ -149,7 +149,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
         {navGroups.map((group) => (
           <div key={group.label} className={cn(expanded ? 'px-2' : 'md:px-1.5 px-2')}>
             {expanded && (
-              <div className="px-2 pb-1.5 text-[10.5px] uppercase tracking-[0.1em] text-white/30 font-semibold">
+              <div className="px-2 pb-1.5 text-[10.5px] uppercase tracking-[0.1em] text-text-muted font-semibold">
                 {group.label}
               </div>
             )}
@@ -163,11 +163,11 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                     aria-current={isActive ? 'page' : undefined}
                     title={!expanded ? label : undefined}
                     className={cn(
-                      'relative flex items-center gap-2.5 rounded-lg text-[14px] transition-all duration-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2',
+                      'relative flex items-center gap-2.5 rounded-lg text-[14px] transition-all duration-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2 cursor-pointer',
                       expanded ? 'px-2.5 py-2' : 'md:px-0 md:py-2 md:justify-center px-2.5 py-2',
                       isActive
-                        ? 'bg-white/[0.06] text-white'
-                        : 'text-white/55 hover:text-white hover:bg-white/[0.03]',
+                        ? 'bg-accent/10 text-accent font-semibold'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated/40',
                     )}
                   >
                     {isActive && (
@@ -184,13 +184,13 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
       </nav>
 
       {expanded && activeTab === 'chat' && (
-        <div className="flex flex-col flex-1 min-h-0 mt-1 border-t border-white/[0.04]">
+        <div className="flex flex-col flex-1 min-h-0 mt-1 border-t border-border">
           <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
-            <span className="text-[10.5px] font-semibold text-white/40 uppercase tracking-[0.1em]">History</span>
+            <span className="text-[10.5px] font-semibold text-text-muted uppercase tracking-[0.1em]">History</span>
             <button
               onClick={() => createConversation(selectedModel || 'qwen3-next-80b')}
               aria-label="New chat"
-              className="text-white/55 hover:text-white transition-colors p-1 rounded-md hover:bg-white/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
+              className="text-text-secondary hover:text-text-primary transition-colors p-1 rounded-md hover:bg-surface-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] cursor-pointer"
               title="New chat (⌘N)"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
@@ -203,13 +203,13 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search…"
                 aria-label="Search conversations"
-                className="w-full bg-white/[0.04] border border-white/[0.06] rounded-md px-2.5 py-1 text-[13px] text-white/85 outline-none focus:border-white/[0.2] placeholder:text-white/30"
+                className="w-full bg-surface border border-border rounded-md px-2.5 py-1 text-[13px] text-text-primary outline-none focus:border-accent placeholder:text-text-muted"
               />
             </div>
           )}
           <div className="flex-1 overflow-y-auto px-2 pb-3" role="list">
             {filtered.length === 0 ? (
-              <div className="px-2 py-6 text-[13px] text-white/30 text-center">
+              <div className="px-2 py-6 text-[13px] text-text-muted text-center">
                 {search ? 'No matches' : 'No conversations yet'}
               </div>
             ) : (
@@ -231,10 +231,10 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
       {!expanded && <div className="hidden md:block flex-1" />}
 
       {expanded && (
-        <div className="px-3 py-2.5 border-t border-white/[0.04]">
-          <div className="text-[11px] text-white/35 space-y-0.5">
-            <div className="flex justify-between"><span>New chat</span><kbd className="font-mono text-white/50">⌘N</kbd></div>
-            <div className="flex justify-between"><span>Switch tab</span><kbd className="font-mono text-white/50">⌘1-8</kbd></div>
+        <div className="px-3 py-2.5 border-t border-border">
+          <div className="text-[11px] text-text-secondary space-y-0.5">
+            <div className="flex justify-between"><span>New chat</span><kbd className="font-mono text-text-muted">⌘N</kbd></div>
+            <div className="flex justify-between"><span>Switch tab</span><kbd className="font-mono text-text-muted">⌘1-8</kbd></div>
           </div>
         </div>
       )}
@@ -257,8 +257,8 @@ function ConversationRow({ conv, isActive, onSelect, onDelete, onExport }: {
       className={cn(
         'group relative flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[13px] cursor-pointer transition-colors',
         isActive
-          ? 'bg-white/[0.07] text-white'
-          : 'text-white/65 hover:text-white hover:bg-white/[0.03]',
+          ? 'bg-accent/15 text-accent font-semibold'
+          : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated/40',
       )}
       onClick={onSelect}
     >
@@ -268,7 +268,7 @@ function ConversationRow({ conv, isActive, onSelect, onDelete, onExport }: {
           onClick={(e) => { e.stopPropagation(); onExport() }}
           aria-label={`Export ${conv.title}`}
           title="Export as Markdown"
-          className="text-white/45 hover:text-white p-1 rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--color-accent)]"
+          className="text-text-secondary hover:text-text-primary p-1 rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--color-accent)] cursor-pointer"
         >
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
         </button>
@@ -276,7 +276,7 @@ function ConversationRow({ conv, isActive, onSelect, onDelete, onExport }: {
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); setConfirming(false) }}
             aria-label="Confirm delete"
-            className="text-rose-300 hover:text-rose-200 px-1.5 text-[11px] font-semibold rounded"
+            className="text-danger hover:underline px-1.5 text-[11px] font-semibold rounded cursor-pointer"
           >
             Delete?
           </button>
@@ -285,7 +285,7 @@ function ConversationRow({ conv, isActive, onSelect, onDelete, onExport }: {
             onClick={(e) => { e.stopPropagation(); setConfirming(true); setTimeout(() => setConfirming(false), 2500) }}
             aria-label={`Delete ${conv.title}`}
             title="Delete"
-            className="text-white/45 hover:text-rose-300 p-1 rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--color-accent)]"
+            className="text-text-secondary hover:text-danger p-1 rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--color-accent)] cursor-pointer"
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />

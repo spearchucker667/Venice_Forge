@@ -25,8 +25,8 @@
 
 Venice Forge uses a **semantic token-based theme system** built on Tailwind CSS v4 CSS variables. Every color, border, shadow, and focus ring in the UI derives from a centralized set of 17 semantic tokens mapped to CSS custom properties. This enables:
 
-- **Built-in themes:** Forge Graphite (dark), Forge Daylight (light), Forge Copper (dark).
-- **Custom themes:** Users can define every token via the in-app ThemeMaker.
+- **Built-in themes:** Venice Parity Dark (default), Forge Graphite (dark), Forge Daylight (light), Forge Copper (dark), Forge Dracula (dark), GruvBox Dark (dark), Rosepine (dark).
+- **Custom themes:** Users can define every token via the in-app ThemeMaker and import/export configurations in YAML format. The starter configurations for all built-in themes are provided in the `config/themes/` directory as `.yaml` files.
 - **Live preview:** Changes apply immediately without reload.
 - **Persistent storage:** Canonical settings live in encrypted IndexedDB; a lightweight `localStorage` bootstrap cache prevents FOUC on startup.
 - **WCAG AA compliance:** Contrast ratios are verified programmatically for all built-in themes and warned for custom themes.
@@ -120,22 +120,38 @@ No external font requests (e.g., Google Fonts) are made, which is enforced by th
 
 ## Built-in Themes
 
+All built-in themes are configured as YAML templates under the `config/themes/` directory at the root:
+- `config/themes/venice.yaml`
+- `config/themes/dark.yaml`
+- `config/themes/light.yaml`
+- `config/themes/dracula.yaml`
+- `config/themes/gruvbox_dark.yaml`
+- `config/themes/rosepine.yaml`
+
+### Venice Parity Dark — `builtin-venice`
+The default theme, matching the official Venice dark aesthetic. Deep blue-black background (`#050a0f`) with a light-blue accent.
+
 ### Forge Graphite (dark) — `builtin-dark`
-The default dark theme. Graphite base with Venice blue accent.
+Classic dark theme. Graphite base (`#0d1117`) with a solid blue accent.
 
 ### Forge Daylight (light) — `builtin-light`
-Light counterpart with a blue accent.
+Light theme companion with clean light-gray background (`#f6f8fa`) and blue accent.
 
 ### Forge Copper (dark) — `builtin-copper`
-Dark graphite base with a copper accent for warm contrast.
+Dark graphite base with a copper accent (`#a65c20`) for warm contrast.
+
+### Forge Dracula — `builtin-dracula`
+Dracula-inspired dark theme with dark purple background (`#282a36`) and lavender accent.
+
+### GruvBox Dark — `builtin-gruvbox-dark`
+Retro-style dark theme with retro-gray background (`#282828`) and orange accent.
+
+### Rosepine — `builtin-rosepine`
+Sleek dark theme with dark pink-ish purple background (`#191724`) and rose-gold accent.
 
 ### Contrast Verification
 
-| Pair | Graphite | Daylight | Copper |
-|------|----------|----------|--------|
-| textPrimary / background | **16.02:1** | **14.84:1** | — |
-| textSecondary / surface | **7.08:1** | **6.39:1** | — |
-| accentForeground / accent | **4.90:1** | **5.19:1** | **5.03:1** |
+Built-in themes are audited for WCAG AA compliance (4.5:1 ratio for normal text, 3:1 for large text).
 
 All ratios exceed WCAG AA thresholds (4.5:1 for normal text, 3:1 for large text).
 
@@ -155,8 +171,8 @@ Located in **Settings → Appearance → Theme Maker** (`src/components/ThemeMak
 
 ### Controls
 - **Save custom theme:** Persists to canonical IndexedDB settings + refreshes bootstrap cache.
-- **Export theme:** Saves the current custom theme as a standalone `.json` file using native OS dialogs.
-- **Import theme:** Loads a previously exported `.json` theme file, validating its schema and applying it.
+- **Export theme:** Saves the current custom theme as a standalone `.yaml` file conforming to the `theme.yaml` schema using native OS dialogs.
+- **Import theme:** Loads a previously exported `.yaml` theme file, validating its schema and applying it.
 - **Reset custom theme:** Reverts editor to last saved custom theme.
 - **Restore defaults:** Switches to Forge Graphite and clears the custom theme.
 

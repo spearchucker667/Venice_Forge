@@ -1,0 +1,28 @@
+---
+# This is an example color .yaml templet
+# each use hex values to assign each color a value
+# do not leave any value blank
+# "details" is the name of the theme
+accent: "#fe8019"
+background: "#282828"
+details: "GruvBox Dark"
+foreground: "#ebdbb2"
+terminal_colors:
+  bright:
+    black: "#928374"
+    blue: "#d65d0e"
+    cyan: "#83a598"
+    green: "#b8bb26"
+    magenta: "#fe8019"
+    red: "#fb4934"
+    white: "#ebdbb2"
+    yellow: "#fabd2f"
+  normal:
+    black: "#282828"
+    blue: "#fe8019"
+    cyan: "#83a598"
+    green: "#b8bb26"
+    magenta: "#fe8019"
+    red: "#fb4934"
+    white: "#d5c4a1"
+    yellow: "#fabd2f"

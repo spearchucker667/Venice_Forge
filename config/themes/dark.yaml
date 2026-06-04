@@ -1,0 +1,28 @@
+---
+# This is an example color .yaml templet
+# each use hex values to assign each color a value
+# do not leave any value blank
+# "details" is the name of the theme
+accent: "#1a6fd6"
+background: "#0d1117"
+details: "Forge Graphite"
+foreground: "#e6edf3"
+terminal_colors:
+  bright:
+    black: "#6b7686"
+    blue: "#3581e6"
+    cyan: "#58a6ff"
+    green: "#3fb950"
+    magenta: "#1a6fd6"
+    red: "#f85149"
+    white: "#e6edf3"
+    yellow: "#d29922"
+  normal:
+    black: "#0d1117"
+    blue: "#1a6fd6"
+    cyan: "#58a6ff"
+    green: "#3fb950"
+    magenta: "#1a6fd6"
+    red: "#f85149"
+    white: "#9aa7b8"
+    yellow: "#d29922"

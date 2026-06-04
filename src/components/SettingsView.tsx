@@ -341,18 +341,18 @@ export function SettingsView() {
   const sectionButtonClass = (section: string) => `
     w-full text-left px-3.5 py-2 rounded-lg text-[13.5px] font-medium transition-all duration-150
     ${activeSection === section 
-      ? "bg-white/[0.06] text-white border border-white/[0.04]" 
-      : "text-white/50 hover:text-white/80 hover:bg-white/[0.02] border border-transparent"}
+      ? "bg-accent/10 text-accent border border-accent/20" 
+      : "text-text-secondary hover:text-text-primary hover:bg-surface-elevated/50 border border-transparent"}
   `;
 
   return (
     <div className="flex flex-col h-full bg-surface">
       {/* Header */}
-      <div className="flex-none p-5 border-b border-white/[0.05] bg-surface">
+      <div className="flex-none p-5 border-b border-border bg-surface">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-[17px] font-semibold text-white/95">Config</h2>
-            <p className="text-[12.5px] text-white/40 mt-0.5">
+            <h2 className="text-[17px] font-semibold text-text-primary">Config</h2>
+            <p className="text-[12.5px] text-text-muted mt-0.5">
               {isElectron() ? "Manage API endpoints, defaults, and appearance styles." : "Configure default prompts and styling templates."}
             </p>
           </div>
@@ -361,7 +361,7 @@ export function SettingsView() {
 
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Navigation Rail */}
-        <div className="w-52 border-r border-white/[0.05] p-3 space-y-1 overflow-y-auto shrink-0 hidden sm:block">
+        <div className="w-52 border-r border-border p-3 space-y-1 overflow-y-auto shrink-0 hidden sm:block">
           <button onClick={() => setActiveSection("api-keys")} className={sectionButtonClass("api-keys")}>
             API Keys
           </button>
@@ -380,7 +380,7 @@ export function SettingsView() {
           {isElectron() && (
             <button onClick={() => setActiveSection("updates")} className={sectionButtonClass("updates")}>
               Updates
-              {updateDownloaded && <span className="ml-2 inline-flex w-1.5 h-1.5 rounded-full bg-green-400"></span>}
+              {updateDownloaded && <span className="ml-2 inline-flex w-1.5 h-1.5 rounded-full bg-success"></span>}
             </button>
           )}
         </div>
@@ -390,15 +390,15 @@ export function SettingsView() {
           {activeSection === "api-keys" && (
             <div className="space-y-6">
               {/* Venice key */}
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 shadow-lg space-y-4">
+              <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-[14.5px] font-medium text-white/85">Venice.ai Integration</h3>
-                  <span className={`text-[11.5px] px-2 py-0.5 rounded font-medium ${veniceConfigured ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"}`}>
+                  <h3 className="text-[14.5px] font-medium text-text-primary">Venice.ai Integration</h3>
+                  <span className={`text-[11.5px] px-2 py-0.5 rounded font-medium ${veniceConfigured ? "bg-success/10 text-success border border-success/20" : "bg-warning/10 text-warning border border-warning/20"}`}>
                     {veniceConfigured ? "Configured" : "Unset"}
                   </span>
                 </div>
-                <p className="text-[12.5px] text-white/40 leading-relaxed">
-                  Your API key is saved using OS-level secure storage encryption and is never exposed to the web sandbox.
+                <p className="text-[12.5px] text-text-secondary leading-relaxed">
+                  Your API key is saved using secure storage encryption and is never exposed to the web sandbox.
                 </p>
                 <div className="space-y-3">
                   {!veniceConfigured ? (
@@ -409,12 +409,12 @@ export function SettingsView() {
                         onChange={(e) => setApiKeyInput(e.target.value)}
                         placeholder="sk-..."
                         autoComplete="off"
-                        className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-1.5 text-[13.5px] text-white outline-none focus:border-white/[0.2] transition-all font-mono"
+                        className="flex-1 bg-surface border border-border rounded-lg px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-all font-mono placeholder:text-text-muted/50"
                       />
                       <button 
                         onClick={handleSaveApiKey} 
                         disabled={!apiKeyInput.trim()}
-                        className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-white text-black hover:bg-white/95 disabled:opacity-40 transition-colors"
+                        className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer"
                       >
                         Save Key
                       </button>
@@ -425,18 +425,18 @@ export function SettingsView() {
                         type="text"
                         disabled
                         value="••••••••••••••••••••••••••••••••"
-                        className="flex-1 bg-white/[0.01] border border-white/[0.04] rounded-lg px-3 py-1.5 text-[13.5px] text-white/30 font-mono"
+                        className="flex-1 bg-surface-elevated border border-border/40 rounded-lg px-3 py-1.5 text-[13.5px] text-text-muted font-mono"
                       />
                       <button 
                         onClick={handleTestApiKey} 
                         disabled={apiKeyTesting}
-                        className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium bg-white/[0.04] border border-white/[0.08] text-white/80 hover:bg-white/[0.08] transition-colors disabled:opacity-50"
+                        className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium bg-surface border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors disabled:opacity-50 cursor-pointer"
                       >
                         {apiKeyTesting ? "Testing..." : "Test Key"}
                       </button>
                       <button 
                         onClick={handleDeleteApiKey} 
-                        className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/25 transition-colors"
+                        className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium bg-danger/10 border border-danger/20 text-danger hover:bg-danger/25 transition-colors cursor-pointer"
                       >
                         Delete
                       </button>
@@ -446,62 +446,60 @@ export function SettingsView() {
               </div>
 
               {/* Jina key */}
-              {isElectron() && (
-                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 shadow-lg space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-[14.5px] font-medium text-white/85">Jina.ai Integration</h3>
-                    <span className={`text-[11.5px] px-2 py-0.5 rounded font-medium ${jinaKeyConfigured ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-white/[0.04] text-white/40 border border-white/[0.06]"}`}>
-                      {jinaKeyConfigured ? "Configured" : "Optional"}
-                    </span>
-                  </div>
-                  <p className="text-[12.5px] text-white/40 leading-relaxed">
-                    Provides deep web searching, scraping, and social profile discovery mapping capabilities. Jina API keys are saved with the same OS secure storage.
-                  </p>
-                  <div className="space-y-3">
-                    {!jinaKeyConfigured ? (
-                      <div className="flex gap-2">
-                        <input
-                          type="password"
-                          value={jinaKeyInput}
-                          onChange={(e) => setJinaKeyInput(e.target.value)}
-                          placeholder="jina_..."
-                          autoComplete="off"
-                          className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-1.5 text-[13.5px] text-white outline-none focus:border-white/[0.2] transition-all font-mono"
-                        />
-                        <button 
-                          onClick={handleSaveJinaKey} 
-                          disabled={!jinaKeyInput.trim()}
-                          className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-white text-black hover:bg-white/95 disabled:opacity-40 transition-colors"
-                        >
-                          Save Key
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          disabled
-                          value="••••••••••••••••••••••••••••••••"
-                          className="flex-1 bg-white/[0.01] border border-white/[0.04] rounded-lg px-3 py-1.5 text-[13.5px] text-white/30 font-mono"
-                        />
-                        <button 
-                          onClick={handleTestJinaKey} 
-                          disabled={jinaKeyTesting}
-                          className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium bg-white/[0.04] border border-white/[0.08] text-white/80 hover:bg-white/[0.08] transition-colors disabled:opacity-50"
-                        >
-                          {jinaKeyTesting ? "Testing..." : "Test Key"}
-                        </button>
-                        <button 
-                          onClick={handleDeleteJinaKey} 
-                          className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/25 transition-colors"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
+              <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[14.5px] font-medium text-text-primary">Jina.ai Integration</h3>
+                  <span className={`text-[11.5px] px-2 py-0.5 rounded font-medium ${jinaKeyConfigured ? "bg-success/10 text-success border border-success/20" : "bg-surface border border-border text-text-muted"}`}>
+                    {jinaKeyConfigured ? "Configured" : "Optional"}
+                  </span>
                 </div>
-              )}
+                <p className="text-[12.5px] text-text-secondary leading-relaxed">
+                  Provides deep web searching, scraping, and social profile discovery mapping capabilities. {isElectron() ? "Jina API keys are saved with the same OS secure storage." : "Jina API keys are saved in local storage."}
+                </p>
+                <div className="space-y-3">
+                  {!jinaKeyConfigured ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        value={jinaKeyInput}
+                        onChange={(e) => setJinaKeyInput(e.target.value)}
+                        placeholder="jina_..."
+                        autoComplete="off"
+                        className="flex-1 bg-surface border border-border rounded-lg px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-all font-mono placeholder:text-text-muted/50"
+                      />
+                      <button 
+                        onClick={handleSaveJinaKey} 
+                        disabled={!jinaKeyInput.trim()}
+                        className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer"
+                      >
+                        Save Key
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        disabled
+                        value="••••••••••••••••••••••••••••••••"
+                        className="flex-1 bg-surface-elevated border border-border/40 rounded-lg px-3 py-1.5 text-[13.5px] text-text-muted font-mono"
+                      />
+                      <button 
+                        onClick={handleTestJinaKey} 
+                        disabled={jinaKeyTesting}
+                        className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium bg-surface border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        {jinaKeyTesting ? "Testing..." : "Test Key"}
+                      </button>
+                      <button 
+                        onClick={handleDeleteJinaKey} 
+                        className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium bg-danger/10 border border-danger/20 text-danger hover:bg-danger/25 transition-colors cursor-pointer"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -509,7 +507,7 @@ export function SettingsView() {
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[12.5px] text-white/50 block mb-1.5 font-medium">Default Chat Model</label>
+                  <label className="text-[12.5px] text-text-secondary block mb-1.5 font-medium">Default Chat Model</label>
                   <ModelSelect
                     value={currentChatModel}
                     models={textModels || []}
@@ -517,7 +515,7 @@ export function SettingsView() {
                   />
                 </div>
                 <div>
-                  <label className="text-[12.5px] text-white/50 block mb-1.5 font-medium">Default Image Model</label>
+                  <label className="text-[12.5px] text-text-secondary block mb-1.5 font-medium">Default Image Model</label>
                   <ModelSelect
                     value={currentImageModel}
                     models={imageModels || []}
@@ -526,13 +524,13 @@ export function SettingsView() {
                 </div>
               </div>
 
-              <div className="border-t border-white/[0.05] pt-5 space-y-4">
+              <div className="border-t border-border pt-5 space-y-4">
                 <div>
-                  <label className="text-[12.5px] text-white/50 block mb-1.5 font-medium">Default Web Search</label>
+                  <label className="text-[12.5px] text-text-secondary block mb-1.5 font-medium">Default Web Search</label>
                   <select
                     value={veniceParams.enable_web_search || "off"}
                     onChange={(e) => setVeniceParams({ enable_web_search: e.target.value as "off" | "on" | "auto" })}
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3.5 py-2 text-[14px] text-white outline-none focus:border-white/[0.2] transition-all"
+                    className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
                   >
                     <option value="off">Off</option>
                     <option value="on">On</option>
@@ -541,25 +539,25 @@ export function SettingsView() {
                 </div>
 
                 <div>
-                  <label className="text-[12.5px] text-white/50 block mb-1.5 font-medium">Default System Prompt</label>
+                  <label className="text-[12.5px] text-text-secondary block mb-1.5 font-medium">Default System Prompt</label>
                   <textarea
                     value={systemPrompt}
                     onChange={(e) => setSystemPrompt(e.target.value)}
                     placeholder="You are a helpful assistant..."
                     rows={4}
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3.5 py-2 text-[14px] text-white outline-none focus:border-white/[0.2] transition-all placeholder:text-white/25 resize-none"
+                    className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50 resize-none"
                   />
                 </div>
 
-                <div className="flex flex-col gap-3.5 p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                <div className="flex flex-col gap-3.5 p-4 rounded-xl border border-border bg-surface-elevated">
                   <label className="flex items-center gap-3 cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={veniceParams.include_venice_system_prompt !== false}
                       onChange={(e) => setVeniceParams({ include_venice_system_prompt: e.target.checked })}
-                      className="rounded border-white/[0.08] bg-white/[0.02] text-white focus:ring-offset-0 focus:ring-0 w-4 h-4"
+                      className="rounded border-border bg-surface text-accent focus:ring-offset-0 focus:ring-0 w-4 h-4 cursor-pointer"
                     />
-                    <span className="text-[13.5px] text-white/70">Venice System Prompt Toggle</span>
+                    <span className="text-[13.5px] text-text-primary">Venice System Prompt Toggle</span>
                   </label>
 
                   <label className="flex items-center gap-3 cursor-pointer select-none">
@@ -567,9 +565,9 @@ export function SettingsView() {
                       type="checkbox"
                       checked={veniceParams.enable_web_citations === true}
                       onChange={(e) => setVeniceParams({ enable_web_citations: e.target.checked })}
-                      className="rounded border-white/[0.08] bg-white/[0.02] text-white focus:ring-offset-0 focus:ring-0 w-4 h-4"
+                      className="rounded border-border bg-surface text-accent focus:ring-offset-0 focus:ring-0 w-4 h-4 cursor-pointer"
                     />
-                    <span className="text-[13.5px] text-white/70">Enable Citations by Default</span>
+                    <span className="text-[13.5px] text-text-primary">Enable Citations by Default</span>
                   </label>
                 </div>
               </div>
@@ -584,42 +582,42 @@ export function SettingsView() {
 
           {activeSection === "data" && (
             <div className="space-y-5">
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 shadow-lg space-y-4">
-                <h3 className="text-[14.5px] font-medium text-white/85">Data Backups</h3>
-                <p className="text-[12.5px] text-white/40 leading-relaxed">
+              <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
+                <h3 className="text-[14.5px] font-medium text-text-primary">Data Backups</h3>
+                <p className="text-[12.5px] text-text-secondary leading-relaxed">
                   Export your conversations, images, settings, and memories to a JSON file, or restore them from a previous backup.
                 </p>
                 <div className="flex flex-wrap gap-2.5">
                   <button 
                     onClick={exportData}
-                    className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-white text-black hover:bg-white/95 transition-colors"
+                    className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
                   >
                     Export Backup
                   </button>
                   <button 
                     onClick={importData}
-                    className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-white/[0.04] border border-white/[0.08] text-white/90 hover:bg-white/[0.08] transition-colors"
+                    className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-surface border border-border text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer"
                   >
                     Import Backup
                   </button>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-red-500/10 bg-red-500/[0.02] p-5 shadow-lg space-y-4">
-                <h3 className="text-[14.5px] font-medium text-red-400">Danger Zone</h3>
-                <p className="text-[12.5px] text-white/40 leading-relaxed">
+              <div className="rounded-xl border border-danger/10 bg-danger/[0.02] p-5 shadow-lg space-y-4">
+                <h3 className="text-[14.5px] font-medium text-danger">Danger Zone</h3>
+                <p className="text-[12.5px] text-text-secondary leading-relaxed">
                   These operations are destructive and cannot be undone. Always export a backup first if you have important history.
                 </p>
                 <div className="flex flex-wrap gap-2.5">
                   <button 
                     onClick={clearLocalSettings}
-                    className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-white/[0.04] border border-white/[0.08] text-white/80 hover:bg-red-400/10 hover:text-red-400 hover:border-red-400/25 transition-colors"
+                    className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-surface border border-border text-text-primary hover:bg-danger/10 hover:text-danger hover:border-danger/25 transition-colors cursor-pointer"
                   >
                     Clear App Defaults
                   </button>
                   <button 
                     onClick={clearAllHistory}
-                    className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors"
+                    className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-danger/10 border border-danger/20 text-danger hover:bg-danger/20 transition-colors cursor-pointer"
                   >
                     Clear All Local History
                   </button>
@@ -631,27 +629,27 @@ export function SettingsView() {
           {activeSection === "about" && (
             <div className="space-y-6">
               <div className="flex items-center gap-3">
-                <div className="text-[17px] font-semibold text-white/90">{APP_NAME}</div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 uppercase tracking-wider font-semibold">Unofficial</span>
+                <div className="text-[17px] font-semibold text-text-primary">{APP_NAME}</div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-warning/10 text-warning border border-warning/20 uppercase tracking-wider font-semibold">Unofficial</span>
               </div>
 
-              <div className="text-[13px] text-white/50 leading-relaxed space-y-4">
+              <div className="text-[13px] text-text-secondary leading-relaxed space-y-4">
                 <p>
                   Venice Forge is a third-party desktop client configured to interface directly with the Venice.ai inference API endpoints. It is not affiliated with, endorsed by, sponsored by, or approved by Venice.ai, Inc.
                 </p>
                 
-                <div className="p-3 bg-white/[0.02] border border-white/[0.06] rounded-lg">
-                  <div className="text-[11.5px] uppercase tracking-wider text-white/35 font-bold mb-1">Official Links</div>
+                <div className="p-3 bg-surface-elevated border border-border rounded-lg">
+                  <div className="text-[11.5px] uppercase tracking-wider text-text-muted font-bold mb-1">Official Links</div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-                    <a href={OFFICIAL_LINKS.terms} target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white underline">Terms of Service</a>
-                    <a href={OFFICIAL_LINKS.privacy} target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white underline">Privacy Policy</a>
-                    <a href={OFFICIAL_LINKS.apiDocs} target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white underline">API Documentation</a>
+                    <a href={OFFICIAL_LINKS.terms} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Terms of Service</a>
+                    <a href={OFFICIAL_LINKS.privacy} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Privacy Policy</a>
+                    <a href={OFFICIAL_LINKS.apiDocs} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">API Documentation</a>
                   </div>
                 </div>
 
-                <div className="text-[11px] text-white/30 space-y-2">
+                <div className="text-[11px] text-text-muted space-y-2">
                   <p>
-                    “Venice”, “Venice.ai”, and related logos are trademarks of Venice.ai, Inc. Use of these names is solely for nominative identification of API compatibility.
+                     Venice ,  Venice.ai , and related logos are trademarks of Venice.ai, Inc. Use of these names is solely for nominative identification of API compatibility.
                   </p>
                   <p>
                     Reset legal acknowledgment gate:
@@ -665,7 +663,7 @@ export function SettingsView() {
                         toast.error("Could not reset acknowledgment.");
                       }
                     }}
-                    className="px-3 py-1 rounded bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-colors"
+                    className="px-3 py-1 rounded bg-surface-elevated border border-border hover:bg-surface text-text-primary cursor-pointer transition-colors"
                   >
                     Reset gate
                   </button>
@@ -675,28 +673,28 @@ export function SettingsView() {
           )}
 
           {activeSection === "updates" && isElectron() && (
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 shadow-lg space-y-4">
-              <h3 className="text-[14.5px] font-medium text-white/85 font-semibold">Application Updates</h3>
-              <p className="text-[12.5px] text-white/40 leading-relaxed">
+            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
+              <h3 className="text-[14.5px] font-medium text-text-primary font-semibold">Application Updates</h3>
+              <p className="text-[12.5px] text-text-secondary leading-relaxed">
                 Check for desktop application updates securely via GitHub Releases.
               </p>
               <div className="space-y-4">
-                <div className="text-[13px] text-white/60">
-                  <span className="text-white/30 mr-2">Status:</span>
-                  <span className="font-mono bg-white/[0.03] border border-white/[0.06] rounded px-2 py-0.5">{updateStatus || "Idle"}</span>
+                <div className="text-[13px] text-text-secondary">
+                  <span className="text-text-muted mr-2">Status:</span>
+                  <span className="font-mono bg-surface border border-border rounded px-2 py-0.5 text-text-primary">{updateStatus || "Idle"}</span>
                 </div>
                 <div className="flex flex-wrap gap-2.5">
                   <button 
                     onClick={checkForUpdates} 
                     disabled={isUpdateChecking || updateDownloaded}
-                    className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-white/[0.04] border border-white/[0.08] text-white/90 hover:bg-white/[0.08] transition-colors disabled:opacity-50"
+                    className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-surface border border-border text-text-primary hover:bg-surface-elevated transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     {isUpdateChecking ? "Checking..." : "Check for updates"}
                   </button>
                   {updateDownloaded && (
                     <button 
                       onClick={installUpdate}
-                      className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-green-500 text-black hover:bg-green-400 transition-colors"
+                      className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-success text-accent-fg hover:opacity-90 transition-colors cursor-pointer"
                     >
                       Restart and Install
                     </button>

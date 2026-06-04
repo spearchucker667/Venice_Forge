@@ -8,74 +8,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 
 ## [Unreleased]
 
+## [1.0.3] — 2026-06-04
+
 ### Security
 - **Proxy-scrape safety guard:** `app:proxyScrape` IPC handler and `/api/proxy-scrape` Express route now run `assessChildExploitationSafety()` and `recordDecision()` on the decoded URL text before forwarding. Closes the `proxyScrape` guard gap identified in the CSAM Safety Guard Audit (June 2026). Verified by `tests/safety/enforcementBoundaries.test.ts` (3 new boundary tests).
-
-### Changed
-- **Audit policy:** `npm audit` in `ci.yml` and `release.yml` now runs `--omit=dev --audit-level=high` with `continue-on-error: true` so dev-only vulnerabilities don't block CI. `CSC_IDENTITY_AUTO_DISCOVERY` value normalized to a quoted string in release.yml.
-- **Build output:** Vite `chunkSizeWarningLimit` raised to 1000 to silence benign warnings for the workflow-engine bundle. esbuild `server` build adds `--log-override:empty-import-meta=silent` to suppress the harmless `empty-import-meta` notice.
-- **Documentation:** `AGENTS.md` refreshed with the new `ci` script, chat-store bridge exception, key file locations, renderer hardening summary, IPC/endpoint extension contract, and known gotchas.
-
-### Fixed
-- **Lint gate:** `src/stores/chat-store.ts` no longer trips `--max-warnings=0`; the `as any` cast on the legacy `window.veniceForge.chat.save` call is replaced with a typed `as unknown as StoredConversation` cast against the IPC contract.
-- **Safety-guard scanner:** `scripts/verify-safety-guard.cjs` raw-prompt regex now stops at newlines/semicolons (no multi-line false positives) and explicitly allows structural metadata (e.g. `.length`).
-
-### Added
-- **UI/UX Enhancements:**
-  - **Memory Management Overhaul:** New UI for adding, editing, searching, and categorizing AI memories via a dedicated modal.
-  - **Gallery Bulk Actions:** Multi-select support in the Library/Gallery tab for bulk exporting and deleting image/video generations.
-  - **Theme Export/Import:** Custom themes can now be exported and imported as standalone JSON files in the ThemeMaker panel.
-  - **Drag & Drop Context Reordering:** Drag and drop uploaded files in the Chat attachment tray to dictate context order.
-  - **Drag & Drop Media Upload:** Drag and drop an image file directly onto the Source Image field in both the Video Creator and Image Creator modules.
-- **Venice-Style Feature Parity (Feature Migration):**
-  - **Workflows:** Visual node editor for chaining models (Input → LLM → Image Gen → Output) with parallel branching and full parameter controls per node.
-  - **Playground:** Conversational agent that builds and edits workflows on a live canvas as you describe them in plain language.
-  - **Audio Studio:** Text-to-speech with 50+ voices across 9 languages and audio transcription via Whisper model.
-  - **Music Studio:** Text-to-music generation with optional lyrics, duration control, and instrumental mode.
-  - **Embeddings:** Vector embeddings generation for text with selectable models and dimension display.
-  - **Model Reasoning Support:** Natively extracts and displays \`reasoning_content\` (model thinking traces) in the Chat UI via a collapsible ReasoningAccordion.
-- **Venice UI reference integration and video restoration:** Applied the ZIP reference as maintainable tokens/layout patterns instead of bundling reference assets, restored the Video tab, video model state, async queue client, `/video/*` allowlist, and regression tests that keep video models visible/selectable.
-- **UI/UX Refresh:** Collapsible sidebar, Dracula theme, Lucide icons, font refresh, and improved attachment UX.
-  - Collapsible desktop sidebar with `PanelLeftClose`/`PanelLeftOpen` toggle, brand mark with `Sparkles` icon, and `localStorage` persistence.
-  - New built-in **Forge Dracula** theme with Dracula-inspired palette (dark bg `#282a36`, purple/pink accents, WCAG AA compliant).
-  - Font refresh: changed from `Plus Jakarta Sans`/`Inter` to `Manrope`/`Space Grotesk` for closer Venice.ai aesthetic.
-  - All emoji icons replaced with Lucide React SVG icons across `TabButton`, `ChatModule`, and `AttachmentTray`.
-  - URL attachment modal replaces `window.prompt` with a proper React `useState`-driven input with validation toast.
-  - **Library → Files tab:** New IndexedDB `files` store (encrypted at rest) persists chat file and URL attachments. GalleryModule gains tabbed layout (Images / Files / Chats).
-  - **Research provider toggle:** AI Research sub-tab in `SearchScrapeModule` now supports switching between Venice and Jina AI providers.
-  - **Model auto-fetch:** Saving a Venice API key in Settings automatically triggers `refreshModels()`.
-- **Venice UI Rebrand:** Complete visual and branding overhaul aligned with official Venice design system.
-  - Removed Google Fonts; now using locally bundled `@fontsource` packages (Inter, JetBrains Mono, Lora).
-  - Hardened Content-Security-Policy to block remote typography (fonts.googleapis.com, fonts.gstatic.com).
-  - Refactored UI shell primitives and custom scrollbars to automatically inherit deep-blue Venice colors (`--bg`, `--surface`, `--accent`).
-  - Implemented 'Agent vs Classic' chat toggle in the ChatModule toolbar.
-  - Renamed 'Create' and 'Video' tabs to 'Image Studio' and 'Video Studio'.
-  - Added new 'Audio Studio' tab mapped in routing and navigation, with custom musical note icon.
-- **Agentic Chat Workspace:** Complete chat overhaul with attachments, memory, fork/import, and dense UI.
-  - `src/services/memoryService.ts` — persistent memory layer backed by encrypted IndexedDB (`ai_memory` store). Supports `saveMemory`, `searchMemory`, `listMemories`, `deleteMemory`, and `selectMemoriesForInjection` with a 2,000-character budget cap.
-  - `src/services/attachmentService.ts` — file/URL/image attachment reading, validation, downscaling, and assembly. Supports text files (`.txt`, `.md`, `.ts`, `.tsx`, `.json`, `.py`, `.js`, etc.) and images (`PNG`, `JPEG`, `WEBP`). Enforces 256 KiB per-file and 1 MiB total context caps.
-  - `src/types/attachment.ts` — attachment type definitions (`file`, `url`, `image`).
-  - `src/components/AttachmentTray.tsx` — compact dismissible chip tray above the chat input.
-  - **Vision support:** `modelSupportsVision()` in `src/constants/venice.ts` uses a documented allowlist + regex fallback (with TODO for live API capability flag). Image attachments are passed as base64 `image_url` content parts when the selected model supports vision.
-  - **Safety guard on assembled payload:** `send()` in `ChatModule.tsx` now assembles all injected text (memory block + attachment context + user prompt) and runs `assessChildExploitationSafety` on the complete text before every Venice call, including the memory-summary sub-call.
-  - **Fork / Plug-in:** Conversations gain `parentConversationId` and `forkedFromMessageIds` fields. Per-message checkboxes in fork mode create a new conversation pre-seeded with selected messages. Import picker allows copying messages from other conversations with `<imported_context>` rendered label.
-  - **Dense chat layout:** Two-column full-height workspace (200px collapsible sidebar). Compact message bubbles (user right-aligned with subtle fill, assistant left-aligned with left border accent). Slim toolbar with inline-editable title, model selector, and overflow menu. Auto-expanding input textarea.
-  - **Code block copy buttons:** `Markdown` component now renders a ⎘ copy button on hover for each `<pre><code>` block.
-  - **Command palette:** `/` trigger in the input opens `/attach`, `/image`, and `/search` command buttons.
-  - `electron/ipc/handlers.ts` — new `app:readLocalFile` IPC handler for desktop file attachment reads (256 KiB cap, path traversal blocked).
-  - `src/services/desktopBridge.ts` — `desktopFileReader.readLocalFile()` bridge method.
-  - `src/utils/payloadBuilders.ts` — `buildChatPayload` accepts optional `memoryBlock` parameter; `ChatMessageContent` union supports string and vision content-part arrays.
-  - `src/services/exportImport.ts` — sanitizes `parentConversationId` and `forkedFromMessageIds` on conversation import; fields round-trip through export→import.
-
-### Changed
-- `src/constants/venice.ts` — bumped `DB_VERSION` from 2 → 4; added `ai_memory` and `files` to `STORE_NAMES`; added `VISION_CAPABLE_MODEL_IDS`, `VISION_CAPABLE_PATTERNS`, `modelSupportsVision()`, and attachment size constants.
-- `src/services/storageService.ts` — `ai_memory` and `files` added to `ENCRYPTED_STORES`.
-- `src/types/conversation.ts` — `Conversation` interface extended with `parentConversationId?` and `forkedFromMessageIds?`.
-- `src/modules/ChatModule.tsx` — major rewrite preserving all 28 existing features (model switching, streaming, markdown, persistence, system prompt, web search/scrape/citations, character slug, reasoning effort, strip think, disable thinking, xAI web+X search, conversation sidebar, new chat, rename, delete, copy last response, clear, cancel, keyboard shortcut, auto-scroll, loading indicator, safety guard, fallback model block, empty prompt validation, auto-title derivation).
-
-## [1.0.3] — 2026-05-30
-
-### Security
 - **Safety Guard Hardening:** Malformed serialized FormData no longer bypasses extraction; falls back to generic object scanning (C-001).
 - **Truncation Evasion Fix:** Oversized payloads are now scanned at both head and tail to prevent placing malicious content beyond the truncation boundary (C-002).
 - **Type Confusion Mitigation:** Replaced `body.length` with `Buffer.byteLength(req.body)` in proxy forwarding to resolve a CodeQL `js/type-confusion-through-parameter-tampering` static analysis alert.
@@ -87,7 +23,58 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 - **Multipart Sanitization:** `sanitizeMultipartToken` in `electron/services/veniceClient.ts` now strips backslash (`\`) characters, closing a narrow multipart header injection path.
 - **Streaming Signal ID:** `venice:streamChat` IPC handler now generates a mandatory `signalId` fallback if undefined, preventing broken delta routing and ineffective abort maps.
 
+### Added
+- **UI/UX Enhancements:**
+  - **Memory Management Overhaul:** New UI for adding, editing, searching, and categorizing AI memories via a dedicated modal.
+  - **Gallery Bulk Actions:** Multi-select support in the Library/Gallery tab for bulk exporting and deleting image/video generations.
+  - **Theme Export/Import:** Custom themes can now be exported and imported as standalone YAML files conforming to the `theme.yaml` schema in the ThemeMaker panel.
+  - **Drag & Drop Context Reordering:** Drag and drop uploaded files in the Chat attachment tray to dictate context order.
+  - **Drag & Drop Media Upload:** Drag and drop an image file directly onto the Source Image field in both the Video Creator and Image Creator modules.
+- **Venice-Style Feature Parity (Feature Migration):**
+  - **Workflows:** Visual node editor for chaining models (Input → LLM → Image Gen → Output) with parallel branching and full parameter controls per node.
+  - **Playground:** Conversational agent that builds and edits workflows on a live canvas as you describe them in plain language.
+  - **Audio Studio:** Text-to-speech with 50+ voices across 9 languages and audio transcription via Whisper model.
+  - **Music Studio:** Text-to-music generation with optional lyrics, duration control, and instrumental mode.
+  - **Embeddings:** Vector embeddings generation for text with selectable models and dimension display.
+  - **Model Reasoning Support:** Natively extracts and displays `reasoning_content` (model thinking traces) in the Chat UI via a collapsible ReasoningAccordion.
+- **Venice UI reference integration and video restoration:** Applied the ZIP reference as maintainable tokens/layout patterns instead of bundling reference assets, restored the Video tab, video model state, async queue client, `/video/*` allowlist, and regression tests that keep video models visible/selectable.
+- **UI/UX Refresh:** Collapsible sidebar, Dracula theme, Lucide icons, font refresh, and improved attachment UX.
+  - Collapsible desktop sidebar with `PanelLeftClose`/`PanelLeftOpen` toggle, brand mark with `Sparkles` icon, and `localStorage` persistence.
+  - New built-in **Forge Dracula**, **GruvBox Dark**, and **Rosepine** themes with full WCAG AA compliance.
+  - Custom YAML configuration templates for starter themes under `config/themes/` directory at the root.
+  - Font refresh: changed from `Plus Jakarta Sans`/`Inter` to `Manrope`/`Space Grotesk` for closer Venice.ai aesthetic.
+  - All emoji icons replaced with Lucide React SVG icons across `TabButton`, `ChatModule`, and `AttachmentTray`.
+  - URL attachment modal replaces `window.prompt` with a proper React `useState`-driven input with validation toast.
+  - **Library → Files tab:** New IndexedDB `files` store (encrypted at rest) persists chat file and URL attachments. GalleryModule gains tabbed layout (Images / Files / Chats).
+  - **Research provider toggle:** AI Research sub-tab in `SearchScrapeModule` now supports switching between Venice and Jina AI providers.
+- **Agentic Chat Workspace:** Complete chat overhaul with attachments, memory, fork/import, and dense UI.
+  - `src/services/memoryService.ts` — persistent memory layer backed by encrypted IndexedDB (`ai_memory` store). Supports `saveMemory`, `searchMemory`, `listMemories`, `deleteMemory`, and `selectMemoriesForInjection` with a 2,000-character budget cap.
+  - `src/services/attachmentService.ts` — file/URL/image attachment reading, validation, downscaling, and assembly. Supports text files (`.txt`, `.md`, `.ts`, `.tsx`, `.json`, `.py`, `.js`, etc.) and images (`PNG`, `JPEG`, `WEBP`). Enforces 256 KiB per-file and 1 MiB total context caps.
+  - `src/types/attachment.ts` — attachment type definitions (`file`, `url`, `image`).
+  - `src/components/AttachmentTray.tsx` — compact dismissible chip tray above the chat input.
+  - **Vision support:** `modelSupportsVision()` in `src/constants/venice.ts` uses a documented allowlist + regex fallback. Image attachments are passed as base64 `image_url` content parts when the selected model supports vision.
+  - **Safety guard on assembled payload:** `send()` in `ChatModule.tsx` now assembles all injected text (memory block + attachment context + user prompt) and runs `assessChildExploitationSafety` on the complete text before every Venice call, including the memory-summary sub-call.
+  - **Fork / Plug-in:** Conversations gain `parentConversationId` and `forkedFromMessageIds` fields. Per-message checkboxes in fork mode create a new conversation pre-seeded with selected messages. Import picker allows copying messages from other conversations with `<imported_context>` rendered label.
+  - **Dense chat layout:** Two-column full-height workspace (200px collapsible sidebar). Compact message bubbles. Slim toolbar with inline-editable title, model selector, and overflow menu. Auto-expanding input textarea.
+  - **Code block copy buttons:** `Markdown` component now renders a ⎘ copy button on hover for each `<pre><code>` block.
+  - **Command palette:** `/` trigger in the input opens `/attach`, `/image`, and `/search` command buttons.
+  - `electron/ipc/handlers.ts` — new `app:readLocalFile` IPC handler for desktop file attachment reads (256 KiB cap, path traversal blocked).
+  - `src/services/desktopBridge.ts` — `desktopFileReader.readLocalFile()` bridge method.
+  - `src/utils/payloadBuilders.ts` — `buildChatPayload` accepts optional `memoryBlock` parameter; `ChatMessageContent` union supports string and vision content-part arrays.
+  - `src/services/exportImport.ts` — sanitizes `parentConversationId` and `forkedFromMessageIds` on conversation import; fields round-trip through export→import.
+
+### Changed
+- **Audit policy:** `npm audit` in `ci.yml` and `release.yml` now runs `--omit=dev --audit-level=high` with `continue-on-error: true` so dev-only vulnerabilities don't block CI. `CSC_IDENTITY_AUTO_DISCOVERY` value normalized to a quoted string in release.yml.
+- **Build output:** Vite `chunkSizeWarningLimit` raised to 1000 to silence benign warnings for the workflow-engine bundle. esbuild `server` build adds `--log-override:empty-import-meta=silent` to suppress the harmless `empty-import-meta` notice.
+- **Documentation:** updated `AGENTS.md`, `README.md`, `docs/THEME_SYSTEM.md`, and local developer guides with new YAML theme config instructions, credit attributions, and allowlisted endpoints.
+- `src/constants/venice.ts` — bumped `DB_VERSION` from 2 → 4; added `ai_memory` and `files` to `STORE_NAMES`; added `VISION_CAPABLE_MODEL_IDS`, `VISION_CAPABLE_PATTERNS`, `modelSupportsVision()`, and attachment size constants.
+- `src/services/storageService.ts` — `ai_memory` and `files` added to `ENCRYPTED_STORES`.
+- `src/types/conversation.ts` — `Conversation` interface extended with `parentConversationId?` and `forkedFromMessageIds?`.
+- `src/modules/ChatModule.tsx` — major rewrite preserving all 28 existing features.
+
 ### Fixed
+- **Lint gate:** `src/stores/chat-store.ts` no longer trips `--max-warnings=0`; the `as any` cast on the legacy `window.veniceForge.chat.save` call is replaced with a typed `as unknown as StoredConversation` cast against the IPC contract.
+- **Safety-guard scanner:** `scripts/verify-safety-guard.cjs` raw-prompt regex now stops at newlines/semicolons and explicitly allows structural metadata.
 - **Server Production Crash:** Removed top-level static `vite` import; vite is dynamically imported only in development mode (C-004).
 - **Server Auto-Start:** `server.ts` no longer auto-starts when imported by tests; `startServer()` is only invoked from the entrypoint (C-005).
 - **Production Start Script:** `npm start` now runs via `scripts/start-production.cjs` which sets `NODE_ENV=production` (C-006).
@@ -111,7 +98,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 - **Social Discovery Regex:** Removed unnecessary `\/` escape characters inside regex character classes.
 - **Lockfile Sync:** Regenerated `package-lock.json` to match bumped dependencies (`@types/react`, `tsx`, `typescript-eslint`).
 
-### Added
 
 - **Multi-Provider Research System:** Pluggable research backends for search, scrape, and public-profile discovery.
   - `src/research/providerTypes.ts` — common `ResearchProvider` interface with `venice`, `jina`, and `generic-http` IDs.
@@ -327,7 +313,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 - `.env.example` with all configurable environment variables documented.
 
 [Unreleased]: #unreleased
-[1.0.3]: #103--2026-05-30
+[1.0.3]: #103--2026-06-04
 [1.0.2]: #102--2026-05-29
 [1.0.1]: #101--2026-05-20
 [1.0.0]: #100--2026-05-20

@@ -9,9 +9,6 @@
   <em>Chat, create images, batch prompts, and research the web — all powered by Venice.</em>
 </p>
 
-> [!WARNING]
-> **Major Restructuring in Progress**: This repository is currently undergoing a significant architectural merge and UI overhaul. **Expect bugs, broken links, and incomplete features** in the current `main` branch. We are working to stabilize the unified codebase.
-
 > [!IMPORTANT]
 > **18+ Age Requirement**: You must be 18 years or older to use this application. This app connects to unrestricted AI endpoints that pose inherent risks, including the potential to generate explicit content or AI-generated images that inappropriately represent minors (CSAM). By proceeding, you confirm you are 18+ and assume all responsibility.
 >
@@ -64,7 +61,7 @@ Thirteen integrated tabs covering chat, media generation, batch automation, rese
 | 🔍 | **Research** | Web search via Venice or Jina AI, page scraping, research synthesis, and public-profile discovery |
 | 📚 | **Catalog** | Browse live Venice model catalog with capability details; auto-refresh on API key save. App requires a Venice API key for live model discovery |
 | 🏞️ | **Library** | Local image gallery, saved chat files, and conversation history — with bulk multi-select download, deletion, and upscale |
-| ⚙️ | **Config** | API key management, theme editor (Forge Graphite, Daylight, Copper, Dracula) with custom JSON export/import, model defaults, data import/export |
+| ⚙️ | **Config** | API key management, theme editor (Venice Parity Dark, Graphite, Daylight, Copper, Dracula, GruvBox Dark, Rosepine) with custom YAML export/import, model defaults, data import/export |
 | 📊 | **Diagnostics** | Transport mode, runtime info, rate-limit headers, sanitized diagnostics export, and a desktop-only “Open logs folder” action |
 
 ---
@@ -385,7 +382,9 @@ This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-## 🙏 Acknowledgments
+## 🙏 Acknowledgments & Credits
+
+We would like to formally credit the [openvenice](https://github.com/spearchucker667/openvenice) repository and its creator, **[nikshepsvn](https://github.com/nikshepsvn)**, for the inspiring UI enhancements, workflows, and conceptual ideas that helped guide the extension of this application. While Venice Forge continues to run on our custom codebase and integration engine rather than a direct port, their layout enhancements, studios configuration, and workflows logic provided invaluable direction and inspiration.
 
 Built with:
 - [React 19](https://react.dev/)

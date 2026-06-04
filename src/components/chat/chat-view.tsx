@@ -44,8 +44,8 @@ export function ChatView() {
           <div className="flex flex-col items-center justify-center h-full text-center px-6 gap-6">
             <div className="flex flex-col items-center gap-3">
               <VeniceLogo size={32} className="opacity-80" />
-              <div className="text-[20px] font-semibold text-white/85">How can I help today?</div>
-              <p className="text-[14px] text-white/45 max-w-sm">
+              <div className="text-[20px] font-semibold text-text-primary">How can I help today?</div>
+              <p className="text-[14px] text-text-secondary max-w-sm">
                 {apiKey
                   ? 'Pick a model in the header above, then start a conversation. Streaming, web search, and citations are all built in.'
                   : 'Connect a Venice API key from the header above to get started.'}
@@ -53,14 +53,14 @@ export function ChatView() {
             </div>
             {apiKey && (
               <div className="w-full max-w-md flex flex-col gap-2">
-                <div className="text-[12px] uppercase tracking-[0.08em] text-white/35 font-medium text-left">Try one of these</div>
+                <div className="text-[12px] uppercase tracking-[0.08em] text-text-muted font-medium text-left">Try one of these</div>
                 <div className="flex flex-col gap-1.5">
                   {STARTER_PROMPTS.map((p) => (
                     <button
                       key={p}
                       type="button"
                       onClick={() => send(p, model)}
-                      className="text-left px-3 py-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.04] transition-all text-[14px] text-white/65 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
+                      className="text-left px-3 py-2.5 rounded-lg border border-border bg-surface-elevated hover:border-accent/40 text-text-secondary hover:text-text-primary hover:bg-surface transition-all text-[14px] focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent cursor-pointer"
                     >
                       {p}
                     </button>
@@ -72,7 +72,7 @@ export function ChatView() {
           </div>
         ) : (
           <>
-            <div className="border-b border-white/[0.04]">
+            <div className="border-b border-border">
               <VeniceParams />
             </div>
             <div className="w-full max-w-[960px] mx-auto py-5 px-4 sm:px-5 flex flex-col gap-5">

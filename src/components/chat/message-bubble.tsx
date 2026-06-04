@@ -31,11 +31,11 @@ function CodeBlock({ children, className, ...props }: ComponentPropsWithoutRef<'
   return (
     <div className="relative group/code">
       {lang && (
-        <div className="absolute top-0 left-0 px-3 py-1.5 text-[13px] text-white/15 font-mono uppercase tracking-wider select-none">{lang}</div>
+        <div className="absolute top-0 left-0 px-3 py-1.5 text-[13px] text-text-muted/30 font-mono uppercase tracking-wider select-none">{lang}</div>
       )}
       <button
         onClick={() => { navigator.clipboard.writeText(codeStr); setCodeCopied(true); setTimeout(() => setCodeCopied(false), 1500) }}
-        className="absolute top-1.5 right-1.5 px-2 py-1 text-[13px] font-medium text-white/15 hover:text-white/40 bg-white/[0.03] hover:bg-white/[0.06] rounded-md transition-all opacity-0 group-hover/code:opacity-100"
+        className="absolute top-1.5 right-1.5 px-2 py-1 text-[13px] font-medium text-text-muted/40 hover:text-text-secondary bg-surface-elevated/40 hover:bg-surface-elevated/80 rounded-md transition-all opacity-0 group-hover/code:opacity-100 cursor-pointer"
       >
         {codeCopied ? 'Copied' : 'Copy'}
       </button>
@@ -104,15 +104,15 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
       <div className="flex justify-end" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
         <div className="flex items-end gap-1.5 max-w-[78%]">
           {actions}
-          <div className="bg-white/[0.07] border border-white/[0.05] rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
+          <div className="bg-surface-elevated border border-border rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
             {images.length > 0 && (
               <div className="flex gap-1.5 mb-2">
                 {images.map((img, i) => (
-                  <img key={i} src={img} alt={`Attachment ${i + 1}`} className="h-24 rounded-lg border border-white/[0.06]" />
+                  <img key={i} src={img} alt={`Attachment ${i + 1}`} className="h-24 rounded-lg border border-border" />
                 ))}
               </div>
             )}
-            <div className="text-white/95 text-[15.5px] leading-relaxed whitespace-pre-wrap break-words">
+            <div className="text-text-primary text-[15.5px] leading-relaxed whitespace-pre-wrap break-words">
               {content}
             </div>
           </div>
@@ -145,7 +145,7 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
           <div className="mb-2">
             <button
               onClick={() => setReasoningOpen(!reasoningOpen)}
-              className="flex items-center gap-1.5 text-[14px] text-white/20 hover:text-white/35 transition-colors mb-1"
+              className="flex items-center gap-1.5 text-[14px] text-text-muted hover:text-text-secondary transition-colors mb-1 cursor-pointer"
             >
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
                 className={cn('transition-transform duration-150', reasoningOpen && 'rotate-90')}>
@@ -154,7 +154,7 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
               Thinking
             </button>
             {reasoningOpen && (
-              <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg px-3 py-2 text-[15px] text-white/30 leading-relaxed whitespace-pre-wrap animate-fade-in max-h-60 overflow-y-auto">
+              <div className="bg-surface border border-border rounded-lg px-3 py-2 text-[15px] text-text-muted leading-relaxed whitespace-pre-wrap animate-fade-in max-h-60 overflow-y-auto">
                 {message.reasoning_content}
               </div>
             )}
@@ -162,7 +162,7 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
         )}
 
         {content ? (
-          <div className="prose-venice text-[15.5px] leading-relaxed text-white/85">
+          <div className="prose-venice text-[15.5px] leading-relaxed text-text-primary">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               urlTransform={safeUrlTransform}
@@ -178,9 +178,9 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
           </div>
         ) : (
           <span className="inline-flex gap-1.5 py-1.5">
-            <span className="w-1 h-1 rounded-full bg-white/25 animate-pulse-dot" />
-            <span className="w-1 h-1 rounded-full bg-white/25 animate-pulse-dot" style={{ animationDelay: '0.2s' }} />
-            <span className="w-1 h-1 rounded-full bg-white/25 animate-pulse-dot" style={{ animationDelay: '0.4s' }} />
+            <span className="w-1 h-1 rounded-full bg-text-muted animate-pulse-dot" />
+            <span className="w-1 h-1 rounded-full bg-text-muted animate-pulse-dot" style={{ animationDelay: '0.2s' }} />
+            <span className="w-1 h-1 rounded-full bg-text-muted animate-pulse-dot" style={{ animationDelay: '0.4s' }} />
           </span>
         )}
         <div className="mt-0.5">{actions}</div>
@@ -194,7 +194,7 @@ function ActionBtn({ label, onClick, children }: { label: string; onClick: () =>
     <button
       onClick={onClick}
       title={label}
-      className="p-1 text-white/15 hover:text-white/40 transition-colors rounded-md hover:bg-white/[0.04]"
+      className="p-1 text-text-muted/40 hover:text-text-secondary transition-colors rounded-md hover:bg-surface-elevated cursor-pointer"
     >
       {children}
     </button>

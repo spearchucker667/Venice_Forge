@@ -1,0 +1,28 @@
+---
+# This is an example color .yaml templet
+# each use hex values to assign each color a value
+# do not leave any value blank
+# "details" is the name of the theme
+accent: "#ebbcba"
+background: "#191724"
+details: "Rosepine"
+foreground: "#e0def4"
+terminal_colors:
+  bright:
+    black: "#6e6a86"
+    blue: "#31748f"
+    cyan: "#c4a7e7"
+    green: "#9ccfd8"
+    magenta: "#ebbcba"
+    red: "#eb6f92"
+    white: "#e0def4"
+    yellow: "#f6c177"
+  normal:
+    black: "#191724"
+    blue: "#ebbcba"
+    cyan: "#c4a7e7"
+    green: "#9ccfd8"
+    magenta: "#ebbcba"
+    red: "#eb6f92"
+    white: "#908caa"
+    yellow: "#f6c177"

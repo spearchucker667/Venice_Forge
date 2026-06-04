@@ -46,8 +46,9 @@ const fs = require('fs');
     };
   });
   
-  fs.writeFileSync('venice-styles.json', JSON.stringify(styles, null, 2));
-  console.log("Styles saved to venice-styles.json");
+  const path = require('path');
+  fs.writeFileSync(path.join(__dirname, 'venice-styles.json'), JSON.stringify(styles, null, 2));
+  console.log("Styles saved to " + path.join(__dirname, 'venice-styles.json'));
   
   await browser.close();
 })();

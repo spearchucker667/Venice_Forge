@@ -355,23 +355,33 @@ export const desktopChat = {
 export const desktopJinaApiKey = {
   async isConfigured(): Promise<boolean> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.isConfigured();
-    return false;
+    return !!localStorage.getItem("venice_jina_api_key");
   },
   async set(key: string): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.set(key);
-    throw new Error("Jina API key storage is desktop-only. Web mode uses the server .env key.");
+    localStorage.setItem("venice_jina_api_key", key);
+    return { ok: true };
   },
   async delete(): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.delete();
+    localStorage.removeItem("venice_jina_api_key");
     return { ok: true };
   },
   async test(): Promise<{ ok: boolean; status?: number; message: string }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.test();
     try {
+      const localKey = localStorage.getItem("venice_jina_api_key") || "";
+      const headers: Record<string, string> = {};
+      if (localKey) {
+        headers["Authorization"] = `Bearer ${localKey}`;
+      }
       const resp = await fetch("/api/proxy-jina", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: "https://r.jina.ai/https://example.com" })
+        body: JSON.stringify({
+          url: "https://r.jina.ai/https://example.com",
+          headers,
+        })
       });
       if (resp.ok) {
         return { ok: true, status: resp.status, message: "Jina connection successful" };
@@ -438,10 +448,16 @@ export const desktopJina = {
     );
 
     try {
+      const localKey = localStorage.getItem("venice_jina_api_key");
+      const headers = { ...input.headers };
+      if (localKey && !headers["Authorization"] && !headers["authorization"]) {
+        headers["Authorization"] = `Bearer ${localKey}`;
+      }
+
       const response = await fetch("/api/proxy-jina", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
+        body: JSON.stringify({ ...input, headers }),
         signal: controller.signal,
       });
 

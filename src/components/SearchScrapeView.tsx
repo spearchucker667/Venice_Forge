@@ -363,10 +363,10 @@ export function SearchScrapeView() {
     <button
       key={id}
       onClick={() => setSubTab(id)}
-      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
         subTab === id
-          ? "bg-white/[0.06] text-white border border-white/[0.04]"
-          : "text-white/50 hover:text-white/80 hover:bg-white/[0.02]"
+          ? "bg-accent/10 text-accent border border-accent/20"
+          : "text-text-secondary hover:text-text-primary hover:bg-surface-elevated/50"
       }`}
     >
       {label}
@@ -376,11 +376,11 @@ export function SearchScrapeView() {
   return (
     <div className="flex flex-col h-full bg-surface">
       {/* Header */}
-      <div className="flex-none p-5 border-b border-white/[0.05] bg-surface">
+      <div className="flex-none p-5 border-b border-border bg-surface">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-[17px] font-semibold text-white/95">Research</h2>
-            <p className="text-[12.5px] text-white/40 mt-0.5">
+            <h2 className="text-[17px] font-semibold text-text-primary">Research</h2>
+            <p className="text-[12.5px] text-text-muted mt-0.5">
               Search the web, scrape articles, and analyze social profiles.
             </p>
           </div>
@@ -396,7 +396,7 @@ export function SearchScrapeView() {
       {/* Main content */}
       <div className="flex-1 overflow-y-auto p-5 space-y-6">
         {error && (
-          <div role="alert" className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm leading-relaxed">
+          <div role="alert" className="p-3 bg-danger/10 border border-danger/20 text-danger rounded-lg text-sm leading-relaxed">
             {error}
           </div>
         )}
@@ -405,15 +405,15 @@ export function SearchScrapeView() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Web Search */}
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 shadow-lg flex flex-col gap-4">
-                <h3 className="text-[14.5px] font-medium text-white/85">Web Search</h3>
+              <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg flex flex-col gap-4">
+                <h3 className="text-[14.5px] font-medium text-text-primary">Web Search</h3>
                 
                 <Field label="Query">
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="latest model routing best practices"
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3.5 py-2 text-[14px] text-white outline-none focus:border-white/[0.2] transition-all"
+                    className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
                   />
                 </Field>
 
@@ -421,7 +421,7 @@ export function SearchScrapeView() {
                   <select
                     value={provider}
                     onChange={(e) => setProvider(e.target.value)}
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3.5 py-2 text-[14px] text-white outline-none focus:border-white/[0.2] transition-all"
+                    className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
                   >
                     <option value="brave">Brave Search</option>
                     <option value="google">Google Search</option>
@@ -429,7 +429,7 @@ export function SearchScrapeView() {
                 </Field>
 
                 <button
-                  className="px-4 py-2 rounded-lg text-[13px] font-medium bg-white text-black hover:bg-white/95 disabled:opacity-40 transition-colors self-start"
+                  className="px-4 py-2 rounded-lg text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-40 transition-colors self-start cursor-pointer"
                   onClick={runSearch}
                   disabled={loading === "search" || !query.trim()}
                 >
@@ -438,20 +438,20 @@ export function SearchScrapeView() {
                 
                 <div className="flex flex-col gap-3 mt-2 overflow-y-auto max-h-[360px]">
                   {searchResults.map((r, idx) => (
-                    <div key={idx} className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-3 text-[13px]">
-                      <strong className="text-white/85 block mb-1">
+                    <div key={idx} className="rounded-lg bg-surface border border-border p-3 text-[13px]">
+                      <strong className="text-text-primary block mb-1">
                         {r.title || r.name || "Untitled result"}
                       </strong>
-                      <a href={safeHref(r.url || r.link)} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline break-all text-[11px] block mb-2">
+                      <a href={safeHref(r.url || r.link)} target="_blank" rel="noreferrer" className="text-accent hover:underline break-all text-[11px] block mb-2">
                         {r.url || r.link}
                       </a>
-                      <div className="text-white/50 leading-relaxed">
+                      <div className="text-text-secondary leading-relaxed">
                         {r.snippet || r.content || r.description || ""}
                       </div>
                     </div>
                   ))}
                   {!searchResults.length && (
-                    <div className="text-[12px] text-white/30 text-center py-6">
+                    <div className="text-[12px] text-text-muted text-center py-6">
                       No search results yet.
                     </div>
                   )}
@@ -459,28 +459,28 @@ export function SearchScrapeView() {
               </div>
 
               {/* Web Scrape */}
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 shadow-lg flex flex-col gap-4">
-                <h3 className="text-[14.5px] font-medium text-white/85">Web Scrape</h3>
+              <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg flex flex-col gap-4">
+                <h3 className="text-[14.5px] font-medium text-text-primary">Web Scrape</h3>
                 
                 <Field label="URL to scrape">
                   <input
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     placeholder="https://example.com"
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3.5 py-2 text-[14px] text-white outline-none focus:border-white/[0.2] transition-all"
+                    className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
                   />
                 </Field>
 
                 <div className="flex gap-2">
                   <button
-                    className="px-4 py-2 rounded-lg text-[13px] font-medium bg-white text-black hover:bg-white/95 disabled:opacity-40 transition-colors"
+                    className="px-4 py-2 rounded-lg text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer"
                     onClick={runScrape}
                     disabled={loading === "scrape" || !url.trim()}
                   >
                     {loading === "scrape" ? "Scraping…" : "Scrape"}
                   </button>
                   <button
-                    className="px-3.5 py-2 rounded-lg text-[13px] font-medium bg-white/[0.04] border border-white/[0.08] text-white/80 hover:bg-white/[0.08] transition-colors"
+                    className="px-3.5 py-2 rounded-lg text-[13px] font-medium bg-surface border border-border text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer"
                     onClick={() => {
                       copyText(scrapeOutput);
                       toast.success("Scraped output copied!");
@@ -495,27 +495,27 @@ export function SearchScrapeView() {
                   value={scrapeOutput}
                   onChange={(e) => setScrapeOutput(e.target.value)}
                   placeholder="Scraped text will appear here..."
-                  className="w-full flex-1 bg-white/[0.01] border border-white/[0.06] rounded-lg px-3.5 py-2.5 text-[13px] text-white/70 outline-none font-mono focus:border-white/[0.15] transition-all min-h-[220px]"
+                  className="w-full flex-1 bg-surface border border-border rounded-lg px-3.5 py-2.5 text-[13px] text-text-secondary outline-none font-mono focus:border-accent transition-all min-h-[220px] placeholder:text-text-muted/50"
                 />
               </div>
             </div>
 
             {/* Document parser */}
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 shadow-lg space-y-4">
-              <h3 className="text-[14.5px] font-medium text-white/85">Document Text Parser</h3>
+            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
+              <h3 className="text-[14.5px] font-medium text-text-primary">Document Text Parser</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-4">
-                  <p className="text-[12.5px] text-white/40 leading-relaxed">
+                  <p className="text-[12.5px] text-text-secondary leading-relaxed">
                     Extract raw text from PDF, DOCX, XLSX, or TXT documents.
                   </p>
                   <input
                     type="file"
                     accept=".pdf,.docx,.xlsx,.txt,text/plain,application/pdf"
                     onChange={(e) => setFile(e.target.files?.[0] || null)}
-                    className="block w-full text-[13px] text-white/50 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[12.5px] file:font-semibold file:bg-white/[0.05] file:text-white file:cursor-pointer"
+                    className="block w-full text-[13px] text-text-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[12.5px] file:font-semibold file:bg-surface-elevated file:text-text-primary file:cursor-pointer"
                   />
                   <button
-                    className="px-4 py-2 rounded-lg text-[13px] font-medium bg-white text-black hover:bg-white/95 disabled:opacity-40 transition-colors"
+                    className="px-4 py-2 rounded-lg text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer"
                     onClick={runParser}
                     disabled={loading === "parser" || !file}
                   >
@@ -526,7 +526,7 @@ export function SearchScrapeView() {
                   value={parserOutput}
                   onChange={(e) => setParserOutput(e.target.value)}
                   placeholder="Extracted document text..."
-                  className="w-full bg-white/[0.01] border border-white/[0.06] rounded-lg px-3.5 py-2.5 text-[13px] text-white/70 outline-none font-mono focus:border-white/[0.15] transition-all min-h-[160px]"
+                  className="w-full bg-surface border border-border rounded-lg px-3.5 py-2.5 text-[13px] text-text-secondary outline-none font-mono focus:border-accent transition-all min-h-[160px] placeholder:text-text-muted/50"
                 />
               </div>
             </div>
@@ -534,9 +534,9 @@ export function SearchScrapeView() {
         )}
 
         {subTab === "ai-research" && (
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 shadow-lg flex flex-col gap-4">
-            <h3 className="text-[14.5px] font-medium text-white/85">Deep AI Research Agent</h3>
-            <p className="text-[12.5px] text-white/40 leading-relaxed">
+          <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg flex flex-col gap-4">
+            <h3 className="text-[14.5px] font-medium text-text-primary">Deep AI Research Agent</h3>
+            <p className="text-[12.5px] text-text-secondary leading-relaxed">
               Executes a recursive web search loop, scrapes multiple sources, parses citations, and synthesizes a comprehensive final response.
             </p>
 
@@ -545,7 +545,7 @@ export function SearchScrapeView() {
                 value={researchQuestion}
                 onChange={(e) => setResearchQuestion(e.target.value)}
                 placeholder="What are the latest changes in safety policies of frontier AI labs?"
-                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3.5 py-2 text-[14px] text-white outline-none focus:border-white/[0.2] transition-all"
+                className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
               />
             </Field>
 
@@ -553,7 +553,7 @@ export function SearchScrapeView() {
               <select
                 value={researchProviderId}
                 onChange={(e) => setResearchProviderId(e.target.value as "venice" | "jina")}
-                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3.5 py-2 text-[14px] text-white outline-none focus:border-white/[0.2] transition-all"
+                className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
               >
                 <option value="venice">Venice AI Search Loop</option>
                 <option value="jina">Jina AI Reader & Search API</option>
@@ -562,14 +562,14 @@ export function SearchScrapeView() {
 
             <div className="flex gap-2">
               <button
-                className="px-4 py-2 rounded-lg text-[13px] font-medium bg-white text-black hover:bg-white/95 disabled:opacity-40 transition-colors"
+                className="px-4 py-2 rounded-lg text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer"
                 onClick={runAiResearch}
                 disabled={loading === "ai-research" || !researchQuestion.trim()}
               >
                 {loading === "ai-research" ? "Researching…" : "Start Research"}
               </button>
               <button
-                className="px-3.5 py-2 rounded-lg text-[13px] font-medium bg-white/[0.04] border border-white/[0.08] text-white/80 hover:bg-white/[0.08] transition-colors"
+                className="px-3.5 py-2 rounded-lg text-[13px] font-medium bg-surface border border-border text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer"
                 onClick={() => {
                   copyText(researchOutput);
                   toast.success("Answer copied!");
@@ -579,7 +579,7 @@ export function SearchScrapeView() {
                 Copy Answer
               </button>
               <button
-                className="px-3.5 py-2 rounded-lg text-[13px] font-medium bg-white/[0.04] border border-white/[0.08] text-white/80 hover:bg-white/[0.08] transition-colors"
+                className="px-3.5 py-2 rounded-lg text-[13px] font-medium bg-surface border border-border text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer"
                 onClick={() => {
                   copyText(researchCitations);
                   toast.success("Citations copied!");
@@ -594,13 +594,13 @@ export function SearchScrapeView() {
               value={researchOutput}
               onChange={(e) => setResearchOutput(e.target.value)}
               placeholder="Synthesized answers will be streamed here..."
-              className="w-full bg-white/[0.01] border border-white/[0.06] rounded-lg px-3.5 py-2.5 text-[13px] text-white/70 outline-none focus:border-white/[0.15] transition-all min-h-[300px]"
+              className="w-full bg-surface border border-border rounded-lg px-3.5 py-2.5 text-[13px] text-text-secondary outline-none focus:border-accent transition-all min-h-[300px] placeholder:text-text-muted/50"
             />
 
             {researchCitations && (
-              <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-4 space-y-2">
-                <div className="text-[12.5px] font-medium text-white/80">Citations & References</div>
-                <pre className="text-[11.5px] text-white/50 whitespace-pre-wrap font-mono">{researchCitations}</pre>
+              <div className="rounded-lg bg-surface border border-border p-4 space-y-2">
+                <div className="text-[12.5px] font-medium text-text-primary">Citations & References</div>
+                <pre className="text-[11.5px] text-text-muted whitespace-pre-wrap font-mono">{researchCitations}</pre>
               </div>
             )}
           </div>
@@ -608,9 +608,9 @@ export function SearchScrapeView() {
 
         {subTab === "profile-discovery" && (
           <div className="space-y-6">
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 shadow-lg flex flex-col gap-4">
-              <h3 className="text-[14.5px] font-medium text-white/85">Public Profile Discovery</h3>
-              <p className="text-[12.5px] text-white/40 leading-relaxed">
+            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg flex flex-col gap-4">
+              <h3 className="text-[14.5px] font-medium text-text-primary">Public Profile Discovery</h3>
+              <p className="text-[12.5px] text-text-secondary leading-relaxed">
                 Aggregates social profile mappings from public databases (GitHub, Twitter, LinkedIn, etc.) using Venice web integration.
               </p>
 
@@ -620,7 +620,7 @@ export function SearchScrapeView() {
                     value={targetName}
                     onChange={(e) => setTargetName(e.target.value)}
                     placeholder="Consenting person or Brand Name"
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3.5 py-2 text-[14px] text-white outline-none focus:border-white/[0.2] transition-all"
+                    className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
                   />
                 </Field>
                 <Field label="Known Handle/Username">
@@ -628,7 +628,7 @@ export function SearchScrapeView() {
                     value={knownUsername}
                     onChange={(e) => setKnownUsername(e.target.value)}
                     placeholder="@username"
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3.5 py-2 text-[14px] text-white outline-none focus:border-white/[0.2] transition-all font-mono"
+                    className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all font-mono placeholder:text-text-muted/50"
                   />
                 </Field>
                 <Field label="Known Website">
@@ -636,7 +636,7 @@ export function SearchScrapeView() {
                     value={knownWebsite}
                     onChange={(e) => setKnownWebsite(e.target.value)}
                     placeholder="example.com"
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3.5 py-2 text-[14px] text-white outline-none focus:border-white/[0.2] transition-all font-mono"
+                    className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all font-mono placeholder:text-text-muted/50"
                   />
                 </Field>
                 <Field label="Known Organization">
@@ -644,7 +644,7 @@ export function SearchScrapeView() {
                     value={knownOrg}
                     onChange={(e) => setKnownOrg(e.target.value)}
                     placeholder="GitHub Inc."
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3.5 py-2 text-[14px] text-white outline-none focus:border-white/[0.2] transition-all"
+                    className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
                   />
                 </Field>
                 <Field label="Known Location">
@@ -652,7 +652,7 @@ export function SearchScrapeView() {
                     value={knownLocation}
                     onChange={(e) => setKnownLocation(e.target.value)}
                     placeholder="San Francisco, CA"
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3.5 py-2 text-[14px] text-white outline-none focus:border-white/[0.2] transition-all"
+                    className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
                   />
                 </Field>
                 <Field label="Max Search Depth">
@@ -662,13 +662,13 @@ export function SearchScrapeView() {
                     max={10}
                     value={maxDepth}
                     onChange={(e) => setMaxDepth(Number(e.target.value) || 3)}
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3.5 py-2 text-[14px] text-white outline-none focus:border-white/[0.2] transition-all"
+                    className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
                   />
                 </Field>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[12.5px] text-white/50 block font-medium">Platforms to search</label>
+                <label className="text-[12.5px] text-text-secondary block font-medium">Platforms to search</label>
                 <div className="flex flex-wrap gap-2">
                   {ALL_PLATFORMS.map((platform) => {
                     const isSelected = allowedPlatforms.includes(platform);
@@ -676,10 +676,10 @@ export function SearchScrapeView() {
                       <button
                         key={platform}
                         onClick={() => togglePlatform(platform)}
-                        className={`text-[12px] px-2.5 py-1 rounded-lg border transition-all duration-150 ${
+                        className={`text-[12px] px-2.5 py-1 rounded-lg border transition-all duration-150 cursor-pointer ${
                           isSelected 
-                            ? "bg-white/[0.08] border-white/[0.15] text-white font-medium" 
-                            : "bg-transparent border-white/[0.04] text-white/40 hover:text-white/60 hover:bg-white/[0.01]"
+                            ? "bg-accent/10 border-accent/30 text-accent font-medium" 
+                            : "bg-transparent border-border text-text-muted hover:text-text-secondary hover:bg-surface-elevated/50"
                         }`}
                       >
                         {platform}
@@ -689,21 +689,21 @@ export function SearchScrapeView() {
                 </div>
               </div>
 
-              <label className="flex items-start gap-3 p-4 rounded-xl border border-white/[0.06] bg-white/[0.01] cursor-pointer mt-2">
+              <label className="flex items-start gap-3 p-4 rounded-xl border border-border bg-surface-elevated cursor-pointer mt-2">
                 <input
                   type="checkbox"
-                  className="mt-0.5 rounded border-white/[0.08] bg-white/[0.02] text-white focus:ring-offset-0 focus:ring-0 w-4 h-4"
+                  className="mt-0.5 rounded border-border bg-surface text-accent focus:ring-offset-0 focus:ring-0 w-4 h-4 cursor-pointer"
                   checked={authorized}
                   onChange={(e) => setAuthorized(e.target.checked)}
                 />
-                <span className="text-[12.5px] text-white/50 leading-relaxed">
+                <span className="text-[12.5px] text-text-secondary leading-relaxed">
                   I confirm this search is for myself, my organization/brand, a consenting person, a public figure, or another authorized public-interest use. Search will use public web results only.
                 </span>
               </label>
 
               <div className="flex gap-2">
                 <button
-                  className="px-4 py-2 rounded-lg text-[13px] font-medium bg-white text-black hover:bg-white/95 disabled:opacity-40 transition-colors"
+                  className="px-4 py-2 rounded-lg text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer"
                   onClick={runProfileDiscovery}
                   disabled={loading === "profile-discovery" || !targetName.trim() || !authorized}
                 >
@@ -711,7 +711,7 @@ export function SearchScrapeView() {
                 </button>
                 {loading === "profile-discovery" && (
                   <button 
-                    className="px-4 py-2 rounded-lg text-[13px] font-medium bg-white/[0.04] border border-white/[0.08] text-white hover:bg-white/[0.08] transition-colors"
+                    className="px-4 py-2 rounded-lg text-[13px] font-medium bg-surface border border-border text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer"
                     onClick={cancelRun}
                   >
                     Cancel
@@ -721,27 +721,27 @@ export function SearchScrapeView() {
             </div>
 
             {profileCandidates.length > 0 && (
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 shadow-lg space-y-4">
+              <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-[14.5px] font-medium text-white/85">Discovered Profile Candidates</h3>
+                  <h3 className="text-[14.5px] font-medium text-text-primary">Discovered Profile Candidates</h3>
                   <Chip tone="ok">{profileCandidates.length} Candidates</Chip>
                 </div>
                 <div className="space-y-3">
                   {profileCandidates.map((c, idx) => (
-                    <div key={idx} className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-3 text-[13px] space-y-2">
+                    <div key={idx} className="rounded-lg bg-surface border border-border p-3 text-[13px] space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-white/90">{c.platform}</span>
+                        <span className="font-semibold text-text-primary">{c.platform}</span>
                         <Chip tone={c.confidence === "high" ? "ok" : c.confidence === "medium" ? "warn" : "neutral"}>
                           {c.confidence} confidence
                         </Chip>
                       </div>
-                      <div className="text-white/70">
-                        {c.displayName || "Unknown Identity"} {c.handle && <span className="text-white/40 ml-1">@{c.handle.replace(/^@+/, "")}</span>}
+                      <div className="text-text-secondary">
+                        {c.displayName || "Unknown Identity"} {c.handle && <span className="text-text-muted ml-1">@{c.handle.replace(/^@+/, "")}</span>}
                       </div>
-                      <a href={safeHref(c.url)} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline break-all text-[11px] block">
+                      <a href={safeHref(c.url)} target="_blank" rel="noreferrer" className="text-accent hover:underline break-all text-[11px] block">
                         {c.url}
                       </a>
-                      {c.bioSnippet && <p className="text-[12px] text-white/50 italic leading-relaxed">{c.bioSnippet}</p>}
+                      {c.bioSnippet && <p className="text-[12px] text-text-muted italic leading-relaxed">{c.bioSnippet}</p>}
                     </div>
                   ))}
                 </div>
