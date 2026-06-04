@@ -3,10 +3,11 @@ import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useAuthStore } from '../../stores/auth-store'
 import { useMusic } from '../../hooks/use-music'
-import { Label, TextArea, PrimaryButton, ErrorText } from '../ui/shared'
+import { Label, TextArea, PrimaryButton, ErrorText, ExamplePrompts } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
 import { cn } from '../../lib/utils'
 import type { MusicQueueRequest } from '../../types/venice'
+import { getPromptStartersForCategory } from '../../services/promptStarterService'
 
 // Model capabilities
 interface MusicModelConfig {
@@ -38,6 +39,7 @@ export function MusicView() {
   const config = getConfig(model)
 
   const [prompt, setPrompt] = useState('')
+  const [starters, setStarters] = useState<string[]>(() => getPromptStartersForCategory('music', 4))
   const [lyrics, setLyrics] = useState('')
   const [duration, setDuration] = useState(30)
   const [instrumental, setInstrumental] = useState(false)
@@ -154,19 +156,11 @@ export function MusicView() {
                 </button>
               </div>
             ) : !prompt ? (
-              <div className="max-w-md w-full flex flex-col gap-2">
-                <div className="text-[12px] uppercase tracking-[0.08em] text-white/35 font-medium text-left">Try one of these</div>
-                {MUSIC_EXAMPLES.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setPrompt(p)}
-                    className="text-left px-3 py-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.04] transition-all text-[14px] text-white/65 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
+              <ExamplePrompts
+                items={starters}
+                onPick={setPrompt}
+                onShuffle={() => setStarters(getPromptStartersForCategory('music', 4))}
+              />
             ) : (
               <span>Press Generate to create your track</span>
             )}
@@ -178,12 +172,7 @@ export function MusicView() {
   return <GenerationView controls={controls} output={output} />
 }
 
-const MUSIC_EXAMPLES = [
-  'Lo-fi hip-hop beat with vinyl crackle and rain — 80 bpm, mellow',
-  'Cinematic orchestral build — slow strings rising into triumphant brass',
-  'Synthwave with retro arpeggios, warm pads, gated reverb drums — 105 bpm',
-  'Acoustic folk fingerpicking, soft female vocals, intimate room sound',
-]
+// MUSIC_EXAMPLES migrated to dynamic prompt starters
 
 function formatElapsedMusic(ms: number): string {
   const s = Math.floor(ms / 1000)

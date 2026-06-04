@@ -5,16 +5,11 @@ import { useAuthStore } from '../../stores/auth-store'
 import { useTTS, useTranscription } from '../../hooks/use-audio'
 import { useBlobUrl } from '../../hooks/use-blob-url'
 import { Select } from '../ui/select'
-import { Label, TextArea, PrimaryButton, ErrorText, EmptyState } from '../ui/shared'
+import { Label, TextArea, PrimaryButton, ErrorText, EmptyState, ExamplePrompts } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
 import { cn } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
-
-const AUDIO_EXAMPLES = [
-  'Welcome to Venice Forge. The future of voice is here, and it speaks every language.',
-  'In a quiet town nestled between two mountains, a small library held a very old book.',
-  'Did you know? A single octopus has nine brains — one central, plus one in each arm.',
-]
+import { getPromptStartersForCategory } from '../../services/promptStarterService'
 
 const VOICES = [
   // American Female
@@ -56,6 +51,7 @@ export function AudioView() {
 
   const [tab, setTab] = useState<'tts' | 'transcribe'>('tts')
   const [text, setText] = useState('')
+  const [starters, setStarters] = useState<string[]>(() => getPromptStartersForCategory('audio', 3))
   const [voice, setVoice] = useState('af_heart')
   const [speed, setSpeed] = useState(1)
   const [format, setFormat] = useState<string>('mp3')
@@ -176,19 +172,11 @@ export function AudioView() {
             </div>
           ) : !text ? (
             <div className="flex items-center justify-center h-full">
-              <div className="max-w-md w-full flex flex-col gap-2">
-                <div className="text-[12px] uppercase tracking-[0.08em] text-white/35 font-medium text-left">Try one of these</div>
-                {AUDIO_EXAMPLES.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setText(p)}
-                    className="text-left px-3 py-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.04] transition-all text-[14px] text-white/65 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
+              <ExamplePrompts
+                items={starters}
+                onPick={setText}
+                onShuffle={() => setStarters(getPromptStartersForCategory('audio', 3))}
+              />
             </div>
           ) : (
             <EmptyState>Press Generate to synthesize speech</EmptyState>

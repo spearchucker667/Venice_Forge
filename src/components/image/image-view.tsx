@@ -9,13 +9,8 @@ import { Label, TextArea, PrimaryButton, PillGroup, ErrorText, ExamplePrompts } 
 import { GenerationView } from '../ui/generation-view'
 import type { ImageConstraints } from '../../types/venice'
 import StorageService from '../../services/storageService'
+import { getPromptStartersForCategory } from '../../services/promptStarterService'
 
-const IMAGE_EXAMPLES = [
-  'A serene mountain lake at golden hour, low fog over the water, painterly',
-  'Macro photo of a dewdrop on a spider web, sunrise lighting',
-  'Cyberpunk street market at night, neon signs reflecting in puddles',
-  'Children\'s book illustration of a fox reading a book under a mushroom',
-]
 
 function toImageSrc(b64: string): string {
   if (b64.startsWith('data:')) return b64
@@ -53,6 +48,7 @@ export function ImageView() {
 
   const [prompt, setPrompt] = useState('')
   const [negativePrompt, setNegativePrompt] = useState('')
+  const [starters, setStarters] = useState<string[]>(() => getPromptStartersForCategory('image', 4))
   const [sizeIdx, setSizeIdx] = useState('2')
   const [aspectRatio, setAspectRatio] = useState('')
   const [resolution, setResolution] = useState('')
@@ -203,7 +199,11 @@ export function ImageView() {
               <span className="text-[13px] text-white/55">Generating…</span>
             </div>
           ) : (
-            <ExamplePrompts items={IMAGE_EXAMPLES} onPick={setPrompt} />
+            <ExamplePrompts
+              items={starters}
+              onPick={setPrompt}
+              onShuffle={() => setStarters(getPromptStartersForCategory('image', 4))}
+            />
           )}
         </div>
       ) : (

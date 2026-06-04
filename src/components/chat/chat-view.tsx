@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useChatStore } from '../../stores/chat-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
@@ -8,13 +8,9 @@ import { MessageBubble } from './message-bubble'
 import { ChatInput } from './chat-input'
 import { VeniceParams } from './venice-params'
 import { VeniceLogo } from '../ui/logo'
-
-const STARTER_PROMPTS = [
-  'Explain how RSA encryption works using a metaphor a 10-year-old could grasp.',
-  'Draft a polite but firm email asking my landlord to fix the heating.',
-  'Compare REST and GraphQL — when does each shine?',
-  'Brainstorm five novel side-project ideas using LLMs and a Raspberry Pi.',
-]
+import { RefreshCw } from 'lucide-react'
+import { getBalancedPromptStarters } from '../../services/promptStarterService'
+import type { PromptStarter } from '../../data/promptStarters'
 
 export function ChatView() {
   const deleteMessage = useChatStore((s) => s.deleteMessage)
@@ -29,7 +25,17 @@ export function ChatView() {
   const { send, stop, regenerate, isStreaming } = useChat()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  const [starters, setStarters] = useState<PromptStarter[]>([])
+
+  const conversationId = conversation?.id
   const messageCount = conversation?.messages.length ?? 0
+
+  useEffect(() => {
+    if (messageCount === 0) {
+      setStarters(getBalancedPromptStarters())
+    }
+  }, [conversationId, messageCount])
+
   const lastContent = conversation?.messages[messageCount - 1]?.content
   const lastLen = typeof lastContent === 'string' ? lastContent.length : 0
   const scrollTrigger = `${messageCount}-${Math.floor(lastLen / 200)}`
@@ -53,16 +59,27 @@ export function ChatView() {
             </div>
             {apiKey && (
               <div className="w-full max-w-md flex flex-col gap-2">
-                <div className="text-[12px] uppercase tracking-[0.08em] text-text-muted font-medium text-left">Try one of these</div>
+                <div className="flex items-center justify-between">
+                  <div className="text-[12px] uppercase tracking-[0.08em] text-text-muted font-medium">Try one of these</div>
+                  <button
+                    type="button"
+                    onClick={() => setStarters(getBalancedPromptStarters())}
+                    className="text-[11px] text-accent hover:text-accent-hover flex items-center gap-1 cursor-pointer transition-colors"
+                    title="Shuffle suggestions"
+                  >
+                    <RefreshCw className="w-3 h-3 animate-hover-spin" />
+                    Shuffle
+                  </button>
+                </div>
                 <div className="flex flex-col gap-1.5">
-                  {STARTER_PROMPTS.map((p) => (
+                  {starters.map((s) => (
                     <button
-                      key={p}
+                      key={s.id}
                       type="button"
-                      onClick={() => send(p, model)}
+                      onClick={() => send(s.prompt, model)}
                       className="text-left px-3 py-2.5 rounded-lg border border-border bg-surface-elevated hover:border-accent/40 text-text-secondary hover:text-text-primary hover:bg-surface transition-all text-[14px] focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent cursor-pointer"
                     >
-                      {p}
+                      {s.prompt}
                     </button>
                   ))}
                 </div>

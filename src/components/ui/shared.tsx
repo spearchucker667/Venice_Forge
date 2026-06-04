@@ -1,5 +1,6 @@
 import { cn } from '../../lib/utils'
 import { Spinner } from './spinner'
+import { RefreshCw } from 'lucide-react'
 
 export function Label({ children, htmlFor, hint }: { children: React.ReactNode; htmlFor?: string; hint?: string }) {
   return (
@@ -126,14 +127,28 @@ export function EmptyState({ children }: { children: React.ReactNode }) {
   return <div className="flex items-center justify-center flex-1 text-white/30 text-[14px]">{children}</div>
 }
 
-export function ExamplePrompts({ items, onPick, title = 'Try one of these' }: {
+export function ExamplePrompts({ items, onPick, title = 'Try one of these', onShuffle }: {
   items: string[]
   onPick: (text: string) => void
   title?: string
+  onShuffle?: () => void
 }) {
   return (
     <div className="w-full max-w-md flex flex-col gap-2.5">
-      <div className="text-[11px] uppercase tracking-[0.08em] text-white/40 font-semibold">{title}</div>
+      <div className="flex items-center justify-between">
+        <div className="text-[11px] uppercase tracking-[0.08em] text-white/40 font-semibold">{title}</div>
+        {onShuffle && (
+          <button
+            type="button"
+            onClick={onShuffle}
+            className="text-[11px] text-[var(--color-accent)] hover:opacity-85 flex items-center gap-1 cursor-pointer transition-opacity"
+            title="Shuffle suggestions"
+          >
+            <RefreshCw className="w-3 h-3 animate-hover-spin" />
+            Shuffle
+          </button>
+        )}
+      </div>
       <div className="flex flex-col gap-2">
         {items.map((text) => (
           <button
