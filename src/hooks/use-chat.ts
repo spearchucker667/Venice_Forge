@@ -44,9 +44,13 @@ export function useChat() {
         venice_parameters: veniceParams,
       }
 
+      // Pass body as object (not JSON.stringify): venice() in
+      // src/lib/venice-client.ts:17 will JSON.parse it back, and the
+      // IPC layer will re-stringify. Two round-trips is wasteful and
+      // can change key ordering.
       const stream = await venice<ReadableStream<Uint8Array>>('/chat/completions', {
         method: 'POST',
-        body: JSON.stringify(body),
+        body,
         stream: true,
         signal: abortController.signal,
       })

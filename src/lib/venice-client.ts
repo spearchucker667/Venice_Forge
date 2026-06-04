@@ -33,12 +33,18 @@ export async function venice<T>(path: string, options: { method?: string; body?:
   return response.body as T
 }
 
-export async function veniceStreamChat(path: string, body: unknown, onDelta: (chunk: { content: string; reasoning?: string }) => void) {
+export async function veniceStreamChat(
+  path: string,
+  body: unknown,
+  onDelta: (chunk: { content: string; reasoning?: string }) => void,
+  init: { signal?: AbortSignal } = {}
+) {
+  if (init.signal?.aborted) throw new Error('Aborted');
   return desktopVenice.streamChat({
     endpoint: path.replace('/api/v1', ''),
     method: "POST",
-    body: body
-  }, onDelta);
+    body,
+  }, onDelta, init.signal);
 }
 
 export async function veniceBlob(path: string, body: object, init: { signal?: AbortSignal } = {}): Promise<Blob> {

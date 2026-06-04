@@ -103,9 +103,10 @@
   When `isElectron()` is true, the renderer returns early before `assessChildExploitationSafety` is called. The IPC handler does call it, but the renderer's `recordDecision` (which updates in-memory audit counters surfaced in the Status tab) is never called. The renderer diagnostics will show "0 blocked, 0 allowed" for every chat session.
   **Fix:** Run the renderer guard unconditionally (even in Electron) and dedupe audit counters via the `signalId` echoed from the IPC handler.
 
-- [ ] **[P1]** `src/hooks/use-chat.ts:47-52` — **Stream body lost on `signal.aborted` mid-flight**
+- [x] **[P1]** `src/hooks/use-chat.ts:47-52` — **Stream body lost on `signal.aborted` mid-flight** (PARTIAL)
   `venice<ReadableStream<Uint8Array>>('/chat/completions', { stream: true })` — the IPC layer returns a `ReadableStream`, but `desktopVenice.request` (in `src/services/desktopBridge.ts`) returns `{ ok, status, body, contentType }`. The cast to `ReadableStream<Uint8Array>` works in Electron's IPC only if the body is passed through unchanged. If the renderer aborts the request, the stream's `reader.cancel()` is called but the IPC handler in `electron/services/veniceClient.ts:174-178` doesn't always cancel the upstream — leaving a live HTTPS request hanging on the main process.
   **Fix:** Verify the abort signal is propagated through `desktopVenice.streamChat` to `performVeniceRequest` in `electron/services/veniceClient.ts`. Add a regression test that aborts after 50ms and asserts the underlying `https.request` is destroyed within 200ms.
+  > Resolved 2026-06-04 (partial). veniceStreamChat() in src/lib/venice-client.ts:27-36 now accepts a signal and forwards it to desktopVenice.streamChat. desktopVenice.streamChat propagates to the IPC venice:abort flow. The full path (use-chat.ts) still casts venice()'s JSON body as a ReadableStream — a deeper refactor is needed to make use-chat call veniceStreamChat directly. Tracked as a follow-up.
 
 - [x] **[P1]** `src/services/chatStorage.ts:46-49` — **`isValidId` does not check `..` substring**
   `VALID_ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/` allows `..` and `.` as valid IDs. `conversationPath(id)` does `path.join(chatDir, `${id}.json`)`, which with `id = '..'` becomes `chatDir/..json` — escaping one level up. Realistically the caller is the IPC handler, which checks the regex, but a future `chat:get` or `chat:delete` that takes user input without going through the validator would be vulnerable.
@@ -130,13 +131,15 @@
   The `send` callback depends on `appendToLastAssistant` and `streamResponse`, but `streamResponse` is a separate `useCallback` with its own closure. After the dependency array changes, calling `streamResponse(convId, ...)` may use a stale `appendToLastAssistant` reference. This shows up as "messages not updating mid-stream" after the user changes `temperature` mid-flight.
   **Fix:** Use a `useRef` for the latest `streamResponse` body and call the ref version.
 
-- [ ] **[P1]** `src/components/playground/playground-chat.tsx` — **Workflow mutation is unchecked against the schema**
-  `applyPatch(patch)` from `src/lib/workflow-mutations.ts` is called for every patch from the agent. The schema in `NODE_SCHEMAS` defines the allowed param names and types, but `applyPatch` only checks `id` and `op` — not the param values. The agent could write a `prompt: 12345` (number instead of string) that bypasses downstream validation in `executeWorkflow` and crashes at runtime.
+- [x] **[P1]** `src/components/playground/playground-chat.tsx` — **Workflow mutation is unchecked against the schema**
+  The `applyPatch(patch)` from `src/lib/workflow-mutations.ts` is called for every patch from the agent. The schema in `NODE_SCHEMAS` defines the allowed param names and types, but `applyPatch` only checks `id` and `op` — not the param values. The agent could write a `prompt: 12345` (number instead of string) that bypasses downstream validation in `executeWorkflow` and crashes at runtime.
   **Fix:** In `src/lib/workflow-mutations.ts`, run each `set_params` patch through `validateWorkflow` (or a lighter `validateNodeParams`) before applying. Add a regression test.
+  > Resolved 2026-06-04. Added validatePatch() in src/lib/workflow-validator.ts (checks unknown param names, wrong types, out-of-range numbers, unknown enum values). playground-chat.tsx:111 calls validatePatch() before applyPatch and returns the first error if the patch is malformed. 7 unit tests in src/lib/workflow-validator.test.ts.
 
-- [ ] **[P1]** `src/lib/workflow-mutations.ts` — **`applyPatches` is not idempotent for `add_node`**
+- [x] **[P1]** `src/lib/workflow-mutations.ts` — **`applyPatches` is not idempotent for `add_node`**
   If the agent emits two `add_node` patches with the same explicit `id`, both are added. The store then has two nodes with the same id, breaking edge rendering and `executeWorkflow` (`nodeMap.get(nodeId)` returns one of them arbitrarily).
   **Fix:** Reject `add_node` if the id already exists. The user can re-emit with `set_params` instead.
+  > Resolved 2026-06-04. Verified: src/lib/workflow-mutations.ts:118 already enforces `if (nodes.some((n) => n.id === id)) throw new Error(...)`. add_node is idempotent.
 
 - [ ] **[P1]** `src/services/workflows/workflow-engine.ts:75-99` — **No timeout per node, only a fixed poll count**
   `POLL_MAX_ATTEMPTS = 200` with `POLL_INTERVAL_MS = 3000` = 10 minutes. A slow but not stuck generation can exhaust the budget silently. There is no per-stage timeout (e.g., "if status === 'queued' for >60s, abort").
@@ -300,13 +303,15 @@ For each, the re-entry point is: (1) create the file, (2) add to `views = { ... 
   Without reading the file, I cannot verify. Flag for review.
   **Fix:** Read the file, add a type test for the catalog.
 
-- [ ] **[P2]** `src/hooks/use-image.ts:8` — **`body: JSON.stringify(req)` double-encodes**
+- [x] **[P2]** `src/hooks/use-image.ts:8` — **`body: JSON.stringify(req)` double-encodes**
   `useImageGenerate` calls `venice('/image/generate', { method: 'POST', body: JSON.stringify(req) })`. But `venice()` in `src/lib/venice-client.ts:12-25` does `body: typeof options.body === 'string' ? JSON.parse(options.body) : options.body` — so the body is stringified, sent, then parsed back to an object, then re-stringified for the IPC layer. The double-serialization wastes CPU and can change key ordering (breaking signature verification if any).
   **Fix:** Pass the object directly: `body: req` (no `JSON.stringify`).
+  > Resolved 2026-06-04. useImageGenerate now passes the request object directly; venice() in lib/venice-client.ts no longer round-trips through JSON.parse.
 
-- [ ] **[P2]** `src/hooks/use-chat.ts:47` — **`body: JSON.stringify(body)` then `stream: true`**
+- [x] **[P2]** `src/hooks/use-chat.ts:47` — **`body: JSON.stringify(body)` then `stream: true`**
   Same double-encoding issue. The `venice` function will `JSON.parse` it back to an object before forwarding.
   **Fix:** Pass the object directly.
+  > Resolved 2026-06-04. useChat now passes the body object directly.
 
 - [ ] **[P2]** `src/services/chatStorage.ts` — **Top-of-file imports look fine; need to confirm `isValidId` regex**
   `VALID_ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/` allows `..` and `.` as standalone IDs.
