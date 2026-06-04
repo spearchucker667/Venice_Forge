@@ -153,13 +153,13 @@ jobs:
 
     steps:
       - name: Download macOS artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: venice-forge-macos-${{ github.ref_name }}
           path: release/
 
       - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: venice-forge-windows-${{ github.ref_name }}
           path: release/
