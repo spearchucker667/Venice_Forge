@@ -398,7 +398,8 @@ export function createServerApp() {
         // two hostnames (r.jina.ai, s.jina.ai) and required to use the
         // https: protocol (server.ts:362-365). SSRF to internal services
         // is impossible by construction.
-        const response = await fetch(parsed.toString(), { // nosec:js/request-forgery
+        // nosec:js/request-forgery
+        const response = await fetch(parsed.toString(), {
           method: "GET",
           headers,
           signal: controller.signal,
