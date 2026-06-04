@@ -203,9 +203,15 @@
   **Fix:** Confirm zero callers via `grep -rln "from '.*mediaService'\|from '.*videoGenerationService'" src/ electron/`. If true, delete. If false, add tests per the Test Coverage Gaps section.
   > Resolved 2026-06-04. Confirmed zero callers. Both files deleted.
 
-- [ ] **[P2]** `src/research/agent/citationBuilder.ts` and `src/research/agent/evidenceStore.ts` — **No tests**
+- [x] **[P2]** `src/research/agent/citationBuilder.ts` and `src/research/agent/evidenceStore.ts` — **No tests**
   Both files are imported by `src/research/agent/researchSynthesis.ts` and `src/research/agent/researchRunner.ts`, but no `.test.ts` exists.
   **Fix:** Add tests per Section 6.
+  > Resolved 2026-06-04. Added 6 evidenceStore tests (empty, search dedupe, finalUrl preference, no-URL skip, clear-resets-counter, list isolation) and 7 citationBuilder tests (empty, numbering, missing-url skip, finalUrl preference, 280-char truncation, empty markdown fallback, escape rules for backslash/bracket/paren).
+
+- [x] **[P2]** `src/theme/fallbacks.ts` — **No test file**
+  Only `applyTheme.test.ts`, `contrast.test.ts`, `validateColor.test.ts` exist for the theme module.
+  **Fix:** Add `src/theme/fallbacks.test.ts`.
+  > Resolved 2026-06-04. Added 1 test asserting COLOR_INPUT_FALLBACK is a valid hex color.
 
 - [x] **[P2]** `electron/utils/navigation.ts` — **No test file**
   `checkPathContained` is a security-critical function. The README says path traversal is blocked but no test exercises symlinks, case-insensitive Windows paths, or `..` traversal.
@@ -365,11 +371,13 @@ The repo has 539 passing tests across 58 files. Coverage thresholds are 70/80/80
   Only `applyTheme.test.ts`, `contrast.test.ts`, `validateColor.test.ts` exist for the theme module.
   **Fix:** Add `src/theme/fallbacks.test.ts`.
 
-- [ ] **[P2]** `src/research/agent/citationBuilder.ts` — **No test file**
+- [x] **[P2]** `src/research/agent/citationBuilder.ts` — **No test file**
   **Fix:** Add tests for citation aggregation, deduplication, and missing-source fallback.
+  > Resolved 2026-06-04. 7 tests in src/research/agent/citationBuilder.test.ts.
 
-- [ ] **[P2]** `src/research/agent/evidenceStore.ts` — **No test file**
+- [x] **[P2]** `src/research/agent/evidenceStore.ts` — **No test file**
   **Fix:** Add tests for evidence accumulation, eviction, and cross-researcher isolation.
+  > Resolved 2026-06-04. 6 tests in src/research/agent/evidenceStore.test.ts.
 
 - [ ] **[P2]** `electron/utils/navigation.ts` — **No test file**
   **Fix:** Add `electron/utils/navigation.test.ts` with symlink, traversal, and case-insensitive cases.
