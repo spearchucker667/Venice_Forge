@@ -22,3 +22,5 @@ docs/HQE_AUDIT_REPORT.md
 *.log
 .env*
 !.env.example
+.integration-src/
+.vite/
