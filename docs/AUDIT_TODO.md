@@ -113,9 +113,10 @@
   **Fix:** Tighten the regex to `/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/` (must start with alphanumeric) and reject `.` / `..` explicitly.
   > Resolved 2026-06-04. Tightened VALID_ID_RE to /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/ in electron/services/chatStorage.ts:19.
 
-- [ ] **[P1]** `electron/services/chatStorage.ts` — **TOCTOU between `fs.access` and `fs.readFile`**
+- [x] **[P1]** `electron/services/chatStorage.ts` — **TOCTOU between `fs.access` and `fs.readFile`**
   The class `ChatFileCorruptedBackup` pattern is correct, but I don't see the corrupt-backup logic — the file is `fs.readFileSync`'d and `JSON.parse`'d without `try/catch`. A symlink swap or partial write between stat and read will throw an unhandled exception in the IPC handler.
   **Fix:** Wrap the read in try/catch and rename the corrupt file to `<id>.corrupt-<ts>.json` before returning null. (Or confirm this already happens — I see `electron/services/chatStorage.ts:30` is only the head; please read the full file to verify.)
+  > Resolved 2026-06-04. Verified: readConversationFile() (line 54-78) wraps fs.readFile in try/catch, on failure renames the file to `<id>.backup-<ts>-<uuid>.json` and returns null. No fs.access pre-check exists, so no TOCTOU window. Cleanly written.
 
 - [x] **[P1]** `src/stores/chat-store.ts:179-207` — **Debounced save has no flush-on-unmount**
   `saveTimer` is a module-level `let` outside the store. When the renderer tab is closed or the user navigates away, the pending save is dropped. The BUG_HUNT_REVIEW §3.2 fix mentioned "flush-on-unmount" for workflows but the same pattern exists in `chat-store.ts` and was not fixed.
@@ -295,9 +296,10 @@ For each, the re-entry point is: (1) create the file, (2) add to `views = { ... 
   `summarizeDiagnostics` reads `extractModelName(body, parsed)` but if the body is a `ReadableStream` (streaming), `extractModelName` will fail. The current code does not handle that path.
   **Fix:** Either set `model: null` explicitly when streaming, or add a streaming-aware extraction path.
 
-- [ ] **[P2]** `src/components/ui/toaster.tsx` — **`useState<unknown[]>` for toast queue**
+- [x] **[P2]** `src/components/ui/toaster.tsx` — **`useState<unknown[]>` for toast queue**
   Toast queue typed as `unknown[]` instead of `ToastMessage[]`. Import the `ToastMessage` type from `src/types/app.ts:177`.
   **Fix:** Use the proper type. (Verify the type exists; AGENTS.md says it does.)
+  > Resolved 2026-06-04. Verified: src/components/ui/toaster.tsx already uses useToastStore with typed `Toast` and `Toast['variant']` throughout. The original audit claim is outdated.
 
 - [ ] **[P2]** `src/components/playground/agent-model-picker.tsx` — **`useAgentModels` may not be defined for all model types**
   Without reading the file, I cannot verify. Flag for review.
@@ -313,9 +315,10 @@ For each, the re-entry point is: (1) create the file, (2) add to `views = { ... 
   **Fix:** Pass the object directly.
   > Resolved 2026-06-04. useChat now passes the body object directly.
 
-- [ ] **[P2]** `src/services/chatStorage.ts` — **Top-of-file imports look fine; need to confirm `isValidId` regex**
+- [x] **[P2]** `src/services/chatStorage.ts` — **Top-of-file imports look fine; need to confirm `isValidId` regex**
   `VALID_ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/` allows `..` and `.` as standalone IDs.
   **Fix:** Tighten regex (see §2 P1 item).
+  > Resolved 2026-06-04. The renderer-side chatStorage.ts (src/services/chatStorage.ts) does not own a VALID_ID_RE — it routes all id validation through the Electron IPC. The Electron-side regex was already tightened in the P0 batch. Nothing more to do.
 
 - [ ] **[P2]** `src/shared/safety/childExploitationGuard.ts` (978 LOC) — **Single-file complexity**
   This single file contains fuzzy matching, normalization, severity classification, and decision logic. Splitting into 2-3 files (matcher.ts, classifier.ts, index.ts) would improve testability and review.
