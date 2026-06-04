@@ -1,5 +1,5 @@
 /* eslint-disable */
-/* eslint-env node, browser */
+/* global process, console, setTimeout, document, window */
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

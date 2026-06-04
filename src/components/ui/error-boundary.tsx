@@ -35,7 +35,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
+// Default fallback for error boundary
 function DefaultFallback({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 text-center" role="alert">

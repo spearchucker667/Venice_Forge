@@ -9,7 +9,7 @@ export class VeniceAPIError extends Error {
   }
 }
 
-export async function venice<T>(path: string, options: any = {}): Promise<T> {
+export async function venice<T>(path: string, options: { method?: string; body?: unknown; stream?: boolean; noAuth?: boolean; signal?: AbortSignal } = {}): Promise<T> {
   const method = options.method || 'GET'
   const response = await desktopVenice.request({
     endpoint: path.replace('/api/v1', ''),
@@ -17,13 +17,14 @@ export async function venice<T>(path: string, options: any = {}): Promise<T> {
     body: options.body ? (typeof options.body === 'string' ? JSON.parse(options.body) : options.body) : undefined,
   })
   
+  if (options.signal && options.signal.aborted) throw new Error('Aborted');
   if (!response.ok) {
     throw new VeniceAPIError(response.statusText || `HTTP ${response.status}`, response.status)
   }
   return response.body as T
 }
 
-export async function veniceStreamChat(path: string, body: any, onDelta: (chunk: any) => void) {
+export async function veniceStreamChat(path: string, body: unknown, onDelta: (chunk: { content: string; reasoning?: string }) => void) {
   return desktopVenice.streamChat({
     endpoint: path.replace('/api/v1', ''),
     method: "POST",
@@ -37,10 +38,11 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
     method: "POST",
     body: body,
   });
+  if (init.signal && init.signal.aborted) throw new Error('Aborted');
   if (!response.ok) throw new VeniceAPIError(`HTTP ${response.status}`, response.status);
   
   // desktopBridge returns { dataBase64: "..." } for binary content
-  const b64 = (response.body as any).dataBase64;
+  const b64 = (response.body as { dataBase64?: string }).dataBase64;
   if (!b64) {
       if (typeof response.body === 'string') return new Blob([response.body], { type: response.contentType });
       return new Blob([], { type: response.contentType });
@@ -53,7 +55,7 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
 }
 
 export async function veniceFormData<T>(path: string, formData: FormData, init: { signal?: AbortSignal } = {}): Promise<T> {
-  const entries: any[] = [];
+  const entries: Array<{ name: string; value: string; filename?: string; type?: string; _isFile?: boolean }> = [];
   for (const [key, value] of formData.entries()) {
     if (value instanceof File) {
       const buffer = await value.arrayBuffer();
@@ -81,6 +83,7 @@ export async function veniceFormData<T>(path: string, formData: FormData, init: 
     body: { _isSerializedFormData: true, entries }
   });
 
+  if (init.signal && init.signal.aborted) throw new Error('Aborted');
   if (!response.ok) throw new VeniceAPIError(`HTTP ${response.status}`, response.status);
   return response.body as T;
 }
