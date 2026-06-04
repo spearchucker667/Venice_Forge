@@ -5,6 +5,7 @@ import { useAuthStore } from './stores/auth-store'
 import { Sidebar } from './components/layout/sidebar'
 import { Header } from './components/layout/header'
 import { ApiKeyDialog } from './components/layout/api-key-dialog'
+import { FirstRunModal } from './components/FirstRunModal'
 import { ChatView } from './components/chat/chat-view'
 import { ImagePage } from './components/image/image-page'
 import { AudioView } from './components/audio/audio-view'
@@ -13,6 +14,7 @@ import { VideoView } from './components/video/video-view'
 import { EmbeddingsView } from './components/embeddings/embeddings-view'
 import { ErrorBoundary } from './components/ui/error-boundary'
 import { Toaster } from './components/ui/toaster'
+import { FIRST_RUN_ACK_KEY } from './shared/legal'
 
 const LazyWorkflowsView = lazy(() => import('./components/workflows/workflows-view').then((m) => ({ default: m.WorkflowsView })))
 function WorkflowsView() {
@@ -41,9 +43,18 @@ export function App() {
   const needsUnlock = useAuthStore((s) => s.hasEncrypted && !s.apiKey)
   const [apiKeyOpen, setApiKeyOpen] = useState(needsUnlock)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  // LEGAL: show the 18+ age-gate on first launch. Persists via FIRST_RUN_ACK_KEY.
+  const [firstRunAcked, setFirstRunAcked] = useState<boolean>(
+    () => typeof window !== "undefined" && localStorage.getItem(FIRST_RUN_ACK_KEY) === "1"
+  )
   const activeTab = useSettingsStore((s) => s.activeTab)
   const setActiveTab = useSettingsStore((s) => s.setActiveTab)
   const ActiveView = views[activeTab]
+
+  const acknowledgeFirstRun = () => {
+    try { localStorage.setItem(FIRST_RUN_ACK_KEY, "1") } catch { /* private mode etc. */ }
+    setFirstRunAcked(true)
+  }
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -94,6 +105,11 @@ export function App() {
         </main>
       </div>
       <ApiKeyDialog open={apiKeyOpen} onClose={() => setApiKeyOpen(false)} />
+      <FirstRunModal
+        open={!firstRunAcked}
+        onAcknowledge={acknowledgeFirstRun}
+        onDismiss={() => { /* cannot dismiss the age gate; user must acknowledge */ }}
+      />
       <Toaster />
     </div>
   )

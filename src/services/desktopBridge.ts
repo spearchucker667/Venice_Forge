@@ -276,8 +276,16 @@ export const desktopFileReader = {
 
 /** Handles chat history persistence via the main-process filesystem store. */
 export const desktopChat = {
-  async list(): Promise<{ ok: boolean; conversations: Conversation[]; error?: string }> {
-    if (!isElectron()) return { ok: false, conversations: [], error: "Chat filesystem storage is only available in desktop mode." };
+  async list(): Promise<{ ok: boolean; conversations: Conversation[]; truncated: boolean; totalScanned: number; error?: string }> {
+    if (!isElectron()) {
+      return {
+        ok: false,
+        conversations: [],
+        truncated: false,
+        totalScanned: 0,
+        error: "Chat filesystem storage is only available in desktop mode.",
+      };
+    }
     return window.veniceForge!.chat.list();
   },
   async get(id: string): Promise<{ ok: boolean; conversation: Conversation | null; error?: string }> {

@@ -442,16 +442,22 @@ export function createServerApp() {
         return res.status(403).json({ error: "Access to private hostnames blocked" });
       }
 
-      let lookupResult: { address: string; family: number };
+      let lookupResults: { address: string; family: number }[];
       try {
-        lookupResult = await dns.lookup(parsed.hostname);
+        // SECURITY: enumerate every A/AAAA record and check each for private
+        // ranges. A hostname with both a public A and a private AAAA would
+        // otherwise be reachable by IPv6-capable clients and bypass the A check.
+        lookupResults = await dns.lookup(parsed.hostname, { all: true, verbatim: true });
       } catch {
         return res.status(400).json({ error: "DNS lookup failed" });
       }
 
-      if (isPrivateHostname(lookupResult.address)) {
-        return res.status(403).json({ error: "Access to private IPs blocked" });
+      for (const r of lookupResults) {
+        if (isPrivateHostname(r.address)) {
+          return res.status(403).json({ error: "Access to private IPs blocked" });
+        }
       }
+      const lookupResult = lookupResults[0];
 
       const scrapeResult = await new Promise<{
         status: number;

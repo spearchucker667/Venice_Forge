@@ -355,16 +355,23 @@ export function registerIpcHandlers(): void {
         return { ok: false, error: "Access to private hostnames blocked" };
       }
 
-      let lookupResult: LookupResult;
+      let lookupResults: LookupResult[];
       try {
-        lookupResult = await dns.lookup(parsed.hostname);
+        // SECURITY: use { all: true, verbatim: true } to enumerate every A/AAAA
+        // record. A hostname with a public A record and a private AAAA record
+        // would otherwise be reachable by clients on networks that prefer AAAA
+        // (most modern OSes) and bypass the private-IP check on the A.
+        lookupResults = await dns.lookup(parsed.hostname, { all: true, verbatim: true });
       } catch {
         return { ok: false, error: "DNS lookup failed" };
       }
 
-      if (isPrivateHostname(lookupResult.address)) {
-        return { ok: false, error: "Access to private IPs blocked" };
+      for (const r of lookupResults) {
+        if (isPrivateHostname(r.address)) {
+          return { ok: false, error: "Access to private IPs blocked" };
+        }
       }
+      const lookupResult = lookupResults[0];
 
       const scrapeResult = await new Promise<{
         status: number;
@@ -571,12 +578,19 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle("chat:list", async () => {
     try {
-      const conversations = await listConversations();
-      return { ok: true, conversations };
+      const result = await listConversations();
+      // listConversations returns either Conversation[] (back-compat) or
+      // { conversations, truncated, totalScanned } when the on-disk scan
+      // was capped. Surface the envelope to the renderer so it can prompt
+      // the user to archive old chats.
+      if (Array.isArray(result)) {
+        return { ok: true, conversations: result, truncated: false, totalScanned: result.length };
+      }
+      return { ok: true, ...result };
     } catch (err) {
       const message = redactErrorMessage(err);
       logError("chat:list failed", message);
-      return { ok: false, error: message, conversations: [] };
+      return { ok: false, error: message, conversations: [], truncated: false, totalScanned: 0 };
     }
   });
 

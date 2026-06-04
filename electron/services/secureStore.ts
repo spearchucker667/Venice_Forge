@@ -16,8 +16,14 @@ const ALLOW_PLAINTEXT_FALLBACK =
 /** Describes the current secure storage mode. */
 export type SecureStorageMode = "encrypted" | "unavailable" | "plaintext-fallback";
 
-/** Stores the last error encountered while reading or decrypting the preference file. */
-let lastReadError: string | null = null;
+/** Per-key error map keyed by preference name. The status reporter reads from
+ *  this directly instead of relying on a shared mutable `lastReadError`, which
+ *  was racy when both API keys were read concurrently (the Jina getter would
+ *  overwrite the Venice getter's diagnostic, or vice versa). */
+const lastReadErrors: Record<string, string | null> = {
+  apiKey: null,
+  jinaApiKey: null,
+};
 
 /** Returns the absolute path to the secure preferences file. */
 function getStorePath(): string {
@@ -27,21 +33,21 @@ function getStorePath(): string {
 /** Reads and parses the secure preferences file.
  *  @returns A record of string key-value pairs.
  */
-function readStore(): Record<string, string> {
+function readStore(prefKey: keyof typeof lastReadErrors): Record<string, string> {
   try {
     const raw = fs.readFileSync(getStorePath(), "utf-8");
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      lastReadError = "Secure preferences file does not contain an object.";
+      lastReadErrors[prefKey] = "Secure preferences file does not contain an object.";
       return {};
     }
-    lastReadError = null;
+    lastReadErrors[prefKey] = null;
     return parsed as Record<string, string>;
   } catch (err) {
     if (err && typeof err === "object" && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
-      lastReadError = null;
+      lastReadErrors[prefKey] = null;
     } else {
-      lastReadError = "Secure preferences file is corrupted or unreadable.";
+      lastReadErrors[prefKey] = "Secure preferences file is corrupted or unreadable.";
     }
     return {};
   }
@@ -71,7 +77,7 @@ function writeStore(data: Record<string, string>): void {
  *  @param key The API key to store.
  */
 export function setApiKey(key: string): void {
-  const store = readStore();
+  const store = readStore("apiKey");
   if (safeStorage.isEncryptionAvailable()) {
     store["apiKey"] = safeStorage.encryptString(key).toString("base64");
     store["apiKeyEncrypted"] = "true";
@@ -96,7 +102,7 @@ export function setApiKey(key: string): void {
  *  @returns The decrypted key, or null if missing or corrupted.
  */
 export function getApiKey(): string | null {
-  const store = readStore();
+  const store = readStore("apiKey");
   const raw = store["apiKey"];
   if (typeof raw !== "string" || raw.length === 0) return null;
 
@@ -107,7 +113,7 @@ export function getApiKey(): string | null {
     try {
       return safeStorage.decryptString(Buffer.from(raw, "base64"));
     } catch {
-      lastReadError =
+      lastReadErrors.apiKey =
         "Failed to decrypt API key. The stored data may be corrupted or the OS credential changed.";
       return null;
     }
@@ -115,7 +121,7 @@ export function getApiKey(): string | null {
 
   // Reject plaintext unconditionally on Windows and macOS.
   if (process.platform === "win32" || process.platform === "darwin") {
-    lastReadError = "Plaintext API key storage is not allowed on this platform.";
+    lastReadErrors.apiKey = "Plaintext API key storage is not allowed on this platform.";
     return null;
   }
 
@@ -124,7 +130,7 @@ export function getApiKey(): string | null {
 
 /** Removes the stored Venice API key from secure preferences. */
 export function deleteApiKey(): void {
-  const store = readStore();
+  const store = readStore("apiKey");
   delete store["apiKey"];
   delete store["apiKeyEncrypted"];
   writeStore(store);
@@ -136,7 +142,7 @@ export function deleteApiKey(): void {
  *  @param key The Jina API key to store.
  */
 export function setJinaApiKey(key: string): void {
-  const store = readStore();
+  const store = readStore("jinaApiKey");
   if (safeStorage.isEncryptionAvailable()) {
     store["jinaApiKey"] = safeStorage.encryptString(key).toString("base64");
     store["jinaApiKeyEncrypted"] = "true";
@@ -161,7 +167,7 @@ export function setJinaApiKey(key: string): void {
  *  @returns The decrypted key, or null if missing or corrupted.
  */
 export function getJinaApiKey(): string | null {
-  const store = readStore();
+  const store = readStore("jinaApiKey");
   const raw = store["jinaApiKey"];
   if (typeof raw !== "string" || raw.length === 0) return null;
 
@@ -172,13 +178,13 @@ export function getJinaApiKey(): string | null {
     try {
       return safeStorage.decryptString(Buffer.from(raw, "base64"));
     } catch {
-      lastReadError = "Failed to decrypt Jina API key. The stored data may be corrupted or the OS credential changed.";
+      lastReadErrors.jinaApiKey = "Failed to decrypt Jina API key. The stored data may be corrupted or the OS credential changed.";
       return null;
     }
   }
 
   if (process.platform === "win32" || process.platform === "darwin") {
-    lastReadError = "Plaintext Jina API key storage is not allowed on this platform.";
+    lastReadErrors.jinaApiKey = "Plaintext Jina API key storage is not allowed on this platform.";
     return null;
   }
 
@@ -187,7 +193,7 @@ export function getJinaApiKey(): string | null {
 
 /** Removes the stored Jina API key from secure preferences. */
 export function deleteJinaApiKey(): void {
-  const store = readStore();
+  const store = readStore("jinaApiKey");
   delete store["jinaApiKey"];
   delete store["jinaApiKeyEncrypted"];
   writeStore(store);
@@ -229,10 +235,10 @@ export function getSecureStoreStatus(): {
   error: string | null;
 } {
   getApiKey();
-  const apiKeyError = lastReadError;
+  const apiKeyError = lastReadErrors.apiKey;
 
   getJinaApiKey();
-  const jinaKeyError = lastReadError;
+  const jinaKeyError = lastReadErrors.jinaApiKey;
 
   const error = apiKeyError || jinaKeyError;
 

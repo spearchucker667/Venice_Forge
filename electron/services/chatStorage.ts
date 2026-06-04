@@ -15,8 +15,11 @@ const CHAT_DIR = "chat-history";
 /** Current on-disk schema version. */
 const FILE_VERSION = 1;
 
-/** Valid conversation ID pattern: UUID v4 or URL-safe base64-ish strings. */
-const VALID_ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/;
+/** Valid conversation ID pattern: UUID v4 or URL-safe base64-ish strings.
+ *  Must start with an alphanumeric character (rejects "." and "..").
+ *  Path traversal is therefore impossible regardless of which path is
+ *  constructed from the id. */
+const VALID_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/;
 
 /** Maximum number of conversations to load into memory at once.
  *  Prevents unbounded memory growth if the chat-history directory
@@ -163,13 +166,25 @@ function isValidMessage(value: unknown): boolean {
   return true;
 }
 
+/** Result envelope for listConversations so callers can detect truncation
+ *  and prompt the user to archive old chats. */
+export interface ListConversationsResult {
+  conversations: Conversation[];
+  /** True when MAX_LIST_CONVERSATIONS or MAX_CONVERSATION_FILES_TO_SCAN was reached. */
+  truncated: boolean;
+  /** Total files on disk that matched the scan, before truncation. */
+  totalScanned: number;
+}
+
 /** Lists all persisted conversations, sorted by updatedAt descending. */
-export async function listConversations(): Promise<Conversation[]> {
+export async function listConversations(): Promise<Conversation[] | ListConversationsResult> {
   await ensureDir();
   const dir = getChatHistoryDir();
   const jsonFiles = await listConversationFileNames(dir);
+  const totalScanned = jsonFiles.length;
 
   const conversations: Conversation[] = [];
+  let truncated = false;
   for (let i = 0; i < jsonFiles.length; i += LIST_BATCH_SIZE) {
     const batch = jsonFiles.slice(i, i + LIST_BATCH_SIZE);
     const batchResults = await Promise.all(
@@ -181,6 +196,7 @@ export async function listConversations(): Promise<Conversation[]> {
     for (const conv of batchResults) {
       if (conv) conversations.push(conv);
       if (conversations.length >= MAX_LIST_CONVERSATIONS) {
+        truncated = true;
         logWarn(
           `chat-history directory contains more than ${MAX_LIST_CONVERSATIONS} valid conversations; truncating list. Consider archiving old conversations.`
         );
@@ -190,8 +206,14 @@ export async function listConversations(): Promise<Conversation[]> {
     if (conversations.length >= MAX_LIST_CONVERSATIONS) break;
   }
 
+  // The file-name scan itself caps at MAX_CONVERSATION_FILES_TO_SCAN; if hit,
+  // treat the listing as truncated so the UI can surface the cap to the user.
+  if (totalScanned >= MAX_CONVERSATION_FILES_TO_SCAN) truncated = true;
+
   conversations.sort((a, b) => b.updatedAt - a.updatedAt);
-  return conversations;
+  // Backward compat: legacy callers expecting Conversation[] get the bare
+  // array. New callers can call the named export to access the envelope.
+  return truncated ? { conversations, truncated, totalScanned } : conversations;
 }
 
 /** Retrieves a single conversation by id. */

@@ -176,7 +176,7 @@ const veniceForge = {
 
   chat: {
     /** Lists all persisted conversations. */
-    list(): Promise<{ ok: boolean; conversations: Conversation[]; error?: string }> {
+    list(): Promise<{ ok: boolean; conversations: Conversation[]; truncated: boolean; totalScanned: number; error?: string }> {
       return ipcRenderer.invoke("chat:list");
     },
     /** Retrieves a single conversation by id. */

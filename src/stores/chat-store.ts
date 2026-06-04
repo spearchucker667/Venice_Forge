@@ -180,10 +180,20 @@ if (typeof window !== 'undefined') {
   // Load initially
   setTimeout(() => {
     if (window.veniceForge?.chat) {
-      window.veniceForge.chat.list().then((list) => {
+      window.veniceForge.chat.list().then((result) => {
         // Only load if not already hydrated with valid history
         if (!useChatStore.getState()._hasLoadedHistory) {
-          useChatStore.getState().setConversations(list as unknown as Conversation[])
+          const conversations = Array.isArray(result)
+            ? result
+            : (result.conversations as Conversation[]);
+          useChatStore.getState().setConversations(conversations);
+          if (!Array.isArray(result) && result.truncated) {
+            // Surface the truncation so the user can archive old chats.
+            console.warn(
+              `[chat] conversation list truncated — ${result.totalScanned} files on disk, ` +
+                `showing ${conversations.length}. Consider archiving old chats.`,
+            );
+          }
         }
       }).catch(console.error)
     }

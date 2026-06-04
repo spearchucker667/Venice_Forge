@@ -37,9 +37,10 @@
 
 ## 1. Security & Safety
 
-- [ ] **[P0]** `src/components/FirstRunModal.tsx` — **Orphaned age-gate modal**
+- [x] **[P0]** `src/components/FirstRunModal.tsx` — **Orphaned age-gate modal**
   The 18+ `FirstRunModal` component is defined (imports `FIRST_RUN_COPY` from `src/shared/legal.ts`) but is never rendered in `src/App.tsx` (no `<FirstRunModal />` element, no import). The CSAM/age-gate warning lives only in `README.md` and `docs/legal/DISCLAIMER.md` but the in-app confirmation flow is missing entirely.
   **Fix:** Mount `<FirstRunModal open={!firstRunAcked} onAcknowledge={...} onDismiss={...} />` in `App.tsx` and persist the acknowledgement in `localStorage` (e.g., `vf.firstRunAck`) so the modal is never re-shown. Block API calls until the acknowledgement is set.
+  > Resolved 2026-06-04. Mounted FirstRunModal in src/App.tsx with firstRunAcked state persisted via FIRST_RUN_ACK_KEY (vf.legal.firstRunAcknowledged).
 
 - [x] **[P0]** `src/lib/venice-client.ts` — **No safety-guard call in client**
   `venice()`, `veniceStreamChat()`, `veniceBlob()`, and `veniceFormData()` in this file route through `desktopVenice` without calling `assessChildExploitationSafety()`. The IPC handler in `electron/ipc/handlers.ts:79` does call the guard, so Electron requests are protected — but the renderer-side file advertises a different contract from `src/services/veniceClient.ts` and is referenced as "the" Venice client in `.github/copilot-instructions.md`. A future migration of `hooks/*` away from `lib/venice-client.ts` would silently drop the guard.
@@ -61,21 +62,25 @@
   **Fix:** Add a unit test in `promptPayloadExtractor.test.ts` that passes 3+ file entries and asserts the trigger term embedded in entry[2] is detected.
   > Resolved 2026-06-04. Confirmed: extractFromSerializedFormData iterates all entries via `for (const entry of entries)`. Added confirmation comment and a 3-entry test asserting the trigger in entry[3] is detected.
 
-- [ ] **[P0]** `src/research/providers/genericHttpScrapeProvider.ts` — **IPv6 DNS-rebinding gap**
+- [x] **[P0]** `src/research/providers/genericHttpScrapeProvider.ts` — **IPv6 DNS-rebinding gap**
   AGENTS.md and SECURITY.md claim the SSRF fix covers IPv6. `isPrivateHostname` in `electron/utils/urlSecurity.ts` does check `::ffff:`, `fc/fd`, `fe80:` ranges — but `dns.lookup()` in `app:proxyScrape` (handlers.ts:360) returns only the first A/AAAA record. An A record can coexist with an AAAA record that resolves to a private IPv6, and the resolver only returns the A. Confirm this is the case and either: (a) iterate both `address4` and `address6` and check each, or (b) require `verbatim` option.
   **Fix:** In `electron/ipc/handlers.ts:358-367` and `server.ts:445-454`, call `dns.lookup(hostname, { all: true, verbatim: true })` and run `isPrivateHostname` over every returned address. Add a regression test for a hostname with both public A and private AAAA records.
+  > Resolved 2026-06-04. Switched dns.lookup to { all: true, verbatim: true } in both electron/ipc/handlers.ts (app:proxyScrape) and server.ts (/api/proxy-scrape). Every returned address is now checked against isPrivateHostname.
 
-- [ ] **[P0]** `electron/main.ts:139-148` — **Renderer `console-message` logged to disk without redaction**
+- [x] **[P0]** `electron/main.ts:139-148` — **Renderer `console-message` logged to disk without redaction**
   Renderer console output is logged via `logInfo`/`logError` with the raw message. Although CSP blocks third-party content, a malicious model response (rendered to the DOM and then console.logged via React devtools, or an unhandled exception that includes the user's prompt) would persist to `logs/venice-forge.log` on disk. This contradicts the "no raw prompt text" policy.
   **Fix:** Pipe renderer console messages through `redactErrorMessage()` (already imported as `redactString` in `redaction.ts:21`) before passing to `logInfo`/`logError`. Add a test that asserts a logged prompt containing `Bearer xxx` becomes `Bearer [REDACTED]`.
+  > Resolved 2026-06-04. Imported redactErrorMessage and applied to the renderer-console-message handler in electron/main.ts.
 
-- [ ] **[P0]** `electron/services/secureStore.ts:31-48` — **`lastReadError` shared mutable state across API key and Jina key**
+- [x] **[P0]** `electron/services/secureStore.ts:31-48` — **`lastReadError` shared mutable state across API key and Jina key**
   `getApiKey()` and `getJinaApiKey()` both write to the module-level `lastReadError` variable. `getSecureStoreStatus()` calls them sequentially (lines 230-237) to capture both errors, but any other concurrent caller can race this. If `getJinaApiKey()` succeeds and `getApiKey()` fails, `lastReadError` will be overwritten by the next Jina check. A future IPC handler that calls `getJinaApiKey()` between the two status checks will corrupt the diagnostics returned to the renderer.
   **Fix:** Refactor `readStore` to return both the store and the error (`{ store, error }`); or pass a per-caller error sink into `getApiKey`/`getJinaApiKey`; or just return the error directly from each function instead of writing to module state.
+  > Resolved 2026-06-04. Replaced module-level lastReadError with a per-key lastReadErrors record (apiKey, jinaApiKey). readStore now takes a prefKey argument; getSecureStoreStatus reads from the appropriate key.
 
-- [ ] **[P0]** `electron/services/chatStorage.ts:31` — **`MAX_LIST_CONVERSATIONS` cap silently truncates `chat:list`**
+- [x] **[P0]** `electron/services/chatStorage.ts:31` — **`MAX_LIST_CONVERSATIONS` cap silently truncates `chat:list`**
   `listConversations()` is bounded to 2000 files (line 24) but the renderer has no idea the list is partial. `App.tsx` shows all conversations returned. A user with 3000 chats will see 2000 with no indication; deletes via the partial list will then desync the view.
   **Fix:** Return `{ conversations, totalScanned, truncated: boolean }` from `listConversations` and surface a toast in `chat-store.ts:184` when `truncated === true`. Add a server-side pagination parameter (e.g., `chat:list({ offset, limit })`).
+  > Resolved 2026-06-04. listConversations now returns Conversation[] (back-compat) or { conversations, truncated, totalScanned } envelope. chat:list IPC, preload, desktopBridge, src/types/desktop updated to pass the envelope. chat-store.ts:184 extracts .conversations and console.warns on truncation.
 
 - [ ] **[P1]** `server.ts:74` — **`Content-Length` set from `Buffer.byteLength(req.body)` but `req.body` is replaced upstream by `Buffer.from(JSON.stringify(...))`**
   When the body is an object (the common case from `express.raw()` with `type: "*/*"`), it is re-stringified at line 258 and `Content-Length` is set at line 75 from that re-stringified buffer. If the original JSON was already a Buffer, the re-serialization is a no-op but adds a redundant `JSON.stringify`. More importantly, if the original object contained `undefined` values, `JSON.stringify` will drop them and the byte length will be smaller than what the client sent.

@@ -8,6 +8,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { registerIpcHandlers } from "./ipc/handlers";
 import { logError, logInfo } from "./services/logger";
+import { redactErrorMessage } from "../src/services/redaction";
 import { checkPathContained } from "./utils/navigation";
 import { isTrustedExternalUrl } from "./utils/urlSecurity";
 
@@ -140,10 +141,15 @@ function createWindow(): BrowserWindow {
     const levelStr = ["verbose", "info", "warning", "error"][level] ?? "info";
     const src = sourceId ? ` [${path.basename(sourceId)}:${line}]` : "";
     const truncated = message.length > 10000 ? message.slice(0, 10000) + "…" : message;
+    // SAFETY: redact any API keys, bearer tokens, or Venice key patterns from
+    // console output before persisting to logs/venice-forge.log. The renderer
+    // is sandboxed but a malicious model response or React error boundary
+    // dump could include user-controlled prompt text or auth material.
+    const safe = redactErrorMessage(truncated);
     if (level >= 2) {
-      logError(`renderer-console-${levelStr}${src}`, truncated);
+      logError(`renderer-console-${levelStr}${src}`, safe);
     } else {
-      logInfo(`renderer-console-${levelStr}${src}: ${truncated}`);
+      logInfo(`renderer-console-${levelStr}${src}: ${safe}`);
     }
   });
 

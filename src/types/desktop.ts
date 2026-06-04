@@ -95,7 +95,7 @@ export interface VeniceForgeUpdates {
 
 /** Exposes chat history persistence via the main-process filesystem store. */
 export interface VeniceForgeChat {
-  list(): Promise<{ ok: boolean; conversations: Conversation[]; error?: string }>;
+  list(): Promise<{ ok: boolean; conversations: Conversation[]; truncated: boolean; totalScanned: number; error?: string }>;
   get(id: string): Promise<{ ok: boolean; conversation: Conversation | null; error?: string }>;
   save(conversation: Conversation): Promise<{ ok: boolean; error?: string }>;
   delete(id: string): Promise<{ ok: boolean; error?: string }>;
