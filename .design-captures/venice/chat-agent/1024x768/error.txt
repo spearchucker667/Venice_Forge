@@ -1,3 +1,0 @@
-TimeoutError: page.goto: Timeout 30000ms exceeded.
-Call log:
-[2m  - navigating to "https://venice.ai/chat/agent", waiting until "networkidle"[22m
