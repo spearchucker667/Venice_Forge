@@ -387,7 +387,7 @@ export function createServerApp() {
       // nosec:js/resource-exhaustion — timeoutMs is clamped to a 180000ms
       // (3-minute) maximum with a 30000ms fallback, so this timer cannot
       // be set to an arbitrarily long duration.
-      const timeout = setTimeout(
+      const timeout = setTimeout( // nosec:js/resource-exhaustion
         () => controller.abort(),
         typeof timeoutMs === "number" && timeoutMs > 0 ? Math.min(timeoutMs, 180000) : 30000
       );
@@ -398,7 +398,7 @@ export function createServerApp() {
         // two hostnames (r.jina.ai, s.jina.ai) and required to use the
         // https: protocol (server.ts:362-365). SSRF to internal services
         // is impossible by construction.
-        const response = await fetch(parsed.toString(), {
+        const response = await fetch(parsed.toString(), { // nosec:js/request-forgery
           method: "GET",
           headers,
           signal: controller.signal,
