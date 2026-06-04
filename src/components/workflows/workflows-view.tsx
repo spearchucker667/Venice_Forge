@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState, useEffect } from 'react'
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -193,6 +193,17 @@ function WorkflowCanvas() {
         updateWorkflow(activeWorkflowId, { nodes: getNodes() as Node<VeniceNodeData>[], edges: getEdges() })
       }
     }, 200)
+  }, [activeWorkflowId, updateWorkflow, getNodes, getEdges])
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current)
+        if (activeWorkflowId) {
+          updateWorkflow(activeWorkflowId, { nodes: getNodes() as Node<VeniceNodeData>[], edges: getEdges() })
+        }
+      }
+    }
   }, [activeWorkflowId, updateWorkflow, getNodes, getEdges])
 
   const onConnect = useCallback(

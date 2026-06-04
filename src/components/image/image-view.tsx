@@ -8,6 +8,7 @@ import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, PillGroup, ErrorText, ExamplePrompts } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
 import type { ImageConstraints } from '../../types/venice'
+import StorageService from '../../services/storageService'
 
 const IMAGE_EXAMPLES = [
   'A serene mountain lake at golden hour, low fog over the water, painterly',
@@ -120,6 +121,22 @@ export function ImageView() {
         onSuccess: (data) => {
           const newImages = data.images.map((img) => typeof img === 'string' ? img : img.b64_json)
           setImages((prev) => [...newImages, ...prev])
+          
+          // Save to IndexedDB
+          for (const img of newImages) {
+            StorageService.saveItem("images", {
+              id: crypto.randomUUID(),
+              image: img,
+              prompt: req.prompt as string,
+              negative: req.negative_prompt as string | undefined,
+              model: req.model as string,
+              width: req.width as number | undefined,
+              height: req.height as number | undefined,
+              aspectRatio: req.aspect_ratio as string | undefined,
+              style: req.style_preset as string | undefined,
+              timestamp: Date.now(),
+            }).catch(console.error)
+          }
         },
       },
     )

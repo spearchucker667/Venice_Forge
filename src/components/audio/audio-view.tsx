@@ -97,6 +97,7 @@ export function AudioView() {
 
   const handleTTS = () => {
     if (!text.trim()) return
+    setAudioBlob(null)
     tts.mutate(
       { model, input: text.trim(), voice, speed, response_format: format as typeof FORMATS[number] },
       {
