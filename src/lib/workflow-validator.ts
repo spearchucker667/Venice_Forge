@@ -1,6 +1,7 @@
 import type { Node, Edge } from '@xyflow/react'
 import type { VeniceNodeData } from '../stores/workflow-store'
-import { NODE_SCHEMAS, isInputCompatible, isIdealMatch } from './workflow-schema'
+import { NODE_SCHEMAS, isInputCompatible, isIdealMatch, type ParamSchema } from './workflow-schema'
+import type { WorkflowPatch } from './workflow-mutations'
 
 export type ValidationSeverity = 'error' | 'warning'
 
@@ -144,4 +145,109 @@ export function validateWorkflow({ nodes, edges }: WFGraph): ValidationResult {
   }
 
   return { ok: errors.length === 0, errors, warnings }
+}
+
+/**
+ * Validates a single patch against the schema before it is applied.
+ * Catches the param-type errors (e.g. prompt as number) that applyPatch()
+ * does not. Returns a list of human-readable issues; an empty list means OK.
+ */
+export function validatePatch(patch: WorkflowPatch): ValidationIssue[] {
+  const issues: ValidationIssue[] = []
+
+  switch (patch.op) {
+    case 'add_node': {
+      const schema = NODE_SCHEMAS[patch.nodeType]
+      if (!schema) {
+        issues.push({ severity: 'error', message: `Unknown node type: ${patch.nodeType}` })
+        return issues
+      }
+      checkParams(issues, schema, patch.params)
+      break
+    }
+    case 'set_params': {
+      // Need the node to know its schema; for set_params we can't look it
+      // up without the current graph. The caller should pass it via the
+      // graph, or the param mismatch is caught later by validateWorkflow.
+      // Here we do a best-effort shape check: each value must be string,
+      // number, or boolean.
+      if (patch.params) {
+        for (const [k, v] of Object.entries(patch.params)) {
+          const ok =
+            typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'
+          if (!ok) {
+            issues.push({
+              severity: 'error',
+              nodeId: patch.id,
+              message: `set_params: "${k}" must be string|number|boolean, got ${typeof v}.`,
+            })
+          }
+        }
+      }
+      break
+    }
+    case 'remove_node':
+    case 'move_node':
+    case 'connect':
+    case 'disconnect':
+    case 'clear':
+      // No payload to validate.
+      break
+  }
+
+  return issues
+}
+
+function checkParams(
+  issues: ValidationIssue[],
+  schema: { params: readonly ParamSchema[]; label?: string },
+  params: Record<string, unknown> | undefined
+): void {
+  const label = schema.label ?? 'node'
+  if (!params) return
+  for (const [k, v] of Object.entries(params)) {
+    const spec = schema.params.find((p) => p.name === k)
+    if (!spec) {
+      issues.push({
+        severity: 'warning',
+        message: `add_node: unknown param "${k}" for ${label}.`,
+      })
+      continue
+    }
+    if (spec.enumValues && typeof v === 'string' && !spec.enumValues.includes(v)) {
+      issues.push({
+        severity: 'error',
+        message: `${label}: param "${k}" must be one of [${spec.enumValues.filter(Boolean).join(', ')}], got "${v}".`,
+      })
+      continue
+    }
+    const t = spec.type
+    const ok =
+      (t === 'string' && typeof v === 'string') ||
+      (t === 'text' && typeof v === 'string') ||
+      (t === 'number' && typeof v === 'number') ||
+      (t === 'boolean' && typeof v === 'boolean') ||
+      (t === 'enum' && typeof v === 'string')
+    if (!ok) {
+      issues.push({
+        severity: 'error',
+        message: `${label}: param "${k}" must be ${t}, got ${typeof v}.`,
+      })
+      continue
+    }
+    if (t === 'number' && typeof v === 'number') {
+      if (spec.min !== undefined && v < spec.min) {
+        issues.push({
+          severity: 'error',
+          message: `${label}: param "${k}" must be >= ${spec.min}, got ${v}.`,
+        })
+      }
+      if (spec.max !== undefined && v > spec.max) {
+        issues.push({
+          severity: 'error',
+          message: `${label}: param "${k}" must be <= ${spec.max}, got ${v}.`,
+        })
+      }
+    }
+  }
 }

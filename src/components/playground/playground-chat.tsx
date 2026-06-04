@@ -7,6 +7,7 @@ import { useAgentModels } from '../../hooks/use-agent-models'
 import { callAgent, DEFAULT_AGENT_MODEL } from '../../lib/playground-agent'
 import { runAgentTools, type RunStep } from '../../lib/playground-agent-tools'
 import { applyPatch, type WorkflowPatch } from '../../lib/workflow-mutations'
+import { validatePatch } from '../../lib/workflow-validator'
 import { generateId } from '../../lib/utils'
 import { cn } from '../../lib/utils'
 
@@ -107,6 +108,14 @@ export function PlaygroundChat() {
           signal: controller.signal,
           applyPatch: (patch: WorkflowPatch) => {
             try {
+              // Reject patches that fail schema validation (e.g. prompt as
+              // a number) before they reach the graph. applyPatch() already
+              // guards against duplicate ids and unknown node types, but
+              // not against per-param type mismatches.
+              const issues = validatePatch(patch)
+              if (issues.some((i) => i.severity === 'error')) {
+                return { error: issues.find((i) => i.severity === 'error')?.message ?? 'Patch failed validation' }
+              }
               const current = usePlaygroundStore.getState().draft
               const r = applyPatch({ nodes: current.nodes, edges: current.edges }, patch)
               usePlaygroundStore.setState({ draft: { nodes: r.nodes, edges: r.edges } })
