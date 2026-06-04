@@ -8,6 +8,12 @@ import type { ChatCompletionResponse, ImageGenerateResponse, MusicQueueResponse,
 const POLL_INTERVAL_MS = 3000
 const POLL_MAX_ATTEMPTS = 200 // ~10 minutes per node
 
+/** Maximum time a job can stay in 'queued' / 'pending' before we abort.
+ *  A job that the upstream never picks up within this window is considered
+ *  stuck and we surface a clear error rather than burning the full 10
+ *  minutes of poll budget. */
+const QUEUE_TIMEOUT_MS = 60_000;
+
 export class WorkflowExecutionError extends Error {
   nodeId?: string
   constructor(message: string, nodeId?: string) {
@@ -72,6 +78,7 @@ interface PollOptions<T> {
 }
 
 async function pollUntilDone<T>({ path, id, getStatus, getResult, getError, signal }: PollOptions<T>): Promise<string> {
+  const queueStartedAt = Date.now();
   for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
     await new Promise<void>((resolve, reject) => {
@@ -91,6 +98,15 @@ async function pollUntilDone<T>({ path, id, getStatus, getResult, getError, sign
     }
     if (status === 'failed') {
       throw new Error(getError(result) ?? 'Generation failed')
+    }
+    // Per-stage queue timeout: if a job is still 'queued' or 'pending' after
+    // QUEUE_TIMEOUT_MS, abort with a clear error instead of burning the
+    // full POLL_MAX_ATTEMPTS budget.
+    if ((status === 'queued' || status === 'pending') && Date.now() - queueStartedAt > QUEUE_TIMEOUT_MS) {
+      throw new Error(
+        `Generation stayed in "${status}" for more than ${QUEUE_TIMEOUT_MS / 1000}s. ` +
+        `The upstream may be overloaded; try again later.`
+      );
     }
   }
   throw new Error(`Generation timed out after ${(POLL_MAX_ATTEMPTS * POLL_INTERVAL_MS) / 1000}s`)

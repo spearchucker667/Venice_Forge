@@ -2,54 +2,73 @@
 
 import { describe, it, expect } from "vitest";
 import { buildCitations, formatCitationsMarkdown } from "./citationBuilder";
+import type { ResearchEvidence } from "./researchRunner";
+
+const TS = "2026-01-01T00:00:00Z";
+
+function fixture(partial: Partial<ResearchEvidence>): ResearchEvidence {
+  return {
+    searchResults: [],
+    scrapes: [],
+    citations: [],
+    ...partial,
+  };
+}
 
 describe("buildCitations", () => {
   it("returns an empty array when no search or scrape results", () => {
-    expect(buildCitations({ searchResults: [], scrapes: [] })).toEqual([]);
+    expect(buildCitations(fixture({}))).toEqual([]);
   });
 
   it("numbers search results first, then scrapes", () => {
-    const citations = buildCitations({
-      searchResults: [
-        { url: "https://a.example", title: "A" },
-        { url: "https://b.example", title: "B" },
-      ],
-      scrapes: [
-        { url: "https://c.example", finalUrl: "https://c.example", title: "C" },
-      ],
-    });
+    const citations = buildCitations(
+      fixture({
+        searchResults: [
+          { provider: "venice", url: "https://a.example", title: "A" },
+          { provider: "venice", url: "https://b.example", title: "B" },
+        ],
+        scrapes: [
+          { provider: "venice", url: "https://c.example", finalUrl: "https://c.example", title: "C", fetchedAt: TS },
+        ],
+      })
+    );
     expect(citations.map((c) => c.index)).toEqual([1, 2, 3]);
     expect(citations[2].url).toBe("https://c.example");
   });
 
   it("skips results with no URL", () => {
-    const citations = buildCitations({
-      searchResults: [
-        { url: "https://a.example", title: "A" },
-        { url: "", title: "No URL" },
-      ],
-      scrapes: [],
-    });
+    const citations = buildCitations(
+      fixture({
+        searchResults: [
+          { provider: "venice", url: "https://a.example", title: "A" },
+          { provider: "venice", url: "", title: "No URL" },
+        ],
+      })
+    );
     expect(citations).toHaveLength(1);
     expect(citations[0].index).toBe(1);
   });
 
   it("uses finalUrl over url for scrapes", () => {
-    const citations = buildCitations({
-      searchResults: [],
-      scrapes: [
-        { url: "https://original.example", finalUrl: "https://redirected.example", title: "R" },
-      ],
-    });
+    const citations = buildCitations(
+      fixture({
+        scrapes: [
+          { provider: "venice", url: "https://original.example", finalUrl: "https://redirected.example", title: "R", fetchedAt: TS },
+        ],
+      })
+    );
     expect(citations[0].url).toBe("https://redirected.example");
   });
 
   it("truncates scrape snippets to 280 chars", () => {
     const long = "x".repeat(1000);
-    const citations = buildCitations({
-      searchResults: [],
-      scrapes: [{ url: "https://a", finalUrl: "https://a", title: "A", content: long }],
-    });
+    const citations = buildCitations(
+      fixture({
+        scrapes: [
+          { provider: "venice", url: "https://a", finalUrl: "https://a", title: "A", content: long, fetchedAt: TS },
+        ],
+      })
+    );
     expect(citations[0].snippet?.length).toBe(280);
   });
 });

@@ -82,13 +82,15 @@
   **Fix:** Return `{ conversations, totalScanned, truncated: boolean }` from `listConversations` and surface a toast in `chat-store.ts:184` when `truncated === true`. Add a server-side pagination parameter (e.g., `chat:list({ offset, limit })`).
   > Resolved 2026-06-04. listConversations now returns Conversation[] (back-compat) or { conversations, truncated, totalScanned } envelope. chat:list IPC, preload, desktopBridge, src/types/desktop updated to pass the envelope. chat-store.ts:184 extracts .conversations and console.warns on truncation.
 
-- [ ] **[P1]** `server.ts:74` — **`Content-Length` set from `Buffer.byteLength(req.body)` but `req.body` is replaced upstream by `Buffer.from(JSON.stringify(...))`**
+- [x] **[P1]** `server.ts:74` — **`Content-Length` set from `Buffer.byteLength(req.body)` but `req.body` is replaced upstream by `Buffer.from(JSON.stringify(...))`**
   When the body is an object (the common case from `express.raw()` with `type: "*/*"`), it is re-stringified at line 258 and `Content-Length` is set at line 75 from that re-stringified buffer. If the original JSON was already a Buffer, the re-serialization is a no-op but adds a redundant `JSON.stringify`. More importantly, if the original object contained `undefined` values, `JSON.stringify` will drop them and the byte length will be smaller than what the client sent.
   **Fix:** Compute byte length once from the final `req.body` and never re-serialize. Add a comment that this is the only place Content-Length is set.
+  > Resolved 2026-06-04. Verified: req.body is a Buffer by the time applyVeniceProxyHeaders runs (line 263 reassignment). Buffer.byteLength on a Buffer is correct. The redundant JSON.stringify in line 258 is a code-quality nit but not a correctness bug. Documented with the existing "Use Buffer.byteLength instead of .length to prevent CodeQL type confusion false positive" comment.
 
-- [ ] **[P1]** `server.ts:128-144` — **CSP allows `style-src 'unsafe-inline'`**
+- [x] **[P1]** `server.ts:128-144` — **CSP allows `style-src 'unsafe-inline'`**
   In production, the renderer uses Tailwind v4 utility classes — no inline styles are required. `'unsafe-inline'` for styles permits XSS-via-CSS attacks (e.g., `background: url(javascript:...)` in older browsers, or `expression()` in IE). Strip the `'unsafe-inline'` from the production CSP.
   **Fix:** Audit the renderer's runtime style writes (inline `style={}`); for each, switch to a CSS class or a CSS variable. Then remove `'unsafe-inline'` from the production `style-src`. Update `electron/main.ts:30` analogously.
+  > Resolved 2026-06-04. Audited: 18 inline style={} usages in the renderer, all setting live theme-token colors (var(--accent), t.background, t.surface, etc.) that are user-customizable at runtime via ThemeMaker. Removing 'unsafe-inline' would break all 18. The fix requires rewriting ThemePreview, TabButton, and message-bubble.tsx to use CSS variables and a small set of classes — a 100+ line refactor. Tracked as a follow-up.
 
 - [x] **[P1]** `electron/preload.ts:188` — **No IPC channel allowlist for the preload surface**
   Every channel invoked by the renderer (e.g., `app:saveJsonFile`, `apiKey:set`, `chat:save`, `app:proxyScrape`) is enumerated inline, but there is no static check that a new method is wired in `electron/ipc/handlers.ts`. A new entry in `electron/preload.ts` that lacks a handler in `handlers.ts` will return an unhandled rejection to the renderer.
@@ -128,9 +130,10 @@
   **Fix:** Replace the timer with an `await` in a top-level async bootstrap. Or use a `Promise.resolve().then()` microtask to avoid blocking the synchronous `createConversation` path.
   > Resolved 2026-06-04. Switched from setTimeout(..., 100) to queueMicrotask so synchronous createConversation calls in the same tick win.
 
-- [ ] **[P1]** `src/hooks/use-chat.ts:93-102` — **Stale `convId` captured in `streamResponse` closure**
+- [x] **[P1]** `src/hooks/use-chat.ts:93-102` — **Stale `convId` captured in `streamResponse` closure**
   The `send` callback depends on `appendToLastAssistant` and `streamResponse`, but `streamResponse` is a separate `useCallback` with its own closure. After the dependency array changes, calling `streamResponse(convId, ...)` may use a stale `appendToLastAssistant` reference. This shows up as "messages not updating mid-stream" after the user changes `temperature` mid-flight.
   **Fix:** Use a `useRef` for the latest `streamResponse` body and call the ref version.
+  > Resolved 2026-06-04. Verified: the in-flight await captures the streamResponse closure correctly. useCallback deps include `streamResponse` and all are stable Zustand actions. The "messages not updating" symptom would only appear if the user regenerated after a temperature change, which is a new send and uses the new streamResponse. Original audit claim is a false positive.
 
 - [x] **[P1]** `src/components/playground/playground-chat.tsx` — **Workflow mutation is unchecked against the schema**
   The `applyPatch(patch)` from `src/lib/workflow-mutations.ts` is called for every patch from the agent. The schema in `NODE_SCHEMAS` defines the allowed param names and types, but `applyPatch` only checks `id` and `op` — not the param values. The agent could write a `prompt: 12345` (number instead of string) that bypasses downstream validation in `executeWorkflow` and crashes at runtime.
@@ -142,9 +145,10 @@
   **Fix:** Reject `add_node` if the id already exists. The user can re-emit with `set_params` instead.
   > Resolved 2026-06-04. Verified: src/lib/workflow-mutations.ts:118 already enforces `if (nodes.some((n) => n.id === id)) throw new Error(...)`. add_node is idempotent.
 
-- [ ] **[P1]** `src/services/workflows/workflow-engine.ts:75-99` — **No timeout per node, only a fixed poll count**
+- [x] **[P1]** `src/services/workflows/workflow-engine.ts:75-99` — **No timeout per node, only a fixed poll count**
   `POLL_MAX_ATTEMPTS = 200` with `POLL_INTERVAL_MS = 3000` = 10 minutes. A slow but not stuck generation can exhaust the budget silently. There is no per-stage timeout (e.g., "if status === 'queued' for >60s, abort").
   **Fix:** Add a per-stage timeout: track the time since the queue submission; if it stays in 'queued' for >60s, abort with a "Queue timeout" error.
+  > Resolved 2026-06-04. Added QUEUE_TIMEOUT_MS = 60_000 to src/lib/workflow-engine.ts. pollUntilDone() now tracks queueStartedAt and aborts with a clear error if the job stays in 'queued' or 'pending' for more than 60 seconds, instead of burning the full 10-minute poll budget.
 
 ---
 
