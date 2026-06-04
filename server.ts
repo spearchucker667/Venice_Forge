@@ -351,6 +351,68 @@ export function createServerApp() {
     })
   );
 
+  app.post("/api/proxy-jina", express.json(), async (req, res) => {
+    try {
+      const { url: requestUrl, headers: requestHeaders, timeoutMs } = req.body;
+      if (typeof requestUrl !== "string") {
+        return res.status(400).json({ error: "Missing or invalid Jina request URL." });
+      }
+
+      const parsed = new URL(requestUrl);
+      const allowedHosts = ["r.jina.ai", "s.jina.ai"];
+      if (parsed.protocol !== "https:" || !allowedHosts.includes(parsed.hostname)) {
+        return res.status(403).json({ error: "Only Jina Reader/Search HTTPS endpoints are allowed." });
+      }
+
+      const decision = assessChildExploitationSafety({ endpoint: requestUrl, method: "GET", text: decodeURIComponent(requestUrl), source: "web-proxy" });
+      recordDecision(decision);
+      if (!decision.allow || decision.action === "block") {
+        return res.status(451).json({ error: decision.userMessage });
+      }
+
+      const headers: Record<string, string> = {};
+      if (requestHeaders && typeof requestHeaders === "object" && !Array.isArray(requestHeaders)) {
+        for (const [key, value] of Object.entries(requestHeaders)) {
+          if (typeof value === "string" && !/^authorization$/i.test(key)) {
+            headers[key] = value;
+          }
+        }
+      }
+
+      if (AppConfig.JINA_API_KEY) {
+        headers["Authorization"] = `Bearer ${AppConfig.JINA_API_KEY}`;
+      }
+
+      const controller = new AbortController();
+      const timeout = setTimeout(
+        () => controller.abort(),
+        typeof timeoutMs === "number" && timeoutMs > 0 ? Math.min(timeoutMs, 180000) : 30000
+      );
+
+      try {
+        const response = await fetch(parsed.toString(), {
+          method: "GET",
+          headers,
+          signal: controller.signal,
+        });
+
+        const contentType = response.headers.get("content-type") || "";
+        const body = contentType.includes("application/json")
+          ? await response.json().catch(() => null)
+          : await response.text();
+
+        return res.status(response.status).json(body);
+      } finally {
+        clearTimeout(timeout);
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return res.status(504).json({ error: "Request timed out" });
+      }
+      return res.status(500).json({ error: err instanceof Error ? err.message : "Jina request failed" });
+    }
+  });
+
   // Generic scrape proxy with SSRF protection (DNS resolution)
   app.post("/api/proxy-scrape", express.json(), async (req, res) => {
     try {

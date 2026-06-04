@@ -783,7 +783,6 @@ export async function veniceFetch<T = unknown>(
 /**
  * Streams a chat completion from the Venice API, yielding deltas via a callback.
  * @param payload The chat completion request payload.
- * @param options Streaming options including signal, dispatch, and onDelta callback.
  */
 export async function veniceStreamChat(
   payload: unknown,
@@ -791,7 +790,7 @@ export async function veniceStreamChat(
     signal,
     dispatch,
     onDelta,
-  }: { signal?: AbortSignal; dispatch?: AppDispatch; onDelta: (delta: string) => void }
+  }: { signal?: AbortSignal; dispatch?: AppDispatch; onDelta: (chunk: { content: string; reasoning: string }) => void }
 ) {
   const startedAt = nowIso();
   const payloadRecord = payload as Record<string, unknown> | null | undefined;
@@ -930,12 +929,16 @@ export async function veniceStreamChat(
 
         try {
           const json = JSON.parse(data);
-          const delta =
+          const content =
             json?.choices?.[0]?.delta?.content ||
             json?.choices?.[0]?.message?.content ||
             json?.choices?.[0]?.text ||
             "";
-          if (delta) onDelta(delta);
+          const reasoning =
+            json?.choices?.[0]?.delta?.reasoning_content ||
+            json?.choices?.[0]?.message?.reasoning_content ||
+            "";
+          if (content || reasoning) onDelta({ content, reasoning });
         } catch { /* malformed SSE JSON chunk — skip */ }
       }
     }

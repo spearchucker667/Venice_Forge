@@ -71,7 +71,11 @@ Web mode (development only):
 | Chat | Streaming chat with Venice text models, memory injection & management, drag & drop context reordering, Agent vs Classic toggle |
 | Image Studio | Generate images, **Edit** (single image inpainting), **Combine** (multi-image referencing), and **Upscale** (separate from video upscaling) |
 | Video Studio | Asynchronously queue text-to-video, image-to-video, video-to-video, reference-to-video, and video upscale jobs. Settings are model-dependent. |
-| Audio Studio | Generate music, sound effects, and text-to-speech audio using multimodal capabilities |
+| Audio Studio | Text-to-speech with 50+ voices and formats, plus audio transcription via Whisper |
+| Music Studio | AI music generation with text-to-music, optional lyrics, duration control, and instrumental mode |
+| Workflows | Visual node editor for chaining models (Input → LLM → Image Gen → Output) with parallel branching |
+| Playground | Conversational agent that builds and edits workflows on a live canvas using plain language |
+| Embeddings | Vector embeddings generation for text with selectable models and dimension display |
 | Batch | Sequential prompt runs over multiple inputs |
 | Research | Multi-provider web search, page scraping, AI research synthesis, and public-profile discovery (Venice, Jina AI, or Generic HTTP) |
 | Catalog | Live model browser (type, traits, capability). Requires API key for live discovery. |

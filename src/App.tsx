@@ -10,12 +10,16 @@ import { ChatModule } from "./modules/ChatModule";
 import { ImageModule } from "./modules/ImageModule";
 import { VideoModule } from "./modules/VideoModule";
 import { AudioModule } from "./modules/AudioModule";
+import { MusicModule } from "./modules/MusicModule";
+import { EmbeddingsModule } from "./modules/EmbeddingsModule";
 import { BatchModule } from "./modules/BatchModule";
 import { SearchScrapeModule } from "./modules/SearchScrapeModule";
 import { ModelsModule } from "./modules/ModelsModule";
 import { GalleryModule } from "./modules/GalleryModule";
 import { SettingsModule } from "./modules/SettingsModule";
 import { DiagnosticsModule } from "./modules/DiagnosticsModule";
+import { WorkflowsView } from "./modules/workflows/workflows-view";
+import { PlaygroundView } from "./modules/playground/playground-view";
 import { TABS } from "./constants/venice";
 import { ToastHost } from "./components/ToastHost";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -37,6 +41,10 @@ const TAB_SUBTITLES: Record<string, string> = {
   image: 'Generate images from text',
   video: 'Generate video clips',
   audio: 'Text-to-speech and transcription',
+  music: 'AI music generation',
+  workflows: 'Create and run AI pipelines',
+  playground: 'Experiment with Agent Workflows',
+  embeddings: 'Generate vector embeddings',
   batch: 'Batch operations',
   search: 'Search and scrape',
   models: 'Browse available models',
@@ -45,7 +53,7 @@ const TAB_SUBTITLES: Record<string, string> = {
   diagnostics: 'System status',
 };
 
-const noModelSelectorTabs = new Set(["batch", "search", "gallery", "settings", "diagnostics", "audio"]);
+const noModelSelectorTabs = new Set(["batch", "search", "gallery", "settings", "diagnostics", "audio", "music", "embeddings"]);
 
 export default function App() {
   const [state, dispatch] = useReducer(appReducer, initialState);
@@ -354,6 +362,10 @@ export default function App() {
             {state.activeTab === "image" && <ImageModule state={state} dispatch={dispatch} />}
             {state.activeTab === "video" && <VideoModule state={state} dispatch={dispatch} />}
             {state.activeTab === "audio" && <AudioModule state={state} dispatch={dispatch} />}
+            {state.activeTab === "music" && <MusicModule state={state} dispatch={dispatch} />}
+            {state.activeTab === "workflows" && <WorkflowsView />}
+            {state.activeTab === "playground" && <PlaygroundView />}
+            {state.activeTab === "embeddings" && <EmbeddingsModule state={state} dispatch={dispatch} />}
             {state.activeTab === "batch" && <BatchModule state={state} dispatch={dispatch} />}
             {state.activeTab === "search" && <SearchScrapeModule state={state} dispatch={dispatch} />}
             {state.activeTab === "models" && <ModelsModule state={state} dispatch={dispatch} />}

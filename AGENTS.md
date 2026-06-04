@@ -96,6 +96,13 @@ POST /video/queue
 POST /video/retrieve
 POST /video/quote
 POST /video/complete
+POST /image/edit
+POST /image/multi-edit
+POST /embeddings
+POST /audio/queue
+POST /audio/retrieve
+POST /audio/speech
+POST /audio/transcriptions
 ```
 
 **Startup invariant:** `FUZZY_ALLOWLIST ∩ CSAM_GENRE_LABELS = ∅` — adding a CSAM label to the allowlist throws at module load.
@@ -106,7 +113,7 @@ POST /video/complete
 
 | Path | Purpose |
 |------|---------|
-| `src/modules/` | One file per tab: Chat, Image, Video, Audio, Batch, SearchScrape, Models, Gallery, Settings, Diagnostics |
+| `src/modules/` | One file per tab: Chat, Image, Video, Audio, Music, Embeddings, Batch, SearchScrape, Models, Gallery, Settings, Diagnostics, Workflows, Playground |
 | `src/services/veniceClient.ts` | Single Venice API entry point |
 | `src/services/desktopBridge.ts` | Electron-vs-web transport abstraction; use this instead of `window.veniceForge` |
 | `src/shared/safety/` | Content safety guard (`assessChildExploitationSafety`, `recordDecision`) |

@@ -76,6 +76,13 @@ POST /video/queue
 POST /video/retrieve
 POST /video/quote
 POST /video/complete
+POST /image/edit
+POST /image/multi-edit
+POST /embeddings
+POST /audio/queue
+POST /audio/retrieve
+POST /audio/speech
+POST /audio/transcriptions
 ```
 
 ### Research Subsystem

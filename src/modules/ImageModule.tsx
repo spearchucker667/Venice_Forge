@@ -14,10 +14,11 @@ import { upscaleImage, editImage, multiEditImage } from "../services/mediaServic
 import { IMAGE_BATCH_INTER_REQUEST_DELAY_MS } from "../constants/venice";
 import { normalizeImageDraft } from "../utils/payloadBuilders";
 import { assessChildExploitationSafety, recordDecision } from "../shared/safety";
-import { DiagPreview } from "../components/DiagnosticsPreview";
+import { DiagPreview } from "../components/DiagnosticsPreview"; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { ImageActionModal } from "../components/ImageActionModal";
 import { ImageGenerationForm } from "../components/ImageGenerationForm";
 import { ImageGenerationPreview } from "../components/ImageGenerationPreview";
+import { GenerationView } from "../components/ui/generation-view";
 import { ModuleProps, ImageDraft } from "../types/app";
 import { GalleryImage } from "../types/storage";
 
@@ -341,52 +342,45 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
   }
 
   return (
-    <section className="flex flex-col h-full bg-bg">
-      <div className="flex-none p-6 border-b border-border/40 bg-bg">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-display font-semibold tracking-tight text-text-primary">Image Studio</h2>
-            <div className="text-sm text-text-secondary mt-1">Generate, edit, combine, and upscale images locally.</div>
-          </div>
-          <DiagPreview diagnostics={state.diagnostics} />
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        <ImageGenerationForm
-          state={state}
-          dispatch={dispatch}
-          draft={draft}
-          loading={loading}
-          error={error}
-          success={success}
-          promptTouched={promptTouched}
-          setPromptTouched={setPromptTouched}
-          onGenerate={generate}
-          onCancel={() => {
-            runIdRef.current++;
-            abortRef.current?.abort();
-            abortRef.current = null;
-            setLoading(false);
-            patch({ generationProgress: "" });
-          }}
-          onDownload={async () => {
-            await downloadImage(draft.currentImage, "venice-image.png");
-            dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Downloaded image", type: "info" } });
-          }}
-          onSaveAgain={saveCurrentAgain}
-          onUpscale={upscaleCurrent}
-        />
-        <ImageGenerationPreview
-          state={state}
-          dispatch={dispatch}
-          draft={draft}
-          recentHistory={recentHistory}
-          onExpand={setExpanded}
-          onLoadSettings={loadPromptAndSettings}
-        />
-      </div>
-
+    <>
+      <GenerationView
+        controls={
+          <ImageGenerationForm
+            state={state}
+            dispatch={dispatch}
+            draft={draft}
+            loading={loading}
+            error={error}
+            success={success}
+            promptTouched={promptTouched}
+            setPromptTouched={setPromptTouched}
+            onGenerate={generate}
+            onCancel={() => {
+              runIdRef.current++;
+              abortRef.current?.abort();
+              abortRef.current = null;
+              setLoading(false);
+              patch({ generationProgress: "" });
+            }}
+            onDownload={async () => {
+              await downloadImage(draft.currentImage, "venice-image.png");
+              dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Downloaded image", type: "info" } });
+            }}
+            onSaveAgain={saveCurrentAgain}
+            onUpscale={upscaleCurrent}
+          />
+        }
+        output={
+          <ImageGenerationPreview
+            state={state}
+            dispatch={dispatch}
+            draft={draft}
+            recentHistory={recentHistory}
+            onExpand={setExpanded}
+            onLoadSettings={loadPromptAndSettings}
+          />
+        }
+      />
       <ImageActionModal
         image={expanded}
         isUpscaling={expanded ? upscaling : false}
@@ -399,6 +393,6 @@ export function ImageModule({ state, dispatch }: ModuleProps) {
         onUpscale={upscaleCurrent}
         onDelete={deleteExpanded}
       />
-    </section>
+    </>
   );
 }

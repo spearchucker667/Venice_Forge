@@ -40,6 +40,8 @@ export const TABS = [
   ["image", "Image Studio"],
   ["video", "Video Studio"],
   ["audio", "Audio Studio"],
+  ["music", "Music Studio"],
+  ["embeddings", "Embeddings"],
   ["batch", "Batch"],
   ["search", "Research"],
   ["models", "Catalog"],

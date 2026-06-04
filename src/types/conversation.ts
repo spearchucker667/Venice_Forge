@@ -5,6 +5,7 @@ export interface ConversationMessage {
   id: string;
   role: "system" | "user" | "assistant";
   content: string;
+  reasoning_content?: string;
   timestamp: number;
 }
 

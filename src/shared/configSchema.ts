@@ -7,6 +7,7 @@ import { isValidColorValue } from "../theme/validateColor";
 
 export interface EnvConfig {
   VENICE_API_KEY?: string;
+  JINA_API_KEY?: string;
   VENICE_API_HOST: string;
   VENICE_API_BASE_PATH: string;
   VENICE_API_TIMEOUT_MS: number;
@@ -39,6 +40,7 @@ function env(key: string, fallback: string): string {
 
 export const AppConfig: EnvConfig = {
   get VENICE_API_KEY() { return env("VENICE_API_KEY", ""); },
+  get JINA_API_KEY() { return env("JINA_API_KEY", ""); },
   get VENICE_API_HOST() { return env("VENICE_API_HOST", "api.venice.ai"); },
   get VENICE_API_BASE_PATH() { return env("VENICE_API_BASE_PATH", "/api/v1"); },
   get VENICE_API_TIMEOUT_MS() { return parsePositiveInt(env("VENICE_API_TIMEOUT_MS", env("VENICE_TIMEOUT_MS", "60000")), 60000, 1000, 300000); },

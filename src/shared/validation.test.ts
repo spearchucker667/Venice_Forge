@@ -24,6 +24,11 @@ describe("validation", () => {
         "/video/complete",
         "/image/edit",
         "/image/multi-edit",
+        "/embeddings",
+        "/audio/queue",
+        "/audio/retrieve",
+        "/audio/speech",
+        "/audio/transcriptions",
       ]);
     });
   });
@@ -56,6 +61,11 @@ describe("validation", () => {
       expect(isAllowedVeniceRequest("/video/retrieve", "POST")).toBe(true);
       expect(isAllowedVeniceRequest("/image/edit", "POST")).toBe(true);
       expect(isAllowedVeniceRequest("/image/multi-edit", "POST")).toBe(true);
+      expect(isAllowedVeniceRequest("/embeddings", "POST")).toBe(true);
+      expect(isAllowedVeniceRequest("/audio/queue", "POST")).toBe(true);
+      expect(isAllowedVeniceRequest("/audio/retrieve", "POST")).toBe(true);
+      expect(isAllowedVeniceRequest("/audio/speech", "POST")).toBe(true);
+      expect(isAllowedVeniceRequest("/audio/transcriptions", "POST")).toBe(true);
     });
 
     it("returns false for wrong method", () => {

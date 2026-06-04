@@ -15,6 +15,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
   - **Theme Export/Import:** Custom themes can now be exported and imported as standalone JSON files in the ThemeMaker panel.
   - **Drag & Drop Context Reordering:** Drag and drop uploaded files in the Chat attachment tray to dictate context order.
   - **Drag & Drop Media Upload:** Drag and drop an image file directly onto the Source Image field in both the Video Creator and Image Creator modules.
+- **Venice-Style Feature Parity (OpenVenice Migration):**
+  - **Workflows:** Visual node editor for chaining models (Input → LLM → Image Gen → Output) with parallel branching and full parameter controls per node.
+  - **Playground:** Conversational agent that builds and edits workflows on a live canvas as you describe them in plain language.
+  - **Audio Studio:** Text-to-speech with 50+ voices across 9 languages and audio transcription via Whisper model.
+  - **Music Studio:** Text-to-music generation with optional lyrics, duration control, and instrumental mode.
+  - **Embeddings:** Vector embeddings generation for text with selectable models and dimension display.
+  - **Model Reasoning Support:** Natively extracts and displays \`reasoning_content\` (model thinking traces) in the Chat UI via a collapsible ReasoningAccordion.
 - **Venice UI reference integration and video restoration:** Applied the ZIP reference as maintainable tokens/layout patterns instead of bundling reference assets, restored the Video tab, video model state, async queue client, `/video/*` allowlist, and regression tests that keep video models visible/selectable.
 - **UI/UX Refresh:** Collapsible sidebar, Dracula theme, Lucide icons, font refresh, and improved attachment UX.
   - Collapsible desktop sidebar with `PanelLeftClose`/`PanelLeftOpen` toggle, brand mark with `Sparkles` icon, and `localStorage` persistence.

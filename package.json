@@ -46,22 +46,26 @@
     "typecheck": "tsc --noEmit && tsc --noEmit --project tsconfig.electron.json",
     "test": "vitest run --fileParallelism=false",
     "test:watch": "vitest --fileParallelism=false",
-    "dist": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --publish never",
-    "dist:win": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --win --publish never",
-    "dist:portable": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --win portable --publish never",
-    "dist:mac": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --publish never",
-    "dist:mac:arm64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --arm64 --publish never",
-    "dist:mac:x64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --x64 --publish never",
+    "dist": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --publish never && npm run checksum:release",
+    "dist:win": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --win --publish never && npm run checksum:release",
+    "dist:portable": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --win portable --publish never && npm run checksum:release",
+    "dist:mac": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --publish never && npm run checksum:release",
+    "dist:mac:arm64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --arm64 --publish never && npm run checksum:release",
+    "dist:mac:x64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --x64 --publish never && npm run checksum:release",
     "ci": "npm ci && npm run lint:eslint && npm run typecheck && npm test && npm run verify:safety-guard && npm run build"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/lora": "^5.2.8",
+    "@xyflow/react": "^12.11.0",
     "dotenv": "^16.4.5",
     "electron-updater": "^6.8.3",
     "express": "^4.21.2",
-    "http-proxy-middleware": "^4.0.0"
+    "http-proxy-middleware": "^4.0.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",

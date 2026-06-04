@@ -18,6 +18,7 @@ import { CollapsibleSection } from "../components/CollapsibleSection";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { AttachmentTray } from "../components/AttachmentTray";
 import { PaperclipIcon, ImageIcon, LinkIcon, SendIcon, XIcon } from "../components/icons";
+import { VeniceLogo } from "../components/ui/logo";
 import { ModuleProps } from "../types/app";
 import type { Conversation, ConversationMessage } from "../types/conversation";
 import { MemoryManagerModal } from "../components/MemoryManagerModal";
@@ -44,6 +45,7 @@ interface ChatUiMessage {
   id: string;
   role: "system" | "user" | "assistant";
   content: string;
+  reasoning_content?: string;
   timestamp?: number;
   importedFrom?: string;
 }
@@ -64,6 +66,30 @@ function buildMessageContent(
     })),
   ];
   return parts;
+}
+
+function ReasoningAccordion({ content }: { content: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mb-2 mt-1">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 text-[12px] text-text-muted hover:text-text-primary transition-colors mb-1"
+      >
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
+          className={`transition-transform duration-150 ${open ? 'rotate-90' : ''}`}>
+          <path d="M3.5 2L6.5 5L3.5 8" />
+        </svg>
+        Thinking
+      </button>
+      {open && (
+        <div className="bg-surface-elevated border border-border/50 rounded-lg px-3 py-2 text-[12px] text-text-secondary leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto">
+          {content}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function ChatModule({ state, dispatch }: ModuleProps) {
@@ -111,7 +137,6 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
   const [memoryPanelOpen, setMemoryPanelOpen] = useState(false);
   const [forkMode, setForkMode] = useState(false);
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isAgentMode, setIsAgentMode] = useState(true);
   const [showImportPicker, setShowImportPicker] = useState(false);
   const [_importSelectedIds, _setImportSelectedIds] = useState<Set<string>>(new Set());
@@ -145,6 +170,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
           id: m.id,
           role: m.role,
           content: m.content,
+          reasoning_content: m.reasoning_content,
           timestamp: m.timestamp,
         }))
       );
@@ -209,6 +235,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
           id: m.id,
           role: m.role,
           content: m.content,
+          reasoning_content: m.reasoning_content,
           timestamp: m.timestamp ?? Date.now(),
         })),
         updatedAt: Date.now(),
@@ -357,16 +384,18 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     try {
       if (stream) {
         let acc = "";
+        let accReasoning = "";
         await veniceStreamChat(payload, {
           signal: abortRef.current.signal,
           dispatch,
-          onDelta: (delta: string) => {
-            acc += delta;
+          onDelta: (chunk: { content: string; reasoning: string }) => {
+            acc += chunk.content;
+            accReasoning += chunk.reasoning;
             commitMessages((prev) => {
               const next = [...prev];
               const lastIdx = next.length - 1;
               if (lastIdx >= 0) {
-                next[lastIdx] = { ...next[lastIdx], role: "assistant", content: acc };
+                next[lastIdx] = { ...next[lastIdx], role: "assistant", content: acc, reasoning_content: accReasoning };
               }
               return next;
             });
@@ -377,7 +406,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
         const finalMessages: ChatUiMessage[] = [
           ...baseMessages,
           userMessage,
-          { id: assistantMsgId, role: "assistant" as const, content: acc },
+          { id: assistantMsgId, role: "assistant" as const, content: acc, reasoning_content: accReasoning },
         ];
         await persistMessages(conv, finalMessages);
       } else {
@@ -394,12 +423,15 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
           data.choices[0]?.message?.content ||
           data.choices[0]?.text ||
           "";
+        const reasoning =
+          data.choices[0]?.message?.reasoning_content ||
+          "";
         if (runIdRef.current !== runId) return;
         // Set and persist final messages without side effects in a state updater
         const finalMessages: ChatUiMessage[] = [
           ...baseMessages,
           userMessage,
-          { id: assistantMsgId, role: "assistant" as const, content },
+          { id: assistantMsgId, role: "assistant" as const, content, reasoning_content: reasoning },
         ];
         commitMessages(finalMessages);
         await persistMessages(conv, finalMessages);
@@ -466,7 +498,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     }
   }
 
-  async function handleNewChat() {
+  async function handleNewChat() { // eslint-disable-line @typescript-eslint/no-unused-vars
     cancel();
     const conv = createConversation(state.selectedChatModel, systemPrompt || DEFAULT_SYSTEM_PROMPT);
     conv.model = state.selectedChatModel;
@@ -488,7 +520,7 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
     }
   }
 
-  async function handleSwitchConversation(id: string) {
+  async function handleSwitchConversation(id: string) { // eslint-disable-line @typescript-eslint/no-unused-vars
     cancel();
     if (activeConversation) {
       const messagesToPersist = messages.filter((m) => m.id !== "welcome");
@@ -777,100 +809,10 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
 
   return (
     <section className="flex h-full bg-bg relative">
-      {/* Left sidebar */}
-      <aside
-        className={`flex flex-col border-r border-border/50 bg-bg/40 transition-all duration-200 ${
-          sidebarCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-[200px] opacity-100"
-        }`}
-      >
-        <div className="flex items-center justify-between px-2 py-1.5 border-b border-border/50">
-          <button
-            className="text-xs font-medium text-accent hover:text-accent-hover"
-            onClick={handleNewChat}
-          >
-            + New Chat
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
-          {conversations.map((conv) => {
-            const isActive = conv.id === activeId;
-            return (
-              <div
-                key={conv.id}
-                className={`group flex items-center gap-1 rounded px-2 py-1 cursor-pointer transition-colors ${
-                  isActive
-                    ? "bg-accent/20 border border-accent/30"
-                    : "hover:bg-surface-elevated/60 border border-transparent"
-                }`}
-                onClick={() => handleSwitchConversation(conv.id)}
-              >
-                {renamingId === conv.id ? (
-                  <input
-                    autoFocus
-                    className="flex-1 min-w-0 bg-surface/60 border border-border/50 rounded px-1.5 py-0.5 text-xs text-text-primary"
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    onBlur={() => handleRenameSubmit(conv)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleRenameSubmit(conv);
-                      if (e.key === "Escape") {
-                        setRenamingId(null);
-                        setRenameValue("");
-                      }
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                ) : (
-                  <>
-                    <span
-                      className="flex-1 min-w-0 truncate text-xs font-medium text-text-primary"
-                      onDoubleClick={() => {
-                        setRenamingId(conv.id);
-                        setRenameValue(conv.title);
-                      }}
-                      title={conv.title}
-                    >
-                      {conv.title}
-                    </span>
-                    <button
-                      className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger transition-opacity text-[10px] px-0.5"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteTarget(conv);
-                      }}
-                      title="Delete"
-                    >
-                      ×
-                    </button>
-                  </>
-                )}
-              </div>
-            );
-          })}
-          {conversations.length === 0 && (
-            <div className="flex flex-col items-center justify-center gap-2 px-2 py-6 text-center">
-              <div className="text-xs text-text-muted">
-                No conversations yet.
-                <br />
-                Start a new chat.
-              </div>
-            </div>
-          )}
-        </div>
-      </aside>
-
       {/* Main chat area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Toolbar */}
         <div className="flex-none h-8 flex items-center gap-2 px-2 border-b border-border/50 bg-bg/50">
-          <button
-            className="text-text-muted hover:text-text-primary text-xs px-1"
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {sidebarCollapsed ? "»" : "«"}
-          </button>
 
           <div className="flex bg-surface-elevated/50 rounded-lg p-0.5 ml-2 border border-border/40">
             <button
@@ -1112,81 +1054,120 @@ export function ChatModule({ state, dispatch }: ModuleProps) {
 
           {/* Message list */}
           <div className="flex-1 space-y-6" aria-live="polite">
-            {messages.map((m, idx) => (
-              <div
-                key={m.id || `${m.role}-${m.content?.slice(0, 8)}`}
-                className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"} group`}
-              >
-                <div
-                  className={`relative w-full ${
-                    m.role === "user"
-                      ? "bg-surface-elevated rounded-xl px-4 py-3"
-                      : "pl-2 pr-2 py-2"
-                  }`}
-                >
-                  {/* Fork checkbox */}
-                  {forkMode && m.role !== "system" && (
-                    <input
-                      type="checkbox"
-                      checked={selectedMessageIds.has(m.id)}
-                      onChange={() => toggleMessageSelection(m.id)}
-                      className="absolute -left-5 top-1.5 w-3 h-3"
-                      aria-label={`Select message ${idx + 1}`}
-                    />
-                  )}
-
-                  {/* Message actions (hover) */}
-                  <div className="absolute -top-4 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                    {m.role === "assistant" && m.content && (
+            {(messages.length === 0 || (messages.length === 1 && messages[0].id === "welcome")) ? (
+              <div className="flex flex-col items-center justify-center h-full text-center px-6 gap-6 pt-16">
+                <div className="flex flex-col items-center gap-3">
+                  <VeniceLogo size={32} className="opacity-80" />
+                  <div className="text-[20px] font-semibold text-text-primary">How can I help today?</div>
+                  <p className="text-[14px] text-text-muted max-w-sm">
+                    Start a conversation. Streaming, web search, and citations are all built in.
+                  </p>
+                </div>
+                <div className="w-full max-w-md flex flex-col gap-2 mt-4">
+                  <div className="text-[12px] uppercase tracking-[0.08em] text-text-muted font-medium text-left">Try one of these</div>
+                  <div className="flex flex-col gap-1.5">
+                    {[
+                      'Explain how RSA encryption works using a metaphor a 10-year-old could grasp.',
+                      'Draft a polite but firm email asking my landlord to fix the heating.',
+                      'Compare REST and GraphQL — when does each shine?'
+                    ].map((p) => (
                       <button
+                        key={p}
                         type="button"
-                        className="text-[10px] text-text-muted hover:text-accent"
-                        onClick={() => handleSaveToMemory(m.content)}
-                        title="Save to memory"
-                        aria-label="Save to memory"
+                        onClick={() => {
+                          setUserPrompt(p);
+                          setTimeout(() => {
+                            if (textareaRef.current) {
+                              textareaRef.current.focus();
+                            }
+                          }, 10);
+                        }}
+                        className="text-left px-3 py-2.5 rounded-lg border border-border/50 bg-surface/30 hover:border-border hover:bg-surface-elevated transition-all text-[14px] text-text-secondary"
                       >
-                        🔖
+                        {p}
                       </button>
-                    )}
-                    {m.content && (
-                      <button
-                        type="button"
-                        className="text-[10px] text-text-muted hover:text-accent"
-                        onClick={() => copyText(m.content)}
-                        title="Copy message"
-                        aria-label="Copy message"
-                      >
-                        ⎘
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Role label */}
-                  <div className={`text-[10px] font-semibold tracking-wider uppercase mb-0.5 ${m.role === "user" ? "text-accent" : "text-text-muted"}`}>
-                    {m.role}
-                    {m.role === "assistant" && idx === messages.length - 1 && loading && (
-                      <span className="ml-1 inline-flex gap-0.5">
-                        <span className="w-1 h-1 bg-accent rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                        <span className="w-1 h-1 bg-accent rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                        <span className="w-1 h-1 bg-accent rounded-full animate-bounce"></span>
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Imported context bridge */}
-                  {m.importedFrom && (
-                    <div className="text-[9px] text-warning mb-0.5">
-                      &lt;imported_context from="{m.importedFrom}"&gt;
-                    </div>
-                  )}
-
-                  {/* Content */}
-                  <div className="text-xs leading-relaxed text-text-primary">
-                    <Markdown text={m.content || ""} />
+                    ))}
                   </div>
                 </div>
               </div>
-            ))}
+            ) : (
+              messages.map((m, idx) => (
+                <div
+                  key={m.id || `${m.role}-${m.content?.slice(0, 8)}`}
+                  className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"} group`}
+                >
+                  <div
+                    className={`relative w-full ${
+                      m.role === "user"
+                        ? "bg-surface-elevated rounded-xl px-4 py-3"
+                        : "pl-2 pr-2 py-2"
+                    }`}
+                  >
+                    {/* Fork checkbox */}
+                    {forkMode && m.role !== "system" && (
+                      <input
+                        type="checkbox"
+                        checked={selectedMessageIds.has(m.id)}
+                        onChange={() => toggleMessageSelection(m.id)}
+                        className="absolute -left-5 top-1.5 w-3 h-3"
+                        aria-label={`Select message ${idx + 1}`}
+                      />
+                    )}
+
+                    {/* Message actions (hover) */}
+                    <div className="absolute -top-4 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                      {m.role === "assistant" && m.content && (
+                        <button
+                          type="button"
+                          className="text-[10px] text-text-muted hover:text-accent"
+                          onClick={() => handleSaveToMemory(m.content)}
+                          title="Save to memory"
+                          aria-label="Save to memory"
+                        >
+                          🔖
+                        </button>
+                      )}
+                      {m.content && (
+                        <button
+                          type="button"
+                          className="text-[10px] text-text-muted hover:text-accent"
+                          onClick={() => copyText(m.content)}
+                          title="Copy message"
+                          aria-label="Copy message"
+                        >
+                          ⎘
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Role label */}
+                    <div className={`text-[10px] font-semibold tracking-wider uppercase mb-0.5 ${m.role === "user" ? "text-accent" : "text-text-muted"}`}>
+                      {m.role}
+                      {m.role === "assistant" && idx === messages.length - 1 && loading && (
+                        <span className="ml-1 inline-flex gap-0.5">
+                          <span className="w-1 h-1 bg-accent rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                          <span className="w-1 h-1 bg-accent rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                          <span className="w-1 h-1 bg-accent rounded-full animate-bounce"></span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Imported context bridge */}
+                    {m.importedFrom && (
+                      <div className="text-[9px] text-warning mb-0.5">
+                        &lt;imported_context from="{m.importedFrom}"&gt;
+                      </div>
+                    )}
+
+                    {/* Content */}
+                    <div className="text-xs leading-relaxed text-text-primary">
+                      {m.reasoning_content && <ReasoningAccordion content={m.reasoning_content} />}
+                      <Markdown text={m.content || ""} />
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
             <div ref={endRef}></div>
           </div>
           </div>

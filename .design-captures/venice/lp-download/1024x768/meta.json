@@ -1,0 +1,111 @@
+{
+  "title": "Download Venice | Private and Uncensored AI",
+  "metaTags": [
+    {
+      "name": "",
+      "content": "",
+      "property": null
+    },
+    {
+      "name": "viewport",
+      "content": "width=device-width, initial-scale=1",
+      "property": null
+    },
+    {
+      "name": "description",
+      "content": "Try Venice.ai for free. Generate text, images, characters and code using private and uncensored AI.",
+      "property": null
+    },
+    {
+      "name": "keywords",
+      "content": "Venice AI,Private,Uncensored,AI,Artificial Intelligence,Technology",
+      "property": null
+    },
+    {
+      "name": "fc:miniapp",
+      "content": "{\"version\":\"next\",\"imageUrl\":\"https://venice.ai/images/farcasterHero.png\",\"button\":{\"title\":\"Launch Venice.ai\",\"action\":{\"type\":\"launch_frame\",\"name\":\"Venice.ai\",\"url\":\"https://venice.ai/chat\",\"splashImageUrl\":\"https://venice.ai/images/farcasterSplashImage.png\",\"splashBackgroundColor\":\"#FFFFFF\"}}}",
+      "property": null
+    },
+    {
+      "name": "",
+      "content": "Download Venice | Private and Uncensored AI",
+      "property": "og:title"
+    },
+    {
+      "name": "",
+      "content": "Try Venice.ai for free. Generate text, images, characters and code using private and uncensored AI.",
+      "property": "og:description"
+    },
+    {
+      "name": "",
+      "content": "https://venice.ai",
+      "property": "og:url"
+    },
+    {
+      "name": "",
+      "content": "Venice AI",
+      "property": "og:site_name"
+    },
+    {
+      "name": "",
+      "content": "https://venice.ai/download/launch-banner-05.png",
+      "property": "og:image"
+    },
+    {
+      "name": "",
+      "content": "1200",
+      "property": "og:image:width"
+    },
+    {
+      "name": "",
+      "content": "630",
+      "property": "og:image:height"
+    },
+    {
+      "name": "",
+      "content": "website",
+      "property": "og:type"
+    },
+    {
+      "name": "twitter:card",
+      "content": "summary_large_image",
+      "property": null
+    },
+    {
+      "name": "twitter:creator",
+      "content": "@askvenice",
+      "property": null
+    },
+    {
+      "name": "twitter:title",
+      "content": "Download Venice | Private and Uncensored AI",
+      "property": null
+    },
+    {
+      "name": "twitter:description",
+      "content": "Try Venice.ai for free. Generate text, images, characters and code using private and uncensored AI.",
+      "property": null
+    },
+    {
+      "name": "twitter:image",
+      "content": "https://venice.ai/download/launch-banner-05.png",
+      "property": null
+    },
+    {
+      "name": "next-size-adjust",
+      "content": "",
+      "property": null
+    },
+    {
+      "name": "google-site-verification",
+      "content": "yUOqzEpJg1EiEAeMWatInF1Qf5PqO6AJHytMxD0DrRc",
+      "property": null
+    },
+    {
+      "name": "google-site-verification",
+      "content": "yUOqzEpJg1EiEAeMWatInF1Qf5PqO6AJHytMxD0DrRc",
+      "property": null
+    }
+  ],
+  "location": "https://venice.ai/lp/download"
+}

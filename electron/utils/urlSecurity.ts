@@ -1,6 +1,14 @@
 /** Returns true if the hostname is loopback, private, link-local, CGNAT, ULA, multicast, or reserved. */
 export function isPrivateHostname(hostname: string): boolean {
-  const h = hostname.replace(/^\[|\]$/g, "").split("%")[0].toLowerCase();
+  let h = hostname.replace(/^\[|\]$/g, "").split("%")[0].toLowerCase();
+
+  // Canonicalize via URL parser (handles 0::1 -> ::1, ::127.0.0.1 -> ::7f00:1, etc.)
+  try {
+    const parsed = new URL(`http://${h.includes(":") ? `[${h}]` : h}`);
+    h = parsed.hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  } catch {
+    // fallback to original if unparseable
+  }
 
   if (
     h === "localhost" ||
@@ -17,15 +25,18 @@ export function isPrivateHostname(hostname: string): boolean {
     return true;
   }
 
-  // IPv4-mapped IPv6: ::ffff:127.0.0.1 or ::ffff:7f00:1.
-  if (h.startsWith("::ffff:")) {
-    const rest = h.slice(7);
+  // IPv4-mapped (::ffff:127.0.0.1) or IPv4-compatible (::127.0.0.1)
+  if (h.startsWith("::ffff:") || h.startsWith("::")) {
+    const rest = h.startsWith("::ffff:") ? h.slice(7) : h.slice(2);
     if (rest.includes(".")) return isPrivateHostname(rest);
 
     const hexParts = rest.split(":");
-    if (hexParts.length === 2) {
-      const high = parseInt(hexParts[0], 16);
-      const low = parseInt(hexParts[1], 16);
+    if (hexParts.length === 2 || hexParts.length === 1) {
+      // e.g. ::7f00:1 or ::ffff:7f00:1
+      const p1 = hexParts.length === 2 ? hexParts[0] : "0";
+      const p2 = hexParts.length === 2 ? hexParts[1] : hexParts[0];
+      const high = parseInt(p1, 16);
+      const low = parseInt(p2, 16);
       if (!Number.isNaN(high) && !Number.isNaN(low)) {
         const bytes = [
           (high >> 8) & 0xff,

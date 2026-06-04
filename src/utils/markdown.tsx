@@ -9,23 +9,33 @@ export function escapeHtml(value: string) {
     .replaceAll("'", "&#039;");
 }
 
-// SECURITY: escapeHtml MUST run before any markdown replacement.
-// If you modify this function, ensure raw HTML cannot be injected.
 export function minimalMarkdown(text: string) {
-  const escaped = escapeHtml(text || "");
   const codeBlocks: string[] = [];
-  const token = `\u0000CODEBLOCK_${crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`;
-  let html = escaped.replace(/```([\s\S]*?)```/g, function (_, code) {
+  const token = `__CODEBLOCK_${crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}__`;
+  
+  // 1. Extract raw code blocks before HTML escaping
+  const processed = (text || "").replace(/```([\s\S]*?)```/g, function (_, code) {
     const i = codeBlocks.length;
-    // Wrap code block in a container with a copy button
-    const encoded = btoa(unescape(encodeURIComponent(code)));
+    
+    // Replace unpaired surrogates before URI encoding to prevent URIError
+    // BUG-005: Unpaired surrogates crash encodeURIComponent
+    const safeCode = code.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "$1\uFFFD");
+    
+    // BUG-004: Encode unescaped raw code for the copy button
+    const encoded = btoa(unescape(encodeURIComponent(safeCode)));
+    
     codeBlocks.push(
       `<div class="code-block-wrapper relative group">` +
       `<button type="button" class="copy-code-btn absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-[11px] px-1.5 py-0.5 rounded bg-surface-elevated border border-border text-text-secondary hover:text-text-primary" data-code="${encoded}" aria-label="Copy code" title="Copy">⎘</button>` +
-      `<pre><code>${code}</code></pre></div>`
+      `<pre><code>${escapeHtml(code)}</code></pre></div>`
     );
     return `${token}_${i}`;
   });
+
+  // 2. Escape the remaining text
+  let html = escapeHtml(processed);
+
+  // 3. Apply inline markdown replacements
   html = html
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
@@ -36,10 +46,15 @@ export function minimalMarkdown(text: string) {
     .replace(/^&gt; (.*)$/gm, "<blockquote>$1</blockquote>")
     .replace(/\n{2,}/g, "</p><p>")
     .replace(/\n/g, "<br />");
+  
   html = `<p>${html}</p>`;
+  
+  // 4. Re-insert the processed code blocks (they contain safe, pre-escaped HTML)
   codeBlocks.forEach((block, i) => {
-    html = html.replace(`${token}_${i}`, block);
+    // Avoid regex replacement to prevent issues with $ characters in code blocks
+    html = html.split(`${token}_${i}`).join(block);
   });
+  
   return html;
 }
 

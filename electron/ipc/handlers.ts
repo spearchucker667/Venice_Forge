@@ -150,10 +150,11 @@ export function registerIpcHandlers(): void {
         request.signalId = crypto.randomUUID();
       }
       return await performVeniceRequest(request, {
-        onDelta: (delta) => {
+        onDelta: (chunk) => {
           safeSendToRenderer(event.sender, "venice:streamDelta", {
             signalId: request.signalId,
-            delta,
+            delta: chunk.content,
+            reasoning: chunk.reasoning,
           });
         },
       });
@@ -248,6 +249,16 @@ export function registerIpcHandlers(): void {
       const allowedHosts = ["r.jina.ai", "s.jina.ai"];
       if (parsed.protocol !== "https:" || !allowedHosts.includes(parsed.hostname)) {
         return { ok: false, status: 403, error: "Only Jina Reader/Search HTTPS endpoints are allowed." };
+      }
+
+      const decision = assessChildExploitationSafety({ endpoint: request.url, method: "GET", text: decodeURIComponent(request.url), source: "ipc" });
+      recordDecision(decision);
+      if (!decision.allow || decision.action === "block") {
+        return {
+          ok: false,
+          status: 451,
+          error: decision.userMessage,
+        };
       }
 
       const headers: Record<string, string> = {};

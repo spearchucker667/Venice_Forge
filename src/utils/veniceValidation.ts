@@ -22,8 +22,8 @@ export interface ImageGenerateResponse {
 /** Represents a successful /chat/completions response. */
 export interface ChatCompletionsResponse {
   choices: Array<{
-    message?: { content?: string };
-    delta?: { content?: string };
+    message?: { content?: string; reasoning_content?: string };
+    delta?: { content?: string; reasoning_content?: string };
     text?: string;
   }>;
 }

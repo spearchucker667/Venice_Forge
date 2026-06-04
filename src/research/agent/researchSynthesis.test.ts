@@ -54,8 +54,8 @@ describe("synthesizeResearch", () => {
 
   it("streams via veniceStreamChat when onDelta provided", async () => {
     vi.mocked(veniceStreamChat).mockImplementationOnce(async (_payload, { onDelta }) => {
-      onDelta!("Hello ");
-      onDelta!("world");
+      onDelta!({ content: "Hello ", reasoning: "hmm" });
+      onDelta!({ content: "world", reasoning: "" });
     });
 
     const deltas: string[] = [];
@@ -63,7 +63,7 @@ describe("synthesizeResearch", () => {
       question: "Q",
       evidence: { searchResults: [], scrapes: [], citations: [] },
       model: "default",
-      onDelta: (d) => deltas.push(d),
+      onDelta: (chunk) => deltas.push(chunk.content),
     });
 
     expect(result).toBe("Hello world");

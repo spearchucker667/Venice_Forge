@@ -75,7 +75,7 @@ export const desktopVenice = {
    */
   async streamChat(
     input: VeniceForgeRequest,
-    onDelta: (delta: string) => void,
+    onDelta: (chunk: { content: string; reasoning: string }) => void,
     signal?: AbortSignal
   ): Promise<VeniceForgeResponse> {
     if (!isElectron()) throw new Error("Venice desktop transport is only available in desktop mode.");
@@ -298,27 +298,23 @@ export const desktopChat = {
 export const desktopJinaApiKey = {
   async isConfigured(): Promise<boolean> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.isConfigured();
-    return !!localStorage.getItem("venice_jina_api_key");
+    return false;
   },
   async set(key: string): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.set(key);
-    localStorage.setItem("venice_jina_api_key", key.trim());
-    return { ok: true };
+    throw new Error("Jina API key storage is desktop-only. Web mode uses the server .env key.");
   },
   async delete(): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.delete();
-    localStorage.removeItem("venice_jina_api_key");
     return { ok: true };
   },
   async test(): Promise<{ ok: boolean; status?: number; message: string }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.test();
-    const key = localStorage.getItem("venice_jina_api_key");
-    if (!key) return { ok: false, message: "No API key configured." };
-
     try {
-      const resp = await fetch("https://r.jina.ai/https://example.com", {
-        method: "GET",
-        headers: { Authorization: `Bearer ${key}` },
+      const resp = await fetch("/api/proxy-jina", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "https://r.jina.ai/https://example.com" })
       });
       if (resp.ok) {
         return { ok: true, status: resp.status, message: "Jina connection successful" };
@@ -384,14 +380,11 @@ export const desktopJina = {
         : 30000
     );
 
-    const headers: Record<string, string> = { ...input.headers };
-    const key = localStorage.getItem("venice_jina_api_key");
-    if (key) headers["Authorization"] = `Bearer ${key}`;
-
     try {
-      const response = await fetch(input.url, {
-        method: "GET",
-        headers,
+      const response = await fetch("/api/proxy-jina", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
         signal: controller.signal,
       });
 
@@ -409,7 +402,7 @@ export const desktopJina = {
       };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      return { ok: false, status: 0, error: msg || "Jina request failed" };
+      return { ok: false, status: 0, error: msg || "Jina proxy request failed" };
     } finally {
       clearTimeout(timeout);
     }

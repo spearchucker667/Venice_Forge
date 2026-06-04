@@ -5,7 +5,7 @@ import { produce } from "immer";
 import { isValidTheme } from "../services/exportImport";
 import { normalizeWebSearchMode } from "../utils/payloadBuilders";
 import type { AppAction, AppState } from "../types/app";
-import type { ModelInfo } from "../types/venice";
+import type { ModelInfo } from '../types/venice';
 
 /**
  * Determines the model category from its metadata.
@@ -98,7 +98,7 @@ export function withFallbackModels(groups: Record<string, ModelInfo[]>) {
 
 export const initialState = {
   activeTab: "chat",
-  models: withFallbackModels({}) as Record<string, import("../types/venice").ModelInfo[]>,
+  models: withFallbackModels({}) as Record<string, import('../types/venice').ModelInfo[]>,
   usingFallbackModels: true,
   selectedChatModel: "venice-uncensored",
   selectedImageModel: "flux-dev",
@@ -291,7 +291,7 @@ export const appReducer = produce((draft: AppState, action: AppAction) => {
       break;
     }
     case "SET_DIAGNOSTICS": {
-      const entry: import("../types/venice").DiagnosticsEntry = {
+      const entry: import('../types/venice').DiagnosticsEntry = {
         type: "info",
         endpoint: "",
         status: null,

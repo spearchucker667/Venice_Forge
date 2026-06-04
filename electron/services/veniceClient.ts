@@ -128,21 +128,23 @@ function parseBody(buffer: Buffer, contentType: string): unknown {
   return { dataBase64: buffer.toString("base64") };
 }
 
-/** Extracts the text delta from a server-sent event data payload.
+/** Extracts the text and reasoning delta from a server-sent event data payload.
  *  @param data The raw SSE data line.
- *  @returns The extracted content delta, if any.
+ *  @returns The extracted content and reasoning delta, if any.
  */
-function extractStreamDelta(data: string): string {
+function extractStreamDelta(data: string): { content: string; reasoning: string } {
   try {
     const json = JSON.parse(data);
-    return (
-      json?.choices?.[0]?.delta?.content ??
-      json?.choices?.[0]?.message?.content ??
-      json?.choices?.[0]?.text ??
-      ""
-    );
+    const content = json?.choices?.[0]?.delta?.content ??
+                    json?.choices?.[0]?.message?.content ??
+                    json?.choices?.[0]?.text ??
+                    "";
+    const reasoning = json?.choices?.[0]?.delta?.reasoning_content ??
+                      json?.choices?.[0]?.message?.reasoning_content ??
+                      "";
+    return { content, reasoning };
   } catch {
-    return "";
+    return { content: "", reasoning: "" };
   }
 }
 
@@ -151,7 +153,7 @@ function extractStreamDelta(data: string): string {
  *  @param onDelta Callback invoked for each valid delta.
  *  @returns The remaining unparsed buffer and concatenated text.
  */
-function parseSseLines(buffer: string, onDelta: (delta: string) => void): { buffer: string; text: string } {
+function parseSseLines(buffer: string, onDelta: (chunk: { content: string; reasoning: string }) => void): { buffer: string; text: string } {
   const lines = buffer.split(/\r?\n/);
   const tail = lines.pop() || "";
   let text = "";
@@ -161,8 +163,8 @@ function parseSseLines(buffer: string, onDelta: (delta: string) => void): { buff
     const data = trimmed.replace(/^data:\s*/, "");
     if (!data || data === "[DONE]") continue;
     const delta = extractStreamDelta(data);
-    if (delta) {
-      text += delta;
+    if (delta.content || delta.reasoning) {
+      text += delta.content;
       onDelta(delta);
     }
   }
@@ -188,7 +190,7 @@ export function abortVeniceRequest(signalId: string): { ok: boolean } {
  */
 export async function performVeniceRequest(
   rawRequest: unknown,
-  options: { onDelta?: (delta: string) => void } = {}
+  options: { onDelta?: (chunk: { content: string; reasoning: string }) => void } = {}
 ): Promise<VeniceIpcResponse> {
   const request = validateVeniceIpcRequest(rawRequest);
   const apiKey = getApiKey();

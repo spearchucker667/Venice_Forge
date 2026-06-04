@@ -9,6 +9,7 @@ import { blobToDataUrl } from "../utils/image";
 import { saveImageRecord } from "../services/imageWorkflowService";
 import { normalizeMediaModelSpec } from "../utils/mediaModelSpecs";
 import type { ModuleProps, VideoDraft } from "../types/app";
+import { GenerationView } from "../components/ui/generation-view";
 
 export function VideoModule({ state, dispatch }: ModuleProps) {
   const draft = state.videoDraft;
@@ -243,17 +244,8 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
   }
 
   return (
-    <section className="flex h-full flex-col bg-bg">
-      <div className="flex-none border-b border-border/40 bg-bg p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-display font-semibold tracking-tight text-text-primary">Video Studio</h2>
-            <div className="mt-1 text-sm text-text-secondary">Queue text-to-video, image-to-video, and video upscaling jobs asynchronously.</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid flex-1 grid-cols-1 items-start gap-8 overflow-y-auto p-6 lg:grid-cols-[minmax(320px,520px)_1fr]">
+    <GenerationView
+      controls={
         <VideoGenerationForm
           state={state}
           dispatch={dispatch}
@@ -266,6 +258,8 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
           onGenerate={generate}
           onCancel={cancel}
         />
+      }
+      output={
         <div className="flex flex-col gap-4">
           <VideoGenerationPreview draft={draft} />
 
@@ -281,7 +275,7 @@ export function VideoModule({ state, dispatch }: ModuleProps) {
             </div>
           )}
         </div>
-      </div>
-    </section>
+      }
+    />
   );
 }

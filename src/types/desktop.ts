@@ -42,7 +42,7 @@ export interface VeniceForgeResponse {
 /** Provides methods for calling the Venice API via the main process. */
 export interface VeniceForgeVenice {
   request(input: VeniceForgeRequest): Promise<VeniceForgeResponse>;
-  streamChat(input: VeniceForgeRequest, onDelta: (delta: string) => void): Promise<VeniceForgeResponse>;
+  streamChat(input: VeniceForgeRequest, onDelta: (chunk: { content: string; reasoning: string }) => void): Promise<VeniceForgeResponse>;
   abort(signalId: string): Promise<{ ok: boolean }>;
 }
 

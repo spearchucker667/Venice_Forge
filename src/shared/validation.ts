@@ -16,6 +16,11 @@ export const ALLOWED_VENICE_ENDPOINTS = [
   "/video/complete",
   "/image/edit",
   "/image/multi-edit",
+  "/embeddings",
+  "/audio/queue",
+  "/audio/retrieve",
+  "/audio/speech",
+  "/audio/transcriptions",
 ] as const;
 
 /** HTTP methods permitted for Venice API requests. */
@@ -42,6 +47,11 @@ export const VENICE_ENDPOINT_METHODS: Record<VeniceIpcEndpoint, readonly VeniceI
   "/video/complete": ["POST"],
   "/image/edit": ["POST"],
   "/image/multi-edit": ["POST"],
+  "/embeddings": ["POST"],
+  "/audio/queue": ["POST"],
+  "/audio/retrieve": ["POST"],
+  "/audio/speech": ["POST"],
+  "/audio/transcriptions": ["POST"],
 };
 
 /**

@@ -55,17 +55,19 @@ export interface SynthesisInput {
   model: string;
   signal?: AbortSignal;
   dispatch?: AppDispatch;
-  onDelta?: (delta: string) => void;
+  onDelta?: (chunk: { content: string; reasoning: string }) => void;
 }
 
+/**
+ * Builds the comprehensive prompt forcing an evidence-based answer.
+ */
 function buildSynthesisPrompt(question: string, evidence: ResearchEvidence): string {
-  let prompt = `Question: ${question}\n\nEvidence:\n`;
+  let prompt = `Question: ${question}\n\n`;
 
   if (evidence.searchResults.length) {
-    prompt += "\nSearch results:\n";
+    prompt += "Search Results:\n";
     evidence.searchResults.forEach((r, i) => {
-      prompt += `[${i + 1}] ${r.title || "Untitled"} — ${r.url}\n`;
-      if (r.snippet) prompt += `  Snippet: ${r.snippet.slice(0, 500)}\n`;
+      prompt += `[R${i + 1}] ${r.title} — ${r.url}\n  ${r.snippet}\n`;
     });
   }
 
@@ -105,7 +107,7 @@ export async function synthesizeResearch(input: SynthesisInput): Promise<string>
       { role: "system" as const, content: SYNTHESIS_SYSTEM_PROMPT },
       { role: "user" as const, content: prompt },
     ],
-    temperature: 0.3,
+    stream: !!onDelta,
   };
 
   if (onDelta) {
@@ -113,9 +115,9 @@ export async function synthesizeResearch(input: SynthesisInput): Promise<string>
     await veniceStreamChat(payload, {
       signal,
       dispatch,
-      onDelta: (delta) => {
-        full += delta;
-        onDelta(delta);
+      onDelta: (chunk) => {
+        full += chunk.content;
+        onDelta(chunk);
       },
     });
     return full;
