@@ -3,7 +3,6 @@ import { ModelSelect } from "./ModelSelect";
 import { ModelInfo } from "../types/venice";
 
 interface VeniceHeaderProps {
-  activeTab: string;
   activeTabLabel: string;
   activeTabSubtitle: string;
   showModelSelector: boolean;

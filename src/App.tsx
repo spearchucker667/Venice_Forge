@@ -45,7 +45,7 @@ const TAB_SUBTITLES: Record<string, string> = {
   diagnostics: 'System status',
 };
 
-const noModelSelectorTabs = new Set(["batch", "search", "gallery", "settings", "diagnostics"]);
+const noModelSelectorTabs = new Set(["batch", "search", "gallery", "settings", "diagnostics", "audio"]);
 
 export default function App() {
   const [state, dispatch] = useReducer(appReducer, initialState);
@@ -319,7 +319,6 @@ export default function App() {
 
       <div className="flex flex-col flex-1 min-w-0">
         <VeniceHeader
-          activeTab={state.activeTab}
           activeTabLabel={activeTabLabel}
           activeTabSubtitle={activeTabSubtitle}
           showModelSelector={showModelSelector}
