@@ -27,6 +27,7 @@ import {
   crossSentenceInput,
   benignYouthContextInput,
 } from "./fixtureBuilders";
+import { extractPromptLikeFields } from "../../src/shared/safety";
 
 // ---------------------------------------------------------------------------
 // Guard — basic enforcement boundaries
@@ -435,5 +436,44 @@ describe("enforcement boundary — proxyScrape URL paths (guard regression)", ()
     });
     recordDecision(d);
     expect(d.allow).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Serialised FormData payload — base64 decoded before scan (A3 regression)
+// ---------------------------------------------------------------------------
+
+describe("serialised FormData — base64 file entries scanned after decode", () => {
+  it("detects trigger term in serialised FormData file entry", () => {
+    const trigger = triggerInput("CSAM_EXPLICIT");
+    const encoded = Buffer.from(trigger, "utf-8").toString("base64");
+    const body = {
+      _isSerializedFormData: true,
+      entries: [
+        { name: "text", value: encoded, filename: "test.txt", _isFile: true },
+      ],
+    };
+    const fields = extractPromptLikeFields(body, "/augment/text-parser");
+    // The decoded trigger term must appear in at least one extracted field.
+    const decodedConcat = fields.map((f) => f.value).join("\n");
+    expect(decodedConcat.toLowerCase()).toContain(trigger.toLowerCase());
+  });
+
+  it("blocks when an IPC venice:request carries a serialised FormData with a trigger in a file entry", () => {
+    const trigger = triggerInput("LOLI_TERM");
+    const encoded = Buffer.from(trigger, "utf-8").toString("base64");
+    const body = {
+      _isSerializedFormData: true,
+      entries: [
+        { name: "text", value: encoded, filename: "prompt.txt", _isFile: true },
+      ],
+    };
+    const d = assessChildExploitationSafety({
+      endpoint: "/augment/text-parser",
+      method: "POST",
+      payload: body,
+      source: "ipc",
+    });
+    expect(d.allow).toBe(false);
   });
 });

@@ -189,4 +189,17 @@ describe("extractPromptLikeFields", () => {
     ]);
   });
 
+  // A4 regression: every FormData entry must be decoded (not just entry[0])
+  it("detects trigger in third entry of multi-chunk serialised FormData", () => {
+    const trigger = "loli"; // matches LOLI_TERM in the safety guard
+    const entries = [
+      { name: "text", value: Buffer.from("benign content one", "utf-8").toString("base64"), filename: "a.txt", _isFile: true },
+      { name: "text", value: Buffer.from("benign content two", "utf-8").toString("base64"), filename: "b.txt", _isFile: true },
+      { name: "text", value: Buffer.from(trigger, "utf-8").toString("base64"), filename: "c.txt", _isFile: true },
+    ];
+    const body = { _isSerializedFormData: true, entries };
+    const fields = extractPromptLikeFields(body, "/augment/text-parser");
+    const concat = fields.map((f) => f.value).join("\n").toLowerCase();
+    expect(concat).toContain(trigger);
+  });
 });

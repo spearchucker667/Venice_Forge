@@ -125,6 +125,7 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | Path | Purpose |
 |------|---------|
 | `src/services/veniceClient.ts` | Single Venice API entry point (with safety guard) |
+| `src/lib/venice-client.ts` | Electron-only thin client; safety guard is in the IPC layer — see `electron/ipc/handlers.ts:79` |
 | `src/services/desktopBridge.ts` | Electron-vs-web transport abstraction; use this instead of `window.veniceForge` |
 | `src/services/storageService.ts` | IndexedDB store set controlled by `STORE_NAMES`; `ENCRYPTED_STORES` for AES-GCM |
 | `src/services/chatStorage.ts` (renderer) + `electron/services/chatStorage.ts` (main) | Conversation persistence — **mirror changes across both** |

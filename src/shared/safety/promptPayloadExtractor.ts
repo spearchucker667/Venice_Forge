@@ -52,7 +52,8 @@ function safeStringify(v: unknown): string | null {
 }
 
 /** Parses a serialized FormData structure `{ _isSerializedFormData: true, entries: [...] }`.
- *  Returns `null` if `entries` is malformed so callers can fall back to generic extraction. */
+ *  Returns `null` if `entries` is malformed so callers can fall back to generic extraction.
+ *  Iterates all entries — multi-chunk fix verified 2026-06-04. */
 function extractFromSerializedFormData(obj: Record<string, unknown>, fieldNames: readonly string[]): ExtractedField[] | null {
   const results: ExtractedField[] = [];
   const entries = obj["entries"];

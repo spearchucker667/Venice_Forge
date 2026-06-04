@@ -747,8 +747,14 @@ export async function veniceFetch<T = unknown>(
 
   // Child exploitation safety guard — enforcement at transport boundary.
   // Note: GET requests (e.g., /models) are skipped because they carry no user content.
-  // In desktop mode the IPC handler also runs the guard, so we skip the renderer check
-  // to avoid duplicate execution and audit records.
+  // SAFETY-DEDUP: In desktop (Electron) mode the IPC handler is the authoritative
+  // guard, so we skip the renderer scan to avoid running the detector twice on the
+  // same payload. The IPC handler still calls recordDecision() so the main-process
+  // audit counters stay accurate. The renderer's recordDecision is intentionally
+  // not called here in Electron mode to prevent double-counting (the renderer
+  // audit snapshot is a separate process and the IPC handler is authoritative).
+  // In web mode the scan runs here; the Express proxy in server.ts is the
+  // fail-closed backstop.
   if (method === "POST" && body !== undefined && !isElectron()) {
     const decision = assessChildExploitationSafety({ endpoint, method, payload: body, source: "venice-client" });
     recordDecision(decision);

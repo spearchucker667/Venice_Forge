@@ -1,3 +1,12 @@
+/**
+ * SAFETY GUARD CONTRACT: This client delegates to the Electron IPC layer
+ * (electron/ipc/handlers.ts). assessChildExploitationSafety() is called
+ * in the main process before every outbound Venice request. Do NOT add a
+ * duplicate renderer-side guard here — deduplication is by signalId in
+ * the IPC handler. Any new function added to this file MUST route through
+ * desktopVenice (from src/services/desktopBridge.ts) to preserve this
+ * contract. Direct fetch() calls are forbidden.
+ */
 import { desktopVenice } from '../services/desktopBridge'
 
 export class VeniceAPIError extends Error {
