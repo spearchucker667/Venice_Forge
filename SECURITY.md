@@ -112,3 +112,43 @@ npm audit
 A clean audit at the `moderate` level or higher (`npm audit --audit-level=moderate`) is a release gate requirement.
 
 `npm run verify:safety-guard` is also a mandatory release and commit security gate — see the Content Safety section above for details.
+
+## Static Analysis (CodeQL)
+
+The repository is scanned by GitHub CodeQL on every push. Findings appear in
+[Security → Code Scanning](https://github.com/spearchucker667/Venice-API-connector/security/code-scanning).
+
+### Current open alerts: **0**
+
+All CodeQL findings in `server.ts` and the GitHub Actions workflows are either
+fixed or dismissed with justification. The two defended false positives are
+annotated at the call site with `// nosec:js/<rule-id>` plus an inline
+justification:
+
+- `server.ts:387` — `js/resource-exhaustion`: `setTimeout` duration is
+  `Math.min(timeoutMs, 180000) || 30000` (3-minute max). CodeQL does not see
+  the clamp because it lives inside a conditional expression.
+- `server.ts:393` — `js/request-forgery`: The `parsed` URL is validated
+  against an allowlist of `["r.jina.ai", "s.jina.ai"]` and required to use
+  the `https:` protocol (server.ts:362-365). SSRF to internal services is
+  impossible by construction.
+
+If a future CodeQL update flags these sites again, the suppressions and
+allowlist check should be re-verified, not removed.
+
+### GitHub Actions action pinning
+
+All third-party Actions are pinned to a commit SHA, not a tag, to prevent
+supply-chain attacks via a compromised tag update. The version comment is
+appended after the SHA for maintainer reference:
+
+- `actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5` (v4.2.2)
+- `actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020` (v4.4.0)
+- `actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02` (v4.6.2)
+- `actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093` (v4.3.0)
+- `softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda` (v3.0.0)
+
+When bumping any pinned action, look up the new SHA via
+`gh api repos/<owner>/<repo>/git/refs/tags/<tag>` and update both the SHA
+and the version comment. Dependabot's `github-actions` ecosystem entry in
+`.github/dependabot.yml` keeps the SHAs current.

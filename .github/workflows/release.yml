@@ -14,10 +14,10 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
 
       - name: Use Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -72,7 +72,7 @@ jobs:
         run: npm run verify:dist:mac
 
       - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: venice-forge-macos-${{ github.ref_name }}
           path: |
@@ -83,10 +83,10 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
 
       - name: Use Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -139,7 +139,7 @@ jobs:
         run: npm run verify:dist:win
 
       - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: venice-forge-windows-${{ github.ref_name }}
           path: |
@@ -155,25 +155,19 @@ jobs:
 
     steps:
       - name: Download macOS artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: venice-forge-macos-${{ github.ref_name }}
           path: release/
 
       - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: venice-forge-windows-${{ github.ref_name }}
           path: release/
 
       - name: Publish to GitHub Releases
-        # SECURITY: pin to a commit SHA after verifying the version matches
-        # the @v3 tag. The maintainer should look up the current v3 SHA at
-        # https://github.com/softprops/action-gh-release/releases and replace
-        # the line below before merging. For now, keep the @v3 tag to
-        # avoid breakage; Dependabot will keep it up to date via the
-        # github-actions ecosystem entry in dependabot.yml.
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           files: release/*
           draft: false

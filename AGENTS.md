@@ -116,7 +116,13 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 
 **Adding a new Venice endpoint** requires updates in: `src/shared/validation.ts`, `electron/ipc/validation.ts`, and `server.ts` (proxy). The `verify-safety-guard` script enforces guard presence in the three boundary files.
 
+**GitHub Actions pinning:** All third-party Actions in `.github/workflows/*.yml` are pinned to a commit SHA, not a tag, to prevent supply-chain attacks. The version comment is appended after the SHA for maintainer reference. When bumping an action, look up the new SHA with `gh api repos/<owner>/<repo>/git/refs/tags/<tag>` and update both the SHA and the version comment.
+
+**CodeQL suppressions:** Use `// nosec:js/<rule-id>` (with an inline justification comment) to suppress a CodeQL finding. Suppressions are reviewed as code — if a suppression is removed, the allowlist check or clamp logic should be re-verified, not just deleted.
+
 **Audit:** `npm audit --omit=dev --audit-level=moderate` is a release gate.
+
+**Static analysis (CodeQL):** Every push runs CodeQL. Open alerts appear in `Security → Code Scanning`. The current set of defended false positives is documented in `SECURITY.md` and annotated at each call site.
 
 ---
 
