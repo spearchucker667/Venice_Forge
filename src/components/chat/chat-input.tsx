@@ -57,7 +57,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled }: ChatInputPr
 
         <div
           className={cn(
-            'relative var(--color-surface) border rounded-2xl overflow-hidden transition-all shadow-lg shadow-black/30',
+            'relative bg-surface border rounded-2xl overflow-hidden transition-all shadow-lg shadow-black/30',
             'focus-within:border-white/[0.22] focus-within:shadow-xl focus-within:shadow-black/40',
             dragOver ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]' : 'border-white/[0.08]',
           )}

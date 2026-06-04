@@ -125,6 +125,64 @@ export const BUILTIN_VENICE: Theme = {
   },
 };
 
-export const BUILTIN_THEMES: Theme[] = [BUILTIN_VENICE, BUILTIN_DARK, BUILTIN_LIGHT, BUILTIN_COPPER, BUILTIN_DRACULA];
+export const BUILTIN_GRUVBOX_DARK: Theme = {
+  id: 'builtin-gruvbox-dark',
+  name: 'GruvBox Dark',
+  mode: 'dark',
+  tokens: {
+    background: '#282828',
+    surface: '#3c3836',
+    surfaceElevated: '#504945',
+    border: '#665c54',
+    textPrimary: '#ebdbb2',
+    textSecondary: '#d5c4a1',
+    textMuted: '#928374',
+    accent: '#fe8019',
+    accentHover: '#d65d0e',
+    accentForeground: '#282828',
+    success: '#b8bb26',
+    warning: '#fabd2f',
+    danger: '#fb4934',
+    info: '#83a598',
+    focusRing: '#fe8019',
+    overlay: 'rgba(40, 40, 40, 0.6)',
+    glow: 'rgba(254, 128, 25, 0.25)',
+  },
+};
+
+export const BUILTIN_ROSEPINE: Theme = {
+  id: 'builtin-rosepine',
+  name: 'Rosepine',
+  mode: 'dark',
+  tokens: {
+    background: '#191724',
+    surface: '#1f1d2e',
+    surfaceElevated: '#26233a',
+    border: '#403d52',
+    textPrimary: '#e0def4',
+    textSecondary: '#908caa',
+    textMuted: '#6e6a86',
+    accent: '#ebbcba',
+    accentHover: '#31748f',
+    accentForeground: '#191724',
+    success: '#9ccfd8',
+    warning: '#f6c177',
+    danger: '#eb6f92',
+    info: '#c4a7e7',
+    focusRing: '#ebbcba',
+    overlay: 'rgba(25, 23, 36, 0.7)',
+    glow: 'rgba(235, 188, 186, 0.2)',
+  },
+};
+
+export const BUILTIN_THEMES: Theme[] = [
+  BUILTIN_VENICE,
+  BUILTIN_DARK,
+  BUILTIN_LIGHT,
+  BUILTIN_COPPER,
+  BUILTIN_DRACULA,
+  BUILTIN_GRUVBOX_DARK,
+  BUILTIN_ROSEPINE
+];
 
 export const DEFAULT_THEME = BUILTIN_VENICE;

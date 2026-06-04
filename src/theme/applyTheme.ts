@@ -1,5 +1,5 @@
 import type { Theme } from './themeTypes';
-import { BUILTIN_VENICE, BUILTIN_DARK, BUILTIN_LIGHT, BUILTIN_COPPER, BUILTIN_DRACULA } from './themes';
+import { BUILTIN_VENICE, BUILTIN_DARK, BUILTIN_LIGHT, BUILTIN_COPPER, BUILTIN_DRACULA, BUILTIN_GRUVBOX_DARK, BUILTIN_ROSEPINE } from './themes';
 
 export function applyTheme(theme: Theme): void {
   const root = document.documentElement;
@@ -46,6 +46,12 @@ export function resolveInitialTheme(bootstrap?: Partial<{
   }
   if (bootstrap?.selectedThemeId === 'builtin-dark') {
     return BUILTIN_DARK;
+  }
+  if (bootstrap?.selectedThemeId === 'builtin-gruvbox-dark') {
+    return BUILTIN_GRUVBOX_DARK;
+  }
+  if (bootstrap?.selectedThemeId === 'builtin-rosepine') {
+    return BUILTIN_ROSEPINE;
   }
   if (bootstrap?.selectedThemeId === 'builtin-venice') {
     return BUILTIN_VENICE;

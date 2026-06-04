@@ -1,7 +1,17 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { App } from "./App";
 import "./index.css";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: false,
+    },
+  },
+});
 
 window.addEventListener("unhandledrejection", (event) => {
   console.error("[venice-forge] Unhandled rejection:", event.reason instanceof Error ? event.reason.stack ?? event.reason.message : String(event.reason));
@@ -18,7 +28,9 @@ if (!rootEl) {
   try {
     createRoot(rootEl).render(
       <StrictMode>
-        <App />
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
       </StrictMode>
     );
   } catch (err) {

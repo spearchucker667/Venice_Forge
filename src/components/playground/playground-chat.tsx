@@ -187,7 +187,7 @@ export function PlaygroundChat() {
   }
 
   return (
-    <div className="flex flex-col h-full var(--color-surface)">
+    <div className="flex flex-col h-full bg-surface">
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
         {messages.length === 0 ? (
           <div className="flex flex-col gap-3 pt-8">

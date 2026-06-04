@@ -10,9 +10,34 @@ export interface ParseOptions {
  * tolerates malformed JSON chunks.
  */
 export async function* parseSSEStream(
-  stream: ReadableStream<Uint8Array>,
+  stream: ReadableStream<Uint8Array> | string,
   opts: ParseOptions = {},
 ): AsyncGenerator<ChatCompletionChunk> {
+  if (typeof stream === 'string') {
+    const normalized = stream.replace(/\r\n/g, '\n')
+    const events = normalized.split('\n\n')
+    for (const event of events) {
+      if (opts.signal?.aborted) break
+      const dataLines: string[] = []
+      for (const rawLine of event.split('\n')) {
+        if (!rawLine || rawLine.startsWith(':')) continue
+        if (rawLine.startsWith('data:')) {
+          const v = rawLine.slice(5)
+          dataLines.push(v.startsWith(' ') ? v.slice(1) : v)
+        }
+      }
+      if (dataLines.length === 0) continue
+      const payload = dataLines.join('\n')
+      if (payload === '[DONE]') return
+      try {
+        yield JSON.parse(payload) as ChatCompletionChunk
+      } catch {
+        // Tolerate malformed chunks
+      }
+    }
+    return
+  }
+
   const reader = stream.getReader()
   const decoder = new TextDecoder('utf-8', { fatal: false })
   let buffer = ''

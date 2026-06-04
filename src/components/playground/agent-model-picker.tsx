@@ -71,7 +71,7 @@ export function AgentModelPicker({ value, onChange }: Props) {
       </button>
 
       {open && (
-        <div className="absolute top-full right-0 mt-1 w-[340px] z-50 var(--color-surface) border border-white/[0.1] rounded-lg shadow-2xl shadow-black/70 animate-scale-in overflow-hidden">
+        <div className="absolute top-full right-0 mt-1 w-[340px] z-50 bg-surface-elevated border border-white/[0.1] rounded-lg shadow-2xl shadow-black/70 animate-scale-in overflow-hidden">
           <div className="px-2 py-2 border-b border-white/[0.06] flex items-center gap-2">
             <input
               autoFocus

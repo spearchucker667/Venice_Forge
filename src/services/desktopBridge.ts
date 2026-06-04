@@ -264,6 +264,55 @@ export const desktopFiles = {
     if (!result.data) throw new Error("Selected JSON file is empty.");
     return result.data;
   },
+
+  async exportYaml(data: string, defaultPath = "theme.yaml"): Promise<boolean> {
+    if (!isElectron()) {
+      const blob = new Blob([data], { type: "text/yaml" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = defaultPath;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      return true;
+    }
+    const result = await window.veniceForge!.files.saveYamlFile(data, defaultPath);
+    return result.ok;
+  },
+
+  async importYamlString(): Promise<string | null> {
+    if (!isElectron()) {
+      return new Promise((resolve) => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".yaml,.yml";
+        input.style.display = "none";
+
+        function cleanup() {
+          setTimeout(() => input.remove(), 0);
+        }
+
+        input.addEventListener("change", () => {
+          const file = input.files?.[0];
+          if (!file) { cleanup(); resolve(null); return; }
+          const reader = new FileReader();
+          reader.onload = () => { cleanup(); resolve(String(reader.result)); };
+          reader.onerror = () => { cleanup(); resolve(null); };
+          reader.readAsText(file);
+        });
+
+        input.addEventListener("cancel", () => { cleanup(); resolve(null); });
+
+        document.body.appendChild(input);
+        input.click();
+      });
+    }
+    const result = await window.veniceForge!.files.loadYamlFile();
+    if (result.canceled) return null;
+    if (!result.ok) throw new Error(result.error || "Failed to import YAML file.");
+    if (!result.data) throw new Error("Selected YAML file is empty.");
+    return result.data;
+  },
 };
 
 /** Reads a local file via the main process (desktop only). */

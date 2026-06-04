@@ -164,11 +164,14 @@ const veniceForge = {
     saveJsonFile(data: string, defaultPath?: string): Promise<{ ok: boolean; canceled: boolean }> {
       return ipcRenderer.invoke("app:saveJsonFile", data, defaultPath);
     },
-    /** Shows an open dialog and reads JSON data from the selected file.
-     *  @returns A promise resolving with the loaded data or cancellation.
-     */
     loadJsonFile(): Promise<{ ok: boolean; canceled: boolean; data?: string; error?: string }> {
       return ipcRenderer.invoke("app:loadJsonFile");
+    },
+    saveYamlFile(data: string, defaultPath?: string): Promise<{ ok: boolean; canceled: boolean }> {
+      return ipcRenderer.invoke("app:saveYamlFile", data, defaultPath);
+    },
+    loadYamlFile(): Promise<{ ok: boolean; canceled: boolean; data?: string; error?: string }> {
+      return ipcRenderer.invoke("app:loadYamlFile");
     },
     /** Reads a local file directly (for attachment import).
      *  @param filePath Absolute path to the file.

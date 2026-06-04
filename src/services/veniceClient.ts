@@ -897,7 +897,7 @@ export async function veniceStreamChat(
     throw new Error(streamError);
   }
 
-  if (!response.body)
+  if (!response.body || typeof response.body.getReader !== "function")
     throw new Error("Streaming is unavailable in this browser sandbox.");
 
   const reader = response.body.getReader();

@@ -506,6 +506,52 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle("app:saveYamlFile", async (_event, data: unknown, defaultPath: unknown) => {
+    try {
+      if (typeof data !== "string") throw new Error("Export data must be a string.");
+      if (Buffer.byteLength(data, "utf-8") > MAX_JSON_FILE_BYTES) {
+        throw new Error("Export data is too large.");
+      }
+      const sanitizedFilename = path.basename(
+        typeof defaultPath === "string" ? defaultPath : "theme.yaml"
+      );
+      const result = await dialog.showSaveDialog({
+        title: "Export Venice Forge theme",
+        defaultPath: sanitizedFilename,
+        filters: [{ name: "YAML", extensions: ["yaml", "yml"] }],
+      });
+      if (result.canceled || !result.filePath) return { ok: false, canceled: true };
+      await fs.writeFile(result.filePath, data, { encoding: "utf-8", mode: 0o600 });
+      return { ok: true, canceled: false };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("app:loadYamlFile", async () => {
+    try {
+      const result = await dialog.showOpenDialog({
+        title: "Import Venice Forge theme",
+        filters: [{ name: "YAML", extensions: ["yaml", "yml"] }],
+        properties: ["openFile"],
+      });
+      if (result.canceled || !result.filePaths[0]) return { ok: true, canceled: true };
+      const fd = await fs.open(result.filePaths[0], "r");
+      try {
+        const fstat = await fd.stat();
+        if (fstat.size > MAX_JSON_FILE_BYTES) {
+          throw new Error("Import file is too large.");
+        }
+        const data = await fs.readFile(result.filePaths[0], "utf-8");
+        return { ok: true, canceled: false, data };
+      } finally {
+        await fd.close();
+      }
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
   ipcMain.handle("app:loadJsonFile", async () => {
     try {
       const result = await dialog.showOpenDialog({

@@ -13,9 +13,12 @@ import { MusicView } from './components/music/music-view'
 import { VideoView } from './components/video/video-view'
 import { EmbeddingsView } from './components/embeddings/embeddings-view'
 import { StatusView } from './components/StatusView'
+import { SettingsView } from './components/SettingsView'
+import { SearchScrapeView } from './components/SearchScrapeView'
 import { ErrorBoundary } from './components/ui/error-boundary'
 import { Toaster } from './components/ui/toaster'
 import { FIRST_RUN_ACK_KEY } from './shared/legal'
+import { applyTheme, BUILTIN_VENICE, BUILTIN_DARK, BUILTIN_LIGHT, BUILTIN_COPPER, BUILTIN_DRACULA, BUILTIN_GRUVBOX_DARK, BUILTIN_ROSEPINE } from './theme'
 
 const LazyWorkflowsView = lazy(() => import('./components/workflows/workflows-view').then((m) => ({ default: m.WorkflowsView })))
 function WorkflowsView() {
@@ -37,9 +40,11 @@ const views = {
   workflows: WorkflowsView,
   playground: PlaygroundView,
   status: StatusView,
+  settings: SettingsView,
+  search: SearchScrapeView,
 } as const
 
-const TAB_ORDER: Tab[] = ['chat', 'image', 'audio', 'music', 'video', 'embeddings', 'workflows', 'playground', 'status']
+const TAB_ORDER: Tab[] = ['chat', 'image', 'audio', 'music', 'video', 'embeddings', 'search', 'workflows', 'playground', 'settings', 'status']
 
 export function App() {
   const needsUnlock = useAuthStore((s) => s.hasEncrypted && !s.apiKey)
@@ -51,7 +56,44 @@ export function App() {
   )
   const activeTab = useSettingsStore((s) => s.activeTab)
   const setActiveTab = useSettingsStore((s) => s.setActiveTab)
+  
+  // Theme state lifecycle synchronization
+  const selectedThemeId = useSettingsStore((s) => s.selectedThemeId)
+  const customTheme = useSettingsStore((s) => s.customTheme)
+  const appearanceMode = useSettingsStore((s) => s.appearanceMode)
+
+  useEffect(() => {
+    let theme = BUILTIN_VENICE;
+    if (selectedThemeId === 'custom' && customTheme) {
+      theme = customTheme;
+    } else if (selectedThemeId === 'builtin-light') {
+      theme = BUILTIN_LIGHT;
+    } else if (selectedThemeId === 'builtin-copper') {
+      theme = BUILTIN_COPPER;
+    } else if (selectedThemeId === 'builtin-dracula') {
+      theme = BUILTIN_DRACULA;
+    } else if (selectedThemeId === 'builtin-dark') {
+      theme = BUILTIN_DARK;
+    } else if (selectedThemeId === 'builtin-gruvbox-dark') {
+      theme = BUILTIN_GRUVBOX_DARK;
+    } else if (selectedThemeId === 'builtin-rosepine') {
+      theme = BUILTIN_ROSEPINE;
+    }
+    applyTheme(theme);
+
+    try {
+      localStorage.setItem('vf.theme.bootstrap', JSON.stringify({
+        selectedThemeId,
+        appearanceMode,
+        customTheme,
+      }));
+    } catch {
+      // ignore write failures (e.g. disabled local storage)
+    }
+  }, [selectedThemeId, customTheme, appearanceMode]);
+
   const ActiveView = views[activeTab]
+
 
   const acknowledgeFirstRun = () => {
     try { localStorage.setItem(FIRST_RUN_ACK_KEY, "1") } catch { /* private mode etc. */ }

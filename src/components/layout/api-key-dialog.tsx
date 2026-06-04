@@ -39,7 +39,7 @@ export function ApiKeyDialog({ open, onClose }: { open: boolean; onClose: () => 
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <button aria-label="Close dialog" className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
       <div
-        className="relative var(--color-surface) border border-white/[0.1] rounded-xl p-6 w-full max-w-sm mx-4 animate-scale-in shadow-2xl shadow-black/60"
+        className="relative bg-surface-elevated border border-white/[0.1] rounded-xl p-6 w-full max-w-sm mx-4 animate-scale-in shadow-2xl shadow-black/60"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 mb-5">
@@ -61,7 +61,7 @@ export function ApiKeyDialog({ open, onClose }: { open: boolean; onClose: () => 
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="sk-..."
-          className="w-full var(--color-surface) border border-white/[0.1] rounded-lg px-3.5 py-2.5 text-[16px] text-white outline-none focus:border-white/[0.25] transition-colors font-mono placeholder:text-white/25"
+          className="w-full bg-surface-elevated border border-white/[0.1] rounded-lg px-3.5 py-2.5 text-[16px] text-white outline-none focus:border-white/[0.25] transition-colors font-mono placeholder:text-white/25"
           autoFocus
           autoComplete="off"
           onKeyDown={(e) => { if (e.key === 'Enter') handleConnect() }}

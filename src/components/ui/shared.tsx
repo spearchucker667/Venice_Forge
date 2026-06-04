@@ -30,7 +30,7 @@ export function TextArea({ value, onChange, placeholder, rows = 3, ariaLabel, ma
       aria-label={ariaLabel ?? placeholder}
       maxLength={maxLength}
       autoFocus={autoFocus}
-      className="w-full var(--color-surface) border border-white/[0.08] rounded-lg px-3 py-2.5 text-[15px] text-white/90 outline-none focus:border-white/[0.22] transition-colors resize-none placeholder:text-white/25 leading-relaxed"
+      className="w-full bg-surface border border-white/[0.08] rounded-lg px-3 py-2.5 text-[15px] text-white/90 outline-none focus:border-white/[0.22] transition-colors resize-none placeholder:text-white/25 leading-relaxed"
     />
   )
 }
@@ -155,7 +155,7 @@ export function ExamplePrompts({ items, onPick, title = 'Try one of these' }: {
 
 export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('var(--color-surface) border border-white/[0.06] rounded-xl', className)}>
+    <div className={cn('bg-surface border border-white/[0.06] rounded-xl', className)}>
       {children}
     </div>
   )

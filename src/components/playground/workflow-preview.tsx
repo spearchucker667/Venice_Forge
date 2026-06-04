@@ -47,7 +47,7 @@ function Inner({ nodes: source, edges: sourceEdges }: { nodes: Node<VeniceNodeDa
       nodesConnectable={false}
       elementsSelectable={false}
       proOptions={{ hideAttribution: true }}
-      className="var(--color-surface)"
+      className="bg-surface"
       defaultEdgeOptions={{ animated: true, style: { stroke: 'rgba(255,255,255,0.1)', strokeWidth: 2 } }}
     >
       <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="rgba(255,255,255,0.03)" />
