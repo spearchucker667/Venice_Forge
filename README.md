@@ -22,8 +22,7 @@
 [![Node 20/22](https://img.shields.io/badge/node-20%20%7C%2022-339933.svg)](package.json)
 [![TypeScript strict](https://img.shields.io/badge/typescript-strict-3178c6.svg)](tsconfig.json)
 [![Electron 42](https://img.shields.io/badge/electron-42-47848f.svg)](package.json)
-<img width="1697" height="927" alt="ChatGPT Image Jun 4, 2026, 01_48_06 PM" src="https://github.com/user-attachments/assets/b6581a80-986a-4c67-9378-9d62a7530bfe" />
-
+<img width="1774" height="887" alt=" " src="https://github.com/user-attachments/assets/4981bc4d-a743-4a0f-a6e7-48ddffb6edcb" />
 ## 🚀 Quick Start
 
 1. **Download** a release from [GitHub Releases](https://github.com/spearchucker667/Venice-API-connector/releases)
