@@ -4,7 +4,7 @@ import { useSettingsStore, type Tab } from '../../stores/settings-store'
 import { useChatStore } from '../../stores/chat-store'
 import { toast } from '../../stores/toast-store'
 import { VeniceLogo, VeniceWordmark } from '../ui/logo'
-import type { Conversation } from '../../types/venice'
+import type { Conversation } from '../../types/conversation'
 
 function ChatIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>)
@@ -291,10 +291,7 @@ function conversationToMarkdown(conv: Conversation): string {
   const lines: string[] = [`# ${conv.title}`, '', `_Model: ${conv.model} · Created: ${new Date(conv.createdAt).toISOString()}_`, '']
   for (const m of conv.messages) {
     lines.push(`## ${m.role === 'user' ? 'You' : m.role === 'assistant' ? 'Assistant' : 'System'}`)
-    const content = typeof m.content === 'string'
-      ? m.content
-      : m.content.map((p) => p.type === 'text' ? p.text : p.type === 'image_url' ? `![image](${p.image_url?.url ?? ''})` : '').join('\n')
-    lines.push(content)
+    lines.push(m.content)
     lines.push('')
   }
   return lines.join('\n')

@@ -26,17 +26,16 @@ export function useChat() {
       const conv = useChatStore.getState().conversations.find((c) => c.id === convId)
       if (!conv) return
 
-      const messages = conv.messages.filter((m) => {
-        if (typeof m.content === 'string') return m.content !== ''
-        return true
-      })
+      const requestMessages: { role: 'system' | 'user' | 'assistant'; content: string }[] = conv.messages
+        .filter((m) => m.content !== '')
+        .map((m) => ({ role: m.role, content: m.content }))
       if (systemPrompt.trim()) {
-        messages.unshift({ role: 'system', content: systemPrompt.trim() })
+        requestMessages.unshift({ role: 'system', content: systemPrompt.trim() })
       }
 
       const body: ChatCompletionRequest = {
         model,
-        messages,
+        messages: requestMessages,
         stream: true,
         temperature,
         top_p: topP,

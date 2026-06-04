@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import type { ChatMessage, Conversation, VeniceParameters } from '../types/venice'
-import type { Conversation as StoredConversation } from '../types/conversation'
+import type { ChatMessage, VeniceParameters } from '../types/venice'
+import type { Conversation, ConversationMessage } from '../types/conversation'
 import { generateId } from '../lib/utils'
 import { createSafeStorage } from '../lib/safe-storage'
 
@@ -53,12 +53,14 @@ export const useChatStore = create<ChatState>()(
 
       createConversation: (model) => {
         const id = generateId()
+        const now = Date.now()
         const conv: Conversation = {
           id,
           title: 'New Chat',
           messages: [],
           model,
-          createdAt: Date.now(),
+          createdAt: now,
+          updatedAt: now,
         }
         set((s) => ({
           conversations: [conv, ...s.conversations],
@@ -80,21 +82,28 @@ export const useChatStore = create<ChatState>()(
         }
       },
 
-      addMessage: (conversationId, message) =>
-        set((s) => ({
-          conversations: s.conversations.map((c) => {
-            if (c.id !== conversationId) return c
-            const updated = { ...c, messages: [...c.messages, message] }
-            if (
-              message.role === 'user' &&
-              c.messages.length === 0 &&
-              typeof message.content === 'string'
-            ) {
-              updated.title = message.content.slice(0, 50) || 'New Chat'
-            }
-            return updated
-          }),
-        })),
+  addMessage: (conversationId, message) =>
+    set((s) => ({
+      conversations: s.conversations.map((c) => {
+        if (c.id !== conversationId) return c
+        const persisted: ConversationMessage = {
+          id: generateId(),
+          role: message.role,
+          content: typeof message.content === 'string' ? message.content : '',
+          reasoning_content: message.reasoning_content,
+          timestamp: Date.now(),
+        }
+        const updated = { ...c, messages: [...c.messages, persisted], updatedAt: Date.now() }
+        if (
+          message.role === 'user' &&
+          c.messages.length === 0 &&
+          typeof message.content === 'string'
+        ) {
+          updated.title = message.content.slice(0, 50) || 'New Chat'
+        }
+        return updated
+      }),
+    })),
 
       appendToLastAssistant: (conversationId, token) =>
         set((s) => ({
@@ -206,7 +215,7 @@ if (typeof window !== 'undefined') {
   // Save changes — debounced, with flush-on-unload so a pending edit is
   // not silently dropped when the renderer tab closes.
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
-  let pendingSave: StoredConversation | null = null;
+  let pendingSave: Conversation | null = null;
   const flushSave = () => {
     if (saveTimer !== null) {
       clearTimeout(saveTimer);
@@ -227,7 +236,7 @@ if (typeof window !== 'undefined') {
     const prevActive = prevState.conversations.find((c) => c.id === state.activeConversationId)
 
     if (active && (active !== prevActive)) {
-      pendingSave = active as unknown as StoredConversation;
+      pendingSave = active;
       if (saveTimer !== null) clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
         saveTimer = null;
