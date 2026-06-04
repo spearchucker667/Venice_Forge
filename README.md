@@ -22,10 +22,7 @@
 [![Node 20/22](https://img.shields.io/badge/node-20%20%7C%2022-339933.svg)](package.json)
 [![TypeScript strict](https://img.shields.io/badge/typescript-strict-3178c6.svg)](tsconfig.json)
 [![Electron 42](https://img.shields.io/badge/electron-42-47848f.svg)](package.json)
-
-<img width="2816" height="1536" alt="Venice Forge desktop app interface" src="https://github.com/user-attachments/assets/6b9f703d-69d6-44d8-a2b5-fe0499791f8a" />
-
----
+<img width="1697" height="927" alt="ChatGPT Image Jun 4, 2026, 01_48_06 PM" src="https://github.com/user-attachments/assets/b6581a80-986a-4c67-9378-9d62a7530bfe" />
 
 ## 🚀 Quick Start
 
