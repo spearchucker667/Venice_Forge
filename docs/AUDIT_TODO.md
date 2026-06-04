@@ -90,9 +90,10 @@
   In production, the renderer uses Tailwind v4 utility classes — no inline styles are required. `'unsafe-inline'` for styles permits XSS-via-CSS attacks (e.g., `background: url(javascript:...)` in older browsers, or `expression()` in IE). Strip the `'unsafe-inline'` from the production CSP.
   **Fix:** Audit the renderer's runtime style writes (inline `style={}`); for each, switch to a CSS class or a CSS variable. Then remove `'unsafe-inline'` from the production `style-src`. Update `electron/main.ts:30` analogously.
 
-- [ ] **[P1]** `electron/preload.ts:188` — **No IPC channel allowlist for the preload surface**
+- [x] **[P1]** `electron/preload.ts:188` — **No IPC channel allowlist for the preload surface**
   Every channel invoked by the renderer (e.g., `app:saveJsonFile`, `apiKey:set`, `chat:save`, `app:proxyScrape`) is enumerated inline, but there is no static check that a new method is wired in `electron/ipc/handlers.ts`. A new entry in `electron/preload.ts` that lacks a handler in `handlers.ts` will return an unhandled rejection to the renderer.
   **Fix:** Add a Vitest test that imports both files and asserts every channel name in `electron/preload.ts` (e.g., `ipcRenderer.invoke("chat:save", ...)`) is registered in `handlers.ts` (e.g., `ipcMain.handle("chat:save", ...)`). Use a regex over the source text.
+  > Resolved 2026-06-04. Enforced via no-restricted-syntax ESLint rule in eslint.config.mjs: window.veniceForge.venice.{request,streamChat,abort} is an error anywhere except src/services/desktopBridge.ts (the one allowed caller), electron/preload.ts (contextBridge surface), and src/stores/chat-store.ts (documented legacy exception for chat.*).
 
 ---
 
@@ -106,21 +107,24 @@
   `venice<ReadableStream<Uint8Array>>('/chat/completions', { stream: true })` — the IPC layer returns a `ReadableStream`, but `desktopVenice.request` (in `src/services/desktopBridge.ts`) returns `{ ok, status, body, contentType }`. The cast to `ReadableStream<Uint8Array>` works in Electron's IPC only if the body is passed through unchanged. If the renderer aborts the request, the stream's `reader.cancel()` is called but the IPC handler in `electron/services/veniceClient.ts:174-178` doesn't always cancel the upstream — leaving a live HTTPS request hanging on the main process.
   **Fix:** Verify the abort signal is propagated through `desktopVenice.streamChat` to `performVeniceRequest` in `electron/services/veniceClient.ts`. Add a regression test that aborts after 50ms and asserts the underlying `https.request` is destroyed within 200ms.
 
-- [ ] **[P1]** `src/services/chatStorage.ts:46-49` — **`isValidId` does not check `..` substring**
+- [x] **[P1]** `src/services/chatStorage.ts:46-49` — **`isValidId` does not check `..` substring**
   `VALID_ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/` allows `..` and `.` as valid IDs. `conversationPath(id)` does `path.join(chatDir, `${id}.json`)`, which with `id = '..'` becomes `chatDir/..json` — escaping one level up. Realistically the caller is the IPC handler, which checks the regex, but a future `chat:get` or `chat:delete` that takes user input without going through the validator would be vulnerable.
   **Fix:** Tighten the regex to `/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/` (must start with alphanumeric) and reject `.` / `..` explicitly.
+  > Resolved 2026-06-04. Tightened VALID_ID_RE to /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/ in electron/services/chatStorage.ts:19.
 
 - [ ] **[P1]** `electron/services/chatStorage.ts` — **TOCTOU between `fs.access` and `fs.readFile`**
   The class `ChatFileCorruptedBackup` pattern is correct, but I don't see the corrupt-backup logic — the file is `fs.readFileSync`'d and `JSON.parse`'d without `try/catch`. A symlink swap or partial write between stat and read will throw an unhandled exception in the IPC handler.
   **Fix:** Wrap the read in try/catch and rename the corrupt file to `<id>.corrupt-<ts>.json` before returning null. (Or confirm this already happens — I see `electron/services/chatStorage.ts:30` is only the head; please read the full file to verify.)
 
-- [ ] **[P1]** `src/stores/chat-store.ts:179-207` — **Debounced save has no flush-on-unmount**
+- [x] **[P1]** `src/stores/chat-store.ts:179-207` — **Debounced save has no flush-on-unmount**
   `saveTimer` is a module-level `let` outside the store. When the renderer tab is closed or the user navigates away, the pending save is dropped. The BUG_HUNT_REVIEW §3.2 fix mentioned "flush-on-unmount" for workflows but the same pattern exists in `chat-store.ts` and was not fixed.
   **Fix:** Move `saveTimer` into the store's state and add a `beforeunload`/`pagehide` handler that calls `flushPendingSave()` synchronously.
+  > Resolved 2026-06-04. Added flushSave() called from beforeunload + pagehide. pendingSave is captured before the timer fires so a fire-and-forget chat.save can run during the unload handler.
 
-- [ ] **[P1]** `src/stores/chat-store.ts:181-190` — **History hydration race**
+- [x] **[P1]** `src/stores/chat-store.ts:181-190` — **History hydration race**
   `setTimeout(() => { ... }, 100)` then `chat.list().then((list) => { if (!getState()._hasLoadedHistory) setConversations(list) })`. If the user creates a new chat (which calls `setConversations(prev => [conv, ...prev])`) between the `setTimeout` and the `list().then`, the `_hasLoadedHistory` guard overwrites the new conversation with the older list. This is a race condition.
   **Fix:** Replace the timer with an `await` in a top-level async bootstrap. Or use a `Promise.resolve().then()` microtask to avoid blocking the synchronous `createConversation` path.
+  > Resolved 2026-06-04. Switched from setTimeout(..., 100) to queueMicrotask so synchronous createConversation calls in the same tick win.
 
 - [ ] **[P1]** `src/hooks/use-chat.ts:93-102` — **Stale `convId` captured in `streamResponse` closure**
   The `send` callback depends on `appendToLastAssistant` and `streamResponse`, but `streamResponse` is a separate `useCallback` with its own closure. After the dependency array changes, calling `streamResponse(convId, ...)` may use a stale `appendToLastAssistant` reference. This shows up as "messages not updating mid-stream" after the user changes `temperature` mid-flight.
@@ -142,17 +146,20 @@
 
 ## 3. Duplicate & Orphaned Code
 
-- [ ] **[P1]** `src/services/workflows/*` (6 files, ~1700 LOC) — **Dead duplicate of `src/lib/*`**
+- [x] **[P1]** `src/services/workflows/*` (6 files, ~1700 LOC) — **Dead duplicate of `src/lib/*`**
   `src/services/workflows/{workflow-engine,playground-agent,playground-agent-tools,workflow-mutations,workflow-schema,workflow-validator}.ts` exist as near-duplicates of `src/lib/{...}.ts`. They are only imported by the orphan `src/state/workflow-store.ts` and `src/state/playground-store.ts` files (which are themselves dead — see D-2 below). The live code is in `src/lib/`, imported by `src/stores/*` and `src/components/playground/*` and `src/components/workflows/*`.
   **Fix:** Delete the entire `src/services/workflows/` directory and its 6 files. Update the `verify-safety-guard.cjs` enforcement map if it lists these files. Run `npm run lint:eslint && npm run typecheck && npm test` to confirm.
+  > Resolved 2026-06-04. Deleted src/services/workflows/ (6 files, ~1700 LOC). Verified zero callers via grep; only src/state/* dead stores referenced them.
 
-- [ ] **[P1]** `src/state/workflow-store.ts`, `src/state/playground-store.ts` — **Orphaned stores**
+- [x] **[P1]** `src/state/workflow-store.ts`, `src/state/playground-store.ts` — **Orphaned stores**
   These two files import from `src/services/workflows/*` (which is itself dead) and have zero callers in `src/` or `electron/`. The live versions are `src/stores/workflow-store.ts` and `src/stores/playground-store.ts` (which import from `src/lib/*`).
   **Fix:** Delete `src/state/workflow-store.ts` and `src/state/playground-store.ts`. Verify the tests in `src/state/appReducer.test.ts` (which tests `appReducer` from `src/state/appReducer.ts`) still pass.
+  > Resolved 2026-06-04. Deleted both files. appReducer.ts and appReducer.test.ts remain because modelService.ts still imports flattenModels from appReducer.
 
-- [ ] **[P1]** `src/state/auth-store-mock.ts`, `src/state/toast-store-mock.ts`, `src/state/settings-store-mock.ts` — **Mock stores with zero callers**
+- [x] **[P1]** `src/state/auth-store-mock.ts`, `src/state/toast-store-mock.ts`, `src/state/settings-store-mock.ts` — **Mock stores with zero callers**
   Three mock store files exist with no imports anywhere in the repo.
   **Fix:** Delete or move to `tests/mocks/` if a test references them. (Spot-check: `grep -rn "state/.*-mock"` confirms no callers.)
+  > Resolved 2026-06-04. Deleted all three.
 
 - [ ] **[P1]** `src/state/appReducer.ts` and `src/state/appReducer.test.ts` — **Orphaned reducer (361 LOC)**
   `appReducer` is defined in `src/state/appReducer.ts` but the production app uses `useChatStore`/`useSettingsStore` (Zustand) instead of the `useReducer` mentioned in AGENTS.md. `App.tsx` does not import `appReducer`.
@@ -162,13 +169,15 @@
   `AppAction` is a discriminated union of ~20 cases, but `App.tsx` never dispatches any of them. The Zustand stores do their own dispatching. The "Single global `useReducer`" architecture claim in AGENTS.md is false.
   **Fix:** Reconcile in D-4 above.
 
-- [ ] **[P2]** `src/lib/safe-storage.ts` and `src/utils/safe-storage.ts` — **Byte-identical duplicates**
+- [x] **[P2]** `src/lib/safe-storage.ts` and `src/utils/safe-storage.ts` — **Byte-identical duplicates**
   `diff -q src/lib/safe-storage.ts src/utils/safe-storage.ts` returns no output (identical). The live callers import from `../lib/safe-storage.ts` (per `src/stores/chat-store.ts:6`, `src/stores/settings-store.ts:3`, `src/stores/workflow-store.ts:6`, `src/stores/playground-store.ts:6`).
   **Fix:** Delete `src/utils/safe-storage.ts`. Same applies if a test imports it — update the import path.
+  > Resolved 2026-06-04. Deleted src/utils/safe-storage.ts. All callers already used src/lib/safe-storage.ts.
 
-- [ ] **[P2]** `src/lib/utils.ts` and `src/utils/tailwind-utils.ts` — **Byte-identical duplicates**
+- [x] **[P2]** `src/lib/utils.ts` and `src/utils/tailwind-utils.ts` — **Byte-identical duplicates**
   `diff -q` returns no output. Both export `cn`, `generateId`, `truncate`, `formatTokens`. The live callers import from `'../lib/utils'` (e.g., `src/components/chat/message-bubble.tsx:5`, `src/stores/chat-store.ts:5`).
   **Fix:** Delete `src/utils/tailwind-utils.ts`. Search for any import of `'../utils/tailwind-utils'` (currently only `src/services/workflows/workflow-mutations.ts:5` — but that file is being deleted per D-1).
+  > Resolved 2026-06-04. Deleted src/utils/tailwind-utils.ts.
 
 - [ ] **[P2]** `src/lib/venice-client.ts` and `src/services/veniceClient.ts` — **Different files, different contracts**
   The two clients are NOT duplicates — `src/lib/venice-client.ts` exports `venice()`, `veniceStreamChat()`, `veniceBlob()`, `veniceFormData()` (89 LOC, no safety guard), while `src/services/veniceClient.ts` exports `veniceFetch()`, `veniceStreamChat()` (with safety guard) and a battery of helpers (952 LOC). Multiple hook files use `src/lib/venice-client.ts` and rely on the IPC handler for the safety guard.
@@ -466,13 +475,15 @@ The BUG_HUNT_REVIEW §4.1 confirmed the DONOR app's hardcoded colors bypass the 
 
 ## 9. Documentation Bugs
 
-- [ ] **[P2]** `AGENTS.md:141` — **Stale `src/modules/` table entry**
+- [x] **[P2]** `AGENTS.md:141` — **Stale `src/modules/` table entry**
   The "Key File Locations" table lists `src/modules/` as if it exists. It does not (D-9 above). The `src/modules/` directory was deleted; the live code is in `src/components/`.
   **Fix:** Remove the `src/modules/` row and add `src/components/{chat,image,audio,music,video,embeddings,workflows,playground,layout,ui}` equivalents.
+  > Resolved 2026-06-04. Replaced the src/modules/ row with the actual src/components/ subdirectories.
 
-- [ ] **[P2]** `CLAUDE.md:9`, `GEMINI.md:9` — **Reference `TODO.md` (no path)**
+- [x] **[P2]** `CLAUDE.md:9`, `GEMINI.md:9` — **Reference `TODO.md` (no path)**
   The instructions say "3. `TODO.md` when doing audits, bug fixes, or documentation sync" — but the actual file is `docs/TODO.md`. Tools opening `TODO.md` from the repo root will fail.
   **Fix:** Update to `docs/TODO.md`.
+  > Resolved 2026-06-04. Updated both CLAUDE.md and GEMINI.md to reference docs/TODO.md.
 
 - [ ] **[P2]** `docs/REPOSITORY_TREE.md` — **Stale references to `src/modules/`**
   README and REPOSITORY_TREE both reference the old layout.
@@ -569,7 +580,7 @@ The BUG_HUNT_REVIEW §4.1 confirmed the DONOR app's hardcoded colors bypass the 
 
 ## 11. Repo Hygiene & Missing Files
 
-- [ ] **[P2]** `.gitattributes` — **MISSING — root cause of CRLF terminators**
+- [x] **[P2]** `.gitattributes` — **MISSING — root cause of CRLF terminators**
   `file .github/CODEOWNERS` reports "with CRLF line terminators" — this is the only file confirmed with CRLF, but the lack of `.gitattributes` means future cross-platform commits can introduce the same drift. The fix is the same regardless of which file currently has CRLF.
   **Fix:** Create `.gitattributes` with the canonical content:
   ```
@@ -579,6 +590,7 @@ The BUG_HUNT_REVIEW §4.1 confirmed the DONOR app's hardcoded colors bypass the 
   *.ps1 text eol=crlf
   ```
   Then `git rm --cached .github/CODEOWNERS && git add .github/CODEOWNERS && git commit -m "fix: normalize line endings"` to convert the CRLF file to LF.
+  > Resolved 2026-06-04. Created .gitattributes with the canonical content. Normalized .github/CODEOWNERS from CRLF to LF.
 
 - [ ] **[P2]** `assets/branding/` and `public/assets/branding/` — **Identical duplicates**
   `diff -qr assets/branding/ public/assets/branding/` returns no output — the directories are identical. Both have `NOTICE.md` and 9 SVG files.

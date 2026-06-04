@@ -139,7 +139,7 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `src/utils/payloadBuilders.ts` | `buildChatPayload`, `buildImagePayload` |
 | `src/research/providers/` | Venice + Jina + generic HTTP scrape (SSRF via `dns.lookup`) |
 | `src/constants/venice.ts` | `FALLBACK_MODELS`, `TABS`, `modelSupportsVision()`, `DB_VERSION`, `STORE_NAMES` |
-| `src/modules/` | One file per tab: Chat, Image, Video, Audio, Music, Embeddings, Batch, SearchScrape, Models, Gallery, Settings, Diagnostics, Workflows, Playground |
+| `src/components/{chat,image,audio,music,video,embeddings,workflows,playground,layout,ui}` | Renderer UI: tab views, sidebar, header, dialog, shared primitives |
 | `electron/preload.ts` | contextBridge API surface (only place to expose IPC to renderer) |
 | `electron/main.ts` | BrowserWindow + CSP + navigation guards; `requestSingleInstanceLock` |
 | `electron/ipc/handlers.ts` | IPC channel handlers (incl. `venice:request`, `venice:streamChat`, `chat:*`, `app:*`) |

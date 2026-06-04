@@ -177,18 +177,22 @@ export const useChatStore = create<ChatState>()(
 
 // Sync conversations with Desktop backend
 if (typeof window !== 'undefined') {
-  // Load initially
-  setTimeout(() => {
+  // Load initially on the next microtask. The previous setTimeout(..., 100)
+  // raced with synchronous createConversation() calls (which set
+  // _hasLoadedHistory = true only after setConversations runs, and the timer
+  // could fire *before* the user clicked "new chat" — the loaded list would
+  // then overwrite the brand-new conversation). A microtask defers past
+  // the current synchronous tick so any caller that runs in the same
+  // tick (e.g. App.tsx mount → user click) wins.
+  queueMicrotask(() => {
     if (window.veniceForge?.chat) {
       window.veniceForge.chat.list().then((result) => {
-        // Only load if not already hydrated with valid history
         if (!useChatStore.getState()._hasLoadedHistory) {
           const conversations = Array.isArray(result)
             ? result
             : (result.conversations as Conversation[]);
           useChatStore.getState().setConversations(conversations);
           if (!Array.isArray(result) && result.truncated) {
-            // Surface the truncation so the user can archive old chats.
             console.warn(
               `[chat] conversation list truncated — ${result.totalScanned} files on disk, ` +
                 `showing ${conversations.length}. Consider archiving old chats.`,
@@ -197,22 +201,42 @@ if (typeof window !== 'undefined') {
         }
       }).catch(console.error)
     }
-  }, 100)
+  })
 
-  // Save changes
-  let saveTimer: ReturnType<typeof setTimeout>
+  // Save changes — debounced, with flush-on-unload so a pending edit is
+  // not silently dropped when the renderer tab closes.
+  let saveTimer: ReturnType<typeof setTimeout> | null = null;
+  let pendingSave: StoredConversation | null = null;
+  const flushSave = () => {
+    if (saveTimer !== null) {
+      clearTimeout(saveTimer);
+      saveTimer = null;
+    }
+    if (pendingSave && window.veniceForge?.chat) {
+      // Fire and forget; we're in a beforeunload handler and can't await.
+      window.veniceForge.chat.save(pendingSave).catch(console.error);
+      pendingSave = null;
+    }
+  };
+  window.addEventListener("beforeunload", flushSave);
+  window.addEventListener("pagehide", flushSave);
+
   useChatStore.subscribe((state, prevState) => {
     // If the active conversation's messages or title changed, save it
     const active = state.conversations.find((c) => c.id === state.activeConversationId)
     const prevActive = prevState.conversations.find((c) => c.id === state.activeConversationId)
-    
+
     if (active && (active !== prevActive)) {
-      clearTimeout(saveTimer)
+      pendingSave = active as unknown as StoredConversation;
+      if (saveTimer !== null) clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
-        if (window.veniceForge?.chat) {
-          window.veniceForge.chat.save(active as unknown as StoredConversation).catch(console.error)
+        saveTimer = null;
+        const toSave = pendingSave;
+        pendingSave = null;
+        if (toSave && window.veniceForge?.chat) {
+          window.veniceForge.chat.save(toSave).catch(console.error);
         }
-      }, 500) // Debounce saves
+      }, 500); // Debounce saves
     }
   })
 }

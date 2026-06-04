@@ -6,7 +6,7 @@ Before making changes, read:
 
 1. `AGENTS.md`
 2. `README.md`
-3. `TODO.md` when doing audits, bug fixes, or documentation sync
+3. `docs/TODO.md` when doing audits, bug fixes, or documentation sync
 
 Do not duplicate or override the security rules in `AGENTS.md`. In particular:
 
