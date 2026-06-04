@@ -285,7 +285,7 @@ function WorkflowCanvas() {
   return (
     <div className="flex h-full">
       {/* Toolbar */}
-      <div className="w-56 border-r border-white/[0.06] bg-[#0a0a0a] flex flex-col shrink-0">
+      <div className="w-56 border-r border-white/[0.06] var(--color-surface) flex flex-col shrink-0">
         <div className="p-3 border-b border-white/[0.06]">
           <span className="text-[13px] font-medium text-white/15 uppercase tracking-[0.08em]">Add Node</span>
         </div>
@@ -341,7 +341,7 @@ function WorkflowCanvas() {
           nodeTypes={memoNodeTypes}
           fitView
           proOptions={{ hideAttribution: true }}
-          className="bg-[#080808]"
+          className="var(--color-surface)"
           defaultEdgeOptions={{ animated: true, style: { stroke: 'rgba(255,255,255,0.1)', strokeWidth: 2 } }}
         >
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="rgba(255,255,255,0.03)" />
@@ -349,7 +349,7 @@ function WorkflowCanvas() {
           <MiniMap
             nodeColor="rgba(255,255,255,0.1)"
             maskColor="rgba(0,0,0,0.8)"
-            className="!bg-[#0a0a0a] !border-white/[0.06]"
+            className="!var(--color-surface) !border-white/[0.06]"
           />
         </ReactFlow>
       </div>
@@ -374,7 +374,7 @@ export function WorkflowsView() {
   if (activeWorkflowId && workflows.find((w) => w.id === activeWorkflowId)) {
     return (
       <div className="h-full flex flex-col">
-        <div className="flex items-center gap-2.5 px-3 py-1.5 border-b border-white/[0.06] bg-[#0a0a0a] shrink-0">
+        <div className="flex items-center gap-2.5 px-3 py-1.5 border-b border-white/[0.06] var(--color-surface) shrink-0">
           <button
             onClick={() => setActiveWorkflow(null)}
             className="text-[13px] text-white/25 hover:text-white/50 transition-colors flex items-center gap-1"

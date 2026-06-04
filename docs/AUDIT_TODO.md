@@ -192,9 +192,10 @@
   **Fix:** Either (a) delete `capture-venice.cjs` and use only `capture-venice-design.mjs`; or (b) move both to `scripts/dev-tools/` and mark as manual. Do not leave two capture scripts in the repo root scripts dir.
   > Resolved 2026-06-04. Moved both to scripts/dev-tools/ and added a README.md explaining their purpose.
 
-- [ ] **[P2]** `src/services/mediaService.ts` and `src/services/videoGenerationService.ts` — **No tests, no callers in current code**
+- [x] **[P2]** `src/services/mediaService.ts` and `src/services/videoGenerationService.ts` — **No tests, no callers in current code**
   `mediaService.ts` (8.4 KB) and `videoGenerationService.ts` (3.2 KB) are not imported by any module in the live code (only the dead `src/services/workflows/*` would have used them). The `src/hooks/use-image.ts`, `use-video.ts`, `use-audio.ts` etc. use `src/lib/venice-client.ts` directly.
   **Fix:** Confirm zero callers via `grep -rln "from '.*mediaService'\|from '.*videoGenerationService'" src/ electron/`. If true, delete. If false, add tests per the Test Coverage Gaps section.
+  > Resolved 2026-06-04. Confirmed zero callers. Both files deleted.
 
 - [ ] **[P2]** `src/research/agent/citationBuilder.ts` and `src/research/agent/evidenceStore.ts` — **No tests**
   Both files are imported by `src/research/agent/researchSynthesis.ts` and `src/research/agent/researchRunner.ts`, but no `.test.ts` exists.
@@ -252,28 +253,34 @@ For each, the re-entry point is: (1) create the file, (2) add to `views = { ... 
 
 ## 5. Type Safety & Code Quality
 
-- [ ] **[P2]** `src/services/workflows/workflow-engine.ts:106` — **`dispatch: any`**
+- [x] **[P2]** `src/services/workflows/workflow-engine.ts:106` — **`dispatch: any`**
   `executeNode` signature accepts `dispatch: any` with an eslint-disable-line. The canonical type is `AppDispatch` from `src/types/app`.
   **Fix:** Replace with `dispatch: AppDispatch` and remove the eslint-disable comment.
+  > Resolved 2026-06-04. File src/services/workflows/workflow-engine.ts was deleted in the dead-code cleanup. Live code in src/lib/workflow-engine.ts uses proper AppDispatch typing throughout.
 
-- [ ] **[P2]** `src/services/workflows/workflow-engine.ts:177` — **`(blobData as any).dataUrl`**
+- [x] **[P2]** `src/services/workflows/workflow-engine.ts:177` — **`(blobData as any).dataUrl`**
   Inline `as any` cast. The blob response shape is `{ data: { dataUrl: string } }` per the `audioBlob` contract.
   **Fix:** Define an `AudioBlobResponse` type and use it.
+  > Resolved 2026-06-04. File src/services/workflows/workflow-engine.ts was deleted in the dead-code cleanup. Live code in src/lib/ uses proper typing.
 
-- [ ] **[P2]** `src/services/workflows/workflow-engine.ts:240` — **`dispatch: any` in `ExecuteOptions`**
+- [x] **[P2]** `src/services/workflows/workflow-engine.ts:240` — **`dispatch: any` in `ExecuteOptions`**
   Same as line 106.
   **Fix:** Same as above.
+  > Resolved 2026-06-04. File src/services/workflows/workflow-engine.ts was deleted.
 
-- [ ] **[P2]** `src/services/workflows/playground-agent.ts:180` — **`dispatch: any` in `CallAgentOptions`**
+- [x] **[P2]** `src/services/workflows/playground-agent.ts:180` — **`dispatch: any` in `CallAgentOptions`**
   Same pattern.
   **Fix:** Same as above.
+  > Resolved 2026-06-04. File src/services/workflows/playground-agent.ts was deleted.
 
-- [ ] **[P2]** `src/services/workflows/playground-agent.ts:189` — **`dispatch: any` in `singleCall`**
+- [x] **[P2]** `src/services/workflows/playground-agent.ts:189` — **`dispatch: any` in `singleCall`**
   Same pattern.
   **Fix:** Same as above.
+  > Resolved 2026-06-04. File src/services/workflows/playground-agent.ts was deleted.
 
-- [ ] **[P2]** `src/state/toast-store-mock.ts:5` — **`(err as any)?.message`**
+- [x] **[P2]** `src/state/toast-store-mock.ts:5` — **`(err as any)?.message`**
   Mock file with `(err as any)?.message || fallback`. (The file is itself dead per D-3.)
+  > Resolved 2026-06-04. File src/state/toast-store-mock.ts was deleted.
 
 - [ ] **[P2]** `src/services/veniceClient.ts:547-577` — **Untyped `_veniceFetch` default-destructure**
   `_veniceFetch` accepts an options object with all-optional fields. The destructure default `body = undefined as unknown` casts to `unknown` to satisfy the type but the function signature is `{ method?: ...; body?: unknown; ... }`. The `as unknown` cast hides the fact that callers can pass an object that's missing required fields silently.
@@ -467,9 +474,10 @@ The BUG_HUNT_REVIEW §4.1 confirmed the DONOR app's hardcoded colors bypass the 
 | `src/components/layout/header.tsx` | 1 | 8 |
 | `src/components/ui/error-boundary.tsx` | 0 | 6 |
 
-- [ ] **[P2]** Theme regression — **350+ hardcoded color/opacity tokens bypass the theme system**
-  The DONOR UI relies on `text-white/30` (etc.) and `bg-[#0a0a0c]`. Switching the theme to "Forge Daylight" (light) or "Forge Copper" leaves these hardcoded values unchanged, so the theme is effectively dead in many components.
+- [x] **[P2]** Theme regression — **350+ hardcoded color/opacity tokens bypass the theme system** (PARTIAL)
+  The DONOR UI relies on `text-white/30` (etc.) and `bg-[#0a0a0a]`. Switching the theme to "Forge Daylight" (light) or "Forge Copper" leaves these hardcoded values unchanged, so the theme is effectively dead in many components.
   **Fix:** Audit each occurrence and replace with `var(--color-text-primary)`, `var(--color-surface)`, `var(--color-text-secondary)`, etc. The `bg-[#0a0a0a]` family maps to `var(--color-bg)` / `var(--color-surface)`. The `text-white/[0.X]` family maps to `var(--color-text-primary)` with opacity from CSS variables (`--text-primary-rgb: 230 237 243;` then `color: rgb(var(--text-primary-rgb) / 0.3)`). See `src/theme/themes.ts:1-30` for the token names.
+  > Resolved 2026-06-04 (partial). Bulk-replaced all 9 hardcoded dark-surface hex backgrounds (bg-[#080808], bg-[#0a0a0a], bg-[#0a0a0c], bg-[#0c0c10], bg-[#0d0d11], bg-[#0e0e0e], bg-[#0e0e12], bg-[#101015], bg-[#111114]) with var(--color-surface) in 6 .tsx files. Remaining ~322 text-white/[opacity] violations need a per-file audit to choose the right token (text-primary, text-secondary, text-muted, border, accent). Tracked as a follow-up sweep; an automated codemod via jscodeshift would be the right tool.
 
 - [ ] **[P2]** `src/components/ThemeMaker.tsx` and `src/components/ThemePreview.tsx` — **Orphaned (no mount point)**
   See §3 D-9. Restoring SettingsModule and mounting ThemeMaker resolves this.

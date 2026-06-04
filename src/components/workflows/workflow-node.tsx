@@ -93,7 +93,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
   return (
     <div
       className={cn(
-        'rounded-xl border-2 bg-[#111] shadow-xl min-w-[300px] max-w-[340px]',
+        'rounded-xl border-2 bg-[var(--color-surface-elevated)] shadow-xl min-w-[300px] max-w-[340px]',
         config.color,
         result?.status === 'running' && 'ring-2 ring-white/20 animate-pulse',
         result?.status === 'done' && 'ring-2 ring-green-500/30',
@@ -101,7 +101,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
       )}
     >
       {config.hasInput && (
-        <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-white/30 !border-2 !border-[#111]" />
+        <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-white/30 !border-2 !border-[var(--color-surface-elevated)]" />
       )}
 
       {/* Header */}
@@ -427,7 +427,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
       </div>
 
       {config.hasOutput && (
-        <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-white/30 !border-2 !border-[#111]" />
+        <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-white/30 !border-2 !border-[var(--color-surface-elevated)]" />
       )}
     </div>
   )

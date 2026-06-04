@@ -197,7 +197,7 @@ export function AudioView() {
           transcript ? (
             <div className="flex flex-col gap-3 animate-fade-in">
               <Label>Transcript</Label>
-              <div className="bg-[#111114] border border-white/[0.06] rounded-xl p-6 text-[15px] text-white/85 whitespace-pre-wrap leading-relaxed">
+              <div className="var(--color-surface) border border-white/[0.06] rounded-xl p-6 text-[15px] text-white/85 whitespace-pre-wrap leading-relaxed">
                 {transcript}
               </div>
             </div>

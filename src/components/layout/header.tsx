@@ -52,7 +52,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   const modelOptions = hasOwnSelector ? [] : (models?.map((m) => ({ value: m.id, label: m.model_spec?.name || m.id })) ?? [])
 
   return (
-    <header className="flex items-center gap-3 h-14 px-3 border-b border-white/[0.05] bg-[#0a0a0c] shrink-0">
+    <header className="flex items-center gap-3 h-14 px-3 border-b border-white/[0.05] var(--color-surface) shrink-0">
       <button
         onClick={() => onOpenMobileSidebar?.()}
         aria-label="Open menu"

@@ -63,7 +63,7 @@ function PreviewNodeComponent({ id, data }: NodeProps<PreviewNode>) {
 
   return (
     <div className={cn('rounded-xl border-2 bg-[#111] shadow-xl min-w-[240px] max-w-[280px]', border, statusRing)}>
-      {hasInput && <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-white/30 !border-2 !border-[#111]" />}
+      {hasInput && <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-white/30 !border-2 !border-[var(--color-surface-elevated)]" />}
 
       <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-white/[0.06]">
         <span className="text-[13.5px] font-medium text-white/60">{schema?.label ?? data.nodeType}</span>
@@ -101,7 +101,7 @@ function PreviewNodeComponent({ id, data }: NodeProps<PreviewNode>) {
         </div>
       )}
 
-      {hasOutput && <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-white/30 !border-2 !border-[#111]" />}
+      {hasOutput && <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-white/30 !border-2 !border-[var(--color-surface-elevated)]" />}
     </div>
   )
 }
