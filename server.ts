@@ -421,6 +421,12 @@ export function createServerApp() {
         return res.status(400).json({ error: "Missing or invalid URL" });
       }
 
+      const decision = assessChildExploitationSafety({ endpoint: url, method: "GET", text: decodeURIComponent(url), source: "web-proxy" });
+      recordDecision(decision);
+      if (!decision.allow || decision.action === "block") {
+        return res.status(451).json({ error: decision.userMessage });
+      }
+
       let parsed: URL;
       try {
         parsed = new URL(url);

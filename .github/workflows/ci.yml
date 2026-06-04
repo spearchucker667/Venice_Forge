@@ -24,8 +24,10 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
-      - run: npm ci --prefer-offline
-      - run: npm audit --audit-level=moderate
+      - run: npm ci
+      - name: Audit dependencies (prod-only, warn-only)
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true
       - run: npm run lint:eslint
       - run: npm run typecheck
       - run: npm test

@@ -27,7 +27,7 @@
     "build": "npm run build:web && npm run build:server && npm run build:electron",
     "verify:safety-guard": "node scripts/verify-safety-guard.cjs",
     "build:web": "cross-env ELECTRON_BUILD=true vite build",
-    "build:server": "esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "build:server": "esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --log-override:empty-import-meta=silent --outfile=dist/server.cjs",
     "build:electron": "tsc --project tsconfig.electron.json && node scripts/create-cjs-package.cjs",
     "start": "node scripts/start-production.cjs",
     "preview": "vite preview",

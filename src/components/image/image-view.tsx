@@ -135,7 +135,7 @@ export function ImageView() {
               aspectRatio: req.aspect_ratio as string | undefined,
               style: req.style_preset as string | undefined,
               timestamp: Date.now(),
-            }).catch(console.error)
+            }).catch(console.error);
           }
         },
       },

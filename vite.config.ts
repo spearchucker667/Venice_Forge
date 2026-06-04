@@ -31,6 +31,9 @@ export default defineConfig(() => {
     },
     // Electron's loadFile requires relative asset paths
     base: isElectronBuild ? "./" : "/",
+    build: {
+      chunkSizeWarningLimit: 1000,
+    },
     server: {
       hmr: !disableHmr,
       watch: disableHmr ? null : {},

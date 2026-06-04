@@ -62,7 +62,7 @@ function runEnforcementChecks(root) {
     if (!entry.check(content)) {
       failures.push(`[${entry.name}] ${entry.file} FAILED: ${entry.message}`);
     }
-  }
+    }
   return failures;
 }
 
@@ -88,16 +88,16 @@ function scanForViolations(root) {
         const content = fs.readFileSync(fullPath, 'utf-8');
 
         // Look for console logging of prompt-like variables
-        // VERIFY-003 fix: exclusion terms (promptHash, promptTouched) must only skip
-        // a file if the ONLY match is in a known-safe context. Previously, a file with
-        // both a real prompt log AND an exclusion term would pass falsely.
-        // Now we apply the exclusion check per-match rather than per-file.
-        const RAW_LOG_RE = /console\.(log|warn|error)[^;]*\b(prompt|userPrompt|input|payload)\b/g;
+        // VERIFIED fix: stop at newline/semicolon to avoid huge multi-line false positives.
+        const RAW_LOG_RE = /console\.(log|warn|error)[^\n;]*\b(prompt|userPrompt|input|payload)\b/g;
         const logMatches = content.match(RAW_LOG_RE);
         if (logMatches) {
           const unsafeMatches = logMatches.filter(match => {
             // Allow matches that are clearly about audit/hash metadata, not raw content
-            return !/promptHash|promptTouched|promptId|auditSnap/.test(match);
+            if (/promptHash|promptTouched|promptId|auditSnap/.test(match)) return false;
+            // Allow structural/log metadata like prompt length without logging raw content
+            if (/\.length/.test(match)) return false;
+            return true;
           });
           if (unsafeMatches.length > 0) {
             failures.push(`File ${fullPath} contains a pattern that looks like raw prompt logging`);

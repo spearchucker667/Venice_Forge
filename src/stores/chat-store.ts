@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { ChatMessage, Conversation, VeniceParameters } from '../types/venice'
+import type { Conversation as StoredConversation } from '../types/conversation'
 import { generateId } from '../lib/utils'
 import { createSafeStorage } from '../lib/safe-storage'
 
@@ -199,7 +200,7 @@ if (typeof window !== 'undefined') {
       clearTimeout(saveTimer)
       saveTimer = setTimeout(() => {
         if (window.veniceForge?.chat) {
-          window.veniceForge.chat.save(active as any).catch(console.error)
+          window.veniceForge.chat.save(active as unknown as StoredConversation).catch(console.error)
         }
       }, 500) // Debounce saves
     }

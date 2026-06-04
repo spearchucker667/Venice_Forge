@@ -334,6 +334,12 @@ export function registerIpcHandlers(): void {
         return { ok: false, error: "Missing or invalid URL" };
       }
 
+      const decision = assessChildExploitationSafety({ endpoint: url, method: "GET", text: decodeURIComponent(url), source: "ipc" });
+      recordDecision(decision);
+      if (!decision.allow || decision.action === "block") {
+        return { ok: false, error: decision.userMessage };
+      }
+
       let parsed: URL;
       try {
         parsed = new URL(url);

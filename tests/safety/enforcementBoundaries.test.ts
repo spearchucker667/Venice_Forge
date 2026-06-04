@@ -396,3 +396,44 @@ describe("payload extraction boundary", () => {
     expect(d.allow).toBe(false);
   });
 });
+
+describe("enforcement boundary — proxyScrape URL paths (guard regression)", () => {
+  beforeEach(() => {
+    _resetAuditCounters_TEST_ONLY();
+  });
+
+  it("blocks trigger embedded in scrape URL text (app:proxyScrape source)", () => {
+    const unsafeUrl = `https://example.com/?q=${encodeURIComponent(triggerInput("CSAM_EXPLICIT"))}`;
+    const d = assessChildExploitationSafety({
+      text: decodeURIComponent(unsafeUrl),
+      endpoint: unsafeUrl,
+      method: "GET",
+      source: "ipc",
+    });
+    recordDecision(d);
+    expect(d.allow).toBe(false);
+  });
+
+  it("blocks trigger embedded in scrape URL text (/api/proxy-scrape source)", () => {
+    const unsafeUrl = `https://example.com/?q=${encodeURIComponent(triggerInput("LOLI_TERM"))}`;
+    const d = assessChildExploitationSafety({
+      text: decodeURIComponent(unsafeUrl),
+      endpoint: unsafeUrl,
+      method: "GET",
+      source: "web-proxy",
+    });
+    recordDecision(d);
+    expect(d.allow).toBe(false);
+  });
+
+  it("allows benign scrape URL", () => {
+    const d = assessChildExploitationSafety({
+      text: "https://example.com/page",
+      endpoint: "https://example.com/page",
+      method: "GET",
+      source: "ipc",
+    });
+    recordDecision(d);
+    expect(d.allow).toBe(true);
+  });
+});
