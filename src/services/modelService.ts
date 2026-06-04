@@ -1,7 +1,7 @@
 /** @fileoverview Fetches and caches the Venice model catalog with stale-while-revalidate behavior. */
 
 import { veniceFetch } from "./veniceClient";
-import { flattenModels } from "../state/appReducer";
+import { flattenModels } from "./modelClassification";
 import { isValidModelListResponse } from "../utils/veniceValidation";
 import { warn } from "../shared/logger";
 import type { AppDispatch } from "../types/app";

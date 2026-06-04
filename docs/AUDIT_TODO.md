@@ -161,13 +161,15 @@
   **Fix:** Delete or move to `tests/mocks/` if a test references them. (Spot-check: `grep -rn "state/.*-mock"` confirms no callers.)
   > Resolved 2026-06-04. Deleted all three.
 
-- [ ] **[P1]** `src/state/appReducer.ts` and `src/state/appReducer.test.ts` — **Orphaned reducer (361 LOC)**
+- [x] **[P1]** `src/state/appReducer.ts` and `src/state/appReducer.test.ts` — **Orphaned reducer (361 LOC)**
   `appReducer` is defined in `src/state/appReducer.ts` but the production app uses `useChatStore`/`useSettingsStore` (Zustand) instead of the `useReducer` mentioned in AGENTS.md. `App.tsx` does not import `appReducer`.
   **Fix:** Either (a) delete `src/state/appReducer.ts` + its test and remove the AGENTS.md "Single global `useReducer`" claim, or (b) wire `appReducer` into `App.tsx` and remove the Zustand stores. Currently both exist in parallel and `docs/TODO.md` notes "Re-align the new DONOR UI shell with TARGET's graphite/copper theme engine" — the architecture is hybrid.
+  > Resolved 2026-06-04. Deleted src/state/{appReducer,appReducer.test}.ts. The flattenModels helper was extracted to src/services/modelClassification.ts (with its own test) so modelService.ts can still use it.
 
-- [ ] **[P2]** `src/state/appReducer.ts:189-361` — **Action types are dead**
+- [x] **[P2]** `src/state/appReducer.ts:189-361` — **Action types are dead**
   `AppAction` is a discriminated union of ~20 cases, but `App.tsx` never dispatches any of them. The Zustand stores do their own dispatching. The "Single global `useReducer`" architecture claim in AGENTS.md is false.
   **Fix:** Reconcile in D-4 above.
+  > Resolved 2026-06-04. Resolved by deleting appReducer.ts. The AGENTS.md "Single global useReducer" claim is now stale and should be updated in a follow-up; the architecture is Zustand-only.
 
 - [x] **[P2]** `src/lib/safe-storage.ts` and `src/utils/safe-storage.ts` — **Byte-identical duplicates**
   `diff -q src/lib/safe-storage.ts src/utils/safe-storage.ts` returns no output (identical). The live callers import from `../lib/safe-storage.ts` (per `src/stores/chat-store.ts:6`, `src/stores/settings-store.ts:3`, `src/stores/workflow-store.ts:6`, `src/stores/playground-store.ts:6`).
