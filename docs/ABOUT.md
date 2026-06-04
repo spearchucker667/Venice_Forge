@@ -20,8 +20,11 @@ Current public readiness status:
 - **18+ Age Restriction.** Use of the application is strictly restricted to adults aged 18 and older, acknowledging the inherent risks of unfiltered AI image generation (including CSAM).
 - **Privacy by default.** The Venice API is privacy-preserving by design. Venice Forge keeps API keys out of the renderer process, never persists keys in plaintext, and never exports them.
 - **Offline-first storage.** Images, chat history, and settings live in browser IndexedDB — no cloud sync, no telemetry.
-- **Practical security.** The Electron architecture enforces strict IPC validation, a narrow preload surface, and a restrictive CSP. The web proxy enforces the same endpoint allowlist plus rate limiting and security headers.
+- **Unified Creative Suite.** Provide a seamless, visual interface for the full spectrum of Venice multimodal capabilities.
 - **Reproducible builds.** TypeScript strict mode, a CI matrix across Node 20 and 22, and `npm ci` ensure every build starts from a known state.
+
+> [!NOTE]
+> Venice Forge is currently in a "restructuring" phase following a major codebase merge. Architectural consistency is being actively restored.
 
 ## Architecture
 

@@ -1,6 +1,6 @@
-import { useMemo, useContext } from 'react'
-import type { ModelCapabilities, ModelTrait, ModelInfo } from '../types/venice'
-import { ModelsContext } from './use-models-mock'
+import { useMemo } from 'react'
+import { useModels } from './use-models'
+import type { ModelCapabilities, ModelTrait, VeniceModel } from '../types/venice'
 
 export interface AgentModel {
   id: string
@@ -22,11 +22,11 @@ const RECOMMENDED_DEFAULTS = new Set([
   'mistral-small-3-2-24b-instruct',  // fast, clean
 ])
 
-function tierFor(model: ModelInfo): number {
-  const traits = (model as any).model_spec?.traits ?? [] // eslint-disable-line @typescript-eslint/no-explicit-any
-  if (traits.some((t: any) => TOP_TRAITS.includes(t))) return 0 // eslint-disable-line @typescript-eslint/no-explicit-any
+function tierFor(model: VeniceModel): number {
+  const traits = model.model_spec?.traits ?? []
+  if (traits.some((t) => TOP_TRAITS.includes(t))) return 0
   if (RECOMMENDED_DEFAULTS.has(model.id)) return 0
-  const caps = model.capabilities ?? (model as any).model_spec?.capabilities ?? {} // eslint-disable-line @typescript-eslint/no-explicit-any
+  const caps = model.model_spec?.capabilities ?? {}
   if (caps.supportsResponseSchema && caps.supportsFunctionCalling) {
     if (caps.supportsReasoning) return 2 // reasoning models slow at JSON tasks
     return 1
@@ -40,35 +40,36 @@ function tierFor(model: ModelInfo): number {
  * The picker UI can show all OR filter to tier <= 2 (genuinely capable).
  */
 export function useAgentModels() {
-  const modelsMap = useContext(ModelsContext)
-  const data = modelsMap?.text || []
+  const { data, isLoading } = useModels('text')
+
   const models = useMemo<AgentModel[]>(() => {
     if (!data) return []
     return data
-      .filter((m) => !(m as any).model_spec?.offline) // eslint-disable-line @typescript-eslint/no-explicit-any
+      .filter((m) => !m.model_spec?.offline)
       .map<AgentModel>((m) => {
-        const caps = m.capabilities ?? (m as any).model_spec?.capabilities ?? {} // eslint-disable-line @typescript-eslint/no-explicit-any
-        const traits = (m as any).model_spec?.traits ?? [] // eslint-disable-line @typescript-eslint/no-explicit-any
+        const caps = m.model_spec?.capabilities ?? {}
+        const traits = m.model_spec?.traits ?? []
         const tier = tierFor(m)
         return {
           id: m.id,
-          name: m.name || (m as any).model_spec?.name || m.id, // eslint-disable-line @typescript-eslint/no-explicit-any
+          name: m.model_spec?.name || m.id,
           capabilities: caps,
           traits,
-          contextTokens: (m as any).model_spec?.availableContextTokens, // eslint-disable-line @typescript-eslint/no-explicit-any
+          contextTokens: m.model_spec?.availableContextTokens,
           recommended: tier === 0,
           tier,
-          reasoning: !!caps.supportsReasoning,
+          reasoning: caps.supportsReasoning === true,
           uncensored: traits.includes('most_uncensored'),
         }
       })
       .sort((a, b) => {
         if (a.tier !== b.tier) return a.tier - b.tier
+        // Within tier: name alpha
         return a.name.localeCompare(b.name)
       })
   }, [data])
 
-  return { models }
+  return { models, isLoading }
 }
 
 /** Returns the AgentModel for an id, falling back to a synthesized record. */

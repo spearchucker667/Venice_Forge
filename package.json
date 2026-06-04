@@ -58,11 +58,13 @@
     "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/lora": "^5.2.8",
+    "@tanstack/react-query": "^5.101.0",
     "@xyflow/react": "^12.11.0",
     "dotenv": "^16.4.5",
     "electron-updater": "^6.8.3",
     "express": "^4.21.2",
     "http-proxy-middleware": "^4.0.0",
+    "lucide-react": "^1.17.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "zustand": "^5.0.14"

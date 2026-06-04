@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { cn } from '../../utils/tailwind-utils'
+import { cn } from '../../lib/utils'
 
 interface SelectProps {
   value: string

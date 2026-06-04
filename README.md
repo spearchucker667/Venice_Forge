@@ -9,6 +9,9 @@
   <em>Chat, create images, batch prompts, and research the web — all powered by Venice.</em>
 </p>
 
+> [!WARNING]
+> **Major Restructuring in Progress**: This repository is currently undergoing a significant architectural merge and UI overhaul. **Expect bugs, broken links, and incomplete features** in the current `main` branch. We are working to stabilize the unified codebase.
+
 > [!IMPORTANT]
 > **18+ Age Requirement**: You must be 18 years or older to use this application. This app connects to unrestricted AI endpoints that pose inherent risks, including the potential to generate explicit content or AI-generated images that inappropriately represent minors (CSAM). By proceeding, you confirm you are 18+ and assume all responsibility.
 >

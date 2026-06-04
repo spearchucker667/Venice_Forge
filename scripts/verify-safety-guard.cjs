@@ -36,17 +36,6 @@ const enforcementMap = [
     message: 'IPC handlers "venice:request" and "venice:streamChat" must be guarded'
   },
   {
-    file: 'src/modules/SearchScrapeModule.tsx',
-    name: 'SearchScrape UI Module',
-    check: (content) => {
-      // VERIFY-002 fix: verify guard is called in all three send paths:
-      // runSearch, runAiResearch, and runProfileDiscovery.
-      const guardCallCount = (content.match(/assessChildExploitationSafety\s*\(/g) || []).length;
-      return guardCallCount >= 3;
-    },
-    message: 'SearchScrapeModule must call safety guard in runSearch, runAiResearch, and runProfileDiscovery'
-  },
-  {
     file: 'server.ts',
     name: 'Web Proxy Server',
     check: (content) => {

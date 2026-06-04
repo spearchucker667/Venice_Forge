@@ -24,3 +24,4 @@ docs/HQE_AUDIT_REPORT.md
 !.env.example
 .integration-src/
 .vite/
+target_inventory.txt

@@ -1,4 +1,4 @@
-import { cn } from '../../utils/tailwind-utils'
+import { cn } from '../../lib/utils'
 import { Spinner } from './spinner'
 
 export function Label({ children, htmlFor, hint }: { children: React.ReactNode; htmlFor?: string; hint?: string }) {

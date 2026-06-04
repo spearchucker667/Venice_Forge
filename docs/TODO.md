@@ -1,5 +1,13 @@
 # Venice Forge TODO
 
+## Restructuring & Merge Stabilization (CURRENT FOCUS)
+
+- [ ] **Type Safety Restoration:** Fix all remaining `any` types and implicit `any` errors introduced during the DONOR UI port.
+- [ ] **UI Polish & Consistency:** Re-align the new DONOR UI shell with TARGET's graphite/copper theme engine. Ensure all studios (Audio, Video, Music) feel like part of the same app.
+- [ ] **Deep Feature Verification:** Regression test all new features (Workflows, Playground, Studios) to ensure they work correctly over the Electron IPC bridge.
+- [ ] **Data Migration:** Ensure legacy `chat-history/*.json` and `IndexedDB` stores are correctly picked up by the new React components.
+- [ ] **Asset Sanitization:** Double-check for any remaining "OpenVenice" or "donor" references in the codebase.
+
 ## Active Tasks
 
 - [x] Triage new audit findings from `docs/AUDIT_TODO.md` when present (None present).

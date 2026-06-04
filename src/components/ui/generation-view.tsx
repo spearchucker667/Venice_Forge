@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { cn } from '../../utils/tailwind-utils'
+import { cn } from '../../lib/utils'
 
 interface Props {
   controls: ReactNode
