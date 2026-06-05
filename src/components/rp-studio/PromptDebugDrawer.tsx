@@ -1,0 +1,124 @@
+/**
+ * @fileoverview Prompt Debug Drawer — show the prompt builder trace.
+ *
+ * Lists every block the builder considered with its `included` flag and the
+ * reason it was excluded (if any). Lets users see exactly which lorebook
+ * entries and memories were injected.
+ */
+
+import { useMemo, useState } from "react";
+import type { PromptAssemblyResult, PromptAssemblyTraceEntry } from "../../types/rp";
+import { cn } from "../../lib/utils";
+import { GhostButton, PillGroup, TextArea } from "../ui/shared";
+import { truncate } from "./_shared";
+
+const KIND_TONE: Record<PromptAssemblyTraceEntry["kind"], string> = {
+  "safety-preamble": "border-emerald-400/30 text-emerald-300",
+  "model-identity": "border-sky-400/30 text-sky-300",
+  "persona": "border-teal-400/30 text-[var(--color-accent)]",
+  "character": "border-violet-400/30 text-violet-300",
+  "scenario": "border-amber-400/30 text-amber-300",
+  "lorebook-entry": "border-pink-400/30 text-pink-300",
+  "memory": "border-rose-400/30 text-rose-300",
+  "recent-message": "border-white/[0.15] text-white/60",
+  "active-turn-instruction": "border-emerald-400/30 text-emerald-300",
+  "user-message": "border-white/[0.15] text-white/80",
+};
+
+interface Props {
+  assembly: PromptAssemblyResult;
+  onClose: () => void;
+}
+
+export function PromptDebugDrawer({ assembly, onClose }: Props) {
+  const [view, setView] = useState<"trace" | "system" | "recent" | "user">("trace");
+
+  const totalIncludedChars = useMemo(
+    () => assembly.trace.filter((t) => t.included).reduce((acc, t) => acc + t.chars, 0),
+    [assembly],
+  );
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Prompt debug drawer"
+      className="absolute inset-0 z-30 flex bg-black/50 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="ml-auto h-full w-full max-w-xl bg-surface border-l border-white/[0.08] flex flex-col">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
+          <h2 className="text-[14px] font-semibold text-white/90">Prompt trace</h2>
+          <span className="text-[11px] text-white/40">
+            {totalIncludedChars.toLocaleString()} chars · {assembly.budgetExceeded ? "budget exceeded" : "within budget"}
+          </span>
+          <div className="ml-auto">
+            <GhostButton onClick={onClose}>Close</GhostButton>
+          </div>
+        </div>
+        <div className="px-4 py-2 border-b border-white/[0.06]">
+          <PillGroup
+            options={[
+              { value: "trace", label: "Trace" },
+              { value: "system", label: "System" },
+              { value: "recent", label: "Recent" },
+              { value: "user", label: "User" },
+            ]}
+            value={view}
+            onChange={(v) => setView(v as "trace" | "system" | "recent" | "user")}
+            ariaLabel="View"
+          />
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {view === "trace" && (
+            <ul className="space-y-1.5">
+              {assembly.trace.map((entry) => (
+                <li
+                  key={entry.id}
+                  className={cn(
+                    "flex items-start gap-2 text-[12px] border rounded-md px-2.5 py-1.5",
+                    KIND_TONE[entry.kind] ?? "border-white/[0.1] text-white/60",
+                    !entry.included && "opacity-50",
+                  )}
+                >
+                  <span className="font-mono text-[10.5px] shrink-0 mt-0.5">{entry.kind}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate">{entry.label}</div>
+                    {entry.reason && (
+                      <div className="text-[10.5px] text-white/35 mt-0.5">excluded: {entry.reason}</div>
+                    )}
+                  </div>
+                  <span className="text-[10.5px] text-white/40 shrink-0">{entry.chars}ch</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {view === "system" && (
+            <div className="space-y-3">
+              {assembly.systemMessages.map((m, i) => (
+                <TextArea key={i} value={m.content} onChange={() => { /* read-only */ }} rows={6} ariaLabel={`System block ${i + 1}`} />
+              ))}
+            </div>
+          )}
+          {view === "recent" && (
+            <div className="space-y-2">
+              {assembly.recentMessages.length === 0 ? (
+                <div className="text-[12px] text-white/30 italic">No recent messages.</div>
+              ) : (
+                assembly.recentMessages.map((m, i) => (
+                  <div key={i} className="bg-white/[0.02] border border-white/[0.06] rounded-md p-2">
+                    <div className="text-[10.5px] uppercase tracking-wider text-white/40">{m.role}{m.name ? ` · ${m.name}` : ""}</div>
+                    <div className="text-[12.5px] text-white/85 mt-1 whitespace-pre-wrap">{truncate(m.content, 600)}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+          {view === "user" && (
+            <TextArea value={assembly.userMessage.content} onChange={() => { /* read-only */ }} rows={6} ariaLabel="User message" />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -32,6 +32,11 @@ function PlaygroundView() {
   return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading playground…</div>}><LazyPlaygroundView /></Suspense>
 }
 
+const LazyRpStudioView = lazy(() => import('./components/rp-studio').then((m) => ({ default: m.RpStudioView })))
+function RpStudioViewLazy() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading RP studio…</div>}><LazyRpStudioView /></Suspense>
+}
+
 const views = {
   chat: ChatView,
   image: ImagePage,
@@ -45,9 +50,10 @@ const views = {
   settings: SettingsView,
   search: SearchScrapeView,
   characters: CharactersView,
+  'rp-studio': RpStudioViewLazy,
 } as const
 
-const TAB_ORDER: Tab[] = ['chat', 'image', 'audio', 'music', 'video', 'embeddings', 'search', 'characters', 'workflows', 'playground', 'settings', 'status']
+const TAB_ORDER: Tab[] = ['chat', 'image', 'audio', 'music', 'video', 'embeddings', 'search', 'characters', 'rp-studio', 'workflows', 'playground', 'settings', 'status']
 
 export function App() {
   const needsUnlock = useAuthStore((s) => s.hasEncrypted && !s.apiKey)

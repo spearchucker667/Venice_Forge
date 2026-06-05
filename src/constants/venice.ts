@@ -80,13 +80,26 @@ export const DIAG_HEADER_NAMES = [
 export const DEFAULT_SYSTEM_PROMPT = "You are a precise, useful AI assistant inside Venice Forge.";
 
 /** IndexedDB object store names used by the application. */
-export const STORE_NAMES = ["images", "chats", "settings", "diagnostics", "conversations", "ai_memory", "files"];
+export const STORE_NAMES = [
+  "images",
+  "chats",
+  "settings",
+  "diagnostics",
+  "conversations",
+  "ai_memory",
+  "files",
+  "character_cards",
+  "personas",
+  "lorebooks",
+  "rp_chats",
+  "rp_assets",
+];
 
 /** Name of the IndexedDB database. */
 export const DB_NAME = "venice_canvas_studio_v1";
 
-/** Version of the IndexedDB schema. */
-export const DB_VERSION = 4;
+/** Version of the IndexedDB schema. Bumped to 5 to add Character RP Studio stores. */
+export const DB_VERSION = 5;
 
 /**
  * Known vision-capable model ids and id-patterns.

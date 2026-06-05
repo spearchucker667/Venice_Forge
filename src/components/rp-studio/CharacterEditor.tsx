@@ -1,0 +1,385 @@
+/**
+ * @fileoverview Character Editor — full editor for a single CharacterCardV1.
+ *
+ * Fields: name, description, system prompt, scenario, tags, author, modelId,
+ * adult flag, example dialogues, avatar (PNG, ≤ 1 MiB).
+ */
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useCharacterCardStore } from "../../stores/character-card-store";
+import { CARD_FIELD_MAX, MAX_AVATAR_BYTES, MAX_TAGS, type CharacterCardV1, type CharacterCardAvatar } from "../../types/rp";
+import { GhostButton, Label, PrimaryButton, TextArea, ErrorText } from "../ui/shared";
+import { Spinner } from "../ui/spinner";
+import { FALLBACK_MODELS } from "../../constants/venice";
+import { avatarDataUri } from "./_shared";
+import { assessCharacterImport } from "../../shared/safety/characterImportSafety";
+
+interface Props {
+  cardId: string;
+  onClose: () => void;
+}
+
+export function CharacterEditor({ cardId, onClose }: Props) {
+  const cards = useCharacterCardStore((s) => s.cards);
+  const upsert = useCharacterCardStore((s) => s.upsert);
+  const remove = useCharacterCardStore((s) => s.remove);
+  const initial = useMemo(() => cards.find((c) => c.id === cardId), [cards, cardId]);
+  const [draft, setDraft] = useState<CharacterCardV1 | null>(initial ?? null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [tagInput, setTagInput] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setDraft(initial ?? null);
+  }, [initial]);
+
+  if (!draft) {
+    return (
+      <div className="flex items-center justify-center h-full text-white/30 text-[13px]">
+        Character not found.
+      </div>
+    );
+  }
+
+  const update = <K extends keyof CharacterCardV1>(key: K, value: CharacterCardV1[K]) => {
+    setDraft((prev) => (prev ? { ...prev, [key]: value } : prev));
+  };
+
+  const addTag = () => {
+    const t = tagInput.trim().toLowerCase();
+    if (!t) return;
+    if (draft.tags.includes(t)) {
+      setTagInput("");
+      return;
+    }
+    if (draft.tags.length >= MAX_TAGS) return;
+    update("tags", [...draft.tags, t].slice(0, MAX_TAGS));
+    setTagInput("");
+  };
+
+  const removeTag = (tag: string) => {
+    update("tags", draft.tags.filter((t) => t !== tag));
+  };
+
+  const handleAvatarFile = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setError("Avatar must be an image file.");
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      setError(`Avatar must be ≤ ${Math.round(MAX_AVATAR_BYTES / 1024)} KiB.`);
+      return;
+    }
+    const buffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    const chunks: string[] = [];
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      chunks.push(String.fromCharCode(...bytes.subarray(i, i + 0x8000)));
+    }
+    const base64 = btoa(chunks.join(""));
+    const mimeType: CharacterCardAvatar["mimeType"] =
+      file.type === "image/jpeg" ? "image/jpeg"
+      : file.type === "image/webp" ? "image/webp"
+      : "image/png";
+    update("avatar", { data: base64, mimeType, byteLength: bytes.length });
+    setError(null);
+  };
+
+  const addExample = () => {
+    update("exampleDialogues", [...draft.exampleDialogues, { speaker: "", text: "" }]);
+  };
+
+  const updateExample = (idx: number, key: "speaker" | "text", value: string) => {
+    const next = draft.exampleDialogues.map((d, i) => (i === idx ? { ...d, [key]: value } : d));
+    update("exampleDialogues", next);
+  };
+
+  const removeExample = (idx: number) => {
+    update("exampleDialogues", draft.exampleDialogues.filter((_, i) => i !== idx));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      // Safety guard: route through the existing CSAM guard with the right
+      // endpoint/source for character imports. This blocks minors, CSAM genre
+      // labels, age-evasion etc. and allows the `adult_sexual_content` path
+      // for genuinely adult cards.
+      const decision = assessCharacterImport(draft);
+      if (!decision.allow || decision.action === "block") {
+        setError(decision.userMessage || "This character card was blocked by the safety guard.");
+        return;
+      }
+      await upsert(draft);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save character.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (typeof window !== "undefined" && !window.confirm(`Delete "${draft.name}"?`)) return;
+    await remove(draft.id);
+    onClose();
+  };
+
+  const avatarSrc = avatarDataUri(draft.avatar);
+
+  return (
+    <div className="flex flex-col h-full min-h-0">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Back to library"
+          className="text-white/55 hover:text-white p-1.5 rounded-md hover:bg-white/[0.04] transition-colors"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+        <h2 className="text-[15px] font-semibold text-white/90 truncate">{draft.name || "Untitled"}</h2>
+        <div className="ml-auto flex items-center gap-2">
+          <GhostButton onClick={handleDelete}>Delete</GhostButton>
+          <PrimaryButton onClick={handleSave} loading={saving} size="sm">
+            Save
+          </PrimaryButton>
+        </div>
+      </div>
+
+      {error && (
+        <div className="px-4 py-3">
+          <ErrorText>{error}</ErrorText>
+        </div>
+      )}
+
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
+        <section className="flex gap-4 items-start">
+          <div className="shrink-0">
+            <div className="w-24 h-24 rounded-xl overflow-hidden border border-white/[0.08] bg-white/[0.04] flex items-center justify-center text-white/30 text-3xl font-semibold">
+              {avatarSrc ? (
+                <img src={avatarSrc} alt="" className="w-full h-full object-cover" />
+              ) : (
+                (draft.name || "?").slice(0, 1).toUpperCase()
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void handleAvatarFile(f);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-2 w-24 text-[11px] py-1 rounded-md border border-white/[0.1] text-white/65 hover:text-white hover:bg-white/[0.03] transition-colors"
+            >
+              {draft.avatar ? "Replace" : "Upload"} avatar
+            </button>
+            {draft.avatar && (
+              <button
+                type="button"
+                onClick={() => update("avatar", undefined)}
+                className="mt-1 w-24 text-[11px] py-1 rounded-md text-white/40 hover:text-rose-300 transition-colors"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+
+          <div className="flex-1 space-y-3 min-w-0">
+            <div>
+              <Label htmlFor="card-name">Name</Label>
+              <input
+                id="card-name"
+                value={draft.name}
+                onChange={(e) => update("name", e.target.value)}
+                maxLength={200}
+                className="w-full bg-surface border border-white/[0.08] rounded-lg px-3 py-2 text-[14px] text-white/90 outline-none focus:border-white/[0.22] transition-colors"
+              />
+            </div>
+            <div>
+              <Label htmlFor="card-author">Author</Label>
+              <input
+                id="card-author"
+                value={draft.author ?? ""}
+                onChange={(e) => update("author", e.target.value || undefined)}
+                placeholder="optional"
+                maxLength={200}
+                className="w-full bg-surface border border-white/[0.08] rounded-lg px-3 py-2 text-[14px] text-white/90 outline-none focus:border-white/[0.22] transition-colors placeholder:text-white/25"
+              />
+            </div>
+            <div>
+              <Label htmlFor="card-model" hint="optional">
+                Default model
+              </Label>
+              <select
+                id="card-model"
+                value={draft.modelId ?? ""}
+                onChange={(e) => update("modelId", e.target.value || undefined)}
+                className="w-full bg-surface border border-white/[0.08] rounded-lg px-3 py-2 text-[14px] text-white/90 outline-none focus:border-white/[0.22] transition-colors"
+              >
+                <option value="">Use chat default</option>
+                {FALLBACK_MODELS.text.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                id="card-adult"
+                type="checkbox"
+                checked={draft.adult}
+                onChange={(e) => update("adult", e.target.checked)}
+                className="accent-rose-400"
+              />
+              <Label htmlFor="card-adult">Adult content (18+)</Label>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <Label htmlFor="card-desc" hint={`${draft.description.length}/${CARD_FIELD_MAX}`}>
+            Description
+          </Label>
+          <TextArea
+            value={draft.description}
+            onChange={(v) => update("description", v)}
+            placeholder="A short summary shown in the library grid."
+            rows={3}
+            maxLength={CARD_FIELD_MAX}
+            ariaLabel="Description"
+          />
+        </section>
+
+        <section>
+          <Label htmlFor="card-system" hint={`${draft.systemPrompt.length}/${CARD_FIELD_MAX}`}>
+            System prompt
+          </Label>
+          <TextArea
+            value={draft.systemPrompt}
+            onChange={(v) => update("systemPrompt", v)}
+            placeholder="The character's persona, voice, and behavioural rules."
+            rows={6}
+            maxLength={CARD_FIELD_MAX}
+            ariaLabel="System prompt"
+          />
+        </section>
+
+        <section>
+          <Label htmlFor="card-scenario" hint="optional">
+            Scenario
+          </Label>
+          <TextArea
+            value={draft.scenario ?? ""}
+            onChange={(v) => update("scenario", v || undefined)}
+            placeholder="An opener scene shown to the model on the first turn."
+            rows={3}
+            maxLength={CARD_FIELD_MAX}
+            ariaLabel="Scenario"
+          />
+        </section>
+
+        <section>
+          <Label htmlFor="card-tags" hint={`${draft.tags.length}/${MAX_TAGS}`}>
+            Tags
+          </Label>
+          <div className="flex gap-2">
+            <input
+              id="card-tags"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === ",") {
+                  e.preventDefault();
+                  addTag();
+                }
+              }}
+              placeholder="Add a tag and press Enter…"
+              maxLength={64}
+              className="flex-1 bg-surface border border-white/[0.08] rounded-lg px-3 py-1.5 text-[13.5px] text-white/90 outline-none focus:border-white/[0.22] transition-colors placeholder:text-white/25"
+            />
+            <GhostButton onClick={addTag} disabled={!tagInput.trim()}>
+              Add
+            </GhostButton>
+          </div>
+          {draft.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {draft.tags.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => removeTag(t)}
+                  className="text-[11.5px] px-2 py-0.5 rounded-md border border-white/[0.1] bg-white/[0.04] text-white/70 hover:text-white hover:border-white/[0.2] transition-colors"
+                  aria-label={`Remove tag ${t}`}
+                >
+                  {t} ×
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section>
+          <div className="flex items-center justify-between mb-2">
+            <Label>Example dialogues</Label>
+            <GhostButton onClick={addExample}>Add example</GhostButton>
+          </div>
+          {draft.exampleDialogues.length === 0 ? (
+            <div className="text-[12px] text-white/30 italic">No examples. Add a few-shot exchange to lock in voice.</div>
+          ) : (
+            <div className="space-y-2">
+              {draft.exampleDialogues.map((d, i) => (
+                <div key={i} className="flex gap-2 items-start bg-white/[0.02] border border-white/[0.06] rounded-lg p-2">
+                  <input
+                    value={d.speaker}
+                    onChange={(e) => updateExample(i, "speaker", e.target.value)}
+                    placeholder="Speaker"
+                    maxLength={200}
+                    className="w-32 shrink-0 bg-surface border border-white/[0.08] rounded-md px-2 py-1 text-[12.5px] text-white/90 outline-none focus:border-white/[0.22] transition-colors placeholder:text-white/25"
+                  />
+                  <textarea
+                    value={d.text}
+                    onChange={(e) => updateExample(i, "text", e.target.value)}
+                    placeholder="What they say…"
+                    rows={2}
+                    maxLength={CARD_FIELD_MAX}
+                    className="flex-1 bg-surface border border-white/[0.08] rounded-md px-2 py-1 text-[12.5px] text-white/90 outline-none focus:border-white/[0.22] transition-colors placeholder:text-white/25 resize-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeExample(i)}
+                    aria-label="Remove example"
+                    className="text-white/40 hover:text-rose-300 p-1"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+
+      {saving && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+          <Spinner className="text-white/70" />
+        </div>
+      )}
+    </div>
+  );
+}

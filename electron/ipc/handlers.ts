@@ -36,6 +36,7 @@ import {
 import { validateApiKeyInput, validateVeniceIpcRequest } from "./validation";
 import { redactErrorMessage } from "../../src/services/redaction";
 import { registerUpdateHandlers } from "./updates";
+import { registerRpIpcHandlers } from "./rpHandlers";
 import { VENICE_MAX_BODY_BYTES } from "../../src/shared/limits";
 import { assessChildExploitationSafety, recordDecision, SafetyGuardBlockedError } from "../../src/shared/safety";
 import type { Conversation } from "../../src/types/conversation";
@@ -1050,4 +1051,16 @@ export function registerIpcHandlers(): void {
       return { ok: false, error: redactErrorMessage(err) };
     }
   });
+
+  // ── Character Roleplay Studio (local-first) ──
+  // See `electron/ipc/rpHandlers.ts` for the channel set:
+  //   characterCards:{list,get,save,delete}
+  //   personas:{list,get,save,delete}
+  //   lorebooks:{list,get,save,delete}
+  //   rpChats:{list,get,save,delete}
+  //   rpAssets:{list,get,save,delete}
+  // Synchronous import — handler registration must complete before this
+  // function returns so the renderer never sees a "no handler" rejection
+  // when the user clicks into the RP tab immediately on launch.
+  registerRpIpcHandlers();
 }

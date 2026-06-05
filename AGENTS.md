@@ -110,6 +110,10 @@ test's comment header.
 | `VERIFY-008` | `listConversations({ offset, limit })` server-side pagination | `electron/services/chatStorage.test.ts` |
 | `VERIFY-009` | Dual Venice client surface contract | `src/lib/venice-client.dual.test.ts` |
 | `VERIFY-010` | Zero out-of-allowlist inline colors (theme token invariant) | `tests/theme/inlineColorInvariant.test.ts` |
+| `VERIFY-011` | Character-card local storage invariants (atomic write, sidecar avatar, ID validation, corruption backup) | `tests/storage/characterCardStorage.regression.test.ts` |
+| `VERIFY-012` | RP chat storage invariants (atomic write, ID validation, MAX_ACTIVE_CHARACTERS, corruption backup) | `tests/storage/rpChatStorage.regression.test.ts` |
+| `VERIFY-013` | Scene-generation safety + asset persistence (assessScenePrompt always runs; assets linked by chatId) | `tests/safety/sceneGeneration.regression.test.ts` |
+| `VERIFY-014` | Character RP safety wrapper routing (every wrapper produces a real guard decision; no raw prompt text in userMessage) | `tests/safety/characterImportSafety.routing.test.ts` |
 
 ---
 
@@ -187,6 +191,10 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `tests/csp/inlineStyleInvariant.test.ts` | Zero JSX inline `style={...}` invariant (VERIFY-007, T1) |
 | `tests/theme/inlineColorInvariant.test.ts` | Zero out-of-allowlist inline colors (VERIFY-010, T11) |
 | `tests/safety/enforcementBoundaries.test.ts` | Child-safety-guard enforcement at every boundary (renderer / IPC / web proxy) |
+| `tests/storage/characterCardStorage.regression.test.ts` | Local character-card storage invariants (VERIFY-011) |
+| `tests/storage/rpChatStorage.regression.test.ts` | RP chat storage invariants (VERIFY-012) |
+| `tests/safety/sceneGeneration.regression.test.ts` | Scene-generation safety + assets (VERIFY-013) |
+| `tests/safety/characterImportSafety.routing.test.ts` | Character RP safety wrapper routing (VERIFY-014) |
 | `docs/AUDIT_FOLLOWUP_2026_06_05.md` | 2026-06-05 full-repo audit report — P0/P1/P2 status, commits, follow-up items |
 
 ---

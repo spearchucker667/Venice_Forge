@@ -9,7 +9,19 @@ type StoreName = (typeof STORE_NAMES)[number];
 /** List of store names whose records are encrypted before persistence. */
 // diagnostics is intentionally excluded: it stores sanitized timing/status metadata
 // only (no raw prompts, no API keys), so encryption overhead is not warranted.
-const ENCRYPTED_STORES: StoreName[] = ["chats", "settings", "images", "conversations", "ai_memory", "files"];
+const ENCRYPTED_STORES: StoreName[] = [
+  "chats",
+  "settings",
+  "images",
+  "conversations",
+  "ai_memory",
+  "files",
+  "character_cards",
+  "personas",
+  "lorebooks",
+  "rp_chats",
+  "rp_assets",
+];
 
 export interface GetItemsResult<T = unknown> {
   items: T[];
@@ -117,6 +129,46 @@ const StorageService = {
   async getItems<T = unknown>(store: StoreName): Promise<T[]> {
     const { items } = await this.getItemsWithMeta<T>(store);
     return items;
+  },
+
+  /**
+   * Retrieves a single record by id from a store, decrypting if the record is
+   * in the encrypted-stores set. Returns null when the record does not exist.
+   * @param store The object store name to query.
+   * @param id The unique identifier of the record.
+   * @returns A promise resolving to the decrypted record or null.
+   */
+  async getItem<T = unknown>(store: StoreName, id: string): Promise<T | null> {
+    if (typeof id !== "string" || !id) return null;
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(store, "readonly");
+      const req = tx.objectStore(store).get(id);
+      req.onsuccess = async () => {
+        const row = req.result as Record<string, unknown> | undefined;
+        if (!row) {
+          resolve(null);
+          return;
+        }
+        if (!ENCRYPTED_STORES.includes(store)) {
+          resolve(row as T);
+          return;
+        }
+        if (row._isEncryptedWrapper) {
+          const decrypted = await decryptData(row.data);
+          if (decrypted === null) {
+            warn(`[storageService] Record "${id}" in store "${store}" could not be decrypted.`);
+            resolve(null);
+            return;
+          }
+          resolve(decrypted as T);
+          return;
+        }
+        const decrypted = await decryptData(row);
+        resolve(decrypted as T | null);
+      };
+      req.onerror = () => reject(req.error);
+    });
   },
 
   /**

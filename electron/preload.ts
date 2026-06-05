@@ -4,6 +4,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { Conversation } from "../src/types/conversation";
 import type { ConversationRecordV1, SearchResult, PulledMemoryContext } from "../src/types/conversationVault";
+import type { CharacterCardV1, UserPersonaV1, LorebookV1, RpChatV1, RpAssetV1 } from "../src/types/rp";
 
 /** Represents a Venice API request sent from the renderer to the main process. */
 type VeniceRequest = {
@@ -331,6 +332,81 @@ const veniceForge = {
     },
     resetSecureStoreKeys(): Promise<{ ok: boolean; removed?: { venice: boolean; jina: boolean }; error?: string }> {
       return ipcRenderer.invoke("config:resetSecureStoreKeys");
+    },
+  },
+
+  characterCards: {
+    list(): Promise<{ ok: boolean; cards: CharacterCardV1[]; truncated: boolean; totalScanned: number; error?: string }> {
+      return ipcRenderer.invoke("characterCards:list");
+    },
+    get(id: string): Promise<{ ok: boolean; card: CharacterCardV1 | null; error?: string }> {
+      return ipcRenderer.invoke("characterCards:get", id);
+    },
+    save(card: CharacterCardV1): Promise<{ ok: boolean; card: CharacterCardV1 | null; error?: string }> {
+      return ipcRenderer.invoke("characterCards:save", card);
+    },
+    delete(id: string): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("characterCards:delete", id);
+    },
+  },
+
+  personas: {
+    list(): Promise<{ ok: boolean; personas: UserPersonaV1[]; truncated: boolean; totalScanned: number; error?: string }> {
+      return ipcRenderer.invoke("personas:list");
+    },
+    get(id: string): Promise<{ ok: boolean; persona: UserPersonaV1 | null; error?: string }> {
+      return ipcRenderer.invoke("personas:get", id);
+    },
+    save(persona: UserPersonaV1): Promise<{ ok: boolean; persona: UserPersonaV1 | null; error?: string }> {
+      return ipcRenderer.invoke("personas:save", persona);
+    },
+    delete(id: string): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("personas:delete", id);
+    },
+  },
+
+  lorebooks: {
+    list(): Promise<{ ok: boolean; lorebooks: LorebookV1[]; truncated: boolean; totalScanned: number; error?: string }> {
+      return ipcRenderer.invoke("lorebooks:list");
+    },
+    get(id: string): Promise<{ ok: boolean; lorebook: LorebookV1 | null; error?: string }> {
+      return ipcRenderer.invoke("lorebooks:get", id);
+    },
+    save(lorebook: LorebookV1): Promise<{ ok: boolean; lorebook: LorebookV1 | null; error?: string }> {
+      return ipcRenderer.invoke("lorebooks:save", lorebook);
+    },
+    delete(id: string): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("lorebooks:delete", id);
+    },
+  },
+
+  rpChats: {
+    list(): Promise<{ ok: boolean; chats: RpChatV1[]; truncated: boolean; totalScanned: number; error?: string }> {
+      return ipcRenderer.invoke("rpChats:list");
+    },
+    get(id: string): Promise<{ ok: boolean; chat: RpChatV1 | null; error?: string }> {
+      return ipcRenderer.invoke("rpChats:get", id);
+    },
+    save(chat: RpChatV1): Promise<{ ok: boolean; chat: RpChatV1 | null; error?: string }> {
+      return ipcRenderer.invoke("rpChats:save", chat);
+    },
+    delete(id: string): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("rpChats:delete", id);
+    },
+  },
+
+  rpAssets: {
+    list(chatId?: string): Promise<{ ok: boolean; assets: RpAssetV1[]; truncated: boolean; totalScanned: number; error?: string }> {
+      return ipcRenderer.invoke("rpAssets:list", chatId);
+    },
+    get(id: string): Promise<{ ok: boolean; asset: RpAssetV1 | null; error?: string }> {
+      return ipcRenderer.invoke("rpAssets:get", id);
+    },
+    save(asset: RpAssetV1): Promise<{ ok: boolean; asset: RpAssetV1 | null; error?: string }> {
+      return ipcRenderer.invoke("rpAssets:save", asset);
+    },
+    delete(id: string): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("rpAssets:delete", id);
     },
   },
 };

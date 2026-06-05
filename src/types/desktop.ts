@@ -3,6 +3,13 @@
 import type { UpdateInfo, ProgressInfo } from "electron-updater";
 import type { Conversation } from "./conversation";
 import type { ConversationRecordV1, SearchResult, PulledMemoryContext } from "./conversationVault";
+import type {
+  CharacterCardV1,
+  LorebookV1,
+  RpAssetV1,
+  RpChatV1,
+  UserPersonaV1,
+} from "./rp";
 
 /** Manages the Venice API key in secure OS-level storage. */
 export interface VeniceForgeApiKey {
@@ -115,6 +122,46 @@ export interface VeniceForgeChat {
   delete(id: string): Promise<{ ok: boolean; error?: string }>;
 }
 
+/** Character RP Studio: local character card persistence. */
+export interface VeniceForgeCharacterCards {
+  list(): Promise<{ ok: boolean; cards: CharacterCardV1[]; error?: string }>;
+  get(id: string): Promise<{ ok: boolean; card: CharacterCardV1 | null; error?: string }>;
+  save(card: CharacterCardV1): Promise<{ ok: boolean; card: CharacterCardV1 | null; error?: string }>;
+  delete(id: string): Promise<{ ok: boolean; error?: string }>;
+}
+
+/** Character RP Studio: user persona persistence. */
+export interface VeniceForgePersonas {
+  list(): Promise<{ ok: boolean; personas: UserPersonaV1[]; error?: string }>;
+  get(id: string): Promise<{ ok: boolean; persona: UserPersonaV1 | null; error?: string }>;
+  save(persona: UserPersonaV1): Promise<{ ok: boolean; persona: UserPersonaV1 | null; error?: string }>;
+  delete(id: string): Promise<{ ok: boolean; error?: string }>;
+}
+
+/** Character RP Studio: lorebook persistence. */
+export interface VeniceForgeLorebooks {
+  list(): Promise<{ ok: boolean; lorebooks: LorebookV1[]; error?: string }>;
+  get(id: string): Promise<{ ok: boolean; lorebook: LorebookV1 | null; error?: string }>;
+  save(lorebook: LorebookV1): Promise<{ ok: boolean; lorebook: LorebookV1 | null; error?: string }>;
+  delete(id: string): Promise<{ ok: boolean; error?: string }>;
+}
+
+/** Character RP Studio: multi-character chat persistence. */
+export interface VeniceForgeRpChats {
+  list(): Promise<{ ok: boolean; chats: RpChatV1[]; error?: string }>;
+  get(id: string): Promise<{ ok: boolean; chat: RpChatV1 | null; error?: string }>;
+  save(chat: RpChatV1): Promise<{ ok: boolean; chat: RpChatV1 | null; error?: string }>;
+  delete(id: string): Promise<{ ok: boolean; error?: string }>;
+}
+
+/** Character RP Studio: generated asset metadata persistence. */
+export interface VeniceForgeRpAssets {
+  list(chatId?: string): Promise<{ ok: boolean; assets: RpAssetV1[]; error?: string }>;
+  get(id: string): Promise<{ ok: boolean; asset: RpAssetV1 | null; error?: string }>;
+  save(asset: RpAssetV1): Promise<{ ok: boolean; asset: RpAssetV1 | null; error?: string }>;
+  delete(id: string): Promise<{ ok: boolean; error?: string }>;
+}
+
 /** Sanitized config payload returned to the renderer. Mirrors the
  *  SanitizedConfigPayload shape from electron/services/configService.ts. */
 export interface VeniceForgeConfigPayload {
@@ -205,6 +252,11 @@ export interface VeniceForge {
   conversations: VeniceForgeConversations;
   updates: VeniceForgeUpdates;
   config: VeniceForgeConfig;
+  characterCards: VeniceForgeCharacterCards;
+  personas: VeniceForgePersonas;
+  lorebooks: VeniceForgeLorebooks;
+  rpChats: VeniceForgeRpChats;
+  rpAssets: VeniceForgeRpAssets;
 }
 
 declare global {

@@ -4,6 +4,13 @@
 import "../types/desktop";
 import type { VeniceForgeDiagnostics, VeniceForgeRequest, VeniceForgeResponse } from "../types/desktop";
 import type { Conversation } from "../types/conversation";
+import type {
+  CharacterCardV1,
+  LorebookV1,
+  RpAssetV1,
+  RpChatV1,
+  UserPersonaV1,
+} from "../types/rp";
 import { veniceFetch } from "./veniceClient";
 
 /**
@@ -371,6 +378,113 @@ export const desktopChat = {
   async delete(id: string): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Chat filesystem storage is only available in desktop mode." };
     return window.veniceForge!.chat.delete(id);
+  },
+};
+
+/**
+ * Character RP Studio: local character card bridge.
+ * In Electron, calls `window.veniceForge.characterCards.*` (IPC → filesystem).
+ * In web mode, returns the documented "not available" error; callers are
+ * expected to fall back to the IndexedDB path inside the renderer service.
+ */
+export const desktopCharacterCards = {
+  async list(): Promise<{ ok: boolean; cards: CharacterCardV1[]; error?: string }> {
+    if (!isElectron()) {
+      return { ok: false, cards: [], error: "Character card filesystem storage is only available in desktop mode." };
+    }
+    return window.veniceForge!.characterCards.list();
+  },
+  async get(id: string): Promise<{ ok: boolean; card: CharacterCardV1 | null; error?: string }> {
+    if (!isElectron()) return { ok: false, card: null, error: "Character card filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.characterCards.get(id);
+  },
+  async save(card: CharacterCardV1): Promise<{ ok: boolean; card: CharacterCardV1 | null; error?: string }> {
+    if (!isElectron()) return { ok: false, card: null, error: "Character card filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.characterCards.save(card);
+  },
+  async delete(id: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Character card filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.characterCards.delete(id);
+  },
+};
+
+/** Character RP Studio: user persona bridge. */
+export const desktopPersonas = {
+  async list(): Promise<{ ok: boolean; personas: UserPersonaV1[]; error?: string }> {
+    if (!isElectron()) return { ok: false, personas: [], error: "Persona filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.personas.list();
+  },
+  async get(id: string): Promise<{ ok: boolean; persona: UserPersonaV1 | null; error?: string }> {
+    if (!isElectron()) return { ok: false, persona: null, error: "Persona filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.personas.get(id);
+  },
+  async save(persona: UserPersonaV1): Promise<{ ok: boolean; persona: UserPersonaV1 | null; error?: string }> {
+    if (!isElectron()) return { ok: false, persona: null, error: "Persona filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.personas.save(persona);
+  },
+  async delete(id: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Persona filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.personas.delete(id);
+  },
+};
+
+/** Character RP Studio: lorebook bridge. */
+export const desktopLorebooks = {
+  async list(): Promise<{ ok: boolean; lorebooks: LorebookV1[]; error?: string }> {
+    if (!isElectron()) return { ok: false, lorebooks: [], error: "Lorebook filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.lorebooks.list();
+  },
+  async get(id: string): Promise<{ ok: boolean; lorebook: LorebookV1 | null; error?: string }> {
+    if (!isElectron()) return { ok: false, lorebook: null, error: "Lorebook filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.lorebooks.get(id);
+  },
+  async save(lorebook: LorebookV1): Promise<{ ok: boolean; lorebook: LorebookV1 | null; error?: string }> {
+    if (!isElectron()) return { ok: false, lorebook: null, error: "Lorebook filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.lorebooks.save(lorebook);
+  },
+  async delete(id: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Lorebook filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.lorebooks.delete(id);
+  },
+};
+
+/** Character RP Studio: multi-character chat bridge. */
+export const desktopRpChats = {
+  async list(): Promise<{ ok: boolean; chats: RpChatV1[]; error?: string }> {
+    if (!isElectron()) return { ok: false, chats: [], error: "RP chat filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.rpChats.list();
+  },
+  async get(id: string): Promise<{ ok: boolean; chat: RpChatV1 | null; error?: string }> {
+    if (!isElectron()) return { ok: false, chat: null, error: "RP chat filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.rpChats.get(id);
+  },
+  async save(chat: RpChatV1): Promise<{ ok: boolean; chat: RpChatV1 | null; error?: string }> {
+    if (!isElectron()) return { ok: false, chat: null, error: "RP chat filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.rpChats.save(chat);
+  },
+  async delete(id: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "RP chat filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.rpChats.delete(id);
+  },
+};
+
+/** Character RP Studio: routed asset bridge. */
+export const desktopRpAssets = {
+  async list(chatId?: string): Promise<{ ok: boolean; assets: RpAssetV1[]; error?: string }> {
+    if (!isElectron()) return { ok: false, assets: [], error: "RP asset filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.rpAssets.list(chatId);
+  },
+  async get(id: string): Promise<{ ok: boolean; asset: RpAssetV1 | null; error?: string }> {
+    if (!isElectron()) return { ok: false, asset: null, error: "RP asset filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.rpAssets.get(id);
+  },
+  async save(asset: RpAssetV1): Promise<{ ok: boolean; asset: RpAssetV1 | null; error?: string }> {
+    if (!isElectron()) return { ok: false, asset: null, error: "RP asset filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.rpAssets.save(asset);
+  },
+  async delete(id: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "RP asset filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.rpAssets.delete(id);
   },
 };
 
