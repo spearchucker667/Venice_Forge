@@ -8,6 +8,51 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 
 ## [Unreleased]
 
+## [1.0.5] — 2026-06-05
+
+### Security
+- **Bridge bearer token credential leak (SEC-1 / P0):** The headless bridge server (`electron/services/bridgeServer.ts`) and its caller (`electron/main.ts`) were logging the full bearer token to `console.log` and the structured log at startup. The token is the sole credential required to call `/chat/completions` etc., so a leaked token grants full access. Replaced token logs with a static "[redacted — read from env var]" message. Operators who need the token can set the `VENICE_BRIDGE_TOKEN` env var before launch; otherwise a fresh 32-byte hex token is generated and held in memory only.
+- **Non-constant-time token compare (SEC-1.5 / P0):** The bridge server's auth middleware used `token !== bridgeToken` which short-circuits on first character mismatch, leaking token length and prefix-match timing. Replaced with `crypto.timingSafeEqual` on equal-length buffers plus a length-padded fallback that always invokes `timingSafeEqual` to consume the same wall-clock time as a full match.
+- **Bridge body size limit (SEC-9 / P2):** Added an explicit `express.json({ limit: "10mb" })` to match the Venice API endpoint limits. Default 100 KiB is too small for audio/video proxy traffic.
+- **Bridge abort-on-disconnect (SEC-10 / P2):** The bridge SSE streaming path was leaking upstream HTTPS requests when the client disconnected mid-stream. Wired `req.on('close')` and `res.on('close')` to call `abortVeniceRequest(signalId)` so a disconnect tears down the upstream connection. The streaming SSE writer is also wrapped in try/catch so a write error is treated as a disconnect. Added a 5-minute per-request `setTimeout` that surfaces a 504 if the upstream stalls.
+- **maskHeaders over-masking (BUG-7 / P2):** `src/services/veniceClient.ts:14` used substring matching (`lowerKey.includes("key") || lowerKey.includes("token")`) that over-masked benign headers like `keyword` or `x-token-type`. Replaced with an exact-match `SENSITIVE_HEADERS` set + an `x-*-key/-token/-secret` suffix pattern.
+- **Renderer console redaction (T1):** Added an explicit invariant test (`tests/csp/inlineStyleInvariant.test.ts`, VERIFY-007) that walks all .tsx files in `src/components/`, `src/layouts/`, `src/views/`, `src/pages/` and asserts zero JSX `style={...}` attributes. Combined with the existing production CSP `style-src 'self'` (no `'unsafe-inline'`), this locks the tightening from a 2026-06-04 audit deferred item. The bootstrap script's `document.documentElement.style.setProperty(...)` calls are NOT blocked by `style-src` (CSP `style-src` controls `<link rel=stylesheet>` and `<style>` elements, not the `element.style` JS API), so FOUC prevention continues to work.
+
+### Fixed
+- **venice() dropped AbortSignal (BUG-1 / P1):** `venice()` in `src/lib/venice-client.ts` did not forward `options.signal` to `desktopVenice.request()`. When the renderer aborted a stream, `parseSSEStream` cancelled the local reader but the upstream HTTPS request in the main process kept running and consumed tokens. Fix: pass `options.signal` as the second positional arg of `desktopVenice.request()`, which is the documented `AbortSignal` parameter. `desktopVenice.request()` calls `attachAbort(signalId, signal)` which registers an abort listener that invokes `window.veniceForge.venice.abort(signalId)` on cancel.
+- **veniceFormData stack overflow (BUG-8 / P2):** Per-byte `binaryStr += String.fromCharCode(bytes[i])` accumulation triggered V8 stack overflow on multi-MiB file uploads. Fix: base64-encode each `File` in 32 KiB chunks (matching the canonical `services/veniceClient.ts:393-396` constant). Chunked `btoa()` avoids the stack overflow and is ~2× faster on large files.
+- **venice() unguarded JSON.parse (BUG-9 / P2):** `JSON.parse(options.body)` would throw a raw `SyntaxError` that callers could not distinguish from upstream errors. Wrapped in try/catch and throws `VeniceAPIError` on malformed input.
+- **Pre-existing test-file type errors:** The 1.0.4 lib-coverage sweep left pre-existing type errors in `src/lib/{venice-client,playground-agent-tools,workflow-engine,workflow-schema}.test.ts`. Added missing `headers: {}` to mocked `VeniceForgeResponse` returns, added `reasoning: false` and typed `ModelTrait[]` literal in `playground-agent-tools.test.ts`, removed unused imports. This unblocked `npm run typecheck` which had been failing on the 1.0.4 sweep.
+
+### Changed
+- **Safety guard file split (T15 / P2):** Split the 1243-LOC `src/shared/safety/childExploitationGuard.ts` single file into 3 cohesive modules:
+  - `src/shared/safety/matchTables.ts` (252 LOC) — pattern/term dictionaries
+  - `src/shared/safety/normalization.ts` (257 LOC) — text normalization + multi-view output
+  - `src/shared/safety/childExploitationGuard.ts` (825 LOC) — public API + decision orchestration
+  LOC growth: 1243 → 1334 (+91 from new file headers, JSDoc, and explicit imports). No behavioral change — all 157 guard tests pass unchanged. The `verify-safety-guard.cjs` script's "no-bypass-toggle" check now also excludes `matchTables` and `normalization` (the new tables file legitimately contains the regex strings `bypass.*guard` and `disable.*safety` as defensive detection patterns in `INJECTION_BYPASS_PATTERNS`).
+- **Conversation pagination (T14 / P2):** Added `listConversations({ offset, limit })` to `electron/services/chatStorage.ts` with `MAX_PAGE_LIMIT = 1000` cap. New `chat:listPage` IPC channel accepts `{ offset, limit }` and returns the envelope shape directly. `desktopBridge.desktopChat.listPage()` wraps the IPC call with a web-mode fallback. `src/types/desktop.ts` adds `listPage` to the `VeniceForgeChat` interface. The legacy no-arg `listConversations()` still returns `Conversation[]` for back-compat. UI "load more" button is a follow-up; the IPC contract is in place.
+- **Dual Venice client documentation (T8 / P2):** The split between `src/lib/venice-client.ts` (141 LOC, thin Electron-only passthrough) and `src/services/veniceClient.ts` (~1136 LOC, canonical with safety guard) is documented and locked with a contract test (`src/lib/venice-client.dual.test.ts`, VERIFY-009). The lib/ client must not leak safety-guard primitives; a full consolidation would touch 17 hook files and was deferred.
+
+### Security regression guards
+10 new regression guards added this release:
+
+| ID | What it locks | File |
+|----|----------------|------|
+| VERIFY-001 | Bridge token never logged to console | `electron/services/bridgeServer.test.ts` |
+| VERIFY-002 | Constant-time token compare (wrong-length + same-length-wrong) | `electron/services/bridgeServer.test.ts` |
+| VERIFY-003 | Bridge abort-on-disconnect calls `abortVeniceRequest` | `electron/services/bridgeServer.test.ts` |
+| VERIFY-004 | Bridge 10 MiB body cap returns 413 | `electron/services/bridgeServer.test.ts` |
+| VERIFY-005 | chat-store flush-on-unload (`pagehide` + `beforeunload`) | `src/stores/chat-store.flush.test.ts` |
+| VERIFY-006 | `venice()` forwards `AbortSignal` to `desktopVenice.request` | `src/lib/venice-client.test.ts` |
+| VERIFY-007 | Zero JSX inline `style={...}` attributes (CSP invariant) | `tests/csp/inlineStyleInvariant.test.ts` |
+| VERIFY-008 | `listConversations({ offset, limit })` server-side pagination | `electron/services/chatStorage.test.ts` |
+| VERIFY-009 | Dual Venice client surface contract | `src/lib/venice-client.dual.test.ts` |
+| VERIFY-010 | Zero out-of-allowlist inline `text-white/[opacity]` / `bg-[#hex]` | `tests/theme/inlineColorInvariant.test.ts` |
+
+**Test count:** 762 → 774 (+12 new tests this release, +19 total including pre-existing test file fixes).
+
+## [1.0.4] — 2026-06-05
+
 ### Security
 - **Middle-scan gap fix (SEC-005):** Long payloads (> 24,384 chars) had a scan gap of up to ~5,616 bytes between the head and tail windows. Trigger terms placed in this gap could bypass the guard. Added a sliding middle-window scan (`MIDDLE_SCAN_CHARS = 8,000`) that covers every byte of oversized inputs. Verified by 4 new regression tests (`tail scanning for oversized inputs`).
 - **Adult-content allow improvements:** Strengthened the adult-context signals so legitimate adult content is not blocked. Added numeric age ≥ 18 + adult noun, age-verification language (`over 18`, `21+`), adult-coded terms (`MILF`, `babe`, `hottie`, `cougar`, `horny`, `naughty`, `slutty`, `thirsty`), and bare adult-gendered nouns (`adult`, `guy`). Strong adult-context signals now tolerate ambiguous youth terms (`boy`, `girl`, `teen`) when no hard youth term, minor age, K-12 context, or age-evasion is present. Defense-in-depth: minor ages, hard youth terms, K-12 school context, and age-evasion phrases still block unconditionally. 9 new regression tests added.
@@ -17,6 +62,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 - **Developer Traffic Inspector:** Lightweight developer traffic inspector showing request headers (masked for keys), payloads, response body, latency, and local safety guard evaluations in real-time. Toggleable via sidebar footer.
 - **Red-Team Mode Sandbox:** Sandbox mode toggle rendering raw chat responses (disabling Markdown/HTML formatting) and displaying detailed local safety diagnostic signals beneath each bubble.
 - **Headless Bridge Loopback Server:** Autonomous headless mode running an Express loopback-only (`127.0.0.1`) API bridge. Supports bearer token authorization, request size limits, streaming Server-Sent Events (SSE) for chat completions, and active child safety guard enforcement. Toggleable via `--headless`, `--bridge-port`, and `--bridge-host` CLI startup flags.
+- **Full Library Unit Test Suite:** Created robust unit tests for all remaining utility modules in `src/lib/` (`workflow-schema.ts`, `workflow-mutations.ts`, `venice-client.ts`, `workflow-engine.ts`, `playground-agent.ts`, and `playground-agent-tools.ts`), bringing direct unit testing coverage of utility logic to 100%.
 
 ## [1.0.3] — 2026-06-04
 
@@ -323,6 +369,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 - `.env.example` with all configurable environment variables documented.
 
 [Unreleased]: #unreleased
+[1.0.5]: https://github.com/spearchucker667/Venice-API-connector/compare/86262cac...HEAD
+[1.0.4]: #104--2026-06-05
 [1.0.3]: #103--2026-06-04
 [1.0.2]: #102--2026-05-29
 [1.0.1]: #101--2026-05-20

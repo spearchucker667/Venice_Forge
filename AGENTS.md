@@ -4,7 +4,7 @@
 > Sibling agent docs in [docs/AGENTS/AGENTS.md](docs/AGENTS/AGENTS.md) and
 > [docs/AGENTS/agent-reinitialization.md](docs/AGENTS/agent-reinitialization.md) are **gitignored** (commit `037900d`) — they are local-only handoff notes, not committed source of truth.
 
-**Version:** 1.0.3 | **Stack:** React 19 + TS strict, Electron 42, Express 4, Vitest 4 | **Node:** 20 or 22, npm 10+
+**Version:** 1.0.5 | **Stack:** React 19 + TS strict, Electron 42, Express 4, Vitest 4 | **Node:** 20 or 22, npm 10+
 
 ---
 
@@ -70,7 +70,7 @@ npm run clean            # Remove dist/ dist-electron/ release/
 - Renderer (`src/`): Vite, `tsconfig.json` (ESNext, `noEmit`, `bundler` resolution)
 - Electron main (`electron/`): `tsc --project tsconfig.electron.json` → CommonJS → `dist-electron/`; then `scripts/create-cjs-package.cjs` copies `package.json` as CJS
 
-**State:** Single global `useReducer` in `App.tsx` using Immer (`produce`). All action types in `src/types/app.ts` as a discriminated union. Side effects live in services/modules, never in the reducer.
+**State:** Zustand 5 stores (`auth`, `chat`, `playground`, `settings`, `toast`, and `workflow`). Reducer-based state has been fully migrated to lightweight slice stores. Side effects live in services/modules.
 
 **Conversation persistence (dual-mode):**
 - Desktop: atomic JSON files under `userData/chat-history/` (temp + rename)
@@ -90,6 +90,26 @@ npm run clean            # Remove dist/ dist-electron/ release/
 - Regression guards: `// BUG-NNN regression guard` (or `// VERIFY-NNN`) comment in tests that would have caught a fixed bug.
 - Node-level tests (rate-limiting, etc.): create fresh `app` in `beforeEach`, not `beforeAll`, to isolate state.
 - Coverage thresholds in `vitest.config.ts`: 70% branches, 80% functions/lines/statements.
+
+### Named regression guards (VERIFY-NNN)
+
+Security-relevant surfaces are protected by named regression guards. Each
+guard fails CI if a future change weakens the protection. When adding a
+new guard, append it to the list below and reference the ID in the
+test's comment header.
+
+| ID | What it locks | Test file |
+|----|----------------|-----------|
+| `VERIFY-001` | Bridge bearer token never logged to console | `electron/services/bridgeServer.test.ts` |
+| `VERIFY-002` | Constant-time token compare (timing-attack safe) | `electron/services/bridgeServer.test.ts` |
+| `VERIFY-003` | Bridge aborts upstream on client disconnect | `electron/services/bridgeServer.test.ts` |
+| `VERIFY-004` | Bridge JSON body cap (10 MiB) | `electron/services/bridgeServer.test.ts` |
+| `VERIFY-005` | Chat-store flush-on-unload (`pagehide` + `beforeunload`) | `src/stores/chat-store.flush.test.ts` |
+| `VERIFY-006` | `venice()` forwards `AbortSignal` to IPC | `src/lib/venice-client.test.ts` |
+| `VERIFY-007` | Zero JSX inline `style={...}` (production CSP invariant) | `tests/csp/inlineStyleInvariant.test.ts` |
+| `VERIFY-008` | `listConversations({ offset, limit })` server-side pagination | `electron/services/chatStorage.test.ts` |
+| `VERIFY-009` | Dual Venice client surface contract | `src/lib/venice-client.dual.test.ts` |
+| `VERIFY-010` | Zero out-of-allowlist inline colors (theme token invariant) | `tests/theme/inlineColorInvariant.test.ts` |
 
 ---
 
@@ -158,6 +178,16 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `server.ts` | Express proxy (`/api/venice/*`, `/api/proxy-scrape`); vite only in dev |
 | `scripts/verify-safety-guard.cjs` | CI gate — see Security section |
 | `scripts/verify-dist.cjs` | Post-package artifact verification (`verify:dist:win`, `verify:dist:mac`, `verify:dist:portable`) |
+| `src/shared/safety/childExploitationGuard.ts` | Public safety-guard API + decision orchestration (T15 split: matchTables + normalization extracted) |
+| `src/shared/safety/matchTables.ts` | Pattern/term dictionaries for the guard (T15) |
+| `src/shared/safety/normalization.ts` | Text normalization + multi-view output (T15) |
+| `src/lib/venice-client.test.ts` | Direct unit coverage of `venice/veniceStreamChat/veniceBlob/veniceFormData` (VERIFY-006) |
+| `src/lib/venice-client.dual.test.ts` | Dual-client surface contract (VERIFY-009, T8) |
+| `src/stores/chat-store.flush.test.ts` | Flush-on-unload regression guard (VERIFY-005) |
+| `tests/csp/inlineStyleInvariant.test.ts` | Zero JSX inline `style={...}` invariant (VERIFY-007, T1) |
+| `tests/theme/inlineColorInvariant.test.ts` | Zero out-of-allowlist inline colors (VERIFY-010, T11) |
+| `tests/safety/enforcementBoundaries.test.ts` | Child-safety-guard enforcement at every boundary (renderer / IPC / web proxy) |
+| `docs/AUDIT_FOLLOWUP_2026_06_05.md` | 2026-06-05 full-repo audit report — P0/P1/P2 status, commits, follow-up items |
 
 ---
 

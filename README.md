@@ -222,6 +222,25 @@ For detailed signing and notarization steps, see [docs/RELEASE/signing-and-notar
 
 **For full details**, see [SECURITY.md](SECURITY.md) and [docs/legal/PRIVACY.md](docs/legal/PRIVACY.md).
 
+### Security audit & regression guards
+
+The codebase is protected by **10 named regression guards** (`VERIFY-001`..`VERIFY-010`) that lock down the security-relevant surfaces. Each guard fails CI if a future change weakens the protection:
+
+| ID | Locks | Test file |
+|----|-------|-----------|
+| `VERIFY-001` | Bridge bearer token never logged to console | `electron/services/bridgeServer.test.ts` |
+| `VERIFY-002` | Constant-time token compare (timing-attack safe) | `electron/services/bridgeServer.test.ts` |
+| `VERIFY-003` | Bridge aborts upstream on client disconnect | `electron/services/bridgeServer.test.ts` |
+| `VERIFY-004` | Bridge JSON body cap (10 MiB) | `electron/services/bridgeServer.test.ts` |
+| `VERIFY-005` | Chat-store flush-on-unload (`pagehide` + `beforeunload`) | `src/stores/chat-store.flush.test.ts` |
+| `VERIFY-006` | `venice()` forwards `AbortSignal` to IPC | `src/lib/venice-client.test.ts` |
+| `VERIFY-007` | Zero JSX inline `style={...}` (production CSP invariant) | `tests/csp/inlineStyleInvariant.test.ts` |
+| `VERIFY-008` | `listConversations({ offset, limit })` server-side pagination | `electron/services/chatStorage.test.ts` |
+| `VERIFY-009` | Dual Venice client surface contract | `src/lib/venice-client.dual.test.ts` |
+| `VERIFY-010` | Zero out-of-allowlist inline colors (theme token invariant) | `tests/theme/inlineColorInvariant.test.ts` |
+
+The 2026-06-05 full-repo audit produced these fixes; see [docs/AUDIT_FOLLOWUP_2026_06_05.md](docs/AUDIT_FOLLOWUP_2026_06_05.md) for the full audit report (P0/P1/P2 status, commits, and follow-up items).
+
 ---
 
 ## 🎨 Theming
@@ -343,7 +362,7 @@ This project is actively maintained. For issues, feature requests, or security r
 
 | Aspect | Status |
 |--------|--------|
-| Current Version | v1.0.3 ([Releases](https://github.com/spearchucker667/Venice-API-connector/releases)) |
+| Current Version | v1.0.5 ([Releases](https://github.com/spearchucker667/Venice-API-connector/releases)) |
 | Maintenance | Actively maintained |
 | Windows Support | ✅ Fully supported |
 | macOS Support | ✅ Fully supported (Intel + Apple Silicon) |
@@ -351,6 +370,7 @@ This project is actively maintained. For issues, feature requests, or security r
 | Node.js | v20, v22 |
 | TypeScript | Strict mode enforced |
 | Safety Guard | ✅ Active on every request |
+| Test Suite | 774 passing (+10 named regression guards) |
 | License | [MIT](LICENSE) |
 
 Latest changes: See [CHANGELOG.md](CHANGELOG.md)

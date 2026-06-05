@@ -3,7 +3,7 @@
 This document is the public map for the Venice Forge repository. It reflects the current dual-mode app layout: Electron desktop production mode and Express/Vite web development mode.
 
 > [!NOTE]
-> The repository is currently undergoing major restructuring. Some paths below may be in transition.
+> The repository is post-merge stabilized. All stale `src/modules/` have been removed in favor of `src/components/` layout groups.
 
 ## Top-Level Structure
 
@@ -25,25 +25,60 @@ This document is the public map for the Venice Forge repository. It reflects the
 ├── docs/                          # Extensive project documentation
 ├── electron/                      # Electron main process source
 │   ├── ipc/                       # IPC handlers and validation
-│   ├── services/                  # Main-process services (storage, logging, secure store, Venice client)
+│   │   ├── services/                  # Main-process services (storage, logging, secure store, Venice client, chat history)
 │   ├── utils/                     # Main-process utilities
 │   ├── main.ts                    # Electron entry point
 │   └── preload.ts                 # Context bridge preload script
 ├── public/                        # Static assets and theme bootstrap
 ├── scripts/                       # Build and verification scripts
+│   ├── verify-safety-guard.cjs    # CI gate: ensures the safety guard is wired at every boundary
+│   ├── verify-dist.cjs            # Post-package artifact verification
+│   └── dev-tools/                 # Local-only developer tooling (Playwright captures)
 ├── src/                           # React frontend source
 │   ├── components/                # UI components (Layout, Chat, Image, Audio, Video, Workflows, etc.)
 │   ├── hooks/                     # Custom React hooks (including ported donor hooks)
 │   ├── lib/                       # Core library logic (Venice client, workflow engine)
+│   │   ├── playground-agent-tools.ts
+│   │   ├── playground-agent-tools.test.ts # Added in audit
+│   │   ├── playground-agent.ts
+│   │   ├── playground-agent.test.ts       # Added in audit
+│   │   ├── safe-storage.ts
+│   │   ├── safe-storage.test.ts
+│   │   ├── stream.ts
+│   │   ├── stream.test.ts
+│   │   ├── utils.ts
+│   │   ├── utils.test.ts
+│   │   ├── venice-client.ts
+│   │   ├── venice-client.test.ts          # Added in audit (VERIFY-006)
+│   │   ├── venice-client.dual.test.ts     # Dual-client contract (VERIFY-009, T8)
+│   │   ├── workflow-engine.ts
+│   │   ├── workflow-engine.test.ts        # Added in audit
+│   │   ├── workflow-mutations.ts
+│   │   ├── workflow-mutations.test.ts     # Added in audit
+│   │   ├── workflow-schema.ts
+│   │   ├── workflow-schema.test.ts        # Added in audit
+│   │   ├── workflow-validator.ts
+│   │   └── workflow-validator.test.ts
 │   ├── research/                  # Web research providers
 │   ├── services/                  # Frontend services and bridge abstractions
 │   ├── shared/                    # Code shared between frontend and backend (validation, safety)
+│   │   └── safety/                 # Child exploitation safety guard
+│   │       ├── childExploitationGuard.ts # Public API + decision orchestration (T15)
+│   │       ├── matchTables.ts           # Pattern/term dictionaries (T15)
+│   │       ├── normalization.ts         # Text normalization + multi-view output (T15)
+│   │       ├── promptPayloadExtractor.ts # Endpoint-aware prompt field extraction
+│   │       ├── guardAudit.ts            # In-memory audit counters
+│   │       └── index.ts                 # Public barrel re-export
 │   ├── stores/                    # Zustand state management
 │   ├── theme/                     # Token-based theme system
 │   ├── types/                     # TypeScript type definitions
 │   ├── App.tsx                    # Main React App component
 │   └── main.tsx                   # Frontend entry point
-├── tests/                         # End-to-end and smoke tests
+├── tests/                         # Cross-cutting invariant tests
+│   ├── csp/                       # CSP invariant tests (VERIFY-007)
+│   ├── safety/                    # Safety guard enforcement boundary tests
+│   ├── theme/                     # Theme token invariant tests (VERIFY-010)
+│   └── smoke/                     # Playwright Electron smoke tests (display-required, skipped in CI)
 ├── package.json                   # Project manifest and scripts
 ├── tsconfig.json                  # TypeScript configuration
 └── vite.config.ts                 # Vite build configuration

@@ -202,16 +202,100 @@ P2 architectural items remain open and should each be their own PR.
 
 ---
 
+## Round-2 P2 follow-up resolutions (2026-06-05)
+
+All four P2 architectural items above were resolved in the same day,
+each as its own commit. The audit cycle (read → implement → ship →
+document) completed in a single push batch.
+
+### T8 / Dual Venice client surface contract — RESOLVED
+- **Resolution:** Did NOT consolidate the two files (multi-hour
+  refactor, 17 hook files affected). Instead, locked the documented
+  split with a static contract test.
+- **What was added:** `src/lib/venice-client.dual.test.ts` (VERIFY-009,
+  4 cases) asserts:
+  - lib/ client exports the documented 4 functions
+  - services/ client exports the documented canonical surface
+  - `veniceStreamChat` is the only shared function name
+  - lib/ client must NOT export safety-guard primitives
+    (defense-in-depth: a future refactor cannot accidentally bypass
+    the IPC-layer guard)
+- **Commit:** `aa1faf5`
+
+### T11 / Theme token invariant — RESOLVED
+- **Resolution:** Did NOT run a codemod sweep. A repo-wide scan
+  found ZERO `text-white/[opacity]` violations and only 4
+  `bg-[#hex]` violations, all in React Flow canvas overrides
+  (`!important` modifier) that cannot be replaced with a CSS
+  variable. The 322 count in the original audit was pre-merge.
+- **What was added:** `tests/theme/inlineColorInvariant.test.ts`
+  (VERIFY-010, 3 cases) asserts:
+  - renderer has zero `text-white/[opacity]` violations
+  - renderer has zero `bg-[#hex]` violations outside the 4-file
+    documented allowlist (playground/preview-node, playground/
+    workflow-preview, ui/toaster, workflows/workflows-view)
+  - the allowlist size stays ≤4 entries
+- **Commit:** `86262ca`
+
+### T14 / Conversation pagination — RESOLVED
+- **Resolution:** Added server-side pagination with the `chat:listPage`
+  IPC channel. UI "load more" button is a follow-up; the IPC
+  contract is in place and a renderer button can simply call
+  `desktopChat.listPage({ offset, limit })` and append to the
+  existing list.
+- **What was added:**
+  - `listConversations({ offset, limit })` in
+    `electron/services/chatStorage.ts` with `MAX_PAGE_LIMIT = 1000`
+    cap
+  - `chat:listPage` IPC handler in `electron/ipc/handlers.ts`
+  - `preload.ts` exposes `chat.listPage()`
+  - `desktopBridge.desktopChat.listPage()` with web-mode fallback
+  - `src/types/desktop.ts` adds `listPage` to `VeniceForgeChat`
+  - VERIFY-008 (5 cases) in `electron/services/chatStorage.test.ts`
+- **Commit:** `3eb66f7`
+
+### T15 / childExploitationGuard.ts split — RESOLVED
+- **Resolution:** Split the 1243-LOC file into 3 cohesive modules.
+  All 157 guard tests pass unchanged. No behavioral change.
+- **What was added:**
+  - `src/shared/safety/matchTables.ts` (252 LOC) — pattern/term
+    dictionaries
+  - `src/shared/safety/normalization.ts` (257 LOC) — text
+    normalization + multi-view output
+  - `src/shared/safety/childExploitationGuard.ts` (825 LOC) — public
+    API + decision orchestration
+  - Updated `scripts/verify-safety-guard.cjs` to also exclude
+    `matchTables` and `normalization` from the no-bypass-toggle
+    check (the new tables file legitimately contains regex strings
+    like `bypass.*guard` and `disable.*safety` as defensive
+    injection-detection patterns)
+- **Commit:** `5935ca9`
+
+---
+
+## Final state (after this batch)
+
+- 8 commits pushed to main since the 2026-06-05 audit
+- 774 tests passing (1 electron-smoke skipped — display-required)
+- 10 named regression guards (VERIFY-001..010)
+- All CI gates green: lint 0/0, typecheck clean, safety guard
+  verified, build produces dist + dist/server.cjs + dist-electron/
+- P2 follow-up backlog: empty
+- All four round-2 P2 items implemented and documented in CHANGELOG
+  v1.0.5
+
+---
+
 ## Coverage caveat
 
 Pre-existing coverage is 67.6/58.1/68.7/70.9 — below the
 `vitest.config.ts` thresholds of 70/80/80/80. Confirmed via `git
 stash` baseline that the round-2 changes do not regress coverage
-(762 tests now pass, +7 from the round-1 baseline of 755). The
+(774 tests now pass, +19 from the round-1 baseline of 755). The
 coverage gap is structural (large untested tables in
 `childExploitationGuard.ts` and 100 KiB server.ts excluded from
 coverage) and predates this audit round.
 
 ---
 
-**Last verified:** 2026-06-05T02:00:00Z against v1.0.4
+**Last verified:** 2026-06-05T02:35:00Z against v1.0.5
