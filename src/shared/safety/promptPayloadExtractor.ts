@@ -241,9 +241,12 @@ export function extractPromptLikeFields(
   // Parsed JSON object
   if (isRecord(payload)) {
     const results = extractFromObject(payload, fieldNames, "", 0);
-    // Unknown endpoint fallback: if no fields found, do a shallow recursive scan
+    // Unknown endpoint fallback: if no fields found, do a recursive scan with the
+    // same depth as the standard path (8) so deeply-nested prompt fields are still
+    // extracted. We deliberately use a high depth here because unknown endpoints
+    // might wrap their prompt content in arbitrary nesting.
     if (results.length === 0 && !Object.keys(ENDPOINT_FIELDS).some(k => normEndpoint.startsWith(k))) {
-      return extractFromObject(payload, ["*"], "", 0, 2);
+      return extractFromObject(payload, ["*"], "", 0, 8);
     }
     return results;
   }

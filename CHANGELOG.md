@@ -8,6 +8,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 
 ## [Unreleased]
 
+### Security
+- **Middle-scan gap fix (SEC-005):** Long payloads (> 24,384 chars) had a scan gap of up to ~5,616 bytes between the head and tail windows. Trigger terms placed in this gap could bypass the guard. Added a sliding middle-window scan (`MIDDLE_SCAN_CHARS = 8,000`) that covers every byte of oversized inputs. Verified by 4 new regression tests (`tail scanning for oversized inputs`).
+- **Adult-content allow improvements:** Strengthened the adult-context signals so legitimate adult content is not blocked. Added numeric age ≥ 18 + adult noun, age-verification language (`over 18`, `21+`), adult-coded terms (`MILF`, `babe`, `hottie`, `cougar`, `horny`, `naughty`, `slutty`, `thirsty`), and bare adult-gendered nouns (`adult`, `guy`). Strong adult-context signals now tolerate ambiguous youth terms (`boy`, `girl`, `teen`) when no hard youth term, minor age, K-12 context, or age-evasion is present. Defense-in-depth: minor ages, hard youth terms, K-12 school context, and age-evasion phrases still block unconditionally. 9 new regression tests added.
+- **Unknown-endpoint depth fix (DEP-008):** The unknown-endpoint extraction fallback used `maxDepth: 2` while the standard path uses `maxDepth: 8`. Deeply-nested prompt fields in unknown endpoints were silently dropped. Both paths now use `maxDepth: 8`.
+
 ## [1.0.3] — 2026-06-04
 
 ### Security
