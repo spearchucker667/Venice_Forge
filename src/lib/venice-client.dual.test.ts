@@ -72,7 +72,8 @@ describe('Dual Venice client surface (VERIFY-009, T8)', () => {
     // The lib/ client is a passthrough. It must not export the
     // safety-guard primitives (assessChildExploitationSafety etc.) —
     // those live in src/shared/safety/. If they leak into lib/, a
-    // future refactor could accidentally bypass the IPC-layer guard.
+    // future refactor could re-introduce a renderer-side guard that
+    // shadows the IPC-layer one (defense-in-depth regression).
     const bannedFromLib = [
       'assessChildExploitationSafety',
       'recordDecision',
