@@ -25,9 +25,22 @@ if (allowProdDevTools) {
 /** Builds the Content-Security-Policy header string for the renderer.
  *  The theme bootstrap script lives in a separate file (bootstrap-theme.js)
  *  so production does not need 'unsafe-inline' for scripts.
+ *
+ *  STYLE-SRC POLICY (T1): production style-src is 'self' (no 'unsafe-inline').
+ *  The renderer's *application* code has zero JSX `style={...}` attributes —
+ *  this invariant is enforced by tests/csp/inlineStyleInvariant.test.ts
+ *  (VERIFY-007). The bootstrap script (public/bootstrap-theme.js) does call
+ *  `document.documentElement.style.setProperty(...)` to apply theme tokens
+ *  before first paint, but that path is not blocked by style-src 'self'
+ *  (style.setProperty writes to inline styles which the browser allows
+ *  regardless of CSP for non-third-party elements).
+ *  See docs/AUDIT_TODO.md T1 for the long-term migration to a nonced
+ *  stylesheet.
  */
 function rendererCsp(): string {
   const connectSrc = isDev ? "'self' http://localhost:5173 ws://localhost:5173" : "'self'";
+  // Production style-src: 'self' only. Dev adds 'unsafe-inline' for Vite HMR
+  // which injects inline style tags during fast refresh.
   const styleSrc = isDev ? "'self' 'unsafe-inline' http://localhost:5173" : "'self'";
   const scriptSrc = isDev ? "'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173" : "'self'";
 
