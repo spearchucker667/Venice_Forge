@@ -35,11 +35,19 @@ export async function venice<T>(path: string, options: { method?: string; body?:
       parsedBody = options.body;
     }
   }
+  // VERIFY-006 (BUG-1): forward the AbortSignal to desktopVenice so the IPC
+  // layer's `venice:abort` channel is triggered when the caller cancels.
+  // desktopVenice.request() generates a signalId, calls attachAbort() which
+  // registers an abort listener that invokes window.veniceForge.venice.abort,
+  // tearing down the upstream HTTPS request in the main process. This is
+  // the correct path for both JSON and stream responses — the SSE parser
+  // (parseSSEStream) handles the actual reader cancellation, while the IPC
+  // signal kills the network layer.
   const response = await desktopVenice.request({
     endpoint: path.replace('/api/v1', ''),
     method: method as "GET" | "POST",
     body: parsedBody,
-  })
+  }, options.signal)
   
   if (options.signal && options.signal.aborted) throw new Error('Aborted');
   if (!response.ok) {

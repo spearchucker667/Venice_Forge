@@ -31,7 +31,7 @@ describe('venice-client (lib)', () => {
       endpoint: '/chat/completions',
       method: 'POST',
       body: { test: true },
-    })
+    }, undefined)
   })
 
   it('should throw VeniceAPIError on failure', async () => {
@@ -94,7 +94,7 @@ describe('venice-client (lib)', () => {
 
     const fd = new FormData()
     fd.append('foo', 'bar')
-    
+
     const res = await veniceFormData<{ ok: boolean }>('/augment/scrape', fd)
     expect(res.ok).toBe(true)
     expect(desktopVenice.request).toHaveBeenCalledWith(
@@ -108,6 +108,28 @@ describe('venice-client (lib)', () => {
           ]
         }
       })
+    )
+  })
+
+  // VERIFY-006 regression guard: BUG-1 / venice() must forward the AbortSignal
+  // to desktopVenice.request() as the second positional arg so the IPC
+  // layer's `venice:abort` channel is triggered when the caller cancels.
+  // The previous implementation dropped the signal on the floor, leaving a
+  // live upstream HTTPS request when the renderer closed the stream.
+  it('forwards AbortSignal to desktopVenice.request (VERIFY-006)', async () => {
+    const controller = new AbortController()
+    await venice('/chat/completions', {
+      method: 'POST',
+      body: { test: true },
+      signal: controller.signal,
+    })
+    expect(desktopVenice.request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: '/chat/completions',
+        method: 'POST',
+        body: { test: true },
+      }),
+      controller.signal,
     )
   })
 })
