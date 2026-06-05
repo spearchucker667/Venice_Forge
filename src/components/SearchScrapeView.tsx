@@ -15,6 +15,7 @@ import { synthesizeResearch } from "../research/agent/researchSynthesis";
 import { runSocialDiscovery, type SocialProfileCandidate } from "../research/agent/socialDiscovery";
 import { toast } from "../stores/toast-store";
 import { isElectron } from "../services/desktopBridge";
+import { useAuthStore } from "../stores/auth-store";
 import type { DiagnosticsEntry } from "../types/venice";
 
 interface SearchResultItem {
@@ -58,6 +59,20 @@ export function safeHref(url: string | undefined): string {
 export function SearchScrapeView() {
   const [subTab, setSubTab] = useState<SubTab>("search");
   const selectedModel = useSettingsStore((s) => s.selectedModels.chat) || "llama-3.3-70b";
+  const veniceKeyConfigured = useAuthStore((s) => s.isConfigured);
+
+  /**
+   * Verifies the Venice API key is configured before firing a request. Returns
+   * true if the key is present; otherwise sets a friendly inline error
+   * explaining how to fix it and returns false.
+   */
+  function requireVeniceApiKey(where: string): boolean {
+    if (veniceKeyConfigured) return true;
+    setError(
+      `Venice API key is not configured. Open the API Key dialog (lock icon in the header) and add your Venice key before ${where}.`,
+    );
+    return false;
+  }
 
   // --- Search / Scrape state ---
   const [query, setQuery] = useState("");
@@ -121,6 +136,7 @@ export function SearchScrapeView() {
 
   async function runSearch() {
     if (!query.trim()) return;
+    if (!requireVeniceApiKey("running web search")) return;
     setError("");
     const guardDecision = assessChildExploitationSafety({ text: query.trim(), endpoint: "/augment/search", method: "POST", source: "research" });
     recordDecision(guardDecision);
@@ -157,6 +173,7 @@ export function SearchScrapeView() {
 
   async function runScrape() {
     if (!url.trim()) return;
+    if (!requireVeniceApiKey("scraping a URL")) return;
     if (safeHref(url.trim()) === "#") {
       setError("Enter a valid public http(s) URL.");
       return;
@@ -188,6 +205,7 @@ export function SearchScrapeView() {
 
   async function runParser() {
     if (!file) return;
+    if (!requireVeniceApiKey("parsing a document")) return;
     if (file.size > MAX_RAW_UPLOAD_BYTES) {
       setError(`File too large. Maximum upload size is ${Math.floor(MAX_RAW_UPLOAD_BYTES / (1024 * 1024))} MiB.`);
       return;
@@ -222,6 +240,7 @@ export function SearchScrapeView() {
 
   async function runAiResearch() {
     if (!researchQuestion.trim()) return;
+    if (!requireVeniceApiKey("running AI research")) return;
     setError("");
     const researchGuard = assessChildExploitationSafety({
       text: researchQuestion.trim(),
@@ -291,6 +310,7 @@ export function SearchScrapeView() {
 
   async function runProfileDiscovery() {
     if (!targetName.trim() || !authorized) return;
+    if (!requireVeniceApiKey("running profile discovery")) return;
     setError("");
     const profileGuardText = [
       targetName.trim(),

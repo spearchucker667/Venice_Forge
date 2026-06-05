@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 
 ## [Unreleased]
 
+### Fixed
+- **Research tab: misleading "network error" when API key is unconfigured (BUG-10):** The Research / Search / Scrape / Text-Parser / AI Research / Profile Discovery panels in `SearchScrapeView.tsx` had no pre-flight check for `desktopApiKey.isConfigured()`. When the user had not yet added a Venice API key (common on first launch or in a fresh `userData/`), clicking "Run" fired a request that hit the upstream with `Authorization: Bearer null` and returned `401 Authentication failed`. The renderer then surfaced the raw `401 invalid or missing API key: Authentication failed` text, which read to users as a network error. Added a small `requireVeniceApiKey(where)` helper at the top of each handler that returns early with a friendly inline message (`"Venice API key is not configured. Open the API Key dialog (lock icon in the header) and add your Venice key before …"`) when the key is missing, gated on `useAuthStore((s) => s.isConfigured)`. No upstream behaviour change; pure UX fix.
+
 ## [1.0.5] — 2026-06-05
 
 ### Security
