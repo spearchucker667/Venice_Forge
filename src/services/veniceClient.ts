@@ -13,16 +13,25 @@ import { useInspectorStore } from "../stores/inspector-store";
 
 function maskHeaders(headers?: Record<string, string>): Record<string, string> {
   if (!headers) return {};
+  // Header names that carry credential material. We match on the full header
+  // name (case-insensitive) rather than substring-includes, so that benign
+  // headers like "keyword" or "x-token-type" are NOT over-masked.
+  const SENSITIVE_HEADERS = new Set([
+    "authorization",
+    "cookie",
+    "set-cookie",
+    "x-api-key",
+    "x-auth-token",
+    "x-csrf-token",
+    "x-access-token",
+    "x-refresh-token",
+    "x-jina-api-key",
+    "x-venice-api-key",
+  ]);
   const masked: Record<string, string> = {};
   for (const [key, value] of Object.entries(headers)) {
     const lowerKey = key.toLowerCase();
-    if (
-      lowerKey === "authorization" ||
-      lowerKey === "cookie" ||
-      lowerKey === "x-api-key" ||
-      lowerKey.includes("key") ||
-      lowerKey.includes("token")
-    ) {
+    if (SENSITIVE_HEADERS.has(lowerKey) || lowerKey.startsWith("x-") && (lowerKey.endsWith("-key") || lowerKey.endsWith("-token") || lowerKey.endsWith("-secret"))) {
       masked[key] = "******";
     } else {
       masked[key] = value;
