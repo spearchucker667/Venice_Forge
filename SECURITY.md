@@ -69,6 +69,20 @@ verification script robustness, and test fixture safety. Findings are tracked in
 
 > **Maintainer trigger:** Update this document whenever the allowed Venice API endpoint list (`src/shared/validation.ts`) or the safety guard enforcement boundaries change.
 
+## Headless Bridge Security
+
+When started with `--headless`, the application runs an Express loopback bridge server (`electron/services/bridgeServer.ts`). The following safety measures are strictly enforced:
+- **Loopback-Only Interface:** The bridge server binds strictly to the local loopback interface (`127.0.0.1`). Binding to any public/LAN interface is blocked by default to prevent network-level credential reuse or SSRF attacks.
+- **Token Authorization:** Every request must provide a `Bearer` token in the `Authorization` header. If `VENICE_BRIDGE_TOKEN` is not set in the environment, a cryptographically secure 32-byte hex token is generated at boot and logged to standard output.
+- **Safety Guard Enforcement:** All prompt-carrying requests (e.g. `POST /chat/completions`, `POST /image/generate`) are intercepted and checked against the child safety guard in the Main process context. Bypassing the safety filters results in a `451 Blocked by local safety guard` response.
+
+## Developer Traffic Inspector & Red-Team Mode
+
+The Developer Traffic Inspector logs request/response diagnostics to the renderer store (`src/stores/inspector-store.ts`).
+- **Secret Masking:** To prevent exposing keys to local logs, the UI, or export functions, all header lists are sanitized. Header keys matching `Authorization`, `Cookie`, `x-api-key`, or names containing `key` or `token` are automatically replaced with `******`.
+- **Sandbox Red-Team Mode:** The Red-Team Mode switch disables renderer Markdown/HTML formatting to prevent template injection or rendering exploits from unsafe model outputs, and shows the raw text directly alongside local safety audit signals.
+
+
 External URLs opened via `shell.openExternal` are validated by
 `electron/utils/urlSecurity.ts`: only `https:` with public routable hostnames
 is allowed. RFC 1918 and loopback addresses are blocked.

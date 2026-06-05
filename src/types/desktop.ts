@@ -2,6 +2,7 @@
 
 import type { UpdateInfo, ProgressInfo } from "electron-updater";
 import type { Conversation } from "./conversation";
+import type { ConversationRecordV1, SearchResult, PulledMemoryContext } from "./conversationVault";
 
 /** Manages the Venice API key in secure OS-level storage. */
 export interface VeniceForgeApiKey {
@@ -81,6 +82,7 @@ export interface VeniceForgeFiles {
   saveYamlFile(data: string, defaultPath?: string): Promise<{ ok: boolean; canceled: boolean }>;
   loadYamlFile(): Promise<{ ok: boolean; canceled: boolean; data?: string; error?: string }>;
   readLocalFile(filePath: string): Promise<{ ok: boolean; content?: string; error?: string }>;
+  saveRoutedImage(base64Data: string, filename: string, subfolder: string): Promise<{ ok: boolean; filePath?: string; error?: string }>;
 }
 
 /** Exposes Auto-Update helpers available through the preload bridge. */
@@ -103,6 +105,27 @@ export interface VeniceForgeChat {
   delete(id: string): Promise<{ ok: boolean; error?: string }>;
 }
 
+export interface VeniceForgeConversations {
+  list(filter?: {
+    archived?: boolean;
+    pinned?: boolean;
+    tags?: string[];
+    model?: string;
+    dateFrom?: number;
+    dateTo?: number;
+  }): Promise<{ ok: boolean; records: ConversationRecordV1[]; error?: string }>;
+  get(id: string): Promise<{ ok: boolean; record: ConversationRecordV1 | null; error?: string }>;
+  save(record: ConversationRecordV1): Promise<{ ok: boolean; id: string; error?: string }>;
+  delete(id: string): Promise<{ ok: boolean; error?: string }>;
+  archive(id: string): Promise<{ ok: boolean; error?: string }>;
+  search(query: string, options?: { limit?: number; includeArchived?: boolean }): Promise<{ ok: boolean; results: SearchResult[]; error?: string }>;
+  pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean }): Promise<{ ok: boolean; context: PulledMemoryContext; error?: string }>;
+  rebuildIndex(): Promise<{ ok: boolean; itemsIndexed: number; error?: string }>;
+  migrateLegacyHistory(): Promise<{ ok: boolean; migrated: number; failed: number; skipped: number; error?: string }>;
+  detectLegacyHistory(): Promise<boolean>;
+  openConversationsFolder(): Promise<{ ok: boolean }>;
+}
+
 /** Root interface for the Venice Forge preload bridge exposed on the window object. */
 export interface VeniceForge {
   readonly isDesktop: true;
@@ -113,6 +136,7 @@ export interface VeniceForge {
   app: VeniceForgeApp;
   files: VeniceForgeFiles;
   chat: VeniceForgeChat;
+  conversations: VeniceForgeConversations;
   updates: VeniceForgeUpdates;
 }
 

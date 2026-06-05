@@ -150,6 +150,8 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `electron/preload.ts` | contextBridge API surface (only place to expose IPC to renderer) |
 | `electron/main.ts` | BrowserWindow + CSP + navigation guards; `requestSingleInstanceLock` |
 | `electron/ipc/handlers.ts` | IPC channel handlers (incl. `venice:request`, `venice:streamChat`, `chat:*`, `app:*`) |
+| `electron/services/bridgeServer.ts` | Headless Express loopback bridge server (`127.0.0.1`) enforcing bearer token auth & child exploitation safety guard |
+| `src/stores/inspector-store.ts` | Zustand developer traffic logs and diagnostics store |
 | `electron/ipc/validation.ts` | IPC request validation |
 | `electron/services/secureStore.ts` | `safeStorage` wrapper with atomic writes (temp + rename) |
 | `electron/utils/urlSecurity.ts` | `isTrustedExternalUrl`, `isPrivateHostname` |

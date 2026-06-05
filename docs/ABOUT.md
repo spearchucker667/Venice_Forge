@@ -58,6 +58,8 @@ Web mode (development only):
 | Storage | IndexedDB (via `StorageService`) | `images`, `files`, legacy `chats`, `settings`, `conversations`, and `ai_memory` are encrypted at rest with AES-GCM; `diagnostics` is stored unencrypted and should contain only sanitized timing/status metadata |
 | Chat storage | Electron main-process filesystem (`chat-history/*.json`) | Conversation persistence with atomic writes and corruption recovery; filesystem chat JSON is not separately encrypted by Venice Forge |
 | Content safety | `src/shared/safety/childExploitationGuard.ts` | Screens every outgoing Venice request at renderer transport, IPC, proxy, and module boundaries; evaluates `negative_prompt` and cross-sentence context; fails closed (500) on extraction errors; returns `SafetyGuardDecision`; never logs raw prompt text |
+| Headless Bridge | `electron/services/bridgeServer.ts` | Loopback-only Express API server running on `127.0.0.1` for CLI and mobile integrations; enforces bearer token auth and active safety guards |
+| Traffic Inspector | `src/stores/inspector-store.ts` | Captures and displays raw developer requests, masked headers, and safety audit logs; toggleable side-by-side with active view |
 
 | Secure storage | Electron `safeStorage` | Venice and Jina API keys (encrypted) |
 | IPC bridge | Electron preload + `ipcMain` | Renderer ↔ main transport |

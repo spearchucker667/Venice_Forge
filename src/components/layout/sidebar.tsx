@@ -86,6 +86,10 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
   const activeTab = useSettingsStore((s) => s.activeTab)
   const setActiveTab = useSettingsStore((s) => s.setActiveTab)
   const sidebarOpen = useSettingsStore((s) => s.sidebarOpen)
+  const redTeamMode = useSettingsStore((s) => s.redTeamMode)
+  const setRedTeamMode = useSettingsStore((s) => s.setRedTeamMode)
+  const showInspector = useSettingsStore((s) => s.showInspector)
+  const setShowInspector = useSettingsStore((s) => s.setShowInspector)
   const conversations = useChatStore((s) => s.conversations)
   const activeConversationId = useChatStore((s) => s.activeConversationId)
   const setActiveConversation = useChatStore((s) => s.setActiveConversation)
@@ -231,7 +235,39 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
       {!expanded && <div className="hidden md:block flex-1" />}
 
       {expanded && (
-        <div className="px-3 py-2.5 border-t border-border">
+        <div className="px-3 py-2.5 border-t border-border space-y-2.5">
+          {/* Developer / Red-Team controls */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Red-Team Mode</span>
+              <button
+                onClick={() => setRedTeamMode(!redTeamMode)}
+                className={cn(
+                  "w-8 h-4 rounded-full transition-colors relative cursor-pointer",
+                  redTeamMode ? "bg-accent" : "bg-border"
+                )}
+                aria-label="Toggle Red-Team Mode"
+              >
+                <div className={cn(
+                  "w-3.5 h-3.5 rounded-full bg-white absolute top-[1px] transition-all",
+                  redTeamMode ? "left-4" : "left-[1px]"
+                )} />
+              </button>
+            </div>
+            <button
+              onClick={() => setShowInspector(!showInspector)}
+              className={cn(
+                "flex items-center justify-center gap-1.5 w-full py-1 px-2 border border-border hover:border-accent hover:text-accent rounded-md text-[11px] font-semibold transition-colors cursor-pointer",
+                showInspector ? "bg-accent/10 border-accent text-accent" : "text-text-secondary"
+              )}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+              </svg>
+              <span>{showInspector ? 'Hide Inspector' : 'Show Inspector'}</span>
+            </button>
+          </div>
+
           <div className="text-[11px] text-text-secondary space-y-0.5">
             <div className="flex justify-between"><span>New chat</span><kbd className="font-mono text-text-muted">⌘N</kbd></div>
             <div className="flex justify-between"><span>Switch tab</span><kbd className="font-mono text-text-muted">⌘1-8</kbd></div>

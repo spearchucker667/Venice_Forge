@@ -23,6 +23,22 @@ interface SettingsState {
   setCustomTheme: (theme: Theme | null) => void
   appearanceMode: 'dark' | 'light'
   setAppearanceMode: (mode: 'dark' | 'light') => void
+  imageDownloadDirectory: string
+  setImageDownloadDirectory: (dir: string) => void
+  redTeamMode: boolean
+  setRedTeamMode: (mode: boolean) => void
+  showInspector: boolean
+  setShowInspector: (show: boolean) => void
+  
+  // Memory Settings
+  enableRecording: boolean
+  setEnableRecording: (enable: boolean) => void
+  enableMemoryRetrieval: boolean
+  setEnableMemoryRetrieval: (enable: boolean) => void
+  showPulledContextBeforeSending: boolean
+  setShowPulledContextBeforeSending: (show: boolean) => void
+  useAISummaries: boolean
+  setUseAISummaries: (use: boolean) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -46,6 +62,22 @@ export const useSettingsStore = create<SettingsState>()(
       setCustomTheme: (theme) => set({ customTheme: theme }),
       appearanceMode: 'dark',
       setAppearanceMode: (mode) => set({ appearanceMode: mode }),
+      imageDownloadDirectory: '',
+      setImageDownloadDirectory: (dir) => set({ imageDownloadDirectory: dir }),
+      redTeamMode: false,
+      setRedTeamMode: (mode) => set({ redTeamMode: mode }),
+      showInspector: false,
+      setShowInspector: (show) => set({ showInspector: show }),
+
+      // Memory settings defaults
+      enableRecording: true,
+      setEnableRecording: (enable) => set({ enableRecording: enable }),
+      enableMemoryRetrieval: true,
+      setEnableMemoryRetrieval: (enable) => set({ enableMemoryRetrieval: enable }),
+      showPulledContextBeforeSending: true,
+      setShowPulledContextBeforeSending: (show) => set({ showPulledContextBeforeSending: show }),
+      useAISummaries: false,
+      setUseAISummaries: (use) => set({ useAISummaries: use }),
     }),
     {
       name: 'venice-settings',

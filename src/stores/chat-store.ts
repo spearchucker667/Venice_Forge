@@ -4,6 +4,7 @@ import type { ChatMessage, VeniceParameters } from '../types/venice'
 import type { Conversation, ConversationMessage } from '../types/conversation'
 import { generateId } from '../lib/utils'
 import { createSafeStorage } from '../lib/safe-storage'
+import type { ConversationRecordV1, PulledMemoryContext } from '../types/conversationVault'
 
 interface ChatState {
   conversations: Conversation[]
@@ -15,11 +16,13 @@ interface ChatState {
   topP: number
   maxTokens: number
   _hasLoadedHistory: boolean
+  pendingContext: PulledMemoryContext | null
 
   setConversations: (conversations: Conversation[]) => void
   createConversation: (model: string) => string
   setActiveConversation: (id: string | null) => void
   deleteConversation: (id: string) => void
+  setPendingContext: (context: PulledMemoryContext | null) => void
   addMessage: (conversationId: string, message: ChatMessage) => void
   appendToLastAssistant: (conversationId: string, token: string) => void
   appendReasoningToLastAssistant: (conversationId: string, token: string) => void
@@ -48,8 +51,10 @@ export const useChatStore = create<ChatState>()(
       topP: 1,
       maxTokens: 4096,
       _hasLoadedHistory: false,
+      pendingContext: null,
 
       setConversations: (conversations) => set({ conversations, _hasLoadedHistory: true }),
+      setPendingContext: (context) => set({ pendingContext: context }),
 
       createConversation: (model) => {
         const id = generateId()
@@ -61,6 +66,20 @@ export const useChatStore = create<ChatState>()(
           model,
           createdAt: now,
           updatedAt: now,
+          metadata: {
+            tags: [],
+            pinned: false,
+            archived: false,
+            source: 'chat',
+            messageCount: 0,
+          },
+          memory: {
+            summary: 'New Chat',
+            topics: [],
+            entities: [],
+            userFacts: [],
+            projectRefs: [],
+          }
         }
         set((s) => ({
           conversations: [conv, ...s.conversations],
@@ -77,8 +96,12 @@ export const useChatStore = create<ChatState>()(
           activeConversationId:
             s.activeConversationId === id ? null : s.activeConversationId,
         }))
-        if (typeof window !== 'undefined' && window.veniceForge?.chat) {
-          window.veniceForge.chat.delete(id).catch(() => {})
+        if (typeof window !== 'undefined') {
+          if (window.veniceForge?.conversations) {
+            window.veniceForge.conversations.delete(id).catch(() => {})
+          } else if (window.veniceForge?.chat) {
+            window.veniceForge.chat.delete(id).catch(() => {})
+          }
         }
       },
 
@@ -194,7 +217,14 @@ if (typeof window !== 'undefined') {
   // the current synchronous tick so any caller that runs in the same
   // tick (e.g. App.tsx mount → user click) wins.
   queueMicrotask(() => {
-    if (window.veniceForge?.chat) {
+    if (window.veniceForge?.conversations) {
+      window.veniceForge.conversations.list().then((result) => {
+        if (!useChatStore.getState()._hasLoadedHistory) {
+          const conversations = result.ok ? result.records : [];
+          useChatStore.getState().setConversations(conversations);
+        }
+      }).catch(console.error)
+    } else if (window.veniceForge?.chat) {
       window.veniceForge.chat.list().then((result) => {
         if (!useChatStore.getState()._hasLoadedHistory) {
           const conversations = Array.isArray(result)
@@ -221,20 +251,47 @@ if (typeof window !== 'undefined') {
       clearTimeout(saveTimer);
       saveTimer = null;
     }
-    if (pendingSave && window.veniceForge?.chat) {
-      // Fire and forget; we're in a beforeunload handler and can't await.
-      window.veniceForge.chat.save(pendingSave).catch(console.error);
+    if (pendingSave) {
+      if (window.veniceForge?.conversations) {
+        const record: ConversationRecordV1 = {
+          version: 1,
+          id: pendingSave.id,
+          title: pendingSave.title,
+          createdAt: pendingSave.createdAt,
+          updatedAt: pendingSave.updatedAt,
+          model: pendingSave.model,
+          systemPrompt: pendingSave.systemPrompt,
+          messages: pendingSave.messages,
+          metadata: pendingSave.metadata || {
+            tags: [],
+            pinned: false,
+            archived: false,
+            source: 'chat',
+            messageCount: pendingSave.messages.length,
+          },
+          memory: pendingSave.memory || {
+            summary: pendingSave.title || '',
+            topics: [],
+            entities: [],
+            userFacts: [],
+            projectRefs: [],
+          },
+        };
+        window.veniceForge.conversations.save(record).catch(console.error);
+      } else if (window.veniceForge?.chat) {
+        window.veniceForge.chat.save(pendingSave).catch(console.error);
+      }
       pendingSave = null;
     }
   };
   window.addEventListener("beforeunload", flushSave);
   window.addEventListener("pagehide", flushSave);
-
+ 
   useChatStore.subscribe((state, prevState) => {
     // If the active conversation's messages or title changed, save it
     const active = state.conversations.find((c) => c.id === state.activeConversationId)
     const prevActive = prevState.conversations.find((c) => c.id === state.activeConversationId)
-
+ 
     if (active && (active !== prevActive)) {
       pendingSave = active;
       if (saveTimer !== null) clearTimeout(saveTimer);
@@ -242,8 +299,36 @@ if (typeof window !== 'undefined') {
         saveTimer = null;
         const toSave = pendingSave;
         pendingSave = null;
-        if (toSave && window.veniceForge?.chat) {
-          window.veniceForge.chat.save(toSave).catch(console.error);
+        if (toSave) {
+          if (window.veniceForge?.conversations) {
+            const record: ConversationRecordV1 = {
+              version: 1,
+              id: toSave.id,
+              title: toSave.title,
+              createdAt: toSave.createdAt,
+              updatedAt: toSave.updatedAt,
+              model: toSave.model,
+              systemPrompt: toSave.systemPrompt,
+              messages: toSave.messages,
+              metadata: toSave.metadata || {
+                tags: [],
+                pinned: false,
+                archived: false,
+                source: 'chat',
+                messageCount: toSave.messages.length,
+              },
+              memory: toSave.memory || {
+                summary: toSave.title || '',
+                topics: [],
+                entities: [],
+                userFacts: [],
+                projectRefs: [],
+              },
+            };
+            window.veniceForge.conversations.save(record).catch(console.error);
+          } else if (window.veniceForge?.chat) {
+            window.veniceForge.chat.save(toSave).catch(console.error);
+          }
         }
       }, 500); // Debounce saves
     }

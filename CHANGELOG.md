@@ -13,6 +13,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 - **Adult-content allow improvements:** Strengthened the adult-context signals so legitimate adult content is not blocked. Added numeric age ≥ 18 + adult noun, age-verification language (`over 18`, `21+`), adult-coded terms (`MILF`, `babe`, `hottie`, `cougar`, `horny`, `naughty`, `slutty`, `thirsty`), and bare adult-gendered nouns (`adult`, `guy`). Strong adult-context signals now tolerate ambiguous youth terms (`boy`, `girl`, `teen`) when no hard youth term, minor age, K-12 context, or age-evasion is present. Defense-in-depth: minor ages, hard youth terms, K-12 school context, and age-evasion phrases still block unconditionally. 9 new regression tests added.
 - **Unknown-endpoint depth fix (DEP-008):** The unknown-endpoint extraction fallback used `maxDepth: 2` while the standard path uses `maxDepth: 8`. Deeply-nested prompt fields in unknown endpoints were silently dropped. Both paths now use `maxDepth: 8`.
 
+### Added
+- **Developer Traffic Inspector:** Lightweight developer traffic inspector showing request headers (masked for keys), payloads, response body, latency, and local safety guard evaluations in real-time. Toggleable via sidebar footer.
+- **Red-Team Mode Sandbox:** Sandbox mode toggle rendering raw chat responses (disabling Markdown/HTML formatting) and displaying detailed local safety diagnostic signals beneath each bubble.
+- **Headless Bridge Loopback Server:** Autonomous headless mode running an Express loopback-only (`127.0.0.1`) API bridge. Supports bearer token authorization, request size limits, streaming Server-Sent Events (SSE) for chat completions, and active child safety guard enforcement. Toggleable via `--headless`, `--bridge-port`, and `--bridge-host` CLI startup flags.
+
 ## [1.0.3] — 2026-06-04
 
 ### Security

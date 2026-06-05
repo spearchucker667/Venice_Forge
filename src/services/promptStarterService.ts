@@ -8,18 +8,27 @@ let cachedPromptStarters: PromptStarter[] = PROMPT_STARTERS;
 
 const RECENT_KEY = "venice-forge.recentPromptStarterIds";
 
+let memoryStorage: Record<string, string> = {};
+
 function getStorage(): Storage | null {
   if (typeof window !== "undefined" && window.localStorage) {
     return window.localStorage;
   }
   try {
-    if (typeof localStorage !== "undefined") {
+    if (typeof localStorage !== "undefined" && localStorage) {
       return localStorage;
     }
   } catch {
     // localStorage unavailable in this environment
   }
-  return null;
+  return {
+    getItem: (key: string) => memoryStorage[key] || null,
+    setItem: (key: string, value: string) => { memoryStorage[key] = value; },
+    removeItem: (key: string) => { delete memoryStorage[key]; },
+    clear: () => { memoryStorage = {}; },
+    get length() { return Object.keys(memoryStorage).length; },
+    key: (index: number) => Object.keys(memoryStorage)[index] || null,
+  };
 }
 
 function getRecentIds(): string[] {

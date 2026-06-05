@@ -3,6 +3,8 @@ import ReactMarkdown, { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { ChatMessage, ContentPart } from '../../types/venice'
 import { cn } from '../../lib/utils'
+import { useSettingsStore } from '../../stores/settings-store'
+import { assessChildExploitationSafety } from '../../shared/safety'
 
 // Allow http/https/mailto links and image data: URIs only. Strips javascript:,
 // vbscript:, file:, and any other smuggled protocols.
@@ -71,6 +73,16 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
   const [reasoningOpen, setReasoningOpen] = useState(false)
   const isUser = message.role === 'user'
   const { text: content, images } = extractContent(message.content)
+  const redTeamMode = useSettingsStore((s) => s.redTeamMode)
+
+  const localSafetyDecision = content ? (() => {
+    try {
+      return assessChildExploitationSafety({ endpoint: '/chat/completions', method: 'POST', text: content, source: 'chat' })
+    } catch {
+      return null
+    }
+  })() : null
+
 
   const handleCopy = () => {
     navigator.clipboard.writeText(content)
@@ -115,6 +127,22 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
             <div className="text-text-primary text-[15.5px] leading-relaxed whitespace-pre-wrap break-words">
               {content}
             </div>
+            {redTeamMode && localSafetyDecision && (
+              <div className="mt-2 text-[11px] font-mono p-2 bg-surface border border-border/40 rounded-md text-left text-text-secondary select-text space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-text-muted">Safety:</span>
+                  <span className={localSafetyDecision.allow ? "text-accent font-semibold" : "text-danger font-semibold"}>
+                    {localSafetyDecision.allow ? "ALLOW" : "BLOCKED"}
+                  </span>
+                </div>
+                {localSafetyDecision.reasonCode && (
+                  <div><span className="font-semibold text-text-muted">Code:</span> {localSafetyDecision.reasonCode}</div>
+                )}
+                {localSafetyDecision.signals && localSafetyDecision.signals.length > 0 && (
+                  <div><span className="font-semibold text-text-muted">Signals:</span> {localSafetyDecision.signals.map(s => `${s.category}:${s.source}`).join(', ')}</div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -162,20 +190,44 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
         )}
 
         {content ? (
-          <div className="prose-venice text-[15.5px] leading-relaxed text-text-primary">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              urlTransform={safeUrlTransform}
-              components={{
-                code: CodeBlock,
-                a: ({ href, children, ...props }) => (
-                  <a {...props} href={href} target="_blank" rel="noopener noreferrer ugc">
-                    {children}
-                  </a>
-                ),
-              }}
-            >{content}</ReactMarkdown>
-          </div>
+          redTeamMode ? (
+            <div className="space-y-2">
+              <div className="bg-surface-elevated/40 border border-border rounded-lg p-3 font-mono text-[13px] whitespace-pre-wrap break-all leading-relaxed select-text">
+                {content}
+              </div>
+              {localSafetyDecision && (
+                <div className="text-[11px] font-mono p-2 bg-surface border border-border/40 rounded-md text-text-secondary select-text space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold text-text-muted">Safety:</span>
+                    <span className={localSafetyDecision.allow ? "text-accent font-semibold" : "text-danger font-semibold"}>
+                      {localSafetyDecision.allow ? "ALLOW" : "BLOCKED"}
+                    </span>
+                  </div>
+                  {localSafetyDecision.reasonCode && (
+                    <div><span className="font-semibold text-text-muted">Code:</span> {localSafetyDecision.reasonCode}</div>
+                  )}
+                  {localSafetyDecision.signals && localSafetyDecision.signals.length > 0 && (
+                    <div><span className="font-semibold text-text-muted">Signals:</span> {localSafetyDecision.signals.map(s => `${s.category}:${s.source}`).join(', ')}</div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="prose-venice text-[15.5px] leading-relaxed text-text-primary">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                urlTransform={safeUrlTransform}
+                components={{
+                  code: CodeBlock,
+                  a: ({ href, children, ...props }) => (
+                    <a {...props} href={href} target="_blank" rel="noopener noreferrer ugc">
+                      {children}
+                    </a>
+                  ),
+                }}
+              >{content}</ReactMarkdown>
+            </div>
+          )
         ) : (
           <span className="inline-flex gap-1.5 py-1.5">
             <span className="w-1 h-1 rounded-full bg-text-muted animate-pulse-dot" />

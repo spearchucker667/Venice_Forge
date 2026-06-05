@@ -2,6 +2,7 @@ import { useCallback, useRef } from 'react'
 import { venice } from '../lib/venice-client'
 import { parseSSEStream } from '../lib/stream'
 import { useChatStore } from '../stores/chat-store'
+import { useSettingsStore } from '../stores/settings-store'
 import type { ChatCompletionRequest, ChatMessage, ContentPart } from '../types/venice'
 
 export function useChat() {
@@ -26,9 +27,15 @@ export function useChat() {
       const conv = useChatStore.getState().conversations.find((c) => c.id === convId)
       if (!conv) return
 
-      const requestMessages: { role: 'system' | 'user' | 'assistant'; content: string }[] = conv.messages
+      const requestMessages: ChatMessage[] = conv.messages
         .filter((m) => m.content !== '')
-        .map((m) => ({ role: m.role, content: m.content }))
+        .map((m) => {
+          let content = m.content;
+          if (m.role === 'user' && m.metadata?.injectedContext) {
+            content = m.metadata.injectedContext + "\n\n" + content;
+          }
+          return { role: m.role, content };
+        })
       if (systemPrompt.trim()) {
         requestMessages.unshift({ role: 'system', content: systemPrompt.trim() })
       }
@@ -74,6 +81,32 @@ export function useChat() {
         convId = createConversation(model)
       }
 
+      const { pendingContext, setPendingContext } = useChatStore.getState()
+      const { enableMemoryRetrieval, showPulledContextBeforeSending } = useSettingsStore.getState()
+
+      let contextToInject = "";
+
+      if (window.veniceForge?.conversations && enableMemoryRetrieval) {
+        if (pendingContext && pendingContext.message === userMessage) {
+          contextToInject = pendingContext.injectedText;
+          setPendingContext(null);
+        } else if (showPulledContextBeforeSending) {
+          const res = await window.veniceForge.conversations.pullContext({ message: userMessage });
+          if (res.ok && res.context && res.context.injectedText) {
+            setPendingContext({
+              ...res.context,
+              message: userMessage,
+            });
+            return;
+          }
+        } else {
+          const res = await window.veniceForge.conversations.pullContext({ message: userMessage });
+          if (res.ok && res.context && res.context.injectedText) {
+            contextToInject = res.context.injectedText;
+          }
+        }
+      }
+
       // Build user message — plain text or multimodal with images
       let userMsg: ChatMessage
       if (imageAttachments && imageAttachments.length > 0) {
@@ -81,9 +114,17 @@ export function useChat() {
           { type: 'text', text: userMessage },
           ...imageAttachments.map((url) => ({ type: 'image_url' as const, image_url: { url } })),
         ]
-        userMsg = { role: 'user', content: parts }
+        userMsg = {
+          role: 'user',
+          content: parts,
+          metadata: contextToInject ? { injectedContext: contextToInject } : undefined
+        }
       } else {
-        userMsg = { role: 'user', content: userMessage }
+        userMsg = {
+          role: 'user',
+          content: userMessage,
+          metadata: contextToInject ? { injectedContext: contextToInject } : undefined
+        }
       }
 
       addMessage(convId, userMsg)

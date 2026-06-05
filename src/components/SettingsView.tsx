@@ -5,6 +5,7 @@ import { useSettingsStore } from "../stores/settings-store";
 import { useModels } from "../hooks/use-models";
 import { ModelSelect } from "./ModelSelect";
 import { ThemeMaker } from "./ThemeMaker";
+import { MemoryPanel } from "./layout/memory-panel";
 import { ConfirmModal } from "./ConfirmModal";
 import { toast } from "../stores/toast-store";
 import { isElectron, desktopApiKey, desktopJinaApiKey, desktopApp, desktopFiles, desktopUpdates } from "../services/desktopBridge";
@@ -368,6 +369,11 @@ export function SettingsView() {
           <button onClick={() => setActiveSection("defaults")} className={sectionButtonClass("defaults")}>
             Defaults & Behavior
           </button>
+          {isElectron() && (
+            <button onClick={() => setActiveSection("vault")} className={sectionButtonClass("vault")}>
+              Conversation Vault
+            </button>
+          )}
           <button onClick={() => setActiveSection("appearance")} className={sectionButtonClass("appearance")}>
             Appearance
           </button>
@@ -572,6 +578,10 @@ export function SettingsView() {
                 </div>
               </div>
             </div>
+          )}
+
+          {activeSection === "vault" && isElectron() && (
+            <MemoryPanel />
           )}
 
           {activeSection === "appearance" && (

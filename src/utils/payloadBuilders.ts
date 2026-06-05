@@ -17,8 +17,12 @@ export type ChatMessageContent = string | (TextContentPart | ImageContentPart)[]
 
 /** Represents a single message in a chat conversation. */
 export interface ChatMessage {
-  role: "system" | "user" | "assistant";
+  role: "system" | "user" | "assistant" | "tool";
   content: ChatMessageContent;
+  metadata?: {
+    injectedContext?: string;
+    [key: string]: unknown;
+  };
 }
 
 /** Configures Venice-specific chat behaviour such as web search and citations. */

@@ -257,4 +257,56 @@ describe("registerIpcHandlers", () => {
       expect(result.error).toBeDefined();
     });
   });
+
+  describe("app:saveRoutedImage", () => {
+    it("successfully writes base64 image data to a sanitized path", async () => {
+      const handler = capturedHandlers.get("app:saveRoutedImage");
+      expect(handler).toBeDefined();
+
+      const dummyBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const result = await handler!(
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        dummyBase64,
+        "test-image.png",
+        "anime"
+      );
+
+      expect(result).toMatchObject({ ok: true });
+      expect(result.filePath).toBeDefined();
+      expect(result.filePath).toContain("anime");
+      expect(result.filePath).toContain("test-image.png");
+    });
+
+    it("rejects path traversal attempts in subfolders", async () => {
+      const handler = capturedHandlers.get("app:saveRoutedImage");
+      expect(handler).toBeDefined();
+
+      const dummyBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const result = await handler!(
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        dummyBase64,
+        "test-image.png",
+        "../../escape"
+      );
+
+      // The subfolder will be sanitized (removing / and .), resulting in "escape".
+      // Therefore, it won't traverse, but rather be saved in target baseDir/escape/test-image.png
+      expect(result.ok).toBe(true);
+      expect(result.filePath).not.toContain("..");
+      expect(result.filePath).toContain("escape");
+    });
+
+    it("rejects invalid argument types", async () => {
+      const handler = capturedHandlers.get("app:saveRoutedImage");
+      const result = await handler!(
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        12345, // invalid base64Data
+        "test.png",
+        "anime"
+      );
+
+      expect(result).toMatchObject({ ok: false });
+      expect(result.error).toMatch(/must be a string/i);
+    });
+  });
 });

@@ -10,6 +10,9 @@ import { GenerationView } from '../ui/generation-view'
 import type { ImageConstraints } from '../../types/venice'
 import StorageService from '../../services/storageService'
 import { getPromptStartersForCategory } from '../../services/promptStarterService'
+import { isElectron } from '../../services/desktopBridge'
+import { PROMPT_TEMPLATES } from '../../constants/promptTemplates'
+import { processBase64Image, routeAsset } from '../../utils/imageProcessor'
 
 
 function toImageSrc(b64: string): string {
@@ -74,11 +77,24 @@ export function ImageView() {
     return constraints!.resolutions!.map((r) => ({ value: r, label: r }))
   }, [constraints, hasResolutions])
 
-  const downloadImage = (b64: string, index?: number) => {
-    const a = document.createElement('a')
-    a.href = toImageSrc(b64)
-    a.download = `venice-image${index !== undefined ? `-${index + 1}` : ''}.png`
-    a.click()
+  const downloadImage = async (b64: string, index?: number) => {
+    const filename = `venice-image${index !== undefined ? `-${index + 1}` : ''}.png`;
+    const routedFolder = routeAsset(prompt);
+    if (isElectron()) {
+      try {
+        const result = await window.veniceForge!.files.saveRoutedImage(b64, filename, routedFolder);
+        if (!result.ok) {
+          console.error(`Save failed: ${result.error}`);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      const a = document.createElement('a')
+      a.href = toImageSrc(b64)
+      a.download = filename
+      a.click()
+    }
   }
 
   const mutation = useImageGenerate()
@@ -115,14 +131,17 @@ export function ImageView() {
       req as unknown as Parameters<typeof mutation.mutate>[0],
       {
         onSuccess: (data) => {
-          const newImages = data.images.map((img) => typeof img === 'string' ? img : img.b64_json)
-          setImages((prev) => [...newImages, ...prev])
+          const rawImages = data.images.map((img) => typeof img === 'string' ? img : img.b64_json)
+          const processedImages: string[] = []
           
-          // Save to IndexedDB
-          for (const img of newImages) {
+          for (const img of rawImages) {
+            const { base64: processedImg, report } = processBase64Image(img);
+            const routedFolder = routeAsset(req.prompt as string);
+            processedImages.push(processedImg);
+
             StorageService.saveItem("images", {
               id: crypto.randomUUID(),
-              image: img,
+              image: processedImg,
               prompt: req.prompt as string,
               negative: req.negative_prompt as string | undefined,
               model: req.model as string,
@@ -131,8 +150,15 @@ export function ImageView() {
               aspectRatio: req.aspect_ratio as string | undefined,
               style: req.style_preset as string | undefined,
               timestamp: Date.now(),
+              metadataRemoved: report.metadataRemoved,
+              originalBytes: report.originalBytes,
+              processedBytes: report.processedBytes,
+              mimeType: report.mimeType,
+              assetCategory: routedFolder
             }).catch(console.error);
           }
+          
+          setImages((prev) => [...processedImages, ...prev])
         },
       },
     )
@@ -141,7 +167,46 @@ export function ImageView() {
   const controls = (
     <>
       <div>
-        <Label hint={`${prompt.length}/${promptLimit}`}>Prompt</Label>
+        <div className="flex items-center justify-between">
+          <Label hint={`${prompt.length}/${promptLimit}`}>Prompt</Label>
+          <div className="relative group">
+            <select
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val) {
+                  const t = PROMPT_TEMPLATES.find(x => x.id === val);
+                  if (t) {
+                    if (t.category === "negative") {
+                      setNegativePrompt((prev) => prev ? `${prev}, ${t.appendText}` : t.appendText);
+                    } else {
+                      setPrompt((prev) => prev ? `${prev}${t.appendText}` : t.appendText.replace(/^, /, ""));
+                    }
+                  }
+                  e.target.value = ""; // reset
+                }
+              }}
+              className="text-[12px] bg-white/[0.04] text-white/50 border border-white/[0.08] rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-accent hover:text-white/80 transition-colors cursor-pointer"
+              defaultValue=""
+            >
+              <option value="" disabled>Add Template...</option>
+              {Object.entries(
+                PROMPT_TEMPLATES.reduce((acc, t) => {
+                  if (!acc[t.category]) acc[t.category] = [];
+                  acc[t.category].push(t);
+                  return acc;
+                }, {} as Record<string, typeof PROMPT_TEMPLATES>)
+              ).map(([category, items]) => (
+                <optgroup key={category} label={category.toUpperCase()}>
+                  {items.map(item => (
+                    <option key={item.id} value={item.id} title={item.description}>
+                      {item.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+        </div>
         <TextArea value={prompt} onChange={setPrompt} placeholder="A serene mountain landscape at golden hour…" />
       </div>
       <div><Label>Negative prompt</Label><TextArea value={negativePrompt} onChange={setNegativePrompt} placeholder="blurry, low quality…" rows={2} /></div>

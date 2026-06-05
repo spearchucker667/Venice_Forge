@@ -9,6 +9,59 @@ import type { DiagnosticsEntry } from "../types/venice";
 import type { AppDispatch } from "../types/app";
 import { MIB, VENICE_MAX_RAW_UPLOAD_BYTES, VENICE_MAX_SERIALIZED_UPLOAD_BYTES } from "../shared/limits";
 import { assessChildExploitationSafety, recordDecision, SafetyGuardBlockedError } from "../shared/safety";
+import { useInspectorStore } from "../stores/inspector-store";
+
+function maskHeaders(headers?: Record<string, string>): Record<string, string> {
+  if (!headers) return {};
+  const masked: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    const lowerKey = key.toLowerCase();
+    if (
+      lowerKey === "authorization" ||
+      lowerKey === "cookie" ||
+      lowerKey === "x-api-key" ||
+      lowerKey.includes("key") ||
+      lowerKey.includes("token")
+    ) {
+      masked[key] = "******";
+    } else {
+      masked[key] = value;
+    }
+  }
+  return masked;
+}
+
+function sanitizeBody(body: unknown): unknown {
+  if (body instanceof FormData) {
+    const entries: Record<string, unknown> = {};
+    for (const [key, val] of body.entries()) {
+      if (val instanceof File) {
+        entries[key] = `[File: ${val.name} (${val.size} bytes)]`;
+      } else {
+        entries[key] = val;
+      }
+    }
+    return entries;
+  }
+  return body;
+}
+
+function getSafetyDecisionForLog(endpoint: string, method: string, payload: unknown) {
+  if (method === "POST" && payload !== undefined) {
+    try {
+      return assessChildExploitationSafety({
+        endpoint,
+        method,
+        payload,
+        source: "venice-client",
+      });
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 /** Maximum raw upload file size accepted by the renderer. */
 export const MAX_RAW_UPLOAD_BYTES = VENICE_MAX_RAW_UPLOAD_BYTES;
 
@@ -745,6 +798,17 @@ export async function veniceFetch<T = unknown>(
 ): Promise<{ data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }> {
   const { dedupe = false, method = "GET", body } = options;
 
+  const startedAt = Date.now();
+  const requestHeaders = maskHeaders(options.headers);
+  const safetyDecision = getSafetyDecisionForLog(endpoint, method, body);
+  const logId = useInspectorStore.getState().addLog({
+    endpoint,
+    method,
+    requestHeaders,
+    requestBody: sanitizeBody(body),
+    safetyDecision,
+  });
+
   // Child exploitation safety guard — enforcement at transport boundary.
   // Note: GET requests (e.g., /models) are skipped because they carry no user content.
   // SAFETY-DEDUP: In desktop (Electron) mode the IPC handler is the authoritative
@@ -759,6 +823,12 @@ export async function veniceFetch<T = unknown>(
     const decision = assessChildExploitationSafety({ endpoint, method, payload: body, source: "venice-client" });
     recordDecision(decision);
     if (!decision.allow || decision.action === "block") {
+      useInspectorStore.getState().updateLog(logId, {
+        status: 451,
+        safetyDecision: decision,
+        error: decision.userMessage,
+        durationMs: Date.now() - startedAt,
+      });
       throw new SafetyGuardBlockedError(decision);
     }
   }
@@ -769,11 +839,27 @@ export async function veniceFetch<T = unknown>(
   }
 
   const execute = async () => {
-    const result = await _veniceFetch(endpoint, options);
-    if (options.validator && !options.validator(result.data)) {
-      throw new Error(`veniceFetch: Response validation failed for ${endpoint}`);
+    try {
+      const result = await _veniceFetch(endpoint, options);
+      if (options.validator && !options.validator(result.data)) {
+        throw new Error(`veniceFetch: Response validation failed for ${endpoint}`);
+      }
+      useInspectorStore.getState().updateLog(logId, {
+        status: result.response.status,
+        responseHeaders: maskHeaders(result.headers),
+        responseBody: result.data,
+        durationMs: Date.now() - startedAt,
+      });
+      return result as { data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> };
+    } catch (err: unknown) {
+      const errAny = err as { status?: number; message?: string };
+      useInspectorStore.getState().updateLog(logId, {
+        status: errAny.status || 500,
+        error: errAny.message || String(err),
+        durationMs: Date.now() - startedAt,
+      });
+      throw err;
     }
-    return result as { data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> };
   };
 
   const promise = execute();
@@ -798,30 +884,128 @@ export async function veniceStreamChat(
     onDelta,
   }: { signal?: AbortSignal; dispatch?: AppDispatch; onDelta: (chunk: { content: string; reasoning: string }) => void }
 ) {
+  const startedAtTime = Date.now();
+  const requestHeaders = { "Content-Type": "application/json" };
+  const safetyDecision = getSafetyDecisionForLog("/chat/completions", "POST", payload);
+  const logId = useInspectorStore.getState().addLog({
+    endpoint: "/chat/completions",
+    method: "POST",
+    requestHeaders,
+    requestBody: payload,
+    safetyDecision,
+  });
+
+  let accumulatedContent = "";
+  let accumulatedReasoning = "";
+
+  const wrappedOnDelta = (chunk: { content: string; reasoning: string }) => {
+    accumulatedContent += chunk.content;
+    accumulatedReasoning += chunk.reasoning;
+    onDelta(chunk);
+  };
+
   const startedAt = nowIso();
   const payloadRecord = payload as Record<string, unknown> | null | undefined;
 
-  // Child exploitation safety guard — enforcement at transport boundary.
-  // In desktop mode the IPC handler also runs the guard, so we skip the renderer check.
-  if (!isElectron()) {
-    const decision = assessChildExploitationSafety({ endpoint: "/chat/completions", method: "POST", payload, source: "venice-client" });
-    recordDecision(decision);
-    if (!decision.allow || decision.action === "block") {
-      throw new SafetyGuardBlockedError(decision);
+  try {
+    // Child exploitation safety guard — enforcement at transport boundary.
+    // In desktop mode the IPC handler also runs the guard, so we skip the renderer check.
+    if (!isElectron()) {
+      const decision = assessChildExploitationSafety({ endpoint: "/chat/completions", method: "POST", payload, source: "venice-client" });
+      recordDecision(decision);
+      if (!decision.allow || decision.action === "block") {
+        useInspectorStore.getState().updateLog(logId, {
+          status: 451,
+          safetyDecision: decision,
+          error: decision.userMessage,
+          durationMs: Date.now() - startedAtTime,
+        });
+        throw new SafetyGuardBlockedError(decision);
+      }
     }
-  }
 
-  if (isElectron()) {
-    const response = await desktopVenice.streamChat(
-      {
-        endpoint: "/chat/completions",
+    if (isElectron()) {
+      const response = await desktopVenice.streamChat(
+        {
+          endpoint: "/chat/completions",
+          method: "POST",
+          body: payload,
+          headers: { "Content-Type": "application/json" },
+        },
+        wrappedOnDelta,
+        signal
+      );
+      dispatch?.({
+        type: "SET_DIAGNOSTICS",
+        diagnostics: summarizeDiagnostics({
+          endpoint: "/chat/completions",
+          method: "POST",
+          status: response.status,
+          ok: response.ok,
+          headers: response.headers || {},
+          error: response.ok
+            ? ""
+            : normalizeError(response.status, readDesktopErrorBody(response.body)),
+          startedAt,
+          endedAt: nowIso(),
+          model: typeof payloadRecord?.model === "string" ? payloadRecord.model : null,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(normalizeError(response.status, readDesktopErrorBody(response.body)));
+      }
+      useInspectorStore.getState().updateLog(logId, {
+        status: 200,
+        responseBody: {
+          choices: [
+            {
+              message: {
+                role: "assistant",
+                content: accumulatedContent,
+                reasoning_content: accumulatedReasoning,
+              },
+            },
+          ],
+        },
+        durationMs: Date.now() - startedAtTime,
+      });
+      return;
+    }
+
+    const requestHeadersWeb: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    // REL-001: always enforce a ceiling timeout on the streaming fetch so a stalled
+    // SSE connection cannot block the web-mode renderer indefinitely. 5 minutes is
+    // generous for even the longest streaming completions.
+    const STREAM_TIMEOUT_MS = 300_000;
+    const streamSignal = createTimeoutSignal(STREAM_TIMEOUT_MS, signal);
+
+    let response: Response;
+    try {
+      response = await fetch(`${PROXY_BASE_PATH}/chat/completions`, {
         method: "POST",
-        body: payload,
-        headers: { "Content-Type": "application/json" },
-      },
-      onDelta,
-      signal
-    );
+        headers: requestHeadersWeb,
+        body: JSON.stringify(payload),
+        signal: streamSignal,
+      });
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "TimeoutError") {
+        throw new Error("Stream timed out after 5 minutes. The server may be overloaded — please try again.");
+      }
+      throw err;
+    }
+
+    const headers = parseDiagnosticsHeaders(response);
+    let streamError = "";
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      let parsed: unknown = null;
+      try { parsed = JSON.parse(text); } catch { /* non-JSON error body — use raw text */ }
+      streamError = normalizeError(response.status, readWebErrorBody(parsed, text, response.statusText));
+    }
+
     dispatch?.({
       type: "SET_DIAGNOSTICS",
       diagnostics: summarizeDiagnostics({
@@ -829,130 +1013,115 @@ export async function veniceStreamChat(
         method: "POST",
         status: response.status,
         ok: response.ok,
-        headers: response.headers || {},
-        error: response.ok
-          ? ""
-          : normalizeError(response.status, readDesktopErrorBody(response.body)),
+        headers,
+        error: streamError,
         startedAt,
         endedAt: nowIso(),
         model: typeof payloadRecord?.model === "string" ? payloadRecord.model : null,
       }),
     });
+
     if (!response.ok) {
-      throw new Error(normalizeError(response.status, readDesktopErrorBody(response.body)));
+      throw new Error(streamError);
     }
-    return;
-  }
 
-  const requestHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+    if (!response.body || typeof response.body.getReader !== "function")
+      throw new Error("Streaming is unavailable in this browser sandbox.");
 
-  // REL-001: always enforce a ceiling timeout on the streaming fetch so a stalled
-  // SSE connection cannot block the web-mode renderer indefinitely. 5 minutes is
-  // generous for even the longest streaming completions.
-  const STREAM_TIMEOUT_MS = 300_000;
-  const streamSignal = createTimeoutSignal(STREAM_TIMEOUT_MS, signal);
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let timedOut = false;
+    const readTimeoutId = setTimeout(() => {
+      timedOut = true;
+      reader.cancel().catch(() => {});
+    }, STREAM_TIMEOUT_MS);
 
-  let response: Response;
-  try {
-    response = await fetch(`${PROXY_BASE_PATH}/chat/completions`, {
-      method: "POST",
-      headers: requestHeaders,
-      body: JSON.stringify(payload),
-      signal: streamSignal,
-    });
-  } catch (err: unknown) {
-    if (err instanceof DOMException && err.name === "TimeoutError") {
-      throw new Error("Stream timed out after 5 minutes. The server may be overloaded — please try again.");
-    }
-    throw err;
-  }
-
-  const headers = parseDiagnosticsHeaders(response);
-  let streamError = "";
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    let parsed: unknown = null;
-    try { parsed = JSON.parse(text); } catch { /* non-JSON error body — use raw text */ }
-    streamError = normalizeError(response.status, readWebErrorBody(parsed, text, response.statusText));
-  }
-
-  dispatch?.({
-    type: "SET_DIAGNOSTICS",
-    diagnostics: summarizeDiagnostics({
-      endpoint: "/chat/completions",
-      method: "POST",
-      status: response.status,
-      ok: response.ok,
-      headers,
-      error: streamError,
-      startedAt,
-      endedAt: nowIso(),
-      model: typeof payloadRecord?.model === "string" ? payloadRecord.model : null,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(streamError);
-  }
-
-  if (!response.body || typeof response.body.getReader !== "function")
-    throw new Error("Streaming is unavailable in this browser sandbox.");
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let timedOut = false;
-  const readTimeoutId = setTimeout(() => {
-    timedOut = true;
-    reader.cancel().catch(() => {});
-  }, STREAM_TIMEOUT_MS);
-
-  try {
-    while (true) {
-      let result: ReadableStreamReadResult<Uint8Array>;
-      try {
-        result = await reader.read();
-      } catch (err: unknown) {
-        if (err instanceof DOMException && err.name === "TimeoutError") {
-          throw new Error("Stream timed out after 5 minutes. The server may be overloaded — please try again.");
-        }
-        throw err;
-      }
-      const { value, done } = result;
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split(/\r?\n/);
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data:")) continue;
-        const data = trimmed.replace(/^data:\s*/, "");
-        if (data === "[DONE]") return;
-
+    try {
+      while (true) {
+        let result: ReadableStreamReadResult<Uint8Array>;
         try {
-          const json = JSON.parse(data);
-          const content =
-            json?.choices?.[0]?.delta?.content ||
-            json?.choices?.[0]?.message?.content ||
-            json?.choices?.[0]?.text ||
-            "";
-          const reasoning =
-            json?.choices?.[0]?.delta?.reasoning_content ||
-            json?.choices?.[0]?.message?.reasoning_content ||
-            "";
-          if (content || reasoning) onDelta({ content, reasoning });
-        } catch { /* malformed SSE JSON chunk — skip */ }
+          result = await reader.read();
+        } catch (err: unknown) {
+          if (err instanceof DOMException && err.name === "TimeoutError") {
+            throw new Error("Stream timed out after 5 minutes. The server may be overloaded — please try again.");
+          }
+          throw err;
+        }
+        const { value, done } = result;
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split(/\r?\n/);
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          const data = trimmed.replace(/^data:\s*/, "");
+          if (data === "[DONE]") {
+            useInspectorStore.getState().updateLog(logId, {
+              status: 200,
+              responseBody: {
+                choices: [
+                  {
+                    message: {
+                      role: "assistant",
+                      content: accumulatedContent,
+                      reasoning_content: accumulatedReasoning,
+                    },
+                  },
+                ],
+              },
+              durationMs: Date.now() - startedAtTime,
+            });
+            return;
+          }
+
+          try {
+            const json = JSON.parse(data);
+            const content =
+              json?.choices?.[0]?.delta?.content ||
+              json?.choices?.[0]?.message?.content ||
+              json?.choices?.[0]?.text ||
+              "";
+            const reasoning =
+              json?.choices?.[0]?.delta?.reasoning_content ||
+              json?.choices?.[0]?.message?.reasoning_content ||
+              "";
+            if (content || reasoning) wrappedOnDelta({ content, reasoning });
+          } catch { /* malformed SSE JSON chunk — skip */ }
+        }
       }
+      if (timedOut) {
+        throw new Error("Stream timed out after 5 minutes. The server may be overloaded — please try again.");
+      }
+      useInspectorStore.getState().updateLog(logId, {
+        status: 200,
+        responseBody: {
+          choices: [
+            {
+              message: {
+                role: "assistant",
+                content: accumulatedContent,
+                reasoning_content: accumulatedReasoning,
+              },
+            },
+          ],
+        },
+        durationMs: Date.now() - startedAtTime,
+      });
+    } finally {
+      clearTimeout(readTimeoutId);
+      reader.releaseLock();
     }
-    if (timedOut) {
-      throw new Error("Stream timed out after 5 minutes. The server may be overloaded — please try again.");
-    }
-  } finally {
-    clearTimeout(readTimeoutId);
-    reader.releaseLock();
+  } catch (err: unknown) {
+    const errAny = err as { status?: number; message?: string };
+    useInspectorStore.getState().updateLog(logId, {
+      status: errAny.status || 500,
+      error: errAny.message || String(err),
+      durationMs: Date.now() - startedAtTime,
+    });
+    throw err;
   }
 }

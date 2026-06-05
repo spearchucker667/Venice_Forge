@@ -83,9 +83,13 @@ export interface ContentPart {
 }
 
 export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant'
+  role: 'system' | 'user' | 'assistant' | 'tool'
   content: string | ContentPart[]
   reasoning_content?: string
+  metadata?: {
+    injectedContext?: string
+    [key: string]: unknown
+  }
 }
 
 export interface VeniceParameters {

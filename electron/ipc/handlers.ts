@@ -1,7 +1,8 @@
 /** @fileoverview Registers IPC handlers for Venice API requests, API key
  *  management, file dialogs, and application diagnostics. */
 
-import { app, dialog, ipcMain, type WebContents } from "electron";
+import { app, dialog, ipcMain, shell, type WebContents } from "electron";
+import type { ConversationRecordV1 } from "../../src/types/conversationVault";
 import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
@@ -483,6 +484,11 @@ export function registerIpcHandlers(): void {
     };
   });
   ipcMain.handle("app:openLogsFolder", () => openLogsFolder());
+  ipcMain.handle("app:openConversationsFolder", async () => {
+    const { CONVERSATIONS_DIR } = await import("../services/conversationVault");
+    await shell.openPath(CONVERSATIONS_DIR);
+    return { ok: true };
+  });
 
   ipcMain.handle("app:saveJsonFile", async (_event, data: unknown, defaultPath: unknown) => {
     try {
@@ -523,6 +529,46 @@ export function registerIpcHandlers(): void {
       if (result.canceled || !result.filePath) return { ok: false, canceled: true };
       await fs.writeFile(result.filePath, data, { encoding: "utf-8", mode: 0o600 });
       return { ok: true, canceled: false };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("app:saveRoutedImage", async (_event, base64Data: unknown, filename: unknown, subfolder: unknown) => {
+    try {
+      if (typeof base64Data !== "string") throw new Error("Image data must be a string.");
+      if (typeof filename !== "string") throw new Error("Filename must be a string.");
+      if (typeof subfolder !== "string") throw new Error("Subfolder must be a string.");
+
+      const dataSize = base64Data.length;
+      if (dataSize > 50 * 1024 * 1024 * 1.37) {
+        throw new Error("Image data is too large.");
+      }
+
+      const baseDir = path.join(app.getPath("pictures"), "Venice Forge");
+      const resolvedBase = path.resolve(baseDir);
+
+      const cleanSub = subfolder.replace(/[^a-zA-Z0-9_-]/g, "");
+      if (!cleanSub || cleanSub === ".." || cleanSub === ".") {
+        throw new Error("Invalid subfolder name.");
+      }
+      const cleanFilename = path.basename(filename).replace(/[^a-zA-Z0-9_.-]/g, "_");
+
+      const targetDir = path.join(resolvedBase, cleanSub);
+      const targetPath = path.join(targetDir, cleanFilename);
+
+      const relative = path.relative(resolvedBase, targetPath);
+      if (relative.startsWith("..") || path.isAbsolute(relative)) {
+        throw new Error("Path traversal detected.");
+      }
+
+      const rawData = base64Data.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(rawData, "base64");
+
+      await fs.mkdir(targetDir, { recursive: true });
+      await fs.writeFile(targetPath, buffer);
+
+      return { ok: true, filePath: targetPath };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
@@ -682,6 +728,199 @@ export function registerIpcHandlers(): void {
       const message = redactErrorMessage(err);
       logError("chat:delete failed", message);
       return { ok: false, error: message };
+    }
+  });
+
+  ipcMain.handle("conversations:list", async (_event, filter: unknown) => {
+    try {
+      const cleanFilter: {
+        archived?: boolean;
+        pinned?: boolean;
+        model?: string;
+        dateFrom?: number;
+        dateTo?: number;
+        tags?: string[];
+      } = {};
+      if (filter && typeof filter === "object") {
+        const f = filter as Record<string, unknown>;
+        if (typeof f.archived === "boolean") cleanFilter.archived = f.archived;
+        if (typeof f.pinned === "boolean") cleanFilter.pinned = f.pinned;
+        if (typeof f.model === "string") cleanFilter.model = f.model;
+        if (typeof f.dateFrom === "number") cleanFilter.dateFrom = f.dateFrom;
+        if (typeof f.dateTo === "number") cleanFilter.dateTo = f.dateTo;
+        if (Array.isArray(f.tags)) {
+          cleanFilter.tags = f.tags.filter((t): t is string => typeof t === "string");
+        }
+      }
+      const { listConversations } = await import("../services/conversationVault");
+      const records = await listConversations(cleanFilter);
+      return { ok: true, records };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err), records: [] };
+    }
+  });
+
+  ipcMain.handle("conversations:get", async (_event, id: unknown) => {
+    try {
+      if (typeof id !== "string" || id.length > 128 || id.includes("\0")) {
+        return { ok: false, error: "Invalid conversation id" };
+      }
+      const { getConversation } = await import("../services/conversationVault");
+      const record = await getConversation(id);
+      return { ok: true, record };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("conversations:save", async (_event, record: unknown) => {
+    try {
+      if (!record || typeof record !== "object") {
+        return { ok: false, error: "Invalid record structure" };
+      }
+      const rec = record as ConversationRecordV1;
+      if (rec.version !== 1 || typeof rec.id !== "string") {
+        return { ok: false, error: "Invalid record structure" };
+      }
+      if (rec.id.length > 128 || rec.id.includes("\0")) {
+        return { ok: false, error: "Invalid record id" };
+      }
+      const { saveConversation } = await import("../services/conversationVault");
+      return await saveConversation(rec);
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("conversations:delete", async (_event, id: unknown) => {
+    try {
+      if (typeof id !== "string" || id.length > 128 || id.includes("\0")) {
+        return { ok: false, error: "Invalid conversation id" };
+      }
+      const { deleteConversation } = await import("../services/conversationVault");
+      return await deleteConversation(id);
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("conversations:archive", async (_event, id: unknown) => {
+    try {
+      if (typeof id !== "string" || id.length > 128 || id.includes("\0")) {
+        return { ok: false, error: "Invalid conversation id" };
+      }
+      const { archiveConversation } = await import("../services/conversationVault");
+      return await archiveConversation(id);
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("conversations:search", async (_event, query: unknown, options: unknown) => {
+    try {
+      if (typeof query !== "string" || query.length > 1024) {
+        return { ok: false, error: "Invalid query" };
+      }
+      const cleanOpts: { limit?: number; includeArchived?: boolean } = {};
+      if (options && typeof options === "object") {
+        const opt = options as Record<string, unknown>;
+        if (typeof opt.limit === "number") cleanOpts.limit = opt.limit;
+        if (typeof opt.includeArchived === "boolean") cleanOpts.includeArchived = opt.includeArchived;
+      }
+      const { searchIndex } = await import("../services/memoryPuller");
+      const results = await searchIndex(query, cleanOpts);
+      return { ok: true, results };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("conversations:pullContext", async (_event, input: unknown) => {
+    try {
+      if (!input || typeof input !== "object") {
+        return { ok: false, error: "Invalid input" };
+      }
+      const inp = input as Record<string, unknown>;
+      if (typeof inp.message !== "string") {
+        return { ok: false, error: "Invalid input" };
+      }
+      const cleanInput: {
+        message: string;
+        maxItems?: number;
+        maxTokens?: number;
+        includeArchived?: boolean;
+      } = { message: inp.message };
+      if (typeof inp.maxItems === "number") cleanInput.maxItems = inp.maxItems;
+      if (typeof inp.maxTokens === "number") cleanInput.maxTokens = inp.maxTokens;
+      if (typeof inp.includeArchived === "boolean") cleanInput.includeArchived = inp.includeArchived;
+
+      // SAFETY Stage 1: Screen user prompt message before searching memory
+      const decision = assessChildExploitationSafety({
+        endpoint: "/chat/completions",
+        method: "POST",
+        payload: { messages: [{ role: "user", content: cleanInput.message }] },
+        source: "chat"
+      });
+      recordDecision(decision);
+      if (!decision.allow || decision.action === "block") {
+        return {
+          ok: false,
+          error: "Safety check blocked the memory search request.",
+          context: { injectedText: "", facts: [], summaries: [], tokenEstimate: 0 }
+        };
+      }
+
+      const { pullContext } = await import("../services/memoryPuller");
+      const context = await pullContext(cleanInput);
+
+      // SAFETY Stage 2: Screen retrieved memory context before returning it to the renderer
+      if (context.injectedText) {
+        const contextDecision = assessChildExploitationSafety({
+          endpoint: "/chat/completions",
+          method: "POST",
+          payload: { messages: [{ role: "user", content: context.injectedText }] },
+          source: "chat"
+        });
+        recordDecision(contextDecision);
+        if (!contextDecision.allow || contextDecision.action === "block") {
+          return {
+            ok: true,
+            context: { injectedText: "", facts: [], summaries: [], tokenEstimate: 0 }
+          };
+        }
+      }
+
+      return { ok: true, context };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("conversations:rebuildIndex", async () => {
+    try {
+      const { rebuildIndex } = await import("../services/memoryPuller");
+      const itemsIndexed = await rebuildIndex();
+      return { ok: true, itemsIndexed };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("conversations:migrateLegacyHistory", async () => {
+    try {
+      const { migrateLegacyHistory } = await import("../services/vaultMigration");
+      return await migrateLegacyHistory();
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("conversations:detectLegacyHistory", async () => {
+    try {
+      const { detectLegacyHistory } = await import("../services/vaultMigration");
+      return await detectLegacyHistory();
+    } catch {
+      return false;
     }
   });
 }

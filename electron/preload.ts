@@ -3,6 +3,7 @@
 
 import { contextBridge, ipcRenderer } from "electron";
 import type { Conversation } from "../src/types/conversation";
+import type { ConversationRecordV1, SearchResult, PulledMemoryContext } from "../src/types/conversationVault";
 
 /** Represents a Venice API request sent from the renderer to the main process. */
 type VeniceRequest = {
@@ -180,6 +181,9 @@ const veniceForge = {
     readLocalFile(filePath: string): Promise<{ ok: boolean; content?: string; error?: string }> {
       return ipcRenderer.invoke("app:readLocalFile", filePath);
     },
+    saveRoutedImage(base64Data: string, filename: string, subfolder: string): Promise<{ ok: boolean; filePath?: string; error?: string }> {
+      return ipcRenderer.invoke("app:saveRoutedImage", base64Data, filename, subfolder);
+    },
   },
 
   chat: {
@@ -198,6 +202,49 @@ const veniceForge = {
     /** Deletes a conversation by id. */
     delete(id: string): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("chat:delete", id);
+    },
+  },
+
+  conversations: {
+    list(filter?: {
+      archived?: boolean;
+      pinned?: boolean;
+      tags?: string[];
+      model?: string;
+      dateFrom?: number;
+      dateTo?: number;
+    }): Promise<{ ok: boolean; records: ConversationRecordV1[]; error?: string }> {
+      return ipcRenderer.invoke("conversations:list", filter);
+    },
+    get(id: string): Promise<{ ok: boolean; record: ConversationRecordV1 | null; error?: string }> {
+      return ipcRenderer.invoke("conversations:get", id);
+    },
+    save(record: ConversationRecordV1): Promise<{ ok: boolean; id: string; error?: string }> {
+      return ipcRenderer.invoke("conversations:save", record);
+    },
+    delete(id: string): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("conversations:delete", id);
+    },
+    archive(id: string): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("conversations:archive", id);
+    },
+    search(query: string, options?: { limit?: number; includeArchived?: boolean }): Promise<{ ok: boolean; results: SearchResult[]; error?: string }> {
+      return ipcRenderer.invoke("conversations:search", query, options);
+    },
+    pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean }): Promise<{ ok: boolean; context: PulledMemoryContext; error?: string }> {
+      return ipcRenderer.invoke("conversations:pullContext", input);
+    },
+    rebuildIndex(): Promise<{ ok: boolean; itemsIndexed: number; error?: string }> {
+      return ipcRenderer.invoke("conversations:rebuildIndex");
+    },
+    migrateLegacyHistory(): Promise<{ ok: boolean; migrated: number; failed: number; skipped: number; error?: string }> {
+      return ipcRenderer.invoke("conversations:migrateLegacyHistory");
+    },
+    detectLegacyHistory(): Promise<boolean> {
+      return ipcRenderer.invoke("conversations:detectLegacyHistory");
+    },
+    openConversationsFolder(): Promise<{ ok: boolean }> {
+      return ipcRenderer.invoke("app:openConversationsFolder");
     },
   },
 

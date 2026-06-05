@@ -5,6 +5,7 @@ import { useAuthStore } from './stores/auth-store'
 import { Sidebar } from './components/layout/sidebar'
 import { Header } from './components/layout/header'
 import { ApiKeyDialog } from './components/layout/api-key-dialog'
+import { InspectorPane } from './components/layout/inspector-pane'
 import { FirstRunModal } from './components/FirstRunModal'
 import { ChatView } from './components/chat/chat-view'
 import { ImagePage } from './components/image/image-page'
@@ -142,11 +143,14 @@ export function App() {
           onOpenApiKey={() => setApiKeyOpen(true)}
           onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
         />
-        <main className="flex-1 min-h-0 overflow-hidden">
-          <ErrorBoundary key={activeTab}>
-            <ActiveView />
-          </ErrorBoundary>
-        </main>
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          <main className="flex-1 min-h-0 overflow-hidden">
+            <ErrorBoundary key={activeTab}>
+              <ActiveView />
+            </ErrorBoundary>
+          </main>
+          <InspectorPane />
+        </div>
       </div>
       <ApiKeyDialog open={apiKeyOpen} onClose={() => setApiKeyOpen(false)} />
       <FirstRunModal

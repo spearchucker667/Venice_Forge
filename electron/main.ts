@@ -11,6 +11,7 @@ import { logError, logInfo } from "./services/logger";
 import { redactErrorMessage } from "../src/services/redaction";
 import { checkPathContained } from "./utils/navigation";
 import { isTrustedExternalUrl } from "./utils/urlSecurity";
+import { startBridgeServer, stopBridgeServer } from "./services/bridgeServer";
 
 /** Indicates whether the app is running in development mode. */
 const isDev = !app.isPackaged;
@@ -202,7 +203,39 @@ async function bootstrap(): Promise<void> {
     mode: isDev ? "development" : "production",
     transport: "direct-ipc",
   });
-  createWindow();
+
+  const args = process.argv;
+  const isHeadless = args.includes("--headless");
+
+  if (isHeadless) {
+    let port = 5062;
+    const portIndex = args.indexOf("--bridge-port");
+    if (portIndex !== -1 && portIndex + 1 < args.length) {
+      const parsedPort = parseInt(args[portIndex + 1], 10);
+      if (!isNaN(parsedPort)) port = parsedPort;
+    }
+
+    let host = "127.0.0.1";
+    const hostIndex = args.indexOf("--bridge-host");
+    if (hostIndex !== -1 && hostIndex + 1 < args.length) {
+      host = args[hostIndex + 1];
+    }
+
+    try {
+      const token = await startBridgeServer(port, host);
+      // eslint-disable-next-line no-console
+      console.log(`[Bridge Server] Started in headless mode at http://${host}:${port}`);
+      // eslint-disable-next-line no-console
+      console.log(`[Bridge Server] Token: ${token}`);
+      logInfo("Bridge server started in headless mode", { host, port });
+    } catch (err) {
+      logError("Failed to start bridge server in headless mode", String(err));
+      console.error(`[Bridge Server] Failed to start:`, err);
+      app.quit();
+    }
+  } else {
+    createWindow();
+  }
 }
 
 /** Prevents multiple application instances from running simultaneously. */
@@ -229,7 +262,12 @@ if (!gotLock) {
   });
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    const isHeadless = process.argv.includes("--headless");
+    if (!isHeadless && BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+
+  app.on("will-quit", () => {
+    stopBridgeServer();
   });
 
   app.on("web-contents-created", (_event, contents) => {
