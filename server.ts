@@ -126,12 +126,13 @@ export function createServerApp() {
     // widen connect-src to include ws: / wss:. In production only 'self' is allowed.
     const isProduction = AppConfig.NODE_ENV === "production";
     const connectSrc = isProduction ? "connect-src 'self'" : "connect-src 'self' ws: wss:";
+    const styleSrc = isProduction ? "style-src 'self'" : "style-src 'self' 'unsafe-inline'";
     res.setHeader(
       "Content-Security-Policy",
       [
         "default-src 'self'",
         "script-src 'self'",
-        "style-src 'self' 'unsafe-inline'",
+        styleSrc,
         "img-src 'self' data: blob: https:",
         connectSrc,
         "font-src 'self' data:",

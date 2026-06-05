@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import type { Theme } from "../theme/themeTypes";
 import { contrastRatio } from "../theme/contrast";
 
 export function ThemePreview({ theme }: { theme: Theme }) {
   const t = theme.tokens;
+  const containerRef = useRef<HTMLDivElement>(null);
   const warnings: string[] = [];
   const ratios = [
     { name: "Primary text / Background", fg: t.textPrimary, bg: t.background },
@@ -17,42 +18,55 @@ export function ThemePreview({ theme }: { theme: Theme }) {
     }
   });
 
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.style.setProperty("--preview-bg", t.background);
+    el.style.setProperty("--preview-border", t.border);
+    el.style.setProperty("--preview-surface", t.surface);
+    el.style.setProperty("--preview-text-primary", t.textPrimary);
+    el.style.setProperty("--preview-text-muted", t.textMuted);
+    el.style.setProperty("--preview-accent", t.accent);
+    el.style.setProperty("--preview-accent-fg", t.accentForeground);
+    el.style.setProperty("--preview-text-secondary", t.textSecondary);
+    el.style.setProperty("--preview-surface-elevated", t.surfaceElevated);
+    el.style.setProperty("--preview-danger", t.danger);
+    el.style.setProperty("--preview-danger-bg", `${t.danger}20`);
+    el.style.setProperty("--preview-danger-border", `${t.danger}40`);
+  }, [t]);
+
   return (
     <div className="space-y-3">
       <div
-        className="rounded-xl border p-4 space-y-3"
-        style={{ background: t.background, borderColor: t.border }}
+        ref={containerRef}
+        className="rounded-xl border p-4 space-y-3 bg-[var(--preview-bg)] border-[var(--preview-border)]"
       >
         {/* Header mock */}
         <div
-          className="flex items-center justify-between rounded-lg px-3 py-2"
-          style={{ background: t.surface, border: `1px solid ${t.border}` }}
+          className="flex items-center justify-between rounded-lg px-3 py-2 bg-[var(--preview-surface)] border border-[var(--preview-border)]"
         >
-          <span style={{ color: t.textPrimary, fontWeight: 600 }}>Forge</span>
-          <span style={{ color: t.textMuted, fontSize: 12 }}>Status</span>
+          <span className="text-[var(--preview-text-primary)] font-semibold">Forge</span>
+          <span className="text-[var(--preview-text-muted)] text-[12px]">Status</span>
         </div>
         {/* Sidebar + Content mock */}
         <div className="flex gap-2">
           <div
-            className="w-1/3 rounded-lg p-2 space-y-1"
-            style={{ background: t.surface, border: `1px solid ${t.border}` }}
+            className="w-1/3 rounded-lg p-2 space-y-1 bg-[var(--preview-surface)] border border-[var(--preview-border)]"
           >
-            <div className="rounded px-2 py-1 text-xs" style={{ background: t.accent, color: t.accentForeground }}>
+            <div className="rounded px-2 py-1 text-xs bg-[var(--preview-accent)] text-[var(--preview-accent-fg)]">
               Active
             </div>
-            <div className="rounded px-2 py-1 text-xs" style={{ color: t.textSecondary }}>
+            <div className="rounded px-2 py-1 text-xs text-[var(--preview-text-secondary)]">
               Inactive
             </div>
           </div>
           <div
-            className="flex-1 rounded-lg p-2 space-y-2"
-            style={{ background: t.surfaceElevated, border: `1px solid ${t.border}` }}
+            className="flex-1 rounded-lg p-2 space-y-2 bg-[var(--preview-surface-elevated)] border border-[var(--preview-border)]"
           >
-            <div className="h-2 rounded w-3/4" style={{ background: t.textMuted }} />
-            <div className="h-2 rounded w-1/2" style={{ background: t.textMuted }} />
+            <div className="h-2 rounded w-3/4 bg-[var(--preview-text-muted)]" />
+            <div className="h-2 rounded w-1/2 bg-[var(--preview-text-muted)]" />
             <div
-              className="mt-2 inline-block rounded px-3 py-1 text-xs font-medium"
-              style={{ background: t.accent, color: t.accentForeground }}
+              className="mt-2 inline-block rounded px-3 py-1 text-xs font-medium bg-[var(--preview-accent)] text-[var(--preview-accent-fg)]"
             >
               Button
             </div>
@@ -60,15 +74,13 @@ export function ThemePreview({ theme }: { theme: Theme }) {
         </div>
         {/* Input mock */}
         <div
-          className="rounded-lg px-3 py-2 text-sm"
-          style={{ background: t.surface, border: `1px solid ${t.border}`, color: t.textPrimary }}
+          className="rounded-lg px-3 py-2 text-sm bg-[var(--preview-surface)] border border-[var(--preview-border)] text-[var(--preview-text-primary)]"
         >
           Input text…
         </div>
         {/* Alert mock */}
         <div
-          className="rounded-lg px-3 py-2 text-xs"
-          style={{ background: `${t.danger}20`, border: `1px solid ${t.danger}40`, color: t.danger }}
+          className="rounded-lg px-3 py-2 text-xs bg-[var(--preview-danger-bg)] border border-[var(--preview-danger-border)] text-[var(--preview-danger)]"
         >
           Alert message
         </div>

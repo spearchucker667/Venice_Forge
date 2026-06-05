@@ -26,24 +26,19 @@ export function TabButton({
     : "px-3 py-2.5 text-left";
 
   const stateClasses = active
-    ? "text-text-primary font-semibold"
-    : "text-text-secondary hover:text-text-primary";
+    ? "text-text-primary font-semibold bg-[var(--accent-soft)] border-l-[3px] border-l-[var(--accent)]"
+    : "text-text-secondary hover:text-text-primary bg-transparent border-l-[3px] border-l-transparent";
 
   return (
     <button
       className={`${baseClasses} ${layoutClasses} ${stateClasses} ${className}`.trim()}
-      style={{
-        background: active ? 'var(--accent-soft)' : 'transparent',
-        borderLeft: active ? '3px solid var(--accent)' : '3px solid transparent',
-      }}
       onClick={() => onClick(id)}
       aria-current={active ? "page" : undefined}
       aria-label={iconOnly ? label : undefined}
       title={label}
     >
       <span 
-        className="grid place-items-center w-5 h-5 transition-colors duration-150" 
-        style={{ color: active ? 'var(--accent)' : undefined }}
+        className={`grid place-items-center w-5 h-5 transition-colors duration-150 ${active ? 'text-[var(--accent)]' : ''}`}
         aria-hidden="true"
       >
         {customIcon || <DefaultIcon id={id} />}

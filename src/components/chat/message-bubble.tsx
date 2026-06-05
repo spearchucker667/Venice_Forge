@@ -231,8 +231,8 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
         ) : (
           <span className="inline-flex gap-1.5 py-1.5">
             <span className="w-1 h-1 rounded-full bg-text-muted animate-pulse-dot" />
-            <span className="w-1 h-1 rounded-full bg-text-muted animate-pulse-dot" style={{ animationDelay: '0.2s' }} />
-            <span className="w-1 h-1 rounded-full bg-text-muted animate-pulse-dot" style={{ animationDelay: '0.4s' }} />
+            <span className="w-1 h-1 rounded-full bg-text-muted animate-pulse-dot [animation-delay:200ms]" />
+            <span className="w-1 h-1 rounded-full bg-text-muted animate-pulse-dot [animation-delay:400ms]" />
           </span>
         )}
         <div className="mt-0.5">{actions}</div>

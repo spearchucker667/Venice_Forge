@@ -5,7 +5,8 @@ export function VeniceLogo({ className, size = 24 }: { className?: string; size?
     <img 
       src="assets/branding/venice-keys-white.svg" 
       className={cn('shrink-0', className)}
-      style={{ width: size, height: size }}
+      width={size}
+      height={size}
       alt="Venice Forge Logo"
     />
   )

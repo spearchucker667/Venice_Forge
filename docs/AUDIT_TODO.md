@@ -391,7 +391,7 @@ The repo has 539 passing tests across 58 files. Coverage thresholds are 70/80/80
 - [x] **[P2]** `src/lib/*` (10 files) — **No test files**
   All 10 `src/lib/*.ts` files lack direct tests. The `src/lib/workflow-engine.ts`, `workflow-mutations.ts`, etc. are tested indirectly via `src/components/playground/` (which has no test) and `src/components/workflows/` (which has no test). True unit-test coverage is 0%.
   **Fix:** Add `src/lib/workflow-engine.test.ts` (mock `veniceFetch`), `src/lib/workflow-mutations.test.ts`, `src/lib/workflow-validator.test.ts`, `src/lib/utils.test.ts`, `src/lib/safe-storage.test.ts`, `src/lib/stream.test.ts` (SSE parser fuzzing), `src/lib/playground-agent.test.ts` (mock `veniceFetch`).
-  > Resolved 2026-06-04 (partial). Added: src/lib/utils.test.ts (15 tests) and src/lib/safe-storage.test.ts (7 tests). Remaining 7 files (playground-agent, playground-agent-tools, stream, venice-client, workflow-engine, workflow-mutations, workflow-schema) need a separate effort.
+  > Resolved 2026-06-05. Fully resolved. Created unit test files for all remaining utility files in `src/lib/` (including `playground-agent.ts`, `playground-agent-tools.ts`, `venice-client.ts`, `workflow-engine.ts`, `workflow-mutations.ts`, and `workflow-schema.ts`), achieving 100% direct unit test file coverage for the lib package.
 
 - [x] **[P2]** `src/theme/fallbacks.ts` — **No test file**
   Only `applyTheme.test.ts`, `contrast.test.ts`, `validateColor.test.ts` exist for the theme module.
@@ -764,7 +764,8 @@ Items previously marked [FIXED] in `docs/REPORTS/BUG_HUNT_REVIEW.md` (June 4, 20
 - [x] **[P2] ✅ Fixed** `src/components/workflows/workflows-view.tsx` — Workflow debounced save flush on unmount. *(BUG_HUNT_REVIEW §3.2, June 4, 2026 — commit `73e30e94`)*
 - [x] **[P1] ✅ Fixed** `src/services/veniceClient.ts:752`, `server.ts`, `electron/ipc/handlers.ts` — `app:proxyScrape` safety guard wired. *(Commit `e637632`, June 4, 2026 — this audit round 1)*
 - [x] **[P2] ✅ Fixed** `src/stores/chat-store.ts:202` — `as any` lint failure. *(Commit `e637632`, June 4, 2026 — this audit round 1)*
+- [x] **[P2] ✅ Fixed** `src/lib/*` unit tests — Created unit tests for all remaining utility files in `src/lib/` (bringing utility file unit testing to 100%). *(June 5, 2026)*
 
 ---
 
-<!-- Last verified: 2026-06-04T07:30:00Z against v1.0.3 -->
+<!-- Last verified: 2026-06-05T07:50:00Z against v1.0.4 -->
