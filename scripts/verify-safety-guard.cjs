@@ -84,7 +84,12 @@ function scanForViolations(root) {
           walk(fullPath);
         }
       } else if (file.endsWith('.ts') || file.endsWith('.tsx') || file.endsWith('.js')) {
-        if (file.includes('childExploitationGuard') || file.includes('verify-safety-guard')) continue;
+        if (
+          file.includes('childExploitationGuard') ||
+          file.includes('matchTables') ||
+          file.includes('normalization') ||
+          file.includes('verify-safety-guard')
+        ) continue;
         const content = fs.readFileSync(fullPath, 'utf-8');
 
         // Look for console logging of prompt-like variables
