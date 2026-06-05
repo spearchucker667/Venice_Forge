@@ -686,6 +686,38 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  // VERIFY-008 regression guard (T14): server-side paginated listing. The
+  // legacy chat:list handler is unbounded; this new channel accepts an
+  // { offset, limit } object and returns the conversation-list envelope
+  // directly (no back-compat shim). The renderer should call this when
+  // a chat:list result has `truncated: true` to fetch subsequent pages.
+  ipcMain.handle("chat:listPage", async (_event, params: unknown) => {
+    try {
+      const offset = typeof params === "object" && params !== null && "offset" in params
+        ? Number((params as { offset: unknown }).offset)
+        : 0;
+      const limit = typeof params === "object" && params !== null && "limit" in params
+        ? Number((params as { limit: unknown }).limit)
+        : 200;
+      if (!Number.isFinite(offset) || offset < 0) {
+        return { ok: false, error: "Invalid offset", conversations: [], truncated: false, totalScanned: 0, offset: 0, count: 0 };
+      }
+      if (!Number.isFinite(limit) || limit < 1) {
+        return { ok: false, error: "Invalid limit", conversations: [], truncated: false, totalScanned: 0, offset: 0, count: 0 };
+      }
+      const result = await listConversations({ offset, limit });
+      // listConversations({...}) always returns the envelope.
+      const envelope = Array.isArray(result)
+        ? { conversations: result, truncated: false, totalScanned: result.length, offset, count: result.length }
+        : result;
+      return { ok: true, ...envelope };
+    } catch (err) {
+      const message = redactErrorMessage(err);
+      logError("chat:listPage failed", message);
+      return { ok: false, error: message, conversations: [], truncated: false, totalScanned: 0, offset: 0, count: 0 };
+    }
+  });
+
   ipcMain.handle("chat:get", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string" || id.length > 128) {

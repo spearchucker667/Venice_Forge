@@ -337,6 +337,29 @@ export const desktopChat = {
     }
     return window.veniceForge!.chat.list();
   },
+  /** T14 server-side pagination: fetch a single page of conversations. */
+  async listPage(params: { offset: number; limit: number }): Promise<{
+    ok: boolean;
+    conversations: Conversation[];
+    truncated: boolean;
+    totalScanned: number;
+    offset: number;
+    count: number;
+    error?: string;
+  }> {
+    if (!isElectron()) {
+      return {
+        ok: false,
+        conversations: [],
+        truncated: false,
+        totalScanned: 0,
+        offset: params.offset,
+        count: 0,
+        error: "Chat filesystem storage is only available in desktop mode.",
+      };
+    }
+    return window.veniceForge!.chat.listPage(params);
+  },
   async get(id: string): Promise<{ ok: boolean; conversation: Conversation | null; error?: string }> {
     if (!isElectron()) return { ok: false, conversation: null, error: "Chat filesystem storage is only available in desktop mode." };
     return window.veniceForge!.chat.get(id);

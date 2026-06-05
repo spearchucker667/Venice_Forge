@@ -191,6 +191,18 @@ const veniceForge = {
     list(): Promise<{ ok: boolean; conversations: Conversation[]; truncated: boolean; totalScanned: number; error?: string }> {
       return ipcRenderer.invoke("chat:list");
     },
+    /** Lists a single paginated page of conversations (T14). */
+    listPage(params: { offset: number; limit: number }): Promise<{
+      ok: boolean;
+      conversations: Conversation[];
+      truncated: boolean;
+      totalScanned: number;
+      offset: number;
+      count: number;
+      error?: string;
+    }> {
+      return ipcRenderer.invoke("chat:listPage", params);
+    },
     /** Retrieves a single conversation by id. */
     get(id: string): Promise<{ ok: boolean; conversation: Conversation | null; error?: string }> {
       return ipcRenderer.invoke("chat:get", id);

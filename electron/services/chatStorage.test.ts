@@ -192,4 +192,81 @@ describe("chatStorage", () => {
     expect(retrieved?.title).toBe("Updated");
     expect(retrieved?.messages).toHaveLength(3);
   });
+
+  // VERIFY-008 regression guard (T14): server-side paginated listConversations.
+  // When called with { offset, limit }, the function returns the envelope
+  // shape directly (no back-compat shim) and respects the requested page
+  // boundaries. A renderer can use the `truncated` field to know whether
+  // more pages exist beyond the current one.
+  describe("listConversations({ offset, limit }) — T14 pagination", () => {
+    it("returns the envelope shape with offset/count when called with options", async () => {
+      const c1 = makeConv({ updatedAt: 1000 });
+      const c2 = makeConv({ updatedAt: 2000 });
+      const c3 = makeConv({ updatedAt: 3000 });
+      await saveConversation(c1);
+      await saveConversation(c2);
+      await saveConversation(c3);
+
+      const result = await listConversations({ offset: 0, limit: 2 });
+      expect(Array.isArray(result)).toBe(false);
+      if (Array.isArray(result)) throw new Error("expected envelope shape");
+      expect(result.offset).toBe(0);
+      expect(result.count).toBe(2);
+      expect(result.conversations).toHaveLength(2);
+      // Sorted by updatedAt desc: c3, c2 (skip c1)
+      expect(result.conversations.map((c) => c.id)).toEqual([c3.id, c2.id]);
+      // Truncated because c1 still exists beyond the page
+      expect(result.truncated).toBe(true);
+      expect(result.totalScanned).toBe(3);
+    });
+
+    it("returns the second page correctly when paginating", async () => {
+      const c1 = makeConv({ updatedAt: 1000 });
+      const c2 = makeConv({ updatedAt: 2000 });
+      const c3 = makeConv({ updatedAt: 3000 });
+      await saveConversation(c1);
+      await saveConversation(c2);
+      await saveConversation(c3);
+
+      const page1 = await listConversations({ offset: 0, limit: 2 });
+      const page2 = await listConversations({ offset: 2, limit: 2 });
+      expect(Array.isArray(page2)).toBe(false);
+      if (Array.isArray(page1) || Array.isArray(page2)) throw new Error("expected envelope shape");
+      // page1 has c3, c2; page2 has c1
+      expect(page1.conversations.map((c) => c.id)).toEqual([c3.id, c2.id]);
+      expect(page2.conversations.map((c) => c.id)).toEqual([c1.id]);
+      // page1 truncated (more exist), page2 not truncated (end of list)
+      expect(page1.truncated).toBe(true);
+      expect(page2.truncated).toBe(false);
+    });
+
+    it("clamps a renderer-supplied limit > MAX_PAGE_LIMIT (1000)", async () => {
+      // Save 3 conversations
+      await saveConversation(makeConv({ updatedAt: 1000 }));
+      await saveConversation(makeConv({ updatedAt: 2000 }));
+      await saveConversation(makeConv({ updatedAt: 3000 }));
+
+      const result = await listConversations({ offset: 0, limit: 10_000_000 });
+      if (Array.isArray(result)) throw new Error("expected envelope shape");
+      // We have only 3 conversations, so the result is bounded by data, not by limit
+      expect(result.conversations).toHaveLength(3);
+      expect(result.truncated).toBe(false);
+    });
+
+    it("clamps a negative offset to 0", async () => {
+      await saveConversation(makeConv({ updatedAt: 1000 }));
+      const result = await listConversations({ offset: -10, limit: 50 });
+      if (Array.isArray(result)) throw new Error("expected envelope shape");
+      expect(result.offset).toBe(0);
+    });
+
+    it("returns an empty page (not error) when offset >= total", async () => {
+      await saveConversation(makeConv({ updatedAt: 1000 }));
+      const result = await listConversations({ offset: 100, limit: 50 });
+      if (Array.isArray(result)) throw new Error("expected envelope shape");
+      expect(result.conversations).toHaveLength(0);
+      expect(result.count).toBe(0);
+      expect(result.truncated).toBe(false);
+    });
+  });
 });

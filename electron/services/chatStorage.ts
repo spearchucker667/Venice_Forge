@@ -174,17 +174,48 @@ export interface ListConversationsResult {
   truncated: boolean;
   /** Total files on disk that matched the scan, before truncation. */
   totalScanned: number;
+  /** Offset of the first conversation in `conversations` (0-based).
+   *  Equal to the `offset` argument passed in, clamped to a valid value. */
+  offset: number;
+  /** Number of conversations actually returned in this page. */
+  count: number;
 }
 
-/** Lists all persisted conversations, sorted by updatedAt descending. */
-export async function listConversations(): Promise<Conversation[] | ListConversationsResult> {
+/** Options for the paginated listConversations. */
+export interface ListConversationsOptions {
+  /** 0-based offset into the sorted conversation list. Defaults to 0. */
+  offset?: number;
+  /** Maximum number of conversations to return in this page. Defaults to MAX_LIST_CONVERSATIONS. */
+  limit?: number;
+}
+
+/** Hard ceiling for any single page request. Prevents accidental OOM via a
+ *  renderer-supplied `limit: 10_000_000`. */
+const MAX_PAGE_LIMIT = 1000;
+
+/** Lists all persisted conversations, sorted by updatedAt descending.
+ *  When called with no arguments, returns the legacy union shape
+ *  (Conversation[] for the no-truncation case, envelope otherwise) for
+ *  backward compatibility with older callers. New callers should pass
+ *  { offset, limit } and always receive the envelope shape. */
+export async function listConversations(
+  options?: ListConversationsOptions
+): Promise<Conversation[] | ListConversationsResult> {
   await ensureDir();
   const dir = getChatHistoryDir();
   const jsonFiles = await listConversationFileNames(dir);
   const totalScanned = jsonFiles.length;
 
+  // Resolve pagination params with bounds-checking.
+  const requestedOffset = Math.max(0, Math.floor(options?.offset ?? 0));
+  const requestedLimit = Math.max(
+    1,
+    Math.min(MAX_PAGE_LIMIT, Math.floor(options?.limit ?? MAX_LIST_CONVERSATIONS))
+  );
+
+  // Read up to (offset + limit) valid conversations, sorted by updatedAt.
+  // We over-scan to know whether more pages exist beyond `limit`.
   const conversations: Conversation[] = [];
-  let truncated = false;
   for (let i = 0; i < jsonFiles.length; i += LIST_BATCH_SIZE) {
     const batch = jsonFiles.slice(i, i + LIST_BATCH_SIZE);
     const batchResults = await Promise.all(
@@ -195,25 +226,26 @@ export async function listConversations(): Promise<Conversation[] | ListConversa
     );
     for (const conv of batchResults) {
       if (conv) conversations.push(conv);
-      if (conversations.length >= MAX_LIST_CONVERSATIONS) {
-        truncated = true;
-        logWarn(
-          `chat-history directory contains more than ${MAX_LIST_CONVERSATIONS} valid conversations; truncating list. Consider archiving old conversations.`
-        );
-        break;
-      }
     }
-    if (conversations.length >= MAX_LIST_CONVERSATIONS) break;
+    if (conversations.length >= requestedOffset + requestedLimit + 1) break;
   }
-
-  // The file-name scan itself caps at MAX_CONVERSATION_FILES_TO_SCAN; if hit,
-  // treat the listing as truncated so the UI can surface the cap to the user.
-  if (totalScanned >= MAX_CONVERSATION_FILES_TO_SCAN) truncated = true;
-
   conversations.sort((a, b) => b.updatedAt - a.updatedAt);
-  // Backward compat: legacy callers expecting Conversation[] get the bare
-  // array. New callers can call the named export to access the envelope.
-  return truncated ? { conversations, truncated, totalScanned } : conversations;
+
+  const totalValid = conversations.length;
+  const page = conversations.slice(requestedOffset, requestedOffset + requestedLimit);
+  // truncated = (more conversations exist beyond this page) OR
+  //             (the file scan itself was capped at MAX_CONVERSATION_FILES_TO_SCAN).
+  const truncated =
+    totalScanned >= MAX_CONVERSATION_FILES_TO_SCAN ||
+    requestedOffset + page.length < totalValid;
+
+  // Legacy callers (no options) get the bare Conversation[] when no truncation.
+  // The envelope is always returned when (a) options were passed, or
+  // (b) truncation is detected.
+  if (!options && !truncated) {
+    return page;
+  }
+  return { conversations: page, truncated, totalScanned: totalValid, offset: requestedOffset, count: page.length };
 }
 
 /** Retrieves a single conversation by id. */
