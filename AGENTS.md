@@ -175,6 +175,17 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `electron/main.ts` | BrowserWindow + CSP + navigation guards; `requestSingleInstanceLock` |
 | `electron/ipc/handlers.ts` | IPC channel handlers (incl. `venice:request`, `venice:streamChat`, `chat:*`, `app:*`) |
 | `electron/services/bridgeServer.ts` | Headless Express loopback bridge server (`127.0.0.1`) enforcing bearer token auth & child exploitation safety guard |
+| `src/types/rp.ts` | Local-first Character RP Studio types: `CharacterCardV1`, `UserPersonaV1`, `RpChatV1` / `RpMessageV1`, `LorebookV1`, `RpMemoryV1`, `RpAssetV1`, `PromptAssemblyTraceEntry`, `VALID_ID_RE` |
+| `src/services/rp/promptBuilderService.ts` | Pure deterministic prompt assembly (safety -> model -> persona -> characters -> scenario -> lorebook -> memory -> recent -> active turn) with trace + LIFO budget enforcement |
+| `src/services/rp/lorebookService.ts` | Pure lorebook entry evaluator (constant / keyword / whole-word / regex keys, insertion modes) |
+| `src/services/rp/rpMemoryService.ts` | RP memory selection (pinned > character > long-term) with per-scope caps and `RP_MEMORY_MAX_CHARS=2000` budget |
+| `src/services/rp/characterCardService.ts` `personaService.ts` `lorebookRendererService.ts` `rpChatService.ts` `assetService.ts` | Renderer-side wrappers (Electron IPC + web IndexedDB) for local RP storage |
+| `src/services/rp/sceneGenerationService.ts` | Scene prompt extraction + `/image/generate` dispatch with mandatory `assessScenePrompt` boundary check |
+| `src/shared/safety/characterImportSafety.ts` | Thin wrappers routing character/persona/RP-context/scene-prompt inputs to the existing `assessChildExploitationSafety` with correct `source`/`endpoint` |
+| `src/stores/character-card-store.ts` `persona-store.ts` `lorebook-store.ts` `rp-chat-store.ts` `scene-asset-store.ts` | Zustand stores for the RP Studio (lazy-loaded behind `'rp-studio'` tab) |
+| `src/components/rp-studio/` | RP Studio UI: `RpStudioView` orchestrator + `CharacterLibrary`, `CharacterEditor`, `PersonaManager`, `LorebookManager`, `RpChatList`, `RpChatView`, `SceneGenerator`, `AssetGallery`, `PromptDebugDrawer` |
+| `electron/services/characterCardStorage.ts` `rpChatStorage.ts` `rpSingleFileStore.ts` `rpStores.ts` | Main-process filesystem storage for character cards, RP chats, and single-file record stores (personas, lorebooks, rp-assets) |
+| `electron/ipc/rpHandlers.ts` | Registers 20 IPC channels for the RP Studio (`characterCards:*`, `personas:*`, `lorebooks:*`, `rpChats:*`, `rpAssets:*`) |
 | `src/stores/inspector-store.ts` | Zustand developer traffic logs and diagnostics store |
 | `electron/ipc/validation.ts` | IPC request validation |
 | `electron/services/secureStore.ts` | `safeStorage` wrapper with atomic writes (temp + rename) |

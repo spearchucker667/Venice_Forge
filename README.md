@@ -51,7 +51,7 @@ For development, see [Development](#-development) or [docs/ABOUT.md](docs/ABOUT.
 
 ## ✨ Features
 
-Thirteen integrated tabs covering chat, media generation, batch automation, research, and settings:
+Fourteen integrated tabs covering chat, media generation, batch automation, research, and settings:
 
 | Tab | Name | What You Can Do |
 |-----|------|-----------------|
@@ -66,6 +66,7 @@ Thirteen integrated tabs covering chat, media generation, batch automation, rese
 | 📋 | **Batch** | Automate: run one prompt across many inputs, or chain multiple prompts in sequence |
 | 🔍 | **Research** | Web search via Venice or Jina AI, page scraping, research synthesis, and public-profile discovery |
 | 🎭 | **Characters** | Browse Venice hosted characters, sort/filter, and start character chats using `venice_parameters.character_slug` |
+| 🎭 | **RP Studio** | Local-first character roleplay authoring + runtime: build character cards with avatars, write personas and lorebooks (keyword-triggered world info), run multi-character chats with speaker-aware turns, generate scene images linked to chat history, and inspect the prompt assembly trace. All content stays on disk; the existing child-exploitation safety guard runs at every dispatch boundary. See [`docs/CHARACTER_RP.md`](docs/CHARACTER_RP.md) |
 | 📚 | **Catalog** | Browse live Venice model catalog with capability details; auto-refresh on API key save. App requires a Venice API key for live model discovery |
 | 🏞️ | **Library** | Local image gallery, saved chat files, and conversation history — with bulk multi-select download, deletion, and upscale |
 | ⚙️ | **Config** | API key management (OS-level secure storage), theme editor (Venice Parity Dark, Graphite, Daylight, Copper, Dracula, GruvBox Dark, Rosepine) with custom YAML export/import, model defaults, data import/export, and a **Local Config** panel that surfaces the optional `config.yaml` / `themes.yaml` files (path, parse/validation warnings, key import status, Reload / Open Folder / Export Template / Clear Secure Store actions) |

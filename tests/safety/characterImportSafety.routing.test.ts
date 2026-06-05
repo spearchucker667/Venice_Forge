@@ -15,7 +15,7 @@
  * in detail). This file adds a **routing fingerprint** test: every wrapper
  * returns a non-empty `audit.decisionId` (proving the guard ran), and a clean
  * card with all five wrappers returns `allow: true` without spurious category
- * firings — protecting against future changes that bypass the existing guard.
+ * firings — protecting against future changes that route around the existing guard.
  */
 
 import { beforeEach, describe, expect, it } from "vitest";
