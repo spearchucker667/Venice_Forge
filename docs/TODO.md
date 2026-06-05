@@ -3,10 +3,10 @@
 ## Restructuring & Merge Stabilization (CURRENT FOCUS)
 
 - [x] **Type Safety Restoration:** Fix all remaining `any` types and implicit `any` errors introduced during the DONOR UI port. (Strict compiler options now pass cleanly, and all src/lib/ files are fully typed and tested).
-- [ ] **UI Polish & Consistency:** Re-align the new DONOR UI shell with TARGET's graphite/copper theme engine. Ensure all studios (Audio, Video, Music) feel like part of the same app.
+- [x] **UI Polish & Consistency:** Re-align the new DONOR UI shell with TARGET's graphite/copper theme engine. Ensure all studios (Audio, Video, Music) feel like part of the same app. *(Theme token system shipped in `src/theme/themes.ts` with `BUILTIN_COPPER` + `BUILTIN_DAYLIGHT` + `BUILTIN_GRAPHITE`; VERIFY-010 invariant in `tests/theme/inlineColorInvariant.test.ts` locks zero out-of-allowlist inline colors across the renderer. Commit `86262ca`.)*
 - [x] **Deep Feature Verification:** Regression test all new features (Workflows, Playground, Studios) to ensure they work correctly over the Electron IPC bridge (100% unit-test file coverage achieved for all src/lib/ engine files, 753 total tests passing).
-- [ ] **Data Migration:** Ensure legacy `chat-history/*.json` and `IndexedDB` stores are correctly picked up by the new React components.
-- [ ] **Asset Sanitization:** Double-check for any remaining "OpenVenice" or "donor" references in the codebase.
+- [x] **Data Migration:** Ensure legacy `chat-history/*.json` and `IndexedDB` stores are correctly picked up by the new React components. *(Encrypted `Conversation Vault` + `vaultMigration.ts` shipped in commit `62a52226`; legacy flat `chats` auto-migrate on first load (additive only, never destructive); VERIFY regression coverage in `electron/services/conversationVault.test.ts`.)*
+- [x] **Asset Sanitization:** Double-check for any remaining "OpenVenice" or "donor" references in the codebase. *(Closed as out-of-scope per `docs/AUDIT_TODO.md` (2026-06-04): the "donor" terminology is preserved in `docs/REPORTS/BUG_HUNT_REVIEW.md` and `docs/design/VENICE_UI_EXTRACTION.md` as historical traceability of the merge. The intentional attribution in `README.md` also stays.)*
 
 ## Active Tasks
 

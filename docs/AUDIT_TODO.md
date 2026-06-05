@@ -768,4 +768,4 @@ Items previously marked [FIXED] in `docs/REPORTS/BUG_HUNT_REVIEW.md` (June 4, 20
 
 ---
 
-<!-- Last verified: 2026-06-05T07:50:00Z against v1.0.4 -->
+<!-- Last verified: 2026-06-05T10:30:00Z against v1.0.5 -->
