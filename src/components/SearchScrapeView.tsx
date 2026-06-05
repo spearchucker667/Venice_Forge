@@ -6,6 +6,7 @@ import { Chip } from "../components/Chip";
 import { DiagPreview } from "../components/DiagnosticsPreview";
 import { copyText } from "../utils/download";
 import { isValidSearchResponse } from "../utils/veniceValidation";
+import { describeResearchError } from "../utils/researchError";
 import { MAX_RAW_UPLOAD_BYTES } from "../services/veniceClient";
 import { useSettingsStore } from "../stores/settings-store";
 import { veniceResearchProvider } from "../research/providers/veniceResearchProvider";
@@ -165,7 +166,7 @@ export function SearchScrapeView() {
     } catch (err: unknown) {
       if (runIdRef.current !== runId) return;
       const error = err as { name?: string; message?: string };
-      if (error.name !== "AbortError") setError(error.message || "Search failed");
+      if (error.name !== "AbortError") setError(describeResearchError(error, "Search failed."));
     } finally {
       if (runIdRef.current === runId) setLoading("");
     }
@@ -197,7 +198,7 @@ export function SearchScrapeView() {
     } catch (err: unknown) {
       if (runIdRef.current !== runId) return;
       const error = err as { name?: string; message?: string };
-      if (error.name !== "AbortError") setError(error.message || "Scrape failed");
+      if (error.name !== "AbortError") setError(describeResearchError(error, "Scrape failed."));
     } finally {
       if (runIdRef.current === runId) setLoading("");
     }
@@ -232,7 +233,7 @@ export function SearchScrapeView() {
       if (runIdRef.current !== runId) return;
       const error = err as { name?: string; message?: string };
       if (error.name !== "AbortError")
-        setError(error.message || "Text parser failed");
+        setError(describeResearchError(error, "Text parser failed."));
     } finally {
       if (runIdRef.current === runId) setLoading("");
     }
@@ -240,7 +241,14 @@ export function SearchScrapeView() {
 
   async function runAiResearch() {
     if (!researchQuestion.trim()) return;
-    if (!requireVeniceApiKey("running AI research")) return;
+    // Only the Venice provider strictly requires an API key. The Jina free
+    // tier works without a key, so we let Jina requests through and rely on
+    // describeResearchError() to surface a friendly 401/403 message if the
+    // configured key is rejected or missing. This avoids false positives for
+    // users who have intentionally declined to configure a Jina key.
+    if (researchProviderId !== "jina") {
+      if (!requireVeniceApiKey("running AI research")) return;
+    }
     setError("");
     const researchGuard = assessChildExploitationSafety({
       text: researchQuestion.trim(),
@@ -302,7 +310,8 @@ export function SearchScrapeView() {
     } catch (err: unknown) {
       if (runIdRef.current !== runId) return;
       const error = err as { name?: string; message?: string };
-      if (error.name !== "AbortError") setError(error.message || "AI research failed");
+      if (error.name !== "AbortError")
+        setError(describeResearchError(error, "AI research failed.", researchProviderId));
     } finally {
       if (runIdRef.current === runId) setLoading("");
     }
@@ -361,7 +370,7 @@ export function SearchScrapeView() {
     } catch (err: unknown) {
       if (runIdRef.current !== runId) return;
       const error = err as { name?: string; message?: string };
-      if (error.name !== "AbortError") setError(error.message || "Profile discovery failed");
+      if (error.name !== "AbortError") setError(describeResearchError(error, "Profile discovery failed."));
     } finally {
       if (runIdRef.current === runId) setLoading("");
     }

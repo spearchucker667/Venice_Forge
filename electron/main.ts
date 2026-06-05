@@ -7,6 +7,7 @@ import { app, BrowserWindow, dialog, shell, session } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import { registerIpcHandlers } from "./ipc/handlers";
+import { initializeConfig } from "./services/configService";
 import { logError, logInfo } from "./services/logger";
 import { redactErrorMessage } from "../src/services/redaction";
 import { checkPathContained } from "./utils/navigation";
@@ -197,6 +198,17 @@ function createWindow(): BrowserWindow {
 
 /** Registers IPC handlers and creates the main application window. */
 async function bootstrap(): Promise<void> {
+  // SECURITY: initialize config BEFORE registering IPC handlers so that any
+  // imported API keys are available in the secure store before the first
+  // renderer request. If config initialization fails (corrupt YAML, missing
+  // permissions, etc.) the app still boots with built-in defaults — we
+  // surface the error in the Settings UI.
+  try {
+    await initializeConfig();
+  } catch (err) {
+    logError("Config bootstrap failed; continuing with defaults", err);
+  }
+
   registerIpcHandlers();
   // Register CSP once globally for the default session so it is not duplicated
   // when additional windows are created (M-008).

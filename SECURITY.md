@@ -98,6 +98,20 @@ Both the **Venice API key** and the optional **Jina API key** use the same stora
 For Windows and macOS, there is **no plaintext fallback**. The application will refuse to save any API key if OS-level encryption is unavailable.
 For Linux and other platforms, a plaintext fallback may be permitted if the `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true` environment variable is explicitly set in the process environment (e.g., `.env` for web mode development, or the shell environment for Electron).
 
+## Local Master YAML Config
+
+The optional `config.yaml` and `themes.yaml` files are a **bootstrap mechanism**, not a key store. Their security model is:
+
+- **Renderer never sees raw API keys.** The IPC channel `config:get` returns only `secrets.has_venice_api_key: boolean` and `secrets.has_jina_api_key: boolean`. Raw values never cross the IPC boundary.
+- **Plaintext keys in the YAML are imported into `safeStorage` on startup.** They are then redacted from the file unless `secrets.keep_plaintext_keys: true` is explicitly set.
+- **Default generated config files never contain real keys.** The shipped example templates ship with empty strings.
+- **Existing secure-store keys are not overwritten** unless `developer.force_import_keys: true` is set.
+- **Local secret files are gitignored.** `.config/*.yaml` is ignored; `!.config/*.example.yaml` is re-included to keep the templates tracked.
+- **Path values must be local.** Any value with a `scheme://` (e.g. `https://`, `file://`) is rejected by the schema and replaced with the default.
+- **Generic patches cannot set plaintext keys.** `config:writeSanitized` always strips `secrets.*` regardless of the patch payload; UI-entered keys still flow through the dedicated `apiKey:set` / `jinaApiKey:set` IPC channels.
+- **No remote URLs.** The config service never makes network calls; the schema blocks any URL-like path.
+- **No child-safety bypass.** The `assessChildExploitationSafety` guard runs at every prompt-sending boundary regardless of config source.
+
 ## Research Provider Security
 
 - **Jina AI**: Requests are sent directly to `r.jina.ai` and `s.jina.ai`. The Jina API key is redacted from all logs, diagnostics, and exports. A renderer-layer safety guard runs before all Jina dispatch (see Content Safety above).

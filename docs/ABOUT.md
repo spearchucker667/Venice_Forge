@@ -83,6 +83,7 @@ Web mode (development only):
 | Embeddings | Vector embeddings generation for text with selectable models and dimension display |
 | Batch | Sequential prompt runs over multiple inputs |
 | Research | Multi-provider web search, page scraping, AI research synthesis, and public-profile discovery (Venice, Jina AI, or Generic HTTP) |
+| Characters | Browse Venice hosted characters via the official `/characters` API, filter by adult / web-enabled flags, and start character chats using `venice_parameters.character_slug` |
 | Catalog | Live model browser (type, traits, capability). Requires API key for live discovery. |
 | Library | Local image gallery, uploaded files history, recent chats, bulk download/delete/upscale |
 | Config | API key management, theme selection (4 built-in + custom export/import), import/export |
@@ -96,6 +97,30 @@ Web mode (development only):
 - **State:** React `useReducer` with Immer for immutable updates
 - **Testing:** Vitest 4, @testing-library/react, supertest
 - **Build:** tsc (Electron main), esbuild (Express server), Vite (renderer)
+- **Local config:** `yaml@^2.9.0` (renderer + main); custom defensive validator in `src/config/configSchema.ts`; runtime service in `electron/services/configService.ts` (path resolution, parse, key import/redaction, sanitized IPC payloads)
+
+## Local Master YAML Config
+
+Venice Forge reads two optional files at startup: `config.yaml` and `themes.yaml`. They are the canonical way for developers and power users to configure behavior without opening the app. The schema is strict and the security model is non-negotiable.
+
+### Locations (precedence)
+
+1. `VENICE_FORGE_CONFIG_FILE` / `VENICE_FORGE_THEMES_FILE` env override (absolute path).
+2. `<repo>/.config/config.local.yaml` (development).
+3. `<app.getPath("userData")>/.config/config.yaml` (packaged desktop).
+4. Built-in defaults in `src/config/defaultConfig.ts`.
+
+### Security model
+
+- Renderer never sees `secrets.venice_api_key` or `secrets.jina_api_key`. Only booleans (`has_venice_api_key`, `has_jina_api_key`) cross the IPC boundary.
+- Default generated files never contain real keys.
+- Plaintext keys are imported into OS secure storage (`safeStorage`) on startup and redacted from the YAML afterwards (unless `secrets.keep_plaintext_keys: true`).
+- Existing secure-store keys are not overwritten unless `developer.force_import_keys: true`.
+- Path values are rejected if they look like URLs or contain control characters.
+- Generic config patches cannot set plaintext keys; the patch path strips `secrets.*` regardless of input.
+- Raw keys are never logged or exported. The local-files-only rule is enforced at the schema level.
+
+See [`docs/CONFIG.md`](CONFIG.md) for the full schema, examples, and recovery steps.
 
 ## Data Flow
 

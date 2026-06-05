@@ -5,7 +5,7 @@
   "author": "fayeblade (@spearchucker667)",
   "license": "MIT",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.0.5",
   "type": "module",
   "main": "dist-electron/electron/main.js",
   "homepage": "https://github.com/spearchucker667/Venice-API-connector#readme",
@@ -52,7 +52,10 @@
     "dist:mac": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --publish never && npm run checksum:release",
     "dist:mac:arm64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --arm64 --publish never && npm run checksum:release",
     "dist:mac:x64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --x64 --publish never && npm run checksum:release",
-    "ci": "npm ci && npm run lint:eslint && npm run typecheck && npm test && npm run verify:safety-guard && npm run build"
+    "ci": "npm ci && npm run lint:eslint && npm run typecheck && npm test && npm run verify:safety-guard && npm run build",
+    "config:init": "tsx scripts/init-config.ts",
+    "config:validate": "tsx scripts/validate-config.ts",
+    "config:print": "tsx scripts/print-config.ts"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
@@ -67,6 +70,7 @@
     "lucide-react": "^1.17.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
+    "yaml": "^2.9.0",
     "zustand": "^5.0.14"
   },
   "devDependencies": {

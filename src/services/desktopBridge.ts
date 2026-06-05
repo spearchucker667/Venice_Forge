@@ -504,3 +504,50 @@ export const desktopJina = {
     }
   },
 };
+
+/** Provides access to the local master YAML config (sanitized). Web mode
+ *  always returns a no-op stub since configs are desktop-only. */
+export const desktopConfig = {
+  /** Returns the sanitized config + status. */
+  async get(): Promise<{ ok: boolean; payload?: unknown; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Local config is only available in desktop mode." };
+    return window.veniceForge!.config.get();
+  },
+  /** Reloads the config from disk. */
+  async reload(): Promise<{ ok: boolean; status?: unknown; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Local config is only available in desktop mode." };
+    return window.veniceForge!.config.reload();
+  },
+  /** Returns just the config status (cheap to call). */
+  async getStatus(): Promise<{ ok: boolean; status?: unknown; paths?: unknown; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Local config is only available in desktop mode." };
+    return window.veniceForge!.config.getStatus();
+  },
+  /** Opens the active config folder in the OS file manager. */
+  async openFolder(): Promise<{ ok: boolean; path: string; error?: string }> {
+    if (!isElectron()) return { ok: false, path: "", error: "Local config is only available in desktop mode." };
+    return window.veniceForge!.config.openFolder();
+  },
+  /** Writes a sanitized patch (non-secret values only). The renderer cannot
+   *  set plaintext API keys via this method — those go through the existing
+   *  `apiKey:set` / `jinaApiKey:set` IPC channels. */
+  async writeSanitized(patch: unknown): Promise<{ ok: boolean; error?: string; redactedFields?: string[] }> {
+    if (!isElectron()) return { ok: false, error: "Local config is only available in desktop mode." };
+    return window.veniceForge!.config.writeSanitized(patch);
+  },
+  /** Exports a sanitized config template to the given path. */
+  async exportTemplate(targetPath: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Local config is only available in desktop mode." };
+    return window.veniceForge!.config.exportTemplate(targetPath);
+  },
+  /** Loads the merged themes file (built-in + local). */
+  async loadMergedThemes(): Promise<{ ok: boolean; themes?: Record<string, unknown>; warnings?: unknown[]; error?: string }> {
+    if (!isElectron()) return { ok: false, themes: {}, warnings: [] };
+    return window.veniceForge!.config.loadMergedThemes();
+  },
+  /** Removes any secure-store API keys. */
+  async resetSecureStoreKeys(): Promise<{ ok: boolean; removed?: { venice: boolean; jina: boolean }; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Local config is only available in desktop mode." };
+    return window.veniceForge!.config.resetSecureStoreKeys();
+  },
+};

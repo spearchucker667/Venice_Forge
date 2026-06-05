@@ -86,4 +86,72 @@ describe("Electron IPC validation", () => {
       })
     ).toThrow(/circular references|not serializable/i);
   });
+
+  /** Character endpoints: GET /characters is allowed, GET /characters/{slug}
+   *  is allowed for valid slugs, and a range of attack inputs is rejected. */
+  describe("character endpoints", () => {
+    it("accepts GET /characters", () => {
+      const result = validateVeniceIpcRequest({ endpoint: "/characters", method: "GET" });
+      expect(result).toMatchObject({ endpoint: "/characters", method: "GET" });
+    });
+
+    it("accepts GET /characters with a query string", () => {
+      const result = validateVeniceIpcRequest({
+        endpoint: "/characters?search=assistant&limit=20",
+        method: "GET",
+      });
+      expect(result.endpoint).toBe("/characters?search=assistant&limit=20");
+    });
+
+    it("accepts GET /characters/{slug}", () => {
+      const result = validateVeniceIpcRequest({
+        endpoint: "/characters/alan-watts",
+        method: "GET",
+      });
+      expect(result.endpoint).toBe("/characters/alan-watts");
+    });
+
+    it("rejects POST /characters", () => {
+      expect(() =>
+        validateVeniceIpcRequest({ endpoint: "/characters", method: "POST" })
+      ).toThrow(/method/i);
+    });
+
+    it("rejects nested character paths", () => {
+      expect(() =>
+        validateVeniceIpcRequest({ endpoint: "/characters/foo/bar", method: "GET" })
+      ).toThrow();
+    });
+
+    it("rejects URL-encoded traversal in the slug", () => {
+      // The IPC layer's parseEndpoint decodes %2F to / inside pathname.
+      // A real attacker would craft a string like "/characters/%2Fmodels".
+      // parseEndpoint decodes that to /characters//models which has a
+      // double-slash, then the second `/models` segment is an extra
+      // nested segment and is rejected.
+      expect(() =>
+        validateVeniceIpcRequest({ endpoint: "/characters/%2Fmodels", method: "GET" })
+      ).toThrow();
+    });
+
+    it("rejects an oversized query string on /characters", () => {
+      const huge = "x".repeat(600);
+      expect(() =>
+        validateVeniceIpcRequest({
+          endpoint: `/characters?search=${huge}`,
+          method: "GET",
+        })
+      ).toThrow();
+    });
+
+    it("rejects bodies on GET /characters", () => {
+      expect(() =>
+        validateVeniceIpcRequest({
+          endpoint: "/characters",
+          method: "GET",
+          body: { hidden: true },
+        })
+      ).toThrow();
+    });
+  });
 });

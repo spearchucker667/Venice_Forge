@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { App } from "./App";
 import "./index.css";
+import { initDesktopBridge } from "./services/desktopBridge";
+import { refreshConfig } from "./stores/config-store";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,6 +27,12 @@ const rootEl = document.getElementById("root");
 if (!rootEl) {
   document.body.innerHTML = "<h1>Application failed to load</h1><p>The root element is missing. Please check the build or reinstall the application.</p>";
 } else {
+  // Fire-and-forget: bring up the desktop bridge and load the local config
+  // (if any) before the React tree mounts. Failures here should not block
+  // rendering — the app continues with built-in defaults.
+  void initDesktopBridge().then(() => refreshConfig()).catch((err: unknown) => {
+    console.error("[venice-forge] Bridge/config init failed:", err instanceof Error ? err.message : String(err));
+  });
   try {
     createRoot(rootEl).render(
       <StrictMode>

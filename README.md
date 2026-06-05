@@ -35,6 +35,16 @@
 
 4. **Start chatting, creating images, or running research!**
 
+### Local YAML config (advanced / dev)
+
+You can also configure Venice Forge by editing a `config.yaml` file on disk. Plaintext API keys placed in it are imported into OS-level secure storage on startup and then redacted from the file. See [`docs/CONFIG.md`](docs/CONFIG.md).
+
+```bash
+npm run config:init       # Copy example templates to .config/*.local.yaml
+npm run config:validate   # Validate the file without launching Electron
+npm run config:print      # Print the sanitized effective config
+```
+
 For development, see [Development](#-development) or [docs/ABOUT.md](docs/ABOUT.md) for architecture details.
 
 ---
@@ -55,9 +65,10 @@ Thirteen integrated tabs covering chat, media generation, batch automation, rese
 | 🔢 | **Embeddings** | Vector embeddings generation for text with selectable models and dimension display |
 | 📋 | **Batch** | Automate: run one prompt across many inputs, or chain multiple prompts in sequence |
 | 🔍 | **Research** | Web search via Venice or Jina AI, page scraping, research synthesis, and public-profile discovery |
+| 🎭 | **Characters** | Browse Venice hosted characters, sort/filter, and start character chats using `venice_parameters.character_slug` |
 | 📚 | **Catalog** | Browse live Venice model catalog with capability details; auto-refresh on API key save. App requires a Venice API key for live model discovery |
 | 🏞️ | **Library** | Local image gallery, saved chat files, and conversation history — with bulk multi-select download, deletion, and upscale |
-| ⚙️ | **Config** | API key management, theme editor (Venice Parity Dark, Graphite, Daylight, Copper, Dracula, GruvBox Dark, Rosepine) with custom YAML export/import, model defaults, data import/export |
+| ⚙️ | **Config** | API key management (OS-level secure storage), theme editor (Venice Parity Dark, Graphite, Daylight, Copper, Dracula, GruvBox Dark, Rosepine) with custom YAML export/import, model defaults, data import/export, and a **Local Config** panel that surfaces the optional `config.yaml` / `themes.yaml` files (path, parse/validation warnings, key import status, Reload / Open Folder / Export Template / Clear Secure Store actions) |
 | 📊 | **Diagnostics** | Transport mode, runtime info, rate-limit headers, sanitized diagnostics export, and a desktop-only “Open logs folder” action |
 
 ---

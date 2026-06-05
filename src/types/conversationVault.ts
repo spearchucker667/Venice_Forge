@@ -5,13 +5,31 @@ export type ConversationSource =
   | "playground"
   | "cli"
   | "import"
-  | "migration";
+  | "migration"
+  | "character";
 
 export type ConversationRole =
   | "system"
   | "user"
   | "assistant"
   | "tool";
+
+/** Minimal Venice character metadata persisted alongside a conversation.
+ *  The full `VeniceCharacter` object is intentionally NOT persisted — only
+ *  the fields needed to render the active-character pill and to re-build a
+ *  chat request. The slug alone is sufficient to re-fetch the canonical
+ *  record. */
+export interface ConversationCharacterMeta {
+  slug: string;
+  id?: string;
+  name: string;
+  description?: string;
+  photoUrl?: string;
+  shareUrl?: string;
+  modelId?: string;
+  adult?: boolean;
+  webEnabled?: boolean;
+}
 
 export interface ConversationMessage {
   id: string;
@@ -61,6 +79,7 @@ export interface ConversationRecordV1 {
       oldId: string;
       migratedAt: number;
     };
+    character?: ConversationCharacterMeta;
   };
   memory: {
     summary: string;

@@ -13,6 +13,7 @@ import { RefreshCw } from 'lucide-react'
 import { getBalancedPromptStarters } from '../../services/promptStarterService'
 import type { PromptStarter } from '../../data/promptStarters'
 import type { MemoryFact, ConversationRecordV1 } from '../../types/conversationVault'
+import type { Conversation } from '../../types/conversation'
 
 export function ChatView() {
   const deleteMessage = useChatStore((s) => s.deleteMessage)
@@ -161,6 +162,41 @@ export function ChatView() {
           </div>
         ) : (
           <>
+            {conversation?.metadata?.character && (
+              <div className="border-b border-border bg-surface-elevated/40">
+                <div className="max-w-[960px] mx-auto px-4 sm:px-5 py-2 flex items-center gap-3">
+                  <ActiveCharacterPill
+                    character={conversation.metadata.character}
+                    onClear={() => {
+                      const convId = conversation.id;
+                      // Strip character binding from the conversation so
+                      // subsequent messages go back to a normal chat. We do
+                      // NOT delete the conversation — only the binding.
+                      useChatStore.setState((s) => ({
+                        conversations: s.conversations.map((c) =>
+                          c.id === convId
+                            ? {
+                                ...c,
+                                metadata: c.metadata
+                                  ? {
+                                      ...c.metadata,
+                                      source: "chat",
+                                      character: undefined,
+                                    }
+                                  : c.metadata,
+                              }
+                            : c,
+                        ),
+                      }));
+                      toast.info(
+                        "Character unbound",
+                        "This conversation will now use the default model.",
+                      );
+                    }}
+                  />
+                </div>
+              </div>
+            )}
             <div className="border-b border-border">
               <VeniceParams />
             </div>
@@ -303,4 +339,60 @@ export function ChatView() {
       <ChatInput onSend={(msg, images) => send(msg, model, images)} onStop={stop} isStreaming={isStreaming} disabled={!apiKey} />
     </div>
   )
+}
+
+/** Small pill shown above the chat when the active conversation was
+ *  started from a Venice hosted character. Displays the character name,
+ *  model, and offers a way to clear the binding. */
+function ActiveCharacterPill({
+  character,
+  onClear,
+}: {
+  character: NonNullable<NonNullable<Conversation["metadata"]>["character"]>;
+  onClear: () => void;
+}) {
+  const initial = character.name?.trim()?.charAt(0)?.toUpperCase() || "?";
+  return (
+    <div
+      className="flex items-center gap-3 rounded-full bg-surface-elevated border border-accent/30 pl-1.5 pr-3 py-1 text-[12.5px]"
+      data-testid="active-character-pill"
+    >
+      {character.photoUrl ? (
+        <img
+          src={character.photoUrl}
+          alt=""
+          width={26}
+          height={26}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          className="w-[26px] h-[26px] rounded-full object-cover border border-border"
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          className="w-[26px] h-[26px] rounded-full bg-accent/15 text-accent flex items-center justify-center text-[12px] font-semibold border border-border"
+        >
+          {initial}
+        </span>
+      )}
+      <div className="flex flex-col leading-tight">
+        <span className="text-text-primary font-semibold">
+          Chatting as <span data-testid="active-character-name">{character.name}</span>
+        </span>
+        <span className="text-text-muted text-[11px] font-mono">
+          /{character.slug}
+          {character.modelId ? ` · ${character.modelId}` : ""}
+        </span>
+      </div>
+      <button
+        type="button"
+        onClick={onClear}
+        className="ml-2 text-[11px] text-text-secondary hover:text-danger transition-colors cursor-pointer"
+        title="Stop chatting as this character"
+        data-testid="active-character-clear"
+      >
+        Clear
+      </button>
+    </div>
+  );
 }

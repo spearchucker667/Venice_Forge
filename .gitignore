@@ -25,3 +25,9 @@ docs/HQE_AUDIT_REPORT.md
 .integration-src/
 .vite/
 target_inventory.txt
+
+# Venice Forge local config files may contain secrets.
+.config/*.yaml
+.config/*.yml
+!.config/*.example.yaml
+!.config/*.example.yml

@@ -1,0 +1,49 @@
+# Venice Forge — local theme overrides (example).
+# Copy to .config/themes.local.yaml and edit freely.
+# Path precedence: $VENICE_FORGE_THEMES_FILE > themes.local.yaml > themes.yaml (userData) > built-in defaults.
+version: 1
+
+themes:
+  venice-parity-dark:
+    display_name: "Venice Parity Dark"
+    mode: "dark"
+    tokens:
+      accent: "#DD3300"
+      background: "#050505"
+      surface: "#101010"
+      surface_elevated: "#181818"
+      border: "#2a2a2a"
+      text_primary: "#ffffff"
+      text_secondary: "#b7b7b7"
+      text_muted: "#777777"
+      accent_hover: "#FF4422"
+      accent_foreground: "#ffffff"
+      success: "#3fb950"
+      warning: "#d29922"
+      danger: "#f85149"
+      info: "#58a6ff"
+      focus_ring: "#FF4422"
+      overlay: "rgba(0,0,0,0.6)"
+      glow: "rgba(255,68,34,0.25)"
+
+  graphite:
+    display_name: "Graphite"
+    mode: "dark"
+    tokens:
+      accent: "#9ca3af"
+      background: "#09090b"
+      surface: "#111113"
+      surface_elevated: "#18181b"
+      border: "#27272a"
+      text_primary: "#fafafa"
+      text_secondary: "#d4d4d8"
+      text_muted: "#71717a"
+      accent_hover: "#d4d4d8"
+      accent_foreground: "#0a0a0a"
+      success: "#22c55e"
+      warning: "#eab308"
+      danger: "#ef4444"
+      info: "#3b82f6"
+      focus_ring: "#a1a1aa"
+      overlay: "rgba(0,0,0,0.55)"
+      glow: "rgba(161,161,170,0.22)"

@@ -3,7 +3,25 @@ import { venice } from '../lib/venice-client'
 import { parseSSEStream } from '../lib/stream'
 import { useChatStore } from '../stores/chat-store'
 import { useSettingsStore } from '../stores/settings-store'
-import type { ChatCompletionRequest, ChatMessage, ContentPart } from '../types/venice'
+import { useCharacterStore } from '../stores/character-store'
+import type { ChatCompletionRequest, ChatMessage, ContentPart, VeniceParameters } from '../types/venice'
+import type { Conversation } from '../types/conversation'
+
+/** Resolves the character slug for a conversation, in priority order:
+ *  1. The conversation's persisted character metadata (authoritative).
+ *  2. The user's currently-selected character slug in the Characters tab
+ *     (used only when starting a brand-new conversation that has not yet
+ *     been saved with character metadata).
+ *
+ *  This means a character chat always stays bound to the slug it was
+ *  started with, even if the user later switches the global selection. */
+function resolveCharacterSlug(conv: Conversation | undefined): string | null {
+  const persisted = conv?.metadata?.character?.slug?.trim();
+  if (persisted) return persisted;
+  const globalSlug = useCharacterStore.getState().selectedCharacterSlug;
+  if (globalSlug) return globalSlug.trim();
+  return null;
+}
 
 export function useChat() {
   const abortRef = useRef<AbortController | null>(null)
@@ -40,6 +58,19 @@ export function useChat() {
         requestMessages.unshift({ role: 'system', content: systemPrompt.trim() })
       }
 
+      // Character slug is conversation-scoped: the persisted character
+      // metadata wins. We deliberately drop any prior global selection
+      // so a character chat does not silently swap personas mid-thread.
+      const characterSlug = resolveCharacterSlug(conv);
+      const veniceParamsForRequest: VeniceParameters = {
+        ...veniceParams,
+      };
+      if (characterSlug) {
+        veniceParamsForRequest.character_slug = characterSlug;
+      } else {
+        delete veniceParamsForRequest.character_slug;
+      }
+
       const body: ChatCompletionRequest = {
         model,
         messages: requestMessages,
@@ -47,7 +78,7 @@ export function useChat() {
         temperature,
         top_p: topP,
         max_tokens: maxTokens,
-        venice_parameters: veniceParams,
+        venice_parameters: veniceParamsForRequest,
       }
 
       // Pass body as object (not JSON.stringify): venice() in

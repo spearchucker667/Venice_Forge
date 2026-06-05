@@ -9,13 +9,16 @@ const capturedHandlers = new Map<string, (...args: unknown[]) => unknown>();
 
 vi.mock("electron", () => ({
   app: {
+    isPackaged: false,
     getPath: vi.fn((name: string) => {
       if (name === "home") return os.homedir();
       if (name === "downloads") return path.join(os.homedir(), "Downloads");
       if (name === "documents") return path.join(os.homedir(), "Documents");
       if (name === "userData") return path.join(os.tmpdir(), "vf-test-data");
+      if (name === "appPath") return process.cwd();
       return os.tmpdir();
     }),
+    getAppPath: vi.fn(() => process.cwd()),
     getVersion: vi.fn(() => "1.0.3-test"),
   },
   ipcMain: {
@@ -29,6 +32,9 @@ vi.mock("electron", () => ({
   dialog: {
     showSaveDialog: vi.fn(async () => ({ canceled: true, filePath: undefined })),
     showOpenDialog: vi.fn(async () => ({ canceled: true, filePaths: [] })),
+  },
+  shell: {
+    openPath: vi.fn(async () => ""),
   },
 }));
 
@@ -45,6 +51,7 @@ vi.mock("electron-updater", () => ({
 vi.mock("../services/secureStore", () => ({
   deleteApiKey: vi.fn(),
   deleteJinaApiKey: vi.fn(),
+  getApiKey: vi.fn(() => null),
   getJinaApiKey: vi.fn(() => null),
   getSecureStoreStatus: vi.fn(() => ({ encryptionAvailable: true, mode: "safeStorage", corrupted: false, error: null })),
   isApiKeyConfigured: vi.fn(() => false),
@@ -65,6 +72,19 @@ vi.mock("../services/veniceClient", () => ({
   abortVeniceRequest: vi.fn(() => ({ ok: true })),
   performVeniceRequest: vi.fn(async () => ({ ok: true, status: 200, headers: {}, body: {} })),
   readResponseError: vi.fn(() => "error"),
+}));
+
+vi.mock("../services/configService", () => ({
+  exportConfigTemplate: vi.fn(async () => ({ ok: true })),
+  getPaths: vi.fn(() => ({ configPath: "/mock/config.yaml", themesPath: "/mock/themes.yaml", source: "userdata" })),
+  getSanitizedConfig: vi.fn(() => ({ config: {}, status: {} })),
+  getStatus: vi.fn(() => ({})),
+  initializeConfig: vi.fn(async () => ({})),
+  loadMergedThemes: vi.fn(async () => ({ themes: {}, warnings: [] })),
+  openConfigFolder: vi.fn(async () => ({ ok: true, path: "" })),
+  reloadConfig: vi.fn(async () => ({})),
+  resetSecureStoreKeys: vi.fn(() => ({ venice: false, jina: false })),
+  writeSanitizedConfig: vi.fn(async () => ({ ok: true, redactedFields: [] })),
 }));
 
 vi.mock("../services/chatStorage", () => ({

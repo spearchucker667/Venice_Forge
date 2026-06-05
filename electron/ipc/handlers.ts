@@ -39,6 +39,18 @@ import { registerUpdateHandlers } from "./updates";
 import { VENICE_MAX_BODY_BYTES } from "../../src/shared/limits";
 import { assessChildExploitationSafety, recordDecision, SafetyGuardBlockedError } from "../../src/shared/safety";
 import type { Conversation } from "../../src/types/conversation";
+import {
+  exportConfigTemplate,
+  getPaths,
+  getSanitizedConfig,
+  getStatus as getConfigStatus,
+  initializeConfig,
+  loadMergedThemes,
+  openConfigFolder,
+  reloadConfig,
+  resetSecureStoreKeys,
+  writeSanitizedConfig,
+} from "../services/configService";
 
 /** Maximum size in bytes for JSON import and export files. */
 const MAX_JSON_FILE_BYTES = VENICE_MAX_BODY_BYTES;
@@ -953,6 +965,89 @@ export function registerIpcHandlers(): void {
       return await detectLegacyHistory();
     } catch {
       return false;
+    }
+  });
+
+  // ── Config (local master YAML) ──
+  // SECURITY: The renderer never receives raw API keys. The sanitized view
+  // exposes only booleans indicating key presence. The `writeSanitized` path
+  // refuses to persist plaintext keys — it only updates non-secret values.
+
+  ipcMain.handle("config:get", () => {
+    try {
+      return { ok: true, payload: getSanitizedConfig() };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("config:getStatus", () => {
+    try {
+      return { ok: true, status: getConfigStatus(), paths: getPaths() };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("config:reload", async () => {
+    try {
+      const status = await reloadConfig();
+      return { ok: true, status };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("config:initialize", async () => {
+    try {
+      const status = await initializeConfig();
+      return { ok: true, status };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("config:openFolder", async () => {
+    try {
+      return await openConfigFolder();
+    } catch (err) {
+      return { ok: false, path: "", error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("config:writeSanitized", async (_event, patch: unknown) => {
+    try {
+      return await writeSanitizedConfig(patch);
+    } catch (err) {
+      return { ok: false, redactedFields: [], error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("config:exportTemplate", async (_event, targetPath: unknown) => {
+    try {
+      if (typeof targetPath !== "string" || targetPath.length === 0) {
+        return { ok: false, error: "Export target path is required." };
+      }
+      return await exportConfigTemplate(targetPath);
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("config:loadMergedThemes", async () => {
+    try {
+      return { ok: true, ...(await loadMergedThemes()) };
+    } catch (err) {
+      return { ok: false, themes: {}, warnings: [], error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("config:resetSecureStoreKeys", () => {
+    try {
+      const removed = resetSecureStoreKeys();
+      return { ok: true, removed };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
     }
   });
 }

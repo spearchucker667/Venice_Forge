@@ -115,6 +115,62 @@ export interface VeniceForgeChat {
   delete(id: string): Promise<{ ok: boolean; error?: string }>;
 }
 
+/** Sanitized config payload returned to the renderer. Mirrors the
+ *  SanitizedConfigPayload shape from electron/services/configService.ts. */
+export interface VeniceForgeConfigPayload {
+  config: {
+    version: 1;
+    app: {
+      config_name: string;
+      profile: string;
+      auto_open_devtools: boolean;
+      check_for_updates: boolean;
+    };
+    secrets: {
+      has_venice_api_key: boolean;
+      has_jina_api_key: boolean;
+      keep_plaintext_keys: boolean;
+    };
+    theme: { active: string; themes_file: string };
+    models: Record<string, string>;
+    chat: Record<string, unknown>;
+    memory: Record<string, boolean>;
+    research: Record<string, unknown>;
+    characters: Record<string, unknown>;
+    developer: Record<string, boolean>;
+  };
+  status: {
+    configPath: string;
+    themesPath: string;
+    source: "userdata" | "repo-local" | "env-override" | "defaults";
+    configName: string;
+    profile: string;
+    loaded: boolean;
+    parseError: string | null;
+    warnings: Array<{ field: string; message: string; severity: "warn" | "error" }>;
+    hasVeniceApiKey: boolean;
+    hasJinaApiKey: boolean;
+    keysImported: { venice: boolean; jina: boolean };
+    keysRedacted: { venice: boolean; jina: boolean };
+    secureStore: { venice: boolean; jina: boolean };
+    activeTheme: string;
+    availableThemes: string[];
+    redactedFields: string[];
+  };
+}
+
+/** Exposes the local master YAML config (sanitized; no raw secrets). */
+export interface VeniceForgeConfig {
+  get(): Promise<{ ok: boolean; payload?: VeniceForgeConfigPayload; error?: string }>;
+  reload(): Promise<{ ok: boolean; status?: VeniceForgeConfigPayload["status"]; error?: string }>;
+  getStatus(): Promise<{ ok: boolean; status?: VeniceForgeConfigPayload["status"]; paths?: { configPath: string; themesPath: string; source: string }; error?: string }>;
+  openFolder(): Promise<{ ok: boolean; path: string; error?: string }>;
+  writeSanitized(patch: unknown): Promise<{ ok: boolean; error?: string; redactedFields?: string[] }>;
+  exportTemplate(targetPath: string): Promise<{ ok: boolean; error?: string }>;
+  loadMergedThemes(): Promise<{ ok: boolean; themes?: Record<string, unknown>; warnings?: unknown[]; error?: string }>;
+  resetSecureStoreKeys(): Promise<{ ok: boolean; removed?: { venice: boolean; jina: boolean }; error?: string }>;
+}
+
 export interface VeniceForgeConversations {
   list(filter?: {
     archived?: boolean;
@@ -148,6 +204,7 @@ export interface VeniceForge {
   chat: VeniceForgeChat;
   conversations: VeniceForgeConversations;
   updates: VeniceForgeUpdates;
+  config: VeniceForgeConfig;
 }
 
 declare global {

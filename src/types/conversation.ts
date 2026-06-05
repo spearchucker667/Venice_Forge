@@ -1,6 +1,10 @@
 /** @fileoverview Type definitions for multi-conversation chat history. */
 
-import type { ConversationSource, MemoryFact } from "./conversationVault";
+import type {
+  ConversationCharacterMeta,
+  ConversationSource,
+  MemoryFact,
+} from "./conversationVault";
 
 /** A single message within a conversation. */
 export interface ConversationMessage {
@@ -44,6 +48,11 @@ export interface Conversation {
       oldId: string;
       migratedAt: number;
     };
+    /** Persisted when this conversation was started from a Venice
+     *  hosted character. The slug is authoritative — even if the global
+     *  selected character changes later, the conversation always uses
+     *  the slug that was active when the chat began. */
+    character?: ConversationCharacterMeta;
   };
   memory?: {
     summary: string;

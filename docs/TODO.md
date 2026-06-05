@@ -18,6 +18,7 @@
 ## Extensive Roadmap & Future TODOs
 
 ### 1. Venice API Integrations
+- [x] **Character Discovery + Character Chat:** New "Characters" sidebar tab browses the official `/api/v1/characters` and `/api/v1/characters/{slug}` endpoints (no scraping, no DOM walking). Search, sort, filter, paginated load-more, and per-character "Chat" action. Character chats send `venice_parameters.character_slug` on every streaming call. Character identity is conversation-scoped: changing the global selected character in the Characters tab does not retroactively swap a persisted character conversation's slug.
 - [ ] **Live Vision Flags:** Wait for and implement the live capability flag from the Venice API for model vision capabilities (currently relies on regex heuristics and allowlist).
 - [ ] **WebSockets/Streaming Enhancements:** Ensure the desktop bridge uses native streaming or WebSockets for chat and video queues if Venice adds explicit support.
 - [ ] **Account Syncing:** Explore potential integration with Venice Cloud syncing (if they launch OAuth-based data sync APIs) while preserving the current offline-first architecture.

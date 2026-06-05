@@ -306,6 +306,33 @@ const veniceForge = {
       };
     },
   },
+
+  config: {
+    get(): Promise<{ ok: boolean; payload?: unknown; error?: string }> {
+      return ipcRenderer.invoke("config:get");
+    },
+    reload(): Promise<{ ok: boolean; status?: unknown; error?: string }> {
+      return ipcRenderer.invoke("config:reload");
+    },
+    getStatus(): Promise<{ ok: boolean; status?: unknown; paths?: unknown; error?: string }> {
+      return ipcRenderer.invoke("config:getStatus");
+    },
+    openFolder(): Promise<{ ok: boolean; path: string; error?: string }> {
+      return ipcRenderer.invoke("config:openFolder");
+    },
+    writeSanitized(patch: unknown): Promise<{ ok: boolean; error?: string; redactedFields?: string[] }> {
+      return ipcRenderer.invoke("config:writeSanitized", patch);
+    },
+    exportTemplate(targetPath: string): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("config:exportTemplate", targetPath);
+    },
+    loadMergedThemes(): Promise<{ ok: boolean; themes?: Record<string, unknown>; warnings?: unknown[]; error?: string }> {
+      return ipcRenderer.invoke("config:loadMergedThemes");
+    },
+    resetSecureStoreKeys(): Promise<{ ok: boolean; removed?: { venice: boolean; jina: boolean }; error?: string }> {
+      return ipcRenderer.invoke("config:resetSecureStoreKeys");
+    },
+  },
 };
 
 contextBridge.exposeInMainWorld("veniceForge", veniceForge);

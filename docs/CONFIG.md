@@ -1,0 +1,237 @@
+# Venice Forge — Local Master Config
+
+> Last updated: 1.0.5
+
+Venice Forge reads a small, optional set of YAML files at startup to let
+developers and power users configure behavior without using the UI. API keys
+remain **secure by default**: plaintext keys in the YAML are imported into
+OS-level secure storage (`safeStorage`) on startup and then redacted from
+the file.
+
+## TL;DR
+
+```bash
+# Copy the example templates and start editing
+npm run config:init
+
+# Validate the file from the CLI (no Electron required)
+npm run config:validate
+
+# Print the sanitized effective config
+npm run config:print
+
+# Or open the live config folder from the app:
+#   Settings → Local Config → Open Config Folder
+```
+
+## File Locations
+
+| Mode | Path |
+|------|------|
+| Env override | `VENICE_FORGE_CONFIG_FILE=/abs/path/config.yaml` |
+| Env override | `VENICE_FORGE_THEMES_FILE=/abs/path/themes.yaml` |
+| Development (repo-local) | `<repo>/.config/config.local.yaml` |
+| Development (repo-local) | `<repo>/.config/themes.local.yaml` |
+| Packaged desktop | `<app.getPath("userData")>/.config/config.yaml` |
+| Packaged desktop | `<app.getPath("userData")>/.config/themes.yaml` |
+| Built-in default | `src/config/defaultConfig.ts` (code) |
+
+Precedence is **env override > repo-local > userData > built-in default**.
+
+In dev, the repo-local `.config/` folder is preferred. In packaged builds,
+the userData path is the canonical writable location; signed macOS bundles
+and Windows install directories may be read-only and are not used.
+
+## Schema (v1)
+
+```yaml
+version: 1
+
+app:
+  config_name: "default"          # string, 1..128 chars
+  profile: "default"              # string, 1..32 chars
+  auto_open_devtools: false       # boolean
+  check_for_updates: true         # boolean
+
+secrets:
+  # Leave blank by default.
+  # If provided, plaintext keys are imported into OS secure storage on
+  # startup and redacted from this file (unless keep_plaintext_keys=true).
+  venice_api_key: ""
+  jina_api_key: ""
+  keep_plaintext_keys: false      # default: false (redact after import)
+
+theme:
+  active: "builtin-dark"          # built-in id or local theme name
+  themes_file: ""                 # optional: path to a local themes overlay
+
+models:
+  chat: ""                        # empty = use UI default
+  image: ""
+  video: ""
+  audio: ""
+  music: ""
+  embedding: ""
+  upscale: ""
+
+chat:
+  system_prompt: ""               # max 32 KiB
+  temperature: 0.7                # clamped to [0, 2]
+  top_p: 1                        # clamped to [0, 1]
+  max_tokens: 4096                # clamped to [1, 200000]
+  include_venice_system_prompt: false
+  enable_web_search: "off"        # "off" | "on" | "auto"
+  enable_web_scraping: false
+  enable_web_citations: false
+  strip_thinking_response: false
+  disable_thinking: false
+
+memory:
+  enable_memory_retrieval: true
+  show_pulled_context_before_sending: false
+
+research:
+  default_provider: "venice"      # "venice" | "jina" | "auto"
+  enable_jina: false
+  enable_social_discovery: false
+
+characters:
+  enabled: true
+  include_adult_characters: false
+  default_character_slug: ""
+
+developer:
+  verbose_config_logging: false
+  allow_config_key_import: true   # if false, plaintext keys in YAML are ignored
+  force_import_keys: false        # overwrite secure-store keys on every startup
+  force_apply_config: false       # if true, config overrides UI-saved settings
+```
+
+## Themes Overlay (`themes.yaml`)
+
+```yaml
+version: 1
+
+themes:
+  my-team-dark:
+    display_name: "My Team Dark"
+    mode: "dark"                   # "dark" | "light"
+    tokens:
+      background: "#0d1117"
+      surface: "#161b22"
+      surfaceElevated: "#1c2330"
+      border: "#2a3140"
+      textPrimary: "#e6edf3"
+      textSecondary: "#9aa7b8"
+      textMuted: "#6b7686"
+      accent: "#1a6fd6"
+      accentHover: "#3581e6"
+      accentForeground: "#ffffff"
+      success: "#3fb950"
+      warning: "#d29922"
+      danger: "#f85149"
+      info: "#58a6ff"
+      focusRing: "#4c93f8"
+      overlay: "rgba(0,0,0,0.6)"
+      glow: "rgba(47,129,247,0.25)"
+```
+
+Built-in themes load first. Local themes override built-ins by exact name.
+Invalid entries are skipped with a redacted warning in the Settings UI.
+
+## Security Model (Non-Negotiable)
+
+| Rule | Enforcement |
+|------|-------------|
+| Renderer never sees raw API keys | IPC returns `secrets.has_venice_api_key: boolean` only |
+| Default config files contain no real keys | Templates ship with empty strings |
+| Plaintext keys imported to `safeStorage` on startup | `electron/services/configService.ts` → `setApiKey/setJinaApiKey` |
+| Plaintext keys redacted after import | `redactKeysInYaml` rewrites `secrets.venice_api_key: ""` unless `keep_plaintext_keys: true` |
+| Existing secure-store key is not overwritten | Default: import skipped if key already present |
+| Force overwrite requires explicit flag | `developer.force_import_keys: true` |
+| Remote URLs are rejected | `looksLikeUrl()` returns a `ConfigWarning` and falls back to default |
+| Local secret files are gitignored | `.config/*.yaml` ignored, `!.config/*.example.yaml` re-included |
+| Generic patches cannot set plaintext keys | `writeSanitizedConfig()` strips `secrets.*` regardless of input |
+| Raw keys never logged | `electron/services/logger.ts` redacts `api_key`, `vn-`, etc. |
+| Export template contains no raw keys | `exportConfigTemplate()` builds a sanitized `YamlConfig` |
+
+## Precedence
+
+For runtime settings:
+
+1. Explicit UI/user setting saved after first run.
+2. YAML config value (only when `developer.force_apply_config: true`).
+3. Built-in default.
+
+For API keys:
+
+1. Existing secure-store key.
+2. YAML secret imported into secure store if secure store key missing
+   (or `developer.force_import_keys: true`).
+3. No key configured.
+
+## Examples
+
+### Bootstrap a key for a fresh dev environment
+
+```yaml
+# .config/config.local.yaml
+version: 1
+secrets:
+  venice_api_key: "vn-abc...your-key"
+  jina_api_key: ""
+  keep_plaintext_keys: false  # redacted after first run
+```
+
+### Lock in some defaults for the team
+
+```yaml
+version: 1
+chat:
+  temperature: 0.3
+  enable_web_search: "auto"
+memory:
+  enable_memory_retrieval: true
+```
+
+### Add a custom theme overlay
+
+`themes.local.yaml`:
+
+```yaml
+version: 1
+themes:
+  forge-graphite-extra:
+    display_name: "Graphite (extra contrast)"
+    mode: "dark"
+    tokens:
+      # ...all REQUIRED_THEME_TOKEN_KEYS required
+```
+
+### Recover from a malformed YAML
+
+If `config.yaml` is broken, the app still boots with built-in defaults and
+shows a parse error in **Settings → Local Config**. Fix the file on disk
+and click **Reload Config** (or restart the app).
+
+### Fully reset config
+
+- **In-app**: Settings → Local Config → *Clear Secure Store* removes API
+  keys. To reset the YAML to defaults, delete the file and restart.
+- **CLI**: delete `.config/config.local.yaml` and `.config/themes.local.yaml`,
+  then `npm run config:init` to recreate from examples.
+
+## CLI
+
+| Command | Purpose |
+|---------|---------|
+| `npm run config:init` | Copy `.config/*.example.yaml` → `.config/*.local.yaml` |
+| `npm run config:validate` | Parse and validate without launching Electron; non-zero exit on errors |
+| `npm run config:print` | Print the sanitized effective config to stdout (never raw keys) |
+
+## Security Disclosure
+
+If you discover a path-traversal, SSRF, or key-leakage issue related to the
+config system, please open a private security report. Do not commit real
+API keys to Git history under any circumstances — even the example
+templates are not exempt.

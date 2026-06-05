@@ -9,6 +9,7 @@ export const MAX_VENICE_IPC_BODY_BYTES = VENICE_MAX_BODY_BYTES;
 import {
   ALLOWED_VENICE_ENDPOINTS,
   ALLOWED_VENICE_METHODS,
+  CHARACTERS_ENDPOINT,
   VeniceIpcEndpoint,
   VeniceIpcMethod,
   isAllowedVeniceRequest,
@@ -74,7 +75,14 @@ export function validateVeniceIpcRequest(input: unknown): VeniceIpcRequest {
   const request = input as Record<string, unknown>;
   if (typeof request.endpoint !== "string") throw new Error("Venice endpoint must be a string.");
   const endpoint = parseEndpoint(request.endpoint);
-  if (!ALLOWED_VENICE_ENDPOINTS.includes(endpoint.pathname as VeniceIpcEndpoint)) {
+  // Endpoint must be either an exact match in the const allowlist OR
+  // a member of the parameterized /characters family. The shared
+  // `isAllowedVeniceRequest` predicate (imported from src/shared/validation)
+  // understands both shapes.
+  const isStatic = ALLOWED_VENICE_ENDPOINTS.includes(endpoint.pathname as VeniceIpcEndpoint);
+  const isCharacters = endpoint.pathname === CHARACTERS_ENDPOINT ||
+    endpoint.pathname.startsWith(`${CHARACTERS_ENDPOINT}/`);
+  if (!isStatic && !isCharacters) {
     throw new Error(`Venice endpoint ${endpoint.pathname} is not allowed.`);
   }
 

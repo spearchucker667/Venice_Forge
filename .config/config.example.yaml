@@ -1,0 +1,73 @@
+# Venice Forge — local master config (example).
+# Copy to .config/config.local.yaml and edit freely.
+#
+# Path precedence (first match wins):
+#   1. $VENICE_FORGE_CONFIG_FILE
+#   2. <repo>/.config/config.local.yaml
+#   3. <userData>/.config/config.yaml   (packaged desktop app)
+#   4. built-in defaults                 (src/config/defaultConfig.ts)
+#
+# SECURITY: do NOT commit secrets in real local files.
+# If secrets.venice_api_key / secrets.jina_api_key are present they will
+# be imported into the OS secure store on startup, then redacted from the
+# on-disk file unless secrets.keep_plaintext_keys: true.
+version: 1
+
+app:
+  config_name: "local-dev"
+  profile: "development"
+  auto_open_devtools: false
+  check_for_updates: true
+
+secrets:
+  # Leave blank for normal use; the Settings panel is the secure path.
+  # If set, imported into the OS secure store on startup.
+  venice_api_key: ""
+  jina_api_key: ""
+  # When true, the plaintext key is left in this file after import.
+  keep_plaintext_keys: false
+
+theme:
+  active: "builtin-venice"
+  themes_file: ""  # absolute or repo-relative path to a custom themes.yaml
+
+models:
+  chat: ""
+  image: ""
+  video: ""
+  audio: ""
+  music: ""
+  embedding: ""
+  upscale: ""
+
+chat:
+  system_prompt: ""
+  temperature: 0.7
+  top_p: 1
+  max_tokens: 4096
+  include_venice_system_prompt: false
+  enable_web_search: "off"        # "off" | "on" | "auto"
+  enable_web_scraping: false
+  enable_web_citations: false
+  strip_thinking_response: false
+  disable_thinking: false
+
+memory:
+  enable_memory_retrieval: true
+  show_pulled_context_before_sending: false
+
+research:
+  default_provider: "venice"     # "venice" | "jina" | "auto"
+  enable_jina: false
+  enable_social_discovery: false
+
+characters:
+  enabled: true
+  include_adult_characters: false
+  default_character_slug: ""
+
+developer:
+  verbose_config_logging: false
+  allow_config_key_import: true   # allow YAML secrets to be imported on startup
+  force_import_keys: false        # overwrite existing secure-store keys
+  force_apply_config: false       # re-apply non-secret config every startup

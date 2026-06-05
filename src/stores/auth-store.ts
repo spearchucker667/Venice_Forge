@@ -1,23 +1,32 @@
 import { create } from 'zustand'
-import { desktopApiKey } from '../services/desktopBridge' // TARGET Bridge
+import { desktopApiKey, desktopJinaApiKey } from '../services/desktopBridge' // TARGET Bridge
 
 interface AuthState {
   apiKey: string | null
   hasEncrypted: boolean
   isConfigured: boolean
+  jinaApiKey: string | null
+  jinaIsConfigured: boolean
   checkConfiguration: () => Promise<void>
   setApiKey: (key: string, remember?: { passphrase?: string }) => Promise<void>
   clearApiKey: () => Promise<void>
+  setJinaApiKey: (key: string) => Promise<void>
+  clearJinaApiKey: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>()((set) => ({
   apiKey: null,
   hasEncrypted: true, // Managed by OS natively
   isConfigured: false,
+  jinaApiKey: null,
+  jinaIsConfigured: false,
 
   checkConfiguration: async () => {
-    const configured = await desktopApiKey.isConfigured()
-    set({ isConfigured: configured })
+    const [configured, jinaConfigured] = await Promise.all([
+      desktopApiKey.isConfigured(),
+      desktopJinaApiKey.isConfigured(),
+    ])
+    set({ isConfigured: configured, jinaIsConfigured: jinaConfigured })
   },
 
   setApiKey: async (key) => {
@@ -28,5 +37,15 @@ export const useAuthStore = create<AuthState>()((set) => ({
   clearApiKey: async () => {
     await desktopApiKey.delete()
     set({ isConfigured: false, apiKey: null })
+  },
+
+  setJinaApiKey: async (key) => {
+    await desktopJinaApiKey.set(key)
+    set({ jinaIsConfigured: true, jinaApiKey: key })
+  },
+
+  clearJinaApiKey: async () => {
+    await desktopJinaApiKey.delete()
+    set({ jinaIsConfigured: false, jinaApiKey: null })
   },
 }))

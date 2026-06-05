@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { ChatMessage, VeniceParameters } from '../types/venice'
 import type { Conversation, ConversationMessage } from '../types/conversation'
+import type { ConversationCharacterMeta } from '../types/conversationVault'
+import type { VeniceCharacter } from '../types/characters'
 import { generateId } from '../lib/utils'
 import { createSafeStorage } from '../lib/safe-storage'
 import type { ConversationRecordV1, PulledMemoryContext } from '../types/conversationVault'
@@ -20,6 +22,17 @@ interface ChatState {
 
   setConversations: (conversations: Conversation[]) => void
   createConversation: (model: string) => string
+  /**
+   * Creates a new conversation bound to a Venice hosted character.
+   * The character slug and minimal metadata are persisted on the
+   * conversation so a chat always uses the original character
+   * even if the user later switches the global "selected character"
+   * in the Characters tab.
+   */
+  createCharacterConversation: (
+    character: VeniceCharacter,
+    fallbackModel: string,
+  ) => string
   setActiveConversation: (id: string | null) => void
   deleteConversation: (id: string) => void
   setPendingContext: (context: PulledMemoryContext | null) => void
@@ -80,6 +93,52 @@ export const useChatStore = create<ChatState>()(
             userFacts: [],
             projectRefs: [],
           }
+        }
+        set((s) => ({
+          conversations: [conv, ...s.conversations],
+          activeConversationId: id,
+        }))
+        return id
+      },
+
+      createCharacterConversation: (character, fallbackModel) => {
+        const id = generateId()
+        const now = Date.now()
+        const characterMeta: ConversationCharacterMeta = {
+          slug: character.slug,
+          id: character.id || undefined,
+          name: character.name,
+          description: character.description,
+          photoUrl: character.photoUrl,
+          shareUrl: character.shareUrl,
+          modelId: character.modelId,
+          adult: character.adult,
+          webEnabled: character.webEnabled,
+        }
+        const preferredModel =
+          (character.modelId && character.modelId.trim()) || fallbackModel || 'llama-3.3-70b'
+        const conv: Conversation = {
+          id,
+          title: `Chat with ${character.name}`,
+          messages: [],
+          model: preferredModel,
+          createdAt: now,
+          updatedAt: now,
+          metadata: {
+            tags: [],
+            pinned: false,
+            archived: false,
+            source: 'character',
+            messageCount: 0,
+            character: characterMeta,
+          },
+          memory: {
+            summary: `Chat with ${character.name}`,
+            topics: [],
+            entities: [],
+            userFacts: [],
+            projectRefs: [],
+          },
         }
         set((s) => ({
           conversations: [conv, ...s.conversations],
