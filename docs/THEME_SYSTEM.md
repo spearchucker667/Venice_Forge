@@ -292,7 +292,7 @@ Users create custom themes via the ThemeMaker UI. No code changes required.
 | `src/modules/ChatModule.tsx` | Reskinned chat UI |
 | `src/modules/BatchModule.tsx` | Reskinned batch UI |
 | `src/modules/SearchScrapeModule.tsx` | Reskinned research UI |
-| `src/modules/GalleryModule.tsx` | Reskinned gallery UI |
+| `src/components/gallery/gallery-view.tsx` | Reskinned Library UI |
 | `src/modules/ImageModule.tsx` | Reskinned image UI |
 | `src/modules/ModelsModule.tsx` | Reskinned models UI |
 | `src/modules/DiagnosticsModule.tsx` | Reskinned diagnostics UI |

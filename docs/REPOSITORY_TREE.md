@@ -35,7 +35,7 @@ This document is the public map for the Venice Forge repository. It reflects the
 │   ├── verify-dist.cjs            # Post-package artifact verification
 │   └── dev-tools/                 # Local-only developer tooling (Playwright captures)
 ├── src/                           # React frontend source
-│   ├── components/                # UI components (Layout, Chat, Image, Audio, Video, Workflows, etc.)
+│   ├── components/                # UI components (Layout, Chat, Image, Gallery, Audio, Video, Workflows, etc.)
 │   ├── hooks/                     # Custom React hooks (including ported donor hooks)
 │   ├── lib/                       # Core library logic (Venice client, workflow engine)
 │   │   ├── playground-agent-tools.ts
@@ -99,7 +99,7 @@ This document is the public map for the Venice Forge repository. It reflects the
 
 | Path | Notes |
 |------|-------|
-| `src/components/` | Subdirectories for `chat`, `image`, `audio`, `music`, `video`, `workflows`, `playground`, `embeddings`, `layout`, and `ui` |
+| `src/components/` | Subdirectories for `chat`, `image`, `gallery`, `audio`, `music`, `video`, `workflows`, `playground`, `embeddings`, `layout`, and `ui` |
 | `src/stores/` | Zustand stores for `auth`, `chat`, `playground`, `settings`, `toast`, and `workflow` |
 | `src/lib/venice-client.ts` | Unified Venice API client; proxies all calls through `desktopBridge` |
 | `src/services/desktopBridge.ts` | Secure transport abstraction (IPC in Electron, proxy in web) |

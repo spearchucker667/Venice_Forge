@@ -220,9 +220,9 @@ No live vision flag from Venice API. Use `modelSupportsVision(modelId)` in `src/
 
 ## Update These Files
 
-When changing behavior, packaging, or storage, also update:
+- When changing behavior, packaging, or storage, also update:
 - `README.md`, `CHANGELOG.md` (under `[Unreleased]`), `AGENTS.md`, `.github/copilot-instructions.md`
-- `docs/ABOUT.md`, `SECURITY.md`, `docs/RELEASE/release.md`, `docs/LEGAL.md`
+- `docs/ABOUT.md`, `docs/FAQ.md`, `docs/REPOSITORY_TREE.md`, `docs/THEME_SYSTEM.md`, `SECURITY.md`, `docs/RELEASE/release.md`, `docs/LEGAL.md`
 - `docs/RESEARCH_PROVIDERS.md`, `docs/JINA_PROVIDER.md`, `docs/PUBLIC_PROFILE_DISCOVERY.md` (research changes)
 - `docs/THEME_SYSTEM.md` (theming changes)
 - `docs/TODO.md` (audit/fix tracking)
