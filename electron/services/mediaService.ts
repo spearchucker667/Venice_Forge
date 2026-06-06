@@ -42,12 +42,17 @@ function exportsBaseDir(): string {
   return path.resolve(path.join(app.getPath("userData"), "metadata", "media-exports"));
 }
 
-/** Returns true if `child` is contained within `parent` after normalization. */
+/** Returns true if `child` is contained within `parent` after normalization.
+ *  On Windows, comparison is case-insensitive to handle drive-letter and
+ *  8.3 short-name resolution differences. */
 function isWithin(parent: string, child: string): boolean {
   const normalizedParent = path.resolve(parent);
   const normalizedChild = path.resolve(child);
-  if (normalizedParent === normalizedChild) return true;
-  const rel = path.relative(normalizedParent, normalizedChild);
+  const isWin = process.platform === "win32";
+  const p = isWin ? normalizedParent.toLowerCase() : normalizedParent;
+  const c = isWin ? normalizedChild.toLowerCase() : normalizedChild;
+  if (p === c) return true;
+  const rel = path.relative(p, c);
   if (rel === "" || rel.startsWith("..") || path.isAbsolute(rel)) return false;
   return true;
 }

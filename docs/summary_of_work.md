@@ -88,15 +88,18 @@ user roadmap notes, not the canonical ledger.
 ## Latest Session Summary
 
 - **Date:** 2026-06-06
-- **Agent:** opencode (zai-org-glm-5-1)
-- **Branch:** main (pending commit)
-- **Primary objective:** Three targeted fixes: (1) smooth tab/section transitions, (2) durable API-key persistence across restarts, (3) Forge Dracula theme WCAG AA contrast.
+- **Agent:** opencode (deepseek-v4-flash)
+- **Branch:** main (uncommitted)
+- **Primary objective:** Fix Windows CI media service test failure in `electron/services/mediaService.test.ts` on `windows-latest` (release workflow `build-windows` job).
+- **Root cause:** Three cross-platform path issues:
+  1. `isWithin()` in `mediaService.ts` used case-sensitive `path.relative()` on Windows, causing drive-letter or 8.3 short-name case mismatches between `fs.realpath`-resolved file paths and `path.resolve`-resolved allowlist roots → files inside `Downloads`/`Documents`/`Desktop`/`Pictures` were rejected.
+  2. Test used `/etc/passwd` (POSIX-only) — on Windows, `fs.realpath` fails with "File not found." before the allowlist check runs, so the error message doesn't mention allowed directories.
+  3. Test used hardcoded `/tmp/parent` paths in `isWithin` unit tests.
 - **Changes:**
-  - **Tab transitions:** Added `section-enter` CSS keyframe (150ms, cubic-bezier(0.2,0,0,1), translateY(6px)) and `.section-transition` class in `src/styles/theme.css`. Wrapped `<ActiveView />` in `App.tsx` with a `<div key={normalisedActiveTab} className="section-transition">`. Respects existing `prefers-reduced-motion` rules.
-  - **API key persistence fix:** Root cause: `useAuthStore.checkConfiguration()` was defined but never called at startup, so `isConfigured` stayed `false` and `needsUnlock` (which checked `hasEncrypted && !apiKey`) was always `true`. Fix: call `checkConfiguration()` in `src/main.tsx` after `refreshConfig()`, and changed `needsUnlock` in `App.tsx` from `s.hasEncrypted && !s.apiKey` to `!s.isConfigured && !s.apiKey`.
-  - **Forge Dracula contrast:** Three tokens shared the same value `#6272a4` (surfaceElevated, border, textMuted) with no visual differentiation, and textMuted on background was only 3.03:1 (fails WCAG AA). Fix: surface `#44475a` → `#343748`, surfaceElevated stays `#44475a`, border `#6272a4` → `#52566e`, textMuted `#6272a4` → `#9e9fb4` (5.47:1 on background, passes AA). Added 9-test WCAG AA regression guard in `src/theme/contrast.test.ts`.
-- **Validation:** ESLint clean; typecheck clean; 1241/1242 tests passed (1 skipped: Electron smoke requires display); safety guard passed; build succeeded.
-- **Open TODO status:** None introduced by this session.
+  - `electron/services/mediaService.ts:46-58`: `isWithin()` now normalizes path case via `toLowerCase()` on `process.platform === "win32"` before comparison.
+  - `electron/services/mediaService.test.ts`: Replaced module-level `path.join(os.tmpdir(), "venice-forge-media-*")` with `fs.mkdtempSync`-based temp root; replaced `/etc/passwd` fixture with a file in a platform-agnostic `Outside/` temp directory; replaced `/etc/hosts` fixture similarly; replaced hardcoded `/tmp/parent` test paths with `path.join(TEMP_ROOT, ...)`. Added `afterAll` cleanup. Added Windows case-insensitivity test case.
+- **Validation:** lint:eslint 0 warnings; typecheck 0 errors; 1242 tests passed / 1 skipped; build succeeded.
+- **Open TODO status:** None.
 
 ---
 
@@ -238,6 +241,44 @@ user roadmap notes, not the canonical ledger.
 ---
 
 ## Session History
+
+### 2026-06-06 — Windows CI media service path fix
+
+**Context:**
+- Fixed Windows CI failure in `electron/services/mediaService.test.ts` (release workflow `build-windows` job on `windows-latest`).
+
+**Root cause:**
+1. `isWithin()` used case-sensitive `path.relative()` — on Windows, drive-letter or 8.3 short-name case differences between `fs.realpath`-resolved file paths and `path.resolve`-resolved allowlist roots caused false rejections for valid files inside `Downloads`/`Documents`/`Desktop`/`Pictures`.
+2. Test fixtures used POSIX-only paths (`/etc/passwd`, `/etc/hosts`) — on Windows these fail `fs.realpath` with "File not found." before the allowlist check.
+3. Module-level temp dirs used fixed names in `os.tmpdir()` without proper cleanup via `afterAll`.
+
+**Files Changed:**
+- `electron/services/mediaService.ts` — `isWithin()` now normalizes path case on `win32` via `toLowerCase()`.
+- `electron/services/mediaService.test.ts` — replaced POSIX-only paths with platform-agnostic fixtures in a `fs.mkdtempSync`-created temp root; added `afterAll` cleanup; added Windows case-insensitivity test.
+
+**Behavior Changed:**
+- Media import/meta path allowlist now behaves consistently on Windows/macOS/Linux.
+- Outside-allowlist paths are rejected with the allowlist error message on all platforms.
+- Allowed Downloads/Documents/Desktop/Pictures paths still work.
+
+**Validation Run:**
+```bash
+npm ci
+npm run typecheck
+npm run lint:eslint
+npm test
+npm run build
+```
+
+**Validation Result:**
+- PASS: typecheck, lint:eslint (0 warnings), 125 test files / 1242 tests passed / 1 skipped (Electron smoke), build succeeds.
+- FAIL: None.
+- BLOCKED: None — Windows CI can only be confirmed on a Windows runner (CI or release workflow).
+
+**Open Follow-ups:**
+* [ ] Confirm GitHub Actions `build-windows` job passes on push to `main`.
+
+---
 
 ### 2026-06-06 — Audit follow-up
 
@@ -1114,7 +1155,7 @@ Remaining true backlog (enhancement-tier or large scope) moved to "Future / user
 ## Validation Matrix
 
 > Latest known status of core commands as of the 2026-06-06
-> packaged blank-screen repair session. Update this table only for commands
+> Windows CI media service path fix session. Update this table only for commands
 > actually run in the current session; "Not yet recorded" is the
 > honest default for a fresh session that hasn't run a given
 > command.
@@ -1128,6 +1169,10 @@ Remaining true backlog (enhancement-tier or large scope) moved to "Future / user
 | `npm run verify:safety-guard`                |   3/3 boundaries pass | 2026-06-06 | No raw prompt logging or safety bypass patterns |
 | `npm run verify:markdown-links`              | 41 Markdown files, no broken links | 2026-06-06 | Down from 42 after the audit-doc rename (`docs/POST_MINIMAX_M3_AUDIT.md` → `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`); 3 deletions + 2 design files gitignored earlier still in effect |
 | `npm run build`                              |   dist + dist-electron + dist/server.cjs all built | 2026-06-06 | Re-run after inspector telemetry expansion |
+| `npm run lint:eslint`                        |   0 warnings, clean | 2026-06-06 | Windows CI path fix — removed unused `beforeAll` import |
+| `npm run typecheck`                          |   0 errors, clean   | 2026-06-06 | Renderer + Electron main |
+| `npm test`                                   | 1242 passed, 1 skipped | 2026-06-06 | +1 new `isWithin` case-insensitivity test; Playwright Electron smoke is the 1 skip |
+| `npm run build`                              |   succeeded | 2026-06-06 | Renderer, server, and Electron outputs built |
 | `npm audit --omit=dev --audit-level=moderate` | 0 vulnerabilities, exit 0 | current session | Aligned gate (was high+continue-on-error); now matches AGENTS.md |
 | `npm run lint:eslint`                        | 0 warnings, clean | current session | After all review TODO changes (CI, Linux, CSP, a11y, etc.) |
 | `npm run verify:safety-guard`                | 3/3 boundaries pass | current session | Multiple runs during review TODO work |

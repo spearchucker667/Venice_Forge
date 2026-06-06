@@ -2,7 +2,7 @@
 
 /** @fileoverview Unit tests for the Electron main-process Media Studio disk service. */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, afterAll, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs/promises";
 import fsSync from "node:fs";
 import os from "node:os";
@@ -10,13 +10,15 @@ import path from "node:path";
 import crypto from "node:crypto";
 import zlibSync from "node:zlib";
 
-const TMP_PICTURES_RAW = path.join(os.tmpdir(), "venice-forge-media-pictures");
-const TMP_USERDATA_RAW = path.join(os.tmpdir(), "venice-forge-media-userdata");
-const TMP_DOWNLOADS_RAW = path.join(os.tmpdir(), "venice-forge-media-downloads");
-const TMP_DESKTOP_RAW = path.join(os.tmpdir(), "venice-forge-media-desktop");
-const TMP_DOCS_RAW = path.join(os.tmpdir(), "venice-forge-media-docs");
+const TEMP_ROOT = fsSync.mkdtempSync(path.join(os.tmpdir(), "vf-media-service-"));
+const TMP_PICTURES_RAW = path.join(TEMP_ROOT, "Pictures");
+const TMP_USERDATA_RAW = path.join(TEMP_ROOT, "UserData");
+const TMP_DOWNLOADS_RAW = path.join(TEMP_ROOT, "Downloads");
+const TMP_DESKTOP_RAW = path.join(TEMP_ROOT, "Desktop");
+const TMP_DOCS_RAW = path.join(TEMP_ROOT, "Documents");
+const TMP_OUTSIDE_RAW = path.join(TEMP_ROOT, "Outside");
 
-for (const d of [TMP_PICTURES_RAW, TMP_USERDATA_RAW, TMP_DOWNLOADS_RAW, TMP_DESKTOP_RAW, TMP_DOCS_RAW]) {
+for (const d of [TMP_PICTURES_RAW, TMP_USERDATA_RAW, TMP_DOWNLOADS_RAW, TMP_DESKTOP_RAW, TMP_DOCS_RAW, TMP_OUTSIDE_RAW]) {
   fsSync.mkdirSync(d, { recursive: true });
 }
 
@@ -25,6 +27,7 @@ const TMP_USERDATA = fsSync.realpathSync(TMP_USERDATA_RAW);
 const TMP_DOWNLOADS = fsSync.realpathSync(TMP_DOWNLOADS_RAW);
 const TMP_DESKTOP = fsSync.realpathSync(TMP_DESKTOP_RAW);
 const TMP_DOCS = fsSync.realpathSync(TMP_DOCS_RAW);
+const TMP_OUTSIDE = fsSync.realpathSync(TMP_OUTSIDE_RAW);
 
 vi.mock("electron", () => ({
   app: {
@@ -54,7 +57,7 @@ import {
 } from "./mediaService";
 
 async function clean() {
-  for (const d of [TMP_PICTURES, TMP_USERDATA, TMP_DOWNLOADS, TMP_DESKTOP, TMP_DOCS]) {
+  for (const d of [TMP_PICTURES, TMP_USERDATA, TMP_DOWNLOADS, TMP_DESKTOP, TMP_DOCS, TMP_OUTSIDE]) {
     try { await fs.rm(d, { recursive: true, force: true }); } catch { /* ignore */ }
   }
   await fs.mkdir(TMP_PICTURES, { recursive: true });
@@ -62,7 +65,12 @@ async function clean() {
   await fs.mkdir(TMP_DOWNLOADS, { recursive: true });
   await fs.mkdir(TMP_DESKTOP, { recursive: true });
   await fs.mkdir(TMP_DOCS, { recursive: true });
+  await fs.mkdir(TMP_OUTSIDE, { recursive: true });
 }
+
+afterAll(async () => {
+  await fs.rm(TEMP_ROOT, { recursive: true, force: true }).catch(() => {});
+});
 
 // A 4x4 fully-opaque red PNG, generated locally with zlib. This is used
 // as a round-trip-able fixture for the thumb decoder.
@@ -151,14 +159,29 @@ describe("mediaService.sanitizeSubfolder", () => {
 
 describe("mediaService.isWithin", () => {
   it("returns true for an exact child", () => {
-    const parent = path.resolve("/tmp/parent");
+    const parent = path.resolve(TEMP_ROOT, "isWithinParent");
     expect(__test.isWithin(parent, path.join(parent, "child.png"))).toBe(true);
   });
 
   it("returns false for a sibling or escape", () => {
-    const parent = path.resolve("/tmp/parent");
-    expect(__test.isWithin(parent, path.resolve("/tmp/other/x.png"))).toBe(false);
-    expect(__test.isWithin(parent, path.resolve("/tmp/parent2/x.png"))).toBe(false);
+    const parent = path.resolve(TEMP_ROOT, "isWithinParent");
+    const sibling = path.resolve(TEMP_ROOT, "isWithinSibling", "x.png");
+    const other = path.resolve(TEMP_ROOT, "isWithinParent2", "x.png");
+    expect(__test.isWithin(parent, sibling)).toBe(false);
+    expect(__test.isWithin(parent, other)).toBe(false);
+  });
+
+  it("handles case-insensitive paths on Windows when drive letter differs", () => {
+    // On Windows, isWithin normalizes case; on POSIX the paths
+    // genuinely differ (different-case dir names), so we expect
+    // false on non-Windows but true on Windows.
+    const parent = path.resolve(TEMP_ROOT, "CASE");
+    const child = path.resolve(TEMP_ROOT, "case", "file.png");
+    if (process.platform === "win32") {
+      expect(__test.isWithin(parent, child)).toBe(true);
+    } else {
+      expect(__test.isWithin(parent, child)).toBe(false);
+    }
   });
 });
 
@@ -230,8 +253,10 @@ describe("importMediaFromPath", () => {
     expect(result.filename).toBe("import.png");
   });
 
-  it("rejects paths outside the allowlist (e.g. /etc/passwd)", async () => {
-    const result = await importMediaFromPath({ filePath: "/etc/passwd" });
+  it("rejects paths outside the allowlist", async () => {
+    const outsideFile = path.join(TMP_OUTSIDE, "outside.txt");
+    await fs.writeFile(outsideFile, "not an image");
+    const result = await importMediaFromPath({ filePath: outsideFile });
     expect(result.ok).toBe(false);
     expect(result.error).toMatch(/Downloads|Documents|Desktop|Pictures/);
   });
@@ -264,7 +289,9 @@ describe("readMediaMeta", () => {
   });
 
   it("refuses to read files outside the allowlist", async () => {
-    const result = await readMediaMeta({ filePath: "/etc/hosts" });
+    const outsideFile = path.join(TMP_OUTSIDE, "meta-outside.txt");
+    await fs.writeFile(outsideFile, "not an image");
+    const result = await readMediaMeta({ filePath: outsideFile });
     expect(result.ok).toBe(false);
   });
 });
