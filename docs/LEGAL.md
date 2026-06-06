@@ -2,6 +2,8 @@
 
 This document is informational, not legal advice. It records the legal and policy assumptions used for the public Venice Forge repository and release materials.
 
+Family Safe Mode is an optional local application filter, not a guarantee that generated content is safe or lawful. Adult Mode bypasses only Venice Forge's local filter; provider policies and Venice API Safe Mode remain independent. Users remain responsible for lawful use and must satisfy the application's 18+ requirement.
+
 ## Project Status
 
 Venice Forge is an **independent, unofficial, third-party** MIT-licensed desktop client for the Venice API. It is **not endorsed by, sponsored by, or affiliated with** Venice.ai, Inc. "Venice", "Venice.ai", the Venice keys mark, the Venice seal, the Venice wordmark, and the Venice lockup are trademarks and/or trade dress of Venice.ai, Inc. or its affiliates. All rights reserved. Use of these marks is for identification and compatibility purposes only and does not imply any official relationship.

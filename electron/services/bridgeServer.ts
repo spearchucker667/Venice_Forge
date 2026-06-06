@@ -3,7 +3,8 @@ import type { Request, Response } from "express";
 import crypto from "crypto";
 import { Server } from "http";
 import { performVeniceRequest, abortVeniceRequest } from "./veniceClient";
-import { assessChildExploitationSafety, recordDecision } from "../../src/shared/safety";
+import { maybeRunLocalFamilyGuard } from "../../src/shared/safety";
+import { getRuntimeLocalFamilySafeModeEnabled } from "./runtimeSafetySettings";
 import { logInfo, logError } from "./logger";
 
 const BRIDGE_BODY_LIMIT = "10mb";
@@ -85,21 +86,20 @@ export function startBridgeServer(port = 5062, host = "127.0.0.1"): Promise<stri
 
       // Enforce the Safety Guard for POST payloads
       if (method === "POST" && body) {
-        const decision = assessChildExploitationSafety({
+        const decision = maybeRunLocalFamilyGuard({
           endpoint,
           method,
           payload: body,
           source: "ipc", // Authoritative backend main-process context
-        });
-        recordDecision(decision);
+        }, getRuntimeLocalFamilySafeModeEnabled());
 
-        if (!decision.allow || decision.action === "block") {
+        if (!decision.allowed) {
           res.status(451).json({
             error: {
               message: decision.userMessage,
-              reasonCode: decision.reasonCode,
-              category: decision.category,
-              severity: decision.severity,
+              reasonCode: decision.guardDecision.reasonCode,
+              category: decision.guardDecision.category,
+              severity: decision.guardDecision.severity,
             },
           });
           return;

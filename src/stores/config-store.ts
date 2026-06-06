@@ -7,6 +7,7 @@
  */
 import { create } from "zustand";
 import { isElectron } from "../services/desktopBridge";
+import { useSettingsStore } from "./settings-store";
 
 export interface ConfigStatusSnapshot {
   configPath: string;
@@ -76,6 +77,10 @@ export interface SanitizedConfigSnapshot {
     include_adult_characters: boolean;
     default_character_slug: string;
   };
+  safety: {
+    local_family_safe_mode_enabled: boolean;
+    venice_api_safe_mode: boolean;
+  };
   developer: {
     verbose_config_logging: boolean;
     allow_config_key_import: boolean;
@@ -121,6 +126,8 @@ export async function refreshConfig(): Promise<void> {
     const res = await bridge.config.get();
     if (res.ok && res.payload) {
       useConfigStore.getState().setPayload(res.payload.config, res.payload.status);
+      useSettingsStore.getState().setLocalFamilySafeModeEnabled(res.payload.config.safety.local_family_safe_mode_enabled);
+      useSettingsStore.getState().setVeniceApiSafeMode(res.payload.config.safety.venice_api_safe_mode);
     } else {
       useConfigStore.getState().setError(res.error || "Failed to load config.");
     }
@@ -141,6 +148,8 @@ export async function reloadConfig(): Promise<void> {
       const getRes = await bridge.config.get();
       if (getRes.ok && getRes.payload) {
         useConfigStore.getState().setPayload(getRes.payload.config, getRes.payload.status);
+        useSettingsStore.getState().setLocalFamilySafeModeEnabled(getRes.payload.config.safety.local_family_safe_mode_enabled);
+        useSettingsStore.getState().setVeniceApiSafeMode(getRes.payload.config.safety.venice_api_safe_mode);
       }
     } else {
       useConfigStore.getState().setError(reloadRes.error || "Failed to reload config.");

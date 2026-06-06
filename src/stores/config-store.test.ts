@@ -37,6 +37,7 @@ describe("useConfigStore", () => {
       memory: { enable_memory_retrieval: true, show_pulled_context_before_sending: false },
       research: { default_provider: "venice" as const, enable_jina: false, enable_social_discovery: false },
       characters: { enabled: true, include_adult_characters: false, default_character_slug: "" },
+      safety: { local_family_safe_mode_enabled: true, venice_api_safe_mode: true },
       developer: {
         verbose_config_logging: false,
         allow_config_key_import: true,

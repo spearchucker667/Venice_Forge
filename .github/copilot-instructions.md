@@ -102,7 +102,7 @@ Auto-updates are fetched via GitHub Releases. The `electron/ipc/updates.ts` modu
 
 ### Content Safety Guard
 
-Every outgoing Venice API request is screened by `assessChildExploitationSafety()` from `src/shared/safety/` **before** the payload leaves the app. This runs at every enforcement boundary:
+Every outgoing Venice API request routes through `maybeRunLocalFamilyGuard()` from `src/shared/safety/`. Family Safe Mode invokes the local rules; Adult Mode skips rule evaluation entirely. Venice API Safe Mode is a separate provider-side parameter. The conditional pipeline runs at every enforcement boundary:
 
 - **Electron IPC** (`electron/ipc/handlers.ts`): assessed before the main-process Venice client makes the HTTPS call.
 - **Express proxy** (`server.ts`): assessed before `http-proxy-middleware` forwards the request.
@@ -111,10 +111,12 @@ Every outgoing Venice API request is screened by `assessChildExploitationSafety(
 The public entry point is:
 
 ```ts
-import { assessChildExploitationSafety, recordDecision } from "src/shared/safety";
-const decision = assessChildExploitationSafety({ endpoint, payload, text? });
-// decision.allow === false → block or warn
-recordDecision(decision); // updates in-memory audit counters
+import { maybeRunLocalFamilyGuard } from "src/shared/safety";
+const decision = maybeRunLocalFamilyGuard(
+  { endpoint, method: "POST", payload, source: "venice-client" },
+  settings.localFamilySafeModeEnabled,
+);
+// decision.allowed === false -> block locally; decision.skipped === true -> Adult Mode
 ```
 
 `SafetyGuardDecision` never contains raw prompt text — only `promptHash` (coarse djb2, audit use only), `action`, `severity`, `category`, and `reasonCode`.
@@ -159,7 +161,7 @@ Each tab is a self-contained module file in `src/modules/`. Modules receive `{ s
 - Do not add new Venice endpoints without updating `src/shared/validation.ts`.
 - CSP is strict in production — no inline scripts, no external `connect-src`.
 - macOS requires `build/icon.icns` for packaging. Never weaken `safeStorage` — macOS Keychain and Windows DPAPI parity is required. Plaintext storage is completely disabled for Windows and macOS.
-- Every new prompt-sending path **must** call `assessChildExploitationSafety()` before forwarding to Venice. Never bypass the guard. Do not log raw prompt text anywhere in the codebase.
+- Every new prompt-sending path **must** route through `maybeRunLocalFamilyGuard()` and pass the persisted `localFamilySafeModeEnabled` value. Do not call the rule engine when Adult Mode is active. Do not log raw prompt text anywhere in the codebase.
 - The `FUZZY_ALLOWLIST ∩ CSAM_GENRE_LABELS = ∅` invariant is enforced at module load — adding a term from `CSAM_GENRE_LABELS` to `FUZZY_ALLOWLIST` will throw at startup.
 - Safety tests must use synthetic/redacted fixtures only — never include actual genre labels or explicit strings as test data.
 
@@ -170,6 +172,8 @@ Each tab is a self-contained module file in `src/modules/`. Modules receive `{ s
 Image data from the Venice API arrives in several shapes. **Always use `extractImages(payload)`** from `src/utils/image.ts` to normalise the response — it handles `{ data: [{ b64_json }] }`, `{ images: [] }`, bare base64 strings, and URL strings, and deduplicates results.
 
 `GalleryImage` records (defined in `src/types/storage.ts`) are saved via `saveImageRecord()` in `src/services/imageWorkflowService.ts`, which calls `StorageService.saveItem("images", ...)` and then dispatches `SET_GALLERY` to refresh state. Pass `skipRefresh: true` when saving multiple images in a loop, then call `refreshGallery(dispatch)` once at the end.
+
+The user-facing Library is `src/components/gallery/gallery-view.tsx`. Keep the `gallery` tab synchronized across the settings-store `Tab` union, sidebar navigation, header metadata, `App.tsx` view map, and exported `TAB_ORDER`.
 
 Upscaled images are linked to their source via `parentId` on the `GalleryImage` record. The upscale model field defaults to `"upscale-model"`; pass the actual model string in `UpscaleOptions`.
 

@@ -14,10 +14,20 @@ vi.mock("./veniceClient", () => ({
   validateVeniceIpcRequest: vi.fn((input) => input),
 }));
 
-vi.mock("../../src/shared/safety", () => ({
-  assessChildExploitationSafety: vi.fn(),
-  recordDecision: vi.fn(),
-}));
+vi.mock("../../src/shared/safety", () => {
+  const assessChildExploitationSafety = vi.fn();
+  return {
+    assessChildExploitationSafety,
+    recordDecision: vi.fn(),
+    maybeRunLocalFamilyGuard: vi.fn((input: unknown, enabled: boolean) => {
+      if (!enabled) return { allowed: true, skipped: true, reason: "local-family-safe-mode-disabled" };
+      const guardDecision = assessChildExploitationSafety(input);
+      return guardDecision.allow
+        ? { allowed: true, guardDecision }
+        : { allowed: false, reason: guardDecision.reasonCode, userMessage: guardDecision.userMessage, guardDecision };
+    }),
+  };
+});
 
 describe("bridgeServer", () => {
   let token: string;

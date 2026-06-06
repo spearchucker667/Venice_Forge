@@ -8,8 +8,9 @@ import type { VeniceForgeResponse } from "../types/desktop";
 import type { DiagnosticsEntry } from "../types/venice";
 import type { AppDispatch } from "../types/app";
 import { MIB, VENICE_MAX_RAW_UPLOAD_BYTES, VENICE_MAX_SERIALIZED_UPLOAD_BYTES } from "../shared/limits";
-import { assessChildExploitationSafety, recordDecision, SafetyGuardBlockedError } from "../shared/safety";
+import { maybeRunLocalFamilyGuard, SafetyGuardBlockedError } from "../shared/safety";
 import { useInspectorStore } from "../stores/inspector-store";
+import { useSettingsStore } from "../stores/settings-store";
 
 function maskHeaders(headers?: Record<string, string>): Record<string, string> {
   if (!headers) return {};
@@ -56,18 +57,9 @@ function sanitizeBody(body: unknown): unknown {
 }
 
 function getSafetyDecisionForLog(endpoint: string, method: string, payload: unknown) {
-  if (method === "POST" && payload !== undefined) {
-    try {
-      return assessChildExploitationSafety({
-        endpoint,
-        method,
-        payload,
-        source: "venice-client",
-      });
-    } catch {
-      return null;
-    }
-  }
+  void endpoint;
+  void method;
+  void payload;
   return null;
 }
 
@@ -648,6 +640,7 @@ async function _veniceFetch(
 
     const requestHeaders: Record<string, string> = {
       ...headers,
+      "X-Venice-Forge-Family-Safe-Mode": String(useSettingsStore.getState().localFamilySafeModeEnabled),
     };
     if (!isFormData) requestHeaders["Content-Type"] = "application/json";
 
@@ -829,16 +822,18 @@ export async function veniceFetch<T = unknown>(
   // In web mode the scan runs here; the Express proxy in server.ts is the
   // fail-closed backstop.
   if (method === "POST" && body !== undefined && !isElectron()) {
-    const decision = assessChildExploitationSafety({ endpoint, method, payload: body, source: "venice-client" });
-    recordDecision(decision);
-    if (!decision.allow || decision.action === "block") {
+    const decision = maybeRunLocalFamilyGuard(
+      { endpoint, method, payload: body, source: "venice-client" },
+      useSettingsStore.getState().localFamilySafeModeEnabled,
+    );
+    if (!decision.allowed) {
       useInspectorStore.getState().updateLog(logId, {
         status: 451,
-        safetyDecision: decision,
+        safetyDecision: decision.guardDecision,
         error: decision.userMessage,
         durationMs: Date.now() - startedAt,
       });
-      throw new SafetyGuardBlockedError(decision);
+      throw new SafetyGuardBlockedError({ ...decision.guardDecision, userMessage: decision.userMessage });
     }
   }
 
@@ -920,16 +915,18 @@ export async function veniceStreamChat(
     // Child exploitation safety guard — enforcement at transport boundary.
     // In desktop mode the IPC handler also runs the guard, so we skip the renderer check.
     if (!isElectron()) {
-      const decision = assessChildExploitationSafety({ endpoint: "/chat/completions", method: "POST", payload, source: "venice-client" });
-      recordDecision(decision);
-      if (!decision.allow || decision.action === "block") {
+      const decision = maybeRunLocalFamilyGuard(
+        { endpoint: "/chat/completions", method: "POST", payload, source: "venice-client" },
+        useSettingsStore.getState().localFamilySafeModeEnabled,
+      );
+      if (!decision.allowed) {
         useInspectorStore.getState().updateLog(logId, {
           status: 451,
-          safetyDecision: decision,
+          safetyDecision: decision.guardDecision,
           error: decision.userMessage,
           durationMs: Date.now() - startedAtTime,
         });
-        throw new SafetyGuardBlockedError(decision);
+        throw new SafetyGuardBlockedError({ ...decision.guardDecision, userMessage: decision.userMessage });
       }
     }
 
@@ -983,6 +980,7 @@ export async function veniceStreamChat(
 
     const requestHeadersWeb: Record<string, string> = {
       "Content-Type": "application/json",
+      "X-Venice-Forge-Family-Safe-Mode": String(useSettingsStore.getState().localFamilySafeModeEnabled),
     };
 
     // REL-001: always enforce a ceiling timeout on the streaming fetch so a stalled

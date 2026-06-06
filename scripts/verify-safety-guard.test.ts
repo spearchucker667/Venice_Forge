@@ -23,15 +23,15 @@ describe("verify-safety-guard", () => {
     const defaults: Record<string, { subdir: string; content: string }> = {
       "veniceClient.ts": {
         subdir: "src/services",
-        content: "function a() { assessChildExploitationSafety(); } function b() { assessChildExploitationSafety(); }",
+        content: "function a() { maybeRunLocalFamilyGuard(); } function b() { maybeRunLocalFamilyGuard(); }",
       },
       "handlers.ts": {
         subdir: "electron/ipc",
-        content: '"venice:request" handler { assessChildExploitationSafety(); } }); "venice:streamChat" handler { assessChildExploitationSafety(); } });',
+        content: '"venice:request" handler { maybeRunLocalFamilyGuard(); } }); "venice:streamChat" handler { maybeRunLocalFamilyGuard(); } });',
       },
       "server.ts": {
         subdir: "",
-        content: "app.use(() => { assessChildExploitationSafety(); recordDecision(); });",
+        content: "app.use(() => { maybeRunLocalFamilyGuard(); isLocalFamilySafeModeEnabled(); });",
       },
       "SearchScrapeModule.tsx": {
         subdir: "src/modules",
@@ -55,7 +55,7 @@ describe("verify-safety-guard", () => {
 
     it("fails when veniceClient.ts has fewer than 2 guard calls", () => {
       createPassingMocks(tmpDir, {
-        "veniceClient.ts": "function a() { assessChildExploitationSafety(); }",
+        "veniceClient.ts": "function a() { maybeRunLocalFamilyGuard(); }",
       });
       const result = runEnforcementChecks(tmpDir);
       expect(result.length).toBeGreaterThan(0);
@@ -64,15 +64,15 @@ describe("verify-safety-guard", () => {
 
     it("fails when IPC handlers are missing guards", () => {
       createPassingMocks(tmpDir, {
-        "handlers.ts": '"venice:request" { /* no guard */ } }); "venice:streamChat" { assessChildExploitationSafety(); } });',
+        "handlers.ts": '"venice:request" { /* no guard */ } }); "venice:streamChat" { maybeRunLocalFamilyGuard(); } });',
       });
       const result = runEnforcementChecks(tmpDir);
       expect(result.some((r: string) => r.includes("IPC handlers"))).toBe(true);
     });
 
-    it("fails when server.ts is missing recordDecision", () => {
+    it("fails when server.ts is missing the mode resolver", () => {
       createPassingMocks(tmpDir, {
-        "server.ts": "assessChildExploitationSafety();",
+        "server.ts": "maybeRunLocalFamilyGuard();",
       });
       const result = runEnforcementChecks(tmpDir);
       expect(result.some((r: string) => r.includes("Web Proxy Server"))).toBe(true);

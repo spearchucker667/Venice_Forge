@@ -22,6 +22,7 @@ import { CARD_FIELD_MAX, MAX_TAGS, RP_SCHEMA_VERSION, isValidRpId } from "../../
 import { assessCharacterImport } from "../../shared/safety/characterImportSafety";
 import { SafetyGuardBlockedError } from "../../shared/safety";
 import StorageService from "../storageService";
+import { useSettingsStore } from "../../stores/settings-store";
 
 const STORE = "character_cards" as const;
 const ID_RE = isValidRpId;
@@ -132,7 +133,7 @@ export async function saveCharacterCard(card: CharacterCardV1): Promise<Characte
   if (!normalized) throw new Error("Invalid character card.");
   // VERIFY-014 / B1 fix: run the safety guard at the save boundary so user-
   // authored content is vetted before it is persisted (B1).
-  const safety = assessCharacterImport(normalized);
+  const safety = assessCharacterImport(normalized, useSettingsStore.getState().localFamilySafeModeEnabled);
   if (!safety.allow || safety.action === "block") {
     throw new SafetyGuardBlockedError(safety);
   }

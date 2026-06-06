@@ -26,6 +26,8 @@ function makeState(toasts: AppState["toasts"] = []): AppState {
     toasts,
 
     settings: {
+      localFamilySafeModeEnabled: true,
+      veniceApiSafeMode: true,
       defaultSystemPrompt: "",
       webSearch: "off",
       includeVeniceSystemPrompt: false,

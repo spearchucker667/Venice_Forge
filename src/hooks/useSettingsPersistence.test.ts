@@ -26,6 +26,8 @@ describe("useSettingsPersistence", () => {
   });
 
   const settings: AppState["settings"] = {
+    localFamilySafeModeEnabled: true,
+    veniceApiSafeMode: true,
     defaultSystemPrompt: "test",
     includeVeniceSystemPrompt: true,
     webSearch: "off",

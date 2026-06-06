@@ -17,6 +17,7 @@ import { StatusView } from './components/StatusView'
 import { SettingsView } from './components/SettingsView'
 import { SearchScrapeView } from './components/SearchScrapeView'
 import { CharactersView } from './components/CharactersView'
+import { GalleryView } from './components/gallery/gallery-view'
 import { ErrorBoundary } from './components/ui/error-boundary'
 import { Toaster } from './components/ui/toaster'
 import { FIRST_RUN_ACK_KEY } from './shared/legal'
@@ -40,6 +41,7 @@ function RpStudioViewLazy() {
 const views = {
   chat: ChatView,
   image: ImagePage,
+  gallery: GalleryView,
   audio: AudioView,
   music: MusicView,
   video: VideoView,
@@ -53,7 +55,7 @@ const views = {
   'rp-studio': RpStudioViewLazy,
 } as const
 
-const TAB_ORDER: Tab[] = ['chat', 'image', 'audio', 'music', 'video', 'embeddings', 'search', 'characters', 'rp-studio', 'workflows', 'playground', 'settings', 'status']
+export const TAB_ORDER: Tab[] = ['chat', 'image', 'gallery', 'audio', 'music', 'video', 'embeddings', 'search', 'characters', 'rp-studio', 'workflows', 'playground', 'settings', 'status']
 
 export function App() {
   const needsUnlock = useAuthStore((s) => s.hasEncrypted && !s.apiKey)

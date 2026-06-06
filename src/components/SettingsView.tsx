@@ -22,7 +22,14 @@ type PendingConfirm = { message: string; detail?: string; onConfirm: () => Promi
 
 export function SettingsView() {
   const { isConfigured: veniceConfigured, setApiKey, clearApiKey } = useAuthStore();
-  const { selectedModels, setSelectedModel } = useSettingsStore();
+  const {
+    selectedModels,
+    setSelectedModel,
+    localFamilySafeModeEnabled,
+    setLocalFamilySafeModeEnabled,
+    veniceApiSafeMode,
+    setVeniceApiSafeMode,
+  } = useSettingsStore();
   
   // Chat store settings
   const { 
@@ -56,6 +63,19 @@ export function SettingsView() {
 
   const currentChatModel = selectedModels["chat"] || textModels?.[0]?.id || "";
   const currentImageModel = selectedModels["image"] || imageModels?.[0]?.id || "";
+
+  async function updateSafetySetting(
+    key: "local_family_safe_mode_enabled" | "venice_api_safe_mode",
+    enabled: boolean,
+  ) {
+    if (key === "local_family_safe_mode_enabled") setLocalFamilySafeModeEnabled(enabled);
+    else setVeniceApiSafeMode(enabled);
+    if (isElectron()) {
+      const result = await desktopConfig.writeSanitized({ safety: { [key]: enabled } });
+      if (!result.ok) toast.error(result.error || "Failed to persist safety setting.");
+      else await reloadConfig();
+    }
+  }
 
   // Check Jina configuration on mount
   useEffect(() => {
@@ -234,6 +254,13 @@ export function SettingsView() {
           enable_web_search: "off",
           enable_web_citations: false,
         });
+        setLocalFamilySafeModeEnabled(true);
+        setVeniceApiSafeMode(true);
+        if (isElectron()) {
+          await desktopConfig.writeSanitized({
+            safety: { local_family_safe_mode_enabled: true, venice_api_safe_mode: true },
+          });
+        }
         toast.success("Local settings cleared.");
       }
     });
@@ -263,7 +290,12 @@ export function SettingsView() {
         listMemories(),
       ]);
       const appVersion = await desktopApp.getVersion();
-      const payload = createExportPayload({ images, chats, settings, conversations, ai_memory: memories }, appVersion);
+      const persistedSafetySettings = {
+        id: "family-safe-mode-settings",
+        timestamp: Date.now(),
+        value: { localFamilySafeModeEnabled, veniceApiSafeMode },
+      };
+      const payload = createExportPayload({ images, chats, settings: [...settings, persistedSafetySettings], conversations, ai_memory: memories }, appVersion);
       const ok = await desktopFiles.exportJson(
         payload,
         `venice-forge-export-${new Date().toISOString().slice(0, 10)}.json`
@@ -286,7 +318,17 @@ export function SettingsView() {
         listMemories(),
       ]);
       const backup = createExportPayload(
-        { images: imagesBefore, chats: chatsBefore, settings: settingsBefore, conversations: conversationsBefore, ai_memory: memoriesBefore },
+        {
+          images: imagesBefore,
+          chats: chatsBefore,
+          settings: [...settingsBefore, {
+            id: "family-safe-mode-settings",
+            timestamp: Date.now(),
+            value: { localFamilySafeModeEnabled, veniceApiSafeMode },
+          }],
+          conversations: conversationsBefore,
+          ai_memory: memoriesBefore,
+        },
         await desktopApp.getVersion()
       );
 
@@ -305,6 +347,26 @@ export function SettingsView() {
       await Promise.all(payload.data.images.map((img) => StorageService.saveItem("images", img)));
       await Promise.all(payload.data.chats.map((chat) => StorageService.saveItem("chats", chat)));
       await Promise.all(payload.data.settings.map((s) => StorageService.saveItem("settings", s)));
+      const importedSafety = payload.data.settings.find((entry) => entry.id === "family-safe-mode-settings")?.value;
+      if (importedSafety && typeof importedSafety === "object") {
+        const value = importedSafety as Record<string, unknown>;
+        const familyEnabled = typeof value.localFamilySafeModeEnabled === "boolean"
+          ? value.localFamilySafeModeEnabled
+          : true;
+        const apiSafeMode = typeof value.veniceApiSafeMode === "boolean"
+          ? value.veniceApiSafeMode
+          : true;
+        setLocalFamilySafeModeEnabled(familyEnabled);
+        setVeniceApiSafeMode(apiSafeMode);
+        if (isElectron()) {
+          await desktopConfig.writeSanitized({
+            safety: {
+              local_family_safe_mode_enabled: familyEnabled,
+              venice_api_safe_mode: apiSafeMode,
+            },
+          });
+        }
+      }
       
       const convResults = await Promise.all(
         payload.data.conversations.map((conv) => saveConversation(conv as unknown as import("../types/conversation").Conversation))
@@ -369,6 +431,9 @@ export function SettingsView() {
           </button>
           <button onClick={() => setActiveSection("defaults")} className={sectionButtonClass("defaults")}>
             Defaults & Behavior
+          </button>
+          <button onClick={() => setActiveSection("safety")} className={sectionButtonClass("safety")}>
+            Safety
           </button>
           {isElectron() && (
             <button onClick={() => setActiveSection("vault")} className={sectionButtonClass("vault")}>
@@ -581,6 +646,55 @@ export function SettingsView() {
                     />
                     <span className="text-[13.5px] text-text-primary">Enable Citations by Default</span>
                   </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === "safety" && (
+            <div className="space-y-5">
+              <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-[14.5px] font-medium text-text-primary">Family Safe Mode</h3>
+                    <p className="mt-1 text-[12.5px] text-text-secondary leading-relaxed">
+                      Runs Venice Forge&apos;s local family-safe filter before sending requests. Designed for child/family-safe use.
+                    </p>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={localFamilySafeModeEnabled}
+                      onChange={(event) => void updateSafetySetting("local_family_safe_mode_enabled", event.target.checked)}
+                      className="h-4 w-4 rounded border-border bg-surface text-accent"
+                    />
+                    <span className="text-[12.5px] font-medium text-text-primary">
+                      {localFamilySafeModeEnabled ? "ON: Family Safe Mode" : "OFF: Adult Mode"}
+                    </span>
+                  </label>
+                </div>
+                <p className="text-[12px] text-text-muted leading-relaxed">
+                  {localFamilySafeModeEnabled
+                    ? "When enabled, matching requests are blocked locally before the provider is called."
+                    : "Bypasses Venice Forge's local family-safe filter. Venice/API-level safety and provider-side safemode are controlled separately."}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-[14.5px] font-medium text-text-primary">Venice API Safe Mode</h3>
+                    <p className="mt-1 text-[12.5px] text-text-secondary leading-relaxed">
+                      Controls the provider-side safemode parameter sent to Venice. This is separate from Family Safe Mode.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    aria-label="Venice API Safe Mode"
+                    checked={veniceApiSafeMode}
+                    onChange={(event) => void updateSafetySetting("venice_api_safe_mode", event.target.checked)}
+                    className="h-4 w-4 rounded border-border bg-surface text-accent cursor-pointer"
+                  />
                 </div>
               </div>
             </div>

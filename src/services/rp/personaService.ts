@@ -19,6 +19,7 @@ import { isValidRpId, MAX_TAGS } from "../../types/rp";
 import { assessPersonaImport } from "../../shared/safety/characterImportSafety";
 import { SafetyGuardBlockedError } from "../../shared/safety";
 import StorageService from "../storageService";
+import { useSettingsStore } from "../../stores/settings-store";
 
 const STORE = "personas" as const;
 const ID_RE = isValidRpId;
@@ -99,7 +100,7 @@ export async function savePersona(persona: UserPersonaV1): Promise<UserPersonaV1
   const normalized = normalizePersona(next);
   if (!normalized) throw new Error("Invalid persona.");
   // VERIFY-014 / B1 fix: gate the save with the safety guard.
-  const safety = assessPersonaImport(normalized);
+  const safety = assessPersonaImport(normalized, useSettingsStore.getState().localFamilySafeModeEnabled);
   if (!safety.allow || safety.action === "block") {
     throw new SafetyGuardBlockedError(safety);
   }

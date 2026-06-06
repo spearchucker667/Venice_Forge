@@ -121,7 +121,7 @@ test's comment header.
 
 **API keys:** Never in renderer. Electron: `safeStorage` (DPAPI on Windows, Keychain on macOS). Web: `.env` only. Never commit either. `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true` is a Linux-only fallback and emits a security warning.
 
-**Content Safety Guard:** Every outgoing prompt path must call `assessChildExploitationSafety()` and `recordDecision()` before forwarding to Venice. Guard runs at every boundary (renderer `veniceClient.ts`, Electron IPC handlers `venice:request` and `venice:streamChat`, Express proxy, and prompt-sending modules `ChatModule`/`ImageModule`/`BatchModule`/`SearchScrapeModule`). **Never log raw prompt text.** Safety tests must use synthetic fixtures only.
+**Local Family Safe Mode:** Every prompt path must route through `maybeRunLocalFamilyGuard(input, localFamilySafeModeEnabled)`. When enabled, it invokes and records the existing local guard; when disabled (Adult Mode), it must not invoke the rule engine at all. Venice API Safe Mode remains a separate provider parameter. Boundaries include renderer `veniceClient.ts`, Electron IPC, Express proxy, bridge server, research, and RP flows. **Never log raw prompt text.** Safety tests must use synthetic fixtures only.
 
 **Allowed endpoints only** (enforced in `src/shared/validation.ts` and `electron/ipc/validation.ts`):
 ```
@@ -171,6 +171,7 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `src/research/providers/` | Venice + Jina + generic HTTP scrape (SSRF via `dns.lookup`) |
 | `src/constants/venice.ts` | `FALLBACK_MODELS`, `TABS`, `modelSupportsVision()`, `DB_VERSION`, `STORE_NAMES` |
 | `src/components/{chat,image,audio,music,video,embeddings,workflows,playground,layout,ui}` | Renderer UI: tab views, sidebar, header, dialog, shared primitives |
+| `src/components/gallery/gallery-view.tsx` | Generated-image Library backed by the local `images` store; preview, refresh, download, and delete |
 | `electron/preload.ts` | contextBridge API surface (only place to expose IPC to renderer) |
 | `electron/main.ts` | BrowserWindow + CSP + navigation guards; `requestSingleInstanceLock` |
 | `electron/ipc/handlers.ts` | IPC channel handlers (incl. `venice:request`, `venice:streamChat`, `chat:*`, `app:*`) |
@@ -194,6 +195,7 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `scripts/verify-safety-guard.cjs` | CI gate — see Security section |
 | `scripts/verify-dist.cjs` | Post-package artifact verification (`verify:dist:win`, `verify:dist:mac`, `verify:dist:portable`) |
 | `src/shared/safety/childExploitationGuard.ts` | Public safety-guard API + decision orchestration (T15 split: matchTables + normalization extracted) |
+| `src/shared/safety/localFamilySafeGuard.ts` | Conditional Family Safe Mode pipeline; returns a skipped decision without invoking rules in Adult Mode |
 | `src/shared/safety/matchTables.ts` | Pattern/term dictionaries for the guard (T15) |
 | `src/shared/safety/normalization.ts` | Text normalization + multi-view output (T15) |
 | `src/lib/venice-client.test.ts` | Direct unit coverage of `venice/veniceStreamChat/veniceBlob/veniceFormData` (VERIFY-006) |

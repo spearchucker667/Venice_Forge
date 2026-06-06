@@ -66,9 +66,9 @@ Fourteen integrated tabs covering chat, media generation, batch automation, rese
 | 📋 | **Batch** | Automate: run one prompt across many inputs, or chain multiple prompts in sequence |
 | 🔍 | **Research** | Web search via Venice or Jina AI, page scraping, research synthesis, and public-profile discovery |
 | 🎭 | **Characters** | Browse Venice hosted characters, sort/filter, and start character chats using `venice_parameters.character_slug` |
-| 🎭 | **RP Studio** | Local-first character roleplay authoring + runtime: build character cards with avatars, write personas and lorebooks (keyword-triggered world info), run multi-character chats with speaker-aware turns, generate scene images linked to chat history, and inspect the prompt assembly trace. All content stays on disk; the existing child-exploitation safety guard runs at every dispatch boundary. See [`docs/CHARACTER_RP.md`](docs/CHARACTER_RP.md) |
+| 🎭 | **RP Studio** | Local-first character roleplay authoring + runtime: build character cards with avatars, write personas and lorebooks (keyword-triggered world info), run multi-character chats with speaker-aware turns, generate scene images linked to chat history, and inspect the prompt assembly trace. All content stays on disk; Family Safe Mode optionally runs the local filter at dispatch boundaries. See [`docs/CHARACTER_RP.md`](docs/CHARACTER_RP.md) |
 | 📚 | **Catalog** | Browse live Venice model catalog with capability details; auto-refresh on API key save. App requires a Venice API key for live model discovery |
-| 🏞️ | **Library** | Local image gallery, saved chat files, and conversation history — with bulk multi-select download, deletion, and upscale |
+| 🏞️ | **Library** | Browse generated images stored locally, open full-size previews, refresh the collection, download images, and delete saved generations |
 | ⚙️ | **Config** | API key management (OS-level secure storage), theme editor (Venice Parity Dark, Graphite, Daylight, Copper, Dracula, GruvBox Dark, Rosepine) with custom YAML export/import, model defaults, data import/export, and a **Local Config** panel that surfaces the optional `config.yaml` / `themes.yaml` files (path, parse/validation warnings, key import status, Reload / Open Folder / Export Template / Clear Secure Store actions) |
 | 📊 | **Diagnostics** | Transport mode, runtime info, rate-limit headers, sanitized diagnostics export, and a desktop-only “Open logs folder” action |
 
@@ -83,7 +83,7 @@ Fourteen integrated tabs covering chat, media generation, batch automation, rese
 
 **Security-first design:**
 - Renderer cannot access raw API keys (stored in OS Keychain/DPAPI)
-- Content safety guard on every outgoing request (Venice-approved endpoints only)
+- Toggleable Family Safe Mode local filter, separate from Venice API Safe Mode
 - Encrypted IndexedDB storage, secure chat history snapshots, trusted URL validation
 - Zero telemetry, no external analytics
 
@@ -222,7 +222,7 @@ For detailed signing and notarization steps, see [docs/RELEASE/signing-and-notar
 **Core Security Principles:**
 1. **API key isolation** — Renderer cannot access raw keys (stored in OS secure storage)
 2. **Venice endpoint allowlist** — Only the approved endpoints defined in `src/shared/validation.ts` are callable. The current allowlist includes chat, model discovery, search/scrape/text-parser, image generate/edit/upscale/multi-edit, and video queue/retrieve/quote/complete endpoints.
-3. **Content safety guard** — Every outgoing request is scanned for unsafe content before leaving the app
+3. **Independent safety controls** — Family Safe Mode runs Venice Forge's local family filter; Adult Mode skips that local filter entirely. Venice API Safe Mode controls only the provider-side `safe_mode` parameter.
 4. **No telemetry** — Venice Forge collects zero analytics or tracking data
 5. **Trusted URL validation** — External links must be HTTPS with non-private hostnames
 
@@ -381,7 +381,7 @@ This project is actively maintained. For issues, feature requests, or security r
 | Linux Support | 🔧 Development-only (packaging not maintained) |
 | Node.js | v20, v22 |
 | TypeScript | Strict mode enforced |
-| Safety Guard | ✅ Active on every request |
+| Family Safe Mode | ✅ On by default; toggleable to Adult Mode |
 | Test Suite | 774 passing (+10 named regression guards) |
 | License | [MIT](LICENSE) |
 

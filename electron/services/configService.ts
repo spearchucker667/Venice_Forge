@@ -17,7 +17,7 @@
  *      is NOT true).
  *    - Default generated config files must never contain real keys.
  *    - No remote URLs.
- *    - No child-safety bypass.
+ *    - Family Safe Mode is explicit and defaults on; provider safemode remains independent.
  */
 import { app, shell } from "electron";
 import { promises as fs, constants as fsConstants } from "fs";
@@ -44,6 +44,7 @@ import {
   setApiKey,
   setJinaApiKey,
 } from "./secureStore";
+import { setRuntimeLocalFamilySafeModeEnabled } from "./runtimeSafetySettings";
 
 /** Status object returned to the renderer for the Settings UI. */
 export interface ConfigStatus {
@@ -262,6 +263,12 @@ function renderDefaultConfigYaml(): string {
     "  enabled: true",
     "  include_adult_characters: false",
     "  default_character_slug: \"\"",
+    "",
+    "safety:",
+    "  # Venice Forge local filter. Set false for Adult Mode.",
+    "  local_family_safe_mode_enabled: true",
+    "  # Provider-side Venice safe_mode parameter; separate from the local filter.",
+    "  venice_api_safe_mode: true",
     "",
     "developer:",
     "  verbose_config_logging: false",
@@ -551,11 +558,13 @@ export async function initializeConfig(): Promise<ConfigStatus> {
       warnings: warnings.length,
     });
 
+    setRuntimeLocalFamilySafeModeEnabled(currentConfig.safety.local_family_safe_mode_enabled);
     return currentStatus;
   } catch (err) {
     logError("Config initialization failed", String(err));
     // Fall back to defaults so the app still boots.
     currentConfig = emptyConfig();
+    setRuntimeLocalFamilySafeModeEnabled(true);
     currentStatus = buildDefaultStatus();
     currentStatus.parseError = err instanceof Error ? err.message : "Unknown config error";
     return currentStatus;
@@ -640,6 +649,7 @@ export async function writeSanitizedConfig(patch: unknown): Promise<WriteSanitiz
     const yamlText = yaml.stringify(finalConfig);
     await fs.writeFile(currentStatus.configPath, yamlText, { encoding: "utf-8", mode: 0o600 });
     currentConfig = finalConfig;
+    setRuntimeLocalFamilySafeModeEnabled(finalConfig.safety.local_family_safe_mode_enabled);
     currentStatus = { ...currentStatus, configName: finalConfig.app.config_name, profile: finalConfig.app.profile, activeTheme: finalConfig.theme.active, redactedFields };
     return { ok: true, redactedFields };
   } catch (err) {
@@ -662,6 +672,7 @@ function mergeSanitized(base: SanitizedConfig, patch: Record<string, unknown>): 
     memory: base.memory,
     research: base.research,
     characters: base.characters,
+    safety: base.safety,
     developer: {
       verbose_config_logging: base.developer.verbose_config_logging,
       allow_config_key_import: base.developer.allow_config_key_import,
@@ -690,6 +701,9 @@ function mergeSanitized(base: SanitizedConfig, patch: Record<string, unknown>): 
   }
   if (typeof patch.characters === "object" && patch.characters) {
     Object.assign(baseYaml.characters, patch.characters as object);
+  }
+  if (typeof patch.safety === "object" && patch.safety) {
+    Object.assign(baseYaml.safety, patch.safety as object);
   }
   if (typeof patch.developer === "object" && patch.developer) {
     Object.assign(baseYaml.developer, patch.developer as object);
@@ -748,6 +762,7 @@ export async function exportConfigTemplate(targetPath: string): Promise<{ ok: bo
       memory: sanitized.memory,
       research: sanitized.research,
       characters: sanitized.characters,
+      safety: sanitized.safety,
       developer: {
         verbose_config_logging: sanitized.developer.verbose_config_logging,
         allow_config_key_import: sanitized.developer.allow_config_key_import,

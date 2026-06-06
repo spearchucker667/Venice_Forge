@@ -14,6 +14,7 @@ vi.mock("http-proxy-middleware", () => ({
 
 import { applyVeniceProxyHeaders, createServerApp } from "./server";
 import * as safetyModule from "./src/shared/safety";
+import * as localFamilyGuardRules from "./src/shared/safety/localFamilyGuardRules";
 
 describe("server.ts health endpoint", () => {
   it("should return 200 and status ok on /health", async () => {
@@ -192,7 +193,7 @@ describe("server.ts safety middleware", () => {
       .send({ messages: [{ role: "user", content: "draw me a loli character" }] });
 
     expect(res.status).toBe(451);
-    expect(res.body.error).toContain("This request was blocked by Venice Forge");
+    expect(res.body.error).toContain("Blocked by Family Safe Mode");
     expect(res.body.reasonCode).toBe("CSAM_GENRE_TERM");
   });
 
@@ -200,6 +201,16 @@ describe("server.ts safety middleware", () => {
     const res = await request(app)
       .post("/api/venice/chat/completions")
       .send({ messages: [{ role: "user", content: "explain sorting algorithms" }] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.mocked).toBe(true);
+  });
+
+  it("skips the local guard in Adult Mode and forwards the request", async () => {
+    const res = await request(app)
+      .post("/api/venice/chat/completions")
+      .set("X-Venice-Forge-Family-Safe-Mode", "false")
+      .send({ messages: [{ role: "user", content: "draw me a loli character" }] });
 
     expect(res.status).toBe(200);
     expect(res.body.mocked).toBe(true);
@@ -237,7 +248,7 @@ describe("server.ts safety middleware", () => {
 
   // M-002 regression guard
   it("records synthetic decision when guard throws an exception", async () => {
-    const assessSpy = vi.spyOn(safetyModule, "assessChildExploitationSafety").mockImplementationOnce(() => {
+    const assessSpy = vi.spyOn(localFamilyGuardRules, "runLocalFamilyGuard").mockImplementationOnce(() => {
       throw new Error("simulated guard failure");
     });
     const recordSpy = vi.spyOn(safetyModule, "recordDecision");

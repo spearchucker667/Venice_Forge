@@ -3,12 +3,14 @@
 // Code Owner: fayeblade (@spearchucker667)
 import {
   MAX_ATTACHMENT_FILE_BYTES,
+  MAX_PDF_ATTACHMENT_BYTES,
   MAX_TOTAL_ATTACHMENT_CONTEXT_BYTES,
   MAX_ATTACHMENTS_PER_MESSAGE,
 } from "../constants/venice";
 import { veniceResearchProvider } from "../research/providers/veniceResearchProvider";
 import { desktopFileReader } from "./desktopBridge";
 import type { Attachment, AssembledAttachmentContext } from "../types/attachment";
+
 
 /** Supported text MIME types and extensions for file attachments. */
 const SUPPORTED_TEXT_TYPES = new Set([
@@ -35,6 +37,11 @@ const MAX_IMAGE_ATTACHMENT_BYTES = 2 * 1024 * 1024;
 /** Maximum image dimension after downscaling. */
 const MAX_IMAGE_DIMENSION = 1024;
 
+/** Checks whether a File object is a supported PDF. */
+export function isSupportedPdfFile(file: File): boolean {
+  return file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+}
+
 /** Checks whether a File object is a supported text file. */
 export function isSupportedTextFile(file: File): boolean {
   if (SUPPORTED_TEXT_TYPES.has(file.type)) return true;
@@ -45,6 +52,7 @@ export function isSupportedTextFile(file: File): boolean {
 export function isSupportedImageFile(file: File): boolean {
   return SUPPORTED_IMAGE_TYPES.has(file.type);
 }
+
 
 /** Reads a browser File object as a text attachment. */
 export async function readTextFileAttachment(file: File): Promise<Attachment> {
@@ -153,6 +161,9 @@ export async function processFileAttachment(file: File): Promise<Attachment> {
   if (isSupportedImageFile(file)) {
     return readImageAttachment(file);
   }
+  if (isSupportedPdfFile(file)) {
+    return readPdfAttachment(file);
+  }
   if (isSupportedTextFile(file)) {
     if (file.size > MAX_ATTACHMENT_FILE_BYTES) {
       const slice = file.slice(0, MAX_ATTACHMENT_FILE_BYTES);
@@ -167,8 +178,56 @@ export async function processFileAttachment(file: File): Promise<Attachment> {
     }
     return readTextFileAttachment(file);
   }
-  throw new Error(`Unsupported file type: ${file.type || file.name}. Supported: text files and images (PNG, JPEG, WEBP).`);
+  throw new Error(`Unsupported file type: ${file.type || file.name}. Supported: text files, PDFs, and images (PNG, JPEG, WEBP).`);
 }
+
+/**
+ * Reads a PDF file, extracts its text layer locally (no network call), and
+ * returns it as a `file` type attachment.
+ *
+ * - Uses `pdfParserService` (pdfjs-dist) via dynamic import for zero bundle
+ *   cost until first use.
+ * - For image-only / scanned PDFs (no text layer), returns an attachment whose
+ *   content prompts the user to use the Research tab's Venice text-parser.
+ * - Enforces `MAX_PDF_ATTACHMENT_BYTES` size cap before parsing.
+ */
+export async function readPdfAttachment(file: File): Promise<Attachment> {
+  if (file.size > MAX_PDF_ATTACHMENT_BYTES) {
+    throw new Error(
+      `PDF "${file.name}" is ${(file.size / (1024 * 1024)).toFixed(1)} MiB, which exceeds the ${MAX_PDF_ATTACHMENT_BYTES / (1024 * 1024)} MiB limit for PDF attachments.`
+    );
+  }
+  // Dynamically import to avoid loading pdfjs-dist until a PDF is actually dropped.
+  const { extractPdfText, pdfExtractionSummary } = await import("./pdfParserService");
+  const result = await extractPdfText(file);
+  const summary = pdfExtractionSummary(result, file.name);
+
+  if (result.isImageOnly) {
+    // Scanned PDF with no text layer — surface a helpful message rather than
+    // empty content, directing the user to the cloud-OCR path in the Research tab.
+    return {
+      id: crypto.randomUUID(),
+      type: "file",
+      name: file.name,
+      content:
+        `${summary}\n\n` +
+        `This PDF appears to be a scanned document (no embedded text layer was found). ` +
+        `For OCR-based text extraction, upload the file via the Research tab → Document Parser, ` +
+        `which uses the Venice /augment/text-parser API.`,
+      size: 0,
+    };
+  }
+
+  const content = `${summary}\n\n${result.text}`;
+  return {
+    id: crypto.randomUUID(),
+    type: "file",
+    name: file.name,
+    content,
+    size: new TextEncoder().encode(content).length,
+  };
+}
+
 
 function utf8ByteSlice(str: string, maxBytes: number): string {
   const encoder = new TextEncoder();

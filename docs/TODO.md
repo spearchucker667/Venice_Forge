@@ -7,9 +7,13 @@
 - [x] **Deep Feature Verification:** Regression test all new features (Workflows, Playground, Studios) to ensure they work correctly over the Electron IPC bridge (100% unit-test file coverage achieved for all src/lib/ engine files, 753 total tests passing).
 - [x] **Data Migration:** Ensure legacy `chat-history/*.json` and `IndexedDB` stores are correctly picked up by the new React components. *(Encrypted `Conversation Vault` + `vaultMigration.ts` shipped in commit `62a52226`; legacy flat `chats` auto-migrate on first load (additive only, never destructive); VERIFY regression coverage in `electron/services/conversationVault.test.ts`.)*
 - [x] **Asset Sanitization:** Double-check for any remaining "OpenVenice" or "donor" references in the codebase. *(Closed as out-of-scope per `docs/AUDIT_TODO.md` (2026-06-04): the "donor" terminology is preserved in `docs/REPORTS/BUG_HUNT_REVIEW.md` and `docs/design/VENICE_UI_EXTRACTION.md` as historical traceability of the merge. The intentional attribution in `README.md` also stays.)*
+- [x] **Local-first Character RP Studio:** Integrated complete authoring and runtime roleplay studio with character cards (on-disk PNG avatars), personas, lorebooks, multi-character RP chats, scoped memory, and scene image generation. Verified by regression tests `VERIFY-011` to `VERIFY-014`.
+- [x] **Local Master YAML Config System:** Added configuration system via `config.yaml` / `themes.yaml` with schema validation, key import & redaction, and a dedicated local config UI in Settings.
+
 
 ## Active Tasks
 
+- [x] Restore the generated-image Library in the sidebar and `App.tsx` `TAB_ORDER`, add the Family Safe Mode switch below Red-Team Mode, and make Red-Team Mode open the Inspector when enabled.
 - [x] Triage new audit findings from `docs/AUDIT_TODO.md` when present (None present).
 - [x] Keep README, About, Legal, Repository Tree, and release docs synchronized with implemented features.
 - [x] Keep security tests current for renderer, IPC, proxy, storage, and safety-guard boundaries.
@@ -25,19 +29,21 @@
 
 ### 2. Frontend / UI Improvements
 - [x] **Memory Management Overhaul:** Enhance the UI for adding, editing, and categorizing AI memories. Add a "Search AI Memory" modal.
-- [x] **Gallery Bulk Actions:** Add multi-select support to the Library/Gallery tab for bulk exporting or bulk deleting image and video generations.
+- [ ] **Gallery Bulk Actions:** Extend the restored generated-image Library with multi-select bulk export/delete and video-generation support.
 - [x] **Theme Customization Panel:** Allow exporting and importing custom themes as standalone JSON files.
 - [x] **Drag & Drop Reordering:** Allow users to drag and drop uploaded files in the Chat attachment tray to dictate context order.
 
 ### 3. Architecture & Security
-- [ ] **CSP Hardening:** Further harden the Content Security Policy to strictly enforce nonces on all inline scripts and styles.
-- [ ] **Database Migration System:** Build a robust IndexedDB migration utility for seamlessly handling schema changes across app versions.
+- [x] **CSP Hardening:** Per-request script nonces added to both Electron (`electron/main.ts` — `generateNonce()` + `rendererCsp(nonce?)` + `onHeadersReceived`) and web server (`server.ts` — nonce generated per request, stored in `res.locals.cspNonce`, injected into `<script>` tags in served `index.html`). Production `script-src` now uses `'nonce-<value>' 'strict-dynamic'`. Dev mode preserves `'unsafe-inline' 'unsafe-eval'` for Vite HMR.
+- [x] **Database Migration System:** `src/services/dbMigrations.ts` provides a versioned `MIGRATIONS[]` array with one `MigrationStep` per historical `DB_VERSION`, an `applyMigrations(db, tx, oldVersion, newVersion)` function, and `getMigrationHistory()`. `storageService.ts` now calls `applyMigrations()` from `onupgradeneeded`. 14 unit tests in `src/services/dbMigrations.test.ts`.
 - [ ] **Native Dependencies Audit:** Re-audit all native Node dependencies in the Electron build for vulnerability surface reduction.
 
+
 ### 4. Advanced Research Features
-- [ ] **PDF Parsing & OCR:** Implement local-first PDF parsing or OCR for research documents so users don't have to extract text manually.
+- [x] **PDF Parsing & OCR:** `src/services/pdfParserService.ts` provides local-first PDF text extraction via `pdfjs-dist` (dynamic import, zero bundle cost until first PDF). `attachmentService.ts` routes `.pdf` files through `readPdfAttachment()`. Scanned PDFs surface a guidance message pointing to the Research tab's Venice cloud OCR. Size cap: 25 MiB. Unit tests in `src/services/pdfParserService.test.ts`.
 - [ ] **Recursive Search:** Allow the Research agent to conduct multi-depth autonomous recursive searches for complex queries.
 - [ ] **Custom Scrape Providers:** Allow users to input custom proxy endpoint configurations for the generic HTTP scrape provider.
+
 
 ## Resolved Defects
 
@@ -86,3 +92,6 @@
    - **Location:** `src/services/veniceClient.ts`
    - **Description:** Nested `{ model: "..." }` properties evaded extraction telemetry.
    - **Remediation:** Added `findModelRecursively` to safely parse deeply nested response models.
+## Family Safe Mode / Adult Mode
+
+- [x] Add independent persisted `localFamilySafeModeEnabled` and `veniceApiSafeMode` settings, central conditional guard routing, Adult Mode skip regression tests, UI controls, YAML config support, and documentation.

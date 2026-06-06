@@ -16,6 +16,7 @@ const modelTypeMap: Record<string, string> = {
 const tabLabels: Record<string, string> = {
   chat: 'Chat',
   image: 'Image',
+  gallery: 'Library',
   audio: 'Audio',
   music: 'Music',
   video: 'Video',
@@ -27,6 +28,7 @@ const tabLabels: Record<string, string> = {
 const tabSubtitles: Record<string, string> = {
   chat: 'Conversational AI',
   image: 'Generate images from text',
+  gallery: 'Browse generated images',
   audio: 'Text-to-speech and transcription',
   music: 'Generate music and sound',
   video: 'Generate video clips',
@@ -35,7 +37,7 @@ const tabSubtitles: Record<string, string> = {
   playground: 'Build workflows by chatting',
 }
 
-const noModelSelector = new Set(['video', 'workflows', 'playground'])
+const noModelSelector = new Set(['gallery', 'video', 'workflows', 'playground', 'status', 'settings', 'search', 'characters', 'rp-studio'])
 
 interface Props {
   onOpenApiKey: () => void

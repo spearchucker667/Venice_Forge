@@ -1,6 +1,6 @@
 # Character Roleplay Studio
 
-> **Status:** Production-ready (v1.1.0). All Phase 1-8 deliverables complete; safety guard wrapped at every boundary.
+> **Status:** Production-ready (v1.1.0). All Phase 1-8 deliverables complete; Family Safe Mode is routed at every boundary.
 
 The Character RP Studio is a **local-first** roleplay authoring and runtime environment built on top of Venice Forge. It lets you create character cards, build personas and lorebooks, run multi-character chats, and generate scene images — all persisted to disk on the user's machine, with no external service required to author or review content.
 
@@ -16,7 +16,7 @@ Venice Forge's existing **Characters** tab discovers characters hosted at `api.v
 | **Character Editor** | Full editor: name, author, system prompt, description, scenario, tags, example dialogues, avatar upload (PNG/JPEG/WebP ≤ 1 MiB), model selection, adult flag. **Safety guard runs on save.** |
 | **Persona Manager** | One or more user personas (name, reference, description, tags). One is "active" per session. |
 | **Lorebook Manager** | World-info books with keyword-triggered entries. Each entry: keys, content, insertion mode (`before_char` / `after_char` / `at_depth`), whole-word match, constant. |
-| **RP Chat** | Multi-character chat (up to 8 active characters per chat). Per-message role: `user` / `character` / `narrator` / `system` / `tool`. Streaming via Venice text models. **Mandatory safety guard before each dispatch.** |
+| **RP Chat** | Multi-character chat (up to 8 active characters per chat). Per-message role: `user` / `character` / `narrator` / `system` / `tool`. Streaming via Venice text models. Family Safe Mode checks each dispatch when enabled; Adult Mode skips the local filter. |
 | **Scene Generator** | Extract a scene prompt from the most recent chat messages (or override), call `/image/generate`, save the asset under `rp_assets` and route the image to `app.getPath("pictures")/Venice Forge/RP/<chatId>/`. **Safety guard runs on every prompt.** |
 | **Asset Gallery** | Browse all scene images, filter by chat, preview, delete. |
 | **Prompt Debug Drawer** | Inspect the full prompt assembly: trace (which block was included, why, char count), the assembled system prompt, the recent-message window, and the user message. Pure read-only view; no edits. |
@@ -92,7 +92,7 @@ The renderer MUST refuse the user-visible action when `decision.allow === false`
 - **Allowed**: clearly-identified adult sexual content (e.g. `consensual`, `MILF`, `18+`, numeric age ≥ 18).
 - **Blocked unconditionally**: any content involving minors, youth-coded subjects, age-evasion attempts, CSAM genre labels (`loli`, `shota`, `shotacon`, `lolicon`, `lolita`), fictional minor sexualization, or obfuscated attempts to disguise any of the above.
 
-The `redTeamMode` setting in the existing settings store gates whether adult characters can be created or selected in the UI. The safety guard itself does NOT consult this flag — it always applies the policy.
+The `redTeamMode` setting gates raw developer rendering and adult-character UI visibility. It is independent from `localFamilySafeModeEnabled`, which controls whether the local family filter runs. Venice API Safe Mode remains provider-side and separate from both.
 
 ## Prompt assembly contract
 

@@ -7,6 +7,7 @@ import type * as http from "node:http";
 import dns from "node:dns/promises";
 import nodeHttp from "node:http";
 import nodeHttps from "node:https";
+import { randomBytes } from "node:crypto";
 import dotenv from "dotenv";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import {
@@ -19,12 +20,16 @@ import {
 import { VENICE_API_HOST, VENICE_API_BASE_PATH } from "./src/shared/apiConfig";
 import { AppConfig } from "./src/shared/configSchema";
 import { warn, error } from "./src/shared/logger";
-import { assessChildExploitationSafety, recordDecision } from "./src/shared/safety";
+import { maybeRunLocalFamilyGuard, recordDecision } from "./src/shared/safety";
 import type { SafetyGuardDecision } from "./src/shared/safety";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import { isPrivateHostname } from "./electron/utils/urlSecurity";
 
 dotenv.config();
+
+function isLocalFamilySafeModeEnabled(req: express.Request): boolean {
+  return req.get("X-Venice-Forge-Family-Safe-Mode") !== "false";
+}
 
 /** Returns the directory of the current module, working in both ESM source
  *  and CJS bundled output (where import.meta.url is not available). */
@@ -117,21 +122,37 @@ export function createServerApp() {
     app.set("trust proxy", AppConfig.TRUST_PROXY);
   }
 
-  // Security headers for all responses
+  // Security headers for all responses — including per-request CSP nonce.
+  //
+  // CSP-NONCE: A fresh 16-byte base64 nonce is generated for every request
+  // and injected into `script-src` via `'nonce-<value>' 'strict-dynamic'`.
+  // The same nonce is stored on `res.locals.cspNonce` so the index.html
+  // catch-all route can inject `nonce="<value>"` onto every <script> tag
+  // before sending the HTML. This ensures the nonce in the HTTP header
+  // and the nonce in the HTML are always in sync for each page load.
   app.use((_req, res, next) => {
+    const isProduction = AppConfig.NODE_ENV === "production";
+    // Generate a cryptographically random 16-byte base64 nonce per request.
+    const nonce = randomBytes(16).toString("base64");
+    // Expose the nonce so downstream route handlers can inject it into HTML.
+    res.locals.cspNonce = nonce;
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Referrer-Policy", "no-referrer");
     // In non-production environments Vite HMR uses WebSocket connections, so we
     // widen connect-src to include ws: / wss:. In production only 'self' is allowed.
-    const isProduction = AppConfig.NODE_ENV === "production";
     const connectSrc = isProduction ? "connect-src 'self'" : "connect-src 'self' ws: wss:";
     const styleSrc = isProduction ? "style-src 'self'" : "style-src 'self' 'unsafe-inline'";
+    // In production, scripts must carry the per-request nonce. 'strict-dynamic'
+    // propagates trust from nonced scripts to their dynamic imports.
+    const scriptSrc = isProduction
+      ? `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`
+      : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
     res.setHeader(
       "Content-Security-Policy",
       [
         "default-src 'self'",
-        "script-src 'self'",
+        scriptSrc,
         styleSrc,
         "img-src 'self' data: blob: https:",
         connectSrc,
@@ -145,6 +166,7 @@ export function createServerApp() {
     );
     next();
   });
+
 
   // Simple Rate Limiting
   const rateLimitWindowMs = AppConfig.RATE_LIMIT_WINDOW_MS;
@@ -265,8 +287,10 @@ export function createServerApp() {
       
       let decision;
       try {
-        decision = assessChildExploitationSafety({ endpoint, method: "POST", payload: body, source: "web-proxy" });
-        recordDecision(decision);
+        decision = maybeRunLocalFamilyGuard(
+          { endpoint, method: "POST", payload: body, source: "web-proxy" },
+          isLocalFamilySafeModeEnabled(req),
+        );
       } catch (err) {
         // Fail-closed: if the safety guard throws (e.g. extraction bug), block the request.
         error("Safety guard exception in web proxy:", err);
@@ -293,12 +317,12 @@ export function createServerApp() {
         return;
       }
 
-      if (!decision.allow || decision.action === "block") {
+      if (!decision.allowed) {
         res.status(451).json({
           error: decision.userMessage,
-          reasonCode: decision.reasonCode,
-          category: decision.category,
-          severity: decision.severity,
+          reasonCode: decision.guardDecision.reasonCode,
+          category: decision.guardDecision.category,
+          severity: decision.guardDecision.severity,
         });
         return;
       }
@@ -365,9 +389,11 @@ export function createServerApp() {
         return res.status(403).json({ error: "Only Jina Reader/Search HTTPS endpoints are allowed." });
       }
 
-      const decision = assessChildExploitationSafety({ endpoint: requestUrl, method: "GET", text: decodeURIComponent(requestUrl), source: "web-proxy" });
-      recordDecision(decision);
-      if (!decision.allow || decision.action === "block") {
+      const decision = maybeRunLocalFamilyGuard(
+        { endpoint: requestUrl, method: "GET", text: decodeURIComponent(requestUrl), source: "web-proxy" },
+        isLocalFamilySafeModeEnabled(req),
+      );
+      if (!decision.allowed) {
         return res.status(451).json({ error: decision.userMessage });
       }
 
@@ -440,9 +466,11 @@ export function createServerApp() {
         return res.status(400).json({ error: "Missing or invalid URL" });
       }
 
-      const decision = assessChildExploitationSafety({ endpoint: url, method: "GET", text: decodeURIComponent(url), source: "web-proxy" });
-      recordDecision(decision);
-      if (!decision.allow || decision.action === "block") {
+      const decision = maybeRunLocalFamilyGuard(
+        { endpoint: url, method: "GET", text: decodeURIComponent(url), source: "web-proxy" },
+        isLocalFamilySafeModeEnabled(req),
+      );
+      if (!decision.allowed) {
         return res.status(451).json({ error: decision.userMessage });
       }
 
@@ -648,8 +676,19 @@ export async function startServer() {
 
     app.use(staticRateLimiter);
     app.use(express.static(distPath));
-    app.get("*", (_req: express.Request, res: express.Response) => {
-      res.type("html").send(indexHtml);
+    app.get("*", (req: express.Request, res: express.Response) => {
+      // Inject the per-request CSP nonce into every <script> tag in index.html
+      // so the nonces in the HTTP header and in the HTML stay in sync.
+      // The nonce was set on res.locals.cspNonce by the security-headers middleware.
+      const nonce: string = (res.locals as { cspNonce?: string }).cspNonce ?? "";
+      const nonced = nonce
+        ? indexHtml.replace(/(<script\b[^>]*)(>)/gi, (_m, open: string, close: string) => {
+            // Don't double-inject if already has a nonce attribute
+            if (/\bnonce=/i.test(open)) return `${open}${close}`;
+            return `${open} nonce="${nonce}"${close}`;
+          })
+        : indexHtml;
+      res.type("html").send(nonced);
     });
     (app as express.Application & { staticRateLimiterCleanup?: ReturnType<typeof setInterval> | undefined }).staticRateLimiterCleanup = staticRateLimiterCleanup;
   }

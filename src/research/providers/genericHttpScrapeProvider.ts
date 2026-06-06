@@ -247,6 +247,7 @@ function stripHtml(html: string): string {
 
 import { createTimeoutSignal } from "../../utils/timeout";
 import { isElectron, desktopApp } from "../../services/desktopBridge";
+import { useSettingsStore } from "../../stores/settings-store";
 
 export function createGenericHttpProvider(config: GenericHttpConfig = {}): ResearchProvider {
   const enabled = config.enabled === true;
@@ -286,7 +287,10 @@ export function createGenericHttpProvider(config: GenericHttpConfig = {}): Resea
       } else {
         const proxyRes = await fetch("/api/proxy-scrape", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-Venice-Forge-Family-Safe-Mode": String(useSettingsStore.getState().localFamilySafeModeEnabled),
+          },
           body: JSON.stringify({ url }),
           signal,
         });

@@ -268,9 +268,9 @@ function NewChatDialog({
     }
     const adult = resolvedCards.some((c) => c.adult);
     // Mandatory safety guard for batch character import.
-    const decision = assessCharacterBatchImport(resolvedCards);
+    const decision = assessCharacterBatchImport(resolvedCards, useSettingsStore.getState().localFamilySafeModeEnabled);
     if (!decision.allow || decision.action === "block") {
-      setError(decision.userMessage || "Selected characters were blocked by the safety guard.");
+      setError(decision.userMessage);
       return;
     }
     onCreate({

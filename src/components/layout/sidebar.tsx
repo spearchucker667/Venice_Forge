@@ -5,6 +5,8 @@ import { useChatStore } from '../../stores/chat-store'
 import { toast } from '../../stores/toast-store'
 import { VeniceLogo, VeniceWordmark } from '../ui/logo'
 import type { Conversation } from '../../types/conversation'
+import { desktopConfig, isElectron } from '../../services/desktopBridge'
+import { reloadConfig } from '../../stores/config-store'
 
 function ChatIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>)
@@ -14,6 +16,9 @@ function StatusIcon() {
 }
 function ImageIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>)
+}
+function GalleryIcon() {
+  return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" /></svg>)
 }
 function AudioIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" /><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" /></svg>)
@@ -60,6 +65,7 @@ const navGroups: NavGroup[] = [
     label: 'Generate',
     items: [
       { id: 'image', label: 'Image', Icon: ImageIcon },
+      { id: 'gallery', label: 'Library', Icon: GalleryIcon },
       { id: 'audio', label: 'Audio', Icon: AudioIcon },
       { id: 'music', label: 'Music', Icon: MusicIcon },
       { id: 'video', label: 'Video', Icon: VideoIcon },
@@ -96,6 +102,8 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
   const sidebarOpen = useSettingsStore((s) => s.sidebarOpen)
   const redTeamMode = useSettingsStore((s) => s.redTeamMode)
   const setRedTeamMode = useSettingsStore((s) => s.setRedTeamMode)
+  const localFamilySafeModeEnabled = useSettingsStore((s) => s.localFamilySafeModeEnabled)
+  const setLocalFamilySafeModeEnabled = useSettingsStore((s) => s.setLocalFamilySafeModeEnabled)
   const showInspector = useSettingsStore((s) => s.showInspector)
   const setShowInspector = useSettingsStore((s) => s.setShowInspector)
   const conversations = useChatStore((s) => s.conversations)
@@ -105,6 +113,33 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
   const deleteConversation = useChatStore((s) => s.deleteConversation)
   const selectedModel = useSettingsStore((s) => s.selectedModels.chat)
   const [search, setSearch] = useState('')
+
+  const toggleRedTeamMode = () => {
+    const enabled = !redTeamMode
+    setRedTeamMode(enabled)
+    if (enabled) setShowInspector(true)
+    toast.success(
+      enabled ? 'Red-Team Mode enabled' : 'Red-Team Mode disabled',
+      enabled ? 'Raw responses, safety decisions, and adult character controls are visible.' : 'Standard rendering restored.',
+    )
+  }
+
+  const toggleFamilySafeMode = async () => {
+    const enabled = !localFamilySafeModeEnabled
+    setLocalFamilySafeModeEnabled(enabled)
+    if (isElectron()) {
+      const result = await desktopConfig.writeSanitized({
+        safety: { local_family_safe_mode_enabled: enabled },
+      })
+      if (!result.ok) {
+        setLocalFamilySafeModeEnabled(!enabled)
+        toast.error('Family Safe Mode was not saved', result.error || 'Config write failed.')
+        return
+      }
+      await reloadConfig()
+    }
+    toast.success(enabled ? 'Family Safe Mode enabled' : 'Adult Mode enabled')
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -249,7 +284,10 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Red-Team Mode</span>
               <button
-                onClick={() => setRedTeamMode(!redTeamMode)}
+                type="button"
+                role="switch"
+                aria-checked={redTeamMode}
+                onClick={toggleRedTeamMode}
                 className={cn(
                   "w-8 h-4 rounded-full transition-colors relative cursor-pointer",
                   redTeamMode ? "bg-accent" : "bg-border"
@@ -262,6 +300,32 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                 )} />
               </button>
             </div>
+            <p className="text-[10.5px] leading-relaxed text-text-muted">
+              Shows raw model output and local safety decisions. Enabling it also opens the Inspector.
+            </p>
+            <div className="flex items-center justify-between pt-1 border-t border-border/70">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Family Safe Mode</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={localFamilySafeModeEnabled}
+                onClick={() => void toggleFamilySafeMode()}
+                className={cn(
+                  "w-8 h-4 rounded-full transition-colors relative cursor-pointer",
+                  localFamilySafeModeEnabled ? "bg-accent" : "bg-border"
+                )}
+                aria-label="Toggle Family Safe Mode"
+                title={localFamilySafeModeEnabled ? "Family Safe Mode enabled" : "Adult Mode enabled"}
+              >
+                <div className={cn(
+                  "w-3.5 h-3.5 rounded-full bg-white absolute top-[1px] transition-all",
+                  localFamilySafeModeEnabled ? "left-4" : "left-[1px]"
+                )} />
+              </button>
+            </div>
+            <p className="text-[10.5px] leading-relaxed text-text-muted">
+              {localFamilySafeModeEnabled ? 'ON: local family filter runs.' : 'OFF: Adult Mode skips the local filter.'}
+            </p>
             <button
               onClick={() => setShowInspector(!showInspector)}
               className={cn(

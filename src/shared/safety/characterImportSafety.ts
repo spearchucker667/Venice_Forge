@@ -16,11 +16,10 @@
  */
 
 import {
-  assessChildExploitationSafety,
   type SafetyGuardDecision,
   type SafetyGuardInput,
 } from "./childExploitationGuard";
-import { recordDecision } from "./guardAudit";
+import { maybeRunLocalFamilyGuard } from "./localFamilySafeGuard";
 import type { CharacterCardV1, RpChatV1, UserPersonaV1 } from "../../types/rp";
 
 /** Default source for character-card and persona import paths (renderer-side). */
@@ -29,6 +28,33 @@ const CARD_IMPORT_SOURCE: SafetyGuardInput["source"] = "venice-client";
 const RP_CONTEXT_SOURCE: SafetyGuardInput["source"] = "venice-client";
 /** Default source for scene image prompts. */
 const SCENE_PROMPT_SOURCE: SafetyGuardInput["source"] = "image";
+
+function assess(input: SafetyGuardInput, enabled: boolean): SafetyGuardDecision {
+  const result = maybeRunLocalFamilyGuard(input, enabled);
+  if (result.guardDecision) {
+    return result.allowed
+      ? result.guardDecision
+      : { ...result.guardDecision, userMessage: result.userMessage };
+  }
+  return {
+    allow: true,
+    action: "allow",
+    severity: "none",
+    category: "none",
+    reasonCode: "LOCAL_FAMILY_SAFE_MODE_DISABLED",
+    userMessage: "",
+    developerMessage: "Local Family Safe Mode disabled; rule evaluation skipped.",
+    normalizedChanged: false,
+    signals: [],
+    audit: {
+      decisionId: "local-family-safe-mode-disabled",
+      createdAt: new Date().toISOString(),
+      promptHash: "00000000",
+      promptLength: 0,
+      matchedFieldPaths: [],
+    },
+  };
+}
 
 /** Assembles a payload object for the safety extractor. Joins only the prompt-relevant
  *  text fields, never any metadata that does not represent user content. */
@@ -43,53 +69,45 @@ function collectCharacterText(card: CharacterCardV1): Record<string, unknown> {
 }
 
 /** Assesses a single character card for save/import safety. */
-export function assessCharacterImport(card: CharacterCardV1): SafetyGuardDecision {
+export function assessCharacterImport(card: CharacterCardV1, enabled = true): SafetyGuardDecision {
   const payload = collectCharacterText(card);
-  const decision = assessChildExploitationSafety({
+  return assess({
     endpoint: "/character-card/import",
     method: "POST",
     payload,
     text: card.systemPrompt || card.description,
     source: CARD_IMPORT_SOURCE,
-  });
-  recordDecision(decision);
-  return decision;
+  }, enabled);
 }
 
 /** Assesses a batch of character cards in aggregate (e.g. on import-many). */
-export function assessCharacterBatchImport(cards: CharacterCardV1[]): SafetyGuardDecision {
+export function assessCharacterBatchImport(cards: CharacterCardV1[], enabled = true): SafetyGuardDecision {
   if (cards.length === 0) {
-    const allow = assessChildExploitationSafety({ endpoint: "/character-card/import", method: "POST", payload: {}, source: CARD_IMPORT_SOURCE });
-    recordDecision(allow);
-    return allow;
+    return assess({ endpoint: "/character-card/import", method: "POST", payload: {}, source: CARD_IMPORT_SOURCE }, enabled);
   }
   const payload = cards.map(collectCharacterText);
-  const decision = assessChildExploitationSafety({
+  return assess({
     endpoint: "/character-card/import",
     method: "POST",
     payload: { batch: payload },
     text: cards.map((c) => c.systemPrompt || c.description).join("\n"),
     source: CARD_IMPORT_SOURCE,
-  });
-  recordDecision(decision);
-  return decision;
+  }, enabled);
 }
 
 /** Assesses a user persona before save. */
-export function assessPersonaImport(persona: UserPersonaV1): SafetyGuardDecision {
+export function assessPersonaImport(persona: UserPersonaV1, enabled = true): SafetyGuardDecision {
   const payload = { name: persona.name, description: persona.description, reference: persona.reference ?? "" };
   // Concatenate all user-controlled text fields so the guard sees the full content
   // surface (description and reference are both free-form user text).
   const combinedText = [persona.description, persona.reference ?? ""].filter(Boolean).join("\n");
-  const decision = assessChildExploitationSafety({
+  return assess({
     endpoint: "/persona/import",
     method: "POST",
     payload,
     text: combinedText,
     source: CARD_IMPORT_SOURCE,
-  });
-  recordDecision(decision);
-  return decision;
+  }, enabled);
 }
 
 /** Assesses the full RP context for a chat-completion call. */
@@ -98,7 +116,7 @@ export function assessRpContext(args: {
   characters: CharacterCardV1[];
   persona?: UserPersonaV1;
   userMessage: string;
-}): SafetyGuardDecision {
+}, enabled = true): SafetyGuardDecision {
   const payload = {
     model: args.rpChat.modelId,
     messages: [
@@ -112,26 +130,22 @@ export function assessRpContext(args: {
   };
   // The user message is already in the `messages` array above; do NOT pass it as
   // `text` again to avoid double-counting in scoring (M3 fix).
-  const decision = assessChildExploitationSafety({
+  return assess({
     endpoint: "/chat/completions",
     method: "POST",
     payload,
     source: RP_CONTEXT_SOURCE,
-  });
-  recordDecision(decision);
-  return decision;
+  }, enabled);
 }
 
 /** Assesses an image prompt before scene generation. */
-export function assessScenePrompt(prompt: string, negativePrompt?: string): SafetyGuardDecision {
+export function assessScenePrompt(prompt: string, negativePrompt?: string, enabled = true): SafetyGuardDecision {
   const payload = { prompt, negative_prompt: negativePrompt ?? "" };
-  const decision = assessChildExploitationSafety({
+  return assess({
     endpoint: "/image/generate",
     method: "POST",
     payload,
     text: prompt,
     source: SCENE_PROMPT_SOURCE,
-  });
-  recordDecision(decision);
-  return decision;
+  }, enabled);
 }

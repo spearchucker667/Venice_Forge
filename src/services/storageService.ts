@@ -3,6 +3,7 @@
 import { DB_NAME, DB_VERSION, STORE_NAMES } from "../constants/venice";
 import { warn } from "../shared/logger";
 import { encryptData, decryptData } from "./cryptoService";
+import { applyMigrations } from "./dbMigrations";
 
 type StoreName = (typeof STORE_NAMES)[number];
 
@@ -44,8 +45,16 @@ const StorageService = {
     if (this.db) return Promise.resolve(this.db);
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
-      request.onupgradeneeded = () => {
+      request.onupgradeneeded = (event) => {
         const db = request.result;
+        const tx = request.transaction!;
+        const oldVersion = (event as IDBVersionChangeEvent).oldVersion ?? 0;
+        // Run all pending versioned migration steps (see src/services/dbMigrations.ts).
+        // Falls back to creating any missing store for forward-compat with stores
+        // added before the migration system existed.
+        applyMigrations(db, tx, oldVersion, DB_VERSION);
+        // Safety net: ensure every current store exists even if a migration step
+        // was accidentally omitted (never deletes existing data).
         STORE_NAMES.forEach((name) => {
           if (!db.objectStoreNames.contains(name)) {
             db.createObjectStore(name, { keyPath: "id" });

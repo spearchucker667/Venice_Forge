@@ -35,6 +35,7 @@ export interface VeniceForgeRequest {
   body?: unknown;
   headers?: Record<string, string>;
   signalId?: string;
+  localFamilySafeModeEnabled?: boolean;
 }
 
 /** Describes the response returned from the Electron IPC bridge. */

@@ -163,9 +163,9 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
       characters: roster,
       ...(persona ? { persona } : {}),
       userMessage: text,
-    });
+    }, useSettingsStore.getState().localFamilySafeModeEnabled);
     if (!decision.allow || decision.action === "block") {
-      setError(decision.userMessage || "This message was blocked by the safety guard.");
+      setError(decision.userMessage);
       return;
     }
 

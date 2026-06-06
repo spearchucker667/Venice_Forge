@@ -28,6 +28,7 @@ import type {
 import { isElectron, desktopVenice } from "../desktopBridge";
 import { readCharacterCard } from "./characterCardService";
 import { saveAsset } from "./assetService";
+import { useSettingsStore } from "../../stores/settings-store";
 
 const RECENT_WINDOW = 8;
 /** Default model when none is supplied. */
@@ -82,11 +83,13 @@ export async function generateScene(
   const model = req.model ?? DEFAULT_IMAGE_MODEL;
 
   // 1. Mandatory safety guard.
-  const decision = assessScenePrompt(prompt, req.negativePrompt);
+  const localFamilySafeModeEnabled = useSettingsStore.getState().localFamilySafeModeEnabled;
+  const veniceApiSafeMode = useSettingsStore.getState().veniceApiSafeMode;
+  const decision = assessScenePrompt(prompt, req.negativePrompt, localFamilySafeModeEnabled);
   if (!decision.allow) {
     return {
       ok: false,
-      error: decision.userMessage || "Scene prompt blocked by safety guard.",
+      error: decision.userMessage,
       safetyBlocked: true,
     };
   }
@@ -107,6 +110,7 @@ export async function generateScene(
   const payload = {
     model,
     prompt,
+    safe_mode: veniceApiSafeMode,
     ...(req.negativePrompt ? { negative_prompt: req.negativePrompt } : {}),
     ...(req.seed !== undefined ? { seed: req.seed } : {}),
     ...(req.width !== undefined ? { width: req.width } : {}),
@@ -123,7 +127,10 @@ export async function generateScene(
     } else {
       const res = await fetch("/api/venice/image/generate", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "X-Venice-Forge-Family-Safe-Mode": String(localFamilySafeModeEnabled),
+        },
         body: JSON.stringify(payload),
       });
       if (!res.ok) {

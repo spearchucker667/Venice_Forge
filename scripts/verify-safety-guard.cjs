@@ -1,6 +1,6 @@
 /** @fileoverview Improved safety guard verification script.
  *  Checks that all prompt-sending paths in the renderer, IPC, and server
- *  are correctly guarded by assessChildExploitationSafety and recorded via recordDecision.
+ *  are routed through the conditional local Family Safe Mode pipeline.
  *  Also ensures that no raw prompt text is logged to console or diagnostics.
  */
 const fs = require('fs');
@@ -15,7 +15,7 @@ const enforcementMap = [
     name: 'Renderer Transport',
     check: (content) => {
       // veniceFetch and veniceStreamChat must both call the guard
-      const guardCalls = (content.match(/assessChildExploitationSafety\s*\(/g) || []).length;
+      const guardCalls = (content.match(/maybeRunLocalFamilyGuard\s*\(/g) || []).length;
       return guardCalls >= 2;
     },
     message: 'Renderer transport functions must call safety guard'
@@ -29,7 +29,7 @@ const enforcementMap = [
       // Both "venice:request" and "venice:streamChat" handlers must call the guard.
       const hasVeniceRequest = /["']venice:request["']/.test(content);
       const hasVeniceStream = /["']venice:streamChat["']/.test(content);
-      const guardCallCount = (content.match(/assessChildExploitationSafety\s*\(/g) || []).length;
+      const guardCallCount = (content.match(/maybeRunLocalFamilyGuard\s*\(/g) || []).length;
       // At minimum two guard calls required (one per handler)
       return hasVeniceRequest && hasVeniceStream && guardCallCount >= 2;
     },
@@ -39,7 +39,7 @@ const enforcementMap = [
     file: 'server.ts',
     name: 'Web Proxy Server',
     check: (content) => {
-      return content.includes('assessChildExploitationSafety') && content.includes('recordDecision');
+      return content.includes('maybeRunLocalFamilyGuard') && content.includes('isLocalFamilySafeModeEnabled');
     },
     message: 'Express proxy middleware must call safety guard'
   }

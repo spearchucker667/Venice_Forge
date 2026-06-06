@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { createSafeStorage } from '../lib/safe-storage'
 import type { Theme } from '../theme'
 
-export type Tab = 'chat' | 'image' | 'audio' | 'music' | 'video' | 'embeddings' | 'workflows' | 'playground' | 'status' | 'settings' | 'search' | 'characters' | 'rp-studio'
+export type Tab = 'chat' | 'image' | 'gallery' | 'audio' | 'music' | 'video' | 'embeddings' | 'workflows' | 'playground' | 'status' | 'settings' | 'search' | 'characters' | 'rp-studio'
 
 interface SettingsState {
   activeTab: Tab
@@ -27,6 +27,10 @@ interface SettingsState {
   setImageDownloadDirectory: (dir: string) => void
   redTeamMode: boolean
   setRedTeamMode: (mode: boolean) => void
+  localFamilySafeModeEnabled: boolean
+  setLocalFamilySafeModeEnabled: (enabled: boolean) => void
+  veniceApiSafeMode: boolean
+  setVeniceApiSafeMode: (enabled: boolean) => void
   showInspector: boolean
   setShowInspector: (show: boolean) => void
   
@@ -66,6 +70,10 @@ export const useSettingsStore = create<SettingsState>()(
       setImageDownloadDirectory: (dir) => set({ imageDownloadDirectory: dir }),
       redTeamMode: false,
       setRedTeamMode: (mode) => set({ redTeamMode: mode }),
+      localFamilySafeModeEnabled: true,
+      setLocalFamilySafeModeEnabled: (enabled) => set({ localFamilySafeModeEnabled: enabled }),
+      veniceApiSafeMode: true,
+      setVeniceApiSafeMode: (enabled) => set({ veniceApiSafeMode: enabled }),
       showInspector: false,
       setShowInspector: (show) => set({ showInspector: show }),
 
@@ -81,9 +89,18 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'venice-settings',
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => createSafeStorage()),
+      migrate: (persisted) => {
+        const state = persisted && typeof persisted === 'object'
+          ? persisted as Partial<SettingsState>
+          : {}
+        return {
+          ...state,
+          localFamilySafeModeEnabled: state.localFamilySafeModeEnabled ?? true,
+          veniceApiSafeMode: state.veniceApiSafeMode ?? true,
+        } as SettingsState
+      },
     },
   ),
 )
-

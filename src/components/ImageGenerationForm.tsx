@@ -363,7 +363,7 @@ export function ImageGenerationForm({
                       onChange={(e) => patch({ safeMode: e.target.checked })}
                       className="h-4 w-4 rounded border-border/50 bg-surface/60 text-accent focus:ring-accent/50"
                     />
-                    <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors">safe_mode</span>
+                    <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors">Venice API Safe Mode</span>
                   </label>
                   {currentMode === "text-to-image" && (
                     <label className="flex items-center gap-3 cursor-pointer group">
@@ -378,7 +378,7 @@ export function ImageGenerationForm({
                   )}
                 </div>
                 <div className="mt-1 text-xs text-text-muted">
-                  Safe mode filters explicit content.
+                  Controls Venice&apos;s provider-side safe_mode parameter. This is separate from Family Safe Mode.
                 </div>
               </Field>
             )}

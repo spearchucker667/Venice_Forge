@@ -31,6 +31,8 @@ describe("useThemeLifecycle", () => {
 
   it("does nothing before hydration", () => {
     const settings: AppSettings = {
+      localFamilySafeModeEnabled: true,
+      veniceApiSafeMode: true,
       defaultSystemPrompt: "",
       includeVeniceSystemPrompt: false,
       webSearch: "off",
@@ -48,6 +50,8 @@ describe("useThemeLifecycle", () => {
 
   it("applies theme after hydration", () => {
     const settings: AppSettings = {
+      localFamilySafeModeEnabled: true,
+      veniceApiSafeMode: true,
       defaultSystemPrompt: "",
       includeVeniceSystemPrompt: false,
       webSearch: "off",
@@ -65,6 +69,8 @@ describe("useThemeLifecycle", () => {
 
   it("persists theme to localStorage after hydration", () => {
     const settings: AppSettings = {
+      localFamilySafeModeEnabled: true,
+      veniceApiSafeMode: true,
       defaultSystemPrompt: "",
       includeVeniceSystemPrompt: false,
       webSearch: "off",

@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm'
 import type { ChatMessage, ContentPart } from '../../types/venice'
 import { cn } from '../../lib/utils'
 import { useSettingsStore } from '../../stores/settings-store'
-import { assessChildExploitationSafety } from '../../shared/safety'
+import { maybeRunLocalFamilyGuard } from '../../shared/safety'
 
 // Allow http/https/mailto links and image data: URIs only. Strips javascript:,
 // vbscript:, file:, and any other smuggled protocols.
@@ -74,10 +74,14 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
   const isUser = message.role === 'user'
   const { text: content, images } = extractContent(message.content)
   const redTeamMode = useSettingsStore((s) => s.redTeamMode)
+  const localFamilySafeModeEnabled = useSettingsStore((s) => s.localFamilySafeModeEnabled)
 
-  const localSafetyDecision = content ? (() => {
+  const localSafetyDecision = content && localFamilySafeModeEnabled ? (() => {
     try {
-      return assessChildExploitationSafety({ endpoint: '/chat/completions', method: 'POST', text: content, source: 'chat' })
+      return maybeRunLocalFamilyGuard(
+        { endpoint: '/chat/completions', method: 'POST', text: content, source: 'chat' },
+        true,
+      ).guardDecision ?? null
     } catch {
       return null
     }

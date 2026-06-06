@@ -4,6 +4,8 @@
 
 Venice Forge is a **private AI creation studio** built as a dual-platform Windows and macOS Electron desktop application. It provides a unified interface for the [Venice API](https://venice.ai), covering text generation, image generation, video generation, web research, batch automation, and local data management.
 
+Safety controls are independent: **Family Safe Mode** runs Venice Forge's local child/family-safe filter, **Adult Mode** skips that local filter entirely, and **Venice API Safe Mode** controls only the provider-side `safe_mode` parameter.
+
 The project ships as a packaged Electron desktop app for Windows and macOS, plus a Vite/Express web application for local development. Desktop Venice requests are sent from the Electron main process to `api.venice.ai`; web-development Venice requests go through the local Express proxy. Optional research features may contact Venice augment endpoints, Jina AI Reader/Search endpoints, or explicitly requested public URLs through the generic HTTP scrape proxy.
 
 Current public readiness status:
@@ -85,7 +87,7 @@ Web mode (development only):
 | Research | Multi-provider web search, page scraping, AI research synthesis, and public-profile discovery (Venice, Jina AI, or Generic HTTP) |
 | Characters | Browse Venice hosted characters via the official `/characters` API, filter by adult / web-enabled flags, and start character chats using `venice_parameters.character_slug` |
 | Catalog | Live model browser (type, traits, capability). Requires API key for live discovery. |
-| Library | Local image gallery, uploaded files history, recent chats, bulk download/delete/upscale |
+| Library | Generated-image library with local persistence, full-size preview, refresh, download, and delete controls |
 | Config | API key management, theme selection (4 built-in + custom export/import), import/export |
 | Diagnostics | Diagnostics, rate-limit info, log access |
 

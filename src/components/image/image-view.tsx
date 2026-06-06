@@ -36,6 +36,7 @@ const DEFAULT_SIZE_MAP = [
 export function ImageView() {
   const apiKey = useAuthStore((s) => s.apiKey)
   const selectedModel = useSettingsStore((s) => s.selectedModels.image)
+  const veniceApiSafeMode = useSettingsStore((s) => s.veniceApiSafeMode)
   const { data: models } = useModels('image')
   const { data: styles } = useStyles()
   const model = selectedModel || models?.[0]?.id || 'z-image-turbo'
@@ -111,6 +112,7 @@ export function ImageView() {
       style_preset: style || undefined,
       variants,
       hide_watermark: hideWatermark,
+      safe_mode: veniceApiSafeMode,
       steps,
     }
 

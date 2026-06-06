@@ -64,6 +64,8 @@ export interface BatchDraft {
 
 /** User-configurable settings persisted across sessions. API keys are stored separately via safeStorage and never written here. */
 export interface AppSettings {
+  localFamilySafeModeEnabled: boolean;
+  veniceApiSafeMode: boolean;
   defaultSystemPrompt: string;
   includeVeniceSystemPrompt: boolean;
   webSearch: string;

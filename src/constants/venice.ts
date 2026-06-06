@@ -159,6 +159,15 @@ export function modelSupportsVideo(model: { id?: string; name?: string; type?: s
 /** Maximum size of a single file attachment (text extraction). */
 export const MAX_ATTACHMENT_FILE_BYTES = 256 * 1024;
 
+/** Maximum size of a PDF file accepted for local text extraction.
+ *  Matches the Venice API upload limit (VENICE_MAX_BODY_BYTES in limits.ts).
+ *  Large PDFs are sliced to MAX_PDF_TEXT_CHARS during text extraction. */
+export const MAX_PDF_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+
+/** Maximum characters extracted from a PDF and injected into the prompt context. */
+export const MAX_PDF_TEXT_CHARS = 100_000;
+
+
 /** Maximum total injected context from attachments per message. */
 export const MAX_TOTAL_ATTACHMENT_CONTEXT_BYTES = 1024 * 1024;
 

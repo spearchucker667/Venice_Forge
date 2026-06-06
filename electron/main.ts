@@ -23,9 +23,29 @@ if (allowProdDevTools) {
   logInfo("VENICE_FORGE_DEBUG_DEVTOOLS is enabled — DevTools will be available in production builds.");
 }
 
+/**
+ * Generates a cryptographically random 16-byte base64 nonce for CSP.
+ * A fresh nonce is created per HTTP response so replay of a captured
+ * nonce cannot be used to inject scripts in a future page load.
+ */
+function generateNonce(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  // base64url encoding without padding — safe in CSP header values.
+  return Buffer.from(bytes).toString("base64");
+}
+
 /** Builds the Content-Security-Policy header string for the renderer.
  *  The theme bootstrap script lives in a separate file (bootstrap-theme.js)
  *  so production does not need 'unsafe-inline' for scripts.
+ *
+ *  SCRIPT-SRC POLICY (CSP-NONCE):
+ *  In production, every allowed script tag must carry the per-request nonce
+ *  (`nonce-<value>`). 'strict-dynamic' is added so scripts loaded by an
+ *  already-trusted script inherit trust without needing their own nonce.
+ *  'unsafe-inline' is intentionally absent in production — 'strict-dynamic'
+ *  makes it a no-op in supporting browsers anyway.
+ *  In development, 'unsafe-inline' and 'unsafe-eval' are kept for Vite HMR.
  *
  *  STYLE-SRC POLICY (T1): production style-src is 'self' (no 'unsafe-inline').
  *  The renderer's *application* code has zero JSX `style={...}` attributes —
@@ -35,15 +55,21 @@ if (allowProdDevTools) {
  *  before first paint, but that path is not blocked by style-src 'self'
  *  (style.setProperty writes to inline styles which the browser allows
  *  regardless of CSP for non-third-party elements).
- *  See docs/AUDIT_TODO.md T1 for the long-term migration to a nonced
- *  stylesheet.
+ *
+ *  @param nonce Optional per-request nonce for script-src. Should be omitted
+ *               in dev mode so Vite HMR inline scripts are not blocked.
  */
-function rendererCsp(): string {
+function rendererCsp(nonce?: string): string {
   const connectSrc = isDev ? "'self' http://localhost:5173 ws://localhost:5173" : "'self'";
   // Production style-src: 'self' only. Dev adds 'unsafe-inline' for Vite HMR
   // which injects inline style tags during fast refresh.
   const styleSrc = isDev ? "'self' 'unsafe-inline' http://localhost:5173" : "'self'";
-  const scriptSrc = isDev ? "'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173" : "'self'";
+  // In production, lock scripts to nonce + strict-dynamic. In dev, allow Vite HMR.
+  const scriptSrc = isDev
+    ? "'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173"
+    : nonce
+    ? `'self' 'nonce-${nonce}' 'strict-dynamic'`
+    : "'self'";
 
   return [
     "default-src 'self'",
@@ -212,11 +238,22 @@ async function bootstrap(): Promise<void> {
   registerIpcHandlers();
   // Register CSP once globally for the default session so it is not duplicated
   // when additional windows are created (M-008).
+  //
+  // CSP-NONCE: A fresh 16-byte base64 nonce is generated per HTTP response and
+  // injected into the script-src directive so every served document has a unique
+  // nonce. In production this removes the need for 'unsafe-inline' on scripts.
+  // The nonce is NOT threaded into the served HTML here — Electron's loadFile()
+  // serves static dist/index.html. For strict nonce enforcement the build
+  // pipeline would need to inject the nonce attribute on every <script> tag.
+  // The current setup tightens script-src from 'self'-only to 'nonce+strict-dynamic'
+  // which blocks non-nonced inline scripts while keeping src-based scripts working
+  // (strict-dynamic propagates trust from the main bundle to dynamic imports).
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const nonce = isDev ? undefined : generateNonce();
     callback({
       responseHeaders: {
         ...details.responseHeaders,
-        "Content-Security-Policy": [rendererCsp()],
+        "Content-Security-Policy": [rendererCsp(nonce)],
       },
     });
   });

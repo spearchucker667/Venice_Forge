@@ -23,6 +23,7 @@ export interface VeniceIpcRequest {
   body?: unknown;
   headers?: Record<string, string>;
   signalId?: string;
+  localFamilySafeModeEnabled: boolean;
 }
 
 /** Computes the UTF-8 byte length of a request body. */
@@ -119,6 +120,10 @@ export function validateVeniceIpcRequest(input: unknown): VeniceIpcRequest {
     if (request.signalId.length > 128) throw new Error("Venice signalId is too long.");
   }
 
+  if (request.localFamilySafeModeEnabled !== undefined && typeof request.localFamilySafeModeEnabled !== "boolean") {
+    throw new Error("localFamilySafeModeEnabled must be a boolean.");
+  }
+
   if (endpoint.search.length > 512) {
     throw new Error("Venice endpoint query string is too long.");
   }
@@ -129,5 +134,6 @@ export function validateVeniceIpcRequest(input: unknown): VeniceIpcRequest {
     body: request.body,
     headers,
     signalId: request.signalId,
+    localFamilySafeModeEnabled: request.localFamilySafeModeEnabled !== false,
   };
 }

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { veniceFetch } from "../services/veniceClient";
-import { assessChildExploitationSafety, recordDecision } from "../shared/safety";
+import { maybeRunLocalFamilyGuard } from "../shared/safety";
 import { Field } from "../components/Field";
 import { Chip } from "../components/Chip";
 import { DiagPreview } from "../components/DiagnosticsPreview";
@@ -60,6 +60,7 @@ export function safeHref(url: string | undefined): string {
 export function SearchScrapeView() {
   const [subTab, setSubTab] = useState<SubTab>("search");
   const selectedModel = useSettingsStore((s) => s.selectedModels.chat) || "llama-3.3-70b";
+  const localFamilySafeModeEnabled = useSettingsStore((s) => s.localFamilySafeModeEnabled);
   const veniceKeyConfigured = useAuthStore((s) => s.isConfigured);
 
   /**
@@ -139,9 +140,11 @@ export function SearchScrapeView() {
     if (!query.trim()) return;
     if (!requireVeniceApiKey("running web search")) return;
     setError("");
-    const guardDecision = assessChildExploitationSafety({ text: query.trim(), endpoint: "/augment/search", method: "POST", source: "research" });
-    recordDecision(guardDecision);
-    if (!guardDecision.allow || guardDecision.action === "block") {
+    const guardDecision = maybeRunLocalFamilyGuard(
+      { text: query.trim(), endpoint: "/augment/search", method: "POST", source: "research" },
+      localFamilySafeModeEnabled,
+    );
+    if (!guardDecision.allowed) {
       setError(guardDecision.userMessage);
       return;
     }
@@ -250,14 +253,13 @@ export function SearchScrapeView() {
       if (!requireVeniceApiKey("running AI research")) return;
     }
     setError("");
-    const researchGuard = assessChildExploitationSafety({
+    const researchGuard = maybeRunLocalFamilyGuard({
       text: researchQuestion.trim(),
       endpoint: "/augment/search",
       method: "POST",
       source: "research",
-    });
-    recordDecision(researchGuard);
-    if (!researchGuard.allow || researchGuard.action === "block") {
+    }, localFamilySafeModeEnabled);
+    if (!researchGuard.allowed) {
       setError(researchGuard.userMessage);
       return;
     }
@@ -329,14 +331,13 @@ export function SearchScrapeView() {
       knownLocation.trim(),
     ].filter(Boolean).join("\n\n");
 
-    const profileGuard = assessChildExploitationSafety({
+    const profileGuard = maybeRunLocalFamilyGuard({
       text: profileGuardText,
       endpoint: "/augment/search",
       method: "POST",
       source: "research",
-    });
-    recordDecision(profileGuard);
-    if (!profileGuard.allow || profileGuard.action === "block") {
+    }, localFamilySafeModeEnabled);
+    if (!profileGuard.allowed) {
       setError(profileGuard.userMessage);
       return;
     }

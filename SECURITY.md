@@ -38,16 +38,16 @@ The application connects to unrestricted AI endpoints that may generate explicit
 
 ## Content Safety
 
-All outgoing Venice API requests are screened by a content safety guard
+When **Family Safe Mode** is enabled (the default), outgoing requests are screened by Venice Forge's local family-safe guard
 (`src/shared/safety/childExploitationGuard.ts`) before the payload is
-forwarded. This runs at every enforcement boundary — the renderer transport
+forwarded. The conditional pipeline runs at every enforcement boundary — the renderer transport
 (`veniceClient.ts`), Electron IPC handlers, the Express web proxy, and every
 prompt-sending UI module (`ChatModule`, `ImageModule`, `BatchModule`,
 `SearchScrapeModule`). The guard implements advanced features such as
 cross-sentence context detection and `negative_prompt` extraction. The proxy
 operates on a "fail-close" design (returning a 500 status) if the guard
 encounters any extraction errors. Raw prompt text is never logged by the safety
-system.
+system. When Family Safe Mode is disabled, **Adult Mode** skips the local rule engine entirely. This does not disable or alter Venice's provider-side moderation or the independent Venice API Safe Mode parameter.
 
 The Jina research provider (`r.jina.ai`/`s.jina.ai`) sends requests via direct
 `fetch()` outside the Venice transport chain. A renderer-layer guard runs in
@@ -74,7 +74,7 @@ verification script robustness, and test fixture safety. Findings are tracked in
 When started with `--headless`, the application runs an Express loopback bridge server (`electron/services/bridgeServer.ts`). The following safety measures are strictly enforced:
 - **Loopback-Only Interface:** The bridge server binds strictly to the local loopback interface (`127.0.0.1`). Binding to any public/LAN interface is blocked by default to prevent network-level credential reuse or SSRF attacks.
 - **Token Authorization:** Every request must provide a `Bearer` token in the `Authorization` header. If `VENICE_BRIDGE_TOKEN` is not set in the environment, a cryptographically secure 32-byte hex token is generated at boot and logged to standard output.
-- **Safety Guard Enforcement:** All prompt-carrying requests (e.g. `POST /chat/completions`, `POST /image/generate`) are intercepted and checked against the child safety guard in the Main process context. Bypassing the safety filters results in a `451 Blocked by local safety guard` response.
+- **Family Safe Mode:** Prompt-carrying requests are checked in the Main process when Family Safe Mode is enabled. The headless bridge reads `safety.local_family_safe_mode_enabled` from the validated YAML config. Adult Mode skips the local check.
 
 ## Developer Traffic Inspector & Red-Team Mode
 
@@ -110,7 +110,7 @@ The optional `config.yaml` and `themes.yaml` files are a **bootstrap mechanism**
 - **Path values must be local.** Any value with a `scheme://` (e.g. `https://`, `file://`) is rejected by the schema and replaced with the default.
 - **Generic patches cannot set plaintext keys.** `config:writeSanitized` always strips `secrets.*` regardless of the patch payload; UI-entered keys still flow through the dedicated `apiKey:set` / `jinaApiKey:set` IPC channels.
 - **No remote URLs.** The config service never makes network calls; the schema blocks any URL-like path.
-- **No child-safety bypass.** The `assessChildExploitationSafety` guard runs at every prompt-sending boundary regardless of config source.
+- **Explicit local-mode control.** `safety.local_family_safe_mode_enabled` defaults to true. Setting it false selects Adult Mode and skips local rule evaluation. `safety.venice_api_safe_mode` is separate and controls only the provider request parameter.
 
 ## Research Provider Security
 

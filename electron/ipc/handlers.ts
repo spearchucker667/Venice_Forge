@@ -38,12 +38,13 @@ import { redactErrorMessage } from "../../src/services/redaction";
 import { registerUpdateHandlers } from "./updates";
 import { registerRpIpcHandlers } from "./rpHandlers";
 import { VENICE_MAX_BODY_BYTES } from "../../src/shared/limits";
-import { assessChildExploitationSafety, recordDecision, SafetyGuardBlockedError } from "../../src/shared/safety";
+import { maybeRunLocalFamilyGuard, SafetyGuardBlockedError } from "../../src/shared/safety";
 import type { Conversation } from "../../src/types/conversation";
 import {
   exportConfigTemplate,
   getPaths,
   getSanitizedConfig,
+  getCurrentConfig,
   getStatus as getConfigStatus,
   initializeConfig,
   loadMergedThemes,
@@ -90,19 +91,21 @@ export function registerIpcHandlers(): void {
   ipcMain.handle("venice:request", async (_event, input: unknown) => {
     try {
       const request = validateVeniceIpcRequest(input);
-      const decision = assessChildExploitationSafety({ endpoint: request.endpoint, method: request.method, payload: request.body, source: "ipc" });
-      recordDecision(decision);
-      if (!decision.allow || decision.action === "block") {
+      const decision = maybeRunLocalFamilyGuard(
+        { endpoint: request.endpoint, method: request.method, payload: request.body, source: "ipc" },
+        request.localFamilySafeModeEnabled,
+      );
+      if (!decision.allowed) {
         return {
           ok: false,
           status: 451,
-          statusText: "Blocked by local safety guard",
+          statusText: "Blocked by Family Safe Mode",
           headers: {},
           body: {
             error: decision.userMessage,
-            reasonCode: decision.reasonCode,
-            category: decision.category,
-            severity: decision.severity,
+            reasonCode: decision.guardDecision.reasonCode,
+            category: decision.guardDecision.category,
+            severity: decision.guardDecision.severity,
           },
           contentType: "application/json",
         };
@@ -113,7 +116,7 @@ export function registerIpcHandlers(): void {
         return {
           ok: false,
           status: 451,
-          statusText: "Blocked by local safety guard",
+          statusText: "Blocked by Family Safe Mode",
           headers: {},
           body: {
             error: err.decision.userMessage,
@@ -143,19 +146,21 @@ export function registerIpcHandlers(): void {
       if (request.endpoint !== "/chat/completions" || request.method !== "POST") {
         throw new Error("Streaming is only available for POST /chat/completions.");
       }
-      const decision = assessChildExploitationSafety({ endpoint: request.endpoint, method: request.method, payload: request.body, source: "ipc" });
-      recordDecision(decision);
-      if (!decision.allow || decision.action === "block") {
+      const decision = maybeRunLocalFamilyGuard(
+        { endpoint: request.endpoint, method: request.method, payload: request.body, source: "ipc" },
+        request.localFamilySafeModeEnabled,
+      );
+      if (!decision.allowed) {
         return {
           ok: false,
           status: 451,
-          statusText: "Blocked by local safety guard",
+          statusText: "Blocked by Family Safe Mode",
           headers: {},
           body: {
             error: decision.userMessage,
-            reasonCode: decision.reasonCode,
-            category: decision.category,
-            severity: decision.severity,
+            reasonCode: decision.guardDecision.reasonCode,
+            category: decision.guardDecision.category,
+            severity: decision.guardDecision.severity,
           },
           contentType: "application/json",
         };
@@ -177,7 +182,7 @@ export function registerIpcHandlers(): void {
         return {
           ok: false,
           status: 451,
-          statusText: "Blocked by local safety guard",
+          statusText: "Blocked by Family Safe Mode",
           headers: {},
           body: {
             error: err.decision.userMessage,
@@ -265,9 +270,11 @@ export function registerIpcHandlers(): void {
         return { ok: false, status: 403, error: "Only Jina Reader/Search HTTPS endpoints are allowed." };
       }
 
-      const decision = assessChildExploitationSafety({ endpoint: request.url, method: "GET", text: decodeURIComponent(request.url), source: "ipc" });
-      recordDecision(decision);
-      if (!decision.allow || decision.action === "block") {
+      const decision = maybeRunLocalFamilyGuard(
+        { endpoint: request.url, method: "GET", text: decodeURIComponent(request.url), source: "ipc" },
+        getCurrentConfig().safety.local_family_safe_mode_enabled,
+      );
+      if (!decision.allowed) {
         return {
           ok: false,
           status: 451,
@@ -348,9 +355,11 @@ export function registerIpcHandlers(): void {
         return { ok: false, error: "Missing or invalid URL" };
       }
 
-      const decision = assessChildExploitationSafety({ endpoint: url, method: "GET", text: decodeURIComponent(url), source: "ipc" });
-      recordDecision(decision);
-      if (!decision.allow || decision.action === "block") {
+      const decision = maybeRunLocalFamilyGuard(
+        { endpoint: url, method: "GET", text: decodeURIComponent(url), source: "ipc" },
+        getCurrentConfig().safety.local_family_safe_mode_enabled,
+      );
+      if (!decision.allowed) {
         return { ok: false, error: decision.userMessage };
       }
 
@@ -900,17 +909,16 @@ export function registerIpcHandlers(): void {
       if (typeof inp.includeArchived === "boolean") cleanInput.includeArchived = inp.includeArchived;
 
       // SAFETY Stage 1: Screen user prompt message before searching memory
-      const decision = assessChildExploitationSafety({
+      const decision = maybeRunLocalFamilyGuard({
         endpoint: "/chat/completions",
         method: "POST",
         payload: { messages: [{ role: "user", content: cleanInput.message }] },
         source: "chat"
-      });
-      recordDecision(decision);
-      if (!decision.allow || decision.action === "block") {
+      }, getCurrentConfig().safety.local_family_safe_mode_enabled);
+      if (!decision.allowed) {
         return {
           ok: false,
-          error: "Safety check blocked the memory search request.",
+          error: decision.userMessage,
           context: { injectedText: "", facts: [], summaries: [], tokenEstimate: 0 }
         };
       }
@@ -920,14 +928,13 @@ export function registerIpcHandlers(): void {
 
       // SAFETY Stage 2: Screen retrieved memory context before returning it to the renderer
       if (context.injectedText) {
-        const contextDecision = assessChildExploitationSafety({
+        const contextDecision = maybeRunLocalFamilyGuard({
           endpoint: "/chat/completions",
           method: "POST",
           payload: { messages: [{ role: "user", content: context.injectedText }] },
           source: "chat"
-        });
-        recordDecision(contextDecision);
-        if (!contextDecision.allow || contextDecision.action === "block") {
+        }, getCurrentConfig().safety.local_family_safe_mode_enabled);
+        if (!contextDecision.allowed) {
           return {
             ok: true,
             context: { injectedText: "", facts: [], summaries: [], tokenEstimate: 0 }

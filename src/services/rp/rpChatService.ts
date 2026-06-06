@@ -23,6 +23,7 @@ import { isValidRpId, MAX_ACTIVE_CHARACTERS } from "../../types/rp";
 import { assessRpContext } from "../../shared/safety/characterImportSafety";
 import { SafetyGuardBlockedError } from "../../shared/safety";
 import StorageService from "../storageService";
+import { useSettingsStore } from "../../stores/settings-store";
 
 const STORE = "rp_chats" as const;
 const ID_RE = isValidRpId;
@@ -116,7 +117,7 @@ export async function saveRpChat(chat: RpChatV1): Promise<RpChatV1> {
     rpChat: normalized,
     characters: [], // character card bodies are assessed at character-save time (B1)
     userMessage: lastUser?.content ?? "",
-  });
+  }, useSettingsStore.getState().localFamilySafeModeEnabled);
   if (!safety.allow || safety.action === "block") {
     throw new SafetyGuardBlockedError(safety);
   }

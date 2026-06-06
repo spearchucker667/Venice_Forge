@@ -1,6 +1,6 @@
 # Scene Generation
 
-> Scene generation is the path that turns the current state of an RP chat into a **single illustrative image**. It extracts a scene prompt from the most recent messages (or accepts a user override), runs the safety guard, calls `/image/generate`, and registers the resulting image as a `RpAssetV1` linked to the chat and message.
+> Scene generation turns the current RP chat into a **single illustrative image**. It conditionally runs Family Safe Mode, calls `/image/generate`, and registers the result as a `RpAssetV1` linked to the chat and message. Adult Mode skips the local filter; Venice API Safe Mode remains separate.
 
 ## Flow
 
@@ -14,14 +14,14 @@ sceneGenerationService.generateScene(chat, req)
         │     extractScenePrompt(chat, opts)
         │     ↳ returns a self-contained image prompt string
         │
-        ├─ 2. Safety guard (MANDATORY, can never be skipped):
-        │     assessScenePrompt(prompt, negativePrompt)
-        │     ↳ blocks CSAM, minor sexualization, age-evasion, etc.
+        ├─ 2. Family Safe Mode pipeline:
+        │     assessScenePrompt(prompt, negativePrompt, localFamilySafeModeEnabled)
+        │     ↳ evaluates local rules when enabled; skips them entirely in Adult Mode
         │
         ├─ 3. Dispatch to Venice /image/generate
         │     Electron: bridge.venice.request({ endpoint, method: 'POST', body: payload })
         │     Web:      fetch('/api/venice/image/generate', { method: 'POST', body: ... })
-        │     (Both paths run the safety guard a second time in the transport layer.)
+        │     (Both paths route the same persisted Family Safe Mode state through transport.)
         │
         └─ 4. Register the asset:
               assetService.saveAsset({ chatId, messageId?, characterIds, prompt, model, seed, ... })

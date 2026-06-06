@@ -123,7 +123,7 @@ describe("registerIpcHandlers", () => {
       expect(result).toMatchObject({
         ok: false,
         status: 451,
-        statusText: "Blocked by local safety guard",
+        statusText: "Blocked by Family Safe Mode",
       });
       expect(result.body).toHaveProperty("error");
       expect(result.body).toHaveProperty("reasonCode");
@@ -148,6 +148,32 @@ describe("registerIpcHandlers", () => {
         }
       );
 
+      expect(result).toMatchObject({ ok: true, status: 200 });
+    });
+
+    it("skips the local guard in Adult Mode and calls the Venice client", async () => {
+      const { performVeniceRequest } = await import("../services/veniceClient");
+      vi.mocked(performVeniceRequest).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        body: { id: "adult-mode-forwarded" },
+        contentType: "application/json",
+      });
+      const handler = capturedHandlers.get("venice:request");
+
+      const result = await handler!(
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        {
+          endpoint: "/chat/completions",
+          method: "POST",
+          body: { messages: [{ role: "user", content: "loli" }] },
+          localFamilySafeModeEnabled: false,
+        },
+      );
+
+      expect(performVeniceRequest).toHaveBeenCalled();
       expect(result).toMatchObject({ ok: true, status: 200 });
     });
 

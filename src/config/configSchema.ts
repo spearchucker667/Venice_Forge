@@ -134,6 +134,12 @@ export interface YamlCharacters {
   default_character_slug: string;
 }
 
+/** Independent local and provider-side safety settings. */
+export interface YamlSafety {
+  local_family_safe_mode_enabled: boolean;
+  venice_api_safe_mode: boolean;
+}
+
 /** Developer section. */
 export interface YamlDeveloper {
   verbose_config_logging: boolean;
@@ -153,6 +159,7 @@ export interface YamlConfig {
   memory: YamlMemory;
   research: YamlResearch;
   characters: YamlCharacters;
+  safety: YamlSafety;
   developer: YamlDeveloper;
 }
 
@@ -172,6 +179,7 @@ export interface SanitizedConfig {
   memory: YamlMemory;
   research: YamlResearch;
   characters: YamlCharacters;
+  safety: YamlSafety;
   developer: {
     verbose_config_logging: boolean;
     allow_config_key_import: boolean;
@@ -416,6 +424,12 @@ export function validateConfig(raw: unknown): ConfigValidationResult {
     default_character_slug: clampString(charRaw.default_character_slug, 128, ""),
   };
 
+  const safetyRaw = (typeof r.safety === "object" && r.safety !== null) ? r.safety as Record<string, unknown> : {};
+  const safety: YamlSafety = {
+    local_family_safe_mode_enabled: clampBool(safetyRaw.local_family_safe_mode_enabled, true),
+    venice_api_safe_mode: clampBool(safetyRaw.venice_api_safe_mode, true),
+  };
+
   // ── developer ──
   const devRaw = (typeof r.developer === "object" && r.developer !== null) ? r.developer as Record<string, unknown> : {};
   const developer: YamlDeveloper = {
@@ -436,6 +450,7 @@ export function validateConfig(raw: unknown): ConfigValidationResult {
       memory,
       research,
       characters,
+      safety,
       developer,
     },
     warnings,
@@ -489,6 +504,7 @@ export function sanitizeConfig(config: YamlConfig): SanitizedConfig {
     memory: { ...config.memory },
     research: { ...config.research },
     characters: { ...config.characters },
+    safety: { ...config.safety },
     developer: { ...config.developer },
   };
 }
@@ -521,6 +537,7 @@ export function emptyConfig(): YamlConfig {
     memory: { enable_memory_retrieval: true, show_pulled_context_before_sending: false },
     research: { default_provider: "venice", enable_jina: false, enable_social_discovery: false },
     characters: { enabled: true, include_adult_characters: false, default_character_slug: "" },
+    safety: { local_family_safe_mode_enabled: true, venice_api_safe_mode: true },
     developer: { verbose_config_logging: false, allow_config_key_import: true, force_import_keys: false, force_apply_config: false },
   };
 }

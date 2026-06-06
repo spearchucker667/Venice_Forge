@@ -13,6 +13,7 @@ type VeniceRequest = {
   body?: unknown;
   headers?: Record<string, string>;
   signalId?: string;
+  localFamilySafeModeEnabled?: boolean;
 };
 
 /** API surface exposed to the renderer via contextBridge. */

@@ -13,7 +13,6 @@ import { GhostButton, Label, PrimaryButton, TextArea, ErrorText } from "../ui/sh
 import { Spinner } from "../ui/spinner";
 import { FALLBACK_MODELS } from "../../constants/venice";
 import { avatarDataUri } from "./_shared";
-import { assessCharacterImport } from "../../shared/safety/characterImportSafety";
 
 /** Module-scoped WeakMap mapping each example object (by identity) to a stable
  *  client-side React key. Lives outside the component so keys survive remounts
@@ -147,15 +146,6 @@ export function CharacterEditor({ cardId, onClose }: Props) {
     setSaving(true);
     setError(null);
     try {
-      // Safety guard: route through the existing CSAM guard with the right
-      // endpoint/source for character imports. This blocks minors, CSAM genre
-      // labels, age-evasion etc. and allows the `adult_sexual_content` path
-      // for genuinely adult cards.
-      const decision = assessCharacterImport(draft);
-      if (!decision.allow || decision.action === "block") {
-        setError(decision.userMessage || "This character card was blocked by the safety guard.");
-        return;
-      }
       await upsert(draft);
       onClose();
     } catch (err) {

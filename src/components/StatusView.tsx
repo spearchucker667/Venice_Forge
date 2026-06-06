@@ -1,11 +1,9 @@
 /** @fileoverview Status tab — single panel surfacing the most-leverage
- *  diagnostics data that would otherwise live in 5 separate missing modules
- *  (Diagnostics, Settings, SearchScrape, Batch, Gallery).
+ *  diagnostics data that would otherwise live across several feature modules.
  *
  *  This is a pragmatic "80/20" version: it gives users visibility into
  *  transport, storage, audit, and last-request state in one place
- *  without requiring the full 5-module restoration. The 5 modules
- *  remain tracked in docs/AUDIT_TODO.md §4 for a future restoration.
+ *  while the dedicated feature tabs retain their own focused interfaces.
  */
 
 import { useEffect, useState } from 'react';
@@ -149,7 +147,7 @@ export function StatusView() {
       </section>
 
       <p className="text-[11px] text-white/30">
-        Status surface replaces the five missing modules (Batch, Research, Settings, Gallery, Diagnostics) tracked in docs/AUDIT_TODO.md §4. Click any tab above for the per-feature module; the individual panel restorations remain open follow-ups.
+        Status provides transport, storage, audit, and request diagnostics. Use the dedicated Library, Research, Settings, and workflow tabs for feature-specific controls.
       </p>
     </div>
   );

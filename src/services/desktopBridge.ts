@@ -12,6 +12,7 @@ import type {
   UserPersonaV1,
 } from "../types/rp";
 import { veniceFetch } from "./veniceClient";
+import { useSettingsStore } from "../stores/settings-store";
 
 /**
  * Detects whether the app is currently running inside the Electron desktop shell.
@@ -67,7 +68,11 @@ export const desktopVenice = {
     const signalId = input.signalId || createSignalId();
     const cleanup = attachAbort(signalId, signal);
     try {
-      return await window.veniceForge!.venice.request({ ...input, signalId });
+      return await window.veniceForge!.venice.request({
+        ...input,
+        signalId,
+        localFamilySafeModeEnabled: useSettingsStore.getState().localFamilySafeModeEnabled,
+      });
     } finally {
       cleanup?.();
     }
@@ -89,7 +94,11 @@ export const desktopVenice = {
     const signalId = input.signalId || createSignalId();
     const cleanup = attachAbort(signalId, signal);
     try {
-      return await window.veniceForge!.venice.streamChat({ ...input, signalId }, onDelta);
+      return await window.veniceForge!.venice.streamChat({
+        ...input,
+        signalId,
+        localFamilySafeModeEnabled: useSettingsStore.getState().localFamilySafeModeEnabled,
+      }, onDelta);
     } finally {
       cleanup?.();
     }
@@ -514,7 +523,10 @@ export const desktopJinaApiKey = {
       }
       const resp = await fetch("/api/proxy-jina", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Venice-Forge-Family-Safe-Mode": String(useSettingsStore.getState().localFamilySafeModeEnabled),
+        },
         body: JSON.stringify({
           url: "https://r.jina.ai/https://example.com",
           headers,
@@ -593,7 +605,10 @@ export const desktopJina = {
 
       const response = await fetch("/api/proxy-jina", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Venice-Forge-Family-Safe-Mode": String(useSettingsStore.getState().localFamilySafeModeEnabled),
+        },
         body: JSON.stringify({ ...input, headers }),
         signal: controller.signal,
       });
