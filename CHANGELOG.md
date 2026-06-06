@@ -140,6 +140,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 
 
 
+## [1.0.6] — 2026-06-06
+
+### Fixed
+- **API key dialog re-opened on every restart:** `useAuthStore.checkConfiguration()` was defined but never invoked during hydration, so `isConfigured` stayed `false` after restart and the API key dialog forced itself open even when the Venice key was already in OS secure storage. Fix: `src/main.tsx` now awaits `useAuthStore.getState().checkConfiguration()` after `refreshConfig()`, and the `needsUnlock` gate in `App.tsx` now uses `!isConfigured && !apiKey` (the runtime truth) instead of the stale `hasEncrypted && !apiKey`. Jina key was unaffected because it is read on demand through the same secure store.
+- **Forge Dracula theme contrast & differentiation:** Three tokens shared the identical value `#6272a4` (`surfaceElevated`, `border`, `textMuted`) so elevated surfaces, borders, and muted text were visually indistinguishable. `textMuted` on background was also 3.03:1 — failing WCAG AA. Fix in `src/theme/themes.ts`: `surface` `#44475a → #343748`, `surfaceElevated` stays `#44475a`, `border` `#6272a4 → #52566e`, `textMuted` `#6272a4 → #9e9fb4` (5.47:1 on background, passes AA). Added a 9-case regression guard in `src/theme/contrast.test.ts` that locks text contrast, token differentiation, and the known Dracula-palette limitation for `accentForeground` on `accent`.
+
+### Added
+- **Smooth tab/section transitions:** A new `section-enter` CSS keyframe (150 ms, `cubic-bezier(0.2, 0, 0, 1)`, `translateY(6px) → 0`) and `.section-transition` utility in `src/styles/theme.css`. `<ActiveView />` in `App.tsx` is wrapped in a keyed `<div className="section-transition">` so tab switches fade-and-slide in instead of swapping instantaneously. Respects the existing `prefers-reduced-motion` rules in `theme.css` and `accessibility.css`.
+
+
 ## [1.0.5] — 2026-06-05
 
 ### Security

@@ -112,7 +112,7 @@ npm run clean            # Remove dist/ dist-electron/ release/
 - Legacy flat `chats` auto-migrate on first load — **additive only, never destructive**
 - Conversation IDs must pass `VALID_ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/` in main-process storage
 
-**Theme system:** Token-based CSS variables + Tailwind v4 `@theme`. Built-in themes in `src/theme/themes.ts` and configured under `config/themes/`; user themes in ThemeMaker UI supporting custom YAML import/export; bootstrap cache in `localStorage` to prevent FOUC.
+**Theme system:** Token-based CSS variables + Tailwind v4 `@theme`. Built-in themes in `src/theme/themes.ts` and configured under `config/themes/`; user themes in ThemeMaker UI supporting custom YAML import/export; bootstrap cache in `localStorage` to prevent FOUC. Forge Dracula has a 9-case WCAG AA regression guard in `src/theme/contrast.test.ts` (textPrimary/textSecondary/textMuted on background, accentForeground on accent, and three-differentiation checks for `surfaceElevated`/`border`/`textMuted`/`surface`/`background`).
 
 ---
 

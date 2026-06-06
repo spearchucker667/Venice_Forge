@@ -111,7 +111,7 @@ xattr -dr com.apple.quarantine "/Applications/Venice Forge.app"
 ## Themes & Appearance
 
 ### How do I change the theme?
-Open **Config → Appearance → Theme Maker**. Choose from the built-in themes (Forge Graphite, Forge Daylight, Forge Copper, Forge Dracula) or create a custom theme by editing individual color tokens.
+Open **Config → Appearance → Theme Maker**. Choose from the built-in themes (Venice Parity Dark, Forge Graphite, Forge Daylight, Forge Copper, Forge Dracula, GruvBox Dark, Rosepine) or create a custom theme by editing individual color tokens.
 
 ### Do custom themes persist across restarts?
 Yes. Custom themes are saved to encrypted IndexedDB alongside your other settings. A lightweight `localStorage` cache also prevents any flash of unstyled content on startup.
