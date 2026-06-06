@@ -34,30 +34,6 @@ export const FALLBACK_MODELS = {
   unknown: []
 };
 
-/**
- * @deprecated This constant is dead code and the canonical tab registry
- * lives in `src/config/tabs.ts` (exports `TAB_REGISTRY` and
- * `CANONICAL_TAB_ORDER`). The historical entries here (including legacy
- * ids `batch`, `models`, `gallery`, `diagnostics`) are NOT a source of
- * truth and pre-date the registry refactor in commit `c6013208`.
- * Kept only as a marker so a `rg "\\bTABS\\b"` search surfaces the
- * correct home for any future tab work. Do not import this.
- */
-export const TABS = [
-  ["chat", "Chat"],
-  ["image", "Image Studio"],
-  ["video", "Video Studio"],
-  ["audio", "Audio Studio"],
-  ["music", "Music Studio"],
-  ["embeddings", "Embeddings"],
-  ["batch", "Batch"],
-  ["search", "Research"],
-  ["models", "Catalog"],
-  ["gallery", "Media Studio"],
-  ["settings", "Config"],
-  ["diagnostics", "Status"]
-] as const;
-
 /** Response header names captured for diagnostics. */
 export const DIAG_HEADER_NAMES = [
   "retry-after",

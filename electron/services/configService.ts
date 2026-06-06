@@ -679,7 +679,7 @@ function mergeSanitized(base: SanitizedConfig, patch: Record<string, unknown>): 
   const baseYaml: YamlConfig = {
     version: base.version,
     app: base.app,
-    secrets: { venice_api_key: "", jina_api_key: "", minimax_api_key: "", keep_plaintext_keys: base.secrets.keep_plaintext_keys },
+    secrets: { venice_api_key: "", jina_api_key: "", keep_plaintext_keys: base.secrets.keep_plaintext_keys },
     theme: base.theme,
     models: base.models,
     chat: base.chat,
@@ -769,7 +769,7 @@ export async function exportConfigTemplate(targetPath: string): Promise<{ ok: bo
     const template: YamlConfig = {
       version: sanitized.version,
       app: sanitized.app,
-      secrets: { venice_api_key: "", jina_api_key: "", minimax_api_key: "", keep_plaintext_keys: sanitized.secrets.keep_plaintext_keys },
+      secrets: { venice_api_key: "", jina_api_key: "", keep_plaintext_keys: sanitized.secrets.keep_plaintext_keys },
       theme: sanitized.theme,
       models: sanitized.models,
       chat: sanitized.chat,

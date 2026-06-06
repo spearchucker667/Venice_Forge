@@ -25,84 +25,6 @@ export type EnableWebSearch = "off" | "on" | "auto";
 /** Allowed research provider. */
 export type ResearchProvider = "venice" | "jina" | "auto";
 
-/** BUG-006: provider abstraction. The migration target list is
- *  additive; the existing "venice" / "jina" / "auto" research values
- *  are preserved. `minimax` is recognised by the parser and sanitized
- *  view but is NOT yet wired into the renderer/IPC/proxy at this
- *  stage — it exists only to make the config forward-compatible. */
-export type LlmProvider = "venice" | "minimax";
-
-/**
- * Per-provider capability matrix. The renderer and IPC consult this
- * matrix to decide whether a feature should be hidden, disabled, or
- * routed to a different transport. Adding `minimax` here is purely
- * informational at this stage — the existing Venice path is the
- * single live transport.
- */
-export interface ProviderCapabilities {
-  chat: boolean;
-  streaming: boolean;
-  imageGenerate: boolean;
-  imageUpscale: boolean;
-  imageEdit: boolean;
-  videoGenerate: boolean;
-  audioSpeech: boolean;
-  audioTranscriptions: boolean;
-  embeddings: boolean;
-  /** Whether the provider supports the canonical OpenAI-style SSE
-   *  delta parser used by `extractStreamDelta`. The MiniMax API has
-   *  its own streaming format and BUG-007 documents the parser
-   *  work needed when MiniMax is wired in. */
-  openAiStyleStreaming: boolean;
-  /** Whether the provider supports a server-side `safe_mode` flag
-   *  (used by `applyVeniceApiSafeMode`). Providers without this
-   *  capability rely solely on the local Family Safe Mode runtime
-   *  snapshot. */
-  providerSafeMode: boolean;
-}
-
-export const PROVIDER_CAPABILITIES: Record<LlmProvider, ProviderCapabilities> = {
-  venice: {
-    chat: true,
-    streaming: true,
-    imageGenerate: true,
-    imageUpscale: true,
-    imageEdit: true,
-    videoGenerate: true,
-    audioSpeech: true,
-    audioTranscriptions: true,
-    embeddings: true,
-    openAiStyleStreaming: true,
-    providerSafeMode: true,
-  },
-  // MiniMax capabilities are documented as future targets. None of
-  // these are exercised at runtime yet — every field is set to
-  // `false` so the renderer disables the corresponding controls when
-  // `llm_provider === "minimax"` (the only exception is `chat`, which
-  // is the migration entry point).
-  minimax: {
-    chat: false,
-    streaming: false,
-    imageGenerate: false,
-    imageUpscale: false,
-    imageEdit: false,
-    videoGenerate: false,
-    audioSpeech: false,
-    audioTranscriptions: false,
-    embeddings: false,
-    openAiStyleStreaming: false,
-    providerSafeMode: false,
-  },
-};
-
-/** Returns the capabilities advertised for the given provider. Falls
- *  back to the Venice row if the id is unknown, so any future
- *  provider id is treated as "Venice-compatible" by default. */
-export function capabilitiesFor(provider: string | undefined | null): ProviderCapabilities {
-  if (provider === "minimax") return PROVIDER_CAPABILITIES.minimax
-  return PROVIDER_CAPABILITIES.venice
-}
-
 /** Theme mode. */
 export type ThemeMode = "dark" | "light";
 
@@ -158,12 +80,6 @@ export interface YamlApp {
 export interface YamlSecrets {
   venice_api_key: string;
   jina_api_key: string;
-  /**
-   * BUG-006: MiniMax provider key (additive). The renderer never
-   * receives this value — only `has_minimax_api_key` is mirrored to
-   * `SanitizedConfig`. Empty string means "not configured".
-   */
-  minimax_api_key: string;
   keep_plaintext_keys: boolean;
 }
 
@@ -209,12 +125,6 @@ export interface YamlResearch {
   default_provider: ResearchProvider;
   enable_jina: boolean;
   enable_social_discovery: boolean;
-  /**
-   * BUG-006: provider abstraction. Defaults to "venice" so existing
-   * configs keep working. Migration to "minimax" requires additional
-   * wiring in the IPC + renderer + provider capability matrix.
-   */
-  llm_provider: LlmProvider;
 }
 
 /** Characters section. */
@@ -254,15 +164,13 @@ export interface YamlConfig {
 }
 
 /** Sanitized view of the config safe to send to the renderer.
- *  Strips secrets.venice_api_key, secrets.jina_api_key, and
- *  secrets.minimax_api_key. */
+ *  Strips secrets.venice_api_key and secrets.jina_api_key. */
 export interface SanitizedConfig {
   version: 1;
   app: YamlApp;
   secrets: {
     has_venice_api_key: boolean;
     has_jina_api_key: boolean;
-    has_minimax_api_key: boolean;
     keep_plaintext_keys: boolean;
   };
   theme: YamlThemeRef;
@@ -456,7 +364,6 @@ export function validateConfig(raw: unknown): ConfigValidationResult {
   const secrets: YamlSecrets = {
     venice_api_key: clampKey(secRaw.venice_api_key, "secrets.venice_api_key", redactedFields, warnings),
     jina_api_key: clampKey(secRaw.jina_api_key, "secrets.jina_api_key", redactedFields, warnings),
-    minimax_api_key: clampKey(secRaw.minimax_api_key, "secrets.minimax_api_key", redactedFields, warnings),
     keep_plaintext_keys: clampBool(secRaw.keep_plaintext_keys, false),
   };
 
@@ -507,8 +414,6 @@ export function validateConfig(raw: unknown): ConfigValidationResult {
     default_provider: clampEnum(researchRaw.default_provider, ["venice", "jina", "auto"] as const, "venice"),
     enable_jina: clampBool(researchRaw.enable_jina, false),
     enable_social_discovery: clampBool(researchRaw.enable_social_discovery, false),
-    // BUG-006: defaults to "venice" so existing configs keep working.
-    llm_provider: clampEnum(researchRaw.llm_provider, ["venice", "minimax"] as const, "venice"),
   };
 
   // ── characters ──
@@ -591,7 +496,6 @@ export function sanitizeConfig(config: YamlConfig): SanitizedConfig {
     secrets: {
       has_venice_api_key: config.secrets.venice_api_key.length > 0,
       has_jina_api_key: config.secrets.jina_api_key.length > 0,
-      has_minimax_api_key: config.secrets.minimax_api_key.length > 0,
       keep_plaintext_keys: config.secrets.keep_plaintext_keys,
     },
     theme: { ...config.theme },
@@ -615,7 +519,7 @@ export function emptyConfig(): YamlConfig {
   return {
     version: 1,
     app: { config_name: "default", profile: "default", auto_open_devtools: false, check_for_updates: true },
-    secrets: { venice_api_key: "", jina_api_key: "", minimax_api_key: "", keep_plaintext_keys: false },
+    secrets: { venice_api_key: "", jina_api_key: "", keep_plaintext_keys: false },
     theme: { active: "builtin-venice", themes_file: "" },
     models: { chat: "", image: "", video: "", audio: "", music: "", embedding: "", upscale: "" },
     chat: {
@@ -631,7 +535,7 @@ export function emptyConfig(): YamlConfig {
       disable_thinking: false,
     },
     memory: { enable_memory_retrieval: true, show_pulled_context_before_sending: false },
-    research: { default_provider: "venice", enable_jina: false, enable_social_discovery: false, llm_provider: "venice" },
+    research: { default_provider: "venice", enable_jina: false, enable_social_discovery: false },
     characters: { enabled: true, include_adult_characters: false, default_character_slug: "" },
     safety: { local_family_safe_mode_enabled: true, venice_api_safe_mode: true },
     developer: { verbose_config_logging: false, allow_config_key_import: true, force_import_keys: false, force_apply_config: false },

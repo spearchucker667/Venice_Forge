@@ -56,7 +56,7 @@ Web mode (development only):
 | Layer | Technology | Responsibility |
 |-------|-----------|----------------|
 | UI | React 19 + Tailwind v4 | All user-facing screens |
-| State | useReducer + Immer | Centralised app state |
+| State | Zustand 5 stores | Centralised app state (slice stores; `auth`, `chat`, `playground`, `settings`, `toast`, `workflow`) |
 | Storage | IndexedDB (via `StorageService`) | `images`, `files`, legacy `chats`, `settings`, `conversations`, and `ai_memory` are encrypted at rest with AES-GCM; `diagnostics` is stored unencrypted and should contain only sanitized timing/status metadata |
 | Chat storage | Electron main-process filesystem (`chat-history/*.json`) | Conversation persistence with atomic writes and corruption recovery; filesystem chat JSON is not separately encrypted by Venice Forge |
 | Content safety | `src/shared/safety/childExploitationGuard.ts` | Screens every outgoing Venice request at renderer transport, IPC, proxy, and module boundaries; evaluates `negative_prompt` and cross-sentence context; fails closed (500) on extraction errors; returns `SafetyGuardDecision`; never logs raw prompt text |
@@ -73,30 +73,33 @@ Web mode (development only):
 
 ### Application Tabs
 
+The canonical tab registry lives in `src/config/tabs.ts` (single source of
+truth for `Tab` type, sidebar order, group, and aliases). The visible
+tabs are:
+
 | Tab | Feature |
 |-----|---------|
 | Chat | Streaming chat with Venice text models, memory injection & management, drag & drop context reordering, Agent vs Classic toggle |
 | Image Studio | Generate images, **Edit** (single image inpainting), **Combine** (multi-image referencing), and **Upscale** (separate from video upscaling) |
-| Video Studio | Asynchronously queue text-to-video, image-to-video, video-to-video, reference-to-video, and video upscale jobs. Settings are model-dependent. |
+| Media Studio | Generated-image and -video library with local persistence, full-size preview, batch favorite/unstar/delete, lineage (parent + children) tracking, and per-model capability hints |
 | Audio Studio | Text-to-speech with 50+ voices and formats, plus audio transcription via Whisper |
 | Music Studio | AI music generation with text-to-music, optional lyrics, duration control, and instrumental mode |
-| Workflows | Visual node editor for chaining models (Input → LLM → Image Gen → Output) with parallel branching |
-| Playground | Conversational agent that builds and edits workflows on a live canvas using plain language |
+| Video Studio | Asynchronously queue text-to-video, image-to-video, video-to-video, reference-to-video, and video upscale jobs. Settings are model-dependent. |
 | Embeddings | Vector embeddings generation for text with selectable models and dimension display |
-| Batch | Sequential prompt runs over multiple inputs |
 | Research | Multi-provider web search, page scraping, AI research synthesis, and public-profile discovery (Venice, Jina AI, or Generic HTTP) |
 | Characters | Browse Venice hosted characters via the official `/characters` API, filter by adult / web-enabled flags, and start character chats using `venice_parameters.character_slug` |
-| Catalog | Live model browser (type, traits, capability). Requires API key for live discovery. |
-| Library | Generated-image library with local persistence, full-size preview, refresh, download, and delete controls |
-| Config | API key management, theme selection (4 built-in + custom export/import), import/export |
-| Diagnostics | Diagnostics, rate-limit info, log access |
+| RP Studio | Local-first Character RP Studio: character cards, personas, lorebooks, multi-character RP chats, scoped memory, scene image generation. Lazy-loaded. |
+| Workflows | Visual node editor for chaining models (Input → LLM → Image Gen → Output) with parallel branching. Lazy-loaded. |
+| Playground | Conversational agent that builds and edits workflows on a live canvas using plain language. Lazy-loaded. |
+| Config | API key management, theme selection (built-in + custom export/import), import/export |
+| Status | Diagnostics, rate-limit info, log access (renamed from "Diagnostics") |
 
 ## Technology Stack
 
 - **Frontend:** React 19, TypeScript strict, Tailwind CSS v4, Vite 6
 - **Desktop:** Electron 42, electron-builder 26 (Windows NSIS + portable, macOS DMG + ZIP)
 - **Backend (web mode):** Express 4, http-proxy-middleware 4, dotenv
-- **State:** React `useReducer` with Immer for immutable updates
+- **State:** Zustand 5 stores (slice stores per `AGENTS.md`). Reducer-based state has been fully migrated to lightweight slice stores.
 - **Testing:** Vitest 4, @testing-library/react, supertest
 - **Build:** tsc (Electron main), esbuild (Express server), Vite (renderer)
 - **Local config:** `yaml@^2.9.0` (renderer + main); custom defensive validator in `src/config/configSchema.ts`; runtime service in `electron/services/configService.ts` (path resolution, parse, key import/redaction, sanitized IPC payloads)

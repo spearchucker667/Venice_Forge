@@ -74,6 +74,14 @@ export function MediaStudioView() {
   // parent id + inspected item id so it re-runs whenever the user
   // inspects a different record or the in-memory cache is updated.
   const loadById = useMediaStore((state) => state.loadById);
+  // Dangling-ref recovery: child ids the IDB has confirmed are missing
+  // (loadById returned null). Used by the inspector's "Missing references"
+  // recovery section so the user can prune stale pointers in a single
+  // click. Cleared whenever the inspected record changes.
+  const [missingChildIds, setMissingChildIds] = useState<string[]>([]);
+  useEffect(() => {
+    setMissingChildIds([]);
+  }, [inspectorItem?.id]);
   useEffect(() => {
     if (!inspectorItem) return
     const parentId = inspectorItem.parentId
@@ -84,16 +92,37 @@ export function MediaStudioView() {
 
   // The `childrenIds` field is the authoritative lineage. The legacy
   // in-memory `items.filter(parentId === id)` path can miss children
-  // that live on an unloaded page; load any missing child ids here.
+  // that live on an unloaded page; load any missing child ids here. If
+  // a `loadById` returns null (the record truly does not exist in IDB),
+  // surface the id as a dangling ref so the inspector can offer a
+  // recovery action.
   useEffect(() => {
     if (!inspectorItem) return
     const missing = inspectorItem.childrenIds.filter(
-      (id) => !items.some((candidate) => candidate.id === id),
+      (id) => !items.some((candidate) => candidate.id === id) && !missingChildIds.includes(id),
     )
-    for (const id of missing) {
-      void loadById(id)
+    if (missing.length === 0) return
+    let cancelled = false
+    void Promise.all(
+      missing.map(async (id) => {
+        const result = await loadById(id)
+        return { id, found: result !== null }
+      }),
+    ).then((results) => {
+      if (cancelled) return
+      const stillMissing = results.filter((r) => !r.found).map((r) => r.id)
+      if (stillMissing.length > 0) {
+        setMissingChildIds((prev) => {
+          const set = new Set(prev)
+          for (const id of stillMissing) set.add(id)
+          return Array.from(set)
+        })
+      }
+    })
+    return () => {
+      cancelled = true
     }
-  }, [inspectorItem, items, loadById])
+  }, [inspectorItem, items, loadById, missingChildIds])
 
   const selectedItems = useMemo(
     () => items.filter((item) => selectedIds.has(item.id)),
@@ -350,6 +379,7 @@ export function MediaStudioView() {
               item={inspectorItem}
               parentItem={inspectorItem.parentId ? items.find((candidate) => candidate.id === inspectorItem.parentId) ?? null : null}
               childrenItems={items.filter((candidate) => candidate.parentId === inspectorItem.id)}
+              missingChildIds={missingChildIds}
               onPatch={handlePatch}
               onDelete={(it) => void handleDelete(it)}
               onOpenChild={handleOpenDetail}

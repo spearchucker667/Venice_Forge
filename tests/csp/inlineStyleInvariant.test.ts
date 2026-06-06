@@ -15,7 +15,8 @@
 // Combined with the explicit comment in electron/main.ts:31, the CSP can be
 // tightened to `'unsafe-inline'` for the bootstrap script only after the
 // bootstrap is migrated to a nonced stylesheet (or to a self-hosted CSS
-// file that applies the variables via :root). See docs/AUDIT_TODO.md T1.
+// file that applies the variables via :root). Tracked as a follow-up in
+// `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` (T1 / VERIFY-007 follow-up).
 
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync, statSync } from 'node:fs'

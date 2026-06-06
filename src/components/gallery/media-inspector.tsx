@@ -12,6 +12,10 @@ interface MediaInspectorProps {
   item: MediaItem;
   parentItem: MediaItem | null;
   childrenItems: MediaItem[];
+  /** Ids in `item.childrenIds` that are not present anywhere in the
+   *  in-memory cache AND could not be loaded from IDB. Surfaced in the
+   *  inspector as a "missing children" recovery section. */
+  missingChildIds: string[];
   onPatch: (id: string, patch: Partial<MediaItem>) => Promise<void>;
   onDelete: (item: MediaItem) => void;
   onOpenChild: (child: MediaItem) => void;
@@ -23,6 +27,7 @@ export function MediaInspector({
   item,
   parentItem,
   childrenItems,
+  missingChildIds,
   onPatch,
   onDelete,
   onOpenChild,
@@ -53,6 +58,25 @@ export function MediaInspector({
   const handleSaveNote = async () => {
     if (noteDraft === item.note) return;
     await onPatch(item.id, { note: noteDraft });
+  };
+
+  // Dangling-ref recovery: a child id points to a record that no longer
+  // exists in IDB, or a parent id points to a missing record. These
+  // records cannot be displayed and the previous behaviour was to hide
+  // the section silently. We now surface a "Missing" row with a single-
+  // click recovery action that prunes the stale reference.
+  const hasDanglingParent = item.parentId !== null && item.parentId !== undefined && parentItem === null;
+  const hasDanglingChildren = missingChildIds.length > 0;
+  const hasAnyDangling = hasDanglingParent || hasDanglingChildren;
+
+  const handleClearDanglingParent = async () => {
+    await onPatch(item.id, { parentId: null });
+  };
+
+  const handleClearDanglingChildren = async () => {
+    const filtered = item.childrenIds.filter((id) => !missingChildIds.includes(id));
+    if (filtered.length === item.childrenIds.length) return;
+    await onPatch(item.id, { childrenIds: filtered });
   };
 
   return (
@@ -221,6 +245,52 @@ export function MediaInspector({
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {hasAnyDangling && (
+        <section
+          aria-label="Missing references"
+          className="rounded-md border border-amber-400/30 bg-amber-500/[0.06] p-2.5"
+        >
+          <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-200/90">
+            Missing references
+          </h4>
+          <p className="mb-2 text-[11.5px] text-text-secondary">
+            {hasDanglingParent && hasDanglingChildren
+              ? "This item references records that no longer exist. Clear the stale pointers to repair the lineage."
+              : hasDanglingParent
+                ? "This item's parent record is missing. Clear the parent link to repair the lineage."
+                : `${missingChildIds.length} child ${missingChildIds.length === 1 ? "reference" : "references"} could not be resolved. Clear the stale pointer${missingChildIds.length === 1 ? "" : "s"} to repair the lineage.`}
+          </p>
+          {hasDanglingParent && (
+            <div className="mb-1.5 flex items-center gap-2 text-[11px] text-text-muted">
+              <span className="font-mono">parentId={item.parentId}</span>
+              <button
+                type="button"
+                onClick={() => void handleClearDanglingParent()}
+                className="ml-auto rounded-md border border-amber-400/40 px-2 py-1 text-amber-200/90 hover:border-amber-300 hover:text-amber-100"
+              >
+                Clear parent link
+              </button>
+            </div>
+          )}
+          {hasDanglingChildren && (
+            <div className="flex items-center gap-2 text-[11px] text-text-muted">
+              <span className="line-clamp-1 font-mono">
+                {missingChildIds.length === 1
+                  ? `childrenIds: ${missingChildIds[0]}`
+                  : `childrenIds: ${missingChildIds.length} missing`}
+              </span>
+              <button
+                type="button"
+                onClick={() => void handleClearDanglingChildren()}
+                className="ml-auto rounded-md border border-amber-400/40 px-2 py-1 text-amber-200/90 hover:border-amber-300 hover:text-amber-100"
+              >
+                Clear {missingChildIds.length === 1 ? "1 missing ref" : `${missingChildIds.length} missing refs`}
+              </button>
+            </div>
+          )}
         </section>
       )}
     </aside>

@@ -4,6 +4,9 @@ node_modules/
 docs/AGENTS/
 docs/HQE_AUDIT_REPORT.md
 
+# Design-roadmap scratchpads (tokens are already in src/styles/theme.css).
+docs/design/
+
 # Build resources: keep packaging icons tracked, ignore generated scratch assets.
 /build/*
 !/build/icon.ico

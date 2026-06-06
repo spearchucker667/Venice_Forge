@@ -1,5 +1,12 @@
 # Venice Forge — Round-2 Audit Follow-Ups (2026-06-05)
 
+> **Status:** Historical audit record (round 1, 2026-06-05). The current
+> audit is
+> [`docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`](POST_VENICE_JINA_AUDIT_2026_06_06.md)
+> and the canonical session handoff ledger is
+> [`docs/summary_of_work.md`](summary_of_work.md). Retained for
+> traceability.
+
 This document tracks the P0/P1/P2 findings from the 2026-06-05 full-repo
 audit, plus the architectural improvements that were intentionally
 deferred to their own PRs.

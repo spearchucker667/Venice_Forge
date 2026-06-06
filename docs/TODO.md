@@ -1,21 +1,27 @@
 # Venice Forge TODO
 
-## Restructuring & Merge Stabilization (CURRENT FOCUS)
+> **Status (2026-06-06):** This file is **historical / public-facing roadmap** only.
+> The canonical session handoff ledger is `docs/summary_of_work.md` and the
+> current audit is `docs/POST_MINIMAX_M3_AUDIT.md`. All "Active Tasks" below
+> are completed; they are retained for public roadmap context. New work is
+> tracked under *Open TODO Ledger* in `summary_of_work.md`.
+
+## Restructuring & Merge Stabilization (HISTORICAL — closed 2026-06-05)
 
 - [x] **Type Safety Restoration:** Fix all remaining `any` types and implicit `any` errors introduced during the DONOR UI port. (Strict compiler options now pass cleanly, and all src/lib/ files are fully typed and tested).
 - [x] **UI Polish & Consistency:** Re-align the new DONOR UI shell with TARGET's graphite/copper theme engine. Ensure all studios (Audio, Video, Music) feel like part of the same app. *(Theme token system shipped in `src/theme/themes.ts` with `BUILTIN_COPPER` + `BUILTIN_DAYLIGHT` + `BUILTIN_GRAPHITE`; VERIFY-010 invariant in `tests/theme/inlineColorInvariant.test.ts` locks zero out-of-allowlist inline colors across the renderer. Commit `86262ca`.)*
 - [x] **Deep Feature Verification:** Regression test all new features (Workflows, Playground, Studios) to ensure they work correctly over the Electron IPC bridge (100% unit-test file coverage achieved for all src/lib/ engine files, 753 total tests passing).
 - [x] **Data Migration:** Ensure legacy `chat-history/*.json` and `IndexedDB` stores are correctly picked up by the new React components. *(Encrypted `Conversation Vault` + `vaultMigration.ts` shipped in commit `62a52226`; legacy flat `chats` auto-migrate on first load (additive only, never destructive); VERIFY regression coverage in `electron/services/conversationVault.test.ts`.)*
-- [x] **Asset Sanitization:** Double-check for any remaining "OpenVenice" or "donor" references in the codebase. *(Closed as out-of-scope per `docs/AUDIT_TODO.md` (2026-06-04): the "donor" terminology is preserved in `docs/REPORTS/BUG_HUNT_REVIEW.md` and `docs/design/VENICE_UI_EXTRACTION.md` as historical traceability of the merge. The intentional attribution in `README.md` also stays.)*
+- [x] **Asset Sanitization:** Double-check for any remaining "OpenVenice" or "donor" references in the codebase. *(Closed as out-of-scope on 2026-06-04: the "donor" terminology is preserved in `docs/REPORTS/BUG_HUNT_REVIEW.md` and `docs/design/VENICE_UI_EXTRACTION.md` (the latter is now gitignored) as historical traceability of the merge. The intentional attribution in `README.md` also stays.)*
 - [x] **Local-first Character RP Studio:** Integrated complete authoring and runtime roleplay studio with character cards (on-disk PNG avatars), personas, lorebooks, multi-character RP chats, scoped memory, and scene image generation. Verified by regression tests `VERIFY-011` to `VERIFY-014`.
 - [x] **Local Master YAML Config System:** Added configuration system via `config.yaml` / `themes.yaml` with schema validation, key import & redaction, and a dedicated local config UI in Settings.
 - [x] **Family Safe Mode guard pipeline hardening (safety batch):** Centralized every Venice-touching IPC entry point behind a single guarded wrapper (`electron/services/guardPipeline.ts`). The main-process `runtimeSafetySettings` snapshot is now the single source of truth for the toggle; the renderer-supplied flag on `VeniceIpcRequest` is ignored. All blocked responses emit the canonical 451 shape. Jina and scrape return-content screening closes the request-only gap. Settings rollback, hydration-race fix, chat `safe_mode` plumbing, RP chat `appendMessage` guard, inspector telemetry, and import/export confirm modal are all shipped. Verified by regression guard `VERIFY-015` (`tests/safety/guardPipeline.test.ts`, 27 cases).
 
 
-## Active Tasks
+## Active Tasks (HISTORICAL — all closed 2026-06-06)
 
 - [x] Restore the generated-image Library in the sidebar and `App.tsx` `TAB_ORDER`, add the Family Safe Mode switch below Red-Team Mode, and make Red-Team Mode open the Inspector when enabled.
-- [x] Triage new audit findings from `docs/AUDIT_TODO.md` when present (None present).
+- [x] Triage new audit findings when present (current canonical source: `docs/POST_MINIMAX_M3_AUDIT.md` and `docs/summary_of_work.md` Open TODO Ledger).
 - [x] Keep README, About, Legal, Repository Tree, and release docs synchronized with implemented features.
 - [x] Keep security tests current for renderer, IPC, proxy, storage, and safety-guard boundaries.
 - [x] Keep UI documentation synchronized with the canonical Chat/Image/Media Studio/Audio/Music/Video/Embeddings/Research/Characters/RP Studio/Workflows/Playground/Settings/Status layout.
@@ -23,7 +29,9 @@
 - [x] Add a scoped Markdown-link CI guard for local files and heading fragments (`VERIFY-029`).
 - [x] Add and run an isolated 1,000-record Electron Media Studio render/heap profile (`npm run profile:media-studio`).
 
-## Extensive Roadmap & Future TODOs
+See `docs/summary_of_work.md` for the active work ledger (MiniMax migration F-1..F-8, Media Studio dangling-parent repair, deprecated `TABS` removal).
+
+## Extensive Roadmap & Future TODOs (HISTORICAL — see summary_of_work.md)
 
 ### 1. Venice API Integrations
 - [x] **Character Discovery + Character Chat:** New "Characters" sidebar tab browses the official `/api/v1/characters` and `/api/v1/characters/{slug}` endpoints (no scraping, no DOM walking). Search, sort, filter, paginated load-more, and per-character "Chat" action. Character chats send `venice_parameters.character_slug` on every streaming call. Character identity is conversation-scoped: changing the global selected character in the Characters tab does not retroactively swap a persisted character conversation's slug.
@@ -49,7 +57,7 @@
 - [ ] **Custom Scrape Providers:** Allow users to input custom proxy endpoint configurations for the generic HTTP scrape provider.
 
 
-## Resolved Defects
+## Resolved Defects (HISTORICAL — closed in audits 2026-06-04..2026-06-06)
 
 ### Critical Severity
 

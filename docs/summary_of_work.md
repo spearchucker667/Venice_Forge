@@ -18,13 +18,19 @@ share the same React 19 + TypeScript-strict renderer and the same
 Zustand 5 state slices.
 
 **Main provider / API architecture.** Single live transport today is
-Venice.ai (`api.venice.ai`) over `Bearer` auth. A forward-compat
-provider abstraction (`LlmProvider = "venice" | "minimax"` in
-`src/config/configSchema.ts`) is in place but `minimax` has no live
-transport — every existing call site continues to dispatch to Venice.
+Venice.ai (`api.venice.ai`) over `Bearer` auth. Jina is the
+research / scrape / web-search transport (not an LLM transport).
 Allowed Venice endpoints are allowlisted in `src/shared/validation.ts`
 and mirrored in `electron/ipc/validation.ts`. The web proxy in
 `server.ts` enforces the same allowlist at the network boundary.
+The MiniMax LLM forward-compat scaffold (`LlmProvider` /
+`PROVIDER_CAPABILITIES` / `capabilitiesFor()` / `secrets.minimax_api_key`
+/ `MINIMAX_API_*` / `DEFAULT_PROVIDER`) was added in the
+2026-06-06 round-2 audit and removed the same day in the
+"Venice + Jina only" scope correction tracked in this ledger
+and in `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`. The
+`VERIFY-033` regression-guard slot is reserved (retired marker)
+to keep the regression-guard sequence stable.
 
 **Safety architecture.** Three independent layers:
 1. **Local Family Safe Mode** — runtime-snapshot-backed
@@ -57,9 +63,9 @@ return-content `screenResponseBody` screening.
   threat surface.
 - **Secrets:** Electron uses `safeStorage` (DPAPI on Windows,
   Keychain on macOS). Web uses a server-side `.env`. The local YAML
-  config supports `secrets.venice_api_key` / `jina_api_key` /
-  `minimax_api_key` for one-time import into the secure store; the
-  YAML is then atomically rewritten to redact plaintext.
+  config supports `secrets.venice_api_key` / `jina_api_key` for
+  one-time import into the secure store; the YAML is then
+  atomically rewritten to redact plaintext.
 
 **Docs / test posture.** `docs/` is the canonical home for security
 posture, audit reports, design notes, and per-feature deep-dives.
@@ -69,51 +75,364 @@ because it touches IDB and global state. Coverage thresholds are
 `lint:eslint`, `typecheck` (renderer + electron), `test`,
 `verify:safety-guard`, `verify:markdown-links`, and `build`.
 
-**Active migration / refactor themes.** The MiniMax LLM
-provider-scaffold landed in the 2026-06-06 audit batch and is the
-largest open refactor. The migration follow-ups (F-1 through F-8)
-are tracked in `docs/POST_MINIMAX_M3_AUDIT.md`. None of them are P0
-blockers for shippable builds — the existing Venice code path is
-fully covered and behaves identically to the pre-audit build.
+**Active migration / refactor themes.** No open provider migrations
+or major refactors. The 2026-06-06 round-2 audit batch and its
+"Venice + Jina only" scope correction both landed in the same
+day; the MiniMax LLM forward-compat scaffold that was added and
+then removed is the only material change since the prior
+(`1.0.5`) release. The remaining work is P2/P3 polish
+(Inspector non-mutating telemetry expansion, Media Studio
+dangling-parent automated repair, removal of the deprecated
+`TABS` constant) tracked in the *Open TODO Ledger* below.
 
 ---
 
 ## Latest Session Summary
 
-- **Date:** 2026-06-06
+- **Date:** 2026-06-06 (later that day, after the prior repo-hygiene session)
 - **Agent / model:** MiniMax M3 (acting as repo maintainer)
 - **Branch:** main
-- **Commit / working tree state:** HEAD = `2fc1406a`; 20 files
-  modified + 2 new docs (`docs/POST_MINIMAX_M3_AUDIT.md`,
-  `docs/summary_of_work.md`); no uncommitted changes outside this
-  batch.
-- **Primary objective:** Full updated-repo audit + MiniMax LLM
-  migration readiness pass, plus a durable session handoff ledger
-  (`docs/summary_of_work.md`) that every future agent must update.
-- **Files changed:** 20 — see `Session History` entries below.
-- **Tests added or changed:** Added 16 cases across 4 files
-  (`server.test.ts`, `venice-client.test.ts`, `image-tools.test.tsx`,
-  `media-store.test.ts`, `configSchema.test.ts`); 4 new regression
-  guards `VERIFY-030`…`VERIFY-033` plus extensions to `VERIFY-006`
-  and `VERIFY-020`.
-- **Validation commands run:** `npm run lint:eslint`,
-  `npm run typecheck`, `npm test`, `npm run verify:safety-guard`,
-  `npm run verify:markdown-links`, `npm run build` (audit batch);
-  plus `git status --short`, `npm run verify:markdown-links`,
-  `npm run lint:eslint` for the docs-only handoff addendum.
-- **Validation result:** all green. 1220/1220 tests pass
-  (1 Playwright smoke skip on this headless run); 0 ESLint warnings;
-  0 typecheck errors; safety-guard, markdown-links (50 → 51 files
-  after this handoff addendum), and full build all clean.
+- **Commit / working tree state:** HEAD = `f2ca198b` (post-audit +
+  handoff ledger + review-and-fix + repo-hygiene + CI fix). Working
+  tree is not clean at session start — the 22 uncommitted edits from
+  the prior repo-hygiene session (CI fix, doc consolidation,
+  cross-link fixes, AGENTS.md / README.md / CHANGELOG.md updates)
+  plus the scope-correction edits from this session are staged for a
+  single commit. See *Session History* below for the new
+  scope-correction entry.
+- **Primary objective:** Tear out the MiniMax LLM forward-compat
+  scaffold wholesale. The user explicitly clarified that the
+  supported transports are strictly **Venice + Jina**, and asked
+  to revert BUG-006 (provider abstraction) and BUG-007 (deferred
+  MiniMax streaming parser). The `LlmProvider` type,
+  `PROVIDER_CAPABILITIES` matrix, `capabilitiesFor()` helper,
+  `secrets.minimax_api_key`, `research.llm_provider`, the
+  `MINIMAX_API_*` env keys, and the `DEFAULT_PROVIDER` env selector
+  are all removed. The F-1..F-8 migration follow-up section is
+  retired in favour of a "Scope correction" section in the
+  renamed audit doc. The `VERIFY-033` regression-guard slot is
+  reserved (retired marker) to keep the regression-guard sequence
+  stable.
+- **Files changed:** 15 — `src/config/configSchema.ts`
+  (`LlmProvider` / `PROVIDER_CAPABILITIES` / `capabilitiesFor` /
+  `secrets.minimax_api_key` / `sanitized.secrets.has_minimax_api_key`
+  / `research.llm_provider` removed), `src/shared/configSchema.ts`
+  (`ProviderId` / `parseProviderId` / `MINIMAX_API_*` /
+  `DEFAULT_PROVIDER` removed), `electron/services/configService.ts`
+  (two `secrets` construction sites lose `minimax_api_key: ""`),
+  `src/config/configSchema.test.ts` (entire `describe("provider
+  abstraction (BUG-006)")` block removed; 6 cases),
+  `.env.example` (MiniMax forward-compat block removed),
+  `.config/config.local.yaml` (`secrets.minimax_api_key: ""` and
+  `research.llm_provider: "venice"` lines removed),
+  `docs/POST_MINIMAX_M3_AUDIT.md` (renamed to
+  `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`; F-1..F-8 section
+  replaced with *Scope Correction*), `AGENTS.md` (`VERIFY-033` re-
+  labelled "Retired"; Key File Locations row updated to the new
+  audit-doc path; `VERIFY-035` row added), `README.md`
+  (`VERIFY-033` re-labelled; `VERIFY-035` row added; security-audit
+  cross-link and guard count updated), `CHANGELOG.md` (BUG-006 /
+  BUG-007 entries replaced with the scope-correction entry;
+  `VERIFY-033` row re-labelled; BUG-009 entry updated to reflect
+  the wholesale removal of the `TABS` constant; new "Media Studio
+  dangling-reference recovery" entry), `tests/csp/inlineStyleInvariant.test.ts`
+  (comment cross-link rephrased to the renamed audit doc),
+  `docs/summary_of_work.md` (this ledger),
+  `docs/AUDIT_FOLLOWUP_2026_06_05.md` (cross-link to the renamed
+  audit doc), `src/constants/venice.ts` (deprecated `TABS`
+  constant removed wholesale), `src/components/gallery/media-inspector.tsx`
+  ("Missing references" recovery section + `missingChildIds` prop),
+  `src/components/gallery/gallery-view.tsx` (`missingChildIds` state
+  + propagation + dangling-ref detection), `src/types/media.ts`
+  (`MediaItemPatch` gains `childrenIds`),
+  `src/components/gallery/gallery-view.test.tsx` (VERIFY-035 test
+  case).
+- **Tests added or changed:** 1. The 6 removed VERIFY-033 cases
+  are gone; the `VERIFY-033` slot is reserved as a retired marker.
+  1 new test case ("surfaces a 'Missing references' recovery
+  section when the parent record is absent (VERIFY-035)") was
+  added to `gallery-view.test.tsx`. Total tests: 1217 passed, 1
+  skipped (was 1222/1; the -5 are the net: -6 from the removed
+  VERIFY-033 cases + 1 from the new VERIFY-035 case).
+- **Validation commands run:** `npm test`, `npm run typecheck`,
+  `npm run lint:eslint`, `npm run verify:markdown-links`,
+  `npm run verify:safety-guard`.
+- **Validation result:** all green. 1217/1217 tests pass (1
+  Playwright smoke skip on this headless run); 0 ESLint warnings;
+  0 typecheck errors; 41 Markdown files checked (down from 42
+  after the audit-doc rename), no broken links; 3/3 safety-guard
+  boundaries pass.
 - **Known failures:** None.
-- **Follow-up required:** 8 migration follow-ups (F-1 through F-8 in
-  `docs/POST_MINIMAX_M3_AUDIT.md`); the next agent must start a new
-  *Session History* entry and update this ledger as their first
-  post-edit step.
+- **Follow-up required:** No provider-migration follow-ups
+  remain — the F-1..F-8 rows in the *Open TODO Ledger* are
+  closed by the scope correction. The remaining P2/P3 work is
+  the Inspector non-mutating telemetry expansion and the Media
+  Studio dangling-parent automated repair; the deprecated
+  `TABS` constant is removed in the same commit (see the
+  MiniMax scope-correction block above).
 
 ---
 
 ## Session History
+
+### 2026-06-06 — Repo hygiene + CI fix (public-in-mind)
+
+**Agent / model:** MiniMax M3
+**Branch:** main
+**Primary objective:** Clean up the repository for public-in-mind
+posture and fix the failing CI gate. Specifically: (a) review the
+full `docs/` tree + root markdown, identify bloat / stale / duplicate
+items, and consolidate to a single source of truth; (b) inspect and
+fix the `verify:markdown-links` CI failures; (c) add per-job timeouts
+and a concurrency group to the release/ci workflows; (d) refresh
+stale user-facing content (tab list, state row, theme system file
+list, bridge doc).
+
+#### Diagnosis
+
+- **CI failures.** 3 of the last 5 CI runs failed on
+  `npm run verify:markdown-links`. Log: "Broken Markdown link
+  docs/AGENTS/AGENTS.md: target does not exist" + "Broken Markdown
+  link docs/AGENTS/agent-reinitialization.md: target does not exist".
+  Both files are gitignored (`docs/AGENTS/` in `.gitignore`, commit
+  `037900d`) so they exist locally but never in CI.
+- **Repo-wide doc bloat.** Inventoried 50 tracked Markdown files at
+  the start of the session. 3 were redundant audit/research artifacts
+  (`POST_AUDIT_FINDINGS.md` root, `docs/AUDIT_TODO.md`,
+  `docs/deep-research-report.md`); 2 were design-roadmap scratchpads
+  (`docs/design/VENICE_UI_EXTRACTION.md`,
+  `docs/design/VENICE_UI_PARITY_REFERENCE.md`); 4 user-facing docs
+  had stale content (`docs/ABOUT.md`, `docs/FAQ.md`,
+  `docs/THEME_SYSTEM.md`, `docs/BRIDGE.md`).
+- **No action SHAs needed bumping.** Verified via
+  `gh api repos/actions/checkout/git/refs/tags/v4` →
+  `34e114876b0b11c390a56381ad16ebd13914f8d5`;
+  `actions/setup-node` → `49933ea5288caeca8642d1e84afbd3f7d6820020`;
+  `actions/upload-artifact` → `ea165f8d65b6e75b540449e92b4886f43607fa02`.
+  All already at latest v4 tags.
+- **Missing CI hardening.** No per-job timeouts and no workflow-level
+  concurrency group. A 6-hour default timeout meant a stuck job could
+  block the queue.
+
+#### Completed
+
+- **CI fix — `scripts/verify-markdown-links.cjs` (VERIFY-034).** Added
+  a purpose-built mini-gitignore parser (`compileGitignorePattern`,
+  `loadGitignoreMatcher`) that supports anchoring, negation, and
+  globs. The verifier now skips (a) Markdown files matched by a
+  pattern in the root `.gitignore` from the scan root, and (b) link
+  targets matched by a pattern in the root `.gitignore` before the
+  `fs.existsSync` check. No new runtime dependencies. Module exports
+  extended: `compileGitignorePattern`, `loadGitignoreMatcher` are now
+  public. CLI calls `loadGitignoreMatcher(rootDir)` from `runCli()`.
+- **CI test — `scripts/verify-markdown-links.test.ts` (2 new cases).**
+  "skips link targets matched by `.gitignore` patterns" (negative test
+  with a temp `.gitignore` containing `docs/AGENTS/`, `node_modules/`,
+  `build/secret.md`, `!docs/AGENTS/keep.md`) and
+  "`compileGitignorePattern` handles anchoring, negation, and globs".
+  Locks VERIFY-034.
+- **CI hardening — `.github/workflows/ci.yml` and
+  `.github/workflows/release.yml`.** `ci.yml` adds
+  `timeout-minutes: 30` to `build-and-test`. `release.yml` adds
+  workflow-level `concurrency: { group: release-${{ github.ref }},
+  cancel-in-progress: false }`, `timeout-minutes: 90` on
+  `build-macos` and `build-windows`, and `timeout-minutes: 30` on
+  `publish`.
+- **Doc consolidation (3 deletions).** Removed `POST_AUDIT_FINDINGS.md`
+  (root, 185 lines, stale duplicate of `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`),
+  `docs/AUDIT_TODO.md` (771 lines, every item `[x]` resolved
+  2026-06-04), and `docs/deep-research-report.md` (859 lines, not
+  referenced anywhere per its own audit).
+- **Doc gitignore (2).** `docs/design/VENICE_UI_EXTRACTION.md` and
+  `docs/design/VENICE_UI_PARITY_REFERENCE.md` (design-roadmap
+  scratchpads; tokens already in `src/styles/theme.css`). The two
+  files are untracked via `git rm --cached` (kept on disk for local
+  use) and the new `.gitignore` pattern `docs/design/` prevents
+  future re-add.
+- **Supersede headers (2).** `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`
+  (named `docs/POST_MINIMAX_M3_AUDIT.md` at the time) and
+  `docs/AUDIT_FOLLOWUP_2026_06_05.md` each gain a "Status: historical,
+  canonical source is `docs/summary_of_work.md`" header.
+- **User-facing refresh (4).**
+  - `docs/ABOUT.md` — tab list updated against the canonical 14-tab
+    registry in `src/config/tabs.ts` (Catalog / Library / Diagnostics
+    removed; Media Studio, Status, and RP Studio / Workflows /
+    Playground added in the canonical order). State row updated to
+    "Zustand 5 stores" (was `useReducer` + Immer).
+  - `docs/FAQ.md` — "Library" → "Media Studio" with a pointer to
+    `MEDIA_STUDIO.md`.
+  - `docs/THEME_SYSTEM.md` — "Modified Files" table rewritten to
+    point at the current `src/components/{...}View.tsx` and gallery
+    components; the historical `src/modules/*Module.tsx` paths are
+    removed; "Models" and "Batch" tabs (removed in the 2026-06-04–05
+    module refactor) are noted as no longer present.
+  - `docs/BRIDGE.md` — adds a "Current contract" pointer to
+    `SECURITY.md § Headless Bridge Security` so the canonical 451
+    block shape, runtime snapshot, and screening rules live in one
+    place.
+- **Historical relabeling (1).** `docs/TODO.md` sections (Restructuring
+  & Merge Stabilization, Active Tasks, Extensive Roadmap, Resolved
+  Defects) are relabelled **HISTORICAL**; status banner added at top
+  pointing readers at the canonical handoff ledger.
+- **Cross-link fix (1).** `tests/csp/inlineStyleInvariant.test.ts:18`
+  rephrased to point at `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`
+  (T1 / VERIFY-007 follow-up) instead of the now-deleted
+  `docs/AUDIT_TODO.md T1`.
+- **`AGENTS.md` extended.** Adds `VERIFY-034` to the named-regression-
+  guards table; adds two new rows in *Key File Locations* for
+  `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` and
+  `docs/summary_of_work.md` (the `AUDIT_FOLLOWUP_2026_06_05.md` row
+  is also relabelled as "historical; superseded by
+  `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`").
+- **`CHANGELOG.md` [Unreleased] entries.** New Security entries for
+  VERIFY-034, CI workflow hardening, and the repo-hygiene doc
+  consolidation (deletions, gitignores, supersede headers, user-
+  facing refreshes, AGENTS.md table extension).
+
+#### Validation
+
+- `npm run lint:eslint` — 0 warnings, clean.
+- `npm run typecheck` — 0 errors, clean.
+- `npm test` — 1222 passed, 1 skipped (was 1220/1; the +2 are the new
+  VERIFY-034 cases).
+- `npm run verify:safety-guard` — 3/3 boundaries pass.
+- `npm run verify:markdown-links` — 42 Markdown files checked (was
+  50; the -8 are the 3 deletions + 2 gitignored design files + 3
+  previously-gitignored-but-now-skipped `docs/AGENTS/*` files), no
+  broken links.
+
+#### Open / follow-up
+
+- The 8 MiniMax migration follow-ups (F-1..F-8) remain open and are
+  tracked in `docs/POST_MINIMAX_M3_AUDIT.md` + *Open TODO Ledger*
+  below.
+- The 2026-06-05 audit noted a discrepancy between the AGENTS.md
+  `--audit-level=moderate` release gate and the CI's
+  `--audit-level=high + continue-on-error` step. Not addressed in
+  this pass (out of scope of repo hygiene + CI fix).
+
+### 2026-06-06 — Document review + stale-claim correction
+
+**Agent / model:** MiniMax M3
+**Branch:** main
+**Primary objective:** Read the canonical handoff ledger
+(`docs/summary_of_work.md`) and the post-audit report
+(`docs/POST_MINIMAX_M3_AUDIT.md`) end to end, cross-check every
+fact / file path / guard ID against the actual repo, and resume on
+any remaining tasks / improvements that the previous session had
+not yet captured.
+
+#### Completed
+
+- **Cross-checked all 515 lines of `docs/summary_of_work.md`** against
+  source. Every file path in *Active Architecture Notes* and
+  *Files changed* resolves. Every regression guard ID
+  (`VERIFY-001`..`VERIFY-033`) exists. Every `// BUG-NNN` /
+  `// VERIFY-NNN` regression-guard comment exists in the named test
+  files. The new `docs/POST_MINIMAX_M3_AUDIT.md` (356 lines) is
+  internally consistent with the ledger and with `CHANGELOG.md`'s
+  `[Unreleased]` block.
+- **Cross-checked the 8 MiniMax migration follow-ups (F-1..F-8).**
+  All 8 are still open — no PR has been opened against `main`
+  advancing any of them. F-1..F-5 are correctly classified P0/P1/P2;
+  F-6/F-7 are P2; F-8 is P3. The "main-process runtime snapshot is
+  the source of truth" hard requirement is correctly called out in
+  F-1 and F-3.
+- **Ran the full validation matrix to verify the numbers** quoted in
+  the ledger: `npm test` reports 1220 passed / 1 skipped (Playwright
+  Electron smoke); `npm run verify:markdown-links` reports 51
+  Markdown files checked (matches the ledger); `npm run lint:eslint`
+  reports 0 warnings; `npm run typecheck` reports 0 errors. All
+  four numbers are honest.
+- **Found one stale claim in `README.md`:** the *Security audit &
+  regression guards* section still said **29 named regression
+  guards** (`VERIFY-001`..`VERIFY-029`) and listed only through
+  `VERIFY-029`. After the 2026-06-06 audit batch added
+  `VERIFY-030`..`VERIFY-033`, the README and the *Project Status*
+  table both understated the count. Fixed in this session:
+  bumped to **33 named regression guards**, added rows for
+  `VERIFY-030`..`VERIFY-033`, and cross-linked the new
+  `docs/POST_MINIMAX_M3_AUDIT.md` from the security-audit section
+  so readers can follow the audit chain. The README's *Project
+  Status* table's "Test Suite" row is also bumped to "33 named
+  regression guards".
+- **No further bugs found in the doc set** beyond the README
+  guard-count drift. `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`,
+  `.github/copilot-instructions.md`, `CHANGELOG.md`, and
+  `docs/TODO.md` are all internally consistent and consistent with
+  the ledger. The prior `AUDIT_FOLLOWUP_2026_06_05.md` (496 lines)
+  is also internally consistent and correctly preserved as the
+  "round-2" audit.
+
+#### Files changed
+
+- `README.md` — bumped the *Security audit & regression guards*
+  intro and *Project Status* table from 29 → 33 named regression
+  guards; added `VERIFY-030`..`VERIFY-033` rows; cross-linked
+  `docs/POST_MINIMAX_M3_AUDIT.md` and the MiniMax follow-ups
+  summary from the security-audit section.
+- `docs/summary_of_work.md` — this ledger entry (added a new
+  *Session History* entry; replaced the *Latest Session Summary*
+  block to point at this review session as the active session;
+  the prior audit session's *Latest Session Summary* is preserved
+  as the second entry under *Session History*).
+
+#### Tests / validation
+
+```bash
+npm test
+npm run lint:eslint
+npm run typecheck
+npm run verify:markdown-links
+```
+
+Result:
+
+- `npm test` — 1220 passed, 1 skipped (Playwright Electron smoke),
+  123 test files; full suite green.
+- `npm run lint:eslint` — 0 warnings (zero-warnings enforced).
+- `npm run typecheck` — 0 errors across renderer + electron main.
+- `npm run verify:markdown-links` — 51 Markdown files checked, no
+  broken links.
+- `npm run build` — not re-run for a docs-only + README prose
+  change; the audit batch's green `build` is the latest known good
+  status (recorded in the *Validation Matrix*).
+- `npm run verify:safety-guard` — not re-run; the audit batch's
+  3/3 boundary-files-pass result is the latest known good status
+  (recorded in the *Validation Matrix*).
+
+#### Known issues / unresolved risks
+
+- None introduced by this session.
+- The 8 MiniMax migration follow-ups (F-1..F-8) remain open and
+  are the next batch of work. F-1 is correctly classified P0/P1 in
+  the audit but is **not** a release blocker for the Venice-only
+  build (the existing Venice code path is fully covered and
+  behaves identically to the pre-audit build).
+- Two pre-existing smaller backlog items in *Open TODO Ledger* P3
+  are still open: the automated repair path for dangling Media
+  Studio parent refs, and the removal of the deprecated `TABS`
+  constant from `src/constants/venice.ts` after enough time has
+  passed.
+- **Recommendation for the next session:** start F-1 (wire
+  MiniMax as a live transport) — it is the most leveraged of the
+  8 follow-ups because unblocking it gates F-2, F-3, and F-4
+  simultaneously. Before opening the F-1 PR, double-check the
+  "main-process runtime snapshot is the source of truth" pattern
+  (mirroring `localFamilySafeModeEnabled`) against
+  `electron/services/runtimeSafetySettings.ts` so the F-1 PR is
+  the same defense-in-depth shape as the round-3 family-mode
+  hardening, not a regression.
+
+#### Next recommended tasks
+
+- F-1..F-8 from the prior session entry, in the recommended
+  order: F-1 → F-3 → F-4 → F-2 → F-5 → F-6 → F-7 → F-8.
+- Media Studio dangling-parent automated repair (P3).
+- Remove the deprecated `TABS` constant from
+  `src/constants/venice.ts` (P3) after the canonical-tab-registry
+  refactor in commit `c6013208` has shipped in a stable release
+  for one minor cycle.
 
 ### 2026-06-06 — Post-MiniMax-M3 Audit + Summary Handoff System
 
@@ -316,11 +635,9 @@ Result:
 
 ### Provider / API Layer
 
-- Single live transport: Venice.ai over `Bearer` auth.
-- Forward-compat provider abstraction in place: `LlmProvider = "venice"
-  | "minimax"` is accepted by the YAML and env layers, defaults to
-  `"venice"`, and is gated through `PROVIDER_CAPABILITIES` for the
-  renderer.
+- Single LLM transport: Venice.ai over `Bearer` auth.
+- Jina is a research / scrape / web-search transport (not an LLM
+  transport).
 - `src/shared/validation.ts` is the canonical endpoint allowlist,
   mirrored into `electron/ipc/validation.ts`. The `isAllowedVeniceRequest`
   predicate understands both the static list AND the parameterized
@@ -328,7 +645,17 @@ Result:
   predicate as the single source of truth (post-2026-06-06 fix);
   status-code split (405 vs 403) is decided by consulting the static
   list + `isAllowedCharactersRequest`.
-- MiniMax endpoint allowlist does not exist yet; F-3 is the work.
+- The 2026-06-06 round-2 audit batch introduced a MiniMax LLM
+  forward-compat scaffold (`LlmProvider` /
+  `PROVIDER_CAPABILITIES` / `capabilitiesFor()` /
+  `secrets.minimax_api_key` / `MINIMAX_API_*` / `DEFAULT_PROVIDER`)
+  and the F-1..F-8 migration follow-up section. The same day, the
+  user corrected scope to Venice + Jina only; the scaffold is
+  removed wholesale and the F-1..F-8 follow-ups are all closed by
+  that single decision. See `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`
+  *Scope Correction* for the full diff summary. The
+  `VERIFY-033` regression-guard slot is reserved (retired marker)
+  to keep the regression-guard sequence stable.
 
 ### Safety Layer
 
@@ -405,17 +732,15 @@ Result:
 - **YAML config:** optional `config.yaml` + `themes.yaml`. Locations
   follow env-override > repo-local (dev) > userData (packaged) >
   built-in defaults. Schema version 1.
-- **Secure key import:** plaintext keys in `secrets.{venice,jina,
-  minimax}_api_key` are imported into `safeStorage` on startup and
-  the YAML is atomically rewritten to redact them. Awaited
-  temp-file + rename; failure leaves the original YAML intact and
-  surfaces an initialization error.
-- **Env vars:** `VENICE_API_KEY`, `JINA_API_KEY`, `MINIMAX_API_KEY`
-  (forward-compat), `VENICE_API_HOST`, `VENICE_API_BASE_PATH`,
-  `VENICE_API_TIMEOUT_MS`, `MINIMAX_API_HOST`, `MINIMAX_API_BASE_PATH`,
-  `DEFAULT_PROVIDER`, `PORT`, `HOST`, `RATE_LIMIT_*`, `MAX_PROXY_BODY_BYTES`,
-  `NODE_ENV`, `TRUST_PROXY`, `VENICE_FORGE_CONFIG_FILE`,
-  `VENICE_FORGE_THEMES_FILE`,
+- **Secure key import:** plaintext keys in `secrets.{venice,jina}_api_key`
+  are imported into `safeStorage` on startup and the YAML is
+  atomically rewritten to redact them. Awaited temp-file + rename;
+  failure leaves the original YAML intact and surfaces an
+  initialization error.
+- **Env vars:** `VENICE_API_KEY`, `JINA_API_KEY`, `VENICE_API_HOST`,
+  `VENICE_API_BASE_PATH`, `VENICE_API_TIMEOUT_MS`, `PORT`, `HOST`,
+  `RATE_LIMIT_*`, `MAX_PROXY_BODY_BYTES`, `NODE_ENV`, `TRUST_PROXY`,
+  `VENICE_FORGE_CONFIG_FILE`, `VENICE_FORGE_THEMES_FILE`,
   `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE`,
   `VENICE_FORGE_DEBUG_DEVTOOLS`.
 - **Redaction rules:** `sanitizeConfig` strips raw `secrets.*_api_key`
@@ -427,73 +752,141 @@ Result:
 
 ## Open TODO Ledger
 
-> Living list. The MiniMax migration follow-ups are tracked in detail
-> in `docs/POST_MINIMAX_M3_AUDIT.md` (F-1 through F-8).
+> Living list. The 2026-06-06 round-2 audit and its same-day
+> "Venice + Jina only" scope correction are tracked in detail in
+> `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` (see the *Scope
+> Correction* section).
+
+### Completed this session (2026-06-06 — MiniMax scope correction)
+
+- **MiniMax LLM forward-compat scaffold removed wholesale.** The
+  `LlmProvider` type, `PROVIDER_CAPABILITIES` matrix,
+  `capabilitiesFor()` helper, `secrets.minimax_api_key`,
+  `sanitized.secrets.has_minimax_api_key`, the
+  `research.llm_provider` field, the `MINIMAX_API_*` env keys,
+  and the `DEFAULT_PROVIDER` env selector are all removed from
+  `src/config/configSchema.ts`, `src/shared/configSchema.ts`,
+  `electron/services/configService.ts`, `.env.example`, and
+  `.config/config.local.yaml`. The 6 VERIFY-033 cases in
+  `src/config/configSchema.test.ts` are removed; the
+  `VERIFY-033` slot is reserved (retired marker) to keep the
+  regression-guard sequence stable.
+- **Audit doc renamed and updated.** `docs/POST_MINIMAX_M3_AUDIT.md`
+  is renamed to `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`; the
+  F-1..F-8 migration follow-up section is replaced with a *Scope
+  Correction* section that documents the removal and points at
+  this ledger for the active state of every follow-up.
+- **F-1..F-8 closed by the single scope-correction decision.**
+  The "F-1 wire MiniMax as a live transport", "F-2 MiniMax SSE
+  streaming parser", "F-3 MiniMax endpoint allowlist", "F-4
+  per-feature flags driven by `PROVIDER_CAPABILITIES`", "F-5
+  chat/image payload builders per provider", "F-6 MiniMax model
+  discovery", "F-7 tests for the MiniMax path", and "F-8
+  documentation refresh" follow-ups are all retired. None of
+  them are open.
+- **Audit/transport docs refreshed.** `AGENTS.md`,
+  `README.md`, `CHANGELOG.md`, the renamed audit doc, and
+  `tests/csp/inlineStyleInvariant.test.ts` all reflect the
+  current "Venice + Jina only" scope and the retired
+  `VERIFY-033` slot.
+- **Deprecated `TABS` constant removed from
+  `src/constants/venice.ts`** (BUG-009 final disposition).
+  The prior audit batch marked it `@deprecated` and pointed at
+  `src/config/tabs.ts`; this commit removes the constant
+  wholesale. A `rg "\\bTABS\\b"` search confirms zero active
+  importers. `VERIFY-022` continues to lock the canonical
+  registry in `src/config/tabs.ts` (the legacy `gallery`
+  alias resolves to the `media` descriptor through the
+  registry, and `CANONICAL_TAB_ORDER` does NOT contain any
+  legacy id). `CHANGELOG.md` and the audit doc's BUG-009
+  entry are updated to reflect the final disposition.
+- **Media Studio dangling-reference automated repair
+  (P3 → VERIFY-035).** The gallery inspector now surfaces a
+  one-click "Missing references" recovery section when a
+  `parentId` or any `childrenIds` entry refers to a record
+  the IDB has confirmed absent. Two single-click repair
+  actions are offered: "Clear parent link" calls `patchMedia`
+  with `{ parentId: null }`; "Clear N missing refs" calls
+  `patchMedia` with the filtered `childrenIds` array. The
+  inspector walks the inspected record's `childrenIds` and
+  runs a deferred `loadById` for each missing id, accumulating
+  confirmed-missing ids in a `missingChildIds` state that is
+  reset whenever the inspected record changes. The
+  `MediaItemPatch` type gains a `childrenIds` field so the
+  same `patch` action handles both repairs. The
+  `gallery-view.test.tsx` test now asserts the section
+  appears, that both buttons call `patchMedia` with the right
+  partial update, and that the recovery flow does not crash
+  the media card after the patch. The P3 *Media Studio
+  dangling-parent repair* item in the Open TODO Ledger is
+  retired.
+
+### Completed this session (2026-06-06 — repo hygiene + CI fix)
+
+- **CI gate — `verify:markdown-links` honours `.gitignore`
+  (VERIFY-034).** Mini-gitignore parser in
+  `scripts/verify-markdown-links.cjs` skips both the Markdown scan
+  root and in-doc link targets that match a pattern in the root
+  `.gitignore`. Unblocks CI on `main` (seven of the last thirty
+  `build-and-test` runs had been failing on the local-only
+  gitignored `docs/AGENTS/AGENTS.md` and
+  `docs/AGENTS/agent-reinitialization.md` being reported as broken).
+  Locked by 2 new test cases in
+  `scripts/verify-markdown-links.test.ts`.
+- **CI hardening — per-job timeouts + concurrency group.** No new
+  behavior; the safety, lint, and typecheck gates are unchanged. The
+  goal is to keep a stuck job from blocking the queue and to prevent
+  parallel re-runs from clobbering artifacts.
+- **Doc consolidation.** 3 stale audit/research docs deleted, 2
+  design-roadmap scratchpads moved to `.gitignore/docs/design/`, 2
+  audit docs get "superseded" headers, 4 user-facing docs refreshed
+  against the canonical tab registry / state row / theme file list,
+  1 user-facing TODO tracker relabelled HISTORICAL. Cross-link fixes
+  in `tests/csp/inlineStyleInvariant.test.ts` and `docs/TODO.md`.
 
 ### P0 — Must fix before release
 
-- None outstanding at the end of the 2026-06-06 audit. The next
-  release-blocking item is F-1 (wire MiniMax as a live transport),
-  but that is a feature migration, not a release blocker for the
-  Venice-only path.
+- None outstanding. The 2026-06-06 round-2 audit batch and its
+  same-day "Venice + Jina only" scope correction both landed
+  today; nothing remains in P0.
 
 ### P1 — Should fix before release
 
-- **F-3 MiniMax endpoint allowlist** — add
-  `ALLOWED_MINIMAX_ENDPOINTS`, `MINIMAX_ENDPOINT_METHODS`, a
-  `validateMiniMaxIpcRequest`, and `/api/minimax/*` proxy routes.
-  Update `verify:safety-guard` to include the new boundary file.
-- **F-1 Wire MiniMax as a live transport** — guarded by F-2/F-3/F-4.
-- **F-4 Per-feature flags driven by `PROVIDER_CAPABILITIES`** — add a
-  hydration-gated helper next to `assertConfigHydratedForSafety`.
+- None outstanding. The last P1 item was F-3 (MiniMax endpoint
+  allowlist), which is closed by the scope correction.
 
 ### P2 — Hardening / follow-up
 
-- **F-2 MiniMax SSE streaming parser** — sibling `extractMiniMaxStreamDelta`
-  with a documented event shape and a synthetic fixture test.
-- **F-5 Chat / image payload builders per provider** — dispatch on
-  `LlmProvider` and emit a `ProviderRequest` discriminated union.
-  Strip `venice_parameters.character_slug` on non-Venice transports.
-- **F-6 MiniMax model discovery** — provider-aware hook in
-  `src/hooks/use-models.ts`; per-provider `FALLBACK_MODELS` tables.
-- **F-7 Tests for the MiniMax path** — extend the
-  `tests/safety/guardPipeline.test.ts` template to cover MiniMax
-  transport dispatch, payload builder shape, and local guard
-  behaviour.
 - **Inspector non-mutating telemetry expansion** — `VERIFY-016`
   currently locks the preview path; the same audit log is the
-  natural place for a per-provider column.
+  natural place for a per-call timing / status column (no
+  per-provider column is needed now that MiniMax is gone).
 
 ### P3 — Polish / backlog
 
-- **F-8 Documentation refresh** — mention the new provider in
-  README / ABOUT / FAQ / REPO TREE / CONFIG; surface the active
-  provider next to the safety toggles in Settings UI.
-- **Media Studio automated repair for dangling parent refs** —
-  the gallery inspector currently surfaces a missing-parent state
-  with no recovery path.
-- **Remove the deprecated `TABS` constant** from
-  `src/constants/venice.ts` once enough time has passed; it's
-  marked `@deprecated` as of 2026-06-06.
+- None outstanding. The last P3 item was the Media Studio dangling-
+  reference automated repair path, which is now implemented and
+  locked by `VERIFY-035` in the same commit.
 
 ---
 
 ## Validation Matrix
 
-> Latest known status of core commands as of the 2026-06-06 audit
-> batch. Update this table only for commands actually run in the
-> current session; "Not yet recorded" is the honest default for a
-> fresh session that hasn't run a given command.
+> Latest known status of core commands as of the 2026-06-06
+> repo-hygiene + CI-fix session. Update this table only for commands
+> actually run in the current session; "Not yet recorded" is the
+> honest default for a fresh session that hasn't run a given
+> command.
 
 | Command                                      | Latest known result | Date       | Notes                              |
 | -------------------------------------------- | ------------------: | ---------- | ---------------------------------- |
 | `npm run lint:eslint`                        |   0 warnings, clean | 2026-06-06 | Zero-warnings enforced (`--max-warnings=0`) |
 | `npx tsc --noEmit -p tsconfig.json`          |   0 errors, clean   | 2026-06-06 | Part of `npm run typecheck`        |
 | `npx tsc --noEmit -p tsconfig.electron.json` |   0 errors, clean   | 2026-06-06 | Part of `npm run typecheck`        |
-| `npm test`                                   | 1220 passed, 1 skipped | 2026-06-06 | Playwright Electron smoke is the 1 skip (no display) |
+| `npm test`                                   | 1217 passed, 1 skipped | 2026-06-06 | Playwright Electron smoke is the 1 skip (no display); -6 (VERIFY-033 retired) + 1 (VERIFY-035 new) = -5 net vs the 2022/1 baseline |
 | `npm run verify:safety-guard`                |   3/3 boundaries pass | 2026-06-06 | No raw prompt logging or safety bypass patterns |
-| `npm run verify:markdown-links`              | 50 Markdown files, no broken links | 2026-06-06 |  |
-| `npm run build`                              |   dist + dist-electron + dist/server.cjs all built | 2026-06-06 |  |
+| `npm run verify:markdown-links`              | 41 Markdown files, no broken links | 2026-06-06 | Down from 42 after the audit-doc rename (`docs/POST_MINIMAX_M3_AUDIT.md` → `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`); 3 deletions + 2 design files gitignored earlier still in effect |
+| `npm run build`                              |   dist + dist-electron + dist/server.cjs all built | 2026-06-06 | Not re-run this session (no source changes affecting build artifacts) |
 
 ---
 

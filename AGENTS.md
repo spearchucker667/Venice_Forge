@@ -165,7 +165,9 @@ test's comment header.
 | `VERIFY-030` | `server.ts` accepts `/characters` and `/characters/{slug}` (canonical `isAllowedVeniceRequest` predicate is the single source of truth, replacing the static allowlist duplicate check). Nested paths return 403, non-GET returns 405, valid GETs reach the upstream proxy. | `server.test.ts` |
 | `VERIFY-031` | `veniceBlob` and `veniceFormData` forward the `AbortSignal` to `desktopVenice.request()` (extension of VERIFY-006) — the IPC layer's `venice:abort` channel is triggered when the caller cancels. | `src/lib/venice-client.test.ts` |
 | `VERIFY-032` | `useMediaStore.loadById(id)` fetches a single record from IDB, migrates it through `migrateGalleryImageToMediaItem`, and merges it into the in-memory cache so the gallery inspector can resolve parent/children that live on a different page. | `src/stores/media-store.test.ts` |
-| `VERIFY-033` | `LlmProvider` / `PROVIDER_CAPABILITIES` / `capabilitiesFor()` defaults to `"venice"`, accepts `"minimax"`, never leaks `minimax_api_key` through the sanitized view. MiniMax is a forward-compat scaffold — no live transport. | `src/config/configSchema.test.ts` |
+| `VERIFY-033` | (Retired) — original guard covered the deprecated MiniMax forward-compat scaffold (`LlmProvider` / `PROVIDER_CAPABILITIES` / `capabilitiesFor()`); the scaffold was removed wholesale in the 2026-06-06 "Venice + Jina only" scope correction. The numeric slot is reserved to keep the regression-guard sequence stable. | — |
+| `VERIFY-034` | `scripts/verify-markdown-links.cjs` (and the `verifyMarkdownLinks()` exported helper) skip link targets that are matched by a pattern in the root `.gitignore` — both for the scan root and for the destination of in-doc links. This is the regression guard for the 2026-06-06 CI failure where `docs/AGENTS/AGENTS.md` and `docs/AGENTS/agent-reinitialization.md` are gitignored local-only handoff notes that never exist in CI. | `scripts/verify-markdown-links.test.ts` |
+| `VERIFY-035` | Media Studio dangling-reference recovery — the gallery inspector surfaces a one-click "Missing references" section when a `parentId` or any `childrenIds` entry refers to a record the IDB has confirmed absent, instead of silently hiding the parent block. "Clear parent link" calls `patchMedia` with `{ parentId: null }`; "Clear N missing refs" calls `patchMedia` with the filtered `childrenIds`. | `src/components/gallery/gallery-view.test.tsx` |
 
 ---
 
@@ -271,7 +273,9 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `src/safetyHydration.ts` | `assertConfigHydratedForSafety` / `getEffectiveRendererLocalFamilySafeModeEnabled` / `ConfigNotHydratedError` — renderer-side hydration gate for safety preflight |
 | `src/shared/veniceSafeMode.ts` | `applyVeniceApiSafeMode` / `endpointSupportsSafeMode` / `VENICE_API_SAFE_MODE_MATRIX` — central provider-side `safe_mode` helper |
 | `electron/services/guardPipeline.ts` | `performGuardedVeniceRequest` / `checkLocalFamilyGuard` / `buildGuardedBlock` — central IPC entry point combining runtime snapshot + local guard |
-| `docs/AUDIT_FOLLOWUP_2026_06_05.md` | 2026-06-05 full-repo audit report — P0/P1/P2 status, commits, follow-up items |
+| `docs/AUDIT_FOLLOWUP_2026_06_05.md` | 2026-06-05 round-1 full-repo audit report — P0/P1/P2 status, commits, follow-up items (historical; superseded by `docs/POST_MINIMAX_M3_AUDIT.md`) |
+| `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` | 2026-06-06 round-2 audit report — bug seeds, regression guards (the original F-1..F-8 MiniMax migration follow-ups were retired on 2026-06-06 when the user corrected scope to Venice + Jina only) |
+| `docs/summary_of_work.md` | Canonical AI/dev-agent session handoff ledger — *Latest Session Summary*, *Session History*, *Open TODO Ledger*, *Validation Matrix* |
 
 ---
 

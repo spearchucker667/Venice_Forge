@@ -288,14 +288,20 @@ Users create custom themes via the ThemeMaker UI. No code changes required.
 | `src/components/ImageGenerationForm.tsx` | Token-based form |
 | `src/components/ImageGenerationPreview.tsx` | Token-based preview |
 | `src/components/ImageActionModal.tsx` | Token-based modal |
-| `src/modules/SettingsModule.tsx` | Integrated ThemeMaker; reskinned settings UI |
-| `src/modules/ChatModule.tsx` | Reskinned chat UI |
-| `src/modules/BatchModule.tsx` | Reskinned batch UI |
-| `src/modules/SearchScrapeModule.tsx` | Reskinned research UI |
-| `src/components/gallery/gallery-view.tsx` | Reskinned Library UI |
-| `src/modules/ImageModule.tsx` | Reskinned image UI |
-| `src/modules/ModelsModule.tsx` | Reskinned models UI |
-| `src/modules/DiagnosticsModule.tsx` | Reskinned diagnostics UI |
+| `src/components/SettingsView.tsx` | Integrated ThemeMaker; reskinned settings UI (replaces historical `src/modules/SettingsModule.tsx`) |
+| `src/components/chat/ChatView.tsx` | Reskinned chat UI (replaces historical `src/modules/ChatModule.tsx`) |
+| `src/components/SearchScrapeView.tsx` | Reskinned research UI (replaces historical `src/modules/SearchScrapeModule.tsx`) |
+| `src/components/gallery/gallery-view.tsx` | Reskinned Media Studio UI (formerly "Library"; canonical tab id is `media`, see `src/config/tabs.ts`) |
+| `src/components/image/ImageView.tsx` | Reskinned image UI (replaces historical `src/modules/ImageModule.tsx`) |
+| `src/components/StatusView.tsx` | Reskinned status UI (replaces historical `src/modules/DiagnosticsModule.tsx`; tab id is `status`) |
+
+> **Note (2026-06-06):** The `src/modules/*Module.tsx` files listed in
+> earlier revisions of this table no longer exist. The components were
+> renamed and reorganised into `src/components/{...}View.tsx` and the
+> `src/components/{chat,image,audio,...}/` subdirectories during the
+> 2026-06-04–05 module refactor. The "Models" tab was removed (model
+> selection now lives inside each studio) and "Batch" was removed in the
+> same pass. The current canonical tab registry is `src/config/tabs.ts`.
 
 ---
 

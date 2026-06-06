@@ -73,6 +73,7 @@ export type MediaItemPatch = Partial<
     | "favorite"
     | "thumbHash"
     | "parentId"
+    | "childrenIds"
     | "operation"
     | "viewCount"
     | "exportedPathToken"

@@ -7,10 +7,60 @@ const SCAN_ROOTS = ["README.md", "CHANGELOG.md", "CONTRIBUTING.md", "AGENTS.md",
 const EXCLUDED_DIRS = new Set(["node_modules", "dist", "dist-electron", "release", "coverage", ".git"]);
 const EXTERNAL_SCHEME_RE = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
 
-function collectMarkdownFiles(rootDir, scanRoots = SCAN_ROOTS) {
+function compileGitignorePattern(rawPattern) {
+  const pattern = rawPattern.trim();
+  if (!pattern || pattern.startsWith("#")) return null;
+
+  const negated = pattern.startsWith("!");
+  const body = negated ? pattern.slice(1) : pattern;
+  const anchored = body.startsWith("/");
+  const cleanBody = anchored ? body.slice(1) : body;
+  const dirOnly = cleanBody.endsWith("/");
+  const glob = dirOnly ? cleanBody.slice(0, -1) : cleanBody;
+
+  if (!glob) return null;
+
+  const regexBody = glob
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*\*/g, "::DOUBLESTAR::")
+    .replace(/\*/g, "[^/]*")
+    .replace(/::DOUBLESTAR::/g, ".*")
+    .replace(/\?/g, "[^/]")
+    .replace(/\{([^}]+)\}/g, (_, group) => `(${group.split(",").join("|")})`);
+
+  const regex = new RegExp(
+    `^${anchored ? "" : "(?:.*/)??"}${regexBody}${dirOnly ? "(?:/|$)" : "$"}`,
+  );
+
+  return { regex, negated, dirOnly };
+}
+
+function loadGitignoreMatcher(rootDir) {
+  const gitignorePath = path.join(rootDir, ".gitignore");
+  if (!fs.existsSync(gitignorePath)) return () => false;
+  const patterns = fs
+    .readFileSync(gitignorePath, "utf8")
+    .split(/\r?\n/)
+    .map(compileGitignorePattern)
+    .filter(Boolean);
+
+  return (absolutePath) => {
+    const relative = path.relative(rootDir, absolutePath).split(path.sep).join("/");
+    if (!relative || relative.startsWith("..")) return false;
+    let ignored = false;
+    for (const { regex, negated } of patterns) {
+      if (regex.test(relative)) ignored = !negated;
+    }
+    return ignored;
+  };
+}
+
+function collectMarkdownFiles(rootDir, scanRoots = SCAN_ROOTS, options = {}) {
+  const isIgnored = options.isIgnored || (() => false);
   const files = [];
 
   const visit = (absolutePath) => {
+    if (isIgnored(absolutePath)) return;
     if (!fs.existsSync(absolutePath)) return;
     const stat = fs.statSync(absolutePath);
     if (stat.isDirectory()) {
@@ -116,7 +166,8 @@ function decodePath(value) {
 }
 
 function verifyMarkdownLinks(rootDir, options = {}) {
-  const files = options.files || collectMarkdownFiles(rootDir, options.scanRoots);
+  const isIgnored = options.isIgnored || (() => false);
+  const files = options.files || collectMarkdownFiles(rootDir, options.scanRoots, { isIgnored });
   const errors = [];
   const anchorCache = new Map();
 
@@ -137,6 +188,7 @@ function verifyMarkdownLinks(rootDir, options = {}) {
         : sourcePath;
       const line = lineNumberAt(stripped, link.index);
 
+      if (isIgnored(targetPath)) continue;
       if (!fs.existsSync(targetPath)) {
         errors.push({ sourcePath, line, destination, reason: "target does not exist" });
         continue;
@@ -159,7 +211,8 @@ function verifyMarkdownLinks(rootDir, options = {}) {
 
 function runCli() {
   const rootDir = path.resolve(__dirname, "..");
-  const result = verifyMarkdownLinks(rootDir);
+  const isIgnored = loadGitignoreMatcher(rootDir);
+  const result = verifyMarkdownLinks(rootDir, { isIgnored });
   if (result.errors.length === 0) {
     console.log(`[verify:markdown-links] OK: ${result.filesChecked} Markdown files checked.`);
     return;
@@ -175,4 +228,12 @@ function runCli() {
 
 if (require.main === module) runCli();
 
-module.exports = { collectAnchors, collectMarkdownFiles, extractLinks, githubSlug, verifyMarkdownLinks };
+module.exports = {
+  collectAnchors,
+  collectMarkdownFiles,
+  compileGitignorePattern,
+  extractLinks,
+  githubSlug,
+  loadGitignoreMatcher,
+  verifyMarkdownLinks,
+};

@@ -91,4 +91,68 @@ describe('MediaStudioView (GalleryView)', () => {
       meta.env.MODE = original.MODE
     }
   })
+
+  // VERIFY-035 regression guard: dangling parent/child references must
+  // surface a one-click "Missing references" recovery section in the
+  // inspector, NOT silently hide the parent block. After confirming
+  // the section, the "Clear parent link" / "Clear missing refs" buttons
+  // call `patchMedia` with the right partial update.
+  it('surfaces a "Missing references" recovery section when the parent record is absent (VERIFY-035)', async () => {
+    const record = {
+      ...sampleRecord,
+      id: 'image-orphan-1',
+      parentId: 'parent-does-not-exist',
+      childrenIds: ['child-does-not-exist-1', 'child-does-not-exist-2'],
+      mediaType: 'image' as const,
+      operation: 'generate' as const,
+      tags: [],
+      note: '',
+      favorite: false,
+    }
+    // Make `patchMedia` return a complete MediaItem (the production
+    // service merges the patch over the existing record). The default
+    // mock spreads `sampleRecord`, which has no `tags` / `childrenIds`
+    // and would crash `<MediaCardImpl>` on the next render.
+    vi.mocked(StorageService.patchMedia).mockImplementation(async (id, patch) => {
+      const existing = useMediaStore.getState().items.find((item) => item.id === id)
+      return {
+        ...(existing as object),
+        ...(patch as object),
+        id,
+      }
+    })
+    vi.mocked(StorageService.getItemsPageWithMeta).mockResolvedValue({
+      items: [record],
+      decryptFailures: 0,
+      total: 1,
+      offset: 0,
+      limit: 60,
+      hasMore: false,
+    })
+    // loadById returns null for every id — both the missing parent
+    // and the two missing children are truly absent from IDB.
+    vi.mocked(StorageService).getItem = vi.fn().mockResolvedValue(null)
+
+    useMediaStore.setState({ items: [record] })
+    render(<GalleryView />)
+    await screen.findByText('Copper city at dusk')
+
+    // Open the inspector by double-clicking the card (the gallery
+    // mounts the side inspector on `onDoubleClick` of the card).
+    fireEvent.doubleClick(screen.getByRole('button', { name: /open image: copper city at dusk/i }))
+    const missingSection = await screen.findByRole('region', { name: 'Missing references' })
+    expect(missingSection).toBeInTheDocument()
+    // The "Clear parent link" button calls patchMedia with parentId: null.
+    const clearParent = screen.getByRole('button', { name: 'Clear parent link' })
+    fireEvent.click(clearParent)
+    await waitFor(() =>
+      expect(StorageService.patchMedia).toHaveBeenCalledWith('image-orphan-1', { parentId: null }),
+    )
+    // The "Clear N missing refs" button is also present (2 missing children).
+    const clearChildren = await screen.findByRole('button', { name: 'Clear 2 missing refs' })
+    fireEvent.click(clearChildren)
+    await waitFor(() =>
+      expect(StorageService.patchMedia).toHaveBeenCalledWith('image-orphan-1', { childrenIds: [] }),
+    )
+  })
 })

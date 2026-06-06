@@ -5,9 +5,18 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { verifyMarkdownLinks } = require("./verify-markdown-links.cjs") as {
-  verifyMarkdownLinks: (root: string, options: { files: string[] }) => {
+const {
+  compileGitignorePattern,
+  loadGitignoreMatcher,
+  verifyMarkdownLinks,
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+} = require("./verify-markdown-links.cjs") as {
+  compileGitignorePattern: (raw: string) => { regex: RegExp; negated: boolean; dirOnly: boolean } | null;
+  loadGitignoreMatcher: (root: string) => (absolutePath: string) => boolean;
+  verifyMarkdownLinks: (
+    root: string,
+    options: { files: string[]; isIgnored?: (absolutePath: string) => boolean; scanRoots?: string[] },
+  ) => {
     filesChecked: number;
     errors: Array<{ destination: string; reason: string }>;
   };
@@ -76,5 +85,45 @@ describe("verifyMarkdownLinks", () => {
     });
 
     expect(verifyMarkdownLinks(root, { files }).errors).toEqual([]);
+  });
+
+  // VERIFY-029 (extension): gitignored paths must be skipped, both as scan roots
+  // and as link targets. The repo gitignores `docs/AGENTS/` and the
+  // `docs/HQE_AUDIT_REPORT.md` scratch audit; links into those paths in
+  // `AGENTS.md` and elsewhere must not be reported as broken.
+  it("skips link targets matched by .gitignore patterns", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "venice-markdown-links-"));
+    tempDirs.push(root);
+    fs.writeFileSync(
+      path.join(root, ".gitignore"),
+      "docs/AGENTS/\nnode_modules/\nbuild/secret.md\n!docs/AGENTS/keep.md\n",
+    );
+    fs.mkdirSync(path.join(root, "docs/AGENTS"), { recursive: true });
+    fs.writeFileSync(path.join(root, "docs/AGENTS/AGENTS.md"), "# Local agent handoff\n");
+    fs.writeFileSync(path.join(root, "AGENTS.md"), "# Agent Guide\n\n[Sibling](docs/AGENTS/AGENTS.md)\n");
+    fs.mkdirSync(path.join(root, "build"), { recursive: true });
+    fs.writeFileSync(path.join(root, "build/secret.md"), "# secret\n");
+    fs.writeFileSync(path.join(root, "README.md"), "[Secret](build/secret.md)\n");
+
+    const isIgnored = loadGitignoreMatcher(root);
+    const result = verifyMarkdownLinks(root, {
+      files: [path.join(root, "AGENTS.md"), path.join(root, "README.md")],
+      isIgnored,
+    });
+
+    expect(result.errors).toEqual([]);
+  });
+
+  it("compileGitignorePattern handles anchoring, negation, and globs", () => {
+    expect(compileGitignorePattern("docs/AGENTS/")?.regex.test("docs/AGENTS/file.md")).toBe(true);
+    expect(compileGitignorePattern("docs/AGENTS/")?.regex.test("docs/AGENTS/sub/nested.md")).toBe(true);
+    expect(compileGitignorePattern("docs/AGENTS/")?.regex.test("docs/other.md")).toBe(false);
+    expect(compileGitignorePattern("/build/icon.png")?.regex.test("build/icon.png")).toBe(true);
+    expect(compileGitignorePattern("/build/icon.png")?.regex.test("src/build/icon.png")).toBe(false);
+    expect(compileGitignorePattern("*.log")?.regex.test("server.log")).toBe(true);
+    expect(compileGitignorePattern("*.log")?.regex.test("logs/2026/server.log")).toBe(true);
+    expect(compileGitignorePattern("")?.negated).toBeUndefined();
+    expect(compileGitignorePattern("   ")?.negated).toBeUndefined();
+    expect(compileGitignorePattern("# comment")?.negated).toBeUndefined();
   });
 });

@@ -240,7 +240,7 @@ For detailed signing and notarization steps, see [docs/RELEASE/signing-and-notar
 
 ### Security audit & regression guards
 
-The codebase is protected by **29 named regression guards** (`VERIFY-001`..`VERIFY-029`) that lock down security-, persistence-, accessibility-, performance-, and documentation-relevant surfaces. Each guard fails CI if a future change weakens the protection:
+The codebase is protected by **34 active named regression guards** (`VERIFY-001`..`VERIFY-032` + `VERIFY-034` + `VERIFY-035`; `VERIFY-033` is retired and reserved) that lock down security-, persistence-, accessibility-, performance-, and documentation-relevant surfaces. Each guard fails CI if a future change weakens the protection:
 
 | ID | Locks | Test file |
 |----|-------|-----------|
@@ -273,8 +273,14 @@ The codebase is protected by **29 named regression guards** (`VERIFY-001`..`VERI
 | `VERIFY-027` | Deferred, pre-indexed full-content conversation search | `src/components/layout/sidebar.test.tsx` |
 | `VERIFY-028` | Timestamp-indexed, paginated encrypted Media Studio reads | `src/services/storageService.test.ts`, `src/stores/media-store.test.ts` |
 | `VERIFY-029` | Local Markdown targets and heading fragments resolve | `scripts/verify-markdown-links.test.ts` |
+| `VERIFY-030` | `server.ts` accepts `/characters` and `/characters/{slug}` via the canonical `isAllowedVeniceRequest` predicate; nested paths return 403, non-GET returns 405 | `server.test.ts` |
+| `VERIFY-031` | `veniceBlob` and `veniceFormData` forward `AbortSignal` to the IPC layer (extension of `VERIFY-006`) | `src/lib/venice-client.test.ts` |
+| `VERIFY-032` | `useMediaStore.loadById(id)` fetches, migrates, and merges a single record from IDB so the gallery inspector resolves lineage across pages | `src/stores/media-store.test.ts` |
+| `VERIFY-033` | (Retired) — original guard covered the deprecated MiniMax forward-compat scaffold (`LlmProvider` / `PROVIDER_CAPABILITIES` / `capabilitiesFor()`); the scaffold was removed wholesale in the 2026-06-06 "Venice + Jina only" scope correction. The numeric slot is reserved to keep the regression-guard sequence stable. | — |
+| `VERIFY-034` | `verify:markdown-links` honours the root `.gitignore` (skips the scan root AND in-doc link targets matched by a gitignore pattern); the regression guard for the 2026-06-06 CI failure where local-only gitignored `docs/AGENTS/*` files were reported as broken | `scripts/verify-markdown-links.test.ts` |
+| `VERIFY-035` | Media Studio dangling-reference recovery — the gallery inspector surfaces a one-click "Missing references" section with "Clear parent link" / "Clear N missing refs" buttons that prune stale lineage pointers in a single IDB write | `src/components/gallery/gallery-view.test.tsx` |
 
-The 2026-06-05 full-repo audit produced these fixes; see [docs/AUDIT_FOLLOWUP_2026_06_05.md](docs/AUDIT_FOLLOWUP_2026_06_05.md) for the full audit report (P0/P1/P2 status, commits, and follow-up items).
+The 2026-06-05 full-repo audit produced these fixes; see [docs/AUDIT_FOLLOWUP_2026_06_05.md](docs/AUDIT_FOLLOWUP_2026_06_05.md) for the full audit report (P0/P1/P2 status, commits, and follow-up items). The 2026-06-06 round-2 audit and 8 named bugs (BUG-001..BUG-006, BUG-008, BUG-009; BUG-007 was originally a MiniMax streaming parser and was retired on 2026-06-06 when the user corrected scope to Venice + Jina only) are documented in [docs/POST_VENICE_JINA_AUDIT_2026_06_06.md](docs/POST_VENICE_JINA_AUDIT_2026_06_06.md). Outstanding P2/P3 work is tracked in the *Open TODO Ledger* of [docs/summary_of_work.md](docs/summary_of_work.md).
 
 ---
 
@@ -406,7 +412,7 @@ This project is actively maintained. For issues, feature requests, or security r
 | Node.js | v20, v22 |
 | TypeScript | Strict mode enforced |
 | Family Safe Mode | ✅ On by default; toggleable to Adult Mode |
-| Test Suite | Full Vitest suite plus 29 named regression guards |
+| Test Suite | Full Vitest suite plus 34 active named regression guards |
 | License | [MIT](LICENSE) |
 
 Latest changes: See [CHANGELOG.md](CHANGELOG.md)
