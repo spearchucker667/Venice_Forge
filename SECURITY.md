@@ -9,7 +9,7 @@ Do not include exploit details, API keys, tokens, or private user data in a publ
 Use one of these routes:
 
 - **GitHub private vulnerability reporting** — If enabled, use the
-  [Security → Report a Vulnerability](../../security/advisories/new) workflow
+  [Security → Report a Vulnerability](https://github.com/spearchucker667/Venice-API-connector/security/advisories/new) workflow
   on the repository. This keeps the report private until a fix is coordinated
   and is the preferred channel.
 - **Issue label routing** — If private reporting is not available, open a

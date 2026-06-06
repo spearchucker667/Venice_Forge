@@ -13,11 +13,11 @@ Venice Forge's existing **Characters** tab discovers characters hosted at `api.v
 | Surface | Description |
 |---|---|
 | **Character Library** | Grid of local character cards with avatar, name, age, description, adult tag, tags. Search & filter. |
-| **Character Editor** | Full editor: name, author, system prompt, description, scenario, tags, example dialogues, avatar upload (PNG/JPEG/WebP ≤ 1 MiB), model selection, adult flag. **Safety guard runs on save.** |
+| **Character Editor** | Full editor: name, author, system prompt, description, scenario, tags, example dialogues, avatar upload (PNG/JPEG/WebP ≤ 1 MiB), model selection, adult flag. Family Safe Mode runs the local preflight on save when enabled; Adult Mode records a skipped local decision. |
 | **Persona Manager** | One or more user personas (name, reference, description, tags). One is "active" per session. |
 | **Lorebook Manager** | World-info books with keyword-triggered entries. Each entry: keys, content, insertion mode (`before_char` / `after_char` / `at_depth`), whole-word match, constant. |
 | **RP Chat** | Multi-character chat (up to 8 active characters per chat). Per-message role: `user` / `character` / `narrator` / `system` / `tool`. Streaming via Venice text models. Family Safe Mode checks each dispatch when enabled; Adult Mode skips the local filter. |
-| **Scene Generator** | Extract a scene prompt from the most recent chat messages (or override), call `/image/generate`, save the asset under `rp_assets` and route the image to `app.getPath("pictures")/Venice Forge/RP/<chatId>/`. **Safety guard runs on every prompt.** |
+| **Scene Generator** | Extract a scene prompt from the most recent chat messages (or override), call `/image/generate`, save the asset under `rp_assets` and route the image to `app.getPath("pictures")/Venice Forge/RP/<chatId>/`. Family Safe Mode evaluates every prompt when enabled; Adult Mode skips the local rules while Venice API Safe Mode remains independent. |
 | **Asset Gallery** | Browse all scene images, filter by chat, preview, delete. |
 | **Prompt Debug Drawer** | Inspect the full prompt assembly: trace (which block was included, why, char count), the assembled system prompt, the recent-message window, and the user message. Pure read-only view; no edits. |
 

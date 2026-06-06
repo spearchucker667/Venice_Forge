@@ -13,7 +13,7 @@ All providers share a common type contract and are consumed through the same UI 
 | Provider | ID | Search | Scrape | Social Discovery | Document Parsing | Requires Key |
 |----------|----|--------|--------|------------------|------------------|--------------|
 | Venice | `venice` | Yes | Yes | No | Yes | Yes (Venice API key) |
-| Jina AI | `jina` | Yes | Yes | Yes | No | Optional (free tier works without) |
+| Jina AI | `jina` | Yes | Yes | No | No | Optional (free tier works without) |
 | Generic HTTP | `generic-http` | No | Yes | No | No | No |
 
 ## Architecture
@@ -75,5 +75,5 @@ The `SearchScrapeModule` renders a provider selector for AI Research with two ex
 
 - All Venice-provider search/scrape traffic respects the existing endpoint allowlist; all research traffic is subject to the content safety guard.
 - The Generic HTTP provider relies on a backend proxy (`app:proxyScrape` in Desktop or `/api/proxy-scrape` in Web) which performs DNS resolution and enforces strict IP filtering prior to fetching, successfully blocking SSRF via custom domains or DNS rebinding.
-- Jina and Generic HTTP responses are stripped of `<script>` and `<style>` tags before display.
+- Generic HTTP HTML is converted to plain text and drops `<script>` / `<style>` bodies. Jina output is rendered as React text/Markdown data rather than injected HTML; it is not passed through the Generic HTTP HTML stripper.
 - No cookies, custom user-agents, or JavaScript execution are performed by any provider.

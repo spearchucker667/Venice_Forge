@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../services/desktopBridge', () => ({
@@ -8,7 +9,8 @@ vi.mock('../../services/desktopBridge', () => ({
 }))
 vi.mock('../../stores/config-store', () => ({ reloadConfig: vi.fn() }))
 
-import { Sidebar } from './sidebar'
+import { buildConversationSearchText, Sidebar } from './sidebar'
+import { useChatStore } from '../../stores/chat-store'
 import { useSettingsStore } from '../../stores/settings-store'
 
 describe('Sidebar controls', () => {
@@ -19,6 +21,11 @@ describe('Sidebar controls', () => {
       redTeamMode: false,
       showInspector: false,
       localFamilySafeModeEnabled: true,
+    })
+    useChatStore.setState({
+      conversations: [],
+      activeConversationId: null,
+      _hasLoadedHistory: true,
     })
   })
 
@@ -47,5 +54,51 @@ describe('Sidebar controls', () => {
 
     fireEvent.click(switches[1])
     expect(useSettingsStore.getState().localFamilySafeModeEnabled).toBe(false)
+  })
+
+  it('lets keyboard users select a conversation from the conversation list', async () => {
+    useChatStore.setState({
+      conversations: [{
+        id: 'chat-1',
+        title: 'Keyboard chat',
+        model: 'test-model',
+        messages: [],
+        createdAt: 1,
+        updatedAt: 1,
+        metadata: { tags: [], pinned: false, archived: false, source: 'chat', messageCount: 0 },
+      }],
+      activeConversationId: null,
+      _hasLoadedHistory: true,
+    })
+
+    render(<Sidebar />)
+    const conversationButton = screen.getByRole('button', { name: 'Keyboard chat' })
+    conversationButton.focus()
+    await userEvent.keyboard('{Enter}')
+
+    expect(useChatStore.getState().activeConversationId).toBe('chat-1')
+  })
+
+  // VERIFY-027: full-content search uses a deferred, precomputed conversation index.
+  it('indexes title, message, and reasoning content for deferred history search', async () => {
+    const conversations = Array.from({ length: 6 }, (_, index) => ({
+      id: `chat-${index}`,
+      title: `Conversation ${index}`,
+      model: 'test-model',
+      messages: index === 5
+        ? [{ id: 'message-1', role: 'assistant' as const, content: 'ordinary answer', reasoning_content: 'hidden copper signal', timestamp: 2 }]
+        : [],
+      createdAt: 1,
+      updatedAt: 1,
+      metadata: { tags: [], pinned: false, archived: false, source: 'chat' as const, messageCount: index === 5 ? 1 : 0 },
+    }))
+    useChatStore.setState({ conversations, activeConversationId: null, _hasLoadedHistory: true })
+
+    render(<Sidebar />)
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search conversations' }), 'copper')
+
+    expect(await screen.findByRole('button', { name: 'Conversation 5' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Conversation 0' })).not.toBeInTheDocument()
+    expect(buildConversationSearchText(conversations[5])).toContain('hidden copper signal')
   })
 })

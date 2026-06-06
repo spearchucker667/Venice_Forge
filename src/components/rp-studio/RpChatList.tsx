@@ -15,6 +15,7 @@ import { MAX_ACTIVE_CHARACTERS, type CharacterCardV1, type LorebookV1, type User
 import { assessCharacterBatchImport } from "../../shared/safety/characterImportSafety";
 import { useSettingsStore } from "../../stores/settings-store";
 import { getEffectiveRendererLocalFamilySafeModeEnabled } from "../../safetyHydration";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 interface Props {
   onOpen: (chatId: string) => void;
@@ -192,8 +193,8 @@ export function RpChatList({ onOpen }: Props) {
       {creating && (
         <NewChatDialog
           onClose={() => setCreating(false)}
-          onCreate={(init) => {
-            const id = useRpChatStore.getState().createChat({
+          onCreate={async (init) => {
+            const id = await useRpChatStore.getState().createChat({
               title: init.title,
               characterIds: init.characterIds,
               personaId: init.personaId,
@@ -202,8 +203,10 @@ export function RpChatList({ onOpen }: Props) {
               scenario: init.scenario,
               adult: init.adult,
             });
-            setCreating(false);
-            onOpen(id);
+            if (id) {
+              setCreating(false);
+              onOpen(id);
+            }
           }}
           cards={cards}
           personas={personas}
@@ -215,7 +218,7 @@ export function RpChatList({ onOpen }: Props) {
   );
 }
 
-function NewChatDialog({
+export function NewChatDialog({
   onClose,
   onCreate,
   cards,
@@ -238,6 +241,10 @@ function NewChatDialog({
   const [scenario, setScenario] = useState("");
   const [error, setError] = useState<string | null>(null);
   const includeAdult = useSettingsStore((s) => s.redTeamMode);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const titleRef = useRef<HTMLInputElement | null>(null);
+
+  useFocusTrap(dialogRef, true, onClose, titleRef);
 
   const visibleCards = useMemo(() => {
     return includeAdult ? cards : cards.filter((c) => !c.adult);
@@ -286,7 +293,14 @@ function NewChatDialog({
   };
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="New RP chat" className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div
+      ref={dialogRef}
+      tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
+      aria-label="New RP chat"
+      className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+    >
       <div className="w-full max-w-2xl max-h-[85%] flex flex-col bg-surface border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden">
         <div className="flex items-center gap-2 px-5 py-3 border-b border-white/[0.06]">
           <h2 className="text-[15px] font-semibold text-white/90">New RP chat</h2>
@@ -300,6 +314,7 @@ function NewChatDialog({
           <div>
             <Label htmlFor="rp-title">Title</Label>
             <input
+              ref={titleRef}
               id="rp-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}

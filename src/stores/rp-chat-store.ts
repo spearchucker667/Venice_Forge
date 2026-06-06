@@ -43,7 +43,7 @@ export interface RpChatState {
     modelId: string;
     scenario?: string;
     adult?: boolean;
-  }) => string;
+  }) => Promise<string | null>;
   setActive: (id: string | null) => void;
   setStreaming: (s: boolean) => void;
   upsert: (chat: RpChatV1) => Promise<RpChatV1 | null>;
@@ -109,7 +109,7 @@ export const useRpChatStore = create<RpChatState>((set, get) => ({
     }
   },
 
-  createChat: ({ title, characterIds, personaId, lorebookIds, modelId, scenario, adult }) => {
+  createChat: async ({ title, characterIds, personaId, lorebookIds, modelId, scenario, adult }) => {
     const id = svcGenerateId();
     const now = Date.now();
     const safeIds = characterIds.slice(0, MAX_ACTIVE_CHARACTERS);
@@ -128,9 +128,16 @@ export const useRpChatStore = create<RpChatState>((set, get) => ({
       createdAt: now,
       updatedAt: now,
     };
-    set((s) => ({ chats: [chat, ...s.chats], activeChatId: id }));
-    void svcSave(chat);
-    return id;
+    try {
+      const saved = await svcSave(chat);
+      set((s) => ({ chats: [saved, ...s.chats], activeChatId: id, error: null }));
+      return id;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      set({ error: msg });
+      toast.error("Could not create RP chat", msg);
+      return null;
+    }
   },
 
   setActive: (id) => set({ activeChatId: id }),

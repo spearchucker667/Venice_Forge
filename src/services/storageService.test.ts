@@ -52,6 +52,21 @@ describe("storageService", () => {
     expect(items[2].prompt).toBe("old");
   });
 
+  // VERIFY-028: encrypted Media Studio reads stay timestamp-ordered and paginated.
+  it("reads encrypted media in timestamp-ordered pages", async () => {
+    for (let timestamp = 1; timestamp <= 5; timestamp += 1) {
+      await StorageService.saveItem("images", { id: `page-${timestamp}`, prompt: `${timestamp}`, timestamp });
+    }
+
+    const first = await StorageService.getItemsPageWithMeta<{ id: string; timestamp: number }>("images", { limit: 2 });
+    const second = await StorageService.getItemsPageWithMeta<{ id: string; timestamp: number }>("images", { offset: 2, limit: 2 });
+
+    expect(first).toMatchObject({ total: 5, offset: 0, limit: 2, hasMore: true, decryptFailures: 0 });
+    expect(first.items.map((item) => item.id)).toEqual(["page-5", "page-4"]);
+    expect(second).toMatchObject({ total: 5, offset: 2, limit: 2, hasMore: true, decryptFailures: 0 });
+    expect(second.items.map((item) => item.id)).toEqual(["page-3", "page-2"]);
+  });
+
   /** Verifies transparent encryption and decryption for sensitive stores. */
   it("encrypts items in encrypted stores", async () => {
     const item = { id: "enc-1", content: "secret" };

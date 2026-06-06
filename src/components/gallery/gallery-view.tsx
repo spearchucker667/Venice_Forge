@@ -22,8 +22,12 @@ function confirmAction(message: string): boolean {
 export function MediaStudioView() {
   const items = useMediaStore((state) => state.items);
   const loading = useMediaStore((state) => state.loading);
+  const loadingMore = useMediaStore((state) => state.loadingMore);
+  const totalCount = useMediaStore((state) => state.totalCount);
+  const hasMore = useMediaStore((state) => state.hasMore);
   const lastError = useMediaStore((state) => state.lastError);
   const refresh = useMediaStore((state) => state.refresh);
+  const loadMore = useMediaStore((state) => state.loadMore);
   const upsert = useMediaStore((state) => state.upsert);
   const patchRecord = useMediaStore((state) => state.patch);
   const remove = useMediaStore((state) => state.remove);
@@ -211,7 +215,7 @@ export function MediaStudioView() {
           </p>
         </div>
         <div className="text-[11.5px] text-text-muted">
-          {items.length} item{items.length === 1 ? "" : "s"} in library
+          {items.length} of {totalCount} item{totalCount === 1 ? "" : "s"} loaded
           {selectedIds.size > 0 && <> · {selectedIds.size} selected</>}
         </div>
       </header>
@@ -257,7 +261,9 @@ export function MediaStudioView() {
                 <p className="mt-1 text-[12.5px] text-text-muted">
                   {items.length === 0
                     ? "Images and videos generated in Image Studio and Video Studio will appear here automatically."
-                    : "Try a different search, filter, or sort."}
+                    : hasMore
+                      ? "Try a different search or filter, or load older items to expand the result set."
+                      : "Try a different search, filter, or sort."}
                 </p>
               </div>
             </div>
@@ -292,6 +298,18 @@ export function MediaStudioView() {
                   />
                 </div>
               ))}
+            </div>
+          )}
+          {hasMore && !loading && (
+            <div className="flex justify-center py-6">
+              <button
+                type="button"
+                onClick={() => void loadMore()}
+                disabled={loadingMore}
+                className="rounded-lg border border-border bg-surface-elevated px-4 py-2 text-[13px] font-medium text-text-primary transition-colors hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-60"
+              >
+                {loadingMore ? "Loading older media…" : `Load more (${Math.max(0, totalCount - items.length)} remaining)`}
+              </button>
             </div>
           )}
         </main>

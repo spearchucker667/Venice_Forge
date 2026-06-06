@@ -62,6 +62,7 @@ npm run typecheck
 # Run tests and security guard verification
 npm test
 npm run verify:safety-guard
+npm run verify:markdown-links
 
 # Build all targets
 npm run build

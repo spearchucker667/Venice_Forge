@@ -9,11 +9,17 @@ import { toast } from './toast-store'
 interface MediaState {
   items: MediaItem[]
   loading: boolean
+  loadingMore: boolean
   loaded: boolean
+  totalCount: number
+  hasMore: boolean
+  nextOffset: number
   lastError: string | null
 
   /** Loads (or refreshes) the in-memory cache from IDB. Idempotent. */
   refresh: () => Promise<void>
+  /** Loads the next timestamp-ordered page without replacing loaded records. */
+  loadMore: () => Promise<void>
   /** Insert or update a single record. Returns the persisted record. */
   upsert: (item: MediaItem) => Promise<MediaItem>
   /** Patch a single record by id. Returns the updated record, or null if missing. */
@@ -39,6 +45,8 @@ interface MediaState {
   parentOf: (id: string) => MediaItem | undefined
 }
 
+export const MEDIA_PAGE_SIZE = 60
+
 function reconcileList(current: MediaItem[], next: MediaItem[]): MediaItem[] {
   // Build a map of incoming items by id; any id present in `next` is considered
   // authoritative. Items only present in `current` (e.g. unrelated records) are
@@ -59,15 +67,26 @@ function reconcileList(current: MediaItem[], next: MediaItem[]): MediaItem[] {
 export const useMediaStore = create<MediaState>((set, get) => ({
   items: [],
   loading: false,
+  loadingMore: false,
   loaded: false,
+  totalCount: 0,
+  hasMore: false,
+  nextOffset: 0,
   lastError: null,
 
   refresh: async () => {
     set({ loading: true, lastError: null })
     try {
-      const raw = await StorageService.getItems<unknown>('images')
-      const items = migrateAll(raw).filter(isMediaItemLike)
-      set({ items, loading: false, loaded: true })
+      const page = await StorageService.getItemsPageWithMeta<unknown>('images', { offset: 0, limit: MEDIA_PAGE_SIZE })
+      const items = migrateAll(page.items).filter(isMediaItemLike)
+      set({
+        items,
+        loading: false,
+        loaded: true,
+        totalCount: page.total,
+        hasMore: page.hasMore,
+        nextOffset: Math.min(page.total, page.offset + page.limit),
+      })
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       set({ loading: false, loaded: true, lastError: msg })
@@ -75,14 +94,47 @@ export const useMediaStore = create<MediaState>((set, get) => ({
     }
   },
 
+  loadMore: async () => {
+    const state = get()
+    if (state.loading || state.loadingMore || !state.hasMore) return
+    set({ loadingMore: true, lastError: null })
+    try {
+      const page = await StorageService.getItemsPageWithMeta<unknown>('images', {
+        offset: state.nextOffset,
+        limit: MEDIA_PAGE_SIZE,
+      })
+      const incoming = migrateAll(page.items).filter(isMediaItemLike)
+      set((current) => {
+        const byId = new Map(current.items.map((item) => [item.id, item]))
+        for (const item of incoming) byId.set(item.id, item)
+        const items = Array.from(byId.values()).sort((a, b) => b.timestamp - a.timestamp)
+        return {
+          items,
+          loadingMore: false,
+          totalCount: page.total,
+          hasMore: page.hasMore,
+          nextOffset: Math.min(page.total, page.offset + page.limit),
+        }
+      })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      set({ loadingMore: false, lastError: msg })
+      toast.error('Media Studio failed to load more', msg)
+    }
+  },
+
   upsert: async (item) => {
+    const alreadyLoaded = get().items.some((existing) => existing.id === item.id)
     const migrated = migrateGalleryImageToMediaItem(item)
     const saved = await StorageService.putMedia<MediaItem>(migrated)
     set((state) => {
       const without = state.items.filter((existing) => existing.id !== saved.id)
       const next = [saved, ...without]
       next.sort((a, b) => b.timestamp - a.timestamp)
-      return { items: next }
+      return {
+        items: next,
+        totalCount: alreadyLoaded ? state.totalCount : state.totalCount + 1,
+      }
     })
     return saved
   },
@@ -111,7 +163,10 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   remove: async (id) => {
     const ok = await StorageService.deleteMedia(id)
     if (ok) {
-      set((state) => ({ items: state.items.filter((item) => item.id !== id) }))
+      set((state) => ({
+        items: state.items.filter((item) => item.id !== id),
+        totalCount: Math.max(0, state.totalCount - 1),
+      }))
     }
     return ok
   },
@@ -120,7 +175,10 @@ export const useMediaStore = create<MediaState>((set, get) => ({
     const removed = await StorageService.deleteMediaMany(ids)
     if (removed > 0) {
       const removedSet = new Set(ids)
-      set((state) => ({ items: state.items.filter((item) => !removedSet.has(item.id)) }))
+      set((state) => ({
+        items: state.items.filter((item) => !removedSet.has(item.id)),
+        totalCount: Math.max(0, state.totalCount - removed),
+      }))
     }
     return removed
   },

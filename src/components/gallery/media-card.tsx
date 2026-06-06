@@ -64,7 +64,7 @@ function MediaCardImpl({
   return (
     <article
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-xl border bg-surface-elevated transition-colors",
+        "media-card-virtualized group relative flex flex-col overflow-hidden rounded-xl border bg-surface-elevated transition-colors",
         active ? "border-accent ring-2 ring-accent/40" : selected ? "border-accent/60" : "border-border hover:border-accent/40",
       )}
     >

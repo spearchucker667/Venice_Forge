@@ -150,7 +150,7 @@ Invalid entries are skipped with a redacted warning in the Settings UI.
 | Renderer never sees raw API keys | IPC returns `secrets.has_venice_api_key: boolean` only |
 | Default config files contain no real keys | Templates ship with empty strings |
 | Plaintext keys imported to `safeStorage` on startup | `electron/services/configService.ts` → `setApiKey/setJinaApiKey` |
-| Plaintext keys redacted after import | `redactKeysInYaml` rewrites `secrets.venice_api_key: ""` unless `keep_plaintext_keys: true` |
+| Plaintext keys redacted after import | `redactKeysInYaml` mutates the parsed YAML document, then an awaited temp-file + rename atomically rewrites the file unless `keep_plaintext_keys: true` |
 | Existing secure-store key is not overwritten | Default: import skipped if key already present |
 | Force overwrite requires explicit flag | `developer.force_import_keys: true` |
 | Remote URLs are rejected | `looksLikeUrl()` returns a `ConfigWarning` and falls back to default |

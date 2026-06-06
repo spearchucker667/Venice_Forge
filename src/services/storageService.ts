@@ -29,6 +29,35 @@ export interface GetItemsResult<T = unknown> {
   decryptFailures: number;
 }
 
+export interface GetItemsPageResult<T = unknown> extends GetItemsResult<T> {
+  total: number;
+  offset: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+async function decodeRows<T>(store: StoreName, rows: Record<string, unknown>[]): Promise<GetItemsResult<T>> {
+  if (!ENCRYPTED_STORES.includes(store)) {
+    return { items: rows as T[], decryptFailures: 0 };
+  }
+
+  const decrypted = await Promise.all(
+    rows.map(async (row) => {
+      if (row._isEncryptedWrapper === true && row.data) return decryptData(row.data);
+      if (row._isEncryptedWrapper === true) return null;
+      return row;
+    }),
+  );
+  const decryptFailures = decrypted.filter((value) => !value).length;
+  if (decryptFailures > 0) {
+    warn(
+      `[storageService] ${decryptFailures} record(s) in "${store}" could not be decrypted and were skipped. ` +
+      "This may indicate key-store loss, data corruption, or a browser/profile reset. The records are still persisted in IndexedDB.",
+    );
+  }
+  return { items: decrypted.filter(Boolean) as T[], decryptFailures };
+}
+
 /**
  * Provides CRUD operations over IndexedDB with automatic encryption for
  * configured object stores.
@@ -105,34 +134,9 @@ const StorageService = {
       const tx = db.transaction(store, "readonly");
       const req = tx.objectStore(store).getAll();
       req.onsuccess = async () => {
-        let results = req.result || [];
-        let decryptFailures = 0;
-        if (ENCRYPTED_STORES.includes(store)) {
-          const decrypted = await Promise.all(
-            results.map(async (row: Record<string, unknown>) => {
-               if (row._isEncryptedWrapper === true && row.data) {
-                  const val = await decryptData(row.data);
-                  return val === null ? null : val;
-               }
-               if (row._isEncryptedWrapper === true) {
-                  return null;
-               }
-               return row;
-            })
-          );
-          // BUG-001: surface silent decrypt failures so the user is aware data
-          // could not be read (e.g. after key-store loss, data corruption, or browser/profile reset).
-          decryptFailures = decrypted.filter((v) => !v).length;
-          if (decryptFailures > 0) {
-            warn(
-              `[storageService] ${decryptFailures} record(s) in "${store}" could not be decrypted and were skipped. ` +
-              "This may indicate key-store loss, data corruption, or a browser/profile reset. The records are still persisted in IndexedDB."
-            );
-          }
-          results = decrypted.filter(Boolean);
-        }
-        const sorted = results.sort((a: { timestamp?: number }, b: { timestamp?: number }) => (b.timestamp || 0) - (a.timestamp || 0));
-        resolve({ items: sorted as T[], decryptFailures });
+        const decoded = await decodeRows<T>(store, (req.result || []) as Record<string, unknown>[]);
+        decoded.items.sort((a, b) => ((b as { timestamp?: number }).timestamp || 0) - ((a as { timestamp?: number }).timestamp || 0));
+        resolve(decoded);
       };
       req.onerror = () => reject(req.error);
     });
@@ -141,6 +145,79 @@ const StorageService = {
   async getItems<T = unknown>(store: StoreName): Promise<T[]> {
     const { items } = await this.getItemsWithMeta<T>(store);
     return items;
+  },
+
+  async getItemsPageWithMeta<T = unknown>(
+    store: StoreName,
+    options: { offset?: number; limit?: number } = {},
+  ): Promise<GetItemsPageResult<T>> {
+    const offset = Math.max(0, Math.floor(options.offset ?? 0));
+    const limit = Math.min(200, Math.max(1, Math.floor(options.limit ?? 60)));
+    const db = await this.openDB();
+    const tx = db.transaction(store, "readonly");
+    const objectStore = tx.objectStore(store);
+
+    if (!objectStore.indexNames.contains("timestamp")) {
+      const result = await this.getItemsWithMeta<T>(store);
+      return {
+        ...result,
+        items: result.items.slice(offset, offset + limit),
+        total: result.items.length,
+        offset,
+        limit,
+        hasMore: offset + limit < result.items.length,
+      };
+    }
+
+    return new Promise((resolve, reject) => {
+      const rows: Record<string, unknown>[] = [];
+      const countRequest = objectStore.count();
+      const cursorRequest = objectStore.index("timestamp").openCursor(null, "prev");
+      let total: number | null = null;
+      let cursorDone = false;
+      let advanced = offset === 0;
+      let settled = false;
+
+      const finish = async () => {
+        if (settled || total === null || !cursorDone) return;
+        settled = true;
+        try {
+          const decoded = await decodeRows<T>(store, rows);
+          resolve({
+            ...decoded,
+            total,
+            offset,
+            limit,
+            hasMore: offset + rows.length < total,
+          });
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      countRequest.onsuccess = () => {
+        total = countRequest.result;
+        void finish();
+      };
+      countRequest.onerror = () => reject(countRequest.error);
+      cursorRequest.onsuccess = () => {
+        const cursor = cursorRequest.result;
+        if (!cursor || rows.length >= limit) {
+          cursorDone = true;
+          void finish();
+          return;
+        }
+        if (!advanced) {
+          advanced = true;
+          cursor.advance(offset);
+          return;
+        }
+        rows.push(cursor.value as Record<string, unknown>);
+        cursor.continue();
+      };
+      cursorRequest.onerror = () => reject(cursorRequest.error);
+      tx.onerror = () => reject(tx.error);
+    });
   },
 
   /**

@@ -18,7 +18,10 @@
 - [x] Triage new audit findings from `docs/AUDIT_TODO.md` when present (None present).
 - [x] Keep README, About, Legal, Repository Tree, and release docs synchronized with implemented features.
 - [x] Keep security tests current for renderer, IPC, proxy, storage, and safety-guard boundaries.
-- [x] Keep UI documentation synchronized with the current Chat/Create/Video/Batch/Research/Catalog/Library/Config/Diagnostics layout.
+- [x] Keep UI documentation synchronized with the canonical Chat/Image/Media Studio/Audio/Music/Video/Embeddings/Research/Characters/RP Studio/Workflows/Playground/Settings/Status layout.
+- [x] Complete the post-audit P2 hardening pass: modal focus management, deferred/indexed sidebar history search, and paginated encrypted Media Studio reads (`VERIFY-026`..`VERIFY-028`).
+- [x] Add a scoped Markdown-link CI guard for local files and heading fragments (`VERIFY-029`).
+- [x] Add and run an isolated 1,000-record Electron Media Studio render/heap profile (`npm run profile:media-studio`).
 
 ## Extensive Roadmap & Future TODOs
 
@@ -30,7 +33,7 @@
 
 ### 2. Frontend / UI Improvements
 - [x] **Memory Management Overhaul:** Enhance the UI for adding, editing, and categorizing AI memories. Add a "Search AI Memory" modal.
-- [x] **Gallery Bulk Actions:** The Library has been rebuilt as Media Studio — multi-select bulk favorite/unstar/delete, filterable by Image/Video/Favorites/Upscaled/Edited, lineage (parent + children) tracking, per-model capability hints, and a tagged/notes inspector. See [`docs/MEDIA_STUDIO.md`](docs/MEDIA_STUDIO.md).
+- [x] **Gallery Bulk Actions:** The Library has been rebuilt as Media Studio — multi-select bulk favorite/unstar/delete, filterable by Image/Video/Favorites/Upscaled/Edited, lineage (parent + children) tracking, per-model capability hints, and a tagged/notes inspector. See [`MEDIA_STUDIO.md`](MEDIA_STUDIO.md).
 - [x] **Theme Customization Panel:** Allow exporting and importing custom themes as standalone JSON files.
 - [x] **Drag & Drop Reordering:** Allow users to drag and drop uploaded files in the Chat attachment tray to dictate context order.
 

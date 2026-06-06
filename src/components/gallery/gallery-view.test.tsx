@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../services/storageService', () => ({
   default: {
-    getItems: vi.fn(),
+    getItemsPageWithMeta: vi.fn(),
     deleteItem: vi.fn(),
     deleteMedia: vi.fn(),
     deleteMediaMany: vi.fn(),
@@ -30,8 +30,13 @@ const sampleRecord = {
 describe('MediaStudioView (GalleryView)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    useMediaStore.setState({ items: [], loading: false, loaded: false, lastError: null })
-    vi.mocked(StorageService.getItems).mockResolvedValue([sampleRecord])
+    useMediaStore.setState({
+      items: [], loading: false, loadingMore: false, loaded: false,
+      totalCount: 0, hasMore: false, nextOffset: 0, lastError: null,
+    })
+    vi.mocked(StorageService.getItemsPageWithMeta).mockResolvedValue({
+      items: [sampleRecord], decryptFailures: 0, total: 1, offset: 0, limit: 60, hasMore: false,
+    })
     vi.mocked(StorageService.deleteMedia).mockResolvedValue(true)
     vi.mocked(StorageService.deleteMediaMany).mockResolvedValue(1)
     vi.mocked(StorageService.patchMedia).mockImplementation(async (id, patch) => ({
@@ -46,7 +51,7 @@ describe('MediaStudioView (GalleryView)', () => {
   it('loads generated images from the images store', async () => {
     render(<GalleryView />)
     expect(await screen.findByText('Copper city at dusk')).toBeInTheDocument()
-    expect(StorageService.getItems).toHaveBeenCalledWith('images')
+    expect(StorageService.getItemsPageWithMeta).toHaveBeenCalledWith('images', { offset: 0, limit: 60 })
   })
 
   it('deletes an image via deleteMedia and removes it from the visible library', async () => {

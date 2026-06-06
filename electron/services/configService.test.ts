@@ -223,13 +223,37 @@ describe("configService initialize", () => {
     process.env.VENICE_FORGE_CONFIG_FILE = envConfig;
     process.env.VENICE_FORGE_THEMES_FILE = envThemes;
 
-    await initializeConfig();
-    // Give the async redaction a chance to complete.
-    await new Promise((r) => setImmediate(r));
+    const status = await initializeConfig();
 
     const after = await fs.readFile(envConfig, "utf-8");
     expect(after).not.toContain("abc-123");
     expect(after).toMatch(/venice_api_key:\s*""/);
+    expect(status.keysRedacted.venice).toBe(true);
+  });
+
+  it("VERIFY-024 does not report successful redaction before the atomic rename completes", async () => {
+    const envConfig = path.join(tmpRoot, "config.yaml");
+    const envThemes = path.join(tmpRoot, "themes.yaml");
+    await writeYaml(envConfig, [
+      "version: 1",
+      "secrets:",
+      "  venice_api_key: \"abc-123\"",
+      "  keep_plaintext_keys: false",
+      "",
+    ].join("\n"));
+    await writeYaml(envThemes, "version: 1\nthemes: {}\n");
+    process.env.VENICE_FORGE_CONFIG_FILE = envConfig;
+    process.env.VENICE_FORGE_THEMES_FILE = envThemes;
+    const renameSpy = vi.spyOn(fs, "rename").mockRejectedValueOnce(new Error("rename failed"));
+
+    const status = await initializeConfig();
+
+    expect(mocks.setApiKey).toHaveBeenCalledWith("abc-123");
+    expect(status.parseError).toContain("rename failed");
+    expect(status.keysRedacted.venice).toBe(false);
+    expect(await fs.readFile(envConfig, "utf-8")).toContain("abc-123");
+    expect((await fs.readdir(tmpRoot)).some((name) => name.includes(".redact-") && name.endsWith(".tmp"))).toBe(false);
+    renameSpy.mockRestore();
   });
 
   it("preserves the plaintext key on disk when keep_plaintext_keys=true", async () => {
@@ -247,7 +271,6 @@ describe("configService initialize", () => {
     process.env.VENICE_FORGE_THEMES_FILE = envThemes;
 
     await initializeConfig();
-    await new Promise((r) => setImmediate(r));
 
     const after = await fs.readFile(envConfig, "utf-8");
     expect(after).toContain("abc-123");

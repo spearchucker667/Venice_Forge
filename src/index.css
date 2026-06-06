@@ -1,3 +1,8 @@
 @import "./styles/theme.css";
 @import "./styles/components.css";
 @import "./styles/accessibility.css";
+/* Avoid layout/paint work for Media Studio cards outside the scroll viewport. */
+.media-card-virtualized {
+  content-visibility: auto;
+  contain-intrinsic-size: 320px;
+}

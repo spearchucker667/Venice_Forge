@@ -45,7 +45,7 @@ npm run config:validate   # Validate the file without launching Electron
 npm run config:print      # Print the sanitized effective config
 ```
 
-For development, see [Development](#-development) or [docs/ABOUT.md](docs/ABOUT.md) for architecture details.
+For development, see [Development](#-development--setup) or [docs/ABOUT.md](docs/ABOUT.md) for architecture details.
 
 ---
 
@@ -134,6 +134,8 @@ npm run dev:web
 | `npm test` | Run all unit and integration tests |
 | `npm run test:watch` | Watch mode for tests |
 | `npm run verify:safety-guard` | **Security gate:** verify safety guard is enforced |
+| `npm run verify:markdown-links` | Validate local Markdown targets and heading fragments |
+| `npm run profile:media-studio` | Profile 1,000 encrypted Media Studio records in isolated Electron |
 | `npm run build` | Build production app (`dist/`, `dist-electron/`) |
 | `npm run clean` | Remove all generated output |
 
@@ -238,7 +240,7 @@ For detailed signing and notarization steps, see [docs/RELEASE/signing-and-notar
 
 ### Security audit & regression guards
 
-The codebase is protected by **13 named regression guards** (`VERIFY-001`..`VERIFY-023`) that lock down the security-relevant surfaces. Each guard fails CI if a future change weakens the protection:
+The codebase is protected by **29 named regression guards** (`VERIFY-001`..`VERIFY-029`) that lock down security-, persistence-, accessibility-, performance-, and documentation-relevant surfaces. Each guard fails CI if a future change weakens the protection:
 
 | ID | Locks | Test file |
 |----|-------|-----------|
@@ -265,6 +267,12 @@ The codebase is protected by **13 named regression guards** (`VERIFY-001`..`VERI
 | `VERIFY-021` | Chat-store dirty-map persistence (active + non-active saves) | `src/stores/chat-store.dirty.test.ts` |
 | `VERIFY-022` | Canonical tab registry + legacy aliases | `src/config/tabs.test.ts` |
 | `VERIFY-023` | `window.__veniceMediaDev` is dev-only | `src/components/gallery/gallery-view.test.tsx` |
+| `VERIFY-024` | Config-key import does not report redaction before the atomic YAML rewrite completes | `electron/services/configService.test.ts` |
+| `VERIFY-025` | RP chat creation appears in UI state only after persistence succeeds | `src/stores/rp-chat-store.test.ts` |
+| `VERIFY-026` | Modal focus trap, initial focus, Escape close, and trigger restoration | `src/hooks/useFocusTrap.test.tsx` |
+| `VERIFY-027` | Deferred, pre-indexed full-content conversation search | `src/components/layout/sidebar.test.tsx` |
+| `VERIFY-028` | Timestamp-indexed, paginated encrypted Media Studio reads | `src/services/storageService.test.ts`, `src/stores/media-store.test.ts` |
+| `VERIFY-029` | Local Markdown targets and heading fragments resolve | `scripts/verify-markdown-links.test.ts` |
 
 The 2026-06-05 full-repo audit produced these fixes; see [docs/AUDIT_FOLLOWUP_2026_06_05.md](docs/AUDIT_FOLLOWUP_2026_06_05.md) for the full audit report (P0/P1/P2 status, commits, and follow-up items).
 
@@ -293,8 +301,8 @@ See [docs/THEME_SYSTEM.md](docs/THEME_SYSTEM.md) for complete theming guide and 
 | **Chat history not loading** | Check chat-history folder (see Storage section); corrupted files are backed up as `.backup-{timestamp}` |
 | **`400` on chat/image requests** | Verify model ID is valid and all parameters are correct strings |
 | **`401` / `403` errors** | Check that your API key is valid and has proper scope |
-| **`429` rate limit** | Wait for reset period (shown in **Diagnostics** tab) |
-| **Transport/connection failure** | Open **Diagnostics**, copy debug info, check logs folder |
+| **`429` rate limit** | Wait for reset period (shown in **Status**) |
+| **Transport/connection failure** | Open **Status**, copy debug info, check logs folder |
 
 For more help, see [docs/DEVELOPMENT/troubleshooting.md](docs/DEVELOPMENT/troubleshooting.md) or open an issue.
 
@@ -397,7 +405,7 @@ This project is actively maintained. For issues, feature requests, or security r
 | Node.js | v20, v22 |
 | TypeScript | Strict mode enforced |
 | Family Safe Mode | ✅ On by default; toggleable to Adult Mode |
-| Test Suite | 1185 passing (+13 named regression guards) |
+| Test Suite | Full Vitest suite plus 29 named regression guards |
 | License | [MIT](LICENSE) |
 
 Latest changes: See [CHANGELOG.md](CHANGELOG.md)

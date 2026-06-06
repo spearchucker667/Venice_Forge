@@ -103,6 +103,17 @@ export const MIGRATIONS: MigrationStep[] = [
       }
     },
   },
+  {
+    toVersion: 6,
+    description: "Add timestamp index for paginated Media Studio reads",
+    up(db, tx) {
+      if (!db.objectStoreNames.contains("images")) return;
+      const store = tx.objectStore("images");
+      if (!store.indexNames.contains("timestamp")) {
+        store.createIndex("timestamp", "timestamp", { unique: false });
+      }
+    },
+  },
 ];
 
 /**

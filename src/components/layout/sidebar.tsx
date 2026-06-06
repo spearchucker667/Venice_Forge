@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useDeferredValue, useMemo, useState } from 'react'
 import { cn } from '../../lib/utils'
 import { useSettingsStore, type Tab } from '../../stores/settings-store'
 import { useChatStore } from '../../stores/chat-store'
@@ -85,6 +85,17 @@ const TAB_ICONS: Record<TabId, () => React.JSX.Element> = {
 }
 
 const GROUP_ORDER: readonly TabGroup[] = ['conversation', 'generate', 'build', 'system']
+const MAX_CONVERSATION_SEARCH_RESULTS = 200
+
+export function buildConversationSearchText(conversation: Conversation): string {
+  return [
+    conversation.title,
+    ...conversation.messages.flatMap((message) => [
+      typeof message.content === 'string' ? message.content : '',
+      typeof message.reasoning_content === 'string' ? message.reasoning_content : '',
+    ]),
+  ].join('\n').toLowerCase()
+}
 
 const navGroups: NavGroup[] = GROUP_ORDER.map((group) => ({
   label: TAB_GROUP_LABELS[group],
@@ -150,21 +161,25 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
     )
   }
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return conversations
-    return conversations.filter((c) => {
-      if (c.title.toLowerCase().includes(q)) return true
-      // Also search message content (and reasoning) so users can find
-      // a conversation by something the assistant said, not just the
-      // first user message that became the title.
-      return c.messages.some(
-        (m) =>
-          (typeof m.content === 'string' && m.content.toLowerCase().includes(q)) ||
-          (typeof m.reasoning_content === 'string' && m.reasoning_content.toLowerCase().includes(q)),
-      )
-    })
-  }, [conversations, search])
+  const deferredSearch = useDeferredValue(search)
+  const searchIndex = useMemo(
+    () => conversations.map((conversation) => ({ conversation, text: buildConversationSearchText(conversation) })),
+    [conversations],
+  )
+  const searchResult = useMemo(() => {
+    const query = deferredSearch.trim().toLowerCase()
+    if (!query) return { conversations, totalMatches: conversations.length }
+
+    const matches: Conversation[] = []
+    let totalMatches = 0
+    for (const entry of searchIndex) {
+      if (!entry.text.includes(query)) continue
+      totalMatches += 1
+      if (matches.length < MAX_CONVERSATION_SEARCH_RESULTS) matches.push(entry.conversation)
+    }
+    return { conversations: matches, totalMatches }
+  }, [conversations, deferredSearch, searchIndex])
+  const filtered = searchResult.conversations
 
   const handleDelete = async (conv: Conversation) => {
     await deleteConversation(conv.id)
@@ -284,12 +299,20 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                 aria-label="Search conversations"
                 className="w-full bg-surface border border-border rounded-md px-2.5 py-1 text-[13px] text-text-primary outline-none focus:border-accent placeholder:text-text-muted"
               />
+              {deferredSearch !== search && (
+                <div role="status" className="pt-1 text-[10.5px] text-text-muted">Searching…</div>
+              )}
+              {deferredSearch.trim() && searchResult.totalMatches > filtered.length && (
+                <div role="status" className="pt-1 text-[10.5px] text-text-muted">
+                  Showing first {filtered.length} of {searchResult.totalMatches} matches
+                </div>
+              )}
             </div>
           )}
           <div className="flex-1 overflow-y-auto px-2 pb-3" role="list">
             {filtered.length === 0 ? (
               <div className="px-2 py-6 text-[13px] text-text-muted text-center">
-                {search ? 'No matches' : 'No conversations yet'}
+                {deferredSearch ? 'No matches' : 'No conversations yet'}
               </div>
             ) : (
               filtered.map((conv) => (
@@ -400,9 +423,15 @@ function ConversationRow({ conv, isActive, onSelect, onDelete, onExport }: {
           ? 'bg-accent/15 text-accent font-semibold'
           : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated/40',
       )}
-      onClick={onSelect}
     >
-      <span className="truncate flex-1">{conv.title || 'Untitled'}</span>
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-current={isActive ? 'page' : undefined}
+        className="min-w-0 flex-1 truncate text-left rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--color-accent)]"
+      >
+        {conv.title || 'Untitled'}
+      </button>
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
         <button
           onClick={(e) => { e.stopPropagation(); onExport() }}

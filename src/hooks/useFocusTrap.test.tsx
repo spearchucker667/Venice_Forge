@@ -3,18 +3,20 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import React, { useRef } from "react";
 import { useFocusTrap } from "./useFocusTrap";
 
-function TestComponent({ active, onClose }: { active: boolean; onClose?: () => void }) {
+function TestComponent({ active, onClose, initialFocus = false }: { active: boolean; onClose?: () => void; initialFocus?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  useFocusTrap(ref, active, onClose);
+  const secondRef = useRef<HTMLButtonElement>(null);
+  useFocusTrap(ref, active, onClose, initialFocus ? secondRef : undefined);
   return (
     <div ref={ref} data-testid="trap">
       <button data-testid="first">First</button>
-      <button data-testid="second">Second</button>
+      <button ref={secondRef} data-testid="second">Second</button>
     </div>
   );
 }
 
 describe("useFocusTrap", () => {
+  // VERIFY-026: modal focus enters the dialog, stays trapped, and returns to its trigger.
   it("focuses the first focusable element when active", () => {
     render(<TestComponent active={true} />);
     expect(document.activeElement).toBe(screen.getByTestId("first"));
@@ -23,6 +25,23 @@ describe("useFocusTrap", () => {
   it("does not interfere when inactive", () => {
     render(<TestComponent active={false} />);
     expect(document.activeElement).not.toBe(screen.getByTestId("first"));
+  });
+
+  it("focuses an explicit initial target when provided", () => {
+    render(<TestComponent active={true} initialFocus />);
+    expect(document.activeElement).toBe(screen.getByTestId("second"));
+  });
+
+  it("restores focus to the previously focused element on unmount", () => {
+    const trigger = document.createElement("button");
+    document.body.appendChild(trigger);
+    trigger.focus();
+    const { unmount } = render(<TestComponent active={true} />);
+
+    unmount();
+
+    expect(document.activeElement).toBe(trigger);
+    trigger.remove();
   });
 
   it("calls onClose when Escape is pressed", () => {

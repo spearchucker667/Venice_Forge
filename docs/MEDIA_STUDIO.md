@@ -16,6 +16,32 @@ In Electron mode the view also has access to a small set of main-process
 affordances for safely moving media on and off the filesystem (export, import,
 reveal in folder, metadata read, content-addressed thumbnail cache).
 
+## Loading and filtering behavior
+
+The encrypted `images` store has a top-level `timestamp` index (IndexedDB schema
+v6). Media Studio reads the newest 60 records first and loads older records in
+explicit 60-record pages. The header reports loaded and total counts.
+
+Search, filters, sort, selection, batch actions, detail navigation, and lineage
+inspection operate on the currently loaded records. Use **Load more** to include
+older records in those operations. Cards outside the scroll viewport use CSS
+`content-visibility` to avoid unnecessary layout and paint work.
+
+### Performance profile
+
+Run `npm run profile:media-studio` for an opt-in Playwright Electron profile.
+The script starts Vite when needed, uses an isolated Electron user-data directory,
+seeds 1,000 AES-GCM encrypted records, verifies the 60-record initial page and
+one 60-record load-more page, and prints timing, heap, DOM, and console-health
+metrics. Screenshots are written to the system temporary directory and profile
+data is deleted after the run.
+
+Two June 6, 2026 development-build runs on Apple Silicon measured 381.5–444.0 ms
+for initial 60-card hydration and 243.9–326.9 ms for load-more. Used JS heap was
+35.3–41.6 MB after initial hydration and 42.4–50.8 MB after 120 cards. These are
+observational baselines, not CI thresholds; hardware, host load, and development
+tooling vary.
+
 ## Data model
 
 `MediaItem` extends the legacy `GalleryImage` shape (which still lives in
@@ -286,9 +312,10 @@ persist.
 - `src/services/mediaMigration.test.ts` — 9 tests (pure migrator)
 - `src/stores/media-store.test.ts` — 16 tests (Zustand store + selectors)
 - `src/utils/mediaItem.test.ts` — 7 tests (capability helper, filename, etc.)
-- `src/components/gallery/gallery-view.test.tsx` — 2 tests (load + delete)
+- `src/components/gallery/gallery-view.test.tsx` — load, delete, and production dev-global gating
 - `src/components/image/image-tools.test.tsx` — 1 test (**VERIFY-020**: persist on save)
 - `electron/services/mediaService.test.ts` — 25 tests (sanitisation, containment, round-trip, thumb cache, sha256)
+- `src/services/storageService.test.ts` and `src/stores/media-store.test.ts` — **VERIFY-028** pagination contract and incremental hydration
 
 Total: 60 new tests across 6 files.
 

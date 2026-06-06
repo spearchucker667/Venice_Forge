@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { ChevronLeft, ChevronRight, Heart, Trash2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Badge } from "../ui/shared";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { mediaItemSource, formatDimensions, formatDuration, isVideoItem } from "../../utils/mediaItem";
 import type { MediaItem } from "../../types/media";
 
@@ -29,6 +30,7 @@ export function MediaDetailDialog({
   onSelect,
 }: MediaDetailDialogProps) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement | null>(null);
   const isVideo = isVideoItem(item);
   const src = mediaItemSource(item);
   const dims = formatDimensions(item);
@@ -39,12 +41,11 @@ export function MediaDetailDialog({
     [allItems, item.id],
   );
 
+  useFocusTrap(overlayRef, true, onClose, closeRef);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onClose();
-      } else if (e.key === "ArrowLeft") {
+      if (e.key === "ArrowLeft") {
         e.preventDefault();
         onNavigate("prev");
       } else if (e.key === "ArrowRight") {
@@ -98,6 +99,7 @@ export function MediaDetailDialog({
               <Trash2 className="h-3.5 w-3.5" /> Delete
             </button>
             <button
+              ref={closeRef}
               type="button"
               onClick={onClose}
               className="rounded-md border border-white/10 px-2 py-1 text-[11.5px] text-text-secondary hover:border-accent hover:text-accent"

@@ -6,11 +6,12 @@
  * entries and memories were injected.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { PromptAssemblyResult, PromptAssemblyTraceEntry } from "../../types/rp";
 import { cn } from "../../lib/utils";
 import { GhostButton, PillGroup, TextArea } from "../ui/shared";
 import { truncate } from "./_shared";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 const KIND_TONE: Record<PromptAssemblyTraceEntry["kind"], string> = {
   "safety-preamble": "border-emerald-400/30 text-emerald-300",
@@ -32,14 +33,19 @@ interface Props {
 
 export function PromptDebugDrawer({ assembly, onClose }: Props) {
   const [view, setView] = useState<"trace" | "system" | "recent" | "user">("trace");
+  const dialogRef = useRef<HTMLDivElement | null>(null);
 
   const totalIncludedChars = useMemo(
     () => assembly.trace.filter((t) => t.included).reduce((acc, t) => acc + t.chars, 0),
     [assembly],
   );
 
+  useFocusTrap(dialogRef, true, onClose);
+
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label="Prompt debug drawer"

@@ -338,12 +338,12 @@ function redactYamlError(err: unknown, filePath: string): string {
 }
 
 /** Performs the API key import/redact pass on the validated config. */
-function importKeys(config: YamlConfig, originalYaml: string | null, filePath: string): {
+async function importKeys(config: YamlConfig, originalYaml: string | null, filePath: string): Promise<{
   config: YamlConfig;
   imported: { venice: boolean; jina: boolean };
   redacted: { venice: boolean; jina: boolean };
   redactedFields: string[];
-} {
+}> {
   const imported = { venice: false, jina: false };
   const redacted = { venice: false, jina: false };
   const redactedFields: string[] = [];
@@ -406,11 +406,18 @@ function importKeys(config: YamlConfig, originalYaml: string | null, filePath: s
     try {
       const redactedYaml = redactKeysInYaml(originalYaml, redacted);
       if (redactedYaml !== originalYaml) {
-        void fs.writeFile(filePath, redactedYaml, { encoding: "utf-8", mode: 0o600 })
-          .catch((err) => logError("Failed to redact keys in config.yaml", String(err)));
+        const tempPath = `${filePath}.redact-${process.pid}-${Date.now()}.tmp`;
+        try {
+          await fs.writeFile(tempPath, redactedYaml, { encoding: "utf-8", mode: 0o600 });
+          await fs.rename(tempPath, filePath);
+        } catch (err) {
+          await fs.rm(tempPath, { force: true }).catch(() => undefined);
+          throw err;
+        }
       }
     } catch (err) {
       logError("Failed to redact keys in config.yaml", String(err));
+      throw new Error(`Failed to redact imported API keys: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
@@ -418,18 +425,21 @@ function importKeys(config: YamlConfig, originalYaml: string | null, filePath: s
   return { config, imported, redacted, redactedFields };
 }
 
-/** Replaces plaintext `venice_api_key` / `jina_api_key` with empty strings in
- *  the original YAML string. Best-effort: if the pattern is not found, the
- *  string is returned unchanged. */
+/** Replaces plaintext API keys with empty strings while preserving the YAML
+ * document structure. Regex replacement is unsafe here because indentation is
+ * semantically significant and quoted values have multiple valid forms. */
 function redactKeysInYaml(raw: string, redacted: { venice: boolean; jina: boolean }): string {
-  let out = raw;
+  const document = yaml.parseDocument(raw);
+  if (document.errors.length > 0) {
+    throw document.errors[0];
+  }
   if (redacted.venice) {
-    out = out.replace(/(^|\n)\s*venice_api_key\s*:\s*["']?[^"'\n#]*["']?/, "$1venice_api_key: \"\"");
+    document.setIn(["secrets", "venice_api_key"], "");
   }
   if (redacted.jina) {
-    out = out.replace(/(^|\n)\s*jina_api_key\s*:\s*["']?[^"'\n#]*["']?/, "$1jina_api_key: \"\"");
+    document.setIn(["secrets", "jina_api_key"], "");
   }
-  return out;
+  return document.toString();
 }
 
 /** Builds the in-memory status snapshot. */
@@ -517,7 +527,11 @@ export async function initializeConfig(): Promise<ConfigStatus> {
         logError("Failed to persist normalised config.yaml", String(err));
       }
       // Import keys (may redact plaintext on disk).
-      const importResult = importKeys(parsed, configRaw.value ? await readFileIfExists(paths.configPath) : null, paths.configPath);
+      const importResult = await importKeys(
+        parsed,
+        configRaw.value ? await readFileIfExists(paths.configPath) : null,
+        paths.configPath,
+      );
       parsed = importResult.config;
       redactedFields = importResult.redactedFields;
       warnings.push(...(await discoverAvailableThemes(paths.themesPath, parsed.theme.active)).warnings);

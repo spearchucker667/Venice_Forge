@@ -99,7 +99,7 @@ export const STORE_NAMES = [
 export const DB_NAME = "venice_canvas_studio_v1";
 
 /** Version of the IndexedDB schema. Bumped to 5 to add Character RP Studio stores. */
-export const DB_VERSION = 5;
+export const DB_VERSION = 6;
 
 /**
  * Known vision-capable model ids and id-patterns.

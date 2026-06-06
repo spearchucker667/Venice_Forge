@@ -22,8 +22,9 @@ npm run lint:eslint          # ESLint — zero warnings enforced (--max-warnings
 npm run typecheck            # Renderer (tsconfig.json) + Electron main (tsconfig.electron.json)
 npm test                     # Vitest, serial (--fileParallelism=false)
 npm run verify:safety-guard  # Mandatory CI gate; see Security below
+npm run verify:markdown-links # Local Markdown files + heading fragments
 npm run build                # dist/ + dist-electron/ + dist/server.cjs
-npm run ci                   # Full parity: npm ci + lint + typecheck + test + safety-guard + build
+npm run ci                   # Full parity including safety + Markdown guards
 ```
 
 ### Single test, single file
@@ -49,6 +50,7 @@ npm run build:web        # Only renderer → dist/ (sets ELECTRON_BUILD=true)
 npm run build:server     # Only proxy → dist/server.cjs
 npm run smoke:electron   # tests/smoke/electron-smoke.test.ts (Playwright; skipped when no display)
 npm run test:coverage    # v8 coverage; thresholds 70/80/80/80
+npm run profile:media-studio # Isolated Electron profile with 1,000 encrypted media records
 npm run verify:dist      # Generic post-package check
 npm run verify:dist:win  # Windows artifacts (NSIS + portable)
 npm run verify:dist:mac  # macOS artifacts (DMG + ZIP, both archs)
@@ -97,7 +99,7 @@ npm run clean            # Remove dist/ dist-electron/ release/
 
 ### Named regression guards (VERIFY-NNN)
 
-Security-relevant surfaces are protected by named regression guards. Each
+Regression-sensitive surfaces are protected by named regression guards. Each
 guard fails CI if a future change weakens the protection. When adding a
 new guard, append it to the list below and reference the ID in the
 test's comment header.
@@ -127,6 +129,12 @@ test's comment header.
 | `VERIFY-021` | Chat-store dirty-map persistence — every conversation mutation (active or not) is captured in the module-level dirty map, `metadata.messageCount` matches `messages.length` after every change, `updatedAt` is bumped on every change, and `flushAllPendingSaves()` writes every dirty id on debounce + `pagehide` + `beforeunload`. Sidebar Undo persists the restored conversation via `restoreConversation()`. | `src/stores/chat-store.dirty.test.ts` |
 | `VERIFY-022` | Canonical tab registry — `gallery` legacy alias resolves to the `media` descriptor, `CANONICAL_TAB_ORDER` does not contain legacy ids, unknown ids fall back to `chat`, and `isTabId` recognises both canonical and legacy ids. | `src/config/tabs.test.ts` |
 | `VERIFY-023` | `window.__veniceMediaDev` is NOT attached when `import.meta.env.DEV` is `false` and `MODE === 'production'` (regression guard for the dev-only window hook in `gallery-view.tsx`). | `src/components/gallery/gallery-view.test.tsx` |
+| `VERIFY-024` | Config-key import redaction is awaited and atomic; initialization cannot report successful redaction before the YAML rewrite completes. | `electron/services/configService.test.ts` |
+| `VERIFY-025` | RP chat creation is persisted before it is published to Zustand/UI state; failed safety hydration or storage writes cannot leave a ghost chat. | `src/stores/rp-chat-store.test.ts` |
+| `VERIFY-026` | Shared modal focus management enters the dialog, traps Tab navigation, closes on Escape, and restores the trigger. | `src/hooks/useFocusTrap.test.tsx` |
+| `VERIFY-027` | Sidebar full-content history search uses a deferred query and a precomputed lowercase conversation index. | `src/components/layout/sidebar.test.tsx` |
+| `VERIFY-028` | Media Studio reads encrypted records through the timestamp index in bounded pages and appends pages without duplicate records. | `src/services/storageService.test.ts`, `src/stores/media-store.test.ts` |
+| `VERIFY-029` | Repository-local Markdown targets and heading fragments resolve; external URLs and GitHub routes remain out of scope. | `scripts/verify-markdown-links.test.ts` |
 
 ---
 
@@ -184,7 +192,7 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `src/research/providers/` | Venice + Jina + generic HTTP scrape (SSRF via `dns.lookup`) |
 | `src/constants/venice.ts` | `FALLBACK_MODELS`, `TABS`, `modelSupportsVision()`, `DB_VERSION`, `STORE_NAMES` |
 | `src/components/{chat,image,audio,music,video,embeddings,workflows,playground,layout,ui}` | Renderer UI: tab views, sidebar, header, dialog, shared primitives |
-| `src/components/gallery/gallery-view.tsx` | Generated-image Library backed by the local `images` store; preview, refresh, download, and delete |
+| `src/components/gallery/gallery-view.tsx` | Media Studio orchestrator backed by the local `images` store; search, filters, batch actions, detail, lineage, export, and delete |
 | `electron/preload.ts` | contextBridge API surface (only place to expose IPC to renderer) |
 | `electron/main.ts` | BrowserWindow + CSP + navigation guards; `requestSingleInstanceLock` |
 | `electron/ipc/handlers.ts` | IPC channel handlers (incl. `venice:request`, `venice:streamChat`, `chat:*`, `app:*`) |
@@ -194,7 +202,7 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `src/services/rp/lorebookService.ts` | Pure lorebook entry evaluator (constant / keyword / whole-word / regex keys, insertion modes) |
 | `src/services/rp/rpMemoryService.ts` | RP memory selection (pinned > character > long-term) with per-scope caps and `RP_MEMORY_MAX_CHARS=2000` budget |
 | `src/services/rp/characterCardService.ts` `personaService.ts` `lorebookRendererService.ts` `rpChatService.ts` `assetService.ts` | Renderer-side wrappers (Electron IPC + web IndexedDB) for local RP storage |
-| `src/services/rp/sceneGenerationService.ts` | Scene prompt extraction + `/image/generate` dispatch with mandatory `assessScenePrompt` boundary check |
+| `src/services/rp/sceneGenerationService.ts` | Scene prompt extraction + `/image/generate` dispatch with hydration-gated `assessScenePrompt`; Adult Mode records a skipped local decision |
 | `src/shared/safety/characterImportSafety.ts` | Thin wrappers routing character/persona/RP-context/scene-prompt inputs to the existing `assessChildExploitationSafety` with correct `source`/`endpoint` |
 | `src/stores/character-card-store.ts` `persona-store.ts` `lorebook-store.ts` `rp-chat-store.ts` `scene-asset-store.ts` | Zustand stores for the RP Studio (lazy-loaded behind `'rp-studio'` tab) |
 | `src/components/rp-studio/` | RP Studio UI: `RpStudioView` orchestrator + `CharacterLibrary`, `CharacterEditor`, `PersonaManager`, `LorebookManager`, `RpChatList`, `RpChatView`, `SceneGenerator`, `AssetGallery`, `PromptDebugDrawer` |
@@ -207,6 +215,8 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `server.ts` | Express proxy (`/api/venice/*`, `/api/proxy-scrape`); vite only in dev |
 | `scripts/verify-safety-guard.cjs` | CI gate — see Security section |
 | `scripts/verify-dist.cjs` | Post-package artifact verification (`verify:dist:win`, `verify:dist:mac`, `verify:dist:portable`) |
+| `scripts/verify-markdown-links.cjs` | CI documentation-link verifier for local files and heading fragments (`verify:markdown-links`) |
+| `scripts/profile-media-studio.mjs` | Opt-in Playwright Electron profile for encrypted Media Studio pagination, heap/DOM metrics, console health, and temporary screenshots |
 | `src/shared/safety/childExploitationGuard.ts` | Public safety-guard API + decision orchestration (T15 split: matchTables + normalization extracted) |
 | `src/shared/safety/localFamilySafeGuard.ts` | Conditional Family Safe Mode pipeline; returns a skipped decision without invoking rules in Adult Mode |
 | `src/shared/safety/matchTables.ts` | Pattern/term dictionaries for the guard (T15) |
@@ -225,6 +235,8 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `tests/safety/inspectorPreview.test.ts` | Inspector non-mutating preview (VERIFY-016) |
 | `tests/safety/hydrationGate.test.ts` | Renderer hydration gate (VERIFY-017) |
 | `tests/safety/veniceSafeMode.test.ts` | Provider `safe_mode` endpoint matrix (VERIFY-018) |
+| `electron/services/configService.test.ts` | Secure config import and awaited atomic key-redaction invariants (VERIFY-024) |
+| `src/stores/rp-chat-store.test.ts` | RP chat creation persistence-before-publication invariant (VERIFY-025) |
 | `src/safetyHydration.ts` | `assertConfigHydratedForSafety` / `getEffectiveRendererLocalFamilySafeModeEnabled` / `ConfigNotHydratedError` — renderer-side hydration gate for safety preflight |
 | `src/shared/veniceSafeMode.ts` | `applyVeniceApiSafeMode` / `endpointSupportsSafeMode` / `VENICE_API_SAFE_MODE_MATRIX` — central provider-side `safe_mode` helper |
 | `electron/services/guardPipeline.ts` | `performGuardedVeniceRequest` / `checkLocalFamilyGuard` / `buildGuardedBlock` — central IPC entry point combining runtime snapshot + local guard |

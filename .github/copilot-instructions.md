@@ -25,15 +25,17 @@ npm run build           # Full build: web (dist/) + Electron main (dist-electron
 npm run build:web       # Renderer build only
 npm run build:server    # Express server bundle only
 npm run build:electron  # Electron main/preload build only
-npm run ci              # CI parity: npm ci + lint:eslint + typecheck + test + verify:safety-guard + build
+npm run ci              # CI parity: install + lint + typecheck + test + safety/docs guards + build
 npm run clean           # Remove dist/, dist-electron/, release/
 npm run dist:win        # Build Windows NSIS + portable installers
 npm run dist:mac        # Build macOS DMG + ZIP archives
 npm run verify:safety-guard  # Mandatory safety guard compliance check (also runs in CI)
+npm run verify:markdown-links # Local Markdown targets + heading fragments (also runs in CI)
+npm run profile:media-studio # Isolated 1,000-record Media Studio Electron profile
 npm run smoke:electron  # Electron smoke tests in tests/smoke/
 ```
 
-Before opening a PR: `npm run lint:eslint`, `npm run typecheck`, `npm test`, `npm run verify:safety-guard`, and `npm run build`.
+Before opening a PR: `npm run lint:eslint`, `npm run typecheck`, `npm test`, `npm run verify:safety-guard`, `npm run verify:markdown-links`, and `npm run build`.
 
 ---
 
@@ -171,13 +173,13 @@ Each tab is a self-contained module file in `src/modules/`. Modules receive `{ s
 
 Image data from the Venice API arrives in several shapes. **Always use `extractImages(payload)`** from `src/utils/image.ts` to normalise the response — it handles `{ data: [{ b64_json }] }`, `{ images: [] }`, bare base64 strings, and URL strings, and deduplicates results.
 
-`GalleryImage` records (defined in `src/types/storage.ts`) are saved via `saveImageRecord()` in `src/services/imageWorkflowService.ts`, which calls `StorageService.saveItem("images", ...)` and then dispatches `SET_GALLERY` to refresh state. Pass `skipRefresh: true` when saving multiple images in a loop, then call `refreshGallery(dispatch)` once at the end.
+Generated images and videos are normalized to `MediaItem` records in the encrypted `images` IndexedDB store. Use `src/stores/media-store.ts`, `src/services/mediaMigration.ts`, and the helpers in `src/utils/mediaItem.ts`; do not reintroduce the retired reducer-driven Gallery flow.
 
-The user-facing Library is `src/components/gallery/gallery-view.tsx`. Keep the `gallery` tab synchronized across the settings-store `Tab` union, sidebar navigation, header metadata, `App.tsx` view map, and exported `TAB_ORDER`.
+The user-facing surface is **Media Studio** in `src/components/gallery/gallery-view.tsx`. The canonical top-level tab id is `media`; `gallery` is a legacy alias only. Keep tab behavior synchronized through `src/config/tabs.ts` (`TAB_IDS`, `TAB_REGISTRY`, and `CANONICAL_TAB_ORDER`) rather than adding parallel tab literals.
 
-Upscaled images are linked to their source via `parentId` on the `GalleryImage` record. The upscale model field defaults to `"upscale-model"`; pass the actual model string in `UpscaleOptions`.
+Lineage uses `parentId` / `childrenIds` on `MediaItem`. Persist image-tool outputs through the Media Studio store with the correct `operation` and durable data URL; never persist transient `blob:` URLs.
 
-Bulk gallery download is capped at 50 images with a 300 ms inter-item delay to avoid freezing the UI. Filenames are built via `galleryFilename(item)` — sanitises model/id to `[a-z0-9_-]` and produces `<model>-<id>.png`.
+Media Studio reads are timestamp-indexed and paginated through `StorageService.getItemsPageWithMeta()` and `useMediaStore.loadMore()`. Keep search, batch, and lineage UI explicit that they operate on loaded records; do not replace the cursor path with `getAll()`.
 
 ---
 

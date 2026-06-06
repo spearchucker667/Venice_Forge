@@ -1,10 +1,22 @@
-import { useEffect, RefObject } from "react";
+import { useEffect, useRef, RefObject } from "react";
 
-export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean = true, onClose?: () => void) {
+export function useFocusTrap(
+  ref: RefObject<HTMLElement | null>,
+  active: boolean = true,
+  onClose?: () => void,
+  initialFocusRef?: RefObject<HTMLElement | null>,
+) {
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!active || !ref.current) return;
 
     const el = ref.current;
+    const previouslyFocused = document.activeElement;
     
     // Find all focusable elements
     const focusableSelectors = [
@@ -21,7 +33,9 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean
 
     // Focus the first element when active
     const focusable = getFocusable();
-    if (focusable.length > 0) {
+    if (initialFocusRef?.current) {
+      initialFocusRef.current.focus();
+    } else if (focusable.length > 0) {
       focusable[0].focus();
     } else {
       // Ensure the container itself can be focused if no children are focusable.
@@ -33,7 +47,7 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (onClose) onClose();
+        onCloseRef.current?.();
         return;
       }
 
@@ -66,6 +80,9 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean
     el.addEventListener('keydown', handleKeyDown);
     return () => {
       el.removeEventListener('keydown', handleKeyDown);
+      if (previouslyFocused instanceof HTMLElement && previouslyFocused.isConnected) {
+        previouslyFocused.focus();
+      }
     };
-  }, [active, ref, onClose]);
+  }, [active, ref, initialFocusRef]);
 }

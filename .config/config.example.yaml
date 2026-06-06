@@ -66,6 +66,10 @@ characters:
   include_adult_characters: false
   default_character_slug: ""
 
+safety:
+  local_family_safe_mode_enabled: true  # false = Adult Mode; skips local rules
+  venice_api_safe_mode: true            # independent provider-side parameter
+
 developer:
   verbose_config_logging: false
   allow_config_key_import: true   # allow YAML secrets to be imported on startup

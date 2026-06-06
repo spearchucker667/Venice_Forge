@@ -104,6 +104,22 @@ describe("applyMigrations()", () => {
     expect(createdNames).not.toContain("ai_memory");
   });
 
+  it("upgrade from v5 to v6 adds the images timestamp index", () => {
+    const db = makeFakeDb([...STORE_NAMES]);
+    const createIndex = vi.fn();
+    const tx = {
+      objectStore: vi.fn(() => ({
+        createIndex,
+        indexNames: { contains: vi.fn(() => false) },
+      })),
+    } as unknown as IDBTransaction;
+
+    applyMigrations(db, tx, 5, 6);
+
+    expect(tx.objectStore).toHaveBeenCalledWith("images");
+    expect(createIndex).toHaveBeenCalledWith("timestamp", "timestamp", { unique: false });
+  });
+
   it("is idempotent: re-running on an already-upgraded DB creates nothing new", () => {
     // DB already has every store
     const db = makeFakeDb([...STORE_NAMES]);

@@ -7,7 +7,19 @@ vi.mock('../services/storageService', () => {
   const store = new Map<string, MediaItem>()
   return {
     default: {
-      getItems: vi.fn(async () => Array.from(store.values())),
+      getItemsPageWithMeta: vi.fn(async (_name: string, options: { offset?: number; limit?: number } = {}) => {
+        const offset = options.offset ?? 0
+        const limit = options.limit ?? 60
+        const all = Array.from(store.values()).sort((a, b) => b.timestamp - a.timestamp)
+        return {
+          items: all.slice(offset, offset + limit),
+          decryptFailures: 0,
+          total: all.length,
+          offset,
+          limit,
+          hasMore: offset + limit < all.length,
+        }
+      }),
       putMedia: vi.fn(async (item: MediaItem) => {
         const next = { ...item, mediaItemVersion: MEDIA_ITEM_VERSION }
         store.set(next.id, next)
@@ -82,7 +94,16 @@ function makeItem(over: Partial<MediaItem> = {}): MediaItem {
 describe('mediaStore', () => {
   beforeEach(() => {
     mockService.__reset()
-    useMediaStore.setState({ items: [], loading: false, loaded: false, lastError: null })
+    useMediaStore.setState({
+      items: [],
+      loading: false,
+      loadingMore: false,
+      loaded: false,
+      totalCount: 0,
+      hasMore: false,
+      nextOffset: 0,
+      lastError: null,
+    })
   })
 
   afterEach(() => {
@@ -117,6 +138,22 @@ describe('mediaStore', () => {
     await useMediaStore.getState().upsert(newer)
     const items = useMediaStore.getState().items
     expect(items.map((i) => i.id)).toEqual(['new', 'old'])
+  })
+
+  // VERIFY-028: Media Studio hydrates incrementally instead of loading the full encrypted store.
+  it('refreshes one page and loadMore appends the next timestamp-ordered page', async () => {
+    for (let index = 0; index < 65; index += 1) {
+      mockService.__seed(makeItem({ id: `item-${index}`, timestamp: index }))
+    }
+
+    await useMediaStore.getState().refresh()
+    expect(useMediaStore.getState()).toMatchObject({ totalCount: 65, hasMore: true, nextOffset: 60 })
+    expect(useMediaStore.getState().items).toHaveLength(60)
+
+    await useMediaStore.getState().loadMore()
+    expect(useMediaStore.getState()).toMatchObject({ totalCount: 65, hasMore: false, nextOffset: 65 })
+    expect(useMediaStore.getState().items).toHaveLength(65)
+    expect(useMediaStore.getState().items[0].id).toBe('item-64')
   })
 
   it('patch() updates only the targeted record', async () => {
