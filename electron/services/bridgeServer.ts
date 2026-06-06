@@ -2,9 +2,9 @@ import express from "express";
 import type { Request, Response } from "express";
 import crypto from "crypto";
 import { Server } from "http";
-import { performVeniceRequest, abortVeniceRequest } from "./veniceClient";
-import { maybeRunLocalFamilyGuard } from "../../src/shared/safety";
-import { getRuntimeLocalFamilySafeModeEnabled } from "./runtimeSafetySettings";
+import { abortVeniceRequest } from "./veniceClient";
+import { SafetyGuardBlockedError } from "../../src/shared/safety";
+import { performGuardedVeniceRequest, checkLocalFamilyGuard } from "./guardPipeline";
 import { logInfo, logError } from "./logger";
 
 const BRIDGE_BODY_LIMIT = "10mb";
@@ -84,25 +84,24 @@ export function startBridgeServer(port = 5062, host = "127.0.0.1"): Promise<stri
         return;
       }
 
-      // Enforce the Safety Guard for POST payloads
+      // P1: streaming requests need a synchronous 451 before any
+      // Content-Type / SSE headers are written, so we pre-check with
+      // checkLocalFamilyGuard. Non-streaming requests are routed through
+      // performGuardedVeniceRequest below, which evaluates the guard
+      // exactly once and emits the canonical 451 shape on block.
       if (method === "POST" && body) {
-        const decision = maybeRunLocalFamilyGuard({
-          endpoint,
-          method,
-          payload: body,
-          source: "ipc", // Authoritative backend main-process context
-        }, getRuntimeLocalFamilySafeModeEnabled());
-
-        if (!decision.allowed) {
-          res.status(451).json({
-            error: {
-              message: decision.userMessage,
-              reasonCode: decision.guardDecision.reasonCode,
-              category: decision.guardDecision.category,
-              severity: decision.guardDecision.severity,
-            },
+        const isStreaming = req.path === "/chat/completions" && body?.stream === true;
+        if (isStreaming) {
+          const block = checkLocalFamilyGuard({
+            endpoint,
+            method,
+            payload: body,
+            source: "ipc", // Authoritative backend main-process context
           });
-          return;
+          if (block) {
+            res.status(451).json(block.body);
+            return;
+          }
         }
       }
 
@@ -143,7 +142,11 @@ export function startBridgeServer(port = 5062, host = "127.0.0.1"): Promise<stri
           req.on("close", onClose);
           res.on("close", onClose);
 
-          const response = await performVeniceRequest(
+          // P1: route streaming through the centralized guardPipeline so any
+          // SafetyGuardBlockedError thrown by performVeniceRequest is converted
+          // into the canonical 451 block shape (defence-in-depth). The pre-check
+          // above catches the common case; this catches the inline case.
+          const result = await performGuardedVeniceRequest(
             {
               endpoint,
               method,
@@ -180,6 +183,17 @@ export function startBridgeServer(port = 5062, host = "127.0.0.1"): Promise<stri
           );
 
           if (clientDisconnected) return;
+
+          if (result.kind === "blocked") {
+            // Streaming 451: write a single SSE error event with the canonical
+            // block body, then end the stream.
+            res.write(`data: ${JSON.stringify({ error: result.block.body })}\n\n`);
+            res.write("data: [DONE]\n\n");
+            res.end();
+            return;
+          }
+
+          const response = result.response;
           if (!response.ok) {
             res.write(`data: ${JSON.stringify({ error: response.body })}\n\n`);
           }
@@ -187,17 +201,35 @@ export function startBridgeServer(port = 5062, host = "127.0.0.1"): Promise<stri
           res.write("data: [DONE]\n\n");
           res.end();
         } else {
-          // Non-streaming request
-          const response = await performVeniceRequest({
+          // Non-streaming request — use the centralized guardPipeline so the
+          // 451 block body is identical to the IPC path.
+          const result = await performGuardedVeniceRequest({
             endpoint,
             method,
             body,
           });
 
-          res.status(response.status).json(response.body);
+          if (result.kind === "blocked") {
+            res.status(result.block.status).json(result.block.body);
+            return;
+          }
+
+          res.status(result.response.status).json(result.response.body);
         }
       } catch (err: unknown) {
         if (requestTimedOut) return;
+        if (err instanceof SafetyGuardBlockedError) {
+          // Defence-in-depth: the guard pipeline should already have converted
+          // this into a 451 block before re-throwing, but a stray throw from
+          // performVeniceRequest is still possible on a future refactor.
+          res.status(451).json({
+            error: err.decision.userMessage,
+            reasonCode: err.decision.reasonCode,
+            category: err.decision.category,
+            severity: err.decision.severity,
+          });
+          return;
+        }
         res.status(500).json({ error: (err as Error).message || String(err) });
       } finally {
         clearTimeout(requestTimeout);

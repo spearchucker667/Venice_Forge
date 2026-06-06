@@ -1,18 +1,34 @@
 /**
- * @fileoverview Safety wrappers for the Character RP Studio. Thin adapters that
- * route user-supplied RP payloads into the existing
- * `assessChildExploitationSafety` guard with the correct `source` / `endpoint`
- * and category surface. The guard logic itself is unchanged.
+ * @fileoverview Safety wrappers for the Character RP Studio.
+ *
+ * Thin adapters that route user-supplied RP payloads into the existing
+ * `assessChildExploitationSafety` rule engine via the conditional
+ * `maybeRunLocalFamilyGuard` pipeline. Each wrapper supplies the correct
+ * `source` / `endpoint` for the audit trail.
+ *
+ * Toggle semantics:
+ *   - When `localFamilySafeModeEnabled === true` (Family Safe Mode):
+ *     `assessChildExploitationSafety` runs and `recordDecision` is called
+ *     automatically by `maybeRunLocalFamilyGuard`. The wrapper returns the
+ *     real `SafetyGuardDecision` produced by the rule engine.
+ *   - When `localFamilySafeModeEnabled === false` (Adult Mode):
+ *     `maybeRunLocalFamilyGuard` returns a synthetic allow decision with
+ *     `reasonCode: "LOCAL_FAMILY_SAFE_MODE_DISABLED"` and the rule engine
+ *     is intentionally NOT invoked. The wrapper returns this synthetic
+ *     decision; the renderer must surface it as "Adult Mode" and never as
+ *     "rule-engine-allowed".
  *
  * All wrappers:
- *   1. Build a payload object the existing extractor understands
- *   2. Call `assessChildExploitationSafety` and return the decision
- *   3. NEVER log raw prompt text
- *   4. Surface only the user-facing message when blocking
+ *   1. Build a payload object the existing extractor understands.
+ *   2. Route through `maybeRunLocalFamilyGuard` (NOT direct
+ *      `assessChildExploitationSafety`).
+ *   3. NEVER log raw prompt text.
+ *   4. Surface only the user-facing message when blocking.
  *
- * Caller responsibilities:
- *   - At every enforcement boundary, call `recordDecision(decision)`
- *   - On `!decision.allow`, throw or refuse the user-visible action
+ * IMPORTANT: Adult Mode bypasses ONLY the local rule engine. The
+ * provider-side `safe_mode` parameter (Venice API Safe Mode) is a
+ * separate control and is not affected by this toggle. See
+ * `src/shared/veniceSafeMode.ts` for the provider-side helper.
  */
 
 import {

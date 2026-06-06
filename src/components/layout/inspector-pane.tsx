@@ -132,21 +132,87 @@ export function InspectorPane() {
                     <span>Local Safety Evaluation</span>
                   </div>
                   <div className="font-mono text-[11px] space-y-0.5 select-text">
-                    <div><span className="text-text-muted">Result:</span> <span className={selectedLog.safetyDecision.allow ? "text-accent font-bold" : "text-danger font-bold"}>{selectedLog.safetyDecision.allow ? "ALLOW" : "BLOCKED"}</span></div>
-                    <div><span className="text-text-muted">Action:</span> {selectedLog.safetyDecision.action}</div>
-                    {selectedLog.safetyDecision.reasonCode && (
-                      <div><span className="text-text-muted">Reason Code:</span> {selectedLog.safetyDecision.reasonCode}</div>
-                    )}
-                    {selectedLog.safetyDecision.signals && selectedLog.safetyDecision.signals.length > 0 && (
-                      <div>
-                        <span className="text-text-muted">Signals:</span>
-                        <div className="pl-2 flex flex-col gap-0.5 mt-0.5 text-text-secondary">
-                          {selectedLog.safetyDecision.signals.map((s, idx) => (
-                            <div key={idx}>• [{s.category}] source: "{s.source}" (severity: {s.severity}, confidence: {s.confidence})</div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    {(() => {
+                      const d = selectedLog.safetyDecision as Record<string, unknown> | null;
+                      if (!d) return null;
+                      // New explicit 3-state preview (InspectorSafetyDecision)
+                      if (d.mode === "family") {
+                        const allowed = d.action === "allow";
+                        return (
+                          <>
+                            <div>
+                              <span className="text-text-muted">Mode:</span>{" "}
+                              <span className="text-accent font-bold">Family Safe Mode (renderer-evaluated)</span>
+                            </div>
+                            <div>
+                              <span className="text-text-muted">Result:</span>{" "}
+                              <span className={allowed ? "text-accent font-bold" : "text-danger font-bold"}>
+                                {allowed ? "ALLOW" : "BLOCKED"}
+                              </span>
+                            </div>
+                            {d.reasonCode ? (
+                              <div><span className="text-text-muted">Reason Code:</span> {String(d.reasonCode)}</div>
+                            ) : null}
+                          </>
+                        );
+                      }
+                      if (d.mode === "adult") {
+                        return (
+                          <>
+                            <div>
+                              <span className="text-text-muted">Mode:</span>{" "}
+                              <span className="text-warning font-bold">Adult Mode (local filter skipped)</span>
+                            </div>
+                            <div>
+                              <span className="text-text-muted">Reason Code:</span>{" "}
+                              {String(d.reasonCode ?? "LOCAL_FAMILY_SAFE_MODE_DISABLED")}
+                            </div>
+                          </>
+                        );
+                      }
+                      if (d.mode === "electron-main-authoritative") {
+                        return (
+                          <>
+                            <div>
+                              <span className="text-text-muted">Mode:</span>{" "}
+                              <span className="text-text-secondary font-bold">Electron main-process authoritative</span>
+                            </div>
+                            <div className="text-text-muted">
+                              The local family-safe guard is enforced by the main process. Open the audit log to inspect the canonical decision.
+                            </div>
+                          </>
+                        );
+                      }
+                      // Backward-compat: legacy SafetyGuardDecision shape
+                      const legacy = selectedLog.safetyDecision as unknown as { allow?: boolean; action?: string; reasonCode?: string; signals?: Array<{ category: string; source: string; severity: string; confidence: number }> };
+                      const allow = legacy.allow !== false;
+                      return (
+                        <>
+                          <div>
+                            <span className="text-text-muted">Result:</span>{" "}
+                            <span className={allow ? "text-accent font-bold" : "text-danger font-bold"}>
+                              {allow ? "ALLOW" : "BLOCKED"}
+                            </span>
+                          </div>
+                          {legacy.action ? (
+                            <div><span className="text-text-muted">Action:</span> {legacy.action}</div>
+                          ) : null}
+                          {legacy.reasonCode ? (
+                            <div><span className="text-text-muted">Reason Code:</span> {legacy.reasonCode}</div>
+                          ) : null}
+                          {legacy.signals && legacy.signals.length > 0 ? (
+                            <div>
+                              <span className="text-text-muted">Signals:</span>
+                              <div className="pl-2 flex flex-col gap-0.5 mt-0.5 text-text-secondary">
+                                {legacy.signals.map((s, idx) => (
+                                  <div key={idx}>• [{s.category}] source: &quot;{s.source}&quot; (severity: {s.severity}, confidence: {s.confidence})</div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               )}

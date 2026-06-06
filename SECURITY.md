@@ -54,6 +54,14 @@ The Jina research provider (`r.jina.ai`/`s.jina.ai`) sends requests via direct
 `SearchScrapeModule.tsx` (both `runAiResearch()` and `runProfileDiscovery()`)
 before any Jina or research dispatch, ensuring this path is also guarded.
 
+> **Web Deployment Warning:** In web mode, Family Safe Mode is controlled by
+> a client-sent header (`X-Venice-Forge-Family-Safe-Mode`). The public web
+> proxy MUST NOT be treated as a child-safe hosted service: a misbehaving
+> client can lie about the toggle and bypass the local filter. Use
+> Electron/local desktop mode for owner-controlled Family Safe Mode
+> behavior. Provider/API restrictions may still apply regardless of Adult
+> Mode.
+
 Safety-guard enforcement is verified by `scripts/verify-safety-guard.cjs`,
 which checks all enforcement boundaries (`veniceClient.ts`, `handlers.ts`,
 `server.ts`, `SearchScrapeModule.tsx`) as a CI gate. Run it with:

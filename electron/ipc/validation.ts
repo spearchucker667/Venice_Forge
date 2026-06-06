@@ -16,14 +16,22 @@ import {
 } from "../../src/shared/validation";
 import { VENICE_API_HOST } from "../../src/shared/apiConfig";
 
-/** Describes a validated Venice IPC request ready for the main process. */
+/** Describes a validated Venice IPC request ready for the main process.
+ *
+ *  P1-015: the `localFamilySafeModeEnabled` field that used to live here was
+ *  REMOVED. The main-process runtime snapshot
+ *  (`electron/services/runtimeSafetySettings.ts`) is the canonical source of
+ *  truth for the local Family Safe Mode toggle, and the centralized
+ *  `electron/services/guardPipeline.ts` reads it directly. Renderer-supplied
+ *  values are ignored. The legacy `localFamilySafeModeEnabled` field on the
+ *  raw IPC input is still accepted (for back-compat with older renderer
+ *  builds) but is intentionally dropped here. */
 export interface VeniceIpcRequest {
   endpoint: string;
   method: VeniceIpcMethod;
   body?: unknown;
   headers?: Record<string, string>;
   signalId?: string;
-  localFamilySafeModeEnabled: boolean;
 }
 
 /** Computes the UTF-8 byte length of a request body. */
@@ -120,9 +128,15 @@ export function validateVeniceIpcRequest(input: unknown): VeniceIpcRequest {
     if (request.signalId.length > 128) throw new Error("Venice signalId is too long.");
   }
 
-  if (request.localFamilySafeModeEnabled !== undefined && typeof request.localFamilySafeModeEnabled !== "boolean") {
-    throw new Error("localFamilySafeModeEnabled must be a boolean.");
-  }
+  // P1-015: the legacy `localFamilySafeModeEnabled` field is accepted on the
+  // raw IPC input for back-compat with older renderer builds but is
+  // intentionally DROPPED here. The main-process runtime snapshot is the
+  // canonical source of truth. We tolerate non-boolean values silently
+  // (no error throw) so a malformed renderer payload cannot trip the
+  // validator. The expression below is intentionally a no-op marker so
+  // older renderer payloads carrying the legacy field do not appear as
+  // "unknown property" warnings in code review.
+  void request.localFamilySafeModeEnabled;
 
   if (endpoint.search.length > 512) {
     throw new Error("Venice endpoint query string is too long.");
@@ -134,6 +148,5 @@ export function validateVeniceIpcRequest(input: unknown): VeniceIpcRequest {
     body: request.body,
     headers,
     signalId: request.signalId,
-    localFamilySafeModeEnabled: request.localFamilySafeModeEnabled !== false,
   };
 }

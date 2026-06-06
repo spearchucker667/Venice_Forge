@@ -117,6 +117,10 @@ test's comment header.
 | `VERIFY-013` | Scene-generation safety + asset persistence (assessScenePrompt always runs; assets linked by chatId) | `tests/safety/sceneGeneration.regression.test.ts` |
 | `VERIFY-014` | Character RP safety wrapper routing (every wrapper produces a real guard decision; no raw prompt text in userMessage) | `tests/safety/characterImportSafety.routing.test.ts` |
 | `VERIFY-015` | Guarded IPC pipeline (`performGuardedVeniceRequest` / `checkLocalFamilyGuard` / `screenResponseBody`) — runtime snapshot is the source of truth, canonical 451 block shape, return-content screening, endpoint matrix lock | `tests/safety/guardPipeline.test.ts` |
+| `VERIFY-016` | Inspector non-mutating preview (`previewLocalFamilyGuard`) — never increments audit counters; Adult Mode shows "skipped"; Electron shows "electron-main-authoritative" | `tests/safety/inspectorPreview.test.ts` |
+| `VERIFY-017` | Renderer hydration gate (`assertConfigHydratedForSafety` / `getEffectiveRendererLocalFamilySafeModeEnabled`) — Electron-mode renderer-side safety preflight throws `ConfigNotHydratedError` until the main-process config snapshot hydrates | `tests/safety/hydrationGate.test.ts` |
+| `VERIFY-018` | Provider `safe_mode` endpoint matrix (`applyVeniceApiSafeMode` / `endpointSupportsSafeMode`) — adds `safe_mode` only for endpoints in the supported set, never mutates input | `tests/safety/veniceSafeMode.test.ts` |
+| `VERIFY-019` | Electron Jina/scrape response-body screening — `screenResponseBody` runs after fetch, returns 451 on block, skips in Adult Mode, never returns raw blocked body | `electron/ipc/handlers.test.ts` |
 
 ---
 
@@ -212,6 +216,11 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `tests/safety/sceneGeneration.regression.test.ts` | Scene-generation safety + assets (VERIFY-013) |
 | `tests/safety/characterImportSafety.routing.test.ts` | Character RP safety wrapper routing (VERIFY-014) |
 | `tests/safety/guardPipeline.test.ts` | Guarded IPC pipeline — runtime snapshot, 451 shape, return-content screening, endpoint matrix (VERIFY-015) |
+| `tests/safety/inspectorPreview.test.ts` | Inspector non-mutating preview (VERIFY-016) |
+| `tests/safety/hydrationGate.test.ts` | Renderer hydration gate (VERIFY-017) |
+| `tests/safety/veniceSafeMode.test.ts` | Provider `safe_mode` endpoint matrix (VERIFY-018) |
+| `src/safetyHydration.ts` | `assertConfigHydratedForSafety` / `getEffectiveRendererLocalFamilySafeModeEnabled` / `ConfigNotHydratedError` — renderer-side hydration gate for safety preflight |
+| `src/shared/veniceSafeMode.ts` | `applyVeniceApiSafeMode` / `endpointSupportsSafeMode` / `VENICE_API_SAFE_MODE_MATRIX` — central provider-side `safe_mode` helper |
 | `electron/services/guardPipeline.ts` | `performGuardedVeniceRequest` / `checkLocalFamilyGuard` / `buildGuardedBlock` — central IPC entry point combining runtime snapshot + local guard |
 | `docs/AUDIT_FOLLOWUP_2026_06_05.md` | 2026-06-05 full-repo audit report — P0/P1/P2 status, commits, follow-up items |
 

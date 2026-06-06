@@ -191,13 +191,14 @@ describe("registerIpcHandlers", () => {
       expect(result).toMatchObject({ ok: true, status: 200 });
     });
 
-    // A2 regression: guard dedup contract
-    it("returns 403 with a synthetic CSAM payload when the guard is mocked to block", async () => {
+    // A2 regression: guard dedup contract — non-trigger payload reaches
+    // the Venice client and returns 200. The real guard does not flag
+    // the synthetic fixture text, so this asserts the non-blocked path.
+    // (The blocked path is covered by the test above.)
+    it("passes a non-trigger payload through the IPC handler to the Venice client", async () => {
       const handler = capturedHandlers.get("venice:request");
       expect(handler).toBeDefined();
 
-      // Use a synthetic payload: structured to look like a chat message but with
-      // content that the (mocked) guard will mark as blocked.
       const result = await handler!(
         { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
         {
@@ -207,12 +208,25 @@ describe("registerIpcHandlers", () => {
         }
       );
 
-      // The real guard (not mocked) does not flag the synthetic fixture text, so
-      // we instead assert the structural contract: when the guard does block,
-      // the response must be 451 with a reasonCode. We verify by running the
-      // real guard against a known trigger via the existing test above; here we
-      // confirm the non-blocked path returns 200.
       expect(result).toMatchObject({ ok: true, status: 200 });
+    });
+
+    // P1-015: renderer-supplied localFamilySafeModeEnabled=false MUST NOT
+    // affect Electron enforcement. The main-process runtime snapshot is
+    // the canonical source. The handler returns 451 because the real
+    // guard flags the trigger regardless of the renderer-supplied flag.
+    it("ignores renderer-supplied localFamilySafeModeEnabled=false in Electron mode", async () => {
+      const handler = capturedHandlers.get("venice:request");
+      const result = await handler!(
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        {
+          endpoint: "/chat/completions",
+          method: "POST",
+          body: { messages: [{ role: "user", content: "loli" }] },
+          localFamilySafeModeEnabled: false,
+        }
+      );
+      expect(result).toMatchObject({ ok: false, status: 451 });
     });
 
     it("calls recordDecision exactly once per IPC guard run", async () => {
@@ -367,6 +381,91 @@ describe("registerIpcHandlers", () => {
 
       expect(result).toMatchObject({ ok: false });
       expect(result.error).toMatch(/must be a string/i);
+    });
+  });
+
+  // P0 #1: Electron Jina/scrape response-body screening. The URL is already
+  // screened before network dispatch; the body returned by the remote
+  // service must also be screened through the runtime snapshot.
+  describe("Electron Jina + scrape response-body screening (VERIFY-019)", () => {
+    let originalFetch: typeof globalThis.fetch | undefined;
+
+    beforeEach(() => {
+      originalFetch = globalThis.fetch;
+    });
+
+    afterEach(async () => {
+      globalThis.fetch = originalFetch;
+      // Reset the runtime mock to its default (Family Safe Mode ON) so
+      // tests outside this describe block are not polluted.
+      const { getRuntimeLocalFamilySafeModeEnabled } = await import("../services/runtimeSafetySettings");
+      vi.mocked(getRuntimeLocalFamilySafeModeEnabled).mockReset();
+      vi.mocked(getRuntimeLocalFamilySafeModeEnabled).mockReturnValue(true);
+    });
+
+    it("blocks a Jina response whose body contains a CSAM trigger", async () => {
+      // Jina: mock fetch returns a body that contains a CSAM trigger term.
+      globalThis.fetch = vi.fn(async () =>
+        new Response(
+          JSON.stringify({ data: "Some content csam more content" }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      ) as unknown as typeof globalThis.fetch;
+
+      const handler = capturedHandlers.get("jina:request");
+      const result = await handler!(
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        { url: "https://r.jina.ai/https://example.com", headers: {}, timeoutMs: 5000 },
+      );
+
+      // Body screen blocks → 451 with the canonical userMessage.
+      expect(result).toMatchObject({ ok: false, status: 451 });
+      expect(result.error).toMatch(/family safe mode/i);
+    });
+
+    it("does NOT return the raw blocked body to the renderer", async () => {
+      globalThis.fetch = vi.fn(async () =>
+        new Response(
+          "loli term should never reach the renderer when blocked",
+          { status: 200, headers: { "content-type": "text/plain" } },
+        ),
+      ) as unknown as typeof globalThis.fetch;
+
+      const handler = capturedHandlers.get("jina:request");
+      const result = await handler!(
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        { url: "https://r.jina.ai/https://example.com", headers: {}, timeoutMs: 5000 },
+      );
+
+      expect(result.status).toBe(451);
+      // The raw body MUST NOT appear in the response — neither as `body`,
+      // `data`, nor any other field.
+      const serialized = JSON.stringify(result);
+      expect(serialized).not.toMatch(/loli term should never reach/i);
+    });
+
+    it("skips body screening in Adult Mode (runtime snapshot OFF)", async () => {
+      const { getRuntimeLocalFamilySafeModeEnabled } = await import("../services/runtimeSafetySettings");
+      // Use mockReturnValue so the URL pre-check + the body screen both
+      // observe Adult Mode.
+      vi.mocked(getRuntimeLocalFamilySafeModeEnabled).mockReturnValue(false);
+
+      // Body is intentionally CSAM-flavoured; Adult Mode must NOT block.
+      globalThis.fetch = vi.fn(async () =>
+        new Response(
+          "csam term in body — should pass in Adult Mode",
+          { status: 200, headers: { "content-type": "text/plain" } },
+        ),
+      ) as unknown as typeof globalThis.fetch;
+
+      const handler = capturedHandlers.get("jina:request");
+      const result = await handler!(
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        { url: "https://r.jina.ai/https://example.com", headers: {}, timeoutMs: 5000 },
+      );
+
+      expect(result.status).toBe(200);
+      expect(result.ok).toBe(true);
     });
   });
 });

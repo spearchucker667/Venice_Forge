@@ -38,8 +38,9 @@ import { redactErrorMessage } from "../../src/services/redaction";
 import { registerUpdateHandlers } from "./updates";
 import { registerRpIpcHandlers } from "./rpHandlers";
 import { VENICE_MAX_BODY_BYTES } from "../../src/shared/limits";
-import { SafetyGuardBlockedError } from "../../src/shared/safety";
+import { SafetyGuardBlockedError, screenResponseBody } from "../../src/shared/safety";
 import { performGuardedVeniceRequest, checkLocalFamilyGuard } from "../services/guardPipeline";
+import { getRuntimeLocalFamilySafeModeEnabled } from "../services/runtimeSafetySettings";
 import type { Conversation } from "../../src/types/conversation";
 import {
   exportConfigTemplate,
@@ -277,6 +278,20 @@ export function registerIpcHandlers(): void {
           ? await response.json().catch(() => null)
           : await response.text();
 
+        // P0/P1-015: screen the returned body through the local Family Safe
+        // Mode guard using the main-process runtime snapshot. The renderer-
+        // supplied `localFamilySafeModeEnabled` is intentionally NOT consulted
+        // here — only the canonical main-process snapshot is authoritative.
+        const serialized = typeof body === "string" ? body : JSON.stringify(body ?? "");
+        const bodyScreen = screenResponseBody(
+          serialized,
+          { endpoint: request.url, method: "GET", source: "ipc" },
+          getRuntimeLocalFamilySafeModeEnabled(),
+        );
+        if (!bodyScreen.allowed) {
+          return { ok: false, status: 451, error: bodyScreen.userMessage };
+        }
+
         return {
           ok: response.ok,
           status: response.status,
@@ -424,6 +439,19 @@ export function registerIpcHandlers(): void {
         request.on("error", reject);
         request.end();
       });
+
+      // P0/P1-015: screen the returned body through the local Family Safe
+      // Mode guard using the main-process runtime snapshot. The URL was
+      // already screened above; this closes the request-side gap by also
+      // gating the body content the renderer would otherwise receive.
+      const bodyScreen = screenResponseBody(
+        scrapeResult.body,
+        { endpoint: url, method: "GET", source: "scrape" },
+        getRuntimeLocalFamilySafeModeEnabled(),
+      );
+      if (!bodyScreen.allowed) {
+        return { ok: false, error: bodyScreen.userMessage };
+      }
 
       return {
         ok: true,

@@ -22,7 +22,7 @@ import { isValidRpId, MAX_ACTIVE_CHARACTERS } from "../../types/rp";
 import { assessRpContext } from "../../shared/safety/characterImportSafety";
 import { SafetyGuardBlockedError } from "../../shared/safety";
 import StorageService from "../storageService";
-import { useSettingsStore } from "../../stores/settings-store";
+import { getEffectiveRendererLocalFamilySafeModeEnabled } from "../../safetyHydration";
 
 const STORE = "rp_chats" as const;
 const ID_RE = isValidRpId;
@@ -91,8 +91,10 @@ export async function readRpChat(id: string): Promise<RpChatV1 | null> {
 
 /** Saves a chat atomically. Generates an id if missing.
  *  Runs `assessRpContext` so persisted content is gated by the safety guard.
- *  Internal callers (e.g. `appendMessage`) use `_unsafeWriteChat` to avoid
- *  re-assessing on every message append. */
+ *  Both `saveRpChat` and `appendMessage` call `assessRpContext` against the
+ *  full chat content + the latest user turn — every public write path runs
+ *  the guard. `_unsafeWriteChat` is the unguarded internal helper used only
+ *  after one of the public functions has already gated the payload. */
 export async function saveRpChat(chat: RpChatV1): Promise<RpChatV1> {
   const now = Date.now();
   const id = chat.id && ID_RE(chat.id) ? chat.id : generateId();
@@ -116,7 +118,7 @@ export async function saveRpChat(chat: RpChatV1): Promise<RpChatV1> {
     rpChat: normalized,
     characters: [], // character card bodies are assessed at character-save time (B1)
     userMessage: lastUser?.content ?? "",
-  }, useSettingsStore.getState().localFamilySafeModeEnabled);
+  }, getEffectiveRendererLocalFamilySafeModeEnabled());
   if (!safety.allow || safety.action === "block") {
     throw new SafetyGuardBlockedError(safety);
   }
@@ -175,7 +177,7 @@ export async function appendMessage(chat: RpChatV1, message: RpMessageV1): Promi
     rpChat: normalized,
     characters: [],
     userMessage: lastUser?.content ?? "",
-  }, useSettingsStore.getState().localFamilySafeModeEnabled);
+  }, getEffectiveRendererLocalFamilySafeModeEnabled());
   if (!safety.allow || safety.action === "block") {
     throw new SafetyGuardBlockedError(safety);
   }

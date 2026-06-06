@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { SafetyGuardDecision } from '../shared/safety'
+import type { InspectorSafetyDecision } from '../services/veniceClient'
 
 export interface InspectorRequestLog {
   id: string
@@ -12,7 +13,12 @@ export interface InspectorRequestLog {
   responseHeaders?: Record<string, string>
   responseBody?: unknown
   durationMs?: number
-  safetyDecision?: SafetyGuardDecision | null
+  // Local Family Safe Mode decision metadata. Either the renderer-side
+  // explicit 3-state preview (`InspectorSafetyDecision`) or, for backward
+  // compatibility with code paths that still record a `SafetyGuardDecision`
+  // (e.g. legacy direct usage), the raw decision object. The inspector UI
+  // must treat the explicit 3-state preview as canonical.
+  safetyDecision?: InspectorSafetyDecision | SafetyGuardDecision | null
   error?: string
 }
 

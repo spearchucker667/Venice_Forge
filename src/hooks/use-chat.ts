@@ -6,6 +6,7 @@ import { useSettingsStore } from '../stores/settings-store'
 import { useCharacterStore } from '../stores/character-store'
 import type { ChatCompletionRequest, ChatMessage, ContentPart, VeniceParameters } from '../types/venice'
 import type { Conversation } from '../types/conversation'
+import { applyVeniceApiSafeMode } from '../shared/veniceSafeMode'
 
 /** Resolves the character slug for a conversation, in priority order:
  *  1. The conversation's persisted character metadata (authoritative).
@@ -71,7 +72,10 @@ export function useChat() {
         delete veniceParamsForRequest.character_slug;
       }
 
-      const body: ChatCompletionRequest = {
+      // Build the base body then route the Venice API Safe Mode flag
+      // through the centralised helper so the endpoint matrix stays the
+      // single source of truth.
+      const baseBody: Record<string, unknown> = {
         model,
         messages: requestMessages,
         stream: true,
@@ -79,8 +83,12 @@ export function useChat() {
         top_p: topP,
         max_tokens: maxTokens,
         venice_parameters: veniceParamsForRequest,
-        safe_mode: useSettingsStore.getState().veniceApiSafeMode,
-      }
+      };
+      const body = applyVeniceApiSafeMode(
+        "/chat/completions",
+        baseBody,
+        useSettingsStore.getState().veniceApiSafeMode,
+      ) as unknown as ChatCompletionRequest;
 
       // Pass body as object (not JSON.stringify): venice() in
       // src/lib/venice-client.ts:17 will JSON.parse it back, and the

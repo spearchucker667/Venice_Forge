@@ -46,6 +46,8 @@ export function SettingsView() {
   // lets the wrapper's onCancel fire the cancel resolution without changing
   // the existing PendingConfirm type.
   const applySafetyCancelRef = useRef<(() => void) | null>(null);
+  const applySafetyTertiaryRef = useRef<(() => void) | null>(null);
+  const applySafetyDismissRef = useRef<(() => void) | null>(null);
 
   // Venice key entry state
   const [apiKeyInput, setApiKeyInput] = useState("");
@@ -322,7 +324,6 @@ export function SettingsView() {
       toast.error(err instanceof Error ? err.message : "Export failed.");
     }
   }
-
   async function importData() {
     try {
       const json = await desktopFiles.importJsonString();
@@ -361,39 +362,58 @@ export function SettingsView() {
 
       const { payload, summary } = validateImportJson(json);
 
+      // P0: parse + extract safety settings BEFORE writing anything.
+      const importedSafetyEntry = payload.data.settings.find((entry) => entry.id === "family-safe-mode-settings");
+      const rawSafety = importedSafetyEntry?.value;
+      const value = rawSafety && typeof rawSafety === "object"
+        ? (rawSafety as Record<string, unknown>)
+        : null;
+      const familyEnabled = value && typeof value.localFamilySafeModeEnabled === "boolean"
+        ? value.localFamilySafeModeEnabled
+        : true;
+      const apiSafeMode = value && typeof value.veniceApiSafeMode === "boolean"
+        ? value.veniceApiSafeMode
+        : true;
+      const wouldDisable = !familyEnabled || !apiSafeMode;
+
+      // P0: explicit 3-way choice — import all / keep current safety / cancel.
+      // No settings are written until the user picks a path.
+      let safetyChoice: "import-all" | "keep-current" | "cancel" = "import-all";
+      if (value && wouldDisable) {
+        safetyChoice = await new Promise<"import-all" | "keep-current" | "cancel">((resolve) => {
+          setPendingConfirm({
+            message:
+              "This backup would change one or more safety settings.",
+            detail:
+              "Family Safe Mode is Venice Forge's local family-oriented filter. " +
+              "Adult Mode bypasses only that local filter. " +
+              "Venice API Safe Mode is a separate provider-side setting and is not affected by Adult Mode. " +
+              "Choose how to handle these imported safety settings.",
+            onConfirm: () => resolve("import-all"),
+          });
+          applySafetyCancelRef.current = null;
+          applySafetyTertiaryRef.current = () => resolve("keep-current");
+          applySafetyDismissRef.current = () => resolve("cancel");
+        });
+        applySafetyCancelRef.current = null;
+        applySafetyTertiaryRef.current = null;
+        applySafetyDismissRef.current = null;
+      }
+
+      if (safetyChoice === "cancel") {
+        toast.info("Import cancelled. No settings were written.");
+        return;
+      }
+
+      // Write non-safety data FIRST so a safety-write failure can't half-import.
       await Promise.all(payload.data.images.map((img) => StorageService.saveItem("images", img)));
       await Promise.all(payload.data.chats.map((chat) => StorageService.saveItem("chats", chat)));
-      await Promise.all(payload.data.settings.map((s) => StorageService.saveItem("settings", s)));
-      const importedSafety = payload.data.settings.find((entry) => entry.id === "family-safe-mode-settings")?.value;
-      if (importedSafety && typeof importedSafety === "object") {
-        const value = importedSafety as Record<string, unknown>;
-        const familyEnabled = typeof value.localFamilySafeModeEnabled === "boolean"
-          ? value.localFamilySafeModeEnabled
-          : true;
-        const apiSafeMode = typeof value.veniceApiSafeMode === "boolean"
-          ? value.veniceApiSafeMode
-          : true;
-        const wouldDisable = !familyEnabled || !apiSafeMode;
-        let applySafety = true;
-        if (wouldDisable) {
-          const confirmed = await new Promise<boolean>((resolve) => {
-            setPendingConfirm({
-              message:
-                "This export turns OFF one or more safety guards. " +
-                "Adult Mode disables the local child-exploitation rule engine and " +
-                "turns off the Venice API safe_mode flag.",
-              detail: "Confirm to apply the imported safety settings, or cancel to keep your current ones.",
-              onConfirm: () => resolve(true),
-            });
-            // Stash a cancel callback so the existing ConfirmModal wrapper
-            // can resolve the promise when the user dismisses the dialog
-            // without applying.
-            applySafetyCancelRef.current = () => resolve(false);
-          });
-          applySafety = confirmed;
-          applySafetyCancelRef.current = null;
-        }
-        if (applySafety) {
+
+      if (safetyChoice === "import-all") {
+        // Persist the imported safety settings alongside the rest of the
+        // settings payload.
+        await Promise.all(payload.data.settings.map((s) => StorageService.saveItem("settings", s)));
+        if (value) {
           setLocalFamilySafeModeEnabled(familyEnabled);
           setVeniceApiSafeMode(apiSafeMode);
           if (isElectron()) {
@@ -405,8 +425,15 @@ export function SettingsView() {
             });
           }
         }
+      } else {
+        // "keep-current": filter out the safety entry from the imported
+        // settings before persisting, then persist the rest. Current safety
+        // state (Zustand + YAML + Electron runtime snapshot) is left alone.
+        const filteredSettings = payload.data.settings.filter((entry) => entry.id !== "family-safe-mode-settings");
+        await Promise.all(filteredSettings.map((s) => StorageService.saveItem("settings", s)));
+        toast.info("Imported data kept current safety settings.");
       }
-      
+
       const convResults = await Promise.all(
         payload.data.conversations.map((conv) => saveConversation(conv as unknown as import("../types/conversation").Conversation))
       );
@@ -432,7 +459,7 @@ export function SettingsView() {
       // Hydrate stores
       const convs = await listConversations();
       useChatStore.setState({ conversations: convs });
-      
+
       toast.success(
         `Imported ${summary.conversationsFound} conversations and ${summary.aiMemoryFound} memories successfully.`
       );
@@ -883,7 +910,13 @@ export function SettingsView() {
         open={!!pendingConfirm}
         message={pendingConfirm?.message || ""}
         detail={pendingConfirm?.detail}
-        confirmLabel="Confirm"
+        confirmLabel="Import all"
+        cancelLabel="Cancel"
+        tertiaryAction={
+          applySafetyTertiaryRef.current
+            ? { label: "Keep current safety", onClick: () => applySafetyTertiaryRef.current?.() }
+            : undefined
+        }
         onConfirm={async () => {
           try {
             await pendingConfirm?.onConfirm();
@@ -893,8 +926,11 @@ export function SettingsView() {
           }
         }}
         onCancel={() => {
+          applySafetyDismissRef.current?.();
           applySafetyCancelRef.current?.();
           applySafetyCancelRef.current = null;
+          applySafetyTertiaryRef.current = null;
+          applySafetyDismissRef.current = null;
           setPendingConfirm(null);
         }}
       />

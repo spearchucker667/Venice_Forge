@@ -14,6 +14,7 @@ import { FALLBACK_MODELS } from "../../constants/venice";
 import { MAX_ACTIVE_CHARACTERS, type CharacterCardV1, type LorebookV1, type UserPersonaV1 } from "../../types/rp";
 import { assessCharacterBatchImport } from "../../shared/safety/characterImportSafety";
 import { useSettingsStore } from "../../stores/settings-store";
+import { getEffectiveRendererLocalFamilySafeModeEnabled } from "../../safetyHydration";
 
 interface Props {
   onOpen: (chatId: string) => void;
@@ -268,7 +269,7 @@ function NewChatDialog({
     }
     const adult = resolvedCards.some((c) => c.adult);
     // Mandatory safety guard for batch character import.
-    const decision = assessCharacterBatchImport(resolvedCards, useSettingsStore.getState().localFamilySafeModeEnabled);
+    const decision = assessCharacterBatchImport(resolvedCards, getEffectiveRendererLocalFamilySafeModeEnabled());
     if (!decision.allow || decision.action === "block") {
       setError(decision.userMessage);
       return;

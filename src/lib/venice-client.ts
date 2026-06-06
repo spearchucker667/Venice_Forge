@@ -1,11 +1,21 @@
 /**
- * SAFETY GUARD CONTRACT: This client delegates to the Electron IPC layer
- * (electron/ipc/handlers.ts). assessChildExploitationSafety() is called
- * in the main process before every outbound Venice request. Do NOT add a
- * duplicate renderer-side guard here — deduplication is by signalId in
- * the IPC handler. Any new function added to this file MUST route through
- * desktopVenice (from src/services/desktopBridge.ts) to preserve this
- * contract. Direct fetch() calls are forbidden.
+ * SAFETY CONTRACT:
+ * - Electron Venice requests route through the desktop IPC layer
+ *   (`electron/ipc/handlers.ts`).
+ * - Electron IPC handlers use `electron/services/guardPipeline.ts` and the
+ *   main-process runtime Family Safe Mode setting
+ *   (`electron/services/runtimeSafetySettings.ts`) as the authoritative
+ *   local filter state. This file MUST NOT run a duplicate renderer-side
+ *   guard in Electron mode.
+ * - The renderer-supplied `localFamilySafeModeEnabled` field is
+ *   intentionally NOT consulted for Electron enforcement — the canonical
+ *   toggle lives in the main process.
+ * - Web mode (non-Electron) does run a renderer-side local guard via
+ *   `maybeRunLocalFamilyGuard` in `src/services/veniceClient.ts`. The
+ *   Express proxy in `server.ts` is the fail-closed backstop.
+ * - All new functions in this file MUST route through `desktopVenice`
+ *   (from `src/services/desktopBridge.ts`) so the IPC layer can enforce.
+ *   Direct `fetch()` calls to Venice are forbidden.
  */
 import { desktopVenice } from '../services/desktopBridge'
 

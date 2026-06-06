@@ -51,6 +51,43 @@ export function maybeRunLocalFamilyGuard(
   return { allowed: true, guardDecision };
 }
 
+/**
+ * Non-mutating preview of the local Family Safe Mode decision. Evaluates the
+ * rule engine the same way `maybeRunLocalFamilyGuard` does, but NEVER calls
+ * `recordDecision`. Use this for inspector / telemetry previews so the
+ * authoritative main-process IPC enforcement path is the sole producer of
+ * audit counters.
+ *
+ * Returning a `skipped: true` decision for Adult Mode is intentional — the
+ * inspector can show the operator that the local filter is disabled without
+ * the renderer pretending to enforce it.
+ */
+export function previewLocalFamilyGuard(
+  input: SafetyGuardInput,
+  localFamilySafeModeEnabled: boolean,
+): LocalGuardDecision {
+  if (!localFamilySafeModeEnabled) {
+    return {
+      allowed: true,
+      skipped: true,
+      reason: "local-family-safe-mode-disabled",
+    };
+  }
+
+  const guardDecision = runLocalFamilyGuard(input);
+  if (!guardDecision.allow || guardDecision.action === "block") {
+    return {
+      allowed: false,
+      reason: guardDecision.reasonCode,
+      ruleId: guardDecision.reasonCode,
+      userMessage: FAMILY_SAFE_MODE_BLOCK_MESSAGE,
+      guardDecision,
+    };
+  }
+
+  return { allowed: true, guardDecision };
+}
+
 export type ResponseBodyScreenResult =
   | { allowed: true; skipped: boolean; reason?: string }
   | { allowed: false; reason: string; ruleId?: string; userMessage: string };

@@ -8,7 +8,7 @@ import type { VeniceForgeResponse } from "../types/desktop";
 import type { DiagnosticsEntry } from "../types/venice";
 import type { AppDispatch } from "../types/app";
 import { MIB, VENICE_MAX_RAW_UPLOAD_BYTES, VENICE_MAX_SERIALIZED_UPLOAD_BYTES } from "../shared/limits";
-import { maybeRunLocalFamilyGuard, SafetyGuardBlockedError } from "../shared/safety";
+import { maybeRunLocalFamilyGuard, previewLocalFamilyGuard, SafetyGuardBlockedError } from "../shared/safety";
 import { useInspectorStore } from "../stores/inspector-store";
 import { useSettingsStore } from "../stores/settings-store";
 
@@ -56,14 +56,75 @@ function sanitizeBody(body: unknown): unknown {
   return body;
 }
 
-function getSafetyDecisionForLog(endpoint: string, method: string, payload: unknown) {
-  if (method !== "POST" || payload === undefined) return null;
-  const decision = maybeRunLocalFamilyGuard(
+/**
+ * Structured metadata describing the local Family Safe Mode decision for a
+ * given Venice request, as seen by the renderer-side inspector. This shape
+ * is renderer-local telemetry only — the authoritative enforcement path is
+ * the main-process IPC handler (`electron/services/guardPipeline.ts`).
+ *
+ * Three explicit states are emitted so the inspector UI never has to
+ * distinguish "skipped because Adult Mode" from "deferred because Electron":
+ *
+ * - `mode: "family"` — Family Safe Mode is on. The local classifier ran
+ *   and either allowed or blocked.
+ * - `mode: "adult"` — Family Safe Mode is off (Adult Mode). The local
+ *   classifier was intentionally skipped.
+ * - `mode: "electron-main-authoritative"` — Renderer in Electron mode.
+ *   The main-process IPC handler is the sole authority; the renderer
+ *   MUST NOT execute the local classifier and MUST NOT mutate audit
+ *   counters for this request.
+ */
+export type InspectorSafetyDecision =
+  | {
+      layer: "local-family-safe-mode";
+      mode: "family";
+      action: "allow" | "block";
+      reasonCode?: string;
+    }
+  | {
+      layer: "local-family-safe-mode";
+      mode: "adult";
+      action: "skipped";
+      reasonCode: "LOCAL_FAMILY_SAFE_MODE_DISABLED";
+    }
+  | {
+      layer: "local-family-safe-mode";
+      mode: "electron-main-authoritative";
+      action: "deferred";
+    };
+
+/**
+ * Returns a non-mutating preview of the local Family Safe Mode decision for
+ * inspector logging. In Electron mode the renderer is NEVER authoritative —
+ * the main-process IPC handler is. In web mode the renderer's local
+ * classifier is the only enforcement, so we evaluate it via the
+ * `previewLocalFamilyGuard` helper (which runs the rule engine but does
+ * NOT call `recordDecision`).
+ *
+ * The shape returned is always one of the three `InspectorSafetyDecision`
+ * variants above, so the inspector UI can render every state without
+ * resorting to `null`.
+ */
+function getSafetyDecisionForLog(endpoint: string, method: string, payload: unknown): InspectorSafetyDecision {
+  if (isElectron()) {
+    return { layer: "local-family-safe-mode", mode: "electron-main-authoritative", action: "deferred" };
+  }
+  if (method !== "POST" || payload === undefined) {
+    return { layer: "local-family-safe-mode", mode: "electron-main-authoritative", action: "deferred" };
+  }
+  // Web mode: the renderer is the only enforcement layer. Use the
+  // non-mutating preview so we never double-count.
+  const decision = previewLocalFamilyGuard(
     { endpoint, method, payload, source: "venice-client" },
     useSettingsStore.getState().localFamilySafeModeEnabled,
   );
-  if (decision.skipped) return null;
-  return decision.guardDecision ?? null;
+  if (decision.allowed && decision.skipped) {
+    return { layer: "local-family-safe-mode", mode: "adult", action: "skipped", reasonCode: "LOCAL_FAMILY_SAFE_MODE_DISABLED" };
+  }
+  if (!decision.allowed) {
+    return { layer: "local-family-safe-mode", mode: "family", action: "block", reasonCode: decision.reason };
+  }
+  return { layer: "local-family-safe-mode", mode: "family", action: "allow" };
 }
 
 /** Maximum raw upload file size accepted by the renderer. */

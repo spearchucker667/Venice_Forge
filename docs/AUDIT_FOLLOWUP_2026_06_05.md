@@ -410,4 +410,87 @@ findings are resolved in this single batch; `VERIFY-015`
 
 ---
 
-**Last verified:** 2026-06-05T22:05:00Z against v1.0.5
+## Round-4 Family Safe Mode hardening follow-up (2026-06-05)
+
+Self-audit of the round-3 commit `68880fb1` (Family Safe Mode / Adult Mode
+refactor). All findings resolved in this batch; 4 new regression guards
+(`VERIFY-016`..`VERIFY-019`).
+
+### P0 — Resolved in this batch
+
+#### Electron Jina/scrape response-body screening
+- **Location:** `electron/ipc/handlers.ts` (`jina:request`, `app:proxyScrape`).
+- **Description:** Web mode screens returned bodies; Electron did not. A
+  fetched body that contained a CSAM trigger reached the renderer.
+- **Fix:** `screenResponseBody(serialized, context, getRuntimeLocalFamilySafeModeEnabled())`
+  added after `fetch`/scrape, returning 451 on block. Verified by
+  VERIFY-019 in `electron/ipc/handlers.test.ts`.
+
+#### Inspector / audit double-run
+- **Location:** `src/services/veniceClient.ts:59` `getSafetyDecisionForLog`.
+- **Description:** The function called `maybeRunLocalFamilyGuard` which
+  records decisions. In Electron, the IPC handler also records — this
+  caused the inspector preflight to double-count audit counters.
+- **Fix:** Added `previewLocalFamilyGuard` in
+  `src/shared/safety/localFamilySafeGuard.ts` (non-mutating; runs the
+  rule engine but does NOT call `recordDecision`). Inspector now uses
+  the preview and returns one of three explicit
+  `InspectorSafetyDecision` states: `family.allow`, `family.block`,
+  `adult.skipped`, `electron-main-authoritative.deferred`. VERIFY-016.
+
+#### Renderer hydration drift for RP/card/persona/scene
+- **Location:** `src/services/rp/*`, `src/components/rp-studio/*`.
+- **Description:** Renderer-side preflight boundaries read
+  `useSettingsStore.getState().localFamilySafeModeEnabled` directly,
+  which can disagree with the main-process snapshot before config
+  hydrates.
+- **Fix:** Added `src/safetyHydration.ts` with
+  `assertConfigHydratedForSafety()` and
+  `getEffectiveRendererLocalFamilySafeModeEnabled()`. The four
+  renderer-side preflight services + two UI components now route
+  through the helper. In Electron mode the helper throws
+  `ConfigNotHydratedError` until the main-process snapshot hydrates.
+  VERIFY-017.
+
+#### Import safety confirmation order + wording
+- **Location:** `src/components/SettingsView.tsx` `importData`.
+- **Description:** The import flow wrote imported settings BEFORE
+  prompting; the prompt copy incorrectly said "Adult Mode disables
+  the local child-exploitation rule engine and turns off the Venice
+  API safe_mode flag" (Adult Mode only bypasses the local filter).
+- **Fix:** Refactored to extract safety settings first, prompt with
+  three explicit choices (Import all / Keep current safety / Cancel),
+  and write nothing until the user picks. Modal copy now uses the
+  canonical wording (FSM / AM / VASM are three separate controls).
+  Added a `tertiaryAction` prop to `ConfirmModal` for the third button.
+
+### P1 — Resolved in this batch
+
+- **Bridge server 451 shape centralization:** `bridgeServer.ts` now
+  routes through `performGuardedVeniceRequest` and `checkLocalFamilyGuard`
+  so the bridge 451 body matches the IPC body exactly.
+- **Removed `localFamilySafeModeEnabled` from `VeniceIpcRequest`:** the
+  field is no longer accepted in the validated type. A
+  `void request.localFamilySafeModeEnabled` no-op marker is left in
+  the validator to document the back-compat tolerance.
+- **Provider `safe_mode` endpoint matrix:** added
+  `src/shared/veniceSafeMode.ts` with `applyVeniceApiSafeMode`,
+  `endpointSupportsSafeMode`, and `VENICE_API_SAFE_MODE_MATRIX`.
+  `buildChatPayload`, `buildImagePayload`, and the streaming
+  `use-chat.ts` hook now route through the helper. VERIFY-018.
+- **Stale comments fix:** rewrote the safety-guard contract headers
+  in `src/lib/venice-client.ts`, `src/shared/safety/characterImportSafety.ts`,
+  and the RP chat service file header.
+
+### Coverage lock
+
+`tests/safety/inspectorPreview.test.ts` (6 cases),
+`tests/safety/hydrationGate.test.ts` (4 cases),
+`tests/safety/veniceSafeMode.test.ts` (10 cases), and the
+`Electron Jina + scrape response-body screening` describe block in
+`electron/ipc/handlers.test.ts` (3 cases) cover the round-4
+invariants. Test count: 1082 → 1106 (+24 new tests).
+
+---
+
+**Last verified:** 2026-06-05T23:25:00Z against v1.0.5

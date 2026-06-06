@@ -32,6 +32,7 @@ import { isElectron, desktopVenice } from "../desktopBridge";
 import { readCharacterCard } from "./characterCardService";
 import { saveAsset } from "./assetService";
 import { useSettingsStore } from "../../stores/settings-store";
+import { getEffectiveRendererLocalFamilySafeModeEnabled } from "../../safetyHydration";
 
 const RECENT_WINDOW = 8;
 /** Default model when none is supplied. */
@@ -86,7 +87,7 @@ export async function generateScene(
   const model = req.model ?? DEFAULT_IMAGE_MODEL;
 
   // 1. Local Family Safe Mode guard (skipped when Adult Mode is on).
-  const localFamilySafeModeEnabled = useSettingsStore.getState().localFamilySafeModeEnabled;
+  const localFamilySafeModeEnabled = getEffectiveRendererLocalFamilySafeModeEnabled();
   const veniceApiSafeMode = useSettingsStore.getState().veniceApiSafeMode;
   const decision = assessScenePrompt(prompt, req.negativePrompt, localFamilySafeModeEnabled);
   if (!decision.allow) {

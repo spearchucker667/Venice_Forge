@@ -28,6 +28,7 @@ export type { GuardAuditSnapshot } from "./guardAudit";
 export {
   FAMILY_SAFE_MODE_BLOCK_MESSAGE,
   maybeRunLocalFamilyGuard,
+  previewLocalFamilyGuard,
   runLocalFamilyGuard,
   screenResponseBody,
 } from "./localFamilySafeGuard";

@@ -14,6 +14,8 @@ interface ConfirmModalProps {
   cancelLabel?: string;
   /** Tone for the confirm button: "danger" renders a red button. Defaults to "danger". */
   confirmTone?: "primary" | "danger";
+  /** Optional third action rendered between Cancel and Confirm. */
+  tertiaryAction?: { label: string; onClick: () => void };
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -25,6 +27,7 @@ export function ConfirmModal({
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
   confirmTone = "danger",
+  tertiaryAction,
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
@@ -83,6 +86,11 @@ export function ConfirmModal({
           <button ref={cancelRef} className="btn" onClick={onCancel}>
             {cancelLabel}
           </button>
+          {tertiaryAction && (
+            <button className="btn" onClick={tertiaryAction.onClick}>
+              {tertiaryAction.label}
+            </button>
+          )}
           <button className={`btn ${confirmTone}`} onClick={onConfirm}>
             {confirmLabel}
           </button>

@@ -17,6 +17,7 @@ import { useCharacterCardStore } from "../../stores/character-card-store";
 import { usePersonaStore } from "../../stores/persona-store";
 import { useLorebookStore } from "../../stores/lorebook-store";
 import { useSettingsStore } from "../../stores/settings-store";
+import { getEffectiveRendererLocalFamilySafeModeEnabled } from "../../safetyHydration";
 import { GhostButton, Label, PrimaryButton, ErrorText, TextArea } from "../ui/shared";
 import { Spinner } from "../ui/spinner";
 import { RolePill, avatarDataUri, formatRelativeTime } from "./_shared";
@@ -163,7 +164,7 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
       characters: roster,
       ...(persona ? { persona } : {}),
       userMessage: text,
-    }, useSettingsStore.getState().localFamilySafeModeEnabled);
+    }, getEffectiveRendererLocalFamilySafeModeEnabled());
     if (!decision.allow || decision.action === "block") {
       setError(decision.userMessage);
       return;

@@ -1,4 +1,5 @@
 /** @fileoverview Shared payload builders for Venice API chat and image requests. */
+import { applyVeniceApiSafeMode } from "../shared/veniceSafeMode";
 
 /** A content part for vision-capable models. */
 export interface ImageContentPart {
@@ -117,8 +118,7 @@ export function buildChatPayload(
   const slug = options.characterSlug?.trim();
   if (slug) (payload.venice_parameters as Record<string, unknown>).character_slug = slug;
   if (options.reasoningEffort) payload.reasoning = { effort: options.reasoningEffort };
-  if (typeof settings.safeMode === "boolean") payload.safe_mode = settings.safeMode;
-  return payload;
+  return applyVeniceApiSafeMode("/chat/completions", payload, settings.safeMode);
 }
 
 /** Describes the user-editable fields of an image generation draft. */
@@ -213,5 +213,5 @@ export function buildImagePayload(
   const negative = normalized.negative?.trim();
   if (negative) payload.negative_prompt = negative;
   if (normalized.style) payload.style_preset = normalized.style;
-  return payload;
+  return applyVeniceApiSafeMode("/image/generate", payload, normalized.safeMode);
 }

@@ -162,7 +162,10 @@ describe("bridgeServer", () => {
 
     expect(res.status).toBe(451);
     const json = await res.json();
-    expect(json.error.message).toBe("Safety block");
+    // P1-015: bridge server uses the same canonical 451 block body as the
+    // IPC path (flat: error / reasonCode / category / severity at top level).
+    expect(json.error).toBe("Safety block");
+    expect(json.reasonCode).toBe("CSAM_DETECTED");
   });
 
   // VERIFY-001 regression guard: SEC-1 / Bridge bearer token MUST NOT appear
