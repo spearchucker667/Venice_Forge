@@ -30,9 +30,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Audit dependencies (prod-only, warn-only)
-        run: npm audit --omit=dev --audit-level=high
-        continue-on-error: true
+      - name: Audit dependencies (prod-only, release gate)
+        run: npm audit --omit=dev --audit-level=moderate
+        # Moderate+ vulnerabilities fail the build (per AGENTS.md "npm audit --omit=dev --audit-level=moderate is a release gate").
+        # High-only would be too permissive for a security-sensitive third-party client.
 
       - name: Verify generated icon
         run: npm run verify:icon
@@ -100,9 +101,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Audit dependencies (prod-only, warn-only)
-        run: npm audit --omit=dev --audit-level=high
-        continue-on-error: true
+      - name: Audit dependencies (prod-only, release gate)
+        run: npm audit --omit=dev --audit-level=moderate
+        # Moderate+ vulnerabilities fail the build (per AGENTS.md "npm audit --omit=dev --audit-level=moderate is a release gate").
+        # High-only would be too permissive for a security-sensitive third-party client.
 
       - name: Verify generated icon
         run: npm run verify:icon

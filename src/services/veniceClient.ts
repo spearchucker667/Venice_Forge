@@ -9,89 +9,17 @@ import type { DiagnosticsEntry } from "../types/venice";
 import type { AppDispatch } from "../types/app";
 import { MIB, VENICE_MAX_RAW_UPLOAD_BYTES, VENICE_MAX_SERIALIZED_UPLOAD_BYTES } from "../shared/limits";
 import { maybeRunLocalFamilyGuard, previewLocalFamilyGuard, SafetyGuardBlockedError } from "../shared/safety";
+import {
+  buildInspectorTelemetryPatch,
+  deriveGuardOutcome,
+  maskInspectorHeaders,
+  sanitizeInspectorPayload,
+  type InspectorSafetyDecision,
+} from "./inspectorTelemetry";
 import { useInspectorStore } from "../stores/inspector-store";
 import { useSettingsStore } from "../stores/settings-store";
 
-function maskHeaders(headers?: Record<string, string>): Record<string, string> {
-  if (!headers) return {};
-  // Header names that carry credential material. We match on the full header
-  // name (case-insensitive) rather than substring-includes, so that benign
-  // headers like "keyword" or "x-token-type" are NOT over-masked.
-  const SENSITIVE_HEADERS = new Set([
-    "authorization",
-    "cookie",
-    "set-cookie",
-    "x-api-key",
-    "x-auth-token",
-    "x-csrf-token",
-    "x-access-token",
-    "x-refresh-token",
-    "x-jina-api-key",
-    "x-venice-api-key",
-  ]);
-  const masked: Record<string, string> = {};
-  for (const [key, value] of Object.entries(headers)) {
-    const lowerKey = key.toLowerCase();
-    if (SENSITIVE_HEADERS.has(lowerKey) || lowerKey.startsWith("x-") && (lowerKey.endsWith("-key") || lowerKey.endsWith("-token") || lowerKey.endsWith("-secret"))) {
-      masked[key] = "******";
-    } else {
-      masked[key] = value;
-    }
-  }
-  return masked;
-}
-
-function sanitizeBody(body: unknown): unknown {
-  if (body instanceof FormData) {
-    const entries: Record<string, unknown> = {};
-    for (const [key, val] of body.entries()) {
-      if (val instanceof File) {
-        entries[key] = `[File: ${val.name} (${val.size} bytes)]`;
-      } else {
-        entries[key] = val;
-      }
-    }
-    return entries;
-  }
-  return body;
-}
-
-/**
- * Structured metadata describing the local Family Safe Mode decision for a
- * given Venice request, as seen by the renderer-side inspector. This shape
- * is renderer-local telemetry only — the authoritative enforcement path is
- * the main-process IPC handler (`electron/services/guardPipeline.ts`).
- *
- * Three explicit states are emitted so the inspector UI never has to
- * distinguish "skipped because Adult Mode" from "deferred because Electron":
- *
- * - `mode: "family"` — Family Safe Mode is on. The local classifier ran
- *   and either allowed or blocked.
- * - `mode: "adult"` — Family Safe Mode is off (Adult Mode). The local
- *   classifier was intentionally skipped.
- * - `mode: "electron-main-authoritative"` — Renderer in Electron mode.
- *   The main-process IPC handler is the sole authority; the renderer
- *   MUST NOT execute the local classifier and MUST NOT mutate audit
- *   counters for this request.
- */
-export type InspectorSafetyDecision =
-  | {
-      layer: "local-family-safe-mode";
-      mode: "family";
-      action: "allow" | "block";
-      reasonCode?: string;
-    }
-  | {
-      layer: "local-family-safe-mode";
-      mode: "adult";
-      action: "skipped";
-      reasonCode: "LOCAL_FAMILY_SAFE_MODE_DISABLED";
-    }
-  | {
-      layer: "local-family-safe-mode";
-      mode: "electron-main-authoritative";
-      action: "deferred";
-    };
+export type { InspectorSafetyDecision };
 
 /**
  * Returns a non-mutating preview of the local Family Safe Mode decision for
@@ -105,12 +33,23 @@ export type InspectorSafetyDecision =
  * variants above, so the inspector UI can render every state without
  * resorting to `null`.
  */
-function getSafetyDecisionForLog(endpoint: string, method: string, payload: unknown): InspectorSafetyDecision {
+function getSafetyDecisionForLog(
+  endpoint: string,
+  method: string,
+  payload: unknown,
+): { decision: InspectorSafetyDecision; previewDurationMs: number } {
+  const previewStartedAt = Date.now();
   if (isElectron()) {
-    return { layer: "local-family-safe-mode", mode: "electron-main-authoritative", action: "deferred" };
+    return {
+      decision: { layer: "local-family-safe-mode", mode: "electron-main-authoritative", action: "deferred" },
+      previewDurationMs: Date.now() - previewStartedAt,
+    };
   }
   if (method !== "POST" || payload === undefined) {
-    return { layer: "local-family-safe-mode", mode: "electron-main-authoritative", action: "deferred" };
+    return {
+      decision: { layer: "local-family-safe-mode", mode: "electron-main-authoritative", action: "deferred" },
+      previewDurationMs: Date.now() - previewStartedAt,
+    };
   }
   // Web mode: the renderer is the only enforcement layer. Use the
   // non-mutating preview so we never double-count.
@@ -118,13 +57,33 @@ function getSafetyDecisionForLog(endpoint: string, method: string, payload: unkn
     { endpoint, method, payload, source: "venice-client" },
     useSettingsStore.getState().localFamilySafeModeEnabled,
   );
+  const previewDurationMs = Date.now() - previewStartedAt;
   if (decision.allowed && decision.skipped) {
-    return { layer: "local-family-safe-mode", mode: "adult", action: "skipped", reasonCode: "LOCAL_FAMILY_SAFE_MODE_DISABLED" };
+    return {
+      decision: {
+        layer: "local-family-safe-mode",
+        mode: "adult",
+        action: "skipped",
+        reasonCode: "LOCAL_FAMILY_SAFE_MODE_DISABLED",
+      },
+      previewDurationMs,
+    };
   }
   if (!decision.allowed) {
-    return { layer: "local-family-safe-mode", mode: "family", action: "block", reasonCode: decision.reason };
+    return {
+      decision: {
+        layer: "local-family-safe-mode",
+        mode: "family",
+        action: "block",
+        reasonCode: decision.reason,
+      },
+      previewDurationMs,
+    };
   }
-  return { layer: "local-family-safe-mode", mode: "family", action: "allow" };
+  return {
+    decision: { layer: "local-family-safe-mode", mode: "family", action: "allow" },
+    previewDurationMs,
+  };
 }
 
 /** Maximum raw upload file size accepted by the renderer. */
@@ -865,14 +824,19 @@ export async function veniceFetch<T = unknown>(
   const { dedupe = false, method = "GET", body } = options;
 
   const startedAt = Date.now();
-  const requestHeaders = maskHeaders(options.headers);
-  const safetyDecision = getSafetyDecisionForLog(endpoint, method, body);
+  const requestHeaders = maskInspectorHeaders(options.headers);
+  const { decision: safetyDecision, previewDurationMs } = getSafetyDecisionForLog(endpoint, method, body);
+  const guardOutcome = deriveGuardOutcome(safetyDecision);
   const logId = useInspectorStore.getState().addLog({
     endpoint,
     method,
+    transport: "venice",
     requestHeaders,
-    requestBody: sanitizeBody(body),
+    requestBody: sanitizeInspectorPayload(body),
     safetyDecision,
+    previewDurationMs,
+    guardOutcome,
+    callOutcome: "pending",
   });
 
   // Child exploitation safety guard — enforcement at transport boundary.
@@ -891,11 +855,18 @@ export async function veniceFetch<T = unknown>(
       useSettingsStore.getState().localFamilySafeModeEnabled,
     );
     if (!decision.allowed) {
+      useInspectorStore.getState().updateLog(
+        logId,
+        buildInspectorTelemetryPatch({
+          status: 451,
+          durationMs: Date.now() - startedAt,
+          previewDurationMs,
+          guardOutcome: "block",
+          error: decision.userMessage,
+        }),
+      );
       useInspectorStore.getState().updateLog(logId, {
-        status: 451,
         safetyDecision: decision.guardDecision,
-        error: decision.userMessage,
-        durationMs: Date.now() - startedAt,
       });
       throw new SafetyGuardBlockedError({ ...decision.guardDecision, userMessage: decision.userMessage });
     }
@@ -912,20 +883,30 @@ export async function veniceFetch<T = unknown>(
       if (options.validator && !options.validator(result.data)) {
         throw new Error(`veniceFetch: Response validation failed for ${endpoint}`);
       }
-      useInspectorStore.getState().updateLog(logId, {
-        status: result.response.status,
-        responseHeaders: maskHeaders(result.headers),
-        responseBody: result.data,
-        durationMs: Date.now() - startedAt,
-      });
+      useInspectorStore.getState().updateLog(
+        logId,
+        buildInspectorTelemetryPatch({
+          status: result.response.status,
+          durationMs: Date.now() - startedAt,
+          previewDurationMs,
+          guardOutcome,
+          responseHeaders: result.headers,
+          responseBody: result.data,
+        }),
+      );
       return result as { data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> };
     } catch (err: unknown) {
       const errAny = err as { status?: number; message?: string };
-      useInspectorStore.getState().updateLog(logId, {
-        status: errAny.status || 500,
-        error: errAny.message || String(err),
-        durationMs: Date.now() - startedAt,
-      });
+      useInspectorStore.getState().updateLog(
+        logId,
+        buildInspectorTelemetryPatch({
+          status: errAny.status || 500,
+          durationMs: Date.now() - startedAt,
+          previewDurationMs,
+          guardOutcome,
+          error: errAny.message || String(err),
+        }),
+      );
       throw err;
     }
   };
@@ -954,13 +935,22 @@ export async function veniceStreamChat(
 ) {
   const startedAtTime = Date.now();
   const requestHeaders = { "Content-Type": "application/json" };
-  const safetyDecision = getSafetyDecisionForLog("/chat/completions", "POST", payload);
+  const { decision: safetyDecision, previewDurationMs } = getSafetyDecisionForLog(
+    "/chat/completions",
+    "POST",
+    payload,
+  );
+  const guardOutcome = deriveGuardOutcome(safetyDecision);
   const logId = useInspectorStore.getState().addLog({
     endpoint: "/chat/completions",
     method: "POST",
+    transport: "venice",
     requestHeaders,
-    requestBody: payload,
+    requestBody: sanitizeInspectorPayload(payload),
     safetyDecision,
+    previewDurationMs,
+    guardOutcome,
+    callOutcome: "pending",
   });
 
   let accumulatedContent = "";
@@ -984,11 +974,18 @@ export async function veniceStreamChat(
         useSettingsStore.getState().localFamilySafeModeEnabled,
       );
       if (!decision.allowed) {
+        useInspectorStore.getState().updateLog(
+          logId,
+          buildInspectorTelemetryPatch({
+            status: 451,
+            durationMs: Date.now() - startedAtTime,
+            previewDurationMs,
+            guardOutcome: "block",
+            error: decision.userMessage,
+          }),
+        );
         useInspectorStore.getState().updateLog(logId, {
-          status: 451,
           safetyDecision: decision.guardDecision,
-          error: decision.userMessage,
-          durationMs: Date.now() - startedAtTime,
         });
         throw new SafetyGuardBlockedError({ ...decision.guardDecision, userMessage: decision.userMessage });
       }
@@ -1024,21 +1021,26 @@ export async function veniceStreamChat(
       if (!response.ok) {
         throw new Error(normalizeError(response.status, readDesktopErrorBody(response.body)));
       }
-      useInspectorStore.getState().updateLog(logId, {
-        status: 200,
-        responseBody: {
-          choices: [
-            {
-              message: {
-                role: "assistant",
-                content: accumulatedContent,
-                reasoning_content: accumulatedReasoning,
+      useInspectorStore.getState().updateLog(
+        logId,
+        buildInspectorTelemetryPatch({
+          status: 200,
+          durationMs: Date.now() - startedAtTime,
+          previewDurationMs,
+          guardOutcome,
+          responseBody: {
+            choices: [
+              {
+                message: {
+                  role: "assistant",
+                  content: accumulatedContent,
+                  reasoning_content: accumulatedReasoning,
+                },
               },
-            },
-          ],
-        },
-        durationMs: Date.now() - startedAtTime,
-      });
+            ],
+          },
+        }),
+      );
       return;
     }
 
@@ -1131,21 +1133,26 @@ export async function veniceStreamChat(
           if (!trimmed.startsWith("data:")) continue;
           const data = trimmed.replace(/^data:\s*/, "");
           if (data === "[DONE]") {
-            useInspectorStore.getState().updateLog(logId, {
-              status: 200,
-              responseBody: {
-                choices: [
-                  {
-                    message: {
-                      role: "assistant",
-                      content: accumulatedContent,
-                      reasoning_content: accumulatedReasoning,
+            useInspectorStore.getState().updateLog(
+              logId,
+              buildInspectorTelemetryPatch({
+                status: 200,
+                durationMs: Date.now() - startedAtTime,
+                previewDurationMs,
+                guardOutcome,
+                responseBody: {
+                  choices: [
+                    {
+                      message: {
+                        role: "assistant",
+                        content: accumulatedContent,
+                        reasoning_content: accumulatedReasoning,
+                      },
                     },
-                  },
-                ],
-              },
-              durationMs: Date.now() - startedAtTime,
-            });
+                  ],
+                },
+              }),
+            );
             return;
           }
 
@@ -1167,32 +1174,42 @@ export async function veniceStreamChat(
       if (timedOut) {
         throw new Error("Stream timed out after 5 minutes. The server may be overloaded — please try again.");
       }
-      useInspectorStore.getState().updateLog(logId, {
-        status: 200,
-        responseBody: {
-          choices: [
-            {
-              message: {
-                role: "assistant",
-                content: accumulatedContent,
-                reasoning_content: accumulatedReasoning,
+      useInspectorStore.getState().updateLog(
+        logId,
+        buildInspectorTelemetryPatch({
+          status: 200,
+          durationMs: Date.now() - startedAtTime,
+          previewDurationMs,
+          guardOutcome,
+          responseBody: {
+            choices: [
+              {
+                message: {
+                  role: "assistant",
+                  content: accumulatedContent,
+                  reasoning_content: accumulatedReasoning,
+                },
               },
-            },
-          ],
-        },
-        durationMs: Date.now() - startedAtTime,
-      });
+            ],
+          },
+        }),
+      );
     } finally {
       clearTimeout(readTimeoutId);
       reader.releaseLock();
     }
   } catch (err: unknown) {
     const errAny = err as { status?: number; message?: string };
-    useInspectorStore.getState().updateLog(logId, {
-      status: errAny.status || 500,
-      error: errAny.message || String(err),
-      durationMs: Date.now() - startedAtTime,
-    });
+    useInspectorStore.getState().updateLog(
+      logId,
+      buildInspectorTelemetryPatch({
+        status: errAny.status || 500,
+        durationMs: Date.now() - startedAtTime,
+        previewDurationMs,
+        guardOutcome,
+        error: errAny.message || String(err),
+      }),
+    );
     throw err;
   }
 }

@@ -135,18 +135,25 @@ export async function generateScene(
       if (!res.ok) return { ok: false, error: `Image generation failed: HTTP ${res.status}`, safetyBlocked: false };
       response = res.body as ImageGenerateResponse;
     } else {
-      const res = await fetch("/api/venice/image/generate", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "X-Venice-Forge-Family-Safe-Mode": String(localFamilySafeModeEnabled),
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        return { ok: false, error: `Image generation failed: HTTP ${res.status}`, safetyBlocked: false };
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120000); // 2 min cap for scene gen
+      try {
+        const res = await fetch("/api/venice/image/generate", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "X-Venice-Forge-Family-Safe-Mode": String(localFamilySafeModeEnabled),
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+        if (!res.ok) {
+          return { ok: false, error: `Image generation failed: HTTP ${res.status}`, safetyBlocked: false };
+        }
+        response = (await res.json()) as ImageGenerateResponse;
+      } finally {
+        clearTimeout(timeout);
       }
-      response = (await res.json()) as ImageGenerateResponse;
     }
   } catch (err) {
     return {

@@ -9,6 +9,17 @@ import { createSafeStorage } from '../lib/safe-storage'
 import type { PulledMemoryContext } from '../types/conversationVault'
 import { toConversationRecord } from './chat-store-helpers'
 
+/**
+ * LEGACY NOTE (from exhaustive review + AGENTS.md):
+ * This store still accesses `window.veniceForge.chat.*` directly in some paths
+ * (pre-bridge legacy for desktop chat history).
+ * Per AGENTS.md: "src/stores/chat-store.ts accesses window.veniceForge.chat.* directly (pre-bridge legacy).
+ * Do not add new direct calls." All new code must go through src/services/desktopBridge.ts.
+ * This is the single documented exception. Migration to pure desktopBridge + desktopChat
+ * is tracked as P2 item but left as-is to avoid destabilizing the dual (desktop atomic JSON + web IDB)
+ * persistence + dirty-map + flush logic (VERIFY-005, VERIFY-021).
+ */
+
 interface ChatState {
   conversations: Conversation[]
   activeConversationId: string | null

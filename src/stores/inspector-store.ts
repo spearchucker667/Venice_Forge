@@ -1,18 +1,29 @@
 import { create } from 'zustand'
 import type { SafetyGuardDecision } from '../shared/safety'
-import type { InspectorSafetyDecision } from '../services/veniceClient'
+import type { InspectorSafetyDecision } from '../services/inspectorTelemetry'
+import type {
+  InspectorCallOutcome,
+  InspectorErrorClass,
+  InspectorGuardOutcome,
+  InspectorTransport,
+} from '../services/inspectorTelemetry'
 
 export interface InspectorRequestLog {
   id: string
   timestamp: number
   endpoint: string
   method: string
+  transport: InspectorTransport
   requestHeaders: Record<string, string>
   requestBody: unknown
   status?: number
   responseHeaders?: Record<string, string>
   responseBody?: unknown
   durationMs?: number
+  previewDurationMs?: number
+  guardOutcome?: InspectorGuardOutcome
+  callOutcome?: InspectorCallOutcome
+  errorClass?: InspectorErrorClass
   // Local Family Safe Mode decision metadata. Either the renderer-side
   // explicit 3-state preview (`InspectorSafetyDecision`) or, for backward
   // compatibility with code paths that still record a `SafetyGuardDecision`

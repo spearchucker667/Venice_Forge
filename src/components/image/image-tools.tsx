@@ -155,7 +155,8 @@ export function ImageTools() {
               <img src={imageData} alt="Source" className="w-full rounded-lg border border-white/[0.06]" />
               <button
                 onClick={() => { setImageData(null); setImageName(''); resetResult() }}
-                aria-label="Remove image"
+                aria-label="Remove source image"
+                type="button"
                 className="absolute top-1.5 right-1.5 p-1 bg-black/60 rounded-md text-white/60 hover:text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>

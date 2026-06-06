@@ -102,9 +102,18 @@ const config = {
   },
 
   linux: {
-    target: [{ target: "AppImage", arch: ["x64"] }],
+    // Expanded Linux support per exhaustive review (P1 packaging gap).
+    // Includes arm64 for Apple Silicon / ARM servers + deb/rpm for broader distro compatibility.
+    // AppImage remains for portable "just run" experience.
+    target: [
+      { target: "AppImage", arch: ["x64", "arm64"] },
+      { target: "deb", arch: ["x64", "arm64"] },
+      { target: "rpm", arch: ["x64", "arm64"] },
+    ],
     icon: "build/icon.png",
     category: "Utility",
+    // artifactName helps with consistent naming across arches.
+    artifactName: "Venice-Forge-${version}-${arch}.${ext}",
   },
 };
 

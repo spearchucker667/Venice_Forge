@@ -313,6 +313,16 @@ export async function performVeniceRequest(
       });
     }
 
+    // P1-SAFETY-ABORT-RESIDUAL: forward direct AbortSignal if provided (in addition to signalId/IPC path)
+    const maybeSignal = (request as { signal?: AbortSignal }).signal;
+    if (maybeSignal) {
+      if (maybeSignal.aborted) {
+        req.destroy(new Error("Request aborted"));
+      } else {
+        maybeSignal.addEventListener("abort", () => req.destroy(new Error("Request aborted")), { once: true });
+      }
+    }
+
     req.on("error", (err) => {
       const message =
         err.message === "Request aborted"

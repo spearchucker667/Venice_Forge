@@ -9,6 +9,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 ## [Unreleased]
 
 ### Added
+- **Exhaustive review TODO completion (raw + tree pages):** Full scan of every file via raw.githubusercontent.com URLs + GitHub tree pages + local cross-check against POST_VENICE_JINA_AUDIT_2026_06_06.md, summary_of_work.md, TODO.md, and AGENTS.md VERIFY matrix. Produced categorized TODO (Bugs P1/P2/P3 with file:line + fixed vs open, plus Enhancements). Began and completed the most critical items in one session:
+  - P1: CI/release `npm audit` gate aligned to `--level=moderate` (no continue-on-error) in ci.yml + release.yml (per AGENTS "is a release gate").
+  - P1: Linux packaging expanded (arm64 AppImage + deb + rpm in electron-builder.config.cjs); secureStore plaintext fallback hardened with explicit security warnings + Linux-only docs.
+  - P1/P2: CSP nonce prod static loadFile — implemented runtime placeholder injection (Vite plugin + main.ts temp HTML with real nonce swap for entry scripts + bootstrap-theme) + detailed review notes.
+  - P2: ARIA/keyboard improvements (type=button, role=switch, aria-checked, aria-label, aria-hidden on key controls in image-tools, inspector, audio, gallery, etc.).
+  - P2: Legacy direct window.veniceForge.chat.* in chat-store.ts explicitly documented with AGENTS reference (no new calls added).
+  - Multiple small safety/abort hygiene, plaintext warnings, and build hygiene.
+  - All changes followed by lint/typecheck/safety-guard/markdown-links/build (test serial attempted; prior green baselines recorded).
+  - Ledger (summary_of_work.md) + CHANGELOG + AGENTS cross-refs updated.
+
+### Changed
+- (See Added for the review-driven hardening + packaging + a11y work.)
+
+### Fixed
+- The long-standing CI audit gate discrepancy (high + continue vs moderate gate) called out as unresolved in prior hygiene session notes.
+
+### Security
+- Linux plaintext fallback now emits clear console warnings on use (never on Win/mac).
+- CSP nonce injection for the production renderer entry scripts (closes the "header only" gap for strict-dynamic enforcement).
+
+### Review / Audit
+- Exhaustive file-by-file review (every root file, src/**, electron/**, tests/**, docs/**, config/**, scripts/**, .github/**) using raw + tree pages. All prior BUG-SEEDs/VERIFYs cross-checked. New actionable items added to Open TODO Ledger. Many "bugs" were already fixed/locked by prior VERIFY-NNN; residuals + enhancements actioned above.
 
 - **Canonical AI/dev-agent session handoff ledger:** New `docs/summary_of_work.md` is the durable handoff document every future agent must read at the start of a session and update at the end. It contains a *Current Project State* section (stack, provider / API architecture, safety, storage, docs posture, active refactor themes), a *Latest Session Summary* block, an append-only *Session History* log, an *Active Architecture Notes* section (Provider / API, Safety, Storage, Media Studio, Config System), an *Open TODO Ledger* broken out by P0/P1/P2/P3, a *Validation Matrix* with the last known status of every CI gate, and explicit *Agent Update Rules*. `AGENTS.md` (new top-level `## Mandatory Session Handoff` section + cross-link in `## Update These Files`), `CLAUDE.md`, `GEMINI.md`, and `.github/copilot-instructions.md` all require every session to update this ledger. The post-2026-06-06 audit session is the first entry under *Session History*. `README.md` adds a *Reference* bullet linking to the new doc.
 

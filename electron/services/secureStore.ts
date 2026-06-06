@@ -89,9 +89,12 @@ export function setApiKey(key: string): void {
     }
     if (!ALLOW_PLAINTEXT_FALLBACK) {
       throw new Error(
-        "OS secure storage is unavailable. Set VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true to allow documented plaintext fallback."
+        "OS secure storage is unavailable. Set VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true to allow documented plaintext fallback (Linux-only, emits security warning)."
       );
     }
+    // Linux plaintext fallback — log a clear security warning (never on Win/mac).
+    // Per AGENTS.md and review: this is a last-resort Linux-only escape hatch.
+    console.warn("[SECURITY] Using plaintext API key storage because OS secure storage (safeStorage) is unavailable. This is Linux-only and should only be used in trusted environments.");
     store["apiKey"] = key;
     store["apiKeyEncrypted"] = "false";
   }
@@ -123,6 +126,10 @@ export function getApiKey(): string | null {
   if (process.platform === "win32" || process.platform === "darwin") {
     lastReadErrors.apiKey = "Plaintext API key storage is not allowed on this platform.";
     return null;
+  }
+
+  if (process.platform === "linux") {
+    console.warn("[SECURITY] Returning plaintext-stored API key (Linux fallback only).");
   }
 
   return raw;

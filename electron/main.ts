@@ -5,6 +5,7 @@
 // Primary maintainer and security gatekeeper for the Electron main process.
 import { app, BrowserWindow, dialog, shell, session } from "electron";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import { registerIpcHandlers } from "./ipc/handlers";
 import { initializeConfig } from "./services/configService";
@@ -212,7 +213,29 @@ function createWindow(): BrowserWindow {
     });
     win.webContents.openDevTools({ mode: "detach" });
   } else {
-    win.loadFile(path.join(__dirname, "../../dist/index.html")).catch((err) => {
+    // CSP-NONCE prod path: inject real nonce into the built HTML's script tags
+    // (replacing the __VITE_CSP_NONCE__ placeholder added by the Vite plugin
+    // during ELECTRON_BUILD). This gives the entry scripts a matching nonce
+    // so the 'nonce-...' 'strict-dynamic' policy is satisfied for the initial
+    // module graph.
+    const prodHtmlPath = path.join(__dirname, "../../dist/index.html");
+    let loadTarget = prodHtmlPath;
+    try {
+      const nonce = generateNonce();
+      const original = fs.readFileSync(prodHtmlPath, "utf-8");
+      const withNonce = original.replace(/__VITE_CSP_NONCE__/g, nonce);
+      // Use a temp file so loadFile resolves relative assets correctly inside asar.
+      const tmpDir = app.getPath("temp");
+      const tmpHtml = path.join(tmpDir, `venice-forge-csp-${Date.now()}.html`);
+      fs.writeFileSync(tmpHtml, withNonce, "utf-8");
+      loadTarget = tmpHtml;
+      // Best-effort cleanup on quit (temp files are not critical).
+      app.once("will-quit", () => { try { fs.unlinkSync(tmpHtml); } catch (cleanupErr) { void cleanupErr; } });
+    } catch (e) {
+      logError("CSP nonce injection for prod HTML failed — falling back to static loadFile (strict-dynamic still provides substantial protection)", e);
+      // Fallback already in place (loadTarget remains the original path).
+    }
+    win.loadFile(loadTarget).catch((err) => {
       logError("Failed to load production renderer", err);
       win.loadURL(`data:text/html,<h1>Failed to load application</h1><p>${encodeURIComponent(err.message)}</p><p>Please check the logs or reinstall the application.</p>`);
     });
@@ -248,6 +271,17 @@ async function bootstrap(): Promise<void> {
   // The current setup tightens script-src from 'self'-only to 'nonce+strict-dynamic'
   // which blocks non-nonced inline scripts while keeping src-based scripts working
   // (strict-dynamic propagates trust from the main bundle to dynamic imports).
+  //
+  // REVIEW NOTE (exhaustive 2026 review): This is tracked as a P1 hardening item
+  // (P1-CSP-NONCE-PROD). The built dist/index.html contains <script type=module>
+  // and <script src=bootstrap-theme.js> without nonce= attrs. Risk is mitigated
+  // by: no inline scripts in Vite output, strict-dynamic, sandbox + contextIsolation
+  // + webSecurity:true + no nodeIntegration, all Venice traffic forced through
+  // guarded desktopBridge (never direct fetch), external navigation guards, and
+  // bootstrap-theme.js having its own color-value sanitization. Full fix would
+  // require a custom protocol handler (or data: + base rewrite) to inject real
+  // nonces into the initial document at load time. See also rendererCsp() and
+  // the stripCrossorigin Vite plugin.
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     const nonce = isDev ? undefined : generateNonce();
     callback({

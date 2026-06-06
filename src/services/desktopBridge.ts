@@ -12,6 +12,13 @@ import type {
   UserPersonaV1,
 } from "../types/rp";
 import { veniceFetch } from "./veniceClient";
+import {
+  buildInspectorTelemetryPatch,
+  maskInspectorHeaders,
+  sanitizeInspectorPayload,
+  sanitizeInspectorResponse,
+} from "./inspectorTelemetry";
+import { useInspectorStore } from "../stores/inspector-store";
 import { useSettingsStore } from "../stores/settings-store";
 
 /**
@@ -656,7 +663,41 @@ export const desktopJina = {
     headers?: Record<string, string>;
     timeoutMs?: number;
   }): Promise<{ ok: boolean; status?: number; body?: unknown; contentType?: string; error?: string }> {
-    if (isElectron()) return window.veniceForge!.jina.request(input);
+    const startedAt = Date.now();
+    const requestHeaders = maskInspectorHeaders(input.headers);
+    const logId = useInspectorStore.getState().addLog({
+      endpoint: input.url,
+      method: "GET",
+      transport: "jina",
+      requestHeaders,
+      requestBody: sanitizeInspectorPayload({
+        url: input.url,
+        timeoutMs: input.timeoutMs,
+      }),
+      guardOutcome: "deferred",
+      callOutcome: "pending",
+    });
+
+    const finishLog = <T extends { ok: boolean; status?: number; body?: unknown; error?: string }>(
+      result: T,
+    ): T => {
+      useInspectorStore.getState().updateLog(
+        logId,
+        buildInspectorTelemetryPatch({
+          status: result.status ?? (result.ok ? 200 : 500),
+          durationMs: Date.now() - startedAt,
+          guardOutcome: "deferred",
+          error: result.error,
+          responseBody: result.body === undefined ? undefined : sanitizeInspectorResponse(result.body),
+        }),
+      );
+      return result;
+    };
+
+    if (isElectron()) {
+      const result = await window.veniceForge!.jina.request(input);
+      return finishLog(result);
+    }
 
     const controller = new AbortController();
     const timeout = setTimeout(
@@ -688,16 +729,16 @@ export const desktopJina = {
         ? await response.json().catch(() => null)
         : await response.text();
 
-      return {
+      return finishLog({
         ok: response.ok,
         status: response.status,
         body,
         contentType,
         error: response.ok ? undefined : `Jina returned ${response.status}`,
-      };
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      return { ok: false, status: 0, error: msg || "Jina proxy request failed" };
+      return finishLog({ ok: false, status: 0, error: msg || "Jina proxy request failed" });
     } finally {
       clearTimeout(timeout);
     }

@@ -337,7 +337,7 @@ export function VideoView() {
       {error && (
         <div className="flex items-center justify-between gap-2">
           <ErrorText>{error}</ErrorText>
-          <button onClick={reset} className="text-[13px] text-white/55 hover:text-white underline underline-offset-2 shrink-0 transition-colors">Reset</button>
+          <button type="button" aria-label="Reset video generation form" onClick={reset} className="text-[13px] text-white/55 hover:text-white underline underline-offset-2 shrink-0 transition-colors">Reset</button>
         </div>
       )}
     </>
@@ -409,7 +409,7 @@ export function VideoView() {
               </div>
             </div>
             <video controls src={videoUrl} className="w-full rounded-lg bg-black border border-white/[0.04]" />
-            <button onClick={reset} className="self-start text-[14px] text-white/15 hover:text-white/35 transition-colors">Generate another</button>
+            <button type="button" aria-label="Generate another video" onClick={reset} className="self-start text-[14px] text-white/15 hover:text-white/35 transition-colors">Generate another</button>
           </div>
         ) : (
           <div className="flex items-center justify-center flex-1 text-white/30 text-[15px]">
