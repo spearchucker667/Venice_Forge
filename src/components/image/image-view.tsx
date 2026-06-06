@@ -3,7 +3,7 @@ import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useStyles } from '../../hooks/use-styles'
 import { useImageGenerate } from '../../hooks/use-image'
-import { useAuthStore } from '../../stores/auth-store'
+import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, PillGroup, ErrorText, ExamplePrompts } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
@@ -35,7 +35,7 @@ const DEFAULT_SIZE_MAP = [
 ]
 
 export function ImageView() {
-  const apiKey = useAuthStore((s) => s.apiKey)
+  const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const selectedModel = useSettingsStore((s) => s.selectedModels.image)
   const veniceApiSafeMode = useSettingsStore((s) => s.veniceApiSafeMode)
   const { data: models } = useModels('image')
@@ -297,7 +297,7 @@ export function ImageView() {
         <input type="range" min={1} max={4} value={variants} onChange={(e) => setVariants(Number(e.target.value))} className="w-full" />
       </div>
 
-      <PrimaryButton onClick={handleGenerate} disabled={!prompt.trim() || !apiKey} loading={mutation.isPending} size="lg">
+      <PrimaryButton onClick={handleGenerate} disabled={!prompt.trim() || !hasVeniceKey} loading={mutation.isPending} size="lg">
         {mutation.isPending ? 'Generating…' : 'Generate'}
       </PrimaryButton>
       {mutation.error && <ErrorText>{mutation.error.message}</ErrorText>}

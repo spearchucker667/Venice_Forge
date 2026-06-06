@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
-import { useAuthStore } from '../../stores/auth-store'
+import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useTTS, useTranscription } from '../../hooks/use-audio'
 import { useBlobUrl } from '../../hooks/use-blob-url'
 import { Select } from '../ui/select'
@@ -44,7 +44,7 @@ const VOICES = [
 const FORMATS = ['mp3', 'opus', 'aac', 'flac', 'wav'] as const
 
 export function AudioView() {
-  const apiKey = useAuthStore((s) => s.apiKey)
+  const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const selectedModel = useSettingsStore((s) => s.selectedModels.audio)
   const { data: models } = useModels('tts')
   const model = selectedModel || models?.[0]?.id || 'tts-kokoro'
@@ -130,7 +130,7 @@ export function AudioView() {
               <input type="range" min={0.25} max={4} step={0.25} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} className="w-full" />
             </div>
           </div>
-          <PrimaryButton onClick={handleTTS} disabled={!text.trim() || !apiKey} loading={tts.isPending} size="lg">Generate Speech</PrimaryButton>
+          <PrimaryButton onClick={handleTTS} disabled={!text.trim() || !hasVeniceKey} loading={tts.isPending} size="lg">Generate Speech</PrimaryButton>
           {tts.error && <ErrorText>{tts.error.message}</ErrorText>}
         </>
       ) : (
@@ -144,7 +144,7 @@ export function AudioView() {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="mx-auto mb-2 text-white/40"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
             <p className="text-[14px] text-white/65">{file ? file.name : 'Click to select audio file'}</p>
           </button>
-          <PrimaryButton onClick={() => { if (file) transcription.mutate(file, { onSuccess: (d) => setTranscript(d.text), onError: (err) => toast.fromError(err, 'Transcription failed') }) }} disabled={!file || !apiKey} loading={transcription.isPending} size="lg">
+          <PrimaryButton onClick={() => { if (file) transcription.mutate(file, { onSuccess: (d) => setTranscript(d.text), onError: (err) => toast.fromError(err, 'Transcription failed') }) }} disabled={!file || !hasVeniceKey} loading={transcription.isPending} size="lg">
             Transcribe
           </PrimaryButton>
           {transcription.error && <ErrorText>{transcription.error.message}</ErrorText>}

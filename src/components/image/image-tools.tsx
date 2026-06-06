@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { useAuthStore } from '../../stores/auth-store'
+import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useImageEdit, useImageUpscale, useBackgroundRemove } from '../../hooks/use-image-tools'
 import { useBlobUrl } from '../../hooks/use-blob-url'
 import { Select } from '../ui/select'
@@ -26,7 +26,7 @@ const EDIT_MODELS = [
 ]
 
 export function ImageTools() {
-  const apiKey = useAuthStore((s) => s.apiKey)
+  const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const [tool, setTool] = useState<Tool>('edit')
   const [imageData, setImageData] = useState<string | null>(null)
   const [imageName, setImageName] = useState('')
@@ -224,7 +224,7 @@ export function ImageTools() {
 
         <PrimaryButton
           onClick={handleProcess}
-          disabled={!imageData || !apiKey || isLoading || (tool === 'edit' && !editPrompt.trim())}
+          disabled={!imageData || !hasVeniceKey || isLoading || (tool === 'edit' && !editPrompt.trim())}
           loading={isLoading}
         >
           {tool === 'edit' ? 'Edit Image' : tool === 'upscale' ? 'Upscale Image' : 'Remove Background'}

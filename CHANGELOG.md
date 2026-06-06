@@ -12,7 +12,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 - **Exhaustive review TODO completion (raw + tree pages):** Full scan of every file via raw.githubusercontent.com URLs + GitHub tree pages + local cross-check against POST_VENICE_JINA_AUDIT_2026_06_06.md, summary_of_work.md, TODO.md, and AGENTS.md VERIFY matrix. Produced categorized TODO (Bugs P1/P2/P3 with file:line + fixed vs open, plus Enhancements). Began and completed the most critical items in one session:
   - P1: CI/release `npm audit` gate aligned to `--level=moderate` (no continue-on-error) in ci.yml + release.yml (per AGENTS "is a release gate").
   - P1: Linux packaging expanded (arm64 AppImage + deb + rpm in electron-builder.config.cjs); secureStore plaintext fallback hardened with explicit security warnings + Linux-only docs.
-  - P1/P2: CSP nonce prod static loadFile — implemented runtime placeholder injection (Vite plugin + main.ts temp HTML with real nonce swap for entry scripts + bootstrap-theme) + detailed review notes.
+  - P1/P2: The initial packaged-Electron nonce/temp-HTML implementation was superseded by the `VERIFY-036` startup fix below. Web-server CSP nonces remain synchronized per response; packaged Electron uses self-hosted scripts loaded in place from `dist`.
   - P2: ARIA/keyboard improvements (type=button, role=switch, aria-checked, aria-label, aria-hidden on key controls in image-tools, inspector, audio, gallery, etc.).
   - P2: Legacy direct window.veniceForge.chat.* in chat-store.ts explicitly documented with AGENTS reference (no new calls added).
   - Multiple small safety/abort hygiene, plaintext warnings, and build hygiene.
@@ -20,14 +20,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
   - Ledger (summary_of_work.md) + CHANGELOG + AGENTS cross-refs updated.
 
 ### Changed
-- (See Added for the review-driven hardening + packaging + a11y work.)
+- Supported development/CI runtime is now Node 22.13+ within Node 22.x, matching Electron 42's engine requirement.
+- `npm run verify:dist` now validates build outputs only; platform-specific scripts retain packaged artifact and checksum verification.
+- Normal server builds omit source maps, and electron-builder explicitly excludes any `.map` files.
+- Generated `.design-captures/` output is ignored and no longer tracked; the style-capture tool writes into that tree.
 
 ### Fixed
+- **Secure-store restart gating (VERIFY-037):** UI actions now use configured-key state, so an OS-secure Venice key remains usable after restart without copying the raw key into renderer memory.
+- **Deterministic bridge tests:** The bridge unit test mocks the Electron-backed logger, keeping default `npm test` independent from Electron runtime loading.
+- **Packaged app blank screen (VERIFY-036):** Removed the production CSP nonce/temp-HTML path that generated a different nonce in the response header and relocated `index.html` away from its relative assets. Packaged Electron now loads `dist/index.html` in place under a strict `script-src 'self'` policy, allowing the renderer bundle and theme bootstrap to start without inline-script allowances.
 - The long-standing CI audit gate discrepancy (high + continue vs moderate gate) called out as unresolved in prior hygiene session notes.
 
 ### Security
+- **Web Jina key persistence removed (VERIFY-038):** Browser-entered Jina keys are memory-only for the current page session and never written to `localStorage`, `sessionStorage`, or IndexedDB.
+- **Bounded Jina responses (VERIFY-039):** Express and Electron Jina proxy paths stream-read at most 2 MiB, cancel over-limit bodies, and return normalized 413 failures before JSON parsing or safety screening.
 - Linux plaintext fallback now emits clear console warnings on use (never on Win/mac).
-- CSP nonce injection for the production renderer entry scripts (closes the "header only" gap for strict-dynamic enforcement).
+- Production CSP allows only self-hosted scripts and keeps inline/eval execution disabled; `VERIFY-036` locks the packaged renderer loader contract.
 
 ### Review / Audit
 - Exhaustive file-by-file review (every root file, src/**, electron/**, tests/**, docs/**, config/**, scripts/**, .github/**) using raw + tree pages. All prior BUG-SEEDs/VERIFYs cross-checked. New actionable items added to Open TODO Ledger. Many "bugs" were already fixed/locked by prior VERIFY-NNN; residuals + enhancements actioned above.
@@ -36,7 +44,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 
 - **Post-audit regression guards:** Added `VERIFY-024` for awaited, atomic YAML key redaction, `VERIFY-025` for persistence-before-publication when creating RP chats, `VERIFY-026` for modal focus management, `VERIFY-027` for deferred/pre-indexed conversation search, `VERIFY-028` for paginated encrypted Media Studio reads, and `VERIFY-029` for repository-local Markdown links. Sidebar conversation rows now expose a real keyboard-focusable selection button.
 
-- **Markdown-link CI gate:** Added dependency-free `npm run verify:markdown-links` coverage for repository documentation, including relative files, GitHub-style heading fragments, reference links, and HTML `href`/`src` attributes. The gate runs in the Node 20/22 CI matrix and fixed nine stale links discovered during rollout.
+- **Markdown-link CI gate:** Added dependency-free `npm run verify:markdown-links` coverage for repository documentation, including relative files, GitHub-style heading fragments, reference links, and HTML `href`/`src` attributes. The gate runs in Node 22 CI and fixed nine stale links discovered during rollout.
 
 - **Media Studio Electron profile:** Added opt-in `npm run profile:media-studio`. The Playwright Electron harness uses an isolated user-data directory, seeds 1,000 AES-GCM encrypted records directly into the application IndexedDB envelope, verifies 60-card initial hydration and 120 cards after one load-more, records render/heap/DOM metrics, rejects relevant console errors, and writes screenshots under the system temporary directory. Two June 6, 2026 development-build runs measured 381.5–444.0 ms initial hydration and 243.9–326.9 ms load-more; timings are informational because host load and Electron mode vary.
 
@@ -96,7 +104,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 - **Provider `safe_mode` endpoint matrix (P1 / VERIFY-018):** Added `src/shared/veniceSafeMode.ts` with `applyVeniceApiSafeMode`, `endpointSupportsSafeMode`, and the `VENICE_API_SAFE_MODE_MATRIX` table. `buildChatPayload`, `buildImagePayload`, and the streaming `use-chat.ts` hook now route through the helper. Endpoints not in the supported set (e.g. `/image/upscale`, `/audio/queue`, `/video/retrieve`) never receive a `safe_mode` field, so Venice's 400-on-unknown-field cannot fire.
 
 - **Endpoint allowlist: GET /characters and GET /characters/{slug} (read-only):** Added `GET /characters` and `GET /characters/{slug}` to the IPC + proxy allowlist. Slugs are validated against `^[A-Za-z0-9_-]{1,128}$`. Rejected: nested paths (`/characters/foo/bar`), URL-encoded traversal (`/characters/%2Fmodels`), oversized or empty slugs, slugs containing `.`, `/`, `%`, whitespace, or control characters, and any method other than GET. Bodies are rejected on every GET. Tests added to `src/shared/validation.test.ts` and `electron/ipc/validation.test.ts`.
-- **CSP Script-Src Nonce Hardening:** Per-request script nonces added to both the Electron and web-server CSP surfaces. In `electron/main.ts`, a new `generateNonce()` helper produces a cryptographically random 16-byte base64 value for every HTTP response via `session.defaultSession.webRequest.onHeadersReceived`. The updated `rendererCsp(nonce?)` includes `'nonce-<value>' 'strict-dynamic'` in production `script-src` (replacing the previous `'self'`-only directive); `'strict-dynamic'` propagates trust from nonced scripts to their dynamic imports so no inline `eval` or `unsafe-inline` is needed. In `server.ts`, the same nonce is generated per-request in the CSP middleware, stored on `res.locals.cspNonce`, and injected into every `<script>` tag in the served `index.html` by the catch-all route handler so the nonce in the HTTP header and the nonce in the HTML are always in sync. Dev mode keeps `'unsafe-inline' 'unsafe-eval'` for Vite HMR compatibility.
+- **CSP Script Hardening:** The web server generates a per-request nonce in its CSP middleware, stores it on `res.locals.cspNonce`, and injects the same nonce into every `<script>` tag served by the catch-all route. Packaged Electron uses `script-src 'self'` and loads `dist/index.html` in place so its external renderer scripts resolve without inline/eval allowances. Dev mode keeps `'unsafe-inline' 'unsafe-eval'` for Vite HMR compatibility.
 
 ### Fixed
 

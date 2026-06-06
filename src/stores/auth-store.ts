@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { desktopApiKey, desktopJinaApiKey } from '../services/desktopBridge' // TARGET Bridge
 
-interface AuthState {
+export interface AuthState {
   apiKey: string | null
   hasEncrypted: boolean
   isConfigured: boolean
@@ -12,6 +12,11 @@ interface AuthState {
   clearApiKey: () => Promise<void>
   setJinaApiKey: (key: string) => Promise<void>
   clearJinaApiKey: () => Promise<void>
+}
+
+/** True when Venice requests can authenticate without exposing a persisted key. */
+export function selectHasVeniceKey(state: Pick<AuthState, 'apiKey' | 'isConfigured'>): boolean {
+  return state.isConfigured || Boolean(state.apiKey)
 }
 
 export const useAuthStore = create<AuthState>()((set) => ({

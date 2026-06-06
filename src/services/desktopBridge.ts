@@ -574,29 +574,31 @@ export const desktopRpAssets = {
   },
 };
 
-/** Manages the Jina API key across desktop and web storage backends. */
+/** Ephemeral web-session Jina key. It is intentionally never persisted. */
+let webSessionJinaApiKey = "";
+
+/** Manages the Jina API key across desktop secure storage and web-session memory. */
 export const desktopJinaApiKey = {
   async isConfigured(): Promise<boolean> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.isConfigured();
-    return !!localStorage.getItem("venice_jina_api_key");
+    return webSessionJinaApiKey.length > 0;
   },
   async set(key: string): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.set(key);
-    localStorage.setItem("venice_jina_api_key", key);
+    webSessionJinaApiKey = key;
     return { ok: true };
   },
   async delete(): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.delete();
-    localStorage.removeItem("venice_jina_api_key");
+    webSessionJinaApiKey = "";
     return { ok: true };
   },
   async test(): Promise<{ ok: boolean; status?: number; message: string }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.test();
     try {
-      const localKey = localStorage.getItem("venice_jina_api_key") || "";
       const headers: Record<string, string> = {};
-      if (localKey) {
-        headers["Authorization"] = `Bearer ${localKey}`;
+      if (webSessionJinaApiKey) {
+        headers["Authorization"] = `Bearer ${webSessionJinaApiKey}`;
       }
       const resp = await fetch("/api/proxy-jina", {
         method: "POST",
@@ -708,10 +710,9 @@ export const desktopJina = {
     );
 
     try {
-      const localKey = localStorage.getItem("venice_jina_api_key");
       const headers = { ...input.headers };
-      if (localKey && !headers["Authorization"] && !headers["authorization"]) {
-        headers["Authorization"] = `Bearer ${localKey}`;
+      if (webSessionJinaApiKey && !headers["Authorization"] && !headers["authorization"]) {
+        headers["Authorization"] = `Bearer ${webSessionJinaApiKey}`;
       }
 
       const response = await fetch("/api/proxy-jina", {

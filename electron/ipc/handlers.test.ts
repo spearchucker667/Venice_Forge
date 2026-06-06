@@ -444,6 +444,36 @@ describe("registerIpcHandlers", () => {
       expect(serialized).not.toMatch(/loli term should never reach/i);
     });
 
+    // VERIFY-039: the Electron boundary enforces the same cap as Express.
+    it("returns 413 and cancels an over-limit Jina response stream", async () => {
+      let cancelled = false;
+      const chunk = new Uint8Array(1024 * 1024);
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(chunk);
+          controller.enqueue(chunk);
+          controller.enqueue(new Uint8Array([1]));
+        },
+        cancel() {
+          cancelled = true;
+        },
+      });
+      globalThis.fetch = vi.fn(async () => new Response(body, {
+        status: 200,
+        headers: { "content-type": "text/plain" },
+      })) as unknown as typeof globalThis.fetch;
+
+      const handler = capturedHandlers.get("jina:request");
+      const result = await handler!(
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        { url: "https://r.jina.ai/https://example.com", headers: {}, timeoutMs: 5000 },
+      );
+
+      expect(result).toMatchObject({ ok: false, status: 413 });
+      expect(result.error).toMatch(/2 MiB limit/i);
+      expect(cancelled).toBe(true);
+    });
+
     it("skips body screening in Adult Mode (runtime snapshot OFF)", async () => {
       const { getRuntimeLocalFamilySafeModeEnabled } = await import("../services/runtimeSafetySettings");
       // Use mockReturnValue so the URL pre-check + the body screen both

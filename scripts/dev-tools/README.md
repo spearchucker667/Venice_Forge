@@ -8,10 +8,9 @@ install and an internet connection; they are not run by `npm test`,
 
 ## capture-venice-styles.cjs
 
-Quick capture (53 LOC). Opens `https://venice.ai/` and writes the
-computed CSS custom properties + body styles to `venice-styles.json`
-at the repo root. Use this when you need a fresh snapshot of the
-upstream theme tokens.
+Quick capture. Opens `https://venice.ai/` and writes computed CSS custom
+properties + body styles to `.design-captures/venice/styles/venice-styles.json`.
+The `.design-captures/` directory is generated local output and is ignored.
 
 ```bash
 node scripts/dev-tools/capture-venice-styles.cjs
@@ -28,4 +27,4 @@ visual parity audits.
 node scripts/dev-tools/capture-venice-design.mjs
 ```
 
-Note: the `.design-captures/` directory is gitignored.
+The `.design-captures/` directory is generated local output and is gitignored.

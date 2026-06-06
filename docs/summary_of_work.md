@@ -12,7 +12,7 @@
 
 **App type and stack.** Venice Forge is a local-first desktop + web
 client for the Venice AI inference API. The desktop build is Electron
-42 with Node 20/22 and a sandboxed, contextIsolated renderer. The web
+42 with Node 22.13+ and a sandboxed, contextIsolated renderer. The web
 build is a Vite SPA served by a thin Express proxy. Both transports
 share the same React 19 + TypeScript-strict renderer and the same
 Zustand 5 state slices.
@@ -86,6 +86,27 @@ user roadmap notes, not the canonical ledger.
 ---
 
 ## Latest Session Summary
+
+- **Date:** 2026-06-06 (combined audit follow-up)
+- **Agent:** Codex
+- **Branch:** main (committed in this session)
+- **Primary objective:** Preserve the packaged startup/CSP fix and complete the combined functional, security, build-determinism, hygiene, and documentation audit.
+- **Changes:** Added configured-state UI key gating (`VERIFY-037`), ephemeral web Jina keys (`VERIFY-038`), 2 MiB bounded Jina response reads (`VERIFY-039`), build-only `verify:dist`, Node 22-only support, source-map-free production packages, deterministic bridge tests, generated-capture cleanup, signing workflow correction, and documentation synchronization.
+- **Validation:** `npm ci`, typecheck, ESLint, 1232-test suite, build, build-output verification, Markdown links, icons, config validation, safety guard, macOS packaging/release verification, packaged renderer launch, style capture, and startup invariant all passed. Electron smoke was skipped by its environment gate. Local signing/notarization validation is blocked because all required credentials are absent; unsigned artifacts correctly fail `codesign` and `spctl`.
+- **Open TODO status:** Validate signing/notarization in a credentialed tag-release environment; Windows packaging verification requires a Windows runner.
+
+---
+
+- **Date:** 2026-06-06 (packaged blank-screen repair)
+- **Agent:** Codex
+- **Branch:** main (uncommitted fix)
+- **Primary objective:** Diagnose and fix the blank screen on packaged application startup.
+- **Root cause:** The production loader copied `dist/index.html` to the system temp directory, breaking its relative `./assets` and `./bootstrap-theme.js` URLs. It also generated the HTML nonce separately from the CSP response-header nonce, so Chromium rejected both scripts.
+- **Changes:** Packaged Electron now loads `dist/index.html` in place. Production CSP uses `script-src 'self'` with inline/eval execution still disabled. Vite no longer injects an unusable nonce placeholder. `VERIFY-036` locks the loader/CSP contract.
+- **Validation:** Targeted `VERIFY-036` 1/1; ESLint clean; typecheck clean; full Vitest 1227 passed / 1 skipped; safety guard 3/3; Markdown links clean; build and unsigned macOS packaging succeeded; Playwright launched the packaged arm64 app and confirmed a populated React root at the production `app.asar/dist/index.html` URL.
+- **Open TODO status:** No follow-up required for this defect.
+
+---
 
 - **Date:** 2026-06 (exhaustive review TODO completion + push to main)
 - **Agent:** Grok
@@ -204,6 +225,73 @@ user roadmap notes, not the canonical ledger.
 ---
 
 ## Session History
+
+### 2026-06-06 — Audit follow-up
+
+**Context:**
+- Combined audit follow-up with staged startup/CSP changes preserved. Ground-truth inspection found the startup edits unstaged rather than staged; their intended behavior was preserved and the invariant test was moved to `tests/electron/productionStartupInvariant.test.ts`.
+
+**Files Changed:**
+- `src/stores/auth-store.ts` and affected feature/header components — use configured-state key gating without reloading the OS-secure key into renderer memory.
+- `src/services/desktopBridge.ts` and `src/components/SettingsView.tsx` — replace browser-persistent Jina keys with memory-only session storage and accurate UI copy.
+- `src/shared/readBoundedFetchBody.ts`, `src/shared/limits.ts`, `server.ts`, and `electron/ipc/handlers.ts` — enforce a shared 2 MiB Jina response cap with stream cancellation and normalized 413 failures.
+- `scripts/verify-dist.cjs`, `package.json`, `package-lock.json`, `electron-builder.config.cjs`, and CI/release workflows — split build/release verification, align Node 22 support, remove normal source maps, exclude packaged maps, isolate tests from Electron runtime imports, and permit signing discovery in credentialed macOS releases.
+- `.gitignore`, `.design-captures/**`, and `scripts/dev-tools/*` — untrack generated captures, ignore future output, and write style captures under `.design-captures/venice/styles/`.
+- `README.md`, `AGENTS.md`, `CHANGELOG.md`, and relevant `docs/**` — synchronize current security, build, provider, audit, and validation behavior.
+
+**Behavior Changed:**
+- A secure-store key reported as configured unlocks UI actions after restart even when `apiKey` is `null` in renderer memory.
+- Web-mode Jina keys never persist to browser storage and clear on reload.
+- Jina responses above 2 MiB are cancelled before parsing or safety screening.
+- `npm run verify:dist` succeeds after a clean build without `release/`; platform release checks remain explicit.
+- Default tests do not load the Electron-backed logger, Node support is 22.13+ within Node 22.x, and production packages contain no source maps.
+
+**Validation Run:**
+```bash
+git status --short
+git diff --cached --name-only
+git diff --cached -- electron/main.ts vite.config.ts tests/electron/productionStartupInvariant.test.ts
+node --version
+npm --version
+npm ci
+npm run typecheck
+npm run lint:eslint
+npm test
+npm run clean && npm run build && npm run verify:dist
+npm run verify:markdown-links
+npm run verify:icon
+npm run config:validate
+npm run verify:safety-guard
+npm run dist:mac
+npm run verify:dist:mac
+npm run smoke:electron
+node scripts/dev-tools/capture-venice-styles.cjs
+codesign --verify --deep --strict "release/mac/Venice Forge.app"
+codesign --verify --deep --strict "release/mac-arm64/Venice Forge.app"
+spctl --assess --type execute --verbose "release/mac/Venice Forge.app"
+spctl --assess --type execute --verbose "release/mac-arm64/Venice Forge.app"
+```
+
+**Validation Result:**
+
+* PASS: Node `v22.22.3`, npm `10.9.8`; `npm ci` with 0 vulnerabilities and no engine warning; typecheck; ESLint; 125 test files / 1232 tests passed with 1 smoke suite skipped; clean build; build-only `verify:dist`; Markdown links (42 files); icons; config validation; safety guard 3/3; macOS x64/arm64 DMG+ZIP packaging and `verify:dist:mac`; packaged arm64 React root mount; zero `.map` files in both ASARs; style capture output and ignore checks; production startup invariant.
+* FAIL: None repo-owned.
+* BLOCKED: macOS signature/notarization assessment because `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID` are absent. Unsigned local artifacts fail `codesign`/`spctl` as expected. Windows packaging verification was not run on macOS.
+
+**Open Follow-ups:**
+
+* [ ] Confirm `codesign` and `spctl` pass in a credentialed tag-release job.
+* [ ] Run `npm run dist:win && npm run verify:dist:win` on a Windows runner.
+
+`npm test` is deterministic after Electron caches are cleared: the bridge security test passed without a download attempt, and the full suite passed. `npm run verify:dist` passes immediately after `npm run clean && npm run build`. `tests/electron/productionStartupInvariant.test.ts` passes.
+
+### 2026-06-06 — Packaged blank-screen repair (VERIFY-036)
+
+**Agent:** Codex
+**Primary objective:** Restore the packaged Electron renderer startup path.
+**Completed:** Removed the mismatched nonce/temp-HTML path, kept production scripts self-hosted with no inline/eval allowances, added a regression invariant, and synchronized the supporting docs.
+**Evidence:** The application log recorded both startup scripts being blocked from the temp directory by a CSP nonce that did not match the HTML nonce.
+**Validation:** Targeted test, lint, typecheck, full tests, safety guard, Markdown links, build, macOS package, and packaged-app launch all passed.
 
 ### Current session — Exhaustive review TODO completion ("just get everything done")
 
@@ -856,6 +944,18 @@ Result:
 > `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` (see the *Scope
 > Correction* section).
 
+### Completed this session (2026-06-06 — packaged blank-screen repair)
+
+- **Packaged renderer startup restored (VERIFY-036).** Removed the temp-file HTML relocation and mismatched per-layer nonce generation. Production now loads `dist/index.html` beside its relative assets under `script-src 'self'`; inline scripts and eval remain disabled. No open follow-up remains for this defect.
+
+### Completed this session (2026-06-06 — combined audit follow-up)
+
+- **BUG-001 / VERIFY-037:** Configured OS-secure Venice keys now unlock all primary UI actions after restart without exposing the persisted key to the renderer.
+- **SEC-001 / VERIFY-038:** Web Jina keys are memory-only and never persisted in browser storage.
+- **SEC-002 / VERIFY-039:** Both Jina proxy boundaries enforce a streaming 2 MiB response cap.
+- **BUILD-001..004:** Build-only distribution verification, deterministic bridge tests, Node 22 support, source-map-free packages, and release signing identity discovery are implemented. Signing validation remains credential-blocked.
+- **HYGIENE-001..002 / DOC-001..003:** Generated captures are ignored/untracked, style output is redirected, local-only docs are non-links, and current audit/provider docs are synchronized.
+
 ### Completed this session (2026-06-06 — MiniMax scope correction)
 
 - **MiniMax LLM forward-compat scaffold removed wholesale.** The
@@ -973,7 +1073,7 @@ Result:
 **P1 (critical — completed):**
 - CI / release `npm audit` gate aligned to moderate (no continue-on-error) in .github/workflows/ci.yml + release.yml. Matches AGENTS.md "is a release gate". Clean run recorded.
 - Linux packaging + security: electron-builder.config.cjs now ships arm64 AppImage + deb + rpm. secureStore.ts plaintext fallback (Linux-only) now emits clear security warnings on set/get. Docs/CHANGELOG updated.
-- CSP nonce for prod static loadFile: Vite plugin now injects __VITE_CSP_NONCE__ placeholder on scripts for ELECTRON_BUILD; main.ts prod path reads the HTML, swaps real nonce, writes temp file, loadFile's it (with will-quit cleanup). Entry scripts + bootstrap now carry matching nonce for the strict-dynamic policy. Review notes added. (P1-CSP-NONCE-PROD + P2-CSP-IMPROVE closed.)
+- CSP nonce for prod static loadFile was implemented in that review, but it caused the packaged blank screen and was superseded by `VERIFY-036`: production now loads `dist/index.html` in place under `script-src 'self'` with inline/eval execution disabled.
 
 **P1 (other — residual audit complete + additional forwarding added):**
 - Safety/abort/signal forwarding: full grep + spot reads across veniceClient (desktop/web), desktopBridge (attachAbort + beforeunload/pagehide), lib/venice-client (all three venice* functions forward), bridgeServer, research providers, RP/scene, attachment, timeout utils. All key paths already forward AbortSignal or use createTimeoutSignal + parent. Additional: direct AbortSignal support added to electron https.request in veniceClient.ts for completeness (P1-SAFETY-ABORT-RESIDUAL). Web scene gen fetch now forwards signal (sceneGenerationService.ts). Re-ran verify:safety-guard (pass).
@@ -984,7 +1084,7 @@ Result:
 
 **P3 / polish + enhancements (implemented or documented):**
 - Linux full (arm64 + multiple targets) + plaintext security surfacing landed.
-- CSP wiring + nonce injection for prod renderer (major hardening).
+- CSP hardening was corrected by `VERIFY-036`: web mode retains synchronized response nonces, while packaged Electron loads self-hosted scripts in place under `script-src 'self'`.
 - Bulk actions / memory / streaming / theme: media already had strong bulk; added notes + small a11y as proxy. Larger UI overhauls left as explicit backlog (user can request specific PRs).
 - Tests/guards: no new named VERIFY this pass (existing matrix sufficient for the changes); safety-guard and a11y-related tests implicitly exercised via full runs. Additional abort tests coverage via existing VERIFY-006/031.
 - All other items from the original review TODO (dead code, small races, docs sync, coverage notes, etc.) either had no actionable code smell on re-scan or were addressed via the above changes + ledger hygiene.
@@ -1001,7 +1101,7 @@ Remaining true backlog (enhancement-tier or large scope) moved to "Future / user
 ## Validation Matrix
 
 > Latest known status of core commands as of the 2026-06-06
-> repo-hygiene + CI-fix session. Update this table only for commands
+> packaged blank-screen repair session. Update this table only for commands
 > actually run in the current session; "Not yet recorded" is the
 > honest default for a fresh session that hasn't run a given
 > command.
@@ -1025,6 +1125,28 @@ Remaining true backlog (enhancement-tier or large scope) moved to "Future / user
 | `npm run verify:safety-guard` (continuation) | 3/3 pass | current continuation | After signal forwarding improvements |
 | `npm run build` (continuation)               | succeeded | current continuation | After all todo changes |
 | `git commit + push origin main`              | success (f36b118c) | 2026-06 | Committed review TODO fixes + ledger update. Pushed: c44dd63e..f36b118c main -> main. See commit message for files. |
+| `npx vitest run tests/electron/productionStartupInvariant.test.ts` | 1 passed | 2026-06-06 | `VERIFY-036` loader/CSP regression guard |
+| `npm run lint:eslint`                        | 0 warnings, clean | 2026-06-06 | After packaged startup fix |
+| `npm run typecheck`                          | 0 errors, clean | 2026-06-06 | Renderer + Electron main |
+| `npm test`                                   | 1227 passed, 1 skipped | 2026-06-06 | Includes `VERIFY-036`; Playwright smoke remains the single suite skip |
+| `npm run verify:safety-guard`                | 3/3 boundaries pass | 2026-06-06 | No raw prompt logging or bypass patterns |
+| `npm run verify:markdown-links`              | 42 Markdown files, no broken links | 2026-06-06 | Run before final ledger update; re-run after update |
+| `npm run build`                              | succeeded | 2026-06-06 | Renderer, server, and Electron outputs built |
+| `npm run dist:mac:arm64`                     | succeeded | 2026-06-06 | Unsigned arm64/x64 DMG + ZIP artifacts and checksums generated by current builder config |
+| Packaged arm64 Playwright launch             | React root mounted | 2026-06-06 | `file://.../app.asar/dist/index.html`, root child count 1, body text length 894 |
+| `npm ci`                                     | PASS, 0 vulnerabilities | 2026-06-06 | Node 22.22.3 / npm 10.9.8; no engine warning |
+| `npm run typecheck`                          | PASS, 0 errors | 2026-06-06 | Final combined audit state |
+| `npm run lint:eslint`                        | PASS, 0 warnings | 2026-06-06 | Final combined audit state |
+| `npm test`                                   | 1232 passed, 1 skipped | 2026-06-06 | 125 files passed; Electron smoke suite is separately environment-skipped |
+| `npm run clean && npm run build && npm run verify:dist` | PASS | 2026-06-06 | No `release/` required; no build-output source maps |
+| `npm run verify:markdown-links`              | PASS, 42 files | 2026-06-06 | After audit documentation updates |
+| `npm run verify:icon`                        | PASS | 2026-06-06 | ICO and ICNS validated |
+| `npm run config:validate`                    | PASS, 0 errors / 0 warnings | 2026-06-06 | Local config and themes |
+| `npm run verify:safety-guard`                | PASS, 3/3 | 2026-06-06 | No raw logging or bypass patterns |
+| `npm run dist:mac && npm run verify:dist:mac` | PASS | 2026-06-06 | x64/arm64 DMG+ZIP and checksums; zero ASAR source maps |
+| `npm run smoke:electron`                     | SKIPPED | 2026-06-06 | Test's environment gate skipped the smoke case |
+| Packaged arm64 Playwright launch             | PASS | 2026-06-06 | React root mounted from `app.asar/dist/index.html` |
+| macOS `codesign` / `spctl`                   | BLOCKED | 2026-06-06 | All signing/notarization credentials absent; unsigned local artifacts rejected as expected |
 
 ---
 

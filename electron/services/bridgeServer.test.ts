@@ -14,6 +14,13 @@ vi.mock("./veniceClient", () => ({
   validateVeniceIpcRequest: vi.fn((input) => input),
 }));
 
+// Keep the default unit suite independent from Electron's runtime package.
+// The real logger imports `electron`; bridge behavior only needs these sinks.
+vi.mock("./logger", () => ({
+  logInfo: vi.fn(),
+  logError: vi.fn(),
+}));
+
 vi.mock("../../src/shared/safety", () => {
   const assessChildExploitationSafety = vi.fn();
   return {

@@ -41,7 +41,7 @@ All providers share a common type contract and are consumed through the same UI 
 
 ### Key Design Decisions
 
-1. **Desktop renderer never sees raw API keys.** The Jina key is stored via Electron `safeStorage` in the main process (same policy as the Venice key). The desktop renderer only knows whether a key is configured, not its value. In web mode, a development-only browser `localStorage` override may be used for low-volume testing.
+1. **Desktop renderer never sees persisted raw API keys.** The Jina key is stored via Electron `safeStorage` in the main process (same policy as the Venice key). The desktop renderer only knows whether a key is configured, not its value. In web mode, persistent configuration belongs in the server `.env`; browser-entered overrides are memory-only and clear on reload.
 2. **Fail-safe defaults.** The Generic HTTP provider is disabled until explicitly enabled in settings. This prevents accidental SSRF exposure.
 3. **Budget enforcement.** Every research job runs through `researchRunner.ts`, which enforces hard limits on queries, results, pages, and timeouts.
 4. **Evidence-only synthesis.** The AI Research tab gathers evidence first, then builds a constrained synthesis prompt. The model is never asked to browse autonomously.

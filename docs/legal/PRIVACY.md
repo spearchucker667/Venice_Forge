@@ -6,7 +6,7 @@ Venice Forge is designed with a strict "privacy-by-default" and "offline-first" 
 
 ## API Key Security
 - **Desktop Mode (Production):** Both the Venice API key and the optional Jina API key are encrypted at rest using OS-level secure storage (DPAPI on Windows, Keychain on macOS). They are **never** exposed to the application renderer, the React frontend, or any third-party tracking scripts.
-- **Web Mode (Development):** The Venice API key is held securely in the Node.js Express server (`.env`) and is not exposed to the browser. Development-only browser `localStorage` overrides may be used for low-volume Jina testing, but this is not secure storage.
+- **Web Mode (Development):** Persistent Venice and Jina keys are held in the Node.js Express server (`.env`) and are not exposed to the browser. A Jina key entered through the web UI is held only in memory for the current page session and is never persisted to browser storage.
 - **No Telemetry:** We do not track you, we do not log your prompts, and we do not monitor your API key usage.
 - **Third-Party Research Providers:** When you use the Jina AI research provider, requests are sent directly to `r.jina.ai` and `s.jina.ai`. These connections are encrypted HTTPS and do not pass through any intermediary server. The Generic HTTP provider is disabled by default and only accesses URLs you explicitly provide.
 

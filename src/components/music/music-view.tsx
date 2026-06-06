@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
-import { useAuthStore } from '../../stores/auth-store'
+import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useMusic } from '../../hooks/use-music'
 import { Label, TextArea, PrimaryButton, ErrorText, ExamplePrompts } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
@@ -32,7 +32,7 @@ function getConfig(modelId: string): MusicModelConfig {
 }
 
 export function MusicView() {
-  const apiKey = useAuthStore((s) => s.apiKey)
+  const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const selectedModel = useSettingsStore((s) => s.selectedModels.music)
   const { data: models } = useModels('music')
   const model = selectedModel || models?.[0]?.id || ''
@@ -102,7 +102,7 @@ export function MusicView() {
 
       <PrimaryButton
         onClick={handleGenerate}
-        disabled={!prompt.trim() || !apiKey || isQueueing || isProcessing}
+        disabled={!prompt.trim() || !hasVeniceKey || isQueueing || isProcessing}
         loading={isQueueing || isProcessing}
         size="lg"
       >

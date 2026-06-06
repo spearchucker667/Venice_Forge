@@ -11,7 +11,7 @@ The project ships as a packaged Electron desktop app for Windows and macOS, plus
 Current public readiness status:
 
 - Source is MIT licensed and suitable for public repository browsing.
-- CI runs lint, typecheck, tests, and build on Node 20 and 22.
+- CI runs lint, typecheck, tests, and build on the supported Node 22 runtime.
 - Release automation builds Windows NSIS/portable `.exe` artifacts and macOS DMG/ZIP artifacts.
 - Root support, security, contribution, code of conduct, issue template, PR template, and Dependabot metadata are present.
 - Legal/TOS notes are maintained in [LEGAL.md](LEGAL.md).
@@ -23,7 +23,7 @@ Current public readiness status:
 - **Privacy by default.** The Venice API is privacy-preserving by design. Venice Forge keeps API keys out of the renderer process, never persists keys in plaintext, and never exports them.
 - **Offline-first storage.** Images, chat history, and settings live in browser IndexedDB — no cloud sync, no telemetry.
 - **Unified Creative Suite.** Provide a seamless, visual interface for the full spectrum of Venice multimodal capabilities.
-- **Reproducible builds.** TypeScript strict mode, a CI matrix across Node 20 and 22, and `npm ci` ensure every build starts from a known state.
+- **Reproducible builds.** TypeScript strict mode, Node 22 CI, and `npm ci` ensure every build starts from a known state.
 
 > [!NOTE]
 > Venice Forge is currently in a "restructuring" phase following a major codebase merge. Architectural consistency is being actively restored.

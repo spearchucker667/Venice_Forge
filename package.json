@@ -17,7 +17,7 @@
     "url": "https://github.com/spearchucker667/Venice-API-connector/issues"
   },
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=22.13.0 <23",
     "npm": ">=10.0.0"
   },
   "scripts": {
@@ -28,7 +28,8 @@
     "verify:safety-guard": "node scripts/verify-safety-guard.cjs",
     "verify:markdown-links": "node scripts/verify-markdown-links.cjs",
     "build:web": "cross-env ELECTRON_BUILD=true vite build",
-    "build:server": "esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --log-override:empty-import-meta=silent --outfile=dist/server.cjs",
+    "build:server": "esbuild server.ts --bundle --platform=node --format=cjs --packages=external --log-override:empty-import-meta=silent --outfile=dist/server.cjs",
+    "build:server:debug": "esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --log-override:empty-import-meta=silent --outfile=dist/server.cjs",
     "build:electron": "tsc --project tsconfig.electron.json && node scripts/create-cjs-package.cjs",
     "start": "node scripts/start-production.cjs",
     "preview": "vite preview",
@@ -39,6 +40,7 @@
     "verify:dist:win": "node scripts/verify-dist.cjs --win",
     "verify:dist:mac": "node scripts/verify-dist.cjs --mac",
     "verify:dist:portable": "node scripts/verify-dist.cjs --win --portable",
+    "verify:dist:release": "node scripts/verify-dist.cjs --all",
     "checksum:release": "node scripts/checksum-release.cjs",
     "lint": "npm run lint:eslint && npm run typecheck",
     "lint:eslint": "eslint src electron server.ts scripts --max-warnings=0",

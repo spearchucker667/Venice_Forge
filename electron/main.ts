@@ -5,7 +5,6 @@
 // Primary maintainer and security gatekeeper for the Electron main process.
 import { app, BrowserWindow, dialog, shell, session } from "electron";
 import path from "path";
-import fs from "fs";
 import { fileURLToPath } from "url";
 import { registerIpcHandlers } from "./ipc/handlers";
 import { initializeConfig } from "./services/configService";
@@ -24,28 +23,9 @@ if (allowProdDevTools) {
   logInfo("VENICE_FORGE_DEBUG_DEVTOOLS is enabled — DevTools will be available in production builds.");
 }
 
-/**
- * Generates a cryptographically random 16-byte base64 nonce for CSP.
- * A fresh nonce is created per HTTP response so replay of a captured
- * nonce cannot be used to inject scripts in a future page load.
- */
-function generateNonce(): string {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  // base64url encoding without padding — safe in CSP header values.
-  return Buffer.from(bytes).toString("base64");
-}
-
 /** Builds the Content-Security-Policy header string for the renderer.
  *  The theme bootstrap script lives in a separate file (bootstrap-theme.js)
  *  so production does not need 'unsafe-inline' for scripts.
- *
- *  SCRIPT-SRC POLICY (CSP-NONCE):
- *  In production, every allowed script tag must carry the per-request nonce
- *  (`nonce-<value>`). 'strict-dynamic' is added so scripts loaded by an
- *  already-trusted script inherit trust without needing their own nonce.
- *  'unsafe-inline' is intentionally absent in production — 'strict-dynamic'
- *  makes it a no-op in supporting browsers anyway.
  *  In development, 'unsafe-inline' and 'unsafe-eval' are kept for Vite HMR.
  *
  *  STYLE-SRC POLICY (T1): production style-src is 'self' (no 'unsafe-inline').
@@ -56,20 +36,15 @@ function generateNonce(): string {
  *  before first paint, but that path is not blocked by style-src 'self'
  *  (style.setProperty writes to inline styles which the browser allows
  *  regardless of CSP for non-third-party elements).
- *
- *  @param nonce Optional per-request nonce for script-src. Should be omitted
- *               in dev mode so Vite HMR inline scripts are not blocked.
  */
-function rendererCsp(nonce?: string): string {
+function rendererCsp(): string {
   const connectSrc = isDev ? "'self' http://localhost:5173 ws://localhost:5173" : "'self'";
   // Production style-src: 'self' only. Dev adds 'unsafe-inline' for Vite HMR
   // which injects inline style tags during fast refresh.
   const styleSrc = isDev ? "'self' 'unsafe-inline' http://localhost:5173" : "'self'";
-  // In production, lock scripts to nonce + strict-dynamic. In dev, allow Vite HMR.
+  // Production permits only self-hosted scripts; inline and eval remain disabled.
   const scriptSrc = isDev
     ? "'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173"
-    : nonce
-    ? `'self' 'nonce-${nonce}' 'strict-dynamic'`
     : "'self'";
 
   return [
@@ -213,29 +188,9 @@ function createWindow(): BrowserWindow {
     });
     win.webContents.openDevTools({ mode: "detach" });
   } else {
-    // CSP-NONCE prod path: inject real nonce into the built HTML's script tags
-    // (replacing the __VITE_CSP_NONCE__ placeholder added by the Vite plugin
-    // during ELECTRON_BUILD). This gives the entry scripts a matching nonce
-    // so the 'nonce-...' 'strict-dynamic' policy is satisfied for the initial
-    // module graph.
     const prodHtmlPath = path.join(__dirname, "../../dist/index.html");
-    let loadTarget = prodHtmlPath;
-    try {
-      const nonce = generateNonce();
-      const original = fs.readFileSync(prodHtmlPath, "utf-8");
-      const withNonce = original.replace(/__VITE_CSP_NONCE__/g, nonce);
-      // Use a temp file so loadFile resolves relative assets correctly inside asar.
-      const tmpDir = app.getPath("temp");
-      const tmpHtml = path.join(tmpDir, `venice-forge-csp-${Date.now()}.html`);
-      fs.writeFileSync(tmpHtml, withNonce, "utf-8");
-      loadTarget = tmpHtml;
-      // Best-effort cleanup on quit (temp files are not critical).
-      app.once("will-quit", () => { try { fs.unlinkSync(tmpHtml); } catch (cleanupErr) { void cleanupErr; } });
-    } catch (e) {
-      logError("CSP nonce injection for prod HTML failed — falling back to static loadFile (strict-dynamic still provides substantial protection)", e);
-      // Fallback already in place (loadTarget remains the original path).
-    }
-    win.loadFile(loadTarget).catch((err) => {
+    // Keep index.html beside its relative ./assets and bootstrap-theme.js files.
+    win.loadFile(prodHtmlPath).catch((err) => {
       logError("Failed to load production renderer", err);
       win.loadURL(`data:text/html,<h1>Failed to load application</h1><p>${encodeURIComponent(err.message)}</p><p>Please check the logs or reinstall the application.</p>`);
     });
@@ -262,32 +217,11 @@ async function bootstrap(): Promise<void> {
   // Register CSP once globally for the default session so it is not duplicated
   // when additional windows are created (M-008).
   //
-  // CSP-NONCE: A fresh 16-byte base64 nonce is generated per HTTP response and
-  // injected into the script-src directive so every served document has a unique
-  // nonce. In production this removes the need for 'unsafe-inline' on scripts.
-  // The nonce is NOT threaded into the served HTML here — Electron's loadFile()
-  // serves static dist/index.html. For strict nonce enforcement the build
-  // pipeline would need to inject the nonce attribute on every <script> tag.
-  // The current setup tightens script-src from 'self'-only to 'nonce+strict-dynamic'
-  // which blocks non-nonced inline scripts while keeping src-based scripts working
-  // (strict-dynamic propagates trust from the main bundle to dynamic imports).
-  //
-  // REVIEW NOTE (exhaustive 2026 review): This is tracked as a P1 hardening item
-  // (P1-CSP-NONCE-PROD). The built dist/index.html contains <script type=module>
-  // and <script src=bootstrap-theme.js> without nonce= attrs. Risk is mitigated
-  // by: no inline scripts in Vite output, strict-dynamic, sandbox + contextIsolation
-  // + webSecurity:true + no nodeIntegration, all Venice traffic forced through
-  // guarded desktopBridge (never direct fetch), external navigation guards, and
-  // bootstrap-theme.js having its own color-value sanitization. Full fix would
-  // require a custom protocol handler (or data: + base rewrite) to inject real
-  // nonces into the initial document at load time. See also rendererCsp() and
-  // the stripCrossorigin Vite plugin.
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    const nonce = isDev ? undefined : generateNonce();
     callback({
       responseHeaders: {
         ...details.responseHeaders,
-        "Content-Security-Policy": [rendererCsp(nonce)],
+        "Content-Security-Policy": [rendererCsp()],
       },
     });
   });

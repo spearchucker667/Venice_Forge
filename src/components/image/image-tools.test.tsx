@@ -25,7 +25,8 @@ vi.mock('../../hooks/use-image-tools', () => ({
 }))
 
 vi.mock('../../stores/auth-store', () => ({
-  useAuthStore: (selector: (s: { apiKey: string }) => string) => selector({ apiKey: 'test-key' }),
+  selectHasVeniceKey: (state: { apiKey: string | null; isConfigured: boolean }) => state.isConfigured || Boolean(state.apiKey),
+  useAuthStore: (selector: (s: { apiKey: string | null; isConfigured: boolean }) => unknown) => selector({ apiKey: 'test-key', isConfigured: true }),
 }))
 
 // jsdom does not provide a working FileReader. Patch it so onload fires

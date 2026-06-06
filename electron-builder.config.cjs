@@ -27,8 +27,11 @@ const config = {
 
   files: [
     "dist/**/*",
+    "!dist/**/*.map",
     "dist-electron/**/*",
+    "!dist-electron/**/*.map",
     "package.json",
+    "!**/*.map",
   ],
 
   extraMetadata: {

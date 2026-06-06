@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from 'react'
-import { useAuthStore } from '../../stores/auth-store'
+import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useVideoModels, type VideoModelGroup } from '../../hooks/use-models'
 import { useVideo } from '../../hooks/use-video'
 import { Select } from '../ui/select'
@@ -11,7 +11,7 @@ import { useMediaStore } from '../../stores/media-store'
 import type { VideoQueueRequest, VideoConstraints } from '../../types/venice'
 
 export function VideoView() {
-  const apiKey = useAuthStore((s) => s.apiKey)
+  const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const { groups, isLoading: modelsLoading } = useVideoModels()
   const [selectedGroup, setSelectedGroup] = useState<string>('')
   const [mode, setMode] = useState<'text' | 'image'>('text')
@@ -329,7 +329,7 @@ export function VideoView() {
 
         <PrimaryButton
           onClick={handleGenerate}
-          disabled={!prompt.trim() || !apiKey || !activeModel || isQueueing || isProcessing || (mode === 'image' && !imageUrl)}
+          disabled={!prompt.trim() || !hasVeniceKey || !activeModel || isQueueing || isProcessing || (mode === 'image' && !imageUrl)}
           loading={isQueueing || isProcessing}
         >
           {isProcessing ? (status === 'queued' ? 'Queued...' : 'Processing...') : 'Generate Video'}

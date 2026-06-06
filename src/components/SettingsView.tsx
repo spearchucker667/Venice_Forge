@@ -222,7 +222,7 @@ export function SettingsView() {
       await desktopJinaApiKey.set(jinaKeyInput.trim());
       setJinaKeyInput("");
       setJinaKeyConfigured(true);
-      toast.success("Jina API key saved securely.");
+      toast.success(isElectron() ? "Jina API key saved securely." : "Jina API key saved for this browser session.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save Jina API key.");
     }
@@ -231,7 +231,9 @@ export function SettingsView() {
   async function handleDeleteJinaKey() {
     setPendingConfirm({
       message: "Delete Jina API key?",
-      detail: "This will remove your Jina API key from OS secure storage.",
+      detail: isElectron()
+        ? "This will remove your Jina API key from OS secure storage."
+        : "This will remove the in-memory Jina API key for this browser session.",
       onConfirm: async () => {
         try {
           await desktopJinaApiKey.delete();
@@ -597,7 +599,7 @@ export function SettingsView() {
                   </span>
                 </div>
                 <p className="text-[12.5px] text-text-secondary leading-relaxed">
-                  Provides deep web searching, scraping, and social profile discovery mapping capabilities. {isElectron() ? "Jina API keys are saved with the same OS secure storage." : "Jina API keys are saved in local storage."}
+                  Provides deep web searching, scraping, and social profile discovery mapping capabilities. {isElectron() ? "Jina API keys are saved with the same OS secure storage." : "Jina API keys are kept only in memory for this browser session; use the server environment for persistent web configuration."}
                 </p>
                 <div className="space-y-3">
                   {!jinaKeyConfigured ? (
