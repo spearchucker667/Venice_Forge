@@ -5,6 +5,7 @@ import { App } from "./App";
 import "./index.css";
 import { initDesktopBridge } from "./services/desktopBridge";
 import { refreshConfig } from "./stores/config-store";
+import { useAuthStore } from "./stores/auth-store";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,6 +42,7 @@ if (!rootEl) {
     try {
       await initDesktopBridge();
       await refreshConfig();
+      await useAuthStore.getState().checkConfiguration();
     } catch (err) {
       console.error("[venice-forge] Bridge/config init failed:", err instanceof Error ? err.message : String(err));
     }

@@ -87,6 +87,19 @@ user roadmap notes, not the canonical ledger.
 
 ## Latest Session Summary
 
+- **Date:** 2026-06-06
+- **Agent:** opencode (zai-org-glm-5-1)
+- **Branch:** main (pending commit)
+- **Primary objective:** Three targeted fixes: (1) smooth tab/section transitions, (2) durable API-key persistence across restarts, (3) Forge Dracula theme WCAG AA contrast.
+- **Changes:**
+  - **Tab transitions:** Added `section-enter` CSS keyframe (150ms, cubic-bezier(0.2,0,0,1), translateY(6px)) and `.section-transition` class in `src/styles/theme.css`. Wrapped `<ActiveView />` in `App.tsx` with a `<div key={normalisedActiveTab} className="section-transition">`. Respects existing `prefers-reduced-motion` rules.
+  - **API key persistence fix:** Root cause: `useAuthStore.checkConfiguration()` was defined but never called at startup, so `isConfigured` stayed `false` and `needsUnlock` (which checked `hasEncrypted && !apiKey`) was always `true`. Fix: call `checkConfiguration()` in `src/main.tsx` after `refreshConfig()`, and changed `needsUnlock` in `App.tsx` from `s.hasEncrypted && !s.apiKey` to `!s.isConfigured && !s.apiKey`.
+  - **Forge Dracula contrast:** Three tokens shared the same value `#6272a4` (surfaceElevated, border, textMuted) with no visual differentiation, and textMuted on background was only 3.03:1 (fails WCAG AA). Fix: surface `#44475a` → `#343748`, surfaceElevated stays `#44475a`, border `#6272a4` → `#52566e`, textMuted `#6272a4` → `#9e9fb4` (5.47:1 on background, passes AA). Added 9-test WCAG AA regression guard in `src/theme/contrast.test.ts`.
+- **Validation:** ESLint clean; typecheck clean; 1241/1242 tests passed (1 skipped: Electron smoke requires display); safety guard passed; build succeeded.
+- **Open TODO status:** None introduced by this session.
+
+---
+
 - **Date:** 2026-06-06 (combined audit follow-up)
 - **Agent:** Codex
 - **Branch:** main (committed in this session)

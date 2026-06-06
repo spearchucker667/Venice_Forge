@@ -74,7 +74,7 @@ const views: Record<TabId, React.ComponentType> = {
 export const TAB_ORDER: readonly TabId[] = CANONICAL_TAB_ORDER;
 
 export function App() {
-  const needsUnlock = useAuthStore((s) => s.hasEncrypted && !s.apiKey)
+  const needsUnlock = useAuthStore((s) => !s.isConfigured && !s.apiKey)
   const [apiKeyOpen, setApiKeyOpen] = useState(needsUnlock)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   // LEGAL: show the 18+ age-gate on first launch. Persists via FIRST_RUN_ACK_KEY.
@@ -160,7 +160,9 @@ export function App() {
         <div className="flex flex-1 min-h-0 overflow-hidden">
           <main className="flex-1 min-h-0 overflow-hidden">
             <ErrorBoundary key={normalisedActiveTab}>
-              <ActiveView />
+              <div key={normalisedActiveTab} className="section-transition h-full">
+                <ActiveView />
+              </div>
             </ErrorBoundary>
           </main>
           <InspectorPane />
