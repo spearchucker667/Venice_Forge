@@ -109,6 +109,17 @@ function stripCode(text) {
 }
 
 function githubSlug(value) {
+  // `value` is a heading text from the developer's own checked-in
+  // Markdown files, NOT an untrusted user input. The output is a URL
+  // slug used to verify in-doc `#fragment` link targets against
+  // GitHub's slug rules; it is never injected into a DOM, template,
+  // shell, or SQL. The final `replace(/[^\p{L}\p{N}_-]/gu, "")` is a
+  // hard character-class whitelist that already drops every non-
+  // letter / non-digit / non-underscore / non-dash character, so
+  // there is no re-introduction vector that could produce a dangerous
+  // substring. The intermediate `<[^>]+>` strip is a no-op for the
+  // final output.
+  // nosec:js/incomplete-multi-character-sanitization
   return value
     .trim()
     .toLowerCase()
