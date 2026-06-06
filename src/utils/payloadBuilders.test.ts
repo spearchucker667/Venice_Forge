@@ -38,15 +38,16 @@ describe("buildChatPayload", () => {
 
 /** Tests for the normalizeImageDraft helper. */
 describe("normalizeImageDraft", () => {
-  /** Verifies that out-of-range dimensions are clamped to valid multiples. */
-  it("clamps dimensions to nearest 64px multiple within [64, 2048]", () => {
+  /** Verifies that out-of-range dimensions are clamped to valid multiples
+   *  within the Venice swagger `GenerateImageRequest` bound of [64, 1280]. */
+  it("clamps dimensions to nearest 64px multiple within [64, 1280]", () => {
     const result = normalizeImageDraft({
       prompt: "test",
       width: 50,
       height: 3000,
     });
     expect(result.width).toBe(64);
-    expect(result.height).toBe(2048);
+    expect(result.height).toBe(1280);
   });
 
   /** Verifies that steps are clamped to [1, 50]. */
@@ -65,25 +66,41 @@ describe("normalizeImageDraft", () => {
     expect(high.cfg).toBe(20);
   });
 
-  /** Verifies that imageCount is clamped to [1, 10]. */
-  it("clamps imageCount to [1, 10]", () => {
+  /** Verifies that imageCount is clamped to the spec's [1, 4] range. */
+  it("clamps imageCount to [1, 4] (spec `variants` maximum)", () => {
     const low = normalizeImageDraft({ prompt: "test", imageCount: 0 });
     expect(low.imageCount).toBe(1);
     const high = normalizeImageDraft({ prompt: "test", imageCount: 50 });
-    expect(high.imageCount).toBe(10);
+    expect(high.imageCount).toBe(4);
   });
 
-  /** Verifies that oversized prompts are truncated. */
-  it("truncates prompts longer than 4000 characters", () => {
-    const longPrompt = "a".repeat(5000);
+  /** Verifies that oversized prompts are truncated to the 7500-char limit. */
+  it("truncates prompts longer than 7500 characters", () => {
+    const longPrompt = "a".repeat(8000);
     const result = normalizeImageDraft({ prompt: longPrompt });
-    expect(result.prompt.length).toBe(4000);
+    expect(result.prompt.length).toBe(7500);
+  });
+
+  /** Verifies that oversized negative prompts are truncated to 7500. */
+  it("truncates negative prompts longer than 7500 characters", () => {
+    const long = "b".repeat(8000);
+    const result = normalizeImageDraft({ prompt: "p", negative: long });
+    expect((result.negative ?? "").length).toBe(7500);
   });
 
   /** Verifies that empty prompts are preserved (rejected later by UI). */
   it("trims empty prompts", () => {
     const result = normalizeImageDraft({ prompt: "   " });
     expect(result.prompt).toBe("");
+  });
+
+  /** Verifies that an absent aspectRatio is normalised to undefined, NOT
+   *  silently defaulted to "1:1" (the previous behaviour forced every
+   *  model into aspect-ratio mode and broke SD-classic models that
+   *  need raw width/height). */
+  it("does not default aspectRatio when the caller did not supply one", () => {
+    const result = normalizeImageDraft({ prompt: "test" });
+    expect(result.aspectRatio).toBeUndefined();
   });
 });
 
@@ -102,6 +119,50 @@ describe("buildImagePayload", () => {
     expect(payload.height).toBe(64);
     expect(payload.steps).toBe(1);
     expect(payload.cfg_scale).toBe(1);
+  });
+
+  /** When the caller provides an aspect_ratio, the builder must NOT also
+   *  emit width/height — the swagger allows `additionalProperties: false`
+   *  for some model classes and Venice ignores integer fields anyway. */
+  it("emits aspect_ratio and omits width/height when the caller sets an aspectRatio", () => {
+    const payload = buildImagePayload("nano-banana", {
+      prompt: "test",
+      width: 1024,
+      height: 1024,
+      aspectRatio: "16:9",
+    });
+    expect(payload.aspect_ratio).toBe("16:9");
+    expect(payload.width).toBeUndefined();
+    expect(payload.height).toBeUndefined();
+  });
+
+  /** Without an aspectRatio, the builder emits width/height (SD-classic
+   *  models like flux-dev, z-image-turbo, hidream require this). */
+  it("emits width/height and omits aspect_ratio when no aspectRatio is supplied", () => {
+    const payload = buildImagePayload("flux-dev", {
+      prompt: "test",
+      width: 1024,
+      height: 768,
+    });
+    expect(payload.width).toBe(1024);
+    expect(payload.height).toBe(768);
+    expect(payload.aspect_ratio).toBeUndefined();
+  });
+
+  /** safe_mode is added by applyVeniceApiSafeMode from the endpoint matrix;
+   *  the builder must NOT assign it directly (defence against double-emit). */
+  it("does not duplicate safe_mode in the payload (applyVeniceApiSafeMode owns it)", () => {
+    const payload = buildImagePayload("flux-dev", {
+      prompt: "test",
+      width: 1024,
+      height: 1024,
+      safeMode: false,
+    });
+    expect(payload.safe_mode).toBe(false);
+    // Only one safe_mode key — applyVeniceApiSafeMode either omits it (when
+    // safeMode is undefined or non-boolean) or sets it once.
+    const keyCount = Object.keys(payload).filter((k) => k === "safe_mode").length;
+    expect(keyCount).toBe(1);
   });
 });
 

@@ -1,6 +1,23 @@
 /** @fileoverview Shared payload builders for Venice API chat and image requests. */
 import { applyVeniceApiSafeMode } from "../shared/veniceSafeMode";
 
+/**
+ * Venice API hard limits for image generation, lifted directly from
+ * `docs/Venice_swagger_api.yaml` `GenerateImageRequest` (verified 2026-06-05):
+ *  - `width` / `height`: max 1280 (server rejects > 1280)
+ *  - `variants`: 1–4 (server rejects > 4)
+ *  - `cfg_scale`: 0 < x ≤ 20
+ *  - `prompt` / `negative_prompt`: max 7500 chars
+ * Sending values outside these ranges produces 400s that surface to the
+ * user as a generic "invalid params" — keeping the clamps here means a
+ * future UI tweak cannot regress the API contract.
+ */
+export const VENICE_IMAGE_MAX_DIMENSION = 1280;
+export const VENICE_IMAGE_MIN_DIMENSION = 64;
+export const VENICE_IMAGE_DIMENSION_DIVISOR = 64;
+export const VENICE_IMAGE_MAX_VARIANTS = 4;
+export const VENICE_IMAGE_MAX_PROMPT_CHARS = 7500;
+
 /** A content part for vision-capable models. */
 export interface ImageContentPart {
   type: "image_url";
@@ -150,18 +167,21 @@ function clampFloat(value: unknown, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
 }
 
-/** Round a dimension to the nearest valid multiple (64px for most SD pipelines). */
+/** Round a dimension to the nearest valid multiple (64px for most SD pipelines).
+ *  Capped at 1280 per the Venice swagger `GenerateImageRequest`. */
 function clampDimension(value: unknown): number {
-  const n = clampInt(value, 64, 2048);
-  return Math.round(n / 64) * 64;
+  const n = clampInt(value, VENICE_IMAGE_MIN_DIMENSION, VENICE_IMAGE_MAX_DIMENSION);
+  return Math.round(n / VENICE_IMAGE_DIMENSION_DIVISOR) * VENICE_IMAGE_DIMENSION_DIVISOR;
 }
-
-/** Maximum prompt length accepted by Venice image generation (conservative). */
-const MAX_IMAGE_PROMPT_LENGTH = 4000;
 
 /**
  * Normalizes and clamps an image draft so invalid UI or imported state
  * cannot produce out-of-range API requests.
+ *
+ * `aspectRatio` is preserved as the user-supplied value (or undefined if
+ * none was given) so the payload builder can decide which dimension
+ * fields to emit; defaulting to "1:1" here would force every model into
+ * aspect-ratio mode and break SD-classic models that need raw width/height.
  *
  * @param draft The raw image draft.
  * @returns A normalized draft with safe values.
@@ -169,23 +189,39 @@ const MAX_IMAGE_PROMPT_LENGTH = 4000;
 export function normalizeImageDraft(draft: ImageDraftLike): ImageDraftLike {
   const prompt = String(draft.prompt ?? "").trim();
   const negative = String(draft.negative ?? "").trim();
+  const aspectRatio = String(draft.aspectRatio ?? "").trim();
   return {
-    prompt: prompt.slice(0, MAX_IMAGE_PROMPT_LENGTH),
-    negative: negative.slice(0, MAX_IMAGE_PROMPT_LENGTH),
+    prompt: prompt.slice(0, VENICE_IMAGE_MAX_PROMPT_CHARS),
+    negative: negative.slice(0, VENICE_IMAGE_MAX_PROMPT_CHARS),
     width: clampDimension(draft.width),
     height: clampDimension(draft.height),
-    aspectRatio: draft.aspectRatio || "1:1",
+    aspectRatio: aspectRatio || undefined,
     steps: clampInt(draft.steps, 1, 50),
     cfg: clampFloat(draft.cfg, 1, 20),
     style: draft.style ?? "",
     safeMode: !!draft.safeMode,
     disableWatermark: !!draft.disableWatermark,
-    imageCount: clampInt(draft.imageCount, 1, 10),
+    imageCount: clampInt(draft.imageCount, 1, VENICE_IMAGE_MAX_VARIANTS),
   };
 }
 
 /**
  * Builds an image generation payload for the Venice API.
+ *
+ * Only ONE of the dimension modes is emitted per request — the API
+ * expects either an `aspect_ratio` string OR explicit `width`/`height`
+ * integers, not both:
+ *  - If the caller supplies an `aspect_ratio` (e.g. "16:9", "1:1"), the
+ *    builder emits `aspect_ratio` and OMITS `width`/`height`. Models in
+ *    the Nano Banana class ignore the integer fields when an aspect ratio
+ *    is set, but the swagger specifies `additionalProperties: false` for
+ *    some model classes, so leaving them out is the safe default.
+ *  - Otherwise the builder emits `width`/`height` and OMITS `aspect_ratio`
+ *    — this is the path SD-classic models (flux-dev, z-image-turbo, etc.)
+ *    require.
+ *
+ * `safe_mode` is added by `applyVeniceApiSafeMode` from the centralised
+ * endpoint matrix, so this builder does NOT assign it directly.
  *
  * @param model The target image model identifier.
  * @param draft The user's image generation draft.
@@ -201,15 +237,20 @@ export function buildImagePayload(
   const payload: Record<string, unknown> = {
     model,
     prompt: (promptOverride ?? normalized.prompt).trim(),
-    width: normalized.width,
-    height: normalized.height,
-    aspect_ratio: normalized.aspectRatio,
     steps: normalized.steps,
     cfg_scale: normalized.cfg,
-    safe_mode: normalized.safeMode,
     hide_watermark: normalized.disableWatermark,
     return_binary: false,
   };
+
+  // Sizing: pick exactly one shape. Caller decides via aspectRatio.
+  if (normalized.aspectRatio) {
+    payload.aspect_ratio = normalized.aspectRatio;
+  } else {
+    payload.width = normalized.width;
+    payload.height = normalized.height;
+  }
+
   const negative = normalized.negative?.trim();
   if (negative) payload.negative_prompt = negative;
   if (normalized.style) payload.style_preset = normalized.style;

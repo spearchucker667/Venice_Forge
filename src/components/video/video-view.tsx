@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { useAuthStore } from '../../stores/auth-store'
 import { useVideoModels, type VideoModelGroup } from '../../hooks/use-models'
 import { useVideo } from '../../hooks/use-video'
@@ -62,6 +62,23 @@ export function VideoView() {
   const effectiveResolution = resolutionOpts.some((o) => o.value === resolution) ? resolution : resolutionOpts[0]?.value || ''
   const effectiveAspect = aspectOpts.some((o) => o.value === aspect) ? aspect : aspectOpts[0]?.value || ''
 
+  // P0: pre-select defaults from the model constraints so the request
+  // ALWAYS carries a `duration` (required by the swagger `QueueVideoRequest`)
+  // and so the pickers show what is actually being sent. The previous
+  // behaviour left the pickers empty until the user clicked one, which
+  // produced a 400 "duration required" for any user who hit Generate
+  // without first touching the duration pill — surfaced to the operator
+  // as a generic "video dimensions" / "invalid params" error.
+  useEffect(() => {
+    if (!duration && durationOpts[0]) setDuration(durationOpts[0].value)
+  }, [duration, durationOpts])
+  useEffect(() => {
+    if (!resolution && resolutionOpts[0]) setResolution(resolutionOpts[0].value)
+  }, [resolution, resolutionOpts])
+  useEffect(() => {
+    if (!aspect && aspectOpts[0]) setAspect(aspectOpts[0].value)
+  }, [aspect, aspectOpts])
+
   const groupOptions = useMemo(() =>
     groups.map((g) => ({
       value: g.name,
@@ -81,13 +98,24 @@ export function VideoView() {
 
   const handleGenerate = () => {
     if (!prompt.trim() || !activeModel) return
+    // P0: the swagger QueueVideoRequest requires `duration`. If the model
+    // advertises duration options we MUST send one; refuse to submit a
+    // request that would 400. The useEffect above pre-selects the first
+    // duration option on render, so this branch is only reachable if a
+    // model config is malformed (advertises durations but exposes none).
+    if (durationOpts.length > 0 && !effectiveDuration) return
     const req: VideoQueueRequest = {
       model: activeModel.id,
       prompt: prompt.trim(),
       negative_prompt: negativePrompt.trim() || undefined,
-      duration: effectiveDuration || undefined,
-      resolution: effectiveResolution || undefined,
-      aspect_ratio: effectiveAspect || undefined,
+      // `duration` is REQUIRED by the swagger; only omit when the model
+      // exposes no duration options (in which case the server falls back
+      // to the model default). This is the fix for the reported
+      // "video dimensions issue": the previous code passed `undefined`
+      // here, which 400s on every model that has a fixed duration.
+      ...(effectiveDuration ? { duration: effectiveDuration } : {}),
+      ...(effectiveResolution ? { resolution: effectiveResolution } : {}),
+      ...(effectiveAspect ? { aspect_ratio: effectiveAspect } : {}),
     }
     if (mode === 'image' && imageUrl) {
       req.image_url = imageUrl

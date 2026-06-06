@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useStyles } from '../../hooks/use-styles'
@@ -78,6 +78,32 @@ export function ImageView() {
     return constraints!.resolutions!.map((r) => ({ value: r, label: r }))
   }, [constraints, hasResolutions])
 
+  // Pre-select defaults from the model constraints so the request always
+  // carries a sizing field. The picker still shows "Auto" for the user,
+  // but the active value is the first model-advertised aspect ratio (or
+  // the model-defaultAspectRatio if advertised). This fixes the case
+  // where the user clicked Generate before touching the picker, which
+  // used to submit NO size fields and silently fall back to the model
+  // default — confusing because the displayed pill didn't match the
+  // sent payload.
+  useEffect(() => {
+    if (hasAspectRatios && !aspectRatio) {
+      const next = constraints?.defaultAspectRatio
+        && constraints.aspectRatios!.includes(constraints.defaultAspectRatio)
+        ? constraints.defaultAspectRatio
+        : constraints!.aspectRatios![0];
+      setAspectRatio(next);
+    }
+    if (hasResolutions && !resolution) {
+      const next = constraints?.defaultResolution
+        && constraints.resolutions!.includes(constraints.defaultResolution)
+        ? constraints.defaultResolution
+        : constraints!.resolutions![0];
+      if (next) setResolution(next);
+    }
+    if (defaultSteps && steps === 0) setSteps(defaultSteps);
+  }, [constraints, hasAspectRatios, hasResolutions, aspectRatio, resolution, defaultSteps, steps]);
+
   const downloadImage = async (b64: string, index?: number) => {
     const filename = `venice-image${index !== undefined ? `-${index + 1}` : ''}.png`;
     const routedFolder = routeAsset(prompt);
@@ -116,7 +142,13 @@ export function ImageView() {
       steps,
     }
 
-    // Use aspect_ratio for models that support it, otherwise use width/height
+    // Sizing: only ONE shape goes on the wire. Models in the Nano Banana
+    // class advertise `aspectRatios` and use the `aspect_ratio` field;
+    // SD-classic models (flux-dev, z-image-turbo, hidream, etc.) do not
+    // and require explicit `width`/`height`. Mixing them up produces a
+    // 400 from the swagger's `additionalProperties: false` on some
+    // model classes — surfaced to the user as a generic "invalid
+    // params" / "dimensions issue" that this fix removes.
     if (hasAspectRatios && aspectRatio) {
       req.aspect_ratio = aspectRatio
     } else if (!hasAspectRatios) {
@@ -124,7 +156,8 @@ export function ImageView() {
       req.height = size.h
     }
 
-    // Resolution for models that support named resolutions
+    // Resolution for models that support named resolutions (e.g. Nano
+    // Banana 1K/2K/4K). Additive on top of the aspect ratio.
     if (hasResolutions && resolution) {
       req.resolution = resolution
     }
@@ -135,7 +168,7 @@ export function ImageView() {
         onSuccess: (data) => {
           const rawImages = data.images.map((img) => typeof img === 'string' ? img : img.b64_json)
           const processedImages: string[] = []
-          
+
           for (const img of rawImages) {
             const { base64: processedImg, report } = processBase64Image(img);
             const routedFolder = routeAsset(req.prompt as string);
@@ -159,7 +192,7 @@ export function ImageView() {
               assetCategory: routedFolder
             }).catch(console.error);
           }
-          
+
           setImages((prev) => [...processedImages, ...prev])
         },
       },
