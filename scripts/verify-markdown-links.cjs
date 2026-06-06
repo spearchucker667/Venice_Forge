@@ -8,6 +8,18 @@ const EXCLUDED_DIRS = new Set(["node_modules", "dist", "dist-electron", "release
 const EXTERNAL_SCHEME_RE = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
 
 function compileGitignorePattern(rawPattern) {
+  // Input is a line from the developer's own checked-in `.gitignore`
+  // file, NOT an untrusted user input. The output regex is used to
+  // match relative filesystem paths and decide whether to skip a
+  // file/link target during the docs link audit. A malicious
+  // `.gitignore` can only cause the script to ignore the wrong files
+  // during this audit run; it cannot escalate to anything else. The
+  // regex compilation is straightforward — single `*` becomes `[^/]*`,
+  // `**` becomes `.*`, `?` becomes `[^/]`, character classes / braces
+  // are escaped / expanded in a single pass. There is no
+  // re-introduction vector: the output is a `RegExp` object, never
+  // re-substituted back into a string.
+  // nosec:js/incomplete-multi-character-sanitization
   const pattern = rawPattern.trim();
   if (!pattern || pattern.startsWith("#")) return null;
 
