@@ -6,11 +6,18 @@
  *   - Web: IndexedDB store `personas` (encrypted)
  *
  * The renderer NEVER calls `window.veniceForge.*` directly.
+ *
+ * **Safety:** `savePersona` calls `assessPersonaImport` (VERIFY-014) so the
+ * persona's description + reference are gated by the existing child-
+ * exploitation guard before persistence. Blocked saves reject with a
+ * `SafetyGuardBlockedError`.
  */
 
 import { isElectron, desktopPersonas } from "../desktopBridge";
 import type { UserPersonaV1 } from "../../types/rp";
 import { isValidRpId, MAX_TAGS } from "../../types/rp";
+import { assessPersonaImport } from "../../shared/safety/characterImportSafety";
+import { SafetyGuardBlockedError } from "../../shared/safety";
 import StorageService from "../storageService";
 
 const STORE = "personas" as const;
@@ -91,6 +98,11 @@ export async function savePersona(persona: UserPersonaV1): Promise<UserPersonaV1
   };
   const normalized = normalizePersona(next);
   if (!normalized) throw new Error("Invalid persona.");
+  // VERIFY-014 / B1 fix: gate the save with the safety guard.
+  const safety = assessPersonaImport(normalized);
+  if (!safety.allow || safety.action === "block") {
+    throw new SafetyGuardBlockedError(safety);
+  }
   if (isElectron()) {
     const res = await desktopPersonas.save(normalized);
     if (!res.ok) throw new Error(res.error ?? "Failed to save persona.");

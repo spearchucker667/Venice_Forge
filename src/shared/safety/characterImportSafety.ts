@@ -23,10 +23,10 @@ import {
 import { recordDecision } from "./guardAudit";
 import type { CharacterCardV1, RpChatV1, UserPersonaV1 } from "../../types/rp";
 
-/** Default source for character-card import paths. */
-const CARD_IMPORT_SOURCE: SafetyGuardInput["source"] = "ipc";
-/** Default source for RP chat-completion contexts. */
-const RP_CONTEXT_SOURCE: SafetyGuardInput["source"] = "ipc";
+/** Default source for character-card and persona import paths (renderer-side). */
+const CARD_IMPORT_SOURCE: SafetyGuardInput["source"] = "venice-client";
+/** Default source for RP chat-completion contexts (renderer-side). */
+const RP_CONTEXT_SOURCE: SafetyGuardInput["source"] = "venice-client";
 /** Default source for scene image prompts. */
 const SCENE_PROMPT_SOURCE: SafetyGuardInput["source"] = "image";
 
@@ -78,11 +78,14 @@ export function assessCharacterBatchImport(cards: CharacterCardV1[]): SafetyGuar
 /** Assesses a user persona before save. */
 export function assessPersonaImport(persona: UserPersonaV1): SafetyGuardDecision {
   const payload = { name: persona.name, description: persona.description, reference: persona.reference ?? "" };
+  // Concatenate all user-controlled text fields so the guard sees the full content
+  // surface (description and reference are both free-form user text).
+  const combinedText = [persona.description, persona.reference ?? ""].filter(Boolean).join("\n");
   const decision = assessChildExploitationSafety({
     endpoint: "/persona/import",
     method: "POST",
     payload,
-    text: persona.description,
+    text: combinedText,
     source: CARD_IMPORT_SOURCE,
   });
   recordDecision(decision);
@@ -107,11 +110,12 @@ export function assessRpContext(args: {
       ? { name: args.persona.name, description: args.persona.description }
       : undefined,
   };
+  // The user message is already in the `messages` array above; do NOT pass it as
+  // `text` again to avoid double-counting in scoring (M3 fix).
   const decision = assessChildExploitationSafety({
     endpoint: "/chat/completions",
     method: "POST",
     payload,
-    text: args.userMessage,
     source: RP_CONTEXT_SOURCE,
   });
   recordDecision(decision);

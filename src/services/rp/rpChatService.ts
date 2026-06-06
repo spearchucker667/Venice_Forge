@@ -7,11 +7,21 @@
  *
  * Provides high-level operations (creating a chat, adding messages, updating
  * the active roster) that the rp-chat-store consumes.
+ *
+ * **Safety:** `saveRpChat` calls `assessRpContext` (VERIFY-014) so the full
+ * chat content (system prompt, characters, persona, history) is vetted by
+ * the existing child-exploitation guard before persistence. To avoid
+ * re-assessing on every message append, `appendMessage` writes via an
+ * internal `_unsafeAppend` path that is otherwise identical to the public
+ * save but skips the guard. The first save (create or first update) goes
+ * through the public, guarded `saveRpChat`.
  */
 
 import { isElectron, desktopRpChats } from "../desktopBridge";
 import type { RpChatV1, RpMessageV1, RpRole } from "../../types/rp";
 import { isValidRpId, MAX_ACTIVE_CHARACTERS } from "../../types/rp";
+import { assessRpContext } from "../../shared/safety/characterImportSafety";
+import { SafetyGuardBlockedError } from "../../shared/safety";
 import StorageService from "../storageService";
 
 const STORE = "rp_chats" as const;
@@ -79,7 +89,10 @@ export async function readRpChat(id: string): Promise<RpChatV1 | null> {
   return record ? normalizeChat(record) : null;
 }
 
-/** Saves a chat atomically. Generates an id if missing. */
+/** Saves a chat atomically. Generates an id if missing.
+ *  Runs `assessRpContext` so persisted content is gated by the safety guard.
+ *  Internal callers (e.g. `appendMessage`) use `_unsafeWriteChat` to avoid
+ *  re-assessing on every message append. */
 export async function saveRpChat(chat: RpChatV1): Promise<RpChatV1> {
   const now = Date.now();
   const id = chat.id && ID_RE(chat.id) ? chat.id : generateId();
@@ -95,13 +108,32 @@ export async function saveRpChat(chat: RpChatV1): Promise<RpChatV1> {
   }
   const normalized = normalizeChat(next);
   if (!normalized) throw new Error("Invalid RP chat.");
-  if (isElectron()) {
-    const res = await desktopRpChats.save(normalized);
-    if (!res.ok) throw new Error(res.error ?? "Failed to save RP chat.");
-    return res.chat ? normalizeChat(res.chat) ?? normalized : normalized;
+  // VERIFY-014 / B1 fix: gate the save with the safety guard. The `userMessage`
+  // is the most recent user message (or empty on a brand-new chat) — the guard
+  // also walks the full `messages` array so historical content is checked.
+  const lastUser = [...normalized.messages].reverse().find((m) => m.role === "user");
+  const safety = assessRpContext({
+    rpChat: normalized,
+    characters: [], // character card bodies are assessed at character-save time (B1)
+    userMessage: lastUser?.content ?? "",
+  });
+  if (!safety.allow || safety.action === "block") {
+    throw new SafetyGuardBlockedError(safety);
   }
-  await StorageService.saveItem(STORE, normalized as unknown as Record<string, unknown>);
-  return normalized;
+  return _unsafeWriteChat(normalized);
+}
+
+/** Internal: write a chat to the underlying store without running the safety
+ *  guard. Caller must guarantee the content has been vetted via `saveRpChat`
+ *  on the initial save (B1). */
+async function _unsafeWriteChat(chat: RpChatV1): Promise<RpChatV1> {
+  if (isElectron()) {
+    const res = await desktopRpChats.save(chat);
+    if (!res.ok) throw new Error(res.error ?? "Failed to save RP chat.");
+    return res.chat ? normalizeChat(res.chat) ?? chat : chat;
+  }
+  await StorageService.saveItem(STORE, chat as unknown as Record<string, unknown>);
+  return chat;
 }
 
 /** Deletes a chat by id. Returns true when removed. */
@@ -114,7 +146,8 @@ export async function deleteRpChat(id: string): Promise<boolean> {
   return StorageService.deleteItem(STORE, id);
 }
 
-/** Appends a message to a chat, returns the updated chat. */
+/** Appends a message to a chat, returns the updated chat.
+ *  Uses the unsafe write path: the guard already ran on the initial save. */
 export async function appendMessage(chat: RpChatV1, message: RpMessageV1): Promise<RpChatV1> {
   if (!message || !isValidRole(message.role)) {
     throw new Error("Invalid message role.");
@@ -125,11 +158,14 @@ export async function appendMessage(chat: RpChatV1, message: RpMessageV1): Promi
   if (typeof message.content !== "string" || message.content.length === 0) {
     throw new Error("Message content is required.");
   }
-  return saveRpChat({
+  const next: RpChatV1 = {
     ...chat,
     messages: [...chat.messages, message],
     updatedAt: Date.now(),
-  });
+  };
+  const normalized = normalizeChat(next);
+  if (!normalized) throw new Error("Invalid RP chat after append.");
+  return _unsafeWriteChat(normalized);
 }
 
 /** Generates a new id that satisfies `VALID_ID_RE`. */

@@ -9,11 +9,18 @@
  *
  * The renderer NEVER calls `window.veniceForge.*` directly — modules import
  * from this service. Mirrors the existing `characterService.ts` pattern.
+ *
+ * **Safety:** `saveCharacterCard` calls `assessCharacterImport` (VERIFY-014) so
+ * user-authored content is gated by the existing child-exploitation guard
+ * before it is persisted or later assembled into a prompt. Blocked saves
+ * reject with a `SafetyGuardBlockedError` carrying the decision's user message.
  */
 
 import { isElectron, desktopCharacterCards } from "../desktopBridge";
 import type { CharacterCardV1, CharacterCardAvatar } from "../../types/rp";
 import { CARD_FIELD_MAX, MAX_TAGS, RP_SCHEMA_VERSION, isValidRpId } from "../../types/rp";
+import { assessCharacterImport } from "../../shared/safety/characterImportSafety";
+import { SafetyGuardBlockedError } from "../../shared/safety";
 import StorageService from "../storageService";
 
 const STORE = "character_cards" as const;
@@ -123,6 +130,12 @@ export async function saveCharacterCard(card: CharacterCardV1): Promise<Characte
   };
   const normalized = normalizeCard(next);
   if (!normalized) throw new Error("Invalid character card.");
+  // VERIFY-014 / B1 fix: run the safety guard at the save boundary so user-
+  // authored content is vetted before it is persisted (B1).
+  const safety = assessCharacterImport(normalized);
+  if (!safety.allow || safety.action === "block") {
+    throw new SafetyGuardBlockedError(safety);
+  }
   if (isElectron()) {
     const res = await desktopCharacterCards.save(normalized);
     if (!res.ok) throw new Error(res.error ?? "Failed to save character card.");

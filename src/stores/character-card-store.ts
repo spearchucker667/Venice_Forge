@@ -49,7 +49,7 @@ export const useCharacterCardStore = create<CharacterCardState>((set, get) => ({
   hasLoaded: false,
   error: null,
   searchQuery: "",
-  includeAdult: true,
+  includeAdult: false,
   editingId: null,
 
   load: async () => {

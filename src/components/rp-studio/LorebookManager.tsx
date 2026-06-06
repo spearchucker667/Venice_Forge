@@ -49,7 +49,7 @@ export function LorebookManager() {
   }, [lorebooks, searchQuery]);
 
   if (editingId) {
-    return <LorebookEditor lorebookId={editingId} onClose={() => setEditingId(null)} />;
+    return <LorebookEditor key={editingId} lorebookId={editingId} onClose={() => setEditingId(null)} />;
   }
 
   return (

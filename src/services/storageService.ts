@@ -101,11 +101,14 @@ const StorageService = {
         if (ENCRYPTED_STORES.includes(store)) {
           const decrypted = await Promise.all(
             results.map(async (row: Record<string, unknown>) => {
-               if (row._isEncryptedWrapper) {
+               if (row._isEncryptedWrapper === true && row.data) {
                   const val = await decryptData(row.data);
                   return val === null ? null : val;
                }
-               return await decryptData(row);
+               if (row._isEncryptedWrapper === true) {
+                  return null;
+               }
+               return row;
             })
           );
           // BUG-001: surface silent decrypt failures so the user is aware data
@@ -154,7 +157,7 @@ const StorageService = {
           resolve(row as T);
           return;
         }
-        if (row._isEncryptedWrapper) {
+        if (row._isEncryptedWrapper && row.data) {
           const decrypted = await decryptData(row.data);
           if (decrypted === null) {
             warn(`[storageService] Record "${id}" in store "${store}" could not be decrypted.`);
@@ -164,8 +167,12 @@ const StorageService = {
           resolve(decrypted as T);
           return;
         }
-        const decrypted = await decryptData(row);
-        resolve(decrypted as T | null);
+        if (row._isEncryptedWrapper) {
+          warn(`[storageService] Encrypted record "${id}" in store "${store}" is missing payload; returning null.`);
+          resolve(null);
+          return;
+        }
+        resolve(row as T);
       };
       req.onerror = () => reject(req.error);
     });

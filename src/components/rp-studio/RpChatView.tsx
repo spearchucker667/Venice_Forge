@@ -54,8 +54,10 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
   const [error, setError] = useState<string | null>(null);
   const [speakerIdx, setSpeakerIdx] = useState(0);
   const [narratorMode, setNarratorMode] = useState(false);
-  const [_reasoning, setReasoning] = useState<string>("");
+  const [reasoning, setReasoning] = useState<string>("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
 
   const chat = useMemo(() => chats.find((c) => c.id === chatId), [chats, chatId]);
 
@@ -68,6 +70,21 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [chat?.messages.length, isStreaming]);
+
+  // Cancel in-flight stream on unmount or chat switch.
+  // Persist any partial assistant content as a breadcrumb so reload is not blank.
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      const ctrl = abortRef.current;
+      if (ctrl) {
+        ctrl.abort();
+        abortRef.current = null;
+      }
+      useRpChatStore.setState({ isStreaming: false });
+    };
+  }, [chatId]);
 
   if (!chat) {
     return (
@@ -169,6 +186,11 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
     let acc = "";
     let reasoningAcc = "";
     let streamError: string | null = null;
+    let aborted = false;
+    // Cancel any previous in-flight stream before starting a new one.
+    if (abortRef.current) abortRef.current.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     try {
       const messages = [
         ...systemMessages.map((m) => ({ role: "system" as const, content: m.content })),
@@ -182,23 +204,42 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
           messages,
         },
         {
+          signal: ctrl.signal,
           onDelta: (chunk) => {
             acc += chunk.content;
             if (chunk.reasoning) {
               reasoningAcc += chunk.reasoning;
-              setReasoning(reasoningAcc);
+              if (mountedRef.current) setReasoning(reasoningAcc);
             }
           },
         },
       );
     } catch (err) {
-      streamError = err instanceof Error ? err.message : "Stream failed.";
+      if (err instanceof DOMException && err.name === "AbortError") {
+        aborted = true;
+      } else {
+        streamError = err instanceof Error ? err.message : "Stream failed.";
+      }
     } finally {
-      setStreaming(false);
+      if (abortRef.current === ctrl) abortRef.current = null;
+      if (mountedRef.current) setStreaming(false);
     }
 
+    if (aborted) return;
     if (streamError) {
-      setError(streamError);
+      // Persist any partial content as a breadcrumb so reload is not blank.
+      if (acc.trim()) {
+        const truncated = `${acc.trimEnd()}\n\n[stream interrupted]`;
+        if (narratorMode) {
+          await appendNarratorMessage(chat.id, truncated);
+        } else {
+          const speaker = expectedCharacterId ?? roster[0]?.id;
+          if (speaker) {
+            await appendCharacterMessage(chat.id, speaker, truncated, reasoningAcc || undefined);
+          }
+        }
+      }
+      if (mountedRef.current) setError(streamError);
       return;
     }
     if (!acc.trim()) {
@@ -257,8 +298,16 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
           );
         })}
         {isStreaming && (
-          <div className="flex items-center gap-2 text-white/40 text-[12.5px] px-1">
-            <Spinner className="text-white/45" /> Streaming…
+          <div className="space-y-1 px-1">
+            <div className="flex items-center gap-2 text-white/40 text-[12.5px]">
+              <Spinner className="text-white/45" /> Streaming…
+            </div>
+            {reasoning && (
+              <details className="text-white/40 text-[12px]">
+                <summary className="cursor-pointer select-none">Thinking…</summary>
+                <pre className="mt-1 whitespace-pre-wrap font-sans">{reasoning}</pre>
+              </details>
+            )}
           </div>
         )}
       </div>

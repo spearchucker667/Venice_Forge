@@ -7,12 +7,18 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCharacterCardStore } from "../../stores/character-card-store";
-import { CARD_FIELD_MAX, MAX_AVATAR_BYTES, MAX_TAGS, type CharacterCardV1, type CharacterCardAvatar } from "../../types/rp";
+import { useSettingsStore } from "../../stores/settings-store";
+import { CARD_FIELD_MAX, MAX_AVATAR_BYTES, MAX_TAGS, type CharacterCardV1, type CharacterCardAvatar, type CharacterExampleDialogue } from "../../types/rp";
 import { GhostButton, Label, PrimaryButton, TextArea, ErrorText } from "../ui/shared";
 import { Spinner } from "../ui/spinner";
 import { FALLBACK_MODELS } from "../../constants/venice";
 import { avatarDataUri } from "./_shared";
 import { assessCharacterImport } from "../../shared/safety/characterImportSafety";
+
+/** Module-scoped WeakMap mapping each example object (by identity) to a stable
+ *  client-side React key. Lives outside the component so keys survive remounts
+ *  of the same card. Entries are GC'd when the example object is dropped. */
+const EXAMPLE_KEYS_MODULE: WeakMap<CharacterExampleDialogue, string> = new WeakMap();
 
 interface Props {
   cardId: string;
@@ -23,12 +29,22 @@ export function CharacterEditor({ cardId, onClose }: Props) {
   const cards = useCharacterCardStore((s) => s.cards);
   const upsert = useCharacterCardStore((s) => s.upsert);
   const remove = useCharacterCardStore((s) => s.remove);
+  const redTeamMode = useSettingsStore((s) => s.redTeamMode);
   const initial = useMemo(() => cards.find((c) => c.id === cardId), [cards, cardId]);
   const [draft, setDraft] = useState<CharacterCardV1 | null>(initial ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Defense in depth: if a non-red-team user opened the editor with an adult
+  // card, force the flag off on edit so the persisted card is always
+  // red-team-gated. Existing red-team users keep full control.
+  useEffect(() => {
+    if (!redTeamMode && draft?.adult) {
+      setDraft((prev) => (prev ? { ...prev, adult: false } : prev));
+    }
+  }, [redTeamMode, draft?.adult]);
 
   useEffect(() => {
     setDraft(initial ?? null);
@@ -71,18 +87,28 @@ export function CharacterEditor({ cardId, onClose }: Props) {
       setError(`Avatar must be ≤ ${Math.round(MAX_AVATAR_BYTES / 1024)} KiB.`);
       return;
     }
-    const buffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
-    const chunks: string[] = [];
-    for (let i = 0; i < bytes.length; i += 0x8000) {
-      chunks.push(String.fromCharCode(...bytes.subarray(i, i + 0x8000)));
-    }
-    const base64 = btoa(chunks.join(""));
     const mimeType: CharacterCardAvatar["mimeType"] =
       file.type === "image/jpeg" ? "image/jpeg"
       : file.type === "image/webp" ? "image/webp"
       : "image/png";
-    update("avatar", { data: base64, mimeType, byteLength: bytes.length });
+    // Use FileReader.readAsDataURL to avoid `String.fromCharCode.apply` which
+    // overflows the call stack on WebKit for 32 KiB chunks. data URLs are
+    // decoded by the browser; we strip the `data:<mime>;base64,` prefix and
+    // validate the byte length against MAX_AVATAR_BYTES (the prefix is ~22
+    // bytes of overhead that does not count toward the cap).
+    const dataUri = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+      reader.onerror = () => reject(reader.error ?? new Error("Failed to read avatar file."));
+      reader.readAsDataURL(file);
+    });
+    const prefix = `data:${mimeType};base64,`;
+    if (!dataUri.startsWith(prefix)) {
+      setError("Failed to encode avatar.");
+      return;
+    }
+    const base64 = dataUri.slice(prefix.length);
+    update("avatar", { data: base64, mimeType, byteLength: file.size });
     setError(null);
   };
 
@@ -97,6 +123,24 @@ export function CharacterEditor({ cardId, onClose }: Props) {
 
   const removeExample = (idx: number) => {
     update("exampleDialogues", draft.exampleDialogues.filter((_, i) => i !== idx));
+  };
+
+  // Stable per-example client-side keys. The persisted shape
+  // (CharacterExampleDialogue) does not carry an id, so we map each example
+  // OBJECT (by identity) to a stable key in a module-scoped WeakMap. This
+  // survives reorders, removes, and store updates, and is correctly
+  // garbage-collected when the example is dropped from the array. The map
+  // intentionally lives at module scope (not in a ref) so the keys are stable
+  // across remounts of the same card.
+  const EXAMPLE_KEYS: WeakMap<CharacterExampleDialogue, string> =
+    EXAMPLE_KEYS_MODULE;
+  const getExampleKey = (d: CharacterExampleDialogue): string => {
+    let k = EXAMPLE_KEYS.get(d);
+    if (!k) {
+      k = `ex-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      EXAMPLE_KEYS.set(d, k);
+    }
+    return k;
   };
 
   const handleSave = async () => {
@@ -241,10 +285,17 @@ export function CharacterEditor({ cardId, onClose }: Props) {
                 id="card-adult"
                 type="checkbox"
                 checked={draft.adult}
+                disabled={!redTeamMode}
                 onChange={(e) => update("adult", e.target.checked)}
-                className="accent-rose-400"
+                className="accent-rose-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={redTeamMode ? undefined : "Enable red-team mode in Settings to flag adult content"}
               />
-              <Label htmlFor="card-adult">Adult content (18+)</Label>
+              <Label htmlFor="card-adult">
+                Adult content (18+)
+                {!redTeamMode && (
+                  <span className="ml-2 text-[11px] text-white/40">requires red-team mode</span>
+                )}
+              </Label>
             </div>
           </div>
         </section>
@@ -341,7 +392,7 @@ export function CharacterEditor({ cardId, onClose }: Props) {
           ) : (
             <div className="space-y-2">
               {draft.exampleDialogues.map((d, i) => (
-                <div key={i} className="flex gap-2 items-start bg-white/[0.02] border border-white/[0.06] rounded-lg p-2">
+                <div key={getExampleKey(d)} className="flex gap-2 items-start bg-white/[0.02] border border-white/[0.06] rounded-lg p-2">
                   <input
                     value={d.speaker}
                     onChange={(e) => updateExample(i, "speaker", e.target.value)}

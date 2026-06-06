@@ -7,16 +7,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useCharacterCardStore, useFilteredCharacterCards } from "../../stores/character-card-store";
+import { useSettingsStore } from "../../stores/settings-store";
 import { GhostButton, PillGroup, PrimaryButton, ErrorText, EmptyState } from "../ui/shared";
 import { Spinner } from "../ui/spinner";
 import { avatarDataUri, formatRelativeTime, truncate } from "./_shared";
 import type { CharacterCardV1 } from "../../types/rp";
 import { generateId } from "../../services/rp/characterCardService";
 
-const ADULT_FILTER = [
-  { value: "all", label: "All" },
-  { value: "adult", label: "Adult" },
+const STANDARD_FILTER = [
   { value: "standard", label: "Standard" },
+  { value: "adult", label: "Adult" },
 ] as const;
 
 interface Props {
@@ -33,16 +33,28 @@ export function CharacterLibrary({ onEdit }: Props) {
   const setSearchQuery = useCharacterCardStore((s) => s.setSearchQuery);
   const searchQuery = useCharacterCardStore((s) => s.searchQuery);
   const cards = useFilteredCharacterCards();
+  const redTeamMode = useSettingsStore((s) => s.redTeamMode);
 
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
-  const [adultFilter, setAdultFilter] = useState<"all" | "adult" | "standard">("all");
+  // Default filter respects red-team mode: a non-red-team user never sees the
+  // "Adult" filter at all, and the initial selection is always "standard".
+  const [adultFilter, setAdultFilter] = useState<"standard" | "adult">("standard");
+  const adultFilterOptions = useMemo(
+    () => (redTeamMode ? STANDARD_FILTER : [{ value: "standard", label: "Standard" }]),
+    [redTeamMode],
+  );
 
   useEffect(() => {
     if (!hasLoaded) void load();
   }, [hasLoaded, load]);
 
+  useEffect(() => {
+    // Belt-and-braces: if red-team mode is turned off while the user has the
+    // adult filter selected, fall back to standard.
+    if (!redTeamMode && adultFilter === "adult") setAdultFilter("standard");
+  }, [redTeamMode, adultFilter]);
+
   const filtered = useMemo(() => {
-    if (adultFilter === "all") return cards;
     if (adultFilter === "adult") return cards.filter((c) => c.adult);
     return cards.filter((c) => !c.adult);
   }, [cards, adultFilter]);
@@ -76,10 +88,10 @@ export function CharacterLibrary({ onEdit }: Props) {
           className="flex-1 min-w-[12rem] bg-surface border border-white/[0.08] rounded-lg px-3 py-1.5 text-[13.5px] text-white/90 outline-none focus:border-white/[0.22] transition-colors placeholder:text-white/25"
         />
         <PillGroup
-          options={ADULT_FILTER.map((o) => ({ value: o.value, label: o.label }))}
+          options={adultFilterOptions.map((o) => ({ value: o.value, label: o.label }))}
           value={adultFilter}
-            onChange={(v) => {
-            const next = v as "all" | "adult" | "standard";
+          onChange={(v) => {
+            const next = v as "standard" | "adult";
             setAdultFilter(next);
           }}
           ariaLabel="Adult filter"

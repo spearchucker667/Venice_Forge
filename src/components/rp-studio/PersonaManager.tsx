@@ -37,7 +37,14 @@ export function PersonaManager() {
   }, [personas, searchQuery]);
 
   if (editingId) {
-    return <PersonaEditor personaId={editingId} onClose={() => setEditingId(null)} onSave={async (p) => { await upsert(p); setEditingId(null); }} />;
+    return (
+      <PersonaEditor
+        key={editingId}
+        personaId={editingId}
+        onClose={() => setEditingId(null)}
+        onSave={async (p) => { await upsert(p); setEditingId(null); }}
+      />
+    );
   }
 
   return (
