@@ -11,6 +11,7 @@ vi.mock("../services/rp/rpChatService", () => ({
   saveRpChat: mocks.save,
   deleteRpChat: vi.fn(async () => true),
   generateId: vi.fn(() => "rp-chat-1"),
+  appendMessage: vi.fn(),
   normalizeChat: vi.fn((chat) => chat),
 }));
 
