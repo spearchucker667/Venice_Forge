@@ -8,6 +8,33 @@
 
 ---
 
+## Mandatory Session Handoff: `docs/summary_of_work.md`
+
+At the end of every coding, audit, refactor, documentation, or test
+session, the agent must update `docs/summary_of_work.md`.
+
+Required updates:
+
+1. Read `docs/summary_of_work.md` before starting substantive work.
+2. Update `Latest Session Summary`.
+3. Append a new dated entry under `Session History`.
+4. Update `Open TODO Ledger` with any new, completed, or reprioritized
+   tasks.
+5. Update `Validation Matrix` only for commands actually run.
+6. Record failures and skipped validation honestly.
+7. Do not include secrets, API keys, private machine paths, or raw
+   unsafe prompt payloads.
+
+A session is not complete until `docs/summary_of_work.md` has been
+updated or the agent explicitly explains why no update was needed.
+
+Equivalent instructions are also present in
+`.github/copilot-instructions.md`, `CLAUDE.md`, and `GEMINI.md` so
+that the rule is observed regardless of which agent surface is in
+use.
+
+---
+
 ## Commands
 
 ### Development
@@ -135,6 +162,10 @@ test's comment header.
 | `VERIFY-027` | Sidebar full-content history search uses a deferred query and a precomputed lowercase conversation index. | `src/components/layout/sidebar.test.tsx` |
 | `VERIFY-028` | Media Studio reads encrypted records through the timestamp index in bounded pages and appends pages without duplicate records. | `src/services/storageService.test.ts`, `src/stores/media-store.test.ts` |
 | `VERIFY-029` | Repository-local Markdown targets and heading fragments resolve; external URLs and GitHub routes remain out of scope. | `scripts/verify-markdown-links.test.ts` |
+| `VERIFY-030` | `server.ts` accepts `/characters` and `/characters/{slug}` (canonical `isAllowedVeniceRequest` predicate is the single source of truth, replacing the static allowlist duplicate check). Nested paths return 403, non-GET returns 405, valid GETs reach the upstream proxy. | `server.test.ts` |
+| `VERIFY-031` | `veniceBlob` and `veniceFormData` forward the `AbortSignal` to `desktopVenice.request()` (extension of VERIFY-006) — the IPC layer's `venice:abort` channel is triggered when the caller cancels. | `src/lib/venice-client.test.ts` |
+| `VERIFY-032` | `useMediaStore.loadById(id)` fetches a single record from IDB, migrates it through `migrateGalleryImageToMediaItem`, and merges it into the in-memory cache so the gallery inspector can resolve parent/children that live on a different page. | `src/stores/media-store.test.ts` |
+| `VERIFY-033` | `LlmProvider` / `PROVIDER_CAPABILITIES` / `capabilitiesFor()` defaults to `"venice"`, accepts `"minimax"`, never leaks `minimax_api_key` through the sanitized view. MiniMax is a forward-compat scaffold — no live transport. | `src/config/configSchema.test.ts` |
 
 ---
 
@@ -254,6 +285,7 @@ No live vision flag from Venice API. Use `modelSupportsVision(modelId)` in `src/
 
 - When changing behavior, packaging, or storage, also update:
 - `README.md`, `CHANGELOG.md` (under `[Unreleased]`), `AGENTS.md`, `.github/copilot-instructions.md`
+- `docs/summary_of_work.md` — the canonical AI/dev-agent session handoff ledger. See § *Mandatory Session Handoff* above.
 - `docs/ABOUT.md`, `docs/FAQ.md`, `docs/REPOSITORY_TREE.md`, `docs/THEME_SYSTEM.md`, `SECURITY.md`, `docs/RELEASE/release.md`, `docs/LEGAL.md`
 - `docs/RESEARCH_PROVIDERS.md`, `docs/JINA_PROVIDER.md`, `docs/PUBLIC_PROFILE_DISCOVERY.md` (research changes)
 - `docs/THEME_SYSTEM.md` (theming changes)

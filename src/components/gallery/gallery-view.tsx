@@ -65,6 +65,36 @@ export function MediaStudioView() {
     [items, inspectorId],
   );
 
+  // BUG-008 regression guard: when the inspector's parent or children are
+  // not in the currently loaded page (e.g. the user has navigated to a
+  // newer page and the lineage spans an older page), fall back to a
+  // by-id IDB fetch. The `loadById` action on the store merges the
+  // fetched record into the in-memory cache so the next render of the
+  // inspector reads the canonical item. The effect is keyed on the
+  // parent id + inspected item id so it re-runs whenever the user
+  // inspects a different record or the in-memory cache is updated.
+  const loadById = useMediaStore((state) => state.loadById);
+  useEffect(() => {
+    if (!inspectorItem) return
+    const parentId = inspectorItem.parentId
+    if (parentId && !items.some((candidate) => candidate.id === parentId)) {
+      void loadById(parentId)
+    }
+  }, [inspectorItem, items, loadById])
+
+  // The `childrenIds` field is the authoritative lineage. The legacy
+  // in-memory `items.filter(parentId === id)` path can miss children
+  // that live on an unloaded page; load any missing child ids here.
+  useEffect(() => {
+    if (!inspectorItem) return
+    const missing = inspectorItem.childrenIds.filter(
+      (id) => !items.some((candidate) => candidate.id === id),
+    )
+    for (const id of missing) {
+      void loadById(id)
+    }
+  }, [inspectorItem, items, loadById])
+
   const selectedItems = useMemo(
     () => items.filter((item) => selectedIds.has(item.id)),
     [items, selectedIds],

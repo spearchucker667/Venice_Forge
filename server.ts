@@ -13,8 +13,8 @@ import { createProxyMiddleware } from "http-proxy-middleware";
 import {
   ALLOWED_VENICE_ENDPOINTS,
   ALLOWED_VENICE_METHODS,
-  VeniceIpcEndpoint,
   VeniceIpcMethod,
+  isAllowedCharactersRequest,
   isAllowedVeniceRequest,
 } from "./src/shared/validation";
 import { VENICE_API_HOST, VENICE_API_BASE_PATH } from "./src/shared/apiConfig";
@@ -248,14 +248,34 @@ export function createServerApp() {
     if (!ALLOWED_VENICE_METHODS.includes(method as VeniceIpcMethod)) {
        return res.status(405).json({ error: "Method not allowed" });
     }
-    
-    // Check if path matches any allowed endpoint
-    const isAllowed = ALLOWED_VENICE_ENDPOINTS.includes(req.path as VeniceIpcEndpoint);
-    if (!isAllowed) {
-       return res.status(403).json({ error: `Endpoint ${req.path} not allowed` });
-    }
+
+    // BUG-001 regression guard: the canonical
+    // `isAllowedVeniceRequest` predicate (from src/shared/validation.ts)
+    // understands both the static allowlist AND the parameterized
+    // `/characters/{slug}` family. Using it as the single source of truth
+    // prevents the previous 403 regression where `/characters` and
+    // `/characters/{slug}` were rejected because they were not present in
+    // the static `ALLOWED_VENICE_ENDPOINTS` array.
+    //
+    // Status-code mapping:
+    //   - Static endpoint, method mismatch   -> 405
+    //   - /characters family, method mismatch -> 405
+    //   - Anything else                      -> 403
+    // isAllowedVeniceRequest is the single source of truth for "would
+    // this (path, method) pair normally be allowed?".
     if (!isAllowedVeniceRequest(req.path, method)) {
-       return res.status(405).json({ error: `Method ${method} not allowed for endpoint ${req.path}` });
+      // Decide whether the predicate rejected the request because of
+      // (a) the wrong method on a known endpoint (static OR
+      //     /characters) — emit 405
+      // (b) an unknown / malformed path — emit 403
+      const isStatic = (ALLOWED_VENICE_ENDPOINTS as readonly string[]).includes(req.path);
+      const isCharacters = isAllowedCharactersRequest(req.path, "GET");
+      const status = isStatic || isCharacters ? 405 : 403;
+      const message =
+        status === 405
+          ? `Method ${method} not allowed for endpoint ${req.path}`
+          : `Endpoint ${req.path} not allowed`;
+      return res.status(status).json({ error: message });
     }
     next();
   });

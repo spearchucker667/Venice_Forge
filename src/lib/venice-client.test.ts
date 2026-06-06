@@ -107,7 +107,8 @@ describe('venice-client (lib)', () => {
             { name: 'foo', value: 'bar' }
           ]
         }
-      })
+      }),
+      undefined,
     )
   })
 
@@ -131,5 +132,66 @@ describe('venice-client (lib)', () => {
       }),
       controller.signal,
     )
+  })
+
+  // VERIFY-006 extension: BUG-2 / veniceBlob() and veniceFormData() must
+  // also forward the AbortSignal. The previous implementation declared
+  // `init.signal` but never passed it to desktopVenice.request(), only
+  // consulting it post-hoc for an `aborted` check. The IPC layer never
+  // received the abort and the upstream HTTPS request kept running.
+  it('forwards AbortSignal from veniceBlob (VERIFY-006)', async () => {
+    vi.mocked(desktopVenice.request).mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      contentType: 'image/png',
+      body: { dataBase64: 'dGVzdA==' },
+    })
+    const controller = new AbortController()
+    await veniceBlob('/image/generate', { prompt: 'image' }, { signal: controller.signal })
+    expect(desktopVenice.request).toHaveBeenCalledWith(
+      expect.objectContaining({ endpoint: '/image/generate' }),
+      controller.signal,
+    )
+  })
+
+  it('forwards AbortSignal from veniceFormData (VERIFY-006)', async () => {
+    vi.mocked(desktopVenice.request).mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      contentType: 'application/json',
+      body: { ok: true },
+    })
+    const controller = new AbortController()
+    const fd = new FormData()
+    fd.append('foo', 'bar')
+    await veniceFormData<{ ok: boolean }>('/augment/scrape', fd, { signal: controller.signal })
+    expect(desktopVenice.request).toHaveBeenCalledWith(
+      expect.objectContaining({ endpoint: '/augment/scrape' }),
+      controller.signal,
+    )
+  })
+
+  it('throws synchronously when the AbortSignal is already aborted (veniceBlob)', async () => {
+    const controller = new AbortController()
+    controller.abort()
+    await expect(
+      veniceBlob('/image/generate', { prompt: 'image' }, { signal: controller.signal }),
+    ).rejects.toThrow('Aborted')
+    expect(desktopVenice.request).not.toHaveBeenCalled()
+  })
+
+  it('throws synchronously when the AbortSignal is already aborted (veniceFormData)', async () => {
+    const controller = new AbortController()
+    controller.abort()
+    const fd = new FormData()
+    fd.append('foo', 'bar')
+    await expect(
+      veniceFormData('/augment/scrape', fd, { signal: controller.signal }),
+    ).rejects.toThrow('Aborted')
+    expect(desktopVenice.request).not.toHaveBeenCalled()
   })
 })

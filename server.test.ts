@@ -95,6 +95,35 @@ describe("server.ts proxy validation", () => {
     expect(parser.status).not.toBe(405);
   });
 
+  // BUG-001 regression guard (extended): the /characters family must
+  // also reach the upstream proxy in web mode, not be rejected with
+  // 403. The previous implementation checked only the static
+  // ALLOWED_VENICE_ENDPOINTS array and refused /characters because
+  // the static list did not contain it. After the fix the canonical
+  // `isAllowedVeniceRequest` predicate is the single source of truth
+  // and the parameterized /characters/{slug} variant is accepted.
+  it("should accept /characters list (BUG-001 regression)", async () => {
+    const res = await request(app).get("/api/venice/characters");
+    expect(res.status).not.toBe(403);
+    expect(res.status).not.toBe(405);
+  });
+
+  it("should accept /characters/{slug} (BUG-001 regression)", async () => {
+    const res = await request(app).get("/api/venice/characters/venice-uncensored");
+    expect(res.status).not.toBe(403);
+    expect(res.status).not.toBe(405);
+  });
+
+  it("should reject nested /characters paths (BUG-001 regression)", async () => {
+    const res = await request(app).get("/api/venice/characters/foo/bar");
+    expect(res.status).toBe(403);
+  });
+
+  it("should reject non-GET on /characters (BUG-001 regression)", async () => {
+    const res = await request(app).post("/api/venice/characters").send({});
+    expect(res.status).toBe(405);
+  });
+
   it("should set security headers on responses", async () => {
     const res = await request(app).get("/api/venice/admin/blocked");
     expect(res.headers["x-content-type-options"]).toBe("nosniff");

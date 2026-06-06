@@ -20,6 +20,9 @@ vi.mock('../services/storageService', () => {
           hasMore: offset + limit < all.length,
         }
       }),
+      getItem: vi.fn(async (_name: string, id: string) => {
+        return store.get(id) ?? null
+      }),
       putMedia: vi.fn(async (item: MediaItem) => {
         const next = { ...item, mediaItemVersion: MEDIA_ITEM_VERSION }
         store.set(next.id, next)
@@ -286,5 +289,76 @@ describe('media filter / sort / search', () => {
 
   it('search with empty query returns all items unchanged', () => {
     expect(searchMedia(items, '   ')).toEqual(items)
+  })
+})
+
+// BUG-008 regression guard: the gallery inspector must be able to
+// resolve the parent/children of an inspected record even when those
+// records are not in the currently loaded page. The store exposes
+// `loadById(id)` which fetches a single record from IDB, migrates it
+// to the canonical MediaItem shape, and merges it into the in-memory
+// cache. Without this, a user who has scrolled past page 1 cannot see
+// lineage information for a record whose parent/children live on
+// page 1.
+describe('media store — BUG-008 loadById', () => {
+  beforeEach(() => {
+    mockService.__reset()
+    useMediaStore.setState({
+      items: [],
+      loading: false,
+      loadingMore: false,
+      loaded: false,
+      totalCount: 0,
+      hasMore: false,
+      nextOffset: 0,
+      lastError: null,
+    })
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns null for an unknown id', async () => {
+    const result = await useMediaStore.getState().loadById('does-not-exist')
+    expect(result).toBeNull()
+  })
+
+  it('returns the cached record without an IDB fetch when already loaded', async () => {
+    const cached = makeItem({ id: 'cached-1' })
+    useMediaStore.setState({ items: [cached] })
+    const getItemSpy = vi.mocked(StorageService.getItem)
+    getItemSpy.mockClear()
+    const result = await useMediaStore.getState().loadById('cached-1')
+    expect(result?.id).toBe('cached-1')
+    expect(getItemSpy).not.toHaveBeenCalled()
+  })
+
+  it('fetches from IDB and merges the record into the in-memory cache when missing', async () => {
+    const remote = makeItem({ id: 'remote-1', parentId: null })
+    mockService.__seed(remote)
+    // Simulate "not in the loaded page" by leaving the in-memory items empty.
+    const result = await useMediaStore.getState().loadById('remote-1')
+    expect(result?.id).toBe('remote-1')
+    // The in-memory cache now contains the fetched record, so the next
+    // selector call hits the cache instead of the IDB.
+    const cached = useMediaStore.getState().byId('remote-1')
+    expect(cached?.id).toBe('remote-1')
+  })
+
+  it('exposes the parent of an inspected record when the parent lives on a different page', async () => {
+    const parent = makeItem({ id: 'p', mediaType: 'image', operation: 'generate', parentId: null })
+    const child = makeItem({ id: 'c', mediaType: 'image', operation: 'upscale', parentId: 'p' })
+    mockService.__seed(parent)
+    mockService.__seed(child)
+    // Pre-load only the child (e.g. the user scrolled to a newer page
+    // and the older parent is no longer in `items`).
+    useMediaStore.setState({ items: [child] })
+    const resolved = await useMediaStore.getState().loadById('p')
+    expect(resolved?.id).toBe('p')
+    // After the fetch, the in-memory cache contains both records so
+    // `parentOf` works.
+    const parentOfChild = useMediaStore.getState().parentOf('c')
+    expect(parentOfChild?.id).toBe('p')
   })
 })

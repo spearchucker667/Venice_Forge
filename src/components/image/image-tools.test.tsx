@@ -128,5 +128,18 @@ describe('ImageTools → Media Studio wiring (P3 regression guard)', () => {
       expect(saved.childrenIds).toEqual([])
       expect(saved.parentId).toBeNull()
     })
+
+    // VERIFY-020 extension (BUG-003 regression guard): the renderer must
+    // NOT call `StorageService.saveItem("images", ...)` directly, because
+    // the canonical `useMediaStore.upsert()` path already routes through
+    // `StorageService.putMedia`. The previous implementation wrote the
+    // same record twice (one direct `saveItem` + one through the store
+    // upsert) which doubled IDB write amplification and could race on
+    // identical ids. After the fix, `putMedia` is called exactly once
+    // and the legacy `saveItem` path is not exercised.
+    const putCalls = vi.mocked(StorageService.putMedia).mock.calls.length
+    expect(putCalls).toBe(1)
+    const saveCalls = (vi.mocked(StorageService as unknown as { saveItem: (...args: unknown[]) => unknown }).saveItem as unknown as { mock: { calls: unknown[] } } | undefined)?.mock?.calls?.length ?? 0
+    expect(saveCalls).toBe(0)
   })
 })

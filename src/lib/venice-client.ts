@@ -81,14 +81,18 @@ export async function veniceStreamChat(
 }
 
 export async function veniceBlob(path: string, body: object, init: { signal?: AbortSignal } = {}): Promise<Blob> {
+  // BUG-002 regression guard: forward `init.signal` to the IPC layer so
+  // the main process can tear down the upstream HTTPS request on
+  // cancellation. The post-hoc `aborted` check below is preserved for
+  // safety (if the signal was already aborted when we entered).
+  if (init.signal?.aborted) throw new Error('Aborted');
   const response = await desktopVenice.request({
     endpoint: path.replace('/api/v1', ''),
     method: "POST",
     body: body,
-  });
-  if (init.signal && init.signal.aborted) throw new Error('Aborted');
+  }, init.signal);
   if (!response.ok) throw new VeniceAPIError(`HTTP ${response.status}`, response.status);
-  
+
   // desktopBridge returns { dataBase64: "..." } for binary content
   const b64 = (response.body as { dataBase64?: string }).dataBase64;
   if (!b64) {
@@ -103,6 +107,8 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
 }
 
 export async function veniceFormData<T>(path: string, formData: FormData, init: { signal?: AbortSignal } = {}): Promise<T> {
+  // BUG-002 regression guard: see veniceBlob above.
+  if (init.signal?.aborted) throw new Error('Aborted');
   const entries: Array<{ name: string; value: string; filename?: string; type?: string; _isFile?: boolean }> = [];
   // Base64-encode each File in 32 KiB chunks. A naive per-byte `+= String.fromCharCode`
   // call (the previous implementation) triggers a V8 "Maximum call stack size
@@ -143,9 +149,8 @@ export async function veniceFormData<T>(path: string, formData: FormData, init: 
     endpoint: path.replace('/api/v1', ''),
     method: "POST",
     body: { _isSerializedFormData: true, entries }
-  });
+  }, init.signal);
 
-  if (init.signal && init.signal.aborted) throw new Error('Aborted');
   if (!response.ok) throw new VeniceAPIError(`HTTP ${response.status}`, response.status);
   return response.body as T;
 }

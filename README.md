@@ -334,6 +334,7 @@ All documentation is in the [docs](docs/) directory. Quick index:
 - **[docs/RESEARCH_PROVIDERS.md](docs/RESEARCH_PROVIDERS.md)** — Web research provider guide
 - **[docs/JINA_PROVIDER.md](docs/JINA_PROVIDER.md)** — Jina AI configuration and limits
 - **[docs/PUBLIC_PROFILE_DISCOVERY.md](docs/PUBLIC_PROFILE_DISCOVERY.md)** — Public profile discovery feature
+- **[docs/summary_of_work.md](docs/summary_of_work.md)** — Canonical AI/dev-agent session handoff ledger (read + updated by every session)
 
 ### Legal & Governance
 - **[SECURITY.md](SECURITY.md)** — Security policy and vulnerability disclosure

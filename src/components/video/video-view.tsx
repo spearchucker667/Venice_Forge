@@ -86,11 +86,20 @@ export function VideoView() {
   // IDB record — instead we keep the upstream `downloadUrl` and let the user
   // re-download on demand. This keeps the gallery store light and avoids
   // duplicating the asset across IDB and the cache.
-  const lastSavedQueueIdRef = useRef<string | null>(null)
+  // BUG-004 regression guard: track every queueId that has been persisted
+  // to the Media Studio, regardless of whether it was auto-saved or
+  // manually saved. The previous implementation used a single
+  // `lastSavedQueueIdRef` that only remembered the last auto-save, so
+  // clicking the "Save to Media Studio" button after an auto-save would
+  // create a duplicate record. The set is intentionally per-component
+  // (not global) because the same queueId from a previous job can be
+  // legitimately re-rendered after navigation.
+  const savedQueueIdsRef = useRef<Set<string>>(new Set())
+
   useEffect(() => {
     if (status !== 'completed' || !videoUrl || !queueId) return
-    if (lastSavedQueueIdRef.current === queueId) return
-    lastSavedQueueIdRef.current = queueId
+    if (savedQueueIdsRef.current.has(queueId)) return
+    savedQueueIdsRef.current.add(queueId)
     const mediaItem = {
       id: generateId(),
       image: videoUrl,
@@ -233,7 +242,9 @@ export function VideoView() {
               <div className="relative group">
                 <img src={imageUrl} alt="Reference" className="w-full rounded-lg border border-white/[0.06]" />
                 <button
+                  type="button"
                   onClick={() => { setImageUrl(null); setImageName('') }}
+                  aria-label="Remove reference image"
                   className="absolute top-1.5 right-1.5 p-1 bg-black/60 rounded-md text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
@@ -289,6 +300,10 @@ export function VideoView() {
           <div className="flex items-center justify-between">
             <Label>Generate audio</Label>
             <button
+              type="button"
+              role="switch"
+              aria-checked={audioEnabled}
+              aria-label={audioEnabled ? 'Generate audio enabled' : 'Generate audio disabled'}
               onClick={() => setAudioEnabled(!audioEnabled)}
               className={cn(
                 'w-8 h-[18px] rounded-full transition-colors relative',
@@ -335,8 +350,19 @@ export function VideoView() {
             <div className="flex items-center justify-between">
               <Label>Output</Label>
               <div className="flex items-center gap-3">
+                {(() => {
+                  const alreadySaved = !!queueId && savedQueueIdsRef.current.has(queueId)
+                  return (
                 <button
+                  type="button"
                   onClick={() => {
+                    // BUG-004 regression guard: the manual save button must
+                    // be idempotent. If the auto-save effect already
+                    // recorded this queueId, do nothing and show feedback.
+                    if (queueId && savedQueueIdsRef.current.has(queueId)) {
+                      toast.success('Already in Media Studio')
+                      return
+                    }
                     const item = {
                       id: generateId(),
                       image: videoUrl,
@@ -357,15 +383,25 @@ export function VideoView() {
                       audio: lastRequest?.audio,
                       downloadUrl: videoUrl,
                     }
+                    if (queueId) savedQueueIdsRef.current.add(queueId)
                     void useMediaStore.getState().upsert(item)
                     toast.success('Saved to Media Studio')
                   }}
-                  className="text-[14px] text-[var(--color-accent)] hover:opacity-85 transition-opacity flex items-center gap-1.5"
-                  title="Save to Media Studio"
+                  disabled={alreadySaved}
+                  className={cn(
+                    'text-[14px] flex items-center gap-1.5 transition-opacity',
+                    alreadySaved
+                      ? 'text-white/30 cursor-default'
+                      : 'text-[var(--color-accent)] hover:opacity-85',
+                  )}
+                  title={alreadySaved ? 'Already saved to Media Studio' : 'Save to Media Studio'}
+                  aria-label={alreadySaved ? 'Already saved to Media Studio' : 'Save to Media Studio'}
                 >
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
-                  Save to Media Studio
+                  {alreadySaved ? 'Saved' : 'Save to Media Studio'}
                 </button>
+                  )
+                })()}
                 <a href={videoUrl} download="venice-video.mp4" target="_blank" rel="noopener noreferrer" className="text-[14px] text-white/20 hover:text-white/40 transition-colors flex items-center gap-1.5">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
                   Download

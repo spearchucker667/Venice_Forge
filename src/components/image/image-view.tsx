@@ -8,7 +8,6 @@ import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, PillGroup, ErrorText, ExamplePrompts } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
 import type { ImageConstraints } from '../../types/venice'
-import StorageService from '../../services/storageService'
 import { useMediaStore } from '../../stores/media-store'
 import { generateId } from '../../lib/utils'
 import { getPromptStartersForCategory } from '../../services/promptStarterService'
@@ -212,7 +211,15 @@ export function ImageView() {
               assetCategory: routedFolder,
             };
 
-            StorageService.saveItem("images", mediaItem).catch(console.error);
+            // BUG-003 regression guard: do NOT persist twice. The previous
+            // implementation called `StorageService.saveItem("images", ...)`
+            // AND then `useMediaStore.getState().upsert(mediaItem)`, but
+            // `upsert` itself routes through `StorageService.putMedia` which
+            // writes to the same `images` IDB store. Two IDB transactions
+            // per generated image doubled write amplification and could
+            // race on identical ids. The store `upsert` is the single
+            // canonical path (it also migrates legacy GalleryImage fields
+            // to the new MediaItem shape).
             void useMediaStore.getState().upsert(mediaItem);
           });
 

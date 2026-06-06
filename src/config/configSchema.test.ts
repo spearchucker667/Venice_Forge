@@ -4,10 +4,12 @@ import { describe, it, expect } from "vitest";
 import {
   CONFIG_SCHEMA_VERSION,
   emptyConfig,
+  PROVIDER_CAPABILITIES,
   REQUIRED_THEME_TOKEN_KEYS,
   sanitizeConfig,
   validateConfig,
   validateThemesFile,
+  capabilitiesFor,
 } from "./configSchema";
 
 describe("configSchema", () => {
@@ -155,6 +157,55 @@ describe("configSchema", () => {
       });
       expect(result.themes.foo?.display_name).toBe("Foo");
       expect(result.warnings).toEqual([]);
+    });
+  });
+
+  // BUG-006 regression guard: provider abstraction. The new env /
+  // YAML fields and the capability matrix must be additive — every
+  // legacy Venice code path must still work without modification.
+  describe("provider abstraction (BUG-006)", () => {
+    it("defaults the LLM provider to venice when missing", () => {
+      const result = validateConfig({ version: 1 });
+      expect(result.config.research.llm_provider).toBe("venice");
+    });
+
+    it("accepts the minimax LLM provider", () => {
+      const result = validateConfig({ version: 1, research: { llm_provider: "minimax" } });
+      expect(result.config.research.llm_provider).toBe("minimax");
+    });
+
+    it("falls back to venice for an unknown LLM provider", () => {
+      const result = validateConfig({ version: 1, research: { llm_provider: "anthropic" } });
+      expect(result.config.research.llm_provider).toBe("venice");
+    });
+
+    it("does not leak the minimax API key through the sanitized view", () => {
+      const cfg = emptyConfig();
+      cfg.secrets.minimax_api_key = "minimax-secret-xyz";
+      cfg.secrets.venice_api_key = "venice-secret-1";
+      cfg.secrets.jina_api_key = "jina-secret-1";
+      const sanitized = sanitizeConfig(cfg);
+      expect(sanitized.secrets.has_minimax_api_key).toBe(true);
+      const serialized = JSON.stringify(sanitized);
+      expect(serialized).not.toContain("minimax-secret-xyz");
+      expect(serialized).not.toContain("venice-secret-1");
+      expect(serialized).not.toContain("jina-secret-1");
+    });
+
+    it("exposes a per-provider capability matrix", () => {
+      expect(PROVIDER_CAPABILITIES.venice.chat).toBe(true);
+      expect(PROVIDER_CAPABILITIES.venice.openAiStyleStreaming).toBe(true);
+      // MiniMax is a future target; every non-chat capability is
+      // explicitly disabled so the renderer can hide controls.
+      expect(PROVIDER_CAPABILITIES.minimax.chat).toBe(false);
+      expect(PROVIDER_CAPABILITIES.minimax.imageGenerate).toBe(false);
+      expect(PROVIDER_CAPABILITIES.minimax.openAiStyleStreaming).toBe(false);
+    });
+
+    it("falls back to Venice capabilities for unknown provider ids", () => {
+      expect(capabilitiesFor("unknown").chat).toBe(true);
+      expect(capabilitiesFor(undefined)?.chat).toBe(true);
+      expect(capabilitiesFor(null)?.chat).toBe(true);
     });
   });
 });

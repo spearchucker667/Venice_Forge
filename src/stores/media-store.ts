@@ -43,6 +43,12 @@ interface MediaState {
   byId: (id: string) => MediaItem | undefined
   childrenOf: (id: string) => MediaItem[]
   parentOf: (id: string) => MediaItem | undefined
+  /** BUG-008 regression guard: fetch a single record by id from IDB. Used
+   *  by the gallery inspector when the parent/child of the inspected
+   *  record is outside the currently loaded page. The returned record is
+   *  also merged into the in-memory cache so subsequent byId / childrenOf
+   *  / parentOf lookups for the same id hit the in-memory path. */
+  loadById: (id: string) => Promise<MediaItem | null>
 }
 
 export const MEDIA_PAGE_SIZE = 60
@@ -251,6 +257,29 @@ export const useMediaStore = create<MediaState>((set, get) => ({
     const item = get().items.find((i) => i.id === id)
     if (!item?.parentId) return undefined
     return get().items.find((i) => i.id === item.parentId)
+  },
+
+  loadById: async (id) => {
+    const cached = get().items.find((item) => item.id === id)
+    if (cached) return cached
+    try {
+      const raw = (await StorageService.getItem("images", id)) as unknown
+      if (raw === null || raw === undefined) return null
+      const migrated = migrateGalleryImageToMediaItem(raw)
+      if (!isMediaItemLike(migrated)) return null
+      // Merge into the in-memory cache so subsequent selectors hit.
+      set((state) => {
+        if (state.items.some((existing) => existing.id === migrated.id)) {
+          return state
+        }
+        return {
+          items: [migrated, ...state.items].sort((a, b) => b.timestamp - a.timestamp),
+        }
+      })
+      return migrated
+    } catch {
+      return null
+    }
   },
 }))
 

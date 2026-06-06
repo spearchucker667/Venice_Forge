@@ -39,6 +39,30 @@ Before opening a PR: `npm run lint:eslint`, `npm run typecheck`, `npm test`, `np
 
 ---
 
+## Mandatory Session Handoff: `docs/summary_of_work.md`
+
+At the end of every coding, audit, refactor, documentation, or test
+session, the agent must update `docs/summary_of_work.md`.
+
+Required updates:
+
+1. Read `docs/summary_of_work.md` before starting substantive work.
+2. Update `Latest Session Summary`.
+3. Append a new dated entry under `Session History`.
+4. Update `Open TODO Ledger` with any new, completed, or reprioritized
+   tasks.
+5. Update `Validation Matrix` only for commands actually run.
+6. Record failures and skipped validation honestly.
+7. Do not include secrets, API keys, private machine paths, or raw
+   unsafe prompt payloads.
+
+A session is not complete until `docs/summary_of_work.md` has been
+updated or the agent explicitly explains why no update was needed.
+Equivalent instructions live in `AGENTS.md`, `CLAUDE.md`, and
+`GEMINI.md`.
+
+---
+
 ## Architecture
 
 ### Two transports, one renderer
