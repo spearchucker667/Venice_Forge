@@ -51,26 +51,26 @@ For development, see [Development](#-development) or [docs/ABOUT.md](docs/ABOUT.
 
 ## ✨ Features
 
-Fourteen integrated tabs covering chat, media generation, batch automation, research, and settings:
+Fourteen integrated tabs covering chat, media generation, research, and settings — wired into a single canonical tab registry at `src/config/tabs.ts`:
 
 | Tab | Name | What You Can Do |
 |-----|------|-----------------|
 | 💬 | **Chat** | Multi-turn streaming conversations with system prompts, file/image attachments, drag & drop context reordering, memory injection, persistent history, chat forking, and Agent vs Classic toggle |
 | 🖼️ | **Image Studio** | Generate images, **Edit** (single image inpainting), **Combine** (multi-image referencing), and **Upscale** (separate from video upscaling) |
-| 🎬 | **Video Studio** | Asynchronously queue text-to-video, image-to-video, video-to-video, reference-to-video, and video upscale jobs. Settings are model-dependent. Video upscale uses `topaz-video-upscale` when available |
+| 🎬 | **Media Studio** | Browse, search, tag, and export every image and video Venice Forge has generated. Filter by Image / Video / Favorites / Upscaled / Edited, batch-select to favorite or delete, inspect lineage (parent + children) and per-model capabilities. See [`docs/MEDIA_STUDIO.md`](docs/MEDIA_STUDIO.md) |
 | ♫ | **Audio Studio** | Text-to-speech with 50+ voices and formats, plus audio transcription via Whisper |
 | 🎵 | **Music Studio** | AI music generation with text-to-music, optional lyrics, duration control, and instrumental mode |
-| 🧩 | **Workflows** | Visual node editor for chaining models (Input → LLM → Image Gen → Output) with parallel branching |
-| 🤖 | **Playground** | Conversational agent that builds and edits workflows on a live canvas using plain language |
+| 🎬 | **Video Studio** | Asynchronously queue text-to-video, image-to-video, video-to-video, reference-to-video, and video upscale jobs. Settings are model-dependent. Video upscale uses `topaz-video-upscale` when available |
 | 🔢 | **Embeddings** | Vector embeddings generation for text with selectable models and dimension display |
-| 📋 | **Batch** | Automate: run one prompt across many inputs, or chain multiple prompts in sequence |
 | 🔍 | **Research** | Web search via Venice or Jina AI, page scraping, research synthesis, and public-profile discovery |
 | 🎭 | **Characters** | Browse Venice hosted characters, sort/filter, and start character chats using `venice_parameters.character_slug` |
 | 🎭 | **RP Studio** | Local-first character roleplay authoring + runtime: build character cards with avatars, write personas and lorebooks (keyword-triggered world info), run multi-character chats with speaker-aware turns, generate scene images linked to chat history, and inspect the prompt assembly trace. All content stays on disk; Family Safe Mode optionally runs the local filter at dispatch boundaries. See [`docs/CHARACTER_RP.md`](docs/CHARACTER_RP.md) |
-| 📚 | **Catalog** | Browse live Venice model catalog with capability details; auto-refresh on API key save. App requires a Venice API key for live model discovery |
-| 🎬 | **Media Studio** | Browse, search, tag, and export every image and video Venice Forge has generated. Filter by Image / Video / Favorites / Upscaled / Edited, batch-select to favorite or delete, inspect lineage (parent + children) and per-model capabilities. See [`docs/MEDIA_STUDIO.md`](docs/MEDIA_STUDIO.md) |
+| 🧩 | **Workflows** | Visual node editor for chaining models (Input → LLM → Image Gen → Output) with parallel branching |
+| 🤖 | **Playground** | Conversational agent that builds and edits workflows on a live canvas using plain language |
 | ⚙️ | **Config** | API key management (OS-level secure storage), theme editor (Venice Parity Dark, Graphite, Daylight, Copper, Dracula, GruvBox Dark, Rosepine) with custom YAML export/import, model defaults, data import/export, and a **Local Config** panel that surfaces the optional `config.yaml` / `themes.yaml` files (path, parse/validation warnings, key import status, Reload / Open Folder / Export Template / Clear Secure Store actions) |
-| 📊 | **Diagnostics** | Transport mode, runtime info, rate-limit headers, sanitized diagnostics export, and a desktop-only “Open logs folder” action |
+| 📊 | **Status** | Transport mode, runtime info, rate-limit headers, sanitized diagnostics export, and a desktop-only “Open logs folder” action |
+
+The catalog of available Venice models and the multi-prompt batch runner are exposed inside **Config → Models** and **Config → Batch** as sub-views (the canonical tab order is the 14 rows above; both Catalog and Batch are not separate top-level tabs).
 
 ---
 
@@ -201,9 +201,11 @@ For detailed signing and notarization steps, see [docs/RELEASE/signing-and-notar
 |-----------|----------|------------|
 | **API Keys** (Desktop) | OS Keychain (macOS) / DPAPI (Windows) | OS-level (encrypted at rest) |
 | **Logs** | Application support dir | Plain text (disk only) |
-| **Chats** (Desktop) | `chat-history/*.json` | Plain text (encryption planned) |
-| **Settings, Images, Conversations, Memories, Files** | Renderer IndexedDB | AES-GCM (browser-managed key) |
+| **Chats** (Desktop) | `chat-history/*.json` (per-conversation file, atomic write) | Plain text on disk — the file is written in the user's profile directory; see the Encryption note below. |
+| **Settings, Images, Conversations, Memories, Files, Character Cards, Personas, Lorebooks, RP Chats, RP Assets** | Renderer IndexedDB | AES-GCM (browser-managed key) |
 | **Exports** | User-specified location | Versioned JSON (same as storage) |
+
+**Encryption note:** the IDB-backed stores listed above are transparently encrypted at rest by `src/services/storageService.ts` (`ENCRYPTED_STORES` allowlist) using a browser-managed AES-GCM key. The desktop `chat-history/*.json` files are written as plaintext JSON because the main process does not have a stable, cross-platform key store that is accessible at every load. If you require encrypted chat history on disk, use the **Config → Data → Export** flow to keep an AES-GCM-encrypted backup out-of-band. (See the [Known Limitations](#-known-limitations) section for the threat-model scope of browser-managed AES-GCM keys.)
 
 **Import/Export Notes:**
 - Validation: JSON schema and size checks (max 25 MB)
@@ -236,7 +238,7 @@ For detailed signing and notarization steps, see [docs/RELEASE/signing-and-notar
 
 ### Security audit & regression guards
 
-The codebase is protected by **10 named regression guards** (`VERIFY-001`..`VERIFY-010`) that lock down the security-relevant surfaces. Each guard fails CI if a future change weakens the protection:
+The codebase is protected by **13 named regression guards** (`VERIFY-001`..`VERIFY-023`) that lock down the security-relevant surfaces. Each guard fails CI if a future change weakens the protection:
 
 | ID | Locks | Test file |
 |----|-------|-----------|
@@ -250,6 +252,19 @@ The codebase is protected by **10 named regression guards** (`VERIFY-001`..`VERI
 | `VERIFY-008` | `listConversations({ offset, limit })` server-side pagination | `electron/services/chatStorage.test.ts` |
 | `VERIFY-009` | Dual Venice client surface contract | `src/lib/venice-client.dual.test.ts` |
 | `VERIFY-010` | Zero out-of-allowlist inline colors (theme token invariant) | `tests/theme/inlineColorInvariant.test.ts` |
+| `VERIFY-011` | Character-card storage invariants | `tests/storage/characterCardStorage.regression.test.ts` |
+| `VERIFY-012` | RP chat storage invariants | `tests/storage/rpChatStorage.regression.test.ts` |
+| `VERIFY-013` | Scene-generation safety + asset persistence | `tests/safety/sceneGeneration.regression.test.ts` |
+| `VERIFY-014` | Character RP safety wrapper routing | `tests/safety/characterImportSafety.routing.test.ts` |
+| `VERIFY-015` | Guarded IPC pipeline | `tests/safety/guardPipeline.test.ts` |
+| `VERIFY-016` | Inspector non-mutating preview | `tests/safety/inspectorPreview.test.ts` |
+| `VERIFY-017` | Renderer hydration gate | `tests/safety/hydrationGate.test.ts` |
+| `VERIFY-018` | Provider `safe_mode` endpoint matrix | `tests/safety/veniceSafeMode.test.ts` |
+| `VERIFY-019` | Electron Jina/scrape response-body screening | `electron/ipc/handlers.test.ts` |
+| `VERIFY-020` | Media Studio persistence | `src/components/image/image-tools.test.tsx` |
+| `VERIFY-021` | Chat-store dirty-map persistence (active + non-active saves) | `src/stores/chat-store.dirty.test.ts` |
+| `VERIFY-022` | Canonical tab registry + legacy aliases | `src/config/tabs.test.ts` |
+| `VERIFY-023` | `window.__veniceMediaDev` is dev-only | `src/components/gallery/gallery-view.test.tsx` |
 
 The 2026-06-05 full-repo audit produced these fixes; see [docs/AUDIT_FOLLOWUP_2026_06_05.md](docs/AUDIT_FOLLOWUP_2026_06_05.md) for the full audit report (P0/P1/P2 status, commits, and follow-up items).
 
@@ -382,7 +397,7 @@ This project is actively maintained. For issues, feature requests, or security r
 | Node.js | v20, v22 |
 | TypeScript | Strict mode enforced |
 | Family Safe Mode | ✅ On by default; toggleable to Adult Mode |
-| Test Suite | 774 passing (+10 named regression guards) |
+| Test Suite | 1185 passing (+13 named regression guards) |
 | License | [MIT](LICENSE) |
 
 Latest changes: See [CHANGELOG.md](CHANGELOG.md)

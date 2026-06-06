@@ -60,4 +60,30 @@ describe('MediaStudioView (GalleryView)', () => {
     await waitFor(() => expect(screen.queryByText('Copper city at dusk')).not.toBeInTheDocument())
     confirmSpy.mockRestore()
   })
+
+  it('does NOT expose window.__veniceMediaDev when DEV mode is off (production)', async () => {
+    // Simulate a production build by removing the DEV flag from
+    // import.meta.env. The component's useEffect must short-circuit
+    // and never attach the global.
+    const w = window as unknown as { __veniceMediaDev?: { upsert: () => void } }
+    delete w.__veniceMediaDev
+
+    // Save and overwrite import.meta.env so the DEV guard treats us
+    // as production. Vitest's esbuild target keeps `import.meta.env`
+    // as an object literal; we mutate the field directly.
+    const meta = import.meta as unknown as { env: Record<string, unknown> }
+    const original = { ...meta.env }
+    meta.env.DEV = false
+    meta.env.MODE = 'production'
+    try {
+      render(<GalleryView />)
+      await screen.findByText('Copper city at dusk')
+      // Yield to the useEffect microtask.
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      expect(w.__veniceMediaDev).toBeUndefined()
+    } finally {
+      meta.env.DEV = original.DEV
+      meta.env.MODE = original.MODE
+    }
+  })
 })

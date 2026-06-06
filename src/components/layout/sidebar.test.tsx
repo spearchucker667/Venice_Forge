@@ -25,7 +25,10 @@ describe('Sidebar controls', () => {
   it('exposes the Media Studio navigation item', () => {
     render(<Sidebar />)
     fireEvent.click(screen.getByRole('button', { name: 'Media Studio' }))
-    expect(useSettingsStore.getState().activeTab).toBe('gallery')
+    // The canonical tab id is 'media' (renamed from 'gallery' in the
+    // tab-registry refactor). The store normalises legacy 'gallery'
+    // clicks to the new id, so the assertion locks the contract.
+    expect(useSettingsStore.getState().activeTab).toBe('media')
   })
 
   it('makes Red-Team Mode visible by opening the Inspector', () => {

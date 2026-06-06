@@ -6,7 +6,8 @@ import type { ConversationCharacterMeta } from '../types/conversationVault'
 import type { VeniceCharacter } from '../types/characters'
 import { generateId } from '../lib/utils'
 import { createSafeStorage } from '../lib/safe-storage'
-import type { ConversationRecordV1, PulledMemoryContext } from '../types/conversationVault'
+import type { PulledMemoryContext } from '../types/conversationVault'
+import { toConversationRecord } from './chat-store-helpers'
 
 interface ChatState {
   conversations: Conversation[]
@@ -34,7 +35,12 @@ interface ChatState {
     fallbackModel: string,
   ) => string
   setActiveConversation: (id: string | null) => void
-  deleteConversation: (id: string) => void
+  deleteConversation: (id: string) => Promise<void>
+  /**
+   * Restore a previously-deleted conversation at the top of the list.
+   * Used by the Sidebar "Undo" toast.
+   */
+  restoreConversation: (conv: Conversation) => Promise<void>
   setPendingContext: (context: PulledMemoryContext | null) => void
   addMessage: (conversationId: string, message: ChatMessage) => void
   appendToLastAssistant: (conversationId: string, token: string) => void
@@ -47,6 +53,27 @@ interface ChatState {
   setTopP: (p: number) => void
   setMaxTokens: (t: number) => void
   getActiveConversation: () => Conversation | undefined
+}
+
+/**
+ * Mutate `conv` in-place to keep `metadata.messageCount` in sync with the
+ * real `messages.length` and to bump `updatedAt` to the current time. This
+ * is the single point of truth for "this conversation just changed".
+ */
+function touchConversation(conv: Conversation, now: number = Date.now()): Conversation {
+  const messages = conv.messages ?? []
+  const metadata = {
+    tags: conv.metadata?.tags ?? [],
+    pinned: conv.metadata?.pinned ?? false,
+    archived: conv.metadata?.archived ?? false,
+    source: conv.metadata?.source ?? 'chat',
+    messageCount: messages.length,
+    tokenEstimate: conv.metadata?.tokenEstimate,
+    lastSummaryAt: conv.metadata?.lastSummaryAt,
+    migratedFrom: conv.metadata?.migratedFrom,
+    character: conv.metadata?.character,
+  }
+  return { ...conv, messages, updatedAt: now, metadata }
 }
 
 export const useChatStore = create<ChatState>()(
@@ -149,54 +176,82 @@ export const useChatStore = create<ChatState>()(
 
       setActiveConversation: (id) => set({ activeConversationId: id }),
 
-      deleteConversation: (id) => {
+      deleteConversation: async (id) => {
+        // Mark the conversation dirty first so a pending save flush on
+        // unload will NOT resurrect a conversation the user has just
+        // deleted. We do this by removing the entry from the dirty map
+        // via the module-level helper exported below.
+        forgetDirtyConversation(id)
         set((s) => ({
           conversations: s.conversations.filter((c) => c.id !== id),
           activeConversationId:
             s.activeConversationId === id ? null : s.activeConversationId,
         }))
-        if (typeof window !== 'undefined') {
-          if (window.veniceForge?.conversations) {
-            window.veniceForge.conversations.delete(id).catch(() => {})
-          } else if (window.veniceForge?.chat) {
-            window.veniceForge.chat.delete(id).catch(() => {})
+        if (typeof window === 'undefined') return
+        const vf = window.veniceForge
+        if (!vf) return
+        try {
+          if (vf.conversations?.delete) {
+            await vf.conversations.delete(id)
+          } else if (vf.chat?.delete) {
+            await vf.chat.delete(id)
           }
+        } catch (err) {
+          console.error('[chat] deleteConversation IPC failed', err)
         }
       },
 
-  addMessage: (conversationId, message) =>
-    set((s) => ({
-      conversations: s.conversations.map((c) => {
-        if (c.id !== conversationId) return c
-        const persisted: ConversationMessage = {
-          id: generateId(),
-          role: message.role,
-          content: typeof message.content === 'string' ? message.content : '',
-          reasoning_content: message.reasoning_content,
-          timestamp: Date.now(),
-        }
-        const updated = { ...c, messages: [...c.messages, persisted], updatedAt: Date.now() }
-        if (
-          message.role === 'user' &&
-          c.messages.length === 0 &&
-          typeof message.content === 'string'
-        ) {
-          updated.title = message.content.slice(0, 50) || 'New Chat'
-        }
-        return updated
-      }),
-    })),
+      restoreConversation: async (conv) => {
+        // Insert at the top (matching the createConversation order) and
+        // mark dirty so the debounced save picks it up. Awaiting the save
+        // here means the Undo toast is accurate — the user can see "Saved"
+        // confirmation rather than wondering if the IPC call landed.
+        const restored = touchConversation(conv)
+        set((s) => {
+          if (s.conversations.some((c) => c.id === restored.id)) return s
+          return { conversations: [restored, ...s.conversations] }
+        })
+        markDirtyConversation(restored.id, restored)
+        await flushConversationSave(restored.id)
+      },
+
+      addMessage: (conversationId, message) =>
+        set((s) => ({
+          conversations: s.conversations.map((c) => {
+            if (c.id !== conversationId) return c
+            const persisted: ConversationMessage = {
+              id: generateId(),
+              role: message.role,
+              content: typeof message.content === 'string' ? message.content : '',
+              reasoning_content: message.reasoning_content,
+              timestamp: Date.now(),
+            }
+            const withMessage: Conversation = {
+              ...c,
+              messages: [...(c.messages ?? []), persisted],
+            }
+            const updated = touchConversation(withMessage)
+            if (
+              message.role === 'user' &&
+              (c.messages?.length ?? 0) === 0 &&
+              typeof message.content === 'string'
+            ) {
+              updated.title = message.content.slice(0, 50) || 'New Chat'
+            }
+            return updated
+          }),
+        })),
 
       appendToLastAssistant: (conversationId, token) =>
         set((s) => ({
           conversations: s.conversations.map((c) => {
             if (c.id !== conversationId) return c
-            const msgs = [...c.messages]
+            const msgs = [...(c.messages ?? [])]
             const last = msgs[msgs.length - 1]
             if (last?.role === 'assistant' && typeof last.content === 'string') {
               msgs[msgs.length - 1] = { ...last, content: last.content + token }
             }
-            return { ...c, messages: msgs }
+            return touchConversation({ ...c, messages: msgs })
           }),
         })),
 
@@ -204,12 +259,12 @@ export const useChatStore = create<ChatState>()(
         set((s) => ({
           conversations: s.conversations.map((c) => {
             if (c.id !== conversationId) return c
-            const msgs = [...c.messages]
+            const msgs = [...(c.messages ?? [])]
             const last = msgs[msgs.length - 1]
             if (last?.role === 'assistant') {
               msgs[msgs.length - 1] = { ...last, reasoning_content: (last.reasoning_content || '') + token }
             }
-            return { ...c, messages: msgs }
+            return touchConversation({ ...c, messages: msgs })
           }),
         })),
 
@@ -217,8 +272,8 @@ export const useChatStore = create<ChatState>()(
         set((s) => ({
           conversations: s.conversations.map((c) => {
             if (c.id !== conversationId) return c
-            const msgs = c.messages.filter((_, i) => i !== index)
-            return { ...c, messages: msgs }
+            const msgs = (c.messages ?? []).filter((_, i) => i !== index)
+            return touchConversation({ ...c, messages: msgs })
           }),
         })),
 
@@ -266,6 +321,100 @@ export const useChatStore = create<ChatState>()(
   ),
 )
 
+// ---------------------------------------------------------------------------
+// Module-level persistence layer
+// ---------------------------------------------------------------------------
+// Why a module-level dirty map?
+//   - The previous implementation only debounced-saved the *active*
+//     conversation. Editing a non-active chat (renaming, tagging) would be
+//     silently dropped on the next reload because the IPC `save` was never
+//     invoked.
+//   - We now track EVERY conversation the store mutates (active or not)
+//     in a `dirty` map and coalesce the writes per id. A change to a
+//     non-active chat still results in a write to disk within 500ms.
+//
+// The map is intentionally module-scoped (not Zustand state) so it does
+// not participate in the persist middleware — it is pure in-memory dirty
+// tracking and is wiped on full page reload by definition.
+// ---------------------------------------------------------------------------
+
+const dirtyConversations: Map<string, Conversation> = new Map()
+let saveTimer: ReturnType<typeof setTimeout> | null = null
+const DEBOUNCE_MS = 500
+
+function markDirtyConversation(id: string, conv: Conversation): void {
+  dirtyConversations.set(id, conv)
+  scheduleFlush()
+}
+
+function forgetDirtyConversation(id: string): void {
+  dirtyConversations.delete(id)
+}
+
+function scheduleFlush(): void {
+  if (saveTimer !== null) clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    saveTimer = null
+    void flushAllPendingSaves()
+  }, DEBOUNCE_MS)
+}
+
+async function writeConversation(conv: Conversation): Promise<void> {
+  if (typeof window === 'undefined') return
+  const vf = window.veniceForge
+  if (!vf) return
+  const record = toConversationRecord(conv)
+  try {
+    if (vf.conversations?.save) {
+      await vf.conversations.save(record)
+    } else if (vf.chat?.save) {
+      await vf.chat.save(conv)
+    }
+  } catch (err) {
+    console.error('[chat] conversations.save failed', err)
+  }
+}
+
+async function flushConversationSave(id: string): Promise<void> {
+  const conv = dirtyConversations.get(id)
+  if (!conv) return
+  dirtyConversations.delete(id)
+  await writeConversation(conv)
+}
+
+/**
+ * Flush every dirty conversation to disk. Called by:
+ *   - The 500ms debounce timer
+ *   - The `pagehide` and `beforeunload` listeners (synchronously kick it
+ *     off — the actual save is async, but the IPC channel is fire-and-
+ *     forget in the unload path so the renderer does not block on it).
+ *   - Tests (via `flushAllPendingSavesForTests`).
+ *
+ * Returns a promise that resolves once every pending write has been
+ * dispatched. Errors from individual writes are logged but do NOT
+ * reject the aggregate promise — one bad write should not stop the
+ * rest from landing.
+ */
+export async function flushAllPendingSaves(): Promise<void> {
+  if (saveTimer !== null) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+  }
+  const pending = Array.from(dirtyConversations.entries())
+  dirtyConversations.clear()
+  await Promise.all(pending.map(([, conv]) => writeConversation(conv)))
+}
+
+/** Test-only: synchronously inspect the dirty map. */
+export function _debugGetDirtyConversationIds(): readonly string[] {
+  return Array.from(dirtyConversations.keys())
+}
+
+// Re-export the serialisation helper so other modules (sidebar undo, IPC
+// layer, tests) can build the wire-format record without depending on
+// the store's internals.
+export { toConversationRecord } from './chat-store-helpers'
+
 // Sync conversations with Desktop backend
 if (typeof window !== 'undefined') {
   // Load initially on the next microtask. The previous setTimeout(..., 100)
@@ -303,93 +452,29 @@ if (typeof window !== 'undefined') {
 
   // Save changes — debounced, with flush-on-unload so a pending edit is
   // not silently dropped when the renderer tab closes.
-  let saveTimer: ReturnType<typeof setTimeout> | null = null;
-  let pendingSave: Conversation | null = null;
-  const flushSave = () => {
-    if (saveTimer !== null) {
-      clearTimeout(saveTimer);
-      saveTimer = null;
-    }
-    if (pendingSave) {
-      if (window.veniceForge?.conversations) {
-        const record: ConversationRecordV1 = {
-          version: 1,
-          id: pendingSave.id,
-          title: pendingSave.title,
-          createdAt: pendingSave.createdAt,
-          updatedAt: pendingSave.updatedAt,
-          model: pendingSave.model,
-          systemPrompt: pendingSave.systemPrompt,
-          messages: pendingSave.messages,
-          metadata: pendingSave.metadata || {
-            tags: [],
-            pinned: false,
-            archived: false,
-            source: 'chat',
-            messageCount: pendingSave.messages.length,
-          },
-          memory: pendingSave.memory || {
-            summary: pendingSave.title || '',
-            topics: [],
-            entities: [],
-            userFacts: [],
-            projectRefs: [],
-          },
-        };
-        window.veniceForge.conversations.save(record).catch(console.error);
-      } else if (window.veniceForge?.chat) {
-        window.veniceForge.chat.save(pendingSave).catch(console.error);
-      }
-      pendingSave = null;
-    }
-  };
-  window.addEventListener("beforeunload", flushSave);
-  window.addEventListener("pagehide", flushSave);
- 
+  // We track BOTH the active and any non-active conversation that mutated
+  // during the debounce window. `markDirtyConversation` is the entry point
+  // called from the subscribe callback below.
+  window.addEventListener("beforeunload", () => {
+    // Fire-and-forget: the browser may not await this promise, but the
+    // IPC channel is still flushed to the main process.
+    void flushAllPendingSaves()
+  })
+  window.addEventListener("pagehide", () => {
+    void flushAllPendingSaves()
+  })
+
   useChatStore.subscribe((state, prevState) => {
-    // If the active conversation's messages or title changed, save it
-    const active = state.conversations.find((c) => c.id === state.activeConversationId)
-    const prevActive = prevState.conversations.find((c) => c.id === state.activeConversationId)
- 
-    if (active && (active !== prevActive)) {
-      pendingSave = active;
-      if (saveTimer !== null) clearTimeout(saveTimer);
-      saveTimer = setTimeout(() => {
-        saveTimer = null;
-        const toSave = pendingSave;
-        pendingSave = null;
-        if (toSave) {
-          if (window.veniceForge?.conversations) {
-            const record: ConversationRecordV1 = {
-              version: 1,
-              id: toSave.id,
-              title: toSave.title,
-              createdAt: toSave.createdAt,
-              updatedAt: toSave.updatedAt,
-              model: toSave.model,
-              systemPrompt: toSave.systemPrompt,
-              messages: toSave.messages,
-              metadata: toSave.metadata || {
-                tags: [],
-                pinned: false,
-                archived: false,
-                source: 'chat',
-                messageCount: toSave.messages.length,
-              },
-              memory: toSave.memory || {
-                summary: toSave.title || '',
-                topics: [],
-                entities: [],
-                userFacts: [],
-                projectRefs: [],
-              },
-            };
-            window.veniceForge.conversations.save(record).catch(console.error);
-          } else if (window.veniceForge?.chat) {
-            window.veniceForge.chat.save(toSave).catch(console.error);
-          }
-        }
-      }, 500); // Debounce saves
+    // If any conversation's identity changed (i.e. it was replaced in
+    // the conversations array, which Zustand does on `set` with a
+    // fresh object), mark it dirty. This catches BOTH the active
+    // conversation (e.g. addMessage) AND non-active ones (e.g. delete
+    // a message in a background chat via the Search panel).
+    for (const c of state.conversations) {
+      const prev = prevState.conversations.find((p) => p.id === c.id)
+      if (prev !== c) {
+        markDirtyConversation(c.id, c)
+      }
     }
   })
 }

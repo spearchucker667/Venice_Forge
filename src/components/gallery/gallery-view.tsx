@@ -181,9 +181,16 @@ export function MediaStudioView() {
   // Expose upsert on the window in dev so other components (image-view,
   // video-view) can persist results without re-wiring the bridge. This is
   // intentionally gated to a dev-only assignment and uses a typed hook to
-  // avoid leaking the store into unrelated code.
+  // avoid leaking the store into unrelated code. The DEV guard is critical
+  // — without it this `useEffect` would attach a global on every production
+  // install (release builds) of Venice Forge. We resolve the flag via the
+  // same defensive cast pattern used in `src/shared/logger.ts` so the file
+  // remains typecheckable without a project-wide `vite/client` reference.
   useEffect(() => {
     if (typeof window === "undefined") return;
+    const meta = (import.meta as unknown as { env?: { DEV?: boolean; MODE?: string } });
+    const isDev = meta.env?.DEV === true || meta.env?.MODE !== "production";
+    if (!isDev) return;
     interface MediaDevApi {
       upsert: typeof upsert;
     }

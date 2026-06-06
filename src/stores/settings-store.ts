@@ -2,8 +2,20 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { createSafeStorage } from '../lib/safe-storage'
 import type { Theme } from '../theme'
+import { normaliseTab, type TabId } from '../config/tabs'
 
-export type Tab = 'chat' | 'image' | 'gallery' | 'audio' | 'music' | 'video' | 'embeddings' | 'workflows' | 'playground' | 'status' | 'settings' | 'search' | 'characters' | 'rp-studio'
+/**
+ * Legacy alias re-exports. The canonical type lives in `src/config/tabs.ts`;
+ * this re-export keeps existing call sites compiling without churn.
+ * `Tab` and `TabId` are interchangeable — both resolve through `normaliseTab`
+ * at runtime, so legacy persisted values like `'gallery'` continue to work.
+ */
+export type Tab = TabId
+
+function safeNormaliseTab(id: string | null | undefined): TabId {
+  if (typeof id !== 'string' || !id) return 'chat'
+  return normaliseTab(id)
+}
 
 interface SettingsState {
   activeTab: Tab
@@ -48,8 +60,8 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      activeTab: 'chat',
-      setActiveTab: (tab) => set({ activeTab: tab }),
+      activeTab: 'chat' as Tab,
+      setActiveTab: (tab) => set({ activeTab: safeNormaliseTab(tab) as Tab }),
       sidebarOpen: true,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
@@ -89,7 +101,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'venice-settings',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => createSafeStorage()),
       migrate: (persisted) => {
         const state = persisted && typeof persisted === 'object'
@@ -99,6 +111,8 @@ export const useSettingsStore = create<SettingsState>()(
           ...state,
           localFamilySafeModeEnabled: state.localFamilySafeModeEnabled ?? true,
           veniceApiSafeMode: state.veniceApiSafeMode ?? true,
+          // v3: normalise legacy tab aliases (e.g. 'gallery' → 'media').
+          activeTab: safeNormaliseTab(state.activeTab) as Tab,
         } as SettingsState
       },
     },

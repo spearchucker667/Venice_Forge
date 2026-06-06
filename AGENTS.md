@@ -66,6 +66,8 @@ npm run clean            # Remove dist/ dist-electron/ release/
 
 **Single Venice entry point.** All HTTP calls go through `veniceFetch()` / `veniceStreamChat()` in `src/services/veniceClient.ts`. Modules must not `fetch('/api/venice/...')` directly and must not call `window.veniceForge.venice.*` directly — use `src/services/desktopBridge.ts` instead. **Exception:** `src/stores/chat-store.ts` accesses `window.veniceForge.chat.*` directly (pre-bridge legacy). Do not add new direct calls.
 
+**Canonical tab registry.** `src/config/tabs.ts` is the single source of truth for the `Tab` type, the visible tab order (`CANONICAL_TAB_ORDER`), the sidebar groups, the keyboard-shortcut numbering, and the legacy alias table. `useSettingsStore` v2→v3 migrates legacy `activeTab` values (e.g. `gallery` → `media`) so persisted user state from earlier builds continues to resolve. Add a new tab by adding a `TabId` literal to `TAB_IDS`, an entry to `TAB_REGISTRY`, and a view to `App.tsx`'s `views` map. Aliases are deprecated and preserved only for back-compat.
+
 **Dual TypeScript build pipelines:**
 - Renderer (`src/`): Vite, `tsconfig.json` (ESNext, `noEmit`, `bundler` resolution)
 - Electron main (`electron/`): `tsc --project tsconfig.electron.json` → CommonJS → `dist-electron/`; then `scripts/create-cjs-package.cjs` copies `package.json` as CJS
@@ -122,6 +124,9 @@ test's comment header.
 | `VERIFY-018` | Provider `safe_mode` endpoint matrix (`applyVeniceApiSafeMode` / `endpointSupportsSafeMode`) — adds `safe_mode` only for endpoints in the supported set, never mutates input | `tests/safety/veniceSafeMode.test.ts` |
 | `VERIFY-019` | Electron Jina/scrape response-body screening — `screenResponseBody` runs after fetch, returns 451 on block, skips in Adult Mode, never returns raw blocked body | `electron/ipc/handlers.test.ts` |
 | `VERIFY-020` | Media Studio persistence — image-tools saves a migrated MediaItem to the IDB-backed `useMediaStore` with the correct `operation` (`upscale` / `background-remove` / `edit`) and the new item's image is a data URL (no raw blob leak) | `src/components/image/image-tools.test.tsx` |
+| `VERIFY-021` | Chat-store dirty-map persistence — every conversation mutation (active or not) is captured in the module-level dirty map, `metadata.messageCount` matches `messages.length` after every change, `updatedAt` is bumped on every change, and `flushAllPendingSaves()` writes every dirty id on debounce + `pagehide` + `beforeunload`. Sidebar Undo persists the restored conversation via `restoreConversation()`. | `src/stores/chat-store.dirty.test.ts` |
+| `VERIFY-022` | Canonical tab registry — `gallery` legacy alias resolves to the `media` descriptor, `CANONICAL_TAB_ORDER` does not contain legacy ids, unknown ids fall back to `chat`, and `isTabId` recognises both canonical and legacy ids. | `src/config/tabs.test.ts` |
+| `VERIFY-023` | `window.__veniceMediaDev` is NOT attached when `import.meta.env.DEV` is `false` and `MODE === 'production'` (regression guard for the dev-only window hook in `gallery-view.tsx`). | `src/components/gallery/gallery-view.test.tsx` |
 
 ---
 

@@ -17,11 +17,12 @@ import { StatusView } from './components/StatusView'
 import { SettingsView } from './components/SettingsView'
 import { SearchScrapeView } from './components/SearchScrapeView'
 import { CharactersView } from './components/CharactersView'
-import { GalleryView } from './components/gallery/gallery-view'
+import { MediaStudioView } from './components/gallery/gallery-view'
 import { ErrorBoundary } from './components/ui/error-boundary'
 import { Toaster } from './components/ui/toaster'
 import { FIRST_RUN_ACK_KEY } from './shared/legal'
-import { applyTheme, BUILTIN_VENICE, BUILTIN_DARK, BUILTIN_LIGHT, BUILTIN_COPPER, BUILTIN_DRACULA, BUILTIN_GRUVBOX_DARK, BUILTIN_ROSEPINE } from './theme'
+import { applyTheme, resolveInitialTheme } from './theme'
+import { CANONICAL_TAB_ORDER, normaliseTab, type TabId } from './config/tabs'
 
 const LazyWorkflowsView = lazy(() => import('./components/workflows/workflows-view').then((m) => ({ default: m.WorkflowsView })))
 function WorkflowsView() {
@@ -38,10 +39,15 @@ function RpStudioViewLazy() {
   return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading RP studio…</div>}><LazyRpStudioView /></Suspense>
 }
 
-const views = {
+const views: Record<TabId, React.ComponentType> = {
   chat: ChatView,
   image: ImagePage,
-  gallery: GalleryView,
+  media: MediaStudioView,
+  // Legacy aliases — render the same view as their canonical target so a
+  // stale `activeTab='gallery'` still shows the Media Studio instead of an
+  // empty page. The store normalises aliases on set, so this is only a
+  // belt-and-braces fallback for hydration races.
+  gallery: MediaStudioView,
   audio: AudioView,
   music: MusicView,
   video: VideoView,
@@ -53,9 +59,19 @@ const views = {
   search: SearchScrapeView,
   characters: CharactersView,
   'rp-studio': RpStudioViewLazy,
-} as const
+  // Unused legacy ids — fall back to Config.
+  models: SettingsView,
+  batch: SettingsView,
+  diagnostics: StatusView,
+} as const;
 
-export const TAB_ORDER: Tab[] = ['chat', 'image', 'gallery', 'audio', 'music', 'video', 'embeddings', 'search', 'characters', 'rp-studio', 'workflows', 'playground', 'settings', 'status']
+/**
+ * Canonical tab order. Used by the keyboard shortcut `⌘1`..`⌘N` and by
+ * tests that need the "official" surface area. The sidebar and App both
+ * render the same order; the source of truth is `CANONICAL_TAB_ORDER` in
+ * `src/config/tabs.ts`.
+ */
+export const TAB_ORDER: readonly TabId[] = CANONICAL_TAB_ORDER;
 
 export function App() {
   const needsUnlock = useAuthStore((s) => s.hasEncrypted && !s.apiKey)
@@ -67,30 +83,17 @@ export function App() {
   )
   const activeTab = useSettingsStore((s) => s.activeTab)
   const setActiveTab = useSettingsStore((s) => s.setActiveTab)
-  
-  // Theme state lifecycle synchronization
+
+  // Theme state lifecycle synchronization. Uses the registry-based
+  // `resolveInitialTheme` so a future theme can be added without
+  // touching this file.
   const selectedThemeId = useSettingsStore((s) => s.selectedThemeId)
   const customTheme = useSettingsStore((s) => s.customTheme)
   const appearanceMode = useSettingsStore((s) => s.appearanceMode)
 
   useEffect(() => {
-    let theme = BUILTIN_VENICE;
-    if (selectedThemeId === 'custom' && customTheme) {
-      theme = customTheme;
-    } else if (selectedThemeId === 'builtin-light') {
-      theme = BUILTIN_LIGHT;
-    } else if (selectedThemeId === 'builtin-copper') {
-      theme = BUILTIN_COPPER;
-    } else if (selectedThemeId === 'builtin-dracula') {
-      theme = BUILTIN_DRACULA;
-    } else if (selectedThemeId === 'builtin-dark') {
-      theme = BUILTIN_DARK;
-    } else if (selectedThemeId === 'builtin-gruvbox-dark') {
-      theme = BUILTIN_GRUVBOX_DARK;
-    } else if (selectedThemeId === 'builtin-rosepine') {
-      theme = BUILTIN_ROSEPINE;
-    }
-    applyTheme(theme);
+    const theme = resolveInitialTheme({ selectedThemeId, appearanceMode, customTheme })
+    applyTheme(theme)
 
     try {
       localStorage.setItem('vf.theme.bootstrap', JSON.stringify({
@@ -103,7 +106,8 @@ export function App() {
     }
   }, [selectedThemeId, customTheme, appearanceMode]);
 
-  const ActiveView = views[activeTab]
+  const normalisedActiveTab = normaliseTab(activeTab)
+  const ActiveView = views[normalisedActiveTab] ?? views.chat
 
 
   const acknowledgeFirstRun = () => {
@@ -127,7 +131,7 @@ export function App() {
       const num = parseInt(e.key, 10)
       if (num >= 1 && num <= TAB_ORDER.length) {
         e.preventDefault()
-        setActiveTab(TAB_ORDER[num - 1])
+        setActiveTab(TAB_ORDER[num - 1] as Tab)
         setMobileSidebarOpen(false)
         return
       }
@@ -155,7 +159,7 @@ export function App() {
         />
         <div className="flex flex-1 min-h-0 overflow-hidden">
           <main className="flex-1 min-h-0 overflow-hidden">
-            <ErrorBoundary key={activeTab}>
+            <ErrorBoundary key={normalisedActiveTab}>
               <ActiveView />
             </ErrorBoundary>
           </main>

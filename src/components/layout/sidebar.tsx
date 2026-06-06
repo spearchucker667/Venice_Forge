@@ -7,6 +7,7 @@ import { VeniceLogo, VeniceWordmark } from '../ui/logo'
 import type { Conversation } from '../../types/conversation'
 import { desktopConfig, isElectron } from '../../services/desktopBridge'
 import { reloadConfig } from '../../stores/config-store'
+import { TAB_REGISTRY, TAB_GROUP_LABELS, type TabGroup, type TabId } from '../../config/tabs'
 
 function ChatIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>)
@@ -56,40 +57,41 @@ interface NavGroup {
   items: Array<{ id: Tab; label: string; Icon: () => React.JSX.Element }>
 }
 
-const navGroups: NavGroup[] = [
-  {
-    label: 'Conversation',
-    items: [{ id: 'chat', label: 'Chat', Icon: ChatIcon }],
-  },
-  {
-    label: 'Generate',
-    items: [
-      { id: 'image', label: 'Image', Icon: ImageIcon },
-      { id: 'gallery', label: 'Media Studio', Icon: GalleryIcon },
-      { id: 'audio', label: 'Audio', Icon: AudioIcon },
-      { id: 'music', label: 'Music', Icon: MusicIcon },
-      { id: 'video', label: 'Video', Icon: VideoIcon },
-      { id: 'embeddings', label: 'Embed', Icon: EmbedIcon },
-      { id: 'search', label: 'Research', Icon: SearchIcon },
-      { id: 'characters', label: 'Characters', Icon: CharactersIcon },
-    ],
-  },
-  {
-    label: 'Build',
-    items: [
-      { id: 'rp-studio', label: 'RP Studio', Icon: RpStudioIcon },
-      { id: 'workflows', label: 'Workflows', Icon: WorkflowIcon },
-      { id: 'playground', label: 'Playground', Icon: PlaygroundIcon },
-    ],
-  },
-  {
-    label: 'System',
-    items: [
-      { id: 'settings', label: 'Config', Icon: SettingsIcon },
-      { id: 'status', label: 'Status', Icon: StatusIcon },
-    ],
-  },
-]
+/**
+ * Sidebar icon registry. Centralising this here keeps `App.tsx` and tests
+ * out of the JSX-icon business and makes it trivial to swap an icon for a
+ * future tab — just add an entry keyed by tab id.
+ */
+const TAB_ICONS: Record<TabId, () => React.JSX.Element> = {
+  chat: ChatIcon,
+  image: ImageIcon,
+  media: GalleryIcon,
+  gallery: GalleryIcon,
+  audio: AudioIcon,
+  music: MusicIcon,
+  video: VideoIcon,
+  embeddings: EmbedIcon,
+  search: SearchIcon,
+  characters: CharactersIcon,
+  'rp-studio': RpStudioIcon,
+  workflows: WorkflowIcon,
+  playground: PlaygroundIcon,
+  settings: SettingsIcon,
+  status: StatusIcon,
+  // Unused legacy ids — fall back to a generic icon if ever rendered.
+  models: EmbedIcon,
+  batch: WorkflowIcon,
+  diagnostics: StatusIcon,
+}
+
+const GROUP_ORDER: readonly TabGroup[] = ['conversation', 'generate', 'build', 'system']
+
+const navGroups: NavGroup[] = GROUP_ORDER.map((group) => ({
+  label: TAB_GROUP_LABELS[group],
+  items: TAB_REGISTRY
+    .filter((t) => t.group === group)
+    .map((t) => ({ id: t.id, label: t.label, Icon: TAB_ICONS[t.id] ?? ChatIcon })),
+}))
 
 interface Props {
   mobileOpen?: boolean
@@ -138,20 +140,50 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
       }
       await reloadConfig()
     }
-    toast.success(enabled ? 'Family Safe Mode enabled' : 'Adult Mode enabled')
+    // Note: the local family filter and Venice API's `safe_mode` parameter
+    // are independent. Toggling this switch does NOT change Venice API
+    // Safe Mode; see Settings → Safety for that control.
+    toast.success(
+      enabled
+        ? 'Family Safe Mode enabled — local family filter runs on every prompt'
+        : 'Adult Mode enabled — local family filter is skipped',
+    )
   }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return conversations
-    return conversations.filter((c) => c.title.toLowerCase().includes(q))
+    return conversations.filter((c) => {
+      if (c.title.toLowerCase().includes(q)) return true
+      // Also search message content (and reasoning) so users can find
+      // a conversation by something the assistant said, not just the
+      // first user message that became the title.
+      return c.messages.some(
+        (m) =>
+          (typeof m.content === 'string' && m.content.toLowerCase().includes(q)) ||
+          (typeof m.reasoning_content === 'string' && m.reasoning_content.toLowerCase().includes(q)),
+      )
+    })
   }, [conversations, search])
 
-  const handleDelete = (conv: Conversation) => {
-    deleteConversation(conv.id)
+  const handleDelete = async (conv: Conversation) => {
+    await deleteConversation(conv.id)
     toast.error('Conversation deleted', conv.title || 'Untitled', {
       label: 'Undo',
-      onClick: () => useChatStore.setState((s) => ({ conversations: [conv, ...s.conversations] })),
+      onClick: async () => {
+        // Persist the undo: re-insert the conversation at the top of the
+        // list AND write it back through the same IPC save path so the
+        // main-process file on disk matches the renderer state. A
+        // previous version only mutated the in-memory Zustand state,
+        // which would be lost on the next reload because the canonical
+        // source of truth is the JSON file under `chat-history/`.
+        try {
+          await useChatStore.getState().restoreConversation(conv)
+          toast.success('Conversation restored')
+        } catch (err) {
+          toast.error('Failed to restore', err instanceof Error ? err.message : String(err))
+        }
+      },
     })
   }
 
