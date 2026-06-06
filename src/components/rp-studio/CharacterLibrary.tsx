@@ -5,7 +5,7 @@
  * one in the editor, create a new one, or delete an existing one.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCharacterCardStore, useFilteredCharacterCards } from "../../stores/character-card-store";
 import { useSettingsStore } from "../../stores/settings-store";
 import { GhostButton, PillGroup, PrimaryButton, ErrorText, EmptyState } from "../ui/shared";
@@ -153,6 +153,25 @@ function CardTile({
   confirming: boolean;
   setConfirming: (id: string | null) => void;
 }) {
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current !== null) clearTimeout(confirmTimerRef.current);
+    };
+  }, []);
+  const armConfirm = () => {
+    if (confirmTimerRef.current !== null) clearTimeout(confirmTimerRef.current);
+    setConfirming(card.id);
+    confirmTimerRef.current = setTimeout(() => {
+      setConfirming(null);
+      confirmTimerRef.current = null;
+    }, 2500);
+  };
+  const cancelConfirm = () => {
+    if (confirmTimerRef.current !== null) clearTimeout(confirmTimerRef.current);
+    confirmTimerRef.current = null;
+    setConfirming(null);
+  };
   const avatarSrc = avatarDataUri(card.avatar);
   return (
     <div
@@ -200,7 +219,7 @@ function CardTile({
             type="button"
             onClick={() => {
               onDelete();
-              setConfirming(null);
+              cancelConfirm();
             }}
             className="text-[12px] py-1.5 px-2 rounded-md text-rose-300 hover:text-rose-200 border border-rose-500/30 hover:bg-rose-500/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-400 focus-visible:outline-offset-2"
           >
@@ -209,10 +228,7 @@ function CardTile({
         ) : (
           <button
             type="button"
-            onClick={() => {
-              setConfirming(card.id);
-              setTimeout(() => setConfirming(null), 2500);
-            }}
+            onClick={armConfirm}
             aria-label={`Delete ${card.name}`}
             className="text-[12px] py-1.5 px-2 rounded-md text-white/40 hover:text-rose-300 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
           >

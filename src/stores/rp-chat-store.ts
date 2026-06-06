@@ -64,6 +64,31 @@ function newMessageId(): string {
   return `m_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/** Per-chat mutex. Each append chains a Promise onto the previous in-flight
+ *  append for the same chatId so the read-modify-write cycle is serialized.
+ *  Without this, a streaming character reply and a narrator line arriving
+ *  concurrently would each read the same chat snapshot, and the second
+ *  write would clobber the first message in the persisted store. */
+const chatLocks = new Map<string, Promise<unknown>>();
+
+/** Acquires the lock for `chatId`, runs `work`, releases the lock, and
+ *  returns the work's result. Subsequent calls for the same chatId wait
+ *  for the in-flight append to complete before starting. */
+async function withChatLock<T>(chatId: string, work: () => Promise<T>): Promise<T> {
+  const prev = chatLocks.get(chatId) ?? Promise.resolve();
+  let release: () => void = () => undefined;
+  const next = new Promise<void>((resolve) => { release = resolve; });
+  chatLocks.set(chatId, prev.then(() => next));
+  try {
+    await prev;
+    return await work();
+  } finally {
+    release();
+    // Clean up the lock entry if no further work is queued behind us.
+    if (chatLocks.get(chatId) === next) chatLocks.delete(chatId);
+  }
+}
+
 export const useRpChatStore = create<RpChatState>((set, get) => ({
   chats: [],
   isLoading: false,
@@ -159,52 +184,58 @@ export const useRpChatStore = create<RpChatState>((set, get) => ({
   },
 
   appendUserMessage: async (chatId, content) => {
-    const chat = get().chats.find((c) => c.id === chatId);
-    if (!chat) return null;
-    const msg: RpMessageV1 = { id: newMessageId(), role: "user", content, createdAt: Date.now() };
-    try {
-      const saved = await svcAppend(chat, msg);
-      set((s) => ({ chats: s.chats.map((c) => (c.id === chatId ? saved : c)) }));
-      return msg;
-    } catch (e) {
-      toast.error("Could not save message", e instanceof Error ? e.message : String(e));
-      return null;
-    }
+    return withChatLock(chatId, async () => {
+      const chat = get().chats.find((c) => c.id === chatId);
+      if (!chat) return null;
+      const msg: RpMessageV1 = { id: newMessageId(), role: "user", content, createdAt: Date.now() };
+      try {
+        const saved = await svcAppend(chat, msg);
+        set((s) => ({ chats: s.chats.map((c) => (c.id === chatId ? saved : c)) }));
+        return msg;
+      } catch (e) {
+        toast.error("Could not save message", e instanceof Error ? e.message : String(e));
+        return null;
+      }
+    });
   },
 
   appendCharacterMessage: async (chatId, characterId, content, reasoning) => {
-    const chat = get().chats.find((c) => c.id === chatId);
-    if (!chat) return null;
-    const msg: RpMessageV1 = {
-      id: newMessageId(),
-      role: "character",
-      characterId,
-      content,
-      ...(reasoning ? { reasoning } : {}),
-      createdAt: Date.now(),
-    };
-    try {
-      const saved = await svcAppend(chat, msg);
-      set((s) => ({ chats: s.chats.map((c) => (c.id === chatId ? saved : c)) }));
-      return msg;
-    } catch (e) {
-      toast.error("Could not save message", e instanceof Error ? e.message : String(e));
-      return null;
-    }
+    return withChatLock(chatId, async () => {
+      const chat = get().chats.find((c) => c.id === chatId);
+      if (!chat) return null;
+      const msg: RpMessageV1 = {
+        id: newMessageId(),
+        role: "character",
+        characterId,
+        content,
+        ...(reasoning ? { reasoning } : {}),
+        createdAt: Date.now(),
+      };
+      try {
+        const saved = await svcAppend(chat, msg);
+        set((s) => ({ chats: s.chats.map((c) => (c.id === chatId ? saved : c)) }));
+        return msg;
+      } catch (e) {
+        toast.error("Could not save message", e instanceof Error ? e.message : String(e));
+        return null;
+      }
+    });
   },
 
   appendNarratorMessage: async (chatId, content) => {
-    const chat = get().chats.find((c) => c.id === chatId);
-    if (!chat) return null;
-    const msg: RpMessageV1 = { id: newMessageId(), role: "narrator", content, createdAt: Date.now() };
-    try {
-      const saved = await svcAppend(chat, msg);
-      set((s) => ({ chats: s.chats.map((c) => (c.id === chatId ? saved : c)) }));
-      return msg;
-    } catch (e) {
-      toast.error("Could not save message", e instanceof Error ? e.message : String(e));
-      return null;
-    }
+    return withChatLock(chatId, async () => {
+      const chat = get().chats.find((c) => c.id === chatId);
+      if (!chat) return null;
+      const msg: RpMessageV1 = { id: newMessageId(), role: "narrator", content, createdAt: Date.now() };
+      try {
+        const saved = await svcAppend(chat, msg);
+        set((s) => ({ chats: s.chats.map((c) => (c.id === chatId ? saved : c)) }));
+        return msg;
+      } catch (e) {
+        toast.error("Could not save message", e instanceof Error ? e.message : String(e));
+        return null;
+      }
+    });
   },
 
   getById: (id) => get().chats.find((c) => c.id === id),

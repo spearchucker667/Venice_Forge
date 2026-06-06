@@ -2,7 +2,7 @@
  * @fileoverview RP chat list — pick or create a new RP chat session.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRpChatStore } from "../../stores/rp-chat-store";
 import { useCharacterCardStore } from "../../stores/character-card-store";
 import { usePersonaStore } from "../../stores/persona-store";
@@ -39,7 +39,28 @@ export function RpChatList({ onOpen }: Props) {
   const defaultModel = useSettingsStore((s) => s.selectedModels["rp-studio"]) || FALLBACK_MODELS.text[0]?.id || "venice-uncensored";
   const [creating, setCreating] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [adultFilter, setAdultFilter] = useState<"all" | "standard">("all");
+
+  useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current !== null) clearTimeout(confirmTimerRef.current);
+    };
+  }, []);
+
+  const armConfirm = (id: string) => {
+    if (confirmTimerRef.current !== null) clearTimeout(confirmTimerRef.current);
+    setConfirmingDelete(id);
+    confirmTimerRef.current = setTimeout(() => {
+      setConfirmingDelete(null);
+      confirmTimerRef.current = null;
+    }, 2500);
+  };
+  const cancelConfirm = () => {
+    if (confirmTimerRef.current !== null) clearTimeout(confirmTimerRef.current);
+    confirmTimerRef.current = null;
+    setConfirmingDelete(null);
+  };
 
   useEffect(() => {
     if (!hasLoaded) void loadChats();
@@ -141,7 +162,7 @@ export function RpChatList({ onOpen }: Props) {
                     {confirmingDelete === chat.id ? (
                       <button
                         type="button"
-                        onClick={() => { void remove(chat.id); setConfirmingDelete(null); }}
+                        onClick={() => { void remove(chat.id); cancelConfirm(); }}
                         className="text-[12px] py-1.5 px-2 rounded-md text-rose-300 border border-rose-500/30 hover:bg-rose-500/10"
                       >
                         Delete?
@@ -149,7 +170,7 @@ export function RpChatList({ onOpen }: Props) {
                     ) : (
                       <button
                         type="button"
-                        onClick={() => { setConfirmingDelete(chat.id); setTimeout(() => setConfirmingDelete(null), 2500); }}
+                        onClick={() => armConfirm(chat.id)}
                         aria-label={`Delete ${chat.title}`}
                         className="text-white/40 hover:text-rose-300 p-1.5"
                       >

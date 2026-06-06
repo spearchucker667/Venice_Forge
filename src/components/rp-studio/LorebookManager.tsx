@@ -5,7 +5,7 @@
  * injected into the RP prompt by the lorebookService.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLorebookStore } from "../../stores/lorebook-store";
 import { GhostButton, Label, PrimaryButton, TextArea, ErrorText, EmptyState, PillGroup } from "../ui/shared";
 import { Spinner } from "../ui/spinner";
@@ -36,11 +36,32 @@ export function LorebookManager() {
   const createBlank = useLorebookStore((s) => s.createBlank);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const remove = useLorebookStore((s) => s.remove);
 
   useEffect(() => {
     if (!hasLoaded) void load();
   }, [hasLoaded, load]);
+
+  useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current !== null) clearTimeout(confirmTimerRef.current);
+    };
+  }, []);
+
+  const armConfirm = (id: string) => {
+    if (confirmTimerRef.current !== null) clearTimeout(confirmTimerRef.current);
+    setConfirmingDelete(id);
+    confirmTimerRef.current = setTimeout(() => {
+      setConfirmingDelete(null);
+      confirmTimerRef.current = null;
+    }, 2500);
+  };
+  const cancelConfirm = () => {
+    if (confirmTimerRef.current !== null) clearTimeout(confirmTimerRef.current);
+    confirmTimerRef.current = null;
+    setConfirmingDelete(null);
+  };
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -107,7 +128,7 @@ export function LorebookManager() {
                   {confirmingDelete === l.id ? (
                     <button
                       type="button"
-                      onClick={() => { void remove(l.id); setConfirmingDelete(null); }}
+                      onClick={() => { void remove(l.id); cancelConfirm(); }}
                       className="text-[12px] py-1.5 px-2 rounded-md text-rose-300 border border-rose-500/30 hover:bg-rose-500/10"
                     >
                       Delete?
@@ -115,7 +136,7 @@ export function LorebookManager() {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => { setConfirmingDelete(l.id); setTimeout(() => setConfirmingDelete(null), 2500); }}
+                      onClick={() => armConfirm(l.id)}
                       aria-label={`Delete ${l.name}`}
                       className="text-white/40 hover:text-rose-300 p-1.5"
                     >

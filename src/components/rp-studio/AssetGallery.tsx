@@ -2,7 +2,7 @@
  * @fileoverview Asset Gallery — grid of all routed RP scene assets.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSceneAssetStore } from "../../stores/scene-asset-store";
 import { useRpChatStore } from "../../stores/rp-chat-store";
 import { GhostButton, ErrorText, EmptyState, PillGroup } from "../ui/shared";
@@ -18,12 +18,41 @@ export function AssetGallery() {
   const remove = useSceneAssetStore((s) => s.remove);
   const chats = useRpChatStore((s) => s.chats);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [chatFilter, setChatFilter] = useState<string>("");
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
 
   useEffect(() => {
     if (!hasLoaded) void load();
   }, [hasLoaded, load]);
+
+  // Clear the delete-confirmation timer on unmount to avoid setState after
+  // unmount if the user navigates away within 2.5 s of clicking Delete.
+  useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current !== null) {
+        clearTimeout(confirmTimerRef.current);
+        confirmTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const armConfirmDelete = (id: string) => {
+    if (confirmTimerRef.current !== null) clearTimeout(confirmTimerRef.current);
+    setConfirmingDelete(id);
+    confirmTimerRef.current = setTimeout(() => {
+      setConfirmingDelete(null);
+      confirmTimerRef.current = null;
+    }, 2500);
+  };
+
+  const cancelConfirmDelete = () => {
+    if (confirmTimerRef.current !== null) {
+      clearTimeout(confirmTimerRef.current);
+      confirmTimerRef.current = null;
+    }
+    setConfirmingDelete(null);
+  };
 
   const filtered = useMemo(() => {
     if (!chatFilter) return assets;
@@ -80,14 +109,19 @@ export function AssetGallery() {
                       <div className="flex gap-1.5">
                         <button
                           type="button"
-                          onClick={() => { void remove(a.id); setConfirmingDelete(null); setSelectedId(null); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void remove(a.id);
+                            cancelConfirmDelete();
+                            setSelectedId(null);
+                          }}
                           className="flex-1 text-[11px] py-1 rounded border border-rose-500/30 text-rose-300 hover:bg-rose-500/10"
                         >
                           Delete?
                         </button>
                         <button
                           type="button"
-                          onClick={() => setConfirmingDelete(null)}
+                          onClick={(e) => { e.stopPropagation(); cancelConfirmDelete(); }}
                           className="text-[11px] py-1 px-2 rounded text-white/40 hover:text-white/70"
                         >
                           No
@@ -96,7 +130,7 @@ export function AssetGallery() {
                     ) : (
                       <button
                         type="button"
-                        onClick={() => { setConfirmingDelete(a.id); setTimeout(() => setConfirmingDelete(null), 2500); }}
+                        onClick={(e) => { e.stopPropagation(); armConfirmDelete(a.id); }}
                         aria-label="Delete asset"
                         className="w-full text-[11px] py-1 rounded text-white/35 hover:text-rose-300 transition-colors"
                       >

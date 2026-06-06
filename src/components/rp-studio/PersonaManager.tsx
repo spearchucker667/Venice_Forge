@@ -2,7 +2,7 @@
  * @fileoverview Persona Manager — list, create, edit, and delete user personas.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePersonaStore } from "../../stores/persona-store";
 import { GhostButton, Label, PrimaryButton, TextArea, ErrorText, EmptyState } from "../ui/shared";
 import { Spinner } from "../ui/spinner";
@@ -25,10 +25,32 @@ export function PersonaManager() {
   const remove = usePersonaStore((s) => s.remove);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!hasLoaded) void load();
   }, [hasLoaded, load]);
+
+  // Clear the delete-confirmation timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current !== null) clearTimeout(confirmTimerRef.current);
+    };
+  }, []);
+
+  const armConfirm = (id: string) => {
+    if (confirmTimerRef.current !== null) clearTimeout(confirmTimerRef.current);
+    setConfirmingDelete(id);
+    confirmTimerRef.current = setTimeout(() => {
+      setConfirmingDelete(null);
+      confirmTimerRef.current = null;
+    }, 2500);
+  };
+  const cancelConfirm = () => {
+    if (confirmTimerRef.current !== null) clearTimeout(confirmTimerRef.current);
+    confirmTimerRef.current = null;
+    setConfirmingDelete(null);
+  };
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -116,7 +138,7 @@ export function PersonaManager() {
                   {confirmingDelete === p.id ? (
                     <button
                       type="button"
-                      onClick={() => { void remove(p.id); setConfirmingDelete(null); }}
+                      onClick={() => { void remove(p.id); cancelConfirm(); }}
                       className="text-[12px] py-1.5 px-2 rounded-md text-rose-300 border border-rose-500/30 hover:bg-rose-500/10"
                     >
                       Delete?
@@ -124,7 +146,7 @@ export function PersonaManager() {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => { setConfirmingDelete(p.id); setTimeout(() => setConfirmingDelete(null), 2500); }}
+                      onClick={() => armConfirm(p.id)}
                       aria-label={`Delete ${p.name}`}
                       className="text-white/40 hover:text-rose-300 p-1.5"
                     >
