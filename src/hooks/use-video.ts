@@ -11,6 +11,8 @@ export function useVideo() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [elapsedMs, setElapsedMs] = useState(0)
+  const [queueId, setQueueId] = useState<string | null>(null)
+  const [lastRequest, setLastRequest] = useState<VideoQueueRequest | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval>>(undefined)
   const tickRef = useRef<ReturnType<typeof setInterval>>(undefined)
   const requestIdRef = useRef<string | null>(null)
@@ -72,9 +74,12 @@ export function useVideo() {
         method: 'POST',
         body: JSON.stringify(req),
       }),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       cancelledRef.current = false
-      requestIdRef.current = data.queue_id || data.id || ''
+      const id = data.queue_id || data.id || ''
+      requestIdRef.current = id
+      setQueueId(id)
+      setLastRequest(variables)
       setStatus('queued')
       setVideoUrl(null)
       setError(null)
@@ -91,6 +96,8 @@ export function useVideo() {
     stopPolling()
     setStatus('idle')
     setError(null)
+    setQueueId(null)
+    setLastRequest(null)
     requestIdRef.current = null
     startedAtRef.current = null
     setElapsedMs(0)
@@ -110,5 +117,7 @@ export function useVideo() {
     elapsedMs,
     cancel,
     reset,
+    queueId,
+    lastRequest,
   }
 }

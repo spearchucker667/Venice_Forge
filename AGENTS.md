@@ -121,6 +121,7 @@ test's comment header.
 | `VERIFY-017` | Renderer hydration gate (`assertConfigHydratedForSafety` / `getEffectiveRendererLocalFamilySafeModeEnabled` / `getEffectiveRendererVeniceApiSafeMode` / `useRendererConfigHydrated`) — Electron-mode renderer-side safety preflight throws `ConfigNotHydratedError` until the main-process config snapshot hydrates; provider `safe_mode` has its own hydration-gated helper so Adult Mode and provider `safe_mode` stay independent | `tests/safety/hydrationGate.test.ts` |
 | `VERIFY-018` | Provider `safe_mode` endpoint matrix (`applyVeniceApiSafeMode` / `endpointSupportsSafeMode`) — adds `safe_mode` only for endpoints in the supported set, never mutates input | `tests/safety/veniceSafeMode.test.ts` |
 | `VERIFY-019` | Electron Jina/scrape response-body screening — `screenResponseBody` runs after fetch, returns 451 on block, skips in Adult Mode, never returns raw blocked body | `electron/ipc/handlers.test.ts` |
+| `VERIFY-020` | Media Studio persistence — image-tools saves a migrated MediaItem to the IDB-backed `useMediaStore` with the correct `operation` (`upscale` / `background-remove` / `edit`) and the new item's image is a data URL (no raw blob leak) | `src/components/image/image-tools.test.tsx` |
 
 ---
 

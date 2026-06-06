@@ -37,6 +37,13 @@ import { validateApiKeyInput, validateVeniceIpcRequest } from "./validation";
 import { redactErrorMessage } from "../../src/services/redaction";
 import { registerUpdateHandlers } from "./updates";
 import { registerRpIpcHandlers } from "./rpHandlers";
+import {
+  exportMedia,
+  generateMediaThumb,
+  importMediaFromPath,
+  readMediaMeta,
+  revealMediaInFolder,
+} from "../services/mediaService";
 import { VENICE_MAX_BODY_BYTES } from "../../src/shared/limits";
 import { SafetyGuardBlockedError, screenResponseBody } from "../../src/shared/safety";
 import { performGuardedVeniceRequest, checkLocalFamilyGuard } from "../services/guardPipeline";
@@ -673,6 +680,120 @@ export function registerIpcHandlers(): void {
       } finally {
         await fh?.close().catch(() => undefined);
       }
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  // Media Studio: export a base64-encoded image to disk. The destination
+  // directory is hard-locked to <Pictures>/Venice Forge/<subfolder>/, with
+  // both the subfolder slug and filename sanitized and traversal-checked.
+  ipcMain.handle("app:media:export", async (_event, input: unknown) => {
+    try {
+      if (!input || typeof input !== "object") {
+        return { ok: false, error: "Export payload must be an object." };
+      }
+      const record = input as Record<string, unknown>;
+      const result = await exportMedia({
+        base64Data: typeof record.base64Data === "string" ? record.base64Data : "",
+        filename: typeof record.filename === "string" ? record.filename : "",
+        subfolder: typeof record.subfolder === "string" ? record.subfolder : undefined,
+        dryRun: record.dryRun === true,
+      });
+      if (!result.ok) return { ok: false, error: redactErrorMessage(result.error) };
+      return { ok: true, filePath: result.filePath, canceled: result.canceled };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  // Media Studio: read a file from an allowlisted directory (Downloads,
+  // Documents, Desktop, or Pictures/Venice Forge) and return it as a
+  // data URL plus metadata. The renderer uses this to import a previously
+  // generated image that was not saved to IDB.
+  ipcMain.handle("app:media:import", async (_event, input: unknown) => {
+    try {
+      if (!input || typeof input !== "object") {
+        return { ok: false, error: "Import payload must be an object." };
+      }
+      const record = input as Record<string, unknown>;
+      const result = await importMediaFromPath({
+        filePath: typeof record.filePath === "string" ? record.filePath : "",
+      });
+      if (!result.ok) return { ok: false, error: redactErrorMessage(result.error) };
+      return {
+        ok: true,
+        canceled: result.canceled ?? false,
+        dataUrl: result.dataUrl,
+        filePath: result.filePath,
+        filename: result.filename,
+        bytes: result.bytes,
+        contentType: result.contentType,
+      };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  // Media Studio: reveal a file in the OS file manager. The path must be
+  // inside one of the reveal-safe base directories (Pictures/Venice Forge,
+  // Desktop, Downloads, Documents, or the userData thumb cache).
+  ipcMain.handle("app:media:reveal", async (_event, input: unknown) => {
+    try {
+      if (!input || typeof input !== "object") {
+        return { ok: false, error: "Reveal payload must be an object." };
+      }
+      const record = input as Record<string, unknown>;
+      const result = await revealMediaInFolder({
+        filePath: typeof record.filePath === "string" ? record.filePath : "",
+      });
+      if (!result.ok) return { ok: false, error: redactErrorMessage(result.error) };
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  // Media Studio: filesystem metadata for a reveal-safe path. The renderer
+  // uses this to display the on-disk file size / modification time and to
+  // confirm the file is still present after an export.
+  ipcMain.handle("app:media:meta", async (_event, input: unknown) => {
+    try {
+      if (!input || typeof input !== "object") {
+        return { ok: false, error: "Meta payload must be an object." };
+      }
+      const record = input as Record<string, unknown>;
+      const result = await readMediaMeta({
+        filePath: typeof record.filePath === "string" ? record.filePath : "",
+      });
+      if (!result.ok) return { ok: false, error: redactErrorMessage(result.error) };
+      return {
+        ok: true,
+        filePath: result.filePath,
+        bytes: result.bytes,
+        mtime: result.mtime,
+        isFile: result.isFile,
+      };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  // Media Studio: generate (or return cached) thumbnail for a sha256-keyed
+  // image. Returns a file:// URL the renderer can drop into an <img> src.
+  ipcMain.handle("app:media:thumb", async (_event, input: unknown) => {
+    try {
+      if (!input || typeof input !== "object") {
+        return { ok: false, error: "Thumb payload must be an object." };
+      }
+      const record = input as Record<string, unknown>;
+      const result = await generateMediaThumb({
+        sha256: typeof record.sha256 === "string" ? record.sha256 : "",
+        source: typeof record.source === "string" ? record.source : "",
+        maxDimension: typeof record.maxDimension === "number" ? record.maxDimension : undefined,
+      });
+      if (!result.ok) return { ok: false, error: redactErrorMessage(result.error) };
+      return { ok: true, filePath: result.filePath, url: result.url };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }

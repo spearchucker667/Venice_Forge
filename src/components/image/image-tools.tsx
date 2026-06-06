@@ -4,8 +4,11 @@ import { useImageEdit, useImageUpscale, useBackgroundRemove } from '../../hooks/
 import { useBlobUrl } from '../../hooks/use-blob-url'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, ErrorText, EmptyState } from '../ui/shared'
-import { cn } from '../../lib/utils'
+import { cn, generateId } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
+import { useMediaStore } from '../../stores/media-store'
+import { blobToDataUrl } from '../../utils/image'
+import type { MediaOperation } from '../../types/media'
 
 type Tool = 'edit' | 'upscale' | 'remove-bg'
 
@@ -43,6 +46,11 @@ export function ImageTools() {
   const editMutation = useImageEdit()
   const upscaleMutation = useImageUpscale()
   const bgRemoveMutation = useBackgroundRemove()
+  const resultBlobRef = useRef<Blob | null>(null)
+  const lastToolRef = useRef<Tool>('edit')
+  const lastScaleRef = useRef<number>(2)
+  const lastEditModelRef = useRef<string>('qwen-edit')
+  const lastPromptRef = useRef<string>('')
 
   const handleFileSelect = (file: File) => {
     const reader = new FileReader()
@@ -57,8 +65,16 @@ export function ImageTools() {
   const handleProcess = () => {
     if (!imageData) return
     resetResult()
+    resultBlobRef.current = null
+    lastToolRef.current = tool
+    lastScaleRef.current = scale
+    lastEditModelRef.current = editModel
+    lastPromptRef.current = tool === 'edit' ? editPrompt.trim() : (enhance && enhancePrompt.trim() ? enhancePrompt.trim() : '')
     const opts = {
-      onSuccess: (blob: Blob) => setResultBlob(blob),
+      onSuccess: (blob: Blob) => {
+        resultBlobRef.current = blob
+        setResultBlob(blob)
+      },
       onError: (err: unknown) => toast.fromError(err, 'Image tool failed'),
     }
     if (tool === 'edit') {
@@ -70,6 +86,38 @@ export function ImageTools() {
       )
     } else {
       bgRemoveMutation.mutate(imageData, opts)
+    }
+  }
+
+  const handleSaveToMedia = async () => {
+    const blob = resultBlobRef.current
+    if (!blob) {
+      toast.error('No result to save yet')
+      return
+    }
+    try {
+      const dataUrl = await blobToDataUrl(blob)
+      const op: MediaOperation = lastToolRef.current === 'upscale' ? 'upscale' : lastToolRef.current === 'remove-bg' ? 'background-remove' : 'edit'
+      const modelId = lastToolRef.current === 'edit' ? lastEditModelRef.current : 'venice-image-tools'
+      const mediaItem = {
+        id: generateId(),
+        image: dataUrl,
+        prompt: lastPromptRef.current || `${lastToolRef.current} result`,
+        model: modelId,
+        timestamp: Date.now(),
+        mediaType: 'image' as const,
+        operation: op,
+        parentId: null,
+        childrenIds: [] as string[],
+        tags: [] as string[],
+        note: '',
+        favorite: false,
+        upscaleFactor: lastToolRef.current === 'upscale' ? lastScaleRef.current : undefined,
+      };
+      void useMediaStore.getState().upsert(mediaItem)
+      toast.success('Saved to Media Studio')
+    } catch (err) {
+      toast.error('Save failed', err instanceof Error ? err.message : String(err))
     }
   }
 
@@ -188,10 +236,16 @@ export function ImageTools() {
           <div className="animate-fade-in flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <Label>Result</Label>
-              <button onClick={downloadResult} className="text-[14px] text-white/20 hover:text-white/40 transition-colors flex items-center gap-1.5">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
-                Download
-              </button>
+              <div className="flex items-center gap-3">
+                <button onClick={() => void handleSaveToMedia()} className="text-[14px] text-[var(--color-accent)] hover:opacity-85 transition-opacity flex items-center gap-1.5" title="Save to Media Studio">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
+                  Save to Media Studio
+                </button>
+                <button onClick={downloadResult} className="text-[14px] text-white/20 hover:text-white/40 transition-colors flex items-center gap-1.5">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+                  Download
+                </button>
+              </div>
             </div>
             <img src={resultUrl} alt="Result" className={cn('w-full rounded-lg border border-white/[0.04]', tool === 'remove-bg' && 'bg-[repeating-conic-gradient(#1a1a1a_0%_25%,#111_0%_50%)_0_0/20px_20px]')} />
           </div>

@@ -1,0 +1,132 @@
+import '@testing-library/jest-dom/vitest'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('../../services/storageService', () => ({
+  default: {
+    putMedia: vi.fn(),
+    patchMedia: vi.fn(),
+    bulkPatchMedia: vi.fn(),
+    deleteMedia: vi.fn(),
+    deleteMediaMany: vi.fn(),
+    getItems: vi.fn(),
+  },
+}))
+
+let mutateMock = vi.fn()
+vi.mock('../../hooks/use-image-tools', () => ({
+  useImageEdit: () => ({
+    mutate: (...args: unknown[]) => mutateMock(...args),
+    isPending: false,
+    error: null,
+  }),
+  useImageUpscale: () => ({ mutate: mutateMock, isPending: false, error: null }),
+  useBackgroundRemove: () => ({ mutate: mutateMock, isPending: false, error: null }),
+}))
+
+vi.mock('../../stores/auth-store', () => ({
+  useAuthStore: (selector: (s: { apiKey: string }) => string) => selector({ apiKey: 'test-key' }),
+}))
+
+// jsdom does not provide a working FileReader. Patch it so onload fires
+// immediately with a synthetic data URL when readAsDataURL is called.
+class FakeFileReader {
+  public result: string | ArrayBuffer | null = null
+  public onload: ((ev: ProgressEvent) => void) | null = null
+  public onerror: ((ev: ProgressEvent) => void) | null = null
+  readAsDataURL(blob: Blob) {
+    void blob
+    this.result = 'data:image/png;base64,FAKE'
+    queueMicrotask(() => this.onload?.(new ProgressEvent('load')))
+  }
+  readAsText() {
+    queueMicrotask(() => this.onload?.(new ProgressEvent('load')))
+  }
+}
+// @ts-expect-error — test stub
+globalThis.FileReader = FakeFileReader
+
+import StorageService from '../../services/storageService'
+import { useMediaStore } from '../../stores/media-store'
+import { ImageTools } from './image-tools'
+
+describe('ImageTools → Media Studio wiring (P3 regression guard)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mutateMock = vi.fn()
+    useMediaStore.setState({ items: [], loading: false, loaded: false, lastError: null })
+    vi.mocked(StorageService.putMedia).mockImplementation(async (item) => ({
+      ...(item as object),
+      id: (item as { id: string }).id,
+      timestamp: 1,
+    }))
+  })
+
+  // VERIFY-020 regression guard: edit/upscale/background-remove result MUST be
+  // persisted into the media store as a MediaItem with the correct `operation`
+  // and `mediaType: 'image'`. If a future refactor drops the
+  // `useMediaStore.getState().upsert(mediaItem)` call, gallery will silently
+  // stop surfacing tool results.
+  it('persists an edit result to the media store with operation=edit and mediaType=image', async () => {
+    render(<ImageTools />)
+
+    // Upload a fake source image through the hidden file input.
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+    expect(fileInput).toBeTruthy()
+    const fakeFile = new File(['a'], 'source.png', { type: 'image/png' })
+    Object.defineProperty(fileInput, 'files', { value: [fakeFile], configurable: true })
+    await act(async () => {
+      fireEvent.change(fileInput)
+    })
+
+    // Wait for the async FileReader to resolve and the source image to render.
+    await waitFor(() => {
+      expect(screen.getByText('source.png')).toBeInTheDocument()
+    })
+
+    // Enter an edit prompt.
+    const promptArea = screen.getByPlaceholderText(/Change the background/)
+    fireEvent.change(promptArea, { target: { value: 'Add a sunset' } })
+
+    // Capture the onSuccess callback that the component passes to mutate().
+    let capturedOnSuccess: ((blob: Blob) => void) | null = null
+    mutateMock.mockImplementationOnce((_req: unknown, opts?: { onSuccess?: (b: Blob) => void }) => {
+      capturedOnSuccess = opts?.onSuccess ?? null
+    })
+
+    // Click "Edit Image" to invoke mutate with our request.
+    const editBtn = screen.getByRole('button', { name: /Edit Image/ })
+    expect((editBtn as HTMLButtonElement).disabled).toBe(false)
+    await act(async () => {
+      fireEvent.click(editBtn)
+    })
+
+    expect(mutateMock).toHaveBeenCalled()
+    expect(capturedOnSuccess).toBeTruthy()
+
+    // Fire onSuccess with a fake result blob.
+    await act(async () => {
+      capturedOnSuccess?.(new Blob(['a'], { type: 'image/png' }))
+    })
+
+    // Save button is now visible.
+    const saveBtn = await screen.findByText('Save to Media Studio')
+    await act(async () => {
+      fireEvent.click(saveBtn)
+    })
+
+    await waitFor(() => {
+      const items = useMediaStore.getState().items
+      expect(items).toHaveLength(1)
+      const saved = items[0]
+      expect(saved.mediaType).toBe('image')
+      expect(saved.operation).toBe('edit')
+      expect(typeof saved.image).toBe('string')
+      expect(saved.image.startsWith('data:image/')).toBe(true)
+      expect(saved.tags).toEqual([])
+      expect(saved.favorite).toBe(false)
+      expect(saved.childrenIds).toEqual([])
+      expect(saved.parentId).toBeNull()
+    })
+  })
+})

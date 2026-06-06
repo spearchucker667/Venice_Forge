@@ -217,6 +217,82 @@ const StorageService = {
       tx.onerror = () => reject(tx.error);
     });
   },
+
+  /**
+   * Media Studio helpers. All values are persisted in the `images` store and
+   * round-trip through the standard encrypt/decrypt path. The migrator in
+   * `mediaMigration.ts` is applied on read to enrich legacy records.
+   */
+
+  /**
+   * Upsert a single media record. Returns the persisted record.
+   */
+  async putMedia<T extends object>(item: T): Promise<T & { id: string; timestamp: number }> {
+    return (await this.saveItem("images", item as Record<string, unknown>)) as T & {
+      id: string;
+      timestamp: number;
+    };
+  },
+
+  /**
+   * Patch a single media record. The patch is shallow-merged into the
+   * existing record. Throws if the record does not exist.
+   */
+  async patchMedia<T extends object>(id: string, patch: Record<string, unknown>): Promise<T> {
+    if (typeof id !== "string" || !id) throw new Error("patchMedia: id is required");
+    const existing = (await this.getItem("images", id)) as T | null;
+    if (!existing) throw new Error(`patchMedia: record not found: ${id}`);
+    const next = { ...(existing as object), ...patch, id, timestamp: (existing as { timestamp?: number }).timestamp ?? Date.now() };
+    await this.saveItem("images", next);
+    return next as T;
+  },
+
+  /**
+   * Apply the same patch to multiple records. Records that do not exist are
+   * silently skipped. Returns the number of records updated.
+   */
+  async bulkPatchMedia(ids: readonly string[], patch: Record<string, unknown>): Promise<number> {
+    if (!Array.isArray(ids) || ids.length === 0) return 0;
+    let updated = 0;
+    for (const id of ids) {
+      if (typeof id !== "string" || !id) continue;
+      try {
+        const existing = (await this.getItem("images", id)) as Record<string, unknown> | null;
+        if (!existing) continue;
+        await this.saveItem("images", { ...existing, ...patch, id, timestamp: existing.timestamp });
+        updated += 1;
+      } catch (err) {
+        warn(`[storageService] bulkPatchMedia: failed to patch ${id}: ${(err as Error).message}`);
+      }
+    }
+    return updated;
+  },
+
+  /**
+   * Delete a single media record.
+   */
+  async deleteMedia(id: string): Promise<boolean> {
+    return this.deleteItem("images", id);
+  },
+
+  /**
+   * Delete multiple media records. Returns the number of records actually
+   * removed (best-effort; a delete that errors is counted as not removed).
+   */
+  async deleteMediaMany(ids: readonly string[]): Promise<number> {
+    if (!Array.isArray(ids) || ids.length === 0) return 0;
+    let removed = 0;
+    for (const id of ids) {
+      if (typeof id !== "string" || !id) continue;
+      try {
+        const ok = await this.deleteItem("images", id);
+        if (ok) removed += 1;
+      } catch (err) {
+        warn(`[storageService] deleteMediaMany: failed to delete ${id}: ${(err as Error).message}`);
+      }
+    }
+    return removed;
+  },
 };
 
 export default StorageService;

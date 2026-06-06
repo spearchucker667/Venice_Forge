@@ -5,7 +5,9 @@ import { useVideo } from '../../hooks/use-video'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, PillGroup, ErrorText } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
-import { cn } from '../../lib/utils'
+import { cn, generateId } from '../../lib/utils'
+import { toast } from '../../stores/toast-store'
+import { useMediaStore } from '../../stores/media-store'
 import type { VideoQueueRequest, VideoConstraints } from '../../types/venice'
 
 export function VideoView() {
@@ -24,7 +26,7 @@ export function VideoView() {
   const [audioEnabled, setAudioEnabled] = useState(true)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const { queue, isQueueing, status, videoUrl, error, reset, cancel, elapsedMs } = useVideo()
+  const { queue, isQueueing, status, videoUrl, error, reset, cancel, elapsedMs, queueId, lastRequest } = useVideo()
   const isProcessing = status === 'queued' || status === 'processing'
 
   // Resolve current group and constraints
@@ -78,6 +80,39 @@ export function VideoView() {
   useEffect(() => {
     if (!aspect && aspectOpts[0]) setAspect(aspectOpts[0].value)
   }, [aspect, aspectOpts])
+
+  // Persist a Media Studio record the first time a job completes for a given
+  // queue id. We do not save the (very large) video bytes into the encrypted
+  // IDB record — instead we keep the upstream `downloadUrl` and let the user
+  // re-download on demand. This keeps the gallery store light and avoids
+  // duplicating the asset across IDB and the cache.
+  const lastSavedQueueIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (status !== 'completed' || !videoUrl || !queueId) return
+    if (lastSavedQueueIdRef.current === queueId) return
+    lastSavedQueueIdRef.current = queueId
+    const mediaItem = {
+      id: generateId(),
+      image: videoUrl,
+      prompt: lastRequest?.prompt ?? prompt.trim(),
+      model: lastRequest?.model ?? 'venice-video',
+      timestamp: Date.now(),
+      mediaType: 'video' as const,
+      operation: 'video-generate' as const,
+      parentId: null,
+      childrenIds: [] as string[],
+      tags: [] as string[],
+      note: '',
+      favorite: false,
+      queueId,
+      duration: lastRequest?.duration,
+      resolution: lastRequest?.resolution,
+      aspectRatio: lastRequest?.aspect_ratio,
+      audio: lastRequest?.audio,
+      downloadUrl: videoUrl,
+    }
+    void useMediaStore.getState().upsert(mediaItem)
+  }, [status, videoUrl, queueId, lastRequest, prompt])
 
   const groupOptions = useMemo(() =>
     groups.map((g) => ({
@@ -299,10 +334,43 @@ export function VideoView() {
           <div className="animate-fade-in flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <Label>Output</Label>
-              <a href={videoUrl} download="venice-video.mp4" target="_blank" rel="noopener noreferrer" className="text-[14px] text-white/20 hover:text-white/40 transition-colors flex items-center gap-1.5">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
-                Download
-              </a>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    const item = {
+                      id: generateId(),
+                      image: videoUrl,
+                      prompt: lastRequest?.prompt ?? prompt.trim(),
+                      model: lastRequest?.model ?? 'venice-video',
+                      timestamp: Date.now(),
+                      mediaType: 'video' as const,
+                      operation: 'video-generate' as const,
+                      parentId: null,
+                      childrenIds: [] as string[],
+                      tags: [] as string[],
+                      note: '',
+                      favorite: false,
+                      queueId: queueId ?? undefined,
+                      duration: lastRequest?.duration,
+                      resolution: lastRequest?.resolution,
+                      aspectRatio: lastRequest?.aspect_ratio,
+                      audio: lastRequest?.audio,
+                      downloadUrl: videoUrl,
+                    }
+                    void useMediaStore.getState().upsert(item)
+                    toast.success('Saved to Media Studio')
+                  }}
+                  className="text-[14px] text-[var(--color-accent)] hover:opacity-85 transition-opacity flex items-center gap-1.5"
+                  title="Save to Media Studio"
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
+                  Save to Media Studio
+                </button>
+                <a href={videoUrl} download="venice-video.mp4" target="_blank" rel="noopener noreferrer" className="text-[14px] text-white/20 hover:text-white/40 transition-colors flex items-center gap-1.5">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+                  Download
+                </a>
+              </div>
             </div>
             <video controls src={videoUrl} className="w-full rounded-lg bg-black border border-white/[0.04]" />
             <button onClick={reset} className="self-start text-[14px] text-white/15 hover:text-white/35 transition-colors">Generate another</button>

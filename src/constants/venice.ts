@@ -45,7 +45,7 @@ export const TABS = [
   ["batch", "Batch"],
   ["search", "Research"],
   ["models", "Catalog"],
-  ["gallery", "Library"],
+  ["gallery", "Media Studio"],
   ["settings", "Config"],
   ["diagnostics", "Status"]
 ];
@@ -154,6 +154,63 @@ export function modelSupportsVideo(model: { id?: string; name?: string; type?: s
     JSON.stringify(model.features || {}),
   ].join(" ").toLowerCase();
   return VIDEO_CAPABLE_PATTERNS.some((pattern) => pattern.test(haystack));
+}
+
+/** Regex patterns that identify Venice image-upscale-capable models. */
+export const UPSCALE_CAPABLE_PATTERNS = [
+  /upscale/i,
+  /topaz[-_]?image/i,
+  /clarity[-_]?upscale/i,
+  /creative[-_]?upscale/i,
+  /esrgan/i,
+  /real[-_]?esrgan/i,
+  /\brealesrgan\b/i,
+];
+
+/** Returns true if the model id or traits suggest `/image/upscale` support. */
+export function modelSupportsUpscale(model: { id?: string; name?: string; type?: string; model_type?: string; modelType?: string; traits?: unknown; capabilities?: unknown; features?: unknown }): boolean {
+  const haystack = [
+    model.id,
+    model.name,
+    model.type,
+    model.model_type,
+    model.modelType,
+    JSON.stringify(model.traits || {}),
+    JSON.stringify(model.capabilities || {}),
+    JSON.stringify(model.features || {}),
+  ].join(" ").toLowerCase();
+  if (UPSCALE_CAPABLE_PATTERNS.some((p) => p.test(haystack))) return true;
+  return false;
+}
+
+/** Regex patterns that identify Venice image-edit (inpaint/background-remove) capable models. */
+export const EDIT_CAPABLE_PATTERNS = [
+  /inpaint/i,
+  /background[-_]?remove/i,
+  /edit/i,
+  /\bsdxl\b/i,
+  /\bflux\b/i,
+  /fluently/i,
+  /lustify/i,
+  /pony/i,
+  /banana/i,
+];
+
+/** Returns true if the model id or traits suggest `/image/edit` or `/image/background-remove` support. */
+export function modelSupportsEdit(model: { id?: string; name?: string; type?: string; model_type?: string; modelType?: string; traits?: unknown; capabilities?: unknown; features?: unknown }): boolean {
+  const haystack = [
+    model.id,
+    model.name,
+    model.type,
+    model.model_type,
+    model.modelType,
+    JSON.stringify(model.traits || {}),
+    JSON.stringify(model.capabilities || {}),
+    JSON.stringify(model.features || {}),
+  ].join(" ").toLowerCase();
+  if (EDIT_CAPABLE_PATTERNS.some((p) => p.test(haystack))) return true;
+  if (/\.image\.|^image[_-]/.test(haystack)) return true;
+  return false;
 }
 
 /** Maximum size of a single file attachment (text extraction). */

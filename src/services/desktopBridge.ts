@@ -339,6 +339,76 @@ export const desktopFileReader = {
   },
 };
 
+/** Media Studio bridge. In Electron, delegates to the typed IPC channels
+ *  defined on the preload bridge; in web mode, falls back to a browser
+ *  download anchor (export) or to a "desktop-only" error (reveal / meta /
+ *  thumb — those are explicit desktop affordances). */
+export const desktopMedia = {
+  /**
+   * Exports a base64-encoded image to disk. In Electron, this writes under
+   * `<Pictures>/Venice Forge/Media Studio/<subfolder>/<filename.png>`
+   * via the main process. In web mode, this falls back to a browser
+   * download with the given default filename.
+   */
+  async exportMedia(input: { base64Data: string; filename: string; subfolder?: string }): Promise<{ ok: boolean; filePath?: string; error?: string }> {
+    if (!isElectron()) {
+      try {
+        const blob = await (async () => {
+          const raw = input.base64Data.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, "");
+          const bytes = Uint8Array.from(atob(raw), (c) => c.charCodeAt(0));
+          return new Blob([bytes], { type: "image/png" });
+        })();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = input.filename || "venice-forge-export.png";
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    }
+    return window.veniceForge!.files.exportMedia(input);
+  },
+
+  /** Reads a file from an allowlisted directory and returns it as a data URL.
+   *  Desktop-only. The renderer must already have a path (from the
+   *  `import:` UI flow); the main process validates the path against the
+   *  safe directory list before reading. */
+  async importMedia(input: { filePath: string }): Promise<{
+    ok: boolean; canceled?: boolean; dataUrl?: string; filePath?: string;
+    filename?: string; bytes?: number; contentType?: string; error?: string;
+  }> {
+    if (!isElectron()) return { ok: false, error: "Import from disk is only available in desktop mode." };
+    return window.veniceForge!.files.importMedia(input);
+  },
+
+  /** Reveals a file in the OS file manager. Desktop-only. The path is
+   *  validated against the reveal-safe base directories in the main
+   *  process before the OS shell is invoked. */
+  async revealMedia(input: { filePath: string }): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Reveal in folder is only available in desktop mode." };
+    return window.veniceForge!.files.revealMedia(input);
+  },
+
+  /** Returns filesystem metadata for a reveal-safe path. Desktop-only. */
+  async readMediaMeta(input: { filePath: string }): Promise<{
+    ok: boolean; filePath?: string; bytes?: number; mtime?: number; isFile?: boolean; error?: string;
+  }> {
+    if (!isElectron()) return { ok: false, error: "Filesystem metadata reads are only available in desktop mode." };
+    return window.veniceForge!.files.readMediaMeta(input);
+  },
+
+  /** Generates (or returns cached) sha256-keyed thumbnail. Desktop-only. */
+  async generateMediaThumb(input: { sha256: string; source: string; maxDimension?: number }): Promise<{
+    ok: boolean; filePath?: string; url?: string; error?: string;
+  }> {
+    if (!isElectron()) return { ok: false, error: "Server-side thumbnails are only available in desktop mode." };
+    return window.veniceForge!.files.generateMediaThumb(input);
+  },
+};
+
 /** Handles chat history persistence via the main-process filesystem store. */
 export const desktopChat = {
   async list(): Promise<{ ok: boolean; conversations: Conversation[]; truncated: boolean; totalScanned: number; error?: string }> {

@@ -9,6 +9,8 @@ import { Label, TextArea, PrimaryButton, PillGroup, ErrorText, ExamplePrompts } 
 import { GenerationView } from '../ui/generation-view'
 import type { ImageConstraints } from '../../types/venice'
 import StorageService from '../../services/storageService'
+import { useMediaStore } from '../../stores/media-store'
+import { generateId } from '../../lib/utils'
 import { getPromptStartersForCategory } from '../../services/promptStarterService'
 import { isElectron } from '../../services/desktopBridge'
 import { PROMPT_TEMPLATES } from '../../constants/promptTemplates'
@@ -168,14 +170,17 @@ export function ImageView() {
         onSuccess: (data) => {
           const rawImages = data.images.map((img) => typeof img === 'string' ? img : img.b64_json)
           const processedImages: string[] = []
+          const batchId = variants > 1 ? generateId() : null;
+          const now = Date.now();
 
-          for (const img of rawImages) {
+          rawImages.forEach((img, index) => {
             const { base64: processedImg, report } = processBase64Image(img);
             const routedFolder = routeAsset(req.prompt as string);
             processedImages.push(processedImg);
 
-            StorageService.saveItem("images", {
-              id: crypto.randomUUID(),
+            const id = generateId();
+            const mediaItem = {
+              id,
               image: processedImg,
               prompt: req.prompt as string,
               negative: req.negative_prompt as string | undefined,
@@ -184,14 +189,32 @@ export function ImageView() {
               height: req.height as number | undefined,
               aspectRatio: req.aspect_ratio as string | undefined,
               style: req.style_preset as string | undefined,
-              timestamp: Date.now(),
+              steps: req.steps as number | undefined,
+              cfg: req.cfg_scale as number | undefined,
+              safeMode: req.safe_mode as boolean | undefined,
+              disableWatermark: req.hide_watermark as boolean | undefined,
+              batchId,
+              batchIndex: batchId ? index : null,
+              batchCount: batchId ? rawImages.length : null,
+              timestamp: now,
+              upscaled: false,
+              mediaType: 'image' as const,
+              operation: 'generate' as const,
+              parentId: null,
+              childrenIds: [] as string[],
+              tags: [] as string[],
+              note: '',
+              favorite: false,
               metadataRemoved: report.metadataRemoved,
               originalBytes: report.originalBytes,
               processedBytes: report.processedBytes,
               mimeType: report.mimeType,
-              assetCategory: routedFolder
-            }).catch(console.error);
-          }
+              assetCategory: routedFolder,
+            };
+
+            StorageService.saveItem("images", mediaItem).catch(console.error);
+            void useMediaStore.getState().upsert(mediaItem);
+          });
 
           setImages((prev) => [...processedImages, ...prev])
         },

@@ -16,7 +16,7 @@ const modelTypeMap: Record<string, string> = {
 const tabLabels: Record<string, string> = {
   chat: 'Chat',
   image: 'Image',
-  gallery: 'Library',
+  gallery: 'Media Studio',
   audio: 'Audio',
   music: 'Music',
   video: 'Video',
@@ -28,7 +28,7 @@ const tabLabels: Record<string, string> = {
 const tabSubtitles: Record<string, string> = {
   chat: 'Conversational AI',
   image: 'Generate images from text',
-  gallery: 'Browse generated images',
+  gallery: 'Browse, tag, edit, and export your generated media',
   audio: 'Text-to-speech and transcription',
   music: 'Generate music and sound',
   video: 'Generate video clips',

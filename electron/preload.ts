@@ -186,6 +186,33 @@ const veniceForge = {
     saveRoutedImage(base64Data: string, filename: string, subfolder: string): Promise<{ ok: boolean; filePath?: string; error?: string }> {
       return ipcRenderer.invoke("app:saveRoutedImage", base64Data, filename, subfolder);
     },
+    /** Media Studio: export a base64 image to Pictures/Venice Forge/Media Studio. */
+    exportMedia(input: { base64Data: string; filename: string; subfolder?: string; dryRun?: boolean }): Promise<{ ok: boolean; filePath?: string; canceled?: boolean; error?: string }> {
+      return ipcRenderer.invoke("app:media:export", input);
+    },
+    /** Media Studio: read a file from an allowlisted directory and return it as a data URL. */
+    importMedia(input: { filePath: string }): Promise<{
+      ok: boolean; canceled?: boolean; dataUrl?: string; filePath?: string;
+      filename?: string; bytes?: number; contentType?: string; error?: string;
+    }> {
+      return ipcRenderer.invoke("app:media:import", input);
+    },
+    /** Media Studio: reveal a file in the OS file manager (path is allowlist-validated). */
+    revealMedia(input: { filePath: string }): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("app:media:reveal", input);
+    },
+    /** Media Studio: read filesystem metadata for a reveal-safe path. */
+    readMediaMeta(input: { filePath: string }): Promise<{
+      ok: boolean; filePath?: string; bytes?: number; mtime?: number; isFile?: boolean; error?: string;
+    }> {
+      return ipcRenderer.invoke("app:media:meta", input);
+    },
+    /** Media Studio: generate (or return cached) sha256-keyed thumbnail. */
+    generateMediaThumb(input: { sha256: string; source: string; maxDimension?: number }): Promise<{
+      ok: boolean; filePath?: string; url?: string; error?: string;
+    }> {
+      return ipcRenderer.invoke("app:media:thumb", input);
+    },
   },
 
   chat: {

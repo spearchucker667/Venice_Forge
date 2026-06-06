@@ -91,6 +91,18 @@ export interface VeniceForgeFiles {
   loadYamlFile(): Promise<{ ok: boolean; canceled: boolean; data?: string; error?: string }>;
   readLocalFile(filePath: string): Promise<{ ok: boolean; content?: string; error?: string }>;
   saveRoutedImage(base64Data: string, filename: string, subfolder: string): Promise<{ ok: boolean; filePath?: string; error?: string }>;
+  exportMedia(input: { base64Data: string; filename: string; subfolder?: string; dryRun?: boolean }): Promise<{ ok: boolean; filePath?: string; canceled?: boolean; error?: string }>;
+  importMedia(input: { filePath: string }): Promise<{
+    ok: boolean; canceled?: boolean; dataUrl?: string; filePath?: string;
+    filename?: string; bytes?: number; contentType?: string; error?: string;
+  }>;
+  revealMedia(input: { filePath: string }): Promise<{ ok: boolean; error?: string }>;
+  readMediaMeta(input: { filePath: string }): Promise<{
+    ok: boolean; filePath?: string; bytes?: number; mtime?: number; isFile?: boolean; error?: string;
+  }>;
+  generateMediaThumb(input: { sha256: string; source: string; maxDimension?: number }): Promise<{
+    ok: boolean; filePath?: string; url?: string; error?: string;
+  }>;
 }
 
 /** Exposes Auto-Update helpers available through the preload bridge. */

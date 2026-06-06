@@ -1,0 +1,322 @@
+// @vitest-environment node
+
+/** @fileoverview Unit tests for the Electron main-process Media Studio disk service. */
+
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import fs from "node:fs/promises";
+import fsSync from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import crypto from "node:crypto";
+import zlibSync from "node:zlib";
+
+const TMP_PICTURES_RAW = path.join(os.tmpdir(), "venice-forge-media-pictures");
+const TMP_USERDATA_RAW = path.join(os.tmpdir(), "venice-forge-media-userdata");
+const TMP_DOWNLOADS_RAW = path.join(os.tmpdir(), "venice-forge-media-downloads");
+const TMP_DESKTOP_RAW = path.join(os.tmpdir(), "venice-forge-media-desktop");
+const TMP_DOCS_RAW = path.join(os.tmpdir(), "venice-forge-media-docs");
+
+for (const d of [TMP_PICTURES_RAW, TMP_USERDATA_RAW, TMP_DOWNLOADS_RAW, TMP_DESKTOP_RAW, TMP_DOCS_RAW]) {
+  fsSync.mkdirSync(d, { recursive: true });
+}
+
+const TMP_PICTURES = fsSync.realpathSync(TMP_PICTURES_RAW);
+const TMP_USERDATA = fsSync.realpathSync(TMP_USERDATA_RAW);
+const TMP_DOWNLOADS = fsSync.realpathSync(TMP_DOWNLOADS_RAW);
+const TMP_DESKTOP = fsSync.realpathSync(TMP_DESKTOP_RAW);
+const TMP_DOCS = fsSync.realpathSync(TMP_DOCS_RAW);
+
+vi.mock("electron", () => ({
+  app: {
+    getPath: vi.fn((name: string) => {
+      switch (name) {
+        case "pictures": return TMP_PICTURES;
+        case "userData": return TMP_USERDATA;
+        case "downloads": return TMP_DOWNLOADS;
+        case "desktop": return TMP_DESKTOP;
+        case "documents": return TMP_DOCS;
+        default: return os.tmpdir();
+      }
+    }),
+  },
+  shell: {
+    showItemInFolder: vi.fn(async () => undefined),
+  },
+}));
+
+import {
+  exportMedia,
+  importMediaFromPath,
+  readMediaMeta,
+  generateMediaThumb,
+  sha256Of,
+  __test,
+} from "./mediaService";
+
+async function clean() {
+  for (const d of [TMP_PICTURES, TMP_USERDATA, TMP_DOWNLOADS, TMP_DESKTOP, TMP_DOCS]) {
+    try { await fs.rm(d, { recursive: true, force: true }); } catch { /* ignore */ }
+  }
+  await fs.mkdir(TMP_PICTURES, { recursive: true });
+  await fs.mkdir(TMP_USERDATA, { recursive: true });
+  await fs.mkdir(TMP_DOWNLOADS, { recursive: true });
+  await fs.mkdir(TMP_DESKTOP, { recursive: true });
+  await fs.mkdir(TMP_DOCS, { recursive: true });
+}
+
+// A 4x4 fully-opaque red PNG, generated locally with zlib. This is used
+// as a round-trip-able fixture for the thumb decoder.
+function tinyPngBuffer() {
+  const sig = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(4, 0); // width
+  ihdr.writeUInt32BE(4, 4); // height
+  ihdr[8] = 8;               // bit depth
+  ihdr[9] = 6;               // color type RGBA
+  ihdr[10] = 0;              // compression
+  ihdr[11] = 0;              // filter
+  ihdr[12] = 0;              // interlace
+  const stride = 4 * 4;      // width * channels
+  const raw = Buffer.alloc((stride + 1) * 4);
+  for (let y = 0; y < 4; y++) {
+    raw[y * (stride + 1)] = 0; // filter: None
+    for (let x = 0; x < stride; x += 4) {
+      raw[y * (stride + 1) + 1 + x + 0] = 0xff; // R
+      raw[y * (stride + 1) + 1 + x + 1] = 0x00; // G
+      raw[y * (stride + 1) + 1 + x + 2] = 0x00; // B
+      raw[y * (stride + 1) + 1 + x + 3] = 0xff; // A
+    }
+  }
+  const deflated = zlibSync.deflateSync(raw);
+  const idat = wrapChunk("IDAT", deflated);
+  const iend = wrapChunk("IEND", Buffer.alloc(0));
+  return Buffer.concat([sig, wrapChunk("IHDR", ihdr), idat, iend]);
+}
+
+function wrapChunk(type: string, data: Buffer): Buffer {
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length, 0);
+  const typeBuf = Buffer.from(type, "ascii");
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(Buffer.concat([typeBuf, data])), 0);
+  return Buffer.concat([length, typeBuf, data, crc]);
+}
+
+const CRC_TABLE: number[] = (() => {
+  const t: number[] = new Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(buf: Buffer): number {
+  let c = 0xffffffff;
+  for (let i = 0; i < buf.length; i++) c = (CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8)) >>> 0;
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+describe("mediaService.sanitizeFilename", () => {
+  it("replaces path separators and dots-prefix", () => {
+    expect(__test.sanitizeFilename("../etc/passwd")).toBe("_etc_passwd");
+    expect(__test.sanitizeFilename("..")).toBe("");
+    expect(__test.sanitizeFilename(".hidden")).toBe("hidden");
+    expect(__test.sanitizeFilename("file with space.png")).toBe("file_with_space.png");
+  });
+
+  it("caps length to 200", () => {
+    const long = "a".repeat(500) + ".png";
+    const out = __test.sanitizeFilename(long);
+    expect(out.length).toBeLessThanOrEqual(200);
+  });
+
+  it("strips leading dots", () => {
+    expect(__test.sanitizeFilename("...secret.png")).toBe("secret.png");
+  });
+});
+
+describe("mediaService.sanitizeSubfolder", () => {
+  it("strips non-alphanumerics and dots", () => {
+    expect(__test.sanitizeSubfolder("hello world")).toBe("helloworld");
+    expect(__test.sanitizeSubfolder("../etc")).toBe("etc");
+    expect(__test.sanitizeSubfolder("..")).toBe("");
+  });
+
+  it("caps length to 60", () => {
+    const out = __test.sanitizeSubfolder("a".repeat(200));
+    expect(out.length).toBeLessThanOrEqual(60);
+  });
+});
+
+describe("mediaService.isWithin", () => {
+  it("returns true for an exact child", () => {
+    const parent = path.resolve("/tmp/parent");
+    expect(__test.isWithin(parent, path.join(parent, "child.png"))).toBe(true);
+  });
+
+  it("returns false for a sibling or escape", () => {
+    const parent = path.resolve("/tmp/parent");
+    expect(__test.isWithin(parent, path.resolve("/tmp/other/x.png"))).toBe(false);
+    expect(__test.isWithin(parent, path.resolve("/tmp/parent2/x.png"))).toBe(false);
+  });
+});
+
+describe("exportMedia", () => {
+  beforeEach(async () => { await clean(); });
+  afterEach(async () => { await clean(); });
+
+  it("writes a sanitized file under Pictures/Venice Forge/Media Studio", async () => {
+    const result = await exportMedia({
+      base64Data: tinyPngBuffer().toString("base64"),
+      filename: "My Image.png",
+    });
+    expect(result.ok).toBe(true);
+    expect(result.filePath).toBeDefined();
+    const written = await fs.readFile(result.filePath!);
+    expect(written.equals(tinyPngBuffer())).toBe(true);
+    // The file lives in the Media Studio subfolder.
+    expect(result.filePath).toMatch(/Venice Forge[\\/]Media Studio[\\/]My_Image\.png$/);
+  });
+
+  it("returns the resolved path without writing when dryRun is true", async () => {
+    const result = await exportMedia({
+      base64Data: tinyPngBuffer().toString("base64"),
+      filename: "preview.png",
+      dryRun: true,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.filePath).toMatch(/Media Studio[\\/]preview\.png$/);
+    // File should NOT exist on disk
+    await expect(fs.access(result.filePath!)).rejects.toThrow();
+  });
+
+  it("rejects filenames with no usable characters", async () => {
+    const result = await exportMedia({ base64Data: tinyPngBuffer().toString("base64"), filename: "." });
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/no usable characters/);
+  });
+
+  it("rejects missing or non-string base64Data", async () => {
+    const r1 = await exportMedia({ filename: "x.png" } as unknown as { base64Data: string; filename: string });
+    expect(r1.ok).toBe(false);
+    const r2 = await exportMedia({ base64Data: 123 as unknown as string, filename: "x.png" });
+    expect(r2.ok).toBe(false);
+  });
+
+  it("strips data URL prefix before decoding", async () => {
+    const result = await exportMedia({
+      base64Data: `data:image/png;base64,${tinyPngBuffer().toString("base64")}`,
+      filename: "stripped.png",
+    });
+    expect(result.ok).toBe(true);
+    const written = await fs.readFile(result.filePath!);
+    expect(written.equals(tinyPngBuffer())).toBe(true);
+  });
+});
+
+describe("importMediaFromPath", () => {
+  beforeEach(async () => { await clean(); });
+  afterEach(async () => { await clean(); });
+
+  it("reads a file from Downloads and returns a data URL", async () => {
+    const target = path.join(TMP_DOWNLOADS, "import.png");
+    await fs.writeFile(target, tinyPngBuffer());
+    const result = await importMediaFromPath({ filePath: target });
+    expect(result.ok).toBe(true);
+    expect(result.dataUrl).toMatch(/^data:image\/png;base64,/);
+    expect(result.bytes).toBe(tinyPngBuffer().length);
+    expect(result.contentType).toBe("image/png");
+    expect(result.filename).toBe("import.png");
+  });
+
+  it("rejects paths outside the allowlist (e.g. /etc/passwd)", async () => {
+    const result = await importMediaFromPath({ filePath: "/etc/passwd" });
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/Downloads|Documents|Desktop|Pictures/);
+  });
+
+  it("rejects null bytes and overlong paths", async () => {
+    const r1 = await importMediaFromPath({ filePath: "ok\0bad" });
+    expect(r1.ok).toBe(false);
+    const r2 = await importMediaFromPath({ filePath: "a".repeat(5000) });
+    expect(r2.ok).toBe(false);
+  });
+
+  it("rejects empty / missing path", async () => {
+    expect((await importMediaFromPath({ filePath: "" })).ok).toBe(false);
+    expect((await importMediaFromPath({ filePath: undefined as unknown as string })).ok).toBe(false);
+  });
+});
+
+describe("readMediaMeta", () => {
+  beforeEach(async () => { await clean(); });
+  afterEach(async () => { await clean(); });
+
+  it("returns bytes and mtime for a file inside the allowlist", async () => {
+    const target = path.join(TMP_DOWNLOADS, "m.png");
+    await fs.writeFile(target, tinyPngBuffer());
+    const result = await readMediaMeta({ filePath: target });
+    expect(result.ok).toBe(true);
+    expect(result.bytes).toBe(tinyPngBuffer().length);
+    expect(result.isFile).toBe(true);
+    expect(typeof result.mtime).toBe("number");
+  });
+
+  it("refuses to read files outside the allowlist", async () => {
+    const result = await readMediaMeta({ filePath: "/etc/hosts" });
+    expect(result.ok).toBe(false);
+  });
+});
+
+describe("generateMediaThumb", () => {
+  beforeEach(async () => { await clean(); });
+  afterEach(async () => { await clean(); });
+
+  it("returns a cache miss on first call and a cache hit on the second", async () => {
+    const sha = sha256Of(tinyPngBuffer());
+    const r1 = await generateMediaThumb({ sha256: sha, source: tinyPngBuffer().toString("base64") });
+    expect(r1.ok).toBe(true);
+    expect(r1.filePath).toBeDefined();
+    expect(r1.url).toMatch(/^file:\/\//);
+    const onDisk = await fs.stat(r1.filePath!);
+    expect(onDisk.size).toBeGreaterThan(0);
+
+    const r2 = await generateMediaThumb({ sha256: sha, source: tinyPngBuffer().toString("base64") });
+    expect(r2.ok).toBe(true);
+    expect(r2.filePath).toBe(r1.filePath);
+  });
+
+  it("rejects an invalid sha256", async () => {
+    const r1 = await generateMediaThumb({ sha256: "nope", source: tinyPngBuffer().toString("base64") });
+    expect(r1.ok).toBe(false);
+    const r2 = await generateMediaThumb({ sha256: "a".repeat(63), source: tinyPngBuffer().toString("base64") });
+    expect(r2.ok).toBe(false);
+  });
+
+  it("rejects empty source", async () => {
+    const sha = crypto.randomBytes(32).toString("hex");
+    const r = await generateMediaThumb({ sha256: sha, source: "" });
+    expect(r.ok).toBe(false);
+  });
+
+  it("returns error for an unsupported format (JPEG stub)", async () => {
+    const sha = crypto.randomBytes(32).toString("hex");
+    const jpegBytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0]);
+    const r = await generateMediaThumb({ sha256: sha, source: jpegBytes.toString("base64") });
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/Unsupported|decode|JPEG/);
+  });
+});
+
+describe("sha256Of", () => {
+  it("matches a known vector for an empty buffer", () => {
+    expect(sha256Of("")).toBe("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+  });
+  it("matches a known vector for 'abc'", () => {
+    expect(sha256Of("abc")).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+  });
+  it("returns a 64-char hex string", () => {
+    expect(sha256Of("anything")).toMatch(/^[0-9a-f]{64}$/);
+  });
+});

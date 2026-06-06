@@ -22,9 +22,9 @@ describe('Sidebar controls', () => {
     })
   })
 
-  it('exposes the Library navigation item', () => {
+  it('exposes the Media Studio navigation item', () => {
     render(<Sidebar />)
-    fireEvent.click(screen.getByRole('button', { name: 'Library' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Media Studio' }))
     expect(useSettingsStore.getState().activeTab).toBe('gallery')
   })
 

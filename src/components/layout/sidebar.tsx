@@ -65,7 +65,7 @@ const navGroups: NavGroup[] = [
     label: 'Generate',
     items: [
       { id: 'image', label: 'Image', Icon: ImageIcon },
-      { id: 'gallery', label: 'Library', Icon: GalleryIcon },
+      { id: 'gallery', label: 'Media Studio', Icon: GalleryIcon },
       { id: 'audio', label: 'Audio', Icon: AudioIcon },
       { id: 'music', label: 'Music', Icon: MusicIcon },
       { id: 'video', label: 'Video', Icon: VideoIcon },

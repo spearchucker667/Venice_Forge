@@ -25,7 +25,8 @@ This document is the public map for the Venice Forge repository. It reflects the
 ├── docs/                          # Extensive project documentation
 ├── electron/                      # Electron main process source
 │   ├── ipc/                       # IPC handlers and validation
-│   │   ├── services/                  # Main-process services (storage, logging, secure store, Venice client, chat history)
+│   │   ├── services/                  # Main-process services (storage, logging, secure store, Venice client, chat history, media)
+│   │   │   └── mediaService.ts        # Disk service for app:media:{export,import,reveal,meta,thumb} — path containment + sanitisation
 │   ├── utils/                     # Main-process utilities
 │   ├── main.ts                    # Electron entry point
 │   └── preload.ts                 # Context bridge preload script
@@ -94,12 +95,13 @@ This document is the public map for the Venice Forge repository. It reflects the
 | Shared validation | `src/shared/` | Venice endpoint and API host configuration shared by renderer and Electron IPC |
 | Content safety | `src/shared/safety/` | Child-exploitation safety guard; runs at every enforcement boundary |
 | Theme engine | `src/theme/` | Token-based CSS variables + Tailwind v4 `@theme` integration |
+| Media Studio | `src/components/gallery/` + `src/stores/media-store.ts` + `src/services/mediaMigration.ts` + `electron/services/mediaService.ts` | Local-first generated-media library. Renderer reads from the encrypted `images` IDB store, enriches in place into a canonical `MediaItem` shape, and renders a searchable / filterable / sortable / batch-selectable grid. Electron adds 5 IPC channels (export, import, reveal, meta, thumb) with strict path-containment validation. See [`docs/MEDIA_STUDIO.md`](docs/MEDIA_STUDIO.md) |
 
 ## Source Organization (Post-Merge)
 
 | Path | Notes |
 |------|-------|
-| `src/components/` | Subdirectories for `chat`, `image`, `gallery`, `audio`, `music`, `video`, `workflows`, `playground`, `embeddings`, `layout`, and `ui` |
+| `src/components/` | Subdirectories for `chat`, `image`, `gallery`, `audio`, `music`, `video`, `workflows`, `playground`, `embeddings`, `layout`, and `ui`. `gallery/` contains `gallery-view.tsx` (the Media Studio orchestrator), `media-card.tsx`, `media-toolbar.tsx`, `media-detail-dialog.tsx`, and `media-inspector.tsx` |
 | `src/stores/` | Zustand stores for `auth`, `chat`, `playground`, `settings`, `toast`, and `workflow` |
 | `src/lib/venice-client.ts` | Unified Venice API client; proxies all calls through `desktopBridge` |
 | `src/services/desktopBridge.ts` | Secure transport abstraction (IPC in Electron, proxy in web) |

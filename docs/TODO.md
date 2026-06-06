@@ -30,7 +30,7 @@
 
 ### 2. Frontend / UI Improvements
 - [x] **Memory Management Overhaul:** Enhance the UI for adding, editing, and categorizing AI memories. Add a "Search AI Memory" modal.
-- [ ] **Gallery Bulk Actions:** Extend the restored generated-image Library with multi-select bulk export/delete and video-generation support.
+- [x] **Gallery Bulk Actions:** The Library has been rebuilt as Media Studio — multi-select bulk favorite/unstar/delete, filterable by Image/Video/Favorites/Upscaled/Edited, lineage (parent + children) tracking, per-model capability hints, and a tagged/notes inspector. See [`docs/MEDIA_STUDIO.md`](docs/MEDIA_STUDIO.md).
 - [x] **Theme Customization Panel:** Allow exporting and importing custom themes as standalone JSON files.
 - [x] **Drag & Drop Reordering:** Allow users to drag and drop uploaded files in the Chat attachment tray to dictate context order.
 
