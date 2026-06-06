@@ -1024,7 +1024,7 @@ Remaining true backlog (enhancement-tier or large scope) moved to "Future / user
 | `npm run lint:eslint` (continuation)         | 0 warnings, clean | current continuation | After abort signal + ARIA + type fixes |
 | `npm run verify:safety-guard` (continuation) | 3/3 pass | current continuation | After signal forwarding improvements |
 | `npm run build` (continuation)               | succeeded | current continuation | After all todo changes |
-| `git commit + push origin main`              | success (this push) | 2026-06 | Committed review TODO fixes + ledger update. See commit message for files. |
+| `git commit + push origin main`              | success (f36b118c) | 2026-06 | Committed review TODO fixes + ledger update. Pushed: c44dd63e..f36b118c main -> main. See commit message for files. |
 
 ---
 
