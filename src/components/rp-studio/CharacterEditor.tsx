@@ -22,9 +22,12 @@ const EXAMPLE_KEYS_MODULE: WeakMap<CharacterExampleDialogue, string> = new WeakM
 interface Props {
   cardId: string;
   onClose: () => void;
+  /** Disables save when the main-process config has not yet hydrated
+   *  (defence-in-depth mirror of the VERIFY-017 hydration gate). */
+  disabled?: boolean;
 }
 
-export function CharacterEditor({ cardId, onClose }: Props) {
+export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
   const cards = useCharacterCardStore((s) => s.cards);
   const upsert = useCharacterCardStore((s) => s.upsert);
   const remove = useCharacterCardStore((s) => s.remove);
@@ -143,6 +146,10 @@ export function CharacterEditor({ cardId, onClose }: Props) {
   };
 
   const handleSave = async () => {
+    if (disabled) {
+      setError("Local config is still loading. Try again in a moment.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -179,7 +186,13 @@ export function CharacterEditor({ cardId, onClose }: Props) {
         <h2 className="text-[15px] font-semibold text-white/90 truncate">{draft.name || "Untitled"}</h2>
         <div className="ml-auto flex items-center gap-2">
           <GhostButton onClick={handleDelete}>Delete</GhostButton>
-          <PrimaryButton onClick={handleSave} loading={saving} size="sm">
+          <PrimaryButton
+            onClick={handleSave}
+            loading={saving}
+            size="sm"
+            disabled={disabled}
+            ariaLabel={disabled ? "Save (waiting for config to load)" : "Save"}
+          >
             Save
           </PrimaryButton>
         </div>

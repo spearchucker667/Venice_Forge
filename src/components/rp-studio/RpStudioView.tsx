@@ -3,6 +3,13 @@
  *
  * Sub-tabs: Library / Personas / Lorebooks / Chats / Scenes (which holds
  * the scene generator and the gallery side-by-side).
+ *
+ * Hydration gate: in Electron mode, RP Studio surfaces a top-of-pane banner
+ * until the main-process config snapshot has hydrated into the renderer.
+ * This is the visible half of the hydration contract enforced by
+ * `src/safetyHydration.ts` (VERIFY-017); the runtime half is the throw on
+ * `getEffectiveRenderer*()` calls. Sub-components additionally disable
+ * their safety-sensitive save buttons while the banner is showing.
  */
 
 import { useEffect, useState } from "react";
@@ -17,6 +24,8 @@ import { AssetGallery } from "./AssetGallery";
 import { PromptDebugDrawer } from "./PromptDebugDrawer";
 import type { PromptAssemblyResult } from "../../types/rp";
 import { PillGroup } from "../ui/shared";
+import { useRendererConfigHydrated } from "../../safetyHydration";
+import { isElectron } from "../../services/desktopBridge";
 
 const SUB_TABS = [
   { id: "library", label: "Characters" },
@@ -36,6 +45,8 @@ export function RpStudioView() {
   const [openSceneChatId, setOpenSceneChatId] = useState<string | null>(null);
   const [debugAssembly, setDebugAssembly] = useState<PromptAssemblyResult | null>(null);
   const [sceneView, setSceneView] = useState<SceneSubView>("generate");
+  const hydrated = useRendererConfigHydrated();
+  const showHydrationBanner = isElectron() && !hydrated;
 
   useEffect(() => {
     setEditingCardId(null);
@@ -60,6 +71,21 @@ export function RpStudioView() {
         ))}
       </div>
 
+      {showHydrationBanner && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="px-3 py-2 border-b border-amber-500/30 bg-amber-500/10 text-amber-100 text-[12.5px] flex items-center gap-2"
+        >
+          <span aria-hidden="true">⏳</span>
+          <span>
+            Local config is still loading. RP Studio save controls are
+            temporarily unavailable until the safety settings snapshot
+            has hydrated.
+          </span>
+        </div>
+      )}
+
       {sub === "scenes" && (
         <div className="px-3 py-1.5 border-b border-white/[0.06]">
           <PillGroup
@@ -73,12 +99,12 @@ export function RpStudioView() {
 
       <div className="flex-1 min-h-0 relative">
         {sub === "library" && (editingCardId ? (
-          <CharacterEditor cardId={editingCardId} onClose={() => setEditingCardId(null)} />
+          <CharacterEditor cardId={editingCardId} onClose={() => setEditingCardId(null)} disabled={showHydrationBanner} />
         ) : (
           <CharacterLibrary onEdit={(id) => setEditingCardId(id)} />
         ))}
-        {sub === "personas" && <PersonaManager />}
-        {sub === "lorebooks" && <LorebookManager />}
+        {sub === "personas" && <PersonaManager disabled={showHydrationBanner} />}
+        {sub === "lorebooks" && <LorebookManager disabled={showHydrationBanner} />}
         {sub === "chats" && (openChatId ? (
           <RpChatView
             chatId={openChatId}
@@ -90,7 +116,7 @@ export function RpStudioView() {
           <RpChatList onOpen={(id) => setOpenChatId(id)} />
         ))}
         {sub === "scenes" && sceneView === "generate" && (
-          <SceneGenerator filterChatId={openSceneChatId ?? undefined} />
+          <SceneGenerator filterChatId={openSceneChatId ?? undefined} disabled={showHydrationBanner} />
         )}
         {sub === "scenes" && sceneView === "gallery" && <AssetGallery />}
       </div>

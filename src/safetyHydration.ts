@@ -86,3 +86,38 @@ export function getEffectiveRendererLocalFamilySafeModeEnabled(): boolean {
   assertConfigHydratedForSafety();
   return useSettingsStore.getState().localFamilySafeModeEnabled;
 }
+
+/**
+ * Returns the renderer-side Venice API Safe Mode (`safe_mode`) toggle value,
+ * gated by the same hydration check as
+ * `getEffectiveRendererLocalFamilySafeModeEnabled`.
+ *
+ * The provider-side `safe_mode` flag is COMPLETELY SEPARATE from
+ * `localFamilySafeModeEnabled` (Family Safe Mode / Adult Mode). Adult Mode
+ * does NOT disable `safe_mode`; toggling `safe_mode` does NOT enable Adult
+ * Mode. They are independent controls and need independent hydration.
+ *
+ * Callers (e.g. `sceneGenerationService`) should prefer this helper over
+ * reading `useSettingsStore.getState().veniceApiSafeMode` directly, for
+ * the same defense-in-depth reason
+ * `getEffectiveRendererLocalFamilySafeModeEnabled` exists.
+ */
+export function getEffectiveRendererVeniceApiSafeMode(): boolean {
+  assertConfigHydratedForSafety();
+  return useSettingsStore.getState().veniceApiSafeMode;
+}
+
+/**
+ * React-friendly hook that returns whether the main-process config snapshot
+ * has been hydrated into the renderer. In Electron mode this is the gate
+ * the RP Studio save buttons should consult to disable themselves — without
+ * it, the renderer could attempt a preflight guard decision that disagrees
+ * with the canonical main-process state.
+ *
+ * In web mode this hook always returns `true` (the renderer is the only
+ * enforcement layer, no snapshot to wait for).
+ */
+export function useRendererConfigHydrated(): boolean {
+  if (!isElectron()) return true;
+  return useConfigStore((s) => s.hydrated);
+}

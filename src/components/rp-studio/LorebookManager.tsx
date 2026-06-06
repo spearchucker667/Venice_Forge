@@ -25,7 +25,7 @@ const INSERTION_MODES: Array<{ value: LorebookInsertionMode; label: string }> = 
   { value: "at_depth", label: "At depth" },
 ];
 
-export function LorebookManager() {
+export function LorebookManager({ disabled = false }: { disabled?: boolean } = {}) {
   const load = useLorebookStore((s) => s.load);
   const hasLoaded = useLorebookStore((s) => s.hasLoaded);
   const isLoading = useLorebookStore((s) => s.isLoading);
@@ -70,7 +70,7 @@ export function LorebookManager() {
   }, [lorebooks, searchQuery]);
 
   if (editingId) {
-    return <LorebookEditor key={editingId} lorebookId={editingId} onClose={() => setEditingId(null)} />;
+    return <LorebookEditor key={editingId} lorebookId={editingId} onClose={() => setEditingId(null)} disabled={disabled} />;
   }
 
   return (
@@ -85,6 +85,7 @@ export function LorebookManager() {
         />
         <PrimaryButton
           size="sm"
+          disabled={disabled}
           onClick={() => {
             const blank = createBlank();
             if (blank) setEditingId(blank);
@@ -156,7 +157,7 @@ export function LorebookManager() {
   );
 }
 
-function LorebookEditor({ lorebookId, onClose }: { lorebookId: string; onClose: () => void }) {
+function LorebookEditor({ lorebookId, onClose, disabled = false }: { lorebookId: string; onClose: () => void; disabled?: boolean }) {
   const lorebooks = useLorebookStore((s) => s.lorebooks);
   const upsert = useLorebookStore((s) => s.upsert);
   const initial = useMemo(() => lorebooks.find((l) => l.id === lorebookId), [lorebooks, lorebookId]);
@@ -194,6 +195,10 @@ function LorebookEditor({ lorebookId, onClose }: { lorebookId: string; onClose: 
   };
 
   const handleSave = async () => {
+    if (disabled) {
+      setError("Local config is still loading. Try again in a moment.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -221,7 +226,7 @@ function LorebookEditor({ lorebookId, onClose }: { lorebookId: string; onClose: 
         </button>
         <h2 className="text-[15px] font-semibold text-white/90 truncate">{draft.name}</h2>
         <div className="ml-auto">
-          <PrimaryButton size="sm" loading={saving} onClick={handleSave}>Save</PrimaryButton>
+          <PrimaryButton size="sm" loading={saving} disabled={disabled} onClick={handleSave}>Save</PrimaryButton>
         </div>
       </div>
       {error && <div className="px-4 py-3"><ErrorText>{error}</ErrorText></div>}

@@ -16,9 +16,12 @@ import { formatRelativeTime, truncate } from "./_shared";
 interface Props {
   filterChatId?: string;
   onViewAsset?: (assetId: string) => void;
+  /** Disables generate when the main-process config has not yet hydrated
+   *  (defence-in-depth mirror of the VERIFY-017 hydration gate). */
+  disabled?: boolean;
 }
 
-export function SceneGenerator({ filterChatId, onViewAsset }: Props) {
+export function SceneGenerator({ filterChatId, onViewAsset, disabled = false }: Props) {
   const chats = useRpChatStore((s) => s.chats);
   const chatsLoaded = useRpChatStore((s) => s.hasLoaded);
   const loadChats = useRpChatStore((s) => s.load);
@@ -65,6 +68,10 @@ export function SceneGenerator({ filterChatId, onViewAsset }: Props) {
   }, [selectedChat, override]);
 
   const handleGenerate = async () => {
+    if (disabled) {
+      setError("Local config is still loading. Try again in a moment.");
+      return;
+    }
     if (!selectedChat) {
       setError("Pick a chat first.");
       return;
@@ -168,7 +175,7 @@ export function SceneGenerator({ filterChatId, onViewAsset }: Props) {
           />
         </div>
         {error && <ErrorText>{error}</ErrorText>}
-        <PrimaryButton loading={running} onClick={() => void handleGenerate()} disabled={!selectedChat}>
+        <PrimaryButton loading={running} onClick={() => void handleGenerate()} disabled={!selectedChat || disabled}>
           Generate scene
         </PrimaryButton>
       </div>

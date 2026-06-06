@@ -21,6 +21,7 @@
  */
 
 import { assessScenePrompt } from "../../shared/safety/characterImportSafety";
+import { applyVeniceApiSafeMode } from "../../shared/veniceSafeMode";
 import type {
   RpChatV1,
   RpMessageV1,
@@ -31,8 +32,10 @@ import type {
 import { isElectron, desktopVenice } from "../desktopBridge";
 import { readCharacterCard } from "./characterCardService";
 import { saveAsset } from "./assetService";
-import { useSettingsStore } from "../../stores/settings-store";
-import { getEffectiveRendererLocalFamilySafeModeEnabled } from "../../safetyHydration";
+import {
+  getEffectiveRendererLocalFamilySafeModeEnabled,
+  getEffectiveRendererVeniceApiSafeMode,
+} from "../../safetyHydration";
 
 const RECENT_WINDOW = 8;
 /** Default model when none is supplied. */
@@ -88,7 +91,7 @@ export async function generateScene(
 
   // 1. Local Family Safe Mode guard (skipped when Adult Mode is on).
   const localFamilySafeModeEnabled = getEffectiveRendererLocalFamilySafeModeEnabled();
-  const veniceApiSafeMode = useSettingsStore.getState().veniceApiSafeMode;
+  const veniceApiSafeMode = getEffectiveRendererVeniceApiSafeMode();
   const decision = assessScenePrompt(prompt, req.negativePrompt, localFamilySafeModeEnabled);
   if (!decision.allow) {
     return {
@@ -111,16 +114,19 @@ export async function generateScene(
     return { ok: false, error: "No transport available.", safetyBlocked: false };
   }
 
-  const payload = {
-    model,
-    prompt,
-    safe_mode: veniceApiSafeMode,
-    ...(req.negativePrompt ? { negative_prompt: req.negativePrompt } : {}),
-    ...(req.seed !== undefined ? { seed: req.seed } : {}),
-    ...(req.width !== undefined ? { width: req.width } : {}),
-    ...(req.height !== undefined ? { height: req.height } : {}),
-    ...(req.steps !== undefined ? { steps: req.steps } : {}),
-  };
+  const payload = applyVeniceApiSafeMode(
+    "/image/generate",
+    {
+      model,
+      prompt,
+      ...(req.negativePrompt ? { negative_prompt: req.negativePrompt } : {}),
+      ...(req.seed !== undefined ? { seed: req.seed } : {}),
+      ...(req.width !== undefined ? { width: req.width } : {}),
+      ...(req.height !== undefined ? { height: req.height } : {}),
+      ...(req.steps !== undefined ? { steps: req.steps } : {}),
+    },
+    veniceApiSafeMode,
+  );
 
   let response: ImageGenerateResponse;
   try {

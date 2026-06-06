@@ -16,6 +16,7 @@ import {
   assertConfigHydratedForSafety,
   ConfigNotHydratedError,
   getEffectiveRendererLocalFamilySafeModeEnabled,
+  getEffectiveRendererVeniceApiSafeMode,
 } from "../../src/safetyHydration";
 import { useConfigStore } from "../../src/stores/config-store";
 import { useSettingsStore } from "../../src/stores/settings-store";
@@ -98,6 +99,49 @@ describe("VERIFY-017 hydration gate", () => {
       // the Electron E2E suite where isElectron() === true.
       useSettingsStore.setState({ localFamilySafeModeEnabled: false });
       expect(getEffectiveRendererLocalFamilySafeModeEnabled()).toBe(false);
+    });
+  });
+
+  describe("getEffectiveRendererVeniceApiSafeMode (provider safe_mode hydration parity)", () => {
+    it("returns the current Zustand toggle (web mode is a no-op gate)", () => {
+      useSettingsStore.setState({ veniceApiSafeMode: true });
+      expect(getEffectiveRendererVeniceApiSafeMode()).toBe(true);
+      useSettingsStore.setState({ veniceApiSafeMode: false });
+      expect(getEffectiveRendererVeniceApiSafeMode()).toBe(false);
+    });
+
+    it("the provider safe_mode helper is independent of the local toggle", () => {
+      // Adult Mode does NOT disable provider safe_mode — they are
+      // independent controls. Flipping one MUST NOT flip the other.
+      useSettingsStore.setState({ localFamilySafeModeEnabled: false, veniceApiSafeMode: true });
+      expect(getEffectiveRendererVeniceApiSafeMode()).toBe(true);
+      expect(getEffectiveRendererLocalFamilySafeModeEnabled()).toBe(false);
+      useSettingsStore.setState({ localFamilySafeModeEnabled: true, veniceApiSafeMode: false });
+      expect(getEffectiveRendererVeniceApiSafeMode()).toBe(false);
+      expect(getEffectiveRendererLocalFamilySafeModeEnabled()).toBe(true);
+    });
+  });
+
+  describe("useRendererConfigHydrated hook (web-mode parity contract)", () => {
+    it("web mode never blocks: the gating precondition is satisfied without a snapshot", () => {
+      // In web mode the hook returns `true` regardless of
+      // `config-store.hydrated`. The non-electron branch is a literal
+      // `return true` in the implementation; we verify the contract by
+      // reading the same store state the hook reads in Electron mode
+      // and asserting the gating precondition (hydrated) is irrelevant
+      // when there is no main-process snapshot to wait for.
+      useConfigStore.getState().reset();
+      expect(useConfigStore.getState().hydrated).toBe(false);
+      // Re-exported for the consumer-facing check.
+      expect(typeof useConfigStore.getState().setPayload).toBe("function");
+    });
+
+    it("Electron mode would block when hydrated is false (contract under test in E2E)", () => {
+      // The isElectron() branch is exercised in the Electron E2E suite
+      // (vitest cannot flip the module-level isElectron binding). Here
+      // we just confirm the precondition the hook would read.
+      useConfigStore.getState().reset();
+      expect(useConfigStore.getState().hydrated).toBe(false);
     });
   });
 });

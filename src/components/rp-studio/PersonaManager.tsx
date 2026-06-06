@@ -10,7 +10,7 @@ import { formatRelativeTime, truncate } from "./_shared";
 import type { UserPersonaV1 } from "../../types/rp";
 
 
-export function PersonaManager() {
+export function PersonaManager({ disabled = false }: { disabled?: boolean } = {}) {
   const load = usePersonaStore((s) => s.load);
   const hasLoaded = usePersonaStore((s) => s.hasLoaded);
   const isLoading = usePersonaStore((s) => s.isLoading);
@@ -65,6 +65,7 @@ export function PersonaManager() {
         personaId={editingId}
         onClose={() => setEditingId(null)}
         onSave={async (p) => { await upsert(p); setEditingId(null); }}
+        disabled={disabled}
       />
     );
   }
@@ -81,6 +82,7 @@ export function PersonaManager() {
         />
         <PrimaryButton
           size="sm"
+          disabled={disabled}
           onClick={() => {
             const blank = createBlank();
             if (blank) setEditingId(blank);
@@ -166,7 +168,7 @@ export function PersonaManager() {
   );
 }
 
-function PersonaEditor({ personaId, onClose, onSave }: { personaId: string; onClose: () => void; onSave: (p: UserPersonaV1) => Promise<void> }) {
+function PersonaEditor({ personaId, onClose, onSave, disabled = false }: { personaId: string; onClose: () => void; onSave: (p: UserPersonaV1) => Promise<void>; disabled?: boolean }) {
   const personas = usePersonaStore((s) => s.personas);
   const initial = useMemo(() => personas.find((p) => p.id === personaId), [personas, personaId]);
   const [draft, setDraft] = useState<UserPersonaV1 | null>(initial ?? null);
@@ -187,6 +189,10 @@ function PersonaEditor({ personaId, onClose, onSave }: { personaId: string; onCl
   };
 
   const handleSave = async () => {
+    if (disabled) {
+      setError("Local config is still loading. Try again in a moment.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -213,7 +219,7 @@ function PersonaEditor({ personaId, onClose, onSave }: { personaId: string; onCl
         </button>
         <h2 className="text-[15px] font-semibold text-white/90 truncate">{draft.name}</h2>
         <div className="ml-auto">
-          <PrimaryButton size="sm" loading={saving} onClick={handleSave}>Save</PrimaryButton>
+          <PrimaryButton size="sm" loading={saving} disabled={disabled} onClick={handleSave}>Save</PrimaryButton>
         </div>
       </div>
       {error && <div className="px-4 py-3"><ErrorText>{error}</ErrorText></div>}

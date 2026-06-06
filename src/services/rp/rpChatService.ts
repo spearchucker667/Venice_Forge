@@ -11,9 +11,16 @@
  * **Safety:** `saveRpChat` and `appendMessage` both call `assessRpContext`
  * (VERIFY-014) so the full chat content (system prompt, characters, persona,
  * history, and the new turn) is vetted by the existing child-exploitation
- * guard before persistence. `_unsafeWriteChat` is the unguarded internal
- * helper used only after the public functions have already gated the
- * payload — never call it from feature code.
+ * guard before persistence. EVERY public write path runs the guard — a
+ * blocked turn never reaches storage. `_unsafeWriteChat` is the unguarded
+ * internal helper used only after one of the public functions has already
+ * gated the payload; never call it from feature code.
+ *
+ * **Hydration:** both `saveRpChat` and `appendMessage` route the toggle
+ * value through `getEffectiveRendererLocalFamilySafeModeEnabled` so a
+ * save attempted before the main-process config snapshot has hydrated
+ * (in Electron mode) throws `ConfigNotHydratedError` instead of making
+ * a stale preflight decision.
  */
 
 import { isElectron, desktopRpChats } from "../desktopBridge";
