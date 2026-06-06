@@ -1,6 +1,6 @@
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
-import { useAuthStore } from '../../stores/auth-store'
+import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { Select } from '../ui/select'
 import { StatusDot } from '../ui/shared'
 
@@ -46,7 +46,7 @@ interface Props {
 
 export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   const { activeTab, selectedModels, setSelectedModel, toggleSidebar } = useSettingsStore()
-  const apiKey = useAuthStore((s) => s.apiKey)
+  const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const hasOwnSelector = noModelSelector.has(activeTab)
   const modelType = modelTypeMap[activeTab] || 'text'
   const { data: models } = useModels(hasOwnSelector ? undefined : modelType)
@@ -98,12 +98,12 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
 
       <button
         onClick={onOpenApiKey}
-        aria-label={apiKey ? 'API key connected, manage' : 'Connect API key'}
+        aria-label={hasVeniceKey ? 'API key connected, manage' : 'Connect API key'}
         className="flex items-center gap-2 text-[13px] px-2.5 py-1.5 rounded-md border border-border hover:border-text-muted transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2 cursor-pointer"
       >
-        <StatusDot tone={apiKey ? 'teal' : 'slate'} pulsing={!apiKey} />
-        <span className={apiKey ? 'text-text-primary font-medium' : 'text-text-secondary'}>
-          {apiKey ? 'Connected' : 'Connect API key'}
+        <StatusDot tone={hasVeniceKey ? 'teal' : 'slate'} pulsing={!hasVeniceKey} />
+        <span className={hasVeniceKey ? 'text-text-primary font-medium' : 'text-text-secondary'}>
+          {hasVeniceKey ? 'Connected' : 'Connect API key'}
         </span>
       </button>
     </header>

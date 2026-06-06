@@ -4,7 +4,7 @@ import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useChat } from '../../hooks/use-chat'
 import { toast } from '../../stores/toast-store'
-import { useAuthStore } from '../../stores/auth-store'
+import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { MessageBubble } from './message-bubble'
 import { ChatInput } from './chat-input'
 import { VeniceParams } from './venice-params'
@@ -21,7 +21,7 @@ export function ChatView() {
     const id = s.activeConversationId
     return id ? s.conversations.find((c) => c.id === id) : undefined
   })
-  const apiKey = useAuthStore((s) => s.apiKey)
+  const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const selectedModel = useSettingsStore((s) => s.selectedModels.chat)
   const { data: models } = useModels('text')
   const model = selectedModel || models?.[0]?.id || 'llama-3.3-70b'
@@ -125,12 +125,12 @@ export function ChatView() {
               <VeniceLogo size={32} className="opacity-80" />
               <div className="text-[20px] font-semibold text-text-primary">How can I help today?</div>
               <p className="text-[14px] text-text-secondary max-w-sm">
-                {apiKey
+                {hasVeniceKey
                   ? 'Pick a model in the header above, then start a conversation. Streaming, web search, and citations are all built in.'
                   : 'Connect a Venice API key from the header above to get started.'}
               </p>
             </div>
-            {apiKey && (
+            {hasVeniceKey && (
               <div className="w-full max-w-md flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div className="text-[12px] uppercase tracking-[0.08em] text-text-muted font-medium">Try one of these</div>
@@ -336,7 +336,7 @@ export function ChatView() {
         </div>
       )}
 
-      <ChatInput onSend={(msg, images) => send(msg, model, images)} onStop={stop} isStreaming={isStreaming} disabled={!apiKey} />
+      <ChatInput onSend={(msg, images) => send(msg, model, images)} onStop={stop} isStreaming={isStreaming} disabled={!hasVeniceKey} />
     </div>
   )
 }

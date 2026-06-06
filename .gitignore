@@ -19,6 +19,7 @@ docs/design/
 /dist-electron/
 /release/
 /coverage/
+.design-captures/
 
 # Local OS/editor/runtime files.
 .DS_Store

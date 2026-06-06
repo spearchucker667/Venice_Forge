@@ -1,10 +1,11 @@
 # Venice Forge — Agent Guide
 
 > Human contributors: start with [README.md](README.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
-> Sibling agent docs in [docs/AGENTS/AGENTS.md](docs/AGENTS/AGENTS.md) and
-> [docs/AGENTS/agent-reinitialization.md](docs/AGENTS/agent-reinitialization.md) are **gitignored** (commit `037900d`) — they are local-only handoff notes, not committed source of truth.
+> Optional local-only agent scratch files may exist at `docs/AGENTS/AGENTS.md`
+> and `docs/AGENTS/agent-reinitialization.md`. They are gitignored and are
+> not part of the committed source of truth.
 
-**Version:** 1.0.5 | **Stack:** React 19 + TS strict, Electron 42, Express 4, Vitest 4 | **Node:** 20 or 22, npm 10+
+**Version:** 1.0.5 | **Stack:** React 19 + TS strict, Electron 42, Express 4, Vitest 4 | **Node:** 22.13+, npm 10+
 
 ---
 
@@ -78,7 +79,7 @@ npm run build:server     # Only proxy → dist/server.cjs
 npm run smoke:electron   # tests/smoke/electron-smoke.test.ts (Playwright; skipped when no display)
 npm run test:coverage    # v8 coverage; thresholds 70/80/80/80
 npm run profile:media-studio # Isolated Electron profile with 1,000 encrypted media records
-npm run verify:dist      # Generic post-package check
+npm run verify:dist      # Build outputs only; does not require release/
 npm run verify:dist:win  # Windows artifacts (NSIS + portable)
 npm run verify:dist:mac  # macOS artifacts (DMG + ZIP, both archs)
 npm run verify:dist:portable  # Windows portable only
@@ -168,6 +169,10 @@ test's comment header.
 | `VERIFY-033` | (Retired) — original guard covered the deprecated MiniMax forward-compat scaffold (`LlmProvider` / `PROVIDER_CAPABILITIES` / `capabilitiesFor()`); the scaffold was removed wholesale in the 2026-06-06 "Venice + Jina only" scope correction. The numeric slot is reserved to keep the regression-guard sequence stable. | — |
 | `VERIFY-034` | `scripts/verify-markdown-links.cjs` (and the `verifyMarkdownLinks()` exported helper) skip link targets that are matched by a pattern in the root `.gitignore` — both for the scan root and for the destination of in-doc links. This is the regression guard for the 2026-06-06 CI failure where `docs/AGENTS/AGENTS.md` and `docs/AGENTS/agent-reinitialization.md` are gitignored local-only handoff notes that never exist in CI. | `scripts/verify-markdown-links.test.ts` |
 | `VERIFY-035` | Media Studio dangling-reference recovery — the gallery inspector surfaces a one-click "Missing references" section when a `parentId` or any `childrenIds` entry refers to a record the IDB has confirmed absent, instead of silently hiding the parent block. "Clear parent link" calls `patchMedia` with `{ parentId: null }`; "Clear N missing refs" calls `patchMedia` with the filtered `childrenIds`. | `src/components/gallery/gallery-view.test.tsx` |
+| `VERIFY-036` | Packaged Electron startup loads `dist/index.html` in place so relative assets resolve, with a compatible self-hosted-script CSP and no mismatched runtime nonce/temp-file path. | `tests/electron/productionStartupInvariant.test.ts` |
+| `VERIFY-037` | OS-secure configured state enables Venice UI actions without copying the persisted key into renderer memory. | `src/stores/auth-store.test.ts` |
+| `VERIFY-038` | Web-mode Jina keys remain ephemeral and never enter `localStorage`, `sessionStorage`, or IndexedDB. | `src/services/desktopBridge.test.ts` |
+| `VERIFY-039` | Jina proxy responses are capped at 2 MiB in both Express and Electron IPC, with stream cancellation and normalized 413 failures. | `server.test.ts`, `electron/ipc/handlers.test.ts` |
 
 ---
 
@@ -247,7 +252,7 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `electron/utils/urlSecurity.ts` | `isTrustedExternalUrl`, `isPrivateHostname` |
 | `server.ts` | Express proxy (`/api/venice/*`, `/api/proxy-scrape`); vite only in dev |
 | `scripts/verify-safety-guard.cjs` | CI gate — see Security section |
-| `scripts/verify-dist.cjs` | Post-package artifact verification (`verify:dist:win`, `verify:dist:mac`, `verify:dist:portable`) |
+| `scripts/verify-dist.cjs` | Build-output verification by default; explicit platform modes verify packaged release artifacts (`verify:dist:win`, `verify:dist:mac`, `verify:dist:portable`) |
 | `scripts/verify-markdown-links.cjs` | CI documentation-link verifier for local files and heading fragments (`verify:markdown-links`) |
 | `scripts/profile-media-studio.mjs` | Opt-in Playwright Electron profile for encrypted Media Studio pagination, heap/DOM metrics, console health, and temporary screenshots |
 | `src/shared/safety/childExploitationGuard.ts` | Public safety-guard API + decision orchestration (T15 split: matchTables + normalization extracted) |
@@ -273,7 +278,7 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `src/safetyHydration.ts` | `assertConfigHydratedForSafety` / `getEffectiveRendererLocalFamilySafeModeEnabled` / `ConfigNotHydratedError` — renderer-side hydration gate for safety preflight |
 | `src/shared/veniceSafeMode.ts` | `applyVeniceApiSafeMode` / `endpointSupportsSafeMode` / `VENICE_API_SAFE_MODE_MATRIX` — central provider-side `safe_mode` helper |
 | `electron/services/guardPipeline.ts` | `performGuardedVeniceRequest` / `checkLocalFamilyGuard` / `buildGuardedBlock` — central IPC entry point combining runtime snapshot + local guard |
-| `docs/AUDIT_FOLLOWUP_2026_06_05.md` | 2026-06-05 round-1 full-repo audit report — P0/P1/P2 status, commits, follow-up items (historical; superseded by `docs/POST_MINIMAX_M3_AUDIT.md`) |
+| `docs/AUDIT_FOLLOWUP_2026_06_05.md` | 2026-06-05 round-1 full-repo audit report — historical; superseded by `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` and the current `docs/summary_of_work.md` ledger |
 | `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` | 2026-06-06 round-2 audit report — bug seeds, regression guards (the original F-1..F-8 MiniMax migration follow-ups were retired on 2026-06-06 when the user corrected scope to Venice + Jina only) |
 | `docs/summary_of_work.md` | Canonical AI/dev-agent session handoff ledger — *Latest Session Summary*, *Session History*, *Open TODO Ledger*, *Validation Matrix* |
 

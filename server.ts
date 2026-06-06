@@ -24,6 +24,8 @@ import { maybeRunLocalFamilyGuard, recordDecision, screenResponseBody } from "./
 import type { SafetyGuardDecision } from "./src/shared/safety";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import { isPrivateHostname } from "./electron/utils/urlSecurity";
+import { JINA_MAX_RESPONSE_BYTES } from "./src/shared/limits";
+import { FetchBodyTooLargeError, parseJsonOrNull, readBoundedFetchBody } from "./src/shared/readBoundedFetchBody";
 
 dotenv.config();
 
@@ -462,9 +464,8 @@ export function createServerApp() {
         });
 
         const contentType = response.headers.get("content-type") || "";
-        const body = contentType.includes("application/json")
-          ? await response.json().catch(() => null)
-          : await response.text();
+        const rawBody = await readBoundedFetchBody(response, JINA_MAX_RESPONSE_BYTES);
+        const body = contentType.includes("application/json") ? parseJsonOrNull(rawBody) : rawBody;
 
         const serialized = typeof body === "string" ? body : JSON.stringify(body ?? "");
         const screen = screenResponseBody(
@@ -481,6 +482,9 @@ export function createServerApp() {
         clearTimeout(timeout);
       }
     } catch (err) {
+      if (err instanceof FetchBodyTooLargeError) {
+        return res.status(413).json({ error: "Jina response exceeded the 2 MiB limit." });
+      }
       if (err instanceof Error && err.name === "AbortError") {
         return res.status(504).json({ error: "Request timed out" });
       }

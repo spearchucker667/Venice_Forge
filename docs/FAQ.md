@@ -21,7 +21,7 @@ See [PLATFORM_SUPPORT.md](DEVELOPMENT/platform-support.md) for the full matrix.
 ## Development & Building
 
 ### What Node.js version do I need?
-Node.js **20 or 22** with npm 10+. The CI matrix tests both versions.
+Node.js **22.13 or newer within Node 22.x** with npm 10+. CI tests the supported Node 22 runtime.
 
 ### How do I start development?
 ```bash
@@ -52,7 +52,7 @@ Both run `tsx server.ts` (the Express web proxy). `dev:web` is the explicit alia
 
 ### Where is my API key stored?
 - **Desktop mode:** Encrypted with OS-level secure storage — DPAPI on Windows, Keychain on macOS. Both the Venice API key and the optional Jina API key are stored here. Neither is ever exposed to the renderer.
-- **Web mode:** In the server's `.env` file; never sent to the browser. Jina AI API keys can be stored in the browser's `localStorage` for testing.
+- **Web mode:** Persistent keys belong in the server's `.env`. Browser-entered Jina keys are memory-only for the current page session and clear on reload; they are not written to browser storage.
 
 ### What if secure storage is unavailable?
 On macOS and Windows, the app **refuses** to store the key if secure storage fails. On Linux, you can set the `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true` environment variable (e.g., in `.env` for web mode development) to allow a documented plaintext fallback. **This reduces security.**

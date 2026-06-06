@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, beforeAll, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
 import request from "supertest";
 import express from "express";
 
@@ -15,6 +15,43 @@ vi.mock("http-proxy-middleware", () => ({
 import { applyVeniceProxyHeaders, createServerApp } from "./server";
 import * as safetyModule from "./src/shared/safety";
 import * as localFamilyGuardRules from "./src/shared/safety/localFamilyGuardRules";
+
+describe("server.ts Jina response limits", () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  // VERIFY-039: reject before parsing or safety screening can buffer the body.
+  it("returns 413 and cancels an over-limit Jina response stream", async () => {
+    let cancelled = false;
+    const chunk = new Uint8Array(1024 * 1024);
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(chunk);
+        controller.enqueue(chunk);
+        controller.enqueue(new Uint8Array([1]));
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    globalThis.fetch = vi.fn(async () => new Response(body, {
+      status: 200,
+      headers: { "content-type": "text/plain" },
+    })) as unknown as typeof globalThis.fetch;
+
+    const response = await request(createServerApp())
+      .post("/api/proxy-jina")
+      .set("X-Venice-Forge-Family-Safe-Mode", "false")
+      .send({ url: "https://r.jina.ai/https://example.com" });
+
+    expect(response.status).toBe(413);
+    expect(response.body.error).toMatch(/2 MiB limit/i);
+    expect(cancelled).toBe(true);
+  });
+});
 
 describe("server.ts health endpoint", () => {
   it("should return 200 and status ok on /health", async () => {

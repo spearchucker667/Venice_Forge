@@ -44,7 +44,8 @@ import {
   readMediaMeta,
   revealMediaInFolder,
 } from "../services/mediaService";
-import { VENICE_MAX_BODY_BYTES } from "../../src/shared/limits";
+import { JINA_MAX_RESPONSE_BYTES, VENICE_MAX_BODY_BYTES } from "../../src/shared/limits";
+import { FetchBodyTooLargeError, parseJsonOrNull, readBoundedFetchBody } from "../../src/shared/readBoundedFetchBody";
 import { SafetyGuardBlockedError, screenResponseBody } from "../../src/shared/safety";
 import { performGuardedVeniceRequest, checkLocalFamilyGuard } from "../services/guardPipeline";
 import { getRuntimeLocalFamilySafeModeEnabled } from "../services/runtimeSafetySettings";
@@ -281,9 +282,8 @@ export function registerIpcHandlers(): void {
         });
 
         const contentType = response.headers.get("content-type") || "";
-        const body = contentType.includes("application/json")
-          ? await response.json().catch(() => null)
-          : await response.text();
+        const rawBody = await readBoundedFetchBody(response, JINA_MAX_RESPONSE_BYTES);
+        const body = contentType.includes("application/json") ? parseJsonOrNull(rawBody) : rawBody;
 
         // P0/P1-015: screen the returned body through the local Family Safe
         // Mode guard using the main-process runtime snapshot. The renderer-
@@ -310,6 +310,9 @@ export function registerIpcHandlers(): void {
         clearTimeout(timeout);
       }
     } catch (err) {
+      if (err instanceof FetchBodyTooLargeError) {
+        return { ok: false, status: 413, error: "Jina response exceeded the 2 MiB limit." };
+      }
       return { ok: false, status: 0, error: redactErrorMessage(err) };
     }
   });

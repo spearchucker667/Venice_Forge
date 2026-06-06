@@ -23,7 +23,7 @@ The key is encrypted with OS-level safeStorage (DPAPI on Windows, Keychain on ma
 
 ### Web Mode
 
-In web mode, the Jina provider can run without a key for low-volume usage. The current Settings UI does not expose browser-based Jina key management. For development-only testing, a key may be placed manually in browser `localStorage` under `venice_jina_api_key`; do not treat this as secure storage.
+In web mode, the Jina provider can run without a key for low-volume usage. Persistent Jina configuration belongs in the server `.env`. A key entered through Settings is held only in memory for the current page session and clears on reload; it is never written to `localStorage`, `sessionStorage`, or IndexedDB.
 
 ### Removing the Key
 

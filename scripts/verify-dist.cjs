@@ -4,6 +4,7 @@ const path = require("path");
 const crypto = require("crypto");
 
 const args = process.argv.slice(2);
+const verifyRelease = args.some((arg) => ["--win", "--mac", "--all", "--portable", "--release"].includes(arg));
 
 /** Logic extracted for unit testing */
 function getTargets(platform, args) {
@@ -77,8 +78,14 @@ console.log(`[verify:dist] Starting verification for version ${version}`);
 
 // Base build validation
 verifyFileExists(path.join(root, "dist", "index.html"), 100);
+verifyFileExists(path.join(root, "dist", "server.cjs"), 1000);
 verifyFileExists(path.join(root, "dist-electron", "electron", "main.js"), 1000);
 verifyFileExists(path.join(root, "dist-electron", "package.json"), 20);
+
+if (!verifyRelease) {
+  console.log("[verify:dist] Successfully verified build outputs.");
+  process.exit(0);
+}
 
 const releaseDir = path.join(root, "release");
 if (!fs.existsSync(releaseDir)) fail("Missing release directory.");

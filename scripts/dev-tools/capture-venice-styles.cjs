@@ -47,8 +47,11 @@ const fs = require('fs');
   });
   
   const path = require('path');
-  fs.writeFileSync(path.join(__dirname, 'venice-styles.json'), JSON.stringify(styles, null, 2));
-  console.log("Styles saved to " + path.join(__dirname, 'venice-styles.json'));
+  const outDir = path.join(process.cwd(), '.design-captures', 'venice', 'styles');
+  fs.mkdirSync(outDir, { recursive: true });
+  const outPath = path.join(outDir, 'venice-styles.json');
+  fs.writeFileSync(outPath, JSON.stringify(styles, null, 2));
+  console.log("Styles saved to " + outPath);
   
   await browser.close();
 })();

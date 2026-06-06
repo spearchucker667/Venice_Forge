@@ -2,7 +2,7 @@
 
 > **Status (2026-06-06):** This file is **historical / public-facing roadmap** only.
 > The canonical session handoff ledger is `docs/summary_of_work.md` and the
-> current audit is `docs/POST_MINIMAX_M3_AUDIT.md`. All "Active Tasks" below
+> current audit is `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`. All "Active Tasks" below
 > are completed; they are retained for public roadmap context. New work is
 > tracked under *Open TODO Ledger* in `summary_of_work.md`.
 
@@ -21,7 +21,7 @@
 ## Active Tasks (HISTORICAL — all closed 2026-06-06)
 
 - [x] Restore the generated-image Library in the sidebar and `App.tsx` `TAB_ORDER`, add the Family Safe Mode switch below Red-Team Mode, and make Red-Team Mode open the Inspector when enabled.
-- [x] Triage new audit findings when present (current canonical source: `docs/POST_MINIMAX_M3_AUDIT.md` and `docs/summary_of_work.md` Open TODO Ledger).
+- [x] Triage new audit findings when present (current canonical source: `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` and `docs/summary_of_work.md` Open TODO Ledger).
 - [x] Keep README, About, Legal, Repository Tree, and release docs synchronized with implemented features.
 - [x] Keep security tests current for renderer, IPC, proxy, storage, and safety-guard boundaries.
 - [x] Keep UI documentation synchronized with the canonical Chat/Image/Media Studio/Audio/Music/Video/Embeddings/Research/Characters/RP Studio/Workflows/Playground/Settings/Status layout.
@@ -29,7 +29,7 @@
 - [x] Add a scoped Markdown-link CI guard for local files and heading fragments (`VERIFY-029`).
 - [x] Add and run an isolated 1,000-record Electron Media Studio render/heap profile (`npm run profile:media-studio`).
 
-See `docs/summary_of_work.md` for the active work ledger (MiniMax migration F-1..F-8, Media Studio dangling-parent repair, deprecated `TABS` removal).
+See `docs/summary_of_work.md` for the active work ledger. The former MiniMax migration F-1..F-8 plan is retired historical context; current scope is Venice + Jina only.
 
 ## Extensive Roadmap & Future TODOs (HISTORICAL — see summary_of_work.md)
 
@@ -46,7 +46,7 @@ See `docs/summary_of_work.md` for the active work ledger (MiniMax migration F-1.
 - [x] **Drag & Drop Reordering:** Allow users to drag and drop uploaded files in the Chat attachment tray to dictate context order.
 
 ### 3. Architecture & Security
-- [x] **CSP Hardening:** Per-request script nonces added to both Electron (`electron/main.ts` — `generateNonce()` + `rendererCsp(nonce?)` + `onHeadersReceived`) and web server (`server.ts` — nonce generated per request, stored in `res.locals.cspNonce`, injected into `<script>` tags in served `index.html`). Production `script-src` now uses `'nonce-<value>' 'strict-dynamic'`. Dev mode preserves `'unsafe-inline' 'unsafe-eval'` for Vite HMR.
+- [x] **CSP Hardening:** Web mode uses a synchronized per-request nonce in the CSP header and served HTML. Packaged Electron loads `dist/index.html` in place under `script-src 'self'`, with inline/eval execution disabled; `VERIFY-036` locks the startup contract after the earlier temp-HTML nonce approach caused a blank screen. Dev mode preserves `'unsafe-inline' 'unsafe-eval'` for Vite HMR.
 - [x] **Database Migration System:** `src/services/dbMigrations.ts` provides a versioned `MIGRATIONS[]` array with one `MigrationStep` per historical `DB_VERSION`, an `applyMigrations(db, tx, oldVersion, newVersion)` function, and `getMigrationHistory()`. `storageService.ts` now calls `applyMigrations()` from `onupgradeneeded`. 14 unit tests in `src/services/dbMigrations.test.ts`.
 - [ ] **Native Dependencies Audit:** Re-audit all native Node dependencies in the Electron build for vulnerability surface reduction.
 
@@ -98,7 +98,7 @@ See `docs/summary_of_work.md` for the active work ledger (MiniMax migration F-1.
 7. [FIXED] `desktopJinaApiKey.set` Throws Unhandled Error in Web Mode
    - **Location:** `src/services/desktopBridge.ts`
    - **Description:** Setting the Jina API key crashed the application when running in the Web Server environment.
-   - **Remediation:** Added `localStorage` fallback functionality in `desktopBridge.ts` for developers running the app outside Electron.
+   - **Current remediation:** Persistent web keys use server `.env`; browser-entered Jina overrides are memory-only and never use browser-persistent storage (`VERIFY-038`).
 
 8. [FIXED] `veniceClient.ts` Model Extraction Misses Deeply Nested Values
    - **Location:** `src/services/veniceClient.ts`

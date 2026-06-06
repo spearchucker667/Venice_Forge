@@ -6,6 +6,7 @@ import FDBFactory from "fake-indexeddb/lib/FDBFactory";
 import {
   desktopApiKey,
   desktopApp,
+  desktopJinaApiKey,
   desktopVenice,
   isElectron,
 } from "./desktopBridge";
@@ -19,6 +20,7 @@ import { veniceFetch } from "./veniceClient";
 /** Resets IndexedDB and clears mocks before each test. */
 beforeEach(() => {
   global.indexedDB = new FDBFactory();
+  localStorage.clear();
   vi.clearAllMocks();
 });
 
@@ -59,5 +61,18 @@ describe("desktopBridge web fallback", () => {
   it("allows deleting API key in web mode as a no-op", async () => {
     vi.stubGlobal("window", { indexedDB: global.indexedDB });
     await expect(desktopApiKey.delete()).resolves.toEqual({ ok: true });
+  });
+
+  // VERIFY-038: browser-mode Jina overrides are session-memory only.
+  it("keeps web-mode Jina keys ephemeral and out of browser storage", async () => {
+    vi.stubGlobal("window", { indexedDB: global.indexedDB });
+
+    await expect(desktopJinaApiKey.set("jina-secret")).resolves.toEqual({ ok: true });
+    await expect(desktopJinaApiKey.isConfigured()).resolves.toBe(true);
+    expect(localStorage.getItem("venice_jina_api_key")).toBeNull();
+    expect(Object.keys(localStorage).some((key) => /jina|api|key/i.test(key))).toBe(false);
+
+    await desktopJinaApiKey.delete();
+    await expect(desktopJinaApiKey.isConfigured()).resolves.toBe(false);
   });
 });

@@ -19,7 +19,7 @@
 [![Windows Release](https://img.shields.io/badge/platform-Windows-0078d4?logo=windows11)](https://github.com/spearchucker667/Venice-API-connector/releases)
 [![macOS Release](https://img.shields.io/badge/platform-macOS-000000?logo=apple)](https://github.com/spearchucker667/Venice-API-connector/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Node 20/22](https://img.shields.io/badge/node-20%20%7C%2022-339933.svg)](package.json)
+[![Node 22](https://img.shields.io/badge/node-22-339933.svg)](package.json)
 [![TypeScript strict](https://img.shields.io/badge/typescript-strict-3178c6.svg)](tsconfig.json)
 [![Electron 42](https://img.shields.io/badge/electron-42-47848f.svg)](package.json)
 <img width="1774" height="887" alt=" " src="https://github.com/user-attachments/assets/4981bc4d-a743-4a0f-a6e7-48ddffb6edcb" />
@@ -95,7 +95,7 @@ See [docs/ABOUT.md](docs/ABOUT.md) for detailed architecture and [SECURITY.md](S
 
 | Requirement | Version |
 |-------------|---------|
-| **Node.js** | 20 or 22 |
+| **Node.js** | 22.13 or newer (Node 22.x) |
 | **npm** | 10+ |
 | **Desktop OS** | Windows 10/11 or macOS 13+ |
 | **Venice API Key** | From [venice.ai](https://venice.ai) |
@@ -217,7 +217,7 @@ For detailed signing and notarization steps, see [docs/RELEASE/signing-and-notar
 
 **Web Mode (Venice key):** The Venice API key lives in the Express server `.env` and is not exposed to the browser.  
 **Desktop Mode (Venice and Jina keys):** Both keys are stored via OS secure storage and are not exposed to the renderer.  
-**Web Mode (optional Jina override):** Development-only browser `localStorage` overrides may be used for low-volume Jina testing, but this is not secure storage and should not be documented as equivalent to desktop key isolation.
+**Web Mode (optional Jina override):** Persistent Jina configuration belongs in the server `.env`. A key entered in the browser is held in memory only for the current page session and is never written to browser storage.
 
 ---
 
@@ -240,7 +240,7 @@ For detailed signing and notarization steps, see [docs/RELEASE/signing-and-notar
 
 ### Security audit & regression guards
 
-The codebase is protected by **34 active named regression guards** (`VERIFY-001`..`VERIFY-032` + `VERIFY-034` + `VERIFY-035`; `VERIFY-033` is retired and reserved) that lock down security-, persistence-, accessibility-, performance-, and documentation-relevant surfaces. Each guard fails CI if a future change weakens the protection:
+The codebase is protected by **38 active named regression guards** (`VERIFY-001`..`VERIFY-032` + `VERIFY-034`..`VERIFY-039`; `VERIFY-033` is retired and reserved) that lock down security-, persistence-, accessibility-, performance-, and documentation-relevant surfaces. Each guard fails CI if a future change weakens the protection:
 
 | ID | Locks | Test file |
 |----|-------|-----------|
@@ -279,6 +279,10 @@ The codebase is protected by **34 active named regression guards** (`VERIFY-001`
 | `VERIFY-033` | (Retired) — original guard covered the deprecated MiniMax forward-compat scaffold (`LlmProvider` / `PROVIDER_CAPABILITIES` / `capabilitiesFor()`); the scaffold was removed wholesale in the 2026-06-06 "Venice + Jina only" scope correction. The numeric slot is reserved to keep the regression-guard sequence stable. | — |
 | `VERIFY-034` | `verify:markdown-links` honours the root `.gitignore` (skips the scan root AND in-doc link targets matched by a gitignore pattern); the regression guard for the 2026-06-06 CI failure where local-only gitignored `docs/AGENTS/*` files were reported as broken | `scripts/verify-markdown-links.test.ts` |
 | `VERIFY-035` | Media Studio dangling-reference recovery — the gallery inspector surfaces a one-click "Missing references" section with "Clear parent link" / "Clear N missing refs" buttons that prune stale lineage pointers in a single IDB write | `src/components/gallery/gallery-view.test.tsx` |
+| `VERIFY-036` | Packaged Electron startup keeps `dist/index.html` beside its relative assets and uses a compatible self-hosted-script CSP | `tests/electron/productionStartupInvariant.test.ts` |
+| `VERIFY-037` | OS-secure configured state enables Venice UI actions without copying the persisted key into renderer memory | `src/stores/auth-store.test.ts` |
+| `VERIFY-038` | Web-mode Jina keys remain ephemeral and never enter browser-persistent storage | `src/services/desktopBridge.test.ts` |
+| `VERIFY-039` | Web and Electron Jina proxy boundaries cancel and reject response bodies above 2 MiB before parsing/screening | `server.test.ts`, `electron/ipc/handlers.test.ts` |
 
 The 2026-06-05 full-repo audit produced these fixes; see [docs/AUDIT_FOLLOWUP_2026_06_05.md](docs/AUDIT_FOLLOWUP_2026_06_05.md) for the full audit report (P0/P1/P2 status, commits, and follow-up items). The 2026-06-06 round-2 audit and 8 named bugs (BUG-001..BUG-006, BUG-008, BUG-009; BUG-007 was originally a MiniMax streaming parser and was retired on 2026-06-06 when the user corrected scope to Venice + Jina only) are documented in [docs/POST_VENICE_JINA_AUDIT_2026_06_06.md](docs/POST_VENICE_JINA_AUDIT_2026_06_06.md). Outstanding P2/P3 work is tracked in the *Open TODO Ledger* of [docs/summary_of_work.md](docs/summary_of_work.md).
 

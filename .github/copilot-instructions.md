@@ -186,6 +186,7 @@ Each tab is a self-contained module file in `src/modules/`. Modules receive `{ s
 - Do not add new IPC channels without adding them to `electron/preload.ts` and `electron/ipc/handlers.ts`, and validating inputs in `electron/ipc/validation.ts`.
 - Do not add new Venice endpoints without updating `src/shared/validation.ts`.
 - CSP is strict in production — no inline scripts, no external `connect-src`.
+- Packaged startup must load `dist/index.html` in place so its relative `./assets` URLs remain valid; `VERIFY-036` locks this contract.
 - macOS requires `build/icon.icns` for packaging. Never weaken `safeStorage` — macOS Keychain and Windows DPAPI parity is required. Plaintext storage is completely disabled for Windows and macOS.
 - Every new prompt-sending path **must** route through `maybeRunLocalFamilyGuard()` and pass the persisted `localFamilySafeModeEnabled` value. Do not call the rule engine when Adult Mode is active. Do not log raw prompt text anywhere in the codebase.
 - The `FUZZY_ALLOWLIST ∩ CSAM_GENRE_LABELS = ∅` invariant is enforced at module load — adding a term from `CSAM_GENRE_LABELS` to `FUZZY_ALLOWLIST` will throw at startup.
