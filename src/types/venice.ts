@@ -113,6 +113,7 @@ export interface ChatCompletionRequest {
   frequency_penalty?: number
   presence_penalty?: number
   venice_parameters?: VeniceParameters
+  safe_mode?: boolean
 }
 
 export interface ChatCompletionChunk {

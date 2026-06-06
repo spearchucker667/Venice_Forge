@@ -74,6 +74,15 @@ vi.mock("../services/veniceClient", () => ({
   readResponseError: vi.fn(() => "error"),
 }));
 
+// Default the runtime snapshot to ON (Family Safe Mode). Tests that need
+// Adult Mode can flip the vi.fn() return value via mockReturnValueOnce(false)
+// or use the exported setter directly. The real module's state is a module-
+// level boolean so vi.fn mocks are scoped to the import above.
+vi.mock("../services/runtimeSafetySettings", () => ({
+  getRuntimeLocalFamilySafeModeEnabled: vi.fn(() => true),
+  setRuntimeLocalFamilySafeModeEnabled: vi.fn(),
+}));
+
 vi.mock("../services/configService", () => ({
   exportConfigTemplate: vi.fn(async () => ({ ok: true })),
   getPaths: vi.fn(() => ({ configPath: "/mock/config.yaml", themesPath: "/mock/themes.yaml", source: "userdata" })),
@@ -153,6 +162,9 @@ describe("registerIpcHandlers", () => {
 
     it("skips the local guard in Adult Mode and calls the Venice client", async () => {
       const { performVeniceRequest } = await import("../services/veniceClient");
+      const { getRuntimeLocalFamilySafeModeEnabled } = await import("../services/runtimeSafetySettings");
+      // Flip the runtime snapshot to OFF for this test (Adult Mode).
+      vi.mocked(getRuntimeLocalFamilySafeModeEnabled).mockReturnValueOnce(false);
       vi.mocked(performVeniceRequest).mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -169,6 +181,8 @@ describe("registerIpcHandlers", () => {
           endpoint: "/chat/completions",
           method: "POST",
           body: { messages: [{ role: "user", content: "loli" }] },
+          // Renderer-supplied flag is ignored; the runtime snapshot is the
+          // canonical source. (kept for back-compat documentation)
           localFamilySafeModeEnabled: false,
         },
       );

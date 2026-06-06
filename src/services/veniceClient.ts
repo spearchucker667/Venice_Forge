@@ -57,10 +57,13 @@ function sanitizeBody(body: unknown): unknown {
 }
 
 function getSafetyDecisionForLog(endpoint: string, method: string, payload: unknown) {
-  void endpoint;
-  void method;
-  void payload;
-  return null;
+  if (method !== "POST" || payload === undefined) return null;
+  const decision = maybeRunLocalFamilyGuard(
+    { endpoint, method, payload, source: "venice-client" },
+    useSettingsStore.getState().localFamilySafeModeEnabled,
+  );
+  if (decision.skipped) return null;
+  return decision.guardDecision ?? null;
 }
 
 /** Maximum raw upload file size accepted by the renderer. */

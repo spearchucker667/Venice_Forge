@@ -8,13 +8,12 @@
  * Provides high-level operations (creating a chat, adding messages, updating
  * the active roster) that the rp-chat-store consumes.
  *
- * **Safety:** `saveRpChat` calls `assessRpContext` (VERIFY-014) so the full
- * chat content (system prompt, characters, persona, history) is vetted by
- * the existing child-exploitation guard before persistence. To avoid
- * re-assessing on every message append, `appendMessage` writes via an
- * internal `_unsafeAppend` path that is otherwise identical to the public
- * save but skips the guard. The first save (create or first update) goes
- * through the public, guarded `saveRpChat`.
+ * **Safety:** `saveRpChat` and `appendMessage` both call `assessRpContext`
+ * (VERIFY-014) so the full chat content (system prompt, characters, persona,
+ * history, and the new turn) is vetted by the existing child-exploitation
+ * guard before persistence. `_unsafeWriteChat` is the unguarded internal
+ * helper used only after the public functions have already gated the
+ * payload — never call it from feature code.
  */
 
 import { isElectron, desktopRpChats } from "../desktopBridge";
@@ -125,8 +124,8 @@ export async function saveRpChat(chat: RpChatV1): Promise<RpChatV1> {
 }
 
 /** Internal: write a chat to the underlying store without running the safety
- *  guard. Caller must guarantee the content has been vetted via `saveRpChat`
- *  on the initial save (B1). */
+ *  guard. Caller must guarantee the content has been vetted via the public
+ *  `saveRpChat` or `appendMessage` entry points. */
 async function _unsafeWriteChat(chat: RpChatV1): Promise<RpChatV1> {
   if (isElectron()) {
     const res = await desktopRpChats.save(chat);
@@ -148,7 +147,9 @@ export async function deleteRpChat(id: string): Promise<boolean> {
 }
 
 /** Appends a message to a chat, returns the updated chat.
- *  Uses the unsafe write path: the guard already ran on the initial save. */
+ *  Re-runs `assessRpContext` against the new tail of the conversation so a
+ *  blocked turn never reaches storage. The first save is also guarded (see
+ *  `saveRpChat`); this call re-validates on every append. */
 export async function appendMessage(chat: RpChatV1, message: RpMessageV1): Promise<RpChatV1> {
   if (!message || !isValidRole(message.role)) {
     throw new Error("Invalid message role.");
@@ -166,6 +167,18 @@ export async function appendMessage(chat: RpChatV1, message: RpMessageV1): Promi
   };
   const normalized = normalizeChat(next);
   if (!normalized) throw new Error("Invalid RP chat after append.");
+  // Gate on the appended tail. The user-message content (if any) is the last
+  // element of `messages`; we re-evaluate the full chat so historical context
+  // is still scored together with the new turn.
+  const lastUser = [...normalized.messages].reverse().find((m) => m.role === "user");
+  const safety = assessRpContext({
+    rpChat: normalized,
+    characters: [],
+    userMessage: lastUser?.content ?? "",
+  }, useSettingsStore.getState().localFamilySafeModeEnabled);
+  if (!safety.allow || safety.action === "block") {
+    throw new SafetyGuardBlockedError(safety);
+  }
   return _unsafeWriteChat(normalized);
 }
 

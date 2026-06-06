@@ -79,6 +79,7 @@ export function useChat() {
         top_p: topP,
         max_tokens: maxTokens,
         venice_parameters: veniceParamsForRequest,
+        safe_mode: useSettingsStore.getState().veniceApiSafeMode,
       }
 
       // Pass body as object (not JSON.stringify): venice() in

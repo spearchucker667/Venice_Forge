@@ -24,16 +24,21 @@ const enforcementMap = [
     file: 'electron/ipc/handlers.ts',
     name: 'Electron IPC Handlers',
     check: (content) => {
-      // VERIFY-004 fix: use regex scan instead of brittle string-split so formatting
-      // changes in handlers.ts don't silently pass this check.
-      // Both "venice:request" and "venice:streamChat" handlers must call the guard.
+      // Both "venice:request" and "venice:streamChat" handlers must call the guard
+      // (either directly via maybeRunLocalFamilyGuard or via the centralized
+      // performGuardedVeniceRequest / checkLocalFamilyGuard wrappers in
+      // electron/services/guardPipeline.ts).
       const hasVeniceRequest = /["']venice:request["']/.test(content);
       const hasVeniceStream = /["']venice:streamChat["']/.test(content);
-      const guardCallCount = (content.match(/maybeRunLocalFamilyGuard\s*\(/g) || []).length;
+      const directGuardCalls = (content.match(/maybeRunLocalFamilyGuard\s*\(/g) || []).length;
+      const wrapperGuardCalls =
+        (content.match(/performGuardedVeniceRequest\s*\(/g) || []).length +
+        (content.match(/checkLocalFamilyGuard\s*\(/g) || []).length;
+      const totalGuardCalls = directGuardCalls + wrapperGuardCalls;
       // At minimum two guard calls required (one per handler)
-      return hasVeniceRequest && hasVeniceStream && guardCallCount >= 2;
+      return hasVeniceRequest && hasVeniceStream && totalGuardCalls >= 2;
     },
-    message: 'IPC handlers "venice:request" and "venice:streamChat" must be guarded'
+    message: 'IPC handlers "venice:request" and "venice:streamChat" must be guarded (via maybeRunLocalFamilyGuard or performGuardedVeniceRequest / checkLocalFamilyGuard)'
   },
   {
     file: 'server.ts',

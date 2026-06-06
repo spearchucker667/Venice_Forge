@@ -93,6 +93,7 @@ interface ConfigState {
   config: SanitizedConfigSnapshot | null;
   status: ConfigStatusSnapshot | null;
   loading: boolean;
+  hydrated: boolean;
   error: string | null;
   lastLoadedAt: number;
   setPayload: (config: SanitizedConfigSnapshot, status: ConfigStatusSnapshot) => void;
@@ -106,14 +107,15 @@ export const useConfigStore = create<ConfigState>((set) => ({
   config: null,
   status: null,
   loading: false,
+  hydrated: false,
   error: null,
   lastLoadedAt: 0,
   setPayload: (config, status) =>
-    set({ config, status, loading: false, error: null, lastLoadedAt: Date.now() }),
+    set({ config, status, loading: false, hydrated: true, error: null, lastLoadedAt: Date.now() }),
   setStatus: (status) => set({ status, lastLoadedAt: Date.now() }),
   setError: (error) => set({ error, loading: false }),
   setLoading: (loading) => set({ loading }),
-  reset: () => set({ config: null, status: null, error: null, lastLoadedAt: 0 }),
+  reset: () => set({ config: null, status: null, error: null, hydrated: false, lastLoadedAt: 0 }),
 }));
 
 /** Loads the config payload from the desktop bridge and updates the store. */

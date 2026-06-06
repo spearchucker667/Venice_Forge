@@ -6,8 +6,11 @@
  * and registers the resulting asset in the `rp_assets` store.
  *
  * Safety:
- *   - `assessScenePrompt` is the mandatory first step. Blocked prompts never
- *     reach Venice and never register an asset.
+ *   - `assessScenePrompt` is the first step. The guard is gated by
+ *     `useSettingsStore.getState().localFamilySafeModeEnabled` — when Local
+ *     Family Safe Mode is OFF (Adult Mode) the rule engine is bypassed; when
+ *     ON a block prevents the call from reaching Venice and prevents the
+ *     asset from being registered.
  *   - Raw prompt text is NEVER logged. Errors return safe user-facing strings.
  *
  * Transport:
@@ -82,7 +85,7 @@ export async function generateScene(
   const prompt = extractScenePrompt(chat, { promptOverride: req.promptOverride });
   const model = req.model ?? DEFAULT_IMAGE_MODEL;
 
-  // 1. Mandatory safety guard.
+  // 1. Local Family Safe Mode guard (skipped when Adult Mode is on).
   const localFamilySafeModeEnabled = useSettingsStore.getState().localFamilySafeModeEnabled;
   const veniceApiSafeMode = useSettingsStore.getState().veniceApiSafeMode;
   const decision = assessScenePrompt(prompt, req.negativePrompt, localFamilySafeModeEnabled);

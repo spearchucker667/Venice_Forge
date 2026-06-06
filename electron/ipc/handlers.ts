@@ -26,7 +26,7 @@ import {
   setJinaApiKey,
 } from "../services/secureStore";
 import { getLastApiError, getLogsDir, logError, openLogsFolder } from "../services/logger";
-import { abortVeniceRequest, performVeniceRequest, readResponseError } from "../services/veniceClient";
+import { abortVeniceRequest, readResponseError } from "../services/veniceClient";
 import {
   deleteConversation,
   getConversation,
@@ -38,13 +38,13 @@ import { redactErrorMessage } from "../../src/services/redaction";
 import { registerUpdateHandlers } from "./updates";
 import { registerRpIpcHandlers } from "./rpHandlers";
 import { VENICE_MAX_BODY_BYTES } from "../../src/shared/limits";
-import { maybeRunLocalFamilyGuard, SafetyGuardBlockedError } from "../../src/shared/safety";
+import { SafetyGuardBlockedError } from "../../src/shared/safety";
+import { performGuardedVeniceRequest, checkLocalFamilyGuard } from "../services/guardPipeline";
 import type { Conversation } from "../../src/types/conversation";
 import {
   exportConfigTemplate,
   getPaths,
   getSanitizedConfig,
-  getCurrentConfig,
   getStatus as getConfigStatus,
   initializeConfig,
   loadMergedThemes,
@@ -73,7 +73,10 @@ async function testVeniceConnection(): Promise<{ ok: boolean; status?: number; m
     return { ok: false, message: "No API key configured." };
   }
   try {
-    const response = await performVeniceRequest({ endpoint: "/models", method: "GET" });
+    const guarded = await performGuardedVeniceRequest({ endpoint: "/models", method: "GET" });
+    const response = guarded.kind === "blocked"
+      ? { ok: false, status: 451, statusText: "Blocked by Family Safe Mode", headers: {}, body: { error: guarded.block.body.error }, contentType: "application/json" }
+      : guarded.response;
     return {
       ok: response.ok,
       status: response.status,
@@ -90,34 +93,18 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle("venice:request", async (_event, input: unknown) => {
     try {
+      // Validate first so the guard sees a typed endpoint/method/payload.
       const request = validateVeniceIpcRequest(input);
-      const decision = maybeRunLocalFamilyGuard(
-        { endpoint: request.endpoint, method: request.method, payload: request.body, source: "ipc" },
-        request.localFamilySafeModeEnabled,
-      );
-      if (!decision.allowed) {
-        return {
-          ok: false,
-          status: 451,
-          statusText: "Blocked by Family Safe Mode",
-          headers: {},
-          body: {
-            error: decision.userMessage,
-            reasonCode: decision.guardDecision.reasonCode,
-            category: decision.guardDecision.category,
-            severity: decision.guardDecision.severity,
-          },
-          contentType: "application/json",
-        };
-      }
-      return await performVeniceRequest(request);
+      const result = await performGuardedVeniceRequest(request);
+      if (result.kind === "blocked") return result.block;
+      return result.response;
     } catch (err) {
       if (err instanceof SafetyGuardBlockedError) {
         return {
           ok: false,
           status: 451,
           statusText: "Blocked by Family Safe Mode",
-          headers: {},
+          headers: {} as Record<string, never>,
           body: {
             error: err.decision.userMessage,
             reasonCode: err.decision.reasonCode,
@@ -133,7 +120,7 @@ export function registerIpcHandlers(): void {
         ok: false,
         status: 0,
         statusText: "Local transport error",
-        headers: {},
+        headers: {} as Record<string, never>,
         body: { error: message },
         contentType: "application/json",
       };
@@ -146,29 +133,10 @@ export function registerIpcHandlers(): void {
       if (request.endpoint !== "/chat/completions" || request.method !== "POST") {
         throw new Error("Streaming is only available for POST /chat/completions.");
       }
-      const decision = maybeRunLocalFamilyGuard(
-        { endpoint: request.endpoint, method: request.method, payload: request.body, source: "ipc" },
-        request.localFamilySafeModeEnabled,
-      );
-      if (!decision.allowed) {
-        return {
-          ok: false,
-          status: 451,
-          statusText: "Blocked by Family Safe Mode",
-          headers: {},
-          body: {
-            error: decision.userMessage,
-            reasonCode: decision.guardDecision.reasonCode,
-            category: decision.guardDecision.category,
-            severity: decision.guardDecision.severity,
-          },
-          contentType: "application/json",
-        };
-      }
       if (!request.signalId) {
         request.signalId = crypto.randomUUID();
       }
-      return await performVeniceRequest(request, {
+      const result = await performGuardedVeniceRequest(request, {
         onDelta: (chunk) => {
           safeSendToRenderer(event.sender, "venice:streamDelta", {
             signalId: request.signalId,
@@ -177,13 +145,15 @@ export function registerIpcHandlers(): void {
           });
         },
       });
+      if (result.kind === "blocked") return result.block;
+      return result.response;
     } catch (err) {
       if (err instanceof SafetyGuardBlockedError) {
         return {
           ok: false,
           status: 451,
           statusText: "Blocked by Family Safe Mode",
-          headers: {},
+          headers: {} as Record<string, never>,
           body: {
             error: err.decision.userMessage,
             reasonCode: err.decision.reasonCode,
@@ -199,7 +169,7 @@ export function registerIpcHandlers(): void {
         ok: false,
         status: 0,
         statusText: "Local transport error",
-        headers: {},
+        headers: {} as Record<string, never>,
         body: { error: message },
         contentType: "application/json",
       };
@@ -270,17 +240,10 @@ export function registerIpcHandlers(): void {
         return { ok: false, status: 403, error: "Only Jina Reader/Search HTTPS endpoints are allowed." };
       }
 
-      const decision = maybeRunLocalFamilyGuard(
+      const decision = checkLocalFamilyGuard(
         { endpoint: request.url, method: "GET", text: decodeURIComponent(request.url), source: "ipc" },
-        getCurrentConfig().safety.local_family_safe_mode_enabled,
       );
-      if (!decision.allowed) {
-        return {
-          ok: false,
-          status: 451,
-          error: decision.userMessage,
-        };
-      }
+      if (decision) return { ok: false, status: 451, error: decision.body.error };
 
       const headers: Record<string, string> = {};
       if (request.headers && typeof request.headers === "object" && !Array.isArray(request.headers)) {
@@ -355,13 +318,10 @@ export function registerIpcHandlers(): void {
         return { ok: false, error: "Missing or invalid URL" };
       }
 
-      const decision = maybeRunLocalFamilyGuard(
+      const decision = checkLocalFamilyGuard(
         { endpoint: url, method: "GET", text: decodeURIComponent(url), source: "ipc" },
-        getCurrentConfig().safety.local_family_safe_mode_enabled,
       );
-      if (!decision.allowed) {
-        return { ok: false, error: decision.userMessage };
-      }
+      if (decision) return { ok: false, error: decision.body.error };
 
       let parsed: URL;
       try {
@@ -909,16 +869,16 @@ export function registerIpcHandlers(): void {
       if (typeof inp.includeArchived === "boolean") cleanInput.includeArchived = inp.includeArchived;
 
       // SAFETY Stage 1: Screen user prompt message before searching memory
-      const decision = maybeRunLocalFamilyGuard({
+      const decision = checkLocalFamilyGuard({
         endpoint: "/chat/completions",
         method: "POST",
         payload: { messages: [{ role: "user", content: cleanInput.message }] },
         source: "chat"
-      }, getCurrentConfig().safety.local_family_safe_mode_enabled);
-      if (!decision.allowed) {
+      });
+      if (decision) {
         return {
           ok: false,
-          error: decision.userMessage,
+          error: decision.body.error,
           context: { injectedText: "", facts: [], summaries: [], tokenEstimate: 0 }
         };
       }
@@ -928,13 +888,13 @@ export function registerIpcHandlers(): void {
 
       // SAFETY Stage 2: Screen retrieved memory context before returning it to the renderer
       if (context.injectedText) {
-        const contextDecision = maybeRunLocalFamilyGuard({
+        const contextDecision = checkLocalFamilyGuard({
           endpoint: "/chat/completions",
           method: "POST",
           payload: { messages: [{ role: "user", content: context.injectedText }] },
           source: "chat"
-        }, getCurrentConfig().safety.local_family_safe_mode_enabled);
-        if (!contextDecision.allowed) {
+        });
+        if (contextDecision) {
           return {
             ok: true,
             context: { injectedText: "", facts: [], summaries: [], tokenEstimate: 0 }

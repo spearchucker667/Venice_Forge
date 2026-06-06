@@ -41,6 +41,11 @@ export function SettingsView() {
 
   const [activeSection, setActiveSection] = useState("api-keys");
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
+  // One-shot cancel callback for the safety-import confirmation. The import
+  // path resolves a Promise via the modal's confirm/cancel buttons; this ref
+  // lets the wrapper's onCancel fire the cancel resolution without changing
+  // the existing PendingConfirm type.
+  const applySafetyCancelRef = useRef<(() => void) | null>(null);
 
   // Venice key entry state
   const [apiKeyInput, setApiKeyInput] = useState("");
@@ -68,12 +73,24 @@ export function SettingsView() {
     key: "local_family_safe_mode_enabled" | "venice_api_safe_mode",
     enabled: boolean,
   ) {
+    // Optimistic update + rollback: apply to the renderer store first so
+    // the toggle feels instant, then persist to the YAML. If persistence
+    // fails (disk full, parse error, etc.) we revert the renderer state
+    // and surface a toast — otherwise the UI and the main-process guard
+    // would disagree about whether the user is in Family Safe Mode.
+    const previousFamily = localFamilySafeModeEnabled;
+    const previousVenice = veniceApiSafeMode;
     if (key === "local_family_safe_mode_enabled") setLocalFamilySafeModeEnabled(enabled);
     else setVeniceApiSafeMode(enabled);
     if (isElectron()) {
       const result = await desktopConfig.writeSanitized({ safety: { [key]: enabled } });
-      if (!result.ok) toast.error(result.error || "Failed to persist safety setting.");
-      else await reloadConfig();
+      if (!result.ok) {
+        if (key === "local_family_safe_mode_enabled") setLocalFamilySafeModeEnabled(previousFamily);
+        else setVeniceApiSafeMode(previousVenice);
+        toast.error(result.error || "Failed to persist safety setting.");
+        return;
+      }
+      await reloadConfig();
     }
   }
 
@@ -356,15 +373,37 @@ export function SettingsView() {
         const apiSafeMode = typeof value.veniceApiSafeMode === "boolean"
           ? value.veniceApiSafeMode
           : true;
-        setLocalFamilySafeModeEnabled(familyEnabled);
-        setVeniceApiSafeMode(apiSafeMode);
-        if (isElectron()) {
-          await desktopConfig.writeSanitized({
-            safety: {
-              local_family_safe_mode_enabled: familyEnabled,
-              venice_api_safe_mode: apiSafeMode,
-            },
+        const wouldDisable = !familyEnabled || !apiSafeMode;
+        let applySafety = true;
+        if (wouldDisable) {
+          const confirmed = await new Promise<boolean>((resolve) => {
+            setPendingConfirm({
+              message:
+                "This export turns OFF one or more safety guards. " +
+                "Adult Mode disables the local child-exploitation rule engine and " +
+                "turns off the Venice API safe_mode flag.",
+              detail: "Confirm to apply the imported safety settings, or cancel to keep your current ones.",
+              onConfirm: () => resolve(true),
+            });
+            // Stash a cancel callback so the existing ConfirmModal wrapper
+            // can resolve the promise when the user dismisses the dialog
+            // without applying.
+            applySafetyCancelRef.current = () => resolve(false);
           });
+          applySafety = confirmed;
+          applySafetyCancelRef.current = null;
+        }
+        if (applySafety) {
+          setLocalFamilySafeModeEnabled(familyEnabled);
+          setVeniceApiSafeMode(apiSafeMode);
+          if (isElectron()) {
+            await desktopConfig.writeSanitized({
+              safety: {
+                local_family_safe_mode_enabled: familyEnabled,
+                venice_api_safe_mode: apiSafeMode,
+              },
+            });
+          }
         }
       }
       
@@ -853,7 +892,11 @@ export function SettingsView() {
             setPendingConfirm(null);
           }
         }}
-        onCancel={() => setPendingConfirm(null)}
+        onCancel={() => {
+          applySafetyCancelRef.current?.();
+          applySafetyCancelRef.current = null;
+          setPendingConfirm(null);
+        }}
       />
     </div>
   );

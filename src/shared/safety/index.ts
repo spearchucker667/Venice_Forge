@@ -29,5 +29,6 @@ export {
   FAMILY_SAFE_MODE_BLOCK_MESSAGE,
   maybeRunLocalFamilyGuard,
   runLocalFamilyGuard,
+  screenResponseBody,
 } from "./localFamilySafeGuard";
-export type { LocalGuardDecision } from "./localFamilySafeGuard";
+export type { LocalGuardDecision, ResponseBodyScreenResult } from "./localFamilySafeGuard";

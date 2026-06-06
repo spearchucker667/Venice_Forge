@@ -50,3 +50,41 @@ export function maybeRunLocalFamilyGuard(
 
   return { allowed: true, guardDecision };
 }
+
+export type ResponseBodyScreenResult =
+  | { allowed: true; skipped: boolean; reason?: string }
+  | { allowed: false; reason: string; ruleId?: string; userMessage: string };
+
+/**
+ * Screens a string returned by a web-proxy or scrape boundary. The guard is
+ * gated by the same `localFamilySafeModeEnabled` flag used elsewhere — when
+ * Family Safe Mode is OFF (Adult Mode) the body is allowed through unchanged
+ * and `skipped` is set so callers can record that no rule evaluation happened.
+ *
+ * Callers MUST treat blocked results as a 451 with the supplied `userMessage`
+ * (do not echo raw body content back to the user). When the input is shorter
+ * than the guard's prompt-hash budget we screen verbatim; for very large
+ * bodies we sample a window to keep evaluation O(1) on payload size.
+ */
+export function screenResponseBody(
+  body: string,
+  context: SafetyGuardInput,
+  localFamilySafeModeEnabled: boolean,
+  sampleWindow = 8000,
+): ResponseBodyScreenResult {
+  if (!localFamilySafeModeEnabled) {
+    return { allowed: true, skipped: true, reason: "local-family-safe-mode-disabled" };
+  }
+  const sample = body.length > sampleWindow ? body.slice(0, sampleWindow) : body;
+  const input: SafetyGuardInput = { ...context, text: sample };
+  const decision = maybeRunLocalFamilyGuard(input, true);
+  if (!decision.allowed) {
+    return {
+      allowed: false,
+      reason: decision.reason,
+      ruleId: decision.ruleId,
+      userMessage: decision.userMessage,
+    };
+  }
+  return { allowed: true, skipped: false };
+}

@@ -32,6 +32,14 @@ export interface ChatSettings {
   webSearch?: string;
   webScraping?: boolean;
   webCitations?: boolean;
+  /**
+   * Venice provider-side safe_mode toggle. When set, the payload includes
+   * a top-level `safe_mode: boolean`. This is separate from the local
+   * Family Safe Mode that runs in the renderer/main process — both must
+   * be on for the full protection chain. Defaults to undefined (omitted),
+   * so existing callers that don't pass it keep their current shape.
+   */
+  safeMode?: boolean;
 }
 
 /** Options that control streaming, character slugs, reasoning, and thinking output. */
@@ -109,6 +117,7 @@ export function buildChatPayload(
   const slug = options.characterSlug?.trim();
   if (slug) (payload.venice_parameters as Record<string, unknown>).character_slug = slug;
   if (options.reasoningEffort) payload.reasoning = { effort: options.reasoningEffort };
+  if (typeof settings.safeMode === "boolean") payload.safe_mode = settings.safeMode;
   return payload;
 }
 

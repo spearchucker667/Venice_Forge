@@ -298,4 +298,116 @@ coverage) and predates this audit round.
 
 ---
 
-**Last verified:** 2026-06-05T02:35:00Z against v1.0.5
+## Round-3 Family Safe Mode guard pipeline audit (2026-06-05)
+
+Same day, third round. Triggered by a self-audit of the toggle plumbing
+shipped in the round-2 family-mode toggle commit (`16c4962e`). All
+findings are resolved in this single batch; `VERIFY-015`
+(`tests/safety/guardPipeline.test.ts`, 27 cases) locks the contract.
+
+### P0 — Resolved in this batch
+
+#### Source of truth drift between renderer payload and main-process config
+- **Location:** `electron/ipc/handlers.ts` (venice:request, venice:streamChat)
+- **Description:** Both handlers read `request.localFamilySafeModeEnabled`
+  from the renderer payload and used it as the guard toggle. A malicious
+  or buggy renderer could flip the flag to false at request time even
+  though the canonical config snapshot was `true`. Jina / scrape /
+  research-context handlers already used the main-process config.
+- **Fix:** Added `electron/services/guardPipeline.ts` with
+  `performGuardedVeniceRequest` / `checkLocalFamilyGuard` /
+  `buildGuardedBlock`. The `enabled` flag is sourced from
+  `getRuntimeLocalFamilySafeModeEnabled()` and the renderer payload is
+  ignored. The `localFamilySafeModeEnabled` field on `VeniceIpcRequest`
+  is kept on the type for back-compat.
+- **Regression guard:** VERIFY-015 in `tests/safety/guardPipeline.test.ts`.
+
+#### Renderer config hydration race
+- **Location:** `src/main.tsx`, `src/stores/config-store.ts`
+- **Description:** `initDesktopBridge().then(() => refreshConfig())` was
+  fire-and-forget. React mounted immediately with `useSettingsStore`
+  defaults (`localFamilySafeModeEnabled: true`, `veniceApiSafeMode: true`)
+  and could serve a chat request with the wrong toggle before the
+  config payload landed.
+- **Fix:** `main.tsx` now awaits `initDesktopBridge()` then
+  `refreshConfig()` (with a 2.5 s timeout fallback) before mounting React.
+  `useConfigStore` gained a `hydrated: boolean` flag set by `setPayload`.
+
+#### Optimistic settings UI rollback
+- **Location:** `src/components/SettingsView.tsx` `updateSafetySetting`
+- **Description:** Updated the Zustand store first, then wrote to the
+  YAML config. A failed `writeSanitized` left the renderer state out of
+  sync with the canonical config.
+- **Fix:** Captures the previous family-safe / venice-api-safe values,
+  applies the optimistic update, persists, and on failure reverts the
+  renderer state and surfaces a toast.
+
+#### Venice `safe_mode` not flowing through chat payload
+- **Location:** `src/types/venice.ts`, `src/utils/payloadBuilders.ts`,
+  `src/hooks/use-chat.ts`
+- **Description:** `buildChatPayload` did not include `safe_mode` even
+  though the user-visible Venice API Safe Mode setting was a toggle.
+  `buildImagePayload` already passed through `safe_mode`. The two
+  contracts were inconsistent.
+- **Fix:** Added `safe_mode?: boolean` to `ChatCompletionRequest` and
+  `safeMode?: boolean` to `ChatSettings`. `buildChatPayload` emits
+  `payload.safe_mode = settings.safeMode` when set. `useChat` wires
+  `useSettingsStore.getState().veniceApiSafeMode` into every chat body.
+
+#### Stale comments misleading future contributors
+- **Location:** `src/shared/safety/childExploitationGuard.ts`,
+  `src/services/rp/sceneGenerationService.ts`,
+  `src/services/rp/rpChatService.ts`
+- **Description:** `childExploitationGuard.ts` header said "No
+  production user-facing disable toggle" — stale after the round-2
+  toggle work. `sceneGenerationService.ts` said "Mandatory safety
+  guard" — actually gated on `localFamilySafeModeEnabled`. The RP chat
+  bypass comment was misleading.
+- **Fix:** Replaced with prose that reflects the runtime snapshot, the
+  Adult-Mode skip path, and the per-entry-point contract for `_unsafeWriteChat`.
+
+### P1 — Resolved in this batch
+
+- **Centralize guarded wrapper:** every IPC handler now routes through
+  `performGuardedVeniceRequest` / `checkLocalFamilyGuard` instead of
+  calling `maybeRunLocalFamilyGuard` directly. The 451 block shape is
+  canonical across all entry points.
+- **RP chat `appendMessage` safety bypass:** the append path now runs
+  `assessRpContext` against the appended message before delegating to
+  the atomic-write helper.
+- **Jina / scrape return-content screening:** `screenResponseBody`
+  helper added to `src/shared/safety/localFamilySafeGuard.ts` and
+  applied to the `/api/proxy-jina` and `/api/proxy-scrape` handlers in
+  `server.ts`. Large bodies are sampled against an 8 KiB window.
+- **Inspector telemetry stub:** `getSafetyDecisionForLog` in
+  `src/services/veniceClient.ts` was a `null` stub. It now records the
+  real preflight `guardDecision` for POST requests with a payload.
+- **Import/export safety-settings semantics:** `SettingsView.importData`
+  shows a confirm modal when an imported bundle would disable a safety
+  guard.
+
+### Coverage lock
+
+`tests/safety/guardPipeline.test.ts` (27 cases) covers:
+
+- Source of truth: `checkLocalFamilyGuard` reads runtime snapshot, not
+  the request flag, and ignores the renderer-supplied toggle.
+- Canonical 451 shape: `buildGuardedBlock` emits
+  `{ ok: false, status: 451, body: { error, reasonCode, category, severity } }`.
+- End-to-end matrix: `/chat/completions`, `/image/{generate,edit,multi-edit}`,
+  `/augment/{search,scrape,text-parser}`, `/embeddings`,
+  `/audio/{speech,transcriptions}`, `/video/queue` all block on the
+  CSAM trigger; `/image/upscale` is documented as a pass-through (no
+  extractable prompt fields).
+- Adult-Mode skip path: runtime snapshot OFF returns
+  `{ kind: "response" }` and forwards the request.
+- `onDelta` callback forwarding for streaming.
+- `SafetyGuardBlockedError` from `performVeniceRequest` is wrapped into
+  the canonical 451 (defence-in-depth).
+- `screenResponseBody` blocks CSAM in web-proxy and scrape returns,
+  allows benign content, skips on Adult Mode, samples 8 KiB windows,
+  handles empty bodies.
+
+---
+
+**Last verified:** 2026-06-05T22:05:00Z against v1.0.5

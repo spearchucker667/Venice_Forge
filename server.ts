@@ -20,7 +20,7 @@ import {
 import { VENICE_API_HOST, VENICE_API_BASE_PATH } from "./src/shared/apiConfig";
 import { AppConfig } from "./src/shared/configSchema";
 import { warn, error } from "./src/shared/logger";
-import { maybeRunLocalFamilyGuard, recordDecision } from "./src/shared/safety";
+import { maybeRunLocalFamilyGuard, recordDecision, screenResponseBody } from "./src/shared/safety";
 import type { SafetyGuardDecision } from "./src/shared/safety";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import { isPrivateHostname } from "./electron/utils/urlSecurity";
@@ -446,6 +446,16 @@ export function createServerApp() {
           ? await response.json().catch(() => null)
           : await response.text();
 
+        const serialized = typeof body === "string" ? body : JSON.stringify(body ?? "");
+        const screen = screenResponseBody(
+          serialized,
+          { endpoint: requestUrl, method: "GET", source: "web-proxy" },
+          isLocalFamilySafeModeEnabled(req),
+        );
+        if (!screen.allowed) {
+          return res.status(451).json({ error: screen.userMessage });
+        }
+
         return res.status(response.status).json(body);
       } finally {
         clearTimeout(timeout);
@@ -574,6 +584,15 @@ export function createServerApp() {
         request.on("error", reject);
         request.end();
       });
+
+      const screen = screenResponseBody(
+        scrapeResult.body,
+        { endpoint: url, method: "GET", source: "scrape" },
+        isLocalFamilySafeModeEnabled(req),
+      );
+      if (!screen.allowed) {
+        return res.status(451).json({ error: screen.userMessage });
+      }
 
       res.status(scrapeResult.status).json({
         url,

@@ -72,6 +72,8 @@ npm run clean            # Remove dist/ dist-electron/ release/
 
 **State:** Zustand 5 stores (`auth`, `chat`, `playground`, `settings`, `toast`, and `workflow`). Reducer-based state has been fully migrated to lightweight slice stores. Side effects live in services/modules.
 
+**Local Family Safe Mode runtime snapshot:** The main-process `runtimeSafetySettings` module holds the canonical enabled/disabled state. Every Venice-touching IPC handler must route through `performGuardedVeniceRequest` / `checkLocalFamilyGuard` in `electron/services/guardPipeline.ts`; the renderer-supplied `localFamilySafeModeEnabled` field on `VeniceIpcRequest` is no longer trusted (kept on the type for back-compat but ignored). The 451 block shape (`{ ok: false, status: 451, body: { error, reasonCode, category, severity } }`) is canonical across all entry points. The web proxy uses the `X-Venice-Forge-Family-Safe-Mode` header, which the renderer sets from `useSettingsStore.getState().localFamilySafeModeEnabled`. Returned body screening (`screenResponseBody`) covers Jina and scrape endpoints. See VERIFY-015 in `tests/safety/guardPipeline.test.ts`.
+
 **Conversation persistence (dual-mode):**
 - Desktop: atomic JSON files under `userData/chat-history/` (temp + rename)
 - Web: encrypted IndexedDB `conversations` store
@@ -114,6 +116,7 @@ test's comment header.
 | `VERIFY-012` | RP chat storage invariants (atomic write, ID validation, MAX_ACTIVE_CHARACTERS, corruption backup) | `tests/storage/rpChatStorage.regression.test.ts` |
 | `VERIFY-013` | Scene-generation safety + asset persistence (assessScenePrompt always runs; assets linked by chatId) | `tests/safety/sceneGeneration.regression.test.ts` |
 | `VERIFY-014` | Character RP safety wrapper routing (every wrapper produces a real guard decision; no raw prompt text in userMessage) | `tests/safety/characterImportSafety.routing.test.ts` |
+| `VERIFY-015` | Guarded IPC pipeline (`performGuardedVeniceRequest` / `checkLocalFamilyGuard` / `screenResponseBody`) — runtime snapshot is the source of truth, canonical 451 block shape, return-content screening, endpoint matrix lock | `tests/safety/guardPipeline.test.ts` |
 
 ---
 
@@ -208,6 +211,8 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `tests/storage/rpChatStorage.regression.test.ts` | RP chat storage invariants (VERIFY-012) |
 | `tests/safety/sceneGeneration.regression.test.ts` | Scene-generation safety + assets (VERIFY-013) |
 | `tests/safety/characterImportSafety.routing.test.ts` | Character RP safety wrapper routing (VERIFY-014) |
+| `tests/safety/guardPipeline.test.ts` | Guarded IPC pipeline — runtime snapshot, 451 shape, return-content screening, endpoint matrix (VERIFY-015) |
+| `electron/services/guardPipeline.ts` | `performGuardedVeniceRequest` / `checkLocalFamilyGuard` / `buildGuardedBlock` — central IPC entry point combining runtime snapshot + local guard |
 | `docs/AUDIT_FOLLOWUP_2026_06_05.md` | 2026-06-05 full-repo audit report — P0/P1/P2 status, commits, follow-up items |
 
 ---
