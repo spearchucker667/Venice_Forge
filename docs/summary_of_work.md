@@ -89,11 +89,15 @@ are resolved. No P0/P1/P2/P3 audit-ledger items remain open.
 - **Date:** 2026-06-07
 - **Agent:** opencode (minimax-m3)
 - **Branch:** main
-- **Commit:** `ecfa28f` (pushed)
-- **Primary objective:** Apply the production-side fix to `electron/services/mediaService.ts` so the `windows-sensitive-tests` job passes on `windows-2025` / Node 22.
-- **Changes (single production file):** `electron/services/mediaService.ts` — added three helpers (`canonicalizeExistingPath`, `canonicalizeBaseDirs`, `importSafeBaseDirs`) and replaced the three inline allowlist constructions in `importMediaFromPath`, `revealMediaInFolder`, and `readMediaMeta` with calls that canonicalize the base directories through `fs.realpath()` before the containment check. The child path is still canonicalized through `fs.realpath()` at every call site. The `__test` export now exposes the new helpers for future assertions.
-- **Validation (Node 22.22.3):** typecheck clean · ESLint 0 warnings · focused `mediaService.test.ts` **27/27** · full Windows-sensitive suite **92/92** · full test suite **1,370/1,370** (1 Playwright smoke skip) · `verify:safety-guard` 3/3 · `verify:markdown-links` 42 files clean.
-- **Open TODO status:** No P0–P3 changes. The CI red is now green."
+- **Tag:** `v1.0.6` (force-moved to current head `f579594b`, pushed; CI release workflow `27090498272` ran 3 jobs to completion in 7m19s and uploaded 27 release assets)
+- **Primary objective:** Re-publish the v1.0.6 GitHub Release so the artifacts reflect the 6 new commits since the original tag (production Media Studio handoffs / derivative lineage / 29-role theme contract, Windows path-canonicalization fix, Windows test fixture stability, internal prompt-enhancer LLM, character avatar HTTPS allowlist, repo hygiene, Jina 2 MiB cap, ephemeral web Jina keys, OS-secure configured-state UI gating, Linux arm64 AppImage + deb + rpm, no source maps) and become easily downloadable.
+- **Changes:**
+  - `git tag -d v1.0.6 && git tag v1.0.6` (moved to `f579594b`); `git push origin v1.0.6 --force` (`f86f2da1...f579594b v1.0.6 -> v1.0.6 (forced update)`).
+  - GitHub Actions `Release` workflow auto-triggered on tag push: `build-windows` 5m48s, `build-macos` 4m05s, `publish` 0m45s. All three succeeded.
+  - `verify:dist:mac` and `verify:dist:win` passed inside CI for the freshly-built artifacts. SHA-256 checksums and blockmaps uploaded for every artifact.
+  - `gh release edit v1.0.6 --notes "..."` rewrote the release notes to summarize the 6 new commits, with the same "Full changelog" link to the `v1.0.5...v1.0.6` compare view.
+- **Validation:** all gates green inside CI (typecheck, lint, audit `--omit=dev --moderate`, full test suite, build, dist, checksum, verify). No local builds were necessary — the `release.yml` workflow handles all three platforms. `v1.0.6` release now has 27 downloadable assets (was 0).
+- **Open TODO status:** No P0–P3 changes. macOS / Windows artifacts published; Linux is not part of the `release.yml` workflow (no `build-linux` job), so no Linux artifacts are published. The Node 20 Actions deprecation warning is independent of this work and remains deferred per the user's prior instruction."
 
 ---
 
@@ -273,6 +277,126 @@ are resolved. No P0/P1/P2/P3 audit-ledger items remain open.
 ---
 
 ## Session History
+
+### 2026-06-07 — Re-publish v1.0.6 release with 6 new commits (this session)
+
+**Context:**
+- The v1.0.6 GitHub Release was published on 2026-06-07 at 01:33Z
+  but had 0 downloadable assets. The tag pointed at `f86f2da1`,
+  and the 6 new commits since then (production Media Studio
+  handoffs / derivative lineage / 29-role theme contract,
+  Windows path-canonicalization fix, Windows test fixture
+  stability, internal prompt-enhancer LLM, character avatar
+  HTTPS allowlist) had no compiled binaries attached.
+- The user asked for the v1.0.6 tag to be pushed so the release
+  is updated and easily downloadable.
+
+**Approach (decided with the user):**
+- Force-move the existing `v1.0.6` tag to the current head
+  (`f579594b`). Do NOT cut a new tag (the user explicitly
+  said v1.0.6). Do NOT loosen the production allowlist,
+  the production security posture, or the test expectations.
+- Let the existing `.github/workflows/release.yml` do the
+  build / checksum / verify / upload work — it has runners
+  for macOS (`macos-latest`) and Windows (`windows-latest`)
+  and is configured to publish to GitHub Releases via
+  `softprops/action-gh-release`. Local builds would only
+  produce macOS artifacts; CI produces both.
+
+**Files Changed (1 docs):**
+- `docs/summary_of_work.md` — *Latest Session Summary*
+  replaced; *Session History* gains this entry; *Validation
+  Matrix* gains the release-workflow rows.
+
+**Tag & Push:**
+- `git tag -d v1.0.6 && git tag v1.0.6` (moved locally to
+  `f579594b`).
+- `git push origin v1.0.6 --force` → `+ f86f2da1...f579594b
+  v1.0.6 -> v1.0.6 (forced update)`.
+
+**CI Release Workflow (run `27090498272`):**
+- `build-windows` 5m48s — success. Test step on
+  `windows-2025` passed (the Windows path-canonicalization
+  fix landed before the tag push, so the test that was
+  red in two prior v1.0.6 release runs now passes). NSIS
+  + portable artifacts produced and uploaded.
+- `build-macos` 4m05s — success. x64 + arm64 DMG + ZIP
+  artifacts produced and uploaded. Signing
+  / notarization credentials absent, so artifacts are
+  unsigned (as expected for the local-dev reality; tracked
+  as a known issue across sessions).
+- `publish` 0m45s — success. Downloaded both artifact
+  bundles and published all 27 assets to the existing
+  v1.0.6 release.
+
+**Validation (Node 22.22.3 / npm 10.9.8 — supported
+toolchain, run inside CI):**
+* PASS: `npm ci` (0 vulnerabilities, no engine warning);
+  `npm audit --omit=dev --audit-level=moderate` (release
+  gate); `verify:icon`; `typecheck`; `npm test` (full
+  suite, including the Windows realpath fix); `npm run
+  build`; `dist:mac`; `dist:win`; `checksum:release`;
+  `verify:dist:mac`; `verify:dist:win`.
+* FAIL: None. (Two prior v1.0.6 release runs had failed at
+  the Test step on Windows because the realpath bug
+  wasn't fixed yet. This run succeeded.)
+* BLOCKED: macOS `codesign` / `spctl` and Windows
+  authenticode signing — credentials absent. Artifacts
+  are unsigned. This is the same blocker tracked in
+  every prior session.
+
+**Release Assets (27):**
+* Windows x64: `Venice-Forge-1.0.6-x64-Setup.exe` (NSIS,
+  124 MB) + `Venice-Forge-1.0.6-x64-Portable.exe` (124 MB)
+  + SHA-256 + blockmaps + `latest.yml`.
+* macOS arm64: `Venice-Forge-1.0.6-arm64.dmg` (144 MB) +
+  `Venice-Forge-1.0.6-arm64.zip` (139 MB) + SHA-256 +
+  blockmaps + `latest-mac.yml`.
+* macOS x64: `Venice-Forge-1.0.6-x64.dmg` (149 MB) +
+  `Venice-Forge-1.0.6-x64.zip` (144 MB) + SHA-256 +
+  blockmaps.
+* Linux: not produced. `.github/workflows/release.yml`
+  has no `build-linux` job. macOS local builds can't
+  cross-compile to AppImage / deb / rpm. This matches
+  the prior v1.0.5 release.
+
+**Release notes:** rewritten via
+`gh release edit v1.0.6 --notes "..."` to summarize the
+6 new commits (production Media Studio handoffs,
+derivative lineage, 29-role theme contract, Windows
+path-canonicalization fix, Windows test fixture
+stability, internal prompt-enhancer, character avatar
+HTTPS allowlist, repo hygiene, Jina 2 MiB cap, ephemeral
+web Jina keys, OS-secure configured-state UI gating,
+Linux arm64 AppImage + deb + rpm, no source maps). The
+"Full changelog" link to the v1.0.5...v1.0.6 compare
+view is preserved.
+
+**Open Follow-ups:**
+* Linux artifacts — the repo has no `build-linux` CI
+  job. To add Linux AppImage / deb / rpm to the release,
+  add a `build-linux` job to `.github/workflows/release.yml`
+  that runs on `ubuntu-latest`, calls `npm run dist` (or
+  a new `dist:linux` script), generates SHA-256 checksums,
+  verifies with `verify:dist:linux` (also needs to be
+  added to `scripts/verify-dist.cjs`), and uploads. The
+  `electron-builder.config.cjs` is already configured
+  for arm64 AppImage + deb + rpm.
+* Node 20 Actions deprecation warning for
+  `actions/checkout@34e114...` and
+  `actions/setup-node@49933...` is independent of this
+  release. Bumping the SHAs to current versions that
+  support Node 24, or setting
+  `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true`, is tracked
+  separately in the *Future / user-directed* bucket.
+
+**Risks:** None new. The v1.0.6 tag was force-moved
+forward to include the validated 6-commit batch; the
+build artifacts were freshly produced from that commit
+via the same CI workflow that has shipped prior
+releases. No code, config, or docs were modified in
+this session — only the docs/summary_of_work.md ledger
+entry required by AGENTS.md.
 
 ### 2026-06-07 — Windows path-canonicalization production fix (this session)
 
@@ -1925,6 +2049,9 @@ None are release blockers. The P0–P3 sections above remain accurate.
 | `npm run verify:safety-guard` (windows path-canonicalization fix) | PASS, 3/3 | 2026-06-07 | No raw prompt logging or bypass patterns |
 | `npm run verify:markdown-links` (windows path-canonicalization fix) | PASS, 42 files | 2026-06-07 | No broken links |
 | `git commit` (`ecfa28f`) + `git push` (windows path-canonicalization fix) | success | 2026-06-07 | Single-file production fix; production `mediaService.ts` gains canonicalization helpers and uses them in all three allowlist call sites |
+| `git push origin v1.0.6 --force` (re-publish v1.0.6 release) | success | 2026-06-07 | `+ f86f2da1...f579594b v1.0.6 -> v1.0.6 (forced update)` |
+| `actions/runs/27090498272` (Release workflow) | PASS | 2026-06-07 | `build-windows` 5m48s + `build-macos` 4m05s + `publish` 0m45s; 27 assets uploaded |
+| `gh release view v1.0.6 --json assets` | 27 assets | 2026-06-07 | Windows NSIS + portable + macOS x64/arm64 DMG + ZIP + checksums + blockmaps + latest-mac.yml; release notes rewritten via `gh release edit` |
 
 ---
 
