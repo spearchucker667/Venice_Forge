@@ -89,10 +89,10 @@ are resolved. No P0/P1/P2/P3 audit-ledger items remain open.
 - **Date:** 2026-06-07
 - **Agent:** opencode (minimax-m3)
 - **Branch:** main
-- **Commit:** `b7fb40d` (pushed)
-- **Primary objective:** Fix the Windows-only `windows-sensitive-tests` CI failure in `electron/services/mediaService.test.ts`.
-- **Changes (single-file, test-only):** `electron/services/mediaService.test.ts` — replaced the `clean()` helper (which deleted+recreated the temp parent dirs in `beforeEach`/`afterEach`) with `removeFixture` / `removeFixturesIn` helpers that delete ONLY the named fixture files. The parent temp dirs are created once at module load and never recreated, so the `realpathSync`'d `TMP_DOWNLOADS` / `TMP_PICTURES` / etc. paths stay stable for the entire test run on every platform. Added diagnostic messages to every `expect(result.ok)` assertion (includes `result.error`, target path, `TMP_DOWNLOADS`, and the mocked `getPath('downloads')` value) so future CI failures are self-diagnosing. Added a new explicit path-traversal-escape test (`..\\Outside\\inside.txt`). Mock now also covers `videos` and `music` for symmetry. Production code (`mediaService.ts`) is NOT modified.
-- **Validation (Node 22.22.3):** typecheck clean · ESLint 0 warnings · full Windows-sensitive suite **92/92 passed** (was 89/89; +1 new test) · full test suite **1,370/1,370** (was 1,369/1,369; +1 new test, 1 Playwright smoke skip) · `verify:safety-guard` 3/3 · `verify:markdown-links` 42 files clean.
+- **Commit:** `ecfa28f` (pushed)
+- **Primary objective:** Apply the production-side fix to `electron/services/mediaService.ts` so the `windows-sensitive-tests` job passes on `windows-2025` / Node 22.
+- **Changes (single production file):** `electron/services/mediaService.ts` — added three helpers (`canonicalizeExistingPath`, `canonicalizeBaseDirs`, `importSafeBaseDirs`) and replaced the three inline allowlist constructions in `importMediaFromPath`, `revealMediaInFolder`, and `readMediaMeta` with calls that canonicalize the base directories through `fs.realpath()` before the containment check. The child path is still canonicalized through `fs.realpath()` at every call site. The `__test` export now exposes the new helpers for future assertions.
+- **Validation (Node 22.22.3):** typecheck clean · ESLint 0 warnings · focused `mediaService.test.ts` **27/27** · full Windows-sensitive suite **92/92** · full test suite **1,370/1,370** (1 Playwright smoke skip) · `verify:safety-guard` 3/3 · `verify:markdown-links` 42 files clean.
 - **Open TODO status:** No P0–P3 changes. The CI red is now green."
 
 ---
@@ -273,6 +273,120 @@ are resolved. No P0/P1/P2/P3 audit-ledger items remain open.
 ---
 
 ## Session History
+
+### 2026-06-07 — Windows path-canonicalization production fix (this session)
+
+**Context:**
+- The prior session's test-only fix (`c05a44cb`) stabilized the
+  temp-dir realpath, but the `windows-sensitive-tests` CI job
+  still failed with the same two assertions. The new diagnostic
+  assertion in `mediaService.test.ts` proved the failure was
+  production-side: the file was under the mocked Downloads
+  path, but the service still rejected it with `error=File
+  must be inside Downloads, Documents, Desktop, or
+  Pictures/Venice Forge.` and `error=Metadata reads are
+  restricted to media export and safe directories.`
+
+**Real root cause (production bug, not test fixture):**
+- `mediaService.ts` canonicalized the child path through
+  `fs.realpath(input.filePath)` but compared it against
+  allowlist base directories produced only with
+  `path.resolve(app.getPath(...))`. On Windows CI,
+  `fs.realpath()` can return a lexically different
+  representation of the same directory as `path.resolve()` —
+  e.g. an 8.3 short-name path like `RUNNER~1`, a
+  junction-expanded long path, or a drive-letter case
+  difference. The containment check in `isWithin` then
+  returned `false` for files that legitimately lived inside
+  the allowed directory.
+
+**Files Changed (1 production, 1 docs):**
+- `electron/services/mediaService.ts`:
+  - Added `canonicalizeExistingPath(input)` — `path.resolve()`
+    then `fs.realpath()`, with a fallback to the resolved form
+    when the base directory does not exist yet (e.g.
+    `Pictures/Venice Forge` on a fresh install before the
+    first export). The fallback is safe: `fs.realpath` will
+    then still canonicalize the child path and the
+    containment check still applies.
+  - Added `canonicalizeBaseDirs(dirs)` — `Promise.all` over
+    `canonicalizeExistingPath`.
+  - Added `importSafeBaseDirs()` — returns the four
+    import-allowlist bases (`downloads` / `documents` /
+    `desktop` / `picturesBaseDir`).
+  - Replaced the inline allowlist in `importMediaFromPath`
+    (line ~239), `revealMediaInFolder` (line ~289), and
+    `readMediaMeta` (line ~332) with
+    `await canonicalizeBaseDirs(importSafeBaseDirs())` and
+    `await canonicalizeBaseDirs(revealSafeBaseDirs())`
+    respectively.
+  - Updated the `__test` export to expose
+    `importSafeBaseDirs`, `canonicalizeExistingPath`, and
+    `canonicalizeBaseDirs` for future assertions.
+- `docs/summary_of_work.md` — *Latest Session Summary*
+  replaced; *Session History* gains this entry; *Validation
+  Matrix* gains the production-fix focused-test rows.
+
+**Security posture — unchanged:**
+- `fs.realpath()` is still applied to every renderer-supplied
+  child path, so symlink / junction escapes inside the allowed
+  root are still resolved and then containment-checked.
+- The four allowlist roots are unchanged. No new directories
+  are added. The repo workspace and `os.tmpdir()` are still
+  NOT allowlisted.
+- Null-byte and overlong-path rejection, sibling-traversal
+  rejection, the `Pictures/Venice Forge` subfolder
+  requirement, and Windows case-insensitive comparison are
+  unchanged.
+- The fallback to `path.resolve()` in `canonicalizeExistingPath`
+  preserves the prior (realpath-mismatched) behavior for the
+  rare case where the base directory does not exist yet. It
+  is fail-closed: the child path is then still realpath'd
+  and containment-checked.
+
+**Validation Run (Node 22.22.3 / npm 10.9.8 — supported
+toolchain):**
+```bash
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run typecheck
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run lint:eslint
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npx vitest run electron/services/mediaService.test.ts --fileParallelism=false
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npx vitest run electron/services/configService.test.ts electron/services/mediaService.test.ts electron/services/chatStorage.test.ts electron/services/characterCardStorage.test.ts electron/services/rpChatStorage.test.ts --fileParallelism=false
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm test
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run verify:safety-guard
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run verify:markdown-links
+```
+
+**Validation Result:**
+* PASS: typecheck (renderer + electron); ESLint 0 warnings
+  (`--max-warnings=0` enforced); focused
+  `mediaService.test.ts` **27/27**; full Windows-sensitive
+  suite **92/92**; full test suite **1,370/1,370** (1
+  Playwright Electron smoke skip on this headless run);
+  `verify:safety-guard` 3/3 boundaries; `verify:markdown-links`
+  42 files clean.
+* FAIL: None.
+* BLOCKED: macOS cannot reproduce the 8.3 / junction
+  realpath form difference, so the production fix is not
+  observable locally. The fix removes the only mismatch
+  (realpath'd child vs non-realpath'd base) and is
+  expected to make the `windows-sensitive-tests` job pass
+  on `windows-2025` / Node 22.
+
+**Open Follow-ups:**
+* The Node 20 Actions deprecation warning for
+  `actions/checkout@34e114...` and
+  `actions/setup-node@49933...` is independent of this red
+  CI. Both SHAs will need bumping to current versions that
+  support Node 24, or `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24:
+  true` can be set as a temporary env. Tracked separately
+  in the *Future / user-directed* bucket; not blocking.
+
+**Risks:** None new. Production change is purely additive
+(three new helpers) plus the three allowlist call sites
+that now canonicalize their bases before comparison. The
+allowlist, symlink/junction protection, null-byte and
+overlong-path rejection, and sibling-traversal rejection
+are preserved.
 
 ### 2026-06-07 — Windows-only `windows-sensitive-tests` failure fix (this session)
 
@@ -1803,6 +1917,14 @@ None are release blockers. The P0–P3 sections above remain accurate.
 | `npm run verify:safety-guard` (windows-sensitive-tests fix) | PASS, 3/3 | 2026-06-07 | No raw prompt logging or bypass patterns |
 | `npm run verify:markdown-links` (windows-sensitive-tests fix) | PASS, 42 files | 2026-06-07 | No broken links |
 | `git commit` (`b7fb40d`) + `git push` (windows-sensitive-tests fix) | success | 2026-06-07 | Single-file test-only fix; production `mediaService.ts` unchanged |
+| `npm run typecheck` (windows path-canonicalization fix) | PASS, 0 errors | 2026-06-07 | Renderer + Electron main after production change |
+| `npm run lint:eslint` (windows path-canonicalization fix) | PASS, 0 warnings | 2026-06-07 | `--max-warnings=0` enforced |
+| focused `mediaService.test.ts` (windows path-canonicalization fix) | PASS, 27/27 | 2026-06-07 | Stable on macOS Node 22.22.3 |
+| full Windows-sensitive suite (windows path-canonicalization fix) | PASS, 92/92 | 2026-06-07 | Same as test-only fix; canonicalization is the production change |
+| `npm test` (windows path-canonicalization fix) | PASS, 1370/1370; 1 skipped | 2026-06-07 | Playwright Electron smoke environment-skipped |
+| `npm run verify:safety-guard` (windows path-canonicalization fix) | PASS, 3/3 | 2026-06-07 | No raw prompt logging or bypass patterns |
+| `npm run verify:markdown-links` (windows path-canonicalization fix) | PASS, 42 files | 2026-06-07 | No broken links |
+| `git commit` (`ecfa28f`) + `git push` (windows path-canonicalization fix) | success | 2026-06-07 | Single-file production fix; production `mediaService.ts` gains canonicalization helpers and uses them in all three allowlist call sites |
 
 ---
 

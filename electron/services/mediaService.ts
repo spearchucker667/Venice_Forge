@@ -57,6 +57,37 @@ function isWithin(parent: string, child: string): boolean {
   return true;
 }
 
+/** Canonicalizes an existing filesystem path for containment checks.
+ *  Falls back to `path.resolve()` when the base directory does not exist
+ *  yet. This keeps allowlist checks stable across Windows long-path /
+ *  8.3 short-name differences while preserving symlink / junction
+ *  escape protection (the child path is still canonicalized through
+ *  `fs.realpath()` at every call site that uses this helper). */
+async function canonicalizeExistingPath(input: string): Promise<string> {
+  const resolved = path.resolve(input);
+  try {
+    return await fs.realpath(resolved);
+  } catch {
+    return resolved;
+  }
+}
+
+/** Canonicalizes allowlist base directories before comparing them to a
+ *  child path that has already been canonicalized with `fs.realpath()`. */
+async function canonicalizeBaseDirs(dirs: string[]): Promise<string[]> {
+  return Promise.all(dirs.map((dir) => canonicalizeExistingPath(dir)));
+}
+
+/** Returns the import-safe base directories. */
+function importSafeBaseDirs(): string[] {
+  return [
+    path.resolve(app.getPath("downloads")),
+    path.resolve(app.getPath("documents")),
+    path.resolve(app.getPath("desktop")),
+    picturesBaseDir(),
+  ];
+}
+
 /** Returns the explicit list of "reveal-safe" base directories. Anything
  *  the renderer asks to reveal in the file manager must be inside one of
  *  these roots. The list intentionally excludes Documents and Downloads
@@ -205,12 +236,7 @@ export async function importMediaFromPath(input: { filePath: string }): Promise<
       return { ok: false, error: "File not found." };
     }
 
-    const allowedDirs = [
-      path.resolve(app.getPath("downloads")),
-      path.resolve(app.getPath("documents")),
-      path.resolve(app.getPath("desktop")),
-      picturesBaseDir(),
-    ];
+    const allowedDirs = await canonicalizeBaseDirs(importSafeBaseDirs());
     const isAllowed = allowedDirs.some((dir) => isWithin(dir, resolved));
     if (!isAllowed) {
       return { ok: false, error: "File must be inside Downloads, Documents, Desktop, or Pictures/Venice Forge." };
@@ -260,7 +286,8 @@ export async function revealMediaInFolder(input: { filePath: string }): Promise<
       return { ok: false, error: "File not found." };
     }
 
-    const allowed = revealSafeBaseDirs().some((dir) => isWithin(dir, resolved));
+    const allowedDirs = await canonicalizeBaseDirs(revealSafeBaseDirs());
+    const allowed = allowedDirs.some((dir) => isWithin(dir, resolved));
     if (!allowed) {
       return { ok: false, error: "Reveal is restricted to media export and safe directories." };
     }
@@ -302,7 +329,8 @@ export async function readMediaMeta(input: { filePath: string }): Promise<MediaM
       return { ok: false, error: "File not found." };
     }
 
-    const allowed = revealSafeBaseDirs().some((dir) => isWithin(dir, resolved));
+    const allowedDirs = await canonicalizeBaseDirs(revealSafeBaseDirs());
+    const allowed = allowedDirs.some((dir) => isWithin(dir, resolved));
     if (!allowed) {
       return { ok: false, error: "Metadata reads are restricted to media export and safe directories." };
     }
@@ -632,5 +660,14 @@ export function sha256Of(input: string | Buffer): string {
  *  size without importing limits.ts in two places. */
 export const MAX_MEDIA_BODY_BYTES = VENICE_MAX_BODY_BYTES;
 
-/** Test-only hook: re-exports the reveal-safe base dirs for assertions. */
-export const __test = { isWithin, sanitizeFilename, sanitizeSubfolder, revealSafeBaseDirs };
+/** Test-only hook: re-exports the reveal-safe base dirs and the
+ *  canonicalization helpers for assertions. */
+export const __test = {
+  isWithin,
+  sanitizeFilename,
+  sanitizeSubfolder,
+  revealSafeBaseDirs,
+  importSafeBaseDirs,
+  canonicalizeExistingPath,
+  canonicalizeBaseDirs,
+};
