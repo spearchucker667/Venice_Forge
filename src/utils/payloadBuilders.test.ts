@@ -1,7 +1,14 @@
 /** @fileoverview Unit tests for chat and image payload builders. */
 
 import { describe, expect, it } from "vitest";
-import { buildChatPayload, normalizeImageDraft, buildImagePayload } from "./payloadBuilders";
+import {
+  buildChatPayload,
+  buildImagePayload,
+  clampSeed,
+  normalizeImageDraft,
+  randomSeed,
+  serializeSeed,
+} from "./payloadBuilders";
 
 /** Tests for the buildChatPayload helper. */
 describe("buildChatPayload", () => {
@@ -215,5 +222,178 @@ describe("buildChatPayload with memory block", () => {
     const parts = messages[0].content as Array<{ type: string }>;
     expect(parts[0].type).toBe("text");
     expect(parts[1].type).toBe("image_url");
+  });
+});
+
+/** Tests for the shared seed helpers. */
+describe("clampSeed", () => {
+  it("clamps values above the max down to the max", () => {
+    expect(clampSeed(2_000_000_000)).toBe(999_999_999);
+  });
+  it("clamps values below the min up to the min", () => {
+    expect(clampSeed(-2_000_000_000)).toBe(-999_999_999);
+  });
+  it("returns integers unchanged when in range", () => {
+    expect(clampSeed(0)).toBe(0);
+    expect(clampSeed(123)).toBe(123);
+    expect(clampSeed(-456)).toBe(-456);
+  });
+  it("returns null for non-numeric / non-finite input", () => {
+    expect(clampSeed("abc")).toBeNull();
+    expect(clampSeed(NaN)).toBeNull();
+    expect(clampSeed(Infinity)).toBeNull();
+    expect(clampSeed(null)).toBeNull();
+  });
+  it("truncates non-integer numbers", () => {
+    expect(clampSeed(1.7)).toBe(1);
+    expect(clampSeed(-1.9)).toBe(-1);
+  });
+});
+
+describe("randomSeed", () => {
+  it("always returns a value in the supported range", () => {
+    for (let i = 0; i < 1000; i++) {
+      const v = randomSeed();
+      expect(Number.isInteger(v)).toBe(true);
+      expect(v).toBeGreaterThanOrEqual(-999_999_999);
+      expect(v).toBeLessThanOrEqual(999_999_999);
+    }
+  });
+  it("can produce both positive and negative seeds", () => {
+    const values = Array.from({ length: 200 }, () => randomSeed());
+    expect(values.some((v) => v > 0)).toBe(true);
+    expect(values.some((v) => v < 0)).toBe(true);
+  });
+});
+
+describe("serializeSeed", () => {
+  it("omits seed entirely for off mode", () => {
+    expect(serializeSeed({ mode: "off", value: null }, false)).toEqual({});
+    expect(serializeSeed({ mode: "off", value: 123 }, false)).toEqual({});
+  });
+  it("emits the seed for fixed mode when in range", () => {
+    expect(serializeSeed({ mode: "fixed", value: 123 }, false)).toEqual({ seed: 123 });
+    expect(serializeSeed({ mode: "fixed", value: 0 }, false)).toEqual({ seed: 0 });
+    expect(serializeSeed({ mode: "fixed", value: -456 }, false)).toEqual({ seed: -456 });
+  });
+  it("clamps fixed seeds above max / below min", () => {
+    expect(serializeSeed({ mode: "fixed", value: 2_000_000_000 }, false)).toEqual({ seed: 999_999_999 });
+    expect(serializeSeed({ mode: "fixed", value: -2_000_000_000 }, false)).toEqual({ seed: -999_999_999 });
+  });
+  it("omits seed for null mode unless apiSupportsNullSeed is true", () => {
+    expect(serializeSeed({ mode: "null", value: null }, false)).toEqual({});
+    expect(serializeSeed({ mode: "null", value: null }, true)).toEqual({ seed: null });
+  });
+  it("omits seed for fixed mode when value is not a number", () => {
+    expect(serializeSeed({ mode: "fixed", value: NaN }, false)).toEqual({});
+    expect(serializeSeed({ mode: "fixed", value: null }, false)).toEqual({});
+  });
+});
+
+describe("buildImagePayload — seed wiring", () => {
+  it("omits seed for off state", () => {
+    const payload = buildImagePayload(
+      "flux-dev",
+      { prompt: "x", width: 1024, height: 1024 },
+      undefined,
+      { mode: "off", value: null },
+    );
+    expect(payload.seed).toBeUndefined();
+  });
+  it("emits seed for fixed state", () => {
+    const payload = buildImagePayload(
+      "flux-dev",
+      { prompt: "x", width: 1024, height: 1024 },
+      undefined,
+      { mode: "fixed", value: 12345 },
+    );
+    expect(payload.seed).toBe(12345);
+  });
+  it("clamps negative fixed seeds to the supported range", () => {
+    const payload = buildImagePayload(
+      "flux-dev",
+      { prompt: "x", width: 1024, height: 1024 },
+      undefined,
+      { mode: "fixed", value: -1_000_000_000 },
+    );
+    expect(payload.seed).toBe(-999_999_999);
+  });
+});
+
+describe("buildImagePayload — aspect-resolution quality + variants", () => {
+  it("emits resolution only when an aspect_ratio is also present", () => {
+    const payload = buildImagePayload(
+      "nano-banana-v1",
+      { prompt: "x", aspectRatio: "16:9", resolution: "2k" },
+    );
+    expect(payload.aspect_ratio).toBe("16:9");
+    expect(payload.resolution).toBe("2k");
+    expect(payload.width).toBeUndefined();
+    expect(payload.height).toBeUndefined();
+  });
+  it("does NOT emit resolution for width/height models", () => {
+    const payload = buildImagePayload(
+      "flux-dev",
+      { prompt: "x", width: 1024, height: 1024, resolution: "2k" } as any,
+    );
+    expect(payload.resolution).toBeUndefined();
+  });
+  it("emits quality when set, omitted otherwise", () => {
+    const withQ = buildImagePayload(
+      "nano-banana-v1",
+      { prompt: "x", aspectRatio: "1:1", quality: "high" },
+    );
+    expect(withQ.quality).toBe("high");
+    const noQ = buildImagePayload(
+      "nano-banana-v1",
+      { prompt: "x", aspectRatio: "1:1" },
+    );
+    expect(noQ.quality).toBeUndefined();
+  });
+  it("ignores unknown quality values (does not emit invalid field)", () => {
+    const payload = buildImagePayload(
+      "nano-banana-v1",
+      { prompt: "x", aspectRatio: "1:1", quality: "ultra-mega" },
+    );
+    expect(payload.quality).toBeUndefined();
+  });
+  it("clamps variants to [1, 4] when supportsVariants is true and imageCount > 1", () => {
+    const high = buildImagePayload(
+      "flux-dev",
+      { prompt: "x", width: 512, height: 512, imageCount: 50, supportsVariants: true },
+    );
+    expect(high.variants).toBe(4);
+    const ok = buildImagePayload(
+      "flux-dev",
+      { prompt: "x", width: 512, height: 512, imageCount: 3, supportsVariants: true },
+    );
+    expect(ok.variants).toBe(3);
+  });
+  it("does not emit variants when supportsVariants is false", () => {
+    const payload = buildImagePayload(
+      "flux-dev",
+      { prompt: "x", width: 512, height: 512, imageCount: 4, supportsVariants: false },
+    );
+    expect(payload.variants).toBeUndefined();
+  });
+  it("does not emit variants when imageCount is 1", () => {
+    const payload = buildImagePayload(
+      "flux-dev",
+      { prompt: "x", width: 512, height: 512, imageCount: 1, supportsVariants: true },
+    );
+    expect(payload.variants).toBeUndefined();
+  });
+});
+
+describe("buildImagePayload — safe_mode + chat seed helpers together", () => {
+  it("imageCount > 1 with valid seed still produces a complete payload", () => {
+    const payload = buildImagePayload(
+      "flux-dev",
+      { prompt: "x", width: 1024, height: 1024, imageCount: 2, supportsVariants: true },
+      undefined,
+      { mode: "fixed", value: 42 },
+    );
+    expect(payload.variants).toBe(2);
+    expect(payload.seed).toBe(42);
   });
 });

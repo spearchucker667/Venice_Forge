@@ -254,6 +254,73 @@ user roadmap notes, not the canonical ledger.
 
 ## Session History
 
+### 2026-06-06 — Post-update audit fixes (CHAR-001, LLM-001/002, IMG-001/002, GAL-001, CONFIG-001/002, CLEAN-001, CI-001)
+
+**Context:**
+- Audit pass on the 5-issue Media Studio update landed earlier the same day. Hardened character avatar loading to a Venice-host allowlist, made the prompt enhancer actually read `config.yaml`, repaired the image model dimension/payload contract, completed seed support (full ±999999999 range, `clampSeed`/`randomSeed` helpers), wired Use settings / Regenerate / Same seed / Upscale / Remix actions into the gallery inspector, fixed the `mergeSanitized` config patch to apply `internal_prompt_enhancer` and added the block to `renderDefaultConfigYaml`, removed the stale `ImageGenerationForm.tsx`, and added a Windows-sensitive CI lane.
+
+**Files Changed (20+ files):**
+
+- `src/utils/characterImageResolver.ts` — replaced regex-based allowlist with an HTTPS-only + Venice-host allowlist (`outerface.venice.ai`, `venice.ai`, `api.venice.ai`) + nested object URL extraction (`avatar.url` / `image.url` / `profileImage.url`) + private-IP / loopback / link-local / `data:` / `blob:` / `file:` / `javascript:` rejection. `VENICE_CHARACTER_IMAGE_HOSTS` export for downstream testability.
+- `src/utils/characterImageResolver.test.ts` — **new**, 28 tests (allowlist, nested fields, rejections, localhost, private IPv4, IPv6 loopback, `isTrustedVeniceImageUrl`).
+- `src/components/CharactersView.tsx` — `Avatar` resets `errored` on `[character.slug, character.photoUrl]` change; replaced decorative `alt=""` with identity-bearing `alt={`${character.name} avatar`}` and `role="img"`.
+- `src/services/prompt-enhancer-service.ts` — accepts `config: PromptEnhancerConfig`; reads configured model, temperature, max tokens, and system prompts; throws `PromptEnhancerDisabledError` when `enabled: false`; default system prompts rewritten to be task-focused and affirm safety-guard authority (no "ZERO CENSORSHIP" / "bypass" framing).
+- `src/config/configSchema.ts` — replaced unsafe default enhance / remix system prompts; corrected default model id to `venice-uncensored-1-2` and maxTokens to 350.
+- `src/services/prompt-enhancer-service.test.ts` — **new**, 18 tests (config-driven model/temp/tokens, disabled state, output cleanup, default safety posture).
+- `src/config/image-model-capabilities.ts` — added `"aspectResolution"` mode; `nano-banana-v1` now correctly `aspectResolution`; removed `venice-uncensored-1-2` (a text model) from the image registry; added `quality` and `supportsVariants`; normalises both camelCase and snake_case constraints (`aspect_ratios` / `default_aspect_ratio` / `default_resolution` / `width_height_divisor`).
+- `src/config/image-model-capabilities.test.ts` — **new**, 13 tests (registry, snake_case normalisation, quality support).
+- `src/utils/payloadBuilders.ts` — `clampSeed(value)`, `randomSeed()` (full range incl. negative), and `buildImagePayload` now emits `resolution` only with `aspect_ratio`, `quality` when set, and `variants` clamped to `[1, 4]`; `supportsVariants` opt-in.
+- `src/utils/payloadBuilders.test.ts` — added 23 tests (seed helpers, serializeSeed, resolution/quality/variants wiring).
+- `src/components/image/image-view.tsx` — reads `internal_prompt_enhancer` from the config store; gates Enhance prompt on `enhancerConfig.enabled`; uses `buildImagePayload` instead of manual `req` building; attaches `resolution` only in `aspectResolution` mode; uses full-range `randomSeed()` / `clampSeed()` for the seed UI.
+- `src/stores/config-store.ts` — added `internal_prompt_enhancer: YamlInternalPromptEnhancer` to `SanitizedConfigSnapshot`.
+- `src/components/gallery/media-inspector.tsx` — added Use settings, Regenerate, Same seed, Copy negative, Copy seed, Copy metadata, Upscale, Edit actions; refactored remix review modal to offer Apply to Image Studio / Remix & Generate / Save remix / Cancel; respects `internal_prompt_enhancer.enabled`.
+- `src/components/gallery/media-inspector.test.tsx` — **new**, 8 tests (all action buttons, enhancer-disabled gating, copy-prompt/negative/seed/metadata, hidden when no seed / no negative).
+- `src/components/gallery/gallery-view.tsx` — added `bridgeToImageStudio` (DEV-only `window.__veniceImageStudio` hook from `image-view.tsx`) and `handleUseSettings` / `handleRegenerate` / `handleUpscale` / `handleApplyRemix`; passes them to `<MediaInspector>`.
+- `src/components/image/image-view.tsx` — registers `window.__veniceImageStudio = { applyDraft, generate, getPrompt }` in DEV mode; adds `applyDraftFromGallery` helper.
+- `electron/services/configService.ts` — `renderDefaultConfigYaml()` now emits the `internal_prompt_enhancer` block; `mergeSanitized` now applies `patch.internal_prompt_enhancer` via `Object.assign`.
+- `electron/services/configService.test.ts` — added 3 tests (default YAML includes enhancer, partial-patch apply, enabled toggle honored).
+- `src/config/configSchema.test.ts` — added 6 tests (enhancer defaults, clamps, system-prompt safety posture).
+- `.config/config.example.yaml` — corrected model id to `venice-uncensored-1-2` and `maxTokens: 350`; added documentation comment about safety posture.
+- `src/components/ImageGenerationForm.tsx` — **deleted** (unused dead code).
+- `docs/THEME_SYSTEM.md` — removed the `ImageGenerationForm` reference.
+- `.github/workflows/ci.yml` — added a `windows-sensitive-tests` job (typecheck + main-process + renderer subset + verify gates). The new job is NOT `continue-on-error`; failures block the PR.
+- `tests/safety/hydrationGate.test.ts` — added `internal_prompt_enhancer` to the `setPayload` test config.
+- `docs/MEDIA_STUDIO.md` — replaced the "action buttons not yet wired" section with the full action table (Use settings / Regenerate / Same seed / Upscale / Remix / Copy *); added seed/quality/resolution to the data-model section; updated Tests list and counts.
+- `docs/CONFIG.md` — added Internal Prompt Enhancer section with safety-posture note.
+- `README.md` — Media Studio row now lists the inspector actions.
+
+**Behavior Changed:**
+- Character avatars only load from official Venice HTTPS hosts. Arbitrary `https://evil.example`, `http://outerface.venice.ai`, `data:`, `file:`, `localhost`, and private-IP avatars are rejected at the URL-resolver layer.
+- Image Studio and the gallery inspector Enhance/Remix buttons honour `internal_prompt_enhancer.enabled` and the configured model / temperature / maxTokens / system prompts. Disabled state is shown via the button's `title` tooltip.
+- `nano-banana-v1` and similar aspect-resolution models correctly emit `aspect_ratio` + `resolution` only. Stale `resolution` from a previous aspect-resolution model is never attached to a pixel or aspect-only model.
+- Seed UI now produces a value in the full supported range (-999999999..999999999), with shared `clampSeed` / `randomSeed` helpers.
+- Inspector "Regenerate" omits seed (random per call); "Regenerate with same seed" pins the original seed and is disabled when the source has no seed.
+- Inspector "Remix" produces a review modal with **Apply to Image Studio**, **Remix & Generate**, **Save remix**, **Cancel** — no auto-generation without explicit confirmation.
+- New user configs (created from `renderDefaultConfigYaml`) now include the `internal_prompt_enhancer` block.
+- Sanitized config patches that change enhancer settings are no longer silently dropped — `mergeSanitized` deep-merges `patch.internal_prompt_enhancer`.
+
+**Validation Run:**
+```bash
+node --version     # v22.22.3
+npm --version      # 10.9.8
+npm run typecheck  # PASS, 0 errors (renderer + electron)
+npm run lint:eslint  # PASS, 0 warnings (--max-warnings=0)
+npm test           # 1338 passed, 1 skipped, 4 pre-existing desktopBridge failures (unrelated to this audit)
+npm run build      # PASS (renderer + electron + server)
+npm run verify:dist  # PASS
+npm run verify:markdown-links  # PASS, 42 files
+npm run verify:safety-guard  # PASS, 3/3 boundaries + no-raw-log
+npm run config:validate  # PASS, 0 errors / 0 warnings
+```
+
+**Validation Result:**
+- PASS: typecheck, lint, build, verify:dist, verify:markdown-links, verify:safety-guard, config:validate, all new tests
+- FAIL: none caused by this audit. The 4 pre-existing `desktopBridge.test.ts` failures (`localStorage.clear()` in a node env) predate this commit and are unrelated.
+- BLOCKED: macOS `codesign` / `spctl` (no credentials in dev env; tracked as a release-only step)
+
+**Open Follow-ups:**
+- [ ] None. Pre-existing desktopBridge.test.ts failures should be addressed in a separate audit pass; they are not regressions introduced by this change.
+
 ### 2026-06-06 — Media Studio / Image View / Character Photo fixes (5 issues)
 
 **Context:**

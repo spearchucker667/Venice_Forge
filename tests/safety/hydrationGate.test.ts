@@ -82,6 +82,14 @@ describe("VERIFY-017 hydration gate", () => {
           characters: { enabled: false, include_adult_characters: false, default_character_slug: "" },
           safety: { local_family_safe_mode_enabled: false, venice_api_safe_mode: false },
           developer: { verbose_config_logging: false, allow_config_key_import: false, force_import_keys: false, force_apply_config: false },
+          internal_prompt_enhancer: {
+            enabled: true,
+            model: "venice-uncensored-1-2",
+            temperature: 0.4,
+            maxTokens: 350,
+            systemPrompt: "",
+            remixSystemPrompt: "",
+          },
         },
         {
           configPath: "/x", themesPath: "/y", source: "userdata", configName: "x", profile: "p",

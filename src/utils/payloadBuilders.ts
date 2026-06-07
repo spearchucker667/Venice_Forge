@@ -149,6 +149,26 @@ export interface ImageSeedState {
   value: number | null;
 }
 
+/** Clamp an arbitrary value to a valid integer seed in the
+ *  supported range, returning `null` for non-finite / non-numeric
+ *  input. The output is always a safe finite integer. */
+export function clampSeed(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string" && value.trim() === "") return null;
+  const n = Math.trunc(Number(value));
+  if (!Number.isFinite(n)) return null;
+  return Math.max(VENICE_SEED_MIN, Math.min(VENICE_SEED_MAX, n));
+}
+
+/** Generate a fresh random seed uniformly in the supported range
+ *  (full ±999999999 — including negative values). The result is
+ *  always a valid integer the API will accept. */
+export function randomSeed(): number {
+  const span = VENICE_SEED_MAX - VENICE_SEED_MIN + 1;
+  // Math.random() is in [0,1); shift to [0,span) then offset by MIN.
+  return VENICE_SEED_MIN + Math.floor(Math.random() * span);
+}
+
 /**
  * Serializes a seed state for an image generation request payload.
  *
@@ -166,8 +186,9 @@ export function serializeSeed(
 ): { seed?: number | null } {
   if (seed.mode === "off") return {};
   if (seed.mode === "null" && apiSupportsNullSeed) return { seed: null };
-  if (seed.mode === "fixed" && typeof seed.value === "number" && Number.isInteger(seed.value)) {
-    const clamped = Math.max(VENICE_SEED_MIN, Math.min(VENICE_SEED_MAX, seed.value));
+  if (seed.mode === "fixed" && typeof seed.value === "number" && Number.isFinite(seed.value)) {
+    const clamped = clampSeed(seed.value);
+    if (clamped === null) return {};
     return { seed: clamped };
   }
   return {};
@@ -180,12 +201,19 @@ export interface ImageDraftLike {
   width?: number | string;
   height?: number | string;
   aspectRatio?: string;
+  resolution?: string;
+  quality?: "low" | "medium" | "high" | "auto" | string;
   steps?: number | string;
   cfg?: number | string;
   style?: string;
   safeMode?: boolean;
   disableWatermark?: boolean;
   imageCount?: number | string;
+  /** When true, the builder will emit a `variants` field. Some model
+   *  classes (e.g. SD-classic) accept it; nano-class models with
+   *  `additionalProperties: false` may reject it. Defaults to true when
+   *  the draft has a positive `imageCount`. */
+  supportsVariants?: boolean;
 }
 
 /** Clamp a number to an inclusive integer range. */
@@ -225,18 +253,29 @@ export function normalizeImageDraft(draft: ImageDraftLike): ImageDraftLike {
   const prompt = String(draft.prompt ?? "").trim();
   const negative = String(draft.negative ?? "").trim();
   const aspectRatio = String(draft.aspectRatio ?? "").trim();
+  const resolution = String(draft.resolution ?? "").trim();
+  const rawQuality = String(draft.quality ?? "").trim().toLowerCase();
+  const quality: "low" | "medium" | "high" | "auto" | undefined = (() => {
+    if (rawQuality === "low" || rawQuality === "medium" || rawQuality === "high" || rawQuality === "auto") {
+      return rawQuality;
+    }
+    return undefined;
+  })();
   return {
     prompt: prompt.slice(0, VENICE_IMAGE_MAX_PROMPT_CHARS),
     negative: negative.slice(0, VENICE_IMAGE_MAX_PROMPT_CHARS),
     width: clampDimension(draft.width),
     height: clampDimension(draft.height),
     aspectRatio: aspectRatio || undefined,
+    resolution: resolution || undefined,
+    quality,
     steps: clampInt(draft.steps, 1, 50),
     cfg: clampFloat(draft.cfg, 1, 20),
     style: draft.style ?? "",
     safeMode: !!draft.safeMode,
     disableWatermark: !!draft.disableWatermark,
     imageCount: clampInt(draft.imageCount, 1, VENICE_IMAGE_MAX_VARIANTS),
+    supportsVariants: draft.supportsVariants !== false,
   };
 }
 
@@ -283,9 +322,35 @@ export function buildImagePayload(
   // Sizing: pick exactly one shape. Caller decides via aspectRatio.
   if (normalized.aspectRatio) {
     payload.aspect_ratio = normalized.aspectRatio;
+    // `resolution` is only meaningful in the aspect-resolution mode
+    // (e.g. nano-banana-v1); never emit it alongside width/height
+    // because that produces a malformed request.
+    if (normalized.resolution) {
+      payload.resolution = normalized.resolution;
+    }
   } else {
     payload.width = normalized.width;
     payload.height = normalized.height;
+  }
+
+  // Quality is only emitted when the model supports it; the caller
+  // decides by passing `quality` in the draft (image-view reads the
+  // capabilities layer for this). Some model classes reject
+  // `quality` as a foreign field, so we do not emit it by default.
+  if (normalized.quality) {
+    payload.quality = normalized.quality;
+  }
+
+  // Variants is only emitted when the draft's imageCount is positive
+  // and the model class supports it. We do not auto-enable variants
+  // for unknown models; image-view must pass `supportsVariants: true`
+  // explicitly via the capabilities check.
+  const imageCount = Number(normalized.imageCount);
+  if (normalized.supportsVariants && Number.isFinite(imageCount) && imageCount > 1) {
+    payload.variants = Math.min(
+      VENICE_IMAGE_MAX_VARIANTS,
+      Math.max(1, imageCount),
+    );
   }
 
   const negative = normalized.negative?.trim();

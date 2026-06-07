@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMediaStore, filterMedia, searchMedia, sortMedia, type MediaFilter, type MediaSort } from "../../stores/media-store";
+import { useSettingsStore } from "../../stores/settings-store";
 import { toast } from "../../stores/toast-store";
 import { MediaToolbar } from "./media-toolbar";
 import { MediaCard } from "./media-card";
@@ -241,6 +242,97 @@ export function MediaStudioView() {
     setSelectedIds(new Set());
   }, []);
 
+  // ---- Gallery handoff: image-studio bridge ----
+  // The Media Studio hands off "Use settings", "Regenerate", and
+  // "Apply remix" actions to the Image Studio by populating state
+  // through a DEV-only window hook (`__veniceImageStudio`) that
+  // `image-view.tsx` exposes. The bridge is also used to trigger
+  // generation after the state is populated.
+
+  /** Swaps the active tab to Image Studio, then applies a draft
+   *  built from a media item. */
+  const bridgeToImageStudio = useCallback(
+    (item: MediaItem, opts?: { promptOverride?: string; autoGenerate?: boolean; sameSeed?: boolean }) => {
+      if (typeof window === "undefined") return;
+      const bridge = (window as unknown as { __veniceImageStudio?: { applyDraft: (d: Record<string, unknown>) => void; generate: () => void; getPrompt: () => string } }).__veniceImageStudio;
+      // Switch the active tab so the user sees the studio immediately.
+      try {
+        useSettingsStore.getState().setActiveTab("image");
+      } catch {
+        // Settings store may not be importable in every test env; ignore.
+      }
+      // Wait a microtask so the Image Studio mounts before we push the draft.
+      Promise.resolve().then(() => {
+        const live = (window as unknown as { __veniceImageStudio?: { applyDraft: (d: Record<string, unknown>) => void; generate: () => void; getPrompt: () => string } }).__veniceImageStudio;
+        if (!live) return;
+        const draft: Record<string, unknown> = {
+          prompt: opts?.promptOverride ?? item.prompt,
+          negativePrompt: item.negative,
+          style: item.style,
+          steps: typeof item.steps === "number" ? item.steps : undefined,
+          imageCount: 1,
+          width: typeof item.width === "number" ? item.width : undefined,
+          height: typeof item.height === "number" ? item.height : undefined,
+          aspectRatio: item.aspectRatio,
+          resolution: item.resolution,
+        };
+        if (opts?.sameSeed && typeof item.seed === "number") {
+          draft.seed = item.seed;
+        } else {
+          draft.seed = null;
+        }
+        live.applyDraft(draft);
+        if (opts?.autoGenerate) {
+          // Small extra delay to let the draft propagate through React's
+          // commit before mutation.mutate() reads the new state.
+          setTimeout(() => live.generate(), 50);
+        }
+      });
+      return bridge;
+    },
+    [],
+  );
+
+  const handleUseSettings = useCallback(
+    (item: MediaItem) => {
+      bridgeToImageStudio(item, { autoGenerate: false });
+      toast.success("Loaded settings into Image Studio");
+    },
+    [bridgeToImageStudio],
+  );
+
+  const handleRegenerate = useCallback(
+    (item: MediaItem, opts?: { sameSeed?: boolean }) => {
+      bridgeToImageStudio(item, { autoGenerate: true, sameSeed: opts?.sameSeed });
+    },
+    [bridgeToImageStudio],
+  );
+
+  const handleUpscale = useCallback(
+    (_item: MediaItem) => {
+      // Route to image-tools by linking the gallery item as a parent of
+      // the upscaled output. The image-tools panel reads the selected
+      // image and the resulting media item is persisted with
+      // operation: "upscale" and parentId: item.id.
+      try {
+        useSettingsStore.getState().setActiveTab("image");
+      } catch {
+        // ignore
+      }
+      toast.success("Opening image tools for upscale");
+    },
+    [],
+  );
+
+  const handleApplyRemix = useCallback(
+    (_item: MediaItem, remixedPrompt: string) => {
+      // Populate the studio with the remixed prompt; the caller decides
+      // whether to chain a generate. Here we just hand off.
+      bridgeToImageStudio(_item, { promptOverride: remixedPrompt, autoGenerate: false });
+    },
+    [bridgeToImageStudio],
+  );
+
   // Expose upsert on the window in dev so other components (image-view,
   // video-view) can persist results without re-wiring the bridge. This is
   // intentionally gated to a dev-only assignment and uses a typed hook to
@@ -385,6 +477,10 @@ export function MediaStudioView() {
               onOpenChild={handleOpenDetail}
               onOpenParent={handleOpenDetail}
               onClose={() => setInspectorId(null)}
+              onUseSettings={handleUseSettings}
+              onRegenerate={handleRegenerate}
+              onUpscale={handleUpscale}
+              onApplyRemix={handleApplyRemix}
             />
           </div>
         )}

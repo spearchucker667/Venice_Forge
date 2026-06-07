@@ -127,6 +127,22 @@ describe("configService initialize", () => {
     expect(status.themesPath).toMatch(/\.ya?ml$/);
   });
 
+  it("default YAML includes the internal_prompt_enhancer block", async () => {
+    // Point the service at a fresh, empty directory so the default YAML
+    // is rendered from scratch.
+    const envConfig = path.join(tmpRoot, "no-config-yet.yaml");
+    const envThemes = path.join(tmpRoot, "no-themes-yet.yaml");
+    process.env.VENICE_FORGE_CONFIG_FILE = envConfig;
+    process.env.VENICE_FORGE_THEMES_FILE = envThemes;
+    await fs.rm(envConfig, { force: true });
+    await fs.rm(envThemes, { force: true });
+    await initializeConfig();
+    const onDisk = await fs.readFile(envConfig, "utf-8");
+    expect(onDisk).toMatch(/internal_prompt_enhancer:/);
+    expect(onDisk).toMatch(/venice-uncensored-1-2/);
+    expect(onDisk).toMatch(/maxTokens: 350/);
+  });
+
   it("imports a plaintext Venice key into the secure store", async () => {
     const envConfig = path.join(tmpRoot, "config.yaml");
     const envThemes = path.join(tmpRoot, "themes.yaml");
@@ -334,6 +350,47 @@ describe("configService writeSanitized", () => {
     expect(result.redactedFields).toContain("secrets.venice_api_key");
     const onDisk = await fs.readFile(envConfig, "utf-8");
     expect(onDisk).not.toContain("trying-to-set");
+  });
+
+  it("applies a partial internal_prompt_enhancer patch (model, maxTokens, temperature, systemPrompt)", async () => {
+    const envConfig = path.join(tmpRoot, "config.yaml");
+    const envThemes = path.join(tmpRoot, "themes.yaml");
+    await writeYaml(envConfig, "version: 1\nsecrets:\n  venice_api_key: \"\"\n");
+    await writeYaml(envThemes, "version: 1\nthemes: {}\n");
+    process.env.VENICE_FORGE_CONFIG_FILE = envConfig;
+    process.env.VENICE_FORGE_THEMES_FILE = envThemes;
+
+    await initializeConfig();
+    const result = await writeSanitizedConfig({
+      internal_prompt_enhancer: {
+        model: "custom-enhancer",
+        maxTokens: 222,
+        temperature: 0.25,
+        systemPrompt: "Custom enhance prompt.",
+      },
+    });
+    expect(result.ok).toBe(true);
+    const payload = getSanitizedConfig();
+    expect(payload.config.internal_prompt_enhancer.model).toBe("custom-enhancer");
+    expect(payload.config.internal_prompt_enhancer.maxTokens).toBe(222);
+    expect(payload.config.internal_prompt_enhancer.temperature).toBe(0.25);
+    expect(payload.config.internal_prompt_enhancer.systemPrompt).toBe("Custom enhance prompt.");
+  });
+
+  it("toggling internal_prompt_enhancer.enabled via patch is honored", async () => {
+    const envConfig = path.join(tmpRoot, "config.yaml");
+    const envThemes = path.join(tmpRoot, "themes.yaml");
+    await writeYaml(envConfig, "version: 1\n");
+    await writeYaml(envThemes, "version: 1\nthemes: {}\n");
+    process.env.VENICE_FORGE_CONFIG_FILE = envConfig;
+    process.env.VENICE_FORGE_THEMES_FILE = envThemes;
+    await initializeConfig();
+    const result = await writeSanitizedConfig({
+      internal_prompt_enhancer: { enabled: false },
+    });
+    expect(result.ok).toBe(true);
+    const payload = getSanitizedConfig();
+    expect(payload.config.internal_prompt_enhancer.enabled).toBe(false);
   });
 });
 

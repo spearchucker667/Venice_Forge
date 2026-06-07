@@ -44,6 +44,14 @@ describe("useConfigStore", () => {
         force_import_keys: false,
         force_apply_config: false,
       },
+      internal_prompt_enhancer: {
+        enabled: true,
+        model: "venice-uncensored-1-2",
+        temperature: 0.4,
+        maxTokens: 350,
+        systemPrompt: "",
+        remixSystemPrompt: "",
+      },
     };
     const status = {
       configPath: "/x",

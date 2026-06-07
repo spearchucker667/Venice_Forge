@@ -33,3 +33,40 @@ jobs:
       - run: npm run verify:markdown-links
       - run: npm run build
       - run: npm run verify:dist
+
+  # Windows-sensitive-tests: targets the path-handling and Electron-specific
+  # filesystem regressions the recent Windows path bug exposed. The main
+  # Ubuntu job covers the full suite, but Windows path separators and
+  # process.platform branches (`win32`) only exercise correctly on a
+  # real Windows runner. We pin a minimal Windows subset here:
+  #   - typecheck
+  #   - the Electron main-process services tests
+  #   - the verify-safety-guard + verify-markdown-links gates
+  # We do NOT mark these as continue-on-error: failures block the PR.
+  windows-sensitive-tests:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+      - name: Use Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck (renderer + electron)
+        shell: bash
+        run: npm run typecheck
+      - name: Run Electron main-process tests on Windows
+        shell: bash
+        run: npx vitest run electron/services/configService.test.ts electron/services/mediaService.test.ts electron/services/chatStorage.test.ts electron/services/characterCardStorage.test.ts electron/services/rpChatStorage.test.ts
+      - name: Run renderer tests on Windows (Electron-sensitive subset)
+        shell: bash
+        run: npx vitest run src/components/gallery src/components/image src/utils/payloadBuilders.test.ts src/services/prompt-enhancer-service.test.ts
+      - name: Verify safety guard
+        shell: bash
+        run: npm run verify:safety-guard
+      - name: Verify markdown links
+        shell: bash
+        run: npm run verify:markdown-links
+

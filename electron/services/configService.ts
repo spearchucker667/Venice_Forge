@@ -276,6 +276,18 @@ function renderDefaultConfigYaml(): string {
     "  force_import_keys: false",
     "  force_apply_config: false",
     "",
+    "# Internal prompt-enhancer LLM. Hidden under-app helper for image",
+    "# prompt enhance / remix. Not user-chat-accessible; the model id",
+    "# is not exposed in the normal chat selector. Existing safety guard",
+    "# remains authoritative.",
+    "internal_prompt_enhancer:",
+    "  enabled: true",
+    '  model: "venice-uncensored-1-2"',
+    "  temperature: 0.4",
+    "  maxTokens: 350",
+    "  systemPrompt: \"\"",
+    "  remixSystemPrompt: \"\"",
+    "",
   ].join("\n");
 }
 
@@ -722,6 +734,16 @@ function mergeSanitized(base: SanitizedConfig, patch: Record<string, unknown>): 
   }
   if (typeof patch.developer === "object" && patch.developer) {
     Object.assign(baseYaml.developer, patch.developer as object);
+  }
+  // Internal prompt-enhancer: model, temperature, maxTokens, system
+  // prompts, and the `enabled` flag all flow through the renderer-driven
+  // patch path. We deep-merge the override so a partial update (e.g.
+  // "just toggle enabled") does not wipe the other fields.
+  if (typeof patch.internal_prompt_enhancer === "object" && patch.internal_prompt_enhancer) {
+    Object.assign(
+      baseYaml.internal_prompt_enhancer,
+      patch.internal_prompt_enhancer as object,
+    );
   }
   // Intentionally ignore `secrets` from the patch: API keys must use the
   // dedicated `apiKey:set` / `jinaApiKey:set` IPC channels.

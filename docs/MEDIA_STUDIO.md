@@ -63,6 +63,14 @@ interface MediaItem extends GalleryImage {
   thumbHash?: string;                 // server-side thumbnail identifier
   viewCount?: number;
   exportedPathToken?: string;         // opaque token; only set after app:media:export
+  // Generation provenance (added 2026-06):
+  seed?: number | null;               // -999999999..999999999; null = use random
+  source?: string;                    // "image-page" | "image-tools" | "gallery-action" | …
+  enhancedPrompt?: string;            // last enhancer output (enhance mode)
+  originalPrompt?: string;            // pre-enhancer prompt (if enhancer was used)
+  remixPrompt?: string;               // last enhancer output (remix mode)
+  quality?: "low" | "medium" | "high" | "auto";
+  resolution?: string;                // e.g. "1k" / "2k" / "4k" for aspect-resolution models
 }
 
 type MediaOperation =
@@ -147,27 +155,66 @@ local view-state.
 
 ## Image actions (upscale / edit / variation / regenerate)
 
-For the v1 release the inspector surfaces the **per-model capabilities**
-(sourced from `modelSupportsUpscale` / `modelSupportsEdit` /
-`modelSupportsVideo` / `modelSupportsVision`) but the action buttons
-themselves are intentionally not yet wired into the inspector. The
-existing `image-tools.tsx` flow already persists every result to the
-media store with the correct `operation` and `parentId`, and that is the
-contract every future gallery-driven action must honour.
+The inspector surfaces the **per-model capabilities** (sourced from
+`modelSupportsUpscale` / `modelSupportsEdit` / `modelSupportsVideo` /
+`modelSupportsVision`) and wires a complete action bar to them. Every
+button follows the same contract: read the source item, call the
+existing canonical hook / store action, persist the result with the
+right `operation` and `parentId`.
 
-When a future "Upscale from gallery" button is added it should:
+### Action bar (inspector, all wired)
 
-1. Read the source item via `useMediaStore.getState().byId(id)`.
-2. Call the existing `useImageUpscale` hook (which already routes through
-   `veniceBlob` and therefore through the IPC safety guard).
-3. Convert the resulting `Blob` to a data URL via `blobToDataUrl`.
-4. Build a new `MediaItem` with `parentId: id`, `operation: 'upscale'`,
-   `upscaleFactor`, and `model: <selected model>`.
-5. Call `useMediaStore.getState().upsert(newItem)`.
+| Action | Source | Effect | Persisted as |
+|--------|--------|--------|--------------|
+| **Use settings** | selected item | Populates Image Studio state with the item's stored parameters. No generation. | (no persisted item) |
+| **Regenerate** | selected item | Generates a new image from the stored metadata, with a new random seed. | `{ operation: "regenerate", parentId: original.id }` |
+| **Regenerate with same seed** | selected item | Like Regenerate but pins the original seed. Disabled (with tooltip) when the item has no seed. | `{ operation: "regenerate", parentId: original.id, seed: original.seed }` |
+| **Enhance / Upscale** | selected item | Routes to the existing `useImageUpscale` hook (or the image-tools panel). | `{ operation: "upscale", parentId: original.id }` |
+| **Remix** | selected item | Calls the internal prompt-enhancer LLM. Shows original vs remixed prompt with **Apply to Image Studio**, **Remix & Generate**, **Save remix**, and **Cancel** buttons. | `{ operation: "variation", parentId: original.id, remixPrompt }` (Remix & Generate) |
+| **Copy prompt** | selected item | Writes `item.prompt` to the clipboard. | (no persisted item) |
+| **Copy negative** | selected item | Writes `item.negative` to the clipboard. Hidden when no negative prompt. | (no persisted item) |
+| **Copy seed** | selected item | Writes `item.seed` to the clipboard. Hidden when no seed. | (no persisted item) |
+| **Copy metadata** | selected item | Writes a JSON object with `model`, `dimensions`, `seed`, `style`, `steps`, `cfg`, `source`, `negative`, `aspectRatio`, `resolution` to the clipboard. | (no persisted item) |
 
-The pattern is identical for edit / background-remove / variation /
-regenerate. The hook is already the canonical write path; the gallery
-view just needs to invoke it.
+### Handoff between gallery and image studio
+
+The Image Studio exposes a DEV-only window hook
+`window.__veniceImageStudio` that the gallery inspector calls when
+the user picks **Use settings**, **Regenerate**, **Remix**, etc.
+The hook has three methods:
+
+- `applyDraft(draft)` — populates state (`prompt`, `negativePrompt`,
+  `style`, `steps`, `imageCount`, `width`, `height`, `aspectRatio`,
+  `resolution`, `seed`) without generating.
+- `generate()` — triggers the standard `handleGenerate` flow with the
+  populated state.
+- `getPrompt()` — returns the current `prompt` value.
+
+`MediaStudioView` is responsible for:
+1. Switching the active tab to Image Studio.
+2. Waiting for the studio to mount.
+3. Calling `applyDraft` to populate state.
+4. (Optionally) calling `generate()` to start a one-shot
+   regenerate / remix-generate.
+
+This is intentionally a window-bridge so the gallery view does not
+need to know about Image Studio's internals and Image Studio does not
+need to import the gallery view.
+
+### Image Studio writes back to the gallery
+
+`image-view.tsx` already persists every successful generation to the
+media store with `operation: "generate"` and a new id, so each
+**Regenerate** / **Remix & Generate** action automatically produces a
+new `MediaItem` linked to the source as a child. The child receives
+the new id via `childrenIds` patch on the source.
+
+### Safety gate on enhancer actions
+
+The **Enhance** and **Remix** buttons are disabled when
+`internal_prompt_enhancer.enabled` is `false` in the sanitized
+config — the title attribute surfaces the reason so the user
+understands why.
 
 ## Video persistence
 
@@ -313,11 +360,18 @@ persist.
 - `src/stores/media-store.test.ts` — 16 tests (Zustand store + selectors)
 - `src/utils/mediaItem.test.ts` — 7 tests (capability helper, filename, etc.)
 - `src/components/gallery/gallery-view.test.tsx` — load, delete, and production dev-global gating
+- `src/components/gallery/media-inspector.test.tsx` — Use settings / Regenerate / Same seed / Copy prompt / Copy negative / Copy seed / Copy metadata / disabled-when-enhancer-off / Upscale / Edit
 - `src/components/image/image-tools.test.tsx` — 1 test (**VERIFY-020**: persist on save)
+- `src/utils/characterImageResolver.test.ts` — 28 tests (host allowlist, nested fields, private-IP rejection)
+- `src/config/image-model-capabilities.test.ts` — 13 tests (dimension mode registry, snake_case normalisation, quality / resolution coverage)
+- `src/utils/payloadBuilders.test.ts` — 41 tests (dimension, seed, variants, quality, resolution, chat memory)
+- `src/services/prompt-enhancer-service.test.ts` — 18 tests (config-driven model/temp/tokens, disabled state, output cleanup, safety posture)
+- `src/config/configSchema.test.ts` — 28 tests (defaults, clamps, internal_prompt_enhancer safety posture)
+- `electron/services/configService.test.ts` — 22 tests (default YAML includes enhancer, writeSanitized applies partial patch, secrets redacted)
 - `electron/services/mediaService.test.ts` — 25 tests (sanitisation, containment, round-trip, thumb cache, sha256)
 - `src/services/storageService.test.ts` and `src/stores/media-store.test.ts` — **VERIFY-028** pagination contract and incremental hydration
 
-Total: 60 new tests across 6 files.
+Total: 200+ tests across 13 files.
 
 ## Migration notes
 

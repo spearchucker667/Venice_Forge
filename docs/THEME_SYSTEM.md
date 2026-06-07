@@ -285,7 +285,6 @@ Users create custom themes via the ThemeMaker UI. No code changes required.
 | `src/components/CollapsibleSection.tsx` | Token-based collapsible |
 | `src/components/ModelSelect.tsx` | Token-based dropdown |
 | `src/components/DiagnosticsPreview.tsx` | Token-based preview |
-| `src/components/ImageGenerationForm.tsx` | Token-based form |
 | `src/components/ImageGenerationPreview.tsx` | Token-based preview |
 | `src/components/ImageActionModal.tsx` | Token-based modal |
 | `src/components/SettingsView.tsx` | Integrated ThemeMaker; reskinned settings UI (replaces historical `src/modules/SettingsModule.tsx`) |

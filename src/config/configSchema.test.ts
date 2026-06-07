@@ -117,6 +117,72 @@ describe("configSchema", () => {
       expect(serialized).not.toContain("secret-1");
       expect(serialized).not.toContain("secret-2");
     });
+
+    it("passes through internal_prompt_enhancer settings (no secrets)", () => {
+      const cfg = emptyConfig();
+      cfg.internal_prompt_enhancer.enabled = false;
+      cfg.internal_prompt_enhancer.model = "custom-model-2";
+      cfg.internal_prompt_enhancer.temperature = 0.9;
+      cfg.internal_prompt_enhancer.maxTokens = 200;
+      const sanitized = sanitizeConfig(cfg);
+      expect(sanitized.internal_prompt_enhancer.enabled).toBe(false);
+      expect(sanitized.internal_prompt_enhancer.model).toBe("custom-model-2");
+      expect(sanitized.internal_prompt_enhancer.temperature).toBe(0.9);
+      expect(sanitized.internal_prompt_enhancer.maxTokens).toBe(200);
+    });
+  });
+
+  describe("internal_prompt_enhancer", () => {
+    it("applies safe defaults for the enhancer block", () => {
+      const result = validateConfig({ version: 1 });
+      expect(result.config.internal_prompt_enhancer.enabled).toBe(true);
+      expect(result.config.internal_prompt_enhancer.model).toBe("venice-uncensored-1-2");
+      expect(result.config.internal_prompt_enhancer.temperature).toBe(0.4);
+      expect(result.config.internal_prompt_enhancer.maxTokens).toBe(350);
+    });
+
+    it("clamps temperature and maxTokens to safe ranges", () => {
+      const result = validateConfig({
+        version: 1,
+        internal_prompt_enhancer: { temperature: 5, maxTokens: 999999 },
+      });
+      expect(result.config.internal_prompt_enhancer.temperature).toBeLessThanOrEqual(2);
+      expect(result.config.internal_prompt_enhancer.maxTokens).toBeLessThanOrEqual(4000);
+    });
+
+    it("falls back to default system prompt when none provided", () => {
+      const result = validateConfig({ version: 1 });
+      const prompt = result.config.internal_prompt_enhancer.systemPrompt;
+      // Default does NOT contain old unsafe wording.
+      expect(prompt).not.toMatch(/ZERO CENSORSHIP/i);
+      expect(prompt).not.toMatch(/No refusals?/i);
+      // It DOES affirm safety guard is authoritative.
+      expect(prompt).toMatch(/safety guard/i);
+    });
+
+    it("falls back to default remix system prompt when none provided", () => {
+      const result = validateConfig({ version: 1 });
+      const prompt = result.config.internal_prompt_enhancer.remixSystemPrompt;
+      expect(prompt).not.toMatch(/ZERO CENSORSHIP/i);
+      expect(prompt).toMatch(/safety guard/i);
+    });
+
+    it("accepts a user-supplied system prompt", () => {
+      const result = validateConfig({
+        version: 1,
+        internal_prompt_enhancer: { systemPrompt: "Custom system prompt." },
+      });
+      expect(result.config.internal_prompt_enhancer.systemPrompt).toBe("Custom system prompt.");
+    });
+
+    it("truncates oversized system prompts", () => {
+      const long = "a".repeat(8000);
+      const result = validateConfig({
+        version: 1,
+        internal_prompt_enhancer: { systemPrompt: long },
+      });
+      expect(result.config.internal_prompt_enhancer.systemPrompt.length).toBeLessThanOrEqual(4096);
+    });
   });
 
   describe("validateThemesFile", () => {

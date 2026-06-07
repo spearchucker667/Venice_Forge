@@ -37,16 +37,23 @@ function Avatar({ character, size = 64 }: { character: VeniceCharacter; size?: n
   const resolvedUrl = resolveCharacterImageUrl(character);
   const showImage = !!resolvedUrl && !errored;
   const dim = `${size}px`;
+
+  useEffect(() => {
+    setErrored(false);
+  }, [character.slug, character.photoUrl]);
+
+  const altText = `${character.name} avatar`;
   return (
     <div
       className="rounded-full bg-surface-elevated border border-border flex items-center justify-center overflow-hidden text-text-secondary text-[18px] font-semibold shrink-0"
       style={{ width: dim, height: dim }}
-      aria-hidden="true"
+      role="img"
+      aria-label={altText}
     >
       {showImage ? (
         <img
           src={resolvedUrl!}
-          alt=""
+          alt={altText}
           width={size}
           height={size}
           loading="lazy"
@@ -55,7 +62,7 @@ function Avatar({ character, size = 64 }: { character: VeniceCharacter; size?: n
           className="w-full h-full object-cover"
         />
       ) : (
-        <span>{avatarFallback(character.name)}</span>
+        <span aria-hidden="true">{avatarFallback(character.name)}</span>
       )}
     </div>
   );

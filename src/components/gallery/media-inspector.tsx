@@ -5,12 +5,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Heart, Trash2, Tag as TagIcon, NotebookPen, Sparkles,
-  Copy, Wand2, Shuffle,
+  Copy, Wand2, Shuffle, Settings, RefreshCw, Repeat, Maximize2, ImagePlus,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { GhostButton, Label, TextArea, Badge } from "../ui/shared";
 import { mediaCapabilities, normalizedTags, splitTags } from "../../utils/mediaItem";
 import { enhancePrompt, remixPrompt } from "../../services/prompt-enhancer-service";
+import { useConfigStore } from "../../stores/config-store";
 import type { MediaItem } from "../../types/media";
 
 interface MediaInspectorProps {
@@ -26,6 +27,17 @@ interface MediaInspectorProps {
   onOpenChild: (child: MediaItem) => void;
   onOpenParent: (parent: MediaItem) => void;
   onClose: () => void;
+  /** Populates the Image Studio state with this item's stored parameters.
+   *  No generation. */
+  onUseSettings?: (item: MediaItem) => void;
+  /** Regenerate using the stored metadata, optionally keeping the original seed. */
+  onRegenerate?: (item: MediaItem, opts?: { sameSeed?: boolean }) => void;
+  /** Enhance / upscale the selected item via the existing image-tools flow. */
+  onUpscale?: (item: MediaItem) => void;
+  /** Apply a remixed prompt to the Image Studio (no auto-generation). */
+  onApplyRemix?: (item: MediaItem, remixedPrompt: string) => void;
+  /** Open the image-tools panel for the selected item. */
+  onOpenImageTools?: (item: MediaItem) => void;
 }
 
 export function MediaInspector({
@@ -38,6 +50,10 @@ export function MediaInspector({
   onOpenChild,
   onOpenParent,
   onClose,
+  onUseSettings,
+  onRegenerate,
+  onUpscale,
+  onApplyRemix,
 }: MediaInspectorProps) {
   const [tagDraft, setTagDraft] = useState("");
   const [noteDraft, setNoteDraft] = useState(item.note);
@@ -92,9 +108,25 @@ export function MediaInspector({
     loading: boolean;
   } | null>(null);
 
+  // Prompt-enhancer config (renderer-bound snapshot of internal_prompt_enhancer).
+  // When `enabled` is false, the Enhance / Remix / Upscale prompt-affecting
+  // actions are disabled in the inspector.
+  const enhancerConfig = useConfigStore((s) => s.config?.internal_prompt_enhancer ?? null);
+  const enhancerEnabled = enhancerConfig?.enabled !== false;
+
+  const hasSeed = typeof item.seed === "number" && Number.isInteger(item.seed);
+
   const handleCopyPrompt = useCallback(() => {
     void navigator.clipboard.writeText(item.prompt || "");
   }, [item.prompt]);
+
+  const handleCopyNegative = useCallback(() => {
+    void navigator.clipboard.writeText(item.negative || "");
+  }, [item.negative]);
+
+  const handleCopySeed = useCallback(() => {
+    if (hasSeed) void navigator.clipboard.writeText(String(item.seed));
+  }, [hasSeed, item.seed]);
 
   const handleCopyMetadata = useCallback(() => {
     const meta: Record<string, unknown> = {};
@@ -107,42 +139,51 @@ export function MediaInspector({
     if (item.source) meta.source = item.source;
     if (item.negative) meta.negative = item.negative;
     if (item.aspectRatio) meta.aspectRatio = item.aspectRatio;
+    if (item.resolution) meta.resolution = item.resolution;
     void navigator.clipboard.writeText(JSON.stringify(meta, null, 2));
   }, [item]);
 
   const handleEnhance = useCallback(async () => {
     if (!item.prompt) return;
+    if (!enhancerEnabled) return;
     setEnhanceState({ mode: "enhance", result: "", loading: true });
     try {
-      const { prompt } = await enhancePrompt({
-        mode: "enhance",
-        prompt: item.prompt,
-        negativePrompt: item.negative ?? null,
-        model: item.model,
-        seed: item.seed ?? null,
-      });
+      const { prompt } = await enhancePrompt(
+        {
+          mode: "enhance",
+          prompt: item.prompt,
+          negativePrompt: item.negative ?? null,
+          model: item.model,
+          seed: item.seed ?? null,
+        },
+        enhancerConfig,
+      );
       setEnhanceState({ mode: "enhance", result: prompt, loading: false });
     } catch {
       setEnhanceState(null);
     }
-  }, [item.prompt, item.negative, item.model, item.seed]);
+  }, [item.prompt, item.negative, item.model, item.seed, enhancerEnabled, enhancerConfig]);
 
   const handleRemix = useCallback(async () => {
     if (!item.prompt) return;
+    if (!enhancerEnabled) return;
     setEnhanceState({ mode: "remix", result: "", loading: true });
     try {
-      const { prompt } = await remixPrompt({
-        mode: "remix",
-        prompt: item.prompt,
-        negativePrompt: item.negative ?? null,
-        model: item.model,
-        seed: item.seed ?? null,
-      });
+      const { prompt } = await remixPrompt(
+        {
+          mode: "remix",
+          prompt: item.prompt,
+          negativePrompt: item.negative ?? null,
+          model: item.model,
+          seed: item.seed ?? null,
+        },
+        enhancerConfig,
+      );
       setEnhanceState({ mode: "remix", result: prompt, loading: false });
     } catch {
       setEnhanceState(null);
     }
-  }, [item.prompt, item.negative, item.model, item.seed]);
+  }, [item.prompt, item.negative, item.model, item.seed, enhancerEnabled, enhancerConfig]);
 
   const handleApplyEnhance = useCallback(async () => {
     if (!enhanceState || !enhanceState.result) return;
@@ -154,6 +195,35 @@ export function MediaInspector({
     });
     setEnhanceState(null);
   }, [enhanceState, onPatch, item.id, item.enhancedPrompt, item.originalPrompt, item.prompt, item.remixPrompt]);
+
+  const handleApplyRemixToStudio = useCallback(() => {
+    if (!enhanceState || enhanceState.mode !== "remix" || !enhanceState.result) return;
+    if (onApplyRemix) onApplyRemix(item, enhanceState.result);
+    setEnhanceState(null);
+  }, [enhanceState, onApplyRemix, item]);
+
+  const handleRemixAndGenerate = useCallback(() => {
+    if (!enhanceState || enhanceState.mode !== "remix" || !enhanceState.result) return;
+    if (onApplyRemix) onApplyRemix(item, enhanceState.result);
+    if (onRegenerate) onRegenerate(item, { sameSeed: false });
+    setEnhanceState(null);
+  }, [enhanceState, onApplyRemix, onRegenerate, item]);
+
+  const handleUseSettingsClick = useCallback(() => {
+    if (onUseSettings) onUseSettings(item);
+  }, [onUseSettings, item]);
+
+  const handleRegenerateClick = useCallback(() => {
+    if (onRegenerate) onRegenerate(item, { sameSeed: false });
+  }, [onRegenerate, item]);
+
+  const handleRegenerateSameSeedClick = useCallback(() => {
+    if (onRegenerate) onRegenerate(item, { sameSeed: true });
+  }, [onRegenerate, item]);
+
+  const handleUpscaleClick = useCallback(() => {
+    if (onUpscale) onUpscale(item);
+  }, [onUpscale, item]);
 
   const hasMetadata = typeof item.seed === "number" || item.source || item.style ||
     item.steps !== undefined || item.cfg !== undefined || item.aspectRatio;
@@ -281,19 +351,98 @@ export function MediaInspector({
       <section>
         <Label>Actions</Label>
         <div className="flex flex-wrap gap-1.5">
+          {onUseSettings && (
+            <button
+              type="button"
+              onClick={handleUseSettingsClick}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              title="Load this image's settings into Image Studio (no generation)"
+              data-testid="inspector-use-settings"
+            >
+              <Settings className="h-3 w-3" /> Use settings
+            </button>
+          )}
+          {onRegenerate && (
+            <button
+              type="button"
+              onClick={handleRegenerateClick}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              title="Regenerate using this image's settings (new random seed)"
+              data-testid="inspector-regenerate"
+            >
+              <RefreshCw className="h-3 w-3" /> Regenerate
+            </button>
+          )}
+          {onRegenerate && hasSeed && (
+            <button
+              type="button"
+              onClick={handleRegenerateSameSeedClick}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              title="Regenerate using the same seed as this image"
+              data-testid="inspector-regenerate-same-seed"
+            >
+              <Repeat className="h-3 w-3" /> Same seed
+            </button>
+          )}
+          {onUpscale && capabilities.upscale && (
+            <button
+              type="button"
+              onClick={handleUpscaleClick}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              title="Upscale / enhance this image"
+              data-testid="inspector-upscale"
+            >
+              <Maximize2 className="h-3 w-3" /> Upscale
+            </button>
+          )}
+          {onUpscale && capabilities.edit && (
+            <button
+              type="button"
+              onClick={handleUpscaleClick}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              title="Open this image in the image editor"
+              data-testid="inspector-edit"
+            >
+              <ImagePlus className="h-3 w-3" /> Edit
+            </button>
+          )}
           <button
             type="button"
             onClick={handleCopyPrompt}
             className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
             title="Copy prompt text"
+            data-testid="inspector-copy-prompt"
           >
             <Copy className="h-3 w-3" /> Copy prompt
           </button>
+          {item.negative && (
+            <button
+              type="button"
+              onClick={handleCopyNegative}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              title="Copy negative prompt"
+              data-testid="inspector-copy-negative"
+            >
+              <Copy className="h-3 w-3" /> Copy negative
+            </button>
+          )}
+          {hasSeed && (
+            <button
+              type="button"
+              onClick={handleCopySeed}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              title={`Copy seed (${item.seed})`}
+              data-testid="inspector-copy-seed"
+            >
+              <Copy className="h-3 w-3" /> Copy seed
+            </button>
+          )}
           <button
             type="button"
             onClick={handleCopyMetadata}
             className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
             title="Copy metadata as JSON"
+            data-testid="inspector-copy-metadata"
           >
             <Copy className="h-3 w-3" /> Copy metadata
           </button>
@@ -302,18 +451,28 @@ export function MediaInspector({
               <button
                 type="button"
                 onClick={handleEnhance}
-                disabled={enhanceState?.loading}
+                disabled={enhanceState?.loading || !enhancerEnabled}
                 className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-40"
-                title="Enhance prompt via internal LLM"
+                title={
+                  !enhancerEnabled
+                    ? "Disabled: internal_prompt_enhancer.enabled is false in config.yaml"
+                    : "Enhance prompt via internal LLM"
+                }
+                data-testid="inspector-enhance"
               >
                 <Wand2 className="h-3 w-3" /> {enhanceState?.loading && enhanceState?.mode === "enhance" ? "Enhancing…" : "Enhance"}
               </button>
               <button
                 type="button"
                 onClick={handleRemix}
-                disabled={enhanceState?.loading}
+                disabled={enhanceState?.loading || !enhancerEnabled}
                 className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-40"
-                title="Remix prompt via internal LLM"
+                title={
+                  !enhancerEnabled
+                    ? "Disabled: internal_prompt_enhancer.enabled is false in config.yaml"
+                    : "Remix prompt via internal LLM"
+                }
+                data-testid="inspector-remix"
               >
                 <Shuffle className="h-3 w-3" /> {enhanceState?.loading && enhanceState?.mode === "remix" ? "Remixing…" : "Remix"}
               </button>
@@ -335,21 +494,74 @@ export function MediaInspector({
             <p className="text-[10.5px] text-text-muted">
               Original: &ldquo;{item.prompt}&rdquo;
             </p>
-            <div className="flex gap-1.5">
-              <button
-                type="button"
-                onClick={handleApplyEnhance}
-                className="inline-flex items-center gap-1 rounded-md border border-accent px-2.5 py-1 text-[11px] text-accent hover:bg-accent/10"
-              >
-                Apply
-              </button>
-              <button
-                type="button"
-                onClick={() => setEnhanceState(null)}
-                className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
-              >
-                Cancel
-              </button>
+            <div className="flex flex-wrap gap-1.5">
+              {enhanceState.mode === "enhance" ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleApplyEnhance}
+                    className="inline-flex items-center gap-1 rounded-md border border-accent px-2.5 py-1 text-[11px] text-accent hover:bg-accent/10"
+                    data-testid="inspector-apply-enhance"
+                  >
+                    Apply
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEnhanceState(null)}
+                    className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  {onApplyRemix && (
+                    <button
+                      type="button"
+                      onClick={handleApplyRemixToStudio}
+                      className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+                      data-testid="inspector-remix-apply-to-studio"
+                    >
+                      Apply to Image Studio
+                    </button>
+                  )}
+                  {onApplyRemix && onRegenerate && (
+                    <button
+                      type="button"
+                      onClick={handleRemixAndGenerate}
+                      className="inline-flex items-center gap-1 rounded-md border border-accent px-2.5 py-1 text-[11px] text-accent hover:bg-accent/10"
+                      data-testid="inspector-remix-and-generate"
+                    >
+                      Remix &amp; Generate
+                    </button>
+                  )}
+                  {onApplyRemix && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Persist the remixed prompt without triggering the studio.
+                        void onPatch(item.id, {
+                          prompt: enhanceState.result,
+                          remixPrompt: enhanceState.result,
+                          originalPrompt: item.originalPrompt || item.prompt,
+                        });
+                        setEnhanceState(null);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+                      data-testid="inspector-remix-save"
+                    >
+                      Save remix
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setEnhanceState(null)}
+                    className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </section>

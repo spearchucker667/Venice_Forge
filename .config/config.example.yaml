@@ -81,11 +81,15 @@ developer:
 # Not selectable from the normal model dropdown. Configured by devs only.
 # Leave systemPrompt / remixSystemPrompt empty to use the schema defaults
 # (DEFAULT_ENHANCE_SYSTEM_PROMPT / DEFAULT_REMIX_SYSTEM_PROMPT in
-# src/config/configSchema.ts).
+# src/config/configSchema.ts). The model id MUST match a model the
+# Venice /models endpoint advertises (e.g. "venice-uncensored-1-2").
+# The default system prompts are task-focused and affirm that the
+# app's existing safety guard remains authoritative — they do not
+# reframe the enhancer as bypassing safety.
 internal_prompt_enhancer:
   enabled: true
-  model: "venice-uncensored 1.2"
+  model: "venice-uncensored-1-2"
   temperature: 0.4
-  maxTokens: 500
+  maxTokens: 350
   systemPrompt: ""
   remixSystemPrompt: ""

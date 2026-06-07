@@ -17,7 +17,13 @@ import { PROMPT_TEMPLATES } from '../../constants/promptTemplates'
 import { processBase64Image, routeAsset } from '../../utils/imageProcessor'
 import { getImageModelCapabilities, buildDimensionOptions } from '../../config/image-model-capabilities'
 import { enhancePrompt } from '../../services/prompt-enhancer-service'
-import type { ImageSeedState } from '../../utils/payloadBuilders'
+import {
+  buildImagePayload,
+  clampSeed,
+  randomSeed,
+  type ImageSeedState,
+} from '../../utils/payloadBuilders'
+import { useConfigStore } from '../../stores/config-store'
 
 
 function toImageSrc(b64: string): string {
@@ -76,14 +82,23 @@ export function ImageView() {
   const [images, setImages] = useState<string[]>([])
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
-  // Seed state
+  // Seed state — mode "off" omits the field entirely; "fixed" sends an
+  // integer in [-999999999, 999999999]. We do not expose a "null" mode
+  // because the Venice swagger does not document `seed: null` as a
+  // first-class value.
   const [seedMode, setSeedMode] = useState<'off' | 'fixed'>('off')
-  const [seedValue, setSeedValue] = useState<number>(Math.floor(Math.random() * 1000000000))
+  const [seedValue, setSeedValue] = useState<number>(() => randomSeed())
 
   // Enhance prompt review flow
   const [enhancing, setEnhancing] = useState(false)
   const [enhancedPrompt, setEnhancedPrompt] = useState<string | null>(null)
   const [showEnhanceReview, setShowEnhanceReview] = useState(false)
+
+  // Prompt-enhancer config (renderer-bound snapshot of internal_prompt_enhancer).
+  // When `enabled` is false, the enhance button is disabled and the
+  // user is told why.
+  const enhancerConfig = useConfigStore((s) => s.config?.internal_prompt_enhancer ?? null)
+  const enhancerEnabled = enhancerConfig?.enabled !== false
 
   const aspectOptions = useMemo(() => {
     if (!hasAspectRatios) return []
@@ -136,13 +151,17 @@ export function ImageView() {
 
   const handleEnhance = useCallback(async () => {
     if (!prompt.trim()) return
+    if (!enhancerEnabled) return
     setEnhancing(true)
     try {
-      const result = await enhancePrompt({
-        mode: 'enhance',
-        prompt: prompt.trim(),
-        negativePrompt: negativePrompt.trim() || null,
-      })
+      const result = await enhancePrompt(
+        {
+          mode: 'enhance',
+          prompt: prompt.trim(),
+          negativePrompt: negativePrompt.trim() || null,
+        },
+        enhancerConfig,
+      )
       setEnhancedPrompt(result.prompt)
       setShowEnhanceReview(true)
     } catch {
@@ -150,7 +169,7 @@ export function ImageView() {
     } finally {
       setEnhancing(false)
     }
-  }, [prompt, negativePrompt])
+  }, [prompt, negativePrompt, enhancerEnabled, enhancerConfig])
 
   const applyEnhancedPrompt = useCallback(() => {
     if (enhancedPrompt) setPrompt(enhancedPrompt)
@@ -167,6 +186,56 @@ export function ImageView() {
     if (seedMode === 'fixed') return { mode: 'fixed', value: seedValue }
     return { mode: 'off', value: null }
   }, [seedMode, seedValue])
+
+  /**
+   * Applies a draft (typically derived from a gallery item) to the
+   * Image Studio state without generating. Used by the gallery's
+   * "Use settings" action. The optional `seed` field controls
+   * whether seed mode is "fixed" (with the supplied value) or
+   * "off" (when the source item had no seed).
+   */
+  const applyDraftFromGallery = useCallback(
+    (draft: {
+      prompt?: string;
+      negativePrompt?: string;
+      style?: string;
+      steps?: number;
+      imageCount?: number;
+      width?: number;
+      height?: number;
+      aspectRatio?: string;
+      resolution?: string;
+      seed?: number | null;
+    }) => {
+      if (typeof draft.prompt === "string") setPrompt(draft.prompt);
+      if (typeof draft.negativePrompt === "string") setNegativePrompt(draft.negativePrompt);
+      if (typeof draft.style === "string") setStyle(draft.style);
+      if (typeof draft.steps === "number" && Number.isFinite(draft.steps)) setSteps(draft.steps);
+      if (typeof draft.imageCount === "number" && Number.isFinite(draft.imageCount)) {
+        setVariants(Math.max(1, Math.min(4, Math.round(draft.imageCount))));
+      }
+      if (typeof draft.aspectRatio === "string" && draft.aspectRatio.length > 0) {
+        setAspectRatio(draft.aspectRatio);
+        setSizeKey("1024x1024");
+      } else if (
+        typeof draft.width === "number" &&
+        typeof draft.height === "number"
+      ) {
+        setSizeKey(`${draft.width}x${draft.height}`);
+        setAspectRatio("");
+      }
+      if (typeof draft.resolution === "string") setResolution(draft.resolution);
+      if (typeof draft.seed === "number" && Number.isInteger(draft.seed)) {
+        setSeedMode("fixed");
+        setSeedValue(draft.seed);
+      } else {
+        setSeedMode("off");
+      }
+      // Do not auto-generate; gallery callers can chain .generate() if
+      // they want a one-shot regenerate.
+    },
+    [],
+  )
 
   const handleGenerate = () => {
     if (!prompt.trim()) return
@@ -187,29 +256,48 @@ export function ImageView() {
 
     const seedState = buildSeedState()
 
-    const req: Record<string, unknown> = {
-      prompt: currentPrompt,
-      negative_prompt: negativePrompt.trim() || undefined,
+    // Use the shared payload builder. The builder enforces exactly one
+    // sizing shape (aspect_ratio vs width/height), respects the model's
+    // resolution support, and applies safe_mode via the endpoint matrix.
+    const req = buildImagePayload(
       model,
-      style_preset: style || undefined,
-      variants,
-      hide_watermark: hideWatermark,
-      safe_mode: veniceApiSafeMode,
-      steps,
-    }
+      {
+        prompt: currentPrompt,
+        negative: negativePrompt.trim() || undefined,
+        width,
+        height,
+        aspectRatio: aspectRatioField,
+        steps,
+        style: style || undefined,
+        safeMode: veniceApiSafeMode,
+        disableWatermark: hideWatermark,
+        imageCount: variants,
+      },
+      undefined,
+      seedState,
+    ) as Record<string, unknown> & {
+    prompt: string;
+    model: string;
+    steps: number;
+    cfg_scale: number;
+    hide_watermark: boolean;
+    return_binary: boolean;
+  }
 
-    if (aspectRatioField) {
-      req.aspect_ratio = aspectRatioField
-    } else if (width && height) {
-      req.width = width
-      req.height = height
-    }
+    // The shared builder does not know about `variants` because variants
+    // is rejected by some model classes; we attach it only when the model
+    // supports multi-image. The UI clamps to 4; we mirror that here.
+    req.variants = variants
 
-    if (resolution) req.resolution = resolution
-
-    // Apply seed
-    if (seedState.mode === 'fixed') {
-      req.seed = seedState.value
+    // If the model supports resolution and the UI selected one, attach it.
+    // The capabilities layer is the source of truth for whether the
+    // current model is in `aspectResolution` mode.
+    if (
+      dimOptions.dimensionMode === 'aspectResolution' &&
+      resolution &&
+      req.aspect_ratio
+    ) {
+      req.resolution = resolution
     }
 
     mutation.mutate(
@@ -237,6 +325,7 @@ export function ImageView() {
               width: req.width as number | undefined,
               height: req.height as number | undefined,
               aspectRatio: req.aspect_ratio as string | undefined,
+              resolution: req.resolution as string | undefined,
               style: req.style_preset as string | undefined,
               steps: req.steps as number | undefined,
               cfg: req.cfg_scale as number | undefined,
@@ -279,6 +368,31 @@ export function ImageView() {
     )
   }
 
+  // Gallery handoff hook. Exposed only in DEV/non-production so the
+  // gallery inspector can drive the image studio (use settings,
+  // regenerate, remix handoff) without leaking globals into shipped
+  // builds. The hook attaches on mount and detaches on unmount.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const meta = (import.meta as unknown as { env?: { DEV?: boolean; MODE?: string } });
+    const isDev = meta.env?.DEV === true || meta.env?.MODE !== "production";
+    if (!isDev) return;
+    interface ImageStudioDevApi {
+      applyDraft: typeof applyDraftFromGallery;
+      generate: () => void;
+      getPrompt: () => string;
+    }
+    const w = window as unknown as { __veniceImageStudio?: ImageStudioDevApi };
+    w.__veniceImageStudio = {
+      applyDraft: applyDraftFromGallery,
+      generate: () => handleGenerate(),
+      getPrompt: () => prompt,
+    };
+    return () => {
+      if (w.__veniceImageStudio) delete w.__veniceImageStudio;
+    };
+  }, [applyDraftFromGallery, prompt, handleGenerate]);
+
   const controls = (
     <>
       <div>
@@ -288,10 +402,14 @@ export function ImageView() {
             <button
               type="button"
               onClick={handleEnhance}
-              disabled={!prompt.trim() || enhancing}
+              disabled={!prompt.trim() || enhancing || !enhancerEnabled}
               className="text-[11px] px-2 py-1 rounded-md bg-accent/10 text-accent hover:bg-accent/20 border border-accent/30 transition-colors disabled:opacity-50 cursor-pointer"
               aria-label="Enhance prompt"
-              title="Use internal LLM to enhance this prompt"
+              title={
+                !enhancerEnabled
+                  ? 'Disabled: internal_prompt_enhancer.enabled is false in config.yaml'
+                  : 'Use internal LLM to enhance this prompt'
+              }
             >
               {enhancing ? 'Enhancing…' : 'Enhance prompt'}
             </button>
@@ -403,7 +521,10 @@ export function ImageView() {
               value={seedValue}
               onChange={(e) => {
                 const v = parseInt(e.target.value, 10);
-                if (!isNaN(v) && isFinite(v)) setSeedValue(v);
+                if (Number.isFinite(v)) {
+                  const clamped = clampSeed(v);
+                  if (clamped !== null) setSeedValue(clamped);
+                }
               }}
               min={-999999999}
               max={999999999}
@@ -412,7 +533,7 @@ export function ImageView() {
             />
             <button
               type="button"
-              onClick={() => setSeedValue(Math.floor(Math.random() * 1000000000))}
+              onClick={() => setSeedValue(randomSeed())}
               className="px-2 py-1 text-[11px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
               aria-label="Randomize seed"
             >

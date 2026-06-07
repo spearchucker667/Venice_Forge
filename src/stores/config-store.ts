@@ -8,6 +8,7 @@
 import { create } from "zustand";
 import { isElectron } from "../services/desktopBridge";
 import { useSettingsStore } from "./settings-store";
+import type { YamlInternalPromptEnhancer } from "../config/configSchema";
 
 export interface ConfigStatusSnapshot {
   configPath: string;
@@ -87,6 +88,9 @@ export interface SanitizedConfigSnapshot {
     force_import_keys: boolean;
     force_apply_config: boolean;
   };
+  /** Internal prompt-enhancer LLM configuration. Read by image-view and
+   *  the gallery inspector to drive enhance/remix calls. */
+  internal_prompt_enhancer: YamlInternalPromptEnhancer;
 }
 
 interface ConfigState {

@@ -177,7 +177,40 @@ For API keys:
 1. Existing secure-store key.
 2. YAML secret imported into secure store if secure store key missing
    (or `developer.force_import_keys: true`).
-3. No key configured.
+ 3. No key configured.
+
+## Internal Prompt Enhancer
+
+```yaml
+internal_prompt_enhancer:
+  enabled: true
+  model: "venice-uncensored-1-2"
+  temperature: 0.4
+  maxTokens: 350
+  systemPrompt: ""
+  remixSystemPrompt: ""
+```
+
+The internal prompt-enhancer is a hidden under-app LLM helper used
+exclusively for image prompt **Enhance** and **Remix** in Image Studio
+and the gallery inspector. It is **not** a user-chat-accessible model
+and the model id is **not** exposed in the normal chat / model
+selector. The default system prompts are task-focused and affirm that
+the app's existing safety guard and the upstream provider controls
+remain authoritative — they do not reframe the enhancer as
+overriding the local Family / CSAM rules.
+
+- `enabled: false` disables the **Enhance** and **Remix** buttons in
+  Image Studio and the gallery inspector (with a tooltip explaining
+  why).
+- `model` is a verified Venice model id (e.g. `venice-uncensored-1-2`).
+  The default is verified against the live `/models` endpoint.
+- `temperature` is clamped to `[0, 2]`.
+- `maxTokens` is clamped to `[1, 4000]`.
+- `systemPrompt` and `remixSystemPrompt` accept custom task-focused
+  rewrites. Empty string falls back to the safe defaults in
+  `src/config/configSchema.ts` (`DEFAULT_ENHANCE_SYSTEM_PROMPT` /
+  `DEFAULT_REMIX_SYSTEM_PROMPT`).
 
 ## Examples
 
