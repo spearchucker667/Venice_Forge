@@ -1,6 +1,17 @@
 // @vitest-environment node
 
-/** @fileoverview Unit tests for the Electron main-process Media Studio disk service. */
+/** @fileoverview Unit tests for the Electron main-process Media Studio disk service.
+ *
+ *  Path-source contract: the Electron `app.getPath()` mock returns the exact
+ *  realpath-resolved temp directories created at module load. The test
+ *  fixtures write into those directories and the mediaService call site
+ *  compares the realpath of the input path against `path.resolve(getPath())`
+ *  via `isWithin`. On Windows the realpath form of a directory can change
+ *  if the directory is deleted and recreated mid-test (new 8.3 short name,
+ *  junction expansion, or case change), which silently breaks the
+ *  containment check even though the directory is logically the same.
+ *  The cleanup helpers in this file therefore only remove the fixture
+ *  files between tests, never the parent temp directories. */
 
 import { describe, it, expect, afterAll, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs/promises";
@@ -16,9 +27,11 @@ const TMP_USERDATA_RAW = path.join(TEMP_ROOT, "UserData");
 const TMP_DOWNLOADS_RAW = path.join(TEMP_ROOT, "Downloads");
 const TMP_DESKTOP_RAW = path.join(TEMP_ROOT, "Desktop");
 const TMP_DOCS_RAW = path.join(TEMP_ROOT, "Documents");
+const TMP_VIDEOS_RAW = path.join(TEMP_ROOT, "Videos");
+const TMP_MUSIC_RAW = path.join(TEMP_ROOT, "Music");
 const TMP_OUTSIDE_RAW = path.join(TEMP_ROOT, "Outside");
 
-for (const d of [TMP_PICTURES_RAW, TMP_USERDATA_RAW, TMP_DOWNLOADS_RAW, TMP_DESKTOP_RAW, TMP_DOCS_RAW, TMP_OUTSIDE_RAW]) {
+for (const d of [TMP_PICTURES_RAW, TMP_USERDATA_RAW, TMP_DOWNLOADS_RAW, TMP_DESKTOP_RAW, TMP_DOCS_RAW, TMP_VIDEOS_RAW, TMP_MUSIC_RAW, TMP_OUTSIDE_RAW]) {
   fsSync.mkdirSync(d, { recursive: true });
 }
 
@@ -27,6 +40,8 @@ const TMP_USERDATA = fsSync.realpathSync(TMP_USERDATA_RAW);
 const TMP_DOWNLOADS = fsSync.realpathSync(TMP_DOWNLOADS_RAW);
 const TMP_DESKTOP = fsSync.realpathSync(TMP_DESKTOP_RAW);
 const TMP_DOCS = fsSync.realpathSync(TMP_DOCS_RAW);
+const TMP_VIDEOS = fsSync.realpathSync(TMP_VIDEOS_RAW);
+const TMP_MUSIC = fsSync.realpathSync(TMP_MUSIC_RAW);
 const TMP_OUTSIDE = fsSync.realpathSync(TMP_OUTSIDE_RAW);
 
 vi.mock("electron", () => ({
@@ -38,6 +53,8 @@ vi.mock("electron", () => ({
         case "downloads": return TMP_DOWNLOADS;
         case "desktop": return TMP_DESKTOP;
         case "documents": return TMP_DOCS;
+        case "videos": return TMP_VIDEOS;
+        case "music": return TMP_MUSIC;
         default: return os.tmpdir();
       }
     }),
@@ -56,16 +73,22 @@ import {
   __test,
 } from "./mediaService";
 
-async function clean() {
-  for (const d of [TMP_PICTURES, TMP_USERDATA, TMP_DOWNLOADS, TMP_DESKTOP, TMP_DOCS, TMP_OUTSIDE]) {
-    try { await fs.rm(d, { recursive: true, force: true }); } catch { /* ignore */ }
+/** Removes only the named fixture file from a directory. The directory
+ *  itself is preserved so its realpath form stays stable for the entire
+ *  test run (critical on Windows, where deleting and recreating a
+ *  directory can change its 8.3 short name or junction expansion). */
+async function removeFixture(...paths: string[]) {
+  for (const p of paths) {
+    try { await fs.rm(p, { force: true }); } catch { /* ignore */ }
   }
-  await fs.mkdir(TMP_PICTURES, { recursive: true });
-  await fs.mkdir(TMP_USERDATA, { recursive: true });
-  await fs.mkdir(TMP_DOWNLOADS, { recursive: true });
-  await fs.mkdir(TMP_DESKTOP, { recursive: true });
-  await fs.mkdir(TMP_DOCS, { recursive: true });
-  await fs.mkdir(TMP_OUTSIDE, { recursive: true });
+}
+
+/** Removes a list of fixture file basenames from a directory without
+ *  touching the directory itself. */
+async function removeFixturesIn(dir: string, basenames: string[]) {
+  for (const b of basenames) {
+    try { await fs.rm(path.join(dir, b), { force: true }); } catch { /* ignore */ }
+  }
 }
 
 afterAll(async () => {
@@ -186,15 +209,25 @@ describe("mediaService.isWithin", () => {
 });
 
 describe("exportMedia", () => {
-  beforeEach(async () => { await clean(); });
-  afterEach(async () => { await clean(); });
+  beforeEach(async () => {
+    await removeFixturesIn(
+      path.join(TMP_PICTURES, "Venice Forge", "Media Studio"),
+      ["My_Image.png", "preview.png", "stripped.png"],
+    );
+  });
+  afterEach(async () => {
+    await removeFixturesIn(
+      path.join(TMP_PICTURES, "Venice Forge", "Media Studio"),
+      ["My_Image.png", "preview.png", "stripped.png"],
+    );
+  });
 
   it("writes a sanitized file under Pictures/Venice Forge/Media Studio", async () => {
     const result = await exportMedia({
       base64Data: tinyPngBuffer().toString("base64"),
       filename: "My Image.png",
     });
-    expect(result.ok).toBe(true);
+    expect(result.ok, `exportMedia failed: ${result.error ?? "<no error>"}`).toBe(true);
     expect(result.filePath).toBeDefined();
     const written = await fs.readFile(result.filePath!);
     expect(written.equals(tinyPngBuffer())).toBe(true);
@@ -208,7 +241,7 @@ describe("exportMedia", () => {
       filename: "preview.png",
       dryRun: true,
     });
-    expect(result.ok).toBe(true);
+    expect(result.ok, `exportMedia dryRun failed: ${result.error ?? "<no error>"}`).toBe(true);
     expect(result.filePath).toMatch(/Media Studio[\\/]preview\.png$/);
     // File should NOT exist on disk
     await expect(fs.access(result.filePath!)).rejects.toThrow();
@@ -216,15 +249,15 @@ describe("exportMedia", () => {
 
   it("rejects filenames with no usable characters", async () => {
     const result = await exportMedia({ base64Data: tinyPngBuffer().toString("base64"), filename: "." });
-    expect(result.ok).toBe(false);
+    expect(result.ok, `exportMedia unexpectedly succeeded: ${result.error ?? "<no error>"}`).toBe(false);
     expect(result.error).toMatch(/no usable characters/);
   });
 
   it("rejects missing or non-string base64Data", async () => {
     const r1 = await exportMedia({ filename: "x.png" } as unknown as { base64Data: string; filename: string });
-    expect(r1.ok).toBe(false);
+    expect(r1.ok, `exportMedia unexpectedly succeeded: ${r1.error ?? "<no error>"}`).toBe(false);
     const r2 = await exportMedia({ base64Data: 123 as unknown as string, filename: "x.png" });
-    expect(r2.ok).toBe(false);
+    expect(r2.ok, `exportMedia unexpectedly succeeded: ${r2.error ?? "<no error>"}`).toBe(false);
   });
 
   it("strips data URL prefix before decoding", async () => {
@@ -232,21 +265,31 @@ describe("exportMedia", () => {
       base64Data: `data:image/png;base64,${tinyPngBuffer().toString("base64")}`,
       filename: "stripped.png",
     });
-    expect(result.ok).toBe(true);
+    expect(result.ok, `exportMedia failed: ${result.error ?? "<no error>"}`).toBe(true);
     const written = await fs.readFile(result.filePath!);
     expect(written.equals(tinyPngBuffer())).toBe(true);
   });
 });
 
 describe("importMediaFromPath", () => {
-  beforeEach(async () => { await clean(); });
-  afterEach(async () => { await clean(); });
+  beforeEach(async () => {
+    await removeFixture(path.join(TMP_DOWNLOADS, "import.png"));
+    await removeFixture(path.join(TMP_OUTSIDE, "outside.txt"));
+  });
+  afterEach(async () => {
+    await removeFixture(path.join(TMP_DOWNLOADS, "import.png"));
+    await removeFixture(path.join(TMP_OUTSIDE, "outside.txt"));
+  });
 
   it("reads a file from Downloads and returns a data URL", async () => {
     const target = path.join(TMP_DOWNLOADS, "import.png");
     await fs.writeFile(target, tinyPngBuffer());
     const result = await importMediaFromPath({ filePath: target });
-    expect(result.ok).toBe(true);
+    expect(
+      result.ok,
+      `importMediaFromPath returned ok=false for ${target}; error=${result.error ?? "<none>"}; ` +
+        `TMP_DOWNLOADS=${TMP_DOWNLOADS}; mock getPath('downloads')=${TMP_DOWNLOADS}`,
+    ).toBe(true);
     expect(result.dataUrl).toMatch(/^data:image\/png;base64,/);
     expect(result.bytes).toBe(tinyPngBuffer().length);
     expect(result.contentType).toBe("image/png");
@@ -257,32 +300,53 @@ describe("importMediaFromPath", () => {
     const outsideFile = path.join(TMP_OUTSIDE, "outside.txt");
     await fs.writeFile(outsideFile, "not an image");
     const result = await importMediaFromPath({ filePath: outsideFile });
-    expect(result.ok).toBe(false);
+    expect(result.ok, `importMediaFromPath unexpectedly succeeded: ${result.error ?? "<no error>"}`).toBe(false);
     expect(result.error).toMatch(/Downloads|Documents|Desktop|Pictures/);
   });
 
   it("rejects null bytes and overlong paths", async () => {
     const r1 = await importMediaFromPath({ filePath: "ok\0bad" });
-    expect(r1.ok).toBe(false);
+    expect(r1.ok, `importMediaFromPath unexpectedly succeeded: ${r1.error ?? "<no error>"}`).toBe(false);
     const r2 = await importMediaFromPath({ filePath: "a".repeat(5000) });
-    expect(r2.ok).toBe(false);
+    expect(r2.ok, `importMediaFromPath unexpectedly succeeded: ${r2.error ?? "<no error>"}`).toBe(false);
   });
 
   it("rejects empty / missing path", async () => {
-    expect((await importMediaFromPath({ filePath: "" })).ok).toBe(false);
-    expect((await importMediaFromPath({ filePath: undefined as unknown as string })).ok).toBe(false);
+    const r1 = await importMediaFromPath({ filePath: "" });
+    expect(r1.ok, `importMediaFromPath unexpectedly succeeded: ${r1.error ?? "<no error>"}`).toBe(false);
+    const r2 = await importMediaFromPath({ filePath: undefined as unknown as string });
+    expect(r2.ok, `importMediaFromPath unexpectedly succeeded: ${r2.error ?? "<no error>"}`).toBe(false);
+  });
+
+  it("rejects a sibling-directory path traversal escape", async () => {
+    // The Downloads mock is TMP_DOWNLOADS, so ../Outside/inside.txt
+    // resolves outside the allowlist even though it lives under TEMP_ROOT.
+    const escape = path.join(TMP_DOWNLOADS, "..", "Outside", "inside.txt");
+    await fs.writeFile(path.resolve(escape), "not an image");
+    const result = await importMediaFromPath({ filePath: escape });
+    expect(result.ok, `importMediaFromPath allowed a traversal: ${result.error ?? "<no error>"}`).toBe(false);
   });
 });
 
 describe("readMediaMeta", () => {
-  beforeEach(async () => { await clean(); });
-  afterEach(async () => { await clean(); });
+  beforeEach(async () => {
+    await removeFixture(path.join(TMP_DOWNLOADS, "m.png"));
+    await removeFixture(path.join(TMP_OUTSIDE, "meta-outside.txt"));
+  });
+  afterEach(async () => {
+    await removeFixture(path.join(TMP_DOWNLOADS, "m.png"));
+    await removeFixture(path.join(TMP_OUTSIDE, "meta-outside.txt"));
+  });
 
   it("returns bytes and mtime for a file inside the allowlist", async () => {
     const target = path.join(TMP_DOWNLOADS, "m.png");
     await fs.writeFile(target, tinyPngBuffer());
     const result = await readMediaMeta({ filePath: target });
-    expect(result.ok).toBe(true);
+    expect(
+      result.ok,
+      `readMediaMeta returned ok=false for ${target}; error=${result.error ?? "<none>"}; ` +
+        `TMP_DOWNLOADS=${TMP_DOWNLOADS}; mock getPath('downloads')=${TMP_DOWNLOADS}`,
+    ).toBe(true);
     expect(result.bytes).toBe(tinyPngBuffer().length);
     expect(result.isFile).toBe(true);
     expect(typeof result.mtime).toBe("number");
@@ -292,46 +356,55 @@ describe("readMediaMeta", () => {
     const outsideFile = path.join(TMP_OUTSIDE, "meta-outside.txt");
     await fs.writeFile(outsideFile, "not an image");
     const result = await readMediaMeta({ filePath: outsideFile });
-    expect(result.ok).toBe(false);
+    expect(result.ok, `readMediaMeta unexpectedly succeeded: ${result.error ?? "<no error>"}`).toBe(false);
   });
 });
 
 describe("generateMediaThumb", () => {
-  beforeEach(async () => { await clean(); });
-  afterEach(async () => { await clean(); });
+  beforeEach(async () => {
+    // Clean any cached thumb under <TMP_USERDATA>/metadata/media-thumbs.
+    const thumbs = path.join(TMP_USERDATA, "metadata", "media-thumbs");
+    try { await fs.rm(thumbs, { recursive: true, force: true }); } catch { /* ignore */ }
+    await fs.mkdir(thumbs, { recursive: true });
+  });
+  afterEach(async () => {
+    const thumbs = path.join(TMP_USERDATA, "metadata", "media-thumbs");
+    try { await fs.rm(thumbs, { recursive: true, force: true }); } catch { /* ignore */ }
+    await fs.mkdir(thumbs, { recursive: true });
+  });
 
   it("returns a cache miss on first call and a cache hit on the second", async () => {
     const sha = sha256Of(tinyPngBuffer());
     const r1 = await generateMediaThumb({ sha256: sha, source: tinyPngBuffer().toString("base64") });
-    expect(r1.ok).toBe(true);
+    expect(r1.ok, `generateMediaThumb failed: ${r1.error ?? "<no error>"}`).toBe(true);
     expect(r1.filePath).toBeDefined();
     expect(r1.url).toMatch(/^file:\/\//);
     const onDisk = await fs.stat(r1.filePath!);
     expect(onDisk.size).toBeGreaterThan(0);
 
     const r2 = await generateMediaThumb({ sha256: sha, source: tinyPngBuffer().toString("base64") });
-    expect(r2.ok).toBe(true);
+    expect(r2.ok, `generateMediaThumb cache-hit failed: ${r2.error ?? "<no error>"}`).toBe(true);
     expect(r2.filePath).toBe(r1.filePath);
   });
 
   it("rejects an invalid sha256", async () => {
     const r1 = await generateMediaThumb({ sha256: "nope", source: tinyPngBuffer().toString("base64") });
-    expect(r1.ok).toBe(false);
+    expect(r1.ok, `generateMediaThumb unexpectedly succeeded: ${r1.error ?? "<no error>"}`).toBe(false);
     const r2 = await generateMediaThumb({ sha256: "a".repeat(63), source: tinyPngBuffer().toString("base64") });
-    expect(r2.ok).toBe(false);
+    expect(r2.ok, `generateMediaThumb unexpectedly succeeded: ${r2.error ?? "<no error>"}`).toBe(false);
   });
 
   it("rejects empty source", async () => {
     const sha = crypto.randomBytes(32).toString("hex");
     const r = await generateMediaThumb({ sha256: sha, source: "" });
-    expect(r.ok).toBe(false);
+    expect(r.ok, `generateMediaThumb unexpectedly succeeded: ${r.error ?? "<no error>"}`).toBe(false);
   });
 
   it("returns error for an unsupported format (JPEG stub)", async () => {
     const sha = crypto.randomBytes(32).toString("hex");
     const jpegBytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0]);
     const r = await generateMediaThumb({ sha256: sha, source: jpegBytes.toString("base64") });
-    expect(r.ok).toBe(false);
+    expect(r.ok, `generateMediaThumb unexpectedly succeeded: ${r.error ?? "<no error>"}`).toBe(false);
     expect(r.error).toMatch(/Unsupported|decode|JPEG/);
   });
 });
