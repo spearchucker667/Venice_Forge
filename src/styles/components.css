@@ -11,8 +11,8 @@
 /* Button system — used across all modules and components */
 .btn {
   border: 1px solid var(--border);
-  color: var(--text-primary);
-  background: var(--surface);
+  color: var(--button-secondary-fg);
+  background: var(--button-secondary-bg);
   border-radius: 8px;
   padding: 10px 24px;
   font-size: 14px;
@@ -24,8 +24,9 @@
   min-height: 44px;
   transition: all 0.2s ease;
 }
-.btn:hover:not(:disabled) { background: var(--surface-elevated); border-color: #3a3d47; }
-.btn.primary { background: var(--accent); color: var(--accent-fg); border: 1px solid var(--accent); box-shadow: none; }
+.btn:hover:not(:disabled) { background: var(--surface-muted); border-color: var(--border-strong); }
+.btn:disabled { color: var(--disabled-fg); cursor: not-allowed; }
+.btn.primary { background: var(--button-primary-bg); color: var(--button-primary-fg); border: 1px solid var(--button-primary-bg); box-shadow: none; }
 .btn.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); box-shadow: none; }
 .btn.danger { border-color: var(--danger); color: var(--danger); background: color-mix(in srgb, var(--danger) 5%, transparent); }
 .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 15%, transparent); }

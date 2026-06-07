@@ -8,7 +8,12 @@
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-elevated: var(--surface-elevated);
+  --color-surface-muted: var(--surface-muted);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-foreground: var(--foreground);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-foreground-subtle: var(--foreground-subtle);
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
@@ -16,10 +21,24 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-fg: var(--accent-fg);
   --color-success: var(--success);
+  --color-success-fg: var(--success-fg);
   --color-warning: var(--warning);
+  --color-warning-fg: var(--warning-fg);
   --color-danger: var(--danger);
+  --color-danger-fg: var(--danger-fg);
   --color-info: var(--info);
+  --color-input-bg: var(--input-bg);
+  --color-input-fg: var(--input-fg);
+  --color-placeholder: var(--placeholder);
+  --color-disabled-fg: var(--disabled-fg);
+  --color-button-primary-bg: var(--button-primary-bg);
+  --color-button-primary-fg: var(--button-primary-fg);
+  --color-button-secondary-bg: var(--button-secondary-bg);
+  --color-button-secondary-fg: var(--button-secondary-fg);
+  --color-link: var(--link);
   --color-focus-ring: var(--focus-ring);
+  --color-selection-bg: var(--selection-bg);
+  --color-selection-fg: var(--selection-fg);
   --color-overlay: var(--overlay);
   --color-glow: var(--glow);
 
@@ -27,16 +46,14 @@
   --color-bg-base: #0a0a0c;
   --color-bg-raised: #111114;
   --color-bg-overlay: #16161b;
-  --color-bg-input: #0d0d11;
 
   /* Border scale */
   --color-border-faint: rgba(255, 255, 255, 0.05);
   --color-border-soft: rgba(255, 255, 255, 0.08);
-  --color-border-strong: rgba(255, 255, 255, 0.16);
 
   /* Text scale */
-  --color-text-tertiary: rgba(255, 255, 255, 0.42);
-  --color-text-quaternary: rgba(255, 255, 255, 0.28);
+  --color-text-tertiary: var(--foreground-subtle);
+  --color-text-quaternary: var(--disabled-fg);
 
   /* Accent — Venice teal, used sparingly for status, focus rings, primary CTAs */
   --color-accent-soft: rgba(110, 231, 211, 0.16);
@@ -52,7 +69,11 @@ body {
   font-feature-settings: "ss01", "cv11";
 }
 
-::selection { background: rgba(110, 231, 211, 0.25); color: var(--text-primary); }
+::selection { background: var(--selection-bg); color: var(--selection-fg); }
+
+::placeholder { color: var(--placeholder); opacity: 1; }
+:disabled { color: var(--disabled-fg); }
+a { color: var(--link); }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -141,7 +162,7 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(
 textarea { field-sizing: content; }
 
 /* Focus — keyboard only, accent-tinted */
-*:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 6px; }
+*:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 6px; }
 button:focus, a:focus, textarea:focus, input:focus, select:focus { outline: none; }
 
 @media (pointer: coarse) {

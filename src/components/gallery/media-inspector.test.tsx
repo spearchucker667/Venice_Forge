@@ -4,6 +4,11 @@ import "@testing-library/jest-dom/vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("../../services/prompt-enhancer-service", () => ({
+  enhancePrompt: vi.fn().mockResolvedValue({ prompt: "Enhanced prompt", modelUsed: "test" }),
+  remixPrompt: vi.fn().mockResolvedValue({ prompt: "Reviewed remix", modelUsed: "test" }),
+}));
+
 import { useConfigStore } from "../../stores/config-store";
 import type { MediaItem } from "../../types/media";
 import { MediaInspector } from "./media-inspector";
@@ -210,6 +215,34 @@ describe("MediaInspector — gallery actions", () => {
     expect(onRegenerate.mock.calls[0][1]?.sameSeed).toBe(true);
   });
 
+  it("sends the reviewed remix as one regenerate request", async () => {
+    const onRegenerate = vi.fn();
+    const onApplyRemix = vi.fn();
+    render(
+      <MediaInspector
+        item={baseItem}
+        parentItem={null}
+        childrenItems={[]}
+        missingChildIds={[]}
+        onPatch={vi.fn()}
+        onDelete={vi.fn()}
+        onOpenChild={vi.fn()}
+        onOpenParent={vi.fn()}
+        onClose={vi.fn()}
+        onRegenerate={onRegenerate}
+        onApplyRemix={onApplyRemix}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("inspector-remix"));
+    fireEvent.click(await screen.findByTestId("inspector-remix-and-generate"));
+
+    expect(onRegenerate).toHaveBeenCalledWith(baseItem, {
+      sameSeed: false,
+      promptOverride: "Reviewed remix",
+    });
+    expect(onApplyRemix).not.toHaveBeenCalled();
+  });
+
   it("disables Enhance / Remix when internal_prompt_enhancer.enabled is false", () => {
     useConfigStore.setState((state) => ({
       config: state.config
@@ -238,7 +271,7 @@ describe("MediaInspector — gallery actions", () => {
   it("renders Upscale / Edit when the model capabilities include them", () => {
     render(
       <MediaInspector
-        item={{ ...baseItem, model: "esrgan-upscaler" }}
+        item={{ ...baseItem, model: "esrgan-edit" }}
         parentItem={null}
         childrenItems={[]}
         missingChildIds={[]}
@@ -250,12 +283,14 @@ describe("MediaInspector — gallery actions", () => {
         onUseSettings={vi.fn()}
         onRegenerate={vi.fn()}
         onUpscale={vi.fn()}
+        onOpenImageTools={vi.fn()}
       />,
     );
     // The capabilities classifier may mark some models as upscale/edit;
     // the assertion is that, when applicable, the buttons render.
     const upscale = screen.queryByTestId("inspector-upscale");
     const edit = screen.queryByTestId("inspector-edit");
-    expect(upscale !== null || edit !== null).toBe(true);
+    expect(upscale).toBeInTheDocument();
+    expect(edit).toBeInTheDocument();
   });
 });

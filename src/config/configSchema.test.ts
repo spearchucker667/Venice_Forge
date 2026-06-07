@@ -222,6 +222,41 @@ describe("configSchema", () => {
       expect(result.themes.foo?.display_name).toBe("Foo");
       expect(result.warnings).toEqual([]);
     });
+
+    it("normalizes snake_case semantic theme tokens", () => {
+      const result = validateThemesFile({
+        version: 1,
+        themes: {
+          foo: {
+            display_name: "Foo",
+            mode: "dark",
+            tokens: {
+              input_background: "#111111",
+              button_primary_foreground: "#ffffff",
+              selection_background: "#663399",
+            },
+          },
+        },
+      });
+      expect(result.themes.foo?.tokens).toMatchObject({
+        inputBackground: "#111111",
+        buttonPrimaryForeground: "#ffffff",
+        selectionBackground: "#663399",
+      });
+      expect(result.warnings).toEqual([]);
+    });
+
+    it("ignores unknown theme tokens with a warning", () => {
+      const result = validateThemesFile({
+        version: 1,
+        themes: { foo: { display_name: "Foo", mode: "dark", tokens: { mystery_color: "#123456" } } },
+      });
+      expect(result.themes.foo?.tokens).toEqual({});
+      expect(result.warnings).toContainEqual(expect.objectContaining({
+        field: "themes.foo.tokens.mystery_color",
+        severity: "warn",
+      }));
+    });
   });
 
   // BUG-006 has been reverted: Venice + Jina are the only two providers.

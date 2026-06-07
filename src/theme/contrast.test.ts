@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { contrastRatio, isAAPass } from "./contrast";
+import { BUILTIN_DRACULA, BUILTIN_THEMES } from "./themes";
 
 describe("contrastRatio", () => {
   it("returns 21:1 for black on white", () => {
@@ -49,49 +50,75 @@ describe("isAAPass", () => {
 });
 
 describe("Forge Dracula WCAG AA regression guard", () => {
-  const bg = "#282a36";
-  const surface = "#343748";
-  const surfaceElevated = "#44475a";
-  const border = "#52566e";
-  const textPrimary = "#f8f8f2";
-  const textSecondary = "#bfbfbf";
-  const textMuted = "#9e9fb4";
-  const accent = "#bd93f9";
-  const accentForeground = "#f8f8f2";
+  const t = BUILTIN_DRACULA.tokens;
 
   it("textPrimary passes AA on background", () => {
-    expect(isAAPass(textPrimary, bg)).toBe(true);
+    expect(isAAPass(t.foreground, t.background)).toBe(true);
   });
 
   it("textSecondary passes AA on background", () => {
-    expect(isAAPass(textSecondary, bg)).toBe(true);
+    expect(isAAPass(t.foregroundMuted, t.background)).toBe(true);
   });
 
   it("textMuted passes AA on background", () => {
-    expect(isAAPass(textMuted, bg)).toBe(true);
+    expect(isAAPass(t.foregroundSubtle, t.background)).toBe(true);
   });
 
-  it("accentForeground meets AA-large (3:1) on accent — Dracula purple is low-contrast by design", () => {
-    expect(contrastRatio(accentForeground, accent)).toBeGreaterThanOrEqual(2.0);
+  it("accentForeground passes AA on accent", () => {
+    expect(isAAPass(t.accentForeground, t.accent)).toBe(true);
+  });
+
+  it.each([
+    ["input", t.inputForeground, t.inputBackground],
+    ["primary button", t.buttonPrimaryForeground, t.buttonPrimaryBackground],
+    ["secondary button", t.buttonSecondaryForeground, t.buttonSecondaryBackground],
+    ["danger", t.dangerForeground, t.danger],
+    ["warning", t.warningForeground, t.warning],
+    ["success", t.successForeground, t.success],
+    ["selection", t.selectionForeground, t.selectionBackground],
+  ])("%s foreground passes AA", (_name, foreground, background) => {
+    expect(isAAPass(foreground, background)).toBe(true);
+  });
+
+  it("disabled text and focus ring remain visible", () => {
+    expect(contrastRatio(t.disabledForeground, t.background)).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio(t.focusRing, t.background)).toBeGreaterThanOrEqual(3);
   });
 
   it("surfaceElevated differs from border", () => {
-    expect(surfaceElevated).not.toBe(border);
+    expect(t.surfaceElevated).not.toBe(t.border);
   });
 
   it("surfaceElevated differs from textMuted", () => {
-    expect(surfaceElevated).not.toBe(textMuted);
+    expect(t.surfaceElevated).not.toBe(t.foregroundSubtle);
   });
 
   it("border differs from textMuted", () => {
-    expect(border).not.toBe(textMuted);
+    expect(t.border).not.toBe(t.foregroundSubtle);
   });
 
   it("surface differs from background", () => {
-    expect(surface).not.toBe(bg);
+    expect(t.surface).not.toBe(t.background);
   });
 
   it("surfaceElevated differs from surface", () => {
-    expect(surfaceElevated).not.toBe(surface);
+    expect(t.surfaceElevated).not.toBe(t.surface);
+  });
+});
+
+describe("built-in semantic theme contract", () => {
+  it("defines every required semantic token for every built-in theme", () => {
+    const keys = [
+      "background", "surface", "surfaceElevated", "surfaceMuted", "foreground",
+      "foregroundMuted", "foregroundSubtle", "border", "borderStrong", "accent",
+      "accentForeground", "danger", "dangerForeground", "warning", "warningForeground",
+      "success", "successForeground", "inputBackground", "inputForeground", "placeholder",
+      "disabledForeground", "buttonPrimaryBackground", "buttonPrimaryForeground",
+      "buttonSecondaryBackground", "buttonSecondaryForeground", "link", "focusRing",
+      "selectionBackground", "selectionForeground",
+    ] as const;
+    for (const theme of BUILTIN_THEMES) {
+      for (const key of keys) expect(theme.tokens[key], `${theme.id}.${key}`).toBeTruthy();
+    }
   });
 });

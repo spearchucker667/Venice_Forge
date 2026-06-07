@@ -69,7 +69,7 @@ return-content `screenResponseBody` screening.
 
 **Docs / test posture.** `docs/` is the canonical home for security
 posture, audit reports, design notes, and per-feature deep-dives.
-The 1220-test Vitest suite runs serially (`--fileParallelism=false`)
+The 1369-test Vitest suite runs serially (`--fileParallelism=false`)
 because it touches IDB and global state. Coverage thresholds are
 70% branches / 80% functions+lines+statements. The CI gates are
 `lint:eslint`, `typecheck` (renderer + electron), `test`,
@@ -78,14 +78,34 @@ because it touches IDB and global state. Coverage thresholds are
 **Active migration / refactor themes.** No open provider migrations
 or major refactors. The 2026-06-06 round-2 audit batch, its
 "Venice + Jina only" scope correction, and the P2 Inspector
-telemetry expansion all landed the same day. No P1/P2/P3 ledger
-items remain open; enhancement-tier backlog (streaming abort
-E2E, allowlist fuzz, storage health panel, etc.) is tracked in
-user roadmap notes, not the canonical ledger.
+telemetry expansion all landed the same day. The production Media
+Studio action, image-payload, and semantic theme-token audit findings
+are resolved. No P0/P1/P2/P3 audit-ledger items remain open.
 
 ---
 
 ## Latest Session Summary
+
+- **Date:** 2026-06-07
+- **Agent:** opencode (minimax-m3)
+- **Branch:** main
+- **Commit:** `1b2cf713` (pushed)
+- **Primary objective:** Land the uncommitted `VERIFY-040` / `VERIFY-041` batch flagged by the prior repo-hygiene review as **HYG-001**, the only release-shaped open item on the Open TODO Ledger.
+- **Changes:** Staged and committed 39 modified + 4 new files (43 total) representing the production Media Studio transient handoffs (`useImageWorkspaceStore`), derivative lineage (`upsertDerivative`), model-aware image dimensions / seed / quality / variants, gallery inspector actions, and the 29-role semantic theme contract with WCAG AA coverage for Forge Dracula. `todo.md` (gitignored local scratchpad) was deliberately left untracked. This ledger was updated; **HYG-001** is retired.
+- **Validation (Node 22.22.3 / npm 10.9.8):** `npm ci` (0 vulnerabilities, no engine warning) → typecheck clean → ESLint 0 warnings → full test suite 1,369 passed / 1 Playwright smoke skip → 47-test focused Media Studio / image suite green → 87-test focused theme / config / invariant suite green → `verify:safety-guard` 3/3 → `verify:markdown-links` 42 files clean → `config:validate` 0 errors / 0 warnings → `npm run build` + `verify:dist` clean. (Node 26.0.0 was rejected as out of support per AGENTS.md; Node 22.22.3 was used for every run.)
+- **Open TODO status:** **HYG-001 retired** (commit landed). HYG-002..005 and the *Future / user-directed* items remain informational. P0–P3 unchanged.
+
+---
+
+- **Date:** 2026-06-07
+- **Agent:** Codex
+- **Branch:** main (uncommitted implementation and audit updates)
+- **Primary objective:** Complete every actionable finding from the 2026-06-07 cross-reference audit.
+- **Changes:** Completed the production Media Studio handoff/image payload batch (`VERIFY-040`) and the 29-role semantic theme migration (`VERIFY-041`). Themes now normalize legacy persisted data, expose complete runtime/bootstrap/Tailwind variables, round-trip full snake_case YAML, and apply semantic roles to global/shared controls. Forge Dracula has AA pair coverage for text, inputs, buttons, statuses, selection, disabled text, and focus. `todo.md` now marks all nine findings verified fixed.
+- **Validation:** Node 22.22.3 / npm 10.9.8: `npm ci` passed with 0 vulnerabilities; typecheck and ESLint passed; 1,369 tests passed with 1 environment-gated skip; focused action and theme suites passed; build, `verify:dist`, Markdown links, config validation, safety guard, icon verification, CSP invariant, and inline-color invariant passed. Electron smoke completed with its single display-gated skip. Browser visual smoke was blocked because the in-app browser surface was unavailable.
+- **Open TODO status:** No findings remain open in `todo.md`.
+
+---
 
 - **Date:** 2026-06-06
 - **Agent:** opencode (deepseek-v4-flash)
@@ -253,6 +273,222 @@ user roadmap notes, not the canonical ledger.
 ---
 
 ## Session History
+
+### 2026-06-07 — Land VERIFY-040 / VERIFY-041 batch (this session)
+
+**Context:**
+- The 2026-06-07 Codex session completed the production Media Studio
+  handoffs / image-payload work and the 29-role semantic theme
+  contract, validated the entire matrix on Node 22.22.3 (1,369 / 1
+  skip), and reported "No findings remain open in `todo.md`" in its
+  Latest Session Summary — but the work was uncommitted when the next
+  repo-hygiene review (deepseek-v4-flash) reported it as **HYG-001**
+  ("Commit the 2026-06-07 VERIFY-040/041 batch").
+- The user then asked the agent to "begin working on the tasks at
+  hand." With P0–P3 empty and only HYG-001..005 + two answered-but-
+  unwritten todo.md architectural questions remaining, HYG-001 was the
+  only release-shaped item on the ledger.
+
+**Files Changed (this session):**
+- 43 files committed in `1b2cf713`:
+  - 4 new: `src/stores/image-workspace-store.ts`,
+    `src/stores/image-workspace-store.test.ts`,
+    `src/components/image/image-view.test.tsx`,
+    `src/components/ThemeMaker.test.ts`.
+  - 39 modified: every entry on the working-tree diff recorded by
+    the repo-hygiene session — full list recoverable via
+    `git show --stat 1b2cf713`.
+- `docs/summary_of_work.md` — *Latest Session Summary* replaced;
+  *Session History* gains this entry; **HYG-001 retired** in
+  *Open TODO Ledger*; *Validation Matrix* gains the Node 22.22.3
+  re-validation rows.
+- `todo.md` (root) — gitignored local scratchpad; deliberately NOT
+  committed. The 2 open questions in § *Open Questions* are already
+  answered by the implemented code (dedicated transient slice;
+  capability-honored variants) and the answers are recorded above in
+  this entry.
+
+**Validation Run (Node 22.22.3 / npm 10.9.8 — supported toolchain):**
+```bash
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm ci
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run typecheck
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run lint:eslint
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npx vitest run src/components/image/image-view.test.tsx src/stores/image-workspace-store.test.ts src/stores/media-store.test.ts src/components/gallery/gallery-view.test.tsx src/components/gallery/media-inspector.test.tsx src/components/image/image-tools.test.tsx --fileParallelism=false
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npx vitest run src/theme/contrast.test.ts src/theme/applyTheme.test.ts src/components/ThemeMaker.test.ts src/config/configSchema.test.ts src/services/exportImport.test.ts src/hooks/useThemeLifecycle.test.ts tests/csp/inlineStyleInvariant.test.ts tests/theme/inlineColorInvariant.test.ts --fileParallelism=false
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm test
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run verify:safety-guard
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run verify:markdown-links
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run config:validate
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run build
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run verify:dist
+```
+
+**Validation Result:**
+* PASS: `npm ci` (0 vulnerabilities, no engine warning); typecheck;
+  ESLint (0 warnings, `--max-warnings=0` enforced); focused 47-test
+  Media Studio / image suite; focused 87-test theme / config /
+  invariant suite; full 1,369-test Vitest suite (1 Playwright
+  Electron smoke skip on this headless run); `verify:safety-guard`
+  3/3 boundaries; `verify:markdown-links` 42 files clean;
+  `config:validate` 0 errors / 0 warnings; `npm run build`; `verify:dist`.
+* FAIL: None. (The Node 26.0.0 environment was rejected per AGENTS.md
+  Node 22.13+ support; the supported Node 22.22.3 toolchain produced
+  the green matrix above.)
+* BLOCKED: macOS codesign / spctl — credentials absent; tracked in
+  the *Open Follow-ups* of the round-2 audit summary. Electron smoke
+  display-gated (1 skip).
+
+**Open Follow-ups:**
+* HYG-002..005 remain informational; HYG-001 is retired.
+* Future / user-directed: Inspector "Regenerate" cross-tab hookup,
+  dedicated unit tests for `prompt-enhancer-service`.
+
+**Risks:** None new. The committed diff is the exact 39 + 4 file
+batch the Codex session validated; the only session-local change is
+this ledger entry (canonical handoff per AGENTS.md).
+
+### 2026-06-07 — Repo-hygiene review (this session)
+
+**Context:**
+- User asked for an exhaustive review of `docs/summary_of_work.md` and the docs tree, with a scan for stray or duplicate documents.
+- Read-only pass. No source code, test, theme, or config edits.
+
+**Files Inspected (not modified):**
+- `docs/summary_of_work.md` (1,533 lines) — full read; P0–P3, *Items surfaced by exhaustive review*, *Future / user-directed*, and the bottom *Validation Matrix* sections audited.
+- `docs/TODO.md` (tracked, HISTORICAL banner; 389 lines) — 2 open questions in § *Open Questions*; *Required Validation After Fixes* block is a list, not a gate.
+- `todo.md` (root, untracked, 389 lines) — 2026-06-07 audit; 9 findings all `VERIFIED FIXED`; 2 open questions on (a) Zustand slice vs settings/media for handoff, (b) variant support per model. No back-link to this canonical ledger (see Hygiene follow-ups below).
+- `docs/AUDIT_FOLLOWUP_2026_06_05.md` and `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` — both correctly marked historical with back-links to this ledger.
+- `docs/REPOSITORY_TREE.md`, `docs/FAQ.md`, `docs/CONFIG.md`, `AGENTS.md`, `README.md`, `CHANGELOG.md` — working-tree diffs verified (VERIFY-040/041 additions and Media Studio row updates).
+- Gitignored scratchpads: `docs/AGENTS/` (4 files), `docs/HQE_AUDIT_REPORT.md` (152 lines, all 3 deep-scan findings Fixed in current source), `docs/design/` (2 scratchpads) — all intentional local-only per `.gitignore` lines 4–5.
+- `scripts/dev-tools/venice-styles.json` (tracked, 195 lines) — md5 mismatch with the gitignored `.design-captures/venice/styles/venice-styles.json`; violates the design-capture hygiene policy. See Hygiene follow-ups.
+- `docs/Venice_swagger_api.yaml` (488,696 bytes) — referenced in `src/config/image-model-capabilities.ts:7` and `src/utils/payloadBuilders.ts:6,179`. Valid.
+- `docs/venice_llm_info.md` (483,767 bytes) — referenced only in `CHANGELOG.md:391` and `todo.md` notes; no code imports. Flagged for user decision.
+
+**Validation Run:** None. Review-only session.
+
+**Findings (full report delivered to the user in chat):**
+1. Stale working tree: 39 modified + 5 untracked on `main`; HEAD is `d41a4d0a`; the entire VERIFY-040/041 batch is uncommitted despite the *Latest Session Summary* claim.
+2. `scripts/dev-tools/venice-styles.json` is tracked while the design-capture hygiene policy says it should be gitignored (canonical path is `.design-captures/venice/styles/venice-styles.json`).
+3. `docs/venice_llm_info.md` (484 KB) is not referenced in code; recommend user decision (deprecate or move to `docs/REFERENCE/` with a "Last updated" date).
+4. `docs/HQE_AUDIT_REPORT.md` is gitignored but on disk (152 lines, all findings Fixed in current source) — safe to keep or delete; flagged for user choice.
+5. `summary_of_work.md` "Items surfaced by exhaustive review" section structurally mixes a completion claim with a "Future / user-directed" tail. The content is correct, but the section header is now misleading. Restructured below in the *Open TODO Ledger* section.
+6. Root `todo.md` has zero cross-references to this canonical ledger (every other audit/TODO doc does). Will be addressed as a Hygiene follow-up.
+
+**Open Follow-ups:**
+
+* See *Open TODO Ledger → Hygiene follow-ups (informational)* below.
+
+### 2026-06-07 — Semantic theme contract completion
+
+**Context:**
+- Continued from the production Media Studio audit fixes to complete the sole remaining finding, `UI-001`.
+- Preserved legacy persisted/custom theme compatibility while expanding the canonical contract.
+
+**Files Changed:**
+- `src/theme/*`, `public/bootstrap-theme.js`, and `src/styles/*` — 29-role semantic contract, runtime/bootstrap variables, compatibility normalization, and global control semantics.
+- `src/components/ThemeMaker.tsx`, `ThemePreview.tsx`, and `ui/shared.tsx` — full YAML import/export, expanded contrast preview, and semantic shared controls.
+- `src/config/configSchema.ts`, `.config/themes.example.yaml`, tests, and theme/config/support documentation.
+
+**Validation Run:**
+```bash
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run typecheck
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run lint:eslint
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npx vitest run src/theme/contrast.test.ts src/theme/applyTheme.test.ts src/components/ThemeMaker.test.ts src/config/configSchema.test.ts src/services/exportImport.test.ts src/hooks/useThemeLifecycle.test.ts --fileParallelism=false
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npx vitest run tests/theme/inlineColorInvariant.test.ts tests/csp/inlineStyleInvariant.test.ts --fileParallelism=false
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm test
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run build
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run verify:dist
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run config:validate
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run verify:markdown-links
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run verify:safety-guard
+```
+
+**Validation Result:**
+
+* PASS: typecheck; ESLint; 83 focused theme/config tests; CSP and inline-color invariants; 1,369-test full suite; production build; `verify:dist`; config validation; 42-file Markdown scan; safety guard 3/3.
+* FAIL: None.
+* BLOCKED: The full suite retained its one environment-gated Electron smoke skip; the in-app browser surface was unavailable for a manual visual theme check.
+
+**Open Follow-ups:**
+
+* None from the cross-reference audit.
+
+### 2026-06-07 — Production Media Studio action and image payload fixes
+
+**Context:**
+- Executed the high-priority and focused follow-up items generated by the cross-reference audit.
+- Preserved the packaged startup/CSP and secure-key invariants while replacing only the broken renderer action path.
+
+**Files Changed:**
+- `src/stores/image-workspace-store.ts` — transient typed Generate/Tools handoff.
+- `src/stores/media-store.ts` — derivative persistence with parent update, deduplication, and rollback.
+- `src/components/gallery/*`, `src/components/image/*` — production action wiring, committed-state regeneration, sizing/quality payloads, and lineage.
+- `src/types/*`, `src/services/mediaMigration.ts` — persisted quality metadata.
+- Tests and support docs, including `todo.md` and this ledger.
+
+**Validation Run:**
+```bash
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm ci
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run typecheck
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run lint:eslint
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm test
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npx vitest run src/components/image/image-view.test.tsx src/stores/image-workspace-store.test.ts src/stores/media-store.test.ts src/components/gallery/gallery-view.test.tsx src/components/gallery/media-inspector.test.tsx src/components/image/image-tools.test.tsx --fileParallelism=false
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run build
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run verify:dist
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run verify:markdown-links
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run config:validate
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run verify:safety-guard
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run verify:icon
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run smoke:electron
+```
+
+**Validation Result:**
+
+* PASS: dependency install (0 vulnerabilities), typecheck, ESLint, 1,355-test suite, 47 focused tests, build, build-output verification, 42-file Markdown scan, config validation, safety guard 3/3, and icon verification.
+* FAIL: None.
+* BLOCKED: Electron smoke's single test was skipped by its display-environment gate.
+
+**Open Follow-ups:**
+
+* [ ] `UI-001` — complete the semantic theme token contract; see `todo.md`.
+
+### 2026-06-07 — Cross-reference audit
+
+**Context:**
+- Cross-referenced intended post-update changes against actual implementation.
+- Reviewed the rest of the repository for bugs, security, docs, tests, and build gaps.
+
+**Files Changed:**
+- `todo.md` — generated audit TODO.
+- `docs/summary_of_work.md` — appended audit ledger entry.
+
+**Validation Run:**
+```bash
+npm ci
+npm run typecheck
+npm run lint:eslint
+npm test
+npm run build
+npm run verify:dist
+npm run verify:markdown-links
+npm run config:validate
+npm run verify:safety-guard
+npm run verify:icon
+npm run test:coverage
+npm run smoke:electron
+npm test -- electron/services/mediaService.test.ts
+env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm test
+```
+
+**Validation Result:**
+
+* PASS: dependency install; typecheck; ESLint; build; `verify:dist`; 42-file Markdown link scan; config validation after sandbox permission; safety guard 3/3; icon verification; targeted media service 26/26.
+* FAIL: Node-26 full test run failed 4 web fallback tests because `localStorage` was unavailable; coverage additionally failed loopback server tests under sandbox restrictions.
+* BLOCKED: Electron smoke skipped by its display gate; the elevated supported-Node-22 full-suite retry did not complete and was terminated.
+
+**Open Follow-ups:**
+
+* [ ] See `todo.md`.
 
 ### 2026-06-06 — Post-update audit fixes (CHAR-001, LLM-001/002, IMG-001/002, GAL-001, CONFIG-001/002, CLEAN-001, CI-001)
 
@@ -1252,14 +1488,11 @@ Result:
 
 ### P1 — Should fix before release
 
-- None outstanding. The last P1 item was F-3 (MiniMax endpoint
-  allowlist), which is closed by the scope correction.
+- None outstanding. `XREF-001..004` were completed on 2026-06-07 with the transient image-workspace handoff, derivative store helper, image-tools source handoff, and `VERIFY-040` aspect-resolution guard.
 
 ### P2 — Hardening / follow-up
 
-- None outstanding. The last P2 item was **Inspector non-mutating
-  telemetry expansion**, now implemented and locked by the extended
-  `VERIFY-016` suite plus `src/services/inspectorTelemetry.test.ts`.
+- None outstanding. `BUG-001`, `API-001`, `UI-001`, `TEST-001`, and `DOC-001` were completed on 2026-06-07 and are locked by `VERIFY-040` / `VERIFY-041`.
 
 ### P3 — Polish / backlog
 
@@ -1291,6 +1524,59 @@ Result:
 - All other items from the original review TODO (dead code, small races, docs sync, coverage notes, etc.) either had no actionable code smell on re-scan or were addressed via the above changes + ledger hygiene.
 
 Remaining true backlog (enhancement-tier or large scope) moved to "Future / user-directed" below. No P0/P1 left from the review. 
+
+### Hygiene follow-ups (informational — surfaced by the 2026-06-07 repo-hygiene review)
+
+These are repo-hygiene observations, not bug or feature TODOs. They are
+informational and require a user decision (or commit action) to clear.
+None are release blockers. The P0–P3 sections above remain accurate.
+
+- **HYG-001 — Commit the 2026-06-07 VERIFY-040/041 batch. (RETIRED
+  2026-06-07, commit `1b2cf713`.)** The 39 modified + 4 new source
+  / test files representing the production Media Studio handoffs,
+  derivative lineage, image-payload work, and 29-role semantic
+  theme contract were committed and pushed in this session. The
+  `todo.md` gitignored scratchpad was correctly left untracked.
+  See the *Session History* entry "Land VERIFY-040 / VERIFY-041
+  batch" for the Node 22.22.3 validation matrix that re-ran
+  before the commit.
+- **HYG-002 — Resolve the `scripts/dev-tools/venice-styles.json`
+  design-capture conflict.** The file is tracked (last in
+  `21c2e414 docs, themes, and hygiene updates`), but
+  `scripts/dev-tools/README.md` says all design-capture output belongs
+  under `.design-captures/` (gitignored). The two files differ in md5.
+  Recommended action: `git rm --cached scripts/dev-tools/venice-styles.json`
+  and add a header comment in the dev-tool script pointing at the
+  canonical gitignored path. Alternative: keep the tracked copy and
+  update the README. Whichever is chosen, the two paths must stop
+  diverging.
+- **HYG-003 — Decide on `docs/venice_llm_info.md` (484 KB, 11,729
+  lines).** Not referenced in code; cited only in `CHANGELOG.md:391`
+  and `todo.md` notes. `docs/Venice_swagger_api.yaml` is the canonical
+  machine-readable reference. Options: (a) deprecate / delete, (b)
+  move to `docs/REFERENCE/` with a "Last updated" date and a note
+  that the YAML swagger is canonical, or (c) keep as-is. No action
+  until the user decides.
+- **HYG-004 — Cross-link the root `todo.md` to this ledger.** Every
+  other audit/TODO doc (`docs/TODO.md`,
+  `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`,
+  `docs/AUDIT_FOLLOWUP_2026_06_05.md`) back-references this canonical
+  ledger. The root `todo.md` does not. Recommend adding a banner at
+  the top of the root file pointing readers to
+  `docs/summary_of_work.md` and noting its audit-vs-handoff
+  distinction. Local-only file (gitignored) so this is optional.
+- **HYG-005 — Restructure the "Items surfaced by exhaustive review"
+  section header.** The current header is a completion-claim
+  sentence followed by a "Future / user-directed" tail in the same
+  block, which is structurally confusing on a quick read. This entry
+  in the ledger is the audit trail; the *Future / user-directed*
+  subsection below is the actual deferred-work list. The two blocks
+  are clearly separated in the *Open TODO Ledger* structure; the
+  section header itself could be tightened (e.g. *"Items surfaced by
+  exhaustive review — completed (see *Session History* entry
+  `2026-06-07 — Production Media Studio action and image payload
+  fixes`)"*) to avoid the apparent P0–P3 contradiction on a quick
+  scan. Defer until the rest of the working tree lands.
 
 ### Future / user-directed (from review, not completed in this "get everything done" pass)
 - Major new features (recursive research, full memory search modal overhaul, new studios bulk parity, advanced theme maker, etc.).
@@ -1360,6 +1646,52 @@ Remaining true backlog (enhancement-tier or large scope) moved to "Future / user
 | `npm run verify:safety-guard`                | 3/3 boundaries pass | 2026-06-06 | No raw prompt logging or safety bypass patterns |
 | `npm run verify:markdown-links`              | 42 Markdown files, no broken links | 2026-06-06 | After summary_of_work.md update |
 | `npm run build`                              | succeeded | 2026-06-06 | Renderer, server, and Electron outputs all built |
+| `npm ci`                                     | PASS with Node 26 engine warning | 2026-06-07 | 800 packages installed; project requires Node 22 |
+| `npm run typecheck`                          | PASS | 2026-06-07 | Renderer + Electron main |
+| `npm run lint:eslint`                        | PASS | 2026-06-07 | 0 warnings |
+| `npm test`                                   | FAIL / environment-sensitive | 2026-06-07 | Node 26: 1338 passed, 4 failed, 1 skipped; failures were unavailable jsdom `localStorage` |
+| `npm run build`                              | PASS | 2026-06-07 | Renderer, server, Electron outputs |
+| `npm run verify:dist`                        | PASS | 2026-06-07 | Build outputs verified |
+| `npm run verify:markdown-links`              | PASS | 2026-06-07 | 42 Markdown files |
+| `npm run config:validate`                    | PASS | 2026-06-07 | 0 errors, 0 warnings after sandbox permission |
+| `npm run verify:safety-guard`                | PASS | 2026-06-07 | 3/3 boundaries; no raw prompt logging patterns |
+| `npm run verify:icon`                        | PASS | 2026-06-07 | ICO and ICNS verified |
+| `npm run test:coverage`                      | BLOCKED | 2026-06-07 | Sandbox denied loopback listeners; Node 26 also lacked test `localStorage` |
+| `npm run smoke:electron`                     | SKIPPED | 2026-06-07 | Environment display gate |
+| `npm test -- electron/services/mediaService.test.ts` | PASS, 26/26 | 2026-06-07 | Cross-platform media path suite |
+| supported Node 22 full-suite retry           | BLOCKED | 2026-06-07 | Elevated run did not complete and was terminated |
+| `npm ci` (Node 22.22.3)                      | PASS, 0 vulnerabilities | 2026-06-07 | 800 packages installed with npm 10.9.8 |
+| focused Media Studio/Image suite             | PASS, 47/47 | 2026-06-07 | 6 files; production handoffs, payloads, remix, tools, and lineage |
+| `npm run typecheck`                          | PASS | 2026-06-07 | Renderer and Electron main |
+| `npm run lint:eslint`                        | PASS, 0 warnings | 2026-06-07 | Zero-warning gate |
+| `npm test` (Node 22.22.3)                    | PASS, 1355/1355; 1 skipped | 2026-06-07 | 131 files passed; Electron smoke suite environment-skipped |
+| `npm run build && npm run verify:dist`       | PASS | 2026-06-07 | Renderer, server, Electron, and build outputs verified |
+| `npm run verify:markdown-links`              | PASS, 42 files | 2026-06-07 | After implementation documentation updates |
+| `npm run config:validate`                    | PASS, 0 errors / 0 warnings | 2026-06-07 | Local config and themes |
+| `npm run verify:safety-guard`                | PASS, 3/3 | 2026-06-07 | No raw prompt logging or bypass patterns |
+| `npm run verify:icon`                        | PASS | 2026-06-07 | ICO and ICNS verified |
+| `npm run smoke:electron`                     | SKIPPED | 2026-06-07 | Single test skipped by display-environment gate |
+| focused theme/config/lifecycle suite         | PASS, 83/83 | 2026-06-07 | `VERIFY-041`, YAML round-trip, config normalization, lifecycle |
+| CSP + inline-color invariants                | PASS, 4/4 | 2026-06-07 | No inline-style or out-of-allowlist color regression |
+| `npm run typecheck` (theme completion)       | PASS | 2026-06-07 | Renderer and Electron main after semantic migration |
+| `npm run lint:eslint` (theme completion)     | PASS, 0 warnings | 2026-06-07 | Zero-warning gate |
+| `npm test` (theme completion)                | PASS, 1369/1369; 1 skipped | 2026-06-07 | 132 files passed; Electron smoke environment-skipped |
+| `npm run build && npm run verify:dist` (theme completion) | PASS | 2026-06-07 | 2,461 renderer modules plus server/Electron outputs |
+| `npm run config:validate` (theme completion) | PASS, 0 errors / 0 warnings | 2026-06-07 | Snake/camel theme schema remains valid |
+| `npm run verify:markdown-links` (theme completion) | PASS, 42 files | 2026-06-07 | After theme documentation updates |
+| `npm run verify:safety-guard` (theme completion) | PASS, 3/3 | 2026-06-07 | Theme changes did not alter guarded boundaries |
+| `npm ci` (Node 22.22.3, HYG-001 commit) | PASS, 0 vulnerabilities | 2026-06-07 | Re-installed 800 packages with supported toolchain before commit `1b2cf713` |
+| `npm run typecheck` (HYG-001 commit) | PASS, 0 errors | 2026-06-07 | Renderer + Electron main |
+| `npm run lint:eslint` (HYG-001 commit) | PASS, 0 warnings | 2026-06-07 | `--max-warnings=0` enforced |
+| focused Media Studio / image suite (HYG-001 commit) | PASS, 47/47 | 2026-06-07 | `useImageWorkspaceStore`, derivative lineage, handoff, tools |
+| focused theme / config / invariant suite (HYG-001 commit) | PASS, 87/87 | 2026-06-07 | 29-role contract, YAML round-trip, lifecycle, CSP + color invariants |
+| `npm test` (HYG-001 commit) | PASS, 1369/1369; 1 skipped | 2026-06-07 | 132 files; Playwright Electron smoke environment-skipped |
+| `npm run verify:safety-guard` (HYG-001 commit) | PASS, 3/3 | 2026-06-07 | No raw prompt logging or bypass patterns |
+| `npm run verify:markdown-links` (HYG-001 commit) | PASS, 42 files | 2026-06-07 | No broken links |
+| `npm run config:validate` (HYG-001 commit) | PASS, 0 errors / 0 warnings | 2026-06-07 | Local config and themes valid |
+| `npm run build && npm run verify:dist` (HYG-001 commit) | PASS | 2026-06-07 | Renderer, server, Electron, build outputs verified |
+| `git commit` (`1b2cf713`) + `git push` (HYG-001) | success | 2026-06-07 | 39 modified + 4 new source/test files; `todo.md` left untracked |
+| Node 26.0.0 toolchain attempt (HYG-001 pre-check) | REJECTED | 2026-06-07 | Per AGENTS.md Node 22.13+ support; re-ran all gates on Node 22.22.3 |
 
 ---
 

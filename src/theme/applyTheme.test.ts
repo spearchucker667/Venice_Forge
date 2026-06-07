@@ -14,12 +14,18 @@ describe("applyTheme", () => {
     delete document.documentElement.dataset.themeMode;
   });
 
-  it("sets all 17 CSS variables on document.documentElement", () => {
+  it("sets the complete semantic CSS variable contract on document.documentElement", () => {
     applyTheme(BUILTIN_DARK);
     expect(setPropertySpy).toHaveBeenCalledWith("--bg", BUILTIN_DARK.tokens.background);
     expect(setPropertySpy).toHaveBeenCalledWith("--text-primary", BUILTIN_DARK.tokens.textPrimary);
     expect(setPropertySpy).toHaveBeenCalledWith("--accent", BUILTIN_DARK.tokens.accent);
     expect(setPropertySpy).toHaveBeenCalledWith("--glow", BUILTIN_DARK.tokens.glow);
+    expect(setPropertySpy).toHaveBeenCalledWith("--surface-muted", BUILTIN_DARK.tokens.surfaceMuted);
+    expect(setPropertySpy).toHaveBeenCalledWith("--foreground", BUILTIN_DARK.tokens.foreground);
+    expect(setPropertySpy).toHaveBeenCalledWith("--input-bg", BUILTIN_DARK.tokens.inputBackground);
+    expect(setPropertySpy).toHaveBeenCalledWith("--button-primary-fg", BUILTIN_DARK.tokens.buttonPrimaryForeground);
+    expect(setPropertySpy).toHaveBeenCalledWith("--selection-fg", BUILTIN_DARK.tokens.selectionForeground);
+    expect(setPropertySpy).toHaveBeenCalledTimes(36);
   });
 
   it("sets data-theme-mode attribute", () => {

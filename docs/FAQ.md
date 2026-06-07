@@ -117,7 +117,7 @@ Open **Config → Appearance → Theme Maker**. Choose from the built-in themes 
 Yes. Custom themes are saved to encrypted IndexedDB alongside your other settings. A lightweight `localStorage` cache also prevents any flash of unstyled content on startup.
 
 ### Are the built-in themes accessible?
-All built-in themes are verified against WCAG AA contrast standards. The ThemeMaker warns you if a custom color combination falls below the recommended thresholds.
+Built-in themes expose the complete semantic token contract. Forge Dracula has explicit WCAG AA regression coverage for primary, muted, input, button, status, selection, disabled, and focus roles. ThemeMaker warns when a custom foreground/background pair falls below the recommended threshold.
 
 ## Data & Storage
 

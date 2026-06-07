@@ -123,25 +123,38 @@ themes:
     tokens:
       background: "#0d1117"
       surface: "#161b22"
-      surfaceElevated: "#1c2330"
+      surface_elevated: "#1c2330"
+      surface_muted: "#11161d"
       border: "#2a3140"
-      textPrimary: "#e6edf3"
-      textSecondary: "#9aa7b8"
-      textMuted: "#6b7686"
+      border_strong: "#6b7686"
+      foreground: "#e6edf3"
+      foreground_muted: "#9aa7b8"
+      foreground_subtle: "#7d8999"
       accent: "#1a6fd6"
-      accentHover: "#3581e6"
-      accentForeground: "#ffffff"
+      accent_foreground: "#ffffff"
       success: "#3fb950"
+      success_foreground: "#0d1117"
       warning: "#d29922"
+      warning_foreground: "#0d1117"
       danger: "#f85149"
-      info: "#58a6ff"
-      focusRing: "#4c93f8"
-      overlay: "rgba(0,0,0,0.6)"
-      glow: "rgba(47,129,247,0.25)"
+      danger_foreground: "#0d1117"
+      input_background: "#1c2330"
+      input_foreground: "#e6edf3"
+      placeholder: "#7d8999"
+      disabled_foreground: "#6b7686"
+      button_primary_background: "#1a6fd6"
+      button_primary_foreground: "#ffffff"
+      button_secondary_background: "#1c2330"
+      button_secondary_foreground: "#e6edf3"
+      link: "#58a6ff"
+      focus_ring: "#4c93f8"
+      selection_background: "#1a6fd6"
+      selection_foreground: "#ffffff"
 ```
 
 Built-in themes load first. Local themes override built-ins by exact name.
 Invalid entries are skipped with a redacted warning in the Settings UI.
+Token names may be written in snake_case (recommended for YAML) or camelCase. Missing semantic roles inherit compatibility-safe values from the selected base theme.
 
 ## Security Model (Non-Negotiable)
 

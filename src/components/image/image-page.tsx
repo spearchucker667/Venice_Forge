@@ -1,12 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ImageView } from './image-view'
 import { ImageTools } from './image-tools'
 import { cn } from '../../lib/utils'
+import { useImageWorkspaceStore } from '../../stores/image-workspace-store'
 
 type ImageTab = 'generate' | 'tools'
 
 export function ImagePage() {
   const [tab, setTab] = useState<ImageTab>('generate')
+  const pendingTarget = useImageWorkspaceStore((state) => state.pending?.target)
+
+  useEffect(() => {
+    if (pendingTarget === 'tools') setTab('tools')
+    if (pendingTarget === 'generate') setTab('generate')
+  }, [pendingTarget])
 
   return (
     <div className="flex flex-col h-full">

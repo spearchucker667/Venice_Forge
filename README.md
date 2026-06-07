@@ -240,7 +240,7 @@ For detailed signing and notarization steps, see [docs/RELEASE/signing-and-notar
 
 ### Security audit & regression guards
 
-The codebase is protected by **38 active named regression guards** (`VERIFY-001`..`VERIFY-032` + `VERIFY-034`..`VERIFY-039`; `VERIFY-033` is retired and reserved) that lock down security-, persistence-, accessibility-, performance-, and documentation-relevant surfaces. Each guard fails CI if a future change weakens the protection:
+The codebase is protected by **40 active named regression guards** (`VERIFY-001`..`VERIFY-032` + `VERIFY-034`..`VERIFY-041`; `VERIFY-033` is retired and reserved) that lock down security-, persistence-, accessibility-, performance-, and documentation-relevant surfaces. Each guard fails CI if a future change weakens the protection:
 
 | ID | Locks | Test file |
 |----|-------|-----------|
@@ -283,6 +283,8 @@ The codebase is protected by **38 active named regression guards** (`VERIFY-001`
 | `VERIFY-037` | OS-secure configured state enables Venice UI actions without copying the persisted key into renderer memory | `src/stores/auth-store.test.ts` |
 | `VERIFY-038` | Web-mode Jina keys remain ephemeral and never enter browser-persistent storage | `src/services/desktopBridge.test.ts` |
 | `VERIFY-039` | Web and Electron Jina proxy boundaries cancel and reject response bodies above 2 MiB before parsing/screening | `server.test.ts`, `electron/ipc/handlers.test.ts` |
+| `VERIFY-040` | Production Media Studio handoffs, derivative lineage, image-tools source routing, and aspect-resolution payload exclusivity | `src/components/image/image-view.test.tsx`, `src/components/gallery/gallery-view.test.tsx`, `src/components/image/image-tools.test.tsx`, `src/stores/media-store.test.ts` |
+| `VERIFY-041` | 29-role semantic theme contract, Forge Dracula WCAG AA pairs, complete runtime CSS variables, and full ThemeMaker YAML round-trip with legacy compatibility | `src/theme/contrast.test.ts`, `src/theme/applyTheme.test.ts`, `src/components/ThemeMaker.test.ts`, `src/config/configSchema.test.ts` |
 
 The 2026-06-05 full-repo audit produced these fixes; see [docs/AUDIT_FOLLOWUP_2026_06_05.md](docs/AUDIT_FOLLOWUP_2026_06_05.md) for the full audit report (P0/P1/P2 status, commits, and follow-up items). The 2026-06-06 round-2 audit and 8 named bugs (BUG-001..BUG-006, BUG-008, BUG-009; BUG-007 was originally a MiniMax streaming parser and was retired on 2026-06-06 when the user corrected scope to Venice + Jina only) are documented in [docs/POST_VENICE_JINA_AUDIT_2026_06_06.md](docs/POST_VENICE_JINA_AUDIT_2026_06_06.md). Outstanding P2/P3 work is tracked in the *Open TODO Ledger* of [docs/summary_of_work.md](docs/summary_of_work.md).
 
@@ -416,7 +418,7 @@ This project is actively maintained. For issues, feature requests, or security r
 | Node.js | v20, v22 |
 | TypeScript | Strict mode enforced |
 | Family Safe Mode | ✅ On by default; toggleable to Adult Mode |
-| Test Suite | Full Vitest suite plus 34 active named regression guards |
+| Test Suite | Full Vitest suite plus 40 active named regression guards |
 | License | [MIT](LICENSE) |
 
 Latest changes: See [CHANGELOG.md](CHANGELOG.md)

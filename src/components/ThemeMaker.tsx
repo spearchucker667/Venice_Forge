@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { BUILTIN_VENICE, BUILTIN_DARK, BUILTIN_LIGHT, BUILTIN_COPPER, BUILTIN_DRACULA, BUILTIN_GRUVBOX_DARK, BUILTIN_ROSEPINE, applyTheme, type Theme, type ThemeTokens } from "../theme";
+import { BUILTIN_VENICE, BUILTIN_DARK, BUILTIN_LIGHT, BUILTIN_COPPER, BUILTIN_DRACULA, BUILTIN_GRUVBOX_DARK, BUILTIN_ROSEPINE, applyTheme, completeThemeTokens, type Theme, type ThemeMode, type ThemeTokenInput, type ThemeTokens } from "../theme";
 import { COLOR_INPUT_FALLBACK } from "../theme/fallbacks";
 import { isValidColorValue } from "../theme/validateColor";
 import { ThemePreview } from "./ThemePreview";
@@ -11,28 +11,146 @@ const TOKEN_LABELS: Record<keyof ThemeTokens, string> = {
   background: "Background",
   surface: "Surface",
   surfaceElevated: "Surface Elevated",
+  surfaceMuted: "Surface Muted",
   border: "Border",
+  borderStrong: "Border Strong",
   textPrimary: "Text Primary",
   textSecondary: "Text Secondary",
   textMuted: "Text Muted",
+  foreground: "Foreground",
+  foregroundMuted: "Foreground Muted",
+  foregroundSubtle: "Foreground Subtle",
   accent: "Accent",
   accentHover: "Accent Hover",
   accentForeground: "Accent Foreground",
   success: "Success",
+  successForeground: "Success Foreground",
   warning: "Warning",
+  warningForeground: "Warning Foreground",
   danger: "Danger",
+  dangerForeground: "Danger Foreground",
   info: "Info",
+  inputBackground: "Input Background",
+  inputForeground: "Input Foreground",
+  placeholder: "Placeholder",
+  disabledForeground: "Disabled Foreground",
+  buttonPrimaryBackground: "Primary Button Background",
+  buttonPrimaryForeground: "Primary Button Foreground",
+  buttonSecondaryBackground: "Secondary Button Background",
+  buttonSecondaryForeground: "Secondary Button Foreground",
+  link: "Link",
   focusRing: "Focus Ring",
+  selectionBackground: "Selection Background",
+  selectionForeground: "Selection Foreground",
   overlay: "Overlay",
   glow: "Glow",
 };
 
 function cloneTheme(theme: Theme): Theme {
-  return { ...theme, tokens: { ...theme.tokens } };
+  return { ...theme, tokens: completeThemeTokens(theme.mode, theme.tokens) };
 }
 
 function defaultCustomTheme(): Theme {
   return cloneTheme(BUILTIN_VENICE);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function camelToSnake(value: string): string {
+  return value.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+}
+
+function snakeToCamel(value: string): string {
+  return value.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
+}
+
+function importedTokens(mode: ThemeMode, raw: unknown): ThemeTokens {
+  if (!isRecord(raw)) throw new Error("Invalid theme yaml: tokens must be a mapping.");
+  const fallback = cloneTheme(mode === "light" ? BUILTIN_LIGHT : BUILTIN_VENICE).tokens;
+  const merged: Record<string, string> = { ...fallback };
+  for (const [rawKey, value] of Object.entries(raw)) {
+    const key = snakeToCamel(rawKey);
+    if (!(key in TOKEN_LABELS)) continue;
+    if (typeof value !== "string" || !isValidColorValue(value)) {
+      throw new Error(`Invalid color value for theme token ${rawKey}.`);
+    }
+    merged[key] = value;
+  }
+  return completeThemeTokens(mode, merged as unknown as ThemeTokenInput);
+}
+
+export async function themeToYaml(theme: Theme): Promise<string> {
+  const { stringify } = await import("yaml");
+  const tokens = Object.fromEntries(
+    Object.entries(completeThemeTokens(theme.mode, theme.tokens)).map(([key, value]) => [camelToSnake(key), value]),
+  );
+  return stringify({
+    version: 1,
+    themes: {
+      custom: {
+        display_name: theme.name,
+        mode: theme.mode,
+        tokens,
+      },
+    },
+  });
+}
+
+export async function yamlToTheme(yamlStr: string): Promise<Theme> {
+  const { parse } = await import("yaml");
+  const raw: unknown = parse(yamlStr);
+  if (!isRecord(raw)) throw new Error("Invalid theme yaml: root must be a mapping.");
+
+  if (isRecord(raw.themes)) {
+    const first = Object.values(raw.themes)[0];
+    if (!isRecord(first)) throw new Error("Invalid theme yaml: themes must contain an entry.");
+    if (first.mode !== "dark" && first.mode !== "light") {
+      throw new Error("Invalid theme yaml: mode must be dark or light.");
+    }
+    const mode: ThemeMode = first.mode === "light" ? "light" : "dark";
+    const name = typeof first.display_name === "string" && first.display_name.trim()
+      ? first.display_name.trim()
+      : "Imported Theme";
+    return { id: "custom", name, mode, tokens: importedTokens(mode, first.tokens) };
+  }
+
+  const background = typeof raw.background === "string" ? raw.background : null;
+  const foreground = typeof raw.foreground === "string" ? raw.foreground : null;
+  const accent = typeof raw.accent === "string" ? raw.accent : null;
+  const details = typeof raw.details === "string" ? raw.details : null;
+  if (!background || !foreground || !accent || !details) {
+    throw new Error("Invalid theme yaml: expected a themes block or legacy background/foreground/accent/details fields.");
+  }
+  if (![background, foreground, accent].every(isValidColorValue)) {
+    throw new Error("Invalid theme yaml: legacy color fields contain an unsafe value.");
+  }
+  const terminal = isRecord(raw.terminal_colors) ? raw.terminal_colors : {};
+  const bright = isRecord(terminal.bright) ? terminal.bright : {};
+  const normal = isRecord(terminal.normal) ? terminal.normal : {};
+  const color = (record: Record<string, unknown>, key: string, fallback: string): string =>
+    typeof record[key] === "string" && isValidColorValue(record[key]) ? record[key] : fallback;
+  const legacy: ThemeTokenInput = {
+    background,
+    surface: color(normal, "black", background),
+    surfaceElevated: color(bright, "black", background),
+    border: color(normal, "white", foreground),
+    textPrimary: foreground,
+    textSecondary: color(normal, "white", foreground),
+    textMuted: color(bright, "black", foreground),
+    accent,
+    accentHover: color(bright, "blue", accent),
+    accentForeground: background,
+    success: color(bright, "green", "#74d66a"),
+    warning: color(bright, "yellow", "#d6a84f"),
+    danger: color(bright, "red", "#ef4444"),
+    info: color(bright, "cyan", "#7da7ff"),
+    focusRing: accent,
+    overlay: "rgba(0, 0, 0, 0.6)",
+    glow: `${accent}25`,
+  };
+  return { id: "custom", name: details, mode: "dark", tokens: completeThemeTokens("dark", legacy) };
 }
 
 export function ThemeMaker() {
@@ -115,137 +233,9 @@ export function ThemeMaker() {
     setCustomTheme(null);
   }
 
-  function themeToYaml(theme: Theme): string {
-    const t = theme.tokens;
-    return `---
-# Venice Forge theme configuration
-accent: "${t.accent}"
-background: "${t.background}"
-details: "${theme.name}"
-foreground: "${t.textPrimary}"
-terminal_colors:
-  bright:
-    black: "${t.textMuted}"
-    blue: "${t.accentHover || t.accent}"
-    cyan: "${t.info}"
-    green: "${t.success}"
-    magenta: "${t.accent}"
-    red: "${t.danger}"
-    white: "${t.textPrimary}"
-    yellow: "${t.warning}"
-  normal:
-    black: "${t.background}"
-    blue: "${t.accent}"
-    cyan: "${t.info}"
-    green: "${t.success}"
-    magenta: "${t.accent}"
-    red: "${t.danger}"
-    white: "${t.textSecondary}"
-    yellow: "${t.warning}"
-`;
-  }
-
-  function yamlToTheme(yamlStr: string): Theme {
-    const lines = yamlStr.split('\n');
-    const parsed: {
-      accent?: string;
-      background?: string;
-      details?: string;
-      foreground?: string;
-      terminal_colors: {
-        bright: Record<string, string>;
-        normal: Record<string, string>;
-      };
-    } = {
-      terminal_colors: {
-        bright: {},
-        normal: {}
-      }
-    };
-    
-    let currentGroup: 'bright' | 'normal' | null = null;
-    
-    for (let line of lines) {
-      line = line.trim();
-      if (!line || line.startsWith('#') || line === '---') continue;
-      
-      if (line.startsWith('bright:')) {
-        currentGroup = 'bright';
-        continue;
-      }
-      if (line.startsWith('normal:')) {
-        currentGroup = 'normal';
-        continue;
-      }
-      if (line.startsWith('terminal_colors:')) {
-        continue;
-      }
-      
-      const match = line.match(/^([a-zA-Z_][a-zA-Z0-9_-]*)\s*:\s*(.*)$/);
-      if (match) {
-        const key = match[1];
-        let value = match[2].trim();
-        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-          value = value.slice(1, -1);
-        }
-        
-        if (currentGroup && ['black', 'blue', 'cyan', 'green', 'magenta', 'red', 'white', 'yellow'].includes(key)) {
-          parsed.terminal_colors[currentGroup][key] = value;
-        } else {
-          if (key === 'accent' || key === 'background' || key === 'details' || key === 'foreground') {
-            parsed[key] = value;
-            currentGroup = null;
-          }
-        }
-      }
-    }
-
-    if (!parsed.background || !parsed.foreground || !parsed.accent || !parsed.details) {
-      throw new Error("Invalid theme yaml: background, foreground, accent, and details (theme name) are required.");
-    }
-
-    const name = parsed.details || "Imported Theme";
-    const bg = parsed.background;
-    const fg = parsed.foreground;
-    const acc = parsed.accent;
-    
-    const surface = parsed.terminal_colors?.normal?.black || bg;
-    const success = parsed.terminal_colors?.bright?.green || "#74d66a";
-    const warning = parsed.terminal_colors?.bright?.yellow || "#d6a84f";
-    const danger = parsed.terminal_colors?.bright?.red || "#ef4444";
-    const info = parsed.terminal_colors?.bright?.cyan || "#7da7ff";
-    
-    const tokens: ThemeTokens = {
-      background: bg,
-      surface: surface,
-      surfaceElevated: parsed.terminal_colors?.bright?.black || surface,
-      border: parsed.terminal_colors?.normal?.white || "#2a3140",
-      textPrimary: fg,
-      textSecondary: parsed.terminal_colors?.normal?.white || fg,
-      textMuted: parsed.terminal_colors?.bright?.black || fg,
-      accent: acc,
-      accentHover: parsed.terminal_colors?.bright?.blue || acc,
-      accentForeground: bg,
-      success: success,
-      warning: warning,
-      danger: danger,
-      info: info,
-      focusRing: acc,
-      overlay: 'rgba(0, 0, 0, 0.6)',
-      glow: acc + '25',
-    };
-
-    return {
-      id: 'custom',
-      name: name,
-      mode: 'dark',
-      tokens,
-    };
-  }
-
   async function handleExport() {
     try {
-      const yaml = themeToYaml(draft);
+      const yaml = await themeToYaml(draft);
       await desktopFiles.exportYaml(yaml, "theme.yaml");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to export theme");
@@ -256,7 +246,7 @@ terminal_colors:
     try {
       const yaml = await desktopFiles.importYamlString();
       if (!yaml) return;
-      const importedTheme = yamlToTheme(yaml);
+      const importedTheme = await yamlToTheme(yaml);
       setDraft(importedTheme);
       applyTheme(importedTheme);
       toast.info("Theme imported, make sure to save it.");

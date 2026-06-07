@@ -1,15 +1,19 @@
 import React, { useEffect, useRef } from "react";
-import type { Theme } from "../theme/themeTypes";
+import { completeThemeTokens, type Theme } from "../theme/themeTypes";
 import { contrastRatio } from "../theme/contrast";
 
 export function ThemePreview({ theme }: { theme: Theme }) {
-  const t = theme.tokens;
+  const t = completeThemeTokens(theme.mode, theme.tokens);
   const containerRef = useRef<HTMLDivElement>(null);
   const warnings: string[] = [];
   const ratios = [
-    { name: "Primary text / Background", fg: t.textPrimary, bg: t.background },
-    { name: "Secondary text / Surface", fg: t.textSecondary, bg: t.surface },
+    { name: "Foreground / Background", fg: t.foreground, bg: t.background },
+    { name: "Muted foreground / Surface", fg: t.foregroundMuted, bg: t.surface },
     { name: "Accent foreground / Accent", fg: t.accentForeground, bg: t.accent },
+    { name: "Input foreground / Input background", fg: t.inputForeground, bg: t.inputBackground },
+    { name: "Danger foreground / Danger", fg: t.dangerForeground, bg: t.danger },
+    { name: "Warning foreground / Warning", fg: t.warningForeground, bg: t.warning },
+    { name: "Success foreground / Success", fg: t.successForeground, bg: t.success },
   ];
   ratios.forEach((r) => {
     const ratio = contrastRatio(r.fg, r.bg);
@@ -24,13 +28,13 @@ export function ThemePreview({ theme }: { theme: Theme }) {
     el.style.setProperty("--preview-bg", t.background);
     el.style.setProperty("--preview-border", t.border);
     el.style.setProperty("--preview-surface", t.surface);
-    el.style.setProperty("--preview-text-primary", t.textPrimary);
-    el.style.setProperty("--preview-text-muted", t.textMuted);
+    el.style.setProperty("--preview-text-primary", t.foreground);
+    el.style.setProperty("--preview-text-muted", t.foregroundSubtle);
     el.style.setProperty("--preview-accent", t.accent);
     el.style.setProperty("--preview-accent-fg", t.accentForeground);
-    el.style.setProperty("--preview-text-secondary", t.textSecondary);
+    el.style.setProperty("--preview-text-secondary", t.foregroundMuted);
     el.style.setProperty("--preview-surface-elevated", t.surfaceElevated);
-    el.style.setProperty("--preview-danger", t.danger);
+    el.style.setProperty("--preview-danger", t.dangerForeground);
     el.style.setProperty("--preview-danger-bg", `${t.danger}20`);
     el.style.setProperty("--preview-danger-border", `${t.danger}40`);
   }, [t]);

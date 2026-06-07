@@ -75,6 +75,7 @@ export function migrateGalleryImageToMediaItem(record: unknown): MediaItem {
     downloadUrl: typeof base.downloadUrl === "string" ? base.downloadUrl : undefined,
     duration: typeof base.duration === "string" ? base.duration : undefined,
     resolution: typeof base.resolution === "string" ? base.resolution : undefined,
+    quality: typeof base.quality === "string" ? base.quality : undefined,
     upscaleFactor: typeof base.upscaleFactor === "number" ? base.upscaleFactor : undefined,
     audio: typeof base.audio === "boolean" ? base.audio : undefined,
     seed: base.seed === null ? null : typeof base.seed === "number" ? base.seed : undefined,

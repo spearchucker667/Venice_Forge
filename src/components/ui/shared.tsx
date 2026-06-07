@@ -5,10 +5,10 @@ import { RefreshCw } from 'lucide-react'
 export function Label({ children, htmlFor, hint }: { children: React.ReactNode; htmlFor?: string; hint?: string }) {
   return (
     <div className="flex items-baseline justify-between mb-1.5">
-      <label htmlFor={htmlFor} className="block text-[11.5px] font-semibold text-white/55 uppercase tracking-[0.08em]">
+      <label htmlFor={htmlFor} className="block text-[11.5px] font-semibold text-foreground-muted uppercase tracking-[0.08em]">
         {children}
       </label>
-      {hint && <span className="text-[11px] text-white/35">{hint}</span>}
+      {hint && <span className="text-[11px] text-foreground-subtle">{hint}</span>}
     </div>
   )
 }
@@ -31,7 +31,7 @@ export function TextArea({ value, onChange, placeholder, rows = 3, ariaLabel, ma
       aria-label={ariaLabel ?? placeholder}
       maxLength={maxLength}
       autoFocus={autoFocus}
-      className="w-full bg-surface border border-white/[0.08] rounded-lg px-3 py-2.5 text-[15px] text-white/90 outline-none focus:border-white/[0.22] transition-colors resize-none placeholder:text-white/25 leading-relaxed"
+      className="w-full bg-input-bg border border-border rounded-lg px-3 py-2.5 text-[15px] text-input-fg outline-none focus:border-border-strong transition-colors resize-none placeholder:text-placeholder leading-relaxed"
     />
   )
 }
@@ -53,15 +53,15 @@ export function PrimaryButton({ onClick, disabled, loading, children, ariaLabel,
       aria-label={ariaLabel}
       aria-busy={loading || undefined}
       className={cn(
-        'w-full rounded-lg font-medium transition-all duration-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2',
+        'w-full rounded-lg font-medium transition-all duration-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
         sizing,
         !disabled && !loading
-          ? 'bg-white text-black hover:bg-white/90 active:scale-[0.99] shadow-sm'
-          : 'bg-white/[0.06] text-white/30 cursor-not-allowed',
+          ? 'bg-button-primary-bg text-button-primary-fg hover:bg-accent-hover active:scale-[0.99] shadow-sm'
+          : 'bg-surface-muted text-disabled-fg cursor-not-allowed',
       )}
     >
       {loading ? (
-        <span className="flex items-center justify-center gap-2"><Spinner className="text-white/45" /> Working…</span>
+        <span className="flex items-center justify-center gap-2"><Spinner className="text-disabled-fg" /> Working…</span>
       ) : children}
     </button>
   )
@@ -75,7 +75,7 @@ export function GhostButton({ onClick, children, disabled, ariaLabel }: { onClic
       disabled={disabled}
       aria-label={ariaLabel}
       className={cn(
-        'px-3 py-1.5 text-[13px] font-medium rounded-lg border border-white/[0.1] text-white/70 hover:text-white hover:border-white/[0.2] hover:bg-white/[0.03] transition-colors disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2',
+        'px-3 py-1.5 text-[13px] font-medium rounded-lg border border-border bg-button-secondary-bg text-button-secondary-fg hover:border-border-strong hover:bg-surface-muted transition-colors disabled:text-disabled-fg disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
       )}
     >
       {children}
@@ -99,10 +99,10 @@ export function PillGroup({ options, value, onChange, ariaLabel }: {
           aria-checked={o.value === value}
           onClick={() => onChange(o.value)}
           className={cn(
-            'text-[13px] font-medium px-2.5 py-1 rounded-md border transition-all duration-100 focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--color-accent)]',
+            'text-[13px] font-medium px-2.5 py-1 rounded-md border transition-all duration-100 focus-visible:outline focus-visible:outline-1 focus-visible:outline-focus-ring',
             o.value === value
-              ? 'border-white/15 bg-white/[0.08] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
-              : 'border-white/[0.06] text-white/55 hover:text-white/85 hover:border-white/[0.14] hover:bg-white/[0.02]',
+              ? 'border-border-strong bg-surface-muted text-foreground shadow-sm'
+              : 'border-border text-foreground-muted hover:text-foreground hover:border-border-strong hover:bg-surface-muted',
           )}
         >
           {o.label}

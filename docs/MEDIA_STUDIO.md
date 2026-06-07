@@ -170,7 +170,7 @@ right `operation` and `parentId`.
 | **Regenerate** | selected item | Generates a new image from the stored metadata, with a new random seed. | `{ operation: "regenerate", parentId: original.id }` |
 | **Regenerate with same seed** | selected item | Like Regenerate but pins the original seed. Disabled (with tooltip) when the item has no seed. | `{ operation: "regenerate", parentId: original.id, seed: original.seed }` |
 | **Enhance / Upscale** | selected item | Routes to the existing `useImageUpscale` hook (or the image-tools panel). | `{ operation: "upscale", parentId: original.id }` |
-| **Remix** | selected item | Calls the internal prompt-enhancer LLM. Shows original vs remixed prompt with **Apply to Image Studio**, **Remix & Generate**, **Save remix**, and **Cancel** buttons. | `{ operation: "variation", parentId: original.id, remixPrompt }` (Remix & Generate) |
+| **Remix** | selected item | Calls the internal prompt-enhancer LLM. Shows original vs remixed prompt with **Apply to Image Studio**, **Remix & Generate**, **Save remix**, and **Cancel** buttons. | `{ operation: "regenerate", parentId: original.id, prompt: remixPrompt }` (Remix & Generate) |
 | **Copy prompt** | selected item | Writes `item.prompt` to the clipboard. | (no persisted item) |
 | **Copy negative** | selected item | Writes `item.negative` to the clipboard. Hidden when no negative prompt. | (no persisted item) |
 | **Copy seed** | selected item | Writes `item.seed` to the clipboard. Hidden when no seed. | (no persisted item) |
@@ -178,36 +178,25 @@ right `operation` and `parentId`.
 
 ### Handoff between gallery and image studio
 
-The Image Studio exposes a DEV-only window hook
-`window.__veniceImageStudio` that the gallery inspector calls when
-the user picks **Use settings**, **Regenerate**, **Remix**, etc.
-The hook has three methods:
+Gallery actions enqueue a typed, transient request in
+`useImageWorkspaceStore`. The request contains either an Image Studio
+draft or an image-tools source plus lineage metadata. It is never
+persisted to browser storage and does not expose a production window
+global.
 
-- `applyDraft(draft)` — populates state (`prompt`, `negativePrompt`,
-  `style`, `steps`, `imageCount`, `width`, `height`, `aspectRatio`,
-  `resolution`, `seed`) without generating.
-- `generate()` — triggers the standard `handleGenerate` flow with the
-  populated state.
-- `getPrompt()` — returns the current `prompt` value.
-
-`MediaStudioView` is responsible for:
-1. Switching the active tab to Image Studio.
-2. Waiting for the studio to mount.
-3. Calling `applyDraft` to populate state.
-4. (Optionally) calling `generate()` to start a one-shot
-   regenerate / remix-generate.
-
-This is intentionally a window-bridge so the gallery view does not
-need to know about Image Studio's internals and Image Studio does not
-need to import the gallery view.
+`ImagePage` selects the requested Generate or Tools sub-tab. The
+destination component consumes the request exactly once. Regenerate
+requests apply all draft state first, then schedule generation after
+React commits the model, sizing, quality, and seed updates. Use
+settings applies the same draft without generating.
 
 ### Image Studio writes back to the gallery
 
-`image-view.tsx` already persists every successful generation to the
-media store with `operation: "generate"` and a new id, so each
-**Regenerate** / **Remix & Generate** action automatically produces a
-new `MediaItem` linked to the source as a child. The child receives
-the new id via `childrenIds` patch on the source.
+`image-view.tsx` and `image-tools.tsx` persist derivatives through
+`useMediaStore.upsertDerivative`. The helper writes the child with its
+`parentId`, patches the parent's deduplicated `childrenIds`, and rolls
+back the child if the parent update fails. Normal generation and
+manual image-tool uploads remain unlinked.
 
 ### Safety gate on enhancer actions
 
@@ -357,11 +346,13 @@ persist.
 ## Tests
 
 - `src/services/mediaMigration.test.ts` — 9 tests (pure migrator)
-- `src/stores/media-store.test.ts` — 16 tests (Zustand store + selectors)
+- `src/stores/media-store.test.ts` — Zustand store, derivative lineage, rollback, and selectors
+- `src/stores/image-workspace-store.test.ts` — transient production handoff lifecycle
 - `src/utils/mediaItem.test.ts` — 7 tests (capability helper, filename, etc.)
 - `src/components/gallery/gallery-view.test.tsx` — load, delete, and production dev-global gating
 - `src/components/gallery/media-inspector.test.tsx` — Use settings / Regenerate / Same seed / Copy prompt / Copy negative / Copy seed / Copy metadata / disabled-when-enhancer-off / Upscale / Edit
-- `src/components/image/image-tools.test.tsx` — 1 test (**VERIFY-020**: persist on save)
+- `src/components/image/image-tools.test.tsx` — persistence plus handed-off derivative lineage (**VERIFY-020**)
+- `src/components/image/image-view.test.tsx` — sizing payload and committed-state regenerate handoff (**VERIFY-040**)
 - `src/utils/characterImageResolver.test.ts` — 28 tests (host allowlist, nested fields, private-IP rejection)
 - `src/config/image-model-capabilities.test.ts` — 13 tests (dimension mode registry, snake_case normalisation, quality / resolution coverage)
 - `src/utils/payloadBuilders.test.ts` — 41 tests (dimension, seed, variants, quality, resolution, chat memory)
@@ -371,7 +362,7 @@ persist.
 - `electron/services/mediaService.test.ts` — 25 tests (sanitisation, containment, round-trip, thumb cache, sha256)
 - `src/services/storageService.test.ts` and `src/stores/media-store.test.ts` — **VERIFY-028** pagination contract and incremental hydration
 
-Total: 200+ tests across 13 files.
+The full Vitest suite is the authoritative test count.
 
 ## Migration notes
 
@@ -387,8 +378,6 @@ Total: 200+ tests across 13 files.
 
 ## Future work
 
-- Gallery-driven "Upscale / Edit / Variation / Regenerate" buttons in
-  the detail dialog and inspector (already-capability-aware).
 - Web-mode import via the browser `<input type=file>` flow (renderer
   reads the file with `FileReader` and posts a data URL through
   `app:media:import`).

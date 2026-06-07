@@ -1,14 +1,12 @@
 import { useEffect } from "react";
-import { applyTheme, BUILTIN_DARK, BUILTIN_LIGHT, BUILTIN_COPPER, type Theme } from "../theme";
+import { applyTheme, BUILTIN_DARK, findBuiltinTheme, type Theme } from "../theme";
 import type { AppSettings } from "../types/app";
 
 function getActiveTheme(settings: AppSettings): Theme {
   if (settings.selectedThemeId === "custom" && settings.customTheme) {
     return settings.customTheme;
   }
-  if (settings.selectedThemeId === "builtin-light") return BUILTIN_LIGHT;
-  if (settings.selectedThemeId === "builtin-copper") return BUILTIN_COPPER;
-  return BUILTIN_DARK;
+  return findBuiltinTheme(settings.selectedThemeId) ?? BUILTIN_DARK;
 }
 
 /**

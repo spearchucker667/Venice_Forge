@@ -31,7 +31,7 @@ interface MediaInspectorProps {
    *  No generation. */
   onUseSettings?: (item: MediaItem) => void;
   /** Regenerate using the stored metadata, optionally keeping the original seed. */
-  onRegenerate?: (item: MediaItem, opts?: { sameSeed?: boolean }) => void;
+  onRegenerate?: (item: MediaItem, opts?: { sameSeed?: boolean; promptOverride?: string }) => void;
   /** Enhance / upscale the selected item via the existing image-tools flow. */
   onUpscale?: (item: MediaItem) => void;
   /** Apply a remixed prompt to the Image Studio (no auto-generation). */
@@ -54,6 +54,7 @@ export function MediaInspector({
   onRegenerate,
   onUpscale,
   onApplyRemix,
+  onOpenImageTools,
 }: MediaInspectorProps) {
   const [tagDraft, setTagDraft] = useState("");
   const [noteDraft, setNoteDraft] = useState(item.note);
@@ -204,10 +205,9 @@ export function MediaInspector({
 
   const handleRemixAndGenerate = useCallback(() => {
     if (!enhanceState || enhanceState.mode !== "remix" || !enhanceState.result) return;
-    if (onApplyRemix) onApplyRemix(item, enhanceState.result);
-    if (onRegenerate) onRegenerate(item, { sameSeed: false });
+    if (onRegenerate) onRegenerate(item, { sameSeed: false, promptOverride: enhanceState.result });
     setEnhanceState(null);
-  }, [enhanceState, onApplyRemix, onRegenerate, item]);
+  }, [enhanceState, onRegenerate, item]);
 
   const handleUseSettingsClick = useCallback(() => {
     if (onUseSettings) onUseSettings(item);
@@ -224,6 +224,10 @@ export function MediaInspector({
   const handleUpscaleClick = useCallback(() => {
     if (onUpscale) onUpscale(item);
   }, [onUpscale, item]);
+
+  const handleEditClick = useCallback(() => {
+    if (onOpenImageTools) onOpenImageTools(item);
+  }, [onOpenImageTools, item]);
 
   const hasMetadata = typeof item.seed === "number" || item.source || item.style ||
     item.steps !== undefined || item.cfg !== undefined || item.aspectRatio;
@@ -395,10 +399,10 @@ export function MediaInspector({
               <Maximize2 className="h-3 w-3" /> Upscale
             </button>
           )}
-          {onUpscale && capabilities.edit && (
+          {onOpenImageTools && capabilities.edit && (
             <button
               type="button"
-              onClick={handleUpscaleClick}
+              onClick={handleEditClick}
               className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
               title="Open this image in the image editor"
               data-testid="inspector-edit"

@@ -1,10 +1,10 @@
-import type { Theme } from './themeTypes';
+import { completeThemeTokens, type Theme } from './themeTypes';
 
 export const BUILTIN_DARK: Theme = {
   id: 'builtin-dark',
   name: 'Forge Graphite',
   mode: 'dark',
-  tokens: {
+  tokens: completeThemeTokens('dark', {
     background: '#0d1117',
     surface: '#161b22',
     surfaceElevated: '#1c2330',
@@ -22,14 +22,16 @@ export const BUILTIN_DARK: Theme = {
     focusRing: '#4c93f8',
     overlay: 'rgba(0,0,0,0.6)',
     glow: 'rgba(47,129,247,0.25)',
-  },
+    surfaceMuted: '#11161d',
+    borderStrong: '#6b7686',
+  }),
 };
 
 export const BUILTIN_LIGHT: Theme = {
   id: 'builtin-light',
   name: 'Forge Daylight',
   mode: 'light',
-  tokens: {
+  tokens: completeThemeTokens('light', {
     background: '#f6f8fa',
     surface: '#ffffff',
     surfaceElevated: '#ffffff',
@@ -47,14 +49,18 @@ export const BUILTIN_LIGHT: Theme = {
     focusRing: '#0969da',
     overlay: 'rgba(0,0,0,0.4)',
     glow: 'rgba(9,105,218,0.18)',
-  },
+    surfaceMuted: '#eef1f4',
+    borderStrong: '#8c959f',
+    placeholder: '#57606a',
+    disabledForeground: '#6e7781',
+  }),
 };
 
 export const BUILTIN_COPPER: Theme = {
   id: 'builtin-copper',
   name: 'Forge Copper',
   mode: 'dark',
-  tokens: {
+  tokens: completeThemeTokens('dark', {
     background: '#0d1117',
     surface: '#161b22',
     surfaceElevated: '#1c2330',
@@ -72,14 +78,16 @@ export const BUILTIN_COPPER: Theme = {
     focusRing: '#d98e4d',
     overlay: 'rgba(0,0,0,0.6)',
     glow: 'rgba(199,123,59,0.25)',
-  },
+    surfaceMuted: '#11161d',
+    borderStrong: '#6b7686',
+  }),
 };
 
 export const BUILTIN_DRACULA: Theme = {
   id: 'builtin-dracula',
   name: 'Forge Dracula',
   mode: 'dark',
-  tokens: {
+  tokens: completeThemeTokens('dark', {
     background: '#282a36',
     surface: '#343748',
     surfaceElevated: '#44475a',
@@ -89,7 +97,7 @@ export const BUILTIN_DRACULA: Theme = {
     textMuted: '#9e9fb4',
     accent: '#bd93f9',
     accentHover: '#ff79c6',
-    accentForeground: '#f8f8f2',
+    accentForeground: '#282a36',
     success: '#50fa7b',
     warning: '#f1fa8c',
     danger: '#ff5555',
@@ -97,14 +105,20 @@ export const BUILTIN_DRACULA: Theme = {
     focusRing: '#bd93f9',
     overlay: 'rgba(40,42,54,0.7)',
     glow: 'rgba(189,147,249,0.2)',
-  },
+    surfaceMuted: '#303241',
+    borderStrong: '#737896',
+    foregroundSubtle: '#a8a9bd',
+    placeholder: '#a8a9bd',
+    disabledForeground: '#9293aa',
+    link: '#8be9fd',
+  }),
 };
 
 export const BUILTIN_VENICE: Theme = {
   id: 'builtin-venice',
   name: 'Venice Parity Dark',
   mode: 'dark',
-  tokens: {
+  tokens: completeThemeTokens('dark', {
     background: '#050a0f',
     surface: '#080f15',
     surfaceElevated: '#111922',
@@ -122,14 +136,16 @@ export const BUILTIN_VENICE: Theme = {
     focusRing: '#63b3ed',
     overlay: 'rgba(5, 10, 15, 0.7)',
     glow: 'rgba(99, 179, 237, 0.1)',
-  },
+    surfaceMuted: '#0b131b',
+    borderStrong: '#687483',
+  }),
 };
 
 export const BUILTIN_GRUVBOX_DARK: Theme = {
   id: 'builtin-gruvbox-dark',
   name: 'GruvBox Dark',
   mode: 'dark',
-  tokens: {
+  tokens: completeThemeTokens('dark', {
     background: '#282828',
     surface: '#3c3836',
     surfaceElevated: '#504945',
@@ -147,14 +163,16 @@ export const BUILTIN_GRUVBOX_DARK: Theme = {
     focusRing: '#fe8019',
     overlay: 'rgba(40, 40, 40, 0.6)',
     glow: 'rgba(254, 128, 25, 0.25)',
-  },
+    surfaceMuted: '#32302f',
+    borderStrong: '#928374',
+  }),
 };
 
 export const BUILTIN_ROSEPINE: Theme = {
   id: 'builtin-rosepine',
   name: 'Rosepine',
   mode: 'dark',
-  tokens: {
+  tokens: completeThemeTokens('dark', {
     background: '#191724',
     surface: '#1f1d2e',
     surfaceElevated: '#26233a',
@@ -172,7 +190,9 @@ export const BUILTIN_ROSEPINE: Theme = {
     focusRing: '#ebbcba',
     overlay: 'rgba(25, 23, 36, 0.7)',
     glow: 'rgba(235, 188, 186, 0.2)',
-  },
+    surfaceMuted: '#211f30',
+    borderStrong: '#6e6a86',
+  }),
 };
 
 export const BUILTIN_THEMES: Theme[] = [

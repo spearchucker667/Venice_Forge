@@ -34,18 +34,37 @@ export const REQUIRED_THEME_TOKEN_KEYS = [
   "background",
   "surface",
   "surfaceElevated",
+  "surfaceMuted",
   "border",
+  "borderStrong",
   "textPrimary",
   "textSecondary",
   "textMuted",
+  "foreground",
+  "foregroundMuted",
+  "foregroundSubtle",
   "accent",
   "accentHover",
   "accentForeground",
   "success",
+  "successForeground",
   "warning",
+  "warningForeground",
   "danger",
+  "dangerForeground",
   "info",
+  "inputBackground",
+  "inputForeground",
+  "placeholder",
+  "disabledForeground",
+  "buttonPrimaryBackground",
+  "buttonPrimaryForeground",
+  "buttonSecondaryBackground",
+  "buttonSecondaryForeground",
+  "link",
   "focusRing",
+  "selectionBackground",
+  "selectionForeground",
   "overlay",
   "glow",
 ] as const;
@@ -347,14 +366,20 @@ function validateThemeBlock(name: string, raw: unknown): { theme: YamlTheme | nu
     return { theme: null, warnings };
   }
   const tokens: Record<string, string> = {};
+  const allowedTokens = new Set<string>(REQUIRED_THEME_TOKEN_KEYS);
   let allValid = true;
   for (const [k, v] of Object.entries(rec.tokens as Record<string, unknown>)) {
+    const normalizedKey = k.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
+    if (!allowedTokens.has(normalizedKey)) {
+      warnings.push({ field: `themes.${name}.tokens.${k}`, message: "Unknown theme token; ignored.", severity: "warn" });
+      continue;
+    }
     if (typeof v !== "string" || !isValidColorValue(v)) {
       warnings.push({ field: `themes.${name}.tokens.${k}`, message: "Invalid color value; theme skipped.", severity: "error" });
       allValid = false;
       break;
     }
-    tokens[k] = v;
+    tokens[normalizedKey] = v;
   }
   if (!allValid) return { theme: null, warnings };
   return {

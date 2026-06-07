@@ -23,7 +23,7 @@
 
 ## Overview
 
-Venice Forge uses a **semantic token-based theme system** built on Tailwind CSS v4 CSS variables. Every color, border, shadow, and focus ring in the UI derives from a centralized set of 17 semantic tokens mapped to CSS custom properties. This enables:
+Venice Forge uses a **semantic token-based theme system** built on Tailwind CSS v4 CSS variables. Core surfaces, text, status, form, button, link, focus, and selection colors derive from 29 canonical semantic roles mapped to CSS custom properties. This enables:
 
 - **Built-in themes:** Venice Parity Dark (default), Forge Graphite (dark), Forge Daylight (light), Forge Copper (dark), Forge Dracula (dark), GruvBox Dark (dark), Rosepine (dark).
 - **Custom themes:** Users can define every token via the in-app ThemeMaker and import/export configurations in YAML format. The starter configurations for all built-in themes are provided in the `config/themes/` directory as `.yaml` files.
@@ -77,27 +77,35 @@ After IndexedDB hydrates, `App.tsx` reconciles the canonical settings against th
 
 ## Token Reference
 
-There are **17 semantic tokens**. Each maps to a CSS custom property (`--*`) and a Tailwind v4 utility class.
+There are **29 canonical semantic tokens**. Each maps to a CSS custom property (`--*`) and a Tailwind v4 utility class. The legacy `textPrimary` / `textSecondary` / `textMuted`, `accentHover`, `info`, `overlay`, and `glow` fields remain supported for existing persisted and imported themes; runtime normalization maps them into the canonical roles.
 
 | Token | CSS Variable | Tailwind Class | Role |
 |-------|-------------|----------------|------|
 | `background` | `--bg` | `bg-bg` | App/workspace background |
 | `surface` | `--surface` | `bg-surface` | Card/panel backgrounds |
 | `surfaceElevated` | `--surface-elevated` | `bg-surface-elevated` | Elevated cards, inputs, modal backdrops |
+| `surfaceMuted` | `--surface-muted` | `bg-surface-muted` | Subdued controls and selected secondary surfaces |
 | `border` | `--border` | `border-border` | Dividers, input borders |
-| `textPrimary` | `--text-primary` | `text-text-primary` | Headings, primary body text |
-| `textSecondary` | `--text-secondary` | `text-text-secondary` | Labels, secondary text |
-| `textMuted` | `--text-muted` | `text-text-muted` | Placeholders, hints, disabled text |
+| `borderStrong` | `--border-strong` | `border-border-strong` | Hovered controls and high-emphasis dividers |
+| `foreground` | `--foreground` | `text-foreground` | Headings and primary body text |
+| `foregroundMuted` | `--foreground-muted` | `text-foreground-muted` | Labels and secondary text |
+| `foregroundSubtle` | `--foreground-subtle` | `text-foreground-subtle` | Low-emphasis supporting text |
 | `accent` | `--accent` | `bg-accent`, `text-accent`, `border-accent` | Primary action color |
 | `accentHover` | `--accent-hover` | `hover:bg-accent-hover` | Accent hover state |
 | `accentForeground` | `--accent-fg` | `text-accent-fg` | Text on accent backgrounds (buttons, badges) |
 | `success` | `--success` | `text-success`, `border-success` | Positive status, success toasts |
+| `successForeground` | `--success-fg` | `text-success-fg` | Text/icons on success backgrounds |
 | `warning` | `--warning` | `text-warning`, `border-warning` | Cautions, warnings |
+| `warningForeground` | `--warning-fg` | `text-warning-fg` | Text/icons on warning backgrounds |
 | `danger` | `--danger` | `text-danger`, `border-danger` | Errors, destructive actions |
-| `info` | `--info` | `text-info` | Informational hints |
+| `dangerForeground` | `--danger-fg` | `text-danger-fg` | Text/icons on danger backgrounds |
+| `inputBackground` / `inputForeground` | `--input-bg` / `--input-fg` | `bg-input-bg` / `text-input-fg` | Form controls |
+| `placeholder` / `disabledForeground` | `--placeholder` / `--disabled-fg` | `text-placeholder` / `text-disabled-fg` | Placeholder and disabled states |
+| `buttonPrimaryBackground` / `buttonPrimaryForeground` | `--button-primary-bg` / `--button-primary-fg` | `bg-button-primary-bg` / `text-button-primary-fg` | Primary actions |
+| `buttonSecondaryBackground` / `buttonSecondaryForeground` | `--button-secondary-bg` / `--button-secondary-fg` | `bg-button-secondary-bg` / `text-button-secondary-fg` | Secondary actions |
+| `link` | `--link` | `text-link` | Links and link-style actions |
 | `focusRing` | `--focus-ring` | `focus-visible:ring-focus-ring` | Keyboard focus outline |
-| `overlay` | `--overlay` | `bg-overlay` | Modal/drawer backdrop scrim |
-| `glow` | `--glow` | `shadow-glow` | Accent glow on active elements |
+| `selectionBackground` / `selectionForeground` | `--selection-bg` / `--selection-fg` | `bg-selection-bg` / `text-selection-fg` | Selected text |
 
 ### Raw Hex Rule
 
@@ -166,7 +174,7 @@ Located in **Settings → Appearance → Theme Maker** (`src/components/ThemeMak
 - **Token editor:** Each token has a synced native color picker and hex text input.
 - **Hex validation:** Regex `/^#([0-9a-f]{3}|[0-9a-f]{6})$/i`; invalid input falls back to `#000000`.
 - **Live preview:** `applyTheme(draftTheme)` updates the entire app in real time as you edit.
-- **Contrast warnings:** Checks `textPrimary/bg`, `textSecondary/surface`, and `accentForeground/accent` against WCAG AA. Warnings render in an `aria-live="polite"` region.
+- **Contrast warnings:** Checks primary/muted text, accent, input, danger, warning, and success foreground/background pairs against WCAG AA. Warnings render in an `aria-live="polite"` region.
 - **Preview card:** A mini app mock-up (`ThemePreview.tsx`) showing background, sidebar, active tab, button, input, and alert tokens.
 
 ### Controls

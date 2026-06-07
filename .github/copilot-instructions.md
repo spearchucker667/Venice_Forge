@@ -121,7 +121,7 @@ The `src/research/` directory contains a pluggable provider system for search, s
 
 ### Theme System
 
-`src/theme/` provides a token-based theme system with three built-in palettes (Forge Graphite, Forge Daylight, Forge Copper) and a live ThemeMaker UI. Themes persist to encrypted IndexedDB. See `docs/THEME_SYSTEM.md` for full token reference.
+`src/theme/` provides a 29-role semantic token system with seven built-in palettes and a live ThemeMaker UI. `completeThemeTokens()` preserves legacy persisted themes; ThemeMaker YAML uses the full snake_case contract. Themes persist to encrypted IndexedDB. See `docs/THEME_SYSTEM.md` for the token reference and `VERIFY-041` guards.
 
 ### Auto-Updates
 Auto-updates are fetched via GitHub Releases. The `electron/ipc/updates.ts` module securely exposes `checkForUpdates`, `downloadUpdate`, and `installUpdate` to the renderer while keeping download logic in the sandboxed main process.
@@ -203,6 +203,8 @@ Generated images and videos are normalized to `MediaItem` records in the encrypt
 The user-facing surface is **Media Studio** in `src/components/gallery/gallery-view.tsx`. The canonical top-level tab id is `media`; `gallery` is a legacy alias only. Keep tab behavior synchronized through `src/config/tabs.ts` (`TAB_IDS`, `TAB_REGISTRY`, and `CANONICAL_TAB_ORDER`) rather than adding parallel tab literals.
 
 Lineage uses `parentId` / `childrenIds` on `MediaItem`. Persist image-tool outputs through the Media Studio store with the correct `operation` and durable data URL; never persist transient `blob:` URLs.
+
+Cross-tab Media Studio actions route through the transient `src/stores/image-workspace-store.ts`; do not add production window globals. Derivative writes must use `useMediaStore.upsertDerivative()` so the child and parent lineage stay synchronized.
 
 Media Studio reads are timestamp-indexed and paginated through `StorageService.getItemsPageWithMeta()` and `useMediaStore.loadMore()`. Keep search, batch, and lineage UI explicit that they operate on loaded records; do not replace the cursor path with `getAll()`.
 

@@ -50,17 +50,25 @@ globalThis.FileReader = FakeFileReader
 import StorageService from '../../services/storageService'
 import { useMediaStore } from '../../stores/media-store'
 import { ImageTools } from './image-tools'
+import { useImageWorkspaceStore } from '../../stores/image-workspace-store'
+import type { MediaItem } from '../../types/media'
 
 describe('ImageTools → Media Studio wiring (P3 regression guard)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mutateMock = vi.fn()
+    useImageWorkspaceStore.getState().reset()
     useMediaStore.setState({ items: [], loading: false, loaded: false, lastError: null })
     vi.mocked(StorageService.putMedia).mockImplementation(async (item) => ({
       ...(item as object),
       id: (item as { id: string }).id,
       timestamp: 1,
     }))
+    vi.mocked(StorageService.patchMedia).mockImplementation(async (id, patch) => {
+      const existing = useMediaStore.getState().items.find((item) => item.id === id)
+      if (!existing) throw new Error('not found')
+      return { ...existing, ...patch, id } as MediaItem
+    })
   })
 
   // VERIFY-020 regression guard: edit/upscale/background-remove result MUST be
@@ -142,5 +150,34 @@ describe('ImageTools → Media Studio wiring (P3 regression guard)', () => {
     expect(putCalls).toBe(1)
     const saveCalls = (vi.mocked(StorageService as unknown as { saveItem: (...args: unknown[]) => unknown }).saveItem as unknown as { mock: { calls: unknown[] } } | undefined)?.mock?.calls?.length ?? 0
     expect(saveCalls).toBe(0)
+  })
+
+  it('consumes an upscale handoff and saves a derivative linked to its parent', async () => {
+    const parent: MediaItem = {
+      id: 'parent-1', image: 'data:image/png;base64,PARENT', prompt: 'parent prompt', model: 'flux-dev',
+      timestamp: 1, mediaType: 'image', operation: 'generate', parentId: null, childrenIds: [],
+      tags: [], note: '', favorite: false,
+    }
+    useMediaStore.setState({ items: [parent], totalCount: 1 })
+    useImageWorkspaceStore.getState().enqueueTools({
+      tool: 'upscale', parentId: parent.id, image: parent.image, prompt: parent.prompt, filename: 'parent.png',
+    })
+
+    let capturedOnSuccess: ((blob: Blob) => void) | null = null
+    mutateMock.mockImplementationOnce((_req: unknown, opts?: { onSuccess?: (b: Blob) => void }) => {
+      capturedOnSuccess = opts?.onSuccess ?? null
+    })
+    render(<ImageTools />)
+
+    expect(await screen.findByText('parent.png')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Upscale Image/ }))
+    await act(async () => capturedOnSuccess?.(new Blob(['upscaled'], { type: 'image/png' })))
+    fireEvent.click(await screen.findByText('Save to Media Studio'))
+
+    await waitFor(() => {
+      const child = useMediaStore.getState().items.find((item) => item.id !== parent.id)
+      expect(child).toMatchObject({ operation: 'upscale', parentId: parent.id })
+      expect(useMediaStore.getState().byId(parent.id)?.childrenIds).toEqual([child?.id])
+    })
   })
 })

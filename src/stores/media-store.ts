@@ -22,6 +22,8 @@ interface MediaState {
   loadMore: () => Promise<void>
   /** Insert or update a single record. Returns the persisted record. */
   upsert: (item: MediaItem) => Promise<MediaItem>
+  /** Persist a derivative and update its parent's child list as one logical operation. */
+  upsertDerivative: (item: MediaItem, parentId: string) => Promise<MediaItem>
   /** Patch a single record by id. Returns the updated record, or null if missing. */
   patch: (id: string, patch: MediaItemPatch) => Promise<MediaItem | null>
   /** Patch many records at once. Returns the number of records updated. */
@@ -143,6 +145,28 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       }
     })
     return saved
+  },
+
+  upsertDerivative: async (item, parentId) => {
+    const parent = get().items.find((candidate) => candidate.id === parentId) ?? await get().loadById(parentId)
+    if (!parent) throw new Error(`Parent media item not found: ${parentId}`)
+
+    const migrated = migrateGalleryImageToMediaItem({ ...item, parentId })
+    const saved = await StorageService.putMedia<MediaItem>(migrated)
+    const childrenIds = Array.from(new Set([...parent.childrenIds, saved.id]))
+    try {
+      const updatedParent = await StorageService.patchMedia<MediaItem>(parentId, { childrenIds })
+      set((state) => {
+        const withoutChild = state.items.filter((existing) => existing.id !== saved.id)
+        const items = reconcileList([saved, ...withoutChild], [updatedParent])
+        items.sort((a, b) => b.timestamp - a.timestamp)
+        return { items, totalCount: state.totalCount + (state.items.some((existing) => existing.id === saved.id) ? 0 : 1) }
+      })
+      return saved
+    } catch (err) {
+      await StorageService.deleteMedia(saved.id).catch(() => false)
+      throw err
+    }
   },
 
   patch: async (id, patch) => {

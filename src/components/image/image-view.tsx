@@ -24,6 +24,7 @@ import {
   type ImageSeedState,
 } from '../../utils/payloadBuilders'
 import { useConfigStore } from '../../stores/config-store'
+import { useImageWorkspaceStore, type ImageGenerateHandoff } from '../../stores/image-workspace-store'
 
 
 function toImageSrc(b64: string): string {
@@ -64,7 +65,7 @@ export function ImageView() {
   const caps = useMemo(() => getImageModelCapabilities(model), [model])
   const dimOptions = useMemo(() => buildDimensionOptions(model, constraints), [model, constraints])
 
-  const hasAspectRatios = dimOptions.dimensionMode === "aspectRatio" && !!dimOptions.aspectRatios?.length
+  const hasAspectRatios = (dimOptions.dimensionMode === "aspectRatio" || dimOptions.dimensionMode === "aspectResolution") && !!dimOptions.aspectRatios?.length
   const maxSteps = constraints?.steps?.max || 50
   const defaultSteps = constraints?.steps?.default || 20
   const promptLimit = constraints?.promptCharacterLimit || 4096
@@ -75,12 +76,16 @@ export function ImageView() {
   const [sizeKey, setSizeKey] = useState('1024x1024')
   const [aspectRatio, setAspectRatio] = useState('')
   const [resolution, setResolution] = useState('')
+  const [quality, setQuality] = useState('')
   const [style, setStyle] = useState('')
   const [steps, setSteps] = useState(defaultSteps)
   const [variants, setVariants] = useState(1)
   const [hideWatermark] = useState(true)
   const [images, setImages] = useState<string[]>([])
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [generationContext, setGenerationContext] = useState<Pick<ImageGenerateHandoff, 'parentId' | 'operation'> | null>(null)
+  const [queuedAutoGenerateId, setQueuedAutoGenerateId] = useState<string | null>(null)
+  const pendingHandoff = useImageWorkspaceStore((state) => state.pending)
 
   // Seed state — mode "off" omits the field entirely; "fixed" sends an
   // integer in [-999999999, 999999999]. We do not expose a "null" mode
@@ -116,15 +121,18 @@ export function ImageView() {
   useEffect(() => {
     if (hasAspectRatios) {
       const next = dimOptions.defaultDimensions.aspectRatio ?? aspectOptions[0]?.value ?? '';
-      setAspectRatio((prev) => prev || next);
+      setAspectRatio(next);
+      setResolution(dimOptions.defaultDimensions.resolution ?? resolutionOptions[0]?.value ?? '');
       setSizeKey('1024x1024');
     } else {
       const def = caps.defaultDimensions;
       setSizeKey(`${def.width ?? 1024}x${def.height ?? 1024}`);
       setAspectRatio('');
+      setResolution('');
     }
+    setQuality(dimOptions.defaultQuality ?? '');
     if (defaultSteps && steps === 0) setSteps(defaultSteps);
-  }, [caps, dimOptions, hasAspectRatios, aspectOptions, defaultSteps, steps]);
+  }, [caps, dimOptions, hasAspectRatios, aspectOptions, resolutionOptions, defaultSteps, steps]);
 
   const downloadImage = async (b64: string, index?: number) => {
     const filename = `venice-image${index !== undefined ? `-${index + 1}` : ''}.png`;
@@ -205,6 +213,7 @@ export function ImageView() {
       height?: number;
       aspectRatio?: string;
       resolution?: string;
+      quality?: string;
       seed?: number | null;
     }) => {
       if (typeof draft.prompt === "string") setPrompt(draft.prompt);
@@ -225,14 +234,15 @@ export function ImageView() {
         setAspectRatio("");
       }
       if (typeof draft.resolution === "string") setResolution(draft.resolution);
+      if (typeof draft.quality === "string") setQuality(draft.quality);
       if (typeof draft.seed === "number" && Number.isInteger(draft.seed)) {
         setSeedMode("fixed");
         setSeedValue(draft.seed);
       } else {
         setSeedMode("off");
       }
-      // Do not auto-generate; gallery callers can chain .generate() if
-      // they want a one-shot regenerate.
+      // Auto-generation is scheduled separately so these state updates
+      // commit before the shared payload builder reads them.
     },
     [],
   )
@@ -255,6 +265,8 @@ export function ImageView() {
     }
 
     const seedState = buildSeedState()
+    const activeGenerationContext = generationContext
+    setGenerationContext(null)
 
     // Use the shared payload builder. The builder enforces exactly one
     // sizing shape (aspect_ratio vs width/height), respects the model's
@@ -267,11 +279,14 @@ export function ImageView() {
         width,
         height,
         aspectRatio: aspectRatioField,
+        resolution: dimOptions.dimensionMode === 'aspectResolution' ? resolution || undefined : undefined,
+        quality: dimOptions.qualities?.length ? quality || undefined : undefined,
         steps,
         style: style || undefined,
         safeMode: veniceApiSafeMode,
         disableWatermark: hideWatermark,
         imageCount: variants,
+        supportsVariants: caps.supportsVariants,
       },
       undefined,
       seedState,
@@ -284,33 +299,17 @@ export function ImageView() {
     return_binary: boolean;
   }
 
-    // The shared builder does not know about `variants` because variants
-    // is rejected by some model classes; we attach it only when the model
-    // supports multi-image. The UI clamps to 4; we mirror that here.
-    req.variants = variants
-
-    // If the model supports resolution and the UI selected one, attach it.
-    // The capabilities layer is the source of truth for whether the
-    // current model is in `aspectResolution` mode.
-    if (
-      dimOptions.dimensionMode === 'aspectResolution' &&
-      resolution &&
-      req.aspect_ratio
-    ) {
-      req.resolution = resolution
-    }
-
     mutation.mutate(
       req as unknown as Parameters<typeof mutation.mutate>[0],
       {
-        onSuccess: (data) => {
+        onSuccess: async (data) => {
           const rawImages = data.images.map((img) => typeof img === 'string' ? img : img.b64_json)
           const processedImages: string[] = []
           const batchId = variants > 1 ? generateId() : null;
           const now = Date.now();
           const isEnhanced = enhancedPrompt !== null && prompt !== currentPrompt;
 
-          rawImages.forEach((img, index) => {
+          await Promise.all(rawImages.map(async (img, index) => {
             const { base64: processedImg, report } = processBase64Image(img);
             const routedFolder = routeAsset(currentPrompt);
             processedImages.push(processedImg);
@@ -326,6 +325,7 @@ export function ImageView() {
               height: req.height as number | undefined,
               aspectRatio: req.aspect_ratio as string | undefined,
               resolution: req.resolution as string | undefined,
+              quality: req.quality as string | undefined,
               style: req.style_preset as string | undefined,
               steps: req.steps as number | undefined,
               cfg: req.cfg_scale as number | undefined,
@@ -339,8 +339,8 @@ export function ImageView() {
               timestamp: now,
               upscaled: false,
               mediaType: 'image',
-              operation: 'generate',
-              parentId: null,
+              operation: activeGenerationContext?.operation ?? 'generate',
+              parentId: activeGenerationContext?.parentId ?? null,
               childrenIds: [],
               tags: [],
               note: '',
@@ -357,8 +357,13 @@ export function ImageView() {
               mediaItem.originalPrompt = prompt.trim();
             }
 
-            void useMediaStore.getState().upsert(mediaItem as unknown as MediaItem);
-          });
+            const typedItem = mediaItem as unknown as MediaItem;
+            if (activeGenerationContext?.parentId) {
+              await useMediaStore.getState().upsertDerivative(typedItem, activeGenerationContext.parentId);
+            } else {
+              await useMediaStore.getState().upsert(typedItem);
+            }
+          }));
 
           setImages((prev) => [...processedImages, ...prev])
           setShowEnhanceReview(false)
@@ -368,30 +373,25 @@ export function ImageView() {
     )
   }
 
-  // Gallery handoff hook. Exposed only in DEV/non-production so the
-  // gallery inspector can drive the image studio (use settings,
-  // regenerate, remix handoff) without leaking globals into shipped
-  // builds. The hook attaches on mount and detaches on unmount.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const meta = (import.meta as unknown as { env?: { DEV?: boolean; MODE?: string } });
-    const isDev = meta.env?.DEV === true || meta.env?.MODE !== "production";
-    if (!isDev) return;
-    interface ImageStudioDevApi {
-      applyDraft: typeof applyDraftFromGallery;
-      generate: () => void;
-      getPrompt: () => string;
+    if (!pendingHandoff || pendingHandoff.target !== 'generate') return
+    if (pendingHandoff.draft.model) {
+      useSettingsStore.getState().setSelectedModel('image', pendingHandoff.draft.model)
     }
-    const w = window as unknown as { __veniceImageStudio?: ImageStudioDevApi };
-    w.__veniceImageStudio = {
-      applyDraft: applyDraftFromGallery,
-      generate: () => handleGenerate(),
-      getPrompt: () => prompt,
-    };
-    return () => {
-      if (w.__veniceImageStudio) delete w.__veniceImageStudio;
-    };
-  }, [applyDraftFromGallery, prompt, handleGenerate]);
+    applyDraftFromGallery(pendingHandoff.draft)
+    setGenerationContext(pendingHandoff.autoGenerate ? {
+      parentId: pendingHandoff.parentId,
+      operation: pendingHandoff.operation,
+    } : null)
+    if (pendingHandoff.autoGenerate) setQueuedAutoGenerateId(pendingHandoff.id)
+    useImageWorkspaceStore.getState().consume(pendingHandoff.id)
+  }, [pendingHandoff, applyDraftFromGallery])
+
+  useEffect(() => {
+    if (!queuedAutoGenerateId) return
+    setQueuedAutoGenerateId(null)
+    handleGenerate()
+  }, [queuedAutoGenerateId])
 
   const controls = (
     <>
@@ -496,6 +496,17 @@ export function ImageView() {
 
       {(dimOptions.resolutions?.length) && (
         <div><Label>Resolution</Label><PillGroup options={resolutionOptions} value={resolution || resolutionOptions[0]?.value || ''} onChange={setResolution} /></div>
+      )}
+
+      {(dimOptions.qualities?.length) && (
+        <div>
+          <Label>Quality</Label>
+          <PillGroup
+            options={dimOptions.qualities.map((option) => ({ value: option.id, label: option.label }))}
+            value={quality || dimOptions.defaultQuality || ''}
+            onChange={setQuality}
+          />
+        </div>
       )}
 
       <div><Label>Style</Label><Select value={style} onChange={setStyle} options={styleOptions} searchable placeholder="None" /></div>

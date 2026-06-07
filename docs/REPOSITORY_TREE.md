@@ -95,7 +95,7 @@ This document is the public map for the Venice Forge repository. It reflects the
 | Shared validation | `src/shared/` | Venice endpoint and API host configuration shared by renderer and Electron IPC |
 | Content safety | `src/shared/safety/` | Child-exploitation safety guard; runs at every enforcement boundary |
 | Theme engine | `src/theme/` | Token-based CSS variables + Tailwind v4 `@theme` integration |
-| Media Studio | `src/components/gallery/` + `src/stores/media-store.ts` + `src/services/mediaMigration.ts` + `electron/services/mediaService.ts` | Local-first generated-media library. Renderer reads from the encrypted `images` IDB store, enriches in place into a canonical `MediaItem` shape, and renders a searchable / filterable / sortable / batch-selectable grid. Electron adds 5 IPC channels (export, import, reveal, meta, thumb) with strict path-containment validation. See [`MEDIA_STUDIO.md`](MEDIA_STUDIO.md) |
+| Media Studio | `src/components/gallery/` + `src/stores/media-store.ts` + `src/stores/image-workspace-store.ts` + `src/services/mediaMigration.ts` + `electron/services/mediaService.ts` | Local-first generated-media library. Renderer reads from the encrypted `images` IDB store, enriches in place into a canonical `MediaItem` shape, and renders a searchable / filterable / sortable / batch-selectable grid. A transient non-persisted handoff store routes production actions to Image Studio. Electron adds 5 IPC channels (export, import, reveal, meta, thumb) with strict path-containment validation. See [`MEDIA_STUDIO.md`](MEDIA_STUDIO.md) |
 
 ## Source Organization (Post-Merge)
 

@@ -143,6 +143,37 @@ describe('mediaStore', () => {
     expect(items.map((i) => i.id)).toEqual(['new', 'old'])
   })
 
+  it('upsertDerivative() persists the child and updates the parent once', async () => {
+    const parent = makeItem({ id: 'parent', childrenIds: [] })
+    mockService.__seed(parent)
+    await useMediaStore.getState().refresh()
+
+    const child = makeItem({ id: 'child', operation: 'regenerate', parentId: 'parent' })
+    await useMediaStore.getState().upsertDerivative(child, 'parent')
+
+    expect(useMediaStore.getState().byId('child')).toMatchObject({
+      operation: 'regenerate',
+      parentId: 'parent',
+    })
+    expect(useMediaStore.getState().byId('parent')?.childrenIds).toEqual(['child'])
+
+    await useMediaStore.getState().upsertDerivative(child, 'parent')
+    expect(useMediaStore.getState().byId('parent')?.childrenIds).toEqual(['child'])
+  })
+
+  it('upsertDerivative() removes the child when the parent patch fails', async () => {
+    const parent = makeItem({ id: 'parent' })
+    mockService.__seed(parent)
+    await useMediaStore.getState().refresh()
+    vi.mocked(StorageService.patchMedia).mockRejectedValueOnce(new Error('write failed'))
+
+    await expect(
+      useMediaStore.getState().upsertDerivative(makeItem({ id: 'child' }), 'parent'),
+    ).rejects.toThrow('write failed')
+    expect(mockService.__all().some((item) => item.id === 'child')).toBe(false)
+    expect(useMediaStore.getState().byId('child')).toBeUndefined()
+  })
+
   // VERIFY-028: Media Studio hydrates incrementally instead of loading the full encrypted store.
   it('refreshes one page and loadMore appends the next timestamp-ordered page', async () => {
     for (let index = 0; index < 65; index += 1) {

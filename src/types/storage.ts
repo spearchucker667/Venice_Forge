@@ -49,6 +49,7 @@ export interface GalleryImage {
   downloadUrl?: string;
   duration?: string;
   resolution?: string;
+  quality?: string;
   upscaleFactor?: number;
   audio?: boolean;
   /** Seed value used for generation. Null means random/no fixed seed. */

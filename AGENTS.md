@@ -112,7 +112,7 @@ npm run clean            # Remove dist/ dist-electron/ release/
 - Legacy flat `chats` auto-migrate on first load — **additive only, never destructive**
 - Conversation IDs must pass `VALID_ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/` in main-process storage
 
-**Theme system:** Token-based CSS variables + Tailwind v4 `@theme`. Built-in themes in `src/theme/themes.ts` and configured under `config/themes/`; user themes in ThemeMaker UI supporting custom YAML import/export; bootstrap cache in `localStorage` to prevent FOUC. Forge Dracula has a 9-case WCAG AA regression guard in `src/theme/contrast.test.ts` (textPrimary/textSecondary/textMuted on background, accentForeground on accent, and three-differentiation checks for `surfaceElevated`/`border`/`textMuted`/`surface`/`background`).
+**Theme system:** Token-based CSS variables + Tailwind v4 `@theme`. Built-in themes in `src/theme/themes.ts` and configured under `config/themes/`; user themes in ThemeMaker UI supporting full semantic YAML import/export; bootstrap cache in `localStorage` prevents FOUC. The 29-role canonical semantic contract is normalized from legacy themes and locked by `VERIFY-041`, including WCAG AA foreground/background pairs for Forge Dracula.
 
 ---
 
@@ -173,6 +173,8 @@ test's comment header.
 | `VERIFY-037` | OS-secure configured state enables Venice UI actions without copying the persisted key into renderer memory. | `src/stores/auth-store.test.ts` |
 | `VERIFY-038` | Web-mode Jina keys remain ephemeral and never enter `localStorage`, `sessionStorage`, or IndexedDB. | `src/services/desktopBridge.test.ts` |
 | `VERIFY-039` | Jina proxy responses are capped at 2 MiB in both Express and Electron IPC, with stream cancellation and normalized 413 failures. | `server.test.ts`, `electron/ipc/handlers.test.ts` |
+| `VERIFY-040` | Production-safe Media Studio handoff and image sizing — queued regenerate/remix drafts apply before generation, aspect-resolution models emit only `aspect_ratio` + `resolution`, derivatives preserve parent/child lineage, and image-tools handoffs persist the correct operation. | `src/components/image/image-view.test.tsx`, `src/components/gallery/gallery-view.test.tsx`, `src/components/image/image-tools.test.tsx`, `src/stores/media-store.test.ts` |
+| `VERIFY-041` | Complete semantic theme contract — all built-ins expose 29 canonical roles, Forge Dracula foreground/background pairs meet WCAG AA, runtime CSS variables are complete, and ThemeMaker YAML round-trips snake_case semantic tokens while accepting legacy palettes. | `src/theme/contrast.test.ts`, `src/theme/applyTheme.test.ts`, `src/components/ThemeMaker.test.ts`, `src/config/configSchema.test.ts` |
 
 ---
 
@@ -231,6 +233,7 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `src/constants/venice.ts` | `FALLBACK_MODELS`, `TABS`, `modelSupportsVision()`, `DB_VERSION`, `STORE_NAMES` |
 | `src/components/{chat,image,audio,music,video,embeddings,workflows,playground,layout,ui}` | Renderer UI: tab views, sidebar, header, dialog, shared primitives |
 | `src/components/gallery/gallery-view.tsx` | Media Studio orchestrator backed by the local `images` store; search, filters, batch actions, detail, lineage, export, and delete |
+| `src/stores/image-workspace-store.ts` | Transient, non-persisted production handoff queue between Media Studio and Image Studio generation/tools surfaces |
 | `electron/preload.ts` | contextBridge API surface (only place to expose IPC to renderer) |
 | `electron/main.ts` | BrowserWindow + CSP + navigation guards; `requestSingleInstanceLock` |
 | `electron/ipc/handlers.ts` | IPC channel handlers (incl. `venice:request`, `venice:streamChat`, `chat:*`, `app:*`) |

@@ -5,7 +5,8 @@
 /* High contrast mode: stronger borders, reduced transparency, no blur */
 @media (prefers-contrast: more) {
   :root {
-    --border: color-mix(in srgb, var(--text-primary) 50%, var(--bg));
+    --border: color-mix(in srgb, var(--foreground) 50%, var(--bg));
+    --border-strong: color-mix(in srgb, var(--foreground) 75%, var(--bg));
   }
   .btn, input, select, textarea {
     border-width: 2px !important;

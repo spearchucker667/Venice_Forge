@@ -9,6 +9,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 ## [Unreleased]
 
 ### Added
+- **Complete semantic theme contract (VERIFY-041):** Expanded themes to 29 canonical roles covering muted/elevated surfaces, strong borders, status foregrounds, inputs, placeholders, disabled controls, primary/secondary buttons, links, focus, and selection. Added legacy-theme normalization, full snake_case ThemeMaker YAML round-trip, semantic bootstrap variables, shared-control adoption, and Forge Dracula WCAG AA regression coverage.
+- **Production Media Studio handoff and derivative lineage (VERIFY-040):** Added a transient non-persisted Image Workspace store for Use settings, Regenerate, same-seed regeneration, Remix & Generate, Edit, and Upscale. Image Studio now consumes queued drafts after state commit, uses model capability metadata for aspect-resolution, quality, and variants, and persists derivatives through a rollback-aware `upsertDerivative()` path that updates both `parentId` and `childrenIds`.
 - **Exhaustive review TODO completion (raw + tree pages):** Full scan of every file via raw.githubusercontent.com URLs + GitHub tree pages + local cross-check against POST_VENICE_JINA_AUDIT_2026_06_06.md, summary_of_work.md, TODO.md, and AGENTS.md VERIFY matrix. Produced categorized TODO (Bugs P1/P2/P3 with file:line + fixed vs open, plus Enhancements). Began and completed the most critical items in one session:
   - P1: CI/release `npm audit` gate aligned to `--level=moderate` (no continue-on-error) in ci.yml + release.yml (per AGENTS "is a release gate").
   - P1: Linux packaging expanded (arm64 AppImage + deb + rpm in electron-builder.config.cjs); secureStore plaintext fallback hardened with explicit security warnings + Linux-only docs.

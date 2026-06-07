@@ -17,12 +17,14 @@ vi.mock('../../services/storageService', () => ({
 import StorageService from '../../services/storageService'
 import { useMediaStore } from '../../stores/media-store'
 import { GalleryView } from './gallery-view'
+import { useImageWorkspaceStore } from '../../stores/image-workspace-store'
 
 const sampleRecord = {
   id: 'image-1',
   image: 'data:image/png;base64,abc',
   prompt: 'Copper city at dusk',
   model: 'flux-dev',
+  quality: 'high',
   timestamp: 1,
   mediaType: 'image',
 }
@@ -30,6 +32,7 @@ const sampleRecord = {
 describe('MediaStudioView (GalleryView)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    useImageWorkspaceStore.getState().reset()
     useMediaStore.setState({
       items: [], loading: false, loadingMore: false, loaded: false,
       totalCount: 0, hasMore: false, nextOffset: 0, lastError: null,
@@ -90,6 +93,89 @@ describe('MediaStudioView (GalleryView)', () => {
       meta.env.DEV = original.DEV
       meta.env.MODE = original.MODE
     }
+  })
+
+  it('queues a production-safe regenerate handoff with source lineage', async () => {
+    render(<GalleryView />)
+    await screen.findByText('Copper city at dusk')
+    fireEvent.doubleClick(screen.getByRole('button', { name: /open image: copper city at dusk/i }))
+    fireEvent.click(await screen.findByTestId('inspector-regenerate'))
+
+    expect(useImageWorkspaceStore.getState().pending).toMatchObject({
+      target: 'generate',
+      autoGenerate: true,
+      parentId: 'image-1',
+      operation: 'regenerate',
+      draft: { prompt: 'Copper city at dusk', seed: null },
+    })
+  })
+
+  it('queues Use settings without auto-generation or lineage', async () => {
+    render(<GalleryView />)
+    await screen.findByText('Copper city at dusk')
+    fireEvent.doubleClick(screen.getByRole('button', { name: /open image: copper city at dusk/i }))
+    fireEvent.click(await screen.findByTestId('inspector-use-settings'))
+
+    expect(useImageWorkspaceStore.getState().pending).toMatchObject({
+      target: 'generate',
+      autoGenerate: false,
+      parentId: null,
+      operation: 'generate',
+      draft: { prompt: 'Copper city at dusk', quality: 'high' },
+    })
+  })
+
+  it('preserves an explicit seed for same-seed regeneration', async () => {
+    vi.mocked(StorageService.getItemsPageWithMeta).mockResolvedValue({
+      items: [{ ...sampleRecord, seed: -42 }],
+      decryptFailures: 0, total: 1, offset: 0, limit: 60, hasMore: false,
+    })
+    render(<GalleryView />)
+    await screen.findByText('Copper city at dusk')
+    fireEvent.doubleClick(screen.getByRole('button', { name: /open image: copper city at dusk/i }))
+    fireEvent.click(await screen.findByTestId('inspector-regenerate-same-seed'))
+
+    expect(useImageWorkspaceStore.getState().pending).toMatchObject({
+      target: 'generate',
+      autoGenerate: true,
+      parentId: 'image-1',
+      operation: 'regenerate',
+      draft: { seed: -42 },
+    })
+  })
+
+  it('queues the selected media item for image-tools upscale', async () => {
+    vi.mocked(StorageService.getItemsPageWithMeta).mockResolvedValue({
+      items: [{ ...sampleRecord, model: 'esrgan-upscaler' }],
+      decryptFailures: 0, total: 1, offset: 0, limit: 60, hasMore: false,
+    })
+    render(<GalleryView />)
+    await screen.findByText('Copper city at dusk')
+    fireEvent.doubleClick(screen.getByRole('button', { name: /open image: copper city at dusk/i }))
+    const upscale = await screen.findByTestId('inspector-upscale')
+    fireEvent.click(upscale)
+
+    expect(useImageWorkspaceStore.getState().pending).toMatchObject({
+      target: 'tools',
+      tool: 'upscale',
+      parentId: 'image-1',
+      image: 'data:image/png;base64,abc',
+    })
+  })
+
+  it('queues the selected media item for image-tools edit', async () => {
+    render(<GalleryView />)
+    await screen.findByText('Copper city at dusk')
+    fireEvent.doubleClick(screen.getByRole('button', { name: /open image: copper city at dusk/i }))
+    fireEvent.click(await screen.findByTestId('inspector-edit'))
+
+    expect(useImageWorkspaceStore.getState().pending).toMatchObject({
+      target: 'tools',
+      tool: 'edit',
+      parentId: 'image-1',
+      image: 'data:image/png;base64,abc',
+      prompt: 'Copper city at dusk',
+    })
   })
 
   // VERIFY-035 regression guard: dangling parent/child references must

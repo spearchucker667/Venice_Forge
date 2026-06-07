@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useImageEdit, useImageUpscale, useBackgroundRemove } from '../../hooks/use-image-tools'
 import { useBlobUrl } from '../../hooks/use-blob-url'
@@ -9,6 +9,7 @@ import { toast } from '../../stores/toast-store'
 import { useMediaStore } from '../../stores/media-store'
 import { blobToDataUrl } from '../../utils/image'
 import type { MediaOperation } from '../../types/media'
+import { useImageWorkspaceStore } from '../../stores/image-workspace-store'
 
 type Tool = 'edit' | 'upscale' | 'remove-bg'
 
@@ -30,6 +31,8 @@ export function ImageTools() {
   const [tool, setTool] = useState<Tool>('edit')
   const [imageData, setImageData] = useState<string | null>(null)
   const [imageName, setImageName] = useState('')
+  const [parentId, setParentId] = useState<string | null>(null)
+  const pendingHandoff = useImageWorkspaceStore((state) => state.pending)
   const [resultUrl, setResultBlob, resetResult] = useBlobUrl()
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -52,11 +55,23 @@ export function ImageTools() {
   const lastEditModelRef = useRef<string>('qwen-edit')
   const lastPromptRef = useRef<string>('')
 
+  useEffect(() => {
+    if (!pendingHandoff || pendingHandoff.target !== 'tools') return
+    setTool(pendingHandoff.tool)
+    setImageData(pendingHandoff.image)
+    setImageName(pendingHandoff.filename)
+    setParentId(pendingHandoff.parentId)
+    if (pendingHandoff.tool === 'edit') setEditPrompt(pendingHandoff.prompt)
+    resetResult()
+    useImageWorkspaceStore.getState().consume(pendingHandoff.id)
+  }, [pendingHandoff, resetResult])
+
   const handleFileSelect = (file: File) => {
     const reader = new FileReader()
     reader.onload = () => {
       setImageData(reader.result as string)
       setImageName(file.name)
+      setParentId(null)
       resetResult()
     }
     reader.readAsDataURL(file)
@@ -107,14 +122,18 @@ export function ImageTools() {
         timestamp: Date.now(),
         mediaType: 'image' as const,
         operation: op,
-        parentId: null,
+        parentId,
         childrenIds: [] as string[],
         tags: [] as string[],
         note: '',
         favorite: false,
         upscaleFactor: lastToolRef.current === 'upscale' ? lastScaleRef.current : undefined,
       };
-      void useMediaStore.getState().upsert(mediaItem)
+      if (parentId) {
+        await useMediaStore.getState().upsertDerivative(mediaItem, parentId)
+      } else {
+        await useMediaStore.getState().upsert(mediaItem)
+      }
       toast.success('Saved to Media Studio')
     } catch (err) {
       toast.error('Save failed', err instanceof Error ? err.message : String(err))
@@ -154,7 +173,7 @@ export function ImageTools() {
             <div className="relative group">
               <img src={imageData} alt="Source" className="w-full rounded-lg border border-white/[0.06]" />
               <button
-                onClick={() => { setImageData(null); setImageName(''); resetResult() }}
+                onClick={() => { setImageData(null); setImageName(''); setParentId(null); resetResult() }}
                 aria-label="Remove source image"
                 type="button"
                 className="absolute top-1.5 right-1.5 p-1 bg-black/60 rounded-md text-white/60 hover:text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"

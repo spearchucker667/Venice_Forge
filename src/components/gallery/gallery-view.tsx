@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMediaStore, filterMedia, searchMedia, sortMedia, type MediaFilter, type MediaSort } from "../../stores/media-store";
 import { useSettingsStore } from "../../stores/settings-store";
+import { useImageWorkspaceStore } from "../../stores/image-workspace-store";
 import { toast } from "../../stores/toast-store";
 import { MediaToolbar } from "./media-toolbar";
 import { MediaCard } from "./media-card";
@@ -242,30 +243,15 @@ export function MediaStudioView() {
     setSelectedIds(new Set());
   }, []);
 
-  // ---- Gallery handoff: image-studio bridge ----
-  // The Media Studio hands off "Use settings", "Regenerate", and
-  // "Apply remix" actions to the Image Studio by populating state
-  // through a DEV-only window hook (`__veniceImageStudio`) that
-  // `image-view.tsx` exposes. The bridge is also used to trigger
-  // generation after the state is populated.
+  // ---- Gallery handoff: image workspace ----
 
   /** Swaps the active tab to Image Studio, then applies a draft
    *  built from a media item. */
-  const bridgeToImageStudio = useCallback(
+  const handoffToImageStudio = useCallback(
     (item: MediaItem, opts?: { promptOverride?: string; autoGenerate?: boolean; sameSeed?: boolean }) => {
-      if (typeof window === "undefined") return;
-      const bridge = (window as unknown as { __veniceImageStudio?: { applyDraft: (d: Record<string, unknown>) => void; generate: () => void; getPrompt: () => string } }).__veniceImageStudio;
-      // Switch the active tab so the user sees the studio immediately.
-      try {
-        useSettingsStore.getState().setActiveTab("image");
-      } catch {
-        // Settings store may not be importable in every test env; ignore.
-      }
-      // Wait a microtask so the Image Studio mounts before we push the draft.
-      Promise.resolve().then(() => {
-        const live = (window as unknown as { __veniceImageStudio?: { applyDraft: (d: Record<string, unknown>) => void; generate: () => void; getPrompt: () => string } }).__veniceImageStudio;
-        if (!live) return;
-        const draft: Record<string, unknown> = {
+      useImageWorkspaceStore.getState().enqueueGenerate({
+        draft: {
+          model: item.model,
           prompt: opts?.promptOverride ?? item.prompt,
           negativePrompt: item.negative,
           style: item.style,
@@ -275,62 +261,69 @@ export function MediaStudioView() {
           height: typeof item.height === "number" ? item.height : undefined,
           aspectRatio: item.aspectRatio,
           resolution: item.resolution,
-        };
-        if (opts?.sameSeed && typeof item.seed === "number") {
-          draft.seed = item.seed;
-        } else {
-          draft.seed = null;
-        }
-        live.applyDraft(draft);
-        if (opts?.autoGenerate) {
-          // Small extra delay to let the draft propagate through React's
-          // commit before mutation.mutate() reads the new state.
-          setTimeout(() => live.generate(), 50);
-        }
+          quality: item.quality,
+          seed: opts?.sameSeed && typeof item.seed === "number" ? item.seed : null,
+        },
+        autoGenerate: opts?.autoGenerate === true,
+        parentId: opts?.autoGenerate ? item.id : null,
+        operation: opts?.autoGenerate ? "regenerate" : "generate",
       });
-      return bridge;
+      useSettingsStore.getState().setActiveTab("image");
     },
     [],
   );
 
   const handleUseSettings = useCallback(
     (item: MediaItem) => {
-      bridgeToImageStudio(item, { autoGenerate: false });
+      handoffToImageStudio(item, { autoGenerate: false });
       toast.success("Loaded settings into Image Studio");
     },
-    [bridgeToImageStudio],
+    [handoffToImageStudio],
   );
 
   const handleRegenerate = useCallback(
-    (item: MediaItem, opts?: { sameSeed?: boolean }) => {
-      bridgeToImageStudio(item, { autoGenerate: true, sameSeed: opts?.sameSeed });
+    (item: MediaItem, opts?: { sameSeed?: boolean; promptOverride?: string }) => {
+      handoffToImageStudio(item, {
+        autoGenerate: true,
+        sameSeed: opts?.sameSeed,
+        promptOverride: opts?.promptOverride,
+      });
     },
-    [bridgeToImageStudio],
+    [handoffToImageStudio],
   );
 
   const handleUpscale = useCallback(
-    (_item: MediaItem) => {
-      // Route to image-tools by linking the gallery item as a parent of
-      // the upscaled output. The image-tools panel reads the selected
-      // image and the resulting media item is persisted with
-      // operation: "upscale" and parentId: item.id.
-      try {
-        useSettingsStore.getState().setActiveTab("image");
-      } catch {
-        // ignore
-      }
+    (item: MediaItem) => {
+      useImageWorkspaceStore.getState().enqueueTools({
+        tool: "upscale",
+        parentId: item.id,
+        image: item.image,
+        prompt: item.prompt,
+        filename: `${item.id}.png`,
+      });
+      useSettingsStore.getState().setActiveTab("image");
       toast.success("Opening image tools for upscale");
     },
     [],
   );
 
+  const handleEdit = useCallback((item: MediaItem) => {
+    useImageWorkspaceStore.getState().enqueueTools({
+      tool: "edit",
+      parentId: item.id,
+      image: item.image,
+      prompt: item.prompt,
+      filename: `${item.id}.png`,
+    });
+    useSettingsStore.getState().setActiveTab("image");
+    toast.success("Opening image tools for editing");
+  }, []);
+
   const handleApplyRemix = useCallback(
-    (_item: MediaItem, remixedPrompt: string) => {
-      // Populate the studio with the remixed prompt; the caller decides
-      // whether to chain a generate. Here we just hand off.
-      bridgeToImageStudio(_item, { promptOverride: remixedPrompt, autoGenerate: false });
+    (item: MediaItem, remixedPrompt: string) => {
+      handoffToImageStudio(item, { promptOverride: remixedPrompt, autoGenerate: false });
     },
-    [bridgeToImageStudio],
+    [handoffToImageStudio],
   );
 
   // Expose upsert on the window in dev so other components (image-view,
@@ -480,6 +473,7 @@ export function MediaStudioView() {
               onUseSettings={handleUseSettings}
               onRegenerate={handleRegenerate}
               onUpscale={handleUpscale}
+              onOpenImageTools={handleEdit}
               onApplyRemix={handleApplyRemix}
             />
           </div>

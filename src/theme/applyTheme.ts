@@ -1,25 +1,44 @@
-import type { Theme } from './themeTypes';
+import { completeThemeTokens, type Theme } from './themeTypes';
 import { BUILTIN_THEMES, DEFAULT_THEME } from './themes';
 
 export function applyTheme(theme: Theme): void {
   const root = document.documentElement;
-  const t = theme.tokens;
+  const t = completeThemeTokens(theme.mode, theme.tokens);
   const map: Record<string, string> = {
     '--bg': t.background,
     '--surface': t.surface,
     '--surface-elevated': t.surfaceElevated,
+    '--surface-muted': t.surfaceMuted,
     '--border': t.border,
-    '--text-primary': t.textPrimary,
-    '--text-secondary': t.textSecondary,
-    '--text-muted': t.textMuted,
+    '--border-strong': t.borderStrong,
+    '--foreground': t.foreground,
+    '--foreground-muted': t.foregroundMuted,
+    '--foreground-subtle': t.foregroundSubtle,
+    '--text-primary': t.foreground,
+    '--text-secondary': t.foregroundMuted,
+    '--text-muted': t.foregroundSubtle,
     '--accent': t.accent,
     '--accent-hover': t.accentHover,
     '--accent-fg': t.accentForeground,
     '--success': t.success,
+    '--success-fg': t.successForeground,
     '--warning': t.warning,
+    '--warning-fg': t.warningForeground,
     '--danger': t.danger,
+    '--danger-fg': t.dangerForeground,
     '--info': t.info,
+    '--input-bg': t.inputBackground,
+    '--input-fg': t.inputForeground,
+    '--placeholder': t.placeholder,
+    '--disabled-fg': t.disabledForeground,
+    '--button-primary-bg': t.buttonPrimaryBackground,
+    '--button-primary-fg': t.buttonPrimaryForeground,
+    '--button-secondary-bg': t.buttonSecondaryBackground,
+    '--button-secondary-fg': t.buttonSecondaryForeground,
+    '--link': t.link,
     '--focus-ring': t.focusRing,
+    '--selection-bg': t.selectionBackground,
+    '--selection-fg': t.selectionForeground,
     '--overlay': t.overlay,
     '--glow': t.glow,
   };
