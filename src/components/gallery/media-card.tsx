@@ -146,6 +146,7 @@ function MediaCardImpl({
           <Badge tone={OP_TONE[item.operation] ?? "slate"}>{OP_LABEL[item.operation] ?? "Item"}</Badge>
           {isVideo ? <Badge tone="rose">Video</Badge> : <Badge tone="slate">Image</Badge>}
           {dims && <Badge tone="slate">{dims}</Badge>}
+          {typeof item.seed === "number" && <Badge tone="amber">seed: {item.seed}</Badge>}
         </div>
         <p className="line-clamp-2 text-[12.5px] text-text-primary" title={item.prompt}>
           {item.prompt || "Untitled"}

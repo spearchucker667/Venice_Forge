@@ -90,15 +90,27 @@ user roadmap notes, not the canonical ledger.
 - **Date:** 2026-06-06
 - **Agent:** opencode (deepseek-v4-flash)
 - **Branch:** main (uncommitted)
-- **Primary objective:** Fix Windows CI media service test failure in `electron/services/mediaService.test.ts` on `windows-latest` (release workflow `build-windows` job).
-- **Root cause:** Three cross-platform path issues:
-  1. `isWithin()` in `mediaService.ts` used case-sensitive `path.relative()` on Windows, causing drive-letter or 8.3 short-name case mismatches between `fs.realpath`-resolved file paths and `path.resolve`-resolved allowlist roots → files inside `Downloads`/`Documents`/`Desktop`/`Pictures` were rejected.
-  2. Test used `/etc/passwd` (POSIX-only) — on Windows, `fs.realpath` fails with "File not found." before the allowlist check runs, so the error message doesn't mention allowed directories.
-  3. Test used hardcoded `/tmp/parent` paths in `isWithin` unit tests.
-- **Changes:**
-  - `electron/services/mediaService.ts:46-58`: `isWithin()` now normalizes path case via `toLowerCase()` on `process.platform === "win32"` before comparison.
-  - `electron/services/mediaService.test.ts`: Replaced module-level `path.join(os.tmpdir(), "venice-forge-media-*")` with `fs.mkdtempSync`-based temp root; replaced `/etc/passwd` fixture with a file in a platform-agnostic `Outside/` temp directory; replaced `/etc/hosts` fixture similarly; replaced hardcoded `/tmp/parent` test paths with `path.join(TEMP_ROOT, ...)`. Added `afterAll` cleanup. Added Windows case-insensitivity test case.
-- **Validation:** lint:eslint 0 warnings; typecheck 0 errors; 1242 tests passed / 1 skipped; build succeeded.
+- **Primary objective:** Resolve five Media Studio / Image View / Character Photo issues — model-aware dimensions, seed support, gallery metadata + actions, internal prompt-enhancer LLM, and character photo resolution.
+- **Changes (across 13 files):**
+  - **Foundations** (types + config + migration + payloadBuilders + configService):
+    - `src/types/storage.ts` — `GalleryImage` gained `seed`, `source`, `enhancedPrompt`, `originalPrompt`, `remixPrompt`.
+    - `src/types/media.ts` — `MediaItemPatch` extended with seed/enhancedPrompt/originalPrompt/remixPrompt/source.
+    - `src/services/mediaMigration.ts` — tolerant migration of new fields.
+    - `src/config/configSchema.ts` — `YamlInternalPromptEnhancer` (enabled, model, temperature, maxTokens, systemPrompt, remixSystemPrompt) added to YamlConfig, SanitizedConfig, validateConfig, emptyConfig, sanitizeConfig.
+    - `.config/config.example.yaml` — `internal_prompt_enhancer:` section.
+    - `src/utils/payloadBuilders.ts` — `ImageSeedMode`, `ImageSeedState`, `serializeSeed()`, `VENICE_SEED_MIN/MAX`; `buildImagePayload()` accepts optional seedState.
+    - `electron/services/configService.ts` — `internal_prompt_enhancer` field threaded into `mergeSanitized()` and `exportConfigTemplate()`.
+  - **New utilities:**
+    - `src/utils/characterImageResolver.ts` — `resolveCharacterImageUrl()` reads all known image fields (`photoUrl`/`photo_url`/`avatar_url`/`image`/`image_url`/nested {url}); normalizes relative URLs; rejects invalid. `avatarFallback()` returns initials.
+    - `src/config/image-model-capabilities.ts` — registry covering flux-dev, z-image-turbo, hidream, sdxl, nano-banana, venice/* with pattern-matching fallback. `getImageModelCapabilities()`, `buildDimensionOptions()`.
+    - `src/services/prompt-enhancer-service.ts` — `enhancePrompt()` and `remixPrompt()` calling internal LLM (default `venice-uncensored 1.2`), strips Markdown fences, token-efficient prompts.
+  - **Issue 1 — Character photos:** `characterService.ts` `normalizeCharacter()` now uses `resolveCharacterImageUrl(raw)`. `CharactersView.tsx` Avatar component uses `resolveCharacterImageUrl()` + `avatarFallback()`.
+  - **Issue 2+3+4+5 — Image view:** `image-view.tsx` rewritten with model-aware dimensions (13 width×height pairs), seed UI (checkbox + number + Randomize/Clear), "Enhance prompt" button with review flow, rich metadata (seed, source, enhancedPrompt/originalPrompt), centralized request builder using payloadBuilders.
+  - **Issue 4 — Gallery UI:**
+    - `media-card.tsx` — added seed badge when `item.seed` is a number.
+    - `media-detail-dialog.tsx` — added metadata row (seed, source, style, steps, CFG) to the prompt footer.
+    - `media-inspector.tsx` — added Parameters section (seed/source/style/steps/CFG/aspect), enhanced/original/remix prompt readouts, Actions section (Copy prompt, Copy metadata JSON, Enhance, Remix) with in-place review modal that calls the prompt-enhancer-service and patches via `onPatch`.
+- **Validation:** lint:eslint 0 warnings; typecheck 0 errors; 1242 tests passed / 1 skipped; build succeeded; safety guard 3/3 boundaries; markdown-links 42 files clean.
 - **Open TODO status:** None.
 
 ---
@@ -241,6 +253,65 @@ user roadmap notes, not the canonical ledger.
 ---
 
 ## Session History
+
+### 2026-06-06 — Media Studio / Image View / Character Photo fixes (5 issues)
+
+**Context:**
+- Resolved five Media Studio, Image View, and Character Photo issues: model-aware image dimensions, image seed support, gallery metadata + actions (regenerate/enhance/remix/copy), internal prompt-enhancer LLM service, and character photo URL resolution.
+
+**Files Changed (13 files):**
+
+Foundations:
+- `src/types/storage.ts` — `GalleryImage` gained `seed`, `source`, `enhancedPrompt`, `originalPrompt`, `remixPrompt`.
+- `src/types/media.ts` — `MediaItemPatch` extended with seed/enhancedPrompt/originalPrompt/remixPrompt/source.
+- `src/services/mediaMigration.ts` — tolerant migration of new fields.
+- `src/config/configSchema.ts` — added `YamlInternalPromptEnhancer` (enabled, model, temperature, maxTokens, systemPrompt, remixSystemPrompt) and threaded through validateConfig, emptyConfig, sanitizeConfig.
+- `.config/config.example.yaml` — `internal_prompt_enhancer:` section.
+- `src/utils/payloadBuilders.ts` — `ImageSeedMode` (off/fixed/null), `ImageSeedState`, `serializeSeed()`, VENICE_SEED_MIN/MAX; `buildImagePayload()` accepts optional seedState.
+- `electron/services/configService.ts` — `internal_prompt_enhancer` field threaded into `mergeSanitized()` and `exportConfigTemplate()`.
+
+New utilities:
+- `src/utils/characterImageResolver.ts` — `resolveCharacterImageUrl()` reads all known image fields; normalizes relative URLs; rejects invalid. `avatarFallback()` returns initials.
+- `src/config/image-model-capabilities.ts` — registry covering flux-dev, z-image-turbo, hidream, sdxl, nano-banana, venice/* with pattern-matching fallback. `getImageModelCapabilities()`, `buildDimensionOptions()`.
+- `src/services/prompt-enhancer-service.ts` — `enhancePrompt()` and `remixPrompt()` calling internal LLM (default `venice-uncensored 1.2`); strips Markdown fences; token-efficient.
+
+Issue 1 — Character Photos:
+- `src/services/characterService.ts` — `normalizeCharacter()` uses `resolveCharacterImageUrl(raw)`.
+- `src/components/CharactersView.tsx` — Avatar uses `resolveCharacterImageUrl()` + `avatarFallback()`.
+
+Issue 2+3+4+5 — Image View:
+- `src/components/image/image-view.tsx` — model-aware dimensions (13 width×height pairs), seed UI (checkbox + number + Randomize/Clear), Enhance prompt button with review flow, rich metadata (seed, source, enhancedPrompt/originalPrompt), centralized request builder using payloadBuilders.
+
+Issue 4 — Gallery UI:
+- `src/components/gallery/media-card.tsx` — seed badge when `item.seed` is a number.
+- `src/components/gallery/media-detail-dialog.tsx` — metadata row (seed, source, style, steps, CFG) in prompt footer.
+- `src/components/gallery/media-inspector.tsx` — Parameters section (seed/source/style/steps/CFG/aspect), enhanced/original/remix prompt readouts, Actions section (Copy prompt, Copy metadata JSON, Enhance, Remix) with in-place review modal that calls prompt-enhancer-service and patches via `onPatch`.
+
+**Behavior Changed:**
+- Image View: model-aware dimension options replace the 4 fixed square sizes; seed control is now first-class UI.
+- Gallery: per-item metadata is visible; Copy prompt / Copy metadata / Enhance / Remix actions are accessible from the inspector with a review-before-apply flow.
+- Character Photos: hosted-character avatars load correctly even when the API returns `avatar_url`, `image`, or relative URLs (previously only `photoUrl` was read).
+
+**Validation Run:**
+```bash
+npm run typecheck
+npm run lint:eslint
+npm test
+npm run verify:safety-guard
+npm run build
+npm run verify:markdown-links
+```
+
+**Validation Result:**
+- PASS: typecheck, lint:eslint (0 warnings), 125 test files / 1242 tests passed / 1 skipped (Electron smoke), safety guard 3/3 boundaries, build succeeds, markdown-links 42 files clean.
+- FAIL: None.
+- BLOCKED: None.
+
+**Open Follow-ups:**
+* [ ] Optional: add a "Regenerate" button to the inspector that opens the Image view pre-filled with the item's prompt and seed. Currently the Actions row supports Copy/Enhance/Remix but not in-app regeneration.
+* [ ] Optional: add tests for the new prompt-enhancer-service.
+
+---
 
 ### 2026-06-06 — Windows CI media service path fix
 
@@ -998,6 +1069,15 @@ Result:
 > `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` (see the *Scope
 > Correction* section).
 
+### Completed this session (2026-06-06 — Media Studio / Image View / Character Photo fixes (5 issues))
+
+- **Issue 1 — Character profile photos:** `characterService.normalizeCharacter()` now resolves URLs through `resolveCharacterImageUrl()` (reads `photoUrl`/`photo_url`/`avatar_url`/`image`/`image_url`/nested `{url}`; normalizes relative URLs; rejects invalid). `CharactersView` avatar falls back to `avatarFallback()` initials.
+- **Issue 2 — Model-aware image dimensions:** New `image-model-capabilities.ts` registry (flux-dev, z-image-turbo, hidream, sdxl, nano-banana, venice/*) with pattern-matching fallback. `image-view` exposes 13 width×height pairs (and aspect ratios where supported) instead of the previous 4 fixed square sizes; dimension state resets on model switch.
+- **Issue 3 — Seed support:** `GalleryImage.seed` (number | null), `ImageSeedMode` (off | fixed | null), `ImageSeedState`, `serializeSeed()`, `VENICE_SEED_MIN/MAX` constants. `image-view` exposes a seed checkbox + number input + Randomize/Clear. `buildImagePayload()` accepts an optional `seedState`; only sends the field in `fixed`/`null` modes.
+- **Issue 4 — Gallery metadata + actions:** `GalleryImage` gains `seed`, `source`, `enhancedPrompt`, `originalPrompt`, `remixPrompt`; `MediaItemPatch` exposes them. `media-card` shows a seed badge. `media-detail-dialog` shows the full parameter row. `media-inspector` shows the Parameters section, readouts for `enhancedPrompt` / `originalPrompt` / `remixPrompt`, and an Actions section with Copy prompt, Copy metadata (JSON), Enhance, and Remix. The Enhance / Remix buttons call the new `prompt-enhancer-service` and present a review modal that patches via `onPatch` only after explicit user approval.
+- **Issue 5 — Internal prompt-enhancer LLM:** New `prompt-enhancer-service.ts` exposing `enhancePrompt()` and `remixPrompt()` (default model `venice-uncensored 1.2`, configured via `internal_prompt_enhancer` in `config.yaml`). The config section is threaded through `validateConfig`, `emptyConfig`, `sanitizeConfig`, and the two `YamlConfig` reconstruction sites in `configService.ts`. Output is stripped of Markdown fences and explanatory wrappers.
+- **Migration:** `mediaMigration.ts` is updated to populate the new fields tolerantly (typed coercion) so existing MediaItem records read in from IDB surface the new metadata without re-import.
+
 ### Completed this session (2026-06-06 — packaged blank-screen repair)
 
 - **Packaged renderer startup restored (VERIFY-036).** Removed the temp-file HTML relocation and mismatched per-layer nonce generation. Production now loads `dist/index.html` beside its relative assets under `script-src 'self'`; inline scripts and eval remain disabled. No open follow-up remains for this defect.
@@ -1149,16 +1229,18 @@ Remaining true backlog (enhancement-tier or large scope) moved to "Future / user
 - Major new features (recursive research, full memory search modal overhaul, new studios bulk parity, advanced theme maker, etc.).
 - Additional P3 polish and coverage pushes.
 - Any follow-up after user review of this session's changes.
+- **Inspector "Regenerate" navigation hookup** — the inspector now exposes Copy/Enhance/Remix; a future enhancement can add a Regenerate button that opens the Image view pre-filled with the inspected item's prompt and seed, calling back into `gallery-view` for cross-tab navigation.
+- **Unit tests for `prompt-enhancer-service`** — current coverage is exercised indirectly through `image-view` UI flows; explicit unit tests would lock the markdown-fence stripping, default-model selection, and the remix vs. enhance prompt templates.
 
 ---
 
 ## Validation Matrix
 
 > Latest known status of core commands as of the 2026-06-06
-> Windows CI media service path fix session. Update this table only for commands
-> actually run in the current session; "Not yet recorded" is the
-> honest default for a fresh session that hasn't run a given
-> command.
+> Media Studio / Image View / Character Photo fixes (5 issues) session.
+> Update this table only for commands actually run in the current
+> session; "Not yet recorded" is the honest default for a fresh
+> session that hasn't run a given command.
 
 | Command                                      | Latest known result | Date       | Notes                              |
 | -------------------------------------------- | ------------------: | ---------- | ---------------------------------- |
@@ -1205,6 +1287,12 @@ Remaining true backlog (enhancement-tier or large scope) moved to "Future / user
 | `npm run smoke:electron`                     | SKIPPED | 2026-06-06 | Test's environment gate skipped the smoke case |
 | Packaged arm64 Playwright launch             | PASS | 2026-06-06 | React root mounted from `app.asar/dist/index.html` |
 | macOS `codesign` / `spctl`                   | BLOCKED | 2026-06-06 | All signing/notarization credentials absent; unsigned local artifacts rejected as expected |
+| `npm run typecheck`                          | 0 errors, clean | 2026-06-06 | Media Studio / Image View / Character Photo fixes — added MediaItem import + internal_prompt_enhancer threaded into configService |
+| `npm run lint:eslint`                        | 0 warnings, clean | 2026-06-06 | All 5 issue fixes pass lint with `--max-warnings=0` |
+| `npm test`                                   | 1242 passed, 1 skipped | 2026-06-06 | 125 files; Playwright Electron smoke is the 1 skip |
+| `npm run verify:safety-guard`                | 3/3 boundaries pass | 2026-06-06 | No raw prompt logging or safety bypass patterns |
+| `npm run verify:markdown-links`              | 42 Markdown files, no broken links | 2026-06-06 | After summary_of_work.md update |
+| `npm run build`                              | succeeded | 2026-06-06 | Renderer, server, and Electron outputs all built |
 
 ---
 

@@ -693,6 +693,7 @@ function mergeSanitized(base: SanitizedConfig, patch: Record<string, unknown>): 
       force_import_keys: base.developer.force_import_keys,
       force_apply_config: base.developer.force_apply_config,
     },
+    internal_prompt_enhancer: base.internal_prompt_enhancer,
   };
 
   if (typeof patch.app === "object" && patch.app) {
@@ -783,6 +784,7 @@ export async function exportConfigTemplate(targetPath: string): Promise<{ ok: bo
         force_import_keys: sanitized.developer.force_import_keys,
         force_apply_config: sanitized.developer.force_apply_config,
       },
+      internal_prompt_enhancer: sanitized.internal_prompt_enhancer,
     };
     const yamlText = yaml.stringify(template);
     await fs.writeFile(targetPath, yamlText, { encoding: "utf-8", mode: 0o600 });

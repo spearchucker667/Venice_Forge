@@ -51,4 +51,14 @@ export interface GalleryImage {
   resolution?: string;
   upscaleFactor?: number;
   audio?: boolean;
+  /** Seed value used for generation. Null means random/no fixed seed. */
+  seed?: number | null;
+  /** Source that produced this image. */
+  source?: string;
+  /** Enhanced version of the original prompt (from prompt enhancer). */
+  enhancedPrompt?: string | null;
+  /** Original prompt before enhancement/remix. */
+  originalPrompt?: string | null;
+  /** Remix instruction prompt (from remix action). */
+  remixPrompt?: string | null;
 }

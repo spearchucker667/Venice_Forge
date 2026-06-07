@@ -17,6 +17,8 @@ export const VENICE_IMAGE_MIN_DIMENSION = 64;
 export const VENICE_IMAGE_DIMENSION_DIVISOR = 64;
 export const VENICE_IMAGE_MAX_VARIANTS = 4;
 export const VENICE_IMAGE_MAX_PROMPT_CHARS = 7500;
+export const VENICE_SEED_MIN = -999999999;
+export const VENICE_SEED_MAX = 999999999;
 
 /** A content part for vision-capable models. */
 export interface ImageContentPart {
@@ -138,6 +140,39 @@ export function buildChatPayload(
   return applyVeniceApiSafeMode("/chat/completions", payload, settings.safeMode);
 }
 
+/** Seed mode for image generation. */
+export type ImageSeedMode = "off" | "fixed" | "null";
+
+/** Full seed state including mode and value. */
+export interface ImageSeedState {
+  mode: ImageSeedMode;
+  value: number | null;
+}
+
+/**
+ * Serializes a seed state for an image generation request payload.
+ *
+ * - "off" mode: seed key is omitted entirely
+ * - "fixed" mode: sends seed value if valid integer
+ * - "null" mode: sends seed: null only when apiSupportsNullSeed is true
+ *
+ * @see docs/Venice_swagger_api.yaml — seed is integer, min: -999999999, max: 999999999.
+ *   "If not provided, a random seed will be used." NULL is NOT explicitly
+ *   documented as supported — we only send it when the caller opts in.
+ */
+export function serializeSeed(
+  seed: ImageSeedState,
+  apiSupportsNullSeed: boolean,
+): { seed?: number | null } {
+  if (seed.mode === "off") return {};
+  if (seed.mode === "null" && apiSupportsNullSeed) return { seed: null };
+  if (seed.mode === "fixed" && typeof seed.value === "number" && Number.isInteger(seed.value)) {
+    const clamped = Math.max(VENICE_SEED_MIN, Math.min(VENICE_SEED_MAX, seed.value));
+    return { seed: clamped };
+  }
+  return {};
+}
+
 /** Describes the user-editable fields of an image generation draft. */
 export interface ImageDraftLike {
   prompt: string;
@@ -226,12 +261,14 @@ export function normalizeImageDraft(draft: ImageDraftLike): ImageDraftLike {
  * @param model The target image model identifier.
  * @param draft The user's image generation draft.
  * @param promptOverride An optional prompt that overrides the draft value.
+ * @param seedState Optional seed state (off/fixed/null).
  * @returns A record ready to be serialised and sent to /image/generate.
  */
 export function buildImagePayload(
   model: string,
   draft: ImageDraftLike,
-  promptOverride?: string
+  promptOverride?: string,
+  seedState?: ImageSeedState,
 ): Record<string, unknown> {
   const normalized = normalizeImageDraft(draft);
   const payload: Record<string, unknown> = {
@@ -254,5 +291,12 @@ export function buildImagePayload(
   const negative = normalized.negative?.trim();
   if (negative) payload.negative_prompt = negative;
   if (normalized.style) payload.style_preset = normalized.style;
+
+  // Seed: only emit when valid/supported
+  if (seedState) {
+    const serialized = serializeSeed(seedState, false);
+    if ("seed" in serialized) payload.seed = serialized.seed;
+  }
+
   return applyVeniceApiSafeMode("/image/generate", payload, normalized.safeMode);
 }

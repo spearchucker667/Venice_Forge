@@ -75,3 +75,17 @@ developer:
   allow_config_key_import: true   # allow YAML secrets to be imported on startup
   force_import_keys: false        # overwrite existing secure-store keys
   force_apply_config: false       # re-apply non-secret config every startup
+
+# Internal prompt-enhancer LLM (user-facing: "Enhance prompt")
+# Used for image prompt enhancement and remix. Not user-chat-accessible.
+# Not selectable from the normal model dropdown. Configured by devs only.
+# Leave systemPrompt / remixSystemPrompt empty to use the schema defaults
+# (DEFAULT_ENHANCE_SYSTEM_PROMPT / DEFAULT_REMIX_SYSTEM_PROMPT in
+# src/config/configSchema.ts).
+internal_prompt_enhancer:
+  enabled: true
+  model: "venice-uncensored 1.2"
+  temperature: 0.4
+  maxTokens: 500
+  systemPrompt: ""
+  remixSystemPrompt: ""

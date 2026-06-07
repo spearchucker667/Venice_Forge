@@ -10,6 +10,7 @@
  */
 
 import { venice, VeniceAPIError } from "../lib/venice-client";
+import { resolveCharacterImageUrl } from "../utils/characterImageResolver";
 import type {
   GetCharacterResponse,
   ListCharactersRequest,
@@ -89,7 +90,7 @@ export function normalizeCharacter(raw: unknown): VeniceCharacter | null {
     adult: r.adult === true,
     featured: r.featured === true,
     shareUrl: typeof r.shareUrl === "string" ? r.shareUrl : undefined,
-    photoUrl: typeof r.photoUrl === "string" ? r.photoUrl : undefined,
+    photoUrl: resolveCharacterImageUrl(raw) ?? undefined,
     tags,
     webEnabled: r.webEnabled === true,
     modelId: typeof r.modelId === "string" ? r.modelId : undefined,

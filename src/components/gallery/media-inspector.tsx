@@ -1,11 +1,16 @@
 /** @fileoverview Inspector panel: edits tags / note / favorite on a single
- * MediaItem. Uses the media-store actions for persistence. */
+ * MediaItem. Uses the media-store actions for persistence. Also shows
+ * seed/metadata and provides enhance/remix/copy actions. */
 
-import { useEffect, useMemo, useState } from "react";
-import { Heart, Trash2, Tag as TagIcon, NotebookPen, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Heart, Trash2, Tag as TagIcon, NotebookPen, Sparkles,
+  Copy, Wand2, Shuffle,
+} from "lucide-react";
 import { cn } from "../../lib/utils";
 import { GhostButton, Label, TextArea, Badge } from "../ui/shared";
 import { mediaCapabilities, normalizedTags, splitTags } from "../../utils/mediaItem";
+import { enhancePrompt, remixPrompt } from "../../services/prompt-enhancer-service";
 import type { MediaItem } from "../../types/media";
 
 interface MediaInspectorProps {
@@ -79,6 +84,80 @@ export function MediaInspector({
     await onPatch(item.id, { childrenIds: filtered });
   };
 
+  // ── Metadata & action helpers ──────────────────────────────────────────
+
+  const [enhanceState, setEnhanceState] = useState<{
+    mode: "enhance" | "remix";
+    result: string;
+    loading: boolean;
+  } | null>(null);
+
+  const handleCopyPrompt = useCallback(() => {
+    void navigator.clipboard.writeText(item.prompt || "");
+  }, [item.prompt]);
+
+  const handleCopyMetadata = useCallback(() => {
+    const meta: Record<string, unknown> = {};
+    if (item.model) meta.model = item.model;
+    if (item.width || item.height) meta.dimensions = `${item.width ?? "?"}×${item.height ?? "?"}`;
+    if (typeof item.seed === "number") meta.seed = item.seed;
+    if (item.style) meta.style = item.style;
+    if (item.steps !== undefined && item.steps !== null) meta.steps = item.steps;
+    if (item.cfg !== undefined && item.cfg !== null) meta.cfg = item.cfg;
+    if (item.source) meta.source = item.source;
+    if (item.negative) meta.negative = item.negative;
+    if (item.aspectRatio) meta.aspectRatio = item.aspectRatio;
+    void navigator.clipboard.writeText(JSON.stringify(meta, null, 2));
+  }, [item]);
+
+  const handleEnhance = useCallback(async () => {
+    if (!item.prompt) return;
+    setEnhanceState({ mode: "enhance", result: "", loading: true });
+    try {
+      const { prompt } = await enhancePrompt({
+        mode: "enhance",
+        prompt: item.prompt,
+        negativePrompt: item.negative ?? null,
+        model: item.model,
+        seed: item.seed ?? null,
+      });
+      setEnhanceState({ mode: "enhance", result: prompt, loading: false });
+    } catch {
+      setEnhanceState(null);
+    }
+  }, [item.prompt, item.negative, item.model, item.seed]);
+
+  const handleRemix = useCallback(async () => {
+    if (!item.prompt) return;
+    setEnhanceState({ mode: "remix", result: "", loading: true });
+    try {
+      const { prompt } = await remixPrompt({
+        mode: "remix",
+        prompt: item.prompt,
+        negativePrompt: item.negative ?? null,
+        model: item.model,
+        seed: item.seed ?? null,
+      });
+      setEnhanceState({ mode: "remix", result: prompt, loading: false });
+    } catch {
+      setEnhanceState(null);
+    }
+  }, [item.prompt, item.negative, item.model, item.seed]);
+
+  const handleApplyEnhance = useCallback(async () => {
+    if (!enhanceState || !enhanceState.result) return;
+    await onPatch(item.id, {
+      prompt: enhanceState.result,
+      enhancedPrompt: enhanceState.mode === "enhance" ? enhanceState.result : item.enhancedPrompt,
+      originalPrompt: item.originalPrompt || item.prompt,
+      remixPrompt: enhanceState.mode === "remix" ? enhanceState.result : item.remixPrompt,
+    });
+    setEnhanceState(null);
+  }, [enhanceState, onPatch, item.id, item.enhancedPrompt, item.originalPrompt, item.prompt, item.remixPrompt]);
+
+  const hasMetadata = typeof item.seed === "number" || item.source || item.style ||
+    item.steps !== undefined || item.cfg !== undefined || item.aspectRatio;
+
   return (
     <aside
       className="flex h-full w-full flex-col gap-4 overflow-y-auto border-l border-border bg-surface px-4 py-4"
@@ -122,6 +201,168 @@ export function MediaInspector({
           </GhostButton>
         </div>
       </section>
+
+      {/* ── Seed / metadata section ─────────────────────────────────── */}
+      {hasMetadata && (
+        <section>
+          <Label>
+            <span className="inline-flex items-center gap-1">
+              <Sparkles className="h-3 w-3" /> Parameters
+            </span>
+          </Label>
+          <div className="space-y-1 text-[11.5px] text-text-secondary">
+            {typeof item.seed === "number" && (
+              <div className="flex justify-between">
+                <span className="text-text-muted">Seed</span>
+                <span className="font-mono">{item.seed}</span>
+              </div>
+            )}
+            {item.source && (
+              <div className="flex justify-between">
+                <span className="text-text-muted">Source</span>
+                <span>{item.source}</span>
+              </div>
+            )}
+            {item.style && (
+              <div className="flex justify-between">
+                <span className="text-text-muted">Style</span>
+                <span>{item.style}</span>
+              </div>
+            )}
+            {item.steps !== undefined && item.steps !== null && (
+              <div className="flex justify-between">
+                <span className="text-text-muted">Steps</span>
+                <span>{String(item.steps)}</span>
+              </div>
+            )}
+            {item.cfg !== undefined && item.cfg !== null && (
+              <div className="flex justify-between">
+                <span className="text-text-muted">CFG</span>
+                <span>{String(item.cfg)}</span>
+              </div>
+            )}
+            {item.aspectRatio && (
+              <div className="flex justify-between">
+                <span className="text-text-muted">Aspect</span>
+                <span>{item.aspectRatio}</span>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ── Enhanced / original prompts ─────────────────────────────── */}
+      {item.enhancedPrompt && (
+        <section>
+          <Label>Enhanced Prompt</Label>
+          <p className="rounded-md border border-border bg-surface-elevated p-2 text-[11.5px] text-text-primary">
+            {item.enhancedPrompt}
+          </p>
+        </section>
+      )}
+      {item.originalPrompt && item.originalPrompt !== item.prompt && (
+        <section>
+          <Label>Original Prompt</Label>
+          <p className="rounded-md border border-border bg-surface-elevated p-2 text-[11.5px] text-text-muted">
+            {item.originalPrompt}
+          </p>
+        </section>
+      )}
+      {item.remixPrompt && (
+        <section>
+          <Label>Remix Prompt</Label>
+          <p className="rounded-md border border-border bg-surface-elevated p-2 text-[11.5px] text-text-primary">
+            {item.remixPrompt}
+          </p>
+        </section>
+      )}
+
+      {/* ── Action buttons ──────────────────────────────────────────── */}
+      <section>
+        <Label>Actions</Label>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={handleCopyPrompt}
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+            title="Copy prompt text"
+          >
+            <Copy className="h-3 w-3" /> Copy prompt
+          </button>
+          <button
+            type="button"
+            onClick={handleCopyMetadata}
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+            title="Copy metadata as JSON"
+          >
+            <Copy className="h-3 w-3" /> Copy metadata
+          </button>
+          {item.prompt && (
+            <>
+              <button
+                type="button"
+                onClick={handleEnhance}
+                disabled={enhanceState?.loading}
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-40"
+                title="Enhance prompt via internal LLM"
+              >
+                <Wand2 className="h-3 w-3" /> {enhanceState?.loading && enhanceState?.mode === "enhance" ? "Enhancing…" : "Enhance"}
+              </button>
+              <button
+                type="button"
+                onClick={handleRemix}
+                disabled={enhanceState?.loading}
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-40"
+                title="Remix prompt via internal LLM"
+              >
+                <Shuffle className="h-3 w-3" /> {enhanceState?.loading && enhanceState?.mode === "remix" ? "Remixing…" : "Remix"}
+              </button>
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* ── Enhance / remix review modal ────────────────────────────── */}
+      {enhanceState && !enhanceState.loading && enhanceState.result && (
+        <section className="rounded-md border border-accent/40 bg-accent/[0.04] p-2.5">
+          <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-accent">
+            {enhanceState.mode === "enhance" ? "Enhanced" : "Remixed"} prompt
+          </h4>
+          <div className="space-y-2">
+            <p className="rounded-md border border-border bg-surface-elevated p-2 text-[11.5px] text-text-primary">
+              {enhanceState.result}
+            </p>
+            <p className="text-[10.5px] text-text-muted">
+              Original: &ldquo;{item.prompt}&rdquo;
+            </p>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={handleApplyEnhance}
+                className="inline-flex items-center gap-1 rounded-md border border-accent px-2.5 py-1 text-[11px] text-accent hover:bg-accent/10"
+              >
+                Apply
+              </button>
+              <button
+                type="button"
+                onClick={() => setEnhanceState(null)}
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Loading state ───────────────────────────────────────────── */}
+      {enhanceState?.loading && (
+        <section className="rounded-md border border-border p-2.5">
+          <p className="text-[11.5px] text-text-muted">
+            {enhanceState.mode === "enhance" ? "Enhancing" : "Remixing"} prompt via internal LLM…
+          </p>
+        </section>
+      )}
 
       {hasAnyCapability && (
         <section>

@@ -80,6 +80,11 @@ export type MediaItemPatch = Partial<
     | "negative"
     | "style"
     | "prompt"
+    | "seed"
+    | "enhancedPrompt"
+    | "originalPrompt"
+    | "remixPrompt"
+    | "source"
   >
 >;
 

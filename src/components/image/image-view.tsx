@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useStyles } from '../../hooks/use-styles'
@@ -9,11 +9,15 @@ import { Label, TextArea, PrimaryButton, PillGroup, ErrorText, ExamplePrompts } 
 import { GenerationView } from '../ui/generation-view'
 import type { ImageConstraints } from '../../types/venice'
 import { useMediaStore } from '../../stores/media-store'
+import type { MediaItem } from '../../types/media'
 import { generateId } from '../../lib/utils'
 import { getPromptStartersForCategory } from '../../services/promptStarterService'
 import { isElectron } from '../../services/desktopBridge'
 import { PROMPT_TEMPLATES } from '../../constants/promptTemplates'
 import { processBase64Image, routeAsset } from '../../utils/imageProcessor'
+import { getImageModelCapabilities, buildDimensionOptions } from '../../config/image-model-capabilities'
+import { enhancePrompt } from '../../services/prompt-enhancer-service'
+import type { ImageSeedState } from '../../utils/payloadBuilders'
 
 
 function toImageSrc(b64: string): string {
@@ -24,14 +28,20 @@ function toImageSrc(b64: string): string {
   return `data:image/png;base64,${b64}`
 }
 
-const DEFAULT_SIZES = [
-  { value: '0', label: '512' },
-  { value: '1', label: '768' },
-  { value: '2', label: '1024' },
-  { value: '3', label: '1280' },
-]
-const DEFAULT_SIZE_MAP = [
-  { w: 512, h: 512 }, { w: 768, h: 768 }, { w: 1024, h: 1024 }, { w: 1280, h: 1280 },
+const WH_OPTIONS = [
+  { value: '512x512', label: '512×512', w: 512, h: 512 },
+  { value: '512x768', label: '512×768', w: 512, h: 768 },
+  { value: '576x1024', label: '576×1024', w: 576, h: 1024 },
+  { value: '768x512', label: '768×512', w: 768, h: 512 },
+  { value: '768x768', label: '768×768', w: 768, h: 768 },
+  { value: '768x1024', label: '768×1024', w: 768, h: 1024 },
+  { value: '1024x576', label: '1024×576', w: 1024, h: 576 },
+  { value: '1024x768', label: '1024×768', w: 1024, h: 768 },
+  { value: '1024x1024', label: '1024×1024', w: 1024, h: 1024 },
+  { value: '1024x1280', label: '1024×1280', w: 1024, h: 1280 },
+  { value: '1280x720', label: '1280×720', w: 1280, h: 720 },
+  { value: '1280x1024', label: '1280×1024', w: 1280, h: 1024 },
+  { value: '1280x1280', label: '1280×1280', w: 1280, h: 1280 },
 ]
 
 export function ImageView() {
@@ -42,11 +52,13 @@ export function ImageView() {
   const { data: styles } = useStyles()
   const model = selectedModel || models?.[0]?.id || 'z-image-turbo'
 
-  // Get constraints for the selected model
   const modelData = models?.find((m) => m.id === model)
   const constraints = modelData?.model_spec?.constraints as ImageConstraints | undefined
-  const hasAspectRatios = constraints?.aspectRatios && constraints.aspectRatios.length > 0
-  const hasResolutions = constraints?.resolutions && constraints.resolutions.length > 0
+
+  const caps = useMemo(() => getImageModelCapabilities(model), [model])
+  const dimOptions = useMemo(() => buildDimensionOptions(model, constraints), [model, constraints])
+
+  const hasAspectRatios = dimOptions.dimensionMode === "aspectRatio" && !!dimOptions.aspectRatios?.length
   const maxSteps = constraints?.steps?.max || 50
   const defaultSteps = constraints?.steps?.default || 20
   const promptLimit = constraints?.promptCharacterLimit || 4096
@@ -54,7 +66,7 @@ export function ImageView() {
   const [prompt, setPrompt] = useState('')
   const [negativePrompt, setNegativePrompt] = useState('')
   const [starters, setStarters] = useState<string[]>(() => getPromptStartersForCategory('image', 4))
-  const [sizeIdx, setSizeIdx] = useState('2')
+  const [sizeKey, setSizeKey] = useState('1024x1024')
   const [aspectRatio, setAspectRatio] = useState('')
   const [resolution, setResolution] = useState('')
   const [style, setStyle] = useState('')
@@ -64,46 +76,40 @@ export function ImageView() {
   const [images, setImages] = useState<string[]>([])
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
-  // Build aspect ratio options from model constraints
+  // Seed state
+  const [seedMode, setSeedMode] = useState<'off' | 'fixed'>('off')
+  const [seedValue, setSeedValue] = useState<number>(Math.floor(Math.random() * 1000000000))
+
+  // Enhance prompt review flow
+  const [enhancing, setEnhancing] = useState(false)
+  const [enhancedPrompt, setEnhancedPrompt] = useState<string | null>(null)
+  const [showEnhanceReview, setShowEnhanceReview] = useState(false)
+
   const aspectOptions = useMemo(() => {
     if (!hasAspectRatios) return []
     return [
-      { value: '', label: 'Auto' },
-      ...constraints!.aspectRatios!.map((a) => ({ value: a, label: a })),
+      ...(dimOptions.aspectRatios?.map((a) => ({ value: a.id, label: a.label })) ?? []),
     ]
-  }, [constraints, hasAspectRatios])
+  }, [dimOptions, hasAspectRatios])
 
-  // Build resolution options from model constraints (some models support 1K/2K/4K)
   const resolutionOptions = useMemo(() => {
-    if (!hasResolutions) return []
-    return constraints!.resolutions!.map((r) => ({ value: r, label: r }))
-  }, [constraints, hasResolutions])
+    if (!(dimOptions.resolutions?.length)) return []
+    return dimOptions.resolutions.map((r) => ({ value: r.id, label: r.label }))
+  }, [dimOptions])
 
-  // Pre-select defaults from the model constraints so the request always
-  // carries a sizing field. The picker still shows "Auto" for the user,
-  // but the active value is the first model-advertised aspect ratio (or
-  // the model-defaultAspectRatio if advertised). This fixes the case
-  // where the user clicked Generate before touching the picker, which
-  // used to submit NO size fields and silently fall back to the model
-  // default — confusing because the displayed pill didn't match the
-  // sent payload.
+  // Reset dimensions when model changes
   useEffect(() => {
-    if (hasAspectRatios && !aspectRatio) {
-      const next = constraints?.defaultAspectRatio
-        && constraints.aspectRatios!.includes(constraints.defaultAspectRatio)
-        ? constraints.defaultAspectRatio
-        : constraints!.aspectRatios![0];
-      setAspectRatio(next);
-    }
-    if (hasResolutions && !resolution) {
-      const next = constraints?.defaultResolution
-        && constraints.resolutions!.includes(constraints.defaultResolution)
-        ? constraints.defaultResolution
-        : constraints!.resolutions![0];
-      if (next) setResolution(next);
+    if (hasAspectRatios) {
+      const next = dimOptions.defaultDimensions.aspectRatio ?? aspectOptions[0]?.value ?? '';
+      setAspectRatio((prev) => prev || next);
+      setSizeKey('1024x1024');
+    } else {
+      const def = caps.defaultDimensions;
+      setSizeKey(`${def.width ?? 1024}x${def.height ?? 1024}`);
+      setAspectRatio('');
     }
     if (defaultSteps && steps === 0) setSteps(defaultSteps);
-  }, [constraints, hasAspectRatios, hasResolutions, aspectRatio, resolution, defaultSteps, steps]);
+  }, [caps, dimOptions, hasAspectRatios, aspectOptions, defaultSteps, steps]);
 
   const downloadImage = async (b64: string, index?: number) => {
     const filename = `venice-image${index !== undefined ? `-${index + 1}` : ''}.png`;
@@ -128,12 +134,61 @@ export function ImageView() {
   const mutation = useImageGenerate()
   const styleOptions = [{ value: '', label: 'None' }, ...(styles?.map((s) => ({ value: s, label: s })) ?? [])]
 
+  const handleEnhance = useCallback(async () => {
+    if (!prompt.trim()) return
+    setEnhancing(true)
+    try {
+      const result = await enhancePrompt({
+        mode: 'enhance',
+        prompt: prompt.trim(),
+        negativePrompt: negativePrompt.trim() || null,
+      })
+      setEnhancedPrompt(result.prompt)
+      setShowEnhanceReview(true)
+    } catch {
+      // error handled silently — user keeps original prompt
+    } finally {
+      setEnhancing(false)
+    }
+  }, [prompt, negativePrompt])
+
+  const applyEnhancedPrompt = useCallback(() => {
+    if (enhancedPrompt) setPrompt(enhancedPrompt)
+    setShowEnhanceReview(false)
+    setEnhancedPrompt(null)
+  }, [enhancedPrompt])
+
+  const cancelEnhanceReview = useCallback(() => {
+    setShowEnhanceReview(false)
+    setEnhancedPrompt(null)
+  }, [])
+
+  const buildSeedState = useCallback((): ImageSeedState => {
+    if (seedMode === 'fixed') return { mode: 'fixed', value: seedValue }
+    return { mode: 'off', value: null }
+  }, [seedMode, seedValue])
+
   const handleGenerate = () => {
     if (!prompt.trim()) return
-    const size = DEFAULT_SIZE_MAP[Number(sizeIdx)]
+
+    const currentPrompt = enhancedPrompt && showEnhanceReview ? enhancedPrompt : prompt.trim()
+
+    let width: number | undefined
+    let height: number | undefined
+    let aspectRatioField: string | undefined
+
+    if (hasAspectRatios) {
+      aspectRatioField = aspectRatio || undefined
+    } else {
+      const parts = sizeKey.split('x')
+      width = Number(parts[0])
+      height = Number(parts[1])
+    }
+
+    const seedState = buildSeedState()
 
     const req: Record<string, unknown> = {
-      prompt: prompt.trim(),
+      prompt: currentPrompt,
       negative_prompt: negativePrompt.trim() || undefined,
       model,
       style_preset: style || undefined,
@@ -143,24 +198,18 @@ export function ImageView() {
       steps,
     }
 
-    // Sizing: only ONE shape goes on the wire. Models in the Nano Banana
-    // class advertise `aspectRatios` and use the `aspect_ratio` field;
-    // SD-classic models (flux-dev, z-image-turbo, hidream, etc.) do not
-    // and require explicit `width`/`height`. Mixing them up produces a
-    // 400 from the swagger's `additionalProperties: false` on some
-    // model classes — surfaced to the user as a generic "invalid
-    // params" / "dimensions issue" that this fix removes.
-    if (hasAspectRatios && aspectRatio) {
-      req.aspect_ratio = aspectRatio
-    } else if (!hasAspectRatios) {
-      req.width = size.w
-      req.height = size.h
+    if (aspectRatioField) {
+      req.aspect_ratio = aspectRatioField
+    } else if (width && height) {
+      req.width = width
+      req.height = height
     }
 
-    // Resolution for models that support named resolutions (e.g. Nano
-    // Banana 1K/2K/4K). Additive on top of the aspect ratio.
-    if (hasResolutions && resolution) {
-      req.resolution = resolution
+    if (resolution) req.resolution = resolution
+
+    // Apply seed
+    if (seedState.mode === 'fixed') {
+      req.seed = seedState.value
     }
 
     mutation.mutate(
@@ -171,19 +220,20 @@ export function ImageView() {
           const processedImages: string[] = []
           const batchId = variants > 1 ? generateId() : null;
           const now = Date.now();
+          const isEnhanced = enhancedPrompt !== null && prompt !== currentPrompt;
 
           rawImages.forEach((img, index) => {
             const { base64: processedImg, report } = processBase64Image(img);
-            const routedFolder = routeAsset(req.prompt as string);
+            const routedFolder = routeAsset(currentPrompt);
             processedImages.push(processedImg);
 
             const id = generateId();
-            const mediaItem = {
+            const mediaItem: Record<string, unknown> = {
               id,
               image: processedImg,
-              prompt: req.prompt as string,
-              negative: req.negative_prompt as string | undefined,
-              model: req.model as string,
+              prompt: currentPrompt,
+              negative: negativePrompt.trim() || undefined,
+              model,
               width: req.width as number | undefined,
               height: req.height as number | undefined,
               aspectRatio: req.aspect_ratio as string | undefined,
@@ -192,16 +242,18 @@ export function ImageView() {
               cfg: req.cfg_scale as number | undefined,
               safeMode: req.safe_mode as boolean | undefined,
               disableWatermark: req.hide_watermark as boolean | undefined,
+              seed: seedState.mode === 'fixed' ? seedState.value : undefined,
+              source: 'image-page',
               batchId,
               batchIndex: batchId ? index : null,
               batchCount: batchId ? rawImages.length : null,
               timestamp: now,
               upscaled: false,
-              mediaType: 'image' as const,
-              operation: 'generate' as const,
+              mediaType: 'image',
+              operation: 'generate',
               parentId: null,
-              childrenIds: [] as string[],
-              tags: [] as string[],
+              childrenIds: [],
+              tags: [],
               note: '',
               favorite: false,
               metadataRemoved: report.metadataRemoved,
@@ -211,19 +263,17 @@ export function ImageView() {
               assetCategory: routedFolder,
             };
 
-            // BUG-003 regression guard: do NOT persist twice. The previous
-            // implementation called `StorageService.saveItem("images", ...)`
-            // AND then `useMediaStore.getState().upsert(mediaItem)`, but
-            // `upsert` itself routes through `StorageService.putMedia` which
-            // writes to the same `images` IDB store. Two IDB transactions
-            // per generated image doubled write amplification and could
-            // race on identical ids. The store `upsert` is the single
-            // canonical path (it also migrates legacy GalleryImage fields
-            // to the new MediaItem shape).
-            void useMediaStore.getState().upsert(mediaItem);
+            if (isEnhanced) {
+              mediaItem.enhancedPrompt = currentPrompt;
+              mediaItem.originalPrompt = prompt.trim();
+            }
+
+            void useMediaStore.getState().upsert(mediaItem as unknown as MediaItem);
           });
 
           setImages((prev) => [...processedImages, ...prev])
+          setShowEnhanceReview(false)
+          setEnhancedPrompt(null)
         },
       },
     )
@@ -234,7 +284,17 @@ export function ImageView() {
       <div>
         <div className="flex items-center justify-between">
           <Label hint={`${prompt.length}/${promptLimit}`}>Prompt</Label>
-          <div className="relative group">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleEnhance}
+              disabled={!prompt.trim() || enhancing}
+              className="text-[11px] px-2 py-1 rounded-md bg-accent/10 text-accent hover:bg-accent/20 border border-accent/30 transition-colors disabled:opacity-50 cursor-pointer"
+              aria-label="Enhance prompt"
+              title="Use internal LLM to enhance this prompt"
+            >
+              {enhancing ? 'Enhancing…' : 'Enhance prompt'}
+            </button>
             <select
               onChange={(e) => {
                 const val = e.target.value;
@@ -247,7 +307,7 @@ export function ImageView() {
                       setPrompt((prev) => prev ? `${prev}${t.appendText}` : t.appendText.replace(/^, /, ""));
                     }
                   }
-                  e.target.value = ""; // reset
+                  e.target.value = "";
                 }
               }}
               className="text-[12px] bg-white/[0.04] text-white/50 border border-white/[0.08] rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-accent hover:text-white/80 transition-colors cursor-pointer"
@@ -274,19 +334,101 @@ export function ImageView() {
         </div>
         <TextArea value={prompt} onChange={setPrompt} placeholder="A serene mountain landscape at golden hour…" />
       </div>
+
+      {/* Enhance prompt review flow */}
+      {showEnhanceReview && enhancedPrompt && (
+        <div className="p-3 rounded-lg border border-accent/30 bg-accent/5">
+          <Label>Enhanced Prompt Preview</Label>
+          <div className="text-[12.5px] text-text-primary mt-1 p-2 rounded bg-surface border border-border">
+            {enhancedPrompt}
+          </div>
+          <div className="flex gap-2 mt-2">
+            <button
+              type="button"
+              onClick={applyEnhancedPrompt}
+              className="px-3 py-1 text-[11.5px] rounded-md bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
+            >
+              Use enhanced prompt
+            </button>
+            <button
+              type="button"
+              onClick={cancelEnhanceReview}
+              className="px-3 py-1 text-[11.5px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+            >
+              Keep original
+            </button>
+          </div>
+        </div>
+      )}
+
       <div><Label>Negative prompt</Label><TextArea value={negativePrompt} onChange={setNegativePrompt} placeholder="blurry, low quality…" rows={2} /></div>
 
       {hasAspectRatios ? (
         <div><Label>Aspect Ratio</Label><PillGroup options={aspectOptions} value={aspectRatio} onChange={setAspectRatio} /></div>
       ) : (
-        <div><Label>Size</Label><PillGroup options={DEFAULT_SIZES} value={sizeIdx} onChange={setSizeIdx} /></div>
+        <div>
+          <Label>Dimensions</Label>
+          <Select
+            value={sizeKey}
+            onChange={setSizeKey}
+            options={WH_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
+          />
+        </div>
       )}
 
-      {hasResolutions && (
+      {(dimOptions.resolutions?.length) && (
         <div><Label>Resolution</Label><PillGroup options={resolutionOptions} value={resolution || resolutionOptions[0]?.value || ''} onChange={setResolution} /></div>
       )}
 
       <div><Label>Style</Label><Select value={style} onChange={setStyle} options={styleOptions} searchable placeholder="None" /></div>
+
+      {/* Seed controls */}
+      <div>
+        <Label>Seed</Label>
+        <div className="flex items-center gap-2 mt-1">
+          <label className="flex items-center gap-1.5 text-[12px] text-text-secondary cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={seedMode === 'fixed'}
+              onChange={(e) => setSeedMode(e.target.checked ? 'fixed' : 'off')}
+              className="rounded border-border bg-surface-elevated text-accent w-3.5 h-3.5 cursor-pointer"
+            />
+            Use fixed seed
+          </label>
+        </div>
+        {seedMode === 'fixed' && (
+          <div className="flex items-center gap-2 mt-1">
+            <input
+              type="number"
+              value={seedValue}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                if (!isNaN(v) && isFinite(v)) setSeedValue(v);
+              }}
+              min={-999999999}
+              max={999999999}
+              className="w-32 bg-surface-elevated border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors"
+              aria-label="Seed value"
+            />
+            <button
+              type="button"
+              onClick={() => setSeedValue(Math.floor(Math.random() * 1000000000))}
+              className="px-2 py-1 text-[11px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+              aria-label="Randomize seed"
+            >
+              Randomize
+            </button>
+            <button
+              type="button"
+              onClick={() => setSeedMode('off')}
+              className="px-2 py-1 text-[11px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+              aria-label="Clear seed"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+      </div>
 
       <div>
         <Label hint={String(steps)}>Steps</Label>

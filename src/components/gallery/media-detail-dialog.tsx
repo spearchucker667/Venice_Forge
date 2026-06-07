@@ -154,6 +154,19 @@ export function MediaDetailDialog({
           <p className="line-clamp-2 text-[12.5px] text-text-primary" title={item.prompt}>
             {item.prompt || "Untitled"}
           </p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-muted">
+            {typeof item.seed === "number" && (
+              <span>Seed: <span className="font-mono text-text-secondary">{item.seed}</span></span>
+            )}
+            {item.source && <span>Source: <span className="text-text-secondary">{item.source}</span></span>}
+            {item.style && <span>Style: <span className="text-text-secondary">{item.style}</span></span>}
+            {item.steps !== undefined && item.steps !== null && (
+              <span>Steps: <span className="text-text-secondary">{String(item.steps)}</span></span>
+            )}
+            {item.cfg !== undefined && item.cfg !== null && (
+              <span>CFG: <span className="text-text-secondary">{String(item.cfg)}</span></span>
+            )}
+          </div>
           <p className="mt-0.5 text-[11px] text-text-muted">
             {item.tags.length > 0 ? item.tags.map((t) => `#${t}`).join(" ") : "No tags"} ·{" "}
             {new Date(item.timestamp).toLocaleString()}

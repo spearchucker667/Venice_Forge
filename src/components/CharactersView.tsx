@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useCharacterStore } from "../stores/character-store";
 import { useChatStore } from "../stores/chat-store";
 import { useSettingsStore } from "../stores/settings-store";
+import { resolveCharacterImageUrl, avatarFallback } from "../utils/characterImageResolver";
 import type {
   CharacterSortBy,
   CharacterSortOrder,
@@ -31,18 +32,10 @@ const SORT_ORDER_OPTIONS: Array<{ value: CharacterSortOrder; label: string }> = 
   { value: "asc", label: "Ascending" },
 ];
 
-/** Fallback initial shown in the avatar circle when the remote
- *  photo fails to load or is not provided. */
-function avatarInitial(name: string): string {
-  const trimmed = name.trim();
-  if (!trimmed) return "?";
-  const first = trimmed[0];
-  return first ? first.toUpperCase() : "?";
-}
-
 function Avatar({ character, size = 64 }: { character: VeniceCharacter; size?: number }) {
   const [errored, setErrored] = useState(false);
-  const showImage = !!character.photoUrl && !errored;
+  const resolvedUrl = resolveCharacterImageUrl(character);
+  const showImage = !!resolvedUrl && !errored;
   const dim = `${size}px`;
   return (
     <div
@@ -52,7 +45,7 @@ function Avatar({ character, size = 64 }: { character: VeniceCharacter; size?: n
     >
       {showImage ? (
         <img
-          src={character.photoUrl}
+          src={resolvedUrl!}
           alt=""
           width={size}
           height={size}
@@ -62,7 +55,7 @@ function Avatar({ character, size = 64 }: { character: VeniceCharacter; size?: n
           className="w-full h-full object-cover"
         />
       ) : (
-        <span>{avatarInitial(character.name)}</span>
+        <span>{avatarFallback(character.name)}</span>
       )}
     </div>
   );
