@@ -1,4 +1,10 @@
 # Introduction
+
+> **Status: HISTORICAL (2026-06-05 alignment snapshot).**  
+> Not imported or referenced by current application code.  
+> The canonical machine-readable reference for image generation, seed ranges, aspect/quality/variant constraints, etc. is `docs/Venice_swagger_api.yaml` (consumed by `src/config/image-model-capabilities.ts` and `src/utils/payloadBuilders.ts`).  
+> This file is superseded and retained only for historical provenance. See `CHANGELOG.md` (entry adding the two reference files) and `docs/summary_of_work.md` (HYG-003). Last meaningful use: early model-capability and payload work.
+
 Source: https://docs.venice.ai/api-reference/api-spec
 
 Reference documentation for the Venice API

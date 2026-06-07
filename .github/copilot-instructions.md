@@ -65,6 +65,8 @@ Equivalent instructions live in `AGENTS.md`, `CLAUDE.md`, and
 
 ## Architecture
 
+**See `AGENTS.md` (sections: Architecture, State, Canonical tab registry, Key File Locations) for the current authoritative description.** The summary below captures high-level invariants that must not regress; detailed current module names, store shapes, and tab wiring live in the single source of truth (`AGENTS.md` + `src/config/tabs.ts`, Zustand stores, `src/services/veniceClient.ts`).
+
 ### Two transports, one renderer
 
 The renderer (`src/`) runs identically in both modes. Transport is selected at runtime by `isElectron()` in `src/services/desktopBridge.ts`:
@@ -72,17 +74,18 @@ The renderer (`src/`) runs identically in both modes. Transport is selected at r
 - **Electron mode**: renderer calls `window.veniceForge.*` (the contextBridge API exposed by `electron/preload.ts`), which invokes IPC channels handled in `electron/ipc/handlers.ts`. The main process holds API keys (Venice + optional Jina) in `safeStorage` and makes HTTPS calls directly to `api.venice.ai` (and optionally to Jina endpoints).
 - **Web mode**: renderer calls `fetch('/api/venice/...')`, proxied by the Express server in `server.ts` to `api.venice.ai`. The server injects `Authorization` from `VENICE_API_KEY` in `.env`; browser Settings cannot save or forward an API key.
 
-All Venice API requests go through `src/services/veniceClient.ts` — `veniceFetch()` for non-streaming and `veniceStreamChat()` for chat streams. Both paths include up to 3 retries with exponential back-off for 429/500/503 responses.
+All Venice API requests go through `src/services/veniceClient.ts` — `veniceFetch()` for non-streaming and `veniceStreamChat()` for chat streams. Both paths include up to 3 retries with exponential back-off for 429/500/503 responses. (See also `src/lib/venice-client.ts` for the thin Electron passthrough used by some legacy hooks.)
 
 ### State management
 
-Single global `useReducer` in `App.tsx` using `appReducer` from `src/state/appReducer.ts`. State is mutated with **Immer** (`produce`). All action types are defined in `src/types/app.ts` as a discriminated union (`AppAction`). Every module receives `{ state, dispatch }` props.
+**Zustand 5 lightweight slice stores** (auth, chat, playground, settings, toast, workflow, media, rp-*, inspector, etc.). Reducer-based state has been fully migrated. Side effects live in services. See `AGENTS.md` "State" and the individual `src/stores/*.ts` + `src/stores/*-store.ts` files.
 
-### Storage
+### Storage (current)
 
-- **IndexedDB** (`src/services/storageService.ts`): `images`, `chats`, `settings`, `diagnostics`, `conversations`. Encrypted-at-rest stores are `images`, `chats`, `settings`, and `conversations` via `src/services/cryptoService.ts` (AES-GCM).
-- **Electron `safeStorage`** (`electron/services/secureStore.ts`): Venice and Jina API keys — encrypted by the OS keychain, never in plaintext.
-- **Exports**: versioned JSON with `{ version, exportedAt, appVersion, data }`. Import merges by ID, never clears; strips secret-like fields; validates schema and size.
+Renderer IndexedDB (via `src/services/storageService.ts` + `STORE_NAMES`): multiple stores including conversations, settings, images/media, memories, files, character cards, personas, lorebooks, rp-chats, rp-assets. `ENCRYPTED_STORES` use AES-GCM. Desktop chat history uses atomic JSON files under userData/chat-history/. Secrets: OS `safeStorage` (Electron) or server `.env` (web). See `AGENTS.md` and `docs/CONFIG.md`.
+
+- Exports/imports are versioned JSON; secret-like fields are redacted on export; import merges by ID (additive, never destructive).
+- See `src/services/exportImport.ts`, `src/services/storageService.ts`.
 
 ### IPC surface (Electron)
 
@@ -132,7 +135,7 @@ Every outgoing Venice API request routes through `maybeRunLocalFamilyGuard()` fr
 
 - **Electron IPC** (`electron/ipc/handlers.ts`): assessed before the main-process Venice client makes the HTTPS call.
 - **Express proxy** (`server.ts`): assessed before `http-proxy-middleware` forwards the request.
-- **UI modules**: prompt-sending modules (`ChatModule`, `ImageModule`, `BatchModule`, `SearchScrapeModule`) call the guard and surface advisory UI when the decision is `warn`.
+- **UI call sites**: All prompt-sending paths (chat, image, audio, video, embeddings, research, RP scene/character import, etc.) route through the guard. No raw prompt text is ever logged. See `src/services/veniceClient.ts`, `electron/ipc/handlers.ts`, `server.ts`, and `src/shared/safety/characterImportSafety.ts`.
 
 The public entry point is:
 
@@ -161,20 +164,13 @@ Any code that differs between Electron and web **must** use `isElectron()` from 
 
 All Venice HTTP calls go through `veniceFetch()` or `veniceStreamChat()` in `src/services/veniceClient.ts`. Do not `fetch('/api/venice/...')` directly, and never call `window.veniceForge.venice` directly from modules.
 
-### Action dispatch carries diagnostics
+### Diagnostics / inspector
 
-Every `veniceFetch`/`veniceStreamChat` call accepts a `dispatch` parameter. Passing the app `dispatch` causes the function to emit `SET_DIAGNOSTICS` actions automatically, updating the Status tab. Always pass `dispatch` when calling from a module.
+Status and Inspector surfaces are fed by the inspector store + telemetry (see `src/stores/inspector-store.ts`, `src/services/inspectorTelemetry.ts`). Venice/Jina calls are logged with transport, timing, guard outcome, and redacted payloads (no raw prompts). The legacy dispatch-based diagnostics path has been superseded.
 
-### Module structure
+### Tab / View structure (current)
 
-Each tab is a self-contained module file in `src/modules/`. Modules receive `{ state: AppState, dispatch: AppDispatch }` props. Shared UI primitives (buttons, chips, fields) live in `src/components/`.
-
-### Type files
-
-- `src/types/app.ts` — `AppState`, `AppAction`, `AppDispatch`, `ToastMessage`, drafts
-- `src/types/venice.ts` — `ModelInfo`, `DiagnosticsEntry`, Venice API shapes
-- `src/types/storage.ts` — `GalleryImage` and other IndexedDB record types
-- `src/types/desktop.ts` — `window.veniceForge` type augmentation
+Canonical registry in `src/config/tabs.ts` (`TAB_IDS`, `TAB_REGISTRY`, `CANONICAL_TAB_ORDER`). 14 top-level tabs (Chat, Image Studio, Media Studio, Audio, Music, Video, Embeddings, Research, Characters, RP Studio, Workflows, Playground, Config, Status). Add tabs only via the registry. Legacy aliases (e.g. `gallery` → `media`) are supported only for persisted state migration. See `AGENTS.md` "Canonical tab registry" and `src/config/tabs.test.ts` (VERIFY-022).
 
 ### Electron build pipeline
 
@@ -246,7 +242,7 @@ Tests live next to the source files they cover: `src/services/foo.ts` → `src/s
 
 **Stubbing `window.veniceForge`** — `desktopBridge.test.ts` uses `vi.stubGlobal("window", {})` to simulate browser (non-Electron) mode and verify the no-op fallbacks. Use the same pattern for any code guarded by `isElectron()`.
 
-**Pure-function tests** — most service tests (`exportImport`, `redaction`, `appReducer`, `image`) test pure functions directly with no mocking needed. Prefer this style: call the function, assert on the return value.
+**Pure-function tests** — most service tests (`exportImport`, `redaction`, `mediaMigration`, `payloadBuilders`, `image`) test pure functions directly with no mocking needed. Prefer this style: call the function, assert on the return value.
 
 **Regression guards** — bugs that were fixed get a test with a `BUG-NNN` comment (e.g. `// BUG-002 regression guard`). Follow this convention when fixing a bug: add or annotate a test that would have caught it.
 

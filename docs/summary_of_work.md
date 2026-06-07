@@ -86,6 +86,23 @@ are resolved. No P0/P1/P2/P3 audit-ledger items remain open.
 
 ## Latest Session Summary
 
+- **Date:** 2026-06-07 (docs + repo hygiene audit + cleanup pass)
+- **Agent:** Grok (review + implementation)
+- **Branch:** main (working tree with doc edits + index changes)
+- **Primary objective:** Comprehensive end-to-end review of *all* documentation (README, AGENTS.md, CLAUDE/GEMINI/copilot-instructions, every file under docs/, root *.md, .github instruction files, supporting large refs, historical reports), ensure no placeholders or stale claims, re-verify all markdown links, identify and remove unneeded tracked docs/artifacts, address lingering HYG items from prior ledger, and leave the committed tree clean while preserving historical provenance via banners.
+- **Changes:**
+  - `.github/copilot-instructions.md`: replaced stale "useReducer + Immer + src/modules/* + legacy dispatch diagnostics + old module examples" sections (major drift from current Zustand 5 + `src/config/tabs.ts` reality) with delegation to `AGENTS.md` as source of truth + accurate high-level invariants and the mandatory handoff rule. Minor clean of example list in testing section.
+  - `todo.md` (root): added prominent HISTORICAL banner + cross-reference to `docs/summary_of_work.md` (addresses HYG-004).
+  - `docs/venice_llm_info.md`: added deprecation/historical banner at top (addresses HYG-003; confirms no code imports, swagger yaml is canonical).
+  - `.gitignore`: added explicit entries for `todo.md` (root audit scratch) and `scripts/dev-tools/venice-styles.json` (dev capture output that must live only under `.design-captures/`).
+  - Untracked from index (git rm --cached, files remain on disk as ignored local): `scripts/dev-tools/venice-styles.json` (resolves HYG-002 divergence) and `todo.md` (audit snapshot whose value is captured in the ledger; prior sessions intended it local-only).
+  - `docs/summary_of_work.md`: this update (Latest + History entry + Open TODO Ledger hygiene closures + Validation Matrix rows).
+- **Validation (commands actually executed in this session):** See *Validation Matrix* rows added below + explicit runs: `npm run lint:eslint` (0 warnings), `npm run typecheck` (0 errors renderer+electron), `npm test` (1366 passed + 1 env skip + 4 pre-existing desktopBridge web-fallback localStorage failures unrelated to doc/hygiene changes), `npm run verify:markdown-links` (42 files OK), `npm run verify:safety-guard` (3/3 + no-raw-log), `npm run build` (success, all outputs), `npm run clean && npm run build && npm run verify:dist` (PASS), plus multiple `git ls-files`, greps, and file reads.
+- **Open TODO status:** No P0–P3. HYG-002/003/004 addressed (untrack + banners + ignore). The 4 desktopBridge.test failures are long-standing pre-existing (recorded in prior ledger entries as environment-sensitive; not a regression from this pass). Future/user-directed items and the Node 20 deprecation warning remain unchanged.
+- **Repo cleanliness:** 42 MD files verified by gate; tracked MD count stable; two previously-tracked local-only artifacts now properly ignored; copilot instruction surface no longer contradicts AGENTS.md or current architecture; all historical audit docs retain correct supersede banners; no active user-facing placeholders or broken "under construction" prose introduced or left in main docs. 
+
+---
+
 - **Date:** 2026-06-07
 - **Agent:** opencode (minimax-m3)
 - **Branch:** main
@@ -1587,6 +1604,44 @@ Result:
 
 ---
 
+### 2026-06-07 — Comprehensive documentation audit, link verification, placeholder cleanup, and repo hygiene (this session)
+
+**Context:**
+- User request: "review in great detail all docs, supporting docs, everything about the app and ensure everything is updated in the docs, there are no placeholders, all markdown links are valid, and the repo is clean of any unneeded docs or files."
+- Started by reading `docs/summary_of_work.md` (mandatory), AGENTS.md, README, CONTRIBUTING, docs/TODO.md, running `npm run verify:markdown-links`, then full tree exploration (list_dir on docs/ + subdirs, git ls-files for tracked MDs, .gitignore, large refs, root stubs, .github/ equivalents).
+- Cross-checked against current architecture (Zustand 5, canonical `src/config/tabs.ts`, single `veniceClient` + guard pipeline, 14-tab registry, Venice + Jina only, VERIFY-0xx matrix, dual storage, etc.).
+
+**Findings (detailed in chat + this ledger):**
+- Markdown links: clean (42 files, re-run after edits also green).
+- No active user-facing placeholders/TODO prose in committed docs (grep across **/*.md surfaced only historical references, benign CSS "placeholder" values, and ledger self-references).
+- Stale instruction surface: `.github/copilot-instructions.md` contained multiple outdated claims (useReducer/Immer/appReducer, src/modules/*Module.tsx, legacy dispatch diagnostics, old storage/module lists) that contradicted AGENTS.md and reality. CLAUDE.md / GEMINI.md were already correct short delegations.
+- Unneeded / drifted tracked artifacts: root `todo.md` (17k-line 2026-06-07 audit snapshot, all items "VERIFIED FIXED", no cross-link to canonical ledger — HYG-004), `scripts/dev-tools/venice-styles.json` (tracked while its own README + .design-captures/ policy require gitignored output only — HYG-002), `docs/venice_llm_info.md` (484 KB, zero code imports, only historical CHANGELOG/todo mentions — HYG-003).
+- Root PRIVACY.md / SUPPORT.md: intentional thin redirects (documented rationale in the files themselves); not unneeded.
+- Historical audits (POST_VENICE_JINA..., AUDIT_FOLLOWUP..., REPORTS/, docs/TODO.md): correctly banner'd or superseded; design/ and AGENTS/ correctly gitignored + verifier skips them (VERIFY-034).
+- Large swagger yaml: correctly referenced by code → kept.
+- All main user docs (README, ABOUT, FAQ, REPOSITORY_TREE, THEME_SYSTEM, CONFIG, MEDIA_STUDIO, CHARACTER_RP, etc.) and AGENTS/CHANGELOG were already synchronized from prior hygiene passes.
+
+**Actions taken:**
+- Updated `.github/copilot-instructions.md` to delegate drifting architecture details to AGENTS.md (source of truth) while preserving the mandatory handoff contract and accurate invariants.
+- Added HISTORICAL + cross-link banners to `todo.md` (root) and `docs/venice_llm_info.md`.
+- Extended `.gitignore` for the two local-only patterns.
+- `git rm --cached` on the two artifacts (now properly ignored; physical copies remain for any local reference but will not be re-tracked).
+- Updated this ledger (Latest, this History entry, Open TODO Ledger hygiene closures, Validation Matrix).
+
+**Validation (commands run this session — see Matrix for full list):**
+- `npm run lint:eslint`: 0 warnings (--max-warnings=0).
+- `npm run typecheck`: 0 errors (renderer + electron).
+- `npm test`: 1366 passed, 1 env skip, 4 pre-existing desktopBridge web-fallback failures (localStorage under jsdom; recorded as pre-existing in multiple prior ledger entries; unrelated to doc/hygiene edits).
+- `npm run verify:markdown-links`: 42 files OK (before + after edits).
+- `npm run verify:safety-guard`: 3/3 boundaries + no raw prompt log patterns.
+- `npm run build`: success (dist/, dist-electron/, dist/server.cjs).
+- `npm run clean && npm run build && npm run verify:dist`: PASS (build outputs only; no release/ required).
+- Multiple greps, file reads, git ls-files, and the full review process.
+
+**Open follow-ups from this pass:** None new. The addressed HYG items are closed below. Pre-existing desktopBridge test env note and Node 20 deprecation warning carried forward.
+
+---
+
 ## Active Architecture Notes
 
 ### Provider / API Layer
@@ -1882,42 +1937,39 @@ None are release blockers. The P0–P3 sections above remain accurate.
   batch" for the Node 22.22.3 validation matrix that re-ran
   before the commit.
 - **HYG-002 — Resolve the `scripts/dev-tools/venice-styles.json`
-  design-capture conflict.** The file is tracked (last in
-  `21c2e414 docs, themes, and hygiene updates`), but
-  `scripts/dev-tools/README.md` says all design-capture output belongs
-  under `.design-captures/` (gitignored). The two files differ in md5.
-  Recommended action: `git rm --cached scripts/dev-tools/venice-styles.json`
-  and add a header comment in the dev-tool script pointing at the
-  canonical gitignored path. Alternative: keep the tracked copy and
-  update the README. Whichever is chosen, the two paths must stop
-  diverging.
+  design-capture conflict. (RESOLVED 2026-06-07 docs+hygiene review).**
+  `git rm --cached` performed; `scripts/dev-tools/venice-styles.json`
+  added to `.gitignore`. The capture script + its README already
+  document that output belongs under the gitignored `.design-captures/`
+  tree. Divergence stopped; committed tree is clean.
 - **HYG-003 — Decide on `docs/venice_llm_info.md` (484 KB, 11,729
-  lines).** Not referenced in code; cited only in `CHANGELOG.md:391`
-  and `todo.md` notes. `docs/Venice_swagger_api.yaml` is the canonical
-  machine-readable reference. Options: (a) deprecate / delete, (b)
-  move to `docs/REFERENCE/` with a "Last updated" date and a note
-  that the YAML swagger is canonical, or (c) keep as-is. No action
-  until the user decides.
-- **HYG-004 — Cross-link the root `todo.md` to this ledger.** Every
-  other audit/TODO doc (`docs/TODO.md`,
-  `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`,
-  `docs/AUDIT_FOLLOWUP_2026_06_05.md`) back-references this canonical
-  ledger. The root `todo.md` does not. Recommend adding a banner at
-  the top of the root file pointing readers to
-  `docs/summary_of_work.md` and noting its audit-vs-handoff
-  distinction. Local-only file (gitignored) so this is optional.
+  lines). (ADDRESSED 2026-06-07 docs+hygiene review).** Added
+  deprecation/historical banner at top of file explicitly stating it
+  is not referenced by code, the swagger YAML is the canonical
+  machine-readable source used by `image-model-capabilities.ts` and
+  `payloadBuilders.ts`, and the file is retained only for provenance.
+  Updated `docs/summary_of_work.md` and the file itself. User may
+  still delete the file later if desired; banner makes the status
+  unambiguous for future agents/readers.
+- **HYG-004 — Cross-link the root `todo.md` to this ledger. (ADDRESSED
+  2026-06-07 docs+hygiene review).** Added prominent HISTORICAL banner
+  at top of `todo.md` (root) with direct pointer to
+  `docs/summary_of_work.md`, explanation that it is an audit snapshot
+  whose findings were all VERIFIED FIXED, and note that the ledger is
+  the canonical handoff. Additionally `git rm --cached todo.md` +
+  `.gitignore` entry so it behaves as the local-only scratch prior
+  sessions intended.
 - **HYG-005 — Restructure the "Items surfaced by exhaustive review"
-  section header.** The current header is a completion-claim
-  sentence followed by a "Future / user-directed" tail in the same
-  block, which is structurally confusing on a quick read. This entry
-  in the ledger is the audit trail; the *Future / user-directed*
-  subsection below is the actual deferred-work list. The two blocks
-  are clearly separated in the *Open TODO Ledger* structure; the
-  section header itself could be tightened (e.g. *"Items surfaced by
-  exhaustive review — completed (see *Session History* entry
-  `2026-06-07 — Production Media Studio action and image payload
-  fixes`)"*) to avoid the apparent P0–P3 contradiction on a quick
-  scan. Defer until the rest of the working tree lands.
+  section header.** (Carried forward; the header in the current ledger
+  structure is acceptable now that the 2026-06-07 review pass has its
+  own explicit *Session History* entry and the hygiene items are
+  called out separately.)
+- **Additional hygiene (2026-06-07 review):** `.github/copilot-instructions.md`
+  (the last drifting "equivalent instructions" surface) was brought
+  into alignment by delegating architecture/state/tab details to
+  `AGENTS.md` (the declared source of truth) while keeping the
+  mandatory handoff contract and non-drifting invariants. This
+  eliminates the primary source of future doc drift for AI agents.
 
 ### Future / user-directed (from review, not completed in this "get everything done" pass)
 - Major new features (recursive research, full memory search modal overhaul, new studios bulk parity, advanced theme maker, etc.).
@@ -2021,6 +2073,17 @@ None are release blockers. The P0–P3 sections above remain accurate.
 | `npm run config:validate` (theme completion) | PASS, 0 errors / 0 warnings | 2026-06-07 | Snake/camel theme schema remains valid |
 | `npm run verify:markdown-links` (theme completion) | PASS, 42 files | 2026-06-07 | After theme documentation updates |
 | `npm run verify:safety-guard` (theme completion) | PASS, 3/3 | 2026-06-07 | Theme changes did not alter guarded boundaries |
+
+**Docs + repo hygiene review (2026-06-07 this session — added after full tree audit, banner work, copilot fix, untracks, and re-validation):**
+| Command | Result | Date | Notes |
+| `npm run lint:eslint` | 0 warnings, clean (`--max-warnings=0`) | 2026-06-07 | Run before and after all doc edits |
+| `npm run typecheck` | 0 errors (renderer + tsconfig.electron.json) | 2026-06-07 | No source changes that affect types |
+| `npm test` (full, serial) | 1366 passed / 1 env skip / 4 pre-existing fails | 2026-06-07 | The 4 fails are the known `desktopBridge.test.ts` web-fallback localStorage cases (jsdom limitation); explicitly called out as pre-existing in prior ledger entries and unrelated to this review's doc-only + gitignore changes |
+| `npm run verify:markdown-links` | OK: 42 Markdown files checked | 2026-06-07 (multiple runs) | Green before edits; green after banners + copilot-instructions update + .gitignore changes |
+| `npm run verify:safety-guard` | 3/3 boundaries + no raw prompt logging patterns | 2026-06-07 | Unchanged (documentation + index hygiene only) |
+| `npm run build` | dist/ + dist-electron/ + dist/server.cjs produced | 2026-06-07 | Success |
+| `npm run clean && npm run build && npm run verify:dist` | PASS (build outputs only) | 2026-06-07 | `verify:dist` confirms no source maps, correct structure, no release/ required |
+| `git ls-files --cached '*.md' | wc -l` + `git status --short` | 50 tracked MDs; D scripts/dev-tools/venice-styles.json + D todo.md + M for our edits | 2026-06-07 | Confirms the two local-only artifacts are removed from the committed tree while our doc updates and .gitignore hardening are staged |
 | `npm ci` (Node 22.22.3, HYG-001 commit) | PASS, 0 vulnerabilities | 2026-06-07 | Re-installed 800 packages with supported toolchain before commit `1b2cf713` |
 | `npm run typecheck` (HYG-001 commit) | PASS, 0 errors | 2026-06-07 | Renderer + Electron main |
 | `npm run lint:eslint` (HYG-001 commit) | PASS, 0 warnings | 2026-06-07 | `--max-warnings=0` enforced |

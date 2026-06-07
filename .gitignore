@@ -7,6 +7,12 @@ docs/HQE_AUDIT_REPORT.md
 # Design-roadmap scratchpads (tokens are already in src/styles/theme.css).
 docs/design/
 
+# Local-only audit / cross-ref scratchpads (canonical record lives in docs/summary_of_work.md).
+todo.md
+
+# Dev-tool generated design capture output (must live under .design-captures/ only).
+scripts/dev-tools/venice-styles.json
+
 # Build resources: keep packaging icons tracked, ignore generated scratch assets.
 /build/*
 !/build/icon.ico
