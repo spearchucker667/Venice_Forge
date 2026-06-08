@@ -38,6 +38,9 @@ jobs:
       - name: Verify generated icon
         run: npm run verify:icon
 
+      - name: Verify release packaging hardening (VERIFY-052)
+        run: npm run verify:release-packaging-hardening
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -76,6 +79,9 @@ jobs:
       - name: Verify release artifacts
         run: npm run verify:dist:mac
 
+      - name: Verify archive hygiene (no tracked contaminants)
+        run: node scripts/verify-archive-clean.cjs
+
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -107,6 +113,9 @@ jobs:
 
       - name: Verify generated icon
         run: npm run verify:icon
+
+      - name: Verify release packaging hardening (VERIFY-052)
+        run: npm run verify:release-packaging-hardening
 
       - name: Typecheck
         run: npm run typecheck
@@ -145,6 +154,9 @@ jobs:
       - name: Verify release artifacts
         run: npm run verify:dist:win
 
+      - name: Verify archive hygiene (no tracked contaminants)
+        run: node scripts/verify-archive-clean.cjs
+
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -175,6 +187,9 @@ jobs:
       - name: Verify generated icon
         run: npm run verify:icon
 
+      - name: Verify release packaging hardening (VERIFY-052)
+        run: npm run verify:release-packaging-hardening
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -194,6 +209,9 @@ jobs:
 
       - name: Verify release artifacts
         run: npm run verify:dist
+
+      - name: Verify archive hygiene (no tracked contaminants)
+        run: node scripts/verify-archive-clean.cjs
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

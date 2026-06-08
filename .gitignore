@@ -29,7 +29,10 @@ scripts/dev-tools/venice-styles.json
 
 # Local OS/editor/runtime files.
 .DS_Store
+Thumbs.db
+desktop.ini
 *.log
+*.tmp
 .env*
 !.env.example
 .integration-src/

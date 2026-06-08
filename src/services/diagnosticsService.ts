@@ -38,6 +38,7 @@ import { useCharacterCardStore } from "../stores/character-card-store";
 import { useLorebookStore } from "../stores/lorebook-store";
 import { usePersonaStore } from "../stores/persona-store";
 import { useScenarioStore } from "../stores/scenario-store";
+import { useResearchStore } from "../stores/research-store";
 import { useStoragePrivacyStore } from "../stores/storage-privacy-store";
 import { getAuditSnapshot } from "../shared/safety";
 
@@ -222,17 +223,31 @@ function buildProviderStatus(): AppStatusItem {
   const research = settings as unknown as { enableJina?: boolean };
   const auth = useAuthStore.getState();
   const jinaEnabled = research.enableJina === true;
+  const sessions = useResearchStore.getState().sessions;
+
   if (!jinaEnabled) {
-    return makeItem("provider", "Research", "ok", "Research provider is disabled. No key required.");
+    return makeItem(
+      "provider",
+      "Research",
+      "ok",
+      `Research Workspace active (${sessions.length} sessions). Jina is disabled.`
+    );
   }
+
   if (auth.jinaIsConfigured) {
-    return makeItem("provider", "Research", "ok", "Jina research enabled and key present (session-scoped in web).");
+    return makeItem(
+      "provider",
+      "Research",
+      "ok",
+      `Research Workspace active (${sessions.length} sessions). Jina enabled.`
+    );
   }
+
   return makeItem(
     "provider",
     "Research",
     "warn",
-    "Jina research is enabled but no key is configured. Add a key in the Config tab.",
+    `Research Workspace active (${sessions.length} sessions). Jina enabled but no key configured.`,
     {
       actionLabel: "Open Config",
       actionTargetTabId: "settings",
@@ -362,6 +377,9 @@ export function computeSafeDiagnosticsSnapshot(): SafeDiagnosticsSnapshot {
       },
       conversations: {
         count: Array.isArray(conversations) ? conversations.length : 0,
+      },
+      research: {
+        count: useResearchStore.getState().sessions.length,
       },
       prompts: { count: usePromptLibraryStore.getState().prompts.length },
       scenes: { count: useSceneComposerStore.getState().scenes.length },

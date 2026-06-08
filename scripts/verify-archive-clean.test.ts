@@ -12,29 +12,47 @@ import { execSync } from "node:child_process";
 
 describe("verify-archive-clean (P1 hygiene guard)", () => {
   it("exports BAD_PATTERNS that match the documented contaminants", () => {
-    expect(BAD_PATTERNS.length).toBeGreaterThan(5);
+    expect(BAD_PATTERNS.length).toBeGreaterThan(10);
     const sample = [
       "__MACOSX/foo/",
       "bar/.DS_Store",
       "x/._private",
       "y/.AppleDouble/z",
+      "win/Thumbs.db",
+      "win/desktop.ini",
       "node_modules/pkg",
       "dist/bundle.js",
+      "dist-electron/electron/main.js",
       "release/app.dmg",
+      "coverage/lcov.info",
+      ".integration-src/foo.ts",
+      ".vite/foo.js",
+      ".design-captures/x.png",
       ".env",
       ".env.local",
+      ".env.development",
       "chat-history/conv.json",
       ".config/my-secret.yaml",
+      ".config/themes.local.yaml",
       "foo.db",
       "dir/data.sqlite3",
+      "logs/run.log",
+      "scratch.tmp",
+      "target_inventory.txt",
+      "docs/AGENTS/AGENTS.md",
     ];
     for (const s of sample) {
       const hit = BAD_PATTERNS.some((re: RegExp) => re.test(s) || re.test("/" + s) || re.test(s + "/"));
       expect(hit).toBe(true);
     }
-    // Allowed examples must not match the non-example yaml rule
+    // Allowed examples must not match the non-example yaml/env rules
     expect(BAD_PATTERNS.some((re: RegExp) => re.test(".config/config.example.yaml"))).toBe(false);
+    expect(BAD_PATTERNS.some((re: RegExp) => re.test(".config/themes.example.yml"))).toBe(false);
     expect(BAD_PATTERNS.some((re: RegExp) => re.test(".env.example"))).toBe(false);
+    // Real source files must remain allowed
+    expect(BAD_PATTERNS.some((re: RegExp) => re.test("src/main.ts"))).toBe(false);
+    expect(BAD_PATTERNS.some((re: RegExp) => re.test("docs/RELEASE/release.md"))).toBe(false);
+    expect(BAD_PATTERNS.some((re: RegExp) => re.test("scripts/verify-archive-clean.cjs"))).toBe(false);
   });
 
   it("CLI exits 0 on a clean temp tree and non-zero when contaminants are present", () => {

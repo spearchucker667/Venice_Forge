@@ -52,3 +52,41 @@ If conversations fail to appear after restart:
    - macOS: `~/Library/Application Support/Venice Forge/chat-history/`
 2. Invalid `.json` files are automatically renamed to `.backup-{timestamp}`. You can safely delete old `.backup-*` files.
 3. If all files are missing, check the logs for `chat:list` or `chat:get` errors.
+
+## Archive Hygiene Failures
+
+`verify-archive-clean.cjs` (and the new `verify:release-packaging-hardening` gate) fail when forbidden paths are tracked in git or present in a scan root. The most common cause is a developer accidentally adding a `dist/`, `node_modules/`, `.env.local`, or `*.log` file to git.
+
+Solution:
+1. Run `node scripts/verify-archive-clean.cjs` and read the printed list of contaminants.
+2. If they are tracked, run `git rm -r --cached <path>` and confirm `.gitignore` covers the path so they are not re-added.
+3. Re-run `node scripts/verify-archive-clean.cjs` to confirm clean.
+4. If you are zipping the repo to share with a third party (including a GPT context drop), use the safe-ZIP command in [docs/RELEASE/release.md](../RELEASE/release.md#safe-gpt--source-zip-command).
+
+## Dist Verification Failures
+
+`npm run verify:dist` (Phase 2J) fails if any of the following are present in `dist/` or `dist-electron/`:
+
+- Source maps (`*.map`)
+- Test files (`*.test.ts`, `*.spec.js`, etc.)
+- Local env files (`.env`, `.env.local`)
+- Local config (`.config/*.local.yaml`, `*.secret.yaml`, `*.prod.yaml`)
+- Local DBs (`*.db`, `*.sqlite`, `*.sqlite3`)
+- Dev-tool scratch (`.design-captures/`, `chat-history/`, `.integration-src/`)
+- Secret-leak heuristic: real Venice API key / `sk-…` / `Bearer …` patterns in text files
+
+Solution:
+1. Re-run `npm run build` from a clean state: `npm run clean && npm run build`.
+2. Inspect the dist contents: `ls -la dist/ dist-electron/`.
+3. Confirm the matching exclusion is in `electron-builder.config.cjs` (under `files`) or the canonical source tree doesn't contain the contaminant.
+4. If the secret-leak heuristic is matching an internal constant (e.g. a UI literal that contains the substring `venice_`), narrow the regex in `scripts/verify-dist.cjs` and add a test in `scripts/verify-dist.test.ts`.
+
+## Release Packaging Hardening Gate Failures
+
+`npm run verify:release-packaging-hardening` (VERIFY-052) is the single-source-of-truth audit for release/packaging hygiene. The most common failure modes are:
+
+1. A new `package.json` script was added that doesn't match the expected string in the audit. Fix by updating the expected string in `scripts/verify-release-packaging-hardening.cjs` and documenting the change in `AGENTS.md`.
+2. A new docs file was added under `docs/DEVELOPMENT/` or `docs/RELEASE/` but is not in the `requiredFiles` list. Add it.
+3. A forbidden archive contaminant is tracked in git. See "Archive Hygiene Failures" above.
+4. `.gitignore` is missing a token. Re-add the missing token (the audit prints the exact missing token).
+5. The GitHub workflow was edited without re-pinning `node-version: 22`. Re-pin to 22.

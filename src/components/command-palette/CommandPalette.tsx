@@ -25,6 +25,7 @@ import { useSceneComposerStore } from '../../stores/scene-composer-store'
 import { useCharacterCardStore } from '../../stores/character-card-store'
 import { useScenarioStore } from '../../stores/scenario-store'
 import { useStoragePrivacyStore } from '../../stores/storage-privacy-store'
+import { useResearchStore } from '../../stores/research-store'
 import { startChatForCharacter } from '../../services/rpHelpers'
 
 interface CommandPaletteProps {
@@ -537,6 +538,104 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
             data-testid="command-palette-new-scenario"
           >
             New Scenario
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('workflows');
+              onClose();
+              setQuery('');
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            data-testid="command-palette-open-workflows"
+          >
+            Open Workflows
+          </button>
+
+          {/* Phase 2I — Research Workspace commands. Always visible so the
+              palette can route the user into the Research Workspace. */}
+          <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border mt-1">Research Workspace</div>
+          <button
+            onClick={() => {
+              setActiveTab('search');
+              onClose();
+              setQuery('');
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            data-testid="command-palette-open-research"
+          >
+            Open Research Workspace
+          </button>
+          <button
+            onClick={async () => {
+              const created = await useResearchStore.getState().createSession({
+                title: 'New Research Session',
+              });
+              setActiveTab('search');
+              useResearchStore.getState().setActiveSession(created.id);
+              toast.success('Created new research session');
+              onClose();
+              setQuery('');
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            data-testid="command-palette-new-research-session"
+          >
+            New Research Session
+          </button>
+          <button
+            onClick={async () => {
+              const sessionCount = useResearchStore.getState().sessions.filter(s => !s.archivedAt).length;
+              if (sessionCount === 0) {
+                toast.error('No research sessions to export.');
+                return;
+              }
+              const ids = useResearchStore.getState().sessions.filter(s => !s.archivedAt).map(s => s.id);
+              const payload = useResearchStore.getState().exportResearch(ids);
+              const json = JSON.stringify(payload, null, 2);
+              const blob = new Blob([json], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `venice-forge-research-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+              toast.success(`Exported ${ids.length} research session${ids.length === 1 ? '' : 's'}`);
+              onClose();
+              setQuery('');
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            data-testid="command-palette-export-research"
+          >
+            Export Research Sessions
+          </button>
+          <button
+            onClick={async () => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = 'application/json';
+              input.onchange = async () => {
+                const file = input.files?.[0];
+                if (!file) return;
+                try {
+                  const text = await file.text();
+                  const payload = JSON.parse(text);
+                  const result = await useResearchStore.getState().importResearch(payload);
+                  toast.success(
+                    `Imported ${result.imported.length} session${result.imported.length === 1 ? '' : 's'}` +
+                      (result.skipped.length > 0 ? ` (skipped ${result.skipped.length})` : ''),
+                  );
+                } catch (err) {
+                  toast.error(`Could not import: ${err instanceof Error ? err.message : String(err)}`);
+                }
+              };
+              input.click();
+              onClose();
+              setQuery('');
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            data-testid="command-palette-import-research"
+          >
+            Import Research Sessions…
           </button>
 
           <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border mt-1">Privacy &amp; Storage</div>

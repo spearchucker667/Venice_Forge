@@ -95,6 +95,9 @@ export interface SafeDiagnosticsSnapshot {
     conversations: {
       count: number;
     };
+    research?: {
+      count: number;
+    };
     prompts?: { count: number };
     scenes?: { count: number };
     rp?: { count: number };

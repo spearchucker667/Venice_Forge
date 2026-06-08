@@ -159,6 +159,15 @@ export const MIGRATIONS: MigrationStep[] = [
       }
     },
   },
+  {
+    toVersion: 12,
+    description: "Add researchSessions store for Phase 2I Research Workspace",
+    up(db) {
+      if (!db.objectStoreNames.contains("researchSessions")) {
+        db.createObjectStore("researchSessions", { keyPath: "id" });
+      }
+    },
+  },
 ];
 
 /**

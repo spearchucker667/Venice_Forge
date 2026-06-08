@@ -33,8 +33,39 @@ function getTargets(platform, args) {
   return { checkWin, checkMac, targetArches };
 }
 
+// Forbidden patterns inside the build outputs. Phase 2J hygiene guard.
+const FORBIDDEN_DIST_PATTERNS = [
+  // Source maps must never be shipped
+  /\.map$/i,
+  // Test files / fixtures must never end up in dist (vitest should not include them, but assert)
+  /\.(test|spec)\.(ts|tsx|js|cjs|mjs)$/i,
+  // Local config / secrets
+  /(?:^|\/)\.env(?!\.example$).*$/i, // .env, .env.local, .env.development, etc. (allow .env.example)
+  /(^|\/)\.config\/[^/]*\.(local|secret|prod)\.(yaml|yml)$/i, // config.local.yaml, themes.prod.yml, sub/dir/secret.prod.yaml
+  // Local DBs / caches / logs
+  /\.(db|sqlite|sqlite3)$/i,
+  // Dev-tool scratch
+  /(^|\/)\.design-captures\//,
+  /(^|\/)chat-history\//,
+  // Test fixture-only paths (Vitest excludes, but assert defensively)
+  /(?:^|\/)\.integration-src\//,
+];
+
+// Secret-leak heuristic: scan text files in dist for Venice key patterns.
+// Catches accidental copies of .env / API keys into the bundle.
+//
+// The patterns are intentionally tight: real Venice API keys are 40+
+// base64url/hex chars after the `venice_` prefix (no mid-token underscores in
+// production). App-internal identifiers (e.g. `venice_forge_traffic_logs_v1`)
+// have lowercase snake_case mid-tokens and do NOT match.
+const SECRET_PATTERNS = [
+  /venice_[A-Za-z0-9-]{40,}/g, // venice_ + 40+ alnum/dash chars (no underscores)
+  /\bsk-[A-Za-z0-9]{20,}/g, // sk-… vendor key
+  /Bearer\s+[A-Za-z0-9._-]{20,}/g, // Bearer tokens
+];
+
 if (require.main !== module) {
-  module.exports = { getTargets };
+  module.exports = { getTargets, FORBIDDEN_DIST_PATTERNS, SECRET_PATTERNS };
 } else {
 
 const { checkWin, checkMac, targetArches } = getTargets(process.platform, args);
@@ -74,6 +105,81 @@ function verifyChecksum(filePath) {
   }
 }
 
+// Helpers (Phase 2J) — `FORBIDDEN_DIST_PATTERNS` and `SECRET_PATTERNS` are
+// declared at module scope above so unit tests can import them.
+function walk(dir, out) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const e of entries) {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) {
+      walk(full, out);
+    } else if (e.isFile()) {
+      out.push(full);
+    }
+  }
+}
+
+function assertNoForbiddenInDist(distDir) {
+  if (!fs.existsSync(distDir)) {
+    fail(`Required build directory missing: ${path.relative(root, distDir)}`);
+  }
+  const files = [];
+  walk(distDir, files);
+  const bad = files.filter((f) => {
+    const rel = path.relative(distDir, f).split(path.sep).join("/");
+    return FORBIDDEN_DIST_PATTERNS.some((re) => re.test(rel) || re.test("/" + rel));
+  });
+  if (bad.length > 0) {
+    const display = bad.map((f) => path.relative(root, f)).slice(0, 20);
+    fail(
+      `Forbidden files present in ${path.relative(root, distDir)}:\n  ${display.join("\n  ")}\n` +
+        `(These are dev/test/local artifacts that must never ship in the packaged app.)\n` +
+        `Forbidden patterns: source maps, test files, .env, .config/*.local.yaml, *.db, chat-history/, .design-captures/`
+    );
+  }
+}
+
+const TEXT_EXTENSIONS = new Set([".js", ".cjs", ".mjs", ".html", ".css", ".json", ".svg", ".txt", ".md", ".ts", ".tsx"]);
+
+function assertNoSecretsInDist(distDir) {
+  const files = [];
+  walk(distDir, files);
+  const hits = [];
+  for (const f of files) {
+    const ext = path.extname(f).toLowerCase();
+    if (!TEXT_EXTENSIONS.has(ext)) continue;
+    const rel = path.relative(distDir, f).split(path.sep).join("/");
+    // Skip the dist branding NOTICE.md (legal text only) and LICENSE.
+    if (rel.includes("branding/") || rel === "LICENSE" || rel === "LICENSE.md") continue;
+    let content;
+    try {
+      content = fs.readFileSync(f, "utf8");
+    } catch {
+      continue;
+    }
+    for (const re of SECRET_PATTERNS) {
+      re.lastIndex = 0;
+      const m = content.match(re);
+      if (m) {
+        hits.push({ rel, sample: m[0].slice(0, 12) + "…" });
+        break;
+      }
+    }
+  }
+  if (hits.length > 0) {
+    const display = hits.slice(0, 10).map((h) => `  ${h.rel}  (matched: ${h.sample})`);
+    fail(
+      `Possible secrets / API keys detected in ${path.relative(root, distDir)}:\n${display.join("\n")}\n` +
+        `Refusing to ship a build with embedded credentials.`
+    );
+  }
+}
+
 console.log(`[verify:dist] Starting verification for version ${version}`);
 
 // Base build validation
@@ -81,6 +187,13 @@ verifyFileExists(path.join(root, "dist", "index.html"), 100);
 verifyFileExists(path.join(root, "dist", "server.cjs"), 1000);
 verifyFileExists(path.join(root, "dist-electron", "electron", "main.js"), 1000);
 verifyFileExists(path.join(root, "dist-electron", "package.json"), 20);
+
+// Hygiene guards (Phase 2J) — run in BOTH local and release modes so a dirty
+// build never passes verify-dist regardless of packaging intent.
+assertNoForbiddenInDist(path.join(root, "dist"));
+assertNoForbiddenInDist(path.join(root, "dist-electron"));
+assertNoSecretsInDist(path.join(root, "dist"));
+assertNoSecretsInDist(path.join(root, "dist-electron"));
 
 if (!verifyRelease) {
   console.log("[verify:dist] Successfully verified build outputs.");

@@ -18,6 +18,7 @@ import { toast } from "../stores/toast-store";
 import { isElectron } from "../services/desktopBridge";
 import { useAuthStore } from "../stores/auth-store";
 import type { DiagnosticsEntry } from "../types/venice";
+import { ResearchWorkspaceView } from "./research/ResearchWorkspaceView";
 
 interface SearchResultItem {
   title?: string;
@@ -30,7 +31,7 @@ interface SearchResultItem {
   date?: string;
 }
 
-type SubTab = "search" | "ai-research" | "profile-discovery";
+type SubTab = "workspace" | "search" | "ai-research" | "profile-discovery";
 
 const ALL_PLATFORMS = [
   "GitHub",
@@ -58,7 +59,7 @@ export function safeHref(url: string | undefined): string {
 }
 
 export function SearchScrapeView() {
-  const [subTab, setSubTab] = useState<SubTab>("search");
+  const [subTab, setSubTab] = useState<SubTab>("workspace");
   const selectedModel = useSettingsStore((s) => s.selectedModels.chat) || "llama-3.3-70b";
   const localFamilySafeModeEnabled = useSettingsStore((s) => s.localFamilySafeModeEnabled);
   const veniceKeyConfigured = useAuthStore((s) => s.isConfigured);
@@ -417,6 +418,7 @@ export function SearchScrapeView() {
           <DiagPreview diagnostics={diagnostics} />
         </div>
         <div className="flex gap-2 mt-4">
+          {tabBtn("workspace", "Workspace")}
           {tabBtn("search", "Search / Scrape")}
           {tabBtn("ai-research", "AI Research")}
           {tabBtn("profile-discovery", "Profile Discovery")}
@@ -430,6 +432,8 @@ export function SearchScrapeView() {
             {error}
           </div>
         )}
+
+        {subTab === "workspace" && <ResearchWorkspaceView />}
 
         {subTab === "search" && (
           <div className="space-y-6">

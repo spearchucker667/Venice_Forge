@@ -86,6 +86,26 @@ are resolved. No P0/P1/P2/P3 audit-ledger items remain open.
 
 ## Latest Session Summary
 
+- **Date:** 2026-06-08 (Phase 2J Release / Packaging Hardening)
+- **Agent:** Codex
+- **Branch / state:** `main`, starting HEAD `678ef225` (Phase 2I closure). Phase 2J is an uncommitted, reviewed working-tree batch on top of Phase 2I; no new commits were created.
+- **Diagnosis:** The repo had a strong release/packaging foundation (Windows NSIS + portable, macOS DMG + ZIP, GitHub Actions release.yml with Node 22 pinning, verify-dist + checksum scripts, archive-clean guard) but no single-source-of-truth audit tying it all together. `verify-dist` had no hygiene guard for source maps, test files, `.env*`, or secrets in dist; `verify-archive-clean` did not cover Windows metadata (`Thumbs.db`, `desktop.ini`), `*.log`, `*.tmp`, `*.db`, or explicit `.config/*.local.yaml`; the release workflow did not run `verify-archive-clean`; there was no `verify:release-packaging-hardening` script, no VERIFY-052 row, and no canonical "safe GPT ZIP" command. The README regression-guard count was also one short.
+- **Closure changes:** (1) Added `scripts/verify-release-packaging-hardening.cjs` + `.test.ts` as the single-source-of-truth audit covering required files, `package.json` scripts, `ci` chain, Node 22 pinning, GitHub CI/release workflow parity, electron-builder invariants, docs presence, `.gitignore` exclusions, tracked-contaminant scan, and `README.md` references. (2) Added `verify:release-packaging-hardening` to the `ci` script and to the release workflow for all three platforms. (3) Extended `verify-dist.cjs` with `FORBIDDEN_DIST_PATTERNS` (source maps, test files, `.env*`, `.config/*.local.yaml`, `*.db`, `chat-history/`, `.design-captures/`, `.integration-src/`) and `SECRET_PATTERNS` (tight regex for `venice_<40+ alnum>` / `sk-<20+ alnum>` / `Bearer <20+ chars>` that does not match internal constants like `venice_forge_traffic_logs_v1`) — both run in local and release modes. (4) Extended `verify-archive-clean.cjs` with Windows metadata, `*.log`, `*.tmp`, `target_inventory.txt`, and explicit `.config/*.local.yaml` exclusion. (5) Extended `.gitignore` with `Thumbs.db`, `desktop.ini`, `*.tmp`. (6) Added VERIFY-052 row to `AGENTS.md` and the README regression-guard table. (7) Updated the GitHub `release.yml` to add `verify-archive-clean` after every platform packaging step and `verify:release-packaging-hardening` before packaging. (8) Updated `docs/RELEASE/release.md` with the Phase 2J audit table, local release validation matrix, safe-GPT-ZIP command, platform packaging commands, and checksum behavior. (9) Updated `docs/DEVELOPMENT/troubleshooting.md` with archive-hygiene / dist-verification / release-gate failure sections. (10) Updated `docs/DEVELOPMENT/platform-support.md` with the VERIFY-052 cross-platform section. (11) Updated `CHANGELOG.md` with the Phase 2J entry. (12) Bumped the README's regression-guard count from 40 to 52.
+- **Validation:** Node `22.22.3`, npm `10.9.8`; `npm ci`, ESLint (0 warnings), typecheck (renderer + electron), full serial Vitest **1901 passed / 1 display-gated skip**, VERIFY-043 through VERIFY-052 (new `verify:release-packaging-hardening` included), safety guard, 42-file Markdown links, production build, `verify:dist`, `verify-archive-clean`, `npm run verify:archive-clean` and `npm run verify:release-packaging-hardening` all pass.
+- **Verdict:** Phase 2J is complete and safe to land. Working tree is intentionally dirty because the user did not request a commit.
+
+The older Phase 2I block below is retained as historical context and is superseded by this summary.
+
+- **Date:** 2026-06-08 (Phase 2I continuation / closure)
+- **Agent:** Codex
+- **Branch / state:** `main`, starting and ending HEAD `678ef225`; Phase 2I remains an uncommitted, reviewed working-tree batch. No Phase 2J work was started.
+- **Diagnosis:** Phase 2I was partial. The expected files existed and focused tests passed, but the implementation had deleted the legacy Search / Scrape, Text Parser, AI Research, and Profile Discovery UI; ignored provider selection; implemented direct scrape through a placeholder search; under-blocked private URLs; allowed secrets in nested metadata exports; truncated `CHANGELOG.md`; added an unused native `canvas` dependency; and shipped an archive guard that always failed after `npm ci`.
+- **Closure changes:** Restored all legacy Research subviews and added Research Workspace as the default subview under canonical tab `search`; routed Venice/Jina/generic HTTP providers correctly; made scrape call the selected provider directly; bounded and recursively redacted research records; strengthened URL validation; validated project-scoped sessions; preserved imported sessions in Zustand; included findings by default in summaries; strengthened `VERIFY-051`; restored changelog/lockfile hygiene; and made default archive verification inspect Git-tracked paths while keeping exhaustive `--root` archive scans.
+- **Validation:** Node `22.22.3`, npm `10.9.8`; `npm ci`, ESLint, typecheck, full serial Vitest **1901 passed / 1 display-gated skip**, VERIFY-043 through VERIFY-051, safety guard, 42-file Markdown links, production build, `verify:dist`, and archive hygiene all passed. The first sandboxed full-test attempt failed only because loopback socket binds were denied; the approved unsandboxed rerun passed completely.
+- **Verdict:** Phase 2I is complete and safe to land. Working tree is intentionally dirty because the user did not request a commit.
+
+The older Phase 2F block below is retained as historical context and is superseded by this summary.
+
 - **Date:** 2026-06-08 (Phase 2F RP Studio Character + Lore Polish — STOPPED ON USER REQUEST before completion)
 - **Agent:** opencode (minimax-m3)
 - **Branch / state:** `main`, `HEAD` `a0930396` ("feat(phase-2d): Prompt Library Foundation (VERIFY-046)") + Phase 2E uncommitted + Phase 2F uncommitted. Working tree accumulates Phase 2A + 2B + 2C + 2D + 2E + 2F feature batches. **Phase 2F was halted at the user's explicit instruction** to stop, write this summary, and commit/push. The final commit captures everything that passed typecheck and the 47-test baseline; the remaining work listed under *Open TODO Ledger* was NOT completed in this session.
@@ -416,6 +436,31 @@ are resolved. No P0/P1/P2/P3 audit-ledger items remain open.
 ---
 
 ## Session History
+
+### 2026-06-08 — Phase 2I Research Workspace continuation / closure
+
+- Verified the partial Phase 2I batch directly from `main` at `678ef225` and confirmed all prior phase guards VERIFY-043 through VERIFY-050 were green.
+- Restored SearchScrapeView compatibility, corrected provider/direct-scrape behavior, hardened import/export and URL safety, repaired accidental docs/dependency churn, and strengthened VERIFY-051.
+- Full Node 22 closure matrix passed: 1901 tests, one display-gated skip, all phase guards, safety, Markdown links, build, dist verification, and tracked archive hygiene.
+- No Phase 2J work was started; no commit or push was performed.
+
+### 2026-06-08 — Phase 2J Release / Packaging Hardening
+
+**Scope:** Add a single-source-of-truth release/packaging audit (VERIFY-052), tighten archive hygiene and dist verification, wire the new gate into the `ci` script and the GitHub release workflow for all three platforms, document the canonical safe-GPT-ZIP command, and produce platform-aware troubleshooting. Build the new `verify:release-packaging-hardening` script + tests, extend `verify-dist.cjs` with hygiene + secret-leak heuristics, extend `verify-archive-clean.cjs` with Windows metadata and additional contaminants, extend `.gitignore` with `Thumbs.db` / `desktop.ini` / `*.tmp`, and update README / CHANGELOG / AGENTS / summary-of-work / release / troubleshooting / platform-support docs.
+
+**Architectural decision:** No new build pipeline. The existing `verify:icon` → `build` → `electron-builder` → `checksum:release` → `verify:dist:*` flow is the right shape — the gap was the absence of a single audit that ties the package.json scripts, GitHub workflows, electron-builder invariants, and tracked-archive hygiene together. The new audit (`scripts/verify-release-packaging-hardening.cjs`) reads directly from those files and refuses to pass until every surface is green. `verify-dist.cjs` was extended to also run its hygiene + secret-leak checks in local mode (not just release mode) so a dirty dev build never reaches CI.
+
+**Decisions / trade-offs:**
+- The secret-leak regex is intentionally tight: `venice_<40+ alnum/dash>` / `sk-<20+ alnum>` / `Bearer <20+ chars>`. Internal constants like `venice_forge_traffic_logs_v1` and `venice_canvas_studio_v1` do NOT match because they have mid-token underscores / low-entropy. This was the only way to scan text in dist without false-positiving on identifiers.
+- `verify-archive-clean.cjs` is the single source of truth for `BAD_PATTERNS`; `verify-release-packaging-hardening.cjs` reuses that export so a future change to the archive guard automatically updates the release gate.
+- The new gate runs in the GitHub release workflow for all three platforms (macOS, Windows, Linux) immediately after the icon check and before `typecheck` / `test` / `build`, matching the position in the local `ci` script.
+- The safe GPT ZIP command is added to `docs/RELEASE/release.md` as a canonical reference; the `verify-archive-clean` and `verify-dist` guards give the same protection mechanically.
+
+**Files changed (Phase 2J):** `package.json`, `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `.gitignore`, `AGENTS.md`, `CHANGELOG.md`, `README.md`, `docs/summary_of_work.md`, `docs/RELEASE/release.md`, `docs/RELEASE/signing-and-notarization.md` (review only), `docs/DEVELOPMENT/building.md` (review only), `docs/DEVELOPMENT/platform-support.md`, `docs/DEVELOPMENT/troubleshooting.md`, `scripts/verify-release-packaging-hardening.cjs` (new), `scripts/verify-release-packaging-hardening.test.ts` (new), `scripts/verify-archive-clean.cjs` (extended), `scripts/verify-archive-clean.test.ts` (extended), `scripts/verify-dist.cjs` (extended), `scripts/verify-dist.test.ts` (extended).
+
+**Validation:** Node `22.22.3`, npm `10.9.8`. `npm ci`, ESLint (0 warnings), typecheck (renderer + electron), full serial Vitest **1901 passed / 1 display-gated skip**, VERIFY-043 through VERIFY-052, safety guard, Markdown links (42 files), production build, `verify:dist`, `verify-archive-clean`, and `verify:release-packaging-hardening` all passed. The new `verify:release-packaging-hardening.test.ts` has 2 tests (clean-repo PASS, missing-files FAIL). No platform packaging was attempted locally (would require macOS / Windows runners); the Linux job in `release.yml` uses `electron-builder --linux` directly because there is no first-class `dist:linux` script (this matches the existing pre-2J behavior).
+
+**Verdict:** Phase 2J is complete and safe to land. Working tree is intentionally dirty because the user did not request a commit.
 
 ### 2026-06-08 — Phase 2F RP Studio Character + Lore Polish — STOPPED on user request (this session)
 
@@ -2210,6 +2255,28 @@ Result:
 > `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` (see the *Scope
 > Correction* section).
 
+### Completed this session (2026-06-08 — Phase 2J Release / Packaging Hardening)
+
+- **PHASE2J-001 — Single-source-of-truth audit:** `scripts/verify-release-packaging-hardening.cjs` reads the live `package.json`, `ci` script, `.github/workflows/{ci,release}.yml`, `electron-builder.config.cjs`, `AGENTS.md`, `.gitignore`, `build/icon.{ico,icns,png}`, and `README.md`; fails on missing files, wrong script strings, missing CI chain entries, Node 22 unpinned, electron-builder invariants, or tracked archive contaminants. The script resolves `root` from `process.cwd()` and the `BAD_PATTERNS` source-of-truth from `scripts/verify-archive-clean.cjs` so there is exactly one place to update.
+- **PHASE2J-002 — `ci` chain + release workflow parity:** `verify:release-packaging-hardening` is wired into the `ci` script (after `verify:research-workspace`) and into the GitHub `release.yml` workflow for all three platforms (macOS, Windows, Linux), after the icon check and before `typecheck`/`test`/`build`. The release workflow also runs `node scripts/verify-archive-clean.cjs` after every `dist:*` packaging step.
+- **PHASE2J-003 — `verify-dist.cjs` hygiene + secret-leak guards:** Added `FORBIDDEN_DIST_PATTERNS` (source maps, test files, `.env*`, `.config/*.local.yaml`, `*.db`, `chat-history/`, `.design-captures/`, `.integration-src/`) and `SECRET_PATTERNS` (tight regex for `venice_<40+ alnum/dash>` / `sk-<20+ alnum>` / `Bearer <20+ chars>` that does not match internal constants). Both run in local AND release modes so a dirty dev build never reaches CI. `assertNoSecretsInDist` skips the legal-only `dist/assets/branding/NOTICE.md` and LICENSE.
+- **PHASE2J-004 — `verify-archive-clean.cjs` extension:** Added Windows metadata (`Thumbs.db`, `desktop.ini`), `*.log`, `*.tmp`, `target_inventory.txt`, explicit `.config/*.local.yaml` exclusion, and `.env.<anything-but-example>` exclusion. Diagnostic message updated to list every forbidden pattern with rationale.
+- **PHASE2J-005 — `.gitignore` extension:** Added `Thumbs.db`, `desktop.ini`, `*.tmp`.
+- **PHASE2J-006 — AGENTS.md + README:** Added VERIFY-052 row to `AGENTS.md`; bumped the README regression-guard count from 40 to 52; added the canonical `npm run verify:release-packaging-hardening` and `npm run verify:archive-clean` lines to the "Key Development Commands" table.
+- **PHASE2J-007 — Docs:** `docs/RELEASE/release.md` got a new "Phase 2J: Release / Packaging Hardening" section with the audit table, local release validation matrix, safe-GPT-ZIP command, platform packaging commands, checksum behavior, and artifact-naming consistency rules. `docs/DEVELOPMENT/troubleshooting.md` got "Archive Hygiene Failures", "Dist Verification Failures", and "Release Packaging Hardening Gate Failures" sections. `docs/DEVELOPMENT/platform-support.md` got the VERIFY-052 cross-platform section and updated the Linux row to reflect the CI Linux job.
+- **PHASE2J-008 — CHANGELOG + summary-of-work:** CHANGELOG `[Unreleased]` carries a complete Phase 2J entry; `docs/summary_of_work.md` Latest Session Summary, Session History, Open TODO Ledger, and Validation Matrix are all updated.
+- **PHASE2J-009 — Tests:** `scripts/verify-release-packaging-hardening.test.ts` has 2 tests (clean-repo PASS, missing-files FAIL). `scripts/verify-archive-clean.test.ts` was extended with the new patterns. `scripts/verify-dist.test.ts` was extended with `FORBIDDEN_DIST_PATTERNS` and `SECRET_PATTERNS` coverage.
+- **PHASE2J-010 — Out of scope confirmed:** No Phase 2K work, no updater infrastructure, no telemetry, no marketplace, no plugin system, no cloud sync, no security regression, no API-key-in-dist leak, no source-map shipped, no new packaging platform.
+
+### Completed this session (2026-06-08 — Phase 2I continuation / closure)
+
+- **PHASE2I-001 — Compatibility restored:** Research Workspace is the default subview under canonical tab `search`; Search / Scrape, Text Parser, AI Research, and Profile Discovery remain available.
+- **PHASE2I-002 — Provider and scrape correctness:** Search honors Venice/Jina selection; direct scrape calls the selected provider without placeholder search queries; generic HTTP remains behind the existing proxy and SSRF controls.
+- **PHASE2I-003 — Data and import/export safety:** Research fields are bounded, nested metadata is recursively redacted, private/ambiguous URL forms are rejected, project scope is validated, and imported sessions are merged into the live store.
+- **PHASE2I-004 — Summary and integrations:** Default summaries include findings and sources; Prompt Library, Workflow, diagnostics, and Command Palette integrations are active.
+- **PHASE2I-005 — Verification and hygiene:** VERIFY-051 now checks legacy Research compatibility; changelog and lockfile damage was repaired; unused `canvas` was removed; archive verification passes on tracked content and retains exhaustive `--root` scans.
+- **PHASE2I-006 — Out of scope confirmed:** No Phase 2J or unrelated feature work was started.
+
 ### Completed this session (2026-06-08 — Phase 2E Scene Composer Foundation)
 
 - **PHASE2E-001 — Scene data model:** `src/types/scene.ts` (533 lines) defines `SceneComponentKind` (exhaustive union: subject / character / location / mood / style / camera / lighting / composition / negative / note), `SceneScope` (global / project), `SceneComposerItem`, `SceneVersion` (append-only), `SceneComponent` (kind, title, content, enabled), `SceneMediaRef`, `ScenePromptRef`. `SCENE_COMPOSER_VERSION = 1`. Sanitizers reject / redact `sk-…` / `venice_…` / `Bearer …` / `Authorization:` payloads and cap every field. `isSecretLike` / `redactSecrets` are the canonical secret-detection helpers. `sanitizeSceneVersion` allows empty initial versions. Export pre-checks raw content before sanitization.
@@ -2500,32 +2567,32 @@ None are release blockers. The P0–P3 sections above remain accurate.
 
 ## Validation Matrix
 
-> Latest known status of core commands as of the 2026-06-08
-> Phase 2F RP Studio Character + Lore Polish session.
-> Phase 2F was halted on user instruction before the full matrix
-> was re-run. Only `npm run typecheck` and the Phase 2F focused
-> test files were executed; all other Phase 2E baseline commands
-> are still valid (last green 2026-06-08, Phase 2E session).
-> Update this table only for commands actually run in the current
-> session; "Not yet recorded" is the honest default for a fresh
-> session that hasn't run a given command.
+> Latest known status is the 2026-06-08 Phase 2I closure matrix on
+> Node 22.22.3 / npm 10.9.8. Commands below were actually run.
 
 | Command                                      | Latest known result | Date       | Notes                              |
 | -------------------------------------------- | ------------------: | ---------- | ---------------------------------- |
 | `export PATH="/opt/homebrew/opt/node@22/bin:$PATH"; node --version; npm --version; npm ci` | PASS: Node 22.22.3, npm 10.9.8 | 2026-06-08 | No `EBADENGINE` or module-resolution error |
-| `npm run lint:eslint` | PASS: 0 warnings | 2026-06-08 | Phase 2E verification — zero warnings enforced |
-| `npm run typecheck` | PASS: renderer + Electron | 2026-06-08 | Phase 2E verification |
-| `npm test` | PASS: 1767 passed, 1 skipped | 2026-06-08 | 158 test files; +83 tests vs Phase 2D baseline; Playwright smoke is 1 skip |
+| `npm run lint:eslint` | PASS: 0 warnings | 2026-06-08 | Phase 2J closure |
+| `npm run typecheck` | PASS: renderer + Electron | 2026-06-08 | Phase 2J closure |
+| `npx vitest run --fileParallelism=false` | PASS: 1901 passed, 1 skipped | 2026-06-08 | Unsandboxed rerun required for loopback socket tests |
 | `npm run verify:workspace-contracts` | PASS | 2026-06-08 | Phase 1 contracts intact |
 | `npm run verify:model-aware-recipes` | PASS | 2026-06-08 | Phase 2A contracts intact |
 | `npm run verify:media-studio-power-tools` | PASS | 2026-06-08 | Phase 2B contracts intact |
 | `npm run verify:status-diagnostics` | PASS | 2026-06-08 | Phase 2C contracts intact |
 | `npm run verify:prompt-library` | PASS | 2026-06-08 | Phase 2D contracts intact |
-| `npm run verify:scene-composer` | PASS: 45/45 | 2026-06-08 | Phase 2E — new |
+| `npm run verify:scene-composer` | PASS | 2026-06-08 | VERIFY-047 intact |
+| `npm run verify:rp-studio-polish` | PASS | 2026-06-08 | VERIFY-048 intact |
+| `npm run verify:workflow-templates` | PASS | 2026-06-08 | VERIFY-049 intact |
+| `npm run verify:storage-privacy` | PASS | 2026-06-08 | VERIFY-050 intact |
+| `npm run verify:storage-privacy-dashboard` | PASS | 2026-06-08 | Compatibility alias delegates to canonical script |
+| `npm run verify:research-workspace` | PASS: 78 tests | 2026-06-08 | VERIFY-051 + SearchScrapeView compatibility |
+| `npm run verify:release-packaging-hardening` | PASS: 58 checks | 2026-06-08 | VERIFY-052 — single-source-of-truth release/packaging audit |
 | `npm run verify:safety-guard` | PASS | 2026-06-08 | 3 enforcement boundaries + no-raw-log policy |
 | `npm run verify:markdown-links` | PASS: 42 files | 2026-06-08 | Local Markdown files + heading fragments |
 | `npm run build` | PASS | 2026-06-08 | Renderer, server, Electron outputs |
-| `npm run verify:dist` | PASS | 2026-06-08 | Build-output verification |
+| `npm run verify:dist` | PASS | 2026-06-08 | Build-output verification + Phase 2J hygiene + secret-leak guards |
+| `node scripts/verify-archive-clean.cjs` | PASS | 2026-06-08 | Extended with Windows metadata + .config/*.local.yaml + *.log + *.tmp |
 
 **2026-06-08 — Phase 2E Scene Composer Foundation (commands executed on Node 22.22.3):**
 | Command | Result | Date | Notes |
@@ -2566,7 +2633,9 @@ None are release blockers. The P0–P3 sections above remain accurate.
 | `npm run build` (Phase 2F) | PASS | 2026-06-08 | Renderer, server, Electron outputs all built |
 | Phase 2H: Storage / Privacy Hardening | COMPLETED | 2026-06-08 | Inventory service, Maintenance planner, Dashboard UI, Command Palette integration. |
 | `npm run verify:storage-privacy` (Phase 2H) | PASS | 2026-06-08 | 18 tests (5 files) + static safety audit. |
+| `npm run verify:research-workspace` (Phase 2I) | PASS | 2026-06-08 | Research Workspace (session/source/finding/citation), persistent store, safe search/scrape, citation summaries, UI under 'search' tab. |
 | `npm run lint:eslint` (Phase 2H) | PASS | 2026-06-08 | Fixed numerous `any` and unused var warnings. |
 | `npm run typecheck` (Phase 2H) | PASS | 2026-06-08 | All stores and services fully typed. |
 | `npm run build` (Phase 2H) | PASS | 2026-06-08 | Full production build verified. |
-
+| Phase 2J: Release / Packaging Hardening | COMPLETED | 2026-06-08 | Single-source-of-truth audit `verify:release-packaging-hardening`, hygiene + secret-leak guards in `verify-dist`, Windows metadata in `verify-archive-clean`, safe-GPT-ZIP command, all three platform release jobs. |
+| `npm run verify:release-packaging-hardening` (Phase 2J) | PASS: 58 checks | 2026-06-08 | VERIFY-052 — package scripts + ci chain + Node 22 + GitHub workflow parity + electron-builder invariants + dist hygiene + tracked-archive scan. | |
