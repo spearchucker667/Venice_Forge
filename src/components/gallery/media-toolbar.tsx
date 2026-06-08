@@ -1,6 +1,6 @@
 /** @fileoverview Toolbar for the Media Studio grid. Hosts search, filter pills,
  * sort select, batch-select toggle, batch action buttons, and the batch count
- * summary. */
+ * summary. Phase 2B adds the dynamic project picker + bulk action hooks. */
 
 import { Search, X } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -19,6 +19,8 @@ const FILTER_OPTIONS: Array<{ value: MediaFilter; label: string }> = [
   { value: "has-recipe", label: "Has recipe" },
   { value: "no-recipe", label: "No recipe" },
   { value: "has-seed", label: "Has seed" },
+  { value: "no-seed", label: "No seed" },
+  { value: "no-project", label: "Unscoped" },
 ];
 
 const SORT_OPTIONS: Array<{ value: MediaSort; label: string }> = [
@@ -26,6 +28,9 @@ const SORT_OPTIONS: Array<{ value: MediaSort; label: string }> = [
   { value: "oldest", label: "Oldest" },
   { value: "model", label: "Model" },
   { value: "size", label: "Size" },
+  { value: "project", label: "Project" },
+  { value: "has-recipe", label: "Has recipe" },
+  { value: "has-seed", label: "Has seed" },
 ];
 
 interface MediaToolbarProps {
@@ -47,6 +52,15 @@ interface MediaToolbarProps {
   onRefresh: () => void;
   refreshing: boolean;
   totalCount: number;
+  // Phase 2B:
+  availableProjects?: Array<{ id: string; name: string }>;
+  bulkProjectId?: string;
+  onBulkProjectIdChange?: (id: string) => void;
+  onBatchAssignProject?: () => void;
+  onBatchAddTag?: () => void;
+  onBatchExport?: () => void;
+  onBatchCompare?: () => void;
+  compareReady?: boolean;
 }
 
 export function MediaToolbar({
@@ -68,8 +82,21 @@ export function MediaToolbar({
   onRefresh,
   refreshing,
   totalCount,
+  availableProjects,
+  bulkProjectId,
+  onBulkProjectIdChange,
+  onBatchAssignProject,
+  onBatchAddTag,
+  onBatchExport,
+  onBatchCompare,
+  compareReady,
 }: MediaToolbarProps) {
   const allFavorited = selectedItems.length > 0 && selectedItems.every((item) => item.favorite);
+  const hasSelection = selectedIds.size > 0;
+  const projectOptions = [
+    { value: "", label: "Unassign" },
+    ...(availableProjects ?? []).map((p) => ({ value: p.id, label: p.name })),
+  ];
 
   return (
     <div className="flex flex-col gap-3 border-b border-border bg-surface px-5 py-3">
@@ -144,7 +171,10 @@ export function MediaToolbar({
       </div>
 
       {multiSelectMode && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface-elevated px-3 py-2">
+        <div
+          className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface-elevated px-3 py-2"
+          data-testid="bulk-action-toolbar"
+        >
           <span className="text-[12px] text-text-secondary">
             {selectedIds.size} selected
             {selectedItems.length > 0 && (
@@ -156,10 +186,11 @@ export function MediaToolbar({
               </>
             )}
           </span>
-          <div className="ml-auto flex flex-wrap gap-1.5">
+          <div className="ml-auto flex flex-wrap items-center gap-1.5">
             <button
               type="button"
               onClick={onSelectAll}
+              data-testid="bulk-select-all"
               className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
             >
               Select all
@@ -167,14 +198,76 @@ export function MediaToolbar({
             <button
               type="button"
               onClick={onClearSelection}
+              data-testid="bulk-clear-selection"
               className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
             >
               Clear
             </button>
+            {onBatchCompare && (
+              <button
+                type="button"
+                onClick={onBatchCompare}
+                disabled={!compareReady}
+                data-testid="bulk-compare"
+                className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Compare
+              </button>
+            )}
+            {onBatchExport && (
+              <button
+                type="button"
+                onClick={onBatchExport}
+                disabled={!hasSelection}
+                data-testid="bulk-export"
+                className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
+              >
+                Export
+              </button>
+            )}
+            {onBatchAddTag && (
+              <button
+                type="button"
+                onClick={onBatchAddTag}
+                disabled={!hasSelection}
+                data-testid="bulk-add-tag"
+                className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
+              >
+                Add tag
+              </button>
+            )}
+            {onBulkProjectIdChange && (
+              <label className="flex items-center gap-1 text-[11px] text-text-muted">
+                <span>Project</span>
+                <select
+                  value={bulkProjectId ?? ""}
+                  onChange={(e) => onBulkProjectIdChange(e.target.value)}
+                  disabled={!hasSelection}
+                  data-testid="bulk-project-select"
+                  className="rounded-md border border-border bg-surface-elevated px-2 py-1 text-[12px] text-text-primary focus:border-accent focus:outline-none disabled:opacity-30"
+                >
+                  {projectOptions.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {onBatchAssignProject && (
+              <button
+                type="button"
+                onClick={onBatchAssignProject}
+                disabled={!hasSelection}
+                data-testid="bulk-assign-project"
+                className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
+              >
+                Apply
+              </button>
+            )}
             <button
               type="button"
               onClick={onBatchFavorite}
-              disabled={selectedIds.size === 0}
+              disabled={!hasSelection}
+              data-testid="bulk-favorite"
               className="rounded-md border border-rose-400/30 px-2 py-1 text-[11px] text-rose-300 hover:bg-rose-500/10 disabled:opacity-30"
             >
               {allFavorited ? "Unfavorite" : "Favorite"}
@@ -182,7 +275,7 @@ export function MediaToolbar({
             <button
               type="button"
               onClick={onBatchUnfavorite}
-              disabled={selectedIds.size === 0}
+              disabled={!hasSelection}
               className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
             >
               Unstar
@@ -190,8 +283,9 @@ export function MediaToolbar({
             <button
               type="button"
               onClick={onBatchDelete}
-              disabled={selectedIds.size === 0}
-              className="rounded-md border border-danger/30 px-2 py-1 text-[11px] text-danger hover:bg-danger/10 disabled:opacity-30"
+              disabled={!hasSelection}
+              data-testid="bulk-delete"
+              className="rounded-md border border-danger/30 px-2 py-1 text-[11px] text-text-danger hover:bg-danger/10 disabled:opacity-30"
             >
               Delete
             </button>

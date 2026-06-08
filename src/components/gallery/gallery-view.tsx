@@ -1,14 +1,40 @@
 /** @fileoverview Media Studio — main grid + detail dialog + inspector surface.
- * The previous GalleryView's responsibilities (load IDB → list → download/delete)
- * have been split: this view is now a thin orchestrator over `useMediaStore`,
- * `MediaToolbar`, `MediaCard`, `MediaDetailDialog`, and `MediaInspector`.
+ * Phase 2B wiring: selection store, bulk actions, compare modal, lineage,
+ * send-to, export bundle, command-palette handler registration.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useMediaStore, filterMedia, searchMedia, sortMedia, type MediaFilter, type MediaSort } from "../../stores/media-store";
-import { useSettingsStore } from "../../stores/settings-store"; // for project scoping filter in Phase 1 hardening
+import {
+  useMediaStore,
+  filterMedia,
+  searchMedia,
+  sortMedia,
+  type MediaFilter,
+  type MediaSort,
+  type MediaDynamicFilter,
+  applyDynamicFilter,
+} from "../../stores/media-store";
+import { useSettingsStore } from "../../stores/settings-store";
 import { useImageWorkspaceStore } from "../../stores/image-workspace-store";
+import { useProjectStore } from "../../stores/project-store";
+import { useMediaSelectionStore, MEDIA_SELECTION_MAX } from "../../stores/media-selection-store";
+import { registerMediaCommandHandlers } from "../../stores/media-command-handlers";
 import { toast } from "../../stores/toast-store";
+import {
+  bulkAddTags,
+  bulkAssignProject,
+  bulkDelete,
+  bulkHasFailure,
+  bulkSetFavorite,
+  listAssignableProjects,
+} from "../../stores/media-bulk-actions";
+import {
+  buildExportBundle,
+  buildMediaFilename,
+  serialiseBundle,
+} from "../../stores/media-export-bundle";
+import { sendToChat, sendToImageStudio, sendToImageTools, sendToVideo } from "../../stores/media-send-to";
+import { copyText } from "../../stores/media-send-to";
 import {
   createRecipeHandoff,
   extractGenerationRecipe,
@@ -20,6 +46,8 @@ import { MediaToolbar } from "./media-toolbar";
 import { MediaCard } from "./media-card";
 import { MediaDetailDialog } from "./media-detail-dialog";
 import { MediaInspector } from "./media-inspector";
+import { CompareView } from "./compare-view";
+import { LineageViewer } from "./lineage-viewer";
 import type { MediaItem, MediaItemPatch } from "../../types/media";
 import { cn } from "../../lib/utils";
 
@@ -42,35 +70,129 @@ export function MediaStudioView() {
   const upsert = useMediaStore((state) => state.upsert);
   const patchRecord = useMediaStore((state) => state.patch);
   const remove = useMediaStore((state) => state.remove);
-  const removeMany = useMediaStore((state) => state.removeMany);
   const toggleFavorite = useMediaStore((state) => state.toggleFavorite);
-  const setFavoriteMany = useMediaStore((state) => state.setFavoriteMany);
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<MediaFilter>("all");
   const [sort, setSort] = useState<MediaSort>("newest");
   const [multiSelectMode, setMultiSelectMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [activeId, setActiveId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [inspectorId, setInspectorId] = useState<string | null>(null);
 
-  // Initial load. Refresh is idempotent and safe to call repeatedly.
-  // Use [] to prevent potential re-execution loops if the refresh action identity changes due to store updates (e.g. project scoping).
+  // Phase 2B: selection lives in the Zustand store. Local "select" callbacks
+  // delegate to it.
+  const selectedMediaIds = useMediaSelectionStore((s) => s.selectedMediaIds);
+
+  // Phase 2B dynamic filter (project / model / tag / operation). Phase 1
+  // project scoping still wins (it lives in activeProjectIdForMediaFilter).
+  // Model / tag dynamic filters are reserved for a future toolbar UI;
+  // the filterMedia + applyDynamicFilter plumbing is in place and
+  // tested, but no setter is exposed yet so the view only uses
+  // project-scope filtering today.
+  const [modelFilter] = useState<string | null>(null);
+  const [tagFilter] = useState<string | null>(null);
+
+  // Phase 2B: bulk action project picker.
+  const [bulkProjectId, setBulkProjectId] = useState<string>("");
+  // Phase 2B: bulk tag input.
+  const [bulkTagInput, setBulkTagInput] = useState<string>("");
+  // Phase 2B: compare + lineage modal triggers.
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [lineageOpen, setLineageOpen] = useState(false);
+
+  // Initial load.
   useEffect(() => {
     void refresh();
   }, []);
 
+  // Phase 2B: publish the visible (filtered) ids to the selection store
+  // so the Command Palette's "Select all visible" works without
+  // prop-drilling. Also reconcile the selection so items that leave
+  // the visible set are dropped.
   const projectFiltered = useMemo(() => {
     if (!activeProjectIdForMediaFilter) return items;
     return items.filter((it) => it.projectId === activeProjectIdForMediaFilter);
   }, [items, activeProjectIdForMediaFilter]);
 
+  const dynamicFiltered = useMemo(() => {
+    const dyn: MediaDynamicFilter = {
+      model: modelFilter,
+      tag: tagFilter,
+    };
+    return applyDynamicFilter(projectFiltered, dyn);
+  }, [projectFiltered, modelFilter, tagFilter]);
+
   const filtered = useMemo(() => {
-    const searched = searchMedia(projectFiltered, query);
+    const searched = searchMedia(dynamicFiltered, query);
     const filteredItems = filterMedia(searched, filter);
     return sortMedia(filteredItems, sort);
-  }, [projectFiltered, query, filter, sort]);
+  }, [dynamicFiltered, query, filter, sort]);
+
+  useEffect(() => {
+    useMediaSelectionStore.getState().setVisibleMediaIds(filtered.map((i) => i.id));
+  }, [filtered]);
+
+  // Phase 2B: register media command handlers with the Command Palette.
+  // The registry is module-level; the unsubscribe ensures handlers do
+  // not leak when the user navigates away from Media Studio.
+  useEffect(() => {
+    const cleanup = registerMediaCommandHandlers({
+      visibleIds: () => filtered.map((i) => i.id),
+      resolveItems: (ids) => useMediaStore.getState().items.filter((it) => ids.includes(it.id)),
+      isMediaActive: () => useSettingsStore.getState().activeTab === "media",
+      onSelectAllVisible: () => useMediaSelectionStore.getState().selectAllVisible(),
+      onClearSelection: () => useMediaSelectionStore.getState().clearSelection(),
+      onCompare: (_ids) => {
+        setCompareOpen(true);
+      },
+      onExport: (ids) => {
+        void runExport(ids);
+      },
+      onFavorite: async (ids) => {
+        const r = await bulkSetFavorite(ids, true);
+        if (bulkHasFailure(r)) toast.error(`Favorited ${r.succeeded.length} of ${r.requested}`);
+        else toast.success(`Favorited ${r.succeeded.length} item${r.succeeded.length === 1 ? "" : "s"}`);
+      },
+      onAddTag: (ids) => {
+        setBulkTagInput("");
+        const tag = prompt("Add tag to selected media:")?.trim().toLowerCase();
+        if (!tag) return;
+        runBulkAddTag(ids, [tag]);
+      },
+      onSendToImage: (ids) => {
+        const first = useMediaStore.getState().items.find((it) => it.id === ids[0]);
+        if (first) sendToImageStudio(first);
+      },
+      onCopyRecipe: async (ids) => {
+        const items = useMediaStore.getState().items.filter((it) => ids.includes(it.id));
+        const recipes = items
+          .map((it) => extractGenerationRecipe(it))
+          .filter((r): r is NonNullable<typeof r> => r !== null);
+        if (recipes.length === 0) {
+          toast.error("None of the selected items have a recipe.");
+          return;
+        }
+        const text = JSON.stringify(recipes, null, 2);
+        const ok = await copyText(text);
+        if (ok) toast.success(`Copied ${recipes.length} recipe${recipes.length === 1 ? "" : "s"}`);
+        else toast.error("Could not copy to clipboard.");
+      },
+    });
+    return cleanup
+  }, [filtered]);
+
+  // Active project list for the bulk project picker.
+  const projects = useProjectStore((s) => s.projects);
+  const availableProjects = useMemo(() => listAssignableProjects(projects), [projects]);
+
+  // Sync the project picker to the active project (default) so the
+  // first Apply just assigns everything to the current project.
+  useEffect(() => {
+    if (bulkProjectId === "" && activeProjectIdForMediaFilter) {
+      setBulkProjectId(activeProjectIdForMediaFilter)
+    }
+  }, [activeProjectIdForMediaFilter, bulkProjectId]);
 
   const detailItem = useMemo(
     () => items.find((candidate) => candidate.id === detailId) ?? null,
@@ -82,19 +204,8 @@ export function MediaStudioView() {
     [items, inspectorId],
   );
 
-  // BUG-008 regression guard: when the inspector's parent or children are
-  // not in the currently loaded page (e.g. the user has navigated to a
-  // newer page and the lineage spans an older page), fall back to a
-  // by-id IDB fetch. The `loadById` action on the store merges the
-  // fetched record into the in-memory cache so the next render of the
-  // inspector reads the canonical item. The effect is keyed on the
-  // parent id + inspected item id so it re-runs whenever the user
-  // inspects a different record or the in-memory cache is updated.
+  // BUG-008 lineage handling (unchanged from Phase 2A).
   const loadById = useMediaStore((state) => state.loadById);
-  // Dangling-ref recovery: child ids the IDB has confirmed are missing
-  // (loadById returned null). Used by the inspector's "Missing references"
-  // recovery section so the user can prune stale pointers in a single
-  // click. Cleared whenever the inspected record changes.
   const [missingChildIds, setMissingChildIds] = useState<string[]>([]);
   useEffect(() => {
     setMissingChildIds([]);
@@ -107,12 +218,6 @@ export function MediaStudioView() {
     }
   }, [inspectorItem, items, loadById])
 
-  // The `childrenIds` field is the authoritative lineage. The legacy
-  // in-memory `items.filter(parentId === id)` path can miss children
-  // that live on an unloaded page; load any missing child ids here. If
-  // a `loadById` returns null (the record truly does not exist in IDB),
-  // surface the id as a dangling ref so the inspector can offer a
-  // recovery action.
   useEffect(() => {
     if (!inspectorItem) return
     const missing = inspectorItem.childrenIds.filter(
@@ -141,10 +246,19 @@ export function MediaStudioView() {
     }
   }, [inspectorItem, items, loadById, missingChildIds])
 
+  // Phase 2B: selected items (resolved from ids).
   const selectedItems = useMemo(
-    () => items.filter((item) => selectedIds.has(item.id)),
-    [items, selectedIds],
+    () => items.filter((item) => selectedMediaIds.includes(item.id)),
+    [items, selectedMediaIds],
   );
+
+  // Phase 2B: clear / prune selection when items leave the loaded cache
+  // (e.g. after delete). The selection store's reconcileWithVisible
+  // handles the visible-set case; this handles the in-memory case.
+  useEffect(() => {
+    const visibleIds = filtered.map((i) => i.id)
+    useMediaSelectionStore.getState().reconcileWithVisible(visibleIds)
+  }, [filtered])
 
   // ---- Selection / active logic ----
 
@@ -154,15 +268,11 @@ export function MediaStudioView() {
   }, []);
 
   const handleSelect = useCallback((item: MediaItem, multi: boolean) => {
+    const store = useMediaSelectionStore.getState();
     if (multi) {
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        if (next.has(item.id)) next.delete(item.id);
-        else next.add(item.id);
-        return next;
-      });
+      store.toggleMedia(item.id);
     } else {
-      setSelectedIds(new Set([item.id]));
+      store.selectMedia(item.id);
       setActiveId(item.id);
     }
   }, []);
@@ -201,12 +311,11 @@ export function MediaStudioView() {
       const ok = await remove(item.id);
       if (ok) {
         toast.success("Removed from Media Studio");
-        setSelectedIds((prev) => {
-          if (!prev.has(item.id)) return prev;
-          const next = new Set(prev);
-          next.delete(item.id);
-          return next;
-        });
+        // Phase 2B: drop the deleted id from the selection so the
+        // bulk action toolbar does not operate on a ghost item.
+        useMediaSelectionStore.setState((s) => ({
+          selectedMediaIds: s.selectedMediaIds.filter((id) => id !== item.id),
+        }));
         if (detailId === item.id) setDetailId(null);
         if (inspectorId === item.id) setInspectorId(null);
         if (activeId === item.id) setActiveId(null);
@@ -217,50 +326,110 @@ export function MediaStudioView() {
   }, [remove, detailId, inspectorId, activeId]);
 
   const handleBatchDelete = useCallback(async () => {
-    if (selectedIds.size === 0) return;
-    if (!confirmAction(`Delete ${selectedIds.size} item${selectedIds.size === 1 ? "" : "s"}? This cannot be undone.`)) return;
+    if (selectedMediaIds.length === 0) return;
+    if (!confirmAction(`Delete ${selectedMediaIds.length} item${selectedMediaIds.length === 1 ? "" : "s"}? This cannot be undone.`)) return;
     try {
-      const removed = await removeMany(Array.from(selectedIds));
-      toast.success(`Removed ${removed} item${removed === 1 ? "" : "s"}`);
-      setSelectedIds(new Set());
+      const r = await bulkDelete(selectedMediaIds, { confirm: true });
+      if (bulkHasFailure(r)) {
+        toast.error(`Removed ${r.succeeded.length} of ${r.requested} (some failed)`);
+      } else {
+        toast.success(`Removed ${r.succeeded.length} item${r.succeeded.length === 1 ? "" : "s"}`);
+      }
     } catch (err) {
       toast.error("Batch delete failed", err instanceof Error ? err.message : String(err));
     }
-  }, [selectedIds, removeMany]);
+  }, [selectedMediaIds]);
 
   const handleBatchFavorite = useCallback(async () => {
-    if (selectedIds.size === 0) return;
-    const ids = Array.from(selectedIds);
-    const allFavorited = selectedItems.every((item) => item.favorite);
-    try {
-      await setFavoriteMany(ids, !allFavorited);
-      toast.success(allFavorited ? "Removed favorites" : "Marked as favorites");
-    } catch (err) {
-      toast.error("Batch favorite failed", err instanceof Error ? err.message : String(err));
-    }
-  }, [selectedIds, selectedItems, setFavoriteMany]);
+    if (selectedMediaIds.length === 0) return;
+    const allFavorited = selectedItems.length > 0 && selectedItems.every((item) => item.favorite);
+    const r = await bulkSetFavorite(selectedMediaIds, !allFavorited);
+    if (bulkHasFailure(r)) toast.error(`Updated ${r.succeeded.length} of ${r.requested}`);
+    else toast.success(allFavorited ? "Removed favorites" : "Marked as favorites");
+  }, [selectedMediaIds, selectedItems]);
 
   const handleBatchUnfavorite = useCallback(async () => {
-    if (selectedIds.size === 0) return;
-    try {
-      await setFavoriteMany(Array.from(selectedIds), false);
-      toast.success("Cleared favorites");
-    } catch (err) {
-      toast.error("Batch unfavorite failed", err instanceof Error ? err.message : String(err));
+    if (selectedMediaIds.length === 0) return;
+    const r = await bulkSetFavorite(selectedMediaIds, false);
+    if (bulkHasFailure(r)) toast.error(`Updated ${r.succeeded.length} of ${r.requested}`);
+    else toast.success("Cleared favorites");
+  }, [selectedMediaIds]);
+
+  const runBulkAddTag = useCallback(async (ids: string[], tags: string[]) => {
+    if (ids.length === 0 || tags.length === 0) return;
+    const r = await bulkAddTags(ids, tags);
+    if (bulkHasFailure(r)) toast.error(`Tagged ${r.succeeded.length} of ${r.requested}`);
+    else toast.success(`Tagged ${r.succeeded.length} item${r.succeeded.length === 1 ? "" : "s"}`);
+  }, []);
+
+  const handleBatchAddTag = useCallback(async () => {
+    if (selectedMediaIds.length === 0) return;
+    const tag = bulkTagInput.trim().toLowerCase();
+    if (!tag) {
+      toast.error("Enter a tag first.");
+      return;
     }
-  }, [selectedIds, setFavoriteMany]);
+    await runBulkAddTag(selectedMediaIds, [tag]);
+    setBulkTagInput("");
+  }, [selectedMediaIds, bulkTagInput, runBulkAddTag]);
+
+  const handleBatchAssignProject = useCallback(async () => {
+    if (selectedMediaIds.length === 0) return;
+    const projectId = bulkProjectId === "" ? null : bulkProjectId;
+    const r = await bulkAssignProject(selectedMediaIds, projectId, { projects });
+    if (bulkHasFailure(r)) {
+      const firstReason = r.failed[0]?.reason ?? "Unknown error";
+      toast.error(`Assigned ${r.succeeded.length} of ${r.requested} (${firstReason})`);
+    } else {
+      toast.success(`Assigned ${r.succeeded.length} item${r.succeeded.length === 1 ? "" : "s"}`);
+    }
+  }, [selectedMediaIds, bulkProjectId, projects]);
 
   const handleSelectAll = useCallback(() => {
-    setSelectedIds(new Set(filtered.map((item) => item.id)));
+    useMediaSelectionStore.getState().selectAllVisible(filtered.map((i) => i.id));
   }, [filtered]);
 
   const handleClearSelection = useCallback(() => {
-    setSelectedIds(new Set());
+    useMediaSelectionStore.getState().clearSelection();
   }, []);
+
+  const handleBatchCompare = useCallback(() => {
+    setCompareOpen(true);
+  }, []);
+
+  const handleBatchExport = useCallback(() => {
+    void runExport(selectedMediaIds);
+  }, [selectedMediaIds]);
+
+  // Phase 2B: export the selected media as a JSON bundle (browser side).
+  // The renderer never gets filesystem access; we trigger a download via
+  // the same Blob+anchor path the inspector already uses.
+  const runExport = useCallback(async (ids: string[]) => {
+    if (ids.length === 0) {
+      toast.error("Select at least one media item.")
+      return
+    }
+    const exportItems = items.filter((it) => ids.includes(it.id))
+    const bundle = buildExportBundle(exportItems)
+    const json = serialiseBundle(bundle)
+    const blob = new Blob([json], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `venice-forge-export-${new Date().toISOString().slice(0, 10)}.json`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 0)
+    // Sidecar list — the caller is expected to assemble the ZIP
+    // separately; we surface the per-item filename list so the user
+    // can pair the manifest with the media/ subdir.
+    const filenameList = exportItems.map((it) => buildMediaFilename(it)).join("\n")
+    toast.success(`Exported ${ids.length} item${ids.length === 1 ? "" : "s"}. Sidecar filenames:\n${filenameList}`)
+  }, [items]);
 
   // ---- Gallery handoff: image workspace ----
 
-  /** Builds a capability-safe recipe handoff and opens Image Studio. */
   const handoffToImageStudio = useCallback(
     (item: MediaItem, mode: RecipeHandoffMode, promptOverride?: string) => {
       const extracted = extractGenerationRecipe(item);
@@ -300,19 +469,15 @@ export function MediaStudioView() {
 
   const handleUseSanitizedRecipe = useCallback(
     (item: MediaItem) => {
-      // The compatibility card already sanitized the recipe for the
-      // currently selected target model. We perform a "use" handoff —
-      // the image-workspace applies the sanitized draft to Image Studio.
       if (handoffToImageStudio(item, "use")) toast.success("Recipe loaded into Image Studio");
       else toast.error("This media item has no reusable recipe");
     },
     [handoffToImageStudio],
   );
 
-  const handleExportRecipe = useCallback((item: MediaItem) => {
-    // The inspector already wrote the recipe JSON via Blob+download;
-    // this callback is here for the parent to observe / log if needed.
-    void item;
+  const handleExportRecipe = useCallback((_item: MediaItem) => {
+    // The inspector already wrote the recipe JSON via Blob+download.
+    void _item;
   }, []);
 
   const handleRegenerate = useCallback(
@@ -359,14 +524,45 @@ export function MediaStudioView() {
     [handoffToImageStudio],
   );
 
-  // Expose upsert on the window in dev so other components (image-view,
-  // video-view) can persist results without re-wiring the bridge. This is
-  // intentionally gated to a dev-only assignment and uses a typed hook to
-  // avoid leaking the store into unrelated code. The DEV guard is critical
-  // — without it this `useEffect` would attach a global on every production
-  // install (release builds) of Venice Forge. We resolve the flag via the
-  // same defensive cast pattern used in `src/shared/logger.ts` so the file
-  // remains typecheckable without a project-wide `vite/client` reference.
+  // Phase 2B: send-to handlers that route through the canonical
+  // (and capability-checked) media-send-to module.
+  const handleSendToImageStudio = useCallback((item: MediaItem) => {
+    const r = sendToImageStudio(item);
+    if (r.ok) toast.success("Sent to Image Studio");
+    else toast.error(r.reason ?? "Could not send to Image Studio");
+  }, []);
+  const handleSendToImageTools = useCallback((item: MediaItem) => {
+    const r = sendToImageTools(item, "edit");
+    if (r.ok) toast.success("Sent to Image Tools");
+    else toast.error(r.reason ?? "Could not send to Image Tools");
+  }, []);
+  const handleSendToChat = useCallback((item: MediaItem) => {
+    const r = sendToChat(item);
+    if (r.ok) toast.success("Created new chat with prompt copied");
+    else toast.error(r.reason ?? "Could not send to Chat");
+  }, []);
+  const handleSendToVideo = useCallback((item: MediaItem) => {
+    const r = sendToVideo(item);
+    if (r.ok) toast.success("Sent to Video Studio");
+    else toast.error(r.reason ?? "Could not send to Video Studio");
+  }, []);
+  const handleCopyPrompt = useCallback(async (item: MediaItem) => {
+    if (await copyText(item.prompt ?? "")) toast.success("Prompt copied");
+    else toast.error("Could not copy prompt");
+  }, []);
+  const handleCopyNegative = useCallback(async (item: MediaItem) => {
+    if (await copyText(item.negative ?? "")) toast.success("Negative copied");
+    else toast.error("Could not copy negative");
+  }, []);
+  const handleCopySeed = useCallback(async (item: MediaItem) => {
+    if (typeof item.seed !== "number") {
+      toast.error("No seed recorded")
+      return
+    }
+    if (await copyText(String(item.seed))) toast.success("Seed copied")
+  }, []);
+
+  // DEV-only window hook (unchanged).
   useEffect(() => {
     if (typeof window === "undefined") return;
     const meta = (import.meta as unknown as { env?: { DEV?: boolean; MODE?: string } });
@@ -393,7 +589,7 @@ export function MediaStudioView() {
         </div>
         <div className="text-[11.5px] text-text-muted">
           {items.length} of {totalCount} item{totalCount === 1 ? "" : "s"} loaded
-          {selectedIds.size > 0 && <> · {selectedIds.size} selected</>}
+          {selectedMediaIds.length > 0 && <> · {selectedMediaIds.length} selected</>}
         </div>
       </header>
 
@@ -407,9 +603,9 @@ export function MediaStudioView() {
         multiSelectMode={multiSelectMode}
         onToggleMultiSelect={() => {
           setMultiSelectMode((prev) => !prev);
-          if (multiSelectMode) setSelectedIds(new Set());
+          if (multiSelectMode) useMediaSelectionStore.getState().clearSelection();
         }}
-        selectedIds={selectedIds}
+        selectedIds={new Set(selectedMediaIds)}
         selectedItems={selectedItems}
         onSelectAll={handleSelectAll}
         onClearSelection={handleClearSelection}
@@ -419,6 +615,14 @@ export function MediaStudioView() {
         onRefresh={() => void refresh()}
         refreshing={loading}
         totalCount={filtered.length}
+        availableProjects={availableProjects}
+        bulkProjectId={bulkProjectId}
+        onBulkProjectIdChange={setBulkProjectId}
+        onBatchAssignProject={handleBatchAssignProject}
+        onBatchAddTag={handleBatchAddTag}
+        onBatchExport={handleBatchExport}
+        onBatchCompare={handleBatchCompare}
+        compareReady={selectedMediaIds.length >= 2 && selectedMediaIds.length <= MEDIA_SELECTION_MAX}
       />
 
       {lastError && (
@@ -459,13 +663,13 @@ export function MediaStudioView() {
                 >
                   <MediaCard
                     item={item}
-                    selected={selectedIds.has(item.id)}
+                    selected={selectedMediaIds.includes(item.id)}
                     active={activeId === item.id}
                     multiSelectMode={multiSelectMode}
                     onSelect={handleSelect}
                     onOpen={(it) => {
                       if (multiSelectMode) {
-                        handleSelect(it, true);
+                        useMediaSelectionStore.getState().toggleMedia(it.id);
                       } else {
                         handleOpenDetail(it);
                       }
@@ -534,6 +738,182 @@ export function MediaStudioView() {
           <span>{selectedItems.length} items selected.</span>
         )}
       </div>
+
+      {/* Phase 2B: Compare modal */}
+      {compareOpen && (
+        <div
+          className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 p-6"
+          data-testid="compare-modal"
+          onClick={() => setCompareOpen(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="max-h-[80vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-border bg-surface p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CompareView
+              items={selectedItems}
+              onClose={() => setCompareOpen(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Phase 2B: Lineage modal */}
+      {lineageOpen && inspectorItem && (
+        <div
+          className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 p-6"
+          data-testid="lineage-modal"
+          onClick={() => setLineageOpen(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-border bg-surface p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <LineageViewer
+              item={inspectorItem}
+              items={items}
+              onOpenItem={(it) => setInspectorId(it.id)}
+            />
+            <div className="mt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setLineageOpen(false)}
+                className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 2B: Bulk tag input row (only visible in multi-select mode
+          when items are selected). Surfaces an inline tag entry so the
+          user does not have to use the prompt()-based flow. */}
+      {multiSelectMode && selectedMediaIds.length > 0 && (
+        <div className="border-t border-border bg-surface px-5 py-2 flex items-center gap-2 text-[11.5px]">
+          <label className="text-text-muted">Quick tag:</label>
+          <input
+            type="text"
+            value={bulkTagInput}
+            onChange={(e) => setBulkTagInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void handleBatchAddTag();
+              }
+            }}
+            placeholder="hero, landscape, …"
+            data-testid="bulk-tag-input"
+            className="flex-1 rounded-md border border-border bg-surface-elevated px-2 py-1 text-[12px] text-text-primary focus:border-accent focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => void handleBatchAddTag()}
+            disabled={!bulkTagInput.trim()}
+            data-testid="bulk-tag-apply"
+            className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
+          >
+            Apply
+          </button>
+        </div>
+      )}
+
+      {/* Phase 2B: Lineage + Send-to panel for the inspector. Hidden by
+          default; the inspector renders its own comparison card and
+          recipe actions. This panel is a top-level launcher for the
+          new Compare + Lineage modals and a send-to menu. */}
+      {inspectorItem && (
+        <div className="border-t border-border bg-surface px-5 py-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+          <button
+            type="button"
+            onClick={() => setCompareOpen(true)}
+            disabled={selectedMediaIds.length < 2 || selectedMediaIds.length > MEDIA_SELECTION_MAX}
+            data-testid="open-compare"
+            className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
+          >
+            Compare ({selectedMediaIds.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setLineageOpen(true)}
+            data-testid="open-lineage"
+            className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
+          >
+            Lineage
+          </button>
+          <span className="mx-1 text-text-muted/60">·</span>
+          <span className="text-text-muted">Send to:</span>
+          <button
+            type="button"
+            onClick={() => handleSendToImageStudio(inspectorItem)}
+            data-testid="send-to-image"
+            className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
+          >
+            Image Studio
+          </button>
+          {inspectorItem.mediaType !== "video" && (
+            <button
+              type="button"
+              onClick={() => handleSendToImageTools(inspectorItem)}
+              data-testid="send-to-tools"
+              className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
+            >
+              Image Tools
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => handleSendToChat(inspectorItem)}
+            data-testid="send-to-chat"
+            className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
+          >
+            Chat
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSendToVideo(inspectorItem)}
+            data-testid="send-to-video"
+            className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
+          >
+            Video Studio
+          </button>
+          <span className="mx-1 text-text-muted/60">·</span>
+          <span className="text-text-muted">Copy:</span>
+          <button
+            type="button"
+            onClick={() => void handleCopyPrompt(inspectorItem)}
+            data-testid="copy-prompt"
+            className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
+          >
+            Prompt
+          </button>
+          {inspectorItem.negative && (
+            <button
+              type="button"
+              onClick={() => void handleCopyNegative(inspectorItem)}
+              data-testid="copy-negative"
+              className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
+            >
+              Negative
+            </button>
+          )}
+          {typeof inspectorItem.seed === "number" && (
+            <button
+              type="button"
+              onClick={() => void handleCopySeed(inspectorItem)}
+              data-testid="copy-seed"
+              className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
+            >
+              Seed
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

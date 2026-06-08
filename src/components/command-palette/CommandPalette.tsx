@@ -1,11 +1,13 @@
-/** @fileoverview Phase 1 Command Palette.
+/** @fileoverview Phase 1 + Phase 2B Command Palette.
  * Trigger: Cmd+K / Ctrl+K via this component's mounted listener.
  * Supports:
  *  - Quick tab switching (uses the canonical TAB_REGISTRY)
  *  - "New project" action (creates via project-store + activates)
  *  - Close on Escape or clicking outside.
- *
- * Recipe commands are intentionally absent until selected-recipe context exists.
+ *  - Phase 2B: selection-aware Media Studio commands (Select all,
+ *    Clear, Compare, Export, Favorite, Add tag, Send to Image, Copy
+ *    recipe). These are hidden when the Media Studio has not
+ *    registered command handlers.
  */
 
 import React, { useEffect, useState } from 'react'
@@ -13,6 +15,8 @@ import { useSettingsStore } from '../../stores/settings-store'
 import { useProjectStore } from '../../stores/project-store'
 import { TAB_REGISTRY, type TabId } from '../../config/tabs'
 import { toast } from '../../stores/toast-store'
+import { useMediaSelectionStore, MEDIA_SELECTION_MAX } from '../../stores/media-selection-store'
+import { getMediaCommandHandlers, hasMediaCommandHandlers, subscribeMediaCommandHandlers } from '../../stores/media-command-handlers'
 
 interface CommandPaletteProps {
   open: boolean
@@ -23,6 +27,17 @@ interface CommandPaletteProps {
 export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
   const setActiveTab = useSettingsStore((s) => s.setActiveTab)
+  const selectionCount = useMediaSelectionStore((s) => s.selectedMediaIds.length)
+  const isCompareReady = useMediaSelectionStore((s) =>
+    s.selectedMediaIds.length >= 2 && s.selectedMediaIds.length <= MEDIA_SELECTION_MAX,
+  )
+  // Subscribe to the handlers registry so the media section appears
+  // / disappears as the user moves between tabs.
+  const [hasMediaHandlers, setHasMediaHandlers] = useState(hasMediaCommandHandlers)
+  useEffect(() => {
+    setHasMediaHandlers(hasMediaCommandHandlers())
+    return subscribeMediaCommandHandlers(() => setHasMediaHandlers(hasMediaCommandHandlers()))
+  }, [])
 
   // Close on Escape
   useEffect(() => {
@@ -58,6 +73,63 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
     const p = await useProjectStore.getState().createProject(name)
     useProjectStore.getState().setActiveProject(p.id)
     toast.success(`Created project "${p.name}"`)
+    onClose()
+    setQuery('')
+  }
+
+  // Media Studio command helpers. The palette reads handlers live
+  // (not via a subscription) so the registry change is picked up
+  // on the next render via the polling effect above.
+  const runMediaCommand = (kind: 'select-all' | 'clear' | 'compare' | 'export' | 'favorite' | 'add-tag' | 'send-image' | 'copy-recipe') => () => {
+    const handlers = getMediaCommandHandlers()
+    if (!handlers) {
+      toast.error('This command is only available in the Media Studio.')
+      return
+    }
+    const store = useMediaSelectionStore.getState()
+    if (kind === 'select-all') {
+      handlers.onSelectAllVisible?.()
+      toast.success('Selected all visible media')
+    } else if (kind === 'clear') {
+      handlers.onClearSelection?.()
+      toast.success('Cleared media selection')
+    } else if (kind === 'compare') {
+      if (store.selectedMediaIds.length < 2 || store.selectedMediaIds.length > MEDIA_SELECTION_MAX) {
+        toast.error(`Select 2 to ${MEDIA_SELECTION_MAX} items to compare.`)
+        return
+      }
+      handlers.onCompare?.(store.selectedMediaIds)
+    } else if (kind === 'export') {
+      if (store.selectedMediaIds.length === 0) {
+        toast.error('Select at least one media item to export.')
+        return
+      }
+      handlers.onExport?.(store.selectedMediaIds)
+    } else if (kind === 'favorite') {
+      if (store.selectedMediaIds.length === 0) {
+        toast.error('Select at least one media item.')
+        return
+      }
+      handlers.onFavorite?.(store.selectedMediaIds)
+    } else if (kind === 'add-tag') {
+      if (store.selectedMediaIds.length === 0) {
+        toast.error('Select at least one media item.')
+        return
+      }
+      handlers.onAddTag?.(store.selectedMediaIds)
+    } else if (kind === 'send-image') {
+      if (store.selectedMediaIds.length === 0) {
+        toast.error('Select at least one media item.')
+        return
+      }
+      handlers.onSendToImage?.(store.selectedMediaIds)
+    } else if (kind === 'copy-recipe') {
+      if (store.selectedMediaIds.length === 0) {
+        toast.error('Select at least one media item.')
+        return
+      }
+      handlers.onCopyRecipe?.(store.selectedMediaIds)
+    }
     onClose()
     setQuery('')
   }
@@ -121,6 +193,79 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
           >
             Switch / Open Current Project
           </button>
+
+          {/* Phase 2B: selection-aware Media Studio commands. Rendered
+              only when the gallery-view has registered its handlers. */}
+          {hasMediaHandlers && (
+            <div data-testid="command-palette-media-section">
+              <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border mt-1">
+                Media Studio ({selectionCount} selected)
+              </div>
+              <button
+                onClick={runMediaCommand('select-all')}
+                className="w-full text-left px-3 py-1.5 hover:bg-background"
+                data-testid="command-palette-select-all"
+              >
+                Select All Visible Media
+              </button>
+              <button
+                onClick={runMediaCommand('clear')}
+                disabled={selectionCount === 0}
+                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed"
+                data-testid="command-palette-clear-selection"
+              >
+                Clear Media Selection
+              </button>
+              <button
+                onClick={runMediaCommand('compare')}
+                disabled={!isCompareReady}
+                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed"
+                data-testid="command-palette-compare"
+              >
+                Compare Selected Media
+              </button>
+              <button
+                onClick={runMediaCommand('export')}
+                disabled={selectionCount === 0}
+                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed"
+                data-testid="command-palette-export"
+              >
+                Export Selected Media
+              </button>
+              <button
+                onClick={runMediaCommand('favorite')}
+                disabled={selectionCount === 0}
+                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed"
+                data-testid="command-palette-favorite"
+              >
+                Favorite Selected Media
+              </button>
+              <button
+                onClick={runMediaCommand('add-tag')}
+                disabled={selectionCount === 0}
+                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed"
+                data-testid="command-palette-add-tag"
+              >
+                Add Tag to Selected Media
+              </button>
+              <button
+                onClick={runMediaCommand('send-image')}
+                disabled={selectionCount === 0}
+                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed"
+                data-testid="command-palette-send-image"
+              >
+                Send Selected to Image Studio
+              </button>
+              <button
+                onClick={runMediaCommand('copy-recipe')}
+                disabled={selectionCount === 0}
+                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed"
+                data-testid="command-palette-copy-recipe"
+              >
+                Copy Selected Recipe JSON
+              </button>
+            </div>
+          )}
 
           <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border mt-1">System</div>
           <button

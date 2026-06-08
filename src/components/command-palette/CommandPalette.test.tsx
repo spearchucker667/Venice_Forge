@@ -1,7 +1,7 @@
-/** @fileoverview VERIFY-042 mounted Command Palette contracts. */
+/** @fileoverview VERIFY-042 + VERIFY-044 mounted Command Palette contracts. */
 
 import '@testing-library/jest-dom/vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { TAB_REGISTRY } from '../../config/tabs'
@@ -74,5 +74,229 @@ describe('CommandPalette', () => {
     view.unmount()
     fireEvent.keyDown(window, { key: 'k', metaKey: true })
     expect(onToggle).not.toHaveBeenCalled()
+  })
+})
+
+// Phase 2B: VERIFY-044 selection-aware Media Studio commands
+import { useMediaSelectionStore, MEDIA_SELECTION_MAX } from '../../stores/media-selection-store'
+import { registerMediaCommandHandlers, getMediaCommandHandlers } from '../../stores/media-command-handlers'
+import { MEDIA_ITEM_VERSION, type MediaItem } from '../../types/media'
+
+function makeItem(over: Partial<MediaItem> = {}, id = "m-1"): MediaItem {
+  return {
+    id,
+    image: "data:image/png;base64,AA",
+    prompt: "p",
+    model: "flux-dev",
+    timestamp: 1,
+    mediaType: "image",
+    operation: "generate",
+    parentId: null,
+    childrenIds: [],
+    tags: [],
+    note: "",
+    favorite: false,
+    mediaItemVersion: MEDIA_ITEM_VERSION,
+    ...over,
+  } as MediaItem
+}
+
+describe("CommandPalette — Phase 2B selection-aware Media Studio commands", () => {
+  beforeEach(() => {
+    useMediaSelectionStore.setState({
+      selectedMediaIds: [],
+      focusedMediaId: null,
+      lastSelectedMediaId: null,
+      visibleMediaIds: [],
+    })
+  })
+
+  afterEach(() => {
+    registerMediaCommandHandlers({
+      visibleIds: () => [],
+      resolveItems: () => [],
+      isMediaActive: () => false,
+    })()
+  })
+
+  it("does NOT render media commands when no handlers are registered", () => {
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    expect(screen.queryByTestId("command-palette-media-section")).toBeNull()
+  })
+
+  it("renders media commands once handlers are registered", () => {
+    registerMediaCommandHandlers({
+      visibleIds: () => ["a", "b"],
+      resolveItems: () => [makeItem({}, "a"), makeItem({}, "b")],
+      isMediaActive: () => true,
+      onSelectAllVisible: vi.fn(),
+    })
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    expect(screen.getByTestId("command-palette-media-section")).toBeInTheDocument()
+    expect(screen.getByTestId("command-palette-select-all")).toBeInTheDocument()
+  })
+
+  it("Clear / Compare / Export / Favorite / Add tag / Send / Copy are disabled when nothing is selected", () => {
+    registerMediaCommandHandlers({
+      visibleIds: () => ["a"],
+      resolveItems: () => [makeItem({}, "a")],
+      isMediaActive: () => true,
+    })
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    const disabled = [
+      "command-palette-clear-selection",
+      "command-palette-compare",
+      "command-palette-export",
+      "command-palette-favorite",
+      "command-palette-add-tag",
+      "command-palette-send-image",
+      "command-palette-copy-recipe",
+    ]
+    for (const id of disabled) {
+      const btn = screen.getByTestId(id) as HTMLButtonElement
+      expect(btn.disabled).toBe(true)
+    }
+  })
+
+  it("Compare requires 2..4 selected", () => {
+    registerMediaCommandHandlers({
+      visibleIds: () => ["a", "b", "c", "d", "e"],
+      resolveItems: () => ["a", "b", "c", "d", "e"].map((i) => makeItem({}, i)),
+      isMediaActive: () => true,
+      onCompare: vi.fn(),
+    })
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    // 1 selected → still disabled
+    act(() => { useMediaSelectionStore.getState().selectMedia("a") })
+    expect((screen.getByTestId("command-palette-compare") as HTMLButtonElement).disabled).toBe(true)
+    // 2 selected → enabled
+    act(() => { useMediaSelectionStore.getState().toggleMedia("b") })
+    expect((screen.getByTestId("command-palette-compare") as HTMLButtonElement).disabled).toBe(false)
+    // 3 selected → still enabled
+    act(() => { useMediaSelectionStore.getState().toggleMedia("c") })
+    expect((screen.getByTestId("command-palette-compare") as HTMLButtonElement).disabled).toBe(false)
+    // 4 selected (max) → still enabled
+    act(() => { useMediaSelectionStore.getState().toggleMedia("d") })
+    expect((screen.getByTestId("command-palette-compare") as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it("Select all invokes onSelectAllVisible with the visible ids", () => {
+    const onSelectAllVisible = vi.fn()
+    registerMediaCommandHandlers({
+      visibleIds: () => ["a", "b", "c"],
+      resolveItems: () => ["a", "b", "c"].map((i) => makeItem({}, i)),
+      isMediaActive: () => true,
+      onSelectAllVisible,
+    })
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    fireEvent.click(screen.getByTestId("command-palette-select-all"))
+    expect(onSelectAllVisible).toHaveBeenCalledTimes(1)
+  })
+
+  it("Export requires at least one selected", () => {
+    const onExport = vi.fn()
+    registerMediaCommandHandlers({
+      visibleIds: () => ["a", "b"],
+      resolveItems: () => ["a", "b"].map((i) => makeItem({}, i)),
+      isMediaActive: () => true,
+      onExport,
+    })
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    expect((screen.getByTestId("command-palette-export") as HTMLButtonElement).disabled).toBe(true)
+    act(() => { useMediaSelectionStore.getState().selectMedia("a") })
+    expect((screen.getByTestId("command-palette-export") as HTMLButtonElement).disabled).toBe(false)
+    fireEvent.click(screen.getByTestId("command-palette-export"))
+    expect(onExport).toHaveBeenCalledWith(["a"])
+  })
+
+  it("Send Selected to Image routes via the registered handler", () => {
+    const onSendToImage = vi.fn()
+    registerMediaCommandHandlers({
+      visibleIds: () => ["a"],
+      resolveItems: () => [makeItem({}, "a")],
+      isMediaActive: () => true,
+      onSendToImage,
+    })
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    act(() => { useMediaSelectionStore.getState().selectMedia("a") })
+    fireEvent.click(screen.getByTestId("command-palette-send-image"))
+    expect(onSendToImage).toHaveBeenCalledWith(["a"])
+  })
+
+  it("Copy Selected Recipe JSON invokes onCopyRecipe", () => {
+    const onCopyRecipe = vi.fn()
+    registerMediaCommandHandlers({
+      visibleIds: () => ["a", "b"],
+      resolveItems: () => ["a", "b"].map((i) => makeItem({}, i)),
+      isMediaActive: () => true,
+      onCopyRecipe,
+    })
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    act(() => {
+      useMediaSelectionStore.getState().selectMedia("a")
+      useMediaSelectionStore.getState().toggleMedia("b")
+    })
+    fireEvent.click(screen.getByTestId("command-palette-copy-recipe"))
+    expect(onCopyRecipe).toHaveBeenCalledWith(["a", "b"])
+  })
+
+  it("Favorite Selected Media invokes onFavorite", () => {
+    const onFavorite = vi.fn()
+    registerMediaCommandHandlers({
+      visibleIds: () => ["a"],
+      resolveItems: () => [makeItem({}, "a")],
+      isMediaActive: () => true,
+      onFavorite,
+    })
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    act(() => { useMediaSelectionStore.getState().selectMedia("a") })
+    fireEvent.click(screen.getByTestId("command-palette-favorite"))
+    expect(onFavorite).toHaveBeenCalledWith(["a"])
+  })
+
+  it("Add Tag to Selected Media invokes onAddTag", () => {
+    const onAddTag = vi.fn()
+    registerMediaCommandHandlers({
+      visibleIds: () => ["a"],
+      resolveItems: () => [makeItem({}, "a")],
+      isMediaActive: () => true,
+      onAddTag,
+    })
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    act(() => { useMediaSelectionStore.getState().selectMedia("a") })
+    fireEvent.click(screen.getByTestId("command-palette-add-tag"))
+    expect(onAddTag).toHaveBeenCalledWith(["a"])
+  })
+
+  it("Compare invokes onCompare when 2 selected", () => {
+    const onCompare = vi.fn()
+    registerMediaCommandHandlers({
+      visibleIds: () => ["a", "b"],
+      resolveItems: () => ["a", "b"].map((i) => makeItem({}, i)),
+      isMediaActive: () => true,
+      onCompare,
+    })
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    act(() => {
+      useMediaSelectionStore.getState().selectMedia("a")
+      useMediaSelectionStore.getState().toggleMedia("b")
+    })
+    fireEvent.click(screen.getByTestId("command-palette-compare"))
+    expect(onCompare).toHaveBeenCalledWith(["a", "b"])
+  })
+
+  it("clear handler is registered and accepts the registered cleanup", () => {
+    const cleanup = registerMediaCommandHandlers({
+      visibleIds: () => [],
+      resolveItems: () => [],
+      isMediaActive: () => true,
+    })
+    expect(getMediaCommandHandlers()).toBeTruthy()
+    cleanup()
+    expect(getMediaCommandHandlers()).toBeNull()
+  })
+
+  it("MEDIA_SELECTION_MAX is exported and is 4", () => {
+    expect(MEDIA_SELECTION_MAX).toBe(4)
   })
 })

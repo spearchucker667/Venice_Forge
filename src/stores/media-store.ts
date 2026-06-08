@@ -332,7 +332,14 @@ export const selectParent = (state: MediaState, id: string) => {
 }
 
 /** Lightweight filter/sort helpers, exported so views and tests can share them. */
-export type MediaSort = "newest" | "oldest" | "model" | "size"
+export type MediaSort =
+  | "newest"
+  | "oldest"
+  | "model"
+  | "size"
+  | "project"
+  | "has-recipe"
+  | "has-seed"
 export type MediaFilter =
   | "all"
   | "image"
@@ -343,6 +350,43 @@ export type MediaFilter =
   | "has-recipe"
   | "no-recipe"
   | "has-seed"
+  | "no-seed"
+  | "no-project"
+
+/** Phase 2B hard-filter options. These complement the categorical
+ *  MediaFilter with dynamic-value filters (e.g. project id) that the
+ *  toolbar can populate from the live project list. The view merges
+ *  the static + dynamic filters into a single composed query. */
+export interface MediaDynamicFilter {
+  projectId?: string | null;
+  model?: string | null;
+  tag?: string | null;
+  operation?: string | null;
+}
+
+export function applyDynamicFilter(
+  items: MediaItem[],
+  dynamic: MediaDynamicFilter | null | undefined,
+): MediaItem[] {
+  if (!dynamic) return items;
+  let out = items;
+  if (dynamic.projectId !== undefined && dynamic.projectId !== null) {
+    out = out.filter((it) => it.projectId === dynamic.projectId);
+  }
+  if (dynamic.model !== undefined && dynamic.model !== null) {
+    out = out.filter((it) => it.model === dynamic.model);
+  }
+  if (dynamic.tag !== undefined && dynamic.tag !== null) {
+    const normalised = dynamic.tag.trim().toLowerCase();
+    if (normalised.length > 0) {
+      out = out.filter((it) => it.tags.includes(normalised));
+    }
+  }
+  if (dynamic.operation !== undefined && dynamic.operation !== null) {
+    out = out.filter((it) => it.operation === dynamic.operation);
+  }
+  return out;
+}
 
 export function filterMedia(items: MediaItem[], filter: MediaFilter): MediaItem[] {
   switch (filter) {
@@ -364,6 +408,10 @@ export function filterMedia(items: MediaItem[], filter: MediaFilter): MediaItem[
       return items.filter((item) => !item.recipe)
     case "has-seed":
       return items.filter((item) => typeof item.seed === "number" && Number.isInteger(item.seed))
+    case "no-seed":
+      return items.filter((item) => typeof item.seed !== "number" || !Number.isInteger(item.seed))
+    case "no-project":
+      return items.filter((item) => !item.projectId)
     default:
       return items
   }
@@ -389,6 +437,34 @@ export function sortMedia(items: MediaItem[], sort: MediaSort): MediaItem[] {
       })
       break
     }
+    case "project":
+      // Stable: by projectId (ascending), then by timestamp (newest first)
+      // so unscoped media sit at the bottom of each project bucket.
+      out.sort((a, b) => {
+        const ap = a.projectId ?? ""
+        const bp = b.projectId ?? ""
+        if (ap !== bp) return ap.localeCompare(bp)
+        return b.timestamp - a.timestamp
+      })
+      break
+    case "has-recipe":
+      // Items with a recipe first; nulls last; within each bucket by
+      // timestamp (newest first).
+      out.sort((a, b) => {
+        const ar = a.recipe ? 1 : 0
+        const br = b.recipe ? 1 : 0
+        if (ar !== br) return br - ar
+        return b.timestamp - a.timestamp
+      })
+      break
+    case "has-seed":
+      out.sort((a, b) => {
+        const as = typeof a.seed === "number" && Number.isInteger(a.seed) ? 1 : 0
+        const bs = typeof b.seed === "number" && Number.isInteger(b.seed) ? 1 : 0
+        if (as !== bs) return bs - as
+        return b.timestamp - a.timestamp
+      })
+      break
     default:
       out.sort((a, b) => b.timestamp - a.timestamp)
   }

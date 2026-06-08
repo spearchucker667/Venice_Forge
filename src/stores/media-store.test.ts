@@ -359,6 +359,37 @@ describe('media filter / sort / search', () => {
     expect(filterMedia(set, 'has-seed').map((i) => i.id)).toEqual(['s1'])
   })
 
+  it('filter by no-seed / no-project (Phase 2B)', () => {
+    const a: MediaItem = makeItem({ id: 'a', seed: 42, projectId: 'p1' })
+    const b: MediaItem = makeItem({ id: 'b', seed: undefined, projectId: 'p1' })
+    const c: MediaItem = makeItem({ id: 'c', seed: 99, projectId: undefined })
+    expect(filterMedia([a, b, c], 'no-seed').map((i) => i.id)).toEqual(['b'])
+    expect(filterMedia([a, b, c], 'no-project').map((i) => i.id)).toEqual(['c'])
+  })
+
+  it('applyDynamicFilter: projectId / model / tag / operation', async () => {
+    const { applyDynamicFilter } = await import('./media-store')
+    const a: MediaItem = makeItem({ id: 'a', model: 'flux-dev', projectId: 'p1', operation: 'generate', tags: ['hero'] })
+    const b: MediaItem = makeItem({ id: 'b', model: 'nano-banana-v1', projectId: 'p2', operation: 'edit', tags: ['landscape'] })
+    const c: MediaItem = makeItem({ id: 'c', model: 'flux-dev', projectId: 'p1', operation: 'upscale', tags: ['hero', 'portrait'] })
+    const set = [a, b, c]
+    expect(applyDynamicFilter(set, { projectId: 'p1' }).map((i) => i.id)).toEqual(['a', 'c'])
+    expect(applyDynamicFilter(set, { model: 'flux-dev' }).map((i) => i.id)).toEqual(['a', 'c'])
+    expect(applyDynamicFilter(set, { tag: 'hero' }).map((i) => i.id)).toEqual(['a', 'c'])
+    expect(applyDynamicFilter(set, { operation: 'edit' }).map((i) => i.id)).toEqual(['b'])
+    expect(applyDynamicFilter(set, null)).toEqual(set)
+  })
+
+  it('sort by project / has-recipe / has-seed is stable and deterministic', () => {
+    const a: MediaItem = makeItem({ id: 'a', projectId: 'p1', recipe: { prompt: 'x', model: 'flux-dev' }, seed: 1, timestamp: 3 })
+    const b: MediaItem = makeItem({ id: 'b', projectId: 'p2', seed: 2, timestamp: 1 })
+    const c: MediaItem = makeItem({ id: 'c', projectId: 'p1', seed: undefined, timestamp: 2 })
+    const set = [a, b, c]
+    expect(sortMedia(set, 'project').map((i) => i.id)).toEqual(['a', 'c', 'b']) // p1 first (a ts3 before c ts2), then p2
+    expect(sortMedia(set, 'has-recipe').map((i) => i.id)).toEqual(['a', 'c', 'b']) // a (recipe) first, then c ts2, then b ts1
+    expect(sortMedia(set, 'has-seed').map((i) => i.id)).toEqual(['a', 'b', 'c'])
+  })
+
   it('sort by model name', () => {
     const out = sortMedia(items, 'model')
     expect(out.map((i) => i.id)).toEqual(['1', '2', '3', '4'])

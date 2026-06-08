@@ -45,6 +45,7 @@
     "verify:archive-clean": "node scripts/verify-archive-clean.cjs",
     "verify:workspace-contracts": "vitest run src/services/dbMigrations.test.ts src/types/project.test.ts src/stores/project-store.test.ts src/stores/chat-store.character.test.ts src/stores/media-store.test.ts src/components/layout/sidebar.test.tsx src/components/command-palette/CommandPalette.test.tsx src/components/gallery/gallery-view.test.tsx src/components/image/image-view.test.tsx --fileParallelism=false",
     "verify:model-aware-recipes": "node scripts/verify-model-aware-recipes.cjs",
+    "verify:media-studio-power-tools": "node scripts/verify-media-studio-power-tools.cjs",
     "checksum:release": "node scripts/checksum-release.cjs",
     "lint": "npm run lint:eslint && npm run typecheck",
     "lint:eslint": "eslint src electron server.ts scripts --max-warnings=0",
@@ -60,7 +61,7 @@
     "dist:mac": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --publish never && npm run checksum:release",
     "dist:mac:arm64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --arm64 --publish never && npm run checksum:release",
     "dist:mac:x64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --x64 --publish never && npm run checksum:release",
-    "ci": "npm ci && npm run lint:eslint && npm run typecheck && npm test && npm run verify:safety-guard && npm run verify:markdown-links && npm run verify:model-aware-recipes && npm run build",
+    "ci": "npm ci && npm run lint:eslint && npm run typecheck && npm test && npm run verify:safety-guard && npm run verify:markdown-links && npm run verify:model-aware-recipes && npm run verify:media-studio-power-tools && npm run build",
     "config:init": "tsx scripts/init-config.ts",
     "config:validate": "tsx scripts/validate-config.ts",
     "config:print": "tsx scripts/print-config.ts"
