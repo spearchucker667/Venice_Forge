@@ -47,4 +47,41 @@ describe('mediaCapabilities', () => {
     // @ts-expect-error runtime test: missing model field
     expect(mediaCapabilities({})).toEqual({ upscale: false, edit: false, video: false, vision: false })
   })
+
+  it('honours live `supportsVision: true` for an unknown model id', () => {
+    // A future model id we have never heard of becomes vision-capable
+    // when the live `/models` response says so. The static allowlist
+    // and the pattern fallback do not get a chance to override the
+    // live contract.
+    const caps = mediaCapabilities({
+      model: 'some-future-multimodal-llm',
+      liveCapabilities: { supportsVision: true },
+    })
+    expect(caps.vision).toBe(true)
+  })
+
+  it('honours live `supportsVision: false` over a heuristic pattern match', () => {
+    // "vision" in the id is a static-pattern match — but the live API
+    // contract is the source of truth. A live `supportsVision: false`
+    // must override the static fallback. This is the regression guard
+    // for the 2026-06-08 P3 vision-list cleanup.
+    const caps = mediaCapabilities({
+      model: 'mock-vision-model',
+      liveCapabilities: { supportsVision: false },
+    })
+    expect(caps.vision).toBe(false)
+  })
+
+  it('unknown model with no live metadata defaults to non-vision', () => {
+    const caps = mediaCapabilities({ model: 'some-mystery-llm' })
+    expect(caps.vision).toBe(false)
+  })
+
+  it('live capability object that is explicitly `null` falls back to the static list', () => {
+    // Passing `null` (e.g. when the call site looked up the model and
+    // could not resolve it) must not crash and must not silently drop
+    // the static fallback to non-vision.
+    const caps = mediaCapabilities({ model: 'llama-3.2-11b-vision', liveCapabilities: null })
+    expect(caps.vision).toBe(true)
+  })
 })

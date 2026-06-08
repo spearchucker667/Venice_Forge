@@ -14,6 +14,16 @@ vi.mock('../../services/storageService', () => ({
   },
 }))
 
+// Mock the React Query–backed models hook so GalleryView can render the
+// MediaInspector (and indirectly call `useModels`) without a
+// QueryClientProvider. Returning no data makes `liveVisionSupports` resolve
+// to `null` and the static `VISION_CAPABLE_MODEL_IDS` /
+// `VISION_CAPABLE_PATTERNS` fallback path runs — the same behaviour these
+// tests were originally written to cover.
+vi.mock('../../hooks/use-models', () => ({
+  useModels: () => ({ data: undefined }),
+}))
+
 import StorageService from '../../services/storageService'
 import { useMediaStore } from '../../stores/media-store'
 import { GalleryView } from './gallery-view'

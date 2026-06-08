@@ -12,6 +12,7 @@ import { GhostButton, Label, TextArea, Badge } from "../ui/shared";
 import { mediaCapabilities, normalizedTags, splitTags } from "../../utils/mediaItem";
 import { enhancePrompt, remixPrompt } from "../../services/prompt-enhancer-service";
 import { useConfigStore } from "../../stores/config-store";
+import { useModels } from "../../hooks/use-models";
 import type { MediaItem } from "../../types/media";
 import { extractGenerationRecipe, type GenerationRecipe } from "../../types/project";
 import { RecipeCompatibilityCard } from "./recipe-compatibility-card";
@@ -80,7 +81,22 @@ export function MediaInspector({
   const [noteDraft, setNoteDraft] = useState(item.note);
   const [showRecipeComparison, setShowRecipeComparison] = useState(false);
 
-  const capabilities = useMemo(() => mediaCapabilities(item), [item.model]);
+  // Live `/models` lookup. The cached response is shared across the
+  // app via React Query; this is a best-effort capability enrichment
+  // and never blocks rendering. When the cached list does not contain
+  // the inspected model id, we fall back to the static allowlist in
+  // `mediaCapabilities`.
+  const modelsQuery = useModels();
+  const liveVisionSupports = useMemo(() => {
+    if (!item.model || !modelsQuery.data) return null;
+    const match = modelsQuery.data.find((m) => m.id === item.model);
+    if (!match) return null;
+    return { supportsVision: match.model_spec?.capabilities?.supportsVision };
+  }, [item.model, modelsQuery.data]);
+  const capabilities = useMemo(
+    () => mediaCapabilities({ model: item.model, liveCapabilities: liveVisionSupports }),
+    [item.model, liveVisionSupports],
+  );
   const hasAnyCapability = capabilities.upscale || capabilities.edit || capabilities.video || capabilities.vision;
 
   useEffect(() => {

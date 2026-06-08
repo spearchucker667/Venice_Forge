@@ -4,6 +4,7 @@ import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useChat } from '../../hooks/use-chat'
 import { toast } from '../../stores/toast-store'
+import { modelSupportsVision } from '../../constants/venice'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { MessageBubble } from './message-bubble'
 import { ChatInput } from './chat-input'
@@ -25,8 +26,26 @@ export function ChatView() {
   const selectedModel = useSettingsStore((s) => s.selectedModels.chat)
   const { data: models } = useModels('text')
   const model = selectedModel || models?.[0]?.id || 'llama-3.3-70b'
+  const liveModelRecord = models?.find((m) => m.id === model)
+  const liveVisionSupports: boolean | null =
+    liveModelRecord?.model_spec?.capabilities?.supportsVision ?? null
+  const visionSupported = modelSupportsVision(
+    model,
+    liveVisionSupports === null ? null : { supportsVision: liveVisionSupports },
+  )
   const { send, stop, regenerate, isStreaming } = useChat()
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const handleSend = (message: string, images?: string[]) => {
+    if (images && images.length > 0 && !visionSupported) {
+      toast.warn(
+        'Model does not support images',
+        `“${model}” cannot process image attachments. Pick a vision-capable model in the header before sending.`,
+      )
+      return
+    }
+    send(message, model, images)
+  }
 
   const pendingContext = useChatStore((s) => s.pendingContext)
   const setPendingContext = useChatStore((s) => s.setPendingContext)
@@ -336,7 +355,7 @@ export function ChatView() {
         </div>
       )}
 
-      <ChatInput onSend={(msg, images) => send(msg, model, images)} onStop={stop} isStreaming={isStreaming} disabled={!hasVeniceKey} />
+      <ChatInput onSend={handleSend} onStop={stop} isStreaming={isStreaming} disabled={!hasVeniceKey} disableImageAttach={!visionSupported} />
     </div>
   )
 }

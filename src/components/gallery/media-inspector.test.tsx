@@ -9,6 +9,15 @@ vi.mock("../../services/prompt-enhancer-service", () => ({
   remixPrompt: vi.fn().mockResolvedValue({ prompt: "Reviewed remix", modelUsed: "test" }),
 }));
 
+// Mock the React Query–backed models hook so these tests can exercise the
+// MediaInspector without spinning up a QueryClientProvider. The mock returns
+// no data, so `liveVisionSupports` resolves to `null` and the static
+// `VISION_CAPABLE_MODEL_IDS` / `VISION_CAPABLE_PATTERNS` fallback path runs
+// — exactly the behaviour the tests were originally written to cover.
+vi.mock("../../hooks/use-models", () => ({
+  useModels: () => ({ data: undefined }),
+}));
+
 import { useConfigStore } from "../../stores/config-store";
 import type { MediaItem } from "../../types/media";
 import { MediaInspector } from "./media-inspector";

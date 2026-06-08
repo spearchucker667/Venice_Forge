@@ -19,14 +19,28 @@ export interface MediaCapabilities {
   vision: boolean;
 }
 
+/**
+ * Optional live `/models` capability block for the source model of a
+ * MediaItem. When present, the live `supportsVision` flag is the source
+ * of truth and takes precedence over the static
+ * `VISION_CAPABLE_MODEL_IDS` / `VISION_CAPABLE_PATTERNS` fallback in
+ * `src/constants/venice.ts`. Persisted MediaItems only carry the model
+ * id string, so this is best-effort: callers that can resolve the
+ * model via `useModels()` should pass it through.
+ */
+export interface MediaItemWithLiveCapabilities {
+  model: string;
+  liveCapabilities?: { supportsVision?: boolean | undefined } | null | undefined;
+}
+
 /** Returns the set of capabilities recognised for `item.model`. */
-export function mediaCapabilities(item: Pick<MediaItem, "model">): MediaCapabilities {
+export function mediaCapabilities(item: MediaItemWithLiveCapabilities): MediaCapabilities {
   const model = { id: item.model, name: item.model };
   return {
     upscale: modelSupportsUpscale(model),
     edit: modelSupportsEdit(model),
     video: modelSupportsVideo(model),
-    vision: modelSupportsVision(item.model),
+    vision: modelSupportsVision(item.model, item.liveCapabilities ?? null),
   };
 }
 

@@ -1,5 +1,10 @@
 # Final Massive Bug Hunt With Proof
 
+> **Status: ACTIVE — 2026-06-08 release-blocking audit (current report of
+> record).** This is the canonical audit for the v1.0.6 release cut.
+> Supersedes `docs/REPORTS/BUG_HUNT_REVIEW.md` (now marked SUPERSEDED).
+> For session-by-session handoff see `docs/summary_of_work.md`.
+
 **Date:** 2026-06-08
 **Repository:** `/Users/super_user/Projects/Windows-Venice-API-connector`
 **Auditor:** Senior principal engineer (release-blocking audit)

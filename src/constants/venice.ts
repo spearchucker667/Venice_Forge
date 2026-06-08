@@ -105,8 +105,12 @@ export const DB_NAME = "venice_canvas_studio_v1";
 export const DB_VERSION = 12;
 
 /**
- * Known vision-capable model ids and id-patterns.
- * TODO: Replace with a live capability flag from the Venice API once available.
+ * Known vision-capable model ids. This is a conservative fallback for when
+ * live `/models` metadata is not available at the call site (e.g. when
+ * inspecting a persisted MediaItem whose source model may not be in the
+ * current `/models` response). Whenever live metadata is available, the
+ * `model_spec.capabilities.supportsVision` flag from the Venice API is the
+ * source of truth and takes precedence over this list.
  */
 export const VISION_CAPABLE_MODEL_IDS = new Set<string>([
   "llama-3.2-11b-vision",
@@ -117,11 +121,56 @@ export const VISION_CAPABLE_MODEL_IDS = new Set<string>([
   "gemini-2.5-flash",
 ]);
 
-/** Regex patterns that suggest a model supports vision. */
+/**
+ * Regex patterns that suggest a model supports vision. Used only as a
+ * conservative last-resort fallback when neither live `supportsVision`
+ * metadata nor a direct id match is available. The Venice API does not
+ * yet expose a stable `supportsVision` flag for every model, so the id
+ * substring is the only signal we have for historical MediaItem records.
+ */
 export const VISION_CAPABLE_PATTERNS = [/vision/i, /-vl/i, /gemini-2\.[05]/i];
 
-/** Returns true if the given model id is believed to support vision. */
-export function modelSupportsVision(modelId: string): boolean {
+/**
+ * Shape of the live Venice `/models` capability block we read for vision.
+ * The full type is in `src/types/venice.ts`; this local minimal shape
+ * keeps `modelSupportsVision` a pure helper that does not import the
+ * renderer-only type graph, so the constants module stays safely usable
+ * from the test runner and from any future non-renderer context.
+ */
+interface MinimalVisionCapabilities {
+  supportsVision?: boolean | undefined;
+}
+
+/**
+ * Returns true if the given model id (or live capability metadata) is
+ * believed to support vision.
+ *
+ * Resolution order (most authoritative first):
+ *
+ * 1. If `liveCapabilities` is provided, trust its `supportsVision` flag
+ *    (this is the live Venice API contract — see
+ *    `src/types/venice.ts` `ModelCapabilities.supportsVision`).
+ * 2. Otherwise, fall back to the static `VISION_CAPABLE_MODEL_IDS` set
+ *    for an exact id match.
+ * 3. Otherwise, fall back to the conservative pattern set
+ *    (`VISION_CAPABLE_PATTERNS`).
+ *
+ * Unknown models with no live metadata default to `false`. The helper
+ * never inspects API keys, raw prompt payloads, or persisted secrets;
+ * its only input is the model id string and an optional capabilities
+ * object.
+ */
+export function modelSupportsVision(
+  modelId: string,
+  liveCapabilities?: MinimalVisionCapabilities | null,
+): boolean {
+  // Live API contract wins. A live `supportsVision: false` must be
+  // respected (e.g. a model whose id would match a heuristic pattern
+  // but which the API explicitly marks as non-vision).
+  if (liveCapabilities && typeof liveCapabilities === "object") {
+    if (liveCapabilities.supportsVision === true) return true;
+    if (liveCapabilities.supportsVision === false) return false;
+  }
   const id = String(modelId || "").toLowerCase();
   if (VISION_CAPABLE_MODEL_IDS.has(id)) return true;
   return VISION_CAPABLE_PATTERNS.some((p) => p.test(id));

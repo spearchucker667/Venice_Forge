@@ -6,9 +6,10 @@ interface ChatInputProps {
   onStop: () => void
   isStreaming: boolean
   disabled?: boolean
+  disableImageAttach?: boolean
 }
 
-export function ChatInput({ onSend, onStop, isStreaming, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageAttach }: ChatInputProps) {
   const [value, setValue] = useState('')
   const [images, setImages] = useState<string[]>([])
   const [dragOver, setDragOver] = useState(false)
@@ -25,6 +26,11 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled }: ChatInputPr
     setImages([])
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
   }
+
+  const attachDisabled = disabled || disableImageAttach
+  const attachTitle = disableImageAttach
+    ? 'Selected model does not support image attachments'
+    : 'Attach image (or drag/paste)'
 
   const handleImageUpload = (files: FileList | null) => {
     if (!files) return
@@ -61,9 +67,14 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled }: ChatInputPr
             'focus-within:border-white/[0.22] focus-within:shadow-xl focus-within:shadow-black/40',
             dragOver ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]' : 'border-white/[0.08]',
           )}
-          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true) }}
+          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); if (!disableImageAttach) setDragOver(true) }}
           onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false) }}
-          onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); handleImageUpload(e.dataTransfer.files) }}
+          onDrop={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            setDragOver(false)
+            if (!disableImageAttach) handleImageUpload(e.dataTransfer.files)
+          }}
         >
           <textarea
             ref={textareaRef}
@@ -73,6 +84,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled }: ChatInputPr
               if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit() }
             }}
             onPaste={(e) => {
+              if (disableImageAttach) return
               const items = e.clipboardData?.items
               if (!items) return
               for (const item of items) {
@@ -97,10 +109,10 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled }: ChatInputPr
               <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleImageUpload(e.target.files)} />
               <button
                 onClick={() => fileRef.current?.click()}
-                disabled={disabled}
+                disabled={attachDisabled}
                 aria-label="Attach image"
                 className="flex items-center gap-1.5 px-2 py-1.5 text-white/50 hover:text-white text-[13px] transition-colors rounded-lg hover:bg-white/[0.05] disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
-                title="Attach image (or drag/paste)"
+                title={attachTitle}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />

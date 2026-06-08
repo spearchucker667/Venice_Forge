@@ -1,5 +1,15 @@
 # Extensive Bug-Hunting & Architectural Review
 
+> **SUPERSEDED — 2026-06-08.**
+> This report is **no longer the current audit of record**.
+> It predates the 2026-06-05 modules→components refactor, the 2026-06-06 round-2 audit, the 2026-06-08 final pass, and Phases 2A–2J (10 new `VERIFY-04*` regression guards, model-aware recipes, Media Studio power tools, header status cluster + diagnostics, prompt library, scene composer, workflow templates, storage / privacy dashboard, research workspace, and release / packaging hardening).
+> In particular, section 1.1 ("Deletion of TARGET-Only Features") is **stale**: every module listed there was refactored into `src/components/` between 2026-06-04 and 2026-06-05 (Batch → image-tools, Research → research, Settings → settings tab, Diagnostics → status cluster, Gallery → `gallery-view.tsx`).
+> For the current audit of record, see:
+> - **[docs/REPORTS/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md](FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md)** — 2026-06-08 final proof audit, **PASS** verdict, 1905/1905 tests, safe to release.
+> - **[docs/POST_VENICE_JINA_AUDIT_2026_06_06.md](../POST_VENICE_JINA_AUDIT_2026_06_06.md)** — 2026-06-06 round-2 audit, 8 BUG-SEED items closed.
+> - **[docs/summary_of_work.md](../summary_of_work.md)** — canonical AI / dev-agent handoff ledger, *Open TODO Ledger* (P0/P1/P2/P3 all "None outstanding" as of 2026-06-08).
+> Retained only for historical provenance of the 2026-06-04 merge review.
+
 **Date:** June 4, 2026
 **Target:** Venice Forge (Post-Merge `main` branch)
 
@@ -10,7 +20,8 @@ This review was conducted immediately following the Phase 1 & 2 integration of t
 ## 1. Critical Functional Regressions
 
 ### 1.1 Deletion of TARGET-Only Features (Missing Union)
-**Severity:** Critical
+**Severity:** Critical *(at time of review — 2026-06-04)*
+**Status:** ✅ Fixed *(2026-06-04/05 modules→components refactor; see SUPERSEDED banner above)*
 **Location:** `src/App.tsx`, `src/components/layout/sidebar.tsx`, missing `src/modules/*`
 **Description:** During the initial UI swap, the `src/modules/` directory was entirely purged. This resulted in the catastrophic loss of TARGET-only features that were explicitly requested to be retained in the "Union of features" mandate.
 The following features are currently missing from the application:
@@ -73,6 +84,8 @@ The following features are currently missing from the application:
 ---
 
 ## Conclusion
-The architectural merge successfully integrated the DONOR app's advanced feature set (Studios, Workflows, Playground) and stabilized the foundational security bridges. **However, the deletion of TARGET-only modules (Batch, Research, Settings, Gallery) and the disconnect from the persistent backend storage are critical regressions.** 
+The architectural merge successfully integrated the DONOR app's advanced feature set (Studios, Workflows, Playground) and stabilized the foundational security bridges. **However, the deletion of TARGET-only modules (Batch, Research, Settings, Gallery) and the disconnect from the persistent backend storage were critical regressions at the time of this 2026-06-04 review.**
 
-The `main` branch is currently structurally sound (compiles, passes typechecks, and passes safety tests) but functionally incomplete. The immediate next steps must focus on restoring the missing modules and re-wiring the data persistence layers.
+The `main` branch was at that point structurally sound (compiles, passes typechecks, and passes safety tests) but functionally incomplete. The immediate next steps focused on restoring the missing modules and re-wiring the data persistence layers; both have since been completed in subsequent sessions.
+
+> **For the current conclusion of record, see [docs/REPORTS/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md](FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md) (2026-06-08, PASS verdict, 1905/1905 tests, safe to release).**
