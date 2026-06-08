@@ -136,9 +136,18 @@ export function normalizeLorebook(input: unknown): LorebookV1 | null {
     const e = normalizeEntry(raw);
     if (e) entries.push(e);
   }
+  // Phase 2F: optional project/character scope.
+  const projectId = typeof r.projectId === "string" ? r.projectId.trim() : null;
+  const characterId = typeof r.characterId === "string" ? r.characterId.trim() : null;
+  const scopeRaw = r.scope;
+  let scope: LorebookV1["scope"] = "global";
+  if (scopeRaw === "project") scope = "project";
+  else if (scopeRaw === "character") scope = "character";
+  else if (characterId) scope = "character";
+  else if (projectId) scope = "project";
   const createdAt = typeof r.createdAt === "number" ? r.createdAt : Date.now();
   const updatedAt = typeof r.updatedAt === "number" ? r.updatedAt : createdAt;
-  return {
+  const out: LorebookV1 = {
     schema: "LorebookV1",
     id,
     name,
@@ -147,7 +156,11 @@ export function normalizeLorebook(input: unknown): LorebookV1 | null {
     entries,
     createdAt,
     updatedAt,
+    scope,
   };
+  if (projectId) out.projectId = projectId;
+  if (characterId) out.characterId = characterId;
+  return out;
 }
 
 /** Validates a lorebook before save. Throws on failure. */

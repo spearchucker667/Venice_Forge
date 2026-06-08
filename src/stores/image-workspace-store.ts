@@ -15,6 +15,7 @@ export interface ImageGenerationDraft {
   resolution?: string
   quality?: string
   seed?: number | null
+  recipeMeta?: Record<string, unknown>
 }
 
 export interface ImageGenerateHandoff {

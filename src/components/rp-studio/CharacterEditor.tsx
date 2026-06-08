@@ -8,11 +8,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCharacterCardStore } from "../../stores/character-card-store";
 import { useSettingsStore } from "../../stores/settings-store";
+import { usePromptLibraryStore } from "../../stores/prompt-library-store";
+import { useSceneComposerStore } from "../../stores/scene-composer-store";
+import { useRpChatStore } from "../../stores/rp-chat-store";
+import { useScenarioStore } from "../../stores/scenario-store";
 import { CARD_FIELD_MAX, MAX_AVATAR_BYTES, MAX_TAGS, type CharacterCardV1, type CharacterCardAvatar, type CharacterExampleDialogue } from "../../types/rp";
 import { GhostButton, Label, PrimaryButton, TextArea, ErrorText } from "../ui/shared";
 import { Spinner } from "../ui/spinner";
 import { FALLBACK_MODELS } from "../../constants/venice";
 import { avatarDataUri } from "./_shared";
+import { saveCharacterPromptToLibrary, startChatForCharacter } from "../../services/rpHelpers";
+import { toast } from "../../stores/toast-store";
+import type { Tab } from "../../stores/settings-store";
 
 /** Module-scoped WeakMap mapping each example object (by identity) to a stable
  *  client-side React key. Lives outside the component so keys survive remounts
@@ -166,6 +173,75 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
     if (typeof window !== "undefined" && !window.confirm(`Delete "${draft.name}"?`)) return;
     await remove(draft.id);
     onClose();
+  };
+
+  const handleSaveToPromptLibrary = async () => {
+    try {
+      const saved = await upsert(draft);
+      if (!saved) return;
+      const promptId = await saveCharacterPromptToLibrary(saved.id);
+      if (promptId) {
+        toast.success("Saved to Prompt Library", `Prompt "${saved.name}" created.`);
+      } else {
+        toast.error("Could not save to Prompt Library", "Safety guard blocked the prompt.");
+      }
+    } catch (err) {
+      toast.error("Could not save to Prompt Library", err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const handleStartChat = async () => {
+    try {
+      const saved = await upsert(draft);
+      if (!saved) return;
+      const chatId = await startChatForCharacter(saved.id);
+      if (chatId) {
+        toast.success("Chat started", `Opening "${saved.name}" in RP Studio.`);
+        onClose();
+      } else {
+        toast.error("Could not start chat", "Storage rejected the request.");
+      }
+    } catch (err) {
+      toast.error("Could not start chat", err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const handleAttachScene = async (sceneId: string) => {
+    if (!sceneId) return;
+    const { attachSceneToCharacter } = await import("../../services/rpHelpers");
+    const updated = await attachSceneToCharacter(draft.id, sceneId);
+    if (updated) {
+      setDraft(updated);
+      const scene = useSceneComposerStore.getState().getScene(sceneId);
+      toast.success("Scene attached", scene ? `Linked "${scene.title}" to this character.` : "Scene linked.");
+    } else {
+      toast.error("Could not attach scene", "Storage rejected the request.");
+    }
+  };
+
+  const handleAttachPrompt = async (promptId: string) => {
+    if (!promptId) return;
+    const { attachPromptToCharacter } = await import("../../services/rpHelpers");
+    const updated = await attachPromptToCharacter(draft.id, promptId);
+    if (updated) {
+      setDraft(updated);
+      const prompt = usePromptLibraryStore.getState().getPrompt(promptId);
+      toast.success("Prompt attached", prompt ? `Linked "${prompt.title}" to this character.` : "Prompt linked.");
+    } else {
+      toast.error("Could not attach prompt", "Storage rejected the request.");
+    }
+  };
+
+  const handleCreateScenarioFromCharacter = async () => {
+    const id = useScenarioStore.getState().createBlank({
+      scope: "character",
+      characterId: draft.id,
+      name: `Scenario for ${draft.name || "character"}`,
+      content: draft.scenario || draft.description || "",
+    });
+    useSettingsStore.getState().setActiveTab("scenes" as Tab);
+    toast.success("Scenario created", "Open the Scene Composer to edit it.");
+    return id;
   };
 
   const avatarSrc = avatarDataUri(draft.avatar);
@@ -424,6 +500,91 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   </button>
                 </div>
               ))}
+            </div>
+          )}
+        </section>
+
+        <section className="space-y-2 pt-3 border-t border-white/[0.06]" data-testid="character-editor-workflow">
+          <Label>Workflow</Label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void handleSaveToPromptLibrary()}
+              disabled={disabled}
+              data-testid="character-editor-save-to-prompt-library"
+              className="text-[12px] px-2.5 py-1.5 rounded-md border border-white/[0.1] text-white/75 hover:text-white hover:bg-white/[0.04] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Save to Prompt Library
+            </button>
+            <select
+              value=""
+              onChange={(e) => {
+                if (e.target.value) {
+                  void handleAttachScene(e.target.value);
+                  e.target.value = "";
+                }
+              }}
+              disabled={disabled}
+              data-testid="character-editor-attach-scene"
+              className="text-[12px] px-2 py-1.5 rounded-md border border-white/[0.1] bg-surface text-white/80 hover:bg-white/[0.04] transition-colors disabled:opacity-50"
+            >
+              <option value="">Attach scene…</option>
+              {useSceneComposerStore.getState().scenes.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.title}
+                </option>
+              ))}
+            </select>
+            <select
+              value=""
+              onChange={(e) => {
+                if (e.target.value) {
+                  void handleAttachPrompt(e.target.value);
+                  e.target.value = "";
+                }
+              }}
+              disabled={disabled}
+              data-testid="character-editor-attach-prompt"
+              className="text-[12px] px-2 py-1.5 rounded-md border border-white/[0.1] bg-surface text-white/80 hover:bg-white/[0.04] transition-colors disabled:opacity-50"
+            >
+              <option value="">Attach prompt…</option>
+              {usePromptLibraryStore.getState().prompts
+                .filter((p) => !p.archivedAt)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.title}
+                  </option>
+                ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => void handleStartChat()}
+              disabled={disabled}
+              data-testid="character-editor-start-chat"
+              className="text-[12px] px-2.5 py-1.5 rounded-md border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Start chat
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleCreateScenarioFromCharacter()}
+              disabled={disabled}
+              data-testid="character-editor-create-scenario"
+              className="text-[12px] px-2.5 py-1.5 rounded-md border border-white/[0.1] text-white/75 hover:text-white hover:bg-white/[0.04] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Create scenario from character
+            </button>
+          </div>
+          {(typeof draft.metadata?.attachedSceneId === "string" ||
+            typeof draft.metadata?.attachedPromptId === "string") && (
+            <div className="text-[11px] text-white/45 mt-1" data-testid="character-editor-workflow-summary">
+              {draft.metadata?.attachedSceneId ? (
+                <span>Scene: {String(draft.metadata.attachedSceneId).slice(0, 32)}</span>
+              ) : null}
+              {draft.metadata?.attachedSceneId && draft.metadata?.attachedPromptId ? " · " : null}
+              {draft.metadata?.attachedPromptId ? (
+                <span>Prompt: {String(draft.metadata.attachedPromptId).slice(0, 32)}</span>
+              ) : null}
             </div>
           )}
         </section>

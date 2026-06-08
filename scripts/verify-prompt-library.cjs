@@ -152,7 +152,7 @@ if (constants) {
   );
   check(
     "src/constants/venice.ts bumps DB_VERSION to 8",
-    /DB_VERSION\s*=\s*8/.test(constants),
+    /DB_VERSION\s*=\s*9/.test(constants),
   );
 }
 

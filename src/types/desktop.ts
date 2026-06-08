@@ -8,6 +8,7 @@ import type {
   LorebookV1,
   RpAssetV1,
   RpChatV1,
+  ScenarioV1,
   UserPersonaV1,
 } from "./rp";
 
@@ -175,6 +176,14 @@ export interface VeniceForgeRpAssets {
   delete(id: string): Promise<{ ok: boolean; error?: string }>;
 }
 
+/** Character RP Studio: standalone scenario persistence (Phase 2F). */
+export interface VeniceForgeScenarios {
+  list(): Promise<{ ok: boolean; scenarios: ScenarioV1[]; truncated: boolean; totalScanned: number; error?: string }>;
+  get(id: string): Promise<{ ok: boolean; scenario: ScenarioV1 | null; error?: string }>;
+  save(scenario: ScenarioV1): Promise<{ ok: boolean; scenario: ScenarioV1 | null; error?: string }>;
+  delete(id: string): Promise<{ ok: boolean; error?: string }>;
+}
+
 /** Sanitized config payload returned to the renderer. Mirrors the
  *  SanitizedConfigPayload shape from electron/services/configService.ts. */
 export interface VeniceForgeConfigPayload {
@@ -270,6 +279,7 @@ export interface VeniceForge {
   lorebooks: VeniceForgeLorebooks;
   rpChats: VeniceForgeRpChats;
   rpAssets: VeniceForgeRpAssets;
+  scenarios: VeniceForgeScenarios;
 }
 
 declare global {

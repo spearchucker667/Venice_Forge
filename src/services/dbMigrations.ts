@@ -132,6 +132,24 @@ export const MIGRATIONS: MigrationStep[] = [
       }
     },
   },
+  {
+    toVersion: 9,
+    description: "Add scenes store for Phase 2E Scene Composer Foundation",
+    up(db) {
+      if (!db.objectStoreNames.contains("scenes")) {
+        db.createObjectStore("scenes", { keyPath: "id" });
+      }
+    },
+  },
+  {
+    toVersion: 10,
+    description: "Add rpScenarios store for Phase 2F RP Studio Polish (ScenarioV1)",
+    up(db) {
+      if (!db.objectStoreNames.contains("rpScenarios")) {
+        db.createObjectStore("rpScenarios", { keyPath: "id" });
+      }
+    },
+  },
 ];
 
 /**

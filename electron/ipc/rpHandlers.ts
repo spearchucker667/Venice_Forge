@@ -33,8 +33,9 @@ import {
   personaStore,
   lorebookStore,
   rpAssetStore,
+  scenarioStore,
 } from "../services/rpStores";
-import type { UserPersonaV1, LorebookV1, RpAssetV1 } from "../../src/types/rp";
+import type { UserPersonaV1, LorebookV1, RpAssetV1, ScenarioV1 } from "../../src/types/rp";
 import { redactErrorMessage } from "../../src/services/redaction";
 import { logError } from "../services/logger";
 
@@ -289,6 +290,55 @@ export function registerRpIpcHandlers(): void {
     } catch (err) {
       const message = redactErrorMessage(err);
       logError("rpAssets:delete failed", message);
+      return { ok: false, error: message };
+    }
+  });
+
+  // ── Scenarios (Phase 2F) ──
+  ipcMain.handle("scenarios:list", async () => {
+    try {
+      const { items, truncated, totalScanned } = await scenarioStore.list();
+      return { ok: true, scenarios: items, truncated, totalScanned };
+    } catch (err) {
+      const message = redactErrorMessage(err);
+      logError("scenarios:list failed", message);
+      return { ok: false, error: message, scenarios: [], truncated: false, totalScanned: 0 };
+    }
+  });
+
+  ipcMain.handle("scenarios:get", async (_event, id: unknown) => {
+    try {
+      if (typeof id !== "string") return { ok: false, error: "Invalid id", scenario: null };
+      const scenario = await scenarioStore.read(id);
+      return { ok: true, scenario: scenario as ScenarioV1 | null };
+    } catch (err) {
+      const message = redactErrorMessage(err);
+      logError("scenarios:get failed", message);
+      return { ok: false, error: message, scenario: null };
+    }
+  });
+
+  ipcMain.handle("scenarios:save", async (_event, scenario: unknown) => {
+    try {
+      const result = await scenarioStore.save(scenario);
+      if (!result.ok) return { ok: false, error: result.error ?? "Save failed", scenario: null };
+      const id = (scenario as { id?: unknown })?.id;
+      const persisted = typeof id === "string" ? await scenarioStore.read(id) : null;
+      return { ok: true, scenario: persisted as ScenarioV1 | null };
+    } catch (err) {
+      const message = redactErrorMessage(err);
+      logError("scenarios:save failed", message);
+      return { ok: false, error: message, scenario: null };
+    }
+  });
+
+  ipcMain.handle("scenarios:delete", async (_event, id: unknown) => {
+    try {
+      if (typeof id !== "string") return { ok: false, error: "Invalid id" };
+      return await scenarioStore.remove(id);
+    } catch (err) {
+      const message = redactErrorMessage(err);
+      logError("scenarios:delete failed", message);
       return { ok: false, error: message };
     }
   });

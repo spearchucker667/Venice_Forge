@@ -28,6 +28,12 @@ const ENCRYPTED_STORES: StoreName[] = [
   // Phase 2D Prompt Library — user-saved, reusable prompt records with
   // versioning. Encrypted at rest like other user content.
   "promptLibrary",
+  // Phase 2E Scene Composer — visual composition tool for arranging prompts,
+  // media references, and models into structured scenes. Encrypted at rest.
+  "scenes",
+  // Phase 2F RP Studio Polish — user-authored scenarios, encrypted at rest
+  // like other user content.
+  "rpScenarios",
 ];
 
 export interface GetItemsResult<T = unknown> {

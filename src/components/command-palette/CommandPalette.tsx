@@ -21,6 +21,7 @@ import { toast } from '../../stores/toast-store'
 import { useMediaSelectionStore, MEDIA_SELECTION_MAX } from '../../stores/media-selection-store'
 import { getMediaCommandHandlers, hasMediaCommandHandlers, subscribeMediaCommandHandlers } from '../../stores/media-command-handlers'
 import { usePromptLibraryStore } from '../../stores/prompt-library-store'
+import { useSceneComposerStore } from '../../stores/scene-composer-store'
 
 interface CommandPaletteProps {
   open: boolean
@@ -393,6 +394,77 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
             data-testid="command-palette-import-prompts"
           >
             Import Prompts…
+          </button>
+
+          {/* Phase 2E — Scene Composer commands. Always visible so the
+              palette can route the user into the composer; per-scene
+              actions appear when the user has scenes saved. */}
+          <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border mt-1">Scene Composer</div>
+          <button
+            onClick={() => {
+              setActiveTab('scenes');
+              onClose();
+              setQuery('');
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            data-testid="command-palette-open-scenes"
+          >
+            Open Scene Composer
+          </button>
+          <button
+            onClick={async () => {
+              const sceneCount = useSceneComposerStore.getState().scenes.filter(s => !s.archivedAt).length;
+              if (sceneCount === 0) {
+                toast.error('No scenes to export.');
+                return;
+              }
+              const ids = useSceneComposerStore.getState().scenes.filter(s => !s.archivedAt).map(s => s.id);
+              const payload = useSceneComposerStore.getState().exportScenes(ids);
+              const json = JSON.stringify(payload, null, 2);
+              const blob = new Blob([json], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `venice-forge-scenes-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+              toast.success(`Exported ${ids.length} scene${ids.length === 1 ? '' : 's'}`);
+              onClose();
+              setQuery('');
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            data-testid="command-palette-export-scenes"
+          >
+            Export Scenes
+          </button>
+          <button
+            onClick={async () => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = 'application/json';
+              input.onchange = async () => {
+                const file = input.files?.[0];
+                if (!file) return;
+                try {
+                  const text = await file.text();
+                  const payload = JSON.parse(text);
+                  const result = await useSceneComposerStore.getState().importScenes(payload);
+                  toast.success(
+                    `Imported ${result.imported.length} scene${result.imported.length === 1 ? '' : 's'}` +
+                      (result.skipped.length > 0 ? ` (skipped ${result.skipped.length})` : ''),
+                  );
+                } catch (err) {
+                  toast.error(`Could not import: ${err instanceof Error ? err.message : String(err)}`);
+                }
+              };
+              input.click();
+              onClose();
+              setQuery('');
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            data-testid="command-palette-import-scenes"
+          >
+            Import Scenes…
           </button>
 
           <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border mt-1">System</div>

@@ -36,7 +36,7 @@ import {
   type SafetyGuardInput,
 } from "./childExploitationGuard";
 import { maybeRunLocalFamilyGuard } from "./localFamilySafeGuard";
-import type { CharacterCardV1, RpChatV1, UserPersonaV1 } from "../../types/rp";
+import type { CharacterCardV1, RpChatV1, ScenarioV1, UserPersonaV1 } from "../../types/rp";
 
 /** Default source for character-card and persona import paths (renderer-side). */
 const CARD_IMPORT_SOURCE: SafetyGuardInput["source"] = "venice-client";
@@ -163,5 +163,31 @@ export function assessScenePrompt(prompt: string, negativePrompt?: string, enabl
     payload,
     text: prompt,
     source: SCENE_PROMPT_SOURCE,
+  }, enabled);
+}
+
+/** Assesses a Phase 2F `ScenarioV1` record for save/import safety.
+ *  Routes name/description/content/firstUserMessage through the same
+ *  `assess` pipeline used for character cards and personas. */
+export function assessScenario(scenario: ScenarioV1, enabled = true): SafetyGuardDecision {
+  const combinedText = [
+    scenario.name,
+    scenario.description,
+    scenario.content,
+    scenario.firstUserMessage ?? "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return assess({
+    endpoint: "/scenario/import",
+    method: "POST",
+    payload: {
+      name: scenario.name,
+      description: scenario.description,
+      content: scenario.content,
+      firstUserMessage: scenario.firstUserMessage ?? "",
+    },
+    text: combinedText,
+    source: CARD_IMPORT_SOURCE,
   }, enabled);
 }

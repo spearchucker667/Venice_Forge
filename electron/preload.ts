@@ -4,7 +4,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { Conversation } from "../src/types/conversation";
 import type { ConversationRecordV1, SearchResult, PulledMemoryContext } from "../src/types/conversationVault";
-import type { CharacterCardV1, UserPersonaV1, LorebookV1, RpChatV1, RpAssetV1 } from "../src/types/rp";
+import type { CharacterCardV1, UserPersonaV1, LorebookV1, RpChatV1, RpAssetV1, ScenarioV1 } from "../src/types/rp";
 
 /** Represents a Venice API request sent from the renderer to the main process. */
 type VeniceRequest = {
@@ -435,6 +435,22 @@ const veniceForge = {
     },
     delete(id: string): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("rpAssets:delete", id);
+    },
+  },
+
+  // Phase 2F RP Studio Polish — standalone scenarios.
+  scenarios: {
+    list(): Promise<{ ok: boolean; scenarios: ScenarioV1[]; truncated: boolean; totalScanned: number; error?: string }> {
+      return ipcRenderer.invoke("scenarios:list");
+    },
+    get(id: string): Promise<{ ok: boolean; scenario: ScenarioV1 | null; error?: string }> {
+      return ipcRenderer.invoke("scenarios:get", id);
+    },
+    save(scenario: ScenarioV1): Promise<{ ok: boolean; scenario: ScenarioV1 | null; error?: string }> {
+      return ipcRenderer.invoke("scenarios:save", scenario);
+    },
+    delete(id: string): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("scenarios:delete", id);
     },
   },
 };

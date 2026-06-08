@@ -83,13 +83,20 @@ export const STORE_NAMES = [
   // Phase 2D Prompt Library — user-saved, reusable prompt records with
   // versioning. Encrypted at rest like other user content.
   "promptLibrary",
+  // Phase 2E Scene Composer — visual composition tool for arranging prompts,
+  // media references, and models into structured scenes. Encrypted at rest.
+  "scenes",
+  // Phase 2F RP Studio Polish — standalone scenarios (openers + setting text)
+  // that can be attached to a character card or used to seed a chat. Encrypted
+  // at rest like other user-authored content.
+  "rpScenarios",
 ];
 
 /** Name of the IndexedDB database. */
 export const DB_NAME = "venice_canvas_studio_v1";
 
-/** Version of the IndexedDB schema. Bumped to 6 for timestamp index; 7 for Project Workspace "projects" store; 8 for Phase 2D Prompt Library "promptLibrary" store. */
-export const DB_VERSION = 8;
+/** Version of the IndexedDB schema. Bumped to 6 for timestamp index; 7 for Project Workspace "projects" store; 8 for Phase 2D Prompt Library "promptLibrary" store; 9 for Phase 2E Scene Composer "scenes" store; 10 for Phase 2F RP Studio Polish "rpScenarios" store. */
+export const DB_VERSION = 10;
 
 /**
  * Known vision-capable model ids and id-patterns.

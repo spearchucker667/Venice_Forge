@@ -42,6 +42,9 @@ export function normalizePersona(input: unknown): UserPersonaV1 | null {
         .filter((t) => t.length > 0 && t.length <= 64))
     : [];
   if (tags.length > MAX_TAGS) tags.length = MAX_TAGS;
+  // Phase 2F: optional project scope.
+  const projectId = typeof r.projectId === "string" ? r.projectId.trim() : null;
+  const scope: UserPersonaV1["scope"] = r.scope === "project" ? "project" : "global";
   const createdAt = typeof r.createdAt === "number" ? r.createdAt : Date.now();
   const updatedAt = typeof r.updatedAt === "number" ? r.updatedAt : createdAt;
   const out: UserPersonaV1 = {
@@ -52,8 +55,10 @@ export function normalizePersona(input: unknown): UserPersonaV1 | null {
     tags,
     createdAt,
     updatedAt,
+    scope,
   };
   if (reference) out.reference = reference;
+  if (projectId) out.projectId = projectId;
   return out;
 }
 

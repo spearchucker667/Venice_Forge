@@ -87,7 +87,7 @@ export function ImageView() {
   const [hideWatermark] = useState(true)
   const [images, setImages] = useState<string[]>([])
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
-  const [generationContext, setGenerationContext] = useState<Pick<ImageGenerateHandoff, 'parentId' | 'operation'> | null>(null)
+  const [generationContext, setGenerationContext] = useState<Pick<ImageGenerateHandoff, 'parentId' | 'operation'> & { recipeMeta?: Record<string, unknown> } | null>(null)
   const [queuedAutoGenerateId, setQueuedAutoGenerateId] = useState<string | null>(null)
   const pendingHandoff = useImageWorkspaceStore((state) => state.pending)
 
@@ -391,6 +391,24 @@ export function ImageView() {
               mediaItem.originalPrompt = prompt.trim();
             }
 
+            if (activeGenerationContext?.recipeMeta) {
+              mediaItem.recipe = {
+                prompt: currentPrompt,
+                model: model,
+                negativePrompt: (negativePrompt.trim() || undefined),
+                width: req.width as number | undefined,
+                height: req.height as number | undefined,
+                aspectRatio: req.aspect_ratio as string | undefined,
+                seed: seedState.mode === 'fixed' ? seedState.value : undefined,
+                steps: req.steps as number | undefined,
+                cfgScale: req.cfg_scale as number | undefined,
+                style: req.style_preset as string | undefined,
+                quality: req.quality as string | undefined,
+                metadata: activeGenerationContext.recipeMeta,
+                operation: activeGenerationContext?.operation,
+              };
+            }
+
             const typedItem = mediaItem as unknown as MediaItem;
             if (activeGenerationContext?.parentId) {
               await useMediaStore.getState().upsertDerivative(typedItem, activeGenerationContext.parentId);
@@ -419,6 +437,7 @@ export function ImageView() {
     setGenerationContext(pendingHandoff.autoGenerate ? {
       parentId: pendingHandoff.parentId,
       operation: pendingHandoff.operation,
+      recipeMeta: pendingHandoff.draft.recipeMeta,
     } : null)
     if (pendingHandoff.autoGenerate) setQueuedAutoGenerateId(pendingHandoff.id)
     useImageWorkspaceStore.getState().consume(pendingHandoff.id)

@@ -55,6 +55,9 @@ function SettingsIcon() {
 function PromptsIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" /></svg>)
 }
+function SceneIcon() {
+  return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>)
+}
 
 interface NavGroup {
   label: string
@@ -71,6 +74,7 @@ const TAB_ICONS: Record<TabId, () => React.JSX.Element> = {
   image: ImageIcon,
   media: GalleryIcon,
   prompts: PromptsIcon,
+  scenes: SceneIcon,
   gallery: GalleryIcon,
   audio: AudioIcon,
   music: MusicIcon,

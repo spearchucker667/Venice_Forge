@@ -28,8 +28,27 @@ export const MAX_ACTIVE_CHARACTERS = 8;
 /** Maximum avatar bytes. */
 export const MAX_AVATAR_BYTES = 1_048_576;
 
-/** Schema version constant. Bump on breaking changes. */
-export const RP_SCHEMA_VERSION = 1;
+/** Schema version constant. Bump on breaking changes.
+ *  v2 (Phase 2F) added optional `versions`/`currentVersionId`/`firstMessage`/
+ *      `metadata` to `CharacterCardV1`, optional `projectId`/`scope` to
+ *      `UserPersonaV1`, and optional `projectId`/`characterId`/`scope` to
+ *      `LorebookV1`. v2 is fully backward-compatible — v1 records load unchanged. */
+export const RP_SCHEMA_VERSION = 2;
+
+/** Phase 2F scenario export envelope version. */
+export const RP_SCENARIO_VERSION = 1;
+
+/** Phase 2F character card export envelope version. */
+export const RP_CARD_EXPORT_VERSION = 1;
+
+/** Phase 2F lorebook export envelope version. */
+export const RP_LOREBOOK_EXPORT_VERSION = 1;
+
+/** Phase 2F persona export envelope version. */
+export const RP_PERSONA_EXPORT_VERSION = 1;
+
+/** Phase 2F RP prompt compile result version. */
+export const RP_PROMPT_COMPILE_VERSION = 1;
 
 /** Centralised id-validation regex. Must start alphanumeric (rejects "." and "..").
  *  Mirrored in electron/services/{characterCardStorage,rpChatStorage,rpSingleFileStore}.ts. */
@@ -75,6 +94,40 @@ export interface CharacterCardV1 {
   createdAt: number;
   /** Unix ms last updated. */
   updatedAt: number;
+  // ---- Phase 2F additions (all OPTIONAL — v1 records load unchanged) ----
+  /** Optional greeting shown on the first assistant turn. */
+  firstMessage?: string;
+  /** Append-only version chain. When present, the live "current" view is the
+   *  entry referenced by `currentVersionId` (or the last entry if absent). */
+  versions?: CharacterCardVersion[];
+  /** Id of the version currently exposed as the "live" card. */
+  currentVersionId?: string;
+  /** Free-form metadata key/value bag for cross-feature handoffs
+   *  (e.g. `attachedSceneId`, `attachedPromptId`, `sourceMediaId`).
+   *  NEVER includes API keys, bearer tokens, or raw prompt text. */
+  metadata?: Record<string, unknown>;
+}
+
+/** One immutable snapshot in a character card's revision history. */
+export interface CharacterCardVersion {
+  id: string;
+  /** Unix ms. */
+  createdAt: number;
+  /** Human-readable reason (e.g. "imported from Tavern card"). */
+  reason?: string;
+  /** Snapshot of the editable fields at this point in time. */
+  snapshot: {
+    name: string;
+    description: string;
+    systemPrompt: string;
+    scenario?: string;
+    tags: string[];
+    modelId?: string;
+    author?: string;
+    adult: boolean;
+    exampleDialogues: CharacterExampleDialogue[];
+    firstMessage?: string;
+  };
 }
 
 export interface CharacterExampleDialogue {
@@ -93,6 +146,11 @@ export interface UserPersonaV1 {
   tags: string[];
   createdAt: number;
   updatedAt: number;
+  // ---- Phase 2F additions (OPTIONAL — v1 records load unchanged) ----
+  /** `null`/undefined = global, otherwise the project this persona is scoped to. */
+  projectId?: string | null;
+  /** Phase 2F scope discriminator. `undefined` is treated as `"global"`. */
+  scope?: "global" | "project";
 }
 
 export type RpRole = "system" | "user" | "character" | "narrator" | "tool";
@@ -183,6 +241,14 @@ export interface LorebookV1 {
   entries: LorebookEntryV1[];
   createdAt: number;
   updatedAt: number;
+  // ---- Phase 2F additions (OPTIONAL — v1 records load unchanged) ----
+  /** `null`/undefined = global lorebook; otherwise the project this lorebook is scoped to. */
+  projectId?: string | null;
+  /** When set, the lorebook is character-scoped and is only considered when that
+   *  character is active. Implies `scope === "character"`. */
+  characterId?: string | null;
+  /** Phase 2F scope discriminator. `undefined` is treated as `"global"`. */
+  scope?: "global" | "project" | "character";
 }
 
 export type RpMemoryScope = "pinned" | "long-term" | "character";
@@ -318,3 +384,118 @@ export interface PromptAssemblyResult {
   /** Whether the budget was exceeded and blocks were dropped. */
   budgetExceeded: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Phase 2F — RP Studio Polish
+// ---------------------------------------------------------------------------
+
+/** A standalone RP scenario/opener that can be attached to a character card
+ *  via `metadata.attachedScenarioId`, or directly to a chat. */
+export interface ScenarioV1 {
+  schema: "ScenarioV1";
+  id: string;
+  /** Discriminator for filtering. `undefined` is treated as `"global"`. */
+  scope: "global" | "project" | "character";
+  /** When `scope === "project"`, the project this scenario belongs to. */
+  projectId?: string | null;
+  /** When `scope === "character"`, the character card this scenario belongs to. */
+  characterId?: string | null;
+  /** Optional reference to a scene in the Scene Composer. */
+  sceneId?: string | null;
+  name: string;
+  description: string;
+  /** Body content (the scenario / setting text). */
+  content: string;
+  /** Optional suggested first user message to seed the chat. */
+  firstUserMessage?: string;
+  tags: string[];
+  favorite: boolean;
+  /** Unix ms. `undefined` = active; non-null = archived at that time. */
+  archivedAt?: number | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Sanitized export envelope for character cards (Phase 2F). */
+export interface CharacterCardExport {
+  version: typeof RP_CARD_EXPORT_VERSION;
+  app: "Venice Forge";
+  exportedAt: number;
+  cards: CharacterCardV1[];
+}
+
+/** Sanitized export envelope for lorebooks (Phase 2F). */
+export interface LorebookExport {
+  version: typeof RP_LOREBOOK_EXPORT_VERSION;
+  app: "Venice Forge";
+  exportedAt: number;
+  lorebooks: LorebookV1[];
+}
+
+/** Sanitized export envelope for personas (Phase 2F). */
+export interface PersonaExport {
+  version: typeof RP_PERSONA_EXPORT_VERSION;
+  app: "Venice Forge";
+  exportedAt: number;
+  personas: UserPersonaV1[];
+}
+
+/** Sanitized export envelope for scenarios (Phase 2F). */
+export interface ScenarioExport {
+  version: typeof RP_SCENARIO_VERSION;
+  app: "Venice Forge";
+  exportedAt: number;
+  scenarios: ScenarioV1[];
+}
+
+/** Coerces an unknown value into a valid ScenarioV1, or returns null. */
+export function normalizeScenario(input: unknown): ScenarioV1 | null {
+  if (!input || typeof input !== "object") return null;
+  const r = input as Record<string, unknown>;
+  const id = typeof r.id === "string" ? r.id.trim() : "";
+  if (!isValidRpId(id)) return null;
+  const name = typeof r.name === "string" ? r.name.trim().slice(0, 200) : "";
+  if (!name) return null;
+  const description = typeof r.description === "string" ? r.description.slice(0, CARD_FIELD_MAX) : "";
+  const content = typeof r.content === "string" ? r.content.slice(0, CARD_FIELD_MAX) : "";
+  const firstUserMessage =
+    typeof r.firstUserMessage === "string" ? r.firstUserMessage.slice(0, CARD_FIELD_MAX) : undefined;
+  const tags = Array.isArray(r.tags)
+    ? (r.tags
+        .filter((t): t is string => typeof t === "string")
+        .map((t) => t.trim().toLowerCase())
+        .filter((t) => t.length > 0 && t.length <= 64))
+    : [];
+  if (tags.length > MAX_TAGS) tags.length = MAX_TAGS;
+  const scopeRaw = r.scope;
+  const scope: ScenarioV1["scope"] =
+    scopeRaw === "project" || scopeRaw === "character" ? scopeRaw : "global";
+  const projectId = typeof r.projectId === "string" ? r.projectId : null;
+  const characterId = typeof r.characterId === "string" ? r.characterId : null;
+  const sceneId = typeof r.sceneId === "string" ? r.sceneId : null;
+  const favorite = r.favorite === true;
+  const archivedAt = typeof r.archivedAt === "number" ? r.archivedAt : null;
+  const createdAt = typeof r.createdAt === "number" ? r.createdAt : Date.now();
+  const updatedAt = typeof r.updatedAt === "number" ? r.updatedAt : createdAt;
+  const out: ScenarioV1 = {
+    schema: "ScenarioV1",
+    id,
+    scope,
+    name,
+    description,
+    content,
+    tags,
+    favorite,
+    createdAt,
+    updatedAt,
+  };
+  if (projectId) out.projectId = projectId;
+  if (characterId) out.characterId = characterId;
+  if (sceneId) out.sceneId = sceneId;
+  if (firstUserMessage) out.firstUserMessage = firstUserMessage;
+  if (archivedAt !== null) out.archivedAt = archivedAt;
+  return out;
+}
+
+/** Maximum number of scenarios allowed in a list. */
+export const MAX_LIST_SCENARIOS = 1_000;

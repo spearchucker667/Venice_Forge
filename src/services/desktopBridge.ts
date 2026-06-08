@@ -9,6 +9,7 @@ import type {
   LorebookV1,
   RpAssetV1,
   RpChatV1,
+  ScenarioV1,
   UserPersonaV1,
 } from "../types/rp";
 import { veniceFetch } from "./veniceClient";
@@ -571,6 +572,26 @@ export const desktopRpAssets = {
   async delete(id: string): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "RP asset filesystem storage is only available in desktop mode." };
     return window.veniceForge!.rpAssets.delete(id);
+  },
+};
+
+/** Phase 2F RP Studio Polish — standalone scenario bridge. */
+export const desktopScenarios = {
+  async list(): Promise<{ ok: boolean; scenarios: ScenarioV1[]; error?: string }> {
+    if (!isElectron()) return { ok: false, scenarios: [], error: "Scenario filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.scenarios.list();
+  },
+  async get(id: string): Promise<{ ok: boolean; scenario: ScenarioV1 | null; error?: string }> {
+    if (!isElectron()) return { ok: false, scenario: null, error: "Scenario filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.scenarios.get(id);
+  },
+  async save(scenario: ScenarioV1): Promise<{ ok: boolean; scenario: ScenarioV1 | null; error?: string }> {
+    if (!isElectron()) return { ok: false, scenario: null, error: "Scenario filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.scenarios.save(scenario);
+  },
+  async delete(id: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Scenario filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.scenarios.delete(id);
   },
 };
 

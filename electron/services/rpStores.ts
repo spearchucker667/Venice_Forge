@@ -5,7 +5,7 @@
  * and bound to a validator that enforces the schema and id regex.
  */
 
-import type { UserPersonaV1, LorebookV1, RpAssetV1 } from "../../src/types/rp";
+import type { UserPersonaV1, LorebookV1, RpAssetV1, ScenarioV1 } from "../../src/types/rp";
 import { isValidRpId } from "../../src/types/rp";
 import { createSingleFileStore } from "./rpSingleFileStore";
 
@@ -71,6 +71,43 @@ function isValidAsset(obj: unknown): obj is RpAssetV1 {
   return true;
 }
 
+function isValidScenario(obj: unknown): obj is ScenarioV1 {
+  if (!obj || typeof obj !== "object") return false;
+  const s = obj as Record<string, unknown>;
+  if (s.schema !== "ScenarioV1") return false;
+  if (typeof s.id !== "string" || !isValidRpId(s.id)) return false;
+  if (typeof s.name !== "string") return false;
+  if (typeof s.description !== "string") return false;
+  if (typeof s.content !== "string") return false;
+  if (typeof s.favorite !== "boolean") return false;
+  if (typeof s.createdAt !== "number" || typeof s.updatedAt !== "number") return false;
+  if (!Array.isArray(s.tags)) return false;
+  if (
+    s.scope !== "global" &&
+    s.scope !== "project" &&
+    s.scope !== "character"
+  ) {
+    return false;
+  }
+  if (s.projectId !== undefined && s.projectId !== null && typeof s.projectId !== "string") {
+    return false;
+  }
+  if (s.characterId !== undefined && s.characterId !== null && typeof s.characterId !== "string") {
+    return false;
+  }
+  if (s.sceneId !== undefined && s.sceneId !== null && typeof s.sceneId !== "string") {
+    return false;
+  }
+  if (s.firstUserMessage !== undefined && typeof s.firstUserMessage !== "string") {
+    return false;
+  }
+  if (s.archivedAt !== undefined && s.archivedAt !== null && typeof s.archivedAt !== "number") {
+    return false;
+  }
+  return true;
+}
+
 export const personaStore = createSingleFileStore<UserPersonaV1>("personas", isValidPersona);
 export const lorebookStore = createSingleFileStore<LorebookV1>("lorebooks", isValidLorebook);
 export const rpAssetStore = createSingleFileStore<RpAssetV1>("rp-assets", isValidAsset);
+export const scenarioStore = createSingleFileStore<ScenarioV1>("rp-scenarios", isValidScenario);
