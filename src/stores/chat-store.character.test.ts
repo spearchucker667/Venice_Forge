@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useChatStore } from "./chat-store";
 import { useCharacterStore } from "./character-store";
 import type { VeniceCharacter } from "../types/characters";
+import { useSettingsStore } from "./settings-store";
 
 /** Resets both stores between tests. */
 function resetStores() {
@@ -35,6 +36,7 @@ function resetStores() {
     offset: 0,
     hasMore: false,
   });
+  useSettingsStore.setState({ activeProjectId: null } as never);
 }
 
 const CHARACTER_FIXTURE: VeniceCharacter = {
@@ -65,6 +67,23 @@ describe("chat-store character integration", () => {
     const id = useChatStore.getState().createCharacterConversation(CHARACTER_FIXTURE, "llama-3.3-70b");
     const conv = useChatStore.getState().conversations.find((c) => c.id === id);
     expect(conv?.metadata?.source).toBe("character");
+  });
+
+  // VERIFY-042: every new conversation path captures the active project additively.
+  it("tags standard and character conversations with the active project", () => {
+    useSettingsStore.setState({ activeProjectId: "project-a" } as never);
+    const standardId = useChatStore.getState().createConversation("llama-3.3-70b");
+    const characterId = useChatStore.getState().createCharacterConversation(CHARACTER_FIXTURE, "llama-3.3-70b");
+    expect(useChatStore.getState().conversations.find((item) => item.id === standardId)?.memory?.projectRefs)
+      .toEqual(["project-a"]);
+    expect(useChatStore.getState().conversations.find((item) => item.id === characterId)?.memory?.projectRefs)
+      .toEqual(["project-a"]);
+  });
+
+  it("keeps new conversations unscoped in All Projects mode", () => {
+    const id = useChatStore.getState().createConversation("llama-3.3-70b");
+    expect(useChatStore.getState().conversations.find((item) => item.id === id)?.memory?.projectRefs)
+      .toEqual([]);
   });
 
   it("persists slug, name, photoUrl, shareUrl, and modelId on the conversation", () => {

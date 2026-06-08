@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useMediaStore, filterMedia, sortMedia, searchMedia } from './media-store'
+import { useSettingsStore } from './settings-store'
 import { MEDIA_ITEM_VERSION, type MediaItem } from '../types/media'
 
 vi.mock('../services/storageService', () => {
@@ -107,6 +108,7 @@ describe('mediaStore', () => {
       nextOffset: 0,
       lastError: null,
     })
+    useSettingsStore.setState({ activeProjectId: null } as never)
   })
 
   afterEach(() => {
@@ -141,6 +143,47 @@ describe('mediaStore', () => {
     await useMediaStore.getState().upsert(newer)
     const items = useMediaStore.getState().items
     expect(items.map((i) => i.id)).toEqual(['new', 'old'])
+  })
+
+  // VERIFY-042: project attachment is explicit and limited to generated media.
+  it('attaches the active project only when generated media opts in', async () => {
+    useSettingsStore.setState({ activeProjectId: 'project-a' } as never)
+    const generated = await useMediaStore.getState().upsert(
+      makeItem({ id: 'generated', projectId: undefined }),
+      { attachActiveProject: true, source: 'generated' },
+    )
+    const imported = await useMediaStore.getState().upsert(
+      makeItem({ id: 'imported', projectId: undefined, operation: 'import' }),
+      { attachActiveProject: false, source: 'imported' },
+    )
+    expect(generated.projectId).toBe('project-a')
+    expect(imported.projectId).toBeUndefined()
+  })
+
+  it('does not retag existing unscoped or already-scoped media', async () => {
+    useSettingsStore.setState({ activeProjectId: 'project-a' } as never)
+    const unscoped = makeItem({ id: 'unscoped', projectId: undefined })
+    const scoped = makeItem({ id: 'scoped', projectId: 'project-b' })
+    mockService.__seed(unscoped)
+    mockService.__seed(scoped)
+    await useMediaStore.getState().refresh()
+
+    await useMediaStore.getState().upsert({ ...unscoped, note: 'updated' })
+    await useMediaStore.getState().upsert(
+      { ...scoped, note: 'updated' },
+      { attachActiveProject: true, source: 'generated' },
+    )
+    expect(useMediaStore.getState().byId('unscoped')?.projectId).toBeUndefined()
+    expect(useMediaStore.getState().byId('scoped')?.projectId).toBe('project-b')
+  })
+
+  it('switching the active project does not mutate persisted media', async () => {
+    const item = makeItem({ id: 'stable', projectId: 'project-a' })
+    mockService.__seed(item)
+    await useMediaStore.getState().refresh()
+    useSettingsStore.setState({ activeProjectId: 'project-b' } as never)
+    expect(useMediaStore.getState().byId('stable')?.projectId).toBe('project-a')
+    expect(mockService.__all().find((record) => record.id === 'stable')?.projectId).toBe('project-a')
   })
 
   it('upsertDerivative() persists the child and updates the parent once', async () => {
@@ -304,6 +347,16 @@ describe('media filter / sort / search', () => {
   it('filter by operation buckets', () => {
     expect(filterMedia(items, 'upscaled').map((i) => i.id)).toEqual(['3'])
     expect(filterMedia(items, 'edited').map((i) => i.id)).toEqual(['4'])
+  })
+
+  it('filter by has-recipe / no-recipe / has-seed (Phase 2A)', () => {
+    const withRecipe: MediaItem = makeItem({ id: 'r1', recipe: { prompt: 'x', model: 'flux-dev' } })
+    const withSeed: MediaItem = makeItem({ id: 's1', seed: 42 })
+    const plain: MediaItem = makeItem({ id: 'p1' })
+    const set = [withRecipe, withSeed, plain]
+    expect(filterMedia(set, 'has-recipe').map((i) => i.id)).toEqual(['r1'])
+    expect(filterMedia(set, 'no-recipe').map((i) => i.id)).toEqual(['s1', 'p1'])
+    expect(filterMedia(set, 'has-seed').map((i) => i.id)).toEqual(['s1'])
   })
 
   it('sort by model name', () => {

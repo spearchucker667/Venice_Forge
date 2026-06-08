@@ -15,7 +15,7 @@ import { getPromptStartersForCategory } from '../../services/promptStarterServic
 import { isElectron } from '../../services/desktopBridge'
 import { PROMPT_TEMPLATES } from '../../constants/promptTemplates'
 import { processBase64Image, routeAsset } from '../../utils/imageProcessor'
-import { getImageModelCapabilities, buildDimensionOptions } from '../../config/image-model-capabilities'
+import { getImageModelCapabilities, buildDimensionOptions, getRecipeCapabilityList } from '../../config/image-model-capabilities'
 import { enhancePrompt } from '../../services/prompt-enhancer-service'
 import {
   buildImagePayload,
@@ -64,6 +64,7 @@ export function ImageView() {
 
   const caps = useMemo(() => getImageModelCapabilities(model), [model])
   const dimOptions = useMemo(() => buildDimensionOptions(model, constraints), [model, constraints])
+  const capabilitySummary = useMemo(() => getRecipeCapabilityList(caps), [caps])
 
   const hasAspectRatios = (dimOptions.dimensionMode === "aspectRatio" || dimOptions.dimensionMode === "aspectResolution") && !!dimOptions.aspectRatios?.length
   const maxSteps = constraints?.steps?.max || 50
@@ -79,6 +80,7 @@ export function ImageView() {
   const [quality, setQuality] = useState('')
   const [style, setStyle] = useState('')
   const [steps, setSteps] = useState(defaultSteps)
+  const [cfgScale, setCfgScale] = useState(1)
   const [variants, setVariants] = useState(1)
   const [hideWatermark] = useState(true)
   const [images, setImages] = useState<string[]>([])
@@ -208,6 +210,7 @@ export function ImageView() {
       negativePrompt?: string;
       style?: string;
       steps?: number;
+      cfgScale?: number;
       imageCount?: number;
       width?: number;
       height?: number;
@@ -220,6 +223,7 @@ export function ImageView() {
       if (typeof draft.negativePrompt === "string") setNegativePrompt(draft.negativePrompt);
       if (typeof draft.style === "string") setStyle(draft.style);
       if (typeof draft.steps === "number" && Number.isFinite(draft.steps)) setSteps(draft.steps);
+      if (typeof draft.cfgScale === "number" && Number.isFinite(draft.cfgScale)) setCfgScale(draft.cfgScale);
       if (typeof draft.imageCount === "number" && Number.isFinite(draft.imageCount)) {
         setVariants(Math.max(1, Math.min(4, Math.round(draft.imageCount))));
       }
@@ -282,11 +286,17 @@ export function ImageView() {
         resolution: dimOptions.dimensionMode === 'aspectResolution' ? resolution || undefined : undefined,
         quality: dimOptions.qualities?.length ? quality || undefined : undefined,
         steps,
+        cfg: cfgScale,
         style: style || undefined,
         safeMode: veniceApiSafeMode,
         disableWatermark: hideWatermark,
         imageCount: variants,
         supportsVariants: caps.supportsVariants,
+        supportsNegativePrompt: caps.supportsNegativePrompt,
+        supportsSeed: caps.supportsSeed,
+        supportsStyle: caps.supportsStyle,
+        supportsSteps: caps.supportsSteps,
+        supportsCfgScale: caps.supportsCfgScale,
       },
       undefined,
       seedState,
@@ -361,7 +371,10 @@ export function ImageView() {
             if (activeGenerationContext?.parentId) {
               await useMediaStore.getState().upsertDerivative(typedItem, activeGenerationContext.parentId);
             } else {
-              await useMediaStore.getState().upsert(typedItem);
+              await useMediaStore.getState().upsert(typedItem, {
+                attachActiveProject: true,
+                source: 'generated',
+              });
             }
           }));
 
@@ -395,6 +408,19 @@ export function ImageView() {
 
   const controls = (
     <>
+      {/* Model capability summary. Reflects the live registry so the user
+          knows what is and is not available BEFORE they fill out the form. */}
+      <div
+        className="text-[11px] text-text-secondary flex flex-wrap gap-x-2 gap-y-0.5 px-2 py-1.5 rounded-md bg-surface/40 border border-border/60"
+        aria-label={`Capabilities for ${caps.label}: ${capabilitySummary.join(', ')}`}
+        data-testid="image-capability-summary"
+      >
+        <span className="text-text-primary font-medium">{caps.label}</span>
+        <span aria-hidden="true">·</span>
+        {capabilitySummary.map((item) => (
+          <span key={item} className="opacity-90">{item}</span>
+        ))}
+      </div>
       <div>
         <div className="flex items-center justify-between">
           <Label hint={`${prompt.length}/${promptLimit}`}>Prompt</Label>
@@ -479,7 +505,12 @@ export function ImageView() {
         </div>
       )}
 
-      <div><Label>Negative prompt</Label><TextArea value={negativePrompt} onChange={setNegativePrompt} placeholder="blurry, low quality…" rows={2} /></div>
+      {caps.supportsNegativePrompt && (
+        <div>
+          <Label>Negative prompt</Label>
+          <TextArea value={negativePrompt} onChange={setNegativePrompt} placeholder="blurry, low quality…" rows={2} />
+        </div>
+      )}
 
       {hasAspectRatios ? (
         <div><Label>Aspect Ratio</Label><PillGroup options={aspectOptions} value={aspectRatio} onChange={setAspectRatio} /></div>
@@ -509,63 +540,72 @@ export function ImageView() {
         </div>
       )}
 
-      <div><Label>Style</Label><Select value={style} onChange={setStyle} options={styleOptions} searchable placeholder="None" /></div>
+      {caps.supportsStyle !== false && styles && styles.length > 0 && (
+        <div>
+          <Label>Style</Label>
+          <Select value={style} onChange={setStyle} options={styleOptions} searchable placeholder="None" />
+        </div>
+      )}
 
       {/* Seed controls */}
-      <div>
-        <Label>Seed</Label>
-        <div className="flex items-center gap-2 mt-1">
-          <label className="flex items-center gap-1.5 text-[12px] text-text-secondary cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={seedMode === 'fixed'}
-              onChange={(e) => setSeedMode(e.target.checked ? 'fixed' : 'off')}
-              className="rounded border-border bg-surface-elevated text-accent w-3.5 h-3.5 cursor-pointer"
-            />
-            Use fixed seed
-          </label>
-        </div>
-        {seedMode === 'fixed' && (
+      {caps.supportsSeed && (
+        <div>
+          <Label>Seed</Label>
           <div className="flex items-center gap-2 mt-1">
-            <input
-              type="number"
-              value={seedValue}
-              onChange={(e) => {
-                const v = parseInt(e.target.value, 10);
-                if (Number.isFinite(v)) {
-                  const clamped = clampSeed(v);
-                  if (clamped !== null) setSeedValue(clamped);
-                }
-              }}
-              min={-999999999}
-              max={999999999}
-              className="w-32 bg-surface-elevated border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors"
-              aria-label="Seed value"
-            />
-            <button
-              type="button"
-              onClick={() => setSeedValue(randomSeed())}
-              className="px-2 py-1 text-[11px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
-              aria-label="Randomize seed"
-            >
-              Randomize
-            </button>
-            <button
-              type="button"
-              onClick={() => setSeedMode('off')}
-              className="px-2 py-1 text-[11px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
-              aria-label="Clear seed"
-            >
-              Clear
-            </button>
+            <label className="flex items-center gap-1.5 text-[12px] text-text-secondary cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={seedMode === 'fixed'}
+                onChange={(e) => setSeedMode(e.target.checked ? 'fixed' : 'off')}
+                className="rounded border-border bg-surface-elevated text-accent w-3.5 h-3.5 cursor-pointer"
+              />
+              Use fixed seed
+            </label>
           </div>
-        )}
-      </div>
+          {seedMode === 'fixed' && (
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="number"
+                value={seedValue}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  if (Number.isFinite(v)) {
+                    const clamped = clampSeed(v);
+                    if (clamped !== null) setSeedValue(clamped);
+                  }
+                }}
+                min={-999999999}
+                max={999999999}
+                className="w-32 bg-surface-elevated border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors"
+                aria-label="Seed value"
+              />
+              <button
+                type="button"
+                onClick={() => setSeedValue(randomSeed())}
+                className="px-2 py-1 text-[11px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+                aria-label="Randomize seed"
+              >
+                Randomize
+              </button>
+              <button
+                type="button"
+                onClick={() => setSeedMode('off')}
+                className="px-2 py-1 text-[11px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+                aria-label="Clear seed"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
-      <div>
-        <Label hint={String(steps)}>Steps</Label>
-        <input type="range" min={1} max={maxSteps} value={steps} onChange={(e) => setSteps(Number(e.target.value))} className="w-full" />
-      </div>
+      {caps.supportsSteps !== false && (
+        <div>
+          <Label hint={String(steps)}>Steps</Label>
+          <input type="range" min={1} max={maxSteps} value={steps} onChange={(e) => setSteps(Number(e.target.value))} className="w-full" />
+        </div>
+      )}
       <div>
         <Label hint={String(variants)}>Variants</Label>
         <input type="range" min={1} max={4} value={variants} onChange={(e) => setVariants(Number(e.target.value))} className="w-full" />

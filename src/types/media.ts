@@ -62,6 +62,18 @@ export interface MediaItem extends GalleryImage {
    * this field is treated as opaque and only round-trips through IPC.
    */
   exportedPathToken?: string;
+
+  /** Phase 1 Recipe support (per approved workspace plan).
+   * Captured at generation time so the item can be "replayed" or used as a preset.
+   * Stored directly on the MediaItem for simplicity (additive, optional).
+   */
+  recipe?: import('./project').GenerationRecipe;
+
+  /** Project scoping for Phase 1 hardening.
+   * Attached at generation/save time from the active project.
+   * Legacy items without it are "unscoped" / visible in All.
+   */
+  projectId?: string;
 }
 
 /** Patch payload used by `mediaStore.patch` for partial updates. */
@@ -86,6 +98,8 @@ export type MediaItemPatch = Partial<
     | "remixPrompt"
     | "source"
     | "quality"
+    | "recipe"
+    | "projectId"
   >
 >;
 

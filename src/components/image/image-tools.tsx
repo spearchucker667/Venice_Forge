@@ -132,7 +132,10 @@ export function ImageTools() {
       if (parentId) {
         await useMediaStore.getState().upsertDerivative(mediaItem, parentId)
       } else {
-        await useMediaStore.getState().upsert(mediaItem)
+        await useMediaStore.getState().upsert(mediaItem, {
+          attachActiveProject: true,
+          source: 'generated',
+        })
       }
       toast.success('Saved to Media Studio')
     } catch (err) {

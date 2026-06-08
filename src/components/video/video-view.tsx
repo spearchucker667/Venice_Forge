@@ -120,7 +120,10 @@ export function VideoView() {
       audio: lastRequest?.audio,
       downloadUrl: videoUrl,
     }
-    void useMediaStore.getState().upsert(mediaItem)
+    void useMediaStore.getState().upsert(mediaItem, {
+      attachActiveProject: true,
+      source: 'generated',
+    })
   }, [status, videoUrl, queueId, lastRequest, prompt])
 
   const groupOptions = useMemo(() =>
@@ -384,7 +387,10 @@ export function VideoView() {
                       downloadUrl: videoUrl,
                     }
                     if (queueId) savedQueueIdsRef.current.add(queueId)
-                    void useMediaStore.getState().upsert(item)
+                    void useMediaStore.getState().upsert(item, {
+                      attachActiveProject: true,
+                      source: 'generated',
+                    })
                     toast.success('Saved to Media Studio')
                   }}
                   disabled={alreadySaved}

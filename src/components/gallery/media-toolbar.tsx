@@ -16,6 +16,9 @@ const FILTER_OPTIONS: Array<{ value: MediaFilter; label: string }> = [
   { value: "favorites", label: "Favorites" },
   { value: "upscaled", label: "Upscaled" },
   { value: "edited", label: "Edited" },
+  { value: "has-recipe", label: "Has recipe" },
+  { value: "no-recipe", label: "No recipe" },
+  { value: "has-seed", label: "Has seed" },
 ];
 
 const SORT_OPTIONS: Array<{ value: MediaSort; label: string }> = [

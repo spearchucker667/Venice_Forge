@@ -41,8 +41,12 @@ use.
 ### Development
 ```bash
 npm run dev:electron   # Desktop app (recommended; runs tsc for electron/ first)
-npm run dev:web        # Vite + Express proxy only
+npm run dev            # Concurrent server + Vite (recommended for web dev)
+npm run dev:server     # Express proxy only (tsx server.ts)
+npm run dev:web        # Vite only (renderer HMR)
 ```
+
+**Invariant:** `dev:web` must be exactly `"vite"` (never `"npm run dev"` or a server-only command). Enforced by `package-scripts.test.ts`.
 
 ### Validation order (required before PR)
 ```bash
@@ -69,6 +73,7 @@ npm run dist:mac         # DMG + ZIP (both archs)
 npm run dist:mac:arm64   # Apple Silicon only
 npm run dist:mac:x64      # Intel only
 npm run checksum:release  # SHA-256 after packaging
+# Linux (CI only in release.yml build-linux job; local requires Linux + electron-builder --linux)
 ```
 
 ### Misc
@@ -97,6 +102,8 @@ npm run clean            # Remove dist/ dist-electron/ release/
 **Single Venice entry point.** All HTTP calls go through `veniceFetch()` / `veniceStreamChat()` in `src/services/veniceClient.ts`. Modules must not `fetch('/api/venice/...')` directly and must not call `window.veniceForge.venice.*` directly — use `src/services/desktopBridge.ts` instead. **Exception:** `src/stores/chat-store.ts` accesses `window.veniceForge.chat.*` directly (pre-bridge legacy). Do not add new direct calls.
 
 **Canonical tab registry.** `src/config/tabs.ts` is the single source of truth for the `Tab` type, the visible tab order (`CANONICAL_TAB_ORDER`), the sidebar groups, the keyboard-shortcut numbering, and the legacy alias table. `useSettingsStore` v2→v3 migrates legacy `activeTab` values (e.g. `gallery` → `media`) so persisted user state from earlier builds continues to resolve. Add a new tab by adding a `TabId` literal to `TAB_IDS`, an entry to `TAB_REGISTRY`, and a view to `App.tsx`'s `views` map. Aliases are deprecated and preserved only for back-compat.
+
+**Model-aware recipe contract (Phase 2A).** `src/config/image-model-capabilities.ts` is the single source of truth for which image model supports which fields. The registry exports `getImageModelCapabilities`, `buildDimensionOptions`, `isDimensionSupported`, `normalizeDimensionsForModel`, `getUnsupportedRecipeFields`, and `getRecipeCapabilityList`. `src/types/project.ts` adds `getRecipeCompatibilityReport(recipe, caps, modelIsKnown)` which returns `{ status: 'compatible' | 'partial' | 'incompatible', issues, sanitizedRecipe, unsupportedFields }`. The Image Studio (`src/components/image/image-view.tsx`) reads the live capability contract and (a) hides controls the model does not support, (b) shows a small "Capabilities" line, and (c) passes per-field `supports*` flags into `buildImagePayload` so the network boundary drops `negative_prompt` / `style_preset` / `steps` / `cfg_scale` / `seed` when the model does not accept them. The Media Inspector (`src/components/gallery/media-inspector.tsx`) renders the `RecipeCompatibilityCard` (status + issues + use-with-current-model + use-original + show/hide comparison) and an "Export recipe" button alongside the existing "Copy recipe" action. The `verify:model-aware-recipes` audit script (`scripts/verify-model-aware-recipes.cjs`) is part of the `verify:workspace-contracts` parity. See `VERIFY-043`.
 
 **Dual TypeScript build pipelines:**
 - Renderer (`src/`): Vite, `tsconfig.json` (ESNext, `noEmit`, `bundler` resolution)
@@ -175,6 +182,8 @@ test's comment header.
 | `VERIFY-039` | Jina proxy responses are capped at 2 MiB in both Express and Electron IPC, with stream cancellation and normalized 413 failures. | `server.test.ts`, `electron/ipc/handlers.test.ts` |
 | `VERIFY-040` | Production-safe Media Studio handoff and image sizing — queued regenerate/remix drafts apply before generation, aspect-resolution models emit only `aspect_ratio` + `resolution`, derivatives preserve parent/child lineage, and image-tools handoffs persist the correct operation. | `src/components/image/image-view.test.tsx`, `src/components/gallery/gallery-view.test.tsx`, `src/components/image/image-tools.test.tsx`, `src/stores/media-store.test.ts` |
 | `VERIFY-041` | Complete semantic theme contract — all built-ins expose 29 canonical roles, Forge Dracula foreground/background pairs meet WCAG AA, runtime CSS variables are complete, and ThemeMaker YAML round-trips snake_case semantic tokens while accepting legacy palettes. | `src/theme/contrast.test.ts`, `src/theme/applyTheme.test.ts`, `src/components/ThemeMaker.test.ts`, `src/config/configSchema.test.ts` |
+| `VERIFY-042` | Phase 1 workspace contracts — All Projects is a persisted nullable selection; active IDs are validated; referenced projects are archive-only; GenerationRecipe extraction/sanitization/handoff is non-mutating; only explicit generated saves inherit the active project; project gallery filters are exact; mounted Command Palette shortcuts/routing/actions are real and recipe placeholders are absent. | `src/types/project.test.ts`, `src/stores/project-store.test.ts`, `src/stores/chat-store.character.test.ts`, `src/stores/media-store.test.ts`, `src/components/layout/sidebar.test.tsx`, `src/components/command-palette/CommandPalette.test.tsx`, `src/components/gallery/gallery-view.test.tsx`, `src/components/image/image-view.test.tsx` |
+| `VERIFY-043` | Phase 2A model-aware recipes — capability helpers (`isDimensionSupported`, `normalizeDimensionsForModel`, `getUnsupportedRecipeFields`, `getRecipeCapabilityList`) exist on the registry; `getRecipeCompatibilityReport` returns `compatible`/`partial`/`incompatible` with structured issues + sanitized recipe; `buildImagePayload` honours per-capability `supports*` flags end-to-end; image-view hides negative/seed/style/steps controls and surfaces a capability summary; media-inspector renders the `RecipeCompatibilityCard` with use-with-current-model/use-original/copy/export/compare actions; media-store `filterMedia` recognises `has-recipe`/`no-recipe`/`has-seed`; `verify:model-aware-recipes` audit passes. | `src/config/image-model-capabilities.test.ts`, `src/types/project.test.ts`, `src/utils/payloadBuilders.modelAware.test.ts`, `src/components/image/image-view.test.tsx`, `src/components/gallery/recipe-compatibility-card.test.tsx`, `src/components/gallery/recipe-comparison.test.tsx`, `src/components/gallery/media-inspector.test.tsx`, `src/stores/media-store.test.ts`, `scripts/verify-model-aware-recipes.cjs` |
 
 ---
 

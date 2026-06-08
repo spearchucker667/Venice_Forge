@@ -4,6 +4,10 @@ import { describe, expect, it } from "vitest";
 import {
   buildDimensionOptions,
   getImageModelCapabilities,
+  getRecipeCapabilityList,
+  getUnsupportedRecipeFields,
+  isDimensionSupported,
+  normalizeDimensionsForModel,
 } from "./image-model-capabilities";
 import type { ImageConstraints } from "../types/venice";
 
@@ -121,5 +125,144 @@ describe("buildDimensionOptions — quality / variants", () => {
     const out = buildDimensionOptions("flux-dev", null);
     expect(out.qualities).toBeUndefined();
     expect(out.defaultQuality).toBeUndefined();
+  });
+});
+
+// Phase 2A: Phase 2A model-aware recipe surface (VERIFY-043).
+describe("isDimensionSupported", () => {
+  it("returns true for a widthHeight model with matching pair", () => {
+    const caps = getImageModelCapabilities("flux-dev");
+    expect(isDimensionSupported(caps, 1024, 1024)).toBe(true);
+  });
+
+  it("returns false for a widthHeight model with non-listed pair", () => {
+    const caps = getImageModelCapabilities("flux-dev");
+    expect(isDimensionSupported(caps, 333, 333)).toBe(false);
+  });
+
+  it("returns true for aspect-only / aspect-resolution models regardless of pixel pair", () => {
+    const caps = getImageModelCapabilities("nano-banana-v1");
+    expect(isDimensionSupported(caps, 1024, 1024)).toBe(true);
+    expect(isDimensionSupported(caps, undefined, undefined)).toBe(false);
+  });
+
+  it("returns false for invalid input", () => {
+    const caps = getImageModelCapabilities("flux-dev");
+    expect(isDimensionSupported(caps, NaN, 100)).toBe(false);
+    expect(isDimensionSupported(caps, 100, Infinity)).toBe(false);
+  });
+});
+
+describe("normalizeDimensionsForModel", () => {
+  it("keeps a supported widthHeight pair and returns no warning", () => {
+    const caps = getImageModelCapabilities("flux-dev");
+    const out = normalizeDimensionsForModel(caps, { width: 1024, height: 1024 });
+    expect(out.width).toBe(1024);
+    expect(out.height).toBe(1024);
+    expect(out.warning).toBeUndefined();
+  });
+
+  it("defaults unsupported widthHeight pair and emits a warning", () => {
+    const caps = getImageModelCapabilities("flux-dev");
+    const out = normalizeDimensionsForModel(caps, { width: 333, height: 333 });
+    expect(out.width).toBe(1024);
+    expect(out.height).toBe(1024);
+    expect(out.warning).toMatch(/Adjusted dimensions/);
+  });
+
+  it("drops width/height for aspectRatio / aspectResolution models and keeps the ratio", () => {
+    const caps = getImageModelCapabilities("nano-banana-v1");
+    const out = normalizeDimensionsForModel(caps, {
+      width: 1024,
+      height: 1024,
+      aspectRatio: "99:1",
+    });
+    expect(out.width).toBeUndefined();
+    expect(out.height).toBeUndefined();
+    expect(out.aspectRatio).toBe("1:1"); // default fallback
+    expect(out.warning).toMatch(/aspect ratio/i);
+  });
+
+  it("keeps valid aspect ratio + resolution on aspectResolution models", () => {
+    const caps = getImageModelCapabilities("nano-banana-v1");
+    const out = normalizeDimensionsForModel(caps, {
+      aspectRatio: "16:9",
+      resolution: "2k",
+    });
+    expect(out.aspectRatio).toBe("16:9");
+    expect(out.resolution).toBe("2k");
+  });
+});
+
+describe("getUnsupportedRecipeFields", () => {
+  it("lists negativePrompt + seed + variants when caps disable them", () => {
+    const caps = {
+      modelId: "x",
+      label: "x",
+      dimensionMode: "widthHeight" as const,
+      defaultDimensions: { width: 1024, height: 1024 },
+      supportsNegativePrompt: false,
+      supportsSeed: false,
+      supportsVariants: false,
+    };
+    expect(
+      getUnsupportedRecipeFields(
+        { negativePrompt: "x", seed: 1, variants: 2, steps: 5 },
+        caps,
+      ),
+    ).toEqual(expect.arrayContaining(["negativePrompt", "seed", "variants"]));
+  });
+
+  it("lists width/height outside widthHeight dimension mode", () => {
+    const caps = {
+      modelId: "x",
+      label: "x",
+      dimensionMode: "aspectResolution" as const,
+      defaultDimensions: { aspectRatio: "1:1", resolution: "1k" },
+      supportsNegativePrompt: true,
+      supportsSeed: true,
+      supportsVariants: true,
+    };
+    expect(
+      getUnsupportedRecipeFields({ width: 1024, height: 1024 }, caps),
+    ).toEqual(expect.arrayContaining(["width", "height"]));
+  });
+});
+
+describe("getRecipeCapabilityList", () => {
+  it("describes a widthHeight SD-classic model", () => {
+    const caps = getImageModelCapabilities("flux-dev");
+    const list = getRecipeCapabilityList(caps);
+    expect(list.join(" ")).toMatch(/sizes/);
+    expect(list.join(" ")).toMatch(/Negative prompt/);
+    expect(list.join(" ")).toMatch(/Seed/);
+  });
+
+  it("describes an aspect-resolution model with ratio × resolution count", () => {
+    const caps = getImageModelCapabilities("nano-banana-v1");
+    const list = getRecipeCapabilityList(caps);
+    expect(list.join(" ")).toMatch(/ratios/);
+    expect(list.join(" ")).toMatch(/resolutions/);
+    expect(list.join(" ")).toMatch(/Quality/);
+  });
+
+  it("flags disabled features when the model does not support them", () => {
+    const caps = {
+      modelId: "x",
+      label: "x",
+      dimensionMode: "widthHeight" as const,
+      defaultDimensions: { width: 1024, height: 1024 },
+      supportsNegativePrompt: false,
+      supportsSeed: true,
+      supportsVariants: true,
+      supportsSteps: false,
+      supportsCfgScale: false,
+      supportsStyle: false,
+    };
+    const list = getRecipeCapabilityList(caps);
+    expect(list.join(" ")).toMatch(/No negative prompt/);
+    expect(list.join(" ")).toMatch(/No steps/);
+    expect(list.join(" ")).toMatch(/No CFG/);
+    expect(list.join(" ")).toMatch(/No style preset/);
   });
 });

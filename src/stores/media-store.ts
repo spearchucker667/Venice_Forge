@@ -5,6 +5,7 @@ import StorageService from '../services/storageService'
 import { migrateAll, migrateGalleryImageToMediaItem } from '../services/mediaMigration'
 import { isMediaItemLike, type MediaItem, type MediaItemPatch } from '../types/media'
 import { toast } from './toast-store'
+import { useSettingsStore } from './settings-store' // for attaching active project to new media (Phase 1 hardening)
 
 interface MediaState {
   items: MediaItem[]
@@ -21,7 +22,7 @@ interface MediaState {
   /** Loads the next timestamp-ordered page without replacing loaded records. */
   loadMore: () => Promise<void>
   /** Insert or update a single record. Returns the persisted record. */
-  upsert: (item: MediaItem) => Promise<MediaItem>
+  upsert: (item: MediaItem, options?: MediaUpsertOptions) => Promise<MediaItem>
   /** Persist a derivative and update its parent's child list as one logical operation. */
   upsertDerivative: (item: MediaItem, parentId: string) => Promise<MediaItem>
   /** Patch a single record by id. Returns the updated record, or null if missing. */
@@ -51,6 +52,11 @@ interface MediaState {
    *  also merged into the in-memory cache so subsequent byId / childrenOf
    *  / parentOf lookups for the same id hit the in-memory path. */
   loadById: (id: string) => Promise<MediaItem | null>
+}
+
+export interface MediaUpsertOptions {
+  attachActiveProject?: boolean
+  source?: 'generated' | 'imported' | 'legacy' | 'manual' | 'migration'
 }
 
 export const MEDIA_PAGE_SIZE = 60
@@ -131,9 +137,13 @@ export const useMediaStore = create<MediaState>((set, get) => ({
     }
   },
 
-  upsert: async (item) => {
+  upsert: async (item, options) => {
     const alreadyLoaded = get().items.some((existing) => existing.id === item.id)
-    const migrated = migrateGalleryImageToMediaItem(item)
+    const migrated = migrateGalleryImageToMediaItem({ ...item })
+    const activeProjectId = useSettingsStore.getState().activeProjectId
+    if (options?.attachActiveProject === true && activeProjectId && !migrated.projectId) {
+      migrated.projectId = activeProjectId
+    }
     const saved = await StorageService.putMedia<MediaItem>(migrated)
     set((state) => {
       const without = state.items.filter((existing) => existing.id !== saved.id)
@@ -151,7 +161,11 @@ export const useMediaStore = create<MediaState>((set, get) => ({
     const parent = get().items.find((candidate) => candidate.id === parentId) ?? await get().loadById(parentId)
     if (!parent) throw new Error(`Parent media item not found: ${parentId}`)
 
-    const migrated = migrateGalleryImageToMediaItem({ ...item, parentId })
+    const migrated = migrateGalleryImageToMediaItem({
+      ...item,
+      parentId,
+      projectId: item.projectId ?? parent.projectId,
+    })
     const saved = await StorageService.putMedia<MediaItem>(migrated)
     const childrenIds = Array.from(new Set([...parent.childrenIds, saved.id]))
     try {
@@ -319,7 +333,16 @@ export const selectParent = (state: MediaState, id: string) => {
 
 /** Lightweight filter/sort helpers, exported so views and tests can share them. */
 export type MediaSort = "newest" | "oldest" | "model" | "size"
-export type MediaFilter = "all" | "image" | "video" | "favorites" | "upscaled" | "edited"
+export type MediaFilter =
+  | "all"
+  | "image"
+  | "video"
+  | "favorites"
+  | "upscaled"
+  | "edited"
+  | "has-recipe"
+  | "no-recipe"
+  | "has-seed"
 
 export function filterMedia(items: MediaItem[], filter: MediaFilter): MediaItem[] {
   switch (filter) {
@@ -335,6 +358,12 @@ export function filterMedia(items: MediaItem[], filter: MediaFilter): MediaItem[
       return items.filter((item) => item.operation === "upscale" || item.upscaled === true)
     case "edited":
       return items.filter((item) => item.operation === "edit" || item.operation === "background-remove")
+    case "has-recipe":
+      return items.filter((item) => Boolean(item.recipe))
+    case "no-recipe":
+      return items.filter((item) => !item.recipe)
+    case "has-seed":
+      return items.filter((item) => typeof item.seed === "number" && Number.isInteger(item.seed))
     default:
       return items
   }

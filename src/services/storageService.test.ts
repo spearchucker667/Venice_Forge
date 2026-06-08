@@ -111,4 +111,53 @@ describe("storageService", () => {
     );
     warnSpy.mockRestore();
   });
+
+  // P1 web privacy regression guard: conversations (and other ENCRYPTED_STORES)
+  // must be written with the _isEncryptedWrapper + data shape. Raw IDB rows
+  // inspected directly must never expose title, messages, prompts, or other
+  // sensitive plaintext at the top level of the stored record.
+  it("stores conversations (web fallback) as encrypted wrappers with no plaintext sensitive fields at rest", async () => {
+    const conv = {
+      id: "conv-priv-1",
+      title: "Secret chat about something sensitive",
+      model: "venice-uncensored",
+      messages: [
+        { role: "user", content: "private prompt text that must not leak" },
+        { role: "assistant", content: "private response that must not leak" },
+      ],
+      systemPrompt: "top secret system prompt",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    await StorageService.saveItem("conversations", conv as any);
+
+    // Peek at the *raw* row in the object store (bypassing getItems / decodeRows).
+    const db = await StorageService.openDB();
+    const rawRow: any = await new Promise((resolve, reject) => {
+      const tx = db.transaction("conversations", "readonly");
+      const req = tx.objectStore("conversations").get("conv-priv-1");
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+
+    expect(rawRow).toBeTruthy();
+    // Must be the encrypted wrapper form.
+    expect(rawRow._isEncryptedWrapper).toBe(true);
+    expect(rawRow.data).toBeTruthy(); // the AES-GCM ciphertext blob
+    // No top-level plaintext sensitive fields.
+    expect(rawRow.title).toBeUndefined();
+    expect(rawRow.messages).toBeUndefined();
+    expect(rawRow.systemPrompt).toBeUndefined();
+    expect(rawRow.prompt).toBeUndefined();
+    // The wrapper still carries the id/timestamp for indexing.
+    expect(rawRow.id).toBe("conv-priv-1");
+    expect(typeof rawRow.timestamp).toBe("number");
+
+    // And the normal read path still returns usable plaintext (service decrypts).
+    const roundtripped = await StorageService.getItems<any>("conversations");
+    const found = roundtripped.find((c: any) => c.id === "conv-priv-1");
+    expect(found?.title).toBe("Secret chat about something sensitive");
+    expect(found?.messages?.[0]?.content).toContain("private prompt text");
+  });
 });

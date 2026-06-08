@@ -7,6 +7,7 @@ export interface ImageGenerationDraft {
   negativePrompt?: string
   style?: string
   steps?: number
+  cfgScale?: number
   imageCount?: number
   width?: number
   height?: number

@@ -22,6 +22,9 @@ const ENCRYPTED_STORES: StoreName[] = [
   "lorebooks",
   "rp_chats",
   "rp_assets",
+  // Project Workspace metadata (and any future project-scoped assets) are
+  // treated as user content and encrypted at rest for both Electron and web modes.
+  "projects",
 ];
 
 export interface GetItemsResult<T = unknown> {

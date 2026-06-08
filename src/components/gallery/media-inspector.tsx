@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Heart, Trash2, Tag as TagIcon, NotebookPen, Sparkles,
-  Copy, Wand2, Shuffle, Settings, RefreshCw, Repeat, Maximize2, ImagePlus,
+  Copy, Wand2, Shuffle, Settings, RefreshCw, Repeat, Maximize2, ImagePlus, Download,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { GhostButton, Label, TextArea, Badge } from "../ui/shared";
@@ -13,6 +13,8 @@ import { mediaCapabilities, normalizedTags, splitTags } from "../../utils/mediaI
 import { enhancePrompt, remixPrompt } from "../../services/prompt-enhancer-service";
 import { useConfigStore } from "../../stores/config-store";
 import type { MediaItem } from "../../types/media";
+import { extractGenerationRecipe, type GenerationRecipe } from "../../types/project";
+import { RecipeCompatibilityCard } from "./recipe-compatibility-card";
 
 interface MediaInspectorProps {
   item: MediaItem;
@@ -38,6 +40,18 @@ interface MediaInspectorProps {
   onApplyRemix?: (item: MediaItem, remixedPrompt: string) => void;
   /** Open the image-tools panel for the selected item. */
   onOpenImageTools?: (item: MediaItem) => void;
+  /** Phase 1 — Use the stored (or reconstructed) GenerationRecipe in the target studio.
+   *  The parent (gallery-view) wires this to the image-workspace handoff. */
+  onUseRecipe?: (item: MediaItem) => void;
+  /** Phase 2A — Use the recipe already sanitized for `currentModel`.
+   *  Defaults to the same handoff as `onUseRecipe` when not supplied. */
+  onUseSanitizedRecipe?: (item: MediaItem, sanitized: GenerationRecipe) => void;
+  /** Phase 2A — Export the stored recipe as a downloadable JSON file. */
+  onExportRecipe?: (item: MediaItem) => void;
+  /** Phase 2A — The id of the currently selected target model. When
+   *  supplied alongside a `generationRecipe`, the inspector renders the
+   *  compatibility card. */
+  currentModel?: string;
 }
 
 export function MediaInspector({
@@ -55,9 +69,14 @@ export function MediaInspector({
   onUpscale,
   onApplyRemix,
   onOpenImageTools,
+  onUseRecipe,
+  onUseSanitizedRecipe,
+  onExportRecipe,
+  currentModel,
 }: MediaInspectorProps) {
   const [tagDraft, setTagDraft] = useState("");
   const [noteDraft, setNoteDraft] = useState(item.note);
+  const [showRecipeComparison, setShowRecipeComparison] = useState(false);
 
   const capabilities = useMemo(() => mediaCapabilities(item), [item.model]);
   const hasAnyCapability = capabilities.upscale || capabilities.edit || capabilities.video || capabilities.vision;
@@ -116,6 +135,7 @@ export function MediaInspector({
   const enhancerEnabled = enhancerConfig?.enabled !== false;
 
   const hasSeed = typeof item.seed === "number" && Number.isInteger(item.seed);
+  const generationRecipe = useMemo(() => extractGenerationRecipe(item), [item]);
 
   const handleCopyPrompt = useCallback(() => {
     void navigator.clipboard.writeText(item.prompt || "");
@@ -143,6 +163,46 @@ export function MediaInspector({
     if (item.resolution) meta.resolution = item.resolution;
     void navigator.clipboard.writeText(JSON.stringify(meta, null, 2));
   }, [item]);
+
+  const handleCopyRecipe = useCallback(() => {
+    if (generationRecipe) void navigator.clipboard.writeText(JSON.stringify(generationRecipe, null, 2));
+  }, [generationRecipe]);
+
+  const handleExportRecipe = useCallback(() => {
+    if (!generationRecipe) return;
+    if (onExportRecipe) {
+      onExportRecipe(item);
+      return;
+    }
+    // Fallback: build a Blob and trigger a download. Browser-only path.
+    if (typeof document === "undefined") return;
+    const json = JSON.stringify(generationRecipe, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `recipe-${item.id.slice(0, 8)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }, [generationRecipe, onExportRecipe, item]);
+
+  const handleUseSanitizedRecipe = useCallback(
+    (sanitized: GenerationRecipe) => {
+      if (onUseSanitizedRecipe) onUseSanitizedRecipe(item, sanitized);
+      else if (onUseRecipe) onUseRecipe(item);
+    },
+    [onUseSanitizedRecipe, onUseRecipe, item],
+  );
+
+  const handleUseOriginalRecipe = useCallback(
+    (original: GenerationRecipe) => {
+      if (onUseRecipe) onUseRecipe(item);
+      void original; // original is included for symmetry with the card; parent uses the item's stored recipe.
+    },
+    [onUseRecipe, item],
+  );
 
   const handleEnhance = useCallback(async () => {
     if (!item.prompt) return;
@@ -326,6 +386,19 @@ export function MediaInspector({
       )}
 
       {/* ── Enhanced / original prompts ─────────────────────────────── */}
+      {currentModel && generationRecipe && (
+        <section data-testid="inspector-recipe-compatibility">
+          <Label>Recipe compatibility</Label>
+          <RecipeCompatibilityCard
+            recipe={generationRecipe}
+            currentModel={currentModel}
+            onUseWithCurrentModel={handleUseSanitizedRecipe}
+            onUseOriginal={handleUseOriginalRecipe}
+            showComparison={showRecipeComparison}
+            onToggleComparison={() => setShowRecipeComparison((v) => !v)}
+          />
+        </section>
+      )}
       {item.enhancedPrompt && (
         <section>
           <Label>Enhanced Prompt</Label>
@@ -364,6 +437,17 @@ export function MediaInspector({
               data-testid="inspector-use-settings"
             >
               <Settings className="h-3 w-3" /> Use settings
+            </button>
+          )}
+          {onUseRecipe && (
+            <button
+              type="button"
+              onClick={() => onUseRecipe(item)}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              title="Load the generation recipe (prompt, model, seed, dimensions, etc.) into the appropriate studio"
+              data-testid="inspector-use-recipe"
+            >
+              <Settings className="h-3 w-3" /> Use recipe
             </button>
           )}
           {onRegenerate && (
@@ -450,6 +534,28 @@ export function MediaInspector({
           >
             <Copy className="h-3 w-3" /> Copy metadata
           </button>
+          {generationRecipe && (
+            <button
+              type="button"
+              onClick={handleCopyRecipe}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              title="Copy generation recipe as JSON"
+              data-testid="inspector-copy-recipe"
+            >
+              <Copy className="h-3 w-3" /> Copy recipe
+            </button>
+          )}
+          {generationRecipe && (
+            <button
+              type="button"
+              onClick={handleExportRecipe}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              title="Download generation recipe as a JSON file"
+              data-testid="inspector-export-recipe"
+            >
+              <Download className="h-3 w-3" /> Export recipe
+            </button>
+          )}
           {item.prompt && (
             <>
               <button

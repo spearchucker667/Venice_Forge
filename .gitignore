@@ -36,6 +36,13 @@ scripts/dev-tools/venice-styles.json
 .vite/
 target_inventory.txt
 
+# Archive contaminants (never in zips, tarballs, or release artifacts).
+__MACOSX/
+.AppleDouble/
+._*
+# (node_modules/, dist/, dist-electron/, release/, coverage/ already ignored above)
+# Local desktop chat DBs and non-example configs (already covered by patterns above).
+
 # Venice Forge local config files may contain secrets.
 .config/*.yaml
 .config/*.yml

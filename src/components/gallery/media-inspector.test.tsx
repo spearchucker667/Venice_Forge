@@ -294,3 +294,96 @@ describe("MediaInspector — gallery actions", () => {
     expect(edit).toBeInTheDocument();
   });
 });
+
+// Phase 2A: VERIFY-043 model-aware recipe surface
+describe("MediaInspector — Phase 2A model-aware recipe surface", () => {
+  const itemWithRecipe: MediaItem = {
+    ...baseItem,
+    recipe: {
+      prompt: "A copper city at dusk",
+      model: "flux-dev",
+      width: 1024,
+      height: 1024,
+      seed: 42,
+      negativePrompt: "fog",
+    },
+  };
+
+  it("renders the recipe compatibility section when a recipe and current model are supplied", () => {
+    render(
+      <MediaInspector
+        item={itemWithRecipe}
+        parentItem={null}
+        childrenItems={[]}
+        missingChildIds={[]}
+        onPatch={vi.fn()}
+        onDelete={vi.fn()}
+        onOpenChild={vi.fn()}
+        onOpenParent={vi.fn()}
+        onClose={vi.fn()}
+        currentModel="nano-banana-v1"
+      />,
+    );
+    expect(screen.getByTestId("inspector-recipe-compatibility")).toBeInTheDocument();
+  });
+
+  it("does NOT render the compatibility section when no currentModel is supplied", () => {
+    render(
+      <MediaInspector
+        item={itemWithRecipe}
+        parentItem={null}
+        childrenItems={[]}
+        missingChildIds={[]}
+        onPatch={vi.fn()}
+        onDelete={vi.fn()}
+        onOpenChild={vi.fn()}
+        onOpenParent={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.queryByTestId("inspector-recipe-compatibility")).toBeNull();
+  });
+
+  it("fires onExportRecipe when the Export recipe button is clicked", () => {
+    const onExportRecipe = vi.fn();
+    render(
+      <MediaInspector
+        item={itemWithRecipe}
+        parentItem={null}
+        childrenItems={[]}
+        missingChildIds={[]}
+        onPatch={vi.fn()}
+        onDelete={vi.fn()}
+        onOpenChild={vi.fn()}
+        onOpenParent={vi.fn()}
+        onClose={vi.fn()}
+        onExportRecipe={onExportRecipe}
+        currentModel="flux-dev"
+      />,
+    );
+    fireEvent.click(screen.getByTestId("inspector-export-recipe"));
+    expect(onExportRecipe).toHaveBeenCalledWith(itemWithRecipe);
+  });
+
+  it("fires onUseSanitizedRecipe when the 'Use with current model' card button is clicked", () => {
+    const onUseSanitizedRecipe = vi.fn();
+    render(
+      <MediaInspector
+        item={itemWithRecipe}
+        parentItem={null}
+        childrenItems={[]}
+        missingChildIds={[]}
+        onPatch={vi.fn()}
+        onDelete={vi.fn()}
+        onOpenChild={vi.fn()}
+        onOpenParent={vi.fn()}
+        onClose={vi.fn()}
+        onUseRecipe={vi.fn()}
+        onUseSanitizedRecipe={onUseSanitizedRecipe}
+        currentModel="nano-banana-v1"
+      />,
+    );
+    fireEvent.click(screen.getByTestId("recipe-use-with-current-model"));
+    expect(onUseSanitizedRecipe).toHaveBeenCalledTimes(1);
+  });
+});

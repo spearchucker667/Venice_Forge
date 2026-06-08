@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../services/storageService', () => ({
@@ -18,6 +18,7 @@ import StorageService from '../../services/storageService'
 import { useMediaStore } from '../../stores/media-store'
 import { GalleryView } from './gallery-view'
 import { useImageWorkspaceStore } from '../../stores/image-workspace-store'
+import { useSettingsStore } from '../../stores/settings-store'
 
 const sampleRecord = {
   id: 'image-1',
@@ -33,6 +34,7 @@ describe('MediaStudioView (GalleryView)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     useImageWorkspaceStore.getState().reset()
+    useSettingsStore.setState({ activeProjectId: null, activeTab: 'media' } as never)
     useMediaStore.setState({
       items: [], loading: false, loadingMore: false, loaded: false,
       totalCount: 0, hasMore: false, nextOffset: 0, lastError: null,
@@ -55,6 +57,41 @@ describe('MediaStudioView (GalleryView)', () => {
     render(<GalleryView />)
     expect(await screen.findByText('Copper city at dusk')).toBeInTheDocument()
     expect(StorageService.getItemsPageWithMeta).toHaveBeenCalledWith('images', { offset: 0, limit: 60 })
+  })
+
+  // VERIFY-042: All Projects includes scoped and legacy media; project views are exact-match only.
+  it('filters media by active project without mutating scoped or unscoped records', async () => {
+    const records = [
+      { ...sampleRecord, id: 'image-a', prompt: 'Project A image', projectId: 'project-a' },
+      { ...sampleRecord, id: 'image-b', prompt: 'Project B image', projectId: 'project-b' },
+      { ...sampleRecord, id: 'image-unscoped', prompt: 'Legacy unscoped image' },
+    ]
+    vi.mocked(StorageService.getItemsPageWithMeta).mockResolvedValue({
+      items: records, decryptFailures: 0, total: 3, offset: 0, limit: 60, hasMore: false,
+    })
+    render(<GalleryView />)
+
+    expect(await screen.findByText('Project A image')).toBeInTheDocument()
+    expect(screen.getByText('Project B image')).toBeInTheDocument()
+    expect(screen.getByText('Legacy unscoped image')).toBeInTheDocument()
+
+    act(() => useSettingsStore.getState().setActiveProjectId('project-a'))
+    expect(screen.getByText('Project A image')).toBeInTheDocument()
+    expect(screen.queryByText('Project B image')).not.toBeInTheDocument()
+    expect(screen.queryByText('Legacy unscoped image')).not.toBeInTheDocument()
+
+    act(() => useSettingsStore.getState().setActiveProjectId('project-b'))
+    expect(screen.queryByText('Project A image')).not.toBeInTheDocument()
+    expect(screen.getByText('Project B image')).toBeInTheDocument()
+
+    act(() => useSettingsStore.getState().setActiveProjectId(null))
+    expect(screen.getByText('Legacy unscoped image')).toBeInTheDocument()
+    expect(useMediaStore.getState().items.map(({ id, projectId }) => ({ id, projectId })))
+      .toEqual(expect.arrayContaining([
+        { id: 'image-a', projectId: 'project-a' },
+        { id: 'image-b', projectId: 'project-b' },
+        { id: 'image-unscoped', projectId: undefined },
+      ]))
   })
 
   it('deletes an image via deleteMedia and removes it from the visible library', async () => {
@@ -123,6 +160,56 @@ describe('MediaStudioView (GalleryView)', () => {
       operation: 'generate',
       draft: { prompt: 'Copper city at dusk', quality: 'high' },
     })
+  })
+
+  it('sanitizes recipe dimensions before handoff and does not mutate the source item', async () => {
+    const record = {
+      ...sampleRecord,
+      model: 'nano-banana-v1',
+      width: 1024,
+      height: 768,
+      aspectRatio: 'unsupported',
+      recipe: {
+        prompt: sampleRecord.prompt,
+        model: 'nano-banana-v1',
+        width: 1024,
+        height: 768,
+        aspectRatio: 'unsupported',
+        variants: 2,
+      },
+    }
+    vi.mocked(StorageService.getItemsPageWithMeta).mockResolvedValue({
+      items: [record], decryptFailures: 0, total: 1, offset: 0, limit: 60, hasMore: false,
+    })
+    render(<GalleryView />)
+    await screen.findByText('Copper city at dusk')
+    const sourceBefore = structuredClone(useMediaStore.getState().items[0])
+    fireEvent.doubleClick(screen.getByRole('button', { name: /open image: copper city at dusk/i }))
+    fireEvent.click(await screen.findByTestId('inspector-use-recipe'))
+
+    expect(useImageWorkspaceStore.getState().pending).toMatchObject({
+      target: 'generate',
+      autoGenerate: false,
+      draft: { aspectRatio: '1:1', resolution: '1k', imageCount: 2 },
+    })
+    expect(useImageWorkspaceStore.getState().pending).not.toHaveProperty('draft.width')
+    expect(useImageWorkspaceStore.getState().pending).not.toHaveProperty('draft.height')
+    expect(useSettingsStore.getState().activeTab).toBe('image')
+    expect(useMediaStore.getState().items[0]).toEqual(sourceBefore)
+  })
+
+  it('hides same-seed regeneration without a seed and copies canonical recipe JSON', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+    render(<GalleryView />)
+    await screen.findByText('Copper city at dusk')
+    fireEvent.doubleClick(screen.getByRole('button', { name: /open image: copper city at dusk/i }))
+    expect(screen.queryByTestId('inspector-regenerate-same-seed')).not.toBeInTheDocument()
+    fireEvent.click(await screen.findByTestId('inspector-copy-recipe'))
+    expect(writeText).toHaveBeenCalledOnce()
+    expect(JSON.parse(writeText.mock.calls[0][0])).toEqual(expect.objectContaining({
+      sourceMediaId: 'image-1', prompt: 'Copper city at dusk', model: 'flux-dev', seed: null,
+    }))
   })
 
   it('preserves an explicit seed for same-seed regeneration', async () => {

@@ -214,6 +214,18 @@ export interface ImageDraftLike {
    *  `additionalProperties: false` may reject it. Defaults to true when
    *  the draft has a positive `imageCount`. */
   supportsVariants?: boolean;
+  /** Per-capability flags from `ImageModelCapabilities`. When a flag is
+   *  explicitly `false`, the builder strips the corresponding field from
+   *  the payload even if the draft contains a value. When the flag is
+   *  `undefined` the builder keeps its existing behaviour (always emit
+   *  the field). Image-view sets these from `getImageModelCapabilities`
+   *  so the form and the network boundary agree on what the model
+   *  accepts. */
+  supportsNegativePrompt?: boolean;
+  supportsSeed?: boolean;
+  supportsStyle?: boolean;
+  supportsSteps?: boolean;
+  supportsCfgScale?: boolean;
 }
 
 /** Clamp a number to an inclusive integer range. */
@@ -341,6 +353,15 @@ export function buildImagePayload(
     payload.quality = normalized.quality;
   }
 
+  // Per-capability stripping. The builder only honours a `false` flag;
+  // an `undefined` value preserves the existing "always emit" path so
+  // legacy callers (and tests) keep their current shape. The form
+  // (image-view) reads the live capability contract via
+  // `getImageModelCapabilities` and forwards each flag so the form and
+  // the network boundary agree.
+  if (draft.supportsSteps === false) delete payload.steps;
+  if (draft.supportsCfgScale === false) delete payload.cfg_scale;
+
   // Variants is only emitted when the draft's imageCount is positive
   // and the model class supports it. We do not auto-enable variants
   // for unknown models; image-view must pass `supportsVariants: true`
@@ -354,11 +375,15 @@ export function buildImagePayload(
   }
 
   const negative = normalized.negative?.trim();
-  if (negative) payload.negative_prompt = negative;
-  if (normalized.style) payload.style_preset = normalized.style;
+  if (negative && draft.supportsNegativePrompt !== false) {
+    payload.negative_prompt = negative;
+  }
+  if (normalized.style && draft.supportsStyle !== false) {
+    payload.style_preset = normalized.style;
+  }
 
   // Seed: only emit when valid/supported
-  if (seedState) {
+  if (seedState && draft.supportsSeed !== false) {
     const serialized = serializeSeed(seedState, false);
     if ("seed" in serialized) payload.seed = serialized.seed;
   }

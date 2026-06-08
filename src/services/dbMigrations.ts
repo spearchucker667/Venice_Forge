@@ -114,6 +114,15 @@ export const MIGRATIONS: MigrationStep[] = [
       }
     },
   },
+  {
+    toVersion: 7,
+    description: "Add projects store for Project Workspace (first-class metadata + asset tagging support)",
+    up(db) {
+      if (!db.objectStoreNames.contains("projects")) {
+        db.createObjectStore("projects", { keyPath: "id" });
+      }
+    },
+  },
 ];
 
 /**

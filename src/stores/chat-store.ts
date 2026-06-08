@@ -8,6 +8,7 @@ import { generateId } from '../lib/utils'
 import { createSafeStorage } from '../lib/safe-storage'
 import type { PulledMemoryContext } from '../types/conversationVault'
 import { toConversationRecord } from './chat-store-helpers'
+import { useSettingsStore } from './settings-store' // for defaulting projectRefs to active project on create (polished Phase 1)
 
 /**
  * LEGACY NOTE (from exhaustive review + AGENTS.md):
@@ -110,6 +111,7 @@ export const useChatStore = create<ChatState>()(
       createConversation: (model) => {
         const id = generateId()
         const now = Date.now()
+        const activeProj = useSettingsStore.getState().activeProjectId
         const conv: Conversation = {
           id,
           title: 'New Chat',
@@ -129,7 +131,7 @@ export const useChatStore = create<ChatState>()(
             topics: [],
             entities: [],
             userFacts: [],
-            projectRefs: [],
+            projectRefs: activeProj ? [activeProj] : [],
           }
         }
         set((s) => ({
@@ -155,6 +157,7 @@ export const useChatStore = create<ChatState>()(
         }
         const preferredModel =
           (character.modelId && character.modelId.trim()) || fallbackModel || 'llama-3.3-70b'
+        const activeProj = useSettingsStore.getState().activeProjectId
         const conv: Conversation = {
           id,
           title: `Chat with ${character.name}`,
@@ -175,7 +178,7 @@ export const useChatStore = create<ChatState>()(
             topics: [],
             entities: [],
             userFacts: [],
-            projectRefs: [],
+            projectRefs: activeProj ? [activeProj] : [],
           },
         }
         set((s) => ({
@@ -438,9 +441,10 @@ if (typeof window !== 'undefined') {
   queueMicrotask(() => {
     if (window.veniceForge?.conversations) {
       window.veniceForge.conversations.list().then((result) => {
-        if (!useChatStore.getState()._hasLoadedHistory) {
-          const conversations = result.ok ? result.records : [];
-          useChatStore.getState().setConversations(conversations);
+        if (!useChatStore.getState()._hasLoadedHistory && result.ok) {
+          useChatStore.getState().setConversations(result.records);
+        } else if (!result.ok) {
+          console.error('[chat] conversations.list failed', result.error);
         }
       }).catch(console.error)
     } else if (window.veniceForge?.chat) {

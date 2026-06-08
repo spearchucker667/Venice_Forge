@@ -23,6 +23,14 @@
 [![TypeScript strict](https://img.shields.io/badge/typescript-strict-3178c6.svg)](tsconfig.json)
 [![Electron 42](https://img.shields.io/badge/electron-42-47848f.svg)](package.json)
 <img width="1774" height="887" alt=" " src="https://github.com/user-attachments/assets/4981bc4d-a743-4a0f-a6e7-48ddffb6edcb" />
+
+> [!WARNING]
+> **Major Overhaul in Progress (Creative Workspace Refactor)**  
+> We are actively transforming Venice Forge from a collection of tabs into a cohesive local creative workspace. This includes first-class **Projects** (scoping chats, media, characters, lorebooks, research, workflows, recipes, and exports), a shared **Asset/Recipe system**, **Command Palette**, layout cohesion, model-aware controls, and deeper cross-studio integration.  
+> 
+> **The `main` branch may be unstable during this work.** Features may be incomplete, APIs may change, and storage migrations are likely.  
+> **For a stable, production-ready experience, download the latest official release** from [GitHub Releases](https://github.com/spearchucker667/Venice-API-connector/releases). Release builds are tested, versioned, and reflect the last known-good state.
+
 ## 🚀 Quick Start
 
 1. **Download** a release from [GitHub Releases](https://github.com/spearchucker667/Venice-API-connector/releases)
@@ -56,8 +64,8 @@ Fourteen integrated tabs covering chat, media generation, research, and settings
 | Tab | Name | What You Can Do |
 |-----|------|-----------------|
 | 💬 | **Chat** | Multi-turn streaming conversations with system prompts, file/image attachments, drag & drop context reordering, memory injection, persistent history, chat forking, and Agent vs Classic toggle |
-| 🖼️ | **Image Studio** | Generate images, **Edit** (single image inpainting), **Combine** (multi-image referencing), and **Upscale** (separate from video upscaling) |
-| 🎬 | **Media Studio** | Browse, search, tag, and export every image and video Venice Forge has generated. Filter by Image / Video / Favorites / Upscaled / Edited, batch-select to favorite or delete, inspect lineage (parent + children) and per-model capabilities. Inspector actions: **Use settings** (populate Image Studio from a stored item), **Regenerate**, **Regenerate with same seed**, **Upscale / Edit**, **Remix** (review-then-generate), and copy prompt / negative / seed / metadata. See [`docs/MEDIA_STUDIO.md`](docs/MEDIA_STUDIO.md) |
+| 🖼️ | **Image Studio** | Generate images, **Edit** (single image inpainting), **Combine** (multi-image referencing), and **Upscale** (separate from video upscaling). **Model-aware** controls hide / disable negative prompt, seed, style, and steps when the selected model does not support them, and a live **Capabilities** line shows what the current model can do. |
+| 🎬 | **Media Studio** | Browse, search, tag, and export every image and video Venice Forge has generated. The sidebar project selector supports **All Projects** or an exact project filter; legacy/unscoped media appears only in All Projects. Generated media is attached to the active project, while imports and existing legacy records are not silently retagged. Inspector actions include **Use recipe**, a **Recipe compatibility** card (status + issues + use-with-current-model / use-original / side-by-side comparison), **Export recipe** JSON, new/same-seed regeneration, **Upscale / Edit**, **Remix**, and copy prompt / negative / seed / metadata / recipe JSON. Filters include `Has recipe`, `No recipe`, and `Has seed`. See [`docs/MEDIA_STUDIO.md`](docs/MEDIA_STUDIO.md) |
 | ♫ | **Audio Studio** | Text-to-speech with 50+ voices and formats, plus audio transcription via Whisper |
 | 🎵 | **Music Studio** | AI music generation with text-to-music, optional lyrics, duration control, and instrumental mode |
 | 🎬 | **Video Studio** | Asynchronously queue text-to-video, image-to-video, video-to-video, reference-to-video, and video upscale jobs. Settings are model-dependent. Video upscale uses `topaz-video-upscale` when available |
@@ -128,13 +136,17 @@ npm run dev:web
 | Command | Purpose |
 |---------|---------|
 | `npm run dev:electron` | Start Electron app with live reload |
-| `npm run dev:web` | Start Vite + Express web dev server |
+| `npm run dev:web` | Start Vite (renderer) only |
+| `npm run dev:server` | Start Express proxy only |
+| `npm run dev` | Concurrent dev:server + dev:web |
 | `npm run lint:eslint` | Lint all source code (0 warnings) |
 | `npm run typecheck` | TypeScript check for renderer + Electron |
 | `npm test` | Run all unit and integration tests |
 | `npm run test:watch` | Watch mode for tests |
 | `npm run verify:safety-guard` | **Security gate:** verify safety guard is enforced |
 | `npm run verify:markdown-links` | Validate local Markdown targets and heading fragments |
+| `npm run verify:workspace-contracts` | Run the complete Phase 1 workspace/project/recipe contract guard |
+| `npm run verify:model-aware-recipes` | Run the Phase 2A model/recipe UI contract guard (image-view capability gating, payload stripping, media-inspector compatibility card) |
 | `npm run profile:media-studio` | Profile 1,000 encrypted Media Studio records in isolated Electron |
 | `npm run build` | Build production app (`dist/`, `dist-electron/`) |
 | `npm run clean` | Remove all generated output |
@@ -285,6 +297,8 @@ The codebase is protected by **40 active named regression guards** (`VERIFY-001`
 | `VERIFY-039` | Web and Electron Jina proxy boundaries cancel and reject response bodies above 2 MiB before parsing/screening | `server.test.ts`, `electron/ipc/handlers.test.ts` |
 | `VERIFY-040` | Production Media Studio handoffs, derivative lineage, image-tools source routing, and aspect-resolution payload exclusivity | `src/components/image/image-view.test.tsx`, `src/components/gallery/gallery-view.test.tsx`, `src/components/image/image-tools.test.tsx`, `src/stores/media-store.test.ts` |
 | `VERIFY-041` | 29-role semantic theme contract, Forge Dracula WCAG AA pairs, complete runtime CSS variables, and full ThemeMaker YAML round-trip with legacy compatibility | `src/theme/contrast.test.ts`, `src/theme/applyTheme.test.ts`, `src/components/ThemeMaker.test.ts`, `src/config/configSchema.test.ts` |
+| `VERIFY-042` | Phase 1 workspace contracts: nullable All Projects mode, validated project lifecycle and reference-safe delete, GenerationRecipe normalization/sanitization/handoff, explicit generated-media project tagging, exact gallery filtering, and mounted Command Palette behavior | `src/types/project.test.ts`, `src/stores/project-store.test.ts`, `src/stores/chat-store.character.test.ts`, `src/stores/media-store.test.ts`, `src/components/layout/sidebar.test.tsx`, `src/components/command-palette/CommandPalette.test.tsx`, `src/components/gallery/gallery-view.test.tsx`, `src/components/image/image-view.test.tsx` |
+| `VERIFY-043` | Phase 2A model-aware recipes: capability helpers + `getRecipeCompatibilityReport` return `compatible`/`partial`/`incompatible`; `buildImagePayload` honours per-capability `supports*` flags end-to-end; image-view hides negative/seed/style/steps controls and surfaces a capability summary; media-inspector renders the `RecipeCompatibilityCard` with use-with-current-model/use-original/copy/export/compare actions; media-store `filterMedia` recognises `has-recipe`/`no-recipe`/`has-seed`; `verify:model-aware-recipes` audit passes | `src/config/image-model-capabilities.test.ts`, `src/types/project.test.ts`, `src/utils/payloadBuilders.modelAware.test.ts`, `src/components/image/image-view.test.tsx`, `src/components/gallery/recipe-compatibility-card.test.tsx`, `src/components/gallery/recipe-comparison.test.tsx`, `src/components/gallery/media-inspector.test.tsx`, `src/stores/media-store.test.ts`, `scripts/verify-model-aware-recipes.cjs` |
 
 The 2026-06-05 full-repo audit produced these fixes; see [docs/AUDIT_FOLLOWUP_2026_06_05.md](docs/AUDIT_FOLLOWUP_2026_06_05.md) for the full audit report (P0/P1/P2 status, commits, and follow-up items). The 2026-06-06 round-2 audit and 8 named bugs (BUG-001..BUG-006, BUG-008, BUG-009; BUG-007 was originally a MiniMax streaming parser and was retired on 2026-06-06 when the user corrected scope to Venice + Jina only) are documented in [docs/POST_VENICE_JINA_AUDIT_2026_06_06.md](docs/POST_VENICE_JINA_AUDIT_2026_06_06.md). Outstanding P2/P3 work is tracked in the *Open TODO Ledger* of [docs/summary_of_work.md](docs/summary_of_work.md).
 
@@ -391,7 +405,7 @@ If you encounter unsafe content, safety guard bypasses, or AI-generated material
 - **Release signing** is optional for local builds
 - **IndexedDB encryption** uses a browser-managed AES-GCM key (reduces casual inspection risk but does not protect against malware, XSS, browser compromise, or same-user OS malware)
 - **Malware within the OS user scope** is out of scope (may access process memory)
-- **Linux packaging** is not officially maintained (contributions welcome!)
+- **Linux packaging** is produced by the release workflow (AppImage/deb/rpm for x64+arm64). Local cross-build from macOS/Windows is not supported; use the CI artifacts or build on a Linux runner.
 
 ---
 
@@ -414,7 +428,7 @@ This project is actively maintained. For issues, feature requests, or security r
 | Maintenance | Actively maintained |
 | Windows Support | ✅ Fully supported |
 | macOS Support | ✅ Fully supported (Intel + Apple Silicon) |
-| Linux Support | 🔧 Development-only (packaging not maintained) |
+| Linux Support | ✅ Supported via CI (AppImage + deb + rpm, x64 + arm64) — see release assets |
 | Node.js | v20, v22 |
 | TypeScript | Strict mode enforced |
 | Family Safe Mode | ✅ On by default; toggleable to Adult Mode |

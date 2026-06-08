@@ -2,6 +2,7 @@ import { useDeferredValue, useMemo, useState } from 'react'
 import { cn } from '../../lib/utils'
 import { useSettingsStore, type Tab } from '../../stores/settings-store'
 import { useChatStore } from '../../stores/chat-store'
+import { useProjectStore } from '../../stores/project-store'
 import { toast } from '../../stores/toast-store'
 import { VeniceLogo, VeniceWordmark } from '../ui/logo'
 import type { Conversation } from '../../types/conversation'
@@ -121,6 +122,16 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
   const setShowInspector = useSettingsStore((s) => s.setShowInspector)
   const conversations = useChatStore((s) => s.conversations)
   const activeConversationId = useChatStore((s) => s.activeConversationId)
+  const activeProjectId = useSettingsStore((s) => s.activeProjectId)
+  const projects = useProjectStore((s) => s.projects)
+  // Derive active (non-archived) list via useMemo over the stable projects array ref
+  // from the store. Using (s) => s.activeProjects() inside useProjectStore selector
+  // allocates a fresh array on every snapshot/equality check and triggers
+  // "Maximum update depth" + "getSnapshot should be cached" during passive mount
+  // effects in React 19 + jsdom (observed in full serial and isolated sidebar mounts).
+  const activeProjectList = useMemo(() => projects.filter((p) => !p.archivedAt), [projects])
+
+  // Note: ensureProjectsLoaded (with default) is called from App root effect to avoid multiple effects in sidebar mounts/tests that could contribute to update depth.
   const setActiveConversation = useChatStore((s) => s.setActiveConversation)
   const createConversation = useChatStore((s) => s.createConversation)
   const deleteConversation = useChatStore((s) => s.deleteConversation)
@@ -238,6 +249,94 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
       </div>
+
+      {/* Project Workspace (polished Phase 1 slice).
+          Real switcher (select), create, rename, archive, reference-safe delete.
+          New assets (e.g. chats) default to active project via projectRefs.
+          Default project is ensured on load (safe for fresh/corrupt/migration). */}
+      {expanded && (
+        <div className="px-3 pt-1 pb-2 border-b border-border/60">
+          <div className="text-[10px] uppercase tracking-[0.08em] text-text-muted font-semibold mb-1.5 px-1 flex items-center justify-between">
+            <span>Project</span>
+            <button
+              onClick={async () => {
+                const name = prompt('New project name')?.trim()
+                if (!name) return
+                try {
+                  const p = await useProjectStore.getState().createProject(name)
+                  useProjectStore.getState().setActiveProject(p.id)
+                  toast.success(`Created "${p.name}"`)
+                } catch (e: unknown) {
+                  const msg = e && typeof e === 'object' && 'message' in e ? String((e as { message?: unknown }).message) : 'Failed to create project'
+                  toast.error(msg)
+                }
+              }}
+              className="text-[10px] normal-case tracking-normal border border-border rounded px-1.5 py-0.5 hover:bg-background"
+              title="Create new project"
+            >
+              + New
+            </button>
+          </div>
+
+          <select
+            value={activeProjectId || ''}
+            onChange={(e) => {
+              const id = e.currentTarget.value || null
+              useProjectStore.getState().setActiveProject(id)
+            }}
+            className="w-full text-[12.5px] rounded-md border border-border bg-background/60 px-2 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
+            aria-label="Active project"
+            title="Switch active project"
+          >
+            <option value="">All Projects</option>
+            {activeProjectList.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+
+          {activeProjectId && (
+            <div className="mt-1.5 flex gap-1.5 text-[10px]">
+              <button
+                onClick={async () => {
+                  const current = projects.find((p) => p.id === activeProjectId)
+                  if (!current) return
+                  const name = prompt('Rename project', current.name)?.trim()
+                  if (!name || name === current.name) return
+                  await useProjectStore.getState().renameProject(activeProjectId, name)
+                  toast.success('Project renamed')
+                }}
+                className="rounded border border-border px-1.5 py-0.5 hover:bg-background"
+              >
+                Rename
+              </button>
+              <button
+                onClick={async () => {
+                  if (!activeProjectId) return
+                  if (!confirm('Archive this project? Its media and conversation references will be preserved.')) return
+                  await useProjectStore.getState().archiveProject(activeProjectId)
+                  toast.success('Project archived')
+                }}
+                className="rounded border border-border px-1.5 py-0.5 hover:bg-background"
+              >
+                Archive
+              </button>
+              <button
+                onClick={async () => {
+                  if (!activeProjectId) return
+                  if (!confirm('Permanently delete this project? Projects referenced by media or conversations must be archived instead.')) return
+                  const ok = await useProjectStore.getState().deleteProject(activeProjectId)
+                  if (ok) toast.success('Project deleted')
+                  else toast.error('Project cannot be deleted while media or conversations reference it. Archive it instead.')
+                }}
+                className="rounded border border-border px-1.5 py-0.5 hover:bg-background text-red-400"
+              >
+                Delete
+              </button>
+            </div>
+          )}
+          <div className="mt-1 px-1 text-[9px] text-text-muted/60">Projects are IDB-encrypted • generated items use the active project</div>
+        </div>
+      )}
 
       <nav aria-label="Sections" className="flex flex-col gap-3 py-3 overflow-y-auto">
         {navGroups.map((group) => (

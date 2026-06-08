@@ -12,20 +12,32 @@ vi.mock('../../stores/config-store', () => ({ reloadConfig: vi.fn() }))
 import { buildConversationSearchText, Sidebar } from './sidebar'
 import { useChatStore } from '../../stores/chat-store'
 import { useSettingsStore } from '../../stores/settings-store'
+import { useProjectStore } from '../../stores/project-store'
 
 describe('Sidebar controls', () => {
   beforeEach(() => {
+    // Reset all stores touched by the rendered Sidebar (Phase 1 workspace + pre-existing controls).
+    // Prevents cross-test pollution of projects/activeProjectId (which the new project switcher block
+    // reads) and ensures deterministic mount without lingering state that could mask or trigger
+    // update-depth loops in serial runs.
     useSettingsStore.setState({
       sidebarOpen: true,
       activeTab: 'chat',
       redTeamMode: false,
       showInspector: false,
       localFamilySafeModeEnabled: true,
+      activeProjectId: null,
     })
     useChatStore.setState({
       conversations: [],
       activeConversationId: null,
       _hasLoadedHistory: true,
+    })
+    useProjectStore.setState({
+      projects: [],
+      loading: false,
+      loaded: false,
+      lastError: null,
     })
   })
 
@@ -54,6 +66,25 @@ describe('Sidebar controls', () => {
 
     fireEvent.click(switches[1])
     expect(useSettingsStore.getState().localFamilySafeModeEnabled).toBe(false)
+  })
+
+  // VERIFY-042: null is an intentional, selectable All Projects state.
+  it('switches between a real project and All Projects', async () => {
+    const projects = [
+      { id: 'project-a', name: 'Project A', createdAt: 2, updatedAt: 2, archivedAt: null },
+      { id: 'project-b', name: 'Project B', createdAt: 1, updatedAt: 1, archivedAt: null },
+    ]
+    useProjectStore.setState({ projects, loaded: true })
+    useSettingsStore.setState({ activeProjectId: 'project-a' } as never)
+    render(<Sidebar />)
+
+    const selector = screen.getByRole('combobox', { name: 'Active project' })
+    await userEvent.selectOptions(selector, 'project-b')
+    expect(useProjectStore.getState().getActiveProjectId()).toBe('project-b')
+
+    await userEvent.selectOptions(selector, '')
+    expect(useProjectStore.getState().getActiveProjectId()).toBeNull()
+    expect(useProjectStore.getState().projects).toEqual(projects)
   })
 
   it('lets keyboard users select a conversation from the conversation list', async () => {

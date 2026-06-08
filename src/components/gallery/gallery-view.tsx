@@ -6,9 +6,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMediaStore, filterMedia, searchMedia, sortMedia, type MediaFilter, type MediaSort } from "../../stores/media-store";
-import { useSettingsStore } from "../../stores/settings-store";
+import { useSettingsStore } from "../../stores/settings-store"; // for project scoping filter in Phase 1 hardening
 import { useImageWorkspaceStore } from "../../stores/image-workspace-store";
 import { toast } from "../../stores/toast-store";
+import {
+  createRecipeHandoff,
+  extractGenerationRecipe,
+  sanitizeRecipeForModel,
+  type RecipeHandoffMode,
+} from "../../types/project";
+import { getImageModelCapabilities } from "../../config/image-model-capabilities";
 import { MediaToolbar } from "./media-toolbar";
 import { MediaCard } from "./media-card";
 import { MediaDetailDialog } from "./media-detail-dialog";
@@ -23,6 +30,8 @@ function confirmAction(message: string): boolean {
 
 export function MediaStudioView() {
   const items = useMediaStore((state) => state.items);
+  const activeProjectIdForMediaFilter = useSettingsStore((s) => s.activeProjectId);
+  const currentImageModel = useSettingsStore((s) => s.selectedModels.image);
   const loading = useMediaStore((state) => state.loading);
   const loadingMore = useMediaStore((state) => state.loadingMore);
   const totalCount = useMediaStore((state) => state.totalCount);
@@ -47,15 +56,21 @@ export function MediaStudioView() {
   const [inspectorId, setInspectorId] = useState<string | null>(null);
 
   // Initial load. Refresh is idempotent and safe to call repeatedly.
+  // Use [] to prevent potential re-execution loops if the refresh action identity changes due to store updates (e.g. project scoping).
   useEffect(() => {
     void refresh();
-  }, [refresh]);
+  }, []);
+
+  const projectFiltered = useMemo(() => {
+    if (!activeProjectIdForMediaFilter) return items;
+    return items.filter((it) => it.projectId === activeProjectIdForMediaFilter);
+  }, [items, activeProjectIdForMediaFilter]);
 
   const filtered = useMemo(() => {
-    const searched = searchMedia(items, query);
+    const searched = searchMedia(projectFiltered, query);
     const filteredItems = filterMedia(searched, filter);
     return sortMedia(filteredItems, sort);
-  }, [items, query, filter, sort]);
+  }, [projectFiltered, query, filter, sort]);
 
   const detailItem = useMemo(
     () => items.find((candidate) => candidate.id === detailId) ?? null,
@@ -245,49 +260,67 @@ export function MediaStudioView() {
 
   // ---- Gallery handoff: image workspace ----
 
-  /** Swaps the active tab to Image Studio, then applies a draft
-   *  built from a media item. */
+  /** Builds a capability-safe recipe handoff and opens Image Studio. */
   const handoffToImageStudio = useCallback(
-    (item: MediaItem, opts?: { promptOverride?: string; autoGenerate?: boolean; sameSeed?: boolean }) => {
+    (item: MediaItem, mode: RecipeHandoffMode, promptOverride?: string) => {
+      const extracted = extractGenerationRecipe(item);
+      if (!extracted) return false;
+      const sanitized = sanitizeRecipeForModel(
+        promptOverride ? { ...extracted, prompt: promptOverride } : extracted,
+        getImageModelCapabilities(extracted.model),
+      );
+      const handoff = createRecipeHandoff(sanitized, mode);
       useImageWorkspaceStore.getState().enqueueGenerate({
-        draft: {
-          model: item.model,
-          prompt: opts?.promptOverride ?? item.prompt,
-          negativePrompt: item.negative,
-          style: item.style,
-          steps: typeof item.steps === "number" ? item.steps : undefined,
-          imageCount: 1,
-          width: typeof item.width === "number" ? item.width : undefined,
-          height: typeof item.height === "number" ? item.height : undefined,
-          aspectRatio: item.aspectRatio,
-          resolution: item.resolution,
-          quality: item.quality,
-          seed: opts?.sameSeed && typeof item.seed === "number" ? item.seed : null,
-        },
-        autoGenerate: opts?.autoGenerate === true,
-        parentId: opts?.autoGenerate ? item.id : null,
-        operation: opts?.autoGenerate ? "regenerate" : "generate",
+        draft: handoff.draft,
+        autoGenerate: handoff.autoGenerate,
+        parentId: handoff.parentMediaId,
+        operation: handoff.autoGenerate ? "regenerate" : "generate",
       });
       useSettingsStore.getState().setActiveTab("image");
+      return true;
     },
     [],
   );
 
   const handleUseSettings = useCallback(
     (item: MediaItem) => {
-      handoffToImageStudio(item, { autoGenerate: false });
-      toast.success("Loaded settings into Image Studio");
+      if (handoffToImageStudio(item, "use")) toast.success("Loaded settings into Image Studio");
+      else toast.error("This media item has no reusable recipe");
     },
     [handoffToImageStudio],
   );
 
+  const handleUseRecipe = useCallback(
+    (item: MediaItem) => {
+      if (handoffToImageStudio(item, "use")) toast.success("Recipe loaded into Image Studio");
+      else toast.error("This media item has no reusable recipe");
+    },
+    [handoffToImageStudio],
+  );
+
+  const handleUseSanitizedRecipe = useCallback(
+    (item: MediaItem) => {
+      // The compatibility card already sanitized the recipe for the
+      // currently selected target model. We perform a "use" handoff —
+      // the image-workspace applies the sanitized draft to Image Studio.
+      if (handoffToImageStudio(item, "use")) toast.success("Recipe loaded into Image Studio");
+      else toast.error("This media item has no reusable recipe");
+    },
+    [handoffToImageStudio],
+  );
+
+  const handleExportRecipe = useCallback((item: MediaItem) => {
+    // The inspector already wrote the recipe JSON via Blob+download;
+    // this callback is here for the parent to observe / log if needed.
+    void item;
+  }, []);
+
   const handleRegenerate = useCallback(
     (item: MediaItem, opts?: { sameSeed?: boolean; promptOverride?: string }) => {
-      handoffToImageStudio(item, {
-        autoGenerate: true,
-        sameSeed: opts?.sameSeed,
-        promptOverride: opts?.promptOverride,
-      });
+      const mode: RecipeHandoffMode = opts?.sameSeed ? "same-seed" : "new-seed";
+      if (!handoffToImageStudio(item, mode, opts?.promptOverride)) {
+        toast.error("This media item has no reusable recipe");
+      }
     },
     [handoffToImageStudio],
   );
@@ -321,7 +354,7 @@ export function MediaStudioView() {
 
   const handleApplyRemix = useCallback(
     (item: MediaItem, remixedPrompt: string) => {
-      handoffToImageStudio(item, { promptOverride: remixedPrompt, autoGenerate: false });
+      handoffToImageStudio(item, "use", remixedPrompt);
     },
     [handoffToImageStudio],
   );
@@ -471,10 +504,14 @@ export function MediaStudioView() {
               onOpenParent={handleOpenDetail}
               onClose={() => setInspectorId(null)}
               onUseSettings={handleUseSettings}
+              onUseRecipe={handleUseRecipe}
+              onUseSanitizedRecipe={handleUseSanitizedRecipe}
+              onExportRecipe={handleExportRecipe}
               onRegenerate={handleRegenerate}
               onUpscale={handleUpscale}
               onOpenImageTools={handleEdit}
               onApplyRemix={handleApplyRemix}
+              currentModel={currentImageModel}
             />
           </div>
         )}

@@ -77,13 +77,16 @@ export const STORE_NAMES = [
   "lorebooks",
   "rp_chats",
   "rp_assets",
+  // Project Workspace (Phase 1) — first-class metadata + shared asset tagging.
+  // Encrypted at rest like other user content (see storageService ENCRYPTED_STORES).
+  "projects",
 ];
 
 /** Name of the IndexedDB database. */
 export const DB_NAME = "venice_canvas_studio_v1";
 
-/** Version of the IndexedDB schema. Bumped to 5 to add Character RP Studio stores. */
-export const DB_VERSION = 6;
+/** Version of the IndexedDB schema. Bumped to 6 for timestamp index; 7 for Project Workspace "projects" store. */
+export const DB_VERSION = 7;
 
 /**
  * Known vision-capable model ids and id-patterns.

@@ -2,12 +2,14 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import { useSettingsStore, type Tab } from './stores/settings-store'
 import { useChatStore } from './stores/chat-store'
 import { useAuthStore } from './stores/auth-store'
+import { ensureProjectsLoaded } from './stores/project-store'
 import { Sidebar } from './components/layout/sidebar'
 import { Header } from './components/layout/header'
 import { ApiKeyDialog } from './components/layout/api-key-dialog'
 import { InspectorPane } from './components/layout/inspector-pane'
 import { FirstRunModal } from './components/FirstRunModal'
 import { ChatView } from './components/chat/chat-view'
+import { CommandPalette } from './components/command-palette/CommandPalette'
 import { ImagePage } from './components/image/image-page'
 import { AudioView } from './components/audio/audio-view'
 import { MusicView } from './components/music/music-view'
@@ -81,6 +83,8 @@ export function App() {
   const [firstRunAcked, setFirstRunAcked] = useState<boolean>(
     () => typeof window !== "undefined" && localStorage.getItem(FIRST_RUN_ACK_KEY) === "1"
   )
+  // Phase 1 command palette (⌘K / Ctrl+K)
+  const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false)
   const activeTab = useSettingsStore((s) => s.activeTab)
   const setActiveTab = useSettingsStore((s) => s.setActiveTab)
 
@@ -105,6 +109,12 @@ export function App() {
       // ignore write failures (e.g. disabled local storage)
     }
   }, [selectedThemeId, customTheme, appearanceMode]);
+
+  // Centralized project ensure (with safe default) at app root. Idempotent via _hydrated guard.
+  // This avoids duplicate effects from sidebar (which could contribute to update depth in test trees with frequent mounts).
+  useEffect(() => {
+    ensureProjectsLoaded().catch(() => {})
+  }, []);
 
   const normalisedActiveTab = normaliseTab(activeTab)
   const ActiveView = views[normalisedActiveTab] ?? views.chat
@@ -175,6 +185,11 @@ export function App() {
         onDismiss={() => { /* cannot dismiss the age gate; user must acknowledge */ }}
       />
       <Toaster />
+      <CommandPalette
+        open={cmdPaletteOpen}
+        onClose={() => setCmdPaletteOpen(false)}
+        onToggle={() => setCmdPaletteOpen((value) => !value)}
+      />
     </div>
   )
 }

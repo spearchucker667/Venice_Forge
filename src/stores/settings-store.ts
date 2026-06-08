@@ -55,6 +55,12 @@ interface SettingsState {
   setShowPulledContextBeforeSending: (show: boolean) => void
   useAISummaries: boolean
   setUseAISummaries: (use: boolean) => void
+
+  // Project Workspace (Phase 1 minimal slice per approved plan)
+  // activeProjectId is the user's current context. New assets (chats, media, etc.)
+  // default to this project via projectRefs tagging. Null/undefined = "All / unscoped".
+  activeProjectId: string | null
+  setActiveProjectId: (projectId: string | null) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -98,10 +104,14 @@ export const useSettingsStore = create<SettingsState>()(
       setShowPulledContextBeforeSending: (show) => set({ showPulledContextBeforeSending: show }),
       useAISummaries: false,
       setUseAISummaries: (use) => set({ useAISummaries: use }),
+
+      // Project Workspace defaults (Phase 1). null means "global / unscoped view".
+      activeProjectId: null,
+      setActiveProjectId: (projectId) => set({ activeProjectId: projectId }),
     }),
     {
       name: 'venice-settings',
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => createSafeStorage()),
       migrate: (persisted) => {
         const state = persisted && typeof persisted === 'object'
@@ -113,6 +123,8 @@ export const useSettingsStore = create<SettingsState>()(
           veniceApiSafeMode: state.veniceApiSafeMode ?? true,
           // v3: normalise legacy tab aliases (e.g. 'gallery' → 'media').
           activeTab: safeNormaliseTab(state.activeTab) as Tab,
+          // v4 (workspace): ensure activeProjectId exists for Project switcher.
+          activeProjectId: state.activeProjectId ?? null,
         } as SettingsState
       },
     },

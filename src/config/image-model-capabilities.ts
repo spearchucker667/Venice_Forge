@@ -41,6 +41,9 @@ export interface ImageModelCapabilities {
   supportsNegativePrompt: boolean;
   supportsSeed: boolean;
   supportsVariants: boolean;
+  supportsSteps?: boolean;
+  supportsCfgScale?: boolean;
+  supportsStyle?: boolean;
   /** Map from canonical model ID patterns — used for models not yet in the catalog. */
   patternMatch?: RegExp;
 }
@@ -281,4 +284,210 @@ export function buildDimensionOptions(
     qualities: known.qualities,
     defaultQuality: known.defaultQuality,
   };
+}
+
+/** Returns true when the supplied width/height pair is supported by the
+ *  capability contract. Fixed/aspectRatio/aspectResolution models have no
+ *  pixel pair to validate; unknown models accept anything (the payload
+ *  builder will still clamp/normalize). */
+export function isDimensionSupported(
+  capabilities: ImageModelCapabilities,
+  width: number | undefined,
+  height: number | undefined,
+): boolean {
+  if (
+    typeof width !== "number"
+    || typeof height !== "number"
+    || !Number.isFinite(width)
+    || !Number.isFinite(height)
+  ) {
+    return false;
+  }
+  switch (capabilities.dimensionMode) {
+    case "widthHeight":
+      return (capabilities.widthHeightOptions ?? []).some(
+        (o) => o.width === width && o.height === height,
+      );
+    case "fixed":
+      return (
+        capabilities.defaultDimensions.width === width
+        && capabilities.defaultDimensions.height === height
+      );
+    case "aspectRatio":
+    case "aspectResolution":
+    case "unknown":
+      return true;
+    default:
+      return false;
+  }
+}
+
+/** Returns a capability-safe dimension view plus an optional human-readable
+ *  warning when the supplied values had to be coerced. Pure (does not mutate
+ *  the input). Used by the payload builder and by the form's reset effect. */
+export interface NormalizeDimensionsResult {
+  width?: number;
+  height?: number;
+  aspectRatio?: string;
+  resolution?: string;
+  warning?: string;
+}
+
+export function normalizeDimensionsForModel(
+  capabilities: ImageModelCapabilities,
+  input: {
+    width?: number;
+    height?: number;
+    aspectRatio?: string;
+    resolution?: string;
+  } = {},
+): NormalizeDimensionsResult {
+  const out: NormalizeDimensionsResult = {};
+  if (capabilities.dimensionMode === "widthHeight") {
+    const opts = capabilities.widthHeightOptions ?? [];
+    const found = opts.find(
+      (o) => o.width === input.width && o.height === input.height,
+    );
+    if (found) {
+      out.width = found.width;
+      out.height = found.height;
+    } else {
+      out.width = capabilities.defaultDimensions.width;
+      out.height = capabilities.defaultDimensions.height;
+      if (input.width !== undefined || input.height !== undefined) {
+        out.warning = `Adjusted dimensions to ${out.width}x${out.height} (model default).`;
+      }
+    }
+    return out;
+  }
+  if (
+    capabilities.dimensionMode === "aspectRatio"
+    || capabilities.dimensionMode === "aspectResolution"
+  ) {
+    const allowedRatios = (capabilities.aspectRatios ?? []).map((o) => o.id);
+    out.aspectRatio =
+      input.aspectRatio && allowedRatios.includes(input.aspectRatio)
+        ? input.aspectRatio
+        : capabilities.defaultDimensions.aspectRatio;
+    if (
+      input.aspectRatio
+      && allowedRatios.length > 0
+      && !allowedRatios.includes(input.aspectRatio)
+    ) {
+      out.warning = `Adjusted aspect ratio to ${out.aspectRatio} (model default).`;
+    }
+    if (capabilities.dimensionMode === "aspectResolution") {
+      const allowedRes = (capabilities.resolutions ?? []).map((o) => o.id);
+      out.resolution =
+        input.resolution && allowedRes.includes(input.resolution)
+          ? input.resolution
+          : capabilities.defaultDimensions.resolution;
+      if (
+        input.resolution
+        && allowedRes.length > 0
+        && !allowedRes.includes(input.resolution)
+        && !out.warning
+      ) {
+        out.warning = `Adjusted resolution to ${out.resolution} (model default).`;
+      }
+    }
+    return out;
+  }
+  if (capabilities.dimensionMode === "fixed") {
+    out.width = capabilities.defaultDimensions.width;
+    out.height = capabilities.defaultDimensions.height;
+    if (capabilities.defaultDimensions.aspectRatio) {
+      out.aspectRatio = capabilities.defaultDimensions.aspectRatio;
+    }
+    if (capabilities.defaultDimensions.resolution) {
+      out.resolution = capabilities.defaultDimensions.resolution;
+    }
+    return out;
+  }
+  // unknown: pass through anything the caller supplied
+  if (input.width !== undefined) out.width = input.width;
+  if (input.height !== undefined) out.height = input.height;
+  if (input.aspectRatio !== undefined) out.aspectRatio = input.aspectRatio;
+  if (input.resolution !== undefined) out.resolution = input.resolution;
+  return out;
+}
+
+/** Lists the recipe field names that are present in `recipe` but NOT
+ *  supported by the supplied capabilities. Used by the compatibility
+ *  report builder to surface stripped fields to the UI. */
+export function getUnsupportedRecipeFields(
+  recipe: { [k: string]: unknown },
+  capabilities: ImageModelCapabilities,
+): Array<keyof typeof recipe | string> {
+  const blocked: Array<keyof typeof recipe | string> = [];
+  if (recipe.negativePrompt !== undefined && !capabilities.supportsNegativePrompt) {
+    blocked.push("negativePrompt");
+  }
+  if (recipe.seed !== undefined && !capabilities.supportsSeed) {
+    blocked.push("seed");
+  }
+  if (recipe.variants !== undefined && !capabilities.supportsVariants) {
+    blocked.push("variants");
+  }
+  if (recipe.steps !== undefined && capabilities.supportsSteps === false) {
+    blocked.push("steps");
+  }
+  if (recipe.cfgScale !== undefined && capabilities.supportsCfgScale === false) {
+    blocked.push("cfgScale");
+  }
+  if (recipe.style !== undefined && capabilities.supportsStyle === false) {
+    blocked.push("style");
+  }
+  if (capabilities.dimensionMode !== "widthHeight") {
+    if (recipe.width !== undefined) blocked.push("width");
+    if (recipe.height !== undefined) blocked.push("height");
+  }
+  if (
+    capabilities.dimensionMode !== "aspectRatio"
+    && capabilities.dimensionMode !== "aspectResolution"
+  ) {
+    if (recipe.aspectRatio !== undefined) blocked.push("aspectRatio");
+  }
+  if (capabilities.dimensionMode !== "aspectResolution") {
+    if (recipe.resolution !== undefined) blocked.push("resolution");
+  }
+  return blocked;
+}
+
+/** Returns a short, human-readable summary of what a model supports — used
+ *  by Image Studio and the Media Inspector as a "Capabilities" line. */
+export function getRecipeCapabilityList(capabilities: ImageModelCapabilities): string[] {
+  const list: string[] = [];
+  switch (capabilities.dimensionMode) {
+    case "widthHeight":
+      list.push(`${capabilities.widthHeightOptions?.length ?? 0} sizes`);
+      break;
+    case "aspectRatio":
+      list.push(`${capabilities.aspectRatios?.length ?? 0} ratios`);
+      break;
+    case "aspectResolution":
+      list.push(
+        `${capabilities.aspectRatios?.length ?? 0} ratios × ${capabilities.resolutions?.length ?? 0} resolutions`,
+      );
+      break;
+    case "fixed":
+      list.push(
+        capabilities.defaultDimensions.width && capabilities.defaultDimensions.height
+          ? `Fixed ${capabilities.defaultDimensions.width}x${capabilities.defaultDimensions.height}`
+          : "Fixed size",
+      );
+      break;
+    default:
+      list.push("Unknown sizing");
+  }
+  list.push(capabilities.supportsNegativePrompt ? "Negative prompt" : "No negative prompt");
+  list.push(capabilities.supportsSeed ? "Seed" : "No seed");
+  list.push(capabilities.supportsVariants ? "Variants" : "Single output");
+  if (capabilities.supportsSteps === false) list.push("No steps");
+  if (capabilities.supportsCfgScale === false) list.push("No CFG");
+  if (capabilities.supportsStyle === false) list.push("No style preset");
+  if (capabilities.qualities && capabilities.qualities.length > 0) {
+    list.push("Quality");
+  }
+  return list;
 }
