@@ -80,13 +80,16 @@ export const STORE_NAMES = [
   // Project Workspace (Phase 1) — first-class metadata + shared asset tagging.
   // Encrypted at rest like other user content (see storageService ENCRYPTED_STORES).
   "projects",
+  // Phase 2D Prompt Library — user-saved, reusable prompt records with
+  // versioning. Encrypted at rest like other user content.
+  "promptLibrary",
 ];
 
 /** Name of the IndexedDB database. */
 export const DB_NAME = "venice_canvas_studio_v1";
 
-/** Version of the IndexedDB schema. Bumped to 6 for timestamp index; 7 for Project Workspace "projects" store. */
-export const DB_VERSION = 7;
+/** Version of the IndexedDB schema. Bumped to 6 for timestamp index; 7 for Project Workspace "projects" store; 8 for Phase 2D Prompt Library "promptLibrary" store. */
+export const DB_VERSION = 8;
 
 /**
  * Known vision-capable model ids and id-patterns.

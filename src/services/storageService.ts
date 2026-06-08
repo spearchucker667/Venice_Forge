@@ -25,6 +25,9 @@ const ENCRYPTED_STORES: StoreName[] = [
   // Project Workspace metadata (and any future project-scoped assets) are
   // treated as user content and encrypted at rest for both Electron and web modes.
   "projects",
+  // Phase 2D Prompt Library — user-saved, reusable prompt records with
+  // versioning. Encrypted at rest like other user content.
+  "promptLibrary",
 ];
 
 export interface GetItemsResult<T = unknown> {

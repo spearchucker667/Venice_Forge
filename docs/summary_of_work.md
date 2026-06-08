@@ -86,6 +86,26 @@ are resolved. No P0/P1/P2/P3 audit-ledger items remain open.
 
 ## Latest Session Summary
 
+- **Date:** 2026-06-08 (Phase 2D Prompt Library Foundation)
+- **Agent:** opencode (minimax-m3)
+- **Branch / state:** `main`, `HEAD` `a83096bb` (Phase 2C commit) + Phase 2D uncommitted (will be committed at end of session). The working tree now contains the Phase 2A + Phase 2B + Phase 2C + Phase 2D feature batches on top of the prior Phase 1 fix pass + pre-existing release/archive-hygiene edits.
+- **Objective:** Implement the Phase 2D vertical slice (Prompt Library Foundation) only. No Scene Composer, RP overhaul, workflow marketplace, onboarding overhaul, density modes, cloud sync, plugin systems, or AI auto-tagging. Safety guards, endpoint allowlist, and API-key storage behavior remain untouched.
+- **Prompt data model:** `src/types/prompt-library.ts` defines `PromptKind` (exhaustive union: chat / system / image / negative / research / character / workflow / recipe / general), `PromptScope` (global / project), `PromptVersion` (append-only per-prompt version chain), `PromptLibraryItem` (id, currentVersionId, versions, scope, projectId, tags, favorite, archivedAt, modelHints, variables), and the JSON-serialisable `PromptLibraryExport` envelope. `sanitizePromptLibraryItem` and `sanitizePromptVersion` reject / redact `sk-…` / `venice_…` / `Bearer …` / `Authorization:` payloads and cap every field so a corrupt record cannot inflate the storage budget. `isPromptSecretLike` and `redactPromptSecrets` are the canonical secret-detection helpers used by the save / import / export paths. `PROMPT_LIBRARY_VERSION = 1` pins the export contract.
+- **Persistence + migration:** Added `promptLibrary` to `STORE_NAMES`, `ENCRYPTED_STORES`, and `dbMigrations.toVersion = 8` (additive — no prior data is deleted). The store uses the existing `StorageService.saveItem` / `getItems` / `deleteItem` path so encryption is automatic. Hydration is lazy and idempotent via the `hydrated` flag.
+- **Store:** `src/stores/prompt-library-store.ts` is a thin Zustand store: `ensureLoaded` rebuilds the in-memory cache from IDB, `createPrompt` / `updatePrompt` / `addPromptVersion` / `setCurrentVersion` / `archivePrompt` / `unarchivePrompt` / `deletePrompt` / `toggleFavorite` mutate + persist atomically with optimistic-update rollback on persistence failure, and `importPrompts` / `exportPrompts` round-trip through the safe envelope. Selectors `selectActivePrompts`, `selectArchivedPrompts`, and `selectPromptsForProject(state, activeProjectId)` cover the canonical list filters.
+- **UI:** `src/components/prompts/PromptLibraryView.tsx` is mounted in `App.tsx` for the canonical `prompts` tab (registered in `TAB_IDS` + `TAB_REGISTRY`, icon wired in `Sidebar.tsx`). The view renders a list (kind / scope / tag / favorite / search / sort) + a detail editor (title / description / kind / tags / content / negative / version history / "Save new version" / "Use in Image Studio" / "Use in Chat" / copy / archive / delete with confirm-gate). Delete requires the user to type the prompt title to enable the destructive button.
+- **Save from existing surfaces:** Image Studio prompt + negative prompt + Media Inspector recipe each expose a "Save to library" / "Save recipe" button. The action infers the `PromptKind`, preserves the active project scope, defaults the title to the first 80 chars of the content, and records `source: { type: "image" | "media", sourceId }` metadata so the lineage is visible in the library.
+- **Apply prompt:** Prompt Library detail exposes "Use in Image Studio" (enqueues a draft via `useImageWorkspaceStore.enqueueGenerate` and routes to the `image` tab) and "Use in Chat" (writes the content to `useChatStore.systemPrompt` and routes to the `chat` tab). The buttons are hidden for incompatible kinds (negative prompts don't get a "Use in Chat" action, etc.).
+- **Command Palette integration:** `src/components/command-palette/CommandPalette.tsx` adds a Prompt Library section with Open / New / Use Selected (copies the current version's content to the clipboard) / Export / Import commands. The export / import use the existing safe browser `<a download>` and file-picker patterns; the file dialog is created on click and removed immediately so no path leaks into the renderer.
+- **Import / export safety:** `exportPromptLibraryItems` strips obvious secret-like content (sk-…, venice_…, Bearer …, Authorization: …) before producing the envelope, and `parsePromptLibraryImport` regenerates ids, validates the export version, skips invalid records with reasons, and records skips for malformed items. Unknown future versions are rejected with a clear `Unsupported export version` reason.
+- **Tests:** 65 new tests (31 type / 22 store / 12 UI). Total: 1684 passed, 1 skipped (+65 vs the prior 1619 baseline).
+- **New regression guard:** `scripts/verify-prompt-library.cjs` (static audit) + `verify:prompt-library` npm script. Wired into the `ci` parity command. VERIFY-046 row added to `AGENTS.md` (regression-guard table + architecture paragraph).
+- **Files changed this pass:** `package.json` (add `verify:prompt-library` + ci parity), `AGENTS.md` (VERIFY-046 row + Phase 2D architecture paragraph), `src/config/tabs.ts` (register `prompts` tab), `src/components/layout/sidebar.tsx` (PromptsIcon), `src/App.tsx` (mount view), `src/constants/venice.ts` (add `promptLibrary` to `STORE_NAMES` + `DB_VERSION = 8`), `src/services/dbMigrations.ts` (add toVersion 8 step), `src/services/storageService.ts` (add to `ENCRYPTED_STORES`), `src/types/prompt-library.ts` (new) + `.test.ts` (new), `src/stores/prompt-library-store.ts` (new) + `.test.ts` (new), `src/components/prompts/PromptLibraryView.tsx` (new) + `.test.tsx` (new), `src/components/image/image-view.tsx` (Save buttons + handler), `src/components/gallery/media-inspector.tsx` (Save recipe button + handler), `src/components/command-palette/CommandPalette.tsx` (Prompt Library section), `scripts/verify-prompt-library.cjs` (new), `docs/summary_of_work.md` (this entry).
+- **Final validation:** Node 22.22.3 / npm 10.9.8. `npm run lint:eslint` (0 warnings), `npm run typecheck` (renderer + electron main), full serial Vitest **1684 passed** (1 display-gated smoke skipped — +65 tests vs the prior 1619 baseline), `npm run verify:workspace-contracts` (9 files), `npm run verify:model-aware-recipes` (passes), `npm run verify:media-studio-power-tools` (passes), `npm run verify:status-diagnostics` (passes), `npm run verify:prompt-library` (passes — new), `npm run verify:safety-guard` (passes), `npm run verify:markdown-links` (42 files), `npm run build` (passes).
+- **Verdict:** Phase 2D is feature-complete and safe to land. The Prompt Library exposes a stable, sanitised, versioned record schema; the import / export path is safe by construction (no secret-like records ever leave the store); the "Save from" and "Use in" integrations reuse the canonical tab registry + workspace handoffs; the new regression guard (`VERIFY-046`) plus 65 tests lock the surface. No Phase 1 / 2A / 2B / 2C contract regressed. Phase 2E Scene Composer is now unblocked.
+
+---
+
 - **Date:** 2026-06-08 (Phase 2C Header Status Cluster + Diagnostics Polish)
 - **Agent:** opencode (minimax-m3)
 - **Branch / state:** `main`, `HEAD` `ec764218` (Phase 2B commit) + Phase 2C uncommitted. The working tree now contains the Phase 2A + Phase 2B + Phase 2C feature batches on top of the prior Phase 1 fix pass + pre-existing release/archive-hygiene edits.
@@ -2067,6 +2087,20 @@ Result:
 > `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` (see the *Scope
 > Correction* section).
 
+### Completed this session (2026-06-08 — Phase 2D Prompt Library Foundation)
+
+- **PHASE2D-001 — Prompt data contract:** `src/types/prompt-library.ts` defines the exhaustive `PromptKind` union, `PromptScope`, `PromptVersion`, `PromptLibraryItem`, and the JSON-serialisable `PromptLibraryExport` envelope. `PROMPT_LIBRARY_VERSION = 1` pins the export contract. `sanitizePromptLibraryItem` and `sanitizePromptVersion` reject / redact `sk-…` / `venice_…` / `Bearer …` / `Authorization:` payloads and cap every field so a corrupt record cannot inflate the storage budget. `isPromptSecretLike` and `redactPromptSecrets` are the canonical secret-detection helpers used by the save / import / export paths.
+- **PHASE2D-002 — Persistence + migration:** Added `promptLibrary` to `STORE_NAMES`, `ENCRYPTED_STORES`, and `dbMigrations.toVersion = 8` (additive — no prior data is deleted). The store uses the existing `StorageService.saveItem` / `getItems` / `deleteItem` path so encryption is automatic.
+- **PHASE2D-003 — Store:** `src/stores/prompt-library-store.ts` is a thin Zustand store: `ensureLoaded` / `createPrompt` / `updatePrompt` / `addPromptVersion` / `setCurrentVersion` / `archivePrompt` / `unarchivePrompt` / `deletePrompt` / `toggleFavorite` / `importPrompts` / `exportPrompts`. Selectors `selectActivePrompts`, `selectArchivedPrompts`, and `selectPromptsForProject(state, activeProjectId)` cover the canonical list filters.
+- **PHASE2D-004 — UI:** `src/components/prompts/PromptLibraryView.tsx` is mounted in `App.tsx` for the canonical `prompts` tab (registered in `TAB_IDS` + `TAB_REGISTRY`, icon wired in `Sidebar.tsx`). List view + detail editor with confirm-gated delete.
+- **PHASE2D-005 — Save from existing surfaces:** Image Studio prompt + negative prompt + Media Inspector recipe each expose a "Save to library" / "Save recipe" button. The action infers the `PromptKind`, preserves the active project scope, defaults the title to the first 80 chars of the content, and records `source: { type: "image" | "media", sourceId }` metadata.
+- **PHASE2D-006 — Apply prompt:** Prompt Library detail exposes "Use in Image Studio" (enqueues a draft via `useImageWorkspaceStore.enqueueGenerate` and routes to the `image` tab) and "Use in Chat" (writes the content to `useChatStore.systemPrompt` and routes to the `chat` tab). The buttons are hidden for incompatible kinds.
+- **PHASE2D-007 — Command Palette integration:** `src/components/command-palette/CommandPalette.tsx` adds a Prompt Library section with Open / New / Use Selected / Export / Import commands. Export / import use safe browser `<a download>` + file-picker patterns; no file path leaks into the renderer.
+- **PHASE2D-008 — Import / export safety:** `exportPromptLibraryItems` strips obvious secret-like content before producing the envelope; `parsePromptLibraryImport` regenerates ids, validates the export version, skips invalid records with reasons.
+- **PHASE2D-009 — Tests:** 65 new tests (31 type / 22 store / 12 UI). Total: 1684 passed, 1 skipped.
+- **PHASE2D-010 — Verify script + regression guard:** `scripts/verify-prompt-library.cjs` + `verify:prompt-library` npm script + `VERIFY-046` row in `AGENTS.md`. Wired into the `ci` parity command.
+- **PHASE2D-011 — Out of scope confirmed:** No Scene Composer, RP overhaul, workflow marketplace, onboarding overhaul, density modes, cloud sync, plugin systems, public sharing/social features, advanced variable templating, or AI auto-tagging were touched.
+
 ### Completed this session (2026-06-08 — Phase 2C Header Status Cluster + Diagnostics Polish)
 
 - **PHASE2C-001 — Status type contract:** `src/types/status.ts` defines the exhaustive `StatusSeverity` union, `AppStatusItem`, `AppStatusSnapshot` (api / apiKey / model / storage / project / safety / provider / desktop / diagnostics), and the JSON-serialisable `SafeDiagnosticsSnapshot`. `SAFE_DIAGNOSTICS_SNAPSHOT_VERSION = 1` pins the contract.
@@ -2455,6 +2489,23 @@ None are release blockers. The P0–P3 sections above remain accurate.
 | `npm run lint:eslint` (Phase 2C) | 0 warnings, clean | 2026-06-08 | `--max-warnings=0` enforced; no inline-style or out-of-allowlist color introduced |
 | `npm run typecheck` (Phase 2C) | 0 errors, clean | 2026-06-08 | Renderer + Electron main; new types compile without relaxing strictness |
 | `git status` (Phase 2C) | 14 files changed / new | 2026-06-08 | 8 new (status.ts, diagnosticsService + test, status-store + test, StatusIndicator + test, HeaderStatusCluster + test, DiagnosticsDrawer + test) + 4 modified (header.tsx, App.tsx, toast-store.ts, toaster.tsx) + this ledger |
+
+---
+
+**2026-06-08 — Phase 2D Prompt Library Foundation (this session — commands actually executed on Node 22.22.3):**
+| Command | Result | Date | Notes |
+| `npm test -- src/types/prompt-library src/stores/prompt-library-store src/components/prompts` (Phase 2D) | PASS: 65/65 | 2026-06-08 | All Phase 2D tests green: 31 type / 22 store / 12 UI |
+| `npm test` (Phase 2D, full serial) | PASS: 1684 passed, 1 skipped | 2026-06-08 | +65 tests vs the prior 1619 baseline; Playwright Electron smoke environment-skipped |
+| `npm run lint:eslint` (Phase 2D) | 0 warnings, clean | 2026-06-08 | `--max-warnings=0` enforced; no inline-style or out-of-allowlist color introduced |
+| `npm run typecheck` (Phase 2D) | 0 errors, clean | 2026-06-08 | Renderer + Electron main; new types compile without relaxing strictness |
+| `node scripts/verify-prompt-library.cjs` (Phase 2D) | PASS: 30/30 invariants | 2026-06-08 | New `verify:prompt-library` static audit; data model, store, view, tab, sidebar icon, migration, encryption, save-from actions, command-palette section all present |
+| `npm run verify:status-diagnostics` (Phase 2D) | PASS | 2026-06-08 | Phase 2C guard still green after Phase 2D edits |
+| `npm run verify:workspace-contracts` (Phase 2D) | PASS: 9/9 | 2026-06-08 | Phase 1 contract guard still green after Phase 2D edits |
+| `npm run verify:model-aware-recipes` (Phase 2D) | PASS | 2026-06-08 | Phase 2A guard still green after Phase 2D edits |
+| `npm run verify:media-studio-power-tools` (Phase 2D) | PASS | 2026-06-08 | Phase 2B guard still green after Phase 2D edits |
+| `npm run verify:safety-guard` (Phase 2D) | PASS: 3/3 | 2026-06-08 | No raw prompt logging or safety bypass patterns introduced |
+| `npm run verify:markdown-links` (Phase 2D) | PASS: 42 files | 2026-06-08 | After summary_of_work.md update |
+| `npm run build` (Phase 2D) | PASS | 2026-06-08 | Renderer, server, and Electron outputs all built |
 
 ---
 

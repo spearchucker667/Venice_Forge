@@ -15,6 +15,8 @@ import { useConfigStore } from "../../stores/config-store";
 import type { MediaItem } from "../../types/media";
 import { extractGenerationRecipe, type GenerationRecipe } from "../../types/project";
 import { RecipeCompatibilityCard } from "./recipe-compatibility-card";
+import { usePromptLibraryStore, resolvePromptProjectId } from "../../stores/prompt-library-store";
+import { toast } from "../../stores/toast-store";
 
 interface MediaInspectorProps {
   item: MediaItem;
@@ -167,6 +169,28 @@ export function MediaInspector({
   const handleCopyRecipe = useCallback(() => {
     if (generationRecipe) void navigator.clipboard.writeText(JSON.stringify(generationRecipe, null, 2));
   }, [generationRecipe]);
+
+  const handleSaveRecipeToLibrary = useCallback(async () => {
+    if (!generationRecipe) return;
+    try {
+      const firstLine = (generationRecipe.prompt || item.prompt || "Image recipe")
+        .split("\n")[0]
+        ?.slice(0, 80) || "Image recipe";
+      await usePromptLibraryStore.getState().createPrompt({
+        title: firstLine,
+        kind: "recipe",
+        content: generationRecipe.prompt || item.prompt,
+        negativeContent: generationRecipe.negativePrompt ?? item.negative,
+        scope: "global",
+        projectId: resolvePromptProjectId(item.projectId ?? null),
+        modelHints: generationRecipe.model ? [generationRecipe.model] : undefined,
+        source: { type: "media", sourceId: item.id },
+      });
+      toast.success("Saved recipe to Prompt Library");
+    } catch (err) {
+      toast.error(`Could not save recipe: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }, [generationRecipe, item.prompt, item.negative, item.id, item.projectId]);
 
   const handleExportRecipe = useCallback(() => {
     if (!generationRecipe) return;
@@ -534,6 +558,17 @@ export function MediaInspector({
           >
             <Copy className="h-3 w-3" /> Copy metadata
           </button>
+          {generationRecipe && (
+            <button
+              type="button"
+              onClick={() => void handleSaveRecipeToLibrary()}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              title="Save recipe to Prompt Library"
+              data-testid="inspector-save-recipe-to-library"
+            >
+              <NotebookPen className="h-3 w-3" /> Save recipe
+            </button>
+          )}
           {generationRecipe && (
             <button
               type="button"

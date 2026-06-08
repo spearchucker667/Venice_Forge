@@ -123,6 +123,15 @@ export const MIGRATIONS: MigrationStep[] = [
       }
     },
   },
+  {
+    toVersion: 8,
+    description: "Add promptLibrary store for Phase 2D Prompt Library Foundation",
+    up(db) {
+      if (!db.objectStoreNames.contains("promptLibrary")) {
+        db.createObjectStore("promptLibrary", { keyPath: "id" });
+      }
+    },
+  },
 ];
 
 /**

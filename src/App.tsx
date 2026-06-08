@@ -21,6 +21,7 @@ import { SettingsView } from './components/SettingsView'
 import { SearchScrapeView } from './components/SearchScrapeView'
 import { CharactersView } from './components/CharactersView'
 import { MediaStudioView } from './components/gallery/gallery-view'
+import { PromptLibraryView } from './components/prompts/PromptLibraryView'
 import { ErrorBoundary } from './components/ui/error-boundary'
 import { Toaster } from './components/ui/toaster'
 import { FIRST_RUN_ACK_KEY } from './shared/legal'
@@ -46,6 +47,7 @@ const views: Record<TabId, React.ComponentType> = {
   chat: ChatView,
   image: ImagePage,
   media: MediaStudioView,
+  prompts: PromptLibraryView,
   // Legacy aliases — render the same view as their canonical target so a
   // stale `activeTab='gallery'` still shows the Media Studio instead of an
   // empty page. The store normalises aliases on set, so this is only a

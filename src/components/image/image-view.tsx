@@ -9,6 +9,8 @@ import { Label, TextArea, PrimaryButton, PillGroup, ErrorText, ExamplePrompts } 
 import { GenerationView } from '../ui/generation-view'
 import type { ImageConstraints } from '../../types/venice'
 import { useMediaStore } from '../../stores/media-store'
+import { usePromptLibraryStore, resolvePromptProjectId } from '../../stores/prompt-library-store'
+import { toast } from '../../stores/toast-store'
 import type { MediaItem } from '../../types/media'
 import { generateId } from '../../lib/utils'
 import { getPromptStartersForCategory } from '../../services/promptStarterService'
@@ -191,6 +193,28 @@ export function ImageView() {
     setShowEnhanceReview(false)
     setEnhancedPrompt(null)
   }, [])
+
+  const handleSavePromptToLibrary = useCallback(
+    async (kind: 'image' | 'negative', content: string) => {
+      const trimmed = content.trim()
+      if (!trimmed) return
+      const firstLine = trimmed.split('\n')[0]?.slice(0, 80) || (kind === 'negative' ? 'Negative prompt' : 'Image prompt')
+      try {
+        await usePromptLibraryStore.getState().createPrompt({
+          title: firstLine,
+          kind,
+          content: trimmed,
+          scope: 'global',
+          projectId: resolvePromptProjectId(null),
+          source: { type: 'image' },
+        })
+        toast.success(`Saved ${kind} prompt to library`)
+      } catch (err) {
+        toast.error(`Could not save prompt: ${err instanceof Error ? err.message : String(err)}`)
+      }
+    },
+    [],
+  )
 
   const buildSeedState = useCallback((): ImageSeedState => {
     if (seedMode === 'fixed') return { mode: 'fixed', value: seedValue }
@@ -427,6 +451,16 @@ export function ImageView() {
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={() => void handleSavePromptToLibrary('image', prompt)}
+              disabled={!prompt.trim()}
+              className="text-[11px] px-2 py-1 rounded-md border border-border text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50"
+              aria-label="Save prompt to library"
+              data-testid="image-save-prompt-to-library"
+            >
+              Save to library
+            </button>
+            <button
+              type="button"
               onClick={handleEnhance}
               disabled={!prompt.trim() || enhancing || !enhancerEnabled}
               className="text-[11px] px-2 py-1 rounded-md bg-accent/10 text-accent hover:bg-accent/20 border border-accent/30 transition-colors disabled:opacity-50 cursor-pointer"
@@ -507,7 +541,19 @@ export function ImageView() {
 
       {caps.supportsNegativePrompt && (
         <div>
-          <Label>Negative prompt</Label>
+          <div className="flex items-center justify-between">
+            <Label>Negative prompt</Label>
+            <button
+              type="button"
+              onClick={() => void handleSavePromptToLibrary('negative', negativePrompt)}
+              disabled={!negativePrompt.trim()}
+              className="text-[11px] px-2 py-1 rounded-md border border-border text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50"
+              aria-label="Save negative prompt to library"
+              data-testid="image-save-negative-to-library"
+            >
+              Save to library
+            </button>
+          </div>
           <TextArea value={negativePrompt} onChange={setNegativePrompt} placeholder="blurry, low quality…" rows={2} />
         </div>
       )}
