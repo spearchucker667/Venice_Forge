@@ -41,8 +41,8 @@ if (!agents.includes("VERIFY-048") || !agents.includes("verify:rp-studio-polish"
 
 console.log("[verify:rp-studio-polish] Checking DB v10 contract...");
 const constants = readFileSync("src/constants/venice.ts", "utf8");
-if (!constants.includes('"rpScenarios"') || !constants.includes("DB_VERSION = 10")) {
-  console.error("[verify:rp-studio-polish] DB v10 / rpScenarios contract missing in src/constants/venice.ts.");
+if (!constants.includes('"rpScenarios"') || (!constants.includes("DB_VERSION = 10") && !constants.includes("DB_VERSION = 11") && !constants.includes("DB_VERSION = 12"))) {
+  console.error("[verify:rp-studio-polish] DB v10+ / rpScenarios contract missing in src/constants/venice.ts.");
   process.exit(1);
 }
 

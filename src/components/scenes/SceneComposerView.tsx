@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSceneComposerStore } from "../../stores/scene-composer-store";
 import { useWorkflowTemplateStore } from "../../stores/workflow-template-store";
+import { type WorkflowStep } from "../../types/workflow";
 import type {
   SceneComposerItem,
   SceneComponentKind,
@@ -272,12 +273,12 @@ export function SceneComposerView() {
                     title: active.title,
                     ref: { sceneId: active.id },
                     enabled: true,
-                  } as any,
+                  } as WorkflowStep,
                 ],
                 source: { type: "scene", sourceId: active.id },
               });
               setActiveWorkflow(w.id);
-              setActiveTab("workflows" as any);
+              setActiveTab("workflows");
               toast.success("Workflow created");
             }}
           />

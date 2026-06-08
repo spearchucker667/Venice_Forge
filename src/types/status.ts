@@ -95,6 +95,12 @@ export interface SafeDiagnosticsSnapshot {
     conversations: {
       count: number;
     };
+    prompts?: { count: number };
+    scenes?: { count: number };
+    rp?: { count: number };
+    workflows?: { count: number };
+    issuesCount?: number;
+    privacyExclusions?: string[];
   };
   checks: AppDiagnosticCheck[];
 }

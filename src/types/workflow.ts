@@ -379,8 +379,9 @@ export function parseWorkflowTemplateImport(input: unknown): WorkflowImportResul
       result.imported.push(item.id);
       
       // we attach the sanitized item to the array so the caller can use it
-      // we'll cast result to any to pass the items out without changing the public contract
-      ;(result as any)._items = ((result as any)._items || []).concat(item);
+      // we'll cast result to a private interface to pass the items out without changing the public contract
+      const resultWithItems = result as WorkflowImportResult & { _items?: WorkflowTemplateItem[] };
+      resultWithItems._items = (resultWithItems._items || []).concat(item);
 
     } catch (err) {
       result.skipped.push({ title, reason: err instanceof Error ? err.message : "Unknown validation error" });

@@ -20,7 +20,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStatusStore } from "../../stores/status-store";
-import { useSettingsStore } from "../../stores/settings-store";
+import { useSettingsStore, type Tab } from "../../stores/settings-store";
 import { useModels } from "../../hooks/use-models";
 import { toast } from "../../stores/toast-store";
 import { isTabId, type TabId } from "../../config/tabs";
@@ -42,6 +42,7 @@ const SECTION_ORDER: Array<{ key: keyof AppStatusSnapshot; label: string }> = [
   { key: "apiKey", label: "API Key" },
   { key: "model", label: "Model" },
   { key: "storage", label: "Storage" },
+  { key: "storage", label: "Privacy" },
   { key: "project", label: "Project" },
   { key: "safety", label: "Safety" },
   { key: "provider", label: "Research" },
@@ -324,6 +325,19 @@ export function DiagnosticsDrawer() {
                   className="rounded-md border border-border px-2 py-1 text-[11.5px] text-text-secondary hover:border-accent hover:text-accent"
                 >
                   Open Status
+                </button>
+              )}
+              {key === "storage" && label === "Privacy" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("privacy" as Tab)
+                    closeDrawer()
+                  }}
+                  data-testid="diagnostics-action-privacy"
+                  className="rounded-md border border-border px-2 py-1 text-[11.5px] text-text-secondary hover:border-accent hover:text-accent"
+                >
+                  Open Privacy Dashboard
                 </button>
               )}
               {key === "project" && (

@@ -349,3 +349,35 @@ describe("CommandPalette — Phase 2F RP Studio commands", () => {
     expect(useSettingsStore.getState().activeTab).toBe('scenes')
   })
 })
+
+// Phase 2H: VERIFY-050 Storage / Privacy commands
+import { useStoragePrivacyStore } from '../../stores/storage-privacy-store'
+
+describe("CommandPalette — Phase 2H Storage / Privacy commands", () => {
+  it("Open Privacy Dashboard routes to privacy tab", () => {
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    fireEvent.click(screen.getByTestId("command-palette-open-privacy"))
+    expect(useSettingsStore.getState().activeTab).toBe('privacy')
+  })
+
+  it("Refresh Storage Inventory calls the store action", async () => {
+    const refreshInventory = vi.spyOn(useStoragePrivacyStore.getState(), 'refreshInventory').mockResolvedValue(undefined)
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    fireEvent.click(screen.getByTestId("command-palette-refresh-inventory"))
+    expect(refreshInventory).toHaveBeenCalled()
+  })
+
+  it("Copy Safe Privacy Summary calls the store action", async () => {
+    const copySafeSummary = vi.spyOn(useStoragePrivacyStore.getState(), 'copySafeSummary').mockResolvedValue(undefined)
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    fireEvent.click(screen.getByTestId("command-palette-copy-privacy-summary"))
+    expect(copySafeSummary).toHaveBeenCalled()
+  })
+
+  it("Export Safe Privacy Summary calls the store action", () => {
+    const exportSafeSummary = vi.spyOn(useStoragePrivacyStore.getState(), 'exportSafeSummary').mockReturnValue(undefined)
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    fireEvent.click(screen.getByTestId("command-palette-export-privacy-summary"))
+    expect(exportSafeSummary).toHaveBeenCalled()
+  })
+})

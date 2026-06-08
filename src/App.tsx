@@ -23,6 +23,7 @@ import { CharactersView } from './components/CharactersView'
 import { MediaStudioView } from './components/gallery/gallery-view'
 import { PromptLibraryView } from './components/prompts/PromptLibraryView'
 import { SceneComposerView } from './components/scenes/SceneComposerView'
+import { StoragePrivacyDashboard } from './components/privacy/StoragePrivacyDashboard'
 import { ErrorBoundary } from './components/ui/error-boundary'
 import { Toaster } from './components/ui/toaster'
 import { FIRST_RUN_ACK_KEY } from './shared/legal'
@@ -60,6 +61,7 @@ const views: Record<TabId, React.ComponentType> = {
   video: VideoView,
   embeddings: EmbeddingsView,
   workflows: WorkflowsView,
+  privacy: StoragePrivacyDashboard,
   playground: PlaygroundView,
   status: StatusView,
   settings: SettingsView,

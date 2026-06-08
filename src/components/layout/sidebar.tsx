@@ -58,6 +58,9 @@ function PromptsIcon() {
 function SceneIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>)
 }
+function PrivacyIcon() {
+  return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><circle cx="12" cy="11" r="3" /><path d="M12 14v4" /></svg>)
+}
 
 interface NavGroup {
   label: string
@@ -84,6 +87,7 @@ const TAB_ICONS: Record<TabId, () => React.JSX.Element> = {
   characters: CharactersIcon,
   'rp-studio': RpStudioIcon,
   workflows: WorkflowIcon,
+  privacy: PrivacyIcon,
   playground: PlaygroundIcon,
   settings: SettingsIcon,
   status: StatusIcon,

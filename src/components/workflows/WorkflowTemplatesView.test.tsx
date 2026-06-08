@@ -70,7 +70,7 @@ describe("WorkflowTemplatesView", () => {
     fireEvent.click(addStepBtn);
 
     // Should have 1 step now
-    let stepItems = await screen.findAllByTestId("workflow-step-item");
+    const stepItems = await screen.findAllByTestId("workflow-step-item");
     expect(stepItems).toHaveLength(1);
     expect(stepItems[0]).toHaveTextContent("New Prompt Step");
 

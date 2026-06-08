@@ -16,7 +16,7 @@ try {
 
   console.log("\n✅ VERIFY-049: Workflow Templates validation passed.");
   process.exit(0);
-} catch (err) {
+} catch {
   console.error("\n❌ VERIFY-049: Workflow Templates validation failed.");
   process.exit(1);
 }

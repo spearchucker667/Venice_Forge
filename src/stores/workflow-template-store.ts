@@ -12,7 +12,6 @@ import {
   parseWorkflowTemplateImport,
   exportWorkflowTemplateItems,
 } from "../types/workflow";
-import { useProjectStore } from "./project-store";
 import { useSettingsStore } from "./settings-store";
 
 export interface WorkflowTemplateState {
@@ -412,7 +411,7 @@ export const useWorkflowTemplateStore = create<WorkflowTemplateState>((set, get)
 
   importWorkflows: async (payload) => {
     const result = parseWorkflowTemplateImport(payload);
-    const importedItems = (result as any)._items || [];
+    const importedItems = (result as { _items?: WorkflowTemplateItem[] })._items || [];
 
     for (const fresh of importedItems) {
       try {

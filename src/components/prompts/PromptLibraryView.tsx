@@ -20,6 +20,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePromptLibraryStore } from "../../stores/prompt-library-store";
 import { useWorkflowTemplateStore } from "../../stores/workflow-template-store";
+import type { WorkflowStep } from "../../types/workflow";
 import type { PromptKind, PromptLibraryItem, PromptScope, PromptVersion } from "../../types/prompt-library";
 import { useSettingsStore } from "../../stores/settings-store";
 import { useProjectStore } from "../../stores/project-store";
@@ -327,12 +328,12 @@ export function PromptLibraryView() {
                     title: active.title,
                     ref: { promptId: active.id },
                     enabled: true,
-                  } as any,
+                  } as WorkflowStep,
                 ],
                 source: { type: "prompt", sourceId: active.id },
               });
               setActiveWorkflow(w.id);
-              setActiveTab("workflows" as any);
+              setActiveTab("workflows");
               toast.success("Workflow created");
             }}
           />

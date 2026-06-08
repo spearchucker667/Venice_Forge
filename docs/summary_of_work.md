@@ -2564,4 +2564,9 @@ None are release blockers. The P0–P3 sections above remain accurate.
 | `npm run verify:safety-guard` (Phase 2F) | PASS | 2026-06-08 | Safety boundaries intact |
 | `npm run verify:markdown-links` (Phase 2F) | PASS | 2026-06-08 | After all doc updates |
 | `npm run build` (Phase 2F) | PASS | 2026-06-08 | Renderer, server, Electron outputs all built |
+| Phase 2H: Storage / Privacy Hardening | COMPLETED | 2026-06-08 | Inventory service, Maintenance planner, Dashboard UI, Command Palette integration. |
+| `npm run verify:storage-privacy` (Phase 2H) | PASS | 2026-06-08 | 18 tests (5 files) + static safety audit. |
+| `npm run lint:eslint` (Phase 2H) | PASS | 2026-06-08 | Fixed numerous `any` and unused var warnings. |
+| `npm run typecheck` (Phase 2H) | PASS | 2026-06-08 | All stores and services fully typed. |
+| `npm run build` (Phase 2H) | PASS | 2026-06-08 | Full production build verified. |
 

@@ -12,6 +12,7 @@ import { usePromptLibraryStore } from "../../stores/prompt-library-store";
 import { useSceneComposerStore } from "../../stores/scene-composer-store";
 import { useScenarioStore } from "../../stores/scenario-store";
 import { useWorkflowTemplateStore } from "../../stores/workflow-template-store";
+import { type WorkflowStep } from "../../types/workflow";
 import { CARD_FIELD_MAX, MAX_AVATAR_BYTES, MAX_TAGS, type CharacterCardV1, type CharacterCardAvatar, type CharacterExampleDialogue } from "../../types/rp";
 import { GhostButton, Label, PrimaryButton, TextArea, ErrorText } from "../ui/shared";
 import { Spinner } from "../ui/spinner";
@@ -189,12 +190,12 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
           title: saved.name || "Untitled",
           ref: { characterId: saved.id },
           enabled: true,
-        } as any,
+        } as WorkflowStep,
       ],
       source: { type: "rp", sourceId: saved.id },
     });
     setActiveWorkflow(w.id);
-    setActiveTab("workflows" as any);
+    setActiveTab("workflows");
     toast.success("Workflow created");
   };
 
@@ -596,6 +597,15 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
               className="text-[12px] px-2.5 py-1.5 rounded-md border border-white/[0.1] text-white/75 hover:text-white hover:bg-white/[0.04] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Create scenario from character
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleCreateWorkflow()}
+              disabled={disabled}
+              data-testid="character-editor-create-workflow"
+              className="text-[12px] px-2.5 py-1.5 rounded-md border border-white/[0.1] text-white/75 hover:text-white hover:bg-white/[0.04] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Create workflow
             </button>
           </div>
           {(typeof draft.metadata?.attachedSceneId === "string" ||

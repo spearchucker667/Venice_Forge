@@ -31,6 +31,14 @@ import { useSettingsStore } from "../stores/settings-store";
 import { useProjectStore } from "../stores/project-store";
 import { useMediaStore } from "../stores/media-store";
 import { useChatStore } from "../stores/chat-store";
+import { usePromptLibraryStore } from "../stores/prompt-library-store";
+import { useSceneComposerStore } from "../stores/scene-composer-store";
+import { useWorkflowTemplateStore } from "../stores/workflow-template-store";
+import { useCharacterCardStore } from "../stores/character-card-store";
+import { useLorebookStore } from "../stores/lorebook-store";
+import { usePersonaStore } from "../stores/persona-store";
+import { useScenarioStore } from "../stores/scenario-store";
+import { useStoragePrivacyStore } from "../stores/storage-privacy-store";
 import { getAuditSnapshot } from "../shared/safety";
 
 /* ------------------------------------------------------------------ *
@@ -355,6 +363,18 @@ export function computeSafeDiagnosticsSnapshot(): SafeDiagnosticsSnapshot {
       conversations: {
         count: Array.isArray(conversations) ? conversations.length : 0,
       },
+      prompts: { count: usePromptLibraryStore.getState().prompts.length },
+      scenes: { count: useSceneComposerStore.getState().scenes.length },
+      workflows: { count: useWorkflowTemplateStore.getState().workflows.length },
+      rp: {
+        count:
+          useCharacterCardStore.getState().cards.length +
+          useLorebookStore.getState().lorebooks.length +
+          usePersonaStore.getState().personas.length +
+          useScenarioStore.getState().scenarios.length,
+      },
+      issuesCount: useStoragePrivacyStore.getState().inventory?.issues.length || 0,
+      privacyExclusions: ["API Keys", "Raw Prompt Content", "Conversation History", "Media Blobs"],
     },
     checks,
     // audit counters are exposed via the diagnostics statuses; we keep

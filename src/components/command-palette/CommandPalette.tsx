@@ -24,6 +24,7 @@ import { usePromptLibraryStore } from '../../stores/prompt-library-store'
 import { useSceneComposerStore } from '../../stores/scene-composer-store'
 import { useCharacterCardStore } from '../../stores/character-card-store'
 import { useScenarioStore } from '../../stores/scenario-store'
+import { useStoragePrivacyStore } from '../../stores/storage-privacy-store'
 import { startChatForCharacter } from '../../services/rpHelpers'
 
 interface CommandPaletteProps {
@@ -536,6 +537,52 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
             data-testid="command-palette-new-scenario"
           >
             New Scenario
+          </button>
+
+          <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border mt-1">Privacy &amp; Storage</div>
+          <button
+            onClick={() => {
+              setActiveTab('privacy');
+              onClose();
+              setQuery('');
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            data-testid="command-palette-open-privacy"
+          >
+            Open Privacy Dashboard
+          </button>
+          <button
+            onClick={async () => {
+              await useStoragePrivacyStore.getState().refreshInventory();
+              onClose();
+              setQuery('');
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            data-testid="command-palette-refresh-inventory"
+          >
+            Refresh Storage Inventory
+          </button>
+          <button
+            onClick={async () => {
+              await useStoragePrivacyStore.getState().copySafeSummary();
+              onClose();
+              setQuery('');
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            data-testid="command-palette-copy-privacy-summary"
+          >
+            Copy Safe Privacy Summary
+          </button>
+          <button
+            onClick={() => {
+              useStoragePrivacyStore.getState().exportSafeSummary();
+              onClose();
+              setQuery('');
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            data-testid="command-palette-export-privacy-summary"
+          >
+            Export Safe Privacy Summary
           </button>
 
           <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border mt-1">System</div>
