@@ -3,6 +3,7 @@ import { useModels } from '../../hooks/use-models'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { Select } from '../ui/select'
 import { StatusDot } from '../ui/shared'
+import { HeaderStatusCluster } from '../status/HeaderStatusCluster'
 
 const modelTypeMap: Record<string, string> = {
   chat: 'text',
@@ -95,6 +96,8 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
       )}
 
       <div className="flex-1" />
+
+      <HeaderStatusCluster />
 
       <button
         onClick={onOpenApiKey}

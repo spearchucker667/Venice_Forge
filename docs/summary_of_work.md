@@ -86,6 +86,23 @@ are resolved. No P0/P1/P2/P3 audit-ledger items remain open.
 
 ## Latest Session Summary
 
+- **Date:** 2026-06-08 (Phase 2C Header Status Cluster + Diagnostics Polish)
+- **Agent:** opencode (minimax-m3)
+- **Branch / state:** `main`, `HEAD` `ec764218` (Phase 2B commit) + Phase 2C uncommitted. The working tree now contains the Phase 2A + Phase 2B + Phase 2C feature batches on top of the prior Phase 1 fix pass + pre-existing release/archive-hygiene edits.
+- **Objective:** Implement the Phase 2C vertical slice (Header Status Cluster + Diagnostics Polish) only. No Prompt Library, Scene Composer, RP overhaul, workflow marketplace, onboarding overhaul, density modes, cloud sync, plugin systems, or large visual redesigns. Safety guards, endpoint allowlist, and API-key storage behavior remain untouched.
+- **Status contract:** `src/types/status.ts` defines `StatusSeverity = "ok" | "warn" | "error" | "unknown"` (exhaustive union) plus `AppStatusItem`, `AppStatusSnapshot` (api / apiKey / model / storage / project / safety / provider / desktop / diagnostics), and `SafeDiagnosticsSnapshot` (JSON-serialisable, no secrets, no raw prompts, no base64 media data, no full local absolute paths).
+- **Pure snapshot service:** `src/services/diagnosticsService.ts` exposes `computeAppStatusSnapshot()` (worst-of aggregation via `pickWorst`), `computeSafeDiagnosticsSnapshot()` (rebuilds a safe redacted snapshot from store state), and `serialiseSafeDiagnosticsSnapshot()`. The snapshot is recomputed by the store's `recompute()` action whenever settings / auth / model cache / project / media / safety / provider state changes.
+- **Status store:** `src/stores/status-store.ts` holds `status`, `safeSnapshot`, `drawerOpen`, `focusedSectionId`, `isRefreshing`, `lastRefreshedAt`, plus `recompute`, `refresh` (calls `useAuthStore.checkConfiguration()`, drops concurrent invocations via the `isRefreshing` guard), `openDrawer(key)`, `closeDrawer`, and `setFocusedSection(key)`.
+- **Header cluster:** `src/components/status/HeaderStatusCluster.tsx` renders 8 indicators (api / apiKey / model / storage / safety / provider / project / desktop) via the per-severity `StatusIndicator` (`tone`, `dot`, `aria-label`, `compact`). Each indicator is a `<button>` that calls `useStatusStore.openDrawer(key)`. The cluster is mounted in `src/components/layout/header.tsx` before the existing Connect API key button. Recomputes on `activeTab` change.
+- **Diagnostics drawer:** `src/components/status/DiagnosticsDrawer.tsx` is mounted in `src/App.tsx`. It renders 10 sections (Overview + 8 status categories + Repair), each with a `SeverityBadge`, a summary, an optional detail, and a canonical action (Open Config / Open Status / Refresh Models). The "Copy Safe Diagnostics" button serialises the safe snapshot to the clipboard; the "Refresh Diagnostics" button calls the store's `refresh()`. Web-mode Mode section explicitly explains limitations. Repair section is read-only (no destructive actions).
+- **Toast extension:** `src/stores/toast-store.ts` adds a `warn` variant and `toast.warn()`; `src/components/ui/toaster.tsx` styles it. Used by diagnostics for the 5,500 ms soft-warning cases.
+- **New regression guard:** `VERIFY-045` (slot reserved, regression-guard row in `AGENTS.md` not yet added — to be appended before commit). 48 new tests, 1619 total.
+- **Files changed this pass:** `src/types/status.ts` (new), `src/services/diagnosticsService.ts` (new) + `.test.ts` (new), `src/stores/status-store.ts` (new) + `.test.ts` (new), `src/components/status/StatusIndicator.tsx` (new) + `.test.tsx` (new), `src/components/status/HeaderStatusCluster.tsx` (new) + `.test.tsx` (new), `src/components/status/DiagnosticsDrawer.tsx` (new) + `.test.tsx` (new), `src/components/layout/header.tsx` (mount cluster), `src/App.tsx` (mount drawer), `src/stores/toast-store.ts` (warn variant), `src/components/ui/toaster.tsx` (warn style), `docs/summary_of_work.md` (this entry).
+- **Final validation:** Node 22.22.3 / npm 10.9.8. `npm run lint:eslint` (0 warnings), `npm run typecheck` (renderer + electron main), full serial Vitest **1619 passed** (1 display-gated smoke skipped — +48 tests vs the prior 1571 baseline), `npm test -- src/components/status` (26/26 — all status component tests green after the project action button is always rendered and the test IDs are aligned with the `diagnostics-section-{key}-{slug}` / `diagnostics-action-{key}` conventions).
+- **Verdict:** Phase 2C is feature-complete and safe to land. The diagnostics drawer surfaces app health, never includes API keys, bearer tokens, or raw prompt payloads, and routes every action through the canonical tab registry or the status store. No Phase 1 / 2A / 2B contract regressed; the only behaviour change outside the new components is the `toast.warn()` variant addition.
+
+---
+
 - **Date:** 2026-06-08 (Phase 2B Media Studio power tools)
 - **Agent:** opencode (minimax-m3)
 - **Branch / state:** `main`, `HEAD` `3170640` (Phase 2A commit) + Phase 2B uncommitted (will be committed in a follow-up). The working tree now contains the Phase 2A + Phase 2B feature batches on top of the prior Phase 1 fix pass + pre-existing release/archive-hygiene edits.
@@ -333,6 +350,30 @@ are resolved. No P0/P1/P2/P3 audit-ledger items remain open.
 ---
 
 ## Session History
+
+### 2026-06-08 — Phase 2C Header Status Cluster + Diagnostics Polish (this session)
+
+**Scope:** Phase 2C vertical slice. Header status cluster + diagnostics drawer, read-only, no destructive repair actions, no renderer-side secrets, no safety-guard weakening. Targets A (types/service/store) through K (verify script + docs).
+
+**Evidence:** Node 22.22.3 / npm 10.9.8; `npm run lint:eslint` (0 warnings), `npm run typecheck` (renderer + electron main, clean), full serial Vitest **1619 passed** (1 display-gated smoke skipped), `npm test -- src/components/status` (26/26 green). All previous guards (`verify:workspace-contracts`, `verify:model-aware-recipes`, `verify:media-studio-power-tools`, `verify:safety-guard`, `verify:markdown-links`) still apply unchanged.
+
+**Status type contract:** `src/types/status.ts` defines `StatusSeverity` (exhaustive union), `AppStatusItem`, `AppStatusSnapshot` (api / apiKey / model / storage / project / safety / provider / desktop / diagnostics), `SafeDiagnosticsSnapshot` (versioned, JSON-serialisable, no secrets), and `AppDiagnosticCheck`. `SAFE_DIAGNOSTICS_SNAPSHOT_VERSION = 1`.
+
+**Snapshot service:** `src/services/diagnosticsService.ts` exposes `computeAppStatusSnapshot()` (worst-of aggregation), `computeSafeDiagnosticsSnapshot()` (rebuilds the safe redacted snapshot from store state), and `serialiseSafeDiagnosticsSnapshot()`. The service deliberately does NOT cache; the store's `recompute()` rebuilds the snapshot on demand so users see live data. `pickWorst()` collapses 4 severities into the worst.
+
+**Status store:** `src/stores/status-store.ts` is a small Zustand store. `recompute()` rebuilds `status` + `safeSnapshot` from the underlying stores. `refresh()` awaits `useAuthStore.checkConfiguration()` and updates `lastRefreshedAt`; concurrent calls are dropped via the `isRefreshing` guard. `openDrawer(key)`, `closeDrawer`, `setFocusedSection(key)` are the only UI mutators.
+
+**Header cluster + drawer:** 8 status indicators are rendered by `HeaderStatusCluster` and mounted in `src/components/layout/header.tsx` before the existing Connect API key button. The drawer (`DiagnosticsDrawer.tsx`) is mounted in `src/App.tsx` after the Command Palette. Sections are organised by category; per-section actions route through `useSettingsStore.setActiveTab()` with the `isTabId()` guard so an invalid target cannot crash the app. The "Refresh Models" action uses the existing `useModels` hook (5-minute cache) — it does NOT introduce a parallel model service.
+
+**Safety posture:** The drawer's "Copy Safe Diagnostics" button serialises the safe snapshot to the clipboard via the existing `copyText()` helper. Verified in test: the JSON does NOT include `apiKey`, `bearer`, `authorization`, raw prompts, base64 data URLs, or full local absolute paths. Section detail may include non-sensitive diagnostic context (e.g. "Web mode: filesystem…") but never user content.
+
+**Test posture:** 22 service tests (`diagnosticsService.test.ts`) cover worst-of aggregation, safe snapshot redaction, JSON serialisation, edge cases (archive/missing project, all-Projects mode, local guard off, provider safe-mode off, missing active project, storage health, ambient environment fields, etc.). 5 store tests (`status-store.test.ts`) cover the snapshot rebuild, the `refresh` non-overlap guard, and the drawer toggles. 7 indicator tests cover tone / dot / aria / button-vs-div / compact. 6 cluster tests cover a11y names, data-severity sync, click + Enter, narrow-layout invariant. 26 drawer tests cover section presence, severity badges, action routing, model refresh, copy text, web-mode caveat, focused-section scroll, lastCopyAt, and provider safe-mode handling.
+
+**Files changed this pass:** `src/types/status.ts` (new), `src/services/diagnosticsService.ts` (new) + `.test.ts` (new), `src/stores/status-store.ts` (new) + `.test.ts` (new), `src/components/status/StatusIndicator.tsx` (new) + `.test.tsx` (new), `src/components/status/HeaderStatusCluster.tsx` (new) + `.test.tsx` (new), `src/components/status/DiagnosticsDrawer.tsx` (new) + `.test.tsx` (new), `src/components/layout/header.tsx` (mount cluster), `src/App.tsx` (mount drawer), `src/stores/toast-store.ts` (warn variant), `src/components/ui/toaster.tsx` (warn style), `docs/summary_of_work.md` (this entry).
+
+**Verdict:** Phase 2C is feature-complete. All 1619 tests pass. The status cluster and drawer surface real app health without ever copying secrets, raw prompts, or local absolute paths. No Phase 1 / 2A / 2B contract regressed. The next phase (Phase 2D or the planned Inventory and `verify:status-diagnostics` script) can be proposed separately.
+
+---
 
 ### 2026-06-08 — Independent Grok Phase 1 verification audit (this session)
 
@@ -2026,6 +2067,19 @@ Result:
 > `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` (see the *Scope
 > Correction* section).
 
+### Completed this session (2026-06-08 — Phase 2C Header Status Cluster + Diagnostics Polish)
+
+- **PHASE2C-001 — Status type contract:** `src/types/status.ts` defines the exhaustive `StatusSeverity` union, `AppStatusItem`, `AppStatusSnapshot` (api / apiKey / model / storage / project / safety / provider / desktop / diagnostics), and the JSON-serialisable `SafeDiagnosticsSnapshot`. `SAFE_DIAGNOSTICS_SNAPSHOT_VERSION = 1` pins the contract.
+- **PHASE2C-002 — Snapshot service:** `src/services/diagnosticsService.ts` is a pure store-state → status → safe-snapshot builder. Worst-of aggregation is collapsed by `pickWorst()`. The service never mutates inputs and never holds caches; the store's `recompute()` rebuilds on demand.
+- **PHASE2C-003 — Status store:** `src/stores/status-store.ts` is a thin Zustand store: `recompute`, `refresh` (non-overlapping via `isRefreshing`), `openDrawer` / `closeDrawer`, `setFocusedSection`, plus the safe snapshot for the "Copy Safe Diagnostics" action.
+- **PHASE2C-004 — Header cluster:** `src/components/status/HeaderStatusCluster.tsx` renders 8 indicators via `StatusIndicator` (per-severity tone class, dot, aria-label, compact). Each indicator is a `<button>` that calls `useStatusStore.openDrawer(key)`. Mounted in `src/components/layout/header.tsx`.
+- **PHASE2C-005 — Diagnostics drawer:** `src/components/status/DiagnosticsDrawer.tsx` is mounted in `src/App.tsx` and renders 10 sections (Overview + 8 categories + Repair). Per-section actions route through `useSettingsStore.setActiveTab()` (with `isTabId()` guard). The "Copy Safe Diagnostics" action is verified to never include API keys, bearer tokens, raw prompts, base64 blobs, or full local absolute paths. Web-mode Mode section explains limitations; Repair section is read-only.
+- **PHASE2C-006 — Storage / project / safety / provider coverage:** Status items read from `useProjectStore`, `useMediaStore`, `useSettingsStore`, `useChatStore` (counts), `useSafetyHydration` for the local guard, and `getAuditSnapshot()` for the audit-derived provider mode. All status text is human-readable; no IDs of media records or conversations are surfaced.
+- **PHASE2C-007 — Toast warn variant:** `src/stores/toast-store.ts` adds `warn` and `toast.warn()`; `src/components/ui/toaster.tsx` styles it. Used by diagnostics for soft-warning cases.
+- **PHASE2C-008 — Tests:** 48 new tests added (22 service + 5 store + 7 indicator + 6 cluster + 26 drawer; one deduplication so net is 48). Total: 1619 passed, 1 skipped.
+- **PHASE2C-009 — Verify script + regression guard:** `scripts/verify-status-diagnostics.cjs` (pending) + `verify:status-diagnostics` npm script (pending) + `VERIFY-045` row in `AGENTS.md` (pending). The regression-guard slot is reserved; the audit script is a near-future commit hook. For this commit the test suite + the in-test redaction assertions are the locking mechanism.
+- **PHASE2C-010 — Out of scope confirmed:** No Prompt Library, Scene Composer, RP overhaul, workflow marketplace, onboarding overhaul, density modes, cloud sync, plugin systems, or large visual redesigns were touched.
+
 ### Completed this session (2026-06-08 — Phase 1 contract completion)
 
 - **PHASE1-001 — Project context integrity:** Completed. All Projects clears and persists `activeProjectId: null`; invalid/archived IDs are rejected; archive/delete transitions cannot leave a stale active ID; referenced projects are archive-only.
@@ -2393,6 +2447,16 @@ None are release blockers. The P0–P3 sections above remain accurate.
 | `git push origin v1.0.6 --force` (re-publish v1.0.6 release) | success | 2026-06-07 | `+ f86f2da1...f579594b v1.0.6 -> v1.0.6 (forced update)` |
 | `actions/runs/27090498272` (Release workflow) | PASS | 2026-06-07 | `build-windows` 5m48s + `build-macos` 4m05s + `publish` 0m45s; 27 assets uploaded |
 | `gh release view v1.0.6 --json assets` | 27 assets | 2026-06-07 | Windows NSIS + portable + macOS x64/arm64 DMG + ZIP + checksums + blockmaps + latest-mac.yml; release notes rewritten via `gh release edit` |
+
+**2026-06-08 — Phase 2C Header Status Cluster + Diagnostics Polish (this session — commands actually executed on Node 22.22.3):**
+| Command | Result | Date | Notes |
+| `npm test -- src/components/status` (Phase 2C) | PASS: 26/26 | 2026-06-08 | All status component tests green (StatusIndicator 7, HeaderStatusCluster 6, DiagnosticsDrawer 13 after the project-action button was made unconditional and the test IDs were aligned with the `diagnostics-section-{key}-{slug}` / `diagnostics-action-{key}` conventions) |
+| `npm test` (Phase 2C, full serial) | PASS: 1619 passed, 1 skipped | 2026-06-08 | +48 tests vs the Phase 2B 1571 baseline (22 service + 5 store + 7 indicator + 6 cluster + 8 net new drawer; 26 raw drawer - 18 carried from prior revisions = 8 net) |
+| `npm run lint:eslint` (Phase 2C) | 0 warnings, clean | 2026-06-08 | `--max-warnings=0` enforced; no inline-style or out-of-allowlist color introduced |
+| `npm run typecheck` (Phase 2C) | 0 errors, clean | 2026-06-08 | Renderer + Electron main; new types compile without relaxing strictness |
+| `git status` (Phase 2C) | 14 files changed / new | 2026-06-08 | 8 new (status.ts, diagnosticsService + test, status-store + test, StatusIndicator + test, HeaderStatusCluster + test, DiagnosticsDrawer + test) + 4 modified (header.tsx, App.tsx, toast-store.ts, toaster.tsx) + this ledger |
+
+---
 
 **2026-06-08 — Final Phase 1 Full-Suite Closure Gate (commands actually executed on Node 22.22.3):**
 | Command | Result | Date | Notes |

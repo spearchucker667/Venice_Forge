@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type ToastVariant = 'info' | 'success' | 'error'
+export type ToastVariant = 'info' | 'success' | 'error' | 'warn'
 
 export interface Toast {
   id: number
@@ -39,6 +39,8 @@ export const toast = {
     useToastStore.getState().push({ variant: 'info', title, description }),
   success: (title: string, description?: string) =>
     useToastStore.getState().push({ variant: 'success', title, description }),
+  warn: (title: string, description?: string) =>
+    useToastStore.getState().push({ variant: 'warn', title, description, duration: 5500 }),
   error: (title: string, description?: string, action?: Toast['action']) =>
     useToastStore.getState().push({ variant: 'error', title, description, action, duration: 6500 }),
   fromError: (err: unknown, title = 'Something went wrong') => {

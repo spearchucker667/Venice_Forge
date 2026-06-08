@@ -10,6 +10,7 @@ import { InspectorPane } from './components/layout/inspector-pane'
 import { FirstRunModal } from './components/FirstRunModal'
 import { ChatView } from './components/chat/chat-view'
 import { CommandPalette } from './components/command-palette/CommandPalette'
+import { DiagnosticsDrawer } from './components/status/DiagnosticsDrawer'
 import { ImagePage } from './components/image/image-page'
 import { AudioView } from './components/audio/audio-view'
 import { MusicView } from './components/music/music-view'
@@ -190,6 +191,7 @@ export function App() {
         onClose={() => setCmdPaletteOpen(false)}
         onToggle={() => setCmdPaletteOpen((value) => !value)}
       />
+      <DiagnosticsDrawer />
     </div>
   )
 }
