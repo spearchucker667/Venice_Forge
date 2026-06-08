@@ -19,6 +19,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { usePromptLibraryStore } from "../../stores/prompt-library-store";
+import { useWorkflowTemplateStore } from "../../stores/workflow-template-store";
 import type { PromptKind, PromptLibraryItem, PromptScope, PromptVersion } from "../../types/prompt-library";
 import { useSettingsStore } from "../../stores/settings-store";
 import { useProjectStore } from "../../stores/project-store";
@@ -54,6 +55,8 @@ export function PromptLibraryView() {
   const archivePrompt = usePromptLibraryStore((s) => s.archivePrompt);
   const unarchivePrompt = usePromptLibraryStore((s) => s.unarchivePrompt);
   const deletePrompt = usePromptLibraryStore((s) => s.deletePrompt);
+  const { createWorkflow, setActiveWorkflow } = useWorkflowTemplateStore();
+  const setActiveTab = useSettingsStore((s) => s.setActiveTab);
   const activeProjectId = useSettingsStore((s) => s.activeProjectId);
   const projects = useProjectStore((s) => s.projects);
 
@@ -314,6 +317,24 @@ export function PromptLibraryView() {
               await deletePrompt(active.id);
               toast.success("Prompt deleted");
             }}
+            onCreateWorkflow={async () => {
+              const w = await createWorkflow({
+                title: `Workflow: ${active.title}`,
+                steps: [
+                  {
+                    kind: "prompt",
+                    target: "chat",
+                    title: active.title,
+                    ref: { promptId: active.id },
+                    enabled: true,
+                  } as any,
+                ],
+                source: { type: "prompt", sourceId: active.id },
+              });
+              setActiveWorkflow(w.id);
+              setActiveTab("workflows" as any);
+              toast.success("Workflow created");
+            }}
           />
         ) : (
           <div
@@ -353,10 +374,11 @@ interface PromptDetailProps {
   onToggleFavorite: () => Promise<void>;
   onArchive: () => Promise<void>;
   onDelete: () => Promise<void>;
+  onCreateWorkflow: () => Promise<void>;
 }
 
 function PromptDetail(props: PromptDetailProps) {
-  const { item, projects, onUpdate, onAddVersion, onSetCurrentVersion, onToggleFavorite, onArchive, onDelete } = props;
+  const { item, projects, onUpdate, onAddVersion, onSetCurrentVersion, onToggleFavorite, onArchive, onDelete, onCreateWorkflow } = props;
   const current: PromptVersion =
     item.versions.find((v) => v.id === item.currentVersionId) ??
     item.versions[item.versions.length - 1]!;
@@ -550,6 +572,14 @@ function PromptDetail(props: PromptDetailProps) {
               Use in Chat
             </button>
           )}
+          <button
+            type="button"
+            onClick={onCreateWorkflow}
+            className="rounded-md border border-border px-2 py-1 text-[12px]"
+            data-testid="prompt-library-create-workflow"
+          >
+            Create Workflow
+          </button>
           <button
             type="button"
             onClick={() => void navigator.clipboard.writeText(content)}

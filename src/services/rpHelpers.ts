@@ -16,7 +16,6 @@ import { useCharacterCardStore } from "../stores/character-card-store";
 import { usePersonaStore } from "../stores/persona-store";
 import { useLorebookStore } from "../stores/lorebook-store";
 import { usePromptLibraryStore } from "../stores/prompt-library-store";
-import { useSceneComposerStore } from "../stores/scene-composer-store";
 import { useRpChatStore } from "../stores/rp-chat-store";
 import { useSettingsStore } from "../stores/settings-store";
 import { isPromptSecretLike, redactPromptSecrets } from "../types/prompt-library";

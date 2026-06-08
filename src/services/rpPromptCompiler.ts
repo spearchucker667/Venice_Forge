@@ -44,7 +44,6 @@ import type {
   LorebookV1,
   RpChatV1,
   RpMemoryV1,
-  RpPromptContext,
   UserPersonaV1,
 } from "../types/rp";
 import { RP_PROMPT_COMPILE_VERSION } from "../types/rp";
@@ -250,10 +249,8 @@ export function compileRpPrompt(input: RpCompileInput): RpCompileResult {
   //    order). The caller is expected to have already sanitised content
   //    and re-redacted secrets.
   if (input.promptLibraryRefs && input.promptLibraryRefs.length > 0) {
-    let idx = 0;
     for (const ref of input.promptLibraryRefs) {
       if (!ref || !ref.content) {
-        idx++;
         continue;
       }
       sections.push({
@@ -266,7 +263,6 @@ export function compileRpPrompt(input: RpCompileInput): RpCompileResult {
         tokens: estimateTokens(ref.content),
         included: true,
       });
-      idx++;
     }
   }
 

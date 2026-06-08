@@ -34,6 +34,7 @@ const ENCRYPTED_STORES: StoreName[] = [
   // Phase 2F RP Studio Polish — user-authored scenarios, encrypted at rest
   // like other user content.
   "rpScenarios",
+  "workflowTemplates",
 ];
 
 export interface GetItemsResult<T = unknown> {

@@ -94,11 +94,12 @@ const mocks = vi.hoisted(() => ({
   setActiveChatMock: vi.fn(),
 }));
 
-vi.mock("../../stores/settings-store", () => ({
-  useSettingsStore: (
-    selector: (s: { redTeamMode: boolean; setActiveTab: (t: string) => void }) => unknown,
-  ) => selector({ redTeamMode: false, setActiveTab: mocks.setActiveTabMock }),
-}));
+vi.mock("../../stores/settings-store", () => {
+  const state = { redTeamMode: false, setActiveTab: mocks.setActiveTabMock };
+  const fn = (selector: (s: typeof state) => unknown) => selector(state);
+  (fn as unknown as { getState: () => typeof state }).getState = () => state;
+  return { useSettingsStore: fn };
+});
 
 vi.mock("../../stores/character-card-store", () => {
   const cards = [fixtures.sampleCard];
@@ -146,7 +147,7 @@ vi.mock("../../services/rpHelpers", () => ({
 
 import { CharacterEditor } from "./CharacterEditor";
 
-const { sampleCard, sampleScene, samplePrompt } = fixtures;
+const { sampleCard } = fixtures;
 
 function resetMocks(): void {
   mocks.upsertMock.mockReset();
@@ -203,7 +204,7 @@ describe("CharacterEditor — Workflow section", () => {
     fireEvent.click(screen.getByTestId("character-editor-start-chat"));
     await waitFor(() => {
       expect(mocks.upsertMock).toHaveBeenCalled();
-      expect(mocks.startChatMock).toHaveBeenCalledWith("card_test_001", undefined);
+      expect(mocks.startChatMock).toHaveBeenCalledWith("card_test_001");
     });
     await waitFor(() => {
       expect(onClose).toHaveBeenCalled();
@@ -233,7 +234,7 @@ describe("CharacterEditor — Workflow section", () => {
       expect(args).toMatchObject({
         scope: "character",
         characterId: "card_test_001",
-        name: sampleCard.name,
+        name: `Scenario for ${sampleCard.name}`,
       });
       expect(mocks.setActiveTabMock).toHaveBeenCalledWith("scenes");
     });

@@ -150,6 +150,15 @@ export const MIGRATIONS: MigrationStep[] = [
       }
     },
   },
+  {
+    toVersion: 11,
+    description: "Add workflowTemplates store for Phase 2G Workflow Templates",
+    up(db) {
+      if (!db.objectStoreNames.contains("workflowTemplates")) {
+        db.createObjectStore("workflowTemplates", { keyPath: "id" });
+      }
+    },
+  },
 ];
 
 /**

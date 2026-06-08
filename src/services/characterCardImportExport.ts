@@ -325,7 +325,7 @@ export async function parseCharacterCardImport(
       if (!decision.allow || decision.action === "block") {
         throw new SafetyGuardBlockedError(decision);
       }
-    } catch (err) {
+    } catch {
       skipped.push({ reason: "Safety guard blocked", name: card.name });
       continue;
     }

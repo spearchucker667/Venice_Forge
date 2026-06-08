@@ -22,6 +22,9 @@ import { useMediaSelectionStore, MEDIA_SELECTION_MAX } from '../../stores/media-
 import { getMediaCommandHandlers, hasMediaCommandHandlers, subscribeMediaCommandHandlers } from '../../stores/media-command-handlers'
 import { usePromptLibraryStore } from '../../stores/prompt-library-store'
 import { useSceneComposerStore } from '../../stores/scene-composer-store'
+import { useCharacterCardStore } from '../../stores/character-card-store'
+import { useScenarioStore } from '../../stores/scenario-store'
+import { startChatForCharacter } from '../../services/rpHelpers'
 
 interface CommandPaletteProps {
   open: boolean
@@ -465,6 +468,74 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
             data-testid="command-palette-import-scenes"
           >
             Import Scenes…
+          </button>
+
+          {/* Phase 2F — RP Studio commands. Always visible so the
+              palette can route the user into the RP Studio. */}
+          <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border mt-1">RP Studio</div>
+          <button
+            onClick={() => {
+              setActiveTab('rp-studio');
+              onClose();
+              setQuery('');
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            data-testid="command-palette-open-rp-studio"
+          >
+            Open RP Studio
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('rp-studio');
+              useCharacterCardStore.getState().createBlank();
+              toast.success('Created new character');
+              onClose();
+              setQuery('');
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            data-testid="command-palette-new-character"
+          >
+            New Character
+          </button>
+          <button
+            onClick={async () => {
+              const activeId = useCharacterCardStore.getState().editingId;
+              if (!activeId) {
+                toast.error('Select a character in the RP Studio first.');
+                return;
+              }
+              const chatId = await startChatForCharacter(activeId);
+              if (chatId) {
+                toast.success('Chat started');
+                onClose();
+                setQuery('');
+              } else {
+                toast.error('Could not start chat');
+              }
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            data-testid="command-palette-start-character-chat"
+          >
+            Start Chat with Selected Character
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('scenes');
+              const activeId = useCharacterCardStore.getState().editingId;
+              const card = activeId ? useCharacterCardStore.getState().getById(activeId) : null;
+              useScenarioStore.getState().createBlank({
+                scope: 'character',
+                characterId: activeId ?? undefined,
+                name: card ? `Scenario for ${card.name}` : 'New Scenario',
+              });
+              toast.success('Created new scenario');
+              onClose();
+              setQuery('');
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            data-testid="command-palette-new-scenario"
+          >
+            New Scenario
           </button>
 
           <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border mt-1">System</div>

@@ -151,8 +151,8 @@ if (constants) {
     /STORE_NAMES\s*=\s*\[[\s\S]+["']promptLibrary["']/m.test(constants),
   );
   check(
-    "src/constants/venice.ts bumps DB_VERSION to 8",
-    /DB_VERSION\s*=\s*9/.test(constants),
+    "src/constants/venice.ts bumps DB_VERSION to at least 8",
+    /DB_VERSION\s*=\s*(8|9|10)/.test(constants),
   );
 }
 

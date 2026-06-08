@@ -90,13 +90,16 @@ export const STORE_NAMES = [
   // that can be attached to a character card or used to seed a chat. Encrypted
   // at rest like other user-authored content.
   "rpScenarios",
+  // Phase 2G Workflow Templates — structured sequences of prompts, scenes,
+  // and media tasks. Encrypted at rest.
+  "workflowTemplates",
 ];
 
 /** Name of the IndexedDB database. */
 export const DB_NAME = "venice_canvas_studio_v1";
 
-/** Version of the IndexedDB schema. Bumped to 6 for timestamp index; 7 for Project Workspace "projects" store; 8 for Phase 2D Prompt Library "promptLibrary" store; 9 for Phase 2E Scene Composer "scenes" store; 10 for Phase 2F RP Studio Polish "rpScenarios" store. */
-export const DB_VERSION = 10;
+/** Version of the IndexedDB schema. Bumped to 6 for timestamp index; 7 for Project Workspace "projects" store; 8 for Phase 2D Prompt Library "promptLibrary" store; 9 for Phase 2E Scene Composer "scenes" store; 10 for Phase 2F RP Studio Polish "rpScenarios" store; 11 for Phase 2G Workflow Templates "workflowTemplates" store. */
+export const DB_VERSION = 11;
 
 /**
  * Known vision-capable model ids and id-patterns.

@@ -10,8 +10,8 @@ import { useCharacterCardStore } from "../../stores/character-card-store";
 import { useSettingsStore } from "../../stores/settings-store";
 import { usePromptLibraryStore } from "../../stores/prompt-library-store";
 import { useSceneComposerStore } from "../../stores/scene-composer-store";
-import { useRpChatStore } from "../../stores/rp-chat-store";
 import { useScenarioStore } from "../../stores/scenario-store";
+import { useWorkflowTemplateStore } from "../../stores/workflow-template-store";
 import { CARD_FIELD_MAX, MAX_AVATAR_BYTES, MAX_TAGS, type CharacterCardV1, type CharacterCardAvatar, type CharacterExampleDialogue } from "../../types/rp";
 import { GhostButton, Label, PrimaryButton, TextArea, ErrorText } from "../ui/shared";
 import { Spinner } from "../ui/spinner";
@@ -38,6 +38,8 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
   const cards = useCharacterCardStore((s) => s.cards);
   const upsert = useCharacterCardStore((s) => s.upsert);
   const remove = useCharacterCardStore((s) => s.remove);
+  const { createWorkflow, setActiveWorkflow } = useWorkflowTemplateStore();
+  const setActiveTab = useSettingsStore((s) => s.setActiveTab);
   const redTeamMode = useSettingsStore((s) => s.redTeamMode);
   const initial = useMemo(() => cards.find((c) => c.id === cardId), [cards, cardId]);
   const [draft, setDraft] = useState<CharacterCardV1 | null>(initial ?? null);
@@ -173,6 +175,27 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
     if (typeof window !== "undefined" && !window.confirm(`Delete "${draft.name}"?`)) return;
     await remove(draft.id);
     onClose();
+  };
+
+  const handleCreateWorkflow = async () => {
+    const saved = await upsert(draft);
+    if (!saved) return;
+    const w = await createWorkflow({
+      title: `Workflow: ${saved.name || "Untitled"}`,
+      steps: [
+        {
+          kind: "rp_character",
+          target: "rp_studio",
+          title: saved.name || "Untitled",
+          ref: { characterId: saved.id },
+          enabled: true,
+        } as any,
+      ],
+      source: { type: "rp", sourceId: saved.id },
+    });
+    setActiveWorkflow(w.id);
+    setActiveTab("workflows" as any);
+    toast.success("Workflow created");
   };
 
   const handleSaveToPromptLibrary = async () => {

@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSceneComposerStore } from "../../stores/scene-composer-store";
+import { useWorkflowTemplateStore } from "../../stores/workflow-template-store";
 import type {
   SceneComposerItem,
   SceneComponentKind,
@@ -51,6 +52,8 @@ export function SceneComposerView() {
   const archiveScene = useSceneComposerStore((s) => s.archiveScene);
   const unarchiveScene = useSceneComposerStore((s) => s.unarchiveScene);
   const deleteScene = useSceneComposerStore((s) => s.deleteScene);
+  const { createWorkflow, setActiveWorkflow } = useWorkflowTemplateStore();
+  const setActiveTab = useSettingsStore((s) => s.setActiveTab);
   const activeProjectId = useSettingsStore((s) => s.activeProjectId);
   const projects = useProjectStore((s) => s.projects);
 
@@ -259,6 +262,24 @@ export function SceneComposerView() {
               await deleteScene(active.id);
               toast.success("Scene deleted");
             }}
+            onCreateWorkflow={async () => {
+              const w = await createWorkflow({
+                title: `Workflow: ${active.title}`,
+                steps: [
+                  {
+                    kind: "scene",
+                    target: "scene_composer",
+                    title: active.title,
+                    ref: { sceneId: active.id },
+                    enabled: true,
+                  } as any,
+                ],
+                source: { type: "scene", sourceId: active.id },
+              });
+              setActiveWorkflow(w.id);
+              setActiveTab("workflows" as any);
+              toast.success("Workflow created");
+            }}
           />
         ) : (
           <div
@@ -292,10 +313,11 @@ interface SceneDetailProps {
   onToggleFavorite: () => Promise<void>;
   onArchive: () => Promise<void>;
   onDelete: () => Promise<void>;
+  onCreateWorkflow: () => Promise<void>;
 }
 
 function SceneDetail(props: SceneDetailProps) {
-  const { item, projects, onUpdate, onAddVersion, onSetCurrentVersion, onToggleFavorite, onArchive, onDelete } = props;
+  const { item, projects, onUpdate, onAddVersion, onSetCurrentVersion, onToggleFavorite, onArchive, onDelete, onCreateWorkflow } = props;
   const currentVersion: SceneVersion =
     item.versions.find((v) => v.id === item.currentVersionId) ??
     item.versions[0]!;
@@ -635,6 +657,14 @@ function SceneDetail(props: SceneDetailProps) {
             data-testid="scene-composer-copy-recipe"
           >
             Copy recipe
+          </button>
+          <button
+            type="button"
+            onClick={onCreateWorkflow}
+            className="rounded-md border border-border px-2 py-1 text-[12px]"
+            data-testid="scene-composer-create-workflow"
+          >
+            Create Workflow
           </button>
           <button
             type="button"

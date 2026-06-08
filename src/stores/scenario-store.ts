@@ -9,7 +9,6 @@ import {
   deleteScenario as svcDelete,
   generateId as svcGenerateId,
   listScenarios,
-  readScenario,
   saveScenario as svcSave,
 } from "../services/rp/scenarioService";
 import {

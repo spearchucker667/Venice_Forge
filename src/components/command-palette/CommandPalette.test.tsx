@@ -300,3 +300,52 @@ describe("CommandPalette — Phase 2B selection-aware Media Studio commands", ()
     expect(MEDIA_SELECTION_MAX).toBe(4)
   })
 })
+
+// Phase 2F: RP Studio commands
+import { useCharacterCardStore } from '../../stores/character-card-store'
+import { useScenarioStore } from '../../stores/scenario-store'
+import * as rpHelpers from '../../services/rpHelpers'
+
+describe("CommandPalette — Phase 2F RP Studio commands", () => {
+  beforeEach(() => {
+    useCharacterCardStore.setState({ cards: [], editingId: null })
+    useScenarioStore.setState({ scenarios: [] })
+    vi.spyOn(rpHelpers, 'startChatForCharacter').mockResolvedValue('chat-1')
+  })
+
+  it("renders RP Studio section and Open button", () => {
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    expect(screen.getAllByText("RP Studio").length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByTestId("command-palette-open-rp-studio")).toBeInTheDocument()
+  })
+
+  it("Open RP Studio routes to rp-studio tab", () => {
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    fireEvent.click(screen.getByTestId("command-palette-open-rp-studio"))
+    expect(useSettingsStore.getState().activeTab).toBe('rp-studio')
+  })
+
+  it("New Character creates blank character and routes to rp-studio", () => {
+    const createBlank = vi.spyOn(useCharacterCardStore.getState(), 'createBlank')
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    fireEvent.click(screen.getByTestId("command-palette-new-character"))
+    expect(createBlank).toHaveBeenCalled()
+    expect(useSettingsStore.getState().activeTab).toBe('rp-studio')
+  })
+
+  it("Start Chat calls startChatForCharacter with active card id", async () => {
+    const cardId = 'c-1'
+    useCharacterCardStore.setState({ editingId: cardId })
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    fireEvent.click(screen.getByTestId("command-palette-start-character-chat"))
+    expect(rpHelpers.startChatForCharacter).toHaveBeenCalledWith(cardId)
+  })
+
+  it("New Scenario creates blank scenario and routes to scenes tab", () => {
+    const createBlank = vi.spyOn(useScenarioStore.getState(), 'createBlank')
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    fireEvent.click(screen.getByTestId("command-palette-new-scenario"))
+    expect(createBlank).toHaveBeenCalled()
+    expect(useSettingsStore.getState().activeTab).toBe('scenes')
+  })
+})
