@@ -418,6 +418,17 @@ describe("configService export and folder", () => {
     expect(result.error).toMatch(/URL/i);
   });
 
+  it("rejects path traversal export targets", async () => {
+    const result = await exportConfigTemplate("/etc/passwd");
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/Downloads or Documents/i);
+  });
+
+  it("rejects empty and null-byte export targets", async () => {
+    expect((await exportConfigTemplate("")).ok).toBe(false);
+    expect((await exportConfigTemplate("foo\0bar")).ok).toBe(false);
+  });
+
   it("openConfigFolder calls shell.openPath with the config dir", async () => {
     const envConfig = path.join(tmpRoot, "config.yaml");
     const envThemes = path.join(tmpRoot, "themes.yaml");

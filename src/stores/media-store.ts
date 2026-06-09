@@ -178,7 +178,25 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       })
       return saved
     } catch (err) {
-      await StorageService.deleteMedia(saved.id).catch(() => false)
+      // Attempt rollback: delete the child so we don't leave an orphan.
+      let rollbackOk = false
+      try {
+        await StorageService.deleteMedia(saved.id)
+        rollbackOk = true
+      } catch (rollbackErr) {
+        const rollbackMessage = rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr)
+        toast.error('Derivative save failed and rollback incomplete', `Parent update failed. Child record ${saved.id} could not be removed: ${rollbackMessage}`)
+        // Keep the child in the in-memory cache so it matches IDB reality.
+        set((state) => {
+          const withoutChild = state.items.filter((existing) => existing.id !== saved.id)
+          const items = reconcileList([saved, ...withoutChild], [])
+          items.sort((a, b) => b.timestamp - a.timestamp)
+          return { items, totalCount: state.totalCount + 1, lastError: `Derivative rollback incomplete: ${rollbackMessage}` }
+        })
+      }
+      if (rollbackOk) {
+        set({ lastError: `Derivative save failed for ${parentId}: ${err instanceof Error ? err.message : String(err)}` })
+      }
       throw err
     }
   },
@@ -248,19 +266,33 @@ export const useMediaStore = create<MediaState>((set, get) => ({
     )
     if (cleaned.length === 0) return
     const state = get()
-    await Promise.all(
+    const results = await Promise.allSettled(
       ids.map(async (id) => {
         const existing = state.items.find((item) => item.id === id)
-        if (!existing) return
+        if (!existing) return { id, skipped: true }
         const merged = Array.from(new Set([...existing.tags, ...cleaned]))
-        if (merged.length === existing.tags.length) return
+        if (merged.length === existing.tags.length) return { id, skipped: true }
         await StorageService.patchMedia<MediaItem>(id, { tags: merged })
+        return { id, skipped: false }
       }),
     )
-    const idSet = new Set(ids)
+    const succeededIds = new Set<string>()
+    const failedIds: string[] = []
+    for (let i = 0; i < results.length; i++) {
+      const res = results[i]
+      if (res.status === "fulfilled" && !res.value.skipped) {
+        succeededIds.add(res.value.id)
+      } else if (res.status === "rejected") {
+        failedIds.push(ids[i])
+      }
+    }
+    if (failedIds.length > 0) {
+      toast.error('Tag update partially failed', `Could not update tags for ${failedIds.length} item(s).`)
+      set({ lastError: `addTagsMany failed for ${failedIds.join(", ")}` })
+    }
     set((state) => ({
       items: state.items.map((item) => {
-        if (!idSet.has(item.id)) return item
+        if (!succeededIds.has(item.id)) return item
         const merged = Array.from(new Set([...item.tags, ...cleaned]))
         return merged.length === item.tags.length ? item : { ...item, tags: merged }
       }),
@@ -271,18 +303,32 @@ export const useMediaStore = create<MediaState>((set, get) => ({
     const normalized = tag.trim().toLowerCase()
     if (!normalized) return
     const state = get()
-    await Promise.all(
+    const results = await Promise.allSettled(
       ids.map(async (id) => {
         const existing = state.items.find((item) => item.id === id)
-        if (!existing || !existing.tags.includes(normalized)) return
+        if (!existing || !existing.tags.includes(normalized)) return { id, skipped: true }
         const next = existing.tags.filter((t) => t !== normalized)
         await StorageService.patchMedia<MediaItem>(id, { tags: next })
+        return { id, skipped: false }
       }),
     )
-    const idSet = new Set(ids)
+    const succeededIds = new Set<string>()
+    const failedIds: string[] = []
+    for (let i = 0; i < results.length; i++) {
+      const res = results[i]
+      if (res.status === "fulfilled" && !res.value.skipped) {
+        succeededIds.add(res.value.id)
+      } else if (res.status === "rejected") {
+        failedIds.push(ids[i])
+      }
+    }
+    if (failedIds.length > 0) {
+      toast.error('Tag removal partially failed', `Could not remove tag for ${failedIds.length} item(s).`)
+      set({ lastError: `removeTagMany failed for ${failedIds.join(", ")}` })
+    }
     set((state) => ({
       items: state.items.map((item) => {
-        if (!idSet.has(item.id)) return item
+        if (!succeededIds.has(item.id)) return item
         if (!item.tags.includes(normalized)) return item
         return { ...item, tags: item.tags.filter((t) => t !== normalized) }
       }),

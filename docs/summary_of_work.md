@@ -86,6 +86,28 @@ are resolved. No P0/P1/P2/P3 audit-ledger items remain open.
 
 ## Latest Session Summary
 
+- **Date:** 2026-06-09 (Swarm audit review + corrected P0/P1 repair pass: web-mode client, safety bypass, config export, media store atomicity)
+- **Agent:** Kimi Code CLI
+- **Branch / state:** `main`, working-tree only (uncommitted, layered on prior 2026-06-09 fixes)
+- **Diagnosis:** User commissioned an in-depth 5-agent swarm audit (Code Quality, UI/UX, Security, Architecture, Performance/Testing) and then provided corrected priorities after reconciling the audit against the repo snapshot. The audit contained two false positives (hallucinated `project-store.ts` `.load()` crash, and claimed missing `ApiKeyDialog` build blocker — both verified false). The corrected P0 sequence was: (1) web-mode `src/lib/venice-client.ts` desktop-only breakage, (2) server-side family-safe bypass, (3) arbitrary file write in `config:exportTemplate`, (4) media-store atomicity/orphan issues, (5) archive hygiene. Chat 400 Bad Request and missing ApiKeyDialog were already fixed/existing.
+- **Closure changes:**
+  1. **`src/lib/venice-client.ts`** — Added web-mode fallbacks to all exported functions (`venice`, `veniceStreamChat`, `veniceBlob`, `veniceFormData`). When `!isElectron()`, the functions now use `fetch` to the Express proxy with the same error-body extraction (`readVeniceErrorBody`), `X-Venice-Forge-Family-Safe-Mode` header, `VeniceAPIError` throwing, and abort-signal forwarding as the desktop path. This unblocks image generation, music, video, audio, embeddings, styles, model catalog, character search, and prompt enhancement in the browser build without requiring a 12-file consumer migration.
+  2. **`server.ts:32-34`** — Replaced the client-header-trusting `isLocalFamilySafeModeEnabled()` with a server-authoritative implementation: checks `VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED` env variable first; when set, ignores the renderer-supplied header entirely and uses the server-side value. This prevents malicious HTTP clients from bypassing the safety gate by sending `X-Venice-Forge-Family-Safe-Mode: false`. Updated `.env.example` with the secure default.
+  3. **`electron/services/configService.ts:785-817`** — Added path containment to `exportConfigTemplate()`. Resolves symlinks via `fs.realpath`, restricts writes to `app.getPath("downloads")` and `app.getPath("documents")` only, and rejects null bytes, URLs, empty paths, and paths outside allowed directories. Added 2 new tests in `configService.test.ts` for path traversal (`/etc/passwd`) and empty/null-byte rejection.
+  4. **`src/stores/media-store.ts:160-183`** — `upsertDerivative` rollback now surfaces failures via `toast.error` + `lastError` instead of silently swallowing with `.catch(() => false)`. If the child delete fails, the child is kept in the in-memory cache so it matches IDB reality.
+  5. **`src/stores/media-store.ts:240-290`** — `addTagsMany` and `removeTagMany` now use `Promise.allSettled` instead of `Promise.all`, update memory state only for successful patches, and report partial failures via toast + `lastError`.
+  6. **`docs/REPORTS/SWARM_AUDIT_2026_06_09.md`** — New comprehensive swarm audit report documenting 60 findings across 5 dimensions (P0: 6, P1: 25, P2: 22, P3: 7). False positives explicitly marked and removed from action lists. Completed fixes annotated with ✅ and validation results.
+- **Validation (Node v26.0.0 / npm 11.12.1, run 2026-06-09):**
+  - `npm run lint:eslint` — **PASS** (zero warnings, `--max-warnings=0`).
+  - `npm run typecheck` — **PASS** (renderer + Electron main).
+  - `npm test` (serial) — **PASS: 1948 passed, 1 skipped** (182 test files, 1 display-gated electron smoke). No regressions. +2 net tests vs prior 1946 baseline (2 new configService path-traversal tests).
+  - `npm run build` — **PASS** (renderer + electron main + server bundle).
+  - `npm run verify:archive-clean` — **PASS** (no forbidden tracked contaminants).
+  - `npm run verify:safety-guard` — **PASS** (3 enforcement boundaries intact).
+  - `npm run verify:markdown-links` — **PASS** (44 files).
+- **Risks:** The web-mode fallback in `src/lib/venice-client.ts` duplicates some proxy-url construction logic that also exists in `src/services/veniceClient.ts`, but it is scoped to a single legacy file explicitly marked "can be deleted in a future refactor" (AGENTS.md). The env-variable safety override is additive and defaults to the existing behavior when unset. The config export containment is a tightening, not a relaxation. The media-store atomicity fixes are additive error-surfacing only — no existing success path changes.
+- **Verdict:** Safe to commit. Working tree is intentionally dirty. No P0/P1/P2 introduced, no safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/archive-clean/diagnostics-redaction/child-exploitation-guard/CI/release-hardening surface touched. Regression-guard count remains 52 (no new VERIFY-NNN row added).
+
 - **Date:** 2026-06-09 (Avatar size cap 1 GiB; decouple adult-character filter from Red-Team Mode; re-resolve character photo URLs in ActiveCharacterPill)
 - **Agent:** opencode (minimax-m3)
 - **Branch / state:** `main`, working-tree only (uncommitted, layered on top of the prior 2026-06-09 400 Bad Request fix)

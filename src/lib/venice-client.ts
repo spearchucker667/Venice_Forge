@@ -17,7 +17,8 @@
  *   (from `src/services/desktopBridge.ts`) so the IPC layer can enforce.
  *   Direct `fetch()` calls to Venice are forbidden.
  */
-import { desktopVenice } from '../services/desktopBridge'
+import { desktopVenice, isElectron } from '../services/desktopBridge'
+import { useSettingsStore } from '../stores/settings-store'
 
 export class VeniceAPIError extends Error {
   status: number
@@ -60,6 +61,52 @@ function readVeniceErrorBody(body: unknown): string {
   return String(record.detail || '')
 }
 
+/** Web-mode fallback: fetch through the Express proxy with the same
+ *  error-body extraction and abort-signal forwarding as the desktop path. */
+async function webVeniceFetch(
+  path: string,
+  options: { method?: string; body?: unknown; signal?: AbortSignal }
+): Promise<{ ok: boolean; status: number; statusText: string; body: unknown; contentType?: string }> {
+  const method = options.method || 'GET'
+  const url = `/api/venice${path.replace('/api/v1', '')}`
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-Venice-Forge-Family-Safe-Mode': String(useSettingsStore.getState().localFamilySafeModeEnabled),
+  }
+  const response = await fetch(url, {
+    method,
+    headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    signal: options.signal,
+  })
+
+  let body: unknown = null
+  const contentType = response.headers.get('content-type') || ''
+  if (contentType.includes('application/json')) {
+    const text = await response.text().catch(() => '')
+    try {
+      body = text ? JSON.parse(text) : {}
+    } catch {
+      body = null
+    }
+  } else {
+    const text = await response.text().catch(() => '')
+    try {
+      body = text ? JSON.parse(text) : {}
+    } catch {
+      body = { text }
+    }
+  }
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    statusText: response.statusText,
+    body,
+    contentType: contentType || undefined,
+  }
+}
+
 export async function venice<T>(path: string, options: { method?: string; body?: unknown; stream?: boolean; noAuth?: boolean; signal?: AbortSignal } = {}): Promise<T> {
   const method = options.method || 'GET'
   let parsedBody: unknown = undefined;
@@ -77,20 +124,28 @@ export async function venice<T>(path: string, options: { method?: string; body?:
       parsedBody = options.body;
     }
   }
+
+  if (!isElectron()) {
+    const response = await webVeniceFetch(path, { method, body: parsedBody, signal: options.signal })
+    if (options.signal && options.signal.aborted) throw new Error('Aborted');
+    if (!response.ok) {
+      const bodyMessage = readVeniceErrorBody(response.body)
+      throw new VeniceAPIError(
+        bodyMessage || response.statusText || `HTTP ${response.status}`,
+        response.status,
+      )
+    }
+    return response.body as T
+  }
+
   // VERIFY-006 (BUG-1): forward the AbortSignal to desktopVenice so the IPC
   // layer's `venice:abort` channel is triggered when the caller cancels.
-  // desktopVenice.request() generates a signalId, calls attachAbort() which
-  // registers an abort listener that invokes window.veniceForge.venice.abort,
-  // tearing down the upstream HTTPS request in the main process. This is
-  // the correct path for both JSON and stream responses — the SSE parser
-  // (parseSSEStream) handles the actual reader cancellation, while the IPC
-  // signal kills the network layer.
   const response = await desktopVenice.request({
     endpoint: path.replace('/api/v1', ''),
     method: method as "GET" | "POST",
     body: parsedBody,
   }, options.signal)
-  
+
   if (options.signal && options.signal.aborted) throw new Error('Aborted');
   if (!response.ok) {
     const bodyMessage = readVeniceErrorBody(response.body)
@@ -109,6 +164,57 @@ export async function veniceStreamChat(
   init: { signal?: AbortSignal } = {}
 ) {
   if (init.signal?.aborted) throw new Error('Aborted');
+  if (!isElectron()) {
+    const url = `/api/venice${path.replace('/api/v1', '')}`
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Venice-Forge-Family-Safe-Mode': String(useSettingsStore.getState().localFamilySafeModeEnabled),
+    }
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal: init.signal,
+    })
+    if (!response.ok) {
+      let errBody: unknown = null
+      try { errBody = await response.json() } catch { /* ignore */ }
+      const bodyMessage = readVeniceErrorBody(errBody)
+      throw new VeniceAPIError(bodyMessage || response.statusText || `HTTP ${response.status}`, response.status)
+    }
+    const reader = response.body?.getReader()
+    if (!reader) throw new Error('No response body')
+    const decoder = new TextDecoder()
+    let buffer = ''
+    try {
+      while (true) {
+        if (init.signal?.aborted) throw new Error('Aborted')
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed.startsWith('data: ')) continue
+          const json = trimmed.slice(6)
+          if (json === '[DONE]') continue
+          try {
+            const parsed = JSON.parse(json)
+            const delta = parsed.choices?.[0]?.delta
+            if (delta) {
+              onDelta({ content: delta.content || '', reasoning: delta.reasoning })
+            }
+          } catch {
+            // ignore malformed SSE lines
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock()
+    }
+    return
+  }
   return desktopVenice.streamChat({
     endpoint: path.replace('/api/v1', ''),
     method: "POST",
@@ -122,6 +228,31 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
   // cancellation. The post-hoc `aborted` check below is preserved for
   // safety (if the signal was already aborted when we entered).
   if (init.signal?.aborted) throw new Error('Aborted');
+
+  if (!isElectron()) {
+    const response = await webVeniceFetch(path, { method: 'POST', body, signal: init.signal })
+    if (!response.ok) {
+      const bodyMessage = readVeniceErrorBody(response.body)
+      throw new VeniceAPIError(bodyMessage || `HTTP ${response.status}`, response.status)
+    }
+    // In web mode the proxy returns the raw binary; we need to fetch again
+    // with the actual Response to get a Blob.
+    const url = `/api/venice${path.replace('/api/v1', '')}`
+    const fetchResponse = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Venice-Forge-Family-Safe-Mode': String(useSettingsStore.getState().localFamilySafeModeEnabled),
+      },
+      body: JSON.stringify(body),
+      signal: init.signal,
+    })
+    if (!fetchResponse.ok) {
+      throw new VeniceAPIError(fetchResponse.statusText || `HTTP ${fetchResponse.status}`, fetchResponse.status)
+    }
+    return await fetchResponse.blob()
+  }
+
   const response = await desktopVenice.request({
     endpoint: path.replace('/api/v1', ''),
     method: "POST",
@@ -148,6 +279,33 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
 export async function veniceFormData<T>(path: string, formData: FormData, init: { signal?: AbortSignal } = {}): Promise<T> {
   // BUG-002 regression guard: see veniceBlob above.
   if (init.signal?.aborted) throw new Error('Aborted');
+
+  if (!isElectron()) {
+    const url = `/api/venice${path.replace('/api/v1', '')}`
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-Venice-Forge-Family-Safe-Mode': String(useSettingsStore.getState().localFamilySafeModeEnabled),
+      },
+      body: formData,
+      signal: init.signal,
+    })
+    let body: unknown = null
+    const contentType = response.headers.get('content-type') || ''
+    if (contentType.includes('application/json')) {
+      const text = await response.text().catch(() => '')
+      try { body = text ? JSON.parse(text) : {} } catch { body = null }
+    } else {
+      const text = await response.text().catch(() => '')
+      try { body = text ? JSON.parse(text) : {} } catch { body = { text } }
+    }
+    if (!response.ok) {
+      const bodyMessage = readVeniceErrorBody(body)
+      throw new VeniceAPIError(bodyMessage || response.statusText || `HTTP ${response.status}`, response.status)
+    }
+    return body as T
+  }
+
   const entries: Array<{ name: string; value: string; filename?: string; type?: string; _isFile?: boolean }> = [];
   // Base64-encode each File in 32 KiB chunks. A naive per-byte `+= String.fromCharCode`
   // call (the previous implementation) triggers a V8 "Maximum call stack size

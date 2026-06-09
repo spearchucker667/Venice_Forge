@@ -781,11 +781,45 @@ export function resetSecureStoreKeys(): { venice: boolean; jina: boolean } {
   return { venice: v, jina: j };
 }
 
-/** Writes a sanitized config template (no secrets) to a chosen path. */
+/** Allowed base directories for config template exports (matches app:readLocalFile policy). */
+const EXPORT_ALLOWED_DIRS = ["downloads", "documents"] as const;
+
+/** Writes a sanitized config template (no secrets) to a chosen path.
+ *  Restricted to Downloads or Documents to prevent arbitrary file writes. */
 export async function exportConfigTemplate(targetPath: string): Promise<{ ok: boolean; error?: string }> {
   try {
+    if (typeof targetPath !== "string" || targetPath.length === 0 || targetPath.length > 4096 || targetPath.includes("\0")) {
+      return { ok: false, error: "Invalid export path." };
+    }
     if (isUrl(targetPath)) {
       return { ok: false, error: "Remote URLs are not allowed." };
+    }
+    const resolvedTarget = path.resolve(targetPath);
+    // Resolve symlinks. If the file does not exist yet, resolve its parent directory.
+    let resolved: string;
+    try {
+      resolved = await fs.realpath(resolvedTarget);
+    } catch {
+      try {
+        resolved = await fs.realpath(path.dirname(resolvedTarget));
+      } catch {
+        return { ok: false, error: "Invalid export path." };
+      }
+    }
+    const allowedDirs = await Promise.all(
+      EXPORT_ALLOWED_DIRS.map((name) => app.getPath(name))
+        .filter(Boolean)
+        .map(async (dir) => {
+          try {
+            return await fs.realpath(dir as string);
+          } catch {
+            return dir as string;
+          }
+        })
+    );
+    const isAllowed = allowedDirs.some((dir) => resolved === dir || resolved.startsWith(dir + path.sep));
+    if (!isAllowed) {
+      return { ok: false, error: "Export must be inside Downloads or Documents." };
     }
     const sanitized = sanitizeConfig(currentConfig);
     // Build a YamlConfig-shaped object (no raw keys) for the template.

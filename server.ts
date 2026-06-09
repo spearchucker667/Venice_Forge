@@ -29,8 +29,20 @@ import { FetchBodyTooLargeError, parseJsonOrNull, readBoundedFetchBody } from ".
 
 dotenv.config();
 
+/** Determines whether Local Family Safe Mode is enabled in the web proxy.
+ *  Priority: server-side env variable > renderer header > default ON.
+ *  The env variable is the authoritative override; when set, the client
+ *  header is ignored entirely, preventing malicious clients from bypassing
+ *  the safety guard by sending X-Venice-Forge-Family-Safe-Mode: false.
+ */
 function isLocalFamilySafeModeEnabled(req: express.Request): boolean {
-  return req.get("X-Venice-Forge-Family-Safe-Mode") !== "false";
+  const envOverride = process.env.VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED;
+  if (envOverride !== undefined) {
+    return envOverride !== "false" && envOverride !== "0";
+  }
+  const headerValue = req.get("X-Venice-Forge-Family-Safe-Mode");
+  if (headerValue === undefined) return true;
+  return headerValue !== "false";
 }
 
 /** Returns the directory of the current module, working in both ESM source
