@@ -1,9 +1,15 @@
 # Final Massive Bug Hunt With Proof
 
-> **Status: ACTIVE — 2026-06-08 release-blocking audit (current report of
-> record).** This is the canonical audit for the v1.0.6 release cut.
-> Supersedes `docs/REPORTS/BUG_HUNT_REVIEW.md` (now marked SUPERSEDED).
-> For session-by-session handoff see `docs/summary_of_work.md`.
+> **SUPERSEDED 2026-06-09 by `docs/REPORTS/CI_FAILURE_AND_BUG_HUNT_2026_06_09.md`
+> (Windows CI failure on `configService.exportConfigTemplate` + bridge
+> non-stream abort gap + SSE parser silent-discard + missing
+> hide_watermark / return_binary capability flags). The verdict below
+> (PASS, safe to release) is NO LONGER ACCURATE for HEAD `0ac69be` and
+> any branch cut from it.**
+>
+> The historical content below is retained for traceability. The
+> canonical "is the repo safe to release" answer is now the 2026-06-09
+> report.
 
 **Date:** 2026-06-08
 **Repository:** `/Users/super_user/Projects/Windows-Venice-API-connector`

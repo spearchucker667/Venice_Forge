@@ -1,8 +1,12 @@
 # Documentation Canonicalization & Stale Prune (2026-06-08)
 
-> **Status: ACTIVE — 2026-06-08 documentation pass.** This is the current report
-> of record for the 2026-06-08 canonicalization work. It is informational
-> (no code changes) and is referenced by the README audit trail.
+> **SUPERSEDED 2026-06-09 by [docs/REPORTS/CI_FAILURE_AND_BUG_HUNT_2026_06_09.md](CI_FAILURE_AND_BUG_HUNT_2026_06_09.md).**
+> The 2026-06-08 PASS verdict is no longer the current release-gate
+> position; the 2026-06-09 report covers the Windows CI failure on
+> `configService.exportConfigTemplate` plus the bridge / SSE / image
+> payload follow-up findings.
+> Retained for historical provenance of the 2026-06-08 canonicalization
+> pass.
 
 ## Purpose
 

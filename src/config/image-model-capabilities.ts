@@ -44,6 +44,18 @@ export interface ImageModelCapabilities {
   supportsSteps?: boolean;
   supportsCfgScale?: boolean;
   supportsStyle?: boolean;
+  /**
+   * Whether the model accepts the `hide_watermark` field. Some strict
+   * model classes reject foreign fields with `additionalProperties: false`,
+   * so callers can opt out by declaring `false`. Defaults to `true` when
+   * the field is undefined to preserve historical behavior.
+   */
+  supportsHideWatermark?: boolean;
+  /**
+   * Whether the model accepts the `return_binary` field. Same rationale
+   * as `supportsHideWatermark`. Defaults to `true` for backwards compat.
+   */
+  supportsReturnBinary?: boolean;
   /** Map from canonical model ID patterns — used for models not yet in the catalog. */
   patternMatch?: RegExp;
 }

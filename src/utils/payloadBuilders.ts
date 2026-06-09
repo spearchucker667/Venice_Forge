@@ -226,6 +226,8 @@ export interface ImageDraftLike {
   supportsStyle?: boolean;
   supportsSteps?: boolean;
   supportsCfgScale?: boolean;
+  supportsHideWatermark?: boolean;
+  supportsReturnBinary?: boolean;
 }
 
 /** Clamp a number to an inclusive integer range. */
@@ -361,6 +363,8 @@ export function buildImagePayload(
   // the network boundary agree.
   if (draft.supportsSteps === false) delete payload.steps;
   if (draft.supportsCfgScale === false) delete payload.cfg_scale;
+  if (draft.supportsHideWatermark === false) delete payload.hide_watermark;
+  if (draft.supportsReturnBinary === false) delete payload.return_binary;
 
   // Variants is only emitted when the draft's imageCount is positive
   // and the model class supports it. We do not auto-enable variants

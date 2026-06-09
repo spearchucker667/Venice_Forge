@@ -10,7 +10,16 @@ Express/Vite web development mode.
 > Studio implementation lives under `src/components/gallery/` (canonical id
 > `media`); the legacy `gallery` id is preserved as a tab-registry alias for
 > back-compat. All paths in this document are derived from `git ls-files` at
-> HEAD `c5fcb849` (618 tracked files).
+> HEAD `0ac69be1` (628 tracked files). 11 files were added since the prior
+> regeneration at `c5fcb849` (618 files): 1 storage-policy doc, 2 verifier
+> scripts (`verify-network-boundaries.cjs`, `verify-storage-policy.cjs`), and
+> 8 test files (SettingsView, audio-view, chat-input, chat-view, shared UI,
+> workflow-node, chat-store, plus `veniceClient.sseParser.test.ts` from the
+> 2026-06-09 CI fix). The 2026-06-09 "remaining issues" pass also added
+> `src/hooks/use-data-storage-actions.ts` + `.test.ts` (extracted from
+> `SettingsView.tsx`, -191 net lines) and upgraded `concurrently` to 10.0.3
+> (transitive `shell-quote@1.8.4`; clears the 2 critical dev-only audit
+> findings).
 >
 > **Clean audit ZIP policy:** The `scripts/clean-repo-zip.sh` archive includes
 > tracked source, required static packaging assets (`build/icon.*`), and
@@ -108,6 +117,7 @@ Express/Vite web development mode.
 │   ├── verify-markdown-links.cjs       # Local Markdown + heading-fragment resolver (VERIFY-029, VERIFY-034)
 │   ├── verify-media-studio-power-tools.cjs   # Phase 2B contract guard
 │   ├── verify-model-aware-recipes.cjs        # Phase 2A contract guard
+│   ├── verify-network-boundaries.cjs         # Raw fetch / preload-bypass guard (Jina allowlist assertion)
 │   ├── verify-prompt-library.cjs             # Phase 2D contract guard
 │   ├── verify-release-packaging-hardening.cjs # Phase 2J single-source-of-truth audit
 │   ├── verify-research-workspace.cjs         # Phase 2I contract guard
@@ -115,13 +125,14 @@ Express/Vite web development mode.
 │   ├── verify-safety-guard.cjs               # Mandatory CI gate (safety guard at every boundary)
 │   ├── verify-scene-composer.cjs             # Phase 2E contract guard
 │   ├── verify-status-diagnostics.cjs         # Phase 2C contract guard
+│   ├── verify-storage-policy.cjs             # localStorage allowlist enforcement
 │   ├── verify-storage-privacy.cjs            # Phase 2H contract guard
 │   └── verify-workflow-templates.cjs         # Phase 2G contract guard
 ├── server.ts                           # Express proxy (`/api/venice/*`, `/api/proxy-scrape`); vite only in dev
 ├── server.test.ts                      # Supertest coverage for the proxy + endpoint allowlist
 ├── src/                                # React frontend source
 │   ├── components/                     # UI components, grouped by feature (see below)
-│   ├── hooks/                          # Custom React hooks (models, chat, focus trap, media thumb, theme lifecycle)
+│   ├── hooks/                          # Custom React hooks (models, chat, focus trap, media thumb, theme lifecycle, data-storage actions)
 │   ├── lib/                            # Renderer-side workflow engine and Venice client surface
 │   │   ├── playground-agent.ts         # + tests
 │   │   ├── playground-agent-tools.ts   # + tests
@@ -204,8 +215,8 @@ The renderer UI is grouped by feature. The canonical tab order is owned by
 
 | Subdir | Purpose | Key files |
 |--------|---------|-----------|
-| `audio/` | Audio Studio (TTS + Whisper STT) | `audio-view.tsx` |
-| `chat/` | Chat Studio (streaming, attachments, vision gate) | `chat-view.tsx`, `chat-input.tsx`, `message-bubble.tsx`, `venice-params.tsx` |
+| `audio/` | Audio Studio (TTS + Whisper STT) | `audio-view.tsx` (+ test) |
+| `chat/` | Chat Studio (streaming, attachments, vision gate) | `chat-view.tsx` (+ test), `chat-input.tsx` (+ test), `message-bubble.tsx` (+ test), `venice-params.tsx` |
 | `command-palette/` | Ctrl/Cmd-K command palette (selection-aware) | `CommandPalette.tsx`, `CommandPalette.test.tsx` |
 | `embeddings/` | Embeddings Studio | `embeddings-view.tsx` |
 | `gallery/` | Media Studio (gallery, compare, lineage, recipe cards) | `gallery-view.tsx`, `compare-view.tsx`, `lineage-viewer.tsx`, `media-card.tsx`, `media-detail-dialog.tsx`, `media-inspector.tsx`, `media-toolbar.tsx`, `recipe-comparison.tsx`, `recipe-compatibility-card.tsx` (+ tests) |
@@ -219,10 +230,10 @@ The renderer UI is grouped by feature. The canonical tab order is owned by
 | `rp-studio/` | Character RP Studio (cards, personas, lorebooks, chats, scene generator) | `RpStudioView.tsx`, `CharacterLibrary.tsx`, `CharacterEditor.tsx`, `PersonaManager.tsx`, `LorebookManager.tsx`, `RpChatList.tsx`, `RpChatView.tsx`, `SceneGenerator.tsx`, `AssetGallery.tsx`, `PromptDebugDrawer.tsx`, `_shared.tsx`, `index.ts` (+ tests) |
 | `scenes/` | Scene Composer (Phase 2E) | `SceneComposerView.tsx` (+ test) |
 | `status/` | Header Status Cluster + Diagnostics Drawer (Phase 2C) | `HeaderStatusCluster.tsx`, `StatusIndicator.tsx`, `DiagnosticsDrawer.tsx` (+ tests) |
-| `ui/` | Shared primitives | `error-boundary.tsx`, `generation-view.tsx`, `logo.tsx`, `select.tsx`, `shared.tsx`, `spinner.tsx`, `toaster.tsx` |
+| `ui/` | Shared primitives | `error-boundary.tsx`, `generation-view.tsx`, `logo.tsx`, `select.tsx`, `shared.tsx` (+ test), `spinner.tsx`, `toaster.tsx` |
 | `video/` | Video Studio (queue + upscale) | `video-view.tsx` |
-| `workflows/` | Workflows visual editor + Templates (Phase 2G) | `workflows-view.tsx`, `workflow-node.tsx`, `WorkflowTemplatesView.tsx` (+ test) |
-| (root) | Top-level view shells | `App.tsx`, `CharactersView.tsx`, `SettingsView.tsx`, `StatusView.tsx`, `SearchScrapeView.tsx`, `ThemeMaker.tsx`, `DiagnosticsPreview.tsx`, `MemoryManagerModal.tsx`, `ModelRefreshButton.tsx`, `ModelSelect.tsx`, `FirstRunModal.tsx`, `AttachmentTray.tsx`, `Chip.tsx`, `CollapsibleSection.tsx`, `ConfirmModal.tsx`, `ErrorBoundary.tsx`, `Field.tsx`, `ImageActionModal.tsx`, `ImageGenerationPreview.tsx`, `StatusBlock.tsx`, `TabButton.tsx`, `ThemePreview.tsx`, `ToastHost.tsx`, `VideoGenerationForm.tsx`, `VideoGenerationPreview.tsx`, `icons.tsx` |
+| `workflows/` | Workflows visual editor + Templates (Phase 2G) | `workflows-view.tsx`, `workflow-node.tsx` (+ test), `WorkflowTemplatesView.tsx` (+ test) |
+| (root) | Top-level view shells | `App.tsx`, `CharactersView.tsx`, `SettingsView.tsx` (+ test), `StatusView.tsx`, `SearchScrapeView.tsx`, `ThemeMaker.tsx`, `DiagnosticsPreview.tsx`, `MemoryManagerModal.tsx`, `ModelRefreshButton.tsx`, `ModelSelect.tsx`, `FirstRunModal.tsx`, `AttachmentTray.tsx`, `Chip.tsx`, `CollapsibleSection.tsx`, `ConfirmModal.tsx`, `ErrorBoundary.tsx`, `Field.tsx`, `ImageActionModal.tsx`, `ImageGenerationPreview.tsx`, `StatusBlock.tsx`, `TabButton.tsx`, `ThemePreview.tsx`, `ToastHost.tsx`, `VideoGenerationForm.tsx`, `VideoGenerationPreview.tsx`, `icons.tsx` |
 
 ## `src/services/` Surface
 
@@ -254,7 +265,7 @@ The renderer UI is grouped by feature. The canonical tab order is owned by
 | Store | Purpose |
 |-------|---------|
 | `auth-store.ts` | OS-secure Venice key state (VERIFY-037) |
-| `chat-store.ts` (+ helpers, + dirty/flush/character tests) | Conversation CRUD, dirty-map flush on unload (VERIFY-005, VERIFY-021) |
+| `chat-store.ts` (+ helpers, + dirty/flush/character/standalone tests) | Conversation CRUD, dirty-map flush on unload (VERIFY-005, VERIFY-021) |
 | `config-store.ts` | Optional YAML config state surfaced to the UI |
 | `playground-store.ts` | Playground agent state |
 | `project-store.ts` (+ tests) | Project lifecycle, archive, exact gallery filter (VERIFY-042) |

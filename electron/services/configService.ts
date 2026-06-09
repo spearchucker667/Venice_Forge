@@ -795,7 +795,42 @@ export async function exportConfigTemplate(targetPath: string): Promise<{ ok: bo
       return { ok: false, error: "Remote URLs are not allowed." };
     }
     const resolvedTarget = path.resolve(targetPath);
-    // Resolve symlinks. If the file does not exist yet, resolve its parent directory.
+    // Resolve allowed base directories once. We keep BOTH the lexical form
+    // (for the deterministic cross-platform check below) and the realpath
+    // form (for symlink defense). On macOS the temp dir lives at
+    // /var/.../T/... but realpath is /private/var/.../T/... — mixing the
+    // two forms in a comparison would falsely classify a target inside
+    // /var/.../T/.../downloads as outside the allowlist.
+    const rawAllowedDirs = EXPORT_ALLOWED_DIRS
+      .map((name) => app.getPath(name))
+      .filter((d): d is string => Boolean(d));
+    const realAllowedDirs = await Promise.all(
+      rawAllowedDirs.map(async (dir) => {
+        try {
+          return await fs.realpath(dir);
+        } catch {
+          return dir;
+        }
+      })
+    );
+    const isInside = (candidate: string, allowed: string[]): boolean =>
+      allowed.some((dir) => candidate === dir || candidate.startsWith(dir + path.sep));
+    // 1. Lexical allowlist check. If the lexical resolved target is outside
+    //    Downloads/Documents, classify it as an allowlist violation
+    //    REGARDLESS of whether the target's parent exists on this platform.
+    //    This is the fix for the 2026-06-09 Windows CI failure: on Windows,
+    //    path.resolve("/etc/passwd") becomes a drive-rooted path whose
+    //    parent usually does not exist, so the previous realpath() fallback
+    //    returned "Invalid export path." before reaching the allowlist
+    //    rejection. With the lexical check first, /etc/passwd is always
+    //    classified as outside the allowlist.
+    if (!isInside(resolvedTarget, rawAllowedDirs)) {
+      return { ok: false, error: "Export must be inside Downloads or Documents." };
+    }
+    // 2. Resolve symlinks (defense against symlinks that lexically live
+    //    inside Downloads/Documents but point elsewhere on disk). Prefer
+    //    realpath(target); fall back to realpath(parent) when the target
+    //    itself does not exist yet.
     let resolved: string;
     try {
       resolved = await fs.realpath(resolvedTarget);
@@ -806,19 +841,11 @@ export async function exportConfigTemplate(targetPath: string): Promise<{ ok: bo
         return { ok: false, error: "Invalid export path." };
       }
     }
-    const allowedDirs = await Promise.all(
-      EXPORT_ALLOWED_DIRS.map((name) => app.getPath(name))
-        .filter(Boolean)
-        .map(async (dir) => {
-          try {
-            return await fs.realpath(dir as string);
-          } catch {
-            return dir as string;
-          }
-        })
-    );
-    const isAllowed = allowedDirs.some((dir) => resolved === dir || resolved.startsWith(dir + path.sep));
-    if (!isAllowed) {
+    // 3. Re-check the realpath result against the allowlist. This catches
+    //    symlinks that lexically live inside Downloads/Documents but point
+    //    outside on disk. We compare in realpath space to handle macOS
+    //    /var/... <-> /private/var/... transparently.
+    if (!isInside(resolved, realAllowedDirs)) {
       return { ok: false, error: "Export must be inside Downloads or Documents." };
     }
     const sanitized = sanitizeConfig(currentConfig);

@@ -171,6 +171,58 @@ describe("buildImagePayload", () => {
     const keyCount = Object.keys(payload).filter((k) => k === "safe_mode").length;
     expect(keyCount).toBe(1);
   });
+
+  it("emits hide_watermark and return_binary by default (backwards compat)", () => {
+    // Pre-fix behaviour: every model receives both fields unless an
+    // explicit capability flag opts out.
+    const payload = buildImagePayload("flux-dev", {
+      prompt: "test",
+      width: 1024,
+      height: 1024,
+    });
+    expect(payload).toHaveProperty("hide_watermark");
+    expect(payload).toHaveProperty("return_binary");
+  });
+
+  it("strips hide_watermark when supportsHideWatermark is explicitly false", () => {
+    // Regression guard for the 2026-06-09 bug-hunt finding: strict model
+    // classes with `additionalProperties: false` reject the
+    // `hide_watermark` field. Image-view must forward
+    // `supportsHideWatermark: false` for these models.
+    const payload = buildImagePayload("strict-nano", {
+      prompt: "test",
+      width: 1024,
+      height: 1024,
+      supportsHideWatermark: false,
+    });
+    expect(payload).not.toHaveProperty("hide_watermark");
+    // return_binary is still emitted because we did not opt out.
+    expect(payload).toHaveProperty("return_binary");
+  });
+
+  it("strips return_binary when supportsReturnBinary is explicitly false", () => {
+    const payload = buildImagePayload("strict-nano", {
+      prompt: "test",
+      width: 1024,
+      height: 1024,
+      supportsReturnBinary: false,
+    });
+    expect(payload).not.toHaveProperty("return_binary");
+    // hide_watermark is still emitted because we did not opt out.
+    expect(payload).toHaveProperty("hide_watermark");
+  });
+
+  it("strips BOTH hide_watermark and return_binary when a strict model opts out of both", () => {
+    const payload = buildImagePayload("strict-nano", {
+      prompt: "test",
+      width: 1024,
+      height: 1024,
+      supportsHideWatermark: false,
+      supportsReturnBinary: false,
+    });
+    expect(payload).not.toHaveProperty("hide_watermark");
+    expect(payload).not.toHaveProperty("return_binary");
+  });
 });
 
 /** Tests for memory block injection in buildChatPayload. */

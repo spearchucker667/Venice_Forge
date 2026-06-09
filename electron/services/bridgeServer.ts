@@ -42,7 +42,11 @@ function safeTokenCompare(provided: string, expected: string): boolean {
   return crypto.timingSafeEqual(providedBuf, expectedBuf);
 }
 
-export function startBridgeServer(port = 5062, host = "127.0.0.1"): Promise<string> {
+export function startBridgeServer(
+  port = 5062,
+  host = "127.0.0.1",
+  options?: { requestTimeoutMs?: number },
+): Promise<string> {
   return new Promise((resolve, reject) => {
     if (serverInstance) {
       resolve(bridgeToken);
@@ -115,15 +119,27 @@ export function startBridgeServer(port = 5062, host = "127.0.0.1"): Promise<stri
       }
 
       let requestTimedOut = false;
+      // SECURITY: every bridge request — streaming OR non-streaming — must
+      // generate a signalId so the timeout and disconnect handlers can abort
+      // the upstream Venice HTTPS request. Before this fix, non-streaming
+      // requests had no signalId, so the 5-minute timeout closed the
+      // response but the upstream request kept running in the background,
+      // burning Venice quota for a renderer that no longer cared.
+      const signalId = crypto.randomUUID();
       const requestTimeout = setTimeout(() => {
         requestTimedOut = true;
         logError("Bridge request exceeded timeout", { endpoint, method });
+        try {
+          abortVeniceRequest(signalId);
+        } catch (err) {
+          logError("Failed to abort upstream request on timeout", String(err));
+        }
         if (!res.headersSent) {
           res.status(504).json({ error: "Bridge request timed out" });
         } else {
           res.end();
         }
-      }, BRIDGE_REQUEST_TIMEOUT_MS);
+      }, options?.requestTimeoutMs ?? BRIDGE_REQUEST_TIMEOUT_MS);
 
       try {
         const isStreaming = method === "POST" && endpoint === "/chat/completions" && body?.stream === true;
@@ -134,7 +150,6 @@ export function startBridgeServer(port = 5062, host = "127.0.0.1"): Promise<stri
           res.setHeader("Connection", "keep-alive");
           res.flushHeaders();
 
-          const signalId = crypto.randomUUID();
           let clientDisconnected = false;
 
           // SECURITY: if the client disconnects mid-stream, abort the upstream
@@ -211,11 +226,14 @@ export function startBridgeServer(port = 5062, host = "127.0.0.1"): Promise<stri
           res.end();
         } else {
           // Non-streaming request — use the centralized guardPipeline so the
-          // 451 block body is identical to the IPC path.
+          // 451 block body is identical to the IPC path. signalId is
+          // forwarded so the timeout handler above can abort the upstream
+          // Venice HTTPS request when the response deadline is exceeded.
           const result = await performGuardedVeniceRequest({
             endpoint,
             method,
             body,
+            signalId,
           });
 
           if (result.kind === "blocked") {

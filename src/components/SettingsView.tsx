@@ -3,18 +3,14 @@ import { useAuthStore } from "../stores/auth-store";
 import { useChatStore } from "../stores/chat-store";
 import { useSettingsStore } from "../stores/settings-store";
 import { useModels } from "../hooks/use-models";
+import { useDataStorageActions } from "../hooks/use-data-storage-actions";
 import { useConfigStore, reloadConfig } from "../stores/config-store";
 import { ModelSelect } from "./ModelSelect";
 import { ThemeMaker } from "./ThemeMaker";
 import { MemoryPanel } from "./layout/memory-panel";
 import { ConfirmModal } from "./ConfirmModal";
 import { toast } from "../stores/toast-store";
-import { isElectron, desktopApiKey, desktopJinaApiKey, desktopApp, desktopFiles, desktopUpdates, desktopConfig } from "../services/desktopBridge";
-import { listConversations, saveConversation } from "../services/chatStorage";
-import { listMemories, upsertMemory } from "../services/memoryService";
-import { createExportPayload, validateImportJson } from "../services/exportImport";
-import StorageService from "../services/storageService";
-import { STORE_NAMES } from "../constants/venice";
+import { isElectron, desktopApiKey, desktopJinaApiKey, desktopFiles, desktopUpdates, desktopConfig } from "../services/desktopBridge";
 import { APP_NAME, OFFICIAL_LINKS, FIRST_RUN_ACK_KEY } from "../shared/legal";
 import type { UpdateInfo, ProgressInfo } from "electron-updater";
 
@@ -63,6 +59,24 @@ export function SettingsView() {
   const [isUpdateChecking, setIsUpdateChecking] = useState(false);
   const [updateDownloaded, setUpdateDownloaded] = useState(false);
   const updateEventSeenRef = useRef(false);
+
+  // Data & Storage operations — extracted to a custom hook so the
+  // SettingsView component can stay focused on the per-section UI.
+  // The hook returns the 4 async action functions used by the
+  // "Data & Storage operations" panel and preserves the safety-mode
+  // 3-way choice (P0) end-to-end.
+  const { clearLocalSettings, clearAllHistory, exportData, importData } = useDataStorageActions({
+    setSystemPrompt,
+    setVeniceParams,
+    setLocalFamilySafeModeEnabled,
+    setVeniceApiSafeMode,
+    setPendingConfirm,
+    localFamilySafeModeEnabled,
+    veniceApiSafeMode,
+    applySafetyCancelRef,
+    applySafetyTertiaryRef,
+    applySafetyDismissRef,
+  });
 
   // Load models
   const { data: textModels } = useModels("text");
@@ -262,213 +276,8 @@ export function SettingsView() {
     }
   }
 
-  // Data & Storage operations
-  async function clearLocalSettings() {
-    setPendingConfirm({
-      message: "Clear local settings?",
-      detail: "This will reset default system prompts, citation toggles, and UI model configurations to standard defaults.",
-      onConfirm: async () => {
-        await StorageService.clearStore("settings");
-        setSystemPrompt("");
-        setVeniceParams({
-          include_venice_system_prompt: false,
-          enable_web_search: "off",
-          enable_web_citations: false,
-        });
-        setLocalFamilySafeModeEnabled(true);
-        setVeniceApiSafeMode(true);
-        if (isElectron()) {
-          await desktopConfig.writeSanitized({
-            safety: { local_family_safe_mode_enabled: true, venice_api_safe_mode: true },
-          });
-        }
-        toast.success("Local settings cleared.");
-      }
-    });
-  }
-
-  async function clearAllHistory() {
-    setPendingConfirm({
-      message: "Delete all IndexedDB history?",
-      detail: "This will permanently delete all saved images, chats, configurations, and settings from local database. This cannot be undone.",
-      onConfirm: async () => {
-        await Promise.all(
-          STORE_NAMES.map((store) => StorageService.clearStore(store))
-        );
-        useChatStore.setState({ conversations: [], activeConversationId: null });
-        toast.success("IndexedDB history cleared successfully.");
-      }
-    });
-  }
-
-  async function exportData() {
-    try {
-      const [images, chats, settings, conversations, memories] = await Promise.all([
-        StorageService.getItems("images"),
-        StorageService.getItems("chats"),
-        StorageService.getItems("settings"),
-        listConversations(),
-        listMemories(),
-      ]);
-      const appVersion = await desktopApp.getVersion();
-      const persistedSafetySettings = {
-        id: "family-safe-mode-settings",
-        timestamp: Date.now(),
-        value: { localFamilySafeModeEnabled, veniceApiSafeMode },
-      };
-      const payload = createExportPayload({ images, chats, settings: [...settings, persistedSafetySettings], conversations, ai_memory: memories }, appVersion);
-      const ok = await desktopFiles.exportJson(
-        payload,
-        `venice-forge-export-${new Date().toISOString().slice(0, 10)}.json`
-      );
-      if (ok) toast.success("Data exported successfully.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Export failed.");
-    }
-  }
-  async function importData() {
-    try {
-      const json = await desktopFiles.importJsonString();
-      if (!json) return;
-      const [imagesBefore, chatsBefore, settingsBefore, conversationsBefore, memoriesBefore] = await Promise.all([
-        StorageService.getItems("images"),
-        StorageService.getItems("chats"),
-        StorageService.getItems("settings"),
-        listConversations(),
-        listMemories(),
-      ]);
-      const backup = createExportPayload(
-        {
-          images: imagesBefore,
-          chats: chatsBefore,
-          settings: [...settingsBefore, {
-            id: "family-safe-mode-settings",
-            timestamp: Date.now(),
-            value: { localFamilySafeModeEnabled, veniceApiSafeMode },
-          }],
-          conversations: conversationsBefore,
-          ai_memory: memoriesBefore,
-        },
-        await desktopApp.getVersion()
-      );
-
-      const dateTimeStr = new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
-      const backupOk = await desktopFiles.exportJson(
-        backup,
-        `venice-forge-pre-import-backup-${dateTimeStr}.json`
-      );
-      if (!backupOk) {
-        toast.error("Pre-import backup could not be saved. Import aborted.");
-        return;
-      }
-
-      const { payload, summary } = validateImportJson(json);
-
-      // P0: parse + extract safety settings BEFORE writing anything.
-      const importedSafetyEntry = payload.data.settings.find((entry) => entry.id === "family-safe-mode-settings");
-      const rawSafety = importedSafetyEntry?.value;
-      const value = rawSafety && typeof rawSafety === "object"
-        ? (rawSafety as Record<string, unknown>)
-        : null;
-      const familyEnabled = value && typeof value.localFamilySafeModeEnabled === "boolean"
-        ? value.localFamilySafeModeEnabled
-        : true;
-      const apiSafeMode = value && typeof value.veniceApiSafeMode === "boolean"
-        ? value.veniceApiSafeMode
-        : true;
-      const wouldDisable = !familyEnabled || !apiSafeMode;
-
-      // P0: explicit 3-way choice — import all / keep current safety / cancel.
-      // No settings are written until the user picks a path.
-      let safetyChoice: "import-all" | "keep-current" | "cancel" = "import-all";
-      if (value && wouldDisable) {
-        safetyChoice = await new Promise<"import-all" | "keep-current" | "cancel">((resolve) => {
-          setPendingConfirm({
-            message:
-              "This backup would change one or more safety settings.",
-            detail:
-              "Family Safe Mode is Venice Forge's local family-oriented filter. " +
-              "Adult Mode bypasses only that local filter. " +
-              "Venice API Safe Mode is a separate provider-side setting and is not affected by Adult Mode. " +
-              "Choose how to handle these imported safety settings.",
-            onConfirm: () => resolve("import-all"),
-          });
-          applySafetyCancelRef.current = null;
-          applySafetyTertiaryRef.current = () => resolve("keep-current");
-          applySafetyDismissRef.current = () => resolve("cancel");
-        });
-        applySafetyCancelRef.current = null;
-        applySafetyTertiaryRef.current = null;
-        applySafetyDismissRef.current = null;
-      }
-
-      if (safetyChoice === "cancel") {
-        toast.info("Import cancelled. No settings were written.");
-        return;
-      }
-
-      // Write non-safety data FIRST so a safety-write failure can't half-import.
-      await Promise.all(payload.data.images.map((img) => StorageService.saveItem("images", img)));
-      await Promise.all(payload.data.chats.map((chat) => StorageService.saveItem("chats", chat)));
-
-      if (safetyChoice === "import-all") {
-        // Persist the imported safety settings alongside the rest of the
-        // settings payload.
-        await Promise.all(payload.data.settings.map((s) => StorageService.saveItem("settings", s)));
-        if (value) {
-          setLocalFamilySafeModeEnabled(familyEnabled);
-          setVeniceApiSafeMode(apiSafeMode);
-          if (isElectron()) {
-            await desktopConfig.writeSanitized({
-              safety: {
-                local_family_safe_mode_enabled: familyEnabled,
-                venice_api_safe_mode: apiSafeMode,
-              },
-            });
-          }
-        }
-      } else {
-        // "keep-current": filter out the safety entry from the imported
-        // settings before persisting, then persist the rest. Current safety
-        // state (Zustand + YAML + Electron runtime snapshot) is left alone.
-        const filteredSettings = payload.data.settings.filter((entry) => entry.id !== "family-safe-mode-settings");
-        await Promise.all(filteredSettings.map((s) => StorageService.saveItem("settings", s)));
-        toast.info("Imported data kept current safety settings.");
-      }
-
-      const convResults = await Promise.all(
-        payload.data.conversations.map((conv) => saveConversation(conv as unknown as import("../types/conversation").Conversation))
-      );
-      const failedConvCount = convResults.filter((ok) => !ok).length;
-      if (failedConvCount > 0) {
-        throw new Error(`Failed to import ${failedConvCount} conversation(s).`);
-      }
-
-      await Promise.all(
-        payload.data.ai_memory.map((mem) => {
-          const id = typeof mem.id === "string" && mem.id ? mem.id : crypto.randomUUID();
-          const createdAt = typeof mem.timestamp === "number" ? mem.timestamp : Date.now();
-          return upsertMemory({
-            id,
-            content: (mem.content as string) || "",
-            createdAt,
-            tags: Array.isArray(mem.tags) ? (mem.tags as string[]) : [],
-            conversationId: typeof mem.conversationId === "string" ? mem.conversationId : undefined,
-          });
-        })
-      );
-
-      // Hydrate stores
-      const convs = await listConversations();
-      useChatStore.setState({ conversations: convs });
-
-      toast.success(
-        `Imported ${summary.conversationsFound} conversations and ${summary.aiMemoryFound} memories successfully.`
-      );
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Import failed.");
-    }
-  }
+  // Data & Storage operations — extracted to a custom hook (see
+  // useDataStorageActions call above).
 
   const sectionButtonClass = (section: string) => `
     w-full text-left px-3.5 py-2 rounded-lg text-[13.5px] font-medium transition-all duration-150

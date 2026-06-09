@@ -285,6 +285,50 @@ describe("bridgeServer", () => {
   // VERIFY-004 regression guard: SEC-9 / The bridge MUST cap request body size
   // to prevent OOM. A 12 MiB JSON body must be rejected with 413 (Payload Too
   // Large). We construct a 12 MiB string of 'a's and POST it to /chat/completions.
+  // Regression guard for the 2026-06-09 bug-hunt finding: the bridge MUST
+  // pass a signalId to the non-streaming performGuardedVeniceRequest call
+  // so the 5-minute timeout can abort the upstream Venice HTTPS request.
+  // Before the fix, the non-streaming branch omitted signalId entirely,
+  // so the timeout only closed the HTTP response — the upstream request
+  // kept running in the background, burning Venice quota.
+  //
+  // We assert the wiring (signalId is present, non-empty, and a string)
+  // rather than running a 5-minute end-to-end timeout. The streaming
+  // VERIFY-003 test already proves the abortVeniceRequest + signalId
+  // mechanism works end-to-end; the new invariant is that non-streaming
+  // requests participate in the same flow.
+  it("forwards a signalId for non-streaming requests (regression guard for the 2026-06-09 bridge abort gap)", async () => {
+    const { performVeniceRequest } = await import("./veniceClient");
+    let capturedRequest: unknown;
+    vi.mocked(performVeniceRequest).mockImplementationOnce(async (raw: unknown) => {
+      capturedRequest = raw;
+      return {
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        body: { data: "ok" },
+        contentType: "application/json",
+      };
+    });
+    const res = await fetch(`http://${host}:${port}/models`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const req = capturedRequest as { signalId?: unknown };
+    expect(req).toBeDefined();
+    expect(typeof req.signalId).toBe("string");
+    // signalId is crypto.randomUUID() — a 36-char string with hyphens at
+    // fixed positions. Asserting the format proves the bridge generated
+    // a real ID and did not, e.g., accidentally pass an empty string or
+    // a literal "undefined" sentinel.
+    expect((req.signalId as string).length).toBe(36);
+  }, 5000);
+
+  // VERIFY-004 regression guard: SEC-9 / The bridge MUST cap request body size
+  // to prevent OOM. A 12 MiB JSON body must be rejected with 413 (Payload Too
+  // Large). We construct a 12 MiB string of 'a's and POST it to /chat/completions.
   it("rejects an oversized request body (VERIFY-004, 10 MiB limit)", async () => {
     const bigPayload = "a".repeat(12 * 1024 * 1024);
     const res = await fetch(`http://${host}:${port}/chat/completions`, {

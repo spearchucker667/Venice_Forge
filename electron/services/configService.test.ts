@@ -395,6 +395,31 @@ describe("configService writeSanitized", () => {
 });
 
 describe("configService export and folder", () => {
+  // Pin Downloads/Documents to deterministic sandbox paths so the tests do
+  // not depend on the host machine's actual ~/Downloads or ~/Documents
+  // existing. tmpRoot is `${os.tmpdir()}/vf-cfg-test`; "downloads" and
+  // "documents" each get a stable subdirectory inside it that is wiped
+  // in beforeEach. The base `mocks.getPath` already returns `os.tmpdir()`
+  // for unknown names, so we override the two allowed names here.
+  const downloadsRoot = path.join(tmpRoot, "downloads");
+  const documentsRoot = path.join(tmpRoot, "documents");
+  const outsideRoot = path.join(tmpRoot, "outside");
+
+  beforeEach(async () => {
+    // Override only for the duration of this describe block. mockImplementation
+    // does not auto-reset between tests, so beforeEach re-installs both.
+    mocks.getPath.mockImplementation((name: string) => {
+      if (name === "userData") return path.join(os.tmpdir(), "vf-cfg-test");
+      if (name === "appPath") return process.cwd();
+      if (name === "downloads") return downloadsRoot;
+      if (name === "documents") return documentsRoot;
+      return os.tmpdir();
+    });
+    await fs.mkdir(downloadsRoot, { recursive: true });
+    await fs.mkdir(documentsRoot, { recursive: true });
+    await fs.mkdir(outsideRoot, { recursive: true });
+  });
+
   it("exports a sanitized template without raw keys", async () => {
     const envConfig = path.join(tmpRoot, "config.yaml");
     const envThemes = path.join(tmpRoot, "themes.yaml");
@@ -405,7 +430,7 @@ describe("configService export and folder", () => {
 
     await initializeConfig();
 
-    const target = path.join(tmpRoot, "template.yaml");
+    const target = path.join(downloadsRoot, "template.yaml");
     const result = await exportConfigTemplate(target);
     expect(result.ok).toBe(true);
     const out = await fs.readFile(target, "utf-8");
@@ -418,10 +443,68 @@ describe("configService export and folder", () => {
     expect(result.error).toMatch(/URL/i);
   });
 
-  it("rejects path traversal export targets", async () => {
+  it("rejects path traversal export targets (POSIX /etc/passwd)", async () => {
+    // Regression guard for the 2026-06-09 Windows CI failure: regardless of
+    // whether the path's parent exists on this platform, /etc/passwd must be
+    // classified as outside the allowlist, not as an "Invalid export path."
     const result = await exportConfigTemplate("/etc/passwd");
     expect(result.ok).toBe(false);
     expect(result.error).toMatch(/Downloads or Documents/i);
+  });
+
+  it("rejects path traversal export targets (Windows-style drive root)", async () => {
+    // On POSIX, path.resolve("C:\\Windows\\System32\\evil.yaml") returns
+    // "/C:\\Windows\\System32\\evil.yaml" (treated as a single relative-ish
+    // path); on Windows, it returns "C:\\Windows\\System32\\evil.yaml". The
+    // lexical check must classify both as outside the allowlist.
+    const winStyle = path.join("C:\\Windows\\System32", "evil.yaml");
+    const result = await exportConfigTemplate(winStyle);
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/Downloads or Documents/i);
+  });
+
+  it("rejects a target that is lexically outside even when the parent does not exist", async () => {
+    const result = await exportConfigTemplate(path.join(outsideRoot, "nested", "deeply", "absent.yaml"));
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/Downloads or Documents/i);
+  });
+
+  it("rejects a symlink inside Downloads that points outside the allowlist", async () => {
+    // Real symlink attack vector: the symlink lexically lives inside
+    // downloads/ but its realpath resolves to outsideRoot. The implementation
+    // must follow the realpath and re-check the allowlist.
+    if (process.platform === "win32") {
+      // Symlink creation requires admin/dev-mode on Windows; the test is
+      // still meaningful on POSIX and the lexical check above already
+      // exercises the parallel code path.
+      return;
+    }
+    // The symlink target must exist on disk — a dangling symlink's realpath
+    // resolves to the symlink's own path (not the missing target), so the
+    // re-check would incorrectly pass.
+    await writeYaml(path.join(outsideRoot, "target.yaml"), "attacker controlled\n");
+    const symlinkPath = path.join(downloadsRoot, "evil-link.yaml");
+    await fs.symlink(path.join(outsideRoot, "target.yaml"), symlinkPath);
+    const result = await exportConfigTemplate(symlinkPath);
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/Downloads or Documents/i);
+  });
+
+  it("accepts a non-existing file inside Downloads (parent exists)", async () => {
+    // The implementation may realpath(parent) when the target does not exist
+    // yet; this must succeed and write a sanitized template.
+    const envConfig = path.join(tmpRoot, "config.yaml");
+    const envThemes = path.join(tmpRoot, "themes.yaml");
+    await writeYaml(envConfig, "version: 1\n");
+    await writeYaml(envThemes, "version: 1\nthemes: {}\n");
+    process.env.VENICE_FORGE_CONFIG_FILE = envConfig;
+    process.env.VENICE_FORGE_THEMES_FILE = envThemes;
+    await initializeConfig();
+
+    const target = path.join(documentsRoot, "fresh-template.yaml");
+    const result = await exportConfigTemplate(target);
+    expect(result.ok).toBe(true);
+    expect(await fs.stat(target)).toBeTruthy();
   });
 
   it("rejects empty and null-byte export targets", async () => {

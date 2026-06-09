@@ -1,13 +1,14 @@
 # Extensive Bug-Hunting & Architectural Review
 
-> **SUPERSEDED — 2026-06-08.**
+> **SUPERSEDED — 2026-06-08, then SUPERSEDED AGAIN — 2026-06-09.**
 > This report is **no longer the current audit of record**.
 > It predates the 2026-06-05 modules→components refactor, the 2026-06-06 round-2 audit, the 2026-06-08 final pass, and Phases 2A–2J (10 new `VERIFY-04*` regression guards, model-aware recipes, Media Studio power tools, header status cluster + diagnostics, prompt library, scene composer, workflow templates, storage / privacy dashboard, research workspace, and release / packaging hardening).
 > In particular, section 1.1 ("Deletion of TARGET-Only Features") is **stale**: every module listed there was refactored into `src/components/` between 2026-06-04 and 2026-06-05 (Batch → image-tools, Research → research, Settings → settings tab, Diagnostics → status cluster, Gallery → `gallery-view.tsx`).
 > For the current audit of record, see:
-> - **[docs/REPORTS/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md](FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md)** — 2026-06-08 final proof audit, **PASS** verdict, 1905/1905 tests, safe to release.
+> - **[docs/REPORTS/CI_FAILURE_AND_BUG_HUNT_2026_06_09.md](CI_FAILURE_AND_BUG_HUNT_2026_06_09.md)** — 2026-06-09 CI repair + exhaustive bug hunt (Windows `configService` path, bridge non-stream abort, SSE parser, image-payload capability flags). **The "FINAL" report below is itself now SUPERSEDED.**
+> - **[docs/REPORTS/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md](FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md)** — 2026-06-08 proof audit, was PASS, now SUPERSEDED 2026-06-09.
 > - **[docs/POST_VENICE_JINA_AUDIT_2026_06_06.md](../POST_VENICE_JINA_AUDIT_2026_06_06.md)** — 2026-06-06 round-2 audit, 8 BUG-SEED items closed.
-> - **[docs/summary_of_work.md](../summary_of_work.md)** — canonical AI / dev-agent handoff ledger, *Open TODO Ledger* (P0/P1/P2/P3 all "None outstanding" as of 2026-06-08).
+> - **[docs/summary_of_work.md](../summary_of_work.md)** — canonical AI / dev-agent handoff ledger.
 > Retained only for historical provenance of the 2026-06-04 merge review.
 
 **Date:** June 4, 2026
@@ -88,4 +89,4 @@ The architectural merge successfully integrated the DONOR app's advanced feature
 
 The `main` branch was at that point structurally sound (compiles, passes typechecks, and passes safety tests) but functionally incomplete. The immediate next steps focused on restoring the missing modules and re-wiring the data persistence layers; both have since been completed in subsequent sessions.
 
-> **For the current conclusion of record, see [docs/REPORTS/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md](FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md) (2026-06-08, PASS verdict, 1905/1905 tests, safe to release).**
+> **For the current conclusion of record, see [docs/REPORTS/CI_FAILURE_AND_BUG_HUNT_2026_06_09.md](CI_FAILURE_AND_BUG_HUNT_2026_06_09.md) (2026-06-09, supersedes the 2026-06-08 PASS verdict).**
