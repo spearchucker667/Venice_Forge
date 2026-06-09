@@ -301,4 +301,15 @@ describe("bridgeServer", () => {
     // express.json({ limit: "10mb" }) returns 413 on oversized payloads.
     expect(res.status).toBe(413);
   });
+
+  it("rejects a non-loopback host at startup", async () => {
+    // Stop the existing server so the guard is actually evaluated.
+    stopBridgeServer();
+    await expect(startBridgeServer(5064, "0.0.0.0")).rejects.toThrow(/Invalid bridge host/);
+    await expect(startBridgeServer(5064, "192.168.1.1")).rejects.toThrow(/Invalid bridge host/);
+    await expect(startBridgeServer(5064, "example.com")).rejects.toThrow(/Invalid bridge host/);
+    await expect(startBridgeServer(5064, "")).rejects.toThrow(/Invalid bridge host/);
+    // Restart a valid server for any subsequent tests.
+    await startBridgeServer(port, host);
+  });
 });

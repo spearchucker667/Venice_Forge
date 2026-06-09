@@ -2,8 +2,9 @@
  * @fileoverview Scene generation service.
  *
  * Extracts a self-contained image prompt from an RP chat's recent messages,
- * runs the safety guard, dispatches the existing `/image/generate` endpoint,
- * and registers the resulting asset in the `rp_assets` store.
+ * runs the safety guard, dispatches the existing `/image/generate` endpoint
+ * through the canonical Venice client, and registers the resulting asset in
+ * the `rp_assets` store.
  *
  * Safety:
  *   - `assessScenePrompt` is the first step. The guard is gated by
@@ -14,10 +15,10 @@
  *   - Raw prompt text is NEVER logged. Errors return safe user-facing strings.
  *
  * Transport:
- *   - The scene service reuses the existing `desktopVenice.request`
- *     abstraction in Electron mode; in web mode it calls
- *     `fetch('/api/venice/image/generate')` through the Express proxy
- *     (which runs the safety guard a second time as defence in depth).
+ *   - All Venice calls route through `veniceFetch()` in
+ *     `src/services/veniceClient.ts`, which handles both Electron IPC and
+ *     web-mode proxy automatically. Do not call `fetch('/api/venice/...')`
+ *     directly.
  */
 
 import { assessScenePrompt } from "../../shared/safety/characterImportSafety";
@@ -29,7 +30,8 @@ import type {
   SceneGenerationOutcome,
   SceneGenerationRequest,
 } from "../../types/rp";
-import { isElectron, desktopVenice } from "../desktopBridge";
+import { isElectron } from "../desktopBridge";
+import { veniceFetch } from "../veniceClient";
 import { readCharacterCard } from "./characterCardService";
 import { saveAsset } from "./assetService";
 import {
@@ -109,7 +111,7 @@ export async function generateScene(
     if (card) characterNames.push(card.name);
   }
 
-  // 3. Dispatch to Venice via the existing transport abstraction.
+  // 3. Dispatch to Venice via the canonical transport abstraction.
   if (!isElectron() && typeof fetch !== "function") {
     return { ok: false, error: "No transport available.", safetyBlocked: false };
   }
@@ -130,31 +132,12 @@ export async function generateScene(
 
   let response: ImageGenerateResponse;
   try {
-    if (isElectron()) {
-      const res = await desktopVenice.request({ endpoint: "/image/generate", method: "POST", body: payload });
-      if (!res.ok) return { ok: false, error: `Image generation failed: HTTP ${res.status}`, safetyBlocked: false };
-      response = res.body as ImageGenerateResponse;
-    } else {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 120000); // 2 min cap for scene gen
-      try {
-        const res = await fetch("/api/venice/image/generate", {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            "X-Venice-Forge-Family-Safe-Mode": String(localFamilySafeModeEnabled),
-          },
-          body: JSON.stringify(payload),
-          signal: controller.signal,
-        });
-        if (!res.ok) {
-          return { ok: false, error: `Image generation failed: HTTP ${res.status}`, safetyBlocked: false };
-        }
-        response = (await res.json()) as ImageGenerateResponse;
-      } finally {
-        clearTimeout(timeout);
-      }
-    }
+    const { data } = await veniceFetch<ImageGenerateResponse>("/image/generate", {
+      method: "POST",
+      body: payload,
+      timeoutMs: 120_000,
+    });
+    response = data;
   } catch (err) {
     return {
       ok: false,

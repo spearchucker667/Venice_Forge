@@ -19,12 +19,13 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vites
  *   4. Fires pagehide and asserts BOTH saves land.
  */
 
-const saveMock = vi.fn().mockResolvedValue(undefined)
+const saveMock = vi.fn().mockResolvedValue({ ok: true, id: 'mock-id' })
 const listMock = vi.fn().mockResolvedValue({ ok: true, records: [] })
-const chatSaveMock = vi.fn().mockResolvedValue(undefined)
+const chatSaveMock = vi.fn().mockResolvedValue({ ok: true })
 const chatListMock = vi.fn().mockResolvedValue([])
 
 const mockVeniceForge = {
+  isDesktop: true,
   conversations: {
     save: saveMock,
     list: listMock,

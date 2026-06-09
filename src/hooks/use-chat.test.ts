@@ -156,4 +156,32 @@ describe("use-chat character_slug threading", () => {
     expect(veniceParams.enable_web_citations).toBe(true);
     expect(veniceParams.strip_thinking_response).toBe(true);
   });
+
+  it("aborts the in-flight stream when the hook unmounts", async () => {
+    let capturedController: AbortController | undefined;
+    mockedVeniceStreamChat.mockImplementationOnce((_payload, opts) => {
+      capturedController = opts.signal as unknown as AbortController;
+      return new Promise<void>((_, reject) => {
+        opts.signal!.addEventListener("abort", () => {
+          reject(new DOMException("Request aborted", "AbortError"));
+        });
+      });
+    });
+
+    const { result, unmount } = renderHook(() => useChat());
+    const sendPromise = act(async () => {
+      await result.current.send("Hello", "llama-3.3-70b");
+    });
+
+    // Give React a tick to start the effect and the send flow.
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Unmount while the stream is still pending.
+    unmount();
+
+    await sendPromise;
+    expect(capturedController).toBeDefined();
+  });
 });

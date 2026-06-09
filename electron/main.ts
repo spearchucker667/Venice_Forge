@@ -13,6 +13,9 @@ import { redactErrorMessage } from "../src/services/redaction";
 import { checkPathContained } from "./utils/navigation";
 import { isTrustedExternalUrl } from "./utils/urlSecurity";
 import { startBridgeServer, stopBridgeServer } from "./services/bridgeServer";
+import { isValidBridgeHost } from "./utils/bridgeHost";
+
+export { isValidBridgeHost };
 
 /** Indicates whether the app is running in development mode. */
 const isDev = !app.isPackaged;
@@ -248,7 +251,15 @@ async function bootstrap(): Promise<void> {
     let host = "127.0.0.1";
     const hostIndex = args.indexOf("--bridge-host");
     if (hostIndex !== -1 && hostIndex + 1 < args.length) {
-      host = args[hostIndex + 1];
+      const candidate = args[hostIndex + 1];
+      if (isValidBridgeHost(candidate)) {
+        host = candidate;
+      } else {
+        logError("Invalid --bridge-host", candidate);
+        console.error(`[Bridge Server] Invalid --bridge-host "${candidate}". Only 127.0.0.1, localhost, and ::1 are allowed.`);
+        app.quit();
+        return;
+      }
     }
 
     try {

@@ -13,7 +13,8 @@
  *    the canonical tab registry and the prompt-library store.
  */
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useProjectStore } from '../../stores/project-store'
 import { TAB_REGISTRY, type TabId } from '../../config/tabs'
@@ -35,6 +36,9 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(dialogRef, open, onClose)
+
   const [query, setQuery] = useState('')
   const setActiveTab = useSettingsStore((s) => s.setActiveTab)
   const selectionCount = useMediaSelectionStore((s) => s.selectedMediaIds.length)
@@ -149,6 +153,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh] bg-black/40"
       onClick={onClose}
       role="dialog"

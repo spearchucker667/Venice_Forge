@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/shallow'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
@@ -46,7 +47,9 @@ interface Props {
 }
 
 export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
-  const { activeTab, selectedModels, setSelectedModel, toggleSidebar } = useSettingsStore()
+  const { activeTab, selectedModels, setSelectedModel, toggleSidebar } = useSettingsStore(
+    useShallow((s) => ({ activeTab: s.activeTab, selectedModels: s.selectedModels, setSelectedModel: s.setSelectedModel, toggleSidebar: s.toggleSidebar })),
+  )
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const hasOwnSelector = noModelSelector.has(activeTab)
   const modelType = modelTypeMap[activeTab] || 'text'

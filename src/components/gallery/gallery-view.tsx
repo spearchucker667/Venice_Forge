@@ -3,7 +3,8 @@
  * send-to, export bundle, command-palette handler registration.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import {
   useMediaStore,
   filterMedia,
@@ -100,6 +101,12 @@ export function MediaStudioView() {
   // Phase 2B: compare + lineage modal triggers.
   const [compareOpen, setCompareOpen] = useState(false);
   const [lineageOpen, setLineageOpen] = useState(false);
+
+  // Focus traps for modal surfaces.
+  const compareModalRef = useRef<HTMLDivElement>(null);
+  const lineageModalRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(compareModalRef, compareOpen, () => setCompareOpen(false));
+  useFocusTrap(lineageModalRef, lineageOpen, () => setLineageOpen(false));
 
   // Initial load.
   useEffect(() => {
@@ -742,6 +749,7 @@ export function MediaStudioView() {
       {/* Phase 2B: Compare modal */}
       {compareOpen && (
         <div
+          ref={compareModalRef}
           className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 p-6"
           data-testid="compare-modal"
           onClick={() => setCompareOpen(false)}
@@ -763,6 +771,7 @@ export function MediaStudioView() {
       {/* Phase 2B: Lineage modal */}
       {lineageOpen && inspectorItem && (
         <div
+          ref={lineageModalRef}
           className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 p-6"
           data-testid="lineage-modal"
           onClick={() => setLineageOpen(false)}

@@ -554,6 +554,17 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  /** Safe media extensions for the saveRoutedImage IPC handler.
+   *  Executable, script, archive, and document extensions are rejected.
+   */
+  const SAVE_ROUTED_IMAGE_ALLOWED_EXTS = new Set([
+    ".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".webm",
+  ]);
+  const SAVE_ROUTED_IMAGE_BLOCKED_EXTS = new Set([
+    ".exe", ".bat", ".cmd", ".ps1", ".sh", ".js", ".mjs", ".cjs",
+    ".app", ".dmg", ".zip", ".7z", ".pdf", ".html", ".htm",
+  ]);
+
   ipcMain.handle("app:saveRoutedImage", async (_event, base64Data: unknown, filename: unknown, subfolder: unknown) => {
     try {
       if (typeof base64Data !== "string") throw new Error("Image data must be a string.");
@@ -573,6 +584,14 @@ export function registerIpcHandlers(): void {
         throw new Error("Invalid subfolder name.");
       }
       const cleanFilename = path.basename(filename).replace(/[^a-zA-Z0-9_.-]/g, "_");
+
+      const ext = path.extname(cleanFilename).toLowerCase();
+      if (SAVE_ROUTED_IMAGE_BLOCKED_EXTS.has(ext)) {
+        throw new Error(`Extension "${ext}" is not allowed for security reasons.`);
+      }
+      if (!SAVE_ROUTED_IMAGE_ALLOWED_EXTS.has(ext)) {
+        throw new Error(`Extension "${ext}" is not in the allowed list. Use: ${[...SAVE_ROUTED_IMAGE_ALLOWED_EXTS].join(", ")}.`);
+      }
 
       const targetDir = path.join(resolvedBase, cleanSub);
       const targetPath = path.join(targetDir, cleanFilename);

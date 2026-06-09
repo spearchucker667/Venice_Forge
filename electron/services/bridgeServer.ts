@@ -6,6 +6,7 @@ import { abortVeniceRequest } from "./veniceClient";
 import { SafetyGuardBlockedError } from "../../src/shared/safety";
 import { performGuardedVeniceRequest, checkLocalFamilyGuard } from "./guardPipeline";
 import { logInfo, logError } from "./logger";
+import { isValidBridgeHost } from "../utils/bridgeHost";
 
 const BRIDGE_BODY_LIMIT = "10mb";
 const BRIDGE_REQUEST_TIMEOUT_MS = 5 * 60 * 1000;
@@ -42,6 +43,11 @@ export function startBridgeServer(port = 5062, host = "127.0.0.1"): Promise<stri
   return new Promise((resolve, reject) => {
     if (serverInstance) {
       resolve(bridgeToken);
+      return;
+    }
+
+    if (!isValidBridgeHost(host)) {
+      reject(new Error(`Invalid bridge host "${host}". Only 127.0.0.1, localhost, and ::1 are allowed.`));
       return;
     }
 

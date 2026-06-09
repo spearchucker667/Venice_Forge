@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSettingsStore } from "../../stores/settings-store";
 import { toast } from "../../stores/toast-store";
+import { desktopConversations } from "../../services/desktopBridge";
 import type { ConversationRecordV1, MemoryFact } from "../../types/conversationVault";
 
 export function MemoryPanel() {
@@ -27,16 +28,18 @@ export function MemoryPanel() {
   }, []);
 
   async function checkLegacy() {
-    if (typeof window !== "undefined" && window.veniceForge?.conversations) {
-      const detect = await window.veniceForge.conversations.detectLegacyHistory();
+    try {
+      const detect = await desktopConversations.detectLegacyHistory();
       setHasLegacy(detect);
+    } catch {
+      // ignore — desktopConversations no-ops in web mode
     }
   }
 
   async function loadAllFacts() {
-    if (typeof window === "undefined" || !window.veniceForge?.conversations) return;
+    
     try {
-      const res = await window.veniceForge.conversations.list();
+      const res = await desktopConversations.list();
       if (res.ok) {
         const facts: { fact: MemoryFact; record: ConversationRecordV1 }[] = [];
         res.records.forEach((r) => {
@@ -56,10 +59,10 @@ export function MemoryPanel() {
   }
 
   async function handleRebuildIndex() {
-    if (typeof window === "undefined" || !window.veniceForge?.conversations) return;
+    
     setIndexing(true);
     try {
-      const res = await window.veniceForge.conversations.rebuildIndex();
+      const res = await desktopConversations.rebuildIndex();
       if (res.ok) {
         toast.success(`Index rebuilt successfully! Indexed ${res.itemsIndexed} conversations.`);
         setLastIndexed(new Date().toLocaleTimeString());
@@ -74,19 +77,19 @@ export function MemoryPanel() {
   }
 
   async function handleOpenFolder() {
-    if (typeof window === "undefined" || !window.veniceForge?.conversations) return;
+    
     try {
-      await window.veniceForge.conversations.openConversationsFolder();
+      await desktopConversations.openConversationsFolder();
     } catch {
       toast.error("Failed to open vault folder.");
     }
   }
 
   async function handleMigrate() {
-    if (typeof window === "undefined" || !window.veniceForge?.conversations) return;
+    
     setMigrating(true);
     try {
-      const res = await window.veniceForge.conversations.migrateLegacyHistory();
+      const res = await desktopConversations.migrateLegacyHistory();
       if (res.ok) {
         toast.success(
           `Migration completed! Migrated: ${res.migrated}, Failed: ${res.failed}, Skipped: ${res.skipped}`
@@ -104,7 +107,7 @@ export function MemoryPanel() {
   }
 
   async function handleForgetFact(factId: string, record: ConversationRecordV1) {
-    if (typeof window === "undefined" || !window.veniceForge?.conversations) return;
+    
     if (!window.confirm("Are you sure you want the assistant to forget this fact?")) return;
 
     try {
@@ -124,7 +127,7 @@ export function MemoryPanel() {
         },
       };
 
-      const res = await window.veniceForge.conversations.save(updatedRecord);
+      const res = await desktopConversations.save(updatedRecord);
       if (res.ok) {
         toast.success("Fact forgotten successfully.");
         await loadAllFacts();

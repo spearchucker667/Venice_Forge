@@ -415,6 +415,73 @@ export const desktopMedia = {
     if (!isElectron()) return { ok: false, error: "Server-side thumbnails are only available in desktop mode." };
     return window.veniceForge!.files.generateMediaThumb(input);
   },
+
+  /** Saves a base64-encoded image to a sanitized subfolder under
+   *  <Pictures>/Venice Forge/. Desktop-only; web mode falls back to
+   *  a browser download. */
+  async saveRoutedImage(base64Data: string, filename: string, subfolder: string): Promise<{
+    ok: boolean; filePath?: string; error?: string;
+  }> {
+    if (!isElectron()) {
+      const a = document.createElement("a");
+      a.href = base64Data;
+      a.download = filename;
+      a.click();
+      return { ok: true };
+    }
+    return window.veniceForge!.files.saveRoutedImage(base64Data, filename, subfolder);
+  },
+};
+
+/** Conversation vault: next-generation conversation persistence with
+ *  memory, search, and index management. Desktop-only; web mode returns
+ *  stub errors so callers can fall back to IndexedDB. */
+export const desktopConversations = {
+  async list(filter?: {
+    archived?: boolean;
+    pinned?: boolean;
+    tags?: string[];
+    model?: string;
+    dateFrom?: number;
+    dateTo?: number;
+  }): Promise<{ ok: boolean; records: import("../types/conversationVault").ConversationRecordV1[]; error?: string }> {
+    if (!isElectron()) return { ok: false, records: [], error: "Conversation vault is only available in desktop mode." };
+    return window.veniceForge!.conversations.list(filter);
+  },
+  async get(id: string): Promise<{ ok: boolean; record: import("../types/conversationVault").ConversationRecordV1 | null; error?: string }> {
+    if (!isElectron()) return { ok: false, record: null, error: "Conversation vault is only available in desktop mode." };
+    return window.veniceForge!.conversations.get(id);
+  },
+  async save(record: import("../types/conversationVault").ConversationRecordV1): Promise<{ ok: boolean; id: string; error?: string }> {
+    if (!isElectron()) return { ok: false, id: record.id, error: "Conversation vault is only available in desktop mode." };
+    return window.veniceForge!.conversations.save(record);
+  },
+  async delete(id: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Conversation vault is only available in desktop mode." };
+    return window.veniceForge!.conversations.delete(id);
+  },
+  async pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean }): Promise<{
+    ok: boolean; context: import("../types/conversationVault").PulledMemoryContext; error?: string;
+  }> {
+    if (!isElectron()) return { ok: false, context: { injectedText: "", facts: [], summaries: [], tokenEstimate: 0 }, error: "Conversation vault is only available in desktop mode." };
+    return window.veniceForge!.conversations.pullContext(input);
+  },
+  async detectLegacyHistory(): Promise<boolean> {
+    if (!isElectron()) return false;
+    return window.veniceForge!.conversations.detectLegacyHistory();
+  },
+  async rebuildIndex(): Promise<{ ok: boolean; itemsIndexed: number; error?: string }> {
+    if (!isElectron()) return { ok: false, itemsIndexed: 0, error: "Conversation vault is only available in desktop mode." };
+    return window.veniceForge!.conversations.rebuildIndex();
+  },
+  async openConversationsFolder(): Promise<{ ok: boolean }> {
+    if (!isElectron()) return { ok: false };
+    return window.veniceForge!.conversations.openConversationsFolder();
+  },
+  async migrateLegacyHistory(): Promise<{ ok: boolean; migrated: number; failed: number; skipped: number; error?: string }> {
+    if (!isElectron()) return { ok: false, migrated: 0, failed: 0, skipped: 0, error: "Conversation vault is only available in desktop mode." };
+    return window.veniceForge!.conversations.migrateLegacyHistory();
+  },
 };
 
 /** Handles chat history persistence via the main-process filesystem store. */

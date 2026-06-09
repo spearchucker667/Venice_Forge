@@ -9,16 +9,14 @@ import { createSafeStorage } from '../lib/safe-storage'
 import type { PulledMemoryContext } from '../types/conversationVault'
 import { toConversationRecord } from './chat-store-helpers'
 import { useSettingsStore } from './settings-store' // for defaulting projectRefs to active project on create (polished Phase 1)
+import { desktopChat, desktopConversations } from '../services/desktopBridge'
 
 /**
- * LEGACY NOTE (from exhaustive review + AGENTS.md):
- * This store still accesses `window.veniceForge.chat.*` directly in some paths
- * (pre-bridge legacy for desktop chat history).
- * Per AGENTS.md: "src/stores/chat-store.ts accesses window.veniceForge.chat.* directly (pre-bridge legacy).
- * Do not add new direct calls." All new code must go through src/services/desktopBridge.ts.
- * This is the single documented exception. Migration to pure desktopBridge + desktopChat
- * is tracked as P2 item but left as-is to avoid destabilizing the dual (desktop atomic JSON + web IDB)
- * persistence + dirty-map + flush logic (VERIFY-005, VERIFY-021).
+ * LEGACY NOTE: the module-level queueMicrotask at the bottom of this file
+ * still accesses window.veniceForge directly for the initial conversation
+ * hydration. Per AGENTS.md this is the single remaining pre-bridge legacy
+ * spot. All function-level paths (deleteConversation, writeConversation)
+ * now route through desktopBridge.ts. Do not add new direct calls.
  */
 
 interface ChatState {
@@ -201,14 +199,13 @@ export const useChatStore = create<ChatState>()(
           activeConversationId:
             s.activeConversationId === id ? null : s.activeConversationId,
         }))
-        if (typeof window === 'undefined') return
-        const vf = window.veniceForge
-        if (!vf) return
         try {
-          if (vf.conversations?.delete) {
-            await vf.conversations.delete(id)
-          } else if (vf.chat?.delete) {
-            await vf.chat.delete(id)
+          const convRes = await desktopConversations.delete(id)
+          if (!convRes.ok) {
+            const chatRes = await desktopChat.delete(id)
+            if (!chatRes.ok) {
+              console.error('[chat] deleteConversation IPC failed', chatRes.error)
+            }
           }
         } catch (err) {
           console.error('[chat] deleteConversation IPC failed', err)
@@ -374,15 +371,14 @@ function scheduleFlush(): void {
 }
 
 async function writeConversation(conv: Conversation): Promise<void> {
-  if (typeof window === 'undefined') return
-  const vf = window.veniceForge
-  if (!vf) return
   const record = toConversationRecord(conv)
   try {
-    if (vf.conversations?.save) {
-      await vf.conversations.save(record)
-    } else if (vf.chat?.save) {
-      await vf.chat.save(conv)
+    const convRes = await desktopConversations.save(record)
+    if (!convRes.ok) {
+      const chatRes = await desktopChat.save(conv)
+      if (!chatRes.ok) {
+        console.error('[chat] conversations.save failed', chatRes.error)
+      }
     }
   } catch (err) {
     console.error('[chat] conversations.save failed', err)
@@ -429,6 +425,10 @@ export function _debugGetDirtyConversationIds(): readonly string[] {
 // the store's internals.
 export { toConversationRecord } from './chat-store-helpers'
 
+let cleanupUnloadListeners: (() => void) | undefined
+/** Exported for test cleanup only. */
+export { cleanupUnloadListeners }
+
 // Sync conversations with Desktop backend
 if (typeof window !== 'undefined') {
   // Load initially on the next microtask. The previous setTimeout(..., 100)
@@ -470,14 +470,22 @@ if (typeof window !== 'undefined') {
   // We track BOTH the active and any non-active conversation that mutated
   // during the debounce window. `markDirtyConversation` is the entry point
   // called from the subscribe callback below.
-  window.addEventListener("beforeunload", () => {
-    // Fire-and-forget: the browser may not await this promise, but the
-    // IPC channel is still flushed to the main process.
-    void flushAllPendingSaves()
-  })
-  window.addEventListener("pagehide", () => {
-    void flushAllPendingSaves()
-  })
+  cleanupUnloadListeners = (() => {
+    const onBeforeUnload = () => {
+      // Fire-and-forget: the browser may not await this promise, but the
+      // IPC channel is still flushed to the main process.
+      void flushAllPendingSaves()
+    }
+    const onPageHide = () => {
+      void flushAllPendingSaves()
+    }
+    window.addEventListener("beforeunload", onBeforeUnload)
+    window.addEventListener("pagehide", onPageHide)
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload)
+      window.removeEventListener("pagehide", onPageHide)
+    }
+  })()
 
   useChatStore.subscribe((state, prevState) => {
     // If any conversation's identity changed (i.e. it was replaced in

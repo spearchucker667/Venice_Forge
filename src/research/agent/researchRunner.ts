@@ -123,9 +123,10 @@ export async function runResearchJob(input: ResearchJobInput): Promise<ResearchJ
   const store = createEvidenceStore();
 
   // Total job timeout
-  const jobSignal = budget.totalJobTimeoutMs > 0
+  const jobTimeout = budget.totalJobTimeoutMs > 0
     ? createTimeoutSignal(budget.totalJobTimeoutMs, signal)
-    : signal;
+    : null;
+  const jobSignal = jobTimeout?.signal ?? signal;
 
   const allSearchResults: SearchResult[] = [];
   const scrapes: ScrapeResult[] = [];
@@ -158,9 +159,10 @@ export async function runResearchJob(input: ResearchJobInput): Promise<ResearchJ
       assertNotAborted();
       if (queriesUsed.length >= budget.maxQueries) break;
 
-      const requestSignal = budget.perRequestTimeoutMs > 0
+      const requestTimeout = budget.perRequestTimeoutMs > 0
         ? createTimeoutSignal(budget.perRequestTimeoutMs, jobSignal)
-        : jobSignal;
+        : null;
+      const requestSignal = requestTimeout?.signal ?? jobSignal;
       const results = await provider.search!({
         query,
         maxResults: budget.maxResultsPerQuery,
@@ -195,9 +197,10 @@ export async function runResearchJob(input: ResearchJobInput): Promise<ResearchJ
         if (pagesScraped >= budget.maxPages) break;
 
         try {
-          const requestSignal = budget.perRequestTimeoutMs > 0
+          const requestTimeout = budget.perRequestTimeoutMs > 0
             ? createTimeoutSignal(budget.perRequestTimeoutMs, jobSignal)
-            : jobSignal;
+            : null;
+          const requestSignal = requestTimeout?.signal ?? jobSignal;
           const result = await provider.scrape!({
             url,
             timeoutMs: budget.perRequestTimeoutMs,

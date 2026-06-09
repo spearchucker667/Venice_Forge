@@ -96,9 +96,20 @@ export const MAX_SERIALIZED_UPLOAD_BYTES = VENICE_MAX_SERIALIZED_UPLOAD_BYTES;
 const inFlight = new Map<string, Promise<{ data: unknown; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }>>();
 
 // Clear in-flight map on navigation to prevent promise leaks (BUG-013).
-if (typeof window !== "undefined") {
-  window.addEventListener("beforeunload", () => inFlight.clear());
-}
+const cleanupInFlightUnloadListener = (() => {
+  const handler = () => inFlight.clear();
+  if (typeof window !== "undefined") {
+    window.addEventListener("beforeunload", handler);
+  }
+  return () => {
+    if (typeof window !== "undefined") {
+      window.removeEventListener("beforeunload", handler);
+    }
+  };
+})();
+
+/** Exported for test cleanup only. */
+export { cleanupInFlightUnloadListener };
 
 /**
  * Generates a deduplication key from request parameters.
@@ -477,6 +488,7 @@ async function veniceFetchDesktop(
     headers = {} as Record<string, string>,
     isFormData = false,
     retry = true,
+    timeoutMs = undefined as number | undefined,
   }: {
     method?: "GET" | "POST";
     body?: unknown;
@@ -485,6 +497,7 @@ async function veniceFetchDesktop(
     headers?: Record<string, string>;
     isFormData?: boolean;
     retry?: boolean;
+    timeoutMs?: number;
   } = {}
 ): Promise<{ data: unknown; response: VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }> {
   // Serialize FormData before crossing the IPC boundary.
@@ -499,8 +512,12 @@ async function veniceFetchDesktop(
     const startedAt = nowIso();
     let diagHeaders: Record<string, string> = {};
     let response: VeniceForgeResponse | null = null;
+    let clearDesktopSignal: (() => void) | undefined;
     try {
-      if (signal?.aborted) throw new DOMException("Request aborted", "AbortError");
+      const timeout = timeoutMs ? createTimeoutSignal(timeoutMs, signal) : null;
+      const desktopSignal = timeout?.signal ?? signal;
+      clearDesktopSignal = timeout?.clear;
+      if (desktopSignal?.aborted) throw new DOMException("Request aborted", "AbortError");
       response = await desktopVenice.request(
         {
           endpoint,
@@ -508,7 +525,7 @@ async function veniceFetchDesktop(
           body: serializedBody,
           headers,
         },
-        signal
+        desktopSignal
       );
       diagHeaders = response.headers || {};
       const errorMsg = response.ok ? "" : normalizeError(response.status, readDesktopErrorBody(response.body));
@@ -579,6 +596,8 @@ async function veniceFetchDesktop(
         continue;
       }
       throw lastError;
+    } finally {
+      clearDesktopSignal?.();
     }
   }
 
@@ -631,6 +650,7 @@ async function _veniceFetch(
     headers = {} as Record<string, string>,
     isFormData = false,
     retry = true,
+    timeoutMs = undefined as number | undefined,
   }: {
     method?: "GET" | "POST";
     body?: unknown;
@@ -639,6 +659,7 @@ async function _veniceFetch(
     headers?: Record<string, string>;
     isFormData?: boolean;
     retry?: boolean;
+    timeoutMs?: number;
   } = {}
 ): Promise<{ data: unknown; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }> {
   if (isElectron()) {
@@ -650,6 +671,7 @@ async function _veniceFetch(
       headers,
       isFormData,
       retry,
+      timeoutMs,
     });
   }
 
@@ -670,8 +692,10 @@ async function _veniceFetch(
     let response: Response | null = null;
     let diagHeaders: Record<string, string> = {};
     let parsed: unknown = null;
+    let clearFetchSignal: (() => void) | undefined;
     try {
-      const fetchSignal = createTimeoutSignal(60000, signal);
+      const fetchTimeout = createTimeoutSignal(timeoutMs ?? 60000, signal);
+      clearFetchSignal = fetchTimeout.clear;
       response = await fetch(url, {
         method,
         headers: requestHeaders,
@@ -680,7 +704,7 @@ async function _veniceFetch(
           : body === undefined
           ? undefined
           : JSON.stringify(body),
-        signal: fetchSignal,
+        signal: fetchTimeout.signal,
       });
 
       diagHeaders = parseDiagnosticsHeaders(response);
@@ -795,6 +819,8 @@ async function _veniceFetch(
       }
 
       throw lastError;
+    } finally {
+      clearFetchSignal?.();
     }
   }
 
@@ -817,6 +843,7 @@ export async function veniceFetch<T = unknown>(
     headers?: Record<string, string>;
     isFormData?: boolean;
     retry?: boolean;
+    timeoutMs?: number;
     dedupe?: boolean;
     validator?: (data: unknown) => data is T;
   } = {}
@@ -1053,7 +1080,7 @@ export async function veniceStreamChat(
     // SSE connection cannot block the web-mode renderer indefinitely. 5 minutes is
     // generous for even the longest streaming completions.
     const STREAM_TIMEOUT_MS = 300_000;
-    const streamSignal = createTimeoutSignal(STREAM_TIMEOUT_MS, signal);
+    const streamTimeout = createTimeoutSignal(STREAM_TIMEOUT_MS, signal);
 
     let response: Response;
     try {
@@ -1061,13 +1088,15 @@ export async function veniceStreamChat(
         method: "POST",
         headers: requestHeadersWeb,
         body: JSON.stringify(payload),
-        signal: streamSignal,
+        signal: streamTimeout.signal,
       });
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "TimeoutError") {
         throw new Error("Stream timed out after 5 minutes. The server may be overloaded — please try again.");
       }
       throw err;
+    } finally {
+      streamTimeout.clear();
     }
 
     const headers = parseDiagnosticsHeaders(response);

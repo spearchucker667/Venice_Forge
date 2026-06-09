@@ -30,18 +30,19 @@ export default tseslint.config(
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
       "no-console": ["warn", { allow: ["warn", "error"] }],
-      // SAFETY GUARD CONTRACT: the IPC layer (electron/ipc/handlers.ts) is the
-      // authoritative safety-guard boundary. Renderer modules must not call
-      // window.veniceForge.venice.* directly; they must route through
-      // src/services/desktopBridge.ts so the IPC handler intercepts the
-      // call and runs assessChildExploitationSafety(). The single exception
-      // is the desktopBridge itself, plus the preload (which is the
-      // contextBridge surface, not consumer code).
+      // CANONICAL API BOUNDARY: renderer modules must not call
+      // window.veniceForge.* directly. All access must route through
+      // src/services/desktopBridge.ts. The only exceptions are:
+      //   - desktopBridge.ts itself (the bridge implementation)
+      //   - electron/preload.ts (the contextBridge surface)
+      //   - src/stores/chat-store.ts (legacy module-level hydration;
+      //     function-level paths have been refactored — Group C will
+      //     migrate the remaining queueMicrotask).
       "no-restricted-syntax": [
         "error",
         {
-          selector: "MemberExpression[object.property.name='veniceForge'][property.name=/^(request|streamChat|abort)$/]",
-          message: "Do not call window.veniceForge.venice.* directly — route through src/services/desktopBridge.ts so the IPC handler runs the safety guard.",
+          selector: "MemberExpression[object.property.name='veniceForge']",
+          message: "Do not access window.veniceForge.* directly — route through src/services/desktopBridge.ts.",
         },
       ],
     },

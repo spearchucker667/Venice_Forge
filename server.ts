@@ -182,58 +182,74 @@ export function createServerApp() {
   });
 
 
-  // Simple Rate Limiting
+  // Shared Rate Limiting Factory
   const rateLimitWindowMs = AppConfig.RATE_LIMIT_WINDOW_MS;
   const rateLimitMax = AppConfig.RATE_LIMIT_MAX_REQUESTS;
   const MAX_RATE_LIMIT_ENTRIES = 10_000;
-  const reqCounts = new Map<string, { count: number; resetTime: number; lastSeen: number }>();
 
-  const rateLimitCleanupInterval = setInterval(() => {
-    const now = Date.now();
-    for (const [ip, record] of reqCounts.entries()) {
-      if (now > record.resetTime) {
-        reqCounts.delete(ip);
+  function createRateLimiter(label: string): express.RequestHandler {
+    const reqCounts = new Map<string, { count: number; resetTime: number; lastSeen: number }>();
+
+    const cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      for (const [ip, record] of reqCounts.entries()) {
+        if (now > record.resetTime) {
+          reqCounts.delete(ip);
+        }
       }
-    }
-  }, Math.max(10000, rateLimitWindowMs)).unref();
+    }, Math.max(10000, rateLimitWindowMs)).unref();
+
+    // Expose cleanup on the returned function so tests can clean up.
+    (createRateLimiter as unknown as Record<string, unknown>)[`_${label}Cleanup`] = cleanupInterval;
+
+    return (req, res, next) => {
+      const ip = req.ip || "unknown";
+      const now = Date.now();
+      const record = reqCounts.get(ip) || { count: 0, resetTime: now + rateLimitWindowMs, lastSeen: now };
+
+      if (now > record.resetTime) {
+        record.count = 1;
+        record.resetTime = now + rateLimitWindowMs;
+      } else {
+        record.count++;
+      }
+
+      record.lastSeen = now;
+      reqCounts.set(ip, record);
+
+      if (record.count > rateLimitMax) {
+        return res.status(429).json({ error: "Too many requests, please try again later." });
+      }
+      if (reqCounts.size > MAX_RATE_LIMIT_ENTRIES) {
+        let oldestKey: string | undefined;
+        let oldestTime = Infinity;
+        for (const [key, value] of reqCounts.entries()) {
+          if (value.lastSeen < oldestTime) {
+            oldestTime = value.lastSeen;
+            oldestKey = key;
+          }
+        }
+        if (oldestKey !== undefined) {
+          reqCounts.delete(oldestKey);
+        }
+      }
+      next();
+    };
+  }
+
+  const veniceRateLimiter = createRateLimiter("venice");
+  const proxyRateLimiter = createRateLimiter("proxy");
 
   app.use("/api/venice", (req, res, next) => {
     if (!AppConfig.VENICE_API_KEY && AppConfig.NODE_ENV !== "test") {
       return res.status(500).json({ error: "VENICE_API_KEY is not configured on the server." });
     }
-
-    const ip = req.ip || "unknown";
-    const now = Date.now();
-    const record = reqCounts.get(ip) || { count: 0, resetTime: now + rateLimitWindowMs, lastSeen: now };
-
-    if (now > record.resetTime) {
-      record.count = 1;
-      record.resetTime = now + rateLimitWindowMs;
-    } else {
-      record.count++;
-    }
-    
-    record.lastSeen = now;
-    reqCounts.set(ip, record);
-
-    if (record.count > rateLimitMax) {
-      return res.status(429).json({ error: "Too many requests, please try again later." });
-    }
-    if (reqCounts.size > MAX_RATE_LIMIT_ENTRIES) {
-      let oldestKey: string | undefined;
-      let oldestTime = Infinity;
-      for (const [key, value] of reqCounts.entries()) {
-        if (value.lastSeen < oldestTime) {
-          oldestTime = value.lastSeen;
-          oldestKey = key;
-        }
-      }
-      if (oldestKey !== undefined) {
-        reqCounts.delete(oldestKey);
-      }
-    }
-    next();
+    veniceRateLimiter(req, res, next);
   });
+
+  // Apply shared rate limiting to Jina and scrape proxies.
+  app.use("/api/proxy-jina", proxyRateLimiter);
+  app.use("/api/proxy-scrape", proxyRateLimiter);
 
   const MAX_PROXY_BODY_BYTES = AppConfig.MAX_PROXY_BODY_BYTES;
 
@@ -646,7 +662,8 @@ export function createServerApp() {
   });
 
   (app as express.Application & { cleanupIntervals?: () => void; staticRateLimiterCleanup?: ReturnType<typeof setInterval> }).cleanupIntervals = () => {
-    clearInterval(rateLimitCleanupInterval);
+    clearInterval((createRateLimiter as unknown as Record<string, unknown>)._veniceCleanup as ReturnType<typeof setInterval>);
+    clearInterval((createRateLimiter as unknown as Record<string, unknown>)._proxyCleanup as ReturnType<typeof setInterval>);
     if ((app as express.Application & { staticRateLimiterCleanup?: ReturnType<typeof setInterval> }).staticRateLimiterCleanup) {
       clearInterval((app as express.Application & { staticRateLimiterCleanup?: ReturnType<typeof setInterval> }).staticRateLimiterCleanup);
     }

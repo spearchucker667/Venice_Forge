@@ -1,9 +1,23 @@
 import { useState } from 'react'
+import { useShallow } from 'zustand/shallow'
 import { useChatStore } from '../../stores/chat-store'
 import { cn } from '../../lib/utils'
 
 export function VeniceParams() {
-  const { veniceParams, setVeniceParams, systemPrompt, setSystemPrompt, temperature, setTemperature, topP, setTopP, maxTokens, setMaxTokens } = useChatStore()
+  const { veniceParams, setVeniceParams, systemPrompt, setSystemPrompt, temperature, setTemperature, topP, setTopP, maxTokens, setMaxTokens } = useChatStore(
+    useShallow((s) => ({
+      veniceParams: s.veniceParams,
+      setVeniceParams: s.setVeniceParams,
+      systemPrompt: s.systemPrompt,
+      setSystemPrompt: s.setSystemPrompt,
+      temperature: s.temperature,
+      setTemperature: s.setTemperature,
+      topP: s.topP,
+      setTopP: s.setTopP,
+      maxTokens: s.maxTokens,
+      setMaxTokens: s.setMaxTokens,
+    })),
+  )
   const [showSettings, setShowSettings] = useState(false)
 
   return (

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useShallow } from 'zustand/shallow'
 import { usePlaygroundStore, type PlaygroundActivity } from '../../stores/playground-store'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useSettingsStore } from '../../stores/settings-store'
@@ -51,7 +52,17 @@ function summarizeStep(step: RunStep): PlaygroundActivity {
 }
 
 export function PlaygroundChat() {
-  const { messages, draft, isThinking, addMessage, updateMessage, setThinking, applyAgentPatches } = usePlaygroundStore()
+  const { messages, draft, isThinking, addMessage, updateMessage, setThinking, applyAgentPatches } = usePlaygroundStore(
+    useShallow((s) => ({
+      messages: s.messages,
+      draft: s.draft,
+      isThinking: s.isThinking,
+      addMessage: s.addMessage,
+      updateMessage: s.updateMessage,
+      setThinking: s.setThinking,
+      applyAgentPatches: s.applyAgentPatches,
+    })),
+  )
   const hasKey = useAuthStore(selectHasVeniceKey)
   const agentModelId = useSettingsStore((s) => s.playgroundAgentModel) || DEFAULT_AGENT_MODEL
   const { catalog } = useModelCatalog()

@@ -19,6 +19,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useStatusStore } from "../../stores/status-store";
 import { useSettingsStore, type Tab } from "../../stores/settings-store";
 import { useModels } from "../../hooks/use-models";
@@ -122,8 +123,10 @@ function safeRouteTab(id: string): TabId | null {
 }
 
 export function DiagnosticsDrawer() {
+  const drawerRef = useRef<HTMLDivElement>(null)
   const drawerOpen = useStatusStore((s) => s.drawerOpen)
   const closeDrawer = useStatusStore((s) => s.closeDrawer)
+  useFocusTrap(drawerRef, drawerOpen, closeDrawer)
   const status = useStatusStore((s) => s.status)
   const focusedSectionId = useStatusStore((s) => s.focusedSectionId)
   const setFocusedSection = useStatusStore((s) => s.setFocusedSection)
@@ -195,6 +198,7 @@ export function DiagnosticsDrawer() {
 
   return (
     <div
+      ref={drawerRef}
       className="fixed inset-0 z-[170] flex justify-end"
       role="dialog"
       aria-modal="true"

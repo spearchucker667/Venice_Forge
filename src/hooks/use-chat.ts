@@ -1,8 +1,9 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useEffect } from 'react'
 import { veniceStreamChat } from '../services/veniceClient'
 import { useChatStore } from '../stores/chat-store'
 import { useSettingsStore } from '../stores/settings-store'
 import { useCharacterStore } from '../stores/character-store'
+import { desktopConversations } from '../services/desktopBridge'
 import type { ChatMessage, ContentPart, VeniceParameters } from '../types/venice'
 import type { Conversation } from '../types/conversation'
 import { applyVeniceApiSafeMode } from '../shared/veniceSafeMode'
@@ -118,12 +119,12 @@ export function useChat() {
 
       let contextToInject = "";
 
-      if (window.veniceForge?.conversations && enableMemoryRetrieval) {
+      if (enableMemoryRetrieval) {
         if (pendingContext && pendingContext.message === userMessage) {
           contextToInject = pendingContext.injectedText;
           setPendingContext(null);
         } else if (showPulledContextBeforeSending) {
-          const res = await window.veniceForge.conversations.pullContext({ message: userMessage });
+          const res = await desktopConversations.pullContext({ message: userMessage });
           if (res.ok && res.context && res.context.injectedText) {
             setPendingContext({
               ...res.context,
@@ -132,7 +133,7 @@ export function useChat() {
             return;
           }
         } else {
-          const res = await window.veniceForge.conversations.pullContext({ message: userMessage });
+          const res = await desktopConversations.pullContext({ message: userMessage });
           if (res.ok && res.context && res.context.injectedText) {
             contextToInject = res.context.injectedText;
           }
@@ -216,6 +217,15 @@ export function useChat() {
     abortRef.current?.abort()
     setStreaming(false)
   }, [setStreaming])
+
+  // Abort any in-flight stream when the consuming component unmounts
+  // so that callbacks do not fire against detached state.
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort()
+      abortRef.current = null
+    }
+  }, [])
 
   return { send, stop, regenerate, isStreaming }
 }

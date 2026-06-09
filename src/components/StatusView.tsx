@@ -50,7 +50,7 @@ export function StatusView() {
     let cancelled = false;
     void (async () => {
       if (isElectron()) {
-        const result = await window.veniceForge!.app.getDiagnostics();
+        const result = await desktopApp.getDiagnostics();
         if (!cancelled) {
           setDiag({
             appVersion: result.appVersion ?? 'unknown',

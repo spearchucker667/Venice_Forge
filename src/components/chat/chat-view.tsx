@@ -12,6 +12,7 @@ import { ChatInput } from './chat-input'
 import { VeniceParams } from './venice-params'
 import { VeniceLogo } from '../ui/logo'
 import { RefreshCw } from 'lucide-react'
+import { desktopConversations } from '../../services/desktopBridge'
 import { getBalancedPromptStarters } from '../../services/promptStarterService'
 import type { PromptStarter } from '../../data/promptStarters'
 import type { MemoryFact, ConversationRecordV1 } from '../../types/conversationVault'
@@ -92,8 +93,8 @@ export function ChatView() {
   const handleForgetFact = async (factId: string, factText: string) => {
     if (!window.confirm(`Are you sure you want the assistant to permanently forget this fact?\n\n"${factText}"`)) return
     try {
-      if (!window.veniceForge?.conversations) return
-      const res = await window.veniceForge.conversations.list()
+      
+      const res = await desktopConversations.list()
       if (res.ok) {
         const record = res.records.find((r: ConversationRecordV1) => r.memory?.userFacts?.some((f: MemoryFact) => f.id === factId))
         if (record) {
@@ -106,7 +107,7 @@ export function ChatView() {
             updatedAt: Date.now(),
             memory: { ...record.memory, userFacts: updatedFacts }
           }
-          const saveRes = await window.veniceForge.conversations.save(updatedRecord)
+          const saveRes = await desktopConversations.save(updatedRecord)
           if (saveRes.ok) {
             toast.success("Fact permanently forgotten.")
             handleRemoveFact(factId)

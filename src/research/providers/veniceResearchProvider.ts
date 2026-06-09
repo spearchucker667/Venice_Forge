@@ -96,11 +96,9 @@ export const veniceResearchProvider: ResearchProvider = {
         provider,
         maxResults,
       },
-      signal,
-      // Forward timeout as an AbortSignal if the runtime supports it.
-      ...(timeoutMs
-        ? { signal: createTimeoutSignal(timeoutMs, signal) }
-        : {}),
+      signal: timeoutMs
+        ? createTimeoutSignal(timeoutMs, signal).signal
+        : signal,
     });
 
     return normalizeSearch(data, query);
@@ -112,10 +110,9 @@ export const veniceResearchProvider: ResearchProvider = {
     const { data } = await veniceFetch("/augment/scrape", {
       method: "POST",
       body: { url },
-      signal,
-      ...(timeoutMs
-        ? { signal: createTimeoutSignal(timeoutMs, signal) }
-        : {}),
+      signal: timeoutMs
+        ? createTimeoutSignal(timeoutMs, signal).signal
+        : signal,
     });
 
     return normalizeScrape(url, data);

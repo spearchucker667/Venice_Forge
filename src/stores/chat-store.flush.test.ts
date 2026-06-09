@@ -20,7 +20,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vites
  * flush logic.
  */
 
-const saveMock = vi.fn().mockResolvedValue(undefined)
+const saveMock = vi.fn().mockResolvedValue({ ok: true, id: 'mock-id' })
 const listMock = vi.fn().mockResolvedValue({ ok: true, records: [] })
 // The chat-store ALSO checks for a legacy `chat` namespace (the pre-bridge
 // path) when `conversations` is missing. We always provide `conversations`
@@ -31,10 +31,11 @@ const listMock = vi.fn().mockResolvedValue({ ok: true, records: [] })
 // on the missing `chat.save`. Stubbing both namespaces with vi.fn() that
 // return resolved Promises makes the test infrastructure noise-free
 // without affecting the assertions (saveMock is the one we assert on).
-const chatSaveMock = vi.fn().mockResolvedValue(undefined)
+const chatSaveMock = vi.fn().mockResolvedValue({ ok: true })
 const chatListMock = vi.fn().mockResolvedValue([])
 
 const mockVeniceForge = {
+  isDesktop: true,
   conversations: {
     save: saveMock,
     list: listMock,

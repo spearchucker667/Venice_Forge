@@ -244,6 +244,29 @@ describe("server.ts rate limiting", () => {
     expect(res.status).toBe(429);
     expect(res.body.error).toMatch(/too many requests/i);
   });
+
+  it("should rate-limit /api/proxy-jina after 3 requests", async () => {
+    const url = "https://r.jina.ai/https://example.com";
+    for (let i = 0; i < 3; i++) {
+      const res = await request(app).post("/api/proxy-jina").send({ url });
+      // 451 from safety guard is expected for test payload, not 429
+      expect(res.status).not.toBe(429);
+    }
+    const res = await request(app).post("/api/proxy-jina").send({ url });
+    expect(res.status).toBe(429);
+    expect(res.body.error).toMatch(/too many requests/i);
+  });
+
+  it("should rate-limit /api/proxy-scrape after 3 requests", async () => {
+    for (let i = 0; i < 3; i++) {
+      const res = await request(app).post("/api/proxy-scrape").send({ url: "https://example.com" });
+      // 451 from safety guard is expected for test payload, not 429
+      expect(res.status).not.toBe(429);
+    }
+    const res = await request(app).post("/api/proxy-scrape").send({ url: "https://example.com" });
+    expect(res.status).toBe(429);
+    expect(res.body.error).toMatch(/too many requests/i);
+  });
 });
 
 describe("server.ts safety middleware", () => {

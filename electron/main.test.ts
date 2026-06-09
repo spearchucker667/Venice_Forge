@@ -137,3 +137,45 @@ describe("isTrustedExternalUrl", () => {
     expect(isTrustedExternalUrl("https://[0:0:0:0:0:0:0:1]/")).toBe(false);
   });
 });
+
+// P1: --bridge-host must be restricted to loopback addresses only.
+import { isValidBridgeHost } from "./utils/bridgeHost";
+
+describe("isValidBridgeHost", () => {
+  it("allows 127.0.0.1", () => {
+    expect(isValidBridgeHost("127.0.0.1")).toBe(true);
+  });
+
+  it("allows localhost", () => {
+    expect(isValidBridgeHost("localhost")).toBe(true);
+  });
+
+  it("allows ::1", () => {
+    expect(isValidBridgeHost("::1")).toBe(true);
+  });
+
+  it("rejects 0.0.0.0", () => {
+    expect(isValidBridgeHost("0.0.0.0")).toBe(false);
+  });
+
+  it("rejects public IPs", () => {
+    expect(isValidBridgeHost("8.8.8.8")).toBe(false);
+    expect(isValidBridgeHost("1.1.1.1")).toBe(false);
+  });
+
+  it("rejects private LAN IPs", () => {
+    expect(isValidBridgeHost("192.168.1.1")).toBe(false);
+    expect(isValidBridgeHost("10.0.0.1")).toBe(false);
+    expect(isValidBridgeHost("172.16.0.1")).toBe(false);
+  });
+
+  it("rejects empty string", () => {
+    expect(isValidBridgeHost("")).toBe(false);
+  });
+
+  it("rejects null bytes and path separators", () => {
+    expect(isValidBridgeHost("127.0.0.1\0")).toBe(false);
+    expect(isValidBridgeHost("127.0.0.1/")).toBe(false);
+    expect(isValidBridgeHost("127.0.0.1\\")).toBe(false);
+  });
+});

@@ -274,9 +274,10 @@ export function createGenericHttpProvider(config: GenericHttpConfig = {}): Resea
         throw new Error("URL blocked by SSRF safety check.");
       }
 
-      const signal = input.timeoutMs && input.timeoutMs > 0
+      const timeout = input.timeoutMs && input.timeoutMs > 0
         ? createTimeoutSignal(input.timeoutMs, input.signal)
-        : input.signal;
+        : null;
+      const signal = timeout?.signal ?? input.signal;
 
       let proxyData: { url: string; finalUrl: string; contentType: string; body: string };
 

@@ -15,7 +15,7 @@ import { runResearchJob, type ResearchBudget } from "../research/agent/researchR
 import { synthesizeResearch } from "../research/agent/researchSynthesis";
 import { runSocialDiscovery, type SocialProfileCandidate } from "../research/agent/socialDiscovery";
 import { toast } from "../stores/toast-store";
-import { isElectron } from "../services/desktopBridge";
+import { isElectron, desktopApp } from "../services/desktopBridge";
 import { useAuthStore } from "../stores/auth-store";
 import type { DiagnosticsEntry } from "../types/venice";
 import { ResearchWorkspaceView } from "./research/ResearchWorkspaceView";
@@ -113,7 +113,7 @@ export function SearchScrapeView() {
   const refreshDiagnostics = useCallback(async () => {
     if (!isElectron()) return;
     try {
-      const result = await window.veniceForge!.app.getDiagnostics();
+      const result = await desktopApp.getDiagnostics();
       setDiagnostics(result as unknown as DiagnosticsEntry);
     } catch {
       // ignore

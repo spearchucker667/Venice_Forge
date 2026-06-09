@@ -382,6 +382,52 @@ describe("registerIpcHandlers", () => {
       expect(result).toMatchObject({ ok: false });
       expect(result.error).toMatch(/must be a string/i);
     });
+
+    it("rejects blocked executable extensions", async () => {
+      const handler = capturedHandlers.get("app:saveRoutedImage");
+      const dummyBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+      for (const ext of [".exe", ".bat", ".cmd", ".ps1", ".sh", ".js", ".mjs", ".cjs", ".app", ".dmg", ".zip", ".7z", ".pdf", ".html"]) {
+        const result = await handler!(
+          { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+          dummyBase64,
+          `malicious${ext}`,
+          "anime"
+        );
+        expect(result.ok).toBe(false);
+        expect(result.error).toMatch(/not allowed for security reasons/i);
+      }
+    });
+
+    it("rejects unknown extensions not in the allowlist", async () => {
+      const handler = capturedHandlers.get("app:saveRoutedImage");
+      const dummyBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+      const result = await handler!(
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        dummyBase64,
+        "data.txt",
+        "anime"
+      );
+      expect(result.ok).toBe(false);
+      expect(result.error).toMatch(/not in the allowed list/i);
+    });
+
+    it("allows all safe media extensions", async () => {
+      const handler = capturedHandlers.get("app:saveRoutedImage");
+      const dummyBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+      for (const ext of [".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".webm"]) {
+        const result = await handler!(
+          { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+          dummyBase64,
+          `safe${ext}`,
+          "anime"
+        );
+        expect(result.ok).toBe(true);
+        expect(result.filePath).toBeDefined();
+      }
+    });
   });
 
   // P0 #1: Electron Jina/scrape response-body screening. The URL is already

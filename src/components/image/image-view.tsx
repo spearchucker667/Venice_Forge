@@ -14,7 +14,7 @@ import { toast } from '../../stores/toast-store'
 import type { MediaItem } from '../../types/media'
 import { generateId } from '../../lib/utils'
 import { getPromptStartersForCategory } from '../../services/promptStarterService'
-import { isElectron } from '../../services/desktopBridge'
+import { isElectron, desktopMedia } from '../../services/desktopBridge'
 import { PROMPT_TEMPLATES } from '../../constants/promptTemplates'
 import { processBase64Image, routeAsset } from '../../utils/imageProcessor'
 import { getImageModelCapabilities, buildDimensionOptions, getRecipeCapabilityList } from '../../config/image-model-capabilities'
@@ -143,7 +143,7 @@ export function ImageView() {
     const routedFolder = routeAsset(prompt);
     if (isElectron()) {
       try {
-        const result = await window.veniceForge!.files.saveRoutedImage(b64, filename, routedFolder);
+        const result = await desktopMedia.saveRoutedImage(b64, filename, routedFolder);
         if (!result.ok) {
           console.error(`Save failed: ${result.error}`);
         }
