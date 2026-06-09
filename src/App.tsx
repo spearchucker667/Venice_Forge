@@ -29,6 +29,7 @@ import { Toaster } from './components/ui/toaster'
 import { FIRST_RUN_ACK_KEY } from './shared/legal'
 import { applyTheme, resolveInitialTheme } from './theme'
 import { CANONICAL_TAB_ORDER, normaliseTab, type TabId } from './config/tabs'
+import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion'
 
 const LazyWorkflowsView = lazy(() => import('./components/workflows/workflows-view').then((m) => ({ default: m.WorkflowsView })))
 function WorkflowsView() {
@@ -94,6 +95,7 @@ export function App() {
   const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false)
   const activeTab = useSettingsStore((s) => s.activeTab)
   const setActiveTab = useSettingsStore((s) => s.setActiveTab)
+  usePrefersReducedMotion()
 
   // Theme state lifecycle synchronization. Uses the registry-based
   // `resolveInitialTheme` so a future theme can be added without

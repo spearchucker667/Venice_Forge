@@ -91,11 +91,15 @@ describe('venice-client (lib)', () => {
 
     const onDelta = vi.fn()
     await veniceStreamChat('/chat/completions', { prompt: 'hi' }, onDelta)
-    expect(desktopVenice.streamChat).toHaveBeenCalledWith({
-      endpoint: '/chat/completions',
-      method: 'POST',
-      body: { prompt: 'hi' },
-    }, onDelta, undefined)
+    expect(desktopVenice.streamChat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: '/chat/completions',
+        method: 'POST',
+        body: { prompt: 'hi' },
+      }),
+      expect.any(Function),
+      undefined,
+    )
   })
 
   it('should return a blob', async () => {

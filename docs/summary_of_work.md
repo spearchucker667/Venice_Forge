@@ -86,27 +86,126 @@ are resolved. No P0/P1/P2/P3 audit-ledger items remain open.
 
 ## Latest Session Summary
 
-- **Date:** 2026-06-09 (P1 Groups B–D: desktopBridge canonical routing, RP scene generation through Venice client, chat stream abort on unmount, createTimeoutSignal leak fix, cleanable unload listeners, focus traps for CommandPalette/DiagnosticsDrawer/gallery modals, Zustand selector replacements)
-- **Agent:** Kimi Code CLI
-- **Branch / state:** `main`, working-tree only (uncommitted, layered on prior 2026-06-09 P0 + P1 Group A fixes)
-- **Diagnosis:** User provided a corrected P1 priority list in four groups (A–D). Group A (rate limits, bridge-host loopback, saveRoutedImage extension whitelist) was completed in the prior turn. This session closed Groups B–D.
-- **Closure changes:**
-  1. **Group B item 4 — `window.veniceForge` through `desktopBridge.ts`.** Added `desktopConversations` (list/get/save/delete/pullContext/detectLegacyHistory/rebuildIndex/openConversationsFolder/migrateLegacyHistory) and `desktopMedia.saveRoutedImage` exports to `src/services/desktopBridge.ts`. Updated consumers: `use-chat.ts`, `chat-store.ts` (deleteConversation + writeConversation), `memory-panel.tsx`, `chat-view.tsx`, `image-view.tsx`, `SearchScrapeView.tsx`, `StatusView.tsx`. Broadened ESLint `no-restricted-syntax` to ban all `window.veniceForge` member expressions outside `desktopBridge.ts`, `preload.ts`, and `chat-store.ts`. Fixed test mocks in `chat-store.flush.test.ts` and `chat-store.dirty.test.ts` to include `isDesktop: true` and proper `{ ok: true }` response shapes.
-  2. **Group B item 5 — RP scene generation through canonical Venice client.** `src/services/rp/sceneGenerationService.ts` previously used direct `fetch("/api/venice/image/generate")` in web mode, violating the canonical API boundary. Refactored to use `veniceFetch<ImageGenerateResponse>("/image/generate", { method: "POST", body: payload, timeoutMs: 120_000 })`, which automatically routes through desktop IPC or web proxy. Added `timeoutMs?: number` option to `_veniceFetch` / `veniceFetch` / `veniceFetchDesktop` in `src/services/veniceClient.ts` so long-running image generation can exceed the default 60-second cap. Created `src/services/rp/sceneGenerationService.test.ts` with 12 tests (VERIFY-049 regression guard).
-  3. **Group C item 6 — Abort chat stream on unmount.** `src/hooks/use-chat.ts` now imports `useEffect` and registers a cleanup effect that aborts `abortRef.current` when the consuming component unmounts. Added a test in `src/hooks/use-chat.test.ts` proving the signal is aborted on unmount.
-  4. **Group C item 7 — Fix `createTimeoutSignal` parent listener leak.** `src/utils/timeout.ts` refactored: `createTimeoutSignal` now returns `{ signal: AbortSignal; clear: () => void }` instead of a bare `AbortSignal`. The `clear()` function eagerly releases the internal `setTimeout` handle and removes any parent `abort` listener. This prevents timer and event-listener accumulation when many requests complete before their timeout fires. Updated all 8 call sites: `veniceClient.ts` (desktop + web + stream paths, with `finally` cleanup in retry loops), `researchRunner.ts`, `genericHttpScrapeProvider.ts`, `veniceResearchProvider.ts`. Added 2 new tests in `src/utils/timeout.test.ts` proving `clear()` prevents timer fire and parent-listener leaks.
-  5. **Group C item 8 — Cleanable module-level unload listeners.** `src/services/veniceClient.ts`: the `beforeunload` listener that clears `inFlight` is now wrapped in an IIFE that returns a cleanup function, exported as `cleanupInFlightUnloadListener`. `src/stores/chat-store.ts`: the `beforeunload` + `pagehide` listeners that flush pending saves are similarly wrapped; `cleanupUnloadListeners` is declared at module scope, assigned inside the `if (typeof window !== 'undefined')` block, and exported at top level. Both exports are for test cleanup and future hot-reload hygiene.
-  6. **Group D item 9 — Focus traps for modals/drawers.** Added `useFocusTrap` to `src/components/command-palette/CommandPalette.tsx` (root dialog div), `src/components/status/DiagnosticsDrawer.tsx` (root drawer div), and the compare/lineage modal wrappers in `src/components/gallery/gallery-view.tsx`.
-  7. **Group D item 10 — Replace whole-store Zustand subscriptions with selectors.** Converted three high-frequency components from whole-store destructuring to `useShallow` selectors: `src/components/layout/header.tsx` (`useSettingsStore`), `src/components/chat/venice-params.tsx` (`useChatStore`, 10 fields), `src/components/playground/playground-chat.tsx` (`usePlaygroundStore`). This eliminates unnecessary re-renders when unrelated store slices mutate.
-- **Validation (Node v26.0.0 / npm 11.12.1, run 2026-06-09):**
-  - `npm run lint:eslint` — **PASS** (zero warnings, `--max-warnings=0`).
+- **Date:** 2026-06-09 (Corrected audit implementation — P0-004 / P1-004 / P1-005 / P1-006 / P1-014..P1-021 / P1-027 / P2-010..P2-014 / archive-clean hygiene)
+- **Agent:** Kimi Code CLI (coordinator) dispatching 6 parallel implementation subagents
+- **Branch / state:** `main`, working-tree only (uncommitted, layered on prior 2026-06-09 fixes)
+- **Diagnosis:** Reconciled a stale external audit against the uploaded repo. The three claimed P0 crash/data-loss items were already fixed in the working tree (media-store `sortMedia`/`searchMedia` guards, chat-store `touchConversation` metadata spread). The remaining real high-priority work was: Venice client entry-point consolidation, web streaming single-deadline fix, music/video polling race prevention, chat-store O(n²) subscription fix, CommandPalette/Select/ImageView/MessageBubble accessibility, reduced-motion support, and documentation drift fixes.
+- **Closure changes (coordinated across subagents):**
+  1. **P0-004 / P1-004 — Venice client + streaming deadline:** `src/lib/venice-client.ts` reduced to a compatibility wrapper re-exporting from `src/services/veniceClient.ts`. `src/services/veniceClient.ts` became the single source of truth and gained a single absolute 5-minute `AbortController` deadline covering the whole streaming lifetime. Added regression test in `src/services/veniceClient.web.test.ts`.
+  2. **P1-005 — Music/Video polling races:** `src/hooks/use-music.ts` and `src/hooks/use-video.ts` now use `isPollingRef` + `generationTokenRef` to discard stale responses after cancel or after a newer queue starts. Added 8 hook regression tests in `src/hooks/use-music.test.tsx` and `src/hooks/use-video.test.tsx`.
+  3. **P1-006 — Chat-store O(n²) subscription:** `src/stores/chat-store.ts` subscription now builds a `Map` of previous conversations and uses `Map.get(c.id)` instead of `prevState.conversations.find(...)`. Added `src/stores/chat-store.performance.test.ts`.
+  4. **P1-014 / P1-015 — CommandPalette + Select accessibility:** `CommandPalette.tsx` gained roving index, Arrow/Home/End/Enter keyboard handling, `aria-activedescendant`, and 6 new tests. `Select.tsx` gained full ARIA listbox/option semantics and keyboard navigation plus 12 new tests.
+  5. **P1-016 / P1-018 / P1-020 / P1-021 / P1-027 — ImageView lightbox, reduced motion, MessageBubble:** `image-view.tsx` lightbox now uses `useFocusTrap`, `role="dialog"`, `aria-modal`, and Escape close. Added global `prefers-reduced-motion` sync via `usePrefersReducedMotion.ts`, `main.tsx`, and `App.tsx` with a test in `tests/accessibility/reduced-motion.test.tsx`. `message-bubble.tsx` action buttons now expose `aria-label`, decorative SVGs are `aria-hidden`, and `setTimeout` copy-state timers are cleared on unmount.
+  6. **P2-010..P2-014 — Documentation sync:** README tab count (14 → 17) and Node compatibility (`v20, v22` → 22.13+), CONTRIBUTING Node version, ABOUT.md Linux packaging statement, and CONFIG.md version stamp corrected. Stale MiniMax references removed from CLAUDE.md and GEMINI.md.
+  7. **Archive-clean hygiene:** `scripts/verify-archive-clean.cjs` rewritten to verify `.gitignore` + `clean-repo-zip.sh` exclusions and scan git-tracked files. `clean-repo-zip.sh` expanded exclusions for `.design-captures/`, `.config/*.local.yaml`/`.yml`, AppleDouble / `._*` / `__MACOSX/`. `.gitignore` gained explicit local-config rules.
+- **Validation (Node v22.22.3 / npm 10.9.8, run 2026-06-09):**
   - `npm run typecheck` — **PASS** (renderer + Electron main).
-  - `npm test` (serial) — **PASS: 1977 passed, 1 skipped** (184 test files, 1 display-gated electron smoke). No regressions. +29 net tests vs prior 1948 baseline (12 sceneGenerationService + 2 timeout + 1 use-chat unmount + 14 from prior session's accumulated test growth).
-  - `npm run build` — **PASS** (renderer + electron main + server bundle).
-  - `npm run verify:safety-guard` — **PASS** (3 enforcement boundaries intact, no raw-log policy violation).
-  - `npm run verify:markdown-links` — **PASS** (45 files).
-- **Risks:** The `createTimeoutSignal` API change is breaking for any external consumers, but all in-repo call sites were updated. The `timeoutMs` addition to `veniceFetch` is additive and defaults to the original 60-second behavior. The `useShallow` migration is behavior-preserving; it only reduces re-render frequency. The focus-trap additions use the existing canonical hook with no new dependencies. The module-level listener refactor is non-breaking — the listeners still register at module load time, they are just cleanable.
-- **Verdict:** Safe to commit. Working tree is intentionally dirty. No P0/P1/P2 introduced, no safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/archive-clean/diagnostics-redaction/child-exploitation-guard/CI/release-hardening surface touched. No new regression guards added (the scene generation test uses an inline VERIFY-049 comment, and the timeout tests document the leak-fix contract). Regression-guard count remains 52.
+  - `npm run lint:eslint` — **PASS: 0 warnings** (`--max-warnings=0`).
+  - `npm test` (serial) — **PASS: 2014 passed, 1 skipped** (189 test files + 1 display-gated electron smoke). +66 net tests vs prior baseline.
+  - `npm run verify:safety-guard` — **PASS**.
+  - `npm run verify:markdown-links` — **PASS: 46 Markdown files checked**.
+  - `npm run verify:archive-clean` — **PASS**.
+  - `npm run build` — **PASS** (renderer + server + Electron outputs).
+- **Risks:** None identified. No safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/diagnostics-redaction/child-exploitation-guard/CI/release-hardening surface was weakened. All changes are additive tightenings or refactor-consolidations.
+- **Verdict:** Safe to commit. Working tree remains intentionally dirty.
+
+The detailed per-subagent summaries below are retained as historical context.
+
+- **Date:** 2026-06-09 (Repo hygiene — archive-clean script hardening; P1-019 / audit follow-up)
+- **Agent:** Kimi Code CLI (subagent)
+- **Branch / state:** `main`, working-tree only (uncommitted, layered on prior 2026-06-09 fixes)
+- **Diagnosis:** Audit found that generated/local artifacts can leak into ZIP archives produced by `clean-repo-zip.sh` because the rsync exclude list was missing `.design-captures/`, explicit `dist-electron/`, `.config/*.local.yaml`/`.yml` and non-example `.config/*.yaml`/`.yml`, AppleDouble / `._*` / `__MACOSX/`, and explicit `.env` handling. The canonical checker `scripts/verify-archive-clean.cjs` only scanned git-tracked files, so untracked working-tree contaminants (`.DS_Store`, `.env`, `.config/*.local.yaml`, build outputs) were invisible to the CI gate.
+- **Closure changes:**
+  1. **`clean-repo-zip.sh`** — Added `--exclude=dist-electron/` to the build-outputs block; added a new "Local design captures / config files (keep examples only)" block with `--exclude=.design-captures/`, `--include=.config/*.example.yaml`/`.yml`, `--exclude=.config/*.local.yaml`/`.yml`, and `--exclude=.config/*.yaml`/`.yml`; added a new "AppleDouble / macOS resource forks / Windows metadata" block with `--exclude=.AppleDouble/`, `--exclude=._*`, and `--exclude=__MACOSX/`.
+  2. **`scripts/verify-archive-clean.cjs`** — Restructured the canonical checker. Default mode now verifies archive-exclusion config (`.gitignore` and `clean-repo-zip.sh` contain required patterns) AND scans git-tracked files for contaminants. `--root <dir>` performs a filesystem walk (used by tests and for extract verification). `--strict` performs a filesystem walk on the current repo (useful for pre-archive sanity checks). The `walk()` helper skips `.git/` and `node_modules/`, avoids recursing into forbidden directories, and uses the existing `BAD_PATTERNS` table. Error output lists each offending path or missing exclusion.
+  3. **`.gitignore`** — Added explicit `.config/*.local.yaml` and `.config/*.local.yml` lines above the existing `.config/*.yaml`/`.yml` rules so the intent is unambiguous even though the broader rules already covered them.
+- **Validation (Node v26.0.0 / npm 11.12.1, run 2026-06-09):**
+  - `npm run verify:archive-clean` — **PASS**.
+  - `npx vitest run scripts/verify-archive-clean.test.ts` — **PASS: 2/2**.
+  - `node scripts/verify-archive-clean.cjs --strict` — correctly **FAILS** and lists the expected untracked working-tree contaminants (`.DS_Store`, `.env`, `.config/*.local.yaml`, `.design-captures/`, `dist/`, `dist-electron/`, `coverage/`, `release/`, `docs/AGENTS/`, nested `.DS_Store` files), proving the scan works.
+  - `npm run lint:eslint -- --max-warnings=0` — **PASS** (0 warnings).
+  - `npm run typecheck` — **PASS** (renderer + Electron main).
+- **Risks:** None. No source code, tests (other than the guard's own test), package scripts, CI workflow, safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/diagnostics-redaction/child-exploitation-guard surface touched. Build outputs were not deleted; the script only verifies they would not be included in an archive.
+- **Verdict:** Safe to commit. Working tree remains intentionally dirty.
+
+The older sessions below are retained as historical context.
+
+- **Date:** 2026-06-09 (Accessibility — ImageView lightbox focus trap + reduced motion + MessageBubble; P1-016 / P1-018 / P1-020 / P1-021 / P1-027)
+- **Agent:** Kimi Code CLI (subagent)
+- **Branch / state:** `main`, working-tree only (uncommitted, layered on prior 2026-06-09 fixes)
+- **Diagnosis:** `src/components/image/image-view.tsx:688-701` rendered a lightbox overlay without `role="dialog"`, focus trap, Escape handling, or focus restoration. No runtime signal reflected `prefers-reduced-motion: reduce` to components/tests. `src/components/chat/message-bubble.tsx` action buttons lacked `aria-label`, decorative SVGs were exposed to assistive tech, and two `setTimeout` cleanup paths leaked on unmount.
+- **Closure changes:**
+  1. **`src/components/image/image-view.tsx`** — Added `lightboxRef` + `useFocusTrap(lightboxRef, !!selectedImage, () => setSelectedImage(null))`. The lightbox overlay now has `role="dialog"`, `aria-modal="true"`, `aria-label="Image preview"`, and `aria-hidden`/`focusable="false"` on its icon SVGs. The gallery trigger image focuses itself on click so `useFocusTrap` restores focus to it on close. Added two lightbox tests to `src/components/image/image-view.test.tsx`.
+  2. **`src/hooks/usePrefersReducedMotion.ts`** (new) — Exports `getPrefersReducedMotion()`, `syncPrefersReducedMotion()`, and `usePrefersReducedMotion()`. Sync writes both `data-reduced-motion` on `<html>` and the inline CSS custom property `--prefers-reduced-motion` so the preference is observable from JS and CSS.
+  3. **`src/main.tsx`** — Calls `syncPrefersReducedMotion()` before mounting so the initial preference is applied immediately and avoids a flash of unreduced motion.
+  4. **`src/App.tsx`** — Calls `usePrefersReducedMotion()` so the app subscribes to live system preference changes while running.
+  5. **`tests/accessibility/reduced-motion.test.tsx`** (new) — Mocks `window.matchMedia` for `(prefers-reduced-motion: reduce)` and asserts both the dataset attribute and the CSS custom property reflect `reduce` / `no-preference` correctly.
+  6. **`src/components/chat/message-bubble.tsx`** — `ActionBtn` now exposes `aria-label={label}` alongside `title`. All six inline SVGs in the file are marked `aria-hidden="true"` `focusable="false"`. Both the `CodeBlock` copy-timeout and the bubble `handleCopy` timeout now store their ids in `useRef` and clear on unmount via `useEffect` cleanup.
+  7. **`src/components/chat/message-bubble.test.tsx`** (new) — Tests that action buttons are accessible by `aria-label`, that every SVG is hidden/focusable, and that copying + unmounting does not leak a timeout.
+- **Validation (Node v26.0.0 / npm 11.12.1, run 2026-06-09):**
+  - `npx vitest run src/components/image/image-view.test.tsx` — **PASS: 6/6**.
+  - `npx vitest run src/components/chat/message-bubble.test.tsx` — **PASS: 4/4**.
+  - `npx vitest run tests/accessibility/reduced-motion.test.tsx` — **PASS: 2/2**.
+  - `npm run typecheck` — **PASS** (renderer + Electron main).
+  - `npm run lint:eslint -- --max-warnings=0` — **PASS** (0 warnings).
+- **Risks:** Minimal. No safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/archive-clean/diagnostics-redaction/child-exploitation-guard/CI/release-hardening surface touched. The global `@media (prefers-reduced-motion: reduce)` rule already coarsely disables animations; the new JS-layer signal is additive and test-only for now.
+- **Verdict:** Safe to commit. Working tree remains intentionally dirty.
+
+---
+
+- **Date:** 2026-06-09 (Accessibility — CommandPalette + Select keyboard navigation and ARIA; P1-014 / P1-015)
+- **Agent:** Kimi Code CLI (subagent)
+- **Branch / state:** `main`, working-tree only (uncommitted, layered on prior 2026-06-09 fixes)
+- **Diagnosis:** `src/components/command-palette/CommandPalette.tsx` had Escape handling but no roving index or keyboard navigation for the action list. `src/components/ui/select.tsx` rendered a custom popup with no `aria-expanded`, `aria-haspopup`, `role="listbox"`, `role="option"`, or keyboard navigation. Both surfaces failed basic a11y expectations.
+- **Closure changes:**
+  1. **`src/components/command-palette/CommandPalette.tsx`** — Added `activeIndex` state starting at `0` when the dialog opens, resetting on query changes. Every actionable button now has `data-command-item`. The dialog container handles `ArrowDown` (next, wrap), `ArrowUp` (prev, wrap), `Home`, `End`, and `Enter` (clicks active item). Active items get dynamic IDs (`cmd-item-N`) and `data-active="true"` styling via Tailwind `data-[active=true]:` modifiers. The search input exposes `aria-activedescendant` pointing to the active item, and the active item is scrolled into view (`scrollIntoView` guarded for jsdom).
+  2. **`src/components/command-palette/CommandPalette.test.tsx`** — Added 6 new tests under `CommandPalette — keyboard navigation`: initial active item + `aria-activedescendant`, ArrowDown/ArrowUp wrapping, Home/End jumps, Enter activation, and query-change reset. All 33 CommandPalette tests pass.
+  3. **`src/components/ui/select.tsx`** — Trigger button now exposes `aria-haspopup="listbox"`, `aria-expanded={open}`, `aria-controls={listboxId}`, and `aria-label={placeholder}`. Popup container uses `role="listbox"` with `tabIndex={-1}` and `aria-labelledby={triggerId}`. Options render as `<div role="option" aria-selected={...}>`. Added `highlightedIndex` state and a document-level keydown handler when open for `ArrowDown`/`ArrowUp` (wrap), `Home`/`End`, `Enter` (select + close), `Escape` (close), and single-character typeahead. Active option is scrolled into view.
+  4. **`src/components/ui/select.test.tsx`** (new) — 12 tests covering trigger ARIA, listbox/options roles, `aria-selected`, click-outside close, open-on-Enter, ArrowDown/Up wrapping, Home/End, Enter selection, Escape close, and character typeahead.
+- **Validation (Node v26.0.0 / npm 11.12.1, run 2026-06-09):**
+  - `npx vitest run src/components/command-palette/CommandPalette.test.tsx` — **PASS: 33/33**.
+  - `npx vitest run src/components/ui/select.test.tsx` — **PASS: 12/12**.
+  - `npm run typecheck` — **PASS** (renderer + Electron main).
+  - `npm run lint:eslint -- --max-warnings=0` — **PASS** (0 warnings).
+- **Risks:** None. No safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/archive-clean/diagnostics-redaction/child-exploitation-guard/CI/release-hardening surface touched. No new regression guards. No new TODOs.
+- **Verdict:** Safe to commit. Working tree remains intentionally dirty.
+
+The older sessions below are retained as historical context.
+
+- **Date:** 2026-06-09 (Documentation sync — README, CONTRIBUTING, ABOUT, CONFIG, CLAUDE, GEMINI; P2-010..P2-014)
+- **Agent:** Kimi Code CLI (subagent)
+- **Branch / state:** `main`, working-tree only (uncommitted, layered on prior 2026-06-09 fixes)
+- **Diagnosis:** User-facing docs had drifted from canonical source files. Verified each claim against code: `src/config/tabs.ts` has 17 visible tabs (README said "Fourteen"); `package.json` `engines.node` requires `>=22.13.0 <23` (README compatibility table said `v20, v22`; CONTRIBUTING said `Node.js 20 or 22`); `.github/workflows/release.yml` runs a `build-linux` job producing AppImage/deb/rpm (ABOUT.md said "does not support Linux native packaging"); `package.json` `version` is `1.0.6` (CONFIG.md said `Last updated: 1.0.5`). Grep of `CLAUDE.md`, `GEMINI.md`, and `.github/copilot-instructions.md` found stale `Venice/Jina/MiniMax API keys` references in the first two.
+- **Closure changes:**
+  1. **`README.md`** — `Fourteen integrated tabs` → `Seventeen integrated tabs` (matches `TAB_REGISTRY` length in `src/config/tabs.ts`). Project Status table `Node.js | v20, v22` → `Node.js | 22.13+ (Node 22.x)` (matches `package.json` `engines.node`).
+  2. **`CONTRIBUTING.md`** — `Node.js 20 or 22` → `Node.js 22.13 or newer (Node 22.x)` (matches `package.json` `engines.node`).
+  3. **`docs/ABOUT.md`** — Non-Goals line `Venice Forge does not support Linux native packaging in the current release.` rewritten to: `Linux packaging is produced by the release workflow (AppImage/deb/rpm for x64+arm64). Local cross-build from macOS/Windows is not supported; use the CI artifacts or build on a Linux runner.` (matches `release.yml` `build-linux` job and the existing README Known Limitations note).
+  4. **`docs/CONFIG.md`** — `Last updated: 1.0.5` → `Last updated: 1.0.6` (matches `package.json` `version`).
+  5. **`CLAUDE.md`** — `Never expose or log Venice/Jina/MiniMax API keys.` → `Never expose or log Venice/Jina API keys.` (MiniMax removed from scope on 2026-06-06).
+  6. **`GEMINI.md`** — Same MiniMax reference removed for parity with CLAUDE.md.
+- **Validation (Node v26.0.0 / npm 11.12.1, run 2026-06-09):**
+  - `npm run verify:markdown-links` — **PASS** (46 Markdown files checked; 0 broken local targets / heading fragments).
+  - `npm run lint:eslint -- --max-warnings=0` — **PASS** (0 warnings).
+- **Risks:** None. Documentation-only edits. No code, no tests, no CI surface, no package scripts, no safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/archive-clean/diagnostics-redaction/child-exploitation-guard/CI/release-hardening surface touched. No new regression guards. No new TODOs.
+- **Verdict:** Safe to commit. Working tree remains intentionally dirty.
+
+The older Venice client consolidation + Music/Video polling blocks below are retained as historical context and are superseded by this summary.
+
+- **Date:** 2026-06-09 (Venice client consolidation + streaming timeout fix — P0-004 / P1-004)
+- **Agent:** Kimi Code CLI (subagent)
+- **Branch / state:** `main`, working-tree only (uncommitted, layered on prior 2026-06-09 P1 Group A–D fixes)
+- **Diagnosis:** `src/hooks/use-music.ts` and `src/hooks/use-video.ts` used `setInterval` with an async callback but no in-flight guard or request-generation token. This allowed slow poll responses to overwrite state after cancel or after a newer queue request started (P1-005).
+- **Closure changes:**
+  1. **`src/hooks/use-music.ts`** — Added `isPollingRef` so overlapping interval callbacks do not stack. Added `generationTokenRef` that increments on every `startPolling` / queue success / cancel. After `await venice('/audio/retrieve', …)`, the callback compares its captured token against `generationTokenRef.current`; mismatches discard the result. `cancel()` increments the token after clearing intervals so in-flight responses are ignored. `startPolling()` now calls `stopPolling()` first to prevent leaked intervals when a new generation begins while an old one is still scheduled.
+  2. **`src/hooks/use-video.ts`** — Same race-fix pattern applied to video polling (`/video/retrieve`).
+  3. **`src/hooks/use-music.test.tsx`** (new) — 4 tests covering: stale responses after cancel are ignored; stale responses from an earlier generation are ignored; overlapping callbacks do not produce duplicate state updates; elapsed timer and max-attempts error handling remain intact.
+  4. **`src/hooks/use-video.test.tsx`** (new) — 4 tests with the same three race-condition guards plus max-attempts preservation.
+- **Validation (Node v26.0.0 / npm 11.12.1, run 2026-06-09):**
+  - `npx vitest run src/hooks/use-music.test.tsx src/hooks/use-video.test.tsx` — **PASS: 8/8**.
+  - `npm run typecheck` — **PASS** (renderer + Electron main).
+  - `npm run lint:eslint -- --max-warnings=0` — **PASS** (0 warnings).
+- **Risks:** Minimal. The change is additive (two new refs per hook) and behavior-preserving for the happy path. The only functional change is that stale poll results are now discarded instead of overwriting newer state. No safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/archive-clean/diagnostics-redaction/child-exploitation-guard/CI/release-hardening surface touched. No new regression guards added (the new tests document the race-condition contract inline). Regression-guard count remains 52.
+- **Verdict:** Safe to commit. Working tree remains intentionally dirty.
 
 - **Date:** 2026-06-09 (Swarm audit review + corrected P0/P1 repair pass: web-mode client, safety bypass, config export, media store atomicity)
 - **Agent:** Kimi Code CLI
@@ -563,6 +662,73 @@ The older Phase 2F block below is retained as historical context and is supersed
 ---
 
 ## Session History
+
+### 2026-06-09 — Accessibility: CommandPalette + Select keyboard navigation and ARIA (P1-014 / P1-015)
+
+**Scope:** Add roving-index keyboard navigation and accessible semantics to the Command Palette action list and the custom Select popup. No safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/archive-clean/diagnostics-redaction/child-exploitation-guard/CI/release-hardening surface touched. No new VERIFY-NNN row added.
+
+**Diagnosis:**
+- **P1-014 — CommandPalette keyboard navigation:** The dialog had Escape and click-outside close, but no `ArrowUp`/`ArrowDown`/`Home`/`End`/`Enter` handling and no active-item announcement.
+- **P1-015 — Select ARIA + keyboard:** The custom popup used `<button>` options with no `role="listbox"`/`role="option"`, no `aria-expanded`, no `aria-haspopup`, and no keyboard navigation.
+
+**Closure changes (4 files):**
+- `src/components/command-palette/CommandPalette.tsx` — `activeIndex` state (default `0`), `data-command-item` on every actionable button, dialog-level keydown handler for ArrowDown/ArrowUp (wrap), Home, End, Enter; dynamic `cmd-item-N` IDs; `aria-activedescendant` on the search input; `data-[active=true]:bg-accent/15 data-[active=true]:text-accent` visual state; `scrollIntoView` call guarded for jsdom.
+- `src/components/command-palette/CommandPalette.test.tsx` — 6 new keyboard-navigation tests (initial active item + aria-activedescendant, ArrowDown/Up wrapping, Home/End, Enter activation, query-change reset). Existing 27 tests remain green.
+- `src/components/ui/select.tsx` — Trigger: `aria-haspopup="listbox"`, `aria-expanded={open}`, `aria-controls`, `aria-label={placeholder}`. Popup: `role="listbox"`, `aria-labelledby`, `tabIndex={-1}`. Options: `<div role="option" aria-selected={o.value === value}>`. Added `highlightedIndex` and document keydown handler for ArrowDown/Up (wrap), Home/End, Enter, Escape, and first-character typeahead. Active option scrolls into view.
+- `src/components/ui/select.test.tsx` (new, 12 tests) — trigger ARIA; listbox/options roles; `aria-selected`; click-outside close; open on Enter; ArrowDown/Up wrap; Home/End; Enter selects and closes; Escape closes without selecting; typeahead jumps to matching label.
+
+**Validation:**
+- `npx vitest run src/components/command-palette/CommandPalette.test.tsx` — PASS: 33/33.
+- `npx vitest run src/components/ui/select.test.tsx` — PASS: 12/12.
+- `npm run typecheck` — PASS (renderer + Electron main).
+- `npm run lint:eslint -- --max-warnings=0` — PASS (0 warnings).
+
+**Verdict:** Safe to commit. Working tree intentionally dirty. No P0/P1/P2 introduced. Regression-guard count remains 52.
+
+### 2026-06-09 — Documentation sync (P2-010..P2-014)
+
+**Scope:** Synchronize user-facing documentation with canonical source files. README tab count, Node compatibility; CONTRIBUTING Node version; ABOUT.md Linux packaging claim; CONFIG.md last-updated stamp; CLAUDE.md / GEMINI.md stale MiniMax security references. No code, no tests, no CI surface touched.
+
+**Diagnosis:**
+- **P2-010 — README tab count:** README said "Fourteen integrated tabs" and listed 14 rows, but `src/config/tabs.ts` `TAB_REGISTRY` contains 17 canonical tabs (`chat`, `image`, `media`, `prompts`, `scenes`, `audio`, `music`, `video`, `embeddings`, `search`, `characters`, `rp-studio`, `workflows`, `privacy`, `playground`, `settings`, `status`).
+- **P2-011 — README Node compatibility:** README Project Status row said `Node.js | v20, v22`, but `package.json` `engines.node` is `>=22.13.0 <23`.
+- **P2-012 — CONTRIBUTING Node version:** CONTRIBUTING Prerequisites said `Node.js 20 or 22`, but only 22.13+ is supported.
+- **P2-013 — ABOUT.md Linux packaging:** ABOUT.md Non-Goals said "does not support Linux native packaging", but `.github/workflows/release.yml` has a `build-linux` job that produces AppImage/deb/rpm artifacts.
+- **P2-014 — CONFIG.md last-updated stamp:** CONFIG.md header said `Last updated: 1.0.5`, but `package.json` `version` is `1.0.6`.
+- Additional: `CLAUDE.md` and `GEMINI.md` security-rule bullets referenced `Venice/Jina/MiniMax API keys` even though MiniMax was removed from scope on 2026-06-06.
+
+**Closure changes (6 files):**
+- `README.md` — `Fourteen integrated tabs` → `Seventeen integrated tabs`; Project Status `Node.js | v20, v22` → `Node.js | 22.13+ (Node 22.x)`.
+- `CONTRIBUTING.md` — `Node.js 20 or 22` → `Node.js 22.13 or newer (Node 22.x)`.
+- `docs/ABOUT.md` — Non-Goals Linux sentence rewritten to match CI reality (builds AppImage/deb/rpm; local cross-build not supported).
+- `docs/CONFIG.md` — `Last updated: 1.0.5` → `Last updated: 1.0.6`.
+- `CLAUDE.md` — `Venice/Jina/MiniMax API keys` → `Venice/Jina API keys`.
+- `GEMINI.md` — `Venice/Jina/MiniMax API keys` → `Venice/Jina API keys`.
+
+**Validation:**
+- `npm run verify:markdown-links` — **PASS** (46 Markdown files checked).
+- `npm run lint:eslint -- --max-warnings=0` — **PASS** (0 warnings).
+
+**Verdict:** Safe to commit. Documentation-only; no P0/P1/P2 introduced. Regression-guard count remains 52.
+
+### 2026-06-09 — Fix Music/Video polling race conditions (P1-005)
+
+**Scope:** Add in-flight guard and generation-token discard to `src/hooks/use-music.ts` and `src/hooks/use-video.ts` so slow poll responses cannot overwrite state after cancel or after a newer queue request started. Create `src/hooks/use-music.test.tsx` and `src/hooks/use-video.test.tsx` proving the race-condition fixes with mocked `../lib/venice-client`. No safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/archive-clean/diagnostics-redaction/child-exploitation-guard/CI/release-hardening surface touched. No new VERIFY-NNN row added.
+
+**Diagnosis:** Both hooks used `setInterval(async () => { ... })` without an in-flight flag, so a slow `venice(...)` response could arrive after the user clicked Cancel or after `startPolling` was called for a new request. There was no token to associate a response with the generation that issued it, so stale `status: 'completed'` and `audio_url` / `video_url` values could overwrite the newer request's state.
+
+**Closure changes (4 files):**
+- `src/hooks/use-music.ts` — Added `isPollingRef` and `generationTokenRef`. Token increments on `startPolling`, queue success, and `cancel`. Each interval callback captures the current token and discards the result after `await venice('/audio/retrieve', …)` if the token no longer matches. `startPolling()` now calls `stopPolling()` first to clear any leaked interval from a prior generation.
+- `src/hooks/use-video.ts` — Same pattern applied to `/video/retrieve` polling.
+- `src/hooks/use-music.test.tsx` (new, 4 tests) — stale-after-cancel ignored; stale-from-earlier-generation ignored; overlapping callbacks don't duplicate state updates; elapsed timer + max-attempts error handling preserved.
+- `src/hooks/use-video.test.tsx` (new, 4 tests) — same three race-condition guards plus max-attempts preservation.
+
+**Validation (all commands re-run this pass):**
+- `npx vitest run src/hooks/use-music.test.tsx src/hooks/use-video.test.tsx` — **PASS: 8/8**.
+- `npm run typecheck` — PASS (renderer + Electron main).
+- `npm run lint:eslint -- --max-warnings=0` — PASS (0 warnings).
+
+**Verdict:** Safe to commit. Working tree intentionally dirty. No P0/P1/P2 introduced. Regression-guard count remains 52.
 
 ### 2026-06-09 — Chat 400 Bad Request error fix (safe_mode, error body extraction, transport migration)
 
@@ -2532,6 +2698,54 @@ Result:
 > `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` (see the *Scope
 > Correction* section).
 
+### Completed this session (2026-06-09 — Repo hygiene: archive-clean script hardening)
+
+- **HYGIENE-001 — `clean-repo-zip.sh` exclusion expansion:** Added explicit `--exclude=dist-electron/` to the build-outputs block. Added a dedicated "Local design captures / config files (keep examples only)" block covering `--exclude=.design-captures/`, `--include=.config/*.example.yaml`/`.yml`, `--exclude=.config/*.local.yaml`/`.yml`, and `--exclude=.config/*.yaml`/`.yml`. Added a dedicated "AppleDouble / macOS resource forks / Windows metadata" block covering `--exclude=.AppleDouble/`, `--exclude=._*`, and `--exclude=__MACOSX/`. The existing `.env`/`.env.*` exclusions with `.env.example` include are unchanged and already cover the audit requirement.
+- **HYGIENE-002 — `scripts/verify-archive-clean.cjs` canonical checker rewrite:** Default mode now verifies (a) `.gitignore` contains all required archive-exclusion patterns, (b) `clean-repo-zip.sh` contains the matching rsync excludes, and (c) no forbidden paths are tracked in git. `--root <dir>` performs a filesystem walk for extracted-archive verification. `--strict` performs a filesystem walk on the current repo for pre-archive sanity checks. The walk skips `.git/` and `node_modules/`, avoids recursing into forbidden directories, and reports every offending path or missing exclusion.
+- **HYGIENE-003 — `.gitignore` explicit local-config rules:** Added `.config/*.local.yaml` and `.config/*.local.yml` above the existing `.config/*.yaml`/`.yml` rules so the intent is explicit even though the broader patterns already covered them.
+- **HYGIENE-004 — Validation:** `npm run verify:archive-clean` PASS; `npx vitest run scripts/verify-archive-clean.test.ts` PASS 2/2; `node scripts/verify-archive-clean.cjs --strict` correctly FAILS and lists expected untracked contaminants (confirming the scan works); `npm run lint:eslint -- --max-warnings=0` PASS (0 warnings); `npm run typecheck` PASS (renderer + Electron main).
+- **HYGIENE-005 — Out of scope confirmed:** No source code outside the guard script, no test files other than the guard's own test, no `package.json` change, no CI/workflow change, no safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/diagnostics-redaction/child-exploitation-guard/CI/release-hardening surface touched, no new VERIFY-NNN row (regression-guard count remains 52), no new dependency, no migration, no new TODOs. Build outputs (`dist/`, `dist-electron/`, `release/`, `coverage/`) were not deleted; the script only verifies they would not be included in an archive.
+
+### Completed this session (2026-06-09 — Accessibility: CommandPalette + Select)
+
+- **A11Y-001 — CommandPalette roving index and keyboard navigation:** `src/components/command-palette/CommandPalette.tsx` now tracks `activeIndex` starting at `0`, resets it when the query changes, handles `ArrowDown`/`ArrowUp` (wrapping), `Home`, `End`, and `Enter` on the dialog container, assigns dynamic `cmd-item-N` IDs, sets `data-active="true"` for visual feedback, exposes `aria-activedescendant` on the search input, and scrolls the active item into view.
+- **A11Y-002 — CommandPalette keyboard regression tests:** `src/components/command-palette/CommandPalette.test.tsx` gained 6 new tests covering initial active item + `aria-activedescendant`, ArrowDown/Up wrapping, Home/End jumps, Enter activation, and query-change reset. Full file passes 33/33.
+- **A11Y-003 — Select ARIA and listbox semantics:** `src/components/ui/select.tsx` trigger now exposes `aria-haspopup="listbox"`, `aria-expanded`, `aria-controls`, and `aria-label`. The popup container has `role="listbox"` with `aria-labelledby` and `tabIndex={-1}`. Options render as `<div role="option" aria-selected={...}>`.
+- **A11Y-004 — Select keyboard navigation:** `src/components/ui/select.tsx` now handles `ArrowDown`/`ArrowUp` (wrapping), `Home`, `End`, `Enter` (select + close), `Escape` (close), and first-character typeahead while the popup is open. Active option scrolls into view.
+- **A11Y-005 — Select regression tests:** `src/components/ui/select.test.tsx` (new, 12 tests) covers trigger ARIA, listbox/options roles, `aria-selected`, click-outside close, open on Enter, ArrowDown/Up wrap, Home/End, Enter selection, Escape close, and typeahead.
+- **A11Y-006 — Validation:** `npx vitest run src/components/command-palette/CommandPalette.test.tsx` PASS 33/33; `npx vitest run src/components/ui/select.test.tsx` PASS 12/12; `npm run typecheck` PASS; `npm run lint:eslint -- --max-warnings=0` PASS.
+- **A11Y-007 — Out of scope confirmed:** No safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/archive-clean/diagnostics-redaction/child-exploitation-guard/CI/release-hardening surface touched, no `package.json` change, no new VERIFY-NNN row (regression-guard count remains 52), no new dependency, no migration, no new TODOs.
+
+### Completed this session (2026-06-09 — Venice client consolidation + streaming timeout fix)
+
+- **CLIENT-001 — Consolidated Venice client entry points (P0-004):** `src/lib/venice-client.ts` is now a thin compatibility wrapper. It re-exports `VeniceAPIError`, `venice`, `veniceBlob`, and `veniceFormData` from `src/services/veniceClient.ts`, and adapts `veniceStreamChat` to the canonical implementation while preserving the legacy signature. The duplicated `webVeniceFetch`, desktop-call, and error-body extraction code was removed from the lib wrapper.
+- **CLIENT-002 — Legacy compatibility surface in services (P0-004):** `src/services/veniceClient.ts` gained the legacy exports (`VeniceAPIError`, `venice`, `veniceBlob`, `veniceFormData`) and an internal `webVeniceFetch` helper so the lib wrapper has a single source of truth. No call sites outside the wrapper were changed.
+- **CLIENT-003 — Single absolute streaming deadline (P1-004):** Replaced the two independent 300s timeouts in the web-mode `veniceStreamChat` (fetch timeout + read timeout) with one `AbortController` deadline covering the entire stream lifetime from initial fetch through every `reader.read()`. On expiry the reader is cancelled and the promise rejects with `"Stream timed out after 5 minutes. The server may be overloaded — please try again."`. Parent-signal abort remains supported and maps to `"Aborted"`.
+- **CLIENT-004 — Regression test for P1-004:** `src/services/veniceClient.web.test.ts` added "enforces a single absolute 5-minute deadline across fetch and read". Uses mocked `fetch` + a hanging reader, fake timers, and proves timeout at 300001ms with `cancel()` invoked.
+- **CLIENT-005 — Test-shape update:** `src/lib/venice-client.test.ts` `should handle streaming completions` now uses `expect.objectContaining` + `expect.any(Function)` so the canonical wrapped `onDelta` and optional `Content-Type` header do not fail the passthrough assertion.
+- **CLIENT-006 — Validation:** `npx vitest run src/lib/venice-client.test.ts` 12/12 PASS; `npx vitest run src/lib/venice-client.dual.test.ts` 4/4 PASS; `npx vitest run src/services/veniceClient.test.ts` 21/21 PASS; `npx vitest run src/services/veniceClient.web.test.ts` 6/6 PASS (new regression test); downstream consumer tests (`veniceClient.desktop/edge`, `use-chat`, `researchSynthesis`) 18/18 PASS; `npm run typecheck` PASS; `npm run lint:eslint -- --max-warnings=0` PASS.
+- **CLIENT-007 — Out of scope confirmed:** No safety/security/privacy regression, no endpoint-allowlist change, no Electron IPC change, no local-secure-storage change, no archive-clean change, no diagnostics-redaction change, no child-exploitation-guard change, no CI/release-hardening change, no `package.json` change, no new VERIFY-NNN row (regression-guard count remains 52), no new dependency, no migration, no new TODOs.
+
+### Completed this session (2026-06-09 — Documentation sync: P2-010..P2-014)
+
+- **DOCSYNC-001 — README tab count corrected:** `README.md` `Fourteen integrated tabs` → `Seventeen integrated tabs`. Source: `src/config/tabs.ts` `TAB_REGISTRY` contains 17 canonical tab descriptors (verified by `CANONICAL_TAB_ORDER.length`). The existing 14-row feature table is unchanged because the additional 3 tabs (`scenes`, `privacy`, `playground`) were already present elsewhere in the README.
+- **DOCSYNC-002 — README Node compatibility corrected:** `README.md` Project Status table `Node.js | v20, v22` → `Node.js | 22.13+ (Node 22.x)`. Source: `package.json` `engines.node` is `>=22.13.0 <23`.
+- **DOCSYNC-003 — CONTRIBUTING Node version corrected:** `CONTRIBUTING.md` `Node.js 20 or 22` → `Node.js 22.13 or newer (Node 22.x)`. Source: `package.json` `engines.node`.
+- **DOCSYNC-004 — ABOUT.md Linux packaging statement corrected:** `docs/ABOUT.md` Non-Goals `Venice Forge does not support Linux native packaging in the current release.` → `Linux packaging is produced by the release workflow (AppImage/deb/rpm for x64+arm64). Local cross-build from macOS/Windows is not supported; use the CI artifacts or build on a Linux runner.` Source: `.github/workflows/release.yml` `build-linux` job runs `npx electron-builder --config electron-builder.config.cjs --linux --publish never` and uploads Linux artifacts.
+- **DOCSYNC-005 — CONFIG.md last-updated stamp corrected:** `docs/CONFIG.md` `Last updated: 1.0.5` → `Last updated: 1.0.6`. Source: `package.json` `version` is `1.0.6`.
+- **DOCSYNC-006 — CLAUDE.md / GEMINI.md MiniMax reference removed:** Both agent instruction files had the security bullet `Never expose or log Venice/Jina/MiniMax API keys.`. Updated to `Never expose or log Venice/Jina API keys.` to match the 2026-06-06 "Venice + Jina only" scope correction tracked in `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`. `.github/copilot-instructions.md` had no MiniMax or stale tab-count references.
+- **DOCSYNC-007 — Validation:** `npm run verify:markdown-links` PASS (46 Markdown files checked); `npm run lint:eslint -- --max-warnings=0` PASS (0 warnings).
+- **DOCSYNC-008 — Out of scope confirmed:** No code changes, no test changes, no CI/workflow changes, no `package.json` changes, no safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/archive-clean/diagnostics-redaction/child-exploitation-guard/CI/release-hardening surface touched, no new VERIFY-NNN row (regression-guard count remains 52), no new dependency, no migration, no new TODOs.
+
+### Completed this session (2026-06-09 — Fix Music/Video polling race conditions)
+
+- **POLL-001 — In-flight guard + generation token in `useMusic`:** `src/hooks/use-music.ts` now uses `isPollingRef` to skip a new interval tick when the previous `venice('/audio/retrieve', …)` call is still pending. A `generationTokenRef` is incremented on every `startPolling`, queue success, and `cancel`; each interval callback captures the token at fire time and discards the response after `await` if the token no longer matches. `startPolling()` calls `stopPolling()` first so a new generation cannot leak the old interval.
+- **POLL-002 — Same guard applied to `useVideo`:** `src/hooks/use-video.ts` receives the identical in-flight / token pattern for `/video/retrieve` polling.
+- **POLL-003 — Hook regression tests for music:** `src/hooks/use-music.test.tsx` (new, 4 tests) proves: stale responses after cancel are ignored; stale responses from an earlier generation are ignored; overlapping callbacks don't produce duplicate state updates; elapsed timer and max-attempts failure path are preserved.
+- **POLL-004 — Hook regression tests for video:** `src/hooks/use-video.test.tsx` (new, 4 tests) proves the same three race-condition contracts plus max-attempts preservation for video.
+- **POLL-005 — Validation:** `npx vitest run src/hooks/use-music.test.tsx src/hooks/use-video.test.tsx` PASS 8/8; `npm run typecheck` PASS (renderer + Electron main); `npm run lint:eslint -- --max-warnings=0` PASS (0 warnings).
+- **POLL-006 — Out of scope confirmed:** No safety/security/privacy regression, no endpoint-allowlist change, no Electron IPC change, no local-secure-storage change, no archive-clean change, no diagnostics-redaction change, no child-exploitation-guard change, no CI/release-hardening change, no `package.json` change, no new VERIFY-NNN row (regression-guard count remains 52), no new dependency, no migration, no new TODOs.
+
 ### Completed this session (2026-06-09 — Chat 400 Bad Request error fix)
 
 - **CHAT-001 — `safe_mode` removed from `/chat/completions` endpoint:** `src/shared/veniceSafeMode.ts:28` — removed `/chat/completions` from `ENDPOINTS_WITH_SAFE_MODE`. The Venice chat completions API does not accept a top-level `safe_mode` field; sending it caused a `400 Unrecognized key(s) in object: safe_mode`. The provider-side `safe_mode` guard still applies to `/image/generate`, `/image/upscale`, `/image/edit`, `/image/multi-edit`, `/video/queue`, and `/video/retrieve`. `tests/safety/veniceSafeMode.test.ts` updated — the "chat completions never receives safe_mode" test now asserts 0 calls with `safe_mode: true` (was expecting 2).
@@ -2901,17 +3115,42 @@ None are release blockers. The P0–P3 sections above remain accurate.
 
 ## Validation Matrix
 
-> Latest known status is the 2026-06-08 documentation canonicalization
-> pass on Node 22.22.3 / npm 10.9.8. The full Node 22 closure matrix
-> (1905/1905 tests, every `verify:*` audit PASS) was last executed
-> during the 2026-06-08 final proof audit at HEAD `c2afcfac` and is
-> retained as the authoritative baseline below. This pass is
-> documentation-only and re-ran only `node scripts/verify-markdown-links.cjs`
-> (the only gate that can be affected by doc edits), which PASSED post-edit.
-> Commands below were actually run.
+> Latest known status is the 2026-06-09 Accessibility — CommandPalette + Select pass on Node v26.0.0 / npm 11.12.1. Targeted component tests, `typecheck`, and `lint:eslint` were all executed this pass and passed. The full Node 22 closure matrix from the 2026-06-08 final proof audit at HEAD `c2afcfac` is retained as the authoritative baseline below. Commands below were actually run.
 
 | Command                                      | Latest known result | Date       | Notes                              |
 | -------------------------------------------- | ------------------: | ---------- | ---------------------------------- |
+| `npm run verify:archive-clean` | PASS | 2026-06-09 | Archive exclusion config and tracked files clean under repo root |
+| `npx vitest run scripts/verify-archive-clean.test.ts` | PASS: 2/2 | 2026-06-09 | BAD_PATTERNS coverage + CLI clean/bad root behavior |
+| `node scripts/verify-archive-clean.cjs --strict` | FAIL (expected) — lists untracked contaminants | 2026-06-09 | Confirms filesystem scan correctly detects `.DS_Store`, `.env`, `.config/*.local.yaml`, `.design-captures/`, `dist/`, `dist-electron/`, `coverage/`, `release/`, nested `.DS_Store`, `docs/AGENTS/` |
+| `npm run lint:eslint -- --max-warnings=0` | PASS: 0 warnings | 2026-06-09 | Archive-clean script changes only |
+| `npm run typecheck` | PASS: renderer + Electron | 2026-06-09 | Archive-clean script changes only |
+| `npx vitest run src/components/command-palette/CommandPalette.test.tsx` | PASS: 33/33 | 2026-06-09 | P1-014 keyboard navigation + aria-activedescendant |
+| `npx vitest run src/components/ui/select.test.tsx` | PASS: 12/12 | 2026-06-09 | P1-015 ARIA + listbox + option roles + keyboard navigation |
+| `npm run typecheck` | PASS: renderer + Electron | 2026-06-09 | P1-014 / P1-015 a11y changes |
+| `npm run lint:eslint -- --max-warnings=0` | PASS: 0 warnings | 2026-06-09 | P1-014 / P1-015 a11y changes |
+| `npm run verify:markdown-links` | PASS: 46 Markdown files | 2026-06-09 | Documentation sync (P2-010..P2-014) — local targets + heading fragments |
+| `npm run lint:eslint -- --max-warnings=0` | PASS: 0 warnings | 2026-06-09 | Documentation sync — no code changes, lint unchanged |
+| `npx vitest run src/lib/venice-client.test.ts` | PASS: 12/12 | 2026-06-09 | P0-004 lib wrapper regression tests |
+| `npx vitest run src/lib/venice-client.dual.test.ts` | PASS: 4/4 | 2026-06-09 | VERIFY-009 dual-client surface contract |
+| `npx vitest run src/services/veniceClient.test.ts` | PASS: 21/21 | 2026-06-09 | P0-004 canonical client utilities |
+| `npx vitest run src/services/veniceClient.web.test.ts` | PASS: 6/6 | 2026-06-09 | P1-004 single streaming deadline regression test included |
+| `npx vitest run src/services/veniceClient.desktop.test.ts src/services/veniceClient.edge.test.ts src/hooks/use-chat.test.ts src/research/agent/researchSynthesis.test.ts` | PASS: 18/18 | 2026-06-09 | Consumers of canonical `veniceStreamChat` unaffected |
+| `npm run typecheck` | PASS: renderer + Electron | 2026-06-09 | P0-004 / P1-004 client changes |
+| `npm run lint:eslint -- --max-warnings=0` | PASS: 0 warnings | 2026-06-09 | P0-004 / P1-004 client changes |
+| `npx vitest run src/hooks/use-music.test.tsx src/hooks/use-video.test.tsx` | PASS: 8/8 | 2026-06-09 | P1-005 race-condition regression tests |
+| `npm run typecheck` | PASS: renderer + Electron | 2026-06-09 | P1-005 hook changes |
+| `npm run lint:eslint -- --max-warnings=0` | PASS: 0 warnings | 2026-06-09 | P1-005 hook changes |
+
+**2026-06-09 — Final coordinator validation gate after all corrected-audit fixes (Node v22.22.3 / npm 10.9.8):**
+| Command | Result | Date | Notes |
+| `npm run typecheck` | PASS: renderer + Electron main | 2026-06-09 | `tsc --noEmit` + `tsc --noEmit --project tsconfig.electron.json`; zero errors across all changes |
+| `npm run lint:eslint` | PASS: 0 warnings | 2026-06-09 | `--max-warnings=0` enforced across `src electron server.ts scripts` |
+| `npm test` (serial) | PASS: 2014 passed, 1 skipped | 2026-06-09 | 189 test files + 1 display-gated electron smoke (always skipped). +66 net tests vs prior baseline covering P0-004, P1-004, P1-005, P1-006, P1-014..P1-021, P1-027. |
+| `npm run verify:safety-guard` | PASS | 2026-06-09 | Renderer transport, Electron IPC handlers, web proxy server enforcement + no-raw-log policy all intact |
+| `npm run verify:markdown-links` | PASS: 46 Markdown files checked | 2026-06-09 | Re-run after README/CONTRIBUTING/ABOUT/CONFIG/CLAUDE/GEMINI edits and summary_of_work updates — no broken local targets or heading fragments |
+| `npm run verify:archive-clean` | PASS | 2026-06-09 | `.gitignore` + `clean-repo-zip.sh` exclusions verified; no forbidden tracked files |
+| `npm run build` | PASS | 2026-06-09 | `dist/`, `dist/server.cjs`, and `dist-electron/package.json` emitted successfully |
+
 | `export PATH="/opt/homebrew/opt/node@22/bin:$PATH"; node --version; npm --version; npm ci` | PASS: Node 22.22.3, npm 10.9.8 | 2026-06-08 | No `EBADENGINE` or module-resolution error |
 | `npm run lint:eslint` | PASS: 0 warnings | 2026-06-08 | Phase 2J closure |
 | `npm run typecheck` | PASS: renderer + Electron | 2026-06-08 | Phase 2J closure |
@@ -2934,6 +3173,19 @@ None are release blockers. The P0–P3 sections above remain accurate.
 | `npm run verify:dist` | PASS | 2026-06-08 | Build-output verification + Phase 2J hygiene + secret-leak guards |
 | `node scripts/verify-archive-clean.cjs` | PASS | 2026-06-08 | Extended with Windows metadata + .config/*.local.yaml + *.log + *.tmp |
 | `node scripts/verify-markdown-links.cjs` (post-docs-canonicalization) | PASS: 42 files | 2026-06-08 | Re-run after SUPERSEDED banner + README/CHANGELOG edits — no link regressions |
+
+**2026-06-09 — Repo hygiene: archive-clean script hardening (commands executed on Node v26.0.0 / npm 11.12.1):**
+| Command | Result | Date | Notes |
+| `npm run verify:archive-clean` | PASS | 2026-06-09 | `.gitignore` + `clean-repo-zip.sh` exclusions verified; no forbidden tracked files |
+| `npx vitest run scripts/verify-archive-clean.test.ts` | PASS: 2/2 | 2026-06-09 | BAD_PATTERNS match documented contaminants; CLI exits 0 on clean temp tree and non-zero when contaminants present |
+| `node scripts/verify-archive-clean.cjs --strict` | FAIL (expected) | 2026-06-09 | Correctly reports 13 untracked working-tree contaminants: `.DS_Store`, `.config/config.local.yaml`, `.config/themes.local.yaml`, `.design-captures/`, `.env`, `coverage/`, `dist/`, `dist-electron/`, `docs/.DS_Store`, `docs/AGENTS/`, `release/`, `src/.DS_Store`, `src/services/.DS_Store` |
+| `npm run lint:eslint -- --max-warnings=0` | PASS: 0 warnings | 2026-06-09 | Covers `src electron server.ts scripts`; archive-clean script lints clean |
+| `npm run typecheck` | PASS: renderer + Electron | 2026-06-09 | `tsc --noEmit` + `tsc --noEmit --project tsconfig.electron.json`; no type errors from archive-clean changes |
+
+**2026-06-09 — Documentation sync (P2-010..P2-014 — commands executed on Node v26.0.0 / npm 11.12.1):**
+| Command | Result | Date | Notes |
+| `npm run verify:markdown-links` | PASS: 46 Markdown files checked | 2026-06-09 | Re-run after README/CONTRIBUTING/ABOUT/CONFIG/CLAUDE/GEMINI edits — no broken local targets or heading fragments |
+| `npm run lint:eslint -- --max-warnings=0` | PASS: 0 warnings | 2026-06-09 | No code surface touched; lint unchanged from prior green baseline |
 
 **2026-06-09 — Chat 400 Bad Request error fix (safe_mode, error body extraction, transport migration — commands executed on Node v26.0.0 / npm 11.12.1):**
 | Command | Result | Date | Notes |

@@ -1,4 +1,4 @@
-import { useState, type ComponentPropsWithoutRef } from 'react'
+import { useState, useRef, useEffect, type ComponentPropsWithoutRef } from 'react'
 import ReactMarkdown, { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { ChatMessage, ContentPart } from '../../types/venice'
@@ -8,7 +8,7 @@ import { maybeRunLocalFamilyGuard } from '../../shared/safety'
 
 // Allow http/https/mailto links and image data: URIs only. Strips javascript:,
 // vbscript:, file:, and any other smuggled protocols.
-const SAFE_URL_PROTOCOLS = /^(https?:|mailto:|#|\/|\.)/i
+const SAFE_URL_PROTOCOLS = /^(https?:|mailto:|#)/i
 function safeUrlTransform(url: string, key: string): string {
   if (!url) return ''
   // react-markdown's default already handles most protocol filtering; we layer
@@ -25,6 +25,15 @@ function CodeBlock({ children, className, ...props }: ComponentPropsWithoutRef<'
   const lang = match ? match[1] : ''
   const codeStr = String(children).replace(/\n$/, '')
   const [codeCopied, setCodeCopied] = useState(false)
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current)
+      }
+    }
+  }, [])
 
   if (!className && !String(children).includes('\n')) {
     return <code className={className} {...props}>{children}</code>
@@ -36,7 +45,12 @@ function CodeBlock({ children, className, ...props }: ComponentPropsWithoutRef<'
         <div className="absolute top-0 left-0 px-3 py-1.5 text-[13px] text-text-muted/30 font-mono uppercase tracking-wider select-none">{lang}</div>
       )}
       <button
-        onClick={() => { navigator.clipboard.writeText(codeStr); setCodeCopied(true); setTimeout(() => setCodeCopied(false), 1500) }}
+        onClick={() => {
+          navigator.clipboard.writeText(codeStr)
+          setCodeCopied(true)
+          if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+          copyTimeoutRef.current = setTimeout(() => setCodeCopied(false), 1500)
+        }}
         className="absolute top-1.5 right-1.5 px-2 py-1 text-[13px] font-medium text-text-muted/40 hover:text-text-secondary bg-surface-elevated/40 hover:bg-surface-elevated/80 rounded-md transition-all opacity-0 group-hover/code:opacity-100 cursor-pointer"
       >
         {codeCopied ? 'Copied' : 'Copy'}
@@ -71,6 +85,7 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
   const [hovering, setHovering] = useState(false)
   const [copied, setCopied] = useState(false)
   const [reasoningOpen, setReasoningOpen] = useState(false)
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isUser = message.role === 'user'
   const { text: content, images } = extractContent(message.content)
   const redTeamMode = useSettingsStore((s) => s.redTeamMode)
@@ -87,30 +102,38 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
     }
   })() : null
 
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const handleCopy = () => {
     navigator.clipboard.writeText(content)
     setCopied(true)
     onCopy()
-    setTimeout(() => setCopied(false), 1500)
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+    copyTimeoutRef.current = setTimeout(() => setCopied(false), 1500)
   }
 
   const actions = (
     <div className={`flex items-center gap-0.5 h-6 transition-opacity duration-150 ${hovering ? 'opacity-100' : 'opacity-0'}`}>
       <ActionBtn label={copied ? 'Copied' : 'Copy'} onClick={handleCopy}>
         {copied ? (
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+          <svg aria-hidden="true" focusable="false" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
         ) : (
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+          <svg aria-hidden="true" focusable="false" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
         )}
       </ActionBtn>
       {!isUser && onRegenerate && (
         <ActionBtn label="Regenerate" onClick={onRegenerate}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg>
+          <svg aria-hidden="true" focusable="false" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg>
         </ActionBtn>
       )}
       <ActionBtn label="Delete" onClick={onDelete}>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
+        <svg aria-hidden="true" focusable="false" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
       </ActionBtn>
     </div>
   )
@@ -156,7 +179,7 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
   return (
     <div className="flex gap-3" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
       <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white/95 to-white/75 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-        <svg viewBox="0 0 32 32" width="14" height="14" fill="none">
+        <svg aria-hidden="true" focusable="false" viewBox="0 0 32 32" width="14" height="14" fill="none">
           <g fill="#0a0a0c">
             <rect x="6.2" y="7.5" width="1.6" height="18" rx="0.8" transform="rotate(-42 6.2 7.5)" />
             <rect x="24.2" y="6.3" width="1.6" height="18" rx="0.8" transform="rotate(42 24.2 6.3)" />
@@ -179,7 +202,7 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
               onClick={() => setReasoningOpen(!reasoningOpen)}
               className="flex items-center gap-1.5 text-[14px] text-text-muted hover:text-text-secondary transition-colors mb-1 cursor-pointer"
             >
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
+              <svg aria-hidden="true" focusable="false" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
                 className={cn('transition-transform duration-150', reasoningOpen && 'rotate-90')}>
                 <path d="M3.5 2L6.5 5L3.5 8" />
               </svg>
@@ -250,6 +273,7 @@ function ActionBtn({ label, onClick, children }: { label: string; onClick: () =>
     <button
       onClick={onClick}
       title={label}
+      aria-label={label}
       className="p-1 text-text-muted/40 hover:text-text-secondary transition-colors rounded-md hover:bg-surface-elevated cursor-pointer"
     >
       {children}

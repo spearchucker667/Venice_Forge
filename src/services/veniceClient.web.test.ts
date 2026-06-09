@@ -105,6 +105,46 @@ describe("veniceClient web regressions", () => {
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
+  it("enforces a single absolute 5-minute deadline across fetch and read (P1-004)", async () => {
+    vi.useFakeTimers();
+    let readResolve: (value: { done: true; value?: Uint8Array }) => void = () => {};
+    let cancelCalled = false;
+    const mockReader = {
+      read: () =>
+        new Promise<{ done: true; value?: Uint8Array }>((resolve) => {
+          readResolve = resolve;
+        }),
+      cancel: () => {
+        cancelCalled = true;
+        readResolve({ done: true, value: undefined });
+        return Promise.resolve();
+      },
+      releaseLock: () => {},
+    };
+    const mockResponse = {
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      body: { getReader: () => mockReader },
+    };
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse as unknown as Response);
+
+    const promise = veniceStreamChat(
+      { model: "venice-uncensored", messages: [] },
+      { onDelta: vi.fn() }
+    ).catch((err) => err);
+
+    await vi.advanceTimersByTimeAsync(300_001);
+
+    await expect(promise).resolves.toBeInstanceOf(Error);
+    await expect(promise).resolves.toHaveProperty(
+      "message",
+      "Stream timed out after 5 minutes. The server may be overloaded — please try again."
+    );
+    expect(cancelCalled).toBe(true);
+    vi.useRealTimers();
+  });
+
   it("computes Retry-After delay from HTTP-date", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("Wed, 21 Oct 2026 07:28:00 GMT"));

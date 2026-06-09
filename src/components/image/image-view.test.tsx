@@ -32,6 +32,15 @@ vi.mock('../../stores/auth-store', () => ({
   useAuthStore: (selector: (state: { apiKey: string | null; isConfigured: boolean }) => unknown) => selector({ apiKey: null, isConfigured: true }),
 }))
 
+vi.mock('../../stores/media-store', () => ({
+  useMediaStore: Object.assign(() => null, {
+    getState: () => ({
+      upsert: vi.fn().mockResolvedValue(undefined),
+      upsertDerivative: vi.fn().mockResolvedValue(undefined),
+    }),
+  }),
+}))
+
 import { useSettingsStore } from '../../stores/settings-store'
 import { ImageView } from './image-view'
 import { useImageWorkspaceStore } from '../../stores/image-workspace-store'
@@ -119,5 +128,65 @@ describe('ImageView model-aware payloads', () => {
     render(<ImageView />)
     // The capability summary still renders
     expect(screen.getByTestId('image-capability-summary')).toBeInTheDocument()
+  })
+})
+
+describe('ImageView lightbox', () => {
+  const tinyPng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+
+  beforeEach(() => {
+    mutate.mockReset()
+    useImageWorkspaceStore.getState().reset()
+    useSettingsStore.setState((state) => ({
+      ...state,
+      selectedModels: { ...state.selectedModels, image: 'nano-banana-v1' },
+    }))
+  })
+
+  it('opens a focus-trapped dialog with role, aria-modal, and aria-label', async () => {
+    mutate.mockImplementation((_req: unknown, options?: { onSuccess?: (data: { images: string[] }) => void }) => {
+      options?.onSuccess?.({ images: [tinyPng] })
+    })
+
+    render(<ImageView />)
+    fireEvent.change(screen.getByPlaceholderText(/serene mountain landscape/i), {
+      target: { value: 'A tiny test image' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }))
+
+    const image = await screen.findByAltText('Generated 1')
+    fireEvent.click(image)
+
+    const dialog = screen.getByRole('dialog', { name: 'Image preview' })
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(dialog).toHaveAttribute('aria-label', 'Image preview')
+
+    // Focus should be inside the dialog (first focusable button is Download).
+    expect(dialog.contains(document.activeElement)).toBe(true)
+  })
+
+  it('closes the lightbox on Escape and restores focus to the trigger image', async () => {
+    mutate.mockImplementation((_req: unknown, options?: { onSuccess?: (data: { images: string[] }) => void }) => {
+      options?.onSuccess?.({ images: [tinyPng] })
+    })
+
+    render(<ImageView />)
+    fireEvent.change(screen.getByPlaceholderText(/serene mountain landscape/i), {
+      target: { value: 'A tiny test image' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }))
+
+    const image = await screen.findByAltText('Generated 1')
+    fireEvent.click(image)
+
+    const dialog = screen.getByRole('dialog', { name: 'Image preview' })
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Image preview' })).not.toBeInTheDocument()
+    })
+
+    // The trigger image should regain focus because it was focused on click.
+    expect(document.activeElement).toBe(image)
   })
 })

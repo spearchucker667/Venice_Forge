@@ -11,6 +11,9 @@
  *  - Phase 2D: Prompt Library commands (Open, New, Use, Save from
  *    current prompt, Favorite, Export, Import). All routed through
  *    the canonical tab registry and the prompt-library store.
+ *  - Accessibility (P1-014): roving activeIndex, ArrowUp/ArrowDown/
+ *    Home/End/Enter keyboard navigation, aria-activedescendant on
+ *    the search input, and scroll-into-view for the active item.
  */
 
 import React, { useEffect, useRef, useState } from 'react'
@@ -37,9 +40,12 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   useFocusTrap(dialogRef, open, onClose)
 
   const [query, setQuery] = useState('')
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [activeDescendantId, setActiveDescendantId] = useState<string>()
   const setActiveTab = useSettingsStore((s) => s.setActiveTab)
   const selectionCount = useMediaSelectionStore((s) => s.selectedMediaIds.length)
   const promptCount = usePromptLibraryStore((s) =>
@@ -56,7 +62,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
     return subscribeMediaCommandHandlers(() => setHasMediaHandlers(hasMediaCommandHandlers()))
   }, [])
 
-  // Close on Escape
+  // Close on Escape and toggle on Cmd/Ctrl+K
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -72,6 +78,31 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose, onToggle, open])
+
+  // Reset active index when opening or when the query changes
+  useEffect(() => {
+    if (open) {
+      setActiveIndex(0)
+    }
+  }, [open, query])
+
+  // Sync active-item DOM attributes and aria-activedescendant
+  useEffect(() => {
+    if (!open || !listRef.current) return
+    const items = Array.from(listRef.current.querySelectorAll<HTMLButtonElement>('[data-command-item]'))
+    items.forEach((item, idx) => {
+      if (!item.id) item.id = `cmd-item-${idx}`
+      item.dataset.active = String(idx === activeIndex)
+    })
+    setActiveDescendantId(items[activeIndex]?.id)
+  }, [open, activeIndex, query, hasMediaHandlers, promptCount])
+
+  // Scroll active item into view whenever activeIndex changes
+  useEffect(() => {
+    if (!open || !listRef.current) return
+    const items = Array.from(listRef.current.querySelectorAll<HTMLButtonElement>('[data-command-item]'))
+    items[activeIndex]?.scrollIntoView?.({ block: 'nearest' })
+  }, [activeIndex, open])
 
   if (!open) return null
 
@@ -151,6 +182,29 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
     setQuery('')
   }
 
+  const handleListKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!open || !listRef.current) return
+    const items = Array.from(listRef.current.querySelectorAll<HTMLButtonElement>('[data-command-item]'))
+    if (items.length === 0) return
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActiveIndex((i) => (i + 1) % items.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActiveIndex((i) => (i - 1 + items.length) % items.length)
+    } else if (e.key === 'Home') {
+      e.preventDefault()
+      setActiveIndex(0)
+    } else if (e.key === 'End') {
+      e.preventDefault()
+      setActiveIndex(items.length - 1)
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      items[activeIndex]?.click()
+    }
+  }
+
   return (
     <div
       ref={dialogRef}
@@ -158,6 +212,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
       onClick={onClose}
       role="dialog"
       aria-modal="true"
+      onKeyDown={handleListKeyDown}
     >
       <div
         className="w-full max-w-[520px] rounded-xl border border-border bg-surface shadow-xl overflow-hidden"
@@ -171,11 +226,12 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search tabs or actions… (e.g. image, new project)"
             className="flex-1 bg-transparent text-[14px] placeholder:text-text-muted/60 focus:outline-none"
+            aria-activedescendant={activeDescendantId}
           />
           <span className="text-[10px] text-text-muted pr-1">ESC</span>
         </div>
 
-        <div className="max-h-[320px] overflow-auto py-1 text-sm">
+        <div ref={listRef} className="max-h-[320px] overflow-auto py-1 text-sm">
           <div className="px-2 py-1 text-[10px] uppercase tracking-[0.06em] text-text-muted">Tabs (canonical)</div>
           {filteredTabs.length === 0 && (
             <div className="px-3 py-2 text-text-muted/70 text-[12px]">No matching tabs</div>
@@ -183,8 +239,9 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
           {filteredTabs.map((t) => (
             <button
               key={t.id}
+              data-command-item
               onClick={() => handleTab(t.id)}
-              className="w-full text-left px-3 py-1.5 hover:bg-background flex items-center gap-2"
+              className="w-full text-left px-3 py-1.5 hover:bg-background flex items-center gap-2 data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             >
               <span>{t.label}</span>
               <span className="ml-auto text-[10px] text-text-muted/60">{t.group}</span>
@@ -192,10 +249,11 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
           ))}
 
           <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border mt-1">Projects &amp; Actions</div>
-          <button onClick={handleNewProject} className="w-full text-left px-3 py-1.5 hover:bg-background">
+          <button data-command-item onClick={handleNewProject} className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent">
             New Project
           </button>
           <button
+            data-command-item
             onClick={() => {
               const projs = useProjectStore.getState().activeProjects()
               if (projs.length) {
@@ -207,7 +265,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               }
               onClose()
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
           >
             Switch / Open Current Project
           </button>
@@ -220,64 +278,72 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
                 Media Studio ({selectionCount} selected)
               </div>
               <button
+                data-command-item
                 onClick={runMediaCommand('select-all')}
-                className="w-full text-left px-3 py-1.5 hover:bg-background"
+                className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
                 data-testid="command-palette-select-all"
               >
                 Select All Visible Media
               </button>
               <button
+                data-command-item
                 onClick={runMediaCommand('clear')}
                 disabled={selectionCount === 0}
-                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
                 data-testid="command-palette-clear-selection"
               >
                 Clear Media Selection
               </button>
               <button
+                data-command-item
                 onClick={runMediaCommand('compare')}
                 disabled={!isCompareReady}
-                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
                 data-testid="command-palette-compare"
               >
                 Compare Selected Media
               </button>
               <button
+                data-command-item
                 onClick={runMediaCommand('export')}
                 disabled={selectionCount === 0}
-                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
                 data-testid="command-palette-export"
               >
                 Export Selected Media
               </button>
               <button
+                data-command-item
                 onClick={runMediaCommand('favorite')}
                 disabled={selectionCount === 0}
-                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
                 data-testid="command-palette-favorite"
               >
                 Favorite Selected Media
               </button>
               <button
+                data-command-item
                 onClick={runMediaCommand('add-tag')}
                 disabled={selectionCount === 0}
-                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
                 data-testid="command-palette-add-tag"
               >
                 Add Tag to Selected Media
               </button>
               <button
+                data-command-item
                 onClick={runMediaCommand('send-image')}
                 disabled={selectionCount === 0}
-                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
                 data-testid="command-palette-send-image"
               >
                 Send Selected to Image Studio
               </button>
               <button
+                data-command-item
                 onClick={runMediaCommand('copy-recipe')}
                 disabled={selectionCount === 0}
-                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
                 data-testid="command-palette-copy-recipe"
               >
                 Copy Selected Recipe JSON
@@ -290,17 +356,19 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               actions appear when the user has an active prompt. */}
           <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border mt-1">Prompt Library</div>
           <button
+            data-command-item
             onClick={() => {
               setActiveTab('prompts');
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-open-prompts"
           >
             Open Prompt Library
           </button>
           <button
+            data-command-item
             onClick={async () => {
               const created = await usePromptLibraryStore.getState().createPrompt({
                 title: 'Untitled prompt',
@@ -314,12 +382,13 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-new-prompt"
           >
             New Prompt
           </button>
           <button
+            data-command-item
             onClick={() => {
               const active = usePromptLibraryStore.getState().activePromptId;
               if (!active) {
@@ -342,12 +411,13 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               setQuery('');
             }}
             disabled={promptCount === 0}
-            className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed"
+            className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-use-selected-prompt"
           >
             Use Selected Prompt (copy)
           </button>
           <button
+            data-command-item
             onClick={async () => {
               const ids = usePromptLibraryStore
                 .getState()
@@ -371,12 +441,13 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               setQuery('');
             }}
             disabled={promptCount === 0}
-            className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed"
+            className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-export-prompts"
           >
             Export Prompts
           </button>
           <button
+            data-command-item
             onClick={async () => {
               const input = document.createElement('input');
               input.type = 'file';
@@ -400,7 +471,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-import-prompts"
           >
             Import Prompts…
@@ -411,17 +482,19 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               actions appear when the user has scenes saved. */}
           <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border mt-1">Scene Composer</div>
           <button
+            data-command-item
             onClick={() => {
               setActiveTab('scenes');
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-open-scenes"
           >
             Open Scene Composer
           </button>
           <button
+            data-command-item
             onClick={async () => {
               const sceneCount = useSceneComposerStore.getState().scenes.filter(s => !s.archivedAt).length;
               if (sceneCount === 0) {
@@ -442,12 +515,13 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-export-scenes"
           >
             Export Scenes
           </button>
           <button
+            data-command-item
             onClick={async () => {
               const input = document.createElement('input');
               input.type = 'file';
@@ -471,7 +545,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-import-scenes"
           >
             Import Scenes…
@@ -481,17 +555,19 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               palette can route the user into the RP Studio. */}
           <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border mt-1">RP Studio</div>
           <button
+            data-command-item
             onClick={() => {
               setActiveTab('rp-studio');
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-open-rp-studio"
           >
             Open RP Studio
           </button>
           <button
+            data-command-item
             onClick={() => {
               setActiveTab('rp-studio');
               useCharacterCardStore.getState().createBlank();
@@ -499,12 +575,13 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-new-character"
           >
             New Character
           </button>
           <button
+            data-command-item
             onClick={async () => {
               const activeId = useCharacterCardStore.getState().editingId;
               if (!activeId) {
@@ -520,12 +597,13 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
                 toast.error('Could not start chat');
               }
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-start-character-chat"
           >
             Start Chat with Selected Character
           </button>
           <button
+            data-command-item
             onClick={() => {
               setActiveTab('scenes');
               const activeId = useCharacterCardStore.getState().editingId;
@@ -539,19 +617,20 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-new-scenario"
           >
             New Scenario
           </button>
 
           <button
+            data-command-item
             onClick={() => {
               setActiveTab('workflows');
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-open-workflows"
           >
             Open Workflows
@@ -561,17 +640,19 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               palette can route the user into the Research Workspace. */}
           <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border mt-1">Research Workspace</div>
           <button
+            data-command-item
             onClick={() => {
               setActiveTab('search');
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-open-research"
           >
             Open Research Workspace
           </button>
           <button
+            data-command-item
             onClick={async () => {
               const created = await useResearchStore.getState().createSession({
                 title: 'New Research Session',
@@ -582,12 +663,13 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-new-research-session"
           >
             New Research Session
           </button>
           <button
+            data-command-item
             onClick={async () => {
               const sessionCount = useResearchStore.getState().sessions.filter(s => !s.archivedAt).length;
               if (sessionCount === 0) {
@@ -608,12 +690,13 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-export-research"
           >
             Export Research Sessions
           </button>
           <button
+            data-command-item
             onClick={async () => {
               const input = document.createElement('input');
               input.type = 'file';
@@ -637,7 +720,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-import-research"
           >
             Import Research Sessions…
@@ -645,45 +728,49 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
 
           <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border mt-1">Privacy &amp; Storage</div>
           <button
+            data-command-item
             onClick={() => {
               setActiveTab('privacy');
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-open-privacy"
           >
             Open Privacy Dashboard
           </button>
           <button
+            data-command-item
             onClick={async () => {
               await useStoragePrivacyStore.getState().refreshInventory();
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-refresh-inventory"
           >
             Refresh Storage Inventory
           </button>
           <button
+            data-command-item
             onClick={async () => {
               await useStoragePrivacyStore.getState().copySafeSummary();
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-copy-privacy-summary"
           >
             Copy Safe Privacy Summary
           </button>
           <button
+            data-command-item
             onClick={() => {
               useStoragePrivacyStore.getState().exportSafeSummary();
               onClose();
               setQuery('');
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-export-privacy-summary"
           >
             Export Safe Privacy Summary
@@ -691,11 +778,12 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
 
           <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border mt-1">System</div>
           <button
+            data-command-item
             onClick={() => {
               useSettingsStore.getState().setShowInspector(!useSettingsStore.getState().showInspector)
               onClose()
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background"
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
           >
             Toggle Inspector
           </button>
@@ -703,7 +791,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
 
         <div className="border-t border-border px-3 py-1.5 text-[10px] text-text-muted/70 flex justify-between">
           <span>⌘K to toggle</span>
-          <span>Tab / Enter to choose</span>
+          <span>↑↓ to navigate · Enter to choose</span>
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import { app } from "electron";
 import type { IncomingHttpHeaders } from "http";
 import { getApiKey } from "./secureStore";
 import { logError, setLastApiError } from "./logger";
+import { redactErrorMessage } from "../../src/services/redaction";
 import { validateVeniceIpcRequest } from "../ipc/validation";
 import { VENICE_API_HOST, VENICE_API_BASE_PATH, VENICE_API_TIMEOUT_MS } from "../../src/shared/apiConfig";
 
@@ -221,8 +222,8 @@ export async function performVeniceRequest(
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      logError("Failed to prepare Venice request body", err);
-      reject(new Error(`Failed to prepare request: ${message}`));
+      logError("Failed to prepare Venice request body", redactErrorMessage(message));
+      reject(new Error(`Failed to prepare request: ${redactErrorMessage(message)}`));
       return;
     }
 

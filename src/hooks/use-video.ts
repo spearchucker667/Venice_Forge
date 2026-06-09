@@ -19,15 +19,21 @@ export function useVideo() {
   const startedAtRef = useRef<number | null>(null)
   const attemptsRef = useRef(0)
   const cancelledRef = useRef(false)
+  const isPollingRef = useRef(false)
+  const generationTokenRef = useRef(0)
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = undefined }
     if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = undefined }
+    isPollingRef.current = false
   }, [])
 
   useEffect(() => () => stopPolling(), [stopPolling])
 
   const startPolling = useCallback(() => {
+    stopPolling()
+    generationTokenRef.current += 1
+    const token = generationTokenRef.current
     attemptsRef.current = 0
     startedAtRef.current = Date.now()
     setElapsedMs(0)
@@ -36,10 +42,14 @@ export function useVideo() {
       if (startedAtRef.current) setElapsedMs(Date.now() - startedAtRef.current)
     }, 1000)
 
+    isPollingRef.current = false
     pollRef.current = setInterval(async () => {
       if (cancelledRef.current) return
+      if (isPollingRef.current) return
+      isPollingRef.current = true
       attemptsRef.current += 1
       if (attemptsRef.current > MAX_ATTEMPTS) {
+        isPollingRef.current = false
         stopPolling()
         setError('Generation took too long. Cancel and try again, or check your Venice dashboard.')
         setStatus('failed')
@@ -50,6 +60,7 @@ export function useVideo() {
           method: 'POST',
           body: JSON.stringify({ id: requestIdRef.current }),
         })
+        if (token !== generationTokenRef.current) return
         setStatus(result.status)
         if (result.status === 'completed' && result.video_url) {
           setVideoUrl(result.video_url)
@@ -59,11 +70,14 @@ export function useVideo() {
           stopPolling()
         }
       } catch (err) {
+        if (token !== generationTokenRef.current) return
         // Transient failure — keep polling unless we've burned through too many attempts.
         if (attemptsRef.current >= MAX_ATTEMPTS) {
           setError(err instanceof Error ? err.message : 'Polling failed')
           stopPolling()
         }
+      } finally {
+        isPollingRef.current = false
       }
     }, POLL_INTERVAL_MS)
   }, [stopPolling])
@@ -75,6 +89,7 @@ export function useVideo() {
         body: JSON.stringify(req),
       }),
     onSuccess: (data, variables) => {
+      generationTokenRef.current += 1
       cancelledRef.current = false
       const id = data.queue_id || data.id || ''
       requestIdRef.current = id
@@ -93,6 +108,7 @@ export function useVideo() {
 
   const cancel = useCallback(() => {
     cancelledRef.current = true
+    generationTokenRef.current += 1
     stopPolling()
     setStatus('idle')
     setError(null)

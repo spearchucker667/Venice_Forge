@@ -843,7 +843,7 @@ export async function exportConfigTemplate(targetPath: string): Promise<{ ok: bo
       internal_prompt_enhancer: sanitized.internal_prompt_enhancer,
     };
     const yamlText = yaml.stringify(template);
-    await fs.writeFile(targetPath, yamlText, { encoding: "utf-8", mode: 0o600 });
+    await fs.writeFile(resolvedTarget, yamlText, { encoding: "utf-8", mode: 0o600 });
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };

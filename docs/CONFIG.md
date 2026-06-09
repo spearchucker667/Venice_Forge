@@ -1,6 +1,6 @@
 # Venice Forge — Local Master Config
 
-> Last updated: 1.0.5
+> Last updated: 1.0.6
 
 Venice Forge reads a small, optional set of YAML files at startup to let
 developers and power users configure behavior without using the UI. API keys

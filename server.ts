@@ -240,11 +240,11 @@ export function createServerApp() {
   const veniceRateLimiter = createRateLimiter("venice");
   const proxyRateLimiter = createRateLimiter("proxy");
 
-  app.use("/api/venice", (req, res, next) => {
+  app.use("/api/venice", veniceRateLimiter, (req, res, next) => {
     if (!AppConfig.VENICE_API_KEY && AppConfig.NODE_ENV !== "test") {
       return res.status(500).json({ error: "VENICE_API_KEY is not configured on the server." });
     }
-    veniceRateLimiter(req, res, next);
+    next();
   });
 
   // Apply shared rate limiting to Jina and scrape proxies.

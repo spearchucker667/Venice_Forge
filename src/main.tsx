@@ -2,10 +2,14 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { App } from "./App";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./index.css";
 import { initDesktopBridge } from "./services/desktopBridge";
 import { refreshConfig } from "./stores/config-store";
 import { useAuthStore } from "./stores/auth-store";
+import { syncPrefersReducedMotion } from "./hooks/usePrefersReducedMotion";
+
+syncPrefersReducedMotion();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,9 +55,11 @@ if (!rootEl) {
     try {
       createRoot(rootEl).render(
         <StrictMode>
-          <QueryClientProvider client={queryClient}>
-            <App />
-          </QueryClientProvider>
+          <ErrorBoundary>
+            <QueryClientProvider client={queryClient}>
+              <App />
+            </QueryClientProvider>
+          </ErrorBoundary>
         </StrictMode>
       );
     } catch (err) {

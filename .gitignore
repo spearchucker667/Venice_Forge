@@ -47,7 +47,12 @@ __MACOSX/
 # Local desktop chat DBs and non-example configs (already covered by patterns above).
 
 # Venice Forge local config files may contain secrets.
+.config/*.local.yaml
+.config/*.local.yml
 .config/*.yaml
 .config/*.yml
 !.config/*.example.yaml
 !.config/*.example.yml
+docs/audits/file-inventory.tsv
+docs/audits/repo-tree-current.txt
+clean-repo-zip.sh

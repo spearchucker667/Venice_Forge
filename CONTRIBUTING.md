@@ -18,7 +18,7 @@ Please read and follow our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ### Prerequisites
 
-- Node.js 20 or 22
+- Node.js 22.13 or newer (Node 22.x)
 - npm 10+
 - Windows 10/11 or macOS 13+ (for full Electron packaging tests)
 - A Venice API key ([venice.ai](https://venice.ai))

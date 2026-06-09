@@ -31,10 +31,10 @@ const { execFileSync } = require("child_process");
 
 const BAD_PATTERNS = [
   // macOS / AppleDouble / Windows metadata
-  /__MACOSX\//,
+  /(^|\/)__MACOSX\//,
   /(^|\/)\.DS_Store$/,
   /(^|\/)\._[^/]+$/,
-  /\.AppleDouble\//,
+  /(^|\/)\.AppleDouble\//,
   /(^|\/)Thumbs\.db$/i,
   /(^|\/)desktop\.ini$/i,
   // Generated build / test output (must never be archived)
@@ -47,7 +47,7 @@ const BAD_PATTERNS = [
   /(^|\/)\.vite\//,
   /(^|\/)\.design-captures\//,
   // Secrets & local env (allow .env.example only)
-  /(^|\/)\.env(?!(\.example)?$)/,
+  /(^|\/)\.env(?!\.example$)/,
   /(^|\/)\.env\.(?!example$).+$/i, // .env.local, .env.development, .env.production, etc.
   // Database / cache / log files
   /(^|\/)[^/]+\.(db|sqlite|sqlite3)$/i,
@@ -62,6 +62,8 @@ const BAD_PATTERNS = [
   /(^|\/)docs\/AGENTS\//,
 ];
 
+const SKIP_DIRS = new Set([".git", "node_modules"]);
+
 function walk(dir, root, out) {
   let entries;
   try {
@@ -70,10 +72,12 @@ function walk(dir, root, out) {
     return;
   }
   for (const e of entries) {
+    if (e.isDirectory() && SKIP_DIRS.has(e.name)) continue;
     const full = path.join(dir, e.name);
     const rel = path.relative(root, full).split(path.sep).join("/") + (e.isDirectory() ? "/" : "");
     if (BAD_PATTERNS.some((re) => re.test(rel) || re.test("/" + rel))) {
       out.push(rel);
+      if (e.isDirectory()) continue; // don't recurse into a forbidden directory
     }
     if (e.isDirectory()) {
       walk(full, root, out);
@@ -91,50 +95,128 @@ function trackedPaths(root) {
   }
 }
 
+function readText(p) {
+  try {
+    return fs.readFileSync(p, "utf8");
+  } catch {
+    return "";
+  }
+}
+
+function checkGitignore(root, violations) {
+  const gitignore = readText(path.join(root, ".gitignore"));
+  const required = [
+    { pattern: "dist/", label: "dist/" },
+    { pattern: "dist-electron/", label: "dist-electron/" },
+    { pattern: "release/", label: "release/" },
+    { pattern: "coverage/", label: "coverage/" },
+    { pattern: ".design-captures/", label: ".design-captures/" },
+    { pattern: ".config/*.local.yaml", label: ".config/*.local.yaml" },
+    { pattern: ".config/*.local.yml", label: ".config/*.local.yml" },
+    { pattern: ".config/*.yaml", label: ".config/*.yaml" },
+    { pattern: "!.env.example", label: "!.env.example" },
+    { pattern: ".DS_Store", label: ".DS_Store" },
+    { pattern: "__MACOSX/", label: "__MACOSX/" },
+    { pattern: ".AppleDouble/", label: ".AppleDouble/" },
+    { pattern: "._*", label: "._*" },
+  ];
+  for (const r of required) {
+    if (!gitignore.includes(r.pattern)) {
+      violations.push(`.gitignore missing exclusion: ${r.label}`);
+    }
+  }
+}
+
+function checkCleanScript(root, violations) {
+  const script = readText(path.join(root, "clean-repo-zip.sh"));
+  const required = [
+    { pattern: "--exclude=dist/", label: "dist/" },
+    { pattern: "--exclude=dist-electron/", label: "dist-electron/" },
+    { pattern: "--exclude=release/", label: "release/" },
+    { pattern: "--exclude=coverage/", label: "coverage/" },
+    { pattern: "--exclude=.design-captures/", label: ".design-captures/" },
+    { pattern: "--exclude=.config/*.local.yaml", label: ".config/*.local.yaml" },
+    { pattern: "--exclude=.config/*.local.yml", label: ".config/*.local.yml" },
+    { pattern: "--exclude=.config/*.yaml", label: ".config/*.yaml" },
+    { pattern: "--exclude=.config/*.yml", label: ".config/*.yml" },
+    { pattern: "--exclude=.DS_Store", label: ".DS_Store" },
+    { pattern: "--exclude=__MACOSX/", label: "__MACOSX/" },
+    { pattern: "--exclude=.AppleDouble/", label: ".AppleDouble/" },
+    { pattern: "--exclude=._*", label: "._*" },
+    { pattern: "--exclude=.env", label: ".env" },
+    { pattern: "--include=.env.example", label: "include .env.example" },
+  ];
+  for (const r of required) {
+    if (!script.includes(r.pattern)) {
+      violations.push(`clean-repo-zip.sh missing exclusion: ${r.label}`);
+    }
+  }
+}
+
 function main() {
   const args = process.argv.slice(2);
   let root = process.cwd();
   let explicitRoot = false;
+  let strict = false;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--root" && args[i + 1]) {
       root = path.resolve(args[i + 1]);
       explicitRoot = true;
       i++;
+    } else if (args[i] === "--strict") {
+      strict = true;
     }
   }
 
   const violations = [];
-  const tracked = explicitRoot ? null : trackedPaths(root);
-  if (tracked) {
-    for (const rel of tracked) {
-      if (BAD_PATTERNS.some((re) => re.test(rel) || re.test("/" + rel))) violations.push(rel);
-    }
-  } else {
+
+  if (explicitRoot) {
     walk(root, root, violations);
+  } else {
+    // Canonical CI check: ensure archive-exclusion config covers all patterns
+    // and no forbidden files are tracked.
+    checkGitignore(root, violations);
+    checkCleanScript(root, violations);
+
+    const tracked = trackedPaths(root);
+    if (tracked) {
+      for (const rel of tracked) {
+        if (BAD_PATTERNS.some((re) => re.test(rel) || re.test("/" + rel))) violations.push(rel);
+      }
+    }
+
+    if (strict) {
+      walk(root, root, violations);
+    }
   }
 
-  if (violations.length > 0) {
-    console.error("[verify-archive-clean] FAIL — forbidden paths present in scan root:");
-    for (const v of violations.slice(0, 50)) {
+  // Deduplicate while preserving order
+  const seen = new Set();
+  const unique = [];
+  for (const v of violations) {
+    if (!seen.has(v)) {
+      seen.add(v);
+      unique.push(v);
+    }
+  }
+
+  if (unique.length > 0) {
+    console.error("[verify-archive-clean] FAIL — forbidden paths or missing exclusions:");
+    for (const v of unique.slice(0, 50)) {
       console.error("  " + v);
     }
-    if (violations.length > 50) console.error(`  ... +${violations.length - 50} more`);
+    if (unique.length > 50) console.error(`  ... +${unique.length - 50} more`);
     console.error("\nThese must never be committed or included in archives/zips/GPT source drops:");
     console.error("  __MACOSX/  .DS_Store  ._*  .AppleDouble/  Thumbs.db  desktop.ini");
     console.error("  node_modules/  dist/  dist-electron/  release/  coverage/  .integration-src/  .vite/  .design-captures/");
     console.error("  .env*  (non-example),  .env.<name>  (e.g. .env.local, .env.development)");
     console.error("  *.db  *.sqlite*  *.log  *.tmp  chat-history/  target_inventory.txt");
-    console.error("  .config/*.yaml  (non-example),  .config/*.local.yaml");
+    console.error("  .config/*.yaml  (non-example),  .config/*.local.yaml  .config/*.local.yml");
     console.error("  docs/AGENTS/  (gitignored agent scratch)");
     process.exit(1);
   }
 
-  console.log(
-    tracked
-      ? "[verify:archive-clean] OK — no forbidden tracked archive contaminants under"
-      : "[verify:archive-clean] OK — no forbidden archive contaminants under",
-    root,
-  );
+  console.log("[verify:archive-clean] OK — archive exclusion config and tracked files are clean under", root);
   process.exit(0);
 }
 

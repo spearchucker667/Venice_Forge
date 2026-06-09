@@ -126,7 +126,7 @@ export function dedupeKey(endpoint: string, method: string, body: unknown): stri
       bodyHash = JSON.stringify(body);
     } catch {
       // Circular or otherwise unserialisable body — skip deduplication
-      bodyHash = `[unhashable-${Date.now()}]`;
+      bodyHash = `[unhashable-${Date.now()}-${Math.random()}]`;
     }
   }
   return `${method} ${endpoint} ${bodyHash}`;
@@ -1076,84 +1076,104 @@ export async function veniceStreamChat(
       "X-Venice-Forge-Family-Safe-Mode": String(useSettingsStore.getState().localFamilySafeModeEnabled),
     };
 
-    // REL-001: always enforce a ceiling timeout on the streaming fetch so a stalled
-    // SSE connection cannot block the web-mode renderer indefinitely. 5 minutes is
-    // generous for even the longest streaming completions.
+    // REL-001: enforce a single absolute 5-minute deadline covering both the
+    // initial fetch and the SSE read loop. The same AbortSignal is used for
+    // fetch and is wired to cancel the reader if the deadline expires (or if
+    // the caller aborts), so total stream lifetime cannot exceed ~300s.
     const STREAM_TIMEOUT_MS = 300_000;
-    const streamTimeout = createTimeoutSignal(STREAM_TIMEOUT_MS, signal);
+    const timeoutError = new Error(
+      "Stream timed out after 5 minutes. The server may be overloaded — please try again."
+    );
 
-    let response: Response;
-    try {
-      response = await fetch(`${PROXY_BASE_PATH}/chat/completions`, {
-        method: "POST",
-        headers: requestHeadersWeb,
-        body: JSON.stringify(payload),
-        signal: streamTimeout.signal,
-      });
-    } catch (err: unknown) {
-      if (err instanceof DOMException && err.name === "TimeoutError") {
-        throw new Error("Stream timed out after 5 minutes. The server may be overloaded — please try again.");
-      }
-      throw err;
-    } finally {
-      streamTimeout.clear();
-    }
-
-    const headers = parseDiagnosticsHeaders(response);
-    let streamError = "";
-    if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      let parsed: unknown = null;
-      try { parsed = JSON.parse(text); } catch { /* non-JSON error body — use raw text */ }
-      streamError = normalizeError(response.status, readWebErrorBody(parsed, text, response.statusText));
-    }
-
-    dispatch?.({
-      type: "SET_DIAGNOSTICS",
-      diagnostics: summarizeDiagnostics({
-        endpoint: "/chat/completions",
-        method: "POST",
-        status: response.status,
-        ok: response.ok,
-        headers,
-        error: streamError,
-        startedAt,
-        endedAt: nowIso(),
-        model: typeof payloadRecord?.model === "string" ? payloadRecord.model : null,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(streamError);
-    }
-
-    if (!response.body || typeof response.body.getReader !== "function")
-      throw new Error("Streaming is unavailable in this browser sandbox.");
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    let timedOut = false;
-    const readTimeoutId = setTimeout(() => {
-      timedOut = true;
-      reader.cancel().catch(() => {});
+    const deadlineController = new AbortController();
+    let deadlineExpired = false;
+    const deadlineId = setTimeout(() => {
+      deadlineExpired = true;
+      deadlineController.abort();
     }, STREAM_TIMEOUT_MS);
 
+    const onParentAbort = () => deadlineController.abort();
+    if (signal) {
+      signal.addEventListener("abort", onParentAbort, { once: true });
+      if (signal.aborted) deadlineController.abort();
+    }
+
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+    const cancelReader = () => {
+      reader?.cancel().catch(() => {});
+    };
+    deadlineController.signal.addEventListener("abort", cancelReader);
+
     try {
+      let response: Response;
+      try {
+        response = await fetch(`${PROXY_BASE_PATH}/chat/completions`, {
+          method: "POST",
+          headers: requestHeadersWeb,
+          body: JSON.stringify(payload),
+          signal: deadlineController.signal,
+        });
+      } catch (err: unknown) {
+        if (deadlineExpired) throw timeoutError;
+        if (signal?.aborted) throw new Error("Aborted");
+        throw err;
+      }
+
+      const headers = parseDiagnosticsHeaders(response);
+      let streamError = "";
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        let parsed: unknown = null;
+        try { parsed = JSON.parse(text); } catch { /* non-JSON error body — use raw text */ }
+        streamError = normalizeError(response.status, readWebErrorBody(parsed, text, response.statusText));
+      }
+
+      dispatch?.({
+        type: "SET_DIAGNOSTICS",
+        diagnostics: summarizeDiagnostics({
+          endpoint: "/chat/completions",
+          method: "POST",
+          status: response.status,
+          ok: response.ok,
+          headers,
+          error: streamError,
+          startedAt,
+          endedAt: nowIso(),
+          model: typeof payloadRecord?.model === "string" ? payloadRecord.model : null,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(streamError);
+      }
+
+      if (!response.body || typeof response.body.getReader !== "function")
+        throw new Error("Streaming is unavailable in this browser sandbox.");
+
+      reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
       while (true) {
+        if (deadlineExpired) throw timeoutError;
+        if (signal?.aborted) throw new Error("Aborted");
+
         let result: ReadableStreamReadResult<Uint8Array>;
         try {
           result = await reader.read();
         } catch (err: unknown) {
-          if (err instanceof DOMException && err.name === "TimeoutError") {
-            throw new Error("Stream timed out after 5 minutes. The server may be overloaded — please try again.");
-          }
+          if (deadlineExpired) throw timeoutError;
+          if (signal?.aborted) throw new Error("Aborted");
           throw err;
         }
-        const { value, done } = result;
-        if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
+        if (result.done) {
+          if (deadlineExpired) throw timeoutError;
+          if (signal?.aborted) throw new Error("Aborted");
+          break;
+        }
+
+        buffer += decoder.decode(result.value, { stream: true });
         const lines = buffer.split(/\r?\n/);
         buffer = lines.pop() || "";
 
@@ -1200,9 +1220,7 @@ export async function veniceStreamChat(
           } catch { /* malformed SSE JSON chunk — skip */ }
         }
       }
-      if (timedOut) {
-        throw new Error("Stream timed out after 5 minutes. The server may be overloaded — please try again.");
-      }
+
       useInspectorStore.getState().updateLog(
         logId,
         buildInspectorTelemetryPatch({
@@ -1224,8 +1242,10 @@ export async function veniceStreamChat(
         }),
       );
     } finally {
-      clearTimeout(readTimeoutId);
-      reader.releaseLock();
+      clearTimeout(deadlineId);
+      deadlineController.signal.removeEventListener("abort", cancelReader);
+      if (signal) signal.removeEventListener("abort", onParentAbort);
+      reader?.releaseLock();
     }
   } catch (err: unknown) {
     const errAny = err as { status?: number; message?: string };
@@ -1241,4 +1261,259 @@ export async function veniceStreamChat(
     );
     throw err;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Legacy thin compatibility surface exported for `src/lib/venice-client.ts`.
+// These functions are deliberately simple (no retries, no inspector logging)
+// so existing hooks/services that import from `lib/venice-client` continue to
+// work without changing call sites. New code should prefer `veniceFetch` and
+// the canonical `veniceStreamChat` below.
+// ---------------------------------------------------------------------------
+
+/** Custom error thrown by the legacy Venice client surface. */
+export class VeniceAPIError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "VeniceAPIError";
+    this.status = status;
+  }
+}
+
+function readVeniceErrorBody(body: unknown): string {
+  if (!body || typeof body !== "object") return "";
+  const record = body as Record<string, unknown>;
+  const errorObj = record.error as Record<string, unknown> | undefined;
+  const top = errorObj?.message || record.error || record.message;
+  if (top) {
+    if (typeof top === "object") {
+      try {
+        const str = JSON.stringify(top);
+        if (str === "{}" || str === "[]") return String(top);
+        return str;
+      } catch {
+        return "[unserializable error]";
+      }
+    }
+    return String(top);
+  }
+  const details = record.details;
+  if (details && typeof details === "object") {
+    const detailsRec = details as Record<string, unknown>;
+    if (Array.isArray(detailsRec._errors) && detailsRec._errors.length) return String(detailsRec._errors[0]);
+    for (const key of Object.keys(detailsRec)) {
+      if (key === "_errors") continue;
+      const val = detailsRec[key] as Record<string, unknown> | undefined;
+      const errs = val?._errors;
+      if (Array.isArray(errs) && errs.length) return `${key}: ${String(errs[0])}`;
+    }
+    return "Request validation failed";
+  }
+  return String(record.detail || "");
+}
+
+/** Web-mode fallback used by the legacy surface: fetch through the Express
+ *  proxy with the same error-body extraction and abort-signal forwarding as
+ *  the desktop path. */
+async function webVeniceFetch(
+  path: string,
+  options: { method?: string; body?: unknown; signal?: AbortSignal }
+): Promise<{ ok: boolean; status: number; statusText: string; body: unknown; contentType?: string }> {
+  const method = options.method || "GET";
+  const url = `${PROXY_BASE_PATH}${path.replace("/api/v1", "")}`;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "X-Venice-Forge-Family-Safe-Mode": String(useSettingsStore.getState().localFamilySafeModeEnabled),
+  };
+  const response = await fetch(url, {
+    method,
+    headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    signal: options.signal,
+  });
+
+  let body: unknown = null;
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    const text = await response.text().catch(() => "");
+    try {
+      body = text ? JSON.parse(text) : {};
+    } catch {
+      body = null;
+    }
+  } else {
+    const text = await response.text().catch(() => "");
+    try {
+      body = text ? JSON.parse(text) : {};
+    } catch {
+      body = { text };
+    }
+  }
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    statusText: response.statusText,
+    body,
+    contentType: contentType || undefined,
+  };
+}
+
+export async function venice<T>(
+  path: string,
+  options: { method?: string; body?: unknown; stream?: boolean; noAuth?: boolean; signal?: AbortSignal } = {}
+): Promise<T> {
+  const method = options.method || "GET";
+  let parsedBody: unknown = undefined;
+  if (options.body !== undefined && options.body !== null) {
+    if (typeof options.body === "string") {
+      try {
+        parsedBody = JSON.parse(options.body);
+      } catch (err) {
+        throw new VeniceAPIError(
+          `Invalid JSON body passed to venice(): ${err instanceof Error ? err.message : String(err)}`,
+          0
+        );
+      }
+    } else {
+      parsedBody = options.body;
+    }
+  }
+
+  if (!isElectron()) {
+    const response = await webVeniceFetch(path, { method, body: parsedBody, signal: options.signal });
+    if (options.signal && options.signal.aborted) throw new Error("Aborted");
+    if (!response.ok) {
+      const bodyMessage = readVeniceErrorBody(response.body);
+      throw new VeniceAPIError(
+        bodyMessage || response.statusText || `HTTP ${response.status}`,
+        response.status
+      );
+    }
+    return response.body as T;
+  }
+
+  const response = await desktopVenice.request(
+    {
+      endpoint: path.replace("/api/v1", ""),
+      method: method as "GET" | "POST",
+      body: parsedBody,
+    },
+    options.signal
+  );
+
+  if (options.signal && options.signal.aborted) throw new Error("Aborted");
+  if (!response.ok) {
+    const bodyMessage = readVeniceErrorBody(response.body);
+    throw new VeniceAPIError(
+      bodyMessage || response.statusText || `HTTP ${response.status}`,
+      response.status
+    );
+  }
+  return response.body as T;
+}
+
+export async function veniceBlob(path: string, body: object, init: { signal?: AbortSignal } = {}): Promise<Blob> {
+  if (init.signal?.aborted) throw new Error("Aborted");
+
+  if (!isElectron()) {
+    const response = await webVeniceFetch(path, { method: "POST", body, signal: init.signal });
+    if (!response.ok) {
+      const bodyMessage = readVeniceErrorBody(response.body);
+      throw new VeniceAPIError(bodyMessage || `HTTP ${response.status}`, response.status);
+    }
+    const url = `${PROXY_BASE_PATH}${path.replace("/api/v1", "")}`;
+    const fetchResponse = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Venice-Forge-Family-Safe-Mode": String(useSettingsStore.getState().localFamilySafeModeEnabled),
+      },
+      body: JSON.stringify(body),
+      signal: init.signal,
+    });
+    if (!fetchResponse.ok) {
+      throw new VeniceAPIError(fetchResponse.statusText || `HTTP ${fetchResponse.status}`, fetchResponse.status);
+    }
+    return await fetchResponse.blob();
+  }
+
+  const response = await desktopVenice.request(
+    {
+      endpoint: path.replace("/api/v1", ""),
+      method: "POST",
+      body,
+    },
+    init.signal
+  );
+  if (!response.ok) {
+    const bodyMessage = readVeniceErrorBody(response.body);
+    throw new VeniceAPIError(bodyMessage || `HTTP ${response.status}`, response.status);
+  }
+
+  const b64 = (response.body as { dataBase64?: string }).dataBase64;
+  if (!b64) {
+    if (typeof response.body === "string") return new Blob([response.body], { type: response.contentType });
+    return new Blob([], { type: response.contentType });
+  }
+  const binaryStr = atob(b64);
+  const len = binaryStr.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) bytes[i] = binaryStr.charCodeAt(i);
+  return new Blob([bytes], { type: response.contentType });
+}
+
+export async function veniceFormData<T>(path: string, formData: FormData, init: { signal?: AbortSignal } = {}): Promise<T> {
+  if (init.signal?.aborted) throw new Error("Aborted");
+
+  if (!isElectron()) {
+    const url = `${PROXY_BASE_PATH}${path.replace("/api/v1", "")}`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "X-Venice-Forge-Family-Safe-Mode": String(useSettingsStore.getState().localFamilySafeModeEnabled),
+      },
+      body: formData,
+      signal: init.signal,
+    });
+    let body: unknown = null;
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const text = await response.text().catch(() => "");
+      try {
+        body = text ? JSON.parse(text) : {};
+      } catch {
+        body = null;
+      }
+    } else {
+      const text = await response.text().catch(() => "");
+      try {
+        body = text ? JSON.parse(text) : {};
+      } catch {
+        body = { text };
+      }
+    }
+    if (!response.ok) {
+      const bodyMessage = readVeniceErrorBody(body);
+      throw new VeniceAPIError(bodyMessage || response.statusText || `HTTP ${response.status}`, response.status);
+    }
+    return body as T;
+  }
+
+  const serializedBody = await serializeFormData(formData);
+  const response = await desktopVenice.request(
+    {
+      endpoint: path.replace("/api/v1", ""),
+      method: "POST",
+      body: { _isSerializedFormData: true, entries: serializedBody.entries },
+    },
+    init.signal
+  );
+
+  if (!response.ok) {
+    const bodyMessage = readVeniceErrorBody(response.body);
+    throw new VeniceAPIError(bodyMessage || `HTTP ${response.status}`, response.status);
+  }
+  return response.body as T;
 }

@@ -1,5 +1,3 @@
-/** @fileoverview VERIFY-042 + VERIFY-044 mounted Command Palette contracts. */
-
 import '@testing-library/jest-dom/vitest'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
@@ -74,6 +72,76 @@ describe('CommandPalette', () => {
     view.unmount()
     fireEvent.keyDown(window, { key: 'k', metaKey: true })
     expect(onToggle).not.toHaveBeenCalled()
+  })
+})
+
+// P1-014: keyboard navigation + aria-activedescendant
+describe('CommandPalette — keyboard navigation', () => {
+  const getActiveItem = () => screen.getByRole('dialog').querySelector<HTMLElement>('[data-active="true"]')
+  const getInput = () => screen.getByRole('dialog').querySelector<HTMLInputElement>('input')
+
+  it('starts with the first item active and exposes aria-activedescendant', async () => {
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    await vi.waitFor(() => expect(getActiveItem()).toBeInTheDocument())
+    expect(getActiveItem()).toHaveAttribute('id')
+    expect(getInput()).toHaveAttribute('aria-activedescendant', getActiveItem()!.id)
+  })
+
+  it('moves active item with ArrowDown and wraps', async () => {
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    await vi.waitFor(() => expect(getActiveItem()).toBeInTheDocument())
+    const first = getActiveItem()!.id
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'ArrowDown' })
+    await vi.waitFor(() => expect(getActiveItem()!.id).not.toBe(first))
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'ArrowUp' })
+    await vi.waitFor(() => expect(getActiveItem()!.id).toBe(first))
+  })
+
+  it('wraps from last to first with ArrowDown and first to last with ArrowUp', async () => {
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    await vi.waitFor(() => expect(getActiveItem()).toBeInTheDocument())
+    const items = screen.getByRole('dialog').querySelectorAll<HTMLElement>('[data-command-item]')
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Home' })
+    await vi.waitFor(() => expect(getActiveItem()!.id).toBe(items[0].id))
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'ArrowUp' })
+    await vi.waitFor(() => expect(getActiveItem()!.id).toBe(items[items.length - 1].id))
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'ArrowDown' })
+    await vi.waitFor(() => expect(getActiveItem()!.id).toBe(items[0].id))
+  })
+
+  it('jumps to Home and End', async () => {
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    await vi.waitFor(() => expect(getActiveItem()).toBeInTheDocument())
+    const items = screen.getByRole('dialog').querySelectorAll<HTMLElement>('[data-command-item]')
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'ArrowDown' })
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'ArrowDown' })
+    await vi.waitFor(() => expect(getActiveItem()!.id).not.toBe(items[0].id))
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Home' })
+    await vi.waitFor(() => expect(getActiveItem()!.id).toBe(items[0].id))
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'End' })
+    await vi.waitFor(() => expect(getActiveItem()!.id).toBe(items[items.length - 1].id))
+  })
+
+  it('activates the active item on Enter', async () => {
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    await vi.waitFor(() => expect(getActiveItem()).toBeInTheDocument())
+    const items = screen.getByRole('dialog').querySelectorAll<HTMLElement>('[data-command-item]')
+    // First item is the first canonical tab
+    const firstTab = TAB_REGISTRY[0]
+    expect(items[0]).toHaveTextContent(firstTab.label)
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Enter' })
+    await vi.waitFor(() => expect(useSettingsStore.getState().activeTab).toBe(firstTab.id))
+  })
+
+  it('resets active item to first on query change', async () => {
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    await vi.waitFor(() => expect(getActiveItem()).toBeInTheDocument())
+    const allItems = () => screen.getByRole('dialog').querySelectorAll<HTMLElement>('[data-command-item]')
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'End' })
+    await vi.waitFor(() => expect(getActiveItem()!.id).toBe(allItems()[allItems().length - 1].id))
+    const input = getInput()!
+    fireEvent.change(input, { target: { value: 'image' } })
+    await vi.waitFor(() => expect(getActiveItem()!.id).toBe(allItems()[0].id))
   })
 })
 

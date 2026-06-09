@@ -59,7 +59,7 @@ For development, see [Development](#-development--setup) or [docs/ABOUT.md](docs
 
 ## ✨ Features
 
-Fourteen integrated tabs covering chat, media generation, research, and settings — wired into a single canonical tab registry at `src/config/tabs.ts`:
+Seventeen integrated tabs covering chat, media generation, research, and settings — wired into a single canonical tab registry at `src/config/tabs.ts`:
 
 | Tab | Name | What You Can Do |
 |-----|------|-----------------|
@@ -442,7 +442,7 @@ This project is actively maintained. For issues, feature requests, or security r
 | Windows Support | ✅ Fully supported |
 | macOS Support | ✅ Fully supported (Intel + Apple Silicon) |
 | Linux Support | ✅ Supported via CI (AppImage + deb + rpm, x64 + arm64) — see release assets |
-| Node.js | v20, v22 |
+| Node.js | 22.13+ (Node 22.x) |
 | TypeScript | Strict mode enforced |
 | Family Safe Mode | ✅ On by default; toggleable to Adult Mode |
 | Test Suite | Full Vitest suite plus 52 active named regression guards |

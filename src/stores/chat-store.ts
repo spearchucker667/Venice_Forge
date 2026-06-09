@@ -73,15 +73,13 @@ interface ChatState {
 function touchConversation(conv: Conversation, now: number = Date.now()): Conversation {
   const messages = conv.messages ?? []
   const metadata = {
+    ...conv.metadata,
     tags: conv.metadata?.tags ?? [],
     pinned: conv.metadata?.pinned ?? false,
     archived: conv.metadata?.archived ?? false,
     source: conv.metadata?.source ?? 'chat',
     messageCount: messages.length,
-    tokenEstimate: conv.metadata?.tokenEstimate,
-    lastSummaryAt: conv.metadata?.lastSummaryAt,
-    migratedFrom: conv.metadata?.migratedFrom,
-    character: conv.metadata?.character,
+    updatedAt: now,
   }
   return { ...conv, messages, updatedAt: now, metadata }
 }
@@ -135,6 +133,7 @@ export const useChatStore = create<ChatState>()(
         set((s) => ({
           conversations: [conv, ...s.conversations],
           activeConversationId: id,
+          _hasLoadedHistory: true,
         }))
         return id
       },
@@ -182,6 +181,7 @@ export const useChatStore = create<ChatState>()(
         set((s) => ({
           conversations: [conv, ...s.conversations],
           activeConversationId: id,
+          _hasLoadedHistory: true,
         }))
         return id
       },
@@ -493,8 +493,15 @@ if (typeof window !== 'undefined') {
     // fresh object), mark it dirty. This catches BOTH the active
     // conversation (e.g. addMessage) AND non-active ones (e.g. delete
     // a message in a background chat via the Search panel).
+    //
+    // Build a Map of previous conversations by id so the per-item lookup
+    // is O(1) instead of O(n); the whole subscription is now O(n).
+    const prevById = new Map<string, Conversation>()
+    for (const p of prevState.conversations) {
+      prevById.set(p.id, p)
+    }
     for (const c of state.conversations) {
-      const prev = prevState.conversations.find((p) => p.id === c.id)
+      const prev = prevById.get(c.id)
       if (prev !== c) {
         markDirtyConversation(c.id, c)
       }

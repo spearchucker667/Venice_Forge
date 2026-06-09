@@ -14,7 +14,7 @@ session (see `AGENTS.md` § *Mandatory Session Handoff*).
 
 Do not duplicate or override the security rules in `AGENTS.md`. In particular:
 
-- Never expose or log Venice/Jina/MiniMax API keys.
+- Never expose or log Venice/Jina API keys.
 - Route Venice API calls through the existing client/IPC/proxy paths.
 - Every new prompt-sending path must call `assessChildExploitationSafety()` and `recordDecision()` before forwarding to Venice.
 - Run `npm run lint:eslint`, `npm run typecheck`, `npm test`, `npm run verify:safety-guard`, and `npm run build` before PR-ready changes when practical.

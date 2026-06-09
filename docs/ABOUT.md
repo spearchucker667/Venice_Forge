@@ -153,7 +153,7 @@ User input
 - Venice Forge auto-update support depends on GitHub Releases availability and packaging configuration.
 - IndexedDB records are encrypted with a browser-managed AES-GCM key stored in same-origin IndexedDB; this is not equivalent to OS credential storage.
 - Venice Forge is not a multi-user or server-deployed application; it is a single-user desktop tool.
-- Venice Forge does not support Linux native packaging in the current release.
+- Linux packaging is produced by the release workflow (AppImage/deb/rpm for x64+arm64). Local cross-build from macOS/Windows is not supported; use the CI artifacts or build on a Linux runner.
 - Venice Forge is not an official Venice.ai product and does not replace Venice's legal terms, privacy notices, or API documentation.
 
 ## Further Reading

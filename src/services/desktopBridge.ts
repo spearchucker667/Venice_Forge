@@ -79,7 +79,6 @@ export const desktopVenice = {
       return await window.veniceForge!.venice.request({
         ...input,
         signalId,
-        localFamilySafeModeEnabled: useSettingsStore.getState().localFamilySafeModeEnabled,
       });
     } finally {
       cleanup?.();
@@ -105,7 +104,6 @@ export const desktopVenice = {
       return await window.veniceForge!.venice.streamChat({
         ...input,
         signalId,
-        localFamilySafeModeEnabled: useSettingsStore.getState().localFamilySafeModeEnabled,
       }, onDelta);
     } finally {
       cleanup?.();

@@ -477,8 +477,10 @@ export function sortMedia(items: MediaItem[], sort: MediaSort): MediaItem[] {
       break
     case "size": {
       out.sort((a, b) => {
-        const aSize = a.mediaType === "video" ? a.image.length * 4 : a.image.length
-        const bSize = b.mediaType === "video" ? b.image.length * 4 : b.image.length
+        const aLen = typeof a.image === "string" ? a.image.length : 0
+        const bLen = typeof b.image === "string" ? b.image.length : 0
+        const aSize = a.mediaType === "video" ? aLen * 4 : aLen
+        const bSize = b.mediaType === "video" ? bLen * 4 : bLen
         return bSize - aSize
       })
       break
@@ -521,10 +523,10 @@ export function searchMedia(items: MediaItem[], query: string): MediaItem[] {
   const q = query.trim().toLowerCase()
   if (!q) return items
   return items.filter((item) => {
-    if (item.prompt.toLowerCase().includes(q)) return true
-    if (item.model.toLowerCase().includes(q)) return true
-    if (item.note.toLowerCase().includes(q)) return true
-    if (item.tags.some((tag) => tag.includes(q))) return true
+    if (typeof item.prompt === "string" && item.prompt.toLowerCase().includes(q)) return true
+    if (typeof item.model === "string" && item.model.toLowerCase().includes(q)) return true
+    if (typeof item.note === "string" && item.note.toLowerCase().includes(q)) return true
+    if (Array.isArray(item.tags) && item.tags.some((tag) => typeof tag === "string" && tag.includes(q))) return true
     return false
   })
 }

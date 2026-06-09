@@ -601,7 +601,7 @@ export function registerIpcHandlers(): void {
         throw new Error("Path traversal detected.");
       }
 
-      const rawData = base64Data.replace(/^data:image\/\w+;base64,/, "");
+      const rawData = base64Data.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, "");
       const buffer = Buffer.from(rawData, "base64");
 
       await fs.mkdir(targetDir, { recursive: true });

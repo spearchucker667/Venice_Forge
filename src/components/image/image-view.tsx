@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useStyles } from '../../hooks/use-styles'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { useImageGenerate } from '../../hooks/use-image'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { Select } from '../ui/select'
@@ -87,6 +88,8 @@ export function ImageView() {
   const [hideWatermark] = useState(true)
   const [images, setImages] = useState<string[]>([])
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const lightboxRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(lightboxRef, !!selectedImage, () => setSelectedImage(null))
   const [generationContext, setGenerationContext] = useState<Pick<ImageGenerateHandoff, 'parentId' | 'operation'> & { recipeMeta?: Record<string, unknown> } | null>(null)
   const [queuedAutoGenerateId, setQueuedAutoGenerateId] = useState<string | null>(null)
   const pendingHandoff = useImageWorkspaceStore((state) => state.pending)
@@ -686,15 +689,22 @@ export function ImageView() {
   const output = (
     <>
       {selectedImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedImage(null)}>
+        <div
+          ref={lightboxRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Image preview"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm animate-fade-in"
+          onClick={() => setSelectedImage(null)}
+        >
           <div className="relative" onClick={(e) => e.stopPropagation()}>
             <img src={toImageSrc(selectedImage)} alt="Generated" className="max-w-[90vw] max-h-[90vh] rounded-xl shadow-2xl" />
             <div className="absolute top-3 right-3 flex gap-1.5">
               <button onClick={() => downloadImage(selectedImage)} aria-label="Download" className="p-2 bg-black/60 hover:bg-black/80 rounded-lg text-white/70 hover:text-white transition-colors backdrop-blur-sm">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+                <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
               </button>
               <button onClick={() => setSelectedImage(null)} aria-label="Close" className="p-2 bg-black/60 hover:bg-black/80 rounded-lg text-white/70 hover:text-white transition-colors backdrop-blur-sm">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
               </button>
             </div>
           </div>
@@ -725,8 +735,9 @@ export function ImageView() {
               <img
                 src={toImageSrc(img)}
                 alt={`Generated ${i + 1}`}
+                tabIndex={-1}
                 className="w-full rounded-xl cursor-pointer border border-white/[0.05] hover:border-white/[0.18] transition-all duration-200"
-                onClick={() => setSelectedImage(img)}
+                onClick={(e) => { (e.currentTarget as HTMLImageElement).focus(); setSelectedImage(img) }}
               />
               <button
                 onClick={(e) => { e.stopPropagation(); downloadImage(img, i) }}

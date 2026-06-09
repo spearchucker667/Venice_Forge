@@ -23,7 +23,10 @@ export function getBridgeToken(): string {
  *  through short-circuit string comparison. timingSafeEqual forces a
  *  constant-time compare but requires equal-length buffers; we pad/hash
  *  to keep that property. */
+const MAX_BRIDGE_TOKEN_LENGTH = 512;
+
 function safeTokenCompare(provided: string, expected: string): boolean {
+  if (provided.length > MAX_BRIDGE_TOKEN_LENGTH) return false;
   const providedBuf = Buffer.from(provided, "utf-8");
   const expectedBuf = Buffer.from(expected, "utf-8");
   if (providedBuf.length !== expectedBuf.length) {
@@ -236,7 +239,7 @@ export function startBridgeServer(port = 5062, host = "127.0.0.1"): Promise<stri
           });
           return;
         }
-        res.status(500).json({ error: (err as Error).message || String(err) });
+        res.status(500).json({ error: "Internal server error" });
       } finally {
         clearTimeout(requestTimeout);
       }

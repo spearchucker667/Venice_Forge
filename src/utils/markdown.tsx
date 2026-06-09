@@ -21,8 +21,10 @@ export function minimalMarkdown(text: string) {
     // BUG-005: Unpaired surrogates crash encodeURIComponent
     const safeCode = code.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "$1\uFFFD");
     
-    // BUG-004: Encode unescaped raw code for the copy button
-    const encoded = btoa(unescape(encodeURIComponent(safeCode)));
+    // BUG-004: Encode raw code for the copy button using standards-compliant UTF-8 → binary conversion
+    const bytes = new TextEncoder().encode(safeCode);
+    const binary = Array.from(bytes).map((b) => String.fromCharCode(b)).join("");
+    const encoded = btoa(binary);
     
     codeBlocks.push(
       `<div class="code-block-wrapper relative group">` +

@@ -215,7 +215,7 @@ export async function bulkAssignProject(
   // aborting the whole batch on quota / IO errors.
   for (const id of norm) {
     const patch: MediaItemPatch =
-      projectId === null ? { projectId: undefined as unknown as string } : { projectId };
+      projectId === null ? { projectId: undefined } : { projectId };
     try {
       const updated = await useMediaStore.getState().patch(id, patch);
       if (updated) succeeded.push(id);
