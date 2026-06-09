@@ -14,15 +14,36 @@ import type { MutableRefObject } from "react";
 // Mock the desktop bridge so the hook's IPC calls do not actually
 // try to talk to Electron in jsdom (which would hang). We only need
 // the hook to compile + run; we are not exercising the IPC paths.
-vi.mock("../services/desktopBridge", () => ({
-  isElectron: () => false,
-  desktopApp: { getVersion: async () => "test-version" },
-  desktopConfig: { writeSanitized: async () => ({ ok: true }) },
-  desktopFiles: {
-    exportJson: async () => true,
-    importJsonString: async () => null, // simulates user cancelling the file picker
-  },
-}));
+//
+// We spread `...actual` from `importOriginal` so newly added exports
+// (e.g. `desktopConversations`, `desktopVenice`, `desktopJina`, …)
+// remain present in the mock — otherwise a stale mock missing one
+// export causes the chat-store bootstrap's microtask
+// (`desktopConversations.list().then(...)`) to throw an
+// "is not a function" error that escapes asynchronously and
+// poisons unrelated tests.
+vi.mock("../services/desktopBridge", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/desktopBridge")>();
+  return {
+    ...actual,
+    isElectron: () => false,
+    desktopApp: { getVersion: async () => "test-version" },
+    desktopConfig: { writeSanitized: async () => ({ ok: true }) },
+    desktopFiles: {
+      exportJson: async () => true,
+      importJsonString: async () => null, // simulates user cancelling the file picker
+    },
+    // Explicit stubs for the surface the chat-store bootstrap touches.
+    // These prevent a "desktopConversations is undefined" unhandled
+    // error from escaping this test file and poisoning the suite.
+    desktopConversations: {
+      list: vi.fn().mockResolvedValue({ ok: true, records: [] }),
+      save: vi.fn().mockResolvedValue({ ok: true }),
+      delete: vi.fn().mockResolvedValue({ ok: true }),
+      flush: vi.fn().mockResolvedValue({ ok: true }),
+    },
+  };
+});
 
 // Mock the StorageService default export. The real one is a default
 // export wrapping an IDB-backed module; we replace it with no-op

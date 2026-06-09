@@ -33,8 +33,16 @@ describe("downloadImage", () => {
   });
 
   it("sanitizes filenames before triggering a download", async () => {
+    // Use a Uint8Array body (a binary image payload shape) instead of
+    // a Blob — Vitest + jsdom + Node's `Response` implementation
+    // does not always expose the stream() getter that Response needs
+    // when constructed with a Blob body in this combo. Uint8Array is
+    // a runtime-stable shape and `Response.blob()` consumes it fine.
     globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response(new Blob(["x"]), { status: 200 })
+      new Response(new Uint8Array([120]), {
+        status: 200,
+        headers: { "content-type": "image/png" },
+      }),
     );
 
     const anchor = document.createElement("a");

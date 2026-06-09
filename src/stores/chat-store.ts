@@ -433,30 +433,59 @@ if (typeof window !== 'undefined') {
   // then overwrite the brand-new conversation). A microtask defers past
   // the current synchronous tick so any caller that runs in the same
   // tick (e.g. App.tsx mount → user click) wins.
-  queueMicrotask(() => {
-    desktopConversations.list().then((result) => {
-      if (!useChatStore.getState()._hasLoadedHistory && result.ok) {
-        useChatStore.getState().setConversations(result.records);
-      } else if (!result.ok) {
-        logger.error('[chat] conversations.list failed', result.error);
-      }
-    }).catch(logger.error).finally(() => {
-      // Legacy fallback: if the new conversation vault failed or is
-      // unavailable (e.g. an older desktop build without the vault IPC),
-      // hydrate from the legacy chat namespace. The _hasLoadedHistory
-      // guard prevents overwriting a successful vault load.
-      desktopChat.list().then((result) => {
+  //
+  // Hardened against partial test mocks: if either
+  // `desktopConversations.list` or `desktopChat.list` is missing or
+  // not a function (e.g. a stale vi.mock block in a test that does
+  // not include the newer desktopConversations export), the
+  // bootstrap must NOT throw an unhandled error. The two helpers
+  // below short-circuit cleanly and log the same shape of warning
+  // we already use elsewhere so the failure is observable without
+  // it escaping asynchronously and poisoning unrelated tests.
+  const safeList = (
+    namespace: "vault" | "legacy",
+    provider: { list?: unknown },
+  ): Promise<void> => {
+    const list = provider?.list;
+    if (typeof list !== "function") {
+      logger.warn(`[chat] ${namespace}.list unavailable; skipping bootstrap`);
+      return Promise.resolve();
+    }
+    return (list as () => Promise<unknown>).call(provider).then(
+      (raw) => {
+        const result = raw as
+          | { ok: boolean; records?: unknown[]; conversations?: unknown[]; truncated?: boolean; totalScanned?: number; error?: string }
+          | undefined;
+        if (!result) return;
         if (!useChatStore.getState()._hasLoadedHistory && result.ok) {
-          useChatStore.getState().setConversations(result.conversations);
-          if (result.truncated) {
-            logger.warn(
-              `[chat] conversation list truncated — ${result.totalScanned} files on disk, ` +
-                `showing ${result.conversations.length}. Consider archiving old chats.`,
-            );
-          }
+          const records = result.records ?? result.conversations ?? [];
+          useChatStore.getState().setConversations(records as never);
+        } else if (!result.ok) {
+          logger.error(`[chat] ${namespace}.list failed`, result.error);
         }
-      }).catch(logger.error)
-    })
+        if (result.truncated) {
+          logger.warn(
+            `[chat] conversation list truncated — ${result.totalScanned ?? 0} files on disk, ` +
+              `showing ${(result.conversations ?? []).length}. Consider archiving old chats.`,
+          );
+        }
+      },
+      (err) => {
+        logger.error(`[chat] ${namespace}.list rejected`, err instanceof Error ? err.message : err);
+      },
+    );
+  };
+  queueMicrotask(() => {
+    safeList("vault", desktopConversations as { list?: unknown })
+      .catch((err) => logger.error("[chat] vault bootstrap threw", err))
+      .finally(() => {
+        // Legacy fallback: if the new conversation vault failed or is
+        // unavailable (e.g. an older desktop build without the vault IPC),
+        // hydrate from the legacy chat namespace. The _hasLoadedHistory
+        // guard prevents overwriting a successful vault load.
+        return safeList("legacy", desktopChat as { list?: unknown });
+      })
+      .catch((err) => logger.error("[chat] legacy bootstrap threw", err));
   })
 
   // Save changes — debounced, with flush-on-unload so a pending edit is
