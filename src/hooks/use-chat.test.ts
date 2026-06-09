@@ -6,29 +6,14 @@ import { useChat } from "./use-chat";
 import { useChatStore } from "../stores/chat-store";
 import { useCharacterStore } from "../stores/character-store";
 import { useSettingsStore } from "../stores/settings-store";
-import { venice } from "../lib/venice-client";
+import { veniceStreamChat } from "../services/veniceClient";
 
-vi.mock("../lib/venice-client", () => ({
-  venice: vi.fn(),
-  VeniceAPIError: class extends Error {
-    status: number;
-    constructor(message: string, status: number) {
-      super(message);
-      this.name = "VeniceAPIError";
-      this.status = status;
-    }
-  },
+vi.mock("../services/veniceClient", () => ({
+  veniceStreamChat: vi.fn(),
+  veniceFetch: vi.fn(),
 }));
 
-const mockedVenice = vi.mocked(venice);
-
-/** Builds a minimal SSE-encoded response body that parsesSSEStream
- *  will recognize. The hook only cares about the request body, but the
- *  stream parser is invoked at the end of `send` so we need a no-op
- *  payload here. */
-function buildSseResponse(): string {
-  return "data: [DONE]\n\n";
-}
+const mockedVeniceStreamChat = vi.mocked(veniceStreamChat);
 
 const CHARACTER = {
   id: "char-1",
@@ -81,17 +66,21 @@ describe("use-chat character_slug threading", () => {
     resetStores();
   });
 
+  function extractPayloadFromCall(): Record<string, unknown> | null {
+    const call = mockedVeniceStreamChat.mock.calls[0];
+    if (!call) return null;
+    return call[0] as Record<string, unknown>;
+  }
+
   it("does NOT include character_slug for a normal chat conversation", async () => {
-    mockedVenice.mockResolvedValueOnce(buildSseResponse());
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
     const { result } = renderHook(() => useChat());
     await act(async () => {
       await result.current.send("Hello, world.", "llama-3.3-70b");
     });
-    const call = mockedVenice.mock.calls.find((c) => c[0] === "/chat/completions");
-    expect(call).toBeDefined();
-    const body = call![1]?.body as Record<string, unknown>;
-    expect(body.venice_parameters).toBeDefined();
-    expect((body.venice_parameters as Record<string, unknown>).character_slug).toBeUndefined();
+    const body = extractPayloadFromCall();
+    expect(body).not.toBeNull();
+    expect((body!.venice_parameters as Record<string, unknown>).character_slug).toBeUndefined();
   });
 
   it("uses the conversation's persisted character slug even when the global selection changes", async () => {
@@ -107,16 +96,16 @@ describe("use-chat character_slug threading", () => {
       name: "Somebody Else",
     });
 
-    mockedVenice.mockResolvedValueOnce(buildSseResponse());
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
     const { result } = renderHook(() => useChat());
     await act(async () => {
       await result.current.send("Hello, Alan.", "llama-3.3-70b");
     });
 
     expect(conv.metadata?.character?.slug).toBe("alan-watts");
-    const call = mockedVenice.mock.calls.find((c) => c[0] === "/chat/completions");
-    const body = call![1]?.body as Record<string, unknown>;
-    const veniceParams = body.venice_parameters as Record<string, unknown>;
+    const body = extractPayloadFromCall();
+    expect(body).not.toBeNull();
+    const veniceParams = body!.venice_parameters as Record<string, unknown>;
     expect(veniceParams.character_slug).toBe("alan-watts");
   });
 
@@ -130,15 +119,15 @@ describe("use-chat character_slug threading", () => {
 
     useCharacterStore.getState().selectCharacter({ id: "x", slug: "different", name: "Different" });
 
-    mockedVenice.mockResolvedValueOnce(buildSseResponse());
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
     const { result } = renderHook(() => useChat());
     await act(async () => {
       await result.current.regenerate("llama-3.3-70b");
     });
 
-    const call = mockedVenice.mock.calls.find((c) => c[0] === "/chat/completions");
-    const body = call![1]?.body as Record<string, unknown>;
-    const veniceParams = body.venice_parameters as Record<string, unknown>;
+    const body = extractPayloadFromCall();
+    expect(body).not.toBeNull();
+    const veniceParams = body!.venice_parameters as Record<string, unknown>;
     expect(veniceParams.character_slug).toBe("alan-watts");
   });
 
@@ -153,15 +142,15 @@ describe("use-chat character_slug threading", () => {
     });
     useChatStore.getState().createCharacterConversation(CHARACTER, "llama-3.3-70b");
 
-    mockedVenice.mockResolvedValueOnce(buildSseResponse());
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
     const { result } = renderHook(() => useChat());
     await act(async () => {
       await result.current.send("Hello", "llama-3.3-70b");
     });
 
-    const call = mockedVenice.mock.calls.find((c) => c[0] === "/chat/completions");
-    const body = call![1]?.body as Record<string, unknown>;
-    const veniceParams = body.venice_parameters as Record<string, unknown>;
+    const body = extractPayloadFromCall();
+    expect(body).not.toBeNull();
+    const veniceParams = body!.venice_parameters as Record<string, unknown>;
     expect(veniceParams.character_slug).toBe("alan-watts");
     expect(veniceParams.enable_web_search).toBe("auto");
     expect(veniceParams.enable_web_citations).toBe(true);

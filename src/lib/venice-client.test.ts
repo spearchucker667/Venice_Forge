@@ -34,7 +34,23 @@ describe('venice-client (lib)', () => {
     }, undefined)
   })
 
-  it('should throw VeniceAPIError on failure', async () => {
+  it('should throw VeniceAPIError on failure with body message', async () => {
+    vi.mocked(desktopVenice.request).mockResolvedValue({
+      ok: false,
+      status: 400,
+      statusText: 'Bad Request',
+      headers: {},
+      contentType: 'application/json',
+      body: { error: 'Invalid request parameters', details: { safe_mode: { _errors: ['Unrecognized key(s) in object'] } } },
+    })
+
+    const err = await venice('/chat/completions').catch((e) => e) as unknown
+    expect(err).toBeInstanceOf(VeniceAPIError)
+    expect((err as VeniceAPIError).message).toContain('Invalid request parameters')
+    expect((err as VeniceAPIError).status).toBe(400)
+  })
+
+  it('should fall back to statusText when error body is empty', async () => {
     vi.mocked(desktopVenice.request).mockResolvedValue({
       ok: false,
       status: 400,
@@ -44,7 +60,23 @@ describe('venice-client (lib)', () => {
       body: null,
     })
 
-    await expect(venice('/chat/completions')).rejects.toThrow(VeniceAPIError)
+    const err = await venice('/chat/completions').catch((e) => e) as unknown
+    expect(err).toBeInstanceOf(VeniceAPIError)
+    expect((err as VeniceAPIError).message).toBe('Bad Request')
+  })
+
+  it('should extract details._errors from validation error body', async () => {
+    vi.mocked(desktopVenice.request).mockResolvedValue({
+      ok: false,
+      status: 400,
+      statusText: 'Bad Request',
+      headers: {},
+      contentType: 'application/json',
+      body: { details: { safe_mode: { _errors: ['Unrecognized key(s) in object'] } } },
+    })
+
+    const err = await venice('/chat/completions').catch((e) => e) as unknown
+    expect((err as VeniceAPIError).message).toContain('Unrecognized key')
   })
 
   it('should handle streaming completions', async () => {

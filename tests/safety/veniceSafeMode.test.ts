@@ -17,9 +17,9 @@ import {
 } from "../../src/shared/veniceSafeMode";
 
 describe("VERIFY-018 safe_mode endpoint matrix", () => {
-  it("adds safe_mode for /chat/completions", () => {
+  it("omits safe_mode for /chat/completions (not supported)", () => {
     const out = applyVeniceApiSafeMode("/chat/completions", { model: "m" }, true);
-    expect(out.safe_mode).toBe(true);
+    expect(out.safe_mode).toBeUndefined();
   });
 
   it("adds safe_mode for /image/generate", () => {
@@ -49,14 +49,14 @@ describe("VERIFY-018 safe_mode endpoint matrix", () => {
 
   it("does not mutate the input payload", () => {
     const input: Record<string, unknown> = { model: "m", temperature: 0.5 };
-    const out = applyVeniceApiSafeMode("/chat/completions", input, true);
+    const out = applyVeniceApiSafeMode("/image/generate", input, true);
     expect(input.safe_mode).toBeUndefined();
     expect(out.safe_mode).toBe(true);
     expect(input.model).toBe("m");
   });
 
   it("does not add safe_mode when enabled is undefined", () => {
-    const out = applyVeniceApiSafeMode("/chat/completions", { model: "m" }, undefined);
+    const out = applyVeniceApiSafeMode("/image/generate", { model: "m" }, undefined);
     expect(out.safe_mode).toBeUndefined();
   });
 

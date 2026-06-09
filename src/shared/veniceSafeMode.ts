@@ -15,7 +15,8 @@
  *  payload field.
  *
  *  Source: https://docs.venice.ai (2026-06-05).
- *  - /chat/completions: top-level safe_mode
+ *  Note: /chat/completions does NOT support top-level safe_mode.
+ *        safe_mode fields are sent via venice_parameters instead.
  *  - /image/generate, /image/edit, /image/multi-edit: top-level safe_mode
  *  - /image/upscale: does NOT support safe_mode (no extractable prompt fields)
  *  - /audio/speech, /audio/transcriptions: top-level safe_mode
@@ -24,12 +25,12 @@
  *  - /augment/{search,scrape,text-parser}: top-level safe_mode
  *  - /audio/queue, /audio/retrieve: returned-content only, no safe_mode field
  *  - /video/{retrieve,quote,complete}: returned-content only, no safe_mode field
+ *  - /chat/completions: does NOT support top-level safe_mode
  *  - /models: read-only, no safe_mode field
  */
 
 /** Endpoints that accept a top-level `safe_mode: boolean` field. */
 const ENDPOINTS_WITH_SAFE_MODE: ReadonlySet<string> = new Set([
-  "/chat/completions",
   "/image/generate",
   "/image/edit",
   "/image/multi-edit",
@@ -84,7 +85,7 @@ export const VENICE_API_SAFE_MODE_MATRIX: ReadonlyArray<{
   supportsSafeMode: boolean;
   fieldLocation: "top-level" | "form-field" | "not-supported";
 }> = [
-  { endpoint: "/chat/completions", supportsSafeMode: true, fieldLocation: "top-level" },
+  { endpoint: "/chat/completions", supportsSafeMode: false, fieldLocation: "not-supported" },
   { endpoint: "/image/generate", supportsSafeMode: true, fieldLocation: "top-level" },
   { endpoint: "/image/edit", supportsSafeMode: true, fieldLocation: "top-level" },
   { endpoint: "/image/multi-edit", supportsSafeMode: true, fieldLocation: "top-level" },

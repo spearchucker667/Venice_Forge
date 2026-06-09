@@ -28,6 +28,38 @@ export class VeniceAPIError extends Error {
   }
 }
 
+function readVeniceErrorBody(body: unknown): string {
+  if (!body || typeof body !== 'object') return ''
+  const record = body as Record<string, unknown>
+  const errorObj = record.error as Record<string, unknown> | undefined
+  const top = errorObj?.message || record.error || record.message
+  if (top) {
+    if (typeof top === 'object') {
+      try {
+        const str = JSON.stringify(top)
+        if (str === '{}' || str === '[]') return String(top)
+        return str
+      } catch {
+        return '[unserializable error]'
+      }
+    }
+    return String(top)
+  }
+  const details = record.details
+  if (details && typeof details === 'object') {
+    const detailsRec = details as Record<string, unknown>
+    if (Array.isArray(detailsRec._errors) && detailsRec._errors.length) return String(detailsRec._errors[0])
+    for (const key of Object.keys(detailsRec)) {
+      if (key === '_errors') continue
+      const val = detailsRec[key] as Record<string, unknown> | undefined
+      const errs = val?._errors
+      if (Array.isArray(errs) && errs.length) return `${key}: ${String(errs[0])}`
+    }
+    return 'Request validation failed'
+  }
+  return String(record.detail || '')
+}
+
 export async function venice<T>(path: string, options: { method?: string; body?: unknown; stream?: boolean; noAuth?: boolean; signal?: AbortSignal } = {}): Promise<T> {
   const method = options.method || 'GET'
   let parsedBody: unknown = undefined;
@@ -61,7 +93,11 @@ export async function venice<T>(path: string, options: { method?: string; body?:
   
   if (options.signal && options.signal.aborted) throw new Error('Aborted');
   if (!response.ok) {
-    throw new VeniceAPIError(response.statusText || `HTTP ${response.status}`, response.status)
+    const bodyMessage = readVeniceErrorBody(response.body)
+    throw new VeniceAPIError(
+      bodyMessage || response.statusText || `HTTP ${response.status}`,
+      response.status,
+    )
   }
   return response.body as T
 }
@@ -91,7 +127,10 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
     method: "POST",
     body: body,
   }, init.signal);
-  if (!response.ok) throw new VeniceAPIError(`HTTP ${response.status}`, response.status);
+  if (!response.ok) {
+    const bodyMessage = readVeniceErrorBody(response.body)
+    throw new VeniceAPIError(bodyMessage || `HTTP ${response.status}`, response.status)
+  }
 
   // desktopBridge returns { dataBase64: "..." } for binary content
   const b64 = (response.body as { dataBase64?: string }).dataBase64;
@@ -151,6 +190,9 @@ export async function veniceFormData<T>(path: string, formData: FormData, init: 
     body: { _isSerializedFormData: true, entries }
   }, init.signal);
 
-  if (!response.ok) throw new VeniceAPIError(`HTTP ${response.status}`, response.status);
+  if (!response.ok) {
+    const bodyMessage = readVeniceErrorBody(response.body)
+    throw new VeniceAPIError(bodyMessage || `HTTP ${response.status}`, response.status)
+  }
   return response.body as T;
 }

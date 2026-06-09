@@ -1,10 +1,9 @@
 import { useCallback, useRef } from 'react'
-import { venice } from '../lib/venice-client'
-import { parseSSEStream } from '../lib/stream'
+import { veniceStreamChat } from '../services/veniceClient'
 import { useChatStore } from '../stores/chat-store'
 import { useSettingsStore } from '../stores/settings-store'
 import { useCharacterStore } from '../stores/character-store'
-import type { ChatCompletionRequest, ChatMessage, ContentPart, VeniceParameters } from '../types/venice'
+import type { ChatMessage, ContentPart, VeniceParameters } from '../types/venice'
 import type { Conversation } from '../types/conversation'
 import { applyVeniceApiSafeMode } from '../shared/veniceSafeMode'
 
@@ -74,7 +73,9 @@ export function useChat() {
 
       // Build the base body then route the Venice API Safe Mode flag
       // through the centralised helper so the endpoint matrix stays the
-      // single source of truth.
+      // single source of truth. (Note: safe_mode is no longer sent to
+      // /chat/completions — applyVeniceApiSafeMode is a no-op for this
+      // endpoint.)
       const baseBody: Record<string, unknown> = {
         model,
         messages: requestMessages,
@@ -88,28 +89,19 @@ export function useChat() {
         "/chat/completions",
         baseBody,
         useSettingsStore.getState().veniceApiSafeMode,
-      ) as unknown as ChatCompletionRequest;
+      );
 
-      // Pass body as object (not JSON.stringify): venice() in
-      // src/lib/venice-client.ts:17 will JSON.parse it back, and the
-      // IPC layer will re-stringify. Two round-trips is wasteful and
-      // can change key ordering.
-      const stream = await venice<ReadableStream<Uint8Array>>('/chat/completions', {
-        method: 'POST',
-        body,
-        stream: true,
+      await veniceStreamChat(body, {
         signal: abortController.signal,
+        onDelta: (chunk: { content: string; reasoning: string }) => {
+          if (chunk.content) {
+            appendToLastAssistant(convId, chunk.content)
+          }
+          if (chunk.reasoning) {
+            appendReasoningToLastAssistant(convId, chunk.reasoning)
+          }
+        },
       })
-
-      for await (const chunk of parseSSEStream(stream, { signal: abortController.signal })) {
-        const delta = chunk.choices[0]?.delta
-        if (delta?.content) {
-          appendToLastAssistant(convId, delta.content)
-        }
-        if (delta?.reasoning_content) {
-          appendReasoningToLastAssistant(convId, delta.reasoning_content)
-        }
-      }
     },
     [appendToLastAssistant, appendReasoningToLastAssistant, veniceParams, systemPrompt, temperature, topP, maxTokens],
   )
