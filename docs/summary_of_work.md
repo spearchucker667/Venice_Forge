@@ -106,7 +106,7 @@ release blockers remain.
 
 - **Date:** 2026-06-09 (Exhaustive ZIP audit closure — Waves 1-5 via agent swarm)
 - **Agent:** Kimi Code CLI (coordinator) dispatching 5 parallel implementation subagents
-- **Branch / state:** `main`, working-tree only (uncommitted, layered on prior 2026-06-09 closure commits)
+- **Branch / state:** `main` @ `c78366f4` (committed and pushed to origin main)
 - **Diagnosis:** The 2026-06-09 exhaustive ZIP audit identified real P1 gaps in archive/release contract consistency (git-ignore contradiction, verifier git-hardcoding, metadata generation ordering, secret-scan redaction), accessible-name behavior in `Select`/`TextArea`/`PillGroup` and Research Workspace controls, web Jina proxy URL-decoding/error leakage, and remaining direct `window.veniceForge` bypasses. P2/P3 cleanup around docs sync, download URL hardening, localStorage policy, and production `console.*` usage was also outstanding.
 - **Closure changes:**
   1. **Wave 1 — Archive/release proof contract (P1-001..P1-004, P3-003):**
