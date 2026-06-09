@@ -855,7 +855,7 @@ export function SettingsView() {
                   <button
                     onClick={() => {
                       try {
-                        localStorage.removeItem(FIRST_RUN_ACK_KEY);
+                        localStorage.removeItem(FIRST_RUN_ACK_KEY) /* localStorage-allowed: first-run legal ack */;
                         toast.success("Legal acknowledgment reset. It will appear on next reload.");
                       } catch {
                         toast.error("Could not reset acknowledgment.");

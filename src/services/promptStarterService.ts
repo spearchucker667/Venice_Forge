@@ -11,12 +11,12 @@ const RECENT_KEY = "venice-forge.recentPromptStarterIds";
 let memoryStorage: Record<string, string> = {};
 
 function getStorage(): Storage | null {
-  if (typeof window !== "undefined" && window.localStorage) {
-    return window.localStorage;
+  if (typeof window !== "undefined" && window.localStorage /* localStorage-allowed: prompt-starter rotation tracking */) {
+    return window.localStorage; /* localStorage-allowed: prompt-starter rotation tracking */
   }
   try {
-    if (typeof localStorage !== "undefined" && localStorage) {
-      return localStorage;
+    if (typeof localStorage !== "undefined" && localStorage /* localStorage-allowed: prompt-starter rotation tracking */) {
+      return localStorage; /* localStorage-allowed: prompt-starter rotation tracking */
     }
   } catch {
     // localStorage unavailable in this environment
@@ -35,6 +35,7 @@ function getRecentIds(): string[] {
   try {
     const storage = getStorage();
     if (storage) {
+      // localStorage-allowed: prompt-starter rotation tracking
       const stored = storage.getItem(RECENT_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
@@ -53,6 +54,7 @@ function saveRecentIds(ids: string[]): void {
   try {
     const storage = getStorage();
     if (storage) {
+      // localStorage-allowed: prompt-starter rotation tracking
       // Store up to 32 recent IDs
       storage.setItem(RECENT_KEY, JSON.stringify(ids.slice(-32)));
     }
@@ -169,6 +171,7 @@ export function getPromptStartersForCategory(category: PromptStarterCategory, co
     try {
       const storage = getStorage();
       if (storage) {
+        // localStorage-allowed: prompt-starter rotation tracking
         const stored = storage.getItem(recentKey);
         if (stored) {
           const parsed = JSON.parse(stored) as unknown;
@@ -187,6 +190,7 @@ export function getPromptStartersForCategory(category: PromptStarterCategory, co
     try {
       const storage = getStorage();
       if (storage) {
+        // localStorage-allowed: prompt-starter rotation tracking
         storage.setItem(recentKey, JSON.stringify(ids.slice(-16)));
       }
     } catch {
@@ -218,6 +222,7 @@ export function clearRecentPromptStarters(): void {
   try {
     const storage = getStorage();
     if (storage) {
+      // localStorage-allowed: prompt-starter rotation tracking
       storage.removeItem(RECENT_KEY);
       storage.removeItem("venice-forge.recentPromptStarterIds.image");
       storage.removeItem("venice-forge.recentPromptStarterIds.audio");

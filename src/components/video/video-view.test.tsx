@@ -150,4 +150,16 @@ describe('VideoView accessibility', () => {
     const removeBtn = screen.getByRole('button', { name: 'Remove reference image' })
     expect(removeBtn).toBeVisible()
   })
+
+  it('exposes accessible names for model, resolution, and aspect selects', () => {
+    render(<VideoView />)
+    expect(screen.getByRole('button', { name: 'Model' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Resolution/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Aspect/i })).toBeInTheDocument()
+  })
+
+  it('exposes aria-label on the duration pill group', () => {
+    render(<VideoView />)
+    expect(screen.getByRole('radiogroup', { name: 'Video duration' })).toBeInTheDocument()
+  })
 })

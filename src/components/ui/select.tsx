@@ -9,9 +9,11 @@ interface SelectProps {
   searchable?: boolean
   className?: string
   id?: string
+  ariaLabel?: string
+  labelledBy?: string
 }
 
-export function Select({ value, onChange, options, placeholder = 'Select...', searchable = false, className, id }: SelectProps) {
+export function Select({ value, onChange, options, placeholder = 'Select...', searchable = false, className, id, ariaLabel, labelledBy }: SelectProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [highlightedIndex, setHighlightedIndex] = useState(0)
@@ -117,7 +119,8 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
-        aria-label={placeholder}
+        aria-label={ariaLabel}
+        aria-labelledby={labelledBy}
         className={cn(
           'w-full flex items-center justify-between gap-2 bg-surface border border-border rounded-md px-2.5 py-1.5 text-[15px] hover:border-text-muted transition-colors outline-none cursor-pointer',
           open && 'border-accent',
@@ -125,7 +128,7 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
       >
         <span className={cn('truncate text-[15px]', value ? 'text-text-primary' : 'text-text-muted')}>{selectedLabel}</span>
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
-          className={cn('shrink-0 text-text-muted transition-transform duration-150', open && 'rotate-180')}>
+          className={cn('shrink-0 text-text-muted transition-transform duration-150', open && 'rotate-180')} aria-hidden="true">
           <path d="M2.5 3.75L5 6.25L7.5 3.75" />
         </svg>
       </button>

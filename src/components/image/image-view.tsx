@@ -588,7 +588,7 @@ export function ImageView() {
       )}
 
       {hasAspectRatios ? (
-        <div><Label>Aspect Ratio</Label><PillGroup options={aspectOptions} value={aspectRatio} onChange={setAspectRatio} /></div>
+        <div><Label>Aspect Ratio</Label><PillGroup options={aspectOptions} value={aspectRatio} onChange={setAspectRatio} ariaLabel="Image aspect ratio" /></div>
       ) : (
         <div>
           <Label htmlFor={sizeKeyId}>Dimensions</Label>
@@ -602,7 +602,7 @@ export function ImageView() {
       )}
 
       {(dimOptions.resolutions?.length) && (
-        <div><Label>Resolution</Label><PillGroup options={resolutionOptions} value={resolution || resolutionOptions[0]?.value || ''} onChange={setResolution} /></div>
+        <div><Label>Resolution</Label><PillGroup options={resolutionOptions} value={resolution || resolutionOptions[0]?.value || ''} onChange={setResolution} ariaLabel="Image resolution" /></div>
       )}
 
       {(dimOptions.qualities?.length) && (
@@ -612,6 +612,7 @@ export function ImageView() {
             options={dimOptions.qualities.map((option) => ({ value: option.id, label: option.label }))}
             value={quality || dimOptions.defaultQuality || ''}
             onChange={setQuality}
+            ariaLabel="Image quality"
           />
         </div>
       )}

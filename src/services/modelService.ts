@@ -19,10 +19,10 @@ import type { ModelInfo } from "../types/venice";
  */
 const cacheStorage = {
   get: (key: string): string | null => {
-    try { return localStorage.getItem(key) } catch { return null }
+    try { return localStorage.getItem(key) /* localStorage-allowed: transient model-list cache */ } catch { return null }
   },
   set: (key: string, value: string): void => {
-    try { localStorage.setItem(key, value) } catch { /* noop — cache is best-effort */ }
+    try { localStorage.setItem(key, value) /* localStorage-allowed: transient model-list cache */ } catch { /* noop — cache is best-effort */ }
   },
 };
 
@@ -73,7 +73,7 @@ function writeCache(grouped: Record<string, ModelInfo[]>): void {
   try {
     cacheStorage.set(CACHE_KEY, JSON.stringify({ grouped, fetchedAt: Date.now() }));
   } catch (err) {
-    warn("[modelService] Failed to cache models in localStorage:", err);
+    warn("[modelService] Failed to cache models in browser storage:", err);
   }
 }
 

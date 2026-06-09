@@ -23,7 +23,41 @@ describe('Select — accessibility', () => {
     const trigger = screen.getByRole('button')
     expect(trigger).toHaveAttribute('aria-haspopup', 'listbox')
     expect(trigger).toHaveAttribute('aria-expanded', 'false')
-    expect(trigger).toHaveAttribute('aria-label', 'Choose a letter')
+  })
+
+  it('does not set aria-label from placeholder by default', () => {
+    render(<TestSelect />)
+    const trigger = screen.getByRole('button')
+    expect(trigger).not.toHaveAttribute('aria-label', 'Choose a letter')
+    expect(trigger).not.toHaveAttribute('aria-label')
+  })
+
+  it('sets aria-label when ariaLabel prop is provided', () => {
+    render(<Select value="" onChange={vi.fn()} options={OPTIONS} ariaLabel="My label" />)
+    const trigger = screen.getByRole('button', { name: 'My label' })
+    expect(trigger).toBeInTheDocument()
+  })
+
+  it('sets aria-labelledby when labelledBy prop is provided', () => {
+    render(
+      <>
+        <span id="ext-label">External</span>
+        <Select value="" onChange={vi.fn()} options={OPTIONS} labelledBy="ext-label" />
+      </>,
+    )
+    const trigger = screen.getByRole('button')
+    expect(trigger).toHaveAttribute('aria-labelledby', 'ext-label')
+    expect(trigger).not.toHaveAttribute('aria-label')
+  })
+
+  it('is accessible by visible label via htmlFor/id', () => {
+    render(
+      <label htmlFor="my-select">
+        Resolution
+        <Select id="my-select" value="" onChange={vi.fn()} options={OPTIONS} />
+      </label>,
+    )
+    expect(screen.getByRole('button', { name: /Resolution/i })).toBeInTheDocument()
   })
 
   it('listbox and options expose correct roles when open', async () => {

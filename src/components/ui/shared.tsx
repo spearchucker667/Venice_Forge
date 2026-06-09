@@ -30,7 +30,7 @@ export function TextArea({ value, onChange, placeholder, rows = 3, ariaLabel, ma
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       rows={rows}
-      aria-label={ariaLabel ?? placeholder}
+      aria-label={ariaLabel}
       maxLength={maxLength}
       autoFocus={autoFocus}
       className="w-full bg-input-bg border border-border rounded-lg px-3 py-2.5 text-[15px] text-input-fg outline-none focus:border-border-strong transition-colors resize-none placeholder:text-placeholder leading-relaxed"
@@ -85,14 +85,15 @@ export function GhostButton({ onClick, children, disabled, ariaLabel }: { onClic
   )
 }
 
-export function PillGroup({ options, value, onChange, ariaLabel }: {
+export function PillGroup({ options, value, onChange, ariaLabel, labelledBy }: {
   options: Array<{ value: string; label: string }>
   value: string
   onChange: (v: string) => void
-  ariaLabel?: string
+  ariaLabel: string
+  labelledBy?: string
 }) {
   return (
-    <div role="radiogroup" aria-label={ariaLabel} className="flex flex-wrap gap-1">
+    <div role="radiogroup" aria-label={ariaLabel} aria-labelledby={labelledBy} className="flex flex-wrap gap-1"> 
       {options.map((o) => (
         <button
           key={o.value}

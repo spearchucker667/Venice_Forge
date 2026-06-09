@@ -26,11 +26,7 @@ export function useThemeLifecycle(
   useEffect(() => {
     if (!settingsHydrated) return;
     try {
-      localStorage.setItem("vf.theme.bootstrap", JSON.stringify({
-        selectedThemeId: settings.selectedThemeId,
-        appearanceMode: settings.appearanceMode,
-        customTheme: settings.customTheme,
-      }));
+      localStorage.setItem("vf.theme.bootstrap", JSON.stringify({ selectedThemeId: settings.selectedThemeId, appearanceMode: settings.appearanceMode, customTheme: settings.customTheme })) /* localStorage-allowed: theme bootstrap FOUC cache */;
     } catch {
       // localStorage may be disabled or full — bootstrap cache is best-effort
     }

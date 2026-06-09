@@ -250,28 +250,36 @@ export const ResearchWorkspaceView: React.FC = () => {
               <div className="flex-1 flex flex-col border-r border-border overflow-hidden">
                 <div className="p-4 space-y-4 border-b border-border">
                   <form onSubmit={handleSearch} className="flex gap-2">
+                    <label htmlFor="research-search-query" className="sr-only">Search query</label>
                     <input 
+                      id="research-search-query"
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
                       placeholder="Search query..."
                       className="flex-1 bg-bg-base border border-border rounded px-3 py-2 text-sm text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
                     />
                     <button 
+                      type="submit"
                       disabled={isSearching}
+                      aria-label="Run research search"
                       className="px-4 py-2 bg-surface-elevated hover:bg-surface-muted text-text-primary rounded text-sm disabled:opacity-50 transition-colors"
                     >
                       {isSearching ? '...' : <SearchIcon />}
                     </button>
                   </form>
                   <form onSubmit={handleScrape} className="flex gap-2">
+                    <label htmlFor="research-scrape-url" className="sr-only">Scrape URL</label>
                     <input 
+                      id="research-scrape-url"
                       value={scrapeUrl}
                       onChange={e => setScrapeUrl(e.target.value)}
                       placeholder="Scrape URL (https://...)"
                       className="flex-1 bg-bg-base border border-border rounded px-3 py-2 text-sm text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
                     />
                     <button 
+                      type="submit"
                       disabled={isScraping}
+                      aria-label="Scrape URL"
                       className="px-4 py-2 bg-surface-elevated hover:bg-surface-muted text-text-primary rounded text-sm disabled:opacity-50 transition-colors"
                     >
                       {isScraping ? '...' : <ScrapeIcon />}

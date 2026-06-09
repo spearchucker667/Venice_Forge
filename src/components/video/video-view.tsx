@@ -14,6 +14,8 @@ export function VideoView() {
   const promptId = useId()
   const negativePromptId = useId()
   const modelId = useId()
+  const resolutionId = useId()
+  const aspectId = useId()
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const { groups, isLoading: modelsLoading } = useVideoModels()
   const [selectedGroup, setSelectedGroup] = useState<string>('')
@@ -279,7 +281,7 @@ export function VideoView() {
           <div>
             <Label>Duration</Label>
             {durationOpts.length <= 5 ? (
-              <PillGroup options={durationOpts} value={effectiveDuration} onChange={setDuration} />
+              <PillGroup options={durationOpts} value={effectiveDuration} onChange={setDuration} ariaLabel="Video duration" />
             ) : (
               <DurationSlider
                 options={durationOpts.map((o) => o.value)}
@@ -294,14 +296,14 @@ export function VideoView() {
         <div className="grid grid-cols-2 gap-3">
           {resolutionOpts.length > 0 && (
             <div>
-              <Label>Resolution</Label>
-              <Select value={effectiveResolution} onChange={setResolution} options={resolutionOpts} />
+              <Label htmlFor={resolutionId}>Resolution</Label>
+              <Select id={resolutionId} value={effectiveResolution} onChange={setResolution} options={resolutionOpts} />
             </div>
           )}
           {aspectOpts.length > 0 && (
             <div>
-              <Label>Aspect</Label>
-              <Select value={effectiveAspect} onChange={setAspect} options={aspectOpts} />
+              <Label htmlFor={aspectId}>Aspect</Label>
+              <Select id={aspectId} value={effectiveAspect} onChange={setAspect} options={aspectOpts} />
             </div>
           )}
         </div>

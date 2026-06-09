@@ -89,7 +89,7 @@ export function App() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   // LEGAL: show the 18+ age-gate on first launch. Persists via FIRST_RUN_ACK_KEY.
   const [firstRunAcked, setFirstRunAcked] = useState<boolean>(
-    () => typeof window !== "undefined" && localStorage.getItem(FIRST_RUN_ACK_KEY) === "1"
+    () => typeof window !== "undefined" && localStorage.getItem(FIRST_RUN_ACK_KEY) === "1" /* localStorage-allowed: first-run legal ack */
   )
   // Phase 1 command palette (⌘K / Ctrl+K)
   const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false)
@@ -109,11 +109,7 @@ export function App() {
     applyTheme(theme)
 
     try {
-      localStorage.setItem('vf.theme.bootstrap', JSON.stringify({
-        selectedThemeId,
-        appearanceMode,
-        customTheme,
-      }));
+      localStorage.setItem('vf.theme.bootstrap', JSON.stringify({ selectedThemeId, appearanceMode, customTheme })) /* localStorage-allowed: theme bootstrap FOUC cache */;
     } catch {
       // ignore write failures (e.g. disabled local storage)
     }
@@ -130,7 +126,7 @@ export function App() {
 
 
   const acknowledgeFirstRun = () => {
-    try { localStorage.setItem(FIRST_RUN_ACK_KEY, "1") } catch { /* private mode etc. */ }
+    try { localStorage.setItem(FIRST_RUN_ACK_KEY, "1") /* localStorage-allowed: first-run legal ack */ } catch { /* private mode etc. */ }
     setFirstRunAcked(true)
   }
 

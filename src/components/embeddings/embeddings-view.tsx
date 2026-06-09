@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
@@ -10,6 +10,7 @@ import { getPromptStartersForCategory } from '../../services/promptStarterServic
 const PREVIEW_COUNT = 100
 
 export function EmbeddingsView() {
+  const inputId = useId()
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const selectedModel = useSettingsStore((s) => s.selectedModels.embeddings)
   const { data: models } = useModels('embedding')
@@ -31,7 +32,7 @@ export function EmbeddingsView() {
 
   const controls = (
     <>
-      <div><Label>Input text</Label><TextArea value={input} onChange={setInput} placeholder="Enter text to embed…" rows={6} /></div>
+      <div><Label htmlFor={inputId}>Input text</Label><TextArea id={inputId} value={input} onChange={setInput} placeholder="Enter text to embed…" rows={6} /></div>
       <PrimaryButton onClick={() => { mutation.mutate({ model, input: input.trim() }); setExpanded(false) }} disabled={!input.trim() || !hasVeniceKey} loading={mutation.isPending} size="lg">
         Generate Embeddings
       </PrimaryButton>

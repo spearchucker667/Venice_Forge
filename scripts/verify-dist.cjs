@@ -126,7 +126,10 @@ function walk(dir, out) {
 
 function assertNoForbiddenInDist(distDir) {
   if (!fs.existsSync(distDir)) {
-    fail(`Required build directory missing: ${path.relative(root, distDir)}`);
+    fail(
+      `Build directory missing: ${path.relative(root, distDir)}. ` +
+        "Run `npm run build` first; source archives intentionally exclude dist."
+    );
   }
   const files = [];
   walk(distDir, files);
@@ -181,6 +184,13 @@ function assertNoSecretsInDist(distDir) {
 }
 
 console.log(`[verify:dist] Starting verification for version ${version}`);
+
+if (!fs.existsSync(path.join(root, "dist")) || !fs.existsSync(path.join(root, "dist-electron"))) {
+  console.error(
+    "[verify:dist] Build outputs are missing. Run `npm run build` first; source archives intentionally exclude dist."
+  );
+  process.exit(1);
+}
 
 // Base build validation
 verifyFileExists(path.join(root, "dist", "index.html"), 100);

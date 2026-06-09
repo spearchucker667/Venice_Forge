@@ -27,6 +27,14 @@ import { isPrivateHostname } from "./electron/utils/urlSecurity";
 import { JINA_MAX_RESPONSE_BYTES } from "./src/shared/limits";
 import { FetchBodyTooLargeError, parseJsonOrNull, readBoundedFetchBody } from "./src/shared/readBoundedFetchBody";
 
+function safeDecodeForScreening(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 dotenv.config();
 
 /** Determines whether Local Family Safe Mode is enabled in the web proxy.
@@ -440,7 +448,7 @@ export function createServerApp() {
       }
 
       const decision = maybeRunLocalFamilyGuard(
-        { endpoint: requestUrl, method: "GET", text: decodeURIComponent(requestUrl), source: "web-proxy" },
+        { endpoint: requestUrl, method: "GET", text: safeDecodeForScreening(requestUrl), source: "web-proxy" },
         isLocalFamilySafeModeEnabled(req),
       );
       if (!decision.allowed) {
@@ -516,7 +524,8 @@ export function createServerApp() {
       if (err instanceof Error && err.name === "AbortError") {
         return res.status(504).json({ error: "Request timed out" });
       }
-      return res.status(500).json({ error: err instanceof Error ? err.message : "Jina request failed" });
+      error("Jina proxy error:", err);
+      return res.status(500).json({ error: "Jina request failed" });
     }
   });
 
@@ -529,7 +538,7 @@ export function createServerApp() {
       }
 
       const decision = maybeRunLocalFamilyGuard(
-        { endpoint: url, method: "GET", text: decodeURIComponent(url), source: "web-proxy" },
+        { endpoint: url, method: "GET", text: safeDecodeForScreening(url), source: "web-proxy" },
         isLocalFamilySafeModeEnabled(req),
       );
       if (!decision.allowed) {
@@ -657,7 +666,8 @@ export function createServerApp() {
       if (err instanceof Error && err.message === "Request timed out") {
         return res.status(504).json({ error: "Request timed out" });
       }
-      return res.status(500).json({ error: err instanceof Error ? err.message : "Scrape failed" });
+      error("Scrape proxy error:", err);
+      return res.status(500).json({ error: "Scrape failed" });
     }
   });
 

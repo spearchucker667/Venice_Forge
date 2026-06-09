@@ -267,6 +267,13 @@ echo "==> Writing metadata..."
   else
     echo "not_a_git_repo=true"
   fi
+
+  echo
+  echo "Extract summary"
+  echo "==============="
+  echo "See _REPO_EXTRACT_METADATA/summary.txt for deterministic file/dir counts."
+  echo "Counts there include the metadata directory by default and also provide"
+  echo "content-only counts excluding metadata."
 } > "$META_DIR/EXTRACT_INFO.txt"
 
 echo "==> Creating file inventory..."
@@ -293,9 +300,28 @@ echo "==> Creating file inventory..."
   {
     echo "Extract summary"
     echo "==============="
-    echo "files=$(find . -type f | wc -l | tr -d ' ')"
-    echo "dirs=$(find . -type d | wc -l | tr -d ' ')"
+    # Deterministic counts: sort so ordering does not depend on filesystem.
+    total_files=$(find . -type f | sort | wc -l | tr -d ' ')
+    total_dirs=$(find . -type d | sort | wc -l | tr -d ' ')
+    meta_files=$(find ./_REPO_EXTRACT_METADATA -type f 2>/dev/null | sort | wc -l | tr -d ' ')
+    meta_dirs=$(find ./_REPO_EXTRACT_METADATA -type d 2>/dev/null | sort | wc -l | tr -d ' ')
+    # Content counts exclude the metadata directory itself for clarity.
+    content_files=$((total_files - meta_files))
+    content_dirs=$((total_dirs - meta_dirs))
+    echo "files_total_including_metadata=${total_files}"
+    echo "dirs_total_including_metadata=${total_dirs}"
+    echo "files_content_only=${content_files}"
+    echo "dirs_content_only=${content_dirs}"
+    echo "files_metadata_only=${meta_files}"
+    echo "dirs_metadata_only=${meta_dirs}"
     echo "size=$(du -sh . | awk '{print $1}')"
+    echo
+    echo "Note on counting policy"
+    echo "-----------------------"
+    echo "All counts above INCLUDE the _REPO_EXTRACT_METADATA directory and its"
+    echo "contents (files_total / dirs_total). The 'content_only' counts EXCLUDE"
+    echo "the metadata directory for users who want repository-content sizing."
+    echo "This makes the counts deterministic regardless of metadata file order."
   } > "$META_DIR/summary.txt"
 )
 
@@ -309,36 +335,50 @@ SECRET_WARNINGS="$META_DIR/POSSIBLE_SECRET_WARNINGS.txt"
   echo
   echo "This is a heuristic scan. Review matches manually."
   echo "Real .env/key/cert files were excluded before this scan."
+  echo "Only path:line:pattern-name is emitted; raw secret-like values are redacted."
   echo
 
   if command -v grep >/dev/null 2>&1; then
     (
       cd "$STAGE_DIR"
 
-      grep -RInE \
-        --exclude-dir="_REPO_EXTRACT_METADATA" \
-        --exclude-dir=".git" \
-        --exclude-dir="node_modules" \
-        --exclude="*.png" \
-        --exclude="*.jpg" \
-        --exclude="*.jpeg" \
-        --exclude="*.webp" \
-        --exclude="*.gif" \
-        --exclude="*.ico" \
-        --exclude="*.svg" \
-        --exclude="*.lock" \
-        --exclude="pnpm-lock.yaml" \
-        --exclude="package-lock.json" \
-        --exclude="yarn.lock" \
-        '(api[_-]?key|secret|token|password|passwd|bearer[[:space:]]+[A-Za-z0-9._~+/=-]{20,}|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16})' \
-        . 2>/dev/null || true
+      # Run each pattern separately so output can be labelled without leaking
+      # the matched value. Emits path:line:pattern-name only.
+      # shellcheck disable=SC2030
+      scan_pattern() {
+        local name="$1"
+        local pattern="$2"
+        grep -RInE \
+          --exclude-dir="_REPO_EXTRACT_METADATA" \
+          --exclude-dir=".git" \
+          --exclude-dir="node_modules" \
+          --exclude="*.png" \
+          --exclude="*.jpg" \
+          --exclude="*.jpeg" \
+          --exclude="*.webp" \
+          --exclude="*.gif" \
+          --exclude="*.ico" \
+          --exclude="*.svg" \
+          --exclude="*.lock" \
+          --exclude="pnpm-lock.yaml" \
+          --exclude="package-lock.json" \
+          --exclude="yarn.lock" \
+          "$pattern" . 2>/dev/null \
+          | sed -E "s/^([^:]+:[0-9]+):.*$/\1:${name}/" || true
+      }
+
+      scan_pattern "api-key-or-secret"    "(api[_-]?key|secret|token|password|passwd)"
+      scan_pattern "bearer-token"         "bearer[[:space:]]+[A-Za-z0-9._~+/=-]{20,}"
+      scan_pattern "sk-token"             "sk-[A-Za-z0-9]{20,}"
+      scan_pattern "github-token"         "ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}"
+      scan_pattern "aws-access-key"       "AKIA[0-9A-Z]{16}"
     )
   else
     echo "grep not available; skipped."
   fi
 } > "$SECRET_WARNINGS"
 
-if [[ "$(wc -l < "$SECRET_WARNINGS" | tr -d ' ')" -gt 8 ]]; then
+if [[ "$(wc -l < "$SECRET_WARNINGS" | tr -d ' ')" -gt 10 ]]; then
   echo "WARNING: possible secret-like strings found."
   echo "Review this file inside the ZIP:"
   echo "  _REPO_EXTRACT_METADATA/POSSIBLE_SECRET_WARNINGS.txt"
@@ -352,6 +392,17 @@ echo "==> Writing checksums..."
     | sort -z \
     | xargs -0 shasum -a 256 > "$META_DIR/SHA256SUMS.txt"
 )
+
+echo "==> Running final archive-clean verification on staged root..."
+
+if [[ -f "$REPO_ROOT/scripts/verify-archive-clean.cjs" ]]; then
+  if ! node "$REPO_ROOT/scripts/verify-archive-clean.cjs" --root "$STAGE_DIR"; then
+    echo "ERROR: final archive-clean verification failed. Fix exclusions and retry." >&2
+    exit 1
+  fi
+else
+  echo "WARNING: scripts/verify-archive-clean.cjs not found; skipping final verification." >&2
+fi
 
 echo "==> Creating ZIP..."
 

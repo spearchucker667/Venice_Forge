@@ -7,26 +7,26 @@ import { Select } from '../ui/select'
 import { cn } from '../../lib/utils'
 
 function InputIcon() {
-  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 16 12 14 15 10 9 8 12 2 12" /></svg>
+  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="22 12 16 12 14 15 10 9 8 12 2 12" /></svg>
 }
 function ChatIcon() {
-  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
+  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
 }
 function ImageIcon() {
-  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
 }
 function SpeakerIcon() {
-  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" /></svg>
+  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" /></svg>
 }
 function MusicIcon() {
-  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
 }
 function VideoIcon() {
-  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" /></svg>
+  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" /></svg>
 }
 
 function OutputIcon() {
-  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M8 12h8M12 8v8" /></svg>
+  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M8 12h8M12 8v8" /></svg>
 }
 
 // Map node types to API model type filters
@@ -68,6 +68,7 @@ function ModelSelect({ nodeType, value, onChange }: { nodeType: VeniceNodeType; 
         options={options}
         searchable
         placeholder="Select model..."
+        ariaLabel="Model"
         className="w-full [&_button]:!py-1 [&_button]:!text-[13px] [&_button]:!px-2"
       />
     </div>
@@ -113,11 +114,13 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
         {result?.status === 'error' && <span className="text-[12px] text-red-400/60 ml-auto mr-1">Error</span>}
         {!result?.status && <span className="ml-auto" />}
         <button
+          type="button"
           onClick={deleteNode}
           className="nodrag text-white/10 hover:text-red-400/60 transition-colors p-0.5"
           title="Delete node"
+          aria-label="Delete workflow node"
         >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
@@ -136,9 +139,15 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
               ) : result.output.startsWith('[image:') ? (
                 <img src={result.output.slice(7, -1)} alt="Generated" className="w-full rounded-lg border border-white/[0.06]" />
               ) : (
-                <p className={cn('text-[14px] text-white/60 leading-relaxed whitespace-pre-wrap', !outputExpanded && 'line-clamp-8')} onClick={() => setOutputExpanded(!outputExpanded)}>
+                <button
+                  type="button"
+                  aria-expanded={outputExpanded}
+                  aria-label={outputExpanded ? 'Collapse output' : 'Expand output'}
+                  className={cn('text-left w-full text-[14px] text-white/60 leading-relaxed whitespace-pre-wrap', !outputExpanded && 'line-clamp-8')}
+                  onClick={() => setOutputExpanded(!outputExpanded)}
+                >
                   {result.output}
-                </p>
+                </button>
               )}
             </div>
           ) : result?.status === 'running' ? (
@@ -393,12 +402,15 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
 
         {/* Output preview (skip for output nodes — they already display it above) */}
         {data.nodeType !== 'output' && result?.status === 'done' && result.output && (
-          <div
-            className="mt-1 p-2 rounded-lg bg-green-500/[0.04] border border-green-500/[0.08] cursor-pointer"
+          <button
+            type="button"
+            aria-expanded={outputExpanded}
+            aria-label={outputExpanded ? 'Collapse output' : 'Expand output'}
+            className="mt-1 p-2 rounded-lg bg-green-500/[0.04] border border-green-500/[0.08] cursor-pointer text-left w-full"
             onClick={() => setOutputExpanded(!outputExpanded)}
           >
             <div className="flex items-center gap-1 mb-1">
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-green-400/40">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-green-400/40" aria-hidden="true">
                 <polyline points={outputExpanded ? '18 15 12 9 6 15' : '6 9 12 15 18 9'} />
               </svg>
               <span className="text-[11px] text-green-400/40 uppercase tracking-wider font-medium">Output</span>
@@ -416,7 +428,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                 {result.output}
               </p>
             )}
-          </div>
+          </button>
         )}
         {data.nodeType !== 'output' && result?.status === 'error' && (
           <div className="mt-1 p-2 rounded-lg bg-red-500/[0.04] border border-red-500/[0.08]">

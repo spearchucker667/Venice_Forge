@@ -10,7 +10,7 @@ Express/Vite web development mode.
 > Studio implementation lives under `src/components/gallery/` (canonical id
 > `media`); the legacy `gallery` id is preserved as a tab-registry alias for
 > back-compat. All paths in this document are derived from `git ls-files` at
-> HEAD `711a6f1b` (616 tracked files).
+> HEAD `c5fcb849` (618 tracked files).
 >
 > **Clean audit ZIP policy:** The `scripts/clean-repo-zip.sh` archive includes
 > tracked source, required static packaging assets (`build/icon.*`), and
@@ -128,7 +128,7 @@ Express/Vite web development mode.
 │   │   ├── safe-storage.ts             # + tests
 │   │   ├── stream.ts                   # + tests
 │   │   ├── utils.ts                    # + tests
-│   │   ├── venice-client.ts            # Electron-only thin client; safety guard lives in the IPC layer
+│   │   ├── venice-client.ts            # Compatibility wrapper re-exporting canonical service client; safety guard lives in the IPC layer
 │   │   ├── venice-client.test.ts       # VERIFY-006
 │   │   ├── venice-client.dual.test.ts  # VERIFY-009
 │   │   ├── workflow-engine.ts          # + tests
@@ -299,7 +299,7 @@ The renderer UI is grouped by feature. The canonical tab order is owned by
 |------|-------|
 | `src/components/` | Subdirectories for `audio`, `chat`, `command-palette`, `embeddings`, `gallery`, `image`, `layout`, `music`, `playground`, `privacy`, `prompts`, `research`, `rp-studio`, `scenes`, `status`, `ui`, `video`, `workflows`. The legacy filesystem directory name `gallery/` contains the canonical Media Studio implementation |
 | `src/stores/` | Zustand 5 stores — see the `src/stores/` table above for the full surface |
-| `src/lib/venice-client.ts` | Electron-only thin client; safety guard is in the IPC layer — see `electron/ipc/handlers.ts:79`. Kept separate from the canonical `services/veniceClient.ts` because: (a) this is a passthrough that does not run the safety guard in the renderer (it lives in the IPC layer), (b) it has a simpler `venice<T>()` / `veniceBlob()` / `veniceFormData()` API the legacy hooks prefer, (c) it can be deleted in a future Electron-only refactor |
+| `src/lib/venice-client.ts` | Compatibility wrapper re-exporting canonical service client (`src/services/veniceClient.ts`) with the legacy `venice<T>()` / `veniceBlob()` / `veniceFormData()` surface. Safety guard is in the IPC layer — see `electron/ipc/handlers.ts:79`. The legacy hooks consume this simpler API; new code should import from `src/services/veniceClient.ts` directly |
 | `src/services/desktopBridge.ts` | Secure transport abstraction (IPC in Electron, proxy in web) |
 | `src/shared/safety/` | Mandatory content safety screen for all prompt-sending paths |
 | `electron/services/secureStore.ts` | OS-encrypted API key persistence (Venice + Jina keys) using `safeStorage` |

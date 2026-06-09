@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -41,6 +41,28 @@ describe("verify-release-packaging-hardening (VERIFY-052)", () => {
       // The error should mention at least one missing required file
       const combined = (out.stderr || "") + (out.stdout || "");
       expect(combined).toMatch(/Missing required file/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("archive mode falls back to filesystem walk when .git is absent", () => {
+    // Create a minimal fake repo (no .git) that is missing required docs but
+    // contains a forbidden archive contaminant. The filesystem walk should
+    // catch the contaminant even without git.
+    const root = mkdtempSync(join(tmpdir(), "venice-relpkg-archive-"));
+    try {
+      mkdirSync(join(root, "scripts"), { recursive: true });
+      writeFileSync(join(root, "package.json"), JSON.stringify({ name: "fake" }));
+      writeFileSync(join(root, "scripts", "clean-repo-zip.sh"), "#!/bin/bash\necho ok");
+      writeFileSync(join(root, ".DS_Store"), "x");
+
+      const out = spawnSync("node", [scriptPath], { cwd: root, encoding: "utf8" });
+      expect(out.status).not.toBe(0);
+      const combined = (out.stderr || "") + (out.stdout || "");
+      // Must fall back to filesystem walk and report the contaminant.
+      expect(combined).toMatch(/archive mode/);
+      expect(combined).toMatch(/.DS_Store/);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

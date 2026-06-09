@@ -139,6 +139,17 @@ The release pipeline is protected by a single-source-of-truth audit at `scripts/
 | Dist hygiene (build outputs) | `verify-dist.cjs` rejects source maps, test files, `.env*`, `.config/*.local.yaml`, `*.db`, `chat-history/`, `.design-captures/`, `.integration-src/` in `dist/` and `dist-electron/` (always — even in local mode) |
 | Secret-leak heuristic | `verify-dist.cjs` scans text files in `dist/` and `dist-electron/` for `venice_<40+ alnum>` / `sk-<20+ alnum>` / `Bearer <20+ chars>` tokens (the regex is intentionally tight and does not match internal constants like `venice_forge_traffic_logs_v1`) |
 
+### Verifier ordering
+
+| Phase | Commands | Requires `npm run build`? |
+|---|---|---|
+| Pre-build | `npm run lint:eslint`, `npm run typecheck`, `npm test`, `npm run verify:safety-guard`, `npm run verify:markdown-links`, `npm run verify:archive-clean`, `npm run verify:release-packaging-hardening`, `npm run verify:model-aware-recipes`, `npm run verify:media-studio-power-tools`, `npm run verify:status-diagnostics`, `npm run verify:prompt-library`, `npm run verify:scene-composer`, `npm run verify:rp-studio-polish`, `npm run verify:workflow-templates`, `npm run verify:storage-privacy`, `npm run verify:research-workspace` | No |
+| Build | `npm run build` | N/A (produces `dist/` + `dist-electron/` + `dist/server.cjs`) |
+| Post-build | `npm run verify:dist` (and `verify:dist:win` / `verify:dist:mac` / `verify:dist:portable` / `verify:dist:release` after `dist:*` packaging) | Yes |
+| Packaging | `npm run dist:win`, `npm run dist:mac`, `npm run dist:mac:arm64`, `npm run dist:mac:x64`, `npm run dist:portable` | Yes (each script runs `build` internally) |
+
+Source archives and the `clean-repo-zip.sh` output intentionally exclude `dist/`, `dist-electron/`, and `release/`. If `verify:dist` reports a missing build directory, run `npm run build` first.
+
 ### Local release validation matrix
 
 Run before tagging a release on Node 22:

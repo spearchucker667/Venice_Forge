@@ -5,6 +5,69 @@ export interface DownloadImageResult {
   usedFallback: boolean;
 }
 
+const MAX_FILENAME_LENGTH = 200;
+
+/**
+ * Sanitizes a suggested filename so it cannot be used as a path-traversal or
+ * extension-spoofing vector. Removes path separators, control characters, and
+ * reserved Windows characters, trims leading dots, and caps the length.
+ */
+export function sanitizeFilename(name: string): string {
+  if (typeof name !== "string") return "download";
+  return (
+    name
+      // Allow only printable ASCII that is safe across platforms; collapse
+      // everything else (path separators, control chars, spaces, reserved
+      // symbols, unicode private-use, etc.) into a single underscore.
+      .replace(/[^a-zA-Z0-9._-]+/g, "_")
+      // Prevent leading-dot names (e.g. ".htaccess") which can be dangerous.
+      .replace(/^[.]+/, "")
+      // Strip leading underscores left behind by path-separator replacement.
+      .replace(/^_+/, "")
+      .trim()
+      .slice(0, MAX_FILENAME_LENGTH) || "download"
+  );
+}
+
+/**
+ * Validates that a URL is safe to hand to a browser download/navigation fallback.
+ *
+ * Allowed:
+ *   - blob: URLs created from in-memory Blobs
+ *   - data: URLs with an image/* MIME type
+ *   - https: URLs
+ *   - Same-origin relative app URLs (start with '/' but not '//')
+ *
+ * Rejected:
+ *   - javascript:, file:, ftp:, data:text/html, unknown/malformed schemes
+ */
+export function isSafeDownloadUrl(url: string): boolean {
+  if (typeof url !== "string" || !url) return false;
+
+  // Safe schemes.
+  if (/^blob:/i.test(url)) return true;
+  if (/^data:image\//i.test(url)) return true;
+  if (/^https:\/\//i.test(url)) return true;
+
+  // Same-origin relative app URLs only — absolute paths on the current origin.
+  if (/^\/[^/]/i.test(url)) return true;
+
+  // Explicitly block known dangerous schemes and plain http.
+  if (/^(javascript|data|file|ftp|http):/i.test(url)) return false;
+
+  // Reject unknown absolute schemes and strings that cannot be parsed as URLs.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const parsed = new URL(url);
+  } catch {
+    // Relative URLs without a protocol that don't start with '/' are too
+    // ambiguous to allow in a fallback navigation context.
+    return false;
+  }
+
+  return false;
+}
+
 function triggerDownload(url: string, filename: string) {
   const a = document.createElement("a");
   a.href = url;
@@ -20,8 +83,9 @@ function triggerDownload(url: string, filename: string) {
 /**
  * Downloads an image by fetching it as a blob and triggering a browser download.
  *
- * Falls back to a direct URL download if the blob fetch fails. The fallback starts
- * a browser download/navigation, but cannot confirm that the file was saved.
+ * Falls back to a direct URL download if the blob fetch fails. The fallback is
+ * gated by {@link isSafeDownloadUrl} so that malicious URLs cannot be used to
+ * trigger navigation to javascript:, file:, or other dangerous schemes.
  *
  * @param url The image URL to download.
  * @param filename The suggested filename for the downloaded file.
@@ -29,18 +93,23 @@ function triggerDownload(url: string, filename: string) {
 export async function downloadImage(url: string, filename: string): Promise<DownloadImageResult> {
   if (!url) throw new Error("No image URL to download.");
 
+  const safeFilename = sanitizeFilename(filename);
+
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Image download failed with HTTP ${res.status}.`);
     const blob = await res.blob();
     const blobUrl = URL.createObjectURL(blob);
 
-    triggerDownload(blobUrl, filename);
+    triggerDownload(blobUrl, safeFilename);
     setTimeout(() => URL.revokeObjectURL(blobUrl), 30_000);
     return { confirmed: true, usedFallback: false };
   } catch {
-    triggerDownload(url, filename);
-    return { confirmed: false, usedFallback: true };
+    if (isSafeDownloadUrl(url)) {
+      triggerDownload(url, safeFilename);
+      return { confirmed: false, usedFallback: true };
+    }
+    return { confirmed: false, usedFallback: false };
   }
 }
 

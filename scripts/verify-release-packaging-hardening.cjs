@@ -21,7 +21,7 @@
  * Exit 0 on pass; non-zero + diagnostic message on any failure.
  */
 
-const { existsSync, readFileSync, statSync } = require("node:fs");
+const { existsSync, readFileSync, statSync, readdirSync } = require("node:fs");
 const { execFileSync } = require("node:child_process");
 const path = require("node:path");
 
@@ -68,6 +68,16 @@ function checkIncludes(haystack, needle, label) {
   fail(`Missing token: ${label}  (expected: ${JSON.stringify(needle)})`);
   return false;
 }
+
+function tryGit(args) {
+  try {
+    return execFileSync("git", args, { cwd: root, encoding: "utf8" });
+  } catch {
+    return null;
+  }
+}
+
+const isGitWorktree = tryGit(["rev-parse", "--is-inside-work-tree"])?.trim() === "true";
 
 // 1. Required files
 const requiredFiles = [
@@ -233,17 +243,21 @@ if (pkg) {
   } else {
     pass("scripts/clean-repo-zip.sh exists");
   }
-  const ignored = tryGit(["check-ignore", "scripts/clean-repo-zip.sh"]);
-  if (ignored && ignored.trim().length > 0) {
-    fail("scripts/clean-repo-zip.sh is gitignored — move it to a tracked path or update .gitignore");
+  if (isGitWorktree) {
+    const ignored = tryGit(["check-ignore", "scripts/clean-repo-zip.sh"]);
+    if (ignored && ignored.trim().length > 0) {
+      fail("scripts/clean-repo-zip.sh is gitignored — move it to a tracked path or update .gitignore");
+    } else {
+      pass("scripts/clean-repo-zip.sh is not gitignored");
+    }
+    const tracked = tryGit(["ls-files", "scripts/clean-repo-zip.sh"]);
+    if (!tracked || tracked.trim().length === 0) {
+      fail("scripts/clean-repo-zip.sh is not tracked by git");
+    } else {
+      pass("scripts/clean-repo-zip.sh is tracked by git");
+    }
   } else {
-    pass("scripts/clean-repo-zip.sh is not gitignored");
-  }
-  const tracked = tryGit(["ls-files", "scripts/clean-repo-zip.sh"]);
-  if (!tracked || tracked.trim().length === 0) {
-    fail("scripts/clean-repo-zip.sh is not tracked by git");
-  } else {
-    pass("scripts/clean-repo-zip.sh is tracked by git");
+    pass("archive mode: scripts/clean-repo-zip.sh presence checked (git index unavailable)");
   }
 }
 
@@ -293,30 +307,56 @@ if (pkg) {
   }
 }
 
-// 11. No forbidden archive paths are tracked in git
-function tryGit(args) {
+// 11. No forbidden archive paths are present under root (git-tracked when available,
+//     filesystem walk in archive mode)
+const archiveClean = require(path.join(__dirname, "verify-archive-clean.cjs"));
+
+function walkForBadPaths(dir, out) {
+  let entries;
   try {
-    return execFileSync("git", args, { cwd: root, encoding: "utf8" });
+    entries = readdirSync(dir, { withFileTypes: true });
   } catch {
-    return null;
+    return;
+  }
+  for (const e of entries) {
+    const full = path.join(dir, e.name);
+    const rel = path.relative(root, full).split(path.sep).join("/") + (e.isDirectory() ? "/" : "");
+    if (archiveClean.BAD_PATTERNS.some((re) => re.test(rel) || re.test("/" + rel))) {
+      out.push(rel);
+      if (e.isDirectory()) continue;
+    }
+    if (e.isDirectory() && e.name !== ".git" && e.name !== "node_modules") {
+      walkForBadPaths(full, out);
+    }
   }
 }
 
-const tracked = tryGit(["ls-files", "-z"]);
-if (tracked === null) {
-  pass("git not available — skipping tracked-contaminant scan (CI must run inside a checkout)");
-} else {
-  const trackedList = tracked.split("\0").filter(Boolean);
-  // We use the same BAD_PATTERNS as verify-archive-clean.cjs by requiring
-  // the file. That way there is exactly one source of truth.
-  const archiveClean = require(path.join(__dirname, "verify-archive-clean.cjs"));
-  const bad = trackedList.filter((rel) =>
-    archiveClean.BAD_PATTERNS.some((re) => re.test(rel) || re.test("/" + rel)),
-  );
-  if (bad.length > 0) {
-    fail(`Forbidden archive contaminants are tracked in git (${bad.length}):\n  ${bad.slice(0, 20).join("\n  ")}`);
+if (isGitWorktree) {
+  const tracked = tryGit(["ls-files", "-z"]);
+  if (tracked === null) {
+    pass("git not available — skipping tracked-contaminant scan (CI must run inside a checkout)");
   } else {
-    pass(`No forbidden archive contaminants are tracked (${trackedList.length} tracked paths scanned)`);
+    const trackedList = tracked.split("\0").filter(Boolean);
+    // We use the same BAD_PATTERNS as verify-archive-clean.cjs by requiring
+    // the file. That way there is exactly one source of truth.
+    const bad = trackedList.filter((rel) =>
+      archiveClean.BAD_PATTERNS.some((re) => re.test(rel) || re.test("/" + rel)),
+    );
+    if (bad.length > 0) {
+      fail(`Forbidden archive contaminants are tracked in git (${bad.length}):\n  ${bad.slice(0, 20).join("\n  ")}`);
+    } else {
+      pass(`No forbidden archive contaminants are tracked (${trackedList.length} tracked paths scanned)`);
+    }
+  }
+} else {
+  const bad = [];
+  walkForBadPaths(root, bad);
+  // Deduplicate
+  const unique = Array.from(new Set(bad));
+  if (unique.length > 0) {
+    fail(`archive mode: forbidden archive contaminants found under extract root (${unique.length}):\n  ${unique.slice(0, 20).join("\n  ")}`);
+  } else {
+    pass("archive mode: no forbidden archive contaminants found under root (filesystem walk)");
   }
 }
 

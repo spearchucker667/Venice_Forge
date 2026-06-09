@@ -6,7 +6,7 @@
  *    `developer.force_apply_config: true`.
  */
 import { create } from "zustand";
-import { isElectron } from "../services/desktopBridge";
+import { desktopConfig, isElectron } from "../services/desktopBridge";
 import { useSettingsStore } from "./settings-store";
 import type { YamlInternalPromptEnhancer } from "../config/configSchema";
 
@@ -127,13 +127,12 @@ export async function refreshConfig(): Promise<void> {
   if (!isElectron()) return;
   useConfigStore.getState().setLoading(true);
   try {
-    const bridge = (window as unknown as { veniceForge?: { config: { get(): Promise<{ ok: boolean; payload?: { config: SanitizedConfigSnapshot; status: ConfigStatusSnapshot }; error?: string }> } } }).veniceForge;
-    if (!bridge) return;
-    const res = await bridge.config.get();
+    const res = await desktopConfig.get();
     if (res.ok && res.payload) {
-      useConfigStore.getState().setPayload(res.payload.config, res.payload.status);
-      useSettingsStore.getState().setLocalFamilySafeModeEnabled(res.payload.config.safety.local_family_safe_mode_enabled);
-      useSettingsStore.getState().setVeniceApiSafeMode(res.payload.config.safety.venice_api_safe_mode);
+      const { config, status } = res.payload as { config: SanitizedConfigSnapshot; status: ConfigStatusSnapshot };
+      useConfigStore.getState().setPayload(config, status);
+      useSettingsStore.getState().setLocalFamilySafeModeEnabled(config.safety.local_family_safe_mode_enabled);
+      useSettingsStore.getState().setVeniceApiSafeMode(config.safety.venice_api_safe_mode);
     } else {
       useConfigStore.getState().setError(res.error || "Failed to load config.");
     }
@@ -147,15 +146,14 @@ export async function reloadConfig(): Promise<void> {
   if (!isElectron()) return;
   useConfigStore.getState().setLoading(true);
   try {
-    const bridge = (window as unknown as { veniceForge?: { config: { reload(): Promise<{ ok: boolean; status?: ConfigStatusSnapshot; error?: string }>; get(): Promise<{ ok: boolean; payload?: { config: SanitizedConfigSnapshot; status: ConfigStatusSnapshot }; error?: string }> } } }).veniceForge;
-    if (!bridge) return;
-    const reloadRes = await bridge.config.reload();
+    const reloadRes = await desktopConfig.reload();
     if (reloadRes.ok) {
-      const getRes = await bridge.config.get();
+      const getRes = await desktopConfig.get();
       if (getRes.ok && getRes.payload) {
-        useConfigStore.getState().setPayload(getRes.payload.config, getRes.payload.status);
-        useSettingsStore.getState().setLocalFamilySafeModeEnabled(getRes.payload.config.safety.local_family_safe_mode_enabled);
-        useSettingsStore.getState().setVeniceApiSafeMode(getRes.payload.config.safety.venice_api_safe_mode);
+        const { config, status } = getRes.payload as { config: SanitizedConfigSnapshot; status: ConfigStatusSnapshot };
+        useConfigStore.getState().setPayload(config, status);
+        useSettingsStore.getState().setLocalFamilySafeModeEnabled(config.safety.local_family_safe_mode_enabled);
+        useSettingsStore.getState().setVeniceApiSafeMode(config.safety.venice_api_safe_mode);
       }
     } else {
       useConfigStore.getState().setError(reloadRes.error || "Failed to reload config.");

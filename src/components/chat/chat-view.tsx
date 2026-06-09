@@ -13,6 +13,7 @@ import { VeniceParams } from './venice-params'
 import { VeniceLogo } from '../ui/logo'
 import { RefreshCw } from 'lucide-react'
 import { desktopConversations } from '../../services/desktopBridge'
+import * as logger from '../../shared/logger'
 import { getBalancedPromptStarters } from '../../services/promptStarterService'
 import type { PromptStarter } from '../../data/promptStarters'
 import type { MemoryFact, ConversationRecordV1 } from '../../types/conversationVault'
@@ -115,7 +116,8 @@ export function ChatView() {
         }
       }
     } catch (err) {
-      console.error("Forget fact error", err)
+      logger.error("Forget fact error", err)
+      toast.error("Failed to forget fact", err instanceof Error ? err.message : "Could not update conversation storage.")
     }
   }
 

@@ -93,6 +93,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
             options={modelOptions}
             searchable
             placeholder="Select model…"
+            ariaLabel="Selected model"
             className="w-44 sm:w-64"
           />
         </>

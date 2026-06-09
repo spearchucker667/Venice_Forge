@@ -5,10 +5,20 @@ import { describe, expect, it } from "vitest";
 // the guard's exported BAD_PATTERNS (no types for the .cjs).
 // @ts-expect-error — .cjs has no declaration; any is acceptable inside this guard test.
 const { BAD_PATTERNS } = await import("./verify-archive-clean.cjs");
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
+
+function findZip(outDir: string): string | null {
+  try {
+    const entries = readdirSync(outDir);
+    const zip = entries.find((e) => e.endsWith(".zip"));
+    return zip ? join(outDir, zip) : null;
+  } catch {
+    return null;
+  }
+}
 
 describe("verify-archive-clean (P1 hygiene guard)", () => {
   it("exports BAD_PATTERNS that match the documented contaminants", () => {
@@ -95,6 +105,56 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       expect(out).toMatch(/OK/);
     } finally {
       rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("clean-repo-zip.sh redacts raw secret-like values in POSSIBLE_SECRET_WARNINGS.txt", () => {
+    const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-repo-"));
+    const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-out-"));
+    const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-extract-"));
+    const rawToken = "sk-abc12345678901234567890xyz";
+    try {
+      // Create a minimal fake repo that passes the root sanity check.
+      writeFileSync(join(repo, "package.json"), JSON.stringify({ name: "fake-repo" }));
+      writeFileSync(join(repo, "README.md"), "# fake");
+      mkdirSync(join(repo, "src"), { recursive: true });
+      writeFileSync(join(repo, "src", "secret-like.ts"), `export const key = "${rawToken}";\n`);
+
+      execSync(`bash ${join(__dirname, "clean-repo-zip.sh")} ${repo} ${outDir}`, {
+        encoding: "utf8",
+        stdio: "pipe",
+      });
+
+      const zipPath = findZip(outDir);
+      expect(zipPath).not.toBeNull();
+
+      execSync(`unzip -q "${zipPath!}" -d ${extractDir}`, { stdio: "pipe" });
+
+      const extractedName = readdirSync(extractDir)[0];
+      const warningsPath = join(
+        extractDir,
+        extractedName,
+        "_REPO_EXTRACT_METADATA",
+        "POSSIBLE_SECRET_WARNINGS.txt",
+      );
+      const warnings = readFileSync(warningsPath, "utf8");
+
+      // The report must reference the pattern that matched.
+      expect(warnings).toMatch(/sk-token/);
+      // The raw secret-like value must NOT appear in the report.
+      expect(warnings).not.toMatch(new RegExp(rawToken));
+      expect(warnings).not.toMatch(/sk-abc123/);
+      // Only path:line:pattern-name lines are expected after the header.
+      const bodyLines = warnings
+        .split("\n")
+        .filter((line) => line.trim().length > 0 && !line.startsWith("=") && !line.startsWith("This") && !line.startsWith("Real") && !line.startsWith("Only") && !line.startsWith("Possible"));
+      for (const line of bodyLines) {
+        expect(line).toMatch(/^[^:]+:[0-9]+:[a-z0-9-]+$/);
+      }
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+      rmSync(outDir, { recursive: true, force: true });
+      rmSync(extractDir, { recursive: true, force: true });
     }
   });
 });

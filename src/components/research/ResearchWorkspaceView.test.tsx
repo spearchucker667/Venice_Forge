@@ -1,3 +1,4 @@
+import '@testing-library/jest-dom/vitest'
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ResearchWorkspaceView } from './ResearchWorkspaceView';
@@ -83,6 +84,53 @@ describe('ResearchWorkspaceView', () => {
     expect(screen.getAllByText('Active Research').length).toBeGreaterThan(0);
     expect(screen.getByPlaceholderText(/Search query/i)).toBeDefined();
     expect(screen.getByPlaceholderText(/Scrape URL/i)).toBeDefined();
+  });
+
+  it('exposes accessible names for search and scrape controls', () => {
+    const mockSession = sanitizeResearchSession({
+      id: 's1',
+      title: 'Active Research',
+      sources: [],
+      findings: [],
+      scope: 'global',
+      tags: [],
+    });
+
+    vi.mocked(useResearchStore).mockReturnValue(researchState({
+      sessions: [mockSession],
+      activeSessionId: 's1',
+    }));
+
+    render(<ResearchWorkspaceView />);
+
+    expect(screen.getByRole('textbox', { name: 'Search query' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Scrape URL' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Run research search' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Scrape URL' })).toBeInTheDocument();
+  });
+
+  it('uses type="submit" on search and scrape buttons', () => {
+    const mockSession = sanitizeResearchSession({
+      id: 's1',
+      title: 'Active Research',
+      sources: [],
+      findings: [],
+      scope: 'global',
+      tags: [],
+    });
+
+    vi.mocked(useResearchStore).mockReturnValue(researchState({
+      sessions: [mockSession],
+      activeSessionId: 's1',
+    }));
+
+    render(<ResearchWorkspaceView />);
+
+    const buttons = screen.getAllByRole('button') as HTMLButtonElement[];
+    const submitButtons = buttons.filter((b) => b.type === 'submit');
+    expect(submitButtons.map((b) => b.getAttribute('aria-label'))).toEqual(
+      expect.arrayContaining(['Run research search', 'Scrape URL']),
+    );
   });
 
   // REGRESSION GUARD: every Tailwind class in ResearchWorkspaceView.tsx

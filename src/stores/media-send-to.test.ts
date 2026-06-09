@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../services/desktopBridge", () => ({
   isElectron: () => false,
+  desktopConversations: { list: () => Promise.resolve({ ok: false, records: [], error: "mock" }) },
+  desktopChat: { list: () => Promise.resolve({ ok: false, conversations: [], truncated: false, totalScanned: 0, error: "mock" }) },
 }));
 
 import {

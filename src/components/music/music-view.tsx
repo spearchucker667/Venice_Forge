@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
@@ -32,6 +32,8 @@ function getConfig(modelId: string): MusicModelConfig {
 }
 
 export function MusicView() {
+  const promptId = useId()
+  const lyricsId = useId()
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const selectedModel = useSettingsStore((s) => s.selectedModels.music)
   const { data: models } = useModels('music')
@@ -62,14 +64,14 @@ export function MusicView() {
   const controls = (
     <>
       <div>
-        <Label>Prompt</Label>
-        <TextArea value={prompt} onChange={setPrompt} placeholder="An upbeat electronic track with a driving bassline and ethereal synths…" rows={4} />
+        <Label htmlFor={promptId}>Prompt</Label>
+        <TextArea id={promptId} value={prompt} onChange={setPrompt} placeholder="An upbeat electronic track with a driving bassline and ethereal synths…" rows={4} />
       </div>
 
       {config.lyrics && (
         <div>
-          <Label>Lyrics</Label>
-          <TextArea value={lyrics} onChange={setLyrics} placeholder="Optional lyrics or vocal direction…" rows={3} />
+          <Label htmlFor={lyricsId}>Lyrics</Label>
+          <TextArea id={lyricsId} value={lyrics} onChange={setLyrics} placeholder="Optional lyrics or vocal direction…" rows={3} />
         </div>
       )}
 

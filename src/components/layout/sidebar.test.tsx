@@ -6,6 +6,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('../../services/desktopBridge', () => ({
   isElectron: () => false,
   desktopConfig: { writeSanitized: vi.fn() },
+  desktopConversations: { list: () => Promise.resolve({ ok: false, records: [], error: 'mock' }) },
+  desktopChat: { list: () => Promise.resolve({ ok: false, conversations: [], truncated: false, totalScanned: 0, error: 'mock' }) },
 }))
 vi.mock('../../stores/config-store', () => ({ reloadConfig: vi.fn() }))
 

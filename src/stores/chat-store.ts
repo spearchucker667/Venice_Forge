@@ -12,13 +12,7 @@ import { useSettingsStore } from './settings-store' // for defaulting projectRef
 import { desktopChat, desktopConversations } from '../services/desktopBridge'
 import * as logger from '../shared/logger'
 
-/**
- * LEGACY NOTE: the module-level queueMicrotask at the bottom of this file
- * still accesses window.veniceForge directly for the initial conversation
- * hydration. Per AGENTS.md this is the single remaining pre-bridge legacy
- * spot. All function-level paths (deleteConversation, writeConversation)
- * now route through desktopBridge.ts. Do not add new direct calls.
- */
+
 
 interface ChatState {
   conversations: Conversation[]
@@ -440,30 +434,29 @@ if (typeof window !== 'undefined') {
   // the current synchronous tick so any caller that runs in the same
   // tick (e.g. App.tsx mount → user click) wins.
   queueMicrotask(() => {
-    if (window.veniceForge?.conversations) {
-      window.veniceForge.conversations.list().then((result) => {
+    desktopConversations.list().then((result) => {
+      if (!useChatStore.getState()._hasLoadedHistory && result.ok) {
+        useChatStore.getState().setConversations(result.records);
+      } else if (!result.ok) {
+        logger.error('[chat] conversations.list failed', result.error);
+      }
+    }).catch(logger.error).finally(() => {
+      // Legacy fallback: if the new conversation vault failed or is
+      // unavailable (e.g. an older desktop build without the vault IPC),
+      // hydrate from the legacy chat namespace. The _hasLoadedHistory
+      // guard prevents overwriting a successful vault load.
+      desktopChat.list().then((result) => {
         if (!useChatStore.getState()._hasLoadedHistory && result.ok) {
-          useChatStore.getState().setConversations(result.records);
-        } else if (!result.ok) {
-          logger.error('[chat] conversations.list failed', result.error);
-        }
-      }).catch(logger.error)
-    } else if (window.veniceForge?.chat) {
-      window.veniceForge.chat.list().then((result) => {
-        if (!useChatStore.getState()._hasLoadedHistory) {
-          const conversations = Array.isArray(result)
-            ? result
-            : (result.conversations as Conversation[]);
-          useChatStore.getState().setConversations(conversations);
-          if (!Array.isArray(result) && result.truncated) {
+          useChatStore.getState().setConversations(result.conversations);
+          if (result.truncated) {
             logger.warn(
               `[chat] conversation list truncated — ${result.totalScanned} files on disk, ` +
-                `showing ${conversations.length}. Consider archiving old chats.`,
+                `showing ${result.conversations.length}. Consider archiving old chats.`,
             );
           }
         }
       }).catch(logger.error)
-    }
+    })
   })
 
   // Save changes — debounced, with flush-on-unload so a pending edit is

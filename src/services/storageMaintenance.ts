@@ -94,7 +94,7 @@ export async function applyMaintenanceAction(actionId: string): Promise<StorageM
     try {
         switch (actionId) {
             case "clear-model-cache":
-                localStorage.removeItem("venice-forge-models-cache");
+                localStorage.removeItem("venice-forge-models-cache") /* localStorage-allowed: transient model-list cache */;
                 result.succeeded.push("model-cache");
                 break;
             case "refresh-inventory":

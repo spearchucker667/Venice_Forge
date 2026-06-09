@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useId, useState, useRef } from 'react'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useImageEdit, useImageUpscale, useBackgroundRemove } from '../../hooks/use-image-tools'
 import { useBlobUrl } from '../../hooks/use-blob-url'
@@ -27,6 +27,9 @@ const EDIT_MODELS = [
 ]
 
 export function ImageTools() {
+  const editPromptId = useId()
+  const editModelId = useId()
+  const enhancePromptId = useId()
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const [tool, setTool] = useState<Tool>('edit')
   const [imageData, setImageData] = useState<string | null>(null)
@@ -200,8 +203,8 @@ export function ImageTools() {
         {/* Tool-specific controls */}
         {tool === 'edit' && (
           <>
-            <div><Label>Edit prompt</Label><TextArea value={editPrompt} onChange={setEditPrompt} placeholder="Change the background to a sunset beach..." rows={3} /></div>
-            <div><Label>Model</Label><Select value={editModel} onChange={setEditModel} options={EDIT_MODELS} searchable /></div>
+            <div><Label htmlFor={editPromptId}>Edit prompt</Label><TextArea id={editPromptId} value={editPrompt} onChange={setEditPrompt} placeholder="Change the background to a sunset beach..." rows={3} /></div>
+            <div><Label htmlFor={editModelId}>Model</Label><Select id={editModelId} value={editModel} onChange={setEditModel} options={EDIT_MODELS} searchable ariaLabel="Edit model" /></div>
           </>
         )}
 
@@ -238,7 +241,7 @@ export function ImageTools() {
                   </div>
                   <input type="range" min={0} max={1} step={0.05} value={enhanceCreativity} onChange={(e) => setEnhanceCreativity(Number(e.target.value))} className="w-full" />
                 </div>
-                <div><Label>Enhance prompt</Label><TextArea value={enhancePrompt} onChange={setEnhancePrompt} placeholder="Make it more vibrant..." rows={2} /></div>
+                <div><Label htmlFor={enhancePromptId}>Enhance prompt</Label><TextArea id={enhancePromptId} value={enhancePrompt} onChange={setEnhancePrompt} placeholder="Make it more vibrant..." rows={2} /></div>
               </>
             )}
           </>

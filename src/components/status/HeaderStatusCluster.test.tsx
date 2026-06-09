@@ -9,6 +9,8 @@ vi.mock("../../services/desktopBridge", () => ({
   desktopApiKey: { isConfigured: () => Promise.resolve(false) },
   desktopJinaApiKey: { isConfigured: () => Promise.resolve(false) },
   desktopApp: { getDiagnostics: () => Promise.resolve({}) },
+  desktopConversations: { list: () => Promise.resolve({ ok: false, records: [], error: "mock" }) },
+  desktopChat: { list: () => Promise.resolve({ ok: false, conversations: [], truncated: false, totalScanned: 0, error: "mock" }) },
 }));
 
 import { HeaderStatusCluster } from "./HeaderStatusCluster";
