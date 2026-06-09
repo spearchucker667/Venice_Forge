@@ -25,8 +25,8 @@ export const MAX_LOREBOOK_ENTRY_CHARS = 4_000;
 /** Maximum number of characters that can be active in a single RP chat turn. */
 export const MAX_ACTIVE_CHARACTERS = 8;
 
-/** Maximum avatar bytes. */
-export const MAX_AVATAR_BYTES = 1_048_576;
+/** Maximum avatar bytes (1 GiB). */
+export const MAX_AVATAR_BYTES = 1_073_741_824;
 
 /** Schema version constant. Bump on breaking changes.
  *  v2 (Phase 2F) added optional `versions`/`currentVersionId`/`firstMessage`/

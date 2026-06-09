@@ -7,7 +7,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCharacterCardStore, useFilteredCharacterCards } from "../../stores/character-card-store";
-import { useSettingsStore } from "../../stores/settings-store";
 import { GhostButton, PillGroup, PrimaryButton, ErrorText, EmptyState } from "../ui/shared";
 import { Spinner } from "../ui/spinner";
 import { avatarDataUri, formatRelativeTime, truncate } from "./_shared";
@@ -33,26 +32,16 @@ export function CharacterLibrary({ onEdit }: Props) {
   const setSearchQuery = useCharacterCardStore((s) => s.setSearchQuery);
   const searchQuery = useCharacterCardStore((s) => s.searchQuery);
   const cards = useFilteredCharacterCards();
-  const redTeamMode = useSettingsStore((s) => s.redTeamMode);
 
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
-  // Default filter respects red-team mode: a non-red-team user never sees the
-  // "Adult" filter at all, and the initial selection is always "standard".
+  // Adult filtering is a normal user preference and is no longer gated by
+  // the developer "Red-Team Mode" switch.
   const [adultFilter, setAdultFilter] = useState<"standard" | "adult">("standard");
-  const adultFilterOptions = useMemo(
-    () => (redTeamMode ? STANDARD_FILTER : [{ value: "standard", label: "Standard" }]),
-    [redTeamMode],
-  );
+  const adultFilterOptions = useMemo(() => STANDARD_FILTER, []);
 
   useEffect(() => {
     if (!hasLoaded) void load();
   }, [hasLoaded, load]);
-
-  useEffect(() => {
-    // Belt-and-braces: if red-team mode is turned off while the user has the
-    // adult filter selected, fall back to standard.
-    if (!redTeamMode && adultFilter === "adult") setAdultFilter("standard");
-  }, [redTeamMode, adultFilter]);
 
   const filtered = useMemo(() => {
     if (adultFilter === "adult") return cards.filter((c) => c.adult);

@@ -95,7 +95,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../../stores/settings-store", () => {
-  const state = { redTeamMode: false, setActiveTab: mocks.setActiveTabMock };
+  const state = { setActiveTab: mocks.setActiveTabMock };
   const fn = (selector: (s: typeof state) => unknown) => selector(state);
   (fn as unknown as { getState: () => typeof state }).getState = () => state;
   return { useSettingsStore: fn };

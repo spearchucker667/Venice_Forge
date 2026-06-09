@@ -240,7 +240,7 @@ export function NewChatDialog({
   const [modelId, setModelId] = useState(defaultModel);
   const [scenario, setScenario] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const includeAdult = useSettingsStore((s) => s.redTeamMode);
+  const includeAdult = true;
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const titleRef = useRef<HTMLInputElement | null>(null);
 

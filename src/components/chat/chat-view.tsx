@@ -5,6 +5,7 @@ import { useModels } from '../../hooks/use-models'
 import { useChat } from '../../hooks/use-chat'
 import { toast } from '../../stores/toast-store'
 import { modelSupportsVision } from '../../constants/venice'
+import { resolveCharacterImageUrl } from '../../utils/characterImageResolver'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { MessageBubble } from './message-bubble'
 import { ChatInput } from './chat-input'
@@ -371,14 +372,22 @@ function ActiveCharacterPill({
   onClear: () => void;
 }) {
   const initial = character.name?.trim()?.charAt(0)?.toUpperCase() || "?";
+  // Re-resolve the photo URL at render time so conversations persisted
+  // before the synthetic-URL fix still display the canonical
+  // `https://outerface.venice.ai/api/characters/{id}/photo` image instead
+  // of falling back to the initials pill. The persisted `photoUrl` is
+  // preferred when present (faster, no extra resolution), and the resolver
+  // re-derives the synthetic URL only when the stored one is missing.
+  const photoUrl =
+    character.photoUrl ?? resolveCharacterImageUrl(character) ?? undefined;
   return (
     <div
       className="flex items-center gap-3 rounded-full bg-surface-elevated border border-accent/30 pl-1.5 pr-3 py-1 text-[12.5px]"
       data-testid="active-character-pill"
     >
-      {character.photoUrl ? (
+      {photoUrl ? (
         <img
-          src={character.photoUrl}
+          src={photoUrl}
           alt=""
           width={26}
           height={26}

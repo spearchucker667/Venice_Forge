@@ -125,7 +125,7 @@ describe("characterCardStorage", () => {
     it("rejects an avatar that exceeds MAX_AVATAR_BYTES", async () => {
       const card = makeCard({
         id: "card-big-avatar",
-        avatar: { data: "A".repeat(10), mimeType: "image/png", byteLength: 2_000_000 },
+        avatar: { data: "A".repeat(10), mimeType: "image/png", byteLength: 2_000_000_000 },
       });
       const result = await saveCharacterCard(card);
       expect(result.ok).toBe(false);

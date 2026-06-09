@@ -2,7 +2,7 @@
  * @fileoverview Character Editor — full editor for a single CharacterCardV1.
  *
  * Fields: name, description, system prompt, scenario, tags, author, modelId,
- * adult flag, example dialogues, avatar (PNG, ≤ 1 MiB).
+ * adult flag, example dialogues, avatar (PNG/JPEG/WebP, ≤ 1 GiB).
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -41,22 +41,12 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
   const remove = useCharacterCardStore((s) => s.remove);
   const { createWorkflow, setActiveWorkflow } = useWorkflowTemplateStore();
   const setActiveTab = useSettingsStore((s) => s.setActiveTab);
-  const redTeamMode = useSettingsStore((s) => s.redTeamMode);
   const initial = useMemo(() => cards.find((c) => c.id === cardId), [cards, cardId]);
   const [draft, setDraft] = useState<CharacterCardV1 | null>(initial ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Defense in depth: if a non-red-team user opened the editor with an adult
-  // card, force the flag off on edit so the persisted card is always
-  // red-team-gated. Existing red-team users keep full control.
-  useEffect(() => {
-    if (!redTeamMode && draft?.adult) {
-      setDraft((prev) => (prev ? { ...prev, adult: false } : prev));
-    }
-  }, [redTeamMode, draft?.adult]);
 
   useEffect(() => {
     setDraft(initial ?? null);
@@ -96,7 +86,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      setError(`Avatar must be ≤ ${Math.round(MAX_AVATAR_BYTES / 1024)} KiB.`);
+      setError(`Avatar must be ≤ 1 GiB.`);
       return;
     }
     const mimeType: CharacterCardAvatar["mimeType"] =
@@ -388,17 +378,10 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 id="card-adult"
                 type="checkbox"
                 checked={draft.adult}
-                disabled={!redTeamMode}
                 onChange={(e) => update("adult", e.target.checked)}
-                className="accent-rose-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={redTeamMode ? undefined : "Enable red-team mode in Settings to flag adult content"}
+                className="accent-rose-400"
               />
-              <Label htmlFor="card-adult">
-                Adult content (18+)
-                {!redTeamMode && (
-                  <span className="ml-2 text-[11px] text-white/40">requires red-team mode</span>
-                )}
-              </Label>
+              <Label htmlFor="card-adult">Adult content (18+)</Label>
             </div>
           </div>
         </section>
