@@ -81,4 +81,20 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("--check-config validates .gitignore and clean ZIP script on a real checkout", () => {
+    const out = execSync(`node ${join(__dirname, "verify-archive-clean.cjs")} --check-config`, { encoding: "utf8" });
+    expect(out).toMatch(/OK/);
+  });
+
+  it("--root mode works on an extracted archive without requiring the clean script", () => {
+    const root = mkdtempSync(join(tmpdir(), "venice-archive-clean-extract-"));
+    try {
+      // Simulate an extracted clean archive that lacks the tracked clean script
+      const out = execSync(`node ${join(__dirname, "verify-archive-clean.cjs")} --root ${root}`, { encoding: "utf8" });
+      expect(out).toMatch(/OK/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

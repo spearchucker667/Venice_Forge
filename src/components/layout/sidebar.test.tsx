@@ -132,4 +132,35 @@ describe('Sidebar controls', () => {
     expect(screen.queryByRole('button', { name: 'Conversation 0' })).not.toBeInTheDocument()
     expect(buildConversationSearchText(conversations[5])).toContain('hidden copper signal')
   })
+
+  it('clears the delete-confirm timeout when the row unmounts', () => {
+    vi.useFakeTimers()
+    useChatStore.setState({
+      conversations: [{
+        id: 'chat-delete',
+        title: 'Delete me',
+        model: 'test-model',
+        messages: [],
+        createdAt: 1,
+        updatedAt: 1,
+        metadata: { tags: [], pinned: false, archived: false, source: 'chat', messageCount: 0 },
+      }],
+      activeConversationId: null,
+      _hasLoadedHistory: true,
+    })
+
+    const { unmount } = render(<Sidebar />)
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Delete me' }))
+
+    // Confirm state is shown; timeout is scheduled.
+    expect(screen.getByRole('button', { name: 'Confirm delete' })).toBeInTheDocument()
+
+    unmount()
+
+    // After unmount, the scheduled timeout must not leak.
+    vi.runOnlyPendingTimers()
+    expect(vi.getTimerCount()).toBe(0)
+
+    vi.useRealTimers()
+  })
 })

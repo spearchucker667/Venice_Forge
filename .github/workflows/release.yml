@@ -200,9 +200,7 @@ jobs:
         run: npm run build
 
       - name: Package Linux artifacts
-        run: |
-          npm run dist:win || true # no-op on linux runner; use electron-builder directly
-          npx electron-builder --config electron-builder.config.cjs --linux --publish never
+        run: npx electron-builder --config electron-builder.config.cjs --linux --publish never
 
       - name: Generate SHA-256 checksums
         run: npm run checksum:release

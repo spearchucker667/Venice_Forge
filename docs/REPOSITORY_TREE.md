@@ -10,7 +10,16 @@ Express/Vite web development mode.
 > Studio implementation lives under `src/components/gallery/` (canonical id
 > `media`); the legacy `gallery` id is preserved as a tab-registry alias for
 > back-compat. All paths in this document are derived from `git ls-files` at
-> HEAD `c2afcfac` (601 tracked files).
+> HEAD `711a6f1b` (616 tracked files).
+>
+> **Clean audit ZIP policy:** The `scripts/clean-repo-zip.sh` archive includes
+> tracked source, required static packaging assets (`build/icon.*`), and
+> canonical documentation. It excludes generated outputs (`dist/`,
+> `dist-electron/`, `release/`, `coverage/`), dependency trees (`node_modules/`),
+> local-only scratch (`docs/audits/`, `docs/design/`, `docs/HQE_AUDIT_REPORT.md`,
+> `docs/AGENTS/`, `todo.md`, `scripts/dev-tools/venice-styles.json`), secrets
+> (`.env*`, `*.pem`, etc.), and OS/editor metadata (`.DS_Store`, `Thumbs.db`,
+> `__MACOSX/`, `._*`).
 
 ## Top-Level Structure
 

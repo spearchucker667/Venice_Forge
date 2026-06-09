@@ -10,6 +10,7 @@ import type { PulledMemoryContext } from '../types/conversationVault'
 import { toConversationRecord } from './chat-store-helpers'
 import { useSettingsStore } from './settings-store' // for defaulting projectRefs to active project on create (polished Phase 1)
 import { desktopChat, desktopConversations } from '../services/desktopBridge'
+import * as logger from '../shared/logger'
 
 /**
  * LEGACY NOTE: the module-level queueMicrotask at the bottom of this file
@@ -204,11 +205,11 @@ export const useChatStore = create<ChatState>()(
           if (!convRes.ok) {
             const chatRes = await desktopChat.delete(id)
             if (!chatRes.ok) {
-              console.error('[chat] deleteConversation IPC failed', chatRes.error)
+              logger.error('[chat] deleteConversation IPC failed', chatRes.error)
             }
           }
         } catch (err) {
-          console.error('[chat] deleteConversation IPC failed', err)
+          logger.error('[chat] deleteConversation IPC failed', err)
         }
       },
 
@@ -377,11 +378,11 @@ async function writeConversation(conv: Conversation): Promise<void> {
     if (!convRes.ok) {
       const chatRes = await desktopChat.save(conv)
       if (!chatRes.ok) {
-        console.error('[chat] conversations.save failed', chatRes.error)
+        logger.error('[chat] conversations.save failed', chatRes.error)
       }
     }
   } catch (err) {
-    console.error('[chat] conversations.save failed', err)
+    logger.error('[chat] conversations.save failed', err)
   }
 }
 
@@ -444,9 +445,9 @@ if (typeof window !== 'undefined') {
         if (!useChatStore.getState()._hasLoadedHistory && result.ok) {
           useChatStore.getState().setConversations(result.records);
         } else if (!result.ok) {
-          console.error('[chat] conversations.list failed', result.error);
+          logger.error('[chat] conversations.list failed', result.error);
         }
-      }).catch(console.error)
+      }).catch(logger.error)
     } else if (window.veniceForge?.chat) {
       window.veniceForge.chat.list().then((result) => {
         if (!useChatStore.getState()._hasLoadedHistory) {
@@ -455,13 +456,13 @@ if (typeof window !== 'undefined') {
             : (result.conversations as Conversation[]);
           useChatStore.getState().setConversations(conversations);
           if (!Array.isArray(result) && result.truncated) {
-            console.warn(
+            logger.warn(
               `[chat] conversation list truncated — ${result.totalScanned} files on disk, ` +
                 `showing ${conversations.length}. Consider archiving old chats.`,
             );
           }
         }
-      }).catch(console.error)
+      }).catch(logger.error)
     }
   })
 

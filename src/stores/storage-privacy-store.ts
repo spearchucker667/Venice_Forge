@@ -13,6 +13,7 @@ import { useWorkflowTemplateStore } from "./workflow-template-store";
 import { useScenarioStore } from "./scenario-store";
 import { useCharacterCardStore } from "./character-card-store";
 import { usePersonaStore } from "./persona-store";
+import * as logger from "../shared/logger";
 import { useLorebookStore } from "./lorebook-store";
 import { useSettingsStore } from "./settings-store";
 import { toast } from "./toast-store";
@@ -75,7 +76,7 @@ export const useStoragePrivacyStore = create<StoragePrivacyState>((set, get) => 
     } catch (err) {
       set({ refreshing: false });
       toast.error("Failed to refresh storage inventory");
-      console.error(err);
+      logger.error(err);
     }
   },
 
@@ -125,7 +126,7 @@ export const useStoragePrivacyStore = create<StoragePrivacyState>((set, get) => 
     } catch (err) {
       set({ refreshing: false });
       toast.error("Maintenance action failed");
-      console.error(err);
+      logger.error(err);
     }
   },
 

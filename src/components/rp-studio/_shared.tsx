@@ -72,9 +72,15 @@ export function RolePill({ role, characterName }: { role: RpRole; characterName?
   return <Badge tone={roleBadgeTone(role)}>{roleLabel(role, characterName)}</Badge>;
 }
 
+const SAFE_AVATAR_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+const SAFE_AVATAR_DATA_URI = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\s]+$/i;
+const RAW_BASE64_RE = /^[A-Za-z0-9+/=\s]+$/;
+
 export function avatarDataUri(avatar: { data: string; mimeType: string } | undefined): string | undefined {
   if (!avatar) return undefined;
-  if (avatar.data.startsWith("data:")) return avatar.data;
-  if (avatar.data.startsWith("http") || avatar.data.startsWith("file:")) return avatar.data;
-  return `data:${avatar.mimeType};base64,${avatar.data}`;
+  if (SAFE_AVATAR_DATA_URI.test(avatar.data)) return avatar.data;
+  // Reject URLs, file paths, and other non-base64 payloads outright.
+  if (!RAW_BASE64_RE.test(avatar.data)) return undefined;
+  const safeMime = SAFE_AVATAR_MIME_TYPES.has(avatar.mimeType) ? avatar.mimeType : "image/png";
+  return `data:${safeMime};base64,${avatar.data}`;
 }

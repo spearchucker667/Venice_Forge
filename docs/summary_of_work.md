@@ -80,11 +80,64 @@ or major refactors. The 2026-06-06 round-2 audit batch, its
 "Venice + Jina only" scope correction, and the P2 Inspector
 telemetry expansion all landed the same day. The production Media
 Studio action, image-payload, and semantic theme-token audit findings
-are resolved. No P0/P1/P2/P3 audit-ledger items remain open.
+are resolved.
+
+**Current open items.** As of the 2026-06-09 ChatGPT 5.5 ZIP verification
+pass, the previously validated P0/P1 crash/data-loss and major accessibility
+items are closed. The remaining open work is tracked in the latest audit
+report and consists of medium-priority architecture cleanup: component
+extraction roadmap for oversized views (SettingsView, media-inspector,
+CommandPalette, image-view), gradual migration of direct `window.veniceForge`
+access in `chat-store.ts` to the persistence bridge, production `console.*`
+calls migration to the shared logger, and a documented localStorage access
+policy. These are P2/P3 refactor items that do not affect runtime correctness
+or release safety.
 
 ---
 
 ## Latest Session Summary
+
+- **Date:** 2026-06-09 (ChatGPT 5.5 audit follow-up — Wave 1 archive contract / Wave 2 P1 a11y+security / Wave 3 docs / Wave 4 cleanup)
+- **Agent:** Kimi Code CLI (coordinator)
+- **Branch / state:** `main`, working-tree only (uncommitted, layered on prior 2026-06-09 corrected-audit + 064425 closure commits)
+- **Diagnosis:** External verifier (ChatGPT 5.5) inspected the `064425` clean ZIP and confirmed prior P0/P1 fixes but reported release/archive-contract mismatches, one remaining keyboard-accessibility bug (video reference-image dropzone), an unsafe RP avatar URI permissiveness path, stale audit docs in the clean ZIP, and P2 architecture hygiene leftovers.
+- **Closure changes:**
+  1. **Archive/release contract repair (HIGH-001..HIGH-004, HIGH-007):**
+     - Moved `clean-repo-zip.sh` from repo root to tracked `scripts/clean-repo-zip.sh`; updated `.gitignore` so the root scratch copy is ignored but the scripts/ copy is tracked.
+     - Updated `scripts/verify-archive-clean.cjs` to read the clean script from `scripts/clean-repo-zip.sh`, added `--check-config` and `--root` modes, and made `--root` extract-safe (no git required).
+     - Updated `scripts/clean-repo-zip.sh` to include required static packaging assets (`build/icon.ico`, `build/icon.icns`, `build/icon.png`) and exclude local-only scratch (`docs/audits/`, `docs/design/`, `docs/HQE_AUDIT_REPORT.md`, `todo.md`, `scripts/dev-tools/venice-styles.json`).
+     - Added `scripts/clean-repo-zip.sh` tracking assertions and a Linux-workflow `dist:win || true` rejection assertion to `scripts/verify-release-packaging-hardening.cjs`.
+     - Removed `npm run dist:win || true` from the Linux job in `.github/workflows/release.yml`.
+  2. **Video reference image keyboard accessibility (HIGH-005):**
+     - Converted the interactive `<div>` dropzone in `src/components/video/video-view.tsx` to a native `<button type="button" aria-label="Choose reference image">`.
+     - Added `src/components/video/video-view.test.tsx` with 5 tests covering button role, click activation, Enter/Space keyboard activation, and image upload display.
+  3. **RP avatar URI protocol hardening (HIGH-006):**
+     - Tightened `avatarDataUri()` in `src/components/rp-studio/_shared.tsx` to accept only `data:image/(png|jpeg|webp);base64,...` URIs or raw base64 wrapped with a safe MIME type.
+     - Rejects `file:`, `http:`, `https:`, `javascript:`, `blob:`, path-like strings, and non-base64 garbage outright.
+     - Added `src/components/rp-studio/_shared.test.tsx` with 12 regression tests covering all safe/unsafe cases.
+  4. **Canonical docs cleanup (MEDIUM-003, MEDIUM-004, MEDIUM-012, MEDIUM-013):**
+     - Added a `SUPERSEDED` banner to `docs/audits/EXHAUSTIVE_REPO_SCAN_TODO.md` pointing to current commits and `summary_of_work.md`.
+     - Updated `docs/REPOSITORY_TREE.md` header to HEAD `711a6f1b` / 616 tracked files and documented the clean-ZIP inclusion policy.
+     - Updated `docs/summary_of_work.md` "Current Project State" to no longer claim zero open issues; added a "Current open items" paragraph documenting remaining P2/P3 refactor work.
+  5. **Architecture cleanup (MEDIUM-006, MEDIUM-007, MEDIUM-008):**
+     - Fixed `ConversationRow` in `src/components/layout/sidebar.tsx` to store the delete-confirm timeout in a `useRef`, clear before setting a new one, and clear on unmount. Added a fake-timer regression test in `src/components/layout/sidebar.test.tsx`.
+     - Migrated direct `console.error` / `console.warn` calls in `src/stores/chat-store.ts`, `src/stores/storage-privacy-store.ts`, `src/stores/research-store.ts`, `src/stores/workflow-template-store.ts`, `src/components/ui/error-boundary.tsx`, and `src/lib/safe-storage.ts` to the shared `logger` from `src/shared/logger.ts`.
+     - Documented the localStorage access policy in `src/lib/safe-storage.ts` (Zustand persist + model cache + theme bootstrap + prompt-starter rotation only; no secrets/conversation content).
+- **Validation (Node v22.22.3 / npm 10.9.8, run 2026-06-09):**
+  - `npm run lint:eslint` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + Electron main).
+  - `npm test` (serial) — **PASS: 2034 passed, 1 skipped** (+20 tests vs prior baseline).
+  - `npm run verify:safety-guard` — **PASS**.
+  - `npm run verify:markdown-links` — **PASS: 45 Markdown files checked**.
+  - `npm run verify:archive-clean` — **PASS**.
+  - `npm run verify:release-packaging-hardening` — **PASS: 62 checks**.
+  - `npm run build` — **PASS** (renderer + server + Electron outputs).
+  - `npm run verify:dist` — **PASS**.
+  - Clean ZIP end-to-end — **PASS**: generated archive contains `build/icon.*`, excludes `docs/audits/`, `docs/design/`, `docs/HQE_AUDIT_REPORT.md`, `todo.md`, `scripts/dev-tools/venice-styles.json`, and passes `verify-archive-clean --root` without requiring a `.git` directory.
+- **Risks:** None. All changes are additive tightenings, organizational moves, or documentation updates. No safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/diagnostics-redaction/child-exploitation-guard surface was weakened.
+- **Verdict:** Safe to commit. Working tree remains intentionally dirty.
+
+The detailed per-subagent summaries below are retained as historical context.
 
 - **Date:** 2026-06-09 (064425 ZIP verification closure — archive-clean blocker / a11y leftovers / P2 hygiene)
 - **Agent:** Kimi Code CLI (coordinator)
@@ -2726,6 +2779,24 @@ Result:
 > `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` (see the *Scope
 > Correction* section).
 
+### Completed this session (2026-06-09 — ChatGPT 5.5 audit follow-up closure)
+
+- **ARCHIVE-001 — Tracked clean ZIP script:** Moved `clean-repo-zip.sh` from repo root to `scripts/clean-repo-zip.sh` and updated `.gitignore` so the root scratch copy is ignored while the scripts/ copy is tracked. Updated `scripts/verify-archive-clean.cjs` to inspect the new path.
+- **ARCHIVE-002 — Clean ZIP includes required build icons:** `scripts/clean-repo-zip.sh` now includes `build/icon.ico`, `build/icon.icns`, and `build/icon.png` via rsync include rules while excluding all other generated content under `build/`.
+- **ARCHIVE-003 — Clean ZIP excludes local-only scratch:** Added rsync excludes for `docs/audits/`, `docs/design/`, `docs/HQE_AUDIT_REPORT.md`, `todo.md`, and `scripts/dev-tools/venice-styles.json` so gitignored/local-only files do not leak into the clean archive.
+- **ARCHIVE-004 — `verify-archive-clean` modes:** Added `--check-config` (config-only) and made `--root` fully extract-safe (no `.git` required). Added tests for both modes in `scripts/verify-archive-clean.test.ts`.
+- **ARCHIVE-005 — Release verifier hardening:** `scripts/verify-release-packaging-hardening.cjs` now asserts that `scripts/clean-repo-zip.sh` exists, is tracked, and is not gitignored; and that `.github/workflows/release.yml` does not contain `dist:win || true` in the Linux job.
+- **ARCHIVE-006 — Linux workflow fix:** Removed `npm run dist:win || true` from the `build-linux` job in `.github/workflows/release.yml`.
+- **A11Y-012 — Video reference image dropzone keyboard accessible:** Converted the interactive `<div>` dropzone in `src/components/video/video-view.tsx` to a native `<button type="button" aria-label="Choose reference image">`. Added `src/components/video/video-view.test.tsx` with 5 tests covering role, click, Enter/Space activation, and upload display.
+- **SAFETY-001 — RP avatar URI protocol hardening:** Tightened `avatarDataUri()` in `src/components/rp-studio/_shared.tsx` to accept only `data:image/(png|jpeg|webp);base64,...` or raw base64 wrapped with a safe MIME type. Rejects `file:`, `http:`, `https:`, `javascript:`, `blob:`, and non-base64 payloads. Added `src/components/rp-studio/_shared.test.tsx` with 12 regression tests.
+- **DOCS-010 — Stale audit banner:** Added a `SUPERSEDED` banner to `docs/audits/EXHAUSTIVE_REPO_SCAN_TODO.md` pointing to current commits and this ledger.
+- **DOCS-011 — Repository tree metadata refresh:** Updated `docs/REPOSITORY_TREE.md` header to HEAD `711a6f1b` / 616 tracked files and documented the clean-ZIP inclusion policy.
+- **DOCS-012 — Canonical TODO policy:** Confirmed `docs/TODO.md` is the tracked historical/public roadmap and `todo.md` is gitignored/local-only; both are excluded from clean ZIPs. The live ledger is this file (`docs/summary_of_work.md`).
+- **CLEANUP-001 — Sidebar delete-confirm timeout cleanup:** `ConversationRow` in `src/components/layout/sidebar.tsx` now stores the confirm timeout in a `useRef`, clears before setting a new one, and clears on unmount. Added a fake-timer regression test in `src/components/layout/sidebar.test.tsx`.
+- **CLEANUP-002 — Logger migration:** Replaced direct `console.error` / `console.warn` calls in `src/stores/chat-store.ts`, `src/stores/storage-privacy-store.ts`, `src/stores/research-store.ts`, `src/stores/workflow-template-store.ts`, `src/components/ui/error-boundary.tsx`, and `src/lib/safe-storage.ts` with the shared `logger` from `src/shared/logger.ts`.
+- **CLEANUP-003 — LocalStorage access policy:** Documented the canonical localStorage access policy in `src/lib/safe-storage.ts`: Zustand persist (`createSafeStorage`), transient model cache (`modelService`), theme bootstrap (`useThemeLifecycle`), and ephemeral prompt-starter rotation (`promptStarterService`) only; no secrets or conversation content.
+- **ARCHIVE-007 — Validation:** `npm run lint:eslint` PASS (0 warnings); `npm run typecheck` PASS (renderer + Electron main); `npm test` PASS 2034/1 skipped (+20 tests); `npm run verify:safety-guard` PASS; `npm run verify:markdown-links` PASS (45 files); `npm run verify:archive-clean` PASS; `npm run verify:release-packaging-hardening` PASS (62 checks); `npm run build` PASS; `npm run verify:dist` PASS; clean ZIP end-to-end PASS.
+
 ### Completed this session (2026-06-09 — 064425 ZIP verification closure)
 
 - **ZIPBLOCK-001 — `docs/AGENTS/` exclusion:** Added `--exclude=docs/AGENTS/` to `clean-repo-zip.sh` so agent scratch files (gitignored locally) are never included in clean ZIPs.
@@ -3204,6 +3275,19 @@ None are release blockers. The P0–P3 sections above remain accurate.
 | `npm run verify:dist` | PASS | 2026-06-09 | Build-output hygiene + secret scan + new NOTICE sync assertion all pass |
 | `bash clean-repo-zip.sh ...` + `node scripts/verify-archive-clean.cjs --root <extract>` | PASS | 2026-06-09 | Generated ZIP verified clean; `docs/AGENTS/` correctly absent |
 | `npm run build` | PASS | 2026-06-09 | Renderer, server, and Electron outputs emitted successfully |
+
+**2026-06-09 — ChatGPT 5.5 audit follow-up closure (Node v22.22.3 / npm 10.9.8):**
+| Command | Result | Date | Notes |
+| `npm run typecheck` | PASS: renderer + Electron main | 2026-06-09 | After archive-contract edits, video-view button conversion, avatar URI hardening, sidebar timeout cleanup, logger migration, and safe-storage policy docs |
+| `npm run lint:eslint` | PASS: 0 warnings | 2026-06-09 | `--max-warnings=0` across `src electron server.ts scripts` |
+| `npm test` (serial) | PASS: 2034 passed, 1 skipped | 2026-06-09 | 191 test files + 1 display-gated electron smoke. +20 net tests: `src/components/video/video-view.test.tsx` (5), `src/components/rp-studio/_shared.test.tsx` (12), `src/components/layout/sidebar.test.tsx` (+1 timeout-cleanup), `scripts/verify-archive-clean.test.ts` (+2 `--check-config` / `--root` modes). |
+| `npm run verify:safety-guard` | PASS | 2026-06-09 | All 3 enforcement boundaries + no-raw-log policy intact after renderer changes |
+| `npm run verify:markdown-links` | PASS: 45 Markdown files checked | 2026-06-09 | Re-run after `docs/audits/EXHAUSTIVE_REPO_SCAN_TODO.md` SUPERSEDED banner, `docs/REPOSITORY_TREE.md` header update, and `docs/summary_of_work.md` edits |
+| `npm run verify:archive-clean` | PASS | 2026-06-09 | `.gitignore` + `scripts/clean-repo-zip.sh` exclusions verified; 616 tracked paths scanned; `--check-config` mode passes |
+| `npm run verify:release-packaging-hardening` | PASS: 62 checks | 2026-06-09 | Includes new assertions: `scripts/clean-repo-zip.sh` tracked and not gitignored; Linux job does not call `dist:win \|\| true` |
+| `npm run build` | PASS | 2026-06-09 | `dist/`, `dist/server.cjs`, and `dist-electron/package.json` emitted successfully |
+| `npm run verify:dist` | PASS | 2026-06-09 | Build-output hygiene + secret scan + NOTICE sync check all pass |
+| `bash scripts/clean-repo-zip.sh ...` + `node scripts/verify-archive-clean.cjs --root <extract>` | PASS | 2026-06-09 | Generated ZIP includes `build/icon.*`, excludes `docs/audits/`, `docs/design/`, `docs/HQE_AUDIT_REPORT.md`, `todo.md`, `scripts/dev-tools/venice-styles.json`; `--root` no longer requires a `.git` directory |
 
 | `export PATH="/opt/homebrew/opt/node@22/bin:$PATH"; node --version; npm --version; npm ci` | PASS: Node 22.22.3, npm 10.9.8 | 2026-06-08 | No `EBADENGINE` or module-resolution error |
 | `npm run lint:eslint` | PASS: 0 warnings | 2026-06-08 | Phase 2J closure |

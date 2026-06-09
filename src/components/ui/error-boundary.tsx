@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import * as logger from '../../shared/logger'
 
 interface Props {
   children: ReactNode
@@ -19,7 +20,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     if (this.props.onError) this.props.onError(error, info)
-    console.error('[Venice Forge ErrorBoundary]', error, info)
+    logger.error('[Venice Forge ErrorBoundary]', error, info)
   }
 
   reset = () => this.setState({ error: null })

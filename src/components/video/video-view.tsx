@@ -261,13 +261,15 @@ export function VideoView() {
                 <span className="text-[16px] text-white/15 mt-1 block truncate">{imageName}</span>
               </div>
             ) : (
-              <div
+              <button
+                type="button"
                 onClick={() => fileRef.current?.click()}
-                className="border border-dashed border-white/[0.08] hover:border-white/[0.15] rounded-lg py-5 text-center cursor-pointer transition-colors"
+                aria-label="Choose reference image"
+                className="w-full border border-dashed border-white/[0.08] hover:border-white/[0.15] rounded-lg py-5 text-center transition-colors"
               >
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0]) }} />
                 <p className="text-[14px] text-white/15">Click to add image</p>
-              </div>
+              </button>
             )}
           </div>
         )}

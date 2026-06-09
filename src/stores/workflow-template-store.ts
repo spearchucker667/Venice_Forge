@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import * as logger from "../shared/logger";
 import StorageService from "../services/storageService";
 import {
   type WorkflowTemplateItem,
@@ -91,7 +92,7 @@ export const useWorkflowTemplateStore = create<WorkflowTemplateState>((set, get)
         set({ workflows: [], hydrated: true });
       }
     } catch (err) {
-      console.warn("[workflow-template-store] Failed to load workflows", err);
+      logger.warn("[workflow-template-store] Failed to load workflows", err);
       set({ workflows: [], hydrated: true, loadError: err instanceof Error ? err.message : String(err) });
     }
   },

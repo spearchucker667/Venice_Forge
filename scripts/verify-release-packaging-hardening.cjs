@@ -216,6 +216,34 @@ if (pkg) {
     } else {
       pass(".github/workflows/release.yml runs typecheck, test, and build");
     }
+    // Linux job must not run Windows packaging scripts
+    if (release.includes("dist:win || true")) {
+      fail(".github/workflows/release.yml Linux job must not run 'npm run dist:win || true'");
+    } else {
+      pass(".github/workflows/release.yml Linux job does not run Windows packaging scripts");
+    }
+  }
+}
+
+// 8b. Clean ZIP script must be tracked (not ignored)
+{
+  const cleanScriptPath = path.join(root, "scripts/clean-repo-zip.sh");
+  if (!existsSync(cleanScriptPath)) {
+    fail("scripts/clean-repo-zip.sh is missing");
+  } else {
+    pass("scripts/clean-repo-zip.sh exists");
+  }
+  const ignored = tryGit(["check-ignore", "scripts/clean-repo-zip.sh"]);
+  if (ignored && ignored.trim().length > 0) {
+    fail("scripts/clean-repo-zip.sh is gitignored — move it to a tracked path or update .gitignore");
+  } else {
+    pass("scripts/clean-repo-zip.sh is not gitignored");
+  }
+  const tracked = tryGit(["ls-files", "scripts/clean-repo-zip.sh"]);
+  if (!tracked || tracked.trim().length === 0) {
+    fail("scripts/clean-repo-zip.sh is not tracked by git");
+  } else {
+    pass("scripts/clean-repo-zip.sh is tracked by git");
   }
 }
 

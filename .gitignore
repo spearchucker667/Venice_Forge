@@ -9,6 +9,7 @@ docs/design/
 
 # Local-only audit / cross-ref scratchpads (canonical record lives in docs/summary_of_work.md).
 todo.md
+docs/audits/
 
 # Dev-tool generated design capture output (must live under .design-captures/ only).
 scripts/dev-tools/venice-styles.json
@@ -55,4 +56,11 @@ __MACOSX/
 !.config/*.example.yml
 docs/audits/file-inventory.tsv
 docs/audits/repo-tree-current.txt
-clean-repo-zip.sh
+
+# Ignore root-level scratch copy; canonical tracked script lives in scripts/.
+/clean-repo-zip.sh
+!/scripts/clean-repo-zip.sh
+scripts/clean-repo-zip.sh
+scripts/clean-repo-zip.sh
+scripts/clean-repo-zip.sh
+scripts/clean-repo-zip.sh

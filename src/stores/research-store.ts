@@ -5,6 +5,7 @@
  */
 
 import { create } from 'zustand';
+import * as logger from '../shared/logger';
 import { 
   ResearchSession, 
   ResearchScope, 
@@ -77,7 +78,7 @@ export const useResearchStore = create<ResearchState>((set, get) => ({
         hydrated: true 
       });
     } catch (err) {
-      console.error('[ResearchStore] Failed to load research sessions:', err);
+      logger.error('[ResearchStore] Failed to load research sessions:', err);
     } finally {
       set({ isInitialLoading: false });
     }

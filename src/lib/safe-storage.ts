@@ -1,4 +1,5 @@
 import type { StateStorage } from 'zustand/middleware'
+import * as logger from '../shared/logger'
 
 /**
  * Storage wrapper that:
@@ -6,6 +7,17 @@ import type { StateStorage } from 'zustand/middleware'
  *     persisted "conversations" / "workflows" / "messages" arrays before retrying.
  *   - Catches all other read/write failures so a corrupted entry doesn't crash
  *     hydration.
+ *
+ * LocalStorage access policy for Venice Forge:
+ *   - Use `createSafeStorage()` for Zustand persist middleware (settings store).
+ *   - Use `src/services/modelService.ts` `cacheStorage` for transient model-list
+ *     cache only (no secrets, stale-while-revalidate, best-effort).
+ *   - Use `src/hooks/useThemeLifecycle.ts` for the theme bootstrap cache only.
+ *   - Use `src/services/promptStarterService.ts` for ephemeral prompt-starter
+ *     rotation tracking only.
+ *   - Never store API keys, bearer tokens, conversation content, or raw prompts
+ *     in localStorage; those belong in `safeStorage` (Electron) or encrypted
+ *     IndexedDB (`ENCRYPTED_STORES`) / server-side `.env` (web).
  */
 export function createSafeStorage(): StateStorage {
   return {
@@ -16,13 +28,13 @@ export function createSafeStorage(): StateStorage {
       try {
         localStorage.setItem(name, value)
       } catch (err) {
-        if (!isQuotaErr(err)) { console.warn('[storage] setItem failed', name, err); return }
+        if (!isQuotaErr(err)) { logger.warn('[storage] setItem failed', name, err); return }
         const pruned = pruneOversized(value)
         if (pruned) {
           try { localStorage.setItem(name, pruned); return } catch { /* fall through */ }
         }
         try { localStorage.removeItem(name) } catch { /* noop */ }
-        console.warn(`[storage] quota exceeded for ${name}; cleared persisted state`)
+        logger.warn(`[storage] quota exceeded for ${name}; cleared persisted state`)
       }
     },
     removeItem: (name) => {

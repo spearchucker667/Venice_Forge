@@ -12,6 +12,7 @@
  *   node scripts/verify-archive-clean.cjs
  *   node scripts/verify-archive-clean.cjs --root /tmp/some-extract
  *   node scripts/verify-archive-clean.cjs --strict
+ *   node scripts/verify-archive-clean.cjs --check-config
  *
  * Exit 0 on clean; non-zero + diagnostic list on violations.
  *
@@ -128,13 +129,28 @@ function checkGitignore(root, violations) {
 }
 
 function checkCleanScript(root, violations) {
-  const script = readText(path.join(root, "clean-repo-zip.sh"));
+  const scriptPath = path.join(root, "scripts/clean-repo-zip.sh");
+  const script = readText(scriptPath);
+  if (!script) {
+    violations.push("scripts/clean-repo-zip.sh is missing (required for archive-exclusion config check)");
+    return;
+  }
   const required = [
     { pattern: "--exclude=dist/", label: "dist/" },
     { pattern: "--exclude=dist-electron/", label: "dist-electron/" },
     { pattern: "--exclude=release/", label: "release/" },
     { pattern: "--exclude=coverage/", label: "coverage/" },
     { pattern: "--exclude=.design-captures/", label: ".design-captures/" },
+    { pattern: "--exclude=docs/AGENTS/", label: "docs/AGENTS/" },
+    { pattern: "--exclude=docs/audits/", label: "docs/audits/" },
+    { pattern: "--exclude=docs/design/", label: "docs/design/" },
+    { pattern: "--exclude=docs/HQE_AUDIT_REPORT.md", label: "docs/HQE_AUDIT_REPORT.md" },
+    { pattern: "--exclude=todo.md", label: "todo.md" },
+    { pattern: "--exclude=scripts/dev-tools/venice-styles.json", label: "scripts/dev-tools/venice-styles.json" },
+    { pattern: "--include=build/icon.ico", label: "include build/icon.ico" },
+    { pattern: "--include=build/icon.icns", label: "include build/icon.icns" },
+    { pattern: "--include=build/icon.png", label: "include build/icon.png" },
+    { pattern: "--exclude=build/**", label: "exclude build/**" },
     { pattern: "--exclude=.config/*.local.yaml", label: ".config/*.local.yaml" },
     { pattern: "--exclude=.config/*.local.yml", label: ".config/*.local.yml" },
     { pattern: "--exclude=.config/*.yaml", label: ".config/*.yaml" },
@@ -158,6 +174,7 @@ function main() {
   let root = process.cwd();
   let explicitRoot = false;
   let strict = false;
+  let checkConfig = false;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--root" && args[i + 1]) {
       root = path.resolve(args[i + 1]);
@@ -165,27 +182,39 @@ function main() {
       i++;
     } else if (args[i] === "--strict") {
       strict = true;
+    } else if (args[i] === "--check-config") {
+      checkConfig = true;
     }
   }
 
   const violations = [];
 
   if (explicitRoot) {
+    // Extract-only scan: just walk the filesystem tree.
     walk(root, root, violations);
+  } else if (checkConfig) {
+    // Config-only scan: validate .gitignore and the clean ZIP script.
+    checkGitignore(root, violations);
+    checkCleanScript(root, violations);
   } else {
     // Canonical CI check: ensure archive-exclusion config covers all patterns
     // and no forbidden files are tracked.
-    checkGitignore(root, violations);
-    checkCleanScript(root, violations);
+    const hasGit = trackedPaths(root) !== null;
+    if (hasGit) {
+      checkGitignore(root, violations);
+      checkCleanScript(root, violations);
 
-    const tracked = trackedPaths(root);
-    if (tracked) {
-      for (const rel of tracked) {
-        if (BAD_PATTERNS.some((re) => re.test(rel) || re.test("/" + rel))) violations.push(rel);
+      const tracked = trackedPaths(root);
+      if (tracked) {
+        for (const rel of tracked) {
+          if (BAD_PATTERNS.some((re) => re.test(rel) || re.test("/" + rel))) violations.push(rel);
+        }
       }
+    } else {
+      console.log("[verify-archive-clean] No .git checkout detected; running filesystem walk only. Use --check-config for config-only validation or --root <dir> for extracted archive validation.");
     }
 
-    if (strict) {
+    if (strict || !hasGit) {
       walk(root, root, violations);
     }
   }

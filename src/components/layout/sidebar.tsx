@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '../../lib/utils'
 import { useSettingsStore, type Tab } from '../../stores/settings-store'
 import { useChatStore } from '../../stores/chat-store'
@@ -524,6 +524,29 @@ function ConversationRow({ conv, isActive, onSelect, onDelete, onExport }: {
   onExport: () => void
 }) {
   const [confirming, setConfirming] = useState(false)
+  const confirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (confirmTimeoutRef.current) {
+        clearTimeout(confirmTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const startConfirm = () => {
+    if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current)
+    setConfirming(true)
+    confirmTimeoutRef.current = setTimeout(() => setConfirming(false), 2500)
+  }
+
+  const cancelConfirm = () => {
+    if (confirmTimeoutRef.current) {
+      clearTimeout(confirmTimeoutRef.current)
+      confirmTimeoutRef.current = null
+    }
+    setConfirming(false)
+  }
 
   return (
     <div
@@ -554,7 +577,7 @@ function ConversationRow({ conv, isActive, onSelect, onDelete, onExport }: {
         </button>
         {confirming ? (
           <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); setConfirming(false) }}
+            onClick={(e) => { e.stopPropagation(); onDelete(); cancelConfirm() }}
             aria-label="Confirm delete"
             className="text-danger hover:underline px-1.5 text-[11px] font-semibold rounded cursor-pointer"
           >
@@ -562,7 +585,7 @@ function ConversationRow({ conv, isActive, onSelect, onDelete, onExport }: {
           </button>
         ) : (
           <button
-            onClick={(e) => { e.stopPropagation(); setConfirming(true); setTimeout(() => setConfirming(false), 2500) }}
+            onClick={(e) => { e.stopPropagation(); startConfirm() }}
             aria-label={`Delete ${conv.title}`}
             title="Delete"
             className="text-text-secondary hover:text-danger p-1 rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--color-accent)] cursor-pointer"
