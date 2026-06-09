@@ -40,6 +40,22 @@ describe("verify-dist platform selection", () => {
     const targets = getTargets("linux", []);
     expect(targets.checkWin).toBe(false);
     expect(targets.checkMac).toBe(false);
+    expect(targets.checkLinux).toBe(false);
+  });
+
+  it("selects Linux when --linux is passed", () => {
+    const targets = getTargets("linux", ["--linux"]);
+    expect(targets.checkLinux).toBe(true);
+    expect(targets.checkWin).toBe(false);
+    expect(targets.checkMac).toBe(false);
+  });
+
+  it("selects all platforms when --all is passed on any OS", () => {
+    const targets = getTargets("darwin", ["--all"]);
+    expect(targets.checkLinux).toBe(true);
+    expect(targets.checkMac).toBe(true);
+    expect(targets.checkWin).toBe(true);
+    expect(targets.targetArches).toEqual(["x64", "arm64"]);
   });
 });
 

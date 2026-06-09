@@ -67,4 +67,21 @@ describe("verify-release-packaging-hardening (VERIFY-052)", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("does not emit git fatal stderr in archive mode", () => {
+    const root = mkdtempSync(join(tmpdir(), "venice-relpkg-no-git-"));
+    try {
+      mkdirSync(join(root, "scripts"), { recursive: true });
+      writeFileSync(join(root, "package.json"), JSON.stringify({ name: "fake" }));
+      writeFileSync(join(root, "scripts", "clean-repo-zip.sh"), "#!/bin/bash\necho ok");
+
+      const out = spawnSync("node", [scriptPath], { cwd: root, encoding: "utf8" });
+      // The script will fail because many required files are missing, but
+      // stderr must not contain git fatal messages.
+      expect(out.stderr || "").not.toMatch(/fatal: not a git repository/i);
+      expect(out.stderr || "").not.toMatch(/fatal:/i);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

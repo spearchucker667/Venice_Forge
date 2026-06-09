@@ -194,8 +194,13 @@ export const ResearchWorkspaceView: React.FC = () => {
       <div className="w-64 flex-shrink-0 border-r border-border flex flex-col bg-surface">
         <div className="p-4 border-b border-border flex justify-between items-center">
           <h2 className="font-bold text-text-primary">Research</h2>
-          <button onClick={handleCreateSession} className="p-1 hover:bg-surface-elevated rounded text-text-secondary">
-            <PlusIcon />
+          <button
+            type="button"
+            onClick={handleCreateSession}
+            className="p-1 hover:bg-surface-elevated rounded text-text-secondary"
+            aria-label="Create research session"
+          >
+            <span aria-hidden="true"><PlusIcon /></span>
           </button>
         </div>
         <div className="flex-1 overflow-y-auto">
@@ -207,8 +212,13 @@ export const ResearchWorkspaceView: React.FC = () => {
             >
               <div className="flex justify-between items-center">
                 <span className="truncate font-medium text-text-primary">{s.title}</span>
-                <button onClick={(e) => { e.stopPropagation(); toggleFavorite(s.id); }} className="text-text-muted hover:text-text-primary">
-                  <StarIcon filled={s.favorite} />
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); toggleFavorite(s.id); }}
+                  className="text-text-muted hover:text-text-primary"
+                  aria-label={s.favorite ? `Remove ${s.title} from favorites` : `Add ${s.title} to favorites`}
+                >
+                  <span aria-hidden="true"><StarIcon filled={s.favorite} /></span>
                 </button>
               </div>
               <div className="text-xs text-text-muted mt-1">
@@ -236,11 +246,21 @@ export const ResearchWorkspaceView: React.FC = () => {
                 <button onClick={handleSaveToLibrary} className="px-3 py-1 bg-accent text-accent-fg hover:bg-accent-hover rounded text-sm transition-colors">
                   Save Summary
                 </button>
-                <button onClick={() => archiveSession(activeSession.id)} className="p-2 hover:bg-surface-elevated rounded text-text-secondary" title="Archive">
-                  <ArchiveIcon />
+                <button
+                  type="button"
+                  onClick={() => archiveSession(activeSession.id)}
+                  className="p-2 hover:bg-surface-elevated rounded text-text-secondary"
+                  aria-label="Archive session"
+                >
+                  <span aria-hidden="true"><ArchiveIcon /></span>
                 </button>
-                <button onClick={() => { if(confirm('Delete session?')) deleteSession(activeSession.id); }} className="p-2 hover:bg-danger/15 rounded text-text-secondary hover:text-danger transition-colors" title="Delete">
-                  <TrashIcon />
+                <button
+                  type="button"
+                  onClick={() => { if(confirm('Delete session?')) deleteSession(activeSession.id); }}
+                  className="p-2 hover:bg-danger/15 rounded text-text-secondary hover:text-danger transition-colors"
+                  aria-label="Delete session"
+                >
+                  <span aria-hidden="true"><TrashIcon /></span>
                 </button>
               </div>
             </div>
@@ -291,11 +311,13 @@ export const ResearchWorkspaceView: React.FC = () => {
                   <h3 className="font-bold text-sm uppercase text-text-muted">Sources ({activeSession.sources.length})</h3>
                   {activeSession.sources.map(src => (
                     <div key={src.id} className="bg-surface-elevated border border-border rounded p-3 relative group">
-                      <button 
+                      <button
+                        type="button"
                         onClick={() => removeSource(activeSession.id, src.id)}
                         className="absolute top-2 right-2 p-1 opacity-0 group-hover:opacity-100 hover:text-danger text-text-muted transition-opacity"
+                        aria-label={`Remove source ${src.title}`}
                       >
-                        <TrashIcon />
+                        <span aria-hidden="true"><TrashIcon /></span>
                       </button>
                       <h4 className="font-bold text-accent truncate pr-6">
                         <a href={src.url} target="_blank" rel="noreferrer" className="hover:underline">{src.title}</a>
@@ -314,19 +336,31 @@ export const ResearchWorkspaceView: React.FC = () => {
                 <div className="p-4 border-b border-border">
                   <h3 className="font-bold text-sm uppercase text-text-muted mb-4">Add Finding</h3>
                   <div className="space-y-3">
-                    <input 
-                      value={findingTitle}
-                      onChange={e => setFindingTitle(e.target.value)}
-                      placeholder="Title"
-                      className="w-full bg-bg-base border border-border rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
-                    />
-                    <textarea 
-                      value={findingContent}
-                      onChange={e => setFindingContent(e.target.value)}
-                      placeholder="Content / Insight"
-                      rows={4}
-                      className="w-full bg-bg-base border border-border rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none"
-                    />
+                    <div className="space-y-1">
+                      <label htmlFor="research-finding-title" className="text-xs font-medium text-text-secondary">
+                        Finding title
+                      </label>
+                      <input
+                        id="research-finding-title"
+                        value={findingTitle}
+                        onChange={e => setFindingTitle(e.target.value)}
+                        placeholder="Summarize the finding"
+                        className="w-full bg-bg-base border border-border rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label htmlFor="research-finding-content" className="text-xs font-medium text-text-secondary">
+                        Finding content
+                      </label>
+                      <textarea
+                        id="research-finding-content"
+                        value={findingContent}
+                        onChange={e => setFindingContent(e.target.value)}
+                        placeholder="Add supporting details and citations"
+                        rows={4}
+                        className="w-full bg-bg-base border border-border rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none"
+                      />
+                    </div>
                     <button 
                       onClick={handleAddFinding}
                       className="w-full py-2 bg-accent text-accent-fg hover:bg-accent-hover rounded text-sm font-bold transition-colors"
@@ -342,11 +376,13 @@ export const ResearchWorkspaceView: React.FC = () => {
                     <div key={f.id} className="bg-surface-elevated border border-border rounded p-3 group">
                       <div className="flex justify-between items-start mb-2">
                         <h4 className="font-bold text-text-primary">{f.title}</h4>
-                        <button 
+                        <button
+                          type="button"
                           onClick={() => removeFinding(activeSession.id, f.id)}
                           className="p-1 opacity-0 group-hover:opacity-100 hover:text-danger text-text-muted transition-opacity"
+                          aria-label={`Remove finding ${f.title}`}
                         >
-                          <TrashIcon />
+                          <span aria-hidden="true"><TrashIcon /></span>
                         </button>
                       </div>
                       <div className="text-sm text-text-secondary whitespace-pre-wrap">{f.content}</div>

@@ -140,6 +140,24 @@ function main() {
     "Raw fetch('/api/venice/...') outside canonical files"
   );
 
+  // 5. Jina proxy header allowlist must exist in server.ts
+  const serverSource = require("fs").readFileSync(require("path").join(ROOT, "server.ts"), "utf8");
+  if (!serverSource.includes("JINA_ALLOWED_FORWARD_HEADERS")) {
+    violations.push("Jina header allowlist missing: JINA_ALLOWED_FORWARD_HEADERS not found in server.ts");
+  }
+  if (!serverSource.includes("isAllowedJinaForwardHeader")) {
+    violations.push("Jina header allowlist helper missing: isAllowedJinaForwardHeader not found in server.ts");
+  }
+  // Verify no arbitrary pass-through inside /api/proxy-jina block
+  const jinaBlockMatch = serverSource.match(/app\.post\("\/api\/proxy-jina"[\s\S]*?\n\}\);/);
+  if (jinaBlockMatch) {
+    const jinaBlock = jinaBlockMatch[0];
+    // Check for the old pattern of unconditional header forwarding
+    if (/headers\[key\] = value/.test(jinaBlock) && !/isAllowedJinaForwardHeader/.test(jinaBlock)) {
+      violations.push("Jina proxy block contains arbitrary header pass-through without allowlist guard");
+    }
+  }
+
   if (violations.length > 0) {
     console.error("[verify:network-boundaries] FAIL — network boundary violations detected:");
     for (const v of violations) {

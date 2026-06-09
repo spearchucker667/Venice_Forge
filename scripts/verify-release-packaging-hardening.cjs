@@ -69,9 +69,18 @@ function checkIncludes(haystack, needle, label) {
   return false;
 }
 
+function hasGitDirectory(rootDir) {
+  return existsSync(path.join(rootDir, ".git"));
+}
+
 function tryGit(args) {
+  if (!hasGitDirectory(root)) return null;
   try {
-    return execFileSync("git", args, { cwd: root, encoding: "utf8" });
+    return execFileSync("git", args, {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
   } catch {
     return null;
   }

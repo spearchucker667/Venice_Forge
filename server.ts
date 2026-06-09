@@ -455,6 +455,41 @@ export function createServerApp() {
         return res.status(451).json({ error: decision.userMessage });
       }
 
+      const JINA_ALLOWED_FORWARD_HEADERS = new Set([
+        "accept",
+        "x-return-format",
+        "x-with-generated-alt",
+        "x-with-iframe",
+        "x-target-selector",
+        "x-wait-for-selector",
+        "x-timeout",
+      ]);
+
+      const JINA_BLOCKED_FORWARD_HEADER_PATTERNS = [
+        /^host$/i,
+        /^cookie$/i,
+        /^set-cookie$/i,
+        /^forwarded$/i,
+        /^x-forwarded-/i,
+        /^content-length$/i,
+        /^transfer-encoding$/i,
+        /^connection$/i,
+        /^proxy-/i,
+        /^origin$/i,
+        /^referer$/i,
+      ];
+
+      function normalizeHeaderName(name: string): string {
+        return name.trim().toLowerCase();
+      }
+
+      function isAllowedJinaForwardHeader(name: string): boolean {
+        const normalized = normalizeHeaderName(name);
+        if (!normalized) return false;
+        if (JINA_BLOCKED_FORWARD_HEADER_PATTERNS.some((pattern) => pattern.test(normalized))) return false;
+        return JINA_ALLOWED_FORWARD_HEADERS.has(normalized);
+      }
+
       const headers: Record<string, string> = {};
       let clientJinaKey = "";
       if (requestHeaders && typeof requestHeaders === "object" && !Array.isArray(requestHeaders)) {
@@ -465,9 +500,10 @@ export function createServerApp() {
               if (match) clientJinaKey = match[1];
             } else if (/^x-jina-api-key$/i.test(key)) {
               clientJinaKey = value;
-            } else {
+            } else if (isAllowedJinaForwardHeader(key)) {
               headers[key] = value;
             }
+            // Dropped: all other renderer-supplied headers
           }
         }
       }

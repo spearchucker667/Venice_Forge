@@ -4,33 +4,31 @@ const path = require("path");
 const crypto = require("crypto");
 
 const args = process.argv.slice(2);
-const verifyRelease = args.some((arg) => ["--win", "--mac", "--all", "--portable", "--release"].includes(arg));
+const RELEASE_FLAGS = ["--win", "--mac", "--linux", "--all", "--portable", "--release"];
+const verifyRelease = args.some((arg) => RELEASE_FLAGS.includes(arg));
 
 /** Logic extracted for unit testing */
 function getTargets(platform, args) {
-  const checkWin =
-    args.includes("--win") ||
-    args.includes("--all") ||
-    (!args.includes("--mac") && platform === "win32") ||
-    (args.length === 0 && platform === "win32");
-  const checkMac =
-    args.includes("--mac") ||
-    args.includes("--all") ||
-    (!args.includes("--win") && platform === "darwin") ||
-    (args.length === 0 && platform === "darwin");
+  const explicitWin = args.includes("--win");
+  const explicitMac = args.includes("--mac");
+  const explicitLinux = args.includes("--linux");
+  const explicitAll = args.includes("--all") || args.includes("--release");
+  const hasExplicitPlatform = explicitWin || explicitMac || explicitLinux || explicitAll;
+
+  const checkWin = explicitWin || explicitAll || (!hasExplicitPlatform && platform === "win32");
+  const checkMac = explicitMac || explicitAll || (!hasExplicitPlatform && platform === "darwin");
+  const checkLinux = explicitLinux || explicitAll || (!hasExplicitPlatform && platform === "linux" && verifyRelease);
 
   let targetArches = ["x64", "arm64"];
   const archIdx = args.indexOf("--arch");
-  const noExplicitPlatform =
-    !args.includes("--win") && !args.includes("--mac") && !args.includes("--all");
   if (archIdx !== -1 && archIdx + 1 < args.length) {
     targetArches = [args[archIdx + 1]];
-  } else if (args.includes("--all")) {
+  } else if (explicitAll) {
     targetArches = ["x64", "arm64"];
-  } else if (noExplicitPlatform && platform === "win32") {
+  } else if (!hasExplicitPlatform && platform === "win32") {
     targetArches = ["x64"];
   }
-  return { checkWin, checkMac, targetArches };
+  return { checkWin, checkMac, checkLinux, targetArches };
 }
 
 // Forbidden patterns inside the build outputs. Phase 2J hygiene guard.
@@ -68,7 +66,7 @@ if (require.main !== module) {
   module.exports = { getTargets, FORBIDDEN_DIST_PATTERNS, SECRET_PATTERNS };
 } else {
 
-const { checkWin, checkMac, targetArches } = getTargets(process.platform, args);
+const { checkWin, checkMac, checkLinux, targetArches } = getTargets(process.platform, args);
 
 const root = path.join(__dirname, "..");
 const pkg = require(path.join(root, "package.json"));
@@ -185,6 +183,33 @@ function assertNoSecretsInDist(distDir) {
 
 console.log(`[verify:dist] Starting verification for version ${version}`);
 
+function verifyLinuxArtifacts(releaseDir, verified) {
+  console.log("[verify:dist] Verifying Linux artifacts...");
+  verifyFileExists(path.join(root, "build", "icon.png"), 1024);
+
+  const files = fs.readdirSync(releaseDir);
+  const expectedExtensions = [".AppImage", ".deb", ".rpm"];
+
+  for (const ext of expectedExtensions) {
+    const matches = files.filter((file) => file.endsWith(ext));
+    if (matches.length === 0) {
+      fail(`Missing Linux ${ext} artifact in release/.`);
+    }
+    for (const file of matches) {
+      const fullPath = path.join(releaseDir, file);
+      verifyFileExists(fullPath, 1024 * 1024 * 10);
+      verifyChecksum(fullPath);
+      verified.push(file);
+    }
+  }
+
+  const linuxMetadata = files.filter((file) => /latest.*linux.*\.ya?ml$/i.test(file));
+  for (const file of linuxMetadata) {
+    verifyFileExists(path.join(releaseDir, file), 50);
+    verified.push(file);
+  }
+}
+
 if (!fs.existsSync(path.join(root, "dist")) || !fs.existsSync(path.join(root, "dist-electron"))) {
   console.error(
     "[verify:dist] Build outputs are missing. Run `npm run build` first; source archives intentionally exclude dist."
@@ -289,6 +314,10 @@ if (checkMac) {
     verifyFileExists(path.join(releaseDir, f), 50);
     verified.push(f);
   });
+}
+
+if (checkLinux) {
+  verifyLinuxArtifacts(releaseDir, verified);
 }
 
 console.log("[verify:dist] Successfully verified artifacts:");

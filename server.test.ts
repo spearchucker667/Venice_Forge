@@ -356,6 +356,68 @@ describe("server.ts safety middleware", () => {
   });
 });
 
+describe("server.ts Jina proxy header allowlist", () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("drops unsafe renderer-supplied Jina headers", async () => {
+    const fetchMock = vi.fn(async () => new Response("ok", {
+      status: 200,
+      headers: { "content-type": "text/plain" },
+    })) as unknown as typeof globalThis.fetch;
+    globalThis.fetch = fetchMock;
+
+    await request(createServerApp())
+      .post("/api/proxy-jina")
+      .set("X-Venice-Forge-Family-Safe-Mode", "false")
+      .send({
+        url: "https://r.jina.ai/http://example.com",
+        headers: {
+          Cookie: "session=leak",
+          Host: "evil.test",
+          "X-Forwarded-For": "127.0.0.1",
+          "X-Return-Format": "markdown",
+        },
+      });
+
+    expect(fetchMock).toHaveBeenCalled();
+    const init = (fetchMock as unknown as { mock: { calls: Array<[string, RequestInit | undefined]> } })
+      .mock.calls[0]?.[1];
+    expect(init).toBeDefined();
+    const forwardHeaders = init?.headers as Record<string, string> | undefined;
+    expect(forwardHeaders).toMatchObject({ "X-Return-Format": "markdown" });
+    expect(forwardHeaders).not.toHaveProperty("Cookie");
+    expect(forwardHeaders).not.toHaveProperty("Host");
+    expect(forwardHeaders).not.toHaveProperty("X-Forwarded-For");
+  });
+
+  it("extracts Authorization bearer into the Jina key without forwarding raw renderer Authorization", async () => {
+    const fetchMock = vi.fn(async () => new Response("ok", {
+      status: 200,
+      headers: { "content-type": "text/plain" },
+    })) as unknown as typeof globalThis.fetch;
+    globalThis.fetch = fetchMock;
+
+    await request(createServerApp())
+      .post("/api/proxy-jina")
+      .set("X-Venice-Forge-Family-Safe-Mode", "false")
+      .send({
+        url: "https://r.jina.ai/http://example.com",
+        headers: { Authorization: "Bearer test_jina_key" },
+      });
+
+    expect(fetchMock).toHaveBeenCalled();
+    const init = (fetchMock as unknown as { mock: { calls: Array<[string, RequestInit | undefined]> } })
+      .mock.calls[0]?.[1];
+    expect(init).toBeDefined();
+    const forwardHeaders = init?.headers as Record<string, string> | undefined;
+    expect(forwardHeaders?.Authorization).toBe("Bearer test_jina_key");
+  });
+});
+
 describe("server.ts Jina proxy error handling", () => {
   const originalFetch = globalThis.fetch;
 

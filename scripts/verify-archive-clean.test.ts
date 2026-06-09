@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 // the guard's exported BAD_PATTERNS (no types for the .cjs).
 // @ts-expect-error — .cjs has no declaration; any is acceptable inside this guard test.
 const { BAD_PATTERNS } = await import("./verify-archive-clean.cjs");
-import { mkdtempSync, writeFileSync, rmSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync, readdirSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
@@ -108,7 +108,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     }
   });
 
-  it("clean-repo-zip.sh redacts raw secret-like values in POSSIBLE_SECRET_WARNINGS.txt", () => {
+  it("clean-repo-zip.sh redacts raw secret-like values in POSSIBLE_SECRET_WARNINGS.tsv", () => {
     const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-repo-"));
     const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-out-"));
     const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-extract-"));
@@ -131,26 +131,75 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       execSync(`unzip -q "${zipPath!}" -d ${extractDir}`, { stdio: "pipe" });
 
       const extractedName = readdirSync(extractDir)[0];
-      const warningsPath = join(
-        extractDir,
-        extractedName,
-        "_REPO_EXTRACT_METADATA",
-        "POSSIBLE_SECRET_WARNINGS.txt",
-      );
-      const warnings = readFileSync(warningsPath, "utf8");
+      const metaDir = join(extractDir, extractedName, "_REPO_EXTRACT_METADATA");
+      const warningsPath = join(metaDir, "POSSIBLE_SECRET_WARNINGS.tsv");
+      const summaryPath = join(metaDir, "SECRET_SCAN_SUMMARY.txt");
 
-      // The report must reference the pattern that matched.
+      expect(existsSync(warningsPath)).toBe(true);
+      expect(existsSync(summaryPath)).toBe(true);
+
+      const warnings = readFileSync(warningsPath, "utf8");
+      const summary = readFileSync(summaryPath, "utf8");
+
+      // The TSV header must declare its columns.
+      expect(warnings).toMatch(/^path\tline\tpattern\tcategory/m);
+      // The pattern name must be present in the data.
       expect(warnings).toMatch(/sk-token/);
-      // The raw secret-like value must NOT appear in the report.
+      // The raw secret-like value must NEVER appear in the report.
       expect(warnings).not.toMatch(new RegExp(rawToken));
       expect(warnings).not.toMatch(/sk-abc123/);
-      // Only path:line:pattern-name lines are expected after the header.
-      const bodyLines = warnings
+      // Each data row must be a 4-column tab-separated record (path, line, pattern, category).
+      const dataRows = warnings
         .split("\n")
-        .filter((line) => line.trim().length > 0 && !line.startsWith("=") && !line.startsWith("This") && !line.startsWith("Real") && !line.startsWith("Only") && !line.startsWith("Possible"));
-      for (const line of bodyLines) {
-        expect(line).toMatch(/^[^:]+:[0-9]+:[a-z0-9-]+$/);
+        .filter((line) => line.trim().length > 0 && !line.startsWith("=") && !line.startsWith("This") && !line.startsWith("Real") && !line.startsWith("Only") && !line.startsWith("Possible") && !line.startsWith("path\tline"));
+      for (const row of dataRows) {
+        const cols = row.split("\t");
+        expect(cols.length).toBe(4);
+        expect(cols[2]).toBe("sk-token");
+        expect(cols[3]).toBe("high-risk-source");
       }
+      // The summary file must record non-zero high_risk_hits and zero raw line content.
+      expect(summary).toMatch(/high_risk_hits=[1-9][0-9]*/);
+      expect(summary).toMatch(/raw_line_content_emitted=false/);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+      rmSync(outDir, { recursive: true, force: true });
+      rmSync(extractDir, { recursive: true, force: true });
+    }
+  });
+
+  it("clean-repo-zip.sh records script provenance metadata", () => {
+    const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-prov-repo-"));
+    const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-prov-out-"));
+    const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-prov-extract-"));
+    try {
+      writeFileSync(join(repo, "package.json"), JSON.stringify({ name: "fake-repo" }));
+      writeFileSync(join(repo, "README.md"), "# fake");
+      mkdirSync(join(repo, "src"), { recursive: true });
+      writeFileSync(join(repo, "src", "x.ts"), "export const ok = 1;\n");
+
+      execSync(`bash ${join(__dirname, "clean-repo-zip.sh")} ${repo} ${outDir}`, {
+        encoding: "utf8",
+        stdio: "pipe",
+      });
+
+      const zipPath = findZip(outDir);
+      expect(zipPath).not.toBeNull();
+
+      execSync(`unzip -q "${zipPath!}" -d ${extractDir}`, { stdio: "pipe" });
+
+      const extractedName = readdirSync(extractDir)[0];
+      const metaDir = join(extractDir, extractedName, "_REPO_EXTRACT_METADATA");
+      const extractInfoPath = join(metaDir, "EXTRACT_INFO.txt");
+      const checksumPath = join(metaDir, "SHA256SUMS.txt");
+
+      expect(existsSync(extractInfoPath)).toBe(true);
+      const extractInfo = readFileSync(extractInfoPath, "utf8");
+      expect(extractInfo).toMatch(/Script provenance/);
+      expect(extractInfo).toMatch(/script_version=clean-repo-zip-v4/);
+      expect(extractInfo).toMatch(/script_sha256=[0-9a-f]{64}/);
+
+      expect(existsSync(checksumPath)).toBe(true);
     } finally {
       rmSync(repo, { recursive: true, force: true });
       rmSync(outDir, { recursive: true, force: true });

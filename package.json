@@ -40,6 +40,7 @@
     "verify:dist": "node scripts/verify-dist.cjs",
     "verify:dist:win": "node scripts/verify-dist.cjs --win",
     "verify:dist:mac": "node scripts/verify-dist.cjs --mac",
+    "verify:dist:linux": "node scripts/verify-dist.cjs --linux",
     "verify:dist:portable": "node scripts/verify-dist.cjs --win --portable",
     "verify:dist:release": "node scripts/verify-dist.cjs --all",
     "verify:archive-clean": "node scripts/verify-archive-clean.cjs",

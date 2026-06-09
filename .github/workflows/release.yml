@@ -205,8 +205,8 @@ jobs:
       - name: Generate SHA-256 checksums
         run: npm run checksum:release
 
-      - name: Verify release artifacts
-        run: npm run verify:dist
+      - name: Verify Linux release artifacts
+        run: npm run verify:dist:linux
 
       - name: Verify archive hygiene (no tracked contaminants)
         run: node scripts/verify-archive-clean.cjs

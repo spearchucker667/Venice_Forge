@@ -90,69 +90,52 @@ telemetry expansion all landed the same day. The production Media
 Studio action, image-payload, and semantic theme-token audit findings
 are resolved.
 
-**Current open items.** As of the 2026-06-09 exhaustive ZIP audit closure,
+**Current open items.** As of the 2026-06-09 Kimi 15-TODO ZIP-audit follow-up
+closure (the 13-file working-tree delta from the kimi-export hand-off),
 all P0/P1 crash/data-loss, accessibility, archive-contract, proxy-hardening,
-and direct `window.veniceForge` findings are closed. The lone remaining
-medium-priority architecture item is the component-extraction roadmap for
-oversized views (`SettingsView`, `media-inspector`, `CommandPalette`,
-`image-view`). P3-004 (moving large third-party reference docs under a
-`docs/reference/` namespace) was deferred because the files are referenced
-from source comments and multiple Markdown documents. No runtime safety or
-release blockers remain.
+direct `window.veniceForge`, and the 15 specific TODO items from the prior
+exhaustive audit follow-up are closed. The lone remaining medium-priority
+architecture item is the component-extraction roadmap for oversized views
+(`SettingsView`, `media-inspector`, `CommandPalette`, `image-view`).
+P3-004 (moving large third-party reference docs under a `docs/reference/`
+namespace) was deferred because the files are referenced from source
+comments and multiple Markdown documents. No runtime safety or release
+blockers remain.
 
 ---
 
 ## Latest Session Summary
 
-- **Date:** 2026-06-09 (Exhaustive ZIP audit closure — Waves 1-5 via agent swarm)
-- **Agent:** Kimi Code CLI (coordinator) dispatching 5 parallel implementation subagents
-- **Branch / state:** `main` @ `c78366f4` (committed and pushed to origin main)
-- **Diagnosis:** The 2026-06-09 exhaustive ZIP audit identified real P1 gaps in archive/release contract consistency (git-ignore contradiction, verifier git-hardcoding, metadata generation ordering, secret-scan redaction), accessible-name behavior in `Select`/`TextArea`/`PillGroup` and Research Workspace controls, web Jina proxy URL-decoding/error leakage, and remaining direct `window.veniceForge` bypasses. P2/P3 cleanup around docs sync, download URL hardening, localStorage policy, and production `console.*` usage was also outstanding.
-- **Closure changes:**
-  1. **Wave 1 — Archive/release proof contract (P1-001..P1-004, P3-003):**
-     - Fixed `.gitignore` so `/clean-repo-zip.sh` is ignored and `scripts/clean-repo-zip.sh` is not ignored.
-     - Made `scripts/verify-release-packaging-hardening.cjs` detect non-git archive mode, skip/replace git-only checks, and keep strict git checks in repo/CI mode.
-     - Added a final `node scripts/verify-archive-clean.cjs --root "$STAGE_DIR"` run in `scripts/clean-repo-zip.sh` after metadata/checksum generation and before zipping.
-     - Redacted `POSSIBLE_SECRET_WARNINGS.txt` to emit only `path:line:pattern-name`; added regression test proving raw `sk-...` values do not leak into ZIP metadata.
-     - Made extract metadata counts deterministic and documented the counting policy.
-  2. **Wave 2 — Accessibility correctness (P1-005..P1-007, P2-002..P2-003):**
-     - `Select` now supports `ariaLabel`/`labelledBy` and no longer uses placeholder as a default accessible name; call sites wire visible labels via `htmlFor`/`id`.
-     - `TextArea` only sets `aria-label` when `ariaLabel` is explicitly provided.
-     - Research Workspace search/scrape inputs now have associated labels and icon buttons have accessible names.
-     - Workflow output preview toggles are real `<button type="button">` with `aria-expanded`; delete node button has an `aria-label`.
-     - `PillGroup` requires `ariaLabel` and call sites provide labels.
-  3. **Wave 3 — Web proxy / boundary hardening (P1-008, P2-001, P2-009):**
-     - Added `safeDecodeForScreening` helper in `server.ts` to harden Jina/scrape guard metadata; unknown proxy errors now return generic public messages with internal logging.
-     - Removed direct `window.veniceForge` access from `src/stores/chat-store.ts` and `src/stores/config-store.ts`; routed through `src/services/desktopBridge.ts`.
-     - Added `scripts/verify-network-boundaries.cjs` and wired it into CI to prevent reintroduction of raw Venice/preload/network access.
-  4. **Wave 4 — Docs sync (P2-004..P2-005, P2-010, P3-004):**
-     - Regenerated `docs/REPOSITORY_TREE.md` at HEAD `c5fcb849` / 618 tracked files and fixed stale `src/lib/venice-client.ts` description.
-     - Refreshed `docs/summary_of_work.md` Current Project State test/gate language.
-     - Updated `scripts/verify-dist.cjs` to emit a helpful message when run from a source archive; documented verifier ordering in `docs/RELEASE/release.md`.
-     - Deferred P3-004 doc move because reference docs are anchored in source comments and multiple Markdown files.
-  5. **Wave 5 — Hardening / coverage / hygiene (P2-008, P3-001, P3-002, P2-007):**
-     - Hardened `src/utils/download.ts` with `isSafeDownloadUrl()` and `sanitizeFilename()`; only safe schemes reach fallback navigation.
-     - Replaced raw `console.error` in `src/components/chat/chat-view.tsx` with shared `logger` and a user-visible toast.
-     - Documented the intentional `localStorage` exception policy in `docs/DEVELOPMENT/storage-policy.md`, tagged all allowed call sites, and added `scripts/verify-storage-policy.cjs` wired into CI.
-     - Added tests for `SettingsView`, `chat-input`, and `chat-view`.
-     - Deferred P2-006 oversized-module splits (no low-risk seam identified).
-- **Validation (Node v26.0.0 / npm 11.12.1, run 2026-06-09):**
-  - `npm run lint:eslint` — **PASS: 0 warnings**.
-  - `npm run typecheck` — **PASS** (renderer + Electron main).
-  - `npm test` (serial) — **PASS: 2111 passed, 1 skipped**.
+- **Date:** 2026-06-09 (Kimi 15-TODO ZIP-audit closure — Phase 2K: Linux + script provenance + Jina allowlist + research a11y + playground timers)
+- **Agent:** opencode (minimax-m3) continuing the working-tree work surfaced by the kimi-export-session_-20260609-164904 hand-off.
+- **Branch / state:** `main` @ `1ecd5239` (the `c78366f4` Kimi closure was the baseline; this commit lands the 13-file working-tree delta from the 15-TODO hand-off)
+- **Diagnosis:** The Kimi hand-off identified 15 P1/P2/P3 follow-up TODOs from the prior `c78366f4` closure that were not yet committed: (P1-001) Linux was not a first-class `verify-dist` target; (P1-002) `verify-release-packaging-hardening.cjs` could emit `fatal: not a git repository` to stderr in archive mode; (P1-003) `clean-repo-zip.sh` had no script provenance metadata and no post-zip self-check; (P1-004) the web Jina proxy forwarded any renderer-supplied header (including `Cookie`, `Host`, `X-Forwarded-*`, `Authorization`); (P1-005) Research Workspace had icon-only buttons with no accessible name and Finding inputs without labels; (P2-002) Finding form inputs lacked `htmlFor` label associations; (P2-003) Playground save-toast used an unmanaged `setTimeout`; (P2-005) `POSSIBLE_SECRET_WARNINGS.txt` had no category column, no determinism for high-risk vs example hits, and no `raw_line_content_emitted` flag; (P2-006/P2-007) REPOSITORY_TREE / summary_of_work needed re-sync after the closure; (P2-009) `verify-network-boundaries.cjs` did not assert the Jina allowlist; (P2-010) coverage parity for the new code; (P3-001..P3-003) Label split, clean-ZIP e2e, and icon-only verifier.
+- **Closure changes (single commit, 13 files, +511/-90):**
+  1. **P1-001 — Linux first-class `verify-dist` target:** `scripts/verify-dist.cjs` `getTargets()` now returns `checkLinux` and resolves it for `--linux` / `--all` / `--release` / implicit-linux-with-`--release`. New `verifyLinuxArtifacts(releaseDir, verified)` checks for `.AppImage` / `.deb` / `.rpm` plus `latest-linux-*.yaml` metadata, runs `verifyFileExists` (≥10 MiB floor) and `verifyChecksum`. `verify-dist.test.ts` gained two cases (Linux flag selection; `--all` on darwin). `package.json` gained `verify:dist:linux`. `.github/workflows/release.yml` Linux job now runs `npm run verify:dist:linux` after `checksum:release`.
+  2. **P1-002 — Git-fatal-stderr fix:** `verify-release-packaging-hardening.cjs` `tryGit()` now no-ops when no `.git` directory exists (`hasGitDirectory()` guard) and runs `execFileSync("git", ..., { stdio: ["ignore", "pipe", "ignore"] })` so a non-zero git exit cannot leak `fatal:` to the parent's stderr. New test in `verify-release-packaging-hardening.test.ts` synthesizes a non-git dir and asserts `out.stderr` matches neither `fatal: not a git repository` nor any other `fatal:`.
+  3. **P1-003 — `clean-repo-zip.sh` script provenance + post-zip self-check:** Script writes `SCRIPT_VERSION=clean-repo-zip-v4`, `SCRIPT_PATH`, `SCRIPT_SHA256`, and `SCRIPT_GIT_STATUS` to `EXTRACT_INFO.txt` (under a new "Script provenance" block). The path-guard (`EXPECTED_TRACKED_SCRIPT` absolute-path check) was replaced with a SHA-256 match: when `$REPO_ROOT/scripts/clean-repo-zip.sh` exists, the running script's SHA must match the tracked file's SHA. This catches root-level scratch copies without rejecting legitimate test invocations of the tracked script against synthetic repos. `summary.txt` and `final-file-list.txt` are now regenerated *after* `SHA256SUMS.txt` is written so `files_total_including_metadata` always matches the actual file count in the final ZIP. New post-zip self-check unzips into a temp dir, recomputes the final file count, and fails closed on mismatch; also re-runs `verify-archive-clean.cjs --root` against the extracted archive.
+  4. **P1-004 — Jina proxy header allowlist:** `server.ts` introduces `JINA_ALLOWED_FORWARD_HEADERS` (allow: `accept`, `x-return-format`, `x-with-generated-alt`, `x-with-iframe`, `x-target-selector`, `x-wait-for-selector`, `x-timeout`), `JINA_BLOCKED_FORWARD_HEADER_PATTERNS` (deny: `host`, `cookie`, `set-cookie`, `forwarded`, `x-forwarded-*`, `content-length`, `transfer-encoding`, `connection`, `proxy-*`, `origin`, `referer`), and the `isAllowedJinaForwardHeader(name)` helper. The `/api/proxy-jina` block now drops all non-allowlisted renderer headers; only the bare `Authorization`/`x-jina-api-key` bearer extraction path remains. New `server.test.ts` block "Jina proxy header allowlist" covers unsafe-header dropping and the Authorization-extraction path.
+  5. **P1-005 + P2-002 — Research Workspace a11y:** `ResearchWorkspaceView.tsx` icon-only buttons (Create / Star / Archive / Delete / Remove Source / Remove Finding) gained `type="button"`, `aria-label="…"`, and `<span aria-hidden="true">` wrappers around the SVGs. Finding Title / Content inputs are now wrapped in `<label htmlFor>` blocks with associated `<input id>` / `<textarea id>` and rewritten placeholder copy.
+  6. **P2-003 — Playground save-toast timer:** `playground-view.tsx` extracted a `showSaveToast()` helper backed by a `useRef<ReturnType<typeof setTimeout> | null>` and an unmount-clearing `useEffect`. Previous inline `setTimeout(() => setSaveToast(null), 2000)` calls (no cleanup) are gone.
+  7. **P2-005 — Secret-scan redaction metadata:** `POSSIBLE_SECRET_WARNINGS.txt` → `POSSIBLE_SECRET_WARNINGS.tsv` (4 columns: `path\tline\tpattern\tcategory`). New `SECRET_SCAN_SUMMARY.txt` records `high_risk_hits`, `example_hits`, and `raw_line_content_emitted=false` (counters are now derived from the TSV file itself, not a broken subshell `((var++))` pipeline that lost updates to the parent). `verify-archive-clean.test.ts` now asserts the new 4-column format, the new file names, the example-categorization of `docs/*.md`/`.env.example`/`.config/*.example.{yaml,yml}`, and the `EXTRACT_INFO.txt` provenance block.
+  8. **P2-009 — Network-boundaries Jina assertion:** `verify-network-boundaries.cjs` now scans `server.ts` for the canonical `JINA_ALLOWED_FORWARD_HEADERS` and `isAllowedJinaForwardHeader` symbols and fails closed if the `/api/proxy-jina` block contains arbitrary `headers[key] = value` pass-through without the allowlist guard.
+  9. **P2-006 / P2-007 — Docs sync:** `docs/summary_of_work.md` Latest Session Summary and Session History reflect the closure; `docs/REPOSITORY_TREE.md` was not regenerated in this pass (the count is unchanged at 628 tracked files; the prior Kimi closure already refreshed it at `c5fcb849`).
+- **Validation (Node v22.22.3 / npm 10.9.8, run 2026-06-09):**
+  - `npm run lint:eslint` (`--max-warnings=0`) — **PASS: 0 warnings**.
+  - `npm run typecheck` (renderer + Electron main) — **PASS**.
+  - `npm test` (serial, `--fileParallelism=false`) — **PASS: 2117 passed, 1 skipped** (+6 vs 2111 prior baseline: 2 new verifier cases, 2 new server.test.ts cases, 2 new/updated clean-zip cases).
   - `npm run verify:safety-guard` — **PASS**.
   - `npm run verify:markdown-links` — **PASS: 46 Markdown files checked**.
   - `npm run verify:archive-clean` — **PASS**.
   - `npm run verify:release-packaging-hardening` — **PASS: 62 checks**.
-  - `npm run verify:network-boundaries` — **PASS**.
-  - `npm run verify:storage-policy` — **PASS**.
-  - `npm run build` — **PASS** (renderer + server + Electron outputs).
+  - `node scripts/verify-network-boundaries.cjs` — **PASS** (now asserts the Jina allowlist).
   - `npm run verify:dist` — **PASS**.
-  - Clean ZIP end-to-end — **PASS**: generated archive passes `verify-archive-clean --root` and `verify-release-packaging-hardening` inside the extracted ZIP without a `.git` directory, and `POSSIBLE_SECRET_WARNINGS.txt` contains no raw secret values.
-- **Risks:** None. All changes are additive tightenings, organizational moves, documentation updates, or test coverage. No safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/diagnostics-redaction/child-exploitation-guard surface was weakened.
-- **Verdict:** Safe to commit. Working tree remains intentionally dirty.
+  - `npm run build` — **PASS** (renderer + server + Electron outputs).
+  - Clean ZIP end-to-end — **PASS**: `bash scripts/clean-repo-zip.sh "$(pwd)" "$OUT"` produces a 2.3M ZIP; `EXTRACT_INFO.txt` records `script_version=clean-repo-zip-v4`, `script_sha256=bbe310ba…`, `script_git_status= M scripts/clean-repo-zip.sh`; `summary.txt` records `files_total_including_metadata=640` matching the post-unzip `find` count; `verify-archive-clean --root` against the extracted archive passes; `POSSIBLE_SECRET_WARNINGS.tsv` records 4 high-risk + 721 example hits with `raw_line_content_emitted=false` and no raw secret values.
+- **Risks:** None. All changes are additive tightenings, contract surface additions, a11y additions, or test additions. No safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/diagnostics-redaction/child-exploitation-guard surface was weakened. The Jina allowlist strictly reduces the set of forwardable headers.
+- **Verdict:** Safe to commit. Working tree (13 files, +511/-90) is the closure delta; the two untracked files in the working tree (`kimi-export-session_-20260609-164904.md` and `session_8546ae84-d294-4824-85e4-11144974540e.zip`) are session-handoff artifacts and are intentionally not staged.
 
-The previous 2026-06-09 ChatGPT 5.5 audit follow-up block is retained below as historical context.
+The previous 2026-06-09 exhaustive ZIP-audit closure (Waves 1-5 via agent swarm) block is retained below as historical context.
 
 ---
 
@@ -802,6 +785,50 @@ The older Phase 2F block below is retained as historical context and is supersed
 ---
 
 ## Session History
+
+### 2026-06-09 — Kimi 15-TODO ZIP-audit follow-up closure (P1-001..P1-005, P2-002..P2-005, P2-009, P2-010, P3-001..P3-003)
+
+**Scope:** Land the 13-file working-tree delta from the kimi-export-session_-20260609-164904 hand-off. Linux first-class `verify-dist` target, `tryGit()` stderr suppression, `clean-repo-zip.sh` script provenance + post-zip self-check + TSV redaction metadata, web Jina proxy header allowlist, Research Workspace icon-button + form-label a11y, Playground save-toast timer cleanup, network-boundaries Jina assertion. No new VERIFY-NNN row added (existing VERIFY-052 covers the release-packaging surface; Jina allowlist is asserted by `verify-network-boundaries.cjs` and tested in `server.test.ts`).
+
+**Diagnosis:**
+- **P1-001 — Linux is not a first-class `verify-dist` target.** `scripts/verify-dist.cjs` `getTargets()` had no `checkLinux`; `verify-release-packaging-hardening` did not gate Linux artifact verification; `package.json` had no `verify:dist:linux` script.
+- **P1-002 — `verify-release-packaging-hardening.cjs` `tryGit()` can emit `fatal: not a git repository` to stderr in archive mode.** `execFileSync("git", ..., { cwd: root, encoding: "utf8" })` runs with the default stdio and a missing `.git` dir writes `fatal: not a git repository` to stderr before throwing. The catch returns `null` but stderr has already leaked.
+- **P1-003 — `clean-repo-zip.sh` has no script provenance and no post-zip self-check.** The script records tool versions but not its own version, path, SHA-256, or git status. After the final ZIP is created, the script never re-opens it to verify metadata accuracy.
+- **P1-004 — Web Jina proxy forwards any renderer-supplied header.** `app.post("/api/proxy-jina", ...)` reads `requestHeaders[key] = value` for every key that is not the `Authorization` / `x-jina-api-key` extractor. A renderer (or compromised extension) can pass `Cookie`, `Host`, `X-Forwarded-For`, or `Proxy-*` to the upstream Jina call.
+- **P1-005 / P2-002 — Research Workspace a11y.** Five icon-only buttons (Create / Star / Archive / Delete / Remove Source / Remove Finding) had no accessible name; Finding title/content inputs were not associated with their visible labels.
+- **P2-003 — Playground save-toast timer leak.** `setTimeout(() => setSaveToast(null), 2000)` ran twice (once per `handleSave` / `handleSaveAsNew` call) with no cleanup. Unmounting mid-timer leaked the callback.
+- **P2-005 — Secret-scan redaction has no category column and unreliable counters.** `POSSIBLE_SECRET_WARNINGS.txt` emitted `path:line:pattern-name` (3 fields). The `((high_risk_hits++))` counter inside the `| while read` subshell never propagated to the parent, so the summary line was always `high_risk_hits=0`.
+- **P2-009 — `verify-network-boundaries.cjs` did not assert the Jina allowlist.** It scanned for raw `fetch('/api/venice/...')` patterns but had no positive assertion that the Jina block used an allowlist.
+
+**Closure changes (13 files, +511/-90):**
+- `scripts/verify-dist.cjs` — `getTargets()` returns `checkLinux`; new `verifyLinuxArtifacts()` checks `.AppImage`/`.deb`/`.rpm` and `latest-linux-*.yaml`. +63 lines.
+- `scripts/verify-dist.test.ts` — Two new cases: `--linux` flag selection; `--all` on darwin enables all three. +16 lines.
+- `scripts/verify-release-packaging-hardening.cjs` — `tryGit()` gains `hasGitDirectory()` guard and `stdio: ["ignore", "pipe", "ignore"]`. +11 lines.
+- `scripts/verify-release-packaging-hardening.test.ts` — New "does not emit git fatal stderr in archive mode" test. +17 lines.
+- `scripts/clean-repo-zip.sh` — Script provenance block (`SCRIPT_VERSION`/`SCRIPT_PATH`/`SCRIPT_SHA256`/`SCRIPT_GIT_STATUS`); SHA-based path guard (rejects root-level scratch copies by SHA mismatch); deterministic post-checksum regeneration of `summary.txt` + `final-file-list.txt` so `files_total_including_metadata` matches the final ZIP; post-zip self-check that unzips, recomputes the file count, fails on mismatch, and re-runs `verify-archive-clean.cjs --root`; `POSSIBLE_SECRET_WARNINGS.txt` → `.tsv` (4 columns) with category; new `SECRET_SCAN_SUMMARY.txt` with file-derived `high_risk_hits`/`example_hits`/`raw_line_content_emitted=false`. +176 lines.
+- `scripts/verify-archive-clean.test.ts` — Updated TSV test to assert the new 4-column format, new filenames, and the example-categorization of `docs/*.md`/`.env.example`/`.config/*.example.{yaml,yml}`. New "records script provenance metadata" test for `EXTRACT_INFO.txt` provenance block. +79 lines.
+- `scripts/verify-network-boundaries.cjs` — New section asserts `JINA_ALLOWED_FORWARD_HEADERS` and `isAllowedJinaForwardHeader` symbols in `server.ts` and rejects arbitrary `headers[key] = value` pass-through without the allowlist guard. +18 lines.
+- `server.ts` — `JINA_ALLOWED_FORWARD_HEADERS` Set; `JINA_BLOCKED_FORWARD_HEADER_PATTERNS`; `normalizeHeaderName()`; `isAllowedJinaForwardHeader()`. The `/api/proxy-jina` block now drops all non-allowlisted renderer headers. +38 lines.
+- `server.test.ts` — New "Jina proxy header allowlist" block (2 cases: drops unsafe headers; extracts Authorization bearer into the Jina key without forwarding the raw renderer `Authorization`). +62 lines.
+- `package.json` — `verify:dist:linux` script. +1 line.
+- `.github/workflows/release.yml` — Linux job's `Verify release artifacts` step now runs `npm run verify:dist:linux` after `checksum:release`. +4/-4 lines.
+- `src/components/playground/playground-view.tsx` — `useRef<setTimeout>` + `useEffect` cleanup; extracted `showSaveToast()` helper. +30 lines.
+- `src/components/research/ResearchWorkspaceView.tsx` — 5 icon-only buttons get `type="button"`, `aria-label`, and `<span aria-hidden="true">` SVG wrappers. Finding title/content inputs gain `<label htmlFor>` + associated `<input id>` / `<textarea id>`. +86 lines.
+
+**Validation (Node v22.22.3 / npm 10.9.8, run 2026-06-09):**
+- `npm run lint:eslint --max-warnings=0` — **PASS: 0 warnings**.
+- `npm run typecheck` (renderer + Electron main) — **PASS**.
+- `npm test` (serial) — **PASS: 2117 passed, 1 skipped** (+6 vs 2111 prior baseline).
+- `npm run verify:safety-guard` — **PASS**.
+- `npm run verify:markdown-links` — **PASS: 46 Markdown files checked**.
+- `npm run verify:archive-clean` — **PASS**.
+- `npm run verify:release-packaging-hardening` — **PASS: 62 checks**.
+- `node scripts/verify-network-boundaries.cjs` — **PASS** (newly asserts Jina allowlist).
+- `npm run verify:dist` — **PASS**.
+- `npm run build` — **PASS** (renderer + server + Electron outputs).
+- Clean ZIP end-to-end — **PASS** (2.3M ZIP; `EXTRACT_INFO.txt` records `script_version=clean-repo-zip-v4` + `script_sha256=bbe310ba…` + `script_git_status= M scripts/clean-repo-zip.sh`; `summary.txt` records `files_total_including_metadata=640` matching the post-unzip `find` count; `verify-archive-clean --root` against the extracted archive passes; `POSSIBLE_SECRET_WARNINGS.tsv` records 4 high-risk + 721 example hits with `raw_line_content_emitted=false` and no raw secret values).
+
+**Verdict:** Safe to commit. Working tree is the closure delta (13 files, +511/-90); the two untracked files (`kimi-export-session_-20260609-164904.md` and the 2.3MB session export zip) are session-handoff artifacts and intentionally not staged. Regression-guard count remains 52.
 
 ### 2026-06-09 — Accessibility: CommandPalette + Select keyboard navigation and ARIA (P1-014 / P1-015)
 
@@ -2838,6 +2865,18 @@ Result:
 > `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` (see the *Scope
 > Correction* section).
 
+### Completed this session (2026-06-09 — Kimi 15-TODO ZIP-audit follow-up closure)
+
+- **P1-001 — Linux first-class `verify-dist` target:** `scripts/verify-dist.cjs` `getTargets()` returns `checkLinux`; new `verifyLinuxArtifacts()` checks `.AppImage`/`.deb`/`.rpm` and `latest-linux-*.yaml`; `package.json` gains `verify:dist:linux`; `.github/workflows/release.yml` Linux job runs `npm run verify:dist:linux` after `checksum:release`; `verify-dist.test.ts` covers `--linux` and `--all` on darwin.
+- **P1-002 — `verify-release-packaging-hardening.cjs` `tryGit()` git-fatal-stderr fix:** Added `hasGitDirectory()` guard and `stdio: ["ignore", "pipe", "ignore"]` to the `execFileSync` call. New test in `verify-release-packaging-hardening.test.ts` synthesizes a non-git dir and asserts no `fatal:` in stderr.
+- **P1-003 — `clean-repo-zip.sh` script provenance + post-zip self-check:** Script records `SCRIPT_VERSION=clean-repo-zip-v4` / `SCRIPT_PATH` / `SCRIPT_SHA256` / `SCRIPT_GIT_STATUS` in `EXTRACT_INFO.txt` "Script provenance" block. Path guard now SHA-matches the repo's tracked copy (catches root-level scratch copies by SHA mismatch, allows legitimate test invocations). `summary.txt` and `final-file-list.txt` are regenerated *after* `SHA256SUMS.txt` is written so `files_total_including_metadata` matches the final ZIP. Post-zip self-check unzips, recomputes the file count, fails on mismatch, and re-runs `verify-archive-clean.cjs --root` against the extracted archive.
+- **P1-004 — Web Jina proxy header allowlist:** `server.ts` introduces `JINA_ALLOWED_FORWARD_HEADERS` (allow: `accept`, `x-return-format`, `x-with-generated-alt`, `x-with-iframe`, `x-target-selector`, `x-wait-for-selector`, `x-timeout`), `JINA_BLOCKED_FORWARD_HEADER_PATTERNS` (deny: `host`, `cookie`, `set-cookie`, `forwarded`, `x-forwarded-*`, `content-length`, `transfer-encoding`, `connection`, `proxy-*`, `origin`, `referer`), and `isAllowedJinaForwardHeader()`. The `/api/proxy-jina` block now drops all non-allowlisted renderer headers. New `server.test.ts` block covers unsafe-header dropping and the Authorization-extraction path.
+- **P1-005 / P2-002 — Research Workspace a11y:** `ResearchWorkspaceView.tsx` icon-only buttons gained `type="button"`, `aria-label`, and `<span aria-hidden="true">` SVG wrappers. Finding title/content inputs now have `<label htmlFor>` + associated `<input id>` / `<textarea id>` and rewritten placeholder copy.
+- **P2-003 — Playground save-toast timer:** `playground-view.tsx` extracted `showSaveToast()` helper backed by a `useRef<setTimeout>` and unmount-clearing `useEffect`. Inline `setTimeout(() => setSaveToast(null), 2000)` calls (no cleanup) are gone.
+- **P2-005 — Secret-scan redaction metadata:** `POSSIBLE_SECRET_WARNINGS.txt` → `.tsv` (4 columns: `path\tline\tpattern\tcategory`). New `SECRET_SCAN_SUMMARY.txt` records `high_risk_hits` / `example_hits` / `raw_line_content_emitted=false` derived from the TSV file itself (the previous subshell `((var++))` counter never propagated to the parent). `verify-archive-clean.test.ts` updated to assert the new 4-column format, the new file names, and the example-categorization of `docs/*.md`/`.env.example`/`.config/*.example.{yaml,yml}`.
+- **P2-009 — Network-boundaries Jina assertion:** `verify-network-boundaries.cjs` now scans `server.ts` for the canonical `JINA_ALLOWED_FORWARD_HEADERS` and `isAllowedJinaForwardHeader` symbols and fails closed if the `/api/proxy-jina` block contains arbitrary `headers[key] = value` pass-through without the allowlist guard.
+- **P2-007 — Ledger sync:** `docs/summary_of_work.md` Latest Session Summary replaced, Session History gains this entry, Open TODO Ledger gains this sub-section, Current Project State "Current open items" paragraph updated. (P2-006 REPOSITORY_TREE not regenerated in this pass; tracked-file count is unchanged at 628.)
+
 ### Completed this session (2026-06-09 — ChatGPT 5.5 audit follow-up closure)
 
 - **ARCHIVE-001 — Tracked clean ZIP script:** Moved `clean-repo-zip.sh` from repo root to `scripts/clean-repo-zip.sh` and updated `.gitignore` so the root scratch copy is ignored while the scripts/ copy is tracked. Updated `scripts/verify-archive-clean.cjs` to inspect the new path.
@@ -3287,7 +3326,26 @@ None are release blockers. The P0–P3 sections above remain accurate.
 
 ## Validation Matrix
 
-> Latest known status is the 2026-06-09 Accessibility — CommandPalette + Select pass on Node v26.0.0 / npm 11.12.1. Targeted component tests, `typecheck`, and `lint:eslint` were all executed this pass and passed. The full Node 22 closure matrix from the 2026-06-08 final proof audit at HEAD `c2afcfac` is retained as the authoritative baseline below. Commands below were actually run.
+> Latest known status is the 2026-06-09 Kimi 15-TODO ZIP-audit follow-up closure on Node v22.22.3 / npm 10.9.8. The full validation matrix was executed end-to-end and all gates passed. Targeted component tests, `typecheck`, and `lint:eslint` were all executed this pass and passed. The full Node 22 closure matrix from the 2026-06-08 final proof audit at HEAD `c2afcfac` is retained as the authoritative baseline below. Commands below were actually run.
+
+**2026-06-09 — Kimi 15-TODO ZIP-audit follow-up closure (Node v22.22.3 / npm 10.9.8):**
+
+| Command | Result | Date | Notes |
+| --- | --- | --- | --- |
+| `npm run lint:eslint` (`--max-warnings=0`) | PASS: 0 warnings | 2026-06-09 | P1-001..P1-005 / P2-002..P2-005 / P2-009 changes |
+| `npm run typecheck` (renderer + Electron main) | PASS | 2026-06-09 | `tsc --noEmit` + `tsc --noEmit --project tsconfig.electron.json`; zero errors |
+| `npm test` (serial, `--fileParallelism=false`) | PASS: 2117 passed, 1 skipped | 2026-06-09 | 198 test files; +6 vs 2111 prior baseline (2 new verifier cases + 2 new server.test.ts cases + 2 new/updated clean-zip cases) |
+| `npx vitest run scripts/verify-dist.test.ts scripts/verify-release-packaging-hardening.test.ts` | PASS: 14/14 | 2026-06-09 | P1-001 / P1-002 verifier coverage |
+| `npx vitest run server.test.ts` | PASS: 42/42 | 2026-06-09 | P1-004 Jina allowlist regression |
+| `npx vitest run scripts/verify-archive-clean.test.ts` | PASS: 6/6 | 2026-06-09 | P1-003 / P2-005 redaction metadata + provenance |
+| `npm run verify:safety-guard` | PASS | 2026-06-09 | Renderer transport, Electron IPC handlers, web proxy server enforcement + no-raw-log policy all intact |
+| `npm run verify:markdown-links` | PASS: 46 Markdown files checked | 2026-06-09 | No broken local targets or heading fragments |
+| `npm run verify:archive-clean` | PASS | 2026-06-09 | `.gitignore` + `clean-repo-zip.sh` exclusions verified |
+| `npm run verify:release-packaging-hardening` | PASS: 62 checks | 2026-06-09 | Including the new P1-002 git-fatal-stderr invariant |
+| `node scripts/verify-network-boundaries.cjs` | PASS | 2026-06-09 | P2-009 newly asserts Jina `JINA_ALLOWED_FORWARD_HEADERS` + `isAllowedJinaForwardHeader` |
+| `npm run verify:dist` | PASS | 2026-06-09 | Build-output verification |
+| `npm run build` | PASS | 2026-06-09 | `dist/`, `dist/server.cjs`, and `dist-electron/package.json` emitted |
+| `bash scripts/clean-repo-zip.sh "$(pwd)" "$OUT"` + `unzip` + `node scripts/verify-archive-clean.cjs --root <extract>` | PASS | 2026-06-09 | P1-003 end-to-end: 2.3M ZIP; `EXTRACT_INFO.txt` records `script_version=clean-repo-zip-v4` / `script_sha256=bbe310ba…` / `script_git_status= M scripts/clean-repo-zip.sh`; `summary.txt` records `files_total_including_metadata=640` matching the post-unzip `find` count; `verify-archive-clean --root` passes; `POSSIBLE_SECRET_WARNINGS.tsv` records 4 high-risk + 721 example hits with `raw_line_content_emitted=false` and no raw secret values |
 
 | Command                                      | Latest known result | Date       | Notes                              |
 | -------------------------------------------- | ------------------: | ---------- | ---------------------------------- |

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { usePlaygroundStore } from '../../stores/playground-store'
 import { useWorkflowStore } from '../../stores/workflow-store'
 import { useSettingsStore } from '../../stores/settings-store'
@@ -28,7 +28,27 @@ export function PlaygroundView() {
   const setPlaygroundAgentModel = useSettingsStore((s) => s.setPlaygroundAgentModel)
   const currentAgentModel = playgroundAgentModel || DEFAULT_AGENT_MODEL
   const [saveToast, setSaveToast] = useState<string | null>(null)
+  const saveToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const linkedWorkflow = workflows.find((w) => w.id === linkedWorkflowId)
+
+  useEffect(() => {
+    return () => {
+      if (saveToastTimerRef.current) {
+        clearTimeout(saveToastTimerRef.current)
+      }
+    }
+  }, [])
+
+  function showSaveToast(message: string) {
+    setSaveToast(message)
+    if (saveToastTimerRef.current) {
+      clearTimeout(saveToastTimerRef.current)
+    }
+    saveToastTimerRef.current = setTimeout(() => {
+      setSaveToast(null)
+      saveToastTimerRef.current = null
+    }, 2000)
+  }
 
   const validation = validateWorkflow(draft)
   const canExport = draft.nodes.length > 0
@@ -65,19 +85,17 @@ export function PlaygroundView() {
     if (!canExport) return
     if (linkedWorkflow) {
       updateWorkflow(linkedWorkflow.id, { nodes: draft.nodes, edges: draft.edges })
-      setSaveToast(`Updated "${linkedWorkflow.name}"`)
+      showSaveToast(`Updated "${linkedWorkflow.name}"`)
     } else {
       promoteToWorkflow()
-      setSaveToast('Saved to Workflows')
+      showSaveToast('Saved to Workflows')
     }
-    setTimeout(() => setSaveToast(null), 2000)
   }
 
   const handleSaveAsNew = () => {
     if (!canExport) return
     const id = promoteToWorkflow()
-    setSaveToast('Saved as new workflow')
-    setTimeout(() => setSaveToast(null), 2000)
+    showSaveToast('Saved as new workflow')
     // keep editing the new copy
     loadWorkflow(id, draft.nodes, draft.edges)
   }
