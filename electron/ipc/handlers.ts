@@ -34,7 +34,7 @@ import {
   saveConversation,
 } from "../services/chatStorage";
 import { validateApiKeyInput, validateVeniceIpcRequest } from "./validation";
-import { redactErrorMessage } from "../../src/services/redaction";
+import { redactErrorMessage } from "../../src/shared/redaction";
 import { registerUpdateHandlers } from "./updates";
 import { registerRpIpcHandlers } from "./rpHandlers";
 import {

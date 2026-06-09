@@ -188,12 +188,24 @@ verifyFileExists(path.join(root, "dist", "server.cjs"), 1000);
 verifyFileExists(path.join(root, "dist-electron", "electron", "main.js"), 1000);
 verifyFileExists(path.join(root, "dist-electron", "package.json"), 20);
 
+function assertBrandingNoticesInSync() {
+  const source = fs.readFileSync(path.join(root, "assets/branding/NOTICE.md"), "utf8");
+  const runtime = fs.readFileSync(path.join(root, "public/assets/branding/NOTICE.md"), "utf8");
+  if (source !== runtime) {
+    fail(
+      "Branding NOTICE files are out of sync. " +
+        "assets/branding/NOTICE.md and public/assets/branding/NOTICE.md must remain identical."
+    );
+  }
+}
+
 // Hygiene guards (Phase 2J) — run in BOTH local and release modes so a dirty
 // build never passes verify-dist regardless of packaging intent.
 assertNoForbiddenInDist(path.join(root, "dist"));
 assertNoForbiddenInDist(path.join(root, "dist-electron"));
 assertNoSecretsInDist(path.join(root, "dist"));
 assertNoSecretsInDist(path.join(root, "dist-electron"));
+assertBrandingNoticesInSync();
 
 if (!verifyRelease) {
   console.log("[verify:dist] Successfully verified build outputs.");

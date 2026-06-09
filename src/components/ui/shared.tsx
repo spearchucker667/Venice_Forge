@@ -13,7 +13,7 @@ export function Label({ children, htmlFor, hint }: { children: React.ReactNode; 
   )
 }
 
-export function TextArea({ value, onChange, placeholder, rows = 3, ariaLabel, maxLength, autoFocus }: {
+export function TextArea({ value, onChange, placeholder, rows = 3, ariaLabel, maxLength, autoFocus, id }: {
   value: string
   onChange: (v: string) => void
   placeholder?: string
@@ -21,9 +21,11 @@ export function TextArea({ value, onChange, placeholder, rows = 3, ariaLabel, ma
   ariaLabel?: string
   maxLength?: number
   autoFocus?: boolean
+  id?: string
 }) {
   return (
     <textarea
+      id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}

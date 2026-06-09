@@ -7,6 +7,25 @@ import { warn } from "../shared/logger";
 import type { AppDispatch } from "../types/app";
 import type { ModelInfo } from "../types/venice";
 
+/**
+ * Explicit cache-only localStorage helper.
+ *
+ * The model catalog cache contains no secrets and is a transient performance
+ * optimization (stale-while-revalidate). It is intentionally stored in
+ * localStorage rather than the encrypted stores so it is available immediately
+ * on cold boot without awaiting an async unlock. These helpers wrap reads and
+ * writes in try/catch so a corrupted or quota-exceeded cache entry never
+ * crashes the model service.
+ */
+const cacheStorage = {
+  get: (key: string): string | null => {
+    try { return localStorage.getItem(key) } catch { return null }
+  },
+  set: (key: string, value: string): void => {
+    try { localStorage.setItem(key, value) } catch { /* noop — cache is best-effort */ }
+  },
+};
+
 /** localStorage key for the model cache. */
 const CACHE_KEY = "venice-forge-models-cache";
 
@@ -33,7 +52,7 @@ function isValidGroupedModels(value: unknown): boolean {
  */
 function readCache(): ModelsCache | null {
   try {
-    const raw = window.localStorage.getItem(CACHE_KEY);
+    const raw = cacheStorage.get(CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return null;
@@ -52,7 +71,7 @@ function readCache(): ModelsCache | null {
  */
 function writeCache(grouped: Record<string, ModelInfo[]>): void {
   try {
-    window.localStorage.setItem(CACHE_KEY, JSON.stringify({ grouped, fetchedAt: Date.now() }));
+    cacheStorage.set(CACHE_KEY, JSON.stringify({ grouped, fetchedAt: Date.now() }));
   } catch (err) {
     warn("[modelService] Failed to cache models in localStorage:", err);
   }

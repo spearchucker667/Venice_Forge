@@ -1,7 +1,7 @@
 /** @fileoverview Export and import logic for Venice Forge user data with validation and redaction. */
 
 import { STORE_NAMES } from "../constants/venice";
-import { redactSecrets } from "./redaction";
+import { redactSecrets } from "../shared/redaction";
 import { VENICE_MAX_BODY_BYTES } from "../shared/limits";
 import { isValidColorValue } from "../theme/validateColor";
 

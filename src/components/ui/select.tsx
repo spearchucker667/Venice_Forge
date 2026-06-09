@@ -8,16 +8,18 @@ interface SelectProps {
   placeholder?: string
   searchable?: boolean
   className?: string
+  id?: string
 }
 
-export function Select({ value, onChange, options, placeholder = 'Select...', searchable = false, className }: SelectProps) {
+export function Select({ value, onChange, options, placeholder = 'Select...', searchable = false, className, id }: SelectProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [highlightedIndex, setHighlightedIndex] = useState(0)
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
-  const triggerId = useId()
+  const generatedId = useId()
+  const triggerId = id ?? generatedId
   const listboxId = `${triggerId}-listbox`
 
   const filtered = useMemo(() =>

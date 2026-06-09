@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from 'react'
+import { useState, useRef, useMemo, useEffect, useId } from 'react'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useVideoModels, type VideoModelGroup } from '../../hooks/use-models'
 import { useVideo } from '../../hooks/use-video'
@@ -11,6 +11,9 @@ import { useMediaStore } from '../../stores/media-store'
 import type { VideoQueueRequest, VideoConstraints } from '../../types/venice'
 
 export function VideoView() {
+  const promptId = useId()
+  const negativePromptId = useId()
+  const modelId = useId()
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const { groups, isLoading: modelsLoading } = useVideoModels()
   const [selectedGroup, setSelectedGroup] = useState<string>('')
@@ -189,8 +192,9 @@ export function VideoView() {
     <>
         {/* Model selector */}
         <div>
-          <Label>Model</Label>
+          <Label htmlFor={modelId}>Model</Label>
           <Select
+            id={modelId}
             value={currentGroupName}
             onChange={(v) => { setSelectedGroup(v); setDuration(''); setResolution(''); setAspect('') }}
             options={groupOptions}
@@ -205,6 +209,7 @@ export function VideoView() {
             {hasTextMode && (
               <button
                 onClick={() => setMode('text')}
+                aria-pressed={mode === 'text'}
                 className={cn(
                   'flex-1 px-3 py-2.5 text-[15px] font-medium rounded-[7px] transition-all duration-150',
                   mode === 'text' ? 'bg-white text-black' : 'text-white/25 hover:text-white/45',
@@ -216,6 +221,7 @@ export function VideoView() {
             {hasImageMode && (
               <button
                 onClick={() => setMode('image')}
+                aria-pressed={mode === 'image'}
                 className={cn(
                   'flex-1 px-3 py-2.5 text-[15px] font-medium rounded-[7px] transition-all duration-150',
                   mode === 'image' ? 'bg-white text-black' : 'text-white/25 hover:text-white/45',
@@ -228,13 +234,13 @@ export function VideoView() {
         )}
 
         <div>
-          <Label>Prompt</Label>
-          <TextArea value={prompt} onChange={setPrompt} placeholder="A cinematic drone shot over misty mountains at sunrise..." rows={4} />
+          <Label htmlFor={promptId}>Prompt</Label>
+          <TextArea id={promptId} value={prompt} onChange={setPrompt} placeholder="A cinematic drone shot over misty mountains at sunrise..." rows={4} />
         </div>
 
         <div>
-          <Label>Negative prompt</Label>
-          <TextArea value={negativePrompt} onChange={setNegativePrompt} placeholder="low quality, blurry..." rows={2} />
+          <Label htmlFor={negativePromptId}>Negative prompt</Label>
+          <TextArea id={negativePromptId} value={negativePrompt} onChange={setNegativePrompt} placeholder="low quality, blurry..." rows={2} />
         </div>
 
         {/* Image upload for image-to-video */}

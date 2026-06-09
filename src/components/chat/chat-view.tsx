@@ -239,7 +239,7 @@ export function ChatView() {
       </div>
       
       {pendingContext && (
-        <div className="border-t border-border bg-surface-elevated p-4 flex flex-col gap-3 max-w-[960px] mx-auto w-full rounded-t-xl shadow-lg transition-all duration-200">
+        <div aria-live="polite" className="border-t border-border bg-surface-elevated p-4 flex flex-col gap-3 max-w-[960px] mx-auto w-full rounded-t-xl shadow-lg transition-all duration-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-[12px] font-semibold text-accent uppercase tracking-wider">Matched Local Memory Context</span>

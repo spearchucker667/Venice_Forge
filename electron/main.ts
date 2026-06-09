@@ -9,7 +9,7 @@ import { fileURLToPath } from "url";
 import { registerIpcHandlers } from "./ipc/handlers";
 import { initializeConfig } from "./services/configService";
 import { logError, logInfo } from "./services/logger";
-import { redactErrorMessage } from "../src/services/redaction";
+import { redactErrorMessage } from "../src/shared/redaction";
 import { checkPathContained } from "./utils/navigation";
 import { isTrustedExternalUrl } from "./utils/urlSecurity";
 import { startBridgeServer, stopBridgeServer } from "./services/bridgeServer";

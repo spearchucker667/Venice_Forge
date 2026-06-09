@@ -182,6 +182,7 @@ export function LineageViewer({
     >
       {chain.hasCycle && (
         <div
+          role="alert"
           className="mb-1.5 rounded-md border border-amber-400/30 bg-amber-500/[0.06] px-2 py-1 text-[11px] text-amber-200/90"
           data-testid="lineage-cycle-warning"
         >
@@ -190,6 +191,7 @@ export function LineageViewer({
       )}
       {chain.hasMissing && !chain.hasCycle && (
         <div
+          role="alert"
           className="mb-1.5 rounded-md border border-amber-400/30 bg-amber-500/[0.06] px-2 py-1 text-[11px] text-amber-200/90"
           data-testid="lineage-missing-warning"
         >

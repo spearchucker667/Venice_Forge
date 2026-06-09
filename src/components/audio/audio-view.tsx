@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useId } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
@@ -44,6 +44,10 @@ const VOICES = [
 const FORMATS = ['mp3', 'opus', 'aac', 'flac', 'wav'] as const
 
 export function AudioView() {
+  const textId = useId()
+  const voiceId = useId()
+  const formatId = useId()
+  const speedId = useId()
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const selectedModel = useSettingsStore((s) => s.selectedModels.audio)
   const { data: models } = useModels('tts')
@@ -107,7 +111,7 @@ export function AudioView() {
     <>
       <div className="flex gap-px bg-white/[0.03] rounded-lg p-0.5 border border-white/[0.05]">
         {(['tts', 'transcribe'] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={cn(
+          <button key={t} onClick={() => setTab(t)} aria-pressed={tab === t} className={cn(
             'flex-1 px-3 py-2 text-[13px] font-medium rounded-[7px] transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]',
             tab === t ? 'bg-white text-black shadow-sm' : 'text-white/55 hover:text-white/85',
           )}>
@@ -119,15 +123,15 @@ export function AudioView() {
       {tab === 'tts' ? (
         <>
           <div>
-            <Label hint={`${text.length}/4096`}>Text</Label>
-            <TextArea value={text} onChange={setText} placeholder="Enter text to convert to speech…" rows={5} />
+            <Label htmlFor={textId}>Text</Label>
+            <TextArea id={textId} value={text} onChange={setText} placeholder="Enter text to convert to speech…" rows={5} />
           </div>
-          <div><Label>Voice</Label><Select value={voice} onChange={setVoice} options={voiceOptions} searchable /></div>
+          <div><Label htmlFor={voiceId}>Voice</Label><Select id={voiceId} value={voice} onChange={setVoice} options={voiceOptions} searchable /></div>
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>Format</Label><Select value={format} onChange={setFormat} options={formatOptions} /></div>
+            <div><Label htmlFor={formatId}>Format</Label><Select id={formatId} value={format} onChange={setFormat} options={formatOptions} /></div>
             <div>
-              <Label hint={`${speed}×`}>Speed</Label>
-              <input type="range" min={0.25} max={4} step={0.25} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} className="w-full" />
+              <Label htmlFor={speedId}>Speed</Label>
+              <input id={speedId} type="range" min={0.25} max={4} step={0.25} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} className="w-full" />
             </div>
           </div>
           <PrimaryButton onClick={handleTTS} disabled={!text.trim() || !hasVeniceKey} loading={tts.isPending} size="lg">Generate Speech</PrimaryButton>

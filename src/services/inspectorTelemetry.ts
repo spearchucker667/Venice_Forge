@@ -1,6 +1,6 @@
 /** @fileoverview Redacted per-call telemetry helpers for the Traffic Inspector. */
 
-import { redactErrorMessage, redactSecrets } from "./redaction";
+import { redactErrorMessage, redactSecrets } from "../shared/redaction";
 
 /**
  * Structured metadata describing the local Family Safe Mode decision for a

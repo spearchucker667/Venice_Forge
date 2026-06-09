@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef, useId } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useStyles } from '../../hooks/use-styles'
@@ -55,6 +55,13 @@ const WH_OPTIONS = [
 ]
 
 export function ImageView() {
+  const promptId = useId()
+  const negativePromptId = useId()
+  const sizeKeyId = useId()
+  const styleId = useId()
+  const seedId = useId()
+  const stepsId = useId()
+  const variantsId = useId()
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const selectedModel = useSettingsStore((s) => s.selectedModels.image)
   const veniceApiSafeMode = useSettingsStore((s) => s.veniceApiSafeMode)
@@ -469,7 +476,7 @@ export function ImageView() {
       </div>
       <div>
         <div className="flex items-center justify-between">
-          <Label hint={`${prompt.length}/${promptLimit}`}>Prompt</Label>
+          <Label htmlFor={promptId} hint={`${prompt.length}/${promptLimit}`}>Prompt</Label>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -532,7 +539,7 @@ export function ImageView() {
             </select>
           </div>
         </div>
-        <TextArea value={prompt} onChange={setPrompt} placeholder="A serene mountain landscape at golden hour…" />
+        <TextArea id={promptId} value={prompt} onChange={setPrompt} placeholder="A serene mountain landscape at golden hour…" />
       </div>
 
       {/* Enhance prompt review flow */}
@@ -564,7 +571,7 @@ export function ImageView() {
       {caps.supportsNegativePrompt && (
         <div>
           <div className="flex items-center justify-between">
-            <Label>Negative prompt</Label>
+            <Label htmlFor={negativePromptId}>Negative prompt</Label>
             <button
               type="button"
               onClick={() => void handleSavePromptToLibrary('negative', negativePrompt)}
@@ -576,7 +583,7 @@ export function ImageView() {
               Save to library
             </button>
           </div>
-          <TextArea value={negativePrompt} onChange={setNegativePrompt} placeholder="blurry, low quality…" rows={2} />
+          <TextArea id={negativePromptId} value={negativePrompt} onChange={setNegativePrompt} placeholder="blurry, low quality…" rows={2} />
         </div>
       )}
 
@@ -584,8 +591,9 @@ export function ImageView() {
         <div><Label>Aspect Ratio</Label><PillGroup options={aspectOptions} value={aspectRatio} onChange={setAspectRatio} /></div>
       ) : (
         <div>
-          <Label>Dimensions</Label>
+          <Label htmlFor={sizeKeyId}>Dimensions</Label>
           <Select
+            id={sizeKeyId}
             value={sizeKey}
             onChange={setSizeKey}
             options={WH_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
@@ -610,18 +618,19 @@ export function ImageView() {
 
       {caps.supportsStyle !== false && styles && styles.length > 0 && (
         <div>
-          <Label>Style</Label>
-          <Select value={style} onChange={setStyle} options={styleOptions} searchable placeholder="None" />
+          <Label htmlFor={styleId}>Style</Label>
+          <Select id={styleId} value={style} onChange={setStyle} options={styleOptions} searchable placeholder="None" />
         </div>
       )}
 
       {/* Seed controls */}
       {caps.supportsSeed && (
         <div>
-          <Label>Seed</Label>
+          <Label htmlFor={seedId}>Seed</Label>
           <div className="flex items-center gap-2 mt-1">
-            <label className="flex items-center gap-1.5 text-[12px] text-text-secondary cursor-pointer select-none">
+            <label htmlFor={seedId} className="flex items-center gap-1.5 text-[12px] text-text-secondary cursor-pointer select-none">
               <input
+                id={seedId}
                 type="checkbox"
                 checked={seedMode === 'fixed'}
                 onChange={(e) => setSeedMode(e.target.checked ? 'fixed' : 'off')}
@@ -633,6 +642,7 @@ export function ImageView() {
           {seedMode === 'fixed' && (
             <div className="flex items-center gap-2 mt-1">
               <input
+                id={`${seedId}-value`}
                 type="number"
                 value={seedValue}
                 onChange={(e) => {
@@ -670,13 +680,13 @@ export function ImageView() {
 
       {caps.supportsSteps !== false && (
         <div>
-          <Label hint={String(steps)}>Steps</Label>
-          <input type="range" min={1} max={maxSteps} value={steps} onChange={(e) => setSteps(Number(e.target.value))} className="w-full" />
+          <Label htmlFor={stepsId}>Steps</Label>
+          <input id={stepsId} type="range" min={1} max={maxSteps} value={steps} onChange={(e) => setSteps(Number(e.target.value))} className="w-full" />
         </div>
       )}
       <div>
-        <Label hint={String(variants)}>Variants</Label>
-        <input type="range" min={1} max={4} value={variants} onChange={(e) => setVariants(Number(e.target.value))} className="w-full" />
+        <Label htmlFor={variantsId}>Variants</Label>
+        <input id={variantsId} type="range" min={1} max={4} value={variants} onChange={(e) => setVariants(Number(e.target.value))} className="w-full" />
       </div>
 
       <PrimaryButton onClick={handleGenerate} disabled={!prompt.trim() || !hasVeniceKey} loading={mutation.isPending} size="lg">

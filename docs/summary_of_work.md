@@ -86,6 +86,34 @@ are resolved. No P0/P1/P2/P3 audit-ledger items remain open.
 
 ## Latest Session Summary
 
+- **Date:** 2026-06-09 (064425 ZIP verification closure — archive-clean blocker / a11y leftovers / P2 hygiene)
+- **Agent:** Kimi Code CLI (coordinator)
+- **Branch / state:** `main`, working-tree only (uncommitted, layered on prior 2026-06-09 corrected-audit commit)
+- **Diagnosis:** External verifier (ChatGPT 5.5) inspected the `064425` clean ZIP and confirmed the prior P0/P1 fixes but reported: (1) a real archive-clean failure because `docs/AGENTS/` was still present in the ZIP, (2) several accessibility leftovers (`aria-pressed` on video/audio toggles, `role="alert"` on LineageViewer warnings, `aria-live` on Chat pending-context panel, incomplete label associations), and (3) P2 hygiene leftovers (direct `localStorage` in modelService, `electron/main.ts` importing from `src/services/redaction`, duplicate NOTICE files unresolved).
+- **Closure changes:**
+  1. **Archive-clean blocker:** `clean-repo-zip.sh` now excludes `docs/AGENTS/` and runs `node scripts/verify-archive-clean.cjs --root "$STAGE_DIR"` after the rsync staging step, failing closed if any forbidden path leaks into the staged archive root. Verified end-to-end: generated ZIP has no `docs/AGENTS/` and passes `--root` verification.
+  2. **Video/audio toggle `aria-pressed`:** `video-view.tsx` text/image mode buttons and `audio-view.tsx` tts/transcribe buttons now expose `aria-pressed={mode/tab === ...}`.
+  3. **LineageViewer warnings:** Cycle and missing-reference warning boxes now have `role="alert"`.
+  4. **Chat pending context:** The dynamic "Matched Local Memory Context" panel now has `aria-live="polite"`.
+  5. **Label associations:** `TextArea` and `Select` components now accept an optional `id` prop. Parent components (`image-view.tsx`, `video-view.tsx`, `audio-view.tsx`) generate stable ids via `useId()` and wire `Label htmlFor` to the corresponding control id for prompt, negative prompt, model, dimensions, style, seed, steps, variants, text, voice, format, and speed fields.
+  6. **modelService cache:** Direct `window.localStorage` reads/writes are now routed through a small inline `cacheStorage` helper with try/catch, documented as an intentional transient stale-while-revalidate cache that contains no secrets.
+  7. **Redaction shared placement:** Moved `src/services/redaction.ts` and `src/services/redaction.test.ts` to `src/shared/redaction.ts` / `src/shared/redaction.test.ts`. Updated imports in `electron/main.ts`, `electron/ipc/handlers.ts`, `electron/ipc/rpHandlers.ts`, `electron/services/veniceClient.ts`, `src/services/exportImport.ts`, and `src/services/inspectorTelemetry.ts`.
+  8. **Duplicate NOTICE files:** Added a header comment to both `assets/branding/NOTICE.md` and `public/assets/branding/NOTICE.md` explaining that the source and runtime copies are intentional and must remain identical. Added `assertBrandingNoticesInSync()` to `scripts/verify-dist.cjs` so the dist gate fails if they diverge.
+- **Validation (Node v22.22.3 / npm 10.9.8, run 2026-06-09):**
+  - `npm run typecheck` — **PASS** (renderer + Electron main).
+  - `npm run lint:eslint` — **PASS: 0 warnings**.
+  - `npm test` (serial) — **PASS: 2014 passed, 1 skipped**.
+  - `npm run verify:safety-guard` — **PASS**.
+  - `npm run verify:markdown-links` — **PASS: 46 Markdown files checked**.
+  - `npm run verify:archive-clean` — **PASS**.
+  - `npm run verify:dist` — **PASS** (including new NOTICE sync check).
+  - `npm run build` — **PASS** (renderer + server + Electron outputs).
+  - `bash clean-repo-zip.sh ...` + `node scripts/verify-archive-clean.cjs --root <extract>` — **PASS**; `docs/AGENTS/` confirmed absent from generated ZIP.
+- **Risks:** None. All changes are additive tightenings or organizational moves. No safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/diagnostics-redaction/child-exploitation-guard surface was weakened.
+- **Verdict:** Safe to commit. Working tree remains intentionally dirty.
+
+The detailed per-subagent summaries below are retained as historical context.
+
 - **Date:** 2026-06-09 (Corrected audit implementation — P0-004 / P1-004 / P1-005 / P1-006 / P1-014..P1-021 / P1-027 / P2-010..P2-014 / archive-clean hygiene)
 - **Agent:** Kimi Code CLI (coordinator) dispatching 6 parallel implementation subagents
 - **Branch / state:** `main`, working-tree only (uncommitted, layered on prior 2026-06-09 fixes)
@@ -2698,6 +2726,20 @@ Result:
 > `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` (see the *Scope
 > Correction* section).
 
+### Completed this session (2026-06-09 — 064425 ZIP verification closure)
+
+- **ZIPBLOCK-001 — `docs/AGENTS/` exclusion:** Added `--exclude=docs/AGENTS/` to `clean-repo-zip.sh` so agent scratch files (gitignored locally) are never included in clean ZIPs.
+- **ZIPBLOCK-002 — Staged-root verification before zipping:** `clean-repo-zip.sh` now runs `node scripts/verify-archive-clean.cjs --root "$STAGE_DIR"` after rsync and fails closed (exit 1) if any forbidden path leaks into the staged archive root.
+- **ZIPBLOCK-003 — End-to-end ZIP proof:** Generated a clean ZIP with the updated script, extracted it, and confirmed both `node scripts/verify-archive-clean.cjs --root <extract>` passes and `docs/AGENTS/` is absent.
+- **A11Y-008 — Video/audio toggle `aria-pressed`:** `video-view.tsx` text/image mode buttons and `audio-view.tsx` tts/transcribe buttons now expose `aria-pressed` so screen readers announce the active mode.
+- **A11Y-009 — LineageViewer warning semantics:** Cycle and missing-reference warning boxes now have `role="alert"`.
+- **A11Y-010 — Chat pending-context live region:** The dynamic "Matched Local Memory Context" panel now has `aria-live="polite"`.
+- **A11Y-011 — Label/control associations:** `TextArea` and `Select` components accept an optional `id` prop. `image-view.tsx`, `video-view.tsx`, and `audio-view.tsx` use `useId()` to wire every `Label htmlFor` to its control id (prompt, negative prompt, model, dimensions, style, seed, steps, variants, text, voice, format, speed).
+- **HYGIENE-005 — modelService cache documented and hardened:** Direct `window.localStorage` reads/writes replaced with a small inline `cacheStorage` helper that catches quota/read errors. Comment documents the cache as intentional, transient, and secret-free.
+- **HYGIENE-006 — Redaction utility moved to shared surface:** `src/services/redaction.ts` and its test moved to `src/shared/redaction.ts`. Imports updated in `electron/main.ts`, `electron/ipc/handlers.ts`, `electron/ipc/rpHandlers.ts`, `electron/services/veniceClient.ts`, `src/services/exportImport.ts`, and `src/services/inspectorTelemetry.ts`.
+- **HYGIENE-007 — Duplicate NOTICE files documented and locked:** Added header comments to `assets/branding/NOTICE.md` and `public/assets/branding/NOTICE.md` explaining the intentional source + runtime copy relationship. Added `assertBrandingNoticesInSync()` to `scripts/verify-dist.cjs` so the dist gate fails if the copies diverge.
+- **ZIPBLOCK-004 — Validation:** `npm run typecheck` PASS; `npm run lint:eslint -- --max-warnings=0` PASS; `npm test` PASS 2014/1 skipped; `npm run verify:safety-guard` PASS; `npm run verify:markdown-links` PASS (46 files); `npm run verify:archive-clean` PASS; `npm run verify:dist` PASS (including new NOTICE sync check); `bash clean-repo-zip.sh ...` + `--root` verification PASS; `npm run build` PASS.
+
 ### Completed this session (2026-06-09 — Repo hygiene: archive-clean script hardening)
 
 - **HYGIENE-001 — `clean-repo-zip.sh` exclusion expansion:** Added explicit `--exclude=dist-electron/` to the build-outputs block. Added a dedicated "Local design captures / config files (keep examples only)" block covering `--exclude=.design-captures/`, `--include=.config/*.example.yaml`/`.yml`, `--exclude=.config/*.local.yaml`/`.yml`, and `--exclude=.config/*.yaml`/`.yml`. Added a dedicated "AppleDouble / macOS resource forks / Windows metadata" block covering `--exclude=.AppleDouble/`, `--exclude=._*`, and `--exclude=__MACOSX/`. The existing `.env`/`.env.*` exclusions with `.env.example` include are unchanged and already cover the audit requirement.
@@ -3150,6 +3192,18 @@ None are release blockers. The P0–P3 sections above remain accurate.
 | `npm run verify:markdown-links` | PASS: 46 Markdown files checked | 2026-06-09 | Re-run after README/CONTRIBUTING/ABOUT/CONFIG/CLAUDE/GEMINI edits and summary_of_work updates — no broken local targets or heading fragments |
 | `npm run verify:archive-clean` | PASS | 2026-06-09 | `.gitignore` + `clean-repo-zip.sh` exclusions verified; no forbidden tracked files |
 | `npm run build` | PASS | 2026-06-09 | `dist/`, `dist/server.cjs`, and `dist-electron/package.json` emitted successfully |
+
+**2026-06-09 — 064425 ZIP verification closure (Node v22.22.3 / npm 10.9.8):**
+| Command | Result | Date | Notes |
+| `npm run typecheck` | PASS: renderer + Electron main | 2026-06-09 | After a11y Label id/htmlFor changes, redaction move to `src/shared/`, modelService cache refactor, and NOTICE sync check |
+| `npm run lint:eslint` | PASS: 0 warnings | 2026-06-09 | `--max-warnings=0` across `src electron server.ts scripts` |
+| `npm test` (serial) | PASS: 2014 passed, 1 skipped | 2026-06-09 | No regressions from moves/refactors; `src/shared/redaction.test.ts` passes at new location |
+| `npm run verify:safety-guard` | PASS | 2026-06-09 | All 3 enforcement boundaries + no-raw-log policy intact after redaction relocation |
+| `npm run verify:markdown-links` | PASS: 46 Markdown files checked | 2026-06-09 | Re-run after NOTICE header comments and summary updates |
+| `npm run verify:archive-clean` | PASS | 2026-06-09 | `.gitignore` + `clean-repo-zip.sh` exclusions verified; no forbidden tracked files |
+| `npm run verify:dist` | PASS | 2026-06-09 | Build-output hygiene + secret scan + new NOTICE sync assertion all pass |
+| `bash clean-repo-zip.sh ...` + `node scripts/verify-archive-clean.cjs --root <extract>` | PASS | 2026-06-09 | Generated ZIP verified clean; `docs/AGENTS/` correctly absent |
+| `npm run build` | PASS | 2026-06-09 | Renderer, server, and Electron outputs emitted successfully |
 
 | `export PATH="/opt/homebrew/opt/node@22/bin:$PATH"; node --version; npm --version; npm ci` | PASS: Node 22.22.3, npm 10.9.8 | 2026-06-08 | No `EBADENGINE` or module-resolution error |
 | `npm run lint:eslint` | PASS: 0 warnings | 2026-06-08 | Phase 2J closure |

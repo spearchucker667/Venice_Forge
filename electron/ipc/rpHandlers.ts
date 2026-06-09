@@ -36,7 +36,7 @@ import {
   scenarioStore,
 } from "../services/rpStores";
 import type { UserPersonaV1, LorebookV1, RpAssetV1, ScenarioV1 } from "../../src/types/rp";
-import { redactErrorMessage } from "../../src/services/redaction";
+import { redactErrorMessage } from "../../src/shared/redaction";
 import { logError } from "../services/logger";
 
 /** Coerces a chatId param from IPC into a validated string, or returns null. */

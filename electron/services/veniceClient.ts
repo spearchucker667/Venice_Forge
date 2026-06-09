@@ -7,7 +7,7 @@ import { app } from "electron";
 import type { IncomingHttpHeaders } from "http";
 import { getApiKey } from "./secureStore";
 import { logError, setLastApiError } from "./logger";
-import { redactErrorMessage } from "../../src/services/redaction";
+import { redactErrorMessage } from "../../src/shared/redaction";
 import { validateVeniceIpcRequest } from "../ipc/validation";
 import { VENICE_API_HOST, VENICE_API_BASE_PATH, VENICE_API_TIMEOUT_MS } from "../../src/shared/apiConfig";
 
