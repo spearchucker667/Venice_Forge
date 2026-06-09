@@ -91,6 +91,30 @@ function normaliseHost(host: string): string {
   return host.replace(/^\[|\]$/g, "").toLowerCase();
 }
 
+/** Strict id validator for the synthetic fallback path. The Venice
+ *  character photo endpoint at `https://outerface.venice.ai/api/characters/{id}/photo`
+ *  accepts a provider-side opaque id (UUID v4) or a URL-safe slug.
+ *  We restrict the id to characters that cannot break out of the path
+ *  segment — alphanumerics, `_`, `-`, `.` only — so the constructed URL
+ *  always resolves to `/api/characters/<safe id>/photo` on a host that
+ *  is already in the {@link VENICE_CHARACTER_IMAGE_HOSTS} allowlist. */
+const SAFE_CHARACTER_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/;
+
+export function isSafeCharacterId(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && SAFE_CHARACTER_ID_RE.test(value);
+}
+
+/** Builds the canonical Venice character photo URL for a known-safe id.
+ *  Per the official Venice swagger (`docs/Venice_swagger_api.yaml` lines
+ *  8823-8827 and 8989), the photo surface is exposed at
+ *  `https://outerface.venice.ai/api/characters/{id}/photo`. The id is
+ *  re-checked against {@link SAFE_CHARACTER_ID_RE} so the constructed
+ *  URL cannot escape its path segment. */
+export function buildSyntheticCharacterPhotoUrl(id: string): string | null {
+  if (!isSafeCharacterId(id)) return null;
+  return `https://outerface.venice.ai/api/characters/${encodeURIComponent(id)}/photo`;
+}
+
 /** Returns true if the URL is HTTPS, has a Venice-allowlisted host,
  *  and its host is not a private/loopback/link-local address. */
 export function isTrustedVeniceImageUrl(value: string): boolean {
@@ -136,6 +160,11 @@ function isTrustedRelativePath(value: string, apiBaseUrl: string): boolean {
  *    - Nested objects with a `url` / `src` / `href` property
  *    - HTTPS URLs whose host is in {@link VENICE_CHARACTER_IMAGE_HOSTS}
  *    - Relative paths that resolve to an allowlisted Venice host
+ *    - Synthetic canonical photo URL built from a safe `id` or `slug`
+ *      (see {@link buildSyntheticCharacterPhotoUrl}) when the API
+ *      response omitted every recognized image field. Per the official
+ *      Venice swagger, the photo surface is exposed at
+ *      `https://outerface.venice.ai/api/characters/{id}/photo`.
  *
  *  Rejects: `http://`, `data:`, `blob:`, `file:`, `javascript:`,
  *  `localhost`, private/loopback/link-local IPs, and arbitrary
@@ -194,6 +223,24 @@ export function resolveCharacterImageUrl(
     if (fromString) return fromString;
     const fromNested = tryNested(value);
     if (fromNested) return fromNested;
+  }
+
+  // Synthetic fallback: when the Venice response omitted every recognized
+  // image field, construct the canonical photo URL ourselves. Per the
+  // official Venice swagger (docs/Venice_swagger_api.yaml lines 8823-8827
+  // and 8989) the photo surface is exposed at
+  // `https://outerface.venice.ai/api/characters/{id}/photo`. The id is
+  // re-validated against SAFE_CHARACTER_ID_RE so the constructed URL
+  // cannot escape its path segment, and the resulting host is already
+  // in VENICE_CHARACTER_IMAGE_HOSTS — so SSRF controls stay strict.
+  const candidateId = typeof c.id === "string" && isSafeCharacterId(c.id)
+    ? c.id
+    : typeof c.slug === "string" && isSafeCharacterId(c.slug)
+      ? c.slug
+      : null;
+  if (candidateId) {
+    const synthetic = buildSyntheticCharacterPhotoUrl(candidateId);
+    if (synthetic) return synthetic;
   }
 
   return null;

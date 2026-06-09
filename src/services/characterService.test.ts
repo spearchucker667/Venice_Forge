@@ -97,7 +97,14 @@ describe("characterService", () => {
       expect(char?.featured).toBe(false);
       expect(char?.tags).toEqual(["ok", "fine"]);
       expect(char?.stats).toEqual({ ratingCount: 7 });
-      expect(char?.photoUrl).toBeUndefined();
+      // REGRESSION GUARD (synthetic photo URL fallback): when the API
+      // response omits every recognized image field, the resolver
+      // constructs the canonical `https://outerface.venice.ai/api/characters/{id}/photo`
+      // URL from a safe id. The `id` and `slug` are both valid safe ids
+      // here, so the resolver prefers the `id`.
+      expect(char?.photoUrl).toBe(
+        "https://outerface.venice.ai/api/characters/id-1/photo",
+      );
     });
   });
 

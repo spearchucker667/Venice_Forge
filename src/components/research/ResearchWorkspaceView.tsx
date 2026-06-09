@@ -189,12 +189,12 @@ export const ResearchWorkspaceView: React.FC = () => {
   };
 
   return (
-    <div className="flex h-full bg-slate-900 text-slate-100 overflow-hidden">
+    <div className="flex h-full bg-bg-base text-text-primary overflow-hidden">
       {/* Sidebar - Session List */}
-      <div className="w-64 flex-shrink-0 border-r border-slate-700 flex flex-col">
-        <div className="p-4 border-b border-slate-700 flex justify-between items-center">
-          <h2 className="font-bold">Research</h2>
-          <button onClick={handleCreateSession} className="p-1 hover:bg-slate-700 rounded">
+      <div className="w-64 flex-shrink-0 border-r border-border flex flex-col bg-surface">
+        <div className="p-4 border-b border-border flex justify-between items-center">
+          <h2 className="font-bold text-text-primary">Research</h2>
+          <button onClick={handleCreateSession} className="p-1 hover:bg-surface-elevated rounded text-text-secondary">
             <PlusIcon />
           </button>
         </div>
@@ -203,15 +203,15 @@ export const ResearchWorkspaceView: React.FC = () => {
             <div 
               key={s.id}
               onClick={() => setActiveSession(s.id)}
-              className={`p-3 cursor-pointer border-b border-slate-800 hover:bg-slate-800 transition-colors ${activeSessionId === s.id ? 'bg-slate-800 border-l-4 border-l-blue-500' : ''}`}
+              className={`p-3 cursor-pointer border-b border-border transition-colors hover:bg-surface-elevated ${activeSessionId === s.id ? 'bg-surface-elevated border-l-4 border-l-accent' : ''}`}
             >
               <div className="flex justify-between items-center">
-                <span className="truncate font-medium">{s.title}</span>
-                <button onClick={(e) => { e.stopPropagation(); toggleFavorite(s.id); }}>
+                <span className="truncate font-medium text-text-primary">{s.title}</span>
+                <button onClick={(e) => { e.stopPropagation(); toggleFavorite(s.id); }} className="text-text-muted hover:text-text-primary">
                   <StarIcon filled={s.favorite} />
                 </button>
               </div>
-              <div className="text-xs text-slate-400 mt-1">
+              <div className="text-xs text-text-muted mt-1">
                 {s.sources.length} sources • {s.findings.length} findings
               </div>
             </div>
@@ -224,22 +224,22 @@ export const ResearchWorkspaceView: React.FC = () => {
         {activeSession ? (
           <>
             {/* Header */}
-            <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-surface-elevated">
               <div>
-                <h1 className="text-xl font-bold">{activeSession.title}</h1>
-                <p className="text-xs text-slate-400">{activeSession.scope} research</p>
+                <h1 className="text-xl font-bold text-text-primary">{activeSession.title}</h1>
+                <p className="text-xs text-text-muted">{activeSession.scope} research</p>
               </div>
               <div className="flex gap-2">
-                <button onClick={handleCreateWorkflow} className="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm">
+                <button onClick={handleCreateWorkflow} className="px-3 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-sm transition-colors">
                   Create Workflow
                 </button>
-                <button onClick={handleSaveToLibrary} className="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-sm">
+                <button onClick={handleSaveToLibrary} className="px-3 py-1 bg-accent text-accent-fg hover:bg-accent-hover rounded text-sm transition-colors">
                   Save Summary
                 </button>
-                <button onClick={() => archiveSession(activeSession.id)} className="p-2 hover:bg-slate-700 rounded" title="Archive">
+                <button onClick={() => archiveSession(activeSession.id)} className="p-2 hover:bg-surface-elevated rounded text-text-secondary" title="Archive">
                   <ArchiveIcon />
                 </button>
-                <button onClick={() => { if(confirm('Delete session?')) deleteSession(activeSession.id); }} className="p-2 hover:bg-red-900 rounded" title="Delete">
+                <button onClick={() => { if(confirm('Delete session?')) deleteSession(activeSession.id); }} className="p-2 hover:bg-danger/15 rounded text-text-secondary hover:text-danger transition-colors" title="Delete">
                   <TrashIcon />
                 </button>
               </div>
@@ -247,18 +247,18 @@ export const ResearchWorkspaceView: React.FC = () => {
 
             <div className="flex-1 flex overflow-hidden">
               {/* Left Column - Search & Sources */}
-              <div className="flex-1 flex flex-col border-r border-slate-700 overflow-hidden">
-                <div className="p-4 space-y-4 border-b border-slate-700">
+              <div className="flex-1 flex flex-col border-r border-border overflow-hidden">
+                <div className="p-4 space-y-4 border-b border-border">
                   <form onSubmit={handleSearch} className="flex gap-2">
                     <input 
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
                       placeholder="Search query..."
-                      className="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                      className="flex-1 bg-bg-base border border-border rounded px-3 py-2 text-sm text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
                     />
                     <button 
                       disabled={isSearching}
-                      className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm disabled:opacity-50"
+                      className="px-4 py-2 bg-surface-elevated hover:bg-surface-muted text-text-primary rounded text-sm disabled:opacity-50 transition-colors"
                     >
                       {isSearching ? '...' : <SearchIcon />}
                     </button>
@@ -268,11 +268,11 @@ export const ResearchWorkspaceView: React.FC = () => {
                       value={scrapeUrl}
                       onChange={e => setScrapeUrl(e.target.value)}
                       placeholder="Scrape URL (https://...)"
-                      className="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                      className="flex-1 bg-bg-base border border-border rounded px-3 py-2 text-sm text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
                     />
                     <button 
                       disabled={isScraping}
-                      className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm disabled:opacity-50"
+                      className="px-4 py-2 bg-surface-elevated hover:bg-surface-muted text-text-primary rounded text-sm disabled:opacity-50 transition-colors"
                     >
                       {isScraping ? '...' : <ScrapeIcon />}
                     </button>
@@ -280,20 +280,20 @@ export const ResearchWorkspaceView: React.FC = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  <h3 className="font-bold text-sm uppercase text-slate-500">Sources ({activeSession.sources.length})</h3>
+                  <h3 className="font-bold text-sm uppercase text-text-muted">Sources ({activeSession.sources.length})</h3>
                   {activeSession.sources.map(src => (
-                    <div key={src.id} className="bg-slate-800 border border-slate-700 rounded p-3 relative group">
+                    <div key={src.id} className="bg-surface-elevated border border-border rounded p-3 relative group">
                       <button 
                         onClick={() => removeSource(activeSession.id, src.id)}
-                        className="absolute top-2 right-2 p-1 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity"
+                        className="absolute top-2 right-2 p-1 opacity-0 group-hover:opacity-100 hover:text-danger text-text-muted transition-opacity"
                       >
                         <TrashIcon />
                       </button>
-                      <h4 className="font-bold text-blue-400 truncate pr-6">
+                      <h4 className="font-bold text-accent truncate pr-6">
                         <a href={src.url} target="_blank" rel="noreferrer" className="hover:underline">{src.title}</a>
                       </h4>
-                      <p className="text-xs text-slate-400 truncate mb-2">{src.url}</p>
-                      <div className="text-sm text-slate-300 line-clamp-3">
+                      <p className="text-xs text-text-muted truncate mb-2">{src.url}</p>
+                      <div className="text-sm text-text-secondary line-clamp-3">
                         {src.excerpt || src.summary || 'No excerpt available.'}
                       </div>
                     </div>
@@ -302,26 +302,26 @@ export const ResearchWorkspaceView: React.FC = () => {
               </div>
 
               {/* Right Column - Findings */}
-              <div className="w-96 flex flex-col bg-slate-800/50 overflow-hidden">
-                <div className="p-4 border-b border-slate-700">
-                  <h3 className="font-bold text-sm uppercase text-slate-500 mb-4">Add Finding</h3>
+              <div className="w-96 flex flex-col bg-surface overflow-hidden">
+                <div className="p-4 border-b border-border">
+                  <h3 className="font-bold text-sm uppercase text-text-muted mb-4">Add Finding</h3>
                   <div className="space-y-3">
                     <input 
                       value={findingTitle}
                       onChange={e => setFindingTitle(e.target.value)}
                       placeholder="Title"
-                      className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm"
+                      className="w-full bg-bg-base border border-border rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
                     />
                     <textarea 
                       value={findingContent}
                       onChange={e => setFindingContent(e.target.value)}
                       placeholder="Content / Insight"
                       rows={4}
-                      className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm resize-none"
+                      className="w-full bg-bg-base border border-border rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none"
                     />
                     <button 
                       onClick={handleAddFinding}
-                      className="w-full py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-bold"
+                      className="w-full py-2 bg-accent text-accent-fg hover:bg-accent-hover rounded text-sm font-bold transition-colors"
                     >
                       Save Finding
                     </button>
@@ -329,19 +329,19 @@ export const ResearchWorkspaceView: React.FC = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  <h3 className="font-bold text-sm uppercase text-slate-500">Findings ({activeSession.findings.length})</h3>
+                  <h3 className="font-bold text-sm uppercase text-text-muted">Findings ({activeSession.findings.length})</h3>
                   {activeSession.findings.map(f => (
-                    <div key={f.id} className="bg-slate-800 border border-slate-700 rounded p-3 group">
+                    <div key={f.id} className="bg-surface-elevated border border-border rounded p-3 group">
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-bold">{f.title}</h4>
+                        <h4 className="font-bold text-text-primary">{f.title}</h4>
                         <button 
                           onClick={() => removeFinding(activeSession.id, f.id)}
-                          className="p-1 opacity-0 group-hover:opacity-100 hover:text-red-400"
+                          className="p-1 opacity-0 group-hover:opacity-100 hover:text-danger text-text-muted transition-opacity"
                         >
                           <TrashIcon />
                         </button>
                       </div>
-                      <div className="text-sm text-slate-300 whitespace-pre-wrap">{f.content}</div>
+                      <div className="text-sm text-text-secondary whitespace-pre-wrap">{f.content}</div>
                     </div>
                   ))}
                 </div>
@@ -349,12 +349,12 @@ export const ResearchWorkspaceView: React.FC = () => {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-slate-500 flex-col gap-4">
-            <div className="text-64px">🔬</div>
+          <div className="flex-1 flex items-center justify-center text-text-muted flex-col gap-4">
+            <div className="text-64px text-text-muted">🔬</div>
             <p>Select a research session or create a new one to begin.</p>
             <button 
               onClick={handleCreateSession}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold"
+              className="px-6 py-2 bg-accent text-accent-fg hover:bg-accent-hover rounded font-bold transition-colors"
             >
               New Research Session
             </button>

@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 import {
   VENICE_CHARACTER_IMAGE_HOSTS,
   avatarFallback,
+  buildSyntheticCharacterPhotoUrl,
+  isSafeCharacterId,
   isTrustedVeniceImageUrl,
   resolveCharacterImageUrl,
 } from "./characterImageResolver";
@@ -166,8 +168,15 @@ describe("resolveCharacterImageUrl", () => {
     expect(resolveCharacterImageUrl(42)).toBeNull();
   });
 
-  it("returns null when no recognized field has a valid URL", () => {
-    expect(resolveCharacterImageUrl({ slug: "abc", name: "ABC" })).toBeNull();
+  it("returns null when no recognized field has a valid URL AND no safe id", () => {
+    // Path-traversal ids must be rejected — they cannot be used to build
+    // a synthetic URL and they are not safe to substitute into a path segment.
+    expect(
+      resolveCharacterImageUrl({ slug: "../etc/passwd", name: "ABC" }),
+    ).toBeNull();
+    expect(
+      resolveCharacterImageUrl({ id: "x/../y", name: "ABC" }),
+    ).toBeNull();
     expect(
       resolveCharacterImageUrl({ photoUrl: "", avatar_url: null, image: { url: "" } }),
     ).toBeNull();
@@ -177,6 +186,75 @@ describe("resolveCharacterImageUrl", () => {
     expect(
       resolveCharacterImageUrl({ image: [{ url: officialPhoto }] }),
     ).toBeNull();
+  });
+
+  // REGRESSION GUARD (synthetic photo URL fallback): when the Venice
+  // response omits every recognized image field, the resolver must
+  // construct the canonical `https://outerface.venice.ai/api/characters/{id}/photo`
+  // URL using a safe id (UUID or slug). The resulting host is already in
+  // the VENICE_CHARACTER_IMAGE_HOSTS allowlist, so SSRF controls stay
+  // strict.
+  it("synthesises the canonical photo URL from a safe id when no image field is present", () => {
+    expect(
+      resolveCharacterImageUrl({
+        id: "2f460055-7595-4640-9cb6-c442c4c869b0",
+        slug: "alan-watts",
+        name: "Alan Watts",
+      }),
+    ).toBe("https://outerface.venice.ai/api/characters/2f460055-7595-4640-9cb6-c442c4c869b0/photo");
+  });
+
+  it("synthesises the canonical photo URL from a safe slug when no id is present", () => {
+    expect(
+      resolveCharacterImageUrl({ slug: "alan-watts", name: "Alan Watts" }),
+    ).toBe("https://outerface.venice.ai/api/characters/alan-watts/photo");
+  });
+
+  it("synthesised URL is trusted by the allowlist helper", () => {
+    const url = resolveCharacterImageUrl({ id: "abc123", slug: "abc-123" });
+    expect(url).not.toBeNull();
+    expect(isTrustedVeniceImageUrl(url!)).toBe(true);
+  });
+});
+
+describe("isSafeCharacterId", () => {
+  it("accepts UUID-style and slug-style ids", () => {
+    expect(isSafeCharacterId("abc123")).toBe(true);
+    expect(isSafeCharacterId("2f460055-7595-4640-9cb6-c442c4c869b0")).toBe(true);
+    expect(isSafeCharacterId("alan-watts")).toBe(true);
+    expect(isSafeCharacterId("a")).toBe(true);
+  });
+
+  it("rejects path-traversal, empty, oversized, and non-string ids", () => {
+    expect(isSafeCharacterId("")).toBe(false);
+    expect(isSafeCharacterId("../etc/passwd")).toBe(false);
+    expect(isSafeCharacterId("x/../y")).toBe(false);
+    expect(isSafeCharacterId("a/b")).toBe(false);
+    expect(isSafeCharacterId("x".repeat(129))).toBe(false);
+    expect(isSafeCharacterId(null)).toBe(false);
+    expect(isSafeCharacterId(undefined)).toBe(false);
+    expect(isSafeCharacterId(42)).toBe(false);
+  });
+});
+
+describe("buildSyntheticCharacterPhotoUrl", () => {
+  it("builds the canonical photo URL for a safe id", () => {
+    expect(buildSyntheticCharacterPhotoUrl("abc123")).toBe(
+      "https://outerface.venice.ai/api/characters/abc123/photo",
+    );
+  });
+
+  it("encodes hyphens safely without over-encoding (URL-safe characters pass through)", () => {
+    expect(buildSyntheticCharacterPhotoUrl("2f460055-7595-4640-9cb6-c442c4c869b0")).toBe(
+      "https://outerface.venice.ai/api/characters/2f460055-7595-4640-9cb6-c442c4c869b0/photo",
+    );
+  });
+
+  it("refuses unsafe ids and returns null", () => {
+    expect(buildSyntheticCharacterPhotoUrl("../etc/passwd")).toBeNull();
+    expect(buildSyntheticCharacterPhotoUrl("a/b")).toBeNull();
+    expect(buildSyntheticCharacterPhotoUrl("")).toBeNull();
+    expect(buildSyntheticCharacterPhotoUrl("x".repeat(129))).toBeNull();
   });
 });
 
