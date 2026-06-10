@@ -3899,3 +3899,9 @@ None are release blockers. The P0–P3 sections above remain accurate.
 | `npm run build` (Phase 2H) | PASS | 2026-06-08 | Full production build verified. |
 | Phase 2J: Release / Packaging Hardening | COMPLETED | 2026-06-08 | Single-source-of-truth audit `verify:release-packaging-hardening`, hygiene + secret-leak guards in `verify-dist`, Windows metadata in `verify-archive-clean`, safe-GPT-ZIP command, all three platform release jobs. |
 | `npm run verify:release-packaging-hardening` (Phase 2J) | PASS: 58 checks | 2026-06-08 | VERIFY-052 — package scripts + ci chain + Node 22 + GitHub workflow parity + electron-builder invariants + dist hygiene + tracked-archive scan. | |
+| Build and Install DMG | COMPLETED | 2026-06-09 | Built arm64 DMG, installed to /Applications, and started application. |
+| `npm run dist:mac` | PASS | 2026-06-09 | Full build and packaging successful. |
+| Add New Chat Button | COMPLETED | 2026-06-09 | Added "New Chat" button to Header and VeniceParams bar for better discoverability. |
+| Clean and Reinstall | COMPLETED | 2026-06-09 | Cleaned old builds, rebuilt arm64 DMG, reinstalled to /Applications, and started. |
+| Chat History Tab | COMPLETED | 2026-06-09 | Added dedicated "History" tab with search, delete, and context-injection features. |
+| Security Review (Scanning/17) | COMPLETED | 2026-06-09 | Verified rate-limiting fix for proxy endpoints; confirmed SSRF protections are robust. |

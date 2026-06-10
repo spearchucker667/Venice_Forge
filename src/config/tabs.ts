@@ -17,6 +17,7 @@
 
 export const TAB_IDS = [
   'chat',
+  'history',
   'image',
   'media',
   'prompts',
@@ -65,6 +66,7 @@ export interface TabDescriptor {
 
 export const TAB_REGISTRY: readonly TabDescriptor[] = [
   { id: 'chat', label: 'Chat', group: 'conversation' },
+  { id: 'history', label: 'History', group: 'conversation' },
   { id: 'image', label: 'Image Studio', group: 'generate' },
   { id: 'media', label: 'Media Studio', group: 'generate', aliases: ['gallery'] },
   { id: 'prompts', label: 'Prompts', group: 'generate' },

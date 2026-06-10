@@ -1,5 +1,6 @@
 import { useShallow } from 'zustand/shallow'
 import { useSettingsStore } from '../../stores/settings-store'
+import { useChatStore } from '../../stores/chat-store'
 import { useModels } from '../../hooks/use-models'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { Select } from '../ui/select'
@@ -50,6 +51,9 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   const { activeTab, selectedModels, setSelectedModel, toggleSidebar } = useSettingsStore(
     useShallow((s) => ({ activeTab: s.activeTab, selectedModels: s.selectedModels, setSelectedModel: s.setSelectedModel, toggleSidebar: s.toggleSidebar })),
   )
+  const { activeConversationId, setActiveConversation } = useChatStore(
+    useShallow((s) => ({ activeConversationId: s.activeConversationId, setActiveConversation: s.setActiveConversation }))
+  )
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const hasOwnSelector = noModelSelector.has(activeTab)
   const modelType = modelTypeMap[activeTab] || 'text'
@@ -87,15 +91,26 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
       {!hasOwnSelector && (
         <>
           <div className="w-px h-5 bg-border hidden sm:block" aria-hidden />
-          <Select
-            value={currentModel}
-            onChange={(v) => setSelectedModel(activeTab, v)}
-            options={modelOptions}
-            searchable
-            placeholder="Select model…"
-            ariaLabel="Selected model"
-            className="w-44 sm:w-64"
-          />
+          <div className="flex items-center gap-1.5">
+            <Select
+              value={currentModel}
+              onChange={(v) => setSelectedModel(activeTab, v)}
+              options={modelOptions}
+              searchable
+              placeholder="Select model…"
+              ariaLabel="Selected model"
+              className="w-44 sm:w-64"
+            />
+            {activeTab === 'chat' && activeConversationId !== null && (
+              <button
+                onClick={() => setActiveConversation(null)}
+                title="New Chat (⌘N)"
+                className="flex items-center justify-center w-8 h-8 rounded-md border border-border hover:border-text-muted hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent cursor-pointer"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              </button>
+            )}
+          </div>
         </>
       )}
 

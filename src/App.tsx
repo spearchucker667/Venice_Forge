@@ -47,6 +47,11 @@ function RpStudioViewLazy() {
   return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading RP studio…</div>}><LazyRpStudioView /></Suspense>
 }
 
+const LazyHistoryView = lazy(() => import('./components/chat/HistoryView'))
+function HistoryView() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading history…</div>}><LazyHistoryView /></Suspense>
+}
+
 const LazySettingsView = lazy(() => import('./components/SettingsView').then((m) => ({ default: m.SettingsView })))
 function SettingsView() {
   return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading settings…</div>}><LazySettingsView /></Suspense>
@@ -79,6 +84,7 @@ function StoragePrivacyDashboard() {
 
 const views: Record<TabId, React.ComponentType> = {
   chat: ChatView,
+  history: HistoryView,
   image: ImagePage,
   media: MediaStudioView,
   prompts: PromptLibraryView,

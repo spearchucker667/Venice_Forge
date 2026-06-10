@@ -37,6 +37,9 @@ function EmbedIcon() {
 function WorkflowIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="5" r="2" /><circle cx="6" cy="19" r="2" /><circle cx="18" cy="19" r="2" /><path d="M12 7v4M12 11l-6 6M12 11l6 6" /></svg>)
 }
+function HistoryIcon() {
+  return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l4 2" /></svg>)
+}
 function PlaygroundIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5M2 12l10 5 10-5" /></svg>)
 }
@@ -74,6 +77,7 @@ interface NavGroup {
  */
 const TAB_ICONS: Record<TabId, () => React.JSX.Element> = {
   chat: ChatIcon,
+  history: HistoryIcon,
   image: ImageIcon,
   media: GalleryIcon,
   prompts: PromptsIcon,

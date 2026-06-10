@@ -4,7 +4,21 @@ import { useChatStore } from '../../stores/chat-store'
 import { cn } from '../../lib/utils'
 
 export function VeniceParams() {
-  const { veniceParams, setVeniceParams, systemPrompt, setSystemPrompt, temperature, setTemperature, topP, setTopP, maxTokens, setMaxTokens } = useChatStore(
+  const { 
+    veniceParams, 
+    setVeniceParams, 
+    systemPrompt, 
+    setSystemPrompt, 
+    temperature, 
+    setTemperature, 
+    topP, 
+    setTopP, 
+    maxTokens, 
+    setMaxTokens,
+    activeConversationId,
+    setActiveConversation,
+    conversations
+  } = useChatStore(
     useShallow((s) => ({
       veniceParams: s.veniceParams,
       setVeniceParams: s.setVeniceParams,
@@ -16,9 +30,15 @@ export function VeniceParams() {
       setTopP: s.setTopP,
       maxTokens: s.maxTokens,
       setMaxTokens: s.setMaxTokens,
+      activeConversationId: s.activeConversationId,
+      setActiveConversation: s.setActiveConversation,
+      conversations: s.conversations,
     })),
   )
   const [showSettings, setShowSettings] = useState(false)
+
+  const activeConv = activeConversationId ? conversations.find(c => c.id === activeConversationId) : null
+  const hasMessages = (activeConv?.messages?.length ?? 0) > 0
 
   return (
     <div className="px-4 py-1.5">
@@ -37,12 +57,22 @@ export function VeniceParams() {
           active={veniceParams.include_search_results_in_stream === true}
           onClick={() => setVeniceParams({ include_search_results_in_stream: !veniceParams.include_search_results_in_stream })}
         />
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          {activeConversationId !== null && hasMessages && (
+            <button
+              onClick={() => setActiveConversation(null)}
+              className="flex items-center gap-1 text-[13px] font-medium px-2.5 py-[2px] rounded-full bg-white/[0.03] text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-colors duration-100 cursor-pointer"
+              title="New Chat (⌘N)"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              New Chat
+            </button>
+          )}
           <button
             onClick={() => setShowSettings(!showSettings)}
             className={cn(
               'flex items-center gap-1 text-[13px] font-medium px-2 py-[2px] rounded-full transition-colors duration-100',
-              showSettings ? 'bg-white/90 text-black' : 'bg-white/[0.03] text-white/18 hover:text-white/35 hover:bg-white/[0.05]',
+              showSettings ? 'bg-white/90 text-black' : 'bg-white/[0.03] text-white/18 hover:text-white/35 hover:bg-white/[0.05] cursor-pointer',
             )}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
