@@ -3,6 +3,29 @@
 **Date:** 2026-06-09
 **Method:** 5 parallel agent review (Code Quality, UI/UX, Security, Architecture, Performance/Testing)
 
+> ## ⚠️ HISTORICAL — DO NOT TREAT AS GROUND TRUTH
+>
+> This report is a **point-in-time snapshot from 2026-06-09** and is **partially
+> superseded**. Findings have three states in this document:
+>
+> 1. **Fixed** — addressed in commits after 2026-06-09; check the git log and
+>    `docs/summary_of_work.md` for the closure entry. The strikethrough
+>    `~~P0-N — title~~` marker indicates the item was closed.
+> 2. **False positive** — the original claim did not reproduce on inspection;
+>    the agent hallucinated the finding. The strikethrough + `❌ FALSE POSITIVE`
+>    marker indicates the claim was rejected.
+> 3. **Stale / unresolved** — the original claim may still be valid but the
+>    surface has changed (code path renamed, refactored, or hardened). Do not
+>    act on the original line numbers without re-verifying against the
+>    current tree.
+>
+> For the **current** canonical safety / packaging / privacy / status
+> audit snapshot, see the latest entries in `docs/summary_of_work.md`
+> (Session History + Open TODO Ledger) and the audit-script run results in
+> the **Validation Matrix** section. The 2026-06-09 round-1 audit and the
+> 2026-06-06 round-2 audit (`docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`)
+> remain as historical context only.
+
 ---
 
 ## 🚨 P0 — CRITICAL (Fix Immediately)

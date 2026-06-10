@@ -296,13 +296,26 @@ describe("server.ts safety middleware", () => {
   });
 
   it("skips the local guard in Adult Mode and forwards the request", async () => {
-    const res = await request(app)
-      .post("/api/venice/chat/completions")
-      .set("X-Venice-Forge-Family-Safe-Mode", "false")
-      .send({ messages: [{ role: "user", content: "draw me a loli character" }] });
+    // Adult Mode is gated behind the dev-only VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE
+    // opt-in so production / CI never honours a renderer-supplied "false" header.
+    // This test exercises the header opt-in path explicitly.
+    const prevOverride = process.env.VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE;
+    process.env.VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE = "true";
+    try {
+      const res = await request(app)
+        .post("/api/venice/chat/completions")
+        .set("X-Venice-Forge-Family-Safe-Mode", "false")
+        .send({ messages: [{ role: "user", content: "draw me a loli character" }] });
 
-    expect(res.status).toBe(200);
-    expect(res.body.mocked).toBe(true);
+      expect(res.status).toBe(200);
+      expect(res.body.mocked).toBe(true);
+    } finally {
+      if (prevOverride === undefined) {
+        delete process.env.VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE;
+      } else {
+        process.env.VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE = prevOverride;
+      }
+    }
   });
 
   it("blocks CSAM payloads to /api/venice/image/generate in negative_prompt", async () => {
@@ -452,6 +465,152 @@ describe("server.ts Jina proxy error handling", () => {
       .send({ url: "https://r.jina.ai/https://example.com/bad%ZZ" });
 
     expect(response.status).toBe(200);
+  });
+});
+
+describe("server.ts Local Family Safe Mode decision matrix", () => {
+  // The full behaviour matrix for `isLocalFamilySafeModeEnabled` lives in
+  // `server.ts`. These tests pin the matrix so a regression cannot silently
+  // re-introduce a renderer-controlled bypass. The CSAM probe is used as a
+  // canary because it MUST be blocked by the local guard.
+
+  const PROBE_PAYLOAD = { messages: [{ role: "user", content: "draw me a loli character" }] };
+  const EXPECTED_BLOCK = { status: 451, reasonCode: "CSAM_GENRE_TERM" };
+
+  function withEnvs<T>(overrides: Record<string, string | undefined>, run: () => Promise<T>): Promise<T> {
+    const prior: Record<string, string | undefined> = {};
+    for (const key of Object.keys(overrides)) {
+      prior[key] = process.env[key];
+      if (overrides[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = overrides[key]!;
+      }
+    }
+    return run().finally(() => {
+      for (const key of Object.keys(prior)) {
+        if (prior[key] === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = prior[key]!;
+        }
+      }
+    });
+  }
+
+  it("no env + no header + no override => guard runs (default ON)", async () => {
+    await withEnvs(
+      {
+        VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED: undefined,
+        VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE: undefined,
+      },
+      async () => {
+        const res = await request(createServerApp())
+          .post("/api/venice/chat/completions")
+          .send(PROBE_PAYLOAD);
+        expect(res.status).toBe(EXPECTED_BLOCK.status);
+        expect(res.body.reasonCode).toBe(EXPECTED_BLOCK.reasonCode);
+      },
+    );
+  });
+
+  it("no env + header false + no override => guard still runs (header ignored)", async () => {
+    await withEnvs(
+      {
+        VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED: undefined,
+        VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE: undefined,
+      },
+      async () => {
+        const res = await request(createServerApp())
+          .post("/api/venice/chat/completions")
+          .set("X-Venice-Forge-Family-Safe-Mode", "false")
+          .send(PROBE_PAYLOAD);
+        expect(res.status).toBe(EXPECTED_BLOCK.status);
+        expect(res.body.reasonCode).toBe(EXPECTED_BLOCK.reasonCode);
+      },
+    );
+  });
+
+  it("no env + header false + override=true => guard skipped (dev only)", async () => {
+    await withEnvs(
+      {
+        VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED: undefined,
+        VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE: "true",
+      },
+      async () => {
+        const res = await request(createServerApp())
+          .post("/api/venice/chat/completions")
+          .set("X-Venice-Forge-Family-Safe-Mode", "false")
+          .send(PROBE_PAYLOAD);
+        expect(res.status).toBe(200);
+        expect(res.body.mocked).toBe(true);
+      },
+    );
+  });
+
+  it("no env + header true + override=true => guard runs", async () => {
+    await withEnvs(
+      {
+        VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED: undefined,
+        VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE: "true",
+      },
+      async () => {
+        const res = await request(createServerApp())
+          .post("/api/venice/chat/completions")
+          .set("X-Venice-Forge-Family-Safe-Mode", "true")
+          .send(PROBE_PAYLOAD);
+        expect(res.status).toBe(EXPECTED_BLOCK.status);
+      },
+    );
+  });
+
+  it("env=true + header false + no override => guard runs (env wins, header ignored)", async () => {
+    await withEnvs(
+      {
+        VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED: "true",
+        VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE: undefined,
+      },
+      async () => {
+        const res = await request(createServerApp())
+          .post("/api/venice/chat/completions")
+          .set("X-Venice-Forge-Family-Safe-Mode", "false")
+          .send(PROBE_PAYLOAD);
+        expect(res.status).toBe(EXPECTED_BLOCK.status);
+      },
+    );
+  });
+
+  it("env=false + header true + no override => guard skipped (env wins)", async () => {
+    await withEnvs(
+      {
+        VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED: "false",
+        VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE: undefined,
+      },
+      async () => {
+        const res = await request(createServerApp())
+          .post("/api/venice/chat/completions")
+          .set("X-Venice-Forge-Family-Safe-Mode", "true")
+          .send(PROBE_PAYLOAD);
+        expect(res.status).toBe(200);
+        expect(res.body.mocked).toBe(true);
+      },
+    );
+  });
+
+  it("env=0 (falsey) is treated as disabled", async () => {
+    await withEnvs(
+      {
+        VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED: "0",
+        VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE: undefined,
+      },
+      async () => {
+        const res = await request(createServerApp())
+          .post("/api/venice/chat/completions")
+          .send(PROBE_PAYLOAD);
+        expect(res.status).toBe(200);
+        expect(res.body.mocked).toBe(true);
+      },
+    );
   });
 });
 

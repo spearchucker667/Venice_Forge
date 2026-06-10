@@ -12,12 +12,20 @@ export interface TimeoutSignal {
 
 /**
  * Creates an abort signal that fires after `ms`, optionally composing
- * with a parent signal. Falls back to manual timeout for runtimes that
- * lack AbortSignal.timeout / AbortSignal.any.
+ * with a parent signal.
  *
  * **Important:** The caller must call `clear()` on the returned object
  * when the operation completes (success or failure) to avoid leaking
  * timers and event listeners.
+ *
+ * Implementation note: We deliberately do NOT use `AbortSignal.timeout` /
+ * `AbortSignal.any` even on runtimes that support them. The native signals
+ * do not expose a cancellation API, so we cannot release the internal
+ * timer once the caller calls `clear()`. The timer would still fire
+ * `ms` milliseconds later, calling `abort()` on a signal that has already
+ * been consumed, which is a no-op for the caller but a real leak in the
+ * runtime's signal graph. By always owning the `AbortController` and
+ * `setTimeout` we can deterministically clear both.
  *
  * @param ms The timeout duration in milliseconds.
  * @param parentSignal An optional parent AbortSignal to compose with.
@@ -31,45 +39,6 @@ export function createTimeoutSignal(ms: number, parentSignal?: AbortSignal | nul
     };
   }
 
-  if (typeof AbortSignal !== "undefined" && AbortSignal.timeout) {
-    const timeoutSignal = AbortSignal.timeout(ms);
-    if (parentSignal && typeof AbortSignal !== "undefined" && AbortSignal.any) {
-      const composed = AbortSignal.any([parentSignal, timeoutSignal]);
-      return {
-        signal: composed,
-        clear: () => {
-          // AbortSignal.any does not expose a dispose API, but we can
-          // abort the composed signal to detach internal listeners.
-          if (!composed.aborted) {
-            // Calling abort() on the composed signal is a no-op for
-            // downstream consumers that already finished, but it
-            // signals the internal composition machinery to clean up.
-            try {
-              (composed as AbortSignal & { abort?: () => void }).abort?.();
-            } catch {
-              // ignore — some implementations may not expose abort()
-            }
-          }
-        },
-      };
-    }
-    return {
-      signal: timeoutSignal,
-      clear: () => {
-        // AbortSignal.timeout cannot be cancelled, but we can abort the
-        // signal itself so any downstream listeners stop waiting.
-        if (!timeoutSignal.aborted) {
-          try {
-            (timeoutSignal as AbortSignal & { abort?: () => void }).abort?.();
-          } catch {
-            // ignore
-          }
-        }
-      },
-    };
-  }
-
-  // Fallback for older runtimes
   const controller = new AbortController();
   let onAbort: (() => void) | undefined;
 

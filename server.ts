@@ -38,16 +38,38 @@ function safeDecodeForScreening(value: string): string {
 dotenv.config();
 
 /** Determines whether Local Family Safe Mode is enabled in the web proxy.
- *  Priority: server-side env variable > renderer header > default ON.
- *  The env variable is the authoritative override; when set, the client
- *  header is ignored entirely, preventing malicious clients from bypassing
- *  the safety guard by sending X-Venice-Forge-Family-Safe-Mode: false.
+ *
+ * Priority:
+ *   1. Server-side env variable `VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED`
+ *      is the authoritative override when set. It fully ignores the renderer
+ *      header, preventing a malicious client from bypassing the safety
+ *      guard by sending `X-Venice-Forge-Family-Safe-Mode: false`.
+ *   2. When the server env is unset, the proxy defaults to ON for safety
+ *      (defence in depth — never trust a missing-config fallback that
+ *      disables screening).
+ *   3. The renderer header is ONLY honoured when the dev-only opt-in
+ *      `VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE=true` is set. Production
+ *      and CI should never set that flag; the test suite sets it for the
+ *      specific tests that need to exercise the header path.
+ *
+ * Behavioural matrix (server.ts unit-tested in `server.test.ts`):
+ *   - no env + no header + no override         => enabled (safe default)
+ *   - no env + header false + no override      => enabled (header ignored)
+ *   - no env + header false + override=true    => disabled (dev only)
+ *   - no env + header true  + override=true    => enabled
+ *   - env=true  + header false + no override   => enabled (env wins)
+ *   - env=false + header true  + no override   => disabled (env wins)
  */
 function isLocalFamilySafeModeEnabled(req: express.Request): boolean {
   const envOverride = process.env.VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED;
   if (envOverride !== undefined) {
     return envOverride !== "false" && envOverride !== "0";
   }
+
+  const allowClientOverride =
+    process.env.VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE === "true";
+  if (!allowClientOverride) return true;
+
   const headerValue = req.get("X-Venice-Forge-Family-Safe-Mode");
   if (headerValue === undefined) return true;
   return headerValue !== "false";

@@ -261,11 +261,20 @@ echo "==> Writing metadata..."
   echo "====================="
   echo
   echo "repo_name=$REPO_NAME"
-  echo "repo_root=$REPO_ROOT"
   echo "created_at=$STAMP"
-  echo "created_by=$(whoami)"
-  echo "hostname=$(hostname)"
-  echo "output_zip=$ZIP_PATH"
+  if [[ "${INCLUDE_PRIVATE_AUDIT_METADATA:-0}" == "1" ]]; then
+    # PRIVACY: the following fields leak the local user, hostname, and full
+    # absolute paths on the build machine. They are gated behind an explicit
+    # opt-in env var so that the default extract is safe to share with
+    # auditors / external reviewers without scrubbing. Set
+    # INCLUDE_PRIVATE_AUDIT_METADATA=1 to include them.
+    echo "repo_root=$REPO_ROOT"
+    echo "created_by=$(whoami)"
+    echo "hostname=$(hostname)"
+    echo "output_zip=$ZIP_PATH"
+  else
+    echo "private_audit_metadata=omitted (set INCLUDE_PRIVATE_AUDIT_METADATA=1 to include repo_root/created_by/hostname/output_zip)"
+  fi
   echo
   echo "Tool versions"
   echo "-------------"

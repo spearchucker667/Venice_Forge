@@ -41,6 +41,11 @@ jobs:
       - name: Verify release packaging hardening (VERIFY-052)
         run: npm run verify:release-packaging-hardening
 
+      - name: Lint (zero warnings)
+        run: npm run lint:eslint
+        # Mirrors the CI workflow gate so a release cannot ship with an ESLint
+        # warning that the regular PR pipeline would have caught.
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -117,6 +122,11 @@ jobs:
       - name: Verify release packaging hardening (VERIFY-052)
         run: npm run verify:release-packaging-hardening
 
+      - name: Lint (zero warnings)
+        run: npm run lint:eslint
+        # Mirrors the CI workflow gate so a release cannot ship with an ESLint
+        # warning that the regular PR pipeline would have caught.
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -189,6 +199,11 @@ jobs:
 
       - name: Verify release packaging hardening (VERIFY-052)
         run: npm run verify:release-packaging-hardening
+
+      - name: Lint (zero warnings)
+        run: npm run lint:eslint
+        # Mirrors the CI workflow gate so a release cannot ship with an ESLint
+        # warning that the regular PR pipeline would have caught.
 
       - name: Typecheck
         run: npm run typecheck
