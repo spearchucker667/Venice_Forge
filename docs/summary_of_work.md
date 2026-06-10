@@ -106,6 +106,55 @@ blockers remain.
 
 ## Latest Session Summary
 
+- **Date:** 2026-06-10 (ZIP audit followup closure — Header central tab registry integration, safe multimodal prependInjectedContext helper, recursive package script resolver in CI contract / release packaging hardening / storage privacy tests, RP avatar 5 MiB cap, command palette bounded JSON file reading, attachmentService image dimension validation, docs sync)
+- **Agent:** Antigravity (gemini-3.1-pro)
+- **Branch / state:** `main` @ `38e50da6` (working tree is clean and committed)
+- **Diagnosis:** Resolved all P1/P2 issues identified in the 2026-06-09 23:35 ZIP audit of Venice Forge:
+  - **P1-001 (Dirty ZIP gating)**: Refactored `scripts/clean-repo-zip.sh` to abort if `git status --short` is non-empty, unless explicitly overridden by `ALLOW_DIRTY_REPO_EXTRACT=1` (which appends `-dirty.zip` to the output file). Added tests to `scripts/verify-archive-clean.test.ts`.
+  - **P1-005 (ZIP metadata script path leak)**: Gated absolute `script_path` inside `clean-repo-zip.sh` behind `INCLUDE_PRIVATE_AUDIT_METADATA=1`, tracking safe `script_source` and `script_name` instead. Added test cases.
+  - **P1-002 (Header/TAB_REGISTRY drift)**: Refactored `src/components/layout/header.tsx` to derive title, subtitle, and model selector visibility from `src/config/tabs.ts` registry, eliminating hardcoded local maps. Added test coverage for all `TAB_IDS` in `src/components/layout/header.test.tsx`.
+  - **P1-004 (Multimodal injected-context corruption)**: Updated `src/stores/chat-store.ts` to preserve metadata on added messages. Added `prependInjectedContext` helper in `src/hooks/use-chat.ts` to cleanly prepend context to both string and `ContentPart[]` messages, preserving image components. Updated unit tests.
+  - **P1-003 (CI contract mismatch)**: Added `"verify:contracts"` and `"verify:ci-contract"` scripts in `package.json`, and created `scripts/verify-ci-contract.cjs` to verify that `.github/workflows/ci.yml` runs the full verification contract suite. Updated CI workflow.
+  - **P1-006 (RP avatar size cap)**: Redefined `MAX_AVATAR_BYTES` to 5 MiB in `src/types/rp.ts`. Updated `CharacterEditor.tsx` to route avatar validation through `readImageAttachment` instead of calling `FileReader.readAsDataURL` on raw memory allocations. Added test coverage in `src/components/rp-studio/CharacterEditor.test.tsx`.
+  - **P2-001 (Command Palette JSON bounded reads)**: Created `src/utils/file-reader.ts` implementing `readBoundedJsonFile` to enforce file size limits and max item counts on JSON uploads. Refactored prompt, scene, and research imports in `CommandPalette.tsx` to use it. Added unit tests in `src/utils/file-reader.test.ts`.
+  - **P2-002 (Always validate image dimensions)**: Added `inspectImageDimensions` in `src/services/attachmentService.ts` and updated `readImageAttachment` to force downscale for images exceeding 1024px/4096px/16MP limits, rejecting corrupt files. Added test coverage and mocked the global Image environment in `src/components/chat/chat-view.test.tsx`.
+  - **P2-004 (Safety docs drift)**: Updated `SECURITY.md` and `AGENTS.md` to state that the web proxy defaults Local Family Safe Mode to ON in production and ignores the header unless overridden for development.
+  - **P3-001 (Historical banners/move)**: Moved all old audit reports to `docs/reports/historical/` and prepended standard warning banners. Updated links in `README.md` and confirmed `verify:markdown-links` passes.
+  - **Hardening / test compatibility**: Mocked `electron` in `veniceClient.error.test.ts`, `veniceClient.multipart.test.ts`, and `veniceClient.sseParser.test.ts` to run headlessly without expecting a native Electron binary. Resolved unused variables in ESLint.
+
+- **Files changed in this pass:**
+  - `.github/workflows/ci.yml` + `package.json`
+  - `AGENTS.md` + `SECURITY.md` + `README.md`
+  - `scripts/clean-repo-zip.sh` + `scripts/verify-archive-clean.test.ts`
+  - `scripts/verify-release-packaging-hardening.cjs`
+  - `scripts/verify-storage-privacy.test.ts`
+  - `src/components/command-palette/CommandPalette.tsx`
+  - `src/components/layout/header.tsx` + `src/components/layout/header.test.tsx` (new)
+  - `src/components/rp-studio/CharacterEditor.tsx` + `src/components/rp-studio/CharacterEditor.test.tsx`
+  - `src/config/tabs.ts`
+  - `src/hooks/use-chat.ts` + `src/hooks/use-chat.test.ts`
+  - `src/services/attachmentService.ts` + `src/services/attachmentService.test.ts`
+  - `src/stores/chat-store.ts`
+  - `src/types/rp.ts`
+  - `src/utils/file-reader.ts` (new) + `src/utils/file-reader.test.ts` (new)
+  - `scripts/verify-ci-contract.cjs` (new)
+  - `src/components/chat/chat-view.test.tsx` (mock Image)
+  - `electron/services/veniceClient.error.test.ts` (mock electron)
+  - `electron/services/veniceClient.multipart.test.ts` (mock electron)
+  - `electron/services/veniceClient.sseParser.test.ts` (mock electron)
+
+- **Validation (Node v22.16.0 / npm 10.9.2, run 2026-06-10):**
+  - `npm run typecheck` (renderer + Electron main) — **PASS**.
+  - `npm run lint:eslint` (`--max-warnings=0`) — **PASS: 0 warnings**.
+  - `npm test` — **PASS: 2217 passed, 1 skipped** (0 failures).
+  - `npm run verify:contracts` — **PASS: 14 contract gates checked**.
+  - `npm run build` — **PASS**.
+  - `npm run verify:dist` — **PASS**.
+
+The previous 2026-06-10 Phases A-E closure is retained below as historical context.
+
+---
+
 - **Date:** 2026-06-10 (Phases A–E closure — release / packaging hardening, chat multimodal + image-only submit, image/video tool upload validation, `useChat()` selectorization, lazy-loaded heavyweight views, `script_path` privacy gating, bridge token strength, docs/cleanups)
 - **Agent:** opencode (minimax-m3)
 - **Branch / state:** `main` @ `fca45fa6` (working tree is the closure delta)
