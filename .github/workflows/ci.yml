@@ -29,9 +29,7 @@ jobs:
       - run: npm run lint:eslint
       - run: npm run typecheck
       - run: npm run test:coverage
-      - run: npm run verify:safety-guard
-      - run: npm run verify:markdown-links
-      - run: npm run verify:release-packaging-hardening
+      - run: npm run verify:contracts
       - run: npm run build
       - run: npm run verify:dist
 

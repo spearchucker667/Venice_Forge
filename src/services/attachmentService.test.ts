@@ -1,6 +1,6 @@
 /** @fileoverview Unit tests for attachment reading and assembly. */
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import {
   isSupportedTextFile,
   isSupportedImageFile,
@@ -110,5 +110,76 @@ describe("processFileAttachment", () => {
   it("throws for unsupported files", async () => {
     const file = new File([""], "data.zip", { type: "application/zip" });
     await expect(processFileAttachment(file)).rejects.toThrow(/unsupported/i);
+  });
+});
+
+describe("readImageAttachment dimensions validation", () => {
+  let originalCreateObjectURL: any;
+  let originalRevokeObjectURL: any;
+  let originalImage: any;
+
+  beforeEach(() => {
+    originalCreateObjectURL = global.URL.createObjectURL;
+    originalRevokeObjectURL = global.URL.revokeObjectURL;
+    originalImage = global.Image;
+
+    global.URL.createObjectURL = vi.fn(() => "blob:mock-url");
+    global.URL.revokeObjectURL = vi.fn();
+  });
+
+  afterEach(() => {
+    global.URL.createObjectURL = originalCreateObjectURL;
+    global.URL.revokeObjectURL = originalRevokeObjectURL;
+    global.Image = originalImage;
+  });
+
+  it("downscales small byte-size image if dimensions are too large (> 1024)", async () => {
+    class MockHugeImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      width = 5000;
+      height = 3000;
+      set src(val: string) {
+        setTimeout(() => { this.onload?.(); }, 0);
+      }
+    }
+    global.Image = MockHugeImage as any;
+
+    const originalCreateElement = document.createElement;
+    document.createElement = vi.fn((tagName) => {
+      if (tagName === "canvas") {
+        return {
+          width: 0,
+          height: 0,
+          getContext: () => ({
+            drawImage: vi.fn(),
+          }),
+          toDataURL: () => "data:image/png;base64,mocked-downscaled-data",
+        } as any;
+      }
+      return originalCreateElement.call(document, tagName);
+    }) as any;
+
+    const file = new File([new ArrayBuffer(100)], "large-dim.png", { type: "image/png" });
+    const att = await processFileAttachment(file);
+    
+    expect(att.type).toBe("image");
+    expect(att.content).toBe("data:image/png;base64,mocked-downscaled-data");
+    
+    document.createElement = originalCreateElement;
+  });
+
+  it("rejects image if decode fails", async () => {
+    class MockCorruptImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(val: string) {
+        setTimeout(() => { this.onerror?.(); }, 0);
+      }
+    }
+    global.Image = MockCorruptImage as any;
+
+    const file = new File([new ArrayBuffer(100)], "corrupt.png", { type: "image/png" });
+    await expect(processFileAttachment(file)).rejects.toThrow(/Failed to decode image dimensions/);
   });
 });

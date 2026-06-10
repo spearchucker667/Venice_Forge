@@ -68,7 +68,20 @@ describe("verify:storage-privacy alias contract (2026-06-08 P3)", () => {
   });
 
   it("the ci script references the canonical name (not the alias)", () => {
-    const ci = pkg.scripts["ci"];
+    const getExpandedScript = (scriptName: string, visited = new Set<string>()): string => {
+      if (visited.has(scriptName)) return "";
+      visited.add(scriptName);
+      const content = pkg.scripts[scriptName] || "";
+      let expanded = content;
+      const regex = /npm run ([a-zA-Z0-9:-]+)/g;
+      let match;
+      while ((match = regex.exec(content)) !== null) {
+        expanded += " " + getExpandedScript(match[1], visited);
+      }
+      return expanded;
+    };
+
+    const ci = getExpandedScript("ci");
     expect(ci).toBeTruthy();
     expect(ci).toContain(CANONICAL);
     // Back-compat alias must not appear in the ci chain — a future

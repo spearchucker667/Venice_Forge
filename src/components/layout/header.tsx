@@ -7,40 +7,7 @@ import { Select } from '../ui/select'
 import { StatusDot } from '../ui/shared'
 import { HeaderStatusCluster } from '../status/HeaderStatusCluster'
 
-const modelTypeMap: Record<string, string> = {
-  chat: 'text',
-  image: 'image',
-  audio: 'tts',
-  music: 'music',
-  video: 'video',
-  embeddings: 'embedding',
-}
-
-const tabLabels: Record<string, string> = {
-  chat: 'Chat',
-  image: 'Image',
-  gallery: 'Media Studio',
-  audio: 'Audio',
-  music: 'Music',
-  video: 'Video',
-  embeddings: 'Embeddings',
-  workflows: 'Workflows',
-  playground: 'Playground',
-}
-
-const tabSubtitles: Record<string, string> = {
-  chat: 'Conversational AI',
-  image: 'Generate images from text',
-  gallery: 'Browse, tag, edit, and export your generated media',
-  audio: 'Text-to-speech and transcription',
-  music: 'Generate music and sound',
-  video: 'Generate video clips',
-  embeddings: 'Vector representations of text',
-  workflows: 'Chain models visually',
-  playground: 'Build workflows by chatting',
-}
-
-const noModelSelector = new Set(['gallery', 'video', 'workflows', 'playground', 'status', 'settings', 'search', 'characters', 'rp-studio'])
+import { resolveTab } from '../../config/tabs'
 
 interface Props {
   onOpenApiKey: () => void
@@ -55,8 +22,10 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
     useShallow((s) => ({ activeConversationId: s.activeConversationId, setActiveConversation: s.setActiveConversation }))
   )
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
-  const hasOwnSelector = noModelSelector.has(activeTab)
-  const modelType = modelTypeMap[activeTab] || 'text'
+  
+  const tabDesc = resolveTab(activeTab)
+  const hasOwnSelector = !tabDesc?.modelType
+  const modelType = tabDesc?.modelType || 'text'
   const { data: models } = useModels(hasOwnSelector ? undefined : modelType)
   const currentModel = hasOwnSelector ? '' : (selectedModels[activeTab] || models?.[0]?.id || '')
   const modelOptions = hasOwnSelector ? [] : (models?.map((m) => ({ value: m.id, label: m.model_spec?.name || m.id })) ?? [])
@@ -84,8 +53,8 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
       </button>
 
       <div className="flex flex-col min-w-0">
-        <span className="text-[14px] font-semibold text-text-primary leading-none">{tabLabels[activeTab]}</span>
-        <span className="text-[11px] text-text-muted mt-0.5 leading-none truncate hidden sm:block">{tabSubtitles[activeTab]}</span>
+        <span className="text-[14px] font-semibold text-text-primary leading-none">{tabDesc?.label ?? activeTab}</span>
+        <span className="text-[11px] text-text-muted mt-0.5 leading-none truncate hidden sm:block">{tabDesc?.subtitle ?? ''}</span>
       </div>
 
       {!hasOwnSelector && (

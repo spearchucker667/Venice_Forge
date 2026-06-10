@@ -17,6 +17,14 @@
  *      in the returned `buffer` field
  */
 import { describe, it, expect, vi } from "vitest";
+
+vi.mock("electron", () => ({
+  app: {
+    getPath: vi.fn(),
+    getVersion: vi.fn(),
+  },
+}));
+
 import { parseSseLines, extractStreamDelta } from "./veniceClient";
 
 describe("extractStreamDelta", () => {

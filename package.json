@@ -59,6 +59,8 @@
     "verify:research-workspace": "node scripts/verify-research-workspace.cjs",
     "verify:network-boundaries": "node scripts/verify-network-boundaries.cjs",
     "verify:release-packaging-hardening": "node scripts/verify-release-packaging-hardening.cjs",
+    "verify:ci-contract": "node scripts/verify-ci-contract.cjs",
+    "verify:contracts": "npm run verify:safety-guard && npm run verify:markdown-links && npm run verify:model-aware-recipes && npm run verify:media-studio-power-tools && npm run verify:status-diagnostics && npm run verify:prompt-library && npm run verify:scene-composer && npm run verify:rp-studio-polish && npm run verify:workflow-templates && npm run verify:storage-privacy && npm run verify:storage-policy && npm run verify:research-workspace && npm run verify:network-boundaries && npm run verify:release-packaging-hardening && npm run verify:ci-contract",
     "checksum:release": "node scripts/checksum-release.cjs",
     "lint": "npm run lint:eslint && npm run typecheck",
     "lint:eslint": "eslint src electron server.ts scripts --max-warnings=0",
@@ -75,7 +77,7 @@
     "dist:linux": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --linux --publish never",
     "dist:mac:arm64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --arm64 --publish never && npm run checksum:release",
     "dist:mac:x64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --x64 --publish never && npm run checksum:release",
-    "ci": "npm ci && npm run lint:eslint && npm run typecheck && npm test && npm run verify:safety-guard && npm run verify:markdown-links && npm run verify:model-aware-recipes && npm run verify:media-studio-power-tools && npm run verify:status-diagnostics && npm run verify:prompt-library && npm run verify:scene-composer && npm run verify:rp-studio-polish && npm run verify:workflow-templates && npm run verify:storage-privacy && npm run verify:storage-policy && npm run verify:research-workspace && npm run verify:network-boundaries && npm run verify:release-packaging-hardening && npm run build",
+    "ci": "npm run lint:eslint && npm run typecheck && npm test && npm run verify:contracts && npm run build",
     "config:init": "tsx scripts/init-config.ts",
     "config:validate": "tsx scripts/validate-config.ts",
     "config:print": "tsx scripts/print-config.ts"

@@ -15,12 +15,46 @@ REPO_ROOT="$(cd "$REPO_ROOT" && pwd)"
 REPO_NAME="$(basename "$REPO_ROOT")"
 STAMP="$(date +"%Y%m%d-%H%M%S")"
 
+if [[ "$SCRIPT_ABS_PATH" == "$REPO_ROOT/scripts/clean-repo-zip.sh" ]]; then
+  SCRIPT_SOURCE="repo"
+else
+  SCRIPT_SOURCE="external"
+fi
+
 OUT_DIR="${2:-$HOME/Desktop}"
 OUT_DIR="$(mkdir -p "$OUT_DIR" && cd "$OUT_DIR" && pwd)"
 
+# Git clean/dirty check
+GIT_CLEAN=true
+DIRTY_COUNT=0
+
+if command -v git >/dev/null 2>&1 && git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  DIRTY_FILES="$(git -C "$REPO_ROOT" status --short)"
+  if [[ -n "$DIRTY_FILES" ]]; then
+    GIT_CLEAN=false
+    DIRTY_COUNT="$(echo "$DIRTY_FILES" | wc -l | tr -d ' ')"
+  fi
+fi
+
+if [[ "$GIT_CLEAN" == "false" ]]; then
+  if [[ "${ALLOW_DIRTY_REPO_EXTRACT:-0}" != "1" ]]; then
+    echo "ERROR: repository has dirty files (count: $DIRTY_COUNT). Refusing to create archive." >&2
+    echo "Please commit or stash your changes, or set ALLOW_DIRTY_REPO_EXTRACT=1 to override." >&2
+    exit 1
+  else
+    echo "WARNING: repository is dirty (count: $DIRTY_COUNT), but ALLOW_DIRTY_REPO_EXTRACT=1 is set. Proceeding..." >&2
+  fi
+fi
+
 STAGE_ROOT="$(mktemp -d "/tmp/${REPO_NAME}-clean-${STAMP}.XXXXXX")"
 STAGE_DIR="$STAGE_ROOT/$REPO_NAME"
-ZIP_PATH="$OUT_DIR/${REPO_NAME}-clean-${STAMP}.zip"
+
+if [[ "$GIT_CLEAN" == "false" ]]; then
+  ZIP_PATH="$OUT_DIR/${REPO_NAME}-clean-${STAMP}-dirty.zip"
+else
+  ZIP_PATH="$OUT_DIR/${REPO_NAME}-clean-${STAMP}.zip"
+fi
+
 META_DIR="$STAGE_DIR/_REPO_EXTRACT_METADATA"
 
 cleanup() {
@@ -284,6 +318,7 @@ echo "==> Writing metadata..."
   echo
   echo "Script provenance"
   echo "-----------------"
+  echo "script_source=$SCRIPT_SOURCE"
   echo "script_version=$SCRIPT_VERSION"
   # PRIVACY: script_path leaks the absolute filesystem path of the script
   # on the build machine (e.g. /Users/<u>/Projects/.../scripts/clean-repo-zip.sh).
@@ -310,6 +345,11 @@ echo "==> Writing metadata..."
     echo "branch=$(git -C "$REPO_ROOT" branch --show-current || true)"
     echo "commit=$(git -C "$REPO_ROOT" rev-parse HEAD || true)"
     echo "commit_short=$(git -C "$REPO_ROOT" rev-parse --short HEAD || true)"
+    echo "git_worktree_clean=$GIT_CLEAN"
+    echo "dirty_file_count=$DIRTY_COUNT"
+    if [[ "$GIT_CLEAN" == "false" ]]; then
+      echo "dirty_extract_allowed_by=ALLOW_DIRTY_REPO_EXTRACT"
+    fi
     echo
     echo "git_status_short:"
     git -C "$REPO_ROOT" status --short || true
@@ -318,6 +358,8 @@ echo "==> Writing metadata..."
     git -C "$REPO_ROOT" log --oneline -n 20 || true
   else
     echo "not_a_git_repo=true"
+    echo "git_worktree_clean=unknown"
+    echo "dirty_file_count=unknown"
   fi
 
   echo

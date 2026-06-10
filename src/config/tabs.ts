@@ -62,27 +62,31 @@ export interface TabDescriptor {
    * first activation.
    */
   aliases?: readonly TabId[];
+  /** Subtitle for the page header. */
+  subtitle?: string;
+  /** Model selector type if this tab supports select models, otherwise undefined. */
+  modelType?: 'text' | 'image' | 'tts' | 'music' | 'embedding';
 }
 
 export const TAB_REGISTRY: readonly TabDescriptor[] = [
-  { id: 'chat', label: 'Chat', group: 'conversation' },
-  { id: 'history', label: 'History', group: 'conversation' },
-  { id: 'image', label: 'Image Studio', group: 'generate' },
-  { id: 'media', label: 'Media Studio', group: 'generate', aliases: ['gallery'] },
-  { id: 'prompts', label: 'Prompts', group: 'generate' },
-  { id: 'scenes', label: 'Scene Composer', group: 'generate' },
-  { id: 'audio', label: 'Audio Studio', group: 'generate' },
-  { id: 'music', label: 'Music Studio', group: 'generate' },
-  { id: 'video', label: 'Video Studio', group: 'generate' },
-  { id: 'embeddings', label: 'Embeddings', group: 'generate' },
-  { id: 'search', label: 'Research', group: 'generate' },
-  { id: 'characters', label: 'Characters', group: 'generate' },
-  { id: 'rp-studio', label: 'RP Studio', group: 'build', lazy: true },
-  { id: 'workflows', label: 'Workflows', group: 'build', lazy: true },
-  { id: 'privacy', label: 'Privacy', group: 'system' },
-  { id: 'playground', label: 'Playground', group: 'build', lazy: true },
-  { id: 'settings', label: 'Config', group: 'system' },
-  { id: 'status', label: 'Status', group: 'system' },
+  { id: 'chat', label: 'Chat', group: 'conversation', subtitle: 'Conversational AI', modelType: 'text' },
+  { id: 'history', label: 'History', group: 'conversation', subtitle: 'Browse past conversations' },
+  { id: 'image', label: 'Image Studio', group: 'generate', subtitle: 'Generate images from text', modelType: 'image' },
+  { id: 'media', label: 'Media Studio', group: 'generate', aliases: ['gallery'], subtitle: 'Browse, tag, edit, and export your generated media' },
+  { id: 'prompts', label: 'Prompts', group: 'generate', subtitle: 'Browse and manage your prompt library' },
+  { id: 'scenes', label: 'Scene Composer', group: 'generate', subtitle: 'Compose complex image generation scenes' },
+  { id: 'audio', label: 'Audio Studio', group: 'generate', subtitle: 'Text-to-speech and transcription', modelType: 'tts' },
+  { id: 'music', label: 'Music Studio', group: 'generate', subtitle: 'Generate music and sound', modelType: 'music' },
+  { id: 'video', label: 'Video Studio', group: 'generate', subtitle: 'Generate video clips' },
+  { id: 'embeddings', label: 'Embeddings', group: 'generate', subtitle: 'Vector representations of text', modelType: 'embedding' },
+  { id: 'search', label: 'Research', group: 'generate', subtitle: 'Deep research and web scraping' },
+  { id: 'characters', label: 'Characters', group: 'generate', subtitle: 'Configure roleplay characters' },
+  { id: 'rp-studio', label: 'RP Studio', group: 'build', lazy: true, subtitle: 'Roleplay character and scenario workshop' },
+  { id: 'workflows', label: 'Workflows', group: 'build', lazy: true, subtitle: 'Chain models visually' },
+  { id: 'privacy', label: 'Privacy', group: 'system', subtitle: 'Manage storage and privacy settings' },
+  { id: 'playground', label: 'Playground', group: 'build', lazy: true, subtitle: 'Build workflows by chatting' },
+  { id: 'settings', label: 'Config', group: 'system', subtitle: 'App configuration' },
+  { id: 'status', label: 'Status', group: 'system', subtitle: 'App status and diagnostics' },
 ] as const;
 
 export const TAB_ID_SET: ReadonlySet<TabId> = new Set(TAB_IDS);

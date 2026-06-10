@@ -21,6 +21,7 @@ import { avatarDataUri } from "./_shared";
 import { saveCharacterPromptToLibrary, startChatForCharacter } from "../../services/rpHelpers";
 import { toast } from "../../stores/toast-store";
 import type { Tab } from "../../stores/settings-store";
+import { isSupportedImageFile, readImageAttachment } from "../../services/attachmentService";
 
 /** Module-scoped WeakMap mapping each example object (by identity) to a stable
  *  client-side React key. Lives outside the component so keys survive remounts
@@ -81,37 +82,30 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
   };
 
   const handleAvatarFile = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      setError("Avatar must be an image file.");
+    if (!isSupportedImageFile(file)) {
+      setError("Avatar must be a supported image file (PNG, JPEG, WEBP).");
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      setError(`Avatar must be ≤ 1 GiB.`);
+      setError(`Avatar file is too large (must be ≤ ${MAX_AVATAR_BYTES / (1024 * 1024)} MiB).`);
       return;
     }
-    const mimeType: CharacterCardAvatar["mimeType"] =
-      file.type === "image/jpeg" ? "image/jpeg"
-      : file.type === "image/webp" ? "image/webp"
-      : "image/png";
-    // Use FileReader.readAsDataURL to avoid `String.fromCharCode.apply` which
-    // overflows the call stack on WebKit for 32 KiB chunks. data URLs are
-    // decoded by the browser; we strip the `data:<mime>;base64,` prefix and
-    // validate the byte length against MAX_AVATAR_BYTES (the prefix is ~22
-    // bytes of overhead that does not count toward the cap).
-    const dataUri = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
-      reader.onerror = () => reject(reader.error ?? new Error("Failed to read avatar file."));
-      reader.readAsDataURL(file);
-    });
-    const prefix = `data:${mimeType};base64,`;
-    if (!dataUri.startsWith(prefix)) {
-      setError("Failed to encode avatar.");
-      return;
+    try {
+      const attachment = await readImageAttachment(file);
+      const dataUri = attachment.content;
+      const match = dataUri.match(/^data:(image\/(png|jpeg|webp));base64,(.*)$/);
+      if (!match) {
+        setError("Failed to process avatar image.");
+        return;
+      }
+      const mimeType = match[1] as CharacterCardAvatar["mimeType"];
+      const base64 = match[3];
+      const byteLength = Math.round((base64.length * 3) / 4);
+      update("avatar", { data: base64, mimeType, byteLength });
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to read avatar image.");
     }
-    const base64 = dataUri.slice(prefix.length);
-    update("avatar", { data: base64, mimeType, byteLength: file.size });
-    setError(null);
   };
 
   const addExample = () => {

@@ -144,7 +144,20 @@ if (pkg) {
   }
 
   // 4. ci chain must include verify:release-packaging-hardening
-  const ci = pkg.scripts?.ci || "";
+  const getExpandedScript = (scriptName, visited = new Set()) => {
+    if (visited.has(scriptName)) return "";
+    visited.add(scriptName);
+    const content = pkg.scripts?.[scriptName] || "";
+    let expanded = content;
+    const regex = /npm run ([a-zA-Z0-9:-]+)/g;
+    let match;
+    while ((match = regex.exec(content)) !== null) {
+      expanded += " " + getExpandedScript(match[1], visited);
+    }
+    return expanded;
+  };
+
+  const ci = getExpandedScript("ci");
   if (!ci.includes("verify:release-packaging-hardening")) {
     fail("`ci` script does not include `verify:release-packaging-hardening`");
   } else {

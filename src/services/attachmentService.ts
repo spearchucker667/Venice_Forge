@@ -132,10 +132,60 @@ export async function downscaleImageToDataUrl(file: File): Promise<string> {
   });
 }
 
+/** Inspects the dimensions of an image file by decoding it. */
+export async function inspectImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === "undefined" || typeof URL === "undefined" || typeof URL.createObjectURL !== "function") {
+      // Safe fallback for test environments where URL.createObjectURL is mock/unavailable
+      resolve({ width: 100, height: 100 });
+      return;
+    }
+    const img = new Image();
+    let url: string;
+    try {
+      url = URL.createObjectURL(file);
+    } catch {
+      reject(new Error("Failed to create object URL for image."));
+      return;
+    }
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: img.width, height: img.height });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Failed to decode image dimensions."));
+    };
+    img.src = url;
+  });
+}
+
 /** Reads an image file as an attachment, downscaling if needed. */
 export async function readImageAttachment(file: File): Promise<Attachment> {
+  let dims: { width: number; height: number };
+  try {
+    dims = await inspectImageDimensions(file);
+  } catch (err) {
+    throw new Error(`Failed to read image dimensions: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  // Dimension limit rules (4096px or 16MP)
+  const maxDimensionLimit = 4096;
+  const maxMegapixels = 16;
+  const area = dims.width * dims.height;
+
+  // We downscale if byte size exceeds threshold, or if dimension limits are exceeded
+  const exceedsDimensionCap =
+    dims.width > MAX_IMAGE_DIMENSION ||
+    dims.height > MAX_IMAGE_DIMENSION ||
+    dims.width > maxDimensionLimit ||
+    dims.height > maxDimensionLimit ||
+    area > maxMegapixels * 1_000_000;
+
+  const forceDownscale = file.size > MAX_IMAGE_ATTACHMENT_BYTES || exceedsDimensionCap;
+
   let dataUrl: string;
-  if (file.size > MAX_IMAGE_ATTACHMENT_BYTES) {
+  if (forceDownscale) {
     dataUrl = await downscaleImageToDataUrl(file);
   } else {
     const buffer = await file.arrayBuffer();

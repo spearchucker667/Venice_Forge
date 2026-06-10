@@ -92,6 +92,8 @@ const mocks = vi.hoisted(() => ({
   setActiveTabMock: vi.fn(),
   createBlankScenarioMock: vi.fn(),
   setActiveChatMock: vi.fn(),
+  readImageAttachmentMock: vi.fn(),
+  isSupportedImageFileMock: vi.fn(),
 }));
 
 vi.mock("../../stores/settings-store", () => {
@@ -145,6 +147,11 @@ vi.mock("../../services/rpHelpers", () => ({
   attachPromptToCharacter: mocks.attachPromptMock,
 }));
 
+vi.mock("../../services/attachmentService", () => ({
+  readImageAttachment: mocks.readImageAttachmentMock,
+  isSupportedImageFile: mocks.isSupportedImageFileMock,
+}));
+
 import { CharacterEditor } from "./CharacterEditor";
 
 const { sampleCard } = fixtures;
@@ -159,6 +166,8 @@ function resetMocks(): void {
   mocks.setActiveTabMock.mockReset();
   mocks.createBlankScenarioMock.mockReset();
   mocks.setActiveChatMock.mockReset();
+  mocks.readImageAttachmentMock.mockReset();
+  mocks.isSupportedImageFileMock.mockReset();
 
   mocks.upsertMock.mockResolvedValue(sampleCard);
   mocks.saveToLibMock.mockResolvedValue("prompt_new");
@@ -172,6 +181,19 @@ function resetMocks(): void {
     metadata: { attachedPromptId: "prompt_001" },
   });
   mocks.createBlankScenarioMock.mockReturnValue("scenario_001");
+
+  mocks.isSupportedImageFileMock.mockImplementation((file: File) => {
+    return ["image/png", "image/jpeg", "image/webp"].includes(file.type);
+  });
+  mocks.readImageAttachmentMock.mockImplementation(async (file: File) => {
+    return {
+      id: "attachment_001",
+      type: "image",
+      name: file.name,
+      content: `data:${file.type};base64,YWJj`,
+      size: 3,
+    };
+  });
 }
 
 beforeEach(() => {
@@ -237,6 +259,39 @@ describe("CharacterEditor — Workflow section", () => {
         name: `Scenario for ${sampleCard.name}`,
       });
       expect(mocks.setActiveTabMock).toHaveBeenCalledWith("scenes");
+    });
+  });
+
+  it("rejects non-image file type for avatar", async () => {
+    const { container } = render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const input = container.querySelector("input[type='file']") as HTMLInputElement;
+    const file = new File(["foo"], "foo.txt", { type: "text/plain" });
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => {
+      expect(screen.getByText("Avatar must be a supported image file (PNG, JPEG, WEBP).")).toBeInTheDocument();
+    });
+  });
+
+  it("rejects file larger than MAX_AVATAR_BYTES", async () => {
+    const { container } = render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const input = container.querySelector("input[type='file']") as HTMLInputElement;
+    const file = new File([new ArrayBuffer(6 * 1024 * 1024)], "huge.png", { type: "image/png" });
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => {
+      expect(screen.getByText("Avatar file is too large (must be ≤ 5 MiB).")).toBeInTheDocument();
+    });
+  });
+
+  it("accepts valid image and updates draft avatar using readImageAttachment", async () => {
+    const { container } = render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const input = container.querySelector("input[type='file']") as HTMLInputElement;
+    const file = new File([new ArrayBuffer(1024)], "avatar.png", { type: "image/png" });
+    
+    fireEvent.change(input, { target: { files: [file] } });
+    
+    await waitFor(() => {
+      expect(mocks.readImageAttachmentMock).toHaveBeenCalledWith(file);
+      expect(mocks.upsertMock).not.toHaveBeenCalled();
     });
   });
 });

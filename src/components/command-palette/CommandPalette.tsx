@@ -31,6 +31,7 @@ import { useScenarioStore } from '../../stores/scenario-store'
 import { useStoragePrivacyStore } from '../../stores/storage-privacy-store'
 import { useResearchStore } from '../../stores/research-store'
 import { startChatForCharacter } from '../../services/rpHelpers'
+import { readBoundedJsonFile } from '../../utils/file-reader'
 
 interface CommandPaletteProps {
   open: boolean
@@ -456,8 +457,11 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
                 const file = input.files?.[0];
                 if (!file) return;
                 try {
-                  const text = await file.text();
-                  const payload = JSON.parse(text);
+                  const payload = await readBoundedJsonFile<unknown>(file, {
+                    maxBytes: 5 * 1024 * 1024,
+                    maxItems: 500,
+                    itemKey: 'prompts'
+                  });
                   const result = await usePromptLibraryStore.getState().importPrompts(payload);
                   toast.success(
                     `Imported ${result.imported.length} prompt${result.imported.length === 1 ? '' : 's'}` +
@@ -530,8 +534,11 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
                 const file = input.files?.[0];
                 if (!file) return;
                 try {
-                  const text = await file.text();
-                  const payload = JSON.parse(text);
+                  const payload = await readBoundedJsonFile<unknown>(file, {
+                    maxBytes: 10 * 1024 * 1024,
+                    maxItems: 250,
+                    itemKey: 'scenes'
+                  });
                   const result = await useSceneComposerStore.getState().importScenes(payload);
                   toast.success(
                     `Imported ${result.imported.length} scene${result.imported.length === 1 ? '' : 's'}` +
@@ -705,8 +712,11 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
                 const file = input.files?.[0];
                 if (!file) return;
                 try {
-                  const text = await file.text();
-                  const payload = JSON.parse(text);
+                  const payload = await readBoundedJsonFile<unknown>(file, {
+                    maxBytes: 10 * 1024 * 1024,
+                    maxItems: 250,
+                    itemKey: 'sessions'
+                  });
                   const result = await useResearchStore.getState().importResearch(payload);
                   toast.success(
                     `Imported ${result.imported.length} session${result.imported.length === 1 ? '' : 's'}` +

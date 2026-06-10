@@ -3,7 +3,15 @@
 /** @fileoverview Unit tests for multipart form-data sanitization and body
  *  construction used when uploading files to the Venice API. */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock("electron", () => ({
+  app: {
+    getPath: vi.fn(),
+    getVersion: vi.fn(),
+  },
+}));
+
 import { buildMultipartBody, sanitizeMultipartContentType, sanitizeMultipartToken } from './veniceClient';
 
 /** Tests sanitization of multipart tokens and construction of form-data bodies. */

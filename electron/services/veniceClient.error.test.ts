@@ -3,7 +3,15 @@
 /** @fileoverview Unit tests for extracting human-readable error messages from
  *  Venice API responses. */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock("electron", () => ({
+  app: {
+    getPath: vi.fn(),
+    getVersion: vi.fn(),
+  },
+}));
+
 import { readResponseError } from './veniceClient';
 
 /** Tests extraction of error details from Venice API response objects. */

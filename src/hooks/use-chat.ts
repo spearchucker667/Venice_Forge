@@ -24,6 +24,28 @@ function resolveCharacterSlug(conv: Conversation | undefined): string | null {
   return null;
 }
 
+function prependInjectedContext(
+  content: string | ContentPart[],
+  injectedContext?: string,
+): string | ContentPart[] {
+  if (!injectedContext?.trim()) return content
+
+  if (typeof content === 'string') {
+    return `${injectedContext.trim()}\n\n${content}`
+  }
+
+  const textPartIndex = content.findIndex((part) => part.type === 'text')
+  if (textPartIndex === -1) {
+    return [{ type: 'text', text: injectedContext.trim() }, ...content]
+  }
+
+  return content.map((part, index) =>
+    index === textPartIndex && part.type === 'text'
+      ? { ...part, text: `${injectedContext.trim()}\n\n${part.text}` }
+      : part,
+  )
+}
+
 export function useChat() {
   const abortRef = useRef<AbortController | null>(null)
   const addMessage = useChatStore((s) => s.addMessage)
@@ -49,10 +71,9 @@ export function useChat() {
       const requestMessages: ChatMessage[] = conv.messages
         .filter((m) => m.content !== '')
         .map((m) => {
-          let content = m.content;
-          if (m.role === 'user' && m.metadata?.injectedContext) {
-            content = m.metadata.injectedContext + "\n\n" + content;
-          }
+          const content = m.role === 'user'
+            ? prependInjectedContext(m.content, m.metadata?.injectedContext)
+            : m.content;
           return { role: m.role, content };
         })
       if (systemPrompt.trim()) {

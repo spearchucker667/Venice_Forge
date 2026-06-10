@@ -246,4 +246,67 @@ describe("use-chat character_slug threading", () => {
 
     unmount();
   });
+
+  it("preserves ContentPart[] multimodal payload and correctly prepends injected context (P1-004)", async () => {
+    useSettingsStore.setState({
+      selectedModels: { chat: "llama-3.3-70b" },
+    });
+    
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    
+    useChatStore.getState().addMessage(convId, {
+      role: "user",
+      content: [
+        { type: "text", text: "What is in this image?" },
+        { type: "image_url", image_url: { url: "data:image/png;base64,abc" } }
+      ],
+      metadata: { injectedContext: "Retrieved system memory info" }
+    });
+
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+    
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.regenerate("llama-3.3-70b");
+    });
+
+    const body = extractPayloadFromCall();
+    expect(body).not.toBeNull();
+    const messages = body!.messages as any[];
+    const userMsg = messages.find((m) => m.role === "user");
+    expect(userMsg).toBeDefined();
+    expect(Array.isArray(userMsg.content)).toBe(true);
+    expect(userMsg.content).toEqual([
+      { type: "text", text: "Retrieved system memory info\n\nWhat is in this image?" },
+      { type: "image_url", image_url: { url: "data:image/png;base64,abc" } }
+    ]);
+  });
+
+  it("handles image-only ContentPart[] with injected context by prepending a new text part", async () => {
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().addMessage(convId, {
+      role: "user",
+      content: [
+        { type: "image_url", image_url: { url: "data:image/png;base64,abc" } }
+      ],
+      metadata: { injectedContext: "Some memory context" }
+    });
+
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.regenerate("llama-3.3-70b");
+    });
+
+    const body = extractPayloadFromCall();
+    expect(body).not.toBeNull();
+    const messages = body!.messages as any[];
+    const userMsg = messages.find((m) => m.role === "user");
+    expect(userMsg).toBeDefined();
+    expect(Array.isArray(userMsg.content)).toBe(true);
+    expect(userMsg.content).toEqual([
+      { type: "text", text: "Some memory context" },
+      { type: "image_url", image_url: { url: "data:image/png;base64,abc" } }
+    ]);
+  });
 });

@@ -235,6 +235,7 @@ export const useChatStore = create<ChatState>()(
               content: persistedContent,
               reasoning_content: message.reasoning_content,
               timestamp: Date.now(),
+              metadata: message.metadata,
             }
             const withMessage: Conversation = {
               ...c,

@@ -289,4 +289,104 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       rmSync(extractDir, { recursive: true, force: true });
     }
   });
+
+  it("clean-repo-zip.sh fails on dirty repo by default but succeeds and tags filename when ALLOW_DIRTY_REPO_EXTRACT=1", () => {
+    const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-dirty-repo-"));
+    const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-dirty-out-"));
+    const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-dirty-extract-"));
+    try {
+      writeFileSync(join(repo, "package.json"), JSON.stringify({ name: "fake-repo" }));
+      writeFileSync(join(repo, "README.md"), "# fake");
+      mkdirSync(join(repo, "src"), { recursive: true });
+      writeFileSync(join(repo, "src", "x.ts"), "export const ok = 1;\n");
+
+      // Initialize git and make a dirty change
+      execSync("git init", { cwd: repo, stdio: "ignore" });
+      execSync("git config user.email 'test@test.com'", { cwd: repo, stdio: "ignore" });
+      execSync("git config user.name 'Test'", { cwd: repo, stdio: "ignore" });
+      execSync("git add .", { cwd: repo, stdio: "ignore" });
+      execSync("git commit -m 'initial'", { cwd: repo, stdio: "ignore" });
+
+      // Make a dirty change
+      writeFileSync(join(repo, "src", "x.ts"), "export const ok = 2;\n");
+
+      // Running without ALLOW_DIRTY_REPO_EXTRACT should fail
+      let failed = false;
+      try {
+        execSync(`bash ${join(__dirname, "clean-repo-zip.sh")} ${repo} ${outDir}`, {
+          encoding: "utf8",
+          stdio: "pipe",
+        });
+      } catch {
+        failed = true;
+      }
+      expect(failed).toBe(true);
+
+      // Running with ALLOW_DIRTY_REPO_EXTRACT=1 should succeed
+      execSync(`ALLOW_DIRTY_REPO_EXTRACT=1 bash ${join(__dirname, "clean-repo-zip.sh")} ${repo} ${outDir}`, {
+        encoding: "utf8",
+        stdio: "pipe",
+      });
+
+      const zipPath = findZip(outDir);
+      expect(zipPath).not.toBeNull();
+      expect(zipPath).toMatch(/-dirty\.zip$/);
+
+      execSync(`unzip -q "${zipPath!}" -d ${extractDir}`, { stdio: "pipe" });
+
+      const extractedName = readdirSync(extractDir)[0];
+      const metaDir = join(extractDir, extractedName, "_REPO_EXTRACT_METADATA");
+      const extractInfoPath = join(metaDir, "EXTRACT_INFO.txt");
+      expect(existsSync(extractInfoPath)).toBe(true);
+
+      const extractInfo = readFileSync(extractInfoPath, "utf8");
+      expect(extractInfo).toMatch(/git_worktree_clean=false/);
+      expect(extractInfo).toMatch(/dirty_file_count=1/);
+      expect(extractInfo).toMatch(/dirty_extract_allowed_by=ALLOW_DIRTY_REPO_EXTRACT/);
+      expect(extractInfo).toMatch(/script_source=external/);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+      rmSync(outDir, { recursive: true, force: true });
+      rmSync(extractDir, { recursive: true, force: true });
+    }
+  });
+
+  it("clean-repo-zip.sh records script_source=repo when run from repo root", () => {
+    const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-source-repo-"));
+    const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-source-out-"));
+    const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-source-extract-"));
+    try {
+      writeFileSync(join(repo, "package.json"), JSON.stringify({ name: "fake-repo" }));
+      writeFileSync(join(repo, "README.md"), "# fake");
+      mkdirSync(join(repo, "src"), { recursive: true });
+      mkdirSync(join(repo, "scripts"), { recursive: true });
+      writeFileSync(join(repo, "src", "x.ts"), "export const ok = 1;\n");
+      
+      // Copy the script into the mock repo
+      const scriptDest = join(repo, "scripts", "clean-repo-zip.sh");
+      writeFileSync(scriptDest, readFileSync(join(__dirname, "clean-repo-zip.sh")));
+
+      execSync(`bash ${scriptDest} ${repo} ${outDir}`, {
+        encoding: "utf8",
+        stdio: "pipe",
+      });
+
+      const zipPath = findZip(outDir);
+      expect(zipPath).not.toBeNull();
+
+      execSync(`unzip -q "${zipPath!}" -d ${extractDir}`, { stdio: "pipe" });
+
+      const extractedName = readdirSync(extractDir)[0];
+      const metaDir = join(extractDir, extractedName, "_REPO_EXTRACT_METADATA");
+      const extractInfoPath = join(metaDir, "EXTRACT_INFO.txt");
+      expect(existsSync(extractInfoPath)).toBe(true);
+
+      const extractInfo = readFileSync(extractInfoPath, "utf8");
+      expect(extractInfo).toMatch(/script_source=repo/);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+      rmSync(outDir, { recursive: true, force: true });
+      rmSync(extractDir, { recursive: true, force: true });
+    }
+  });
 });

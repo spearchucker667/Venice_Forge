@@ -2,7 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { ChatView } from "./chat-view";
 import { useChatStore } from "../../stores/chat-store";
 import { useSettingsStore } from "../../stores/settings-store";
@@ -63,7 +63,31 @@ vi.mock("../../utils/characterImageResolver", () => ({
 }));
 
 describe("ChatView", () => {
+  let originalCreateObjectURL: any;
+  let originalRevokeObjectURL: any;
+  let originalImage: any;
+
   beforeEach(() => {
+    originalCreateObjectURL = globalThis.URL?.createObjectURL;
+    originalRevokeObjectURL = globalThis.URL?.revokeObjectURL;
+    originalImage = (globalThis as any).Image;
+
+    if (!globalThis.URL) {
+      (globalThis as any).URL = {} as any;
+    }
+    globalThis.URL.createObjectURL = vi.fn(() => "blob:mock-url");
+    globalThis.URL.revokeObjectURL = vi.fn();
+    class MockImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      width = 100;
+      height = 100;
+      set src(val: string) {
+        setTimeout(() => { this.onload?.(); }, 0);
+      }
+    }
+    (globalThis as any).Image = MockImage as any;
+
     Object.assign(globalThis, { FileReader: MockFileReader });
     vi.mocked(desktopConversations.list).mockReset();
 
@@ -83,6 +107,14 @@ describe("ChatView", () => {
         enable_web_search: "off",
       },
     });
+  });
+
+  afterEach(() => {
+    if (globalThis.URL) {
+      globalThis.URL.createObjectURL = originalCreateObjectURL;
+      globalThis.URL.revokeObjectURL = originalRevokeObjectURL;
+    }
+    (globalThis as any).Image = originalImage;
   });
 
   it("warns when sending an image with a non-vision model", async () => {
