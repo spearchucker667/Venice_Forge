@@ -169,6 +169,53 @@ function checkCleanScript(root, violations) {
   }
 }
 
+function checkMetadata(root, violations) {
+  const metadataDir = path.join(root, "_REPO_EXTRACT_METADATA");
+  const extractInfoPath = path.join(metadataDir, "EXTRACT_INFO.txt");
+  if (!fs.existsSync(extractInfoPath)) return;
+
+  const infoText = fs.readFileSync(extractInfoPath, "utf8");
+
+  // Check for absolute path leaks in default mode (no INCLUDE_PRIVATE_AUDIT_METADATA=1)
+  if (process.env.INCLUDE_PRIVATE_AUDIT_METADATA !== "1") {
+    const lines = infoText.split(/\r?\n/);
+    for (const line of lines) {
+      if (
+        line.startsWith("script_path=") ||
+        line.startsWith("repo_root=") ||
+        line.startsWith("output_zip=") ||
+        line.startsWith("created_by=") ||
+        line.startsWith("hostname=")
+      ) {
+        const val = line.substring(line.indexOf("=") + 1);
+        if (
+          (val.includes("/Users/") || val.includes("/home/") || /^[a-zA-Z]:\\/.test(val)) &&
+          !val.includes("omitted")
+        ) {
+          violations.push(`Metadata leak detected in EXTRACT_INFO.txt: ${line}`);
+        }
+      }
+    }
+  }
+
+  // Check SHA256 of clean-repo-zip.sh against script_sha256 in EXTRACT_INFO.txt
+  const shaMatch = infoText.match(/^script_sha256=([a-f0-9]{64})/m);
+  if (shaMatch) {
+    const metadataSha = shaMatch[1];
+    const scriptPath = path.join(root, "scripts/clean-repo-zip.sh");
+    if (fs.existsSync(scriptPath)) {
+      const crypto = require("crypto");
+      const scriptBytes = fs.readFileSync(scriptPath);
+      const expectedSha = crypto.createHash("sha256").update(scriptBytes).digest("hex");
+      if (metadataSha !== expectedSha) {
+        violations.push(
+          `ZIP provenance mismatch: script_sha256 in metadata (${metadataSha}) does not match the SHA256 of the tracked scripts/clean-repo-zip.sh (${expectedSha}). Please use the tracked script to generate the archive.`
+        );
+      }
+    }
+  }
+}
+
 function main() {
   const args = process.argv.slice(2);
   let root = process.cwd();
@@ -192,6 +239,7 @@ function main() {
   if (explicitRoot) {
     // Extract-only scan: just walk the filesystem tree.
     walk(root, root, violations);
+    checkMetadata(root, violations);
   } else if (checkConfig) {
     // Config-only scan: validate .gitignore and the clean ZIP script.
     checkGitignore(root, violations);
@@ -217,6 +265,7 @@ function main() {
     if (strict || !hasGit) {
       walk(root, root, violations);
     }
+    checkMetadata(root, violations);
   }
 
   // Deduplicate while preserving order

@@ -31,6 +31,9 @@ const SUPPORTED_TEXT_EXTENSIONS = /\.(txt|md|markdown|ts|tsx|json|py|js|jsx|css|
 /** Supported image MIME types. */
 const SUPPORTED_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
+/** Supported image file extensions for MIME type fallback. */
+const SUPPORTED_IMAGE_EXTENSIONS = /\.(png|jpe?g|webp)$/i;
+
 /** Maximum raw image size before downscaling (2 MiB). */
 const MAX_IMAGE_ATTACHMENT_BYTES = 2 * 1024 * 1024;
 
@@ -50,19 +53,29 @@ export function isSupportedTextFile(file: File): boolean {
 
 /** Checks whether a File object is a supported image. */
 export function isSupportedImageFile(file: File): boolean {
-  return SUPPORTED_IMAGE_TYPES.has(file.type);
+  return SUPPORTED_IMAGE_TYPES.has(file.type) || (!file.type && SUPPORTED_IMAGE_EXTENSIONS.test(file.name));
 }
 
+/** Infers image MIME type from the file extension. */
+export function inferImageMimeType(filename: string): string {
+  const ext = filename.split(".").pop()?.toLowerCase();
+  if (ext === "png") return "image/png";
+  if (ext === "webp") return "image/webp";
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  return "image/png";
+}
 
 /** Reads a browser File object as a text attachment. */
 export async function readTextFileAttachment(file: File): Promise<Attachment> {
-  const text = await file.text();
+  const isOverLimit = file.size > MAX_ATTACHMENT_FILE_BYTES;
+  const fileToRead = isOverLimit ? file.slice(0, MAX_ATTACHMENT_FILE_BYTES) : file;
+  const text = await fileToRead.text();
   return {
     id: crypto.randomUUID(),
     type: "file",
     name: file.name,
     content: text,
-    size: file.size,
+    size: isOverLimit ? new TextEncoder().encode(text).length : file.size,
   };
 }
 
@@ -121,7 +134,8 @@ export async function downscaleImageToDataUrl(file: File): Promise<string> {
         return;
       }
       ctx.drawImage(img, 0, 0, width, height);
-      const dataUrl = canvas.toDataURL(file.type, 0.85);
+      const mimeType = file.type || inferImageMimeType(file.name);
+      const dataUrl = canvas.toDataURL(mimeType, 0.85);
       resolve(dataUrl);
     };
     img.onerror = () => {
@@ -185,6 +199,7 @@ export async function readImageAttachment(file: File): Promise<Attachment> {
   const forceDownscale = file.size > MAX_IMAGE_ATTACHMENT_BYTES || exceedsDimensionCap;
 
   let dataUrl: string;
+  const mimeType = file.type || inferImageMimeType(file.name);
   if (forceDownscale) {
     dataUrl = await downscaleImageToDataUrl(file);
   } else {
@@ -195,7 +210,7 @@ export async function readImageAttachment(file: File): Promise<Attachment> {
     for (let i = 0; i < bytes.byteLength; i += chunkSize) {
       binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
     }
-    dataUrl = `data:${file.type};base64,${btoa(binary)}`;
+    dataUrl = `data:${mimeType};base64,${btoa(binary)}`;
   }
   return {
     id: crypto.randomUUID(),
@@ -215,17 +230,6 @@ export async function processFileAttachment(file: File): Promise<Attachment> {
     return readPdfAttachment(file);
   }
   if (isSupportedTextFile(file)) {
-    if (file.size > MAX_ATTACHMENT_FILE_BYTES) {
-      const slice = file.slice(0, MAX_ATTACHMENT_FILE_BYTES);
-      const text = await slice.text();
-      return {
-        id: crypto.randomUUID(),
-        type: "file",
-        name: file.name,
-        content: text,
-        size: new TextEncoder().encode(text).length,
-      };
-    }
     return readTextFileAttachment(file);
   }
   throw new Error(`Unsupported file type: ${file.type || file.name}. Supported: text files, PDFs, and images (PNG, JPEG, WEBP).`);

@@ -6,6 +6,7 @@ import {
   isSupportedImageFile,
   assembleAttachmentContext,
   processFileAttachment,
+  readTextFileAttachment,
 } from "./attachmentService";
 import type { Attachment } from "../types/attachment";
 
@@ -181,5 +182,56 @@ describe("readImageAttachment dimensions validation", () => {
 
     const file = new File([new ArrayBuffer(100)], "corrupt.png", { type: "image/png" });
     await expect(processFileAttachment(file)).rejects.toThrow(/Failed to decode image dimensions/);
+  });
+});
+
+describe("image type detection fallbacks and blank MIME type handling", () => {
+  it("recognises supported images by extension when type is empty", () => {
+    const png = new File([""], "img.png", { type: "" });
+    expect(isSupportedImageFile(png)).toBe(true);
+    const webp = new File([""], "img.webp", { type: "" });
+    expect(isSupportedImageFile(webp)).toBe(true);
+    const jpg = new File([""], "img.jpg", { type: "" });
+    expect(isSupportedImageFile(jpg)).toBe(true);
+    const jpeg = new File([""], "img.jpeg", { type: "" });
+    expect(isSupportedImageFile(jpeg)).toBe(true);
+    
+    // Check unsupported extension
+    const zip = new File([""], "img.zip", { type: "" });
+    expect(isSupportedImageFile(zip)).toBe(false);
+  });
+
+  it("reads image file and falls back to extension MIME type if type is blank", async () => {
+    class MockSmallImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      width = 100;
+      height = 100;
+      set src(val: string) {
+        setTimeout(() => { this.onload?.(); }, 0);
+      }
+    }
+    const originalImage = global.Image;
+    global.Image = MockSmallImage as any;
+
+    try {
+      const file = new File([new ArrayBuffer(10)], "fallback.webp", { type: "" });
+      const att = await processFileAttachment(file);
+      expect(att.type).toBe("image");
+      expect(att.content).toContain("data:image/webp;base64,");
+    } finally {
+      global.Image = originalImage;
+    }
+  });
+});
+
+describe("readTextFileAttachment slicing", () => {
+  it("slices files larger than MAX_ATTACHMENT_FILE_BYTES", async () => {
+    const hugeText = "x".repeat(300 * 1024); // exceeds 256 KiB
+    const file = new File([hugeText], "huge.txt", { type: "text/plain" });
+    const att = await readTextFileAttachment(file);
+    expect(att.type).toBe("file");
+    expect(att.content.length).toBe(256 * 1024);
+    expect(att.content).toBe("x".repeat(256 * 1024));
   });
 });

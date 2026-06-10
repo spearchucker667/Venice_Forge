@@ -61,10 +61,24 @@ if (missingInScript.length > 0) {
 }
 console.log("✓ package.json verify:contracts script contains all required gates");
 
-// 2. Verify that ci.yml runs the aggregate verify:contracts script
-const runsAggregate = /run:\s*npm\s+run\s+verify:contracts/i.test(ciYaml);
-if (runsAggregate) {
+// 2. Verify that ci.yml runs the aggregate verify:contracts script or the ci script
+const runsVerifyContracts = /run:\s*npm\s+run\s+verify:contracts\b/i.test(ciYaml);
+const runsCi = /run:\s*npm\s+run\s+ci\b/i.test(ciYaml);
+
+let runsAggregate = false;
+if (runsVerifyContracts) {
+  runsAggregate = true;
   console.log("✓ ci.yml runs aggregate verify:contracts");
+} else if (runsCi) {
+  const ciScript = pkg.scripts['ci'] || '';
+  if (ciScript.includes('npm run verify:contracts')) {
+    runsAggregate = true;
+    console.log("✓ ci.yml runs aggregate 'ci' script which invokes verify:contracts");
+  }
+}
+
+if (runsAggregate) {
+  // Aggregate is satisfied, no need to check individual gates
 } else {
   // Fallback: check if it runs all individual gates
   const missingInCi = [];

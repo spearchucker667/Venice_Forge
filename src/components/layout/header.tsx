@@ -33,6 +33,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   return (
     <header className="flex items-center gap-3 h-14 px-3 border-b border-border bg-surface shrink-0">
       <button
+        type="button"
         onClick={() => onOpenMobileSidebar?.()}
         aria-label="Open menu"
         className="md:hidden text-text-secondary hover:text-text-primary transition-colors p-1.5 -ml-1 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] cursor-pointer"
@@ -43,6 +44,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
       </button>
 
       <button
+        type="button"
         onClick={toggleSidebar}
         aria-label="Toggle sidebar"
         className="hidden md:block text-text-secondary hover:text-text-primary transition-colors p-1.5 -ml-1 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] cursor-pointer"
@@ -72,6 +74,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
             />
             {activeTab === 'chat' && activeConversationId !== null && (
               <button
+                type="button"
                 onClick={() => setActiveConversation(null)}
                 title="New Chat (⌘N)"
                 className="flex items-center justify-center w-8 h-8 rounded-md border border-border hover:border-text-muted hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent cursor-pointer"
@@ -88,6 +91,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
       <HeaderStatusCluster />
 
       <button
+        type="button"
         onClick={onOpenApiKey}
         aria-label={hasVeniceKey ? 'API key connected, manage' : 'Connect API key'}
         className="flex items-center gap-2 text-[13px] px-2.5 py-1.5 rounded-md border border-border hover:border-text-muted transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2 cursor-pointer"

@@ -389,4 +389,75 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       rmSync(extractDir, { recursive: true, force: true });
     }
   });
+
+  it("verify-archive-clean fails if EXTRACT_INFO.txt has path leaks when INCLUDE_PRIVATE_AUDIT_METADATA is not 1", () => {
+    const root = mkdtempSync(join(tmpdir(), "venice-archive-check-metadata-"));
+    const metaDir = join(root, "_REPO_EXTRACT_METADATA");
+    mkdirSync(metaDir, { recursive: true });
+    
+    // Create an EXTRACT_INFO.txt that has a leak
+    writeFileSync(
+      join(metaDir, "EXTRACT_INFO.txt"),
+      "script_path=/Users/someone/scripts/clean-repo-zip.sh\n"
+    );
+
+    try {
+      let failed = false;
+      try {
+        execSync(`node ${join(__dirname, "verify-archive-clean.cjs")} --root ${root}`, { stdio: "pipe" });
+      } catch (e: any) {
+        failed = e.status !== 0;
+      }
+      expect(failed).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("verify-archive-clean passes if EXTRACT_INFO.txt has path leaks but INCLUDE_PRIVATE_AUDIT_METADATA=1 is set", () => {
+    const root = mkdtempSync(join(tmpdir(), "venice-archive-check-metadata-ok-"));
+    const metaDir = join(root, "_REPO_EXTRACT_METADATA");
+    mkdirSync(metaDir, { recursive: true });
+    
+    // Create an EXTRACT_INFO.txt that has a leak
+    writeFileSync(
+      join(metaDir, "EXTRACT_INFO.txt"),
+      "script_path=/Users/someone/scripts/clean-repo-zip.sh\n"
+    );
+
+    try {
+      const out = execSync(`INCLUDE_PRIVATE_AUDIT_METADATA=1 node ${join(__dirname, "verify-archive-clean.cjs")} --root ${root}`, { encoding: "utf8" });
+      expect(out).toMatch(/OK/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("verify-archive-clean fails if EXTRACT_INFO.txt script_sha256 mismatches the actual script", () => {
+    const root = mkdtempSync(join(tmpdir(), "venice-archive-check-sha-"));
+    const metaDir = join(root, "_REPO_EXTRACT_METADATA");
+    mkdirSync(metaDir, { recursive: true });
+    mkdirSync(join(root, "scripts"), { recursive: true });
+    
+    // Create fake clean-repo-zip.sh
+    writeFileSync(join(root, "scripts", "clean-repo-zip.sh"), "some content");
+    
+    // Create EXTRACT_INFO.txt with mismatching sha
+    writeFileSync(
+      join(metaDir, "EXTRACT_INFO.txt"),
+      "script_sha256=1111111111111111111111111111111111111111111111111111111111111111\n"
+    );
+
+    try {
+      let failed = false;
+      try {
+        execSync(`node ${join(__dirname, "verify-archive-clean.cjs")} --root ${root}`, { stdio: "pipe" });
+      } catch (e: any) {
+        failed = e.status !== 0;
+      }
+      expect(failed).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

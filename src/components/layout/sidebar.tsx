@@ -9,6 +9,7 @@ import type { Conversation } from '../../types/conversation'
 import { desktopConfig, isElectron } from '../../services/desktopBridge'
 import { reloadConfig } from '../../stores/config-store'
 import { TAB_REGISTRY, TAB_GROUP_LABELS, type TabGroup, type TabId } from '../../config/tabs'
+import { contentToSearchText } from '../../utils/messageContent'
 
 function ChatIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>)
@@ -108,7 +109,7 @@ export function buildConversationSearchText(conversation: Conversation): string 
   return [
     conversation.title,
     ...conversation.messages.flatMap((message) => [
-      typeof message.content === 'string' ? message.content : '',
+      contentToSearchText(message.content),
       typeof message.reasoning_content === 'string' ? message.reasoning_content : '',
     ]),
   ].join('\n').toLowerCase()

@@ -4,10 +4,11 @@ import { useSettingsStore } from '../../stores/settings-store'
 import { Search, Trash2, MessageSquare, Plus, ArrowRight, BookOpen, Clock, Zap } from 'lucide-react'
 import { toast } from '../../stores/toast-store'
 import type { Conversation } from '../../types/conversation'
+import { contentToSearchText } from '../../utils/messageContent'
 
 function formatRelativeTime(date: number): string {
   const now = Date.now()
-  const diff = now - date
+  const diff = Math.max(0, now - date)
   const seconds = Math.floor(diff / 1000)
   const minutes = Math.floor(seconds / 60)
   const hours = Math.floor(minutes / 60)
@@ -20,16 +21,21 @@ function formatRelativeTime(date: number): string {
 }
 
 export default function HistoryView() {
-  const { conversations, deleteConversation, setActiveConversation } = useChatStore()
-  const { setActiveTab } = useSettingsStore()
+  const conversations = useChatStore(state => state.conversations)
+  const deleteConversation = useChatStore(state => state.deleteConversation)
+  const setActiveConversation = useChatStore(state => state.setActiveConversation)
+  const setPendingContext = useChatStore(state => state.setPendingContext)
+  const restoreConversation = useChatStore(state => state.restoreConversation)
+
+  const setActiveTab = useSettingsStore(state => state.setActiveTab)
   const [search, setSearch] = useState('')
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim()
     if (!s) return conversations
     return conversations.filter(c => 
-      c.title.toLowerCase().includes(s) || 
-      c.messages.some(m => typeof m.content === 'string' && m.content.toLowerCase().includes(s))
+      (c.title || '').toLowerCase().includes(s) || 
+      c.messages.some(m => contentToSearchText(m.content).toLowerCase().includes(s))
     )
   }, [conversations, search])
 
@@ -38,12 +44,20 @@ export default function HistoryView() {
     setActiveTab('chat')
   }
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (conv: Conversation, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (confirm('Are you sure you want to delete this conversation?')) {
-      await deleteConversation(id)
-      toast.success('Conversation deleted')
-    }
+    await deleteConversation(conv.id)
+    toast.error('Conversation deleted', conv.title || 'Untitled', {
+      label: 'Undo',
+      onClick: async () => {
+        try {
+          await restoreConversation(conv)
+          toast.success('Conversation restored')
+        } catch (err) {
+          toast.error('Failed to restore', err instanceof Error ? err.message : String(err))
+        }
+      },
+    })
   }
 
   const handleStartNew = () => {
@@ -76,7 +90,7 @@ export default function HistoryView() {
       "[/Local Memory Context]",
     ].join("\n")
 
-    useChatStore.getState().setPendingContext({
+    setPendingContext({
       injectedText,
       facts: memory?.userFacts || [],
       summaries: memory?.summary && memory.summary !== 'New Chat' ? [memory.summary] : [],
@@ -144,7 +158,7 @@ export default function HistoryView() {
                       <Zap size={15} />
                     </button>
                     <button
-                      onClick={(e) => handleDelete(conv.id, e)}
+                      onClick={(e) => handleDelete(conv, e)}
                       className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-md transition-all cursor-pointer"
                       title="Delete conversation"
                     >

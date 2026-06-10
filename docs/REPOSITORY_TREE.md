@@ -13,7 +13,7 @@ Express/Vite web development mode.
 > HEAD `fca45fa6` (632 tracked files). The previous regeneration at
 > `0ac69be1` recorded 628 files; the +4 delta across commits
 > `6033253a`, `849dc27f`, `fca45fa6` is 1 doc report
-> (`docs/REPORTS/CI_FAILURE_AND_BUG_HUNT_2026_06_09.md`) and 3 source
+> (`docs/reports/CI_FAILURE_AND_BUG_HUNT_2026_06_09.md`) and 3 source
 > files: `electron/services/veniceClient.sseParser.test.ts` (CI fix),
 > `src/hooks/use-data-storage-actions.{ts,test.ts}` (extracted from
 > `SettingsView.tsx`, -191 net lines). The 2026-06-09 "remaining issues"
