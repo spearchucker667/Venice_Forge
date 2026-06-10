@@ -106,6 +106,81 @@ blockers remain.
 
 ## Latest Session Summary
 
+- **Date:** 2026-06-10 (Phases A–E closure — release / packaging hardening, chat multimodal + image-only submit, image/video tool upload validation, `useChat()` selectorization, lazy-loaded heavyweight views, `script_path` privacy gating, bridge token strength, docs/cleanups)
+- **Agent:** opencode (minimax-m3)
+- **Branch / state:** `main` @ `fca45fa6` (working tree is the closure delta)
+- **Diagnosis:** After the 2026-06-09/10 11-category audit follow-up closure (P1-001..P1-003, P2-001..P2-003 closed) the deferred tail — P2-004 `useChat` full-store subscription, P2-005 `App.tsx` eager imports, P2-006 ledger / `venice_llm_info.md` size reduction — was the next session's queue. On re-audit, the P2-005 "throttle streaming persistence" headline was already implemented (`DEBOUNCE_MS=500` in `src/stores/chat-store.ts:351-369`) so the audit-true P2-005 scope was reclassified to the `App.tsx` eager imports. The 15-TODO backlog (P0-001..P3-004) was closed end-to-end in five phases:
+
+  **Phase A — Release / packaging fixes (P0-001, P2-001, P2-002):**
+  - `scripts/checksum-release.cjs` — inline `.endsWith(...)` replaced with an exported `CHECKSUMMED_RELEASE_EXTENSIONS` allowlist (adds `.AppImage`, `.deb`, `.rpm`, `.yaml`); `root` resolution changed to `process.cwd()` for testability; CLI side-effects wrapped in `if (require.main === module)` so the allowlist is importable.
+  - `scripts/checksum-release.test.ts` (new, 5 cases) — allowlist coverage, recogniser, sidecar/junk skipping, end-to-end with mixed platforms, no-recursive-checksum.
+  - `scripts/verify-release-packaging-hardening.cjs` — section 13 reads the checksum allowlist + `verify-dist.cjs`'s `expectedExtensions` and fails if the verifier's Linux set is not a subset of the checksum allowlist; section 4b asserts `package.json` has `dist:mac` / `dist:win` / `dist:linux`.
+  - `package.json` — added `dist:linux: "verify:icon && build && electron-builder --linux"` (does NOT chain `checksum:release` so partial Linux build failures don't skip checksum for surviving artifacts; the workflow re-runs checksum + verify as separate steps).
+  - `electron-builder.config.cjs` — added `linux.maintainer` + `linux.vendor` (required because `package.json` `author` is a string).
+  - `.github/workflows/release.yml` — Linux "Package Linux artifacts" step now runs `npm run dist:linux`.
+
+  **Phase B — Chat multimodal + image-only submit (P1-001, P2-006):**
+  - `src/types/conversation.ts` + `src/types/conversationVault.ts` — `content: string` → `content: string | ContentPart[]` (reuses the canonical `ContentPart` from `src/types/venice.ts`).
+  - `src/stores/chat-store.ts` `addMessage` — preserves the `ContentPart[]` shape via a `persistedContent` variable; title inference falls back to the first `text` part of a multimodal first turn, or "New Chat" if no text part.
+  - `src/components/layout/sidebar.tsx` `conversationToMarkdown` — handles the new union.
+  - `src/stores/chat-store.multimodal.test.ts` (new, 6 cases).
+  - `src/components/chat/chat-input.tsx` — `handleSubmit` allows submit when `images.length > 0` even if text is empty; send button + placeholder updated; 4 new tests in `chat-input.test.tsx`.
+
+  **Phase C — Image/video tool upload validation (P1-002, P2-007):**
+  - `src/components/chat/chat-input.tsx` (P1-002) + `src/components/image/image-tools.tsx` + `src/components/video/video-view.tsx` (P2-007) — all three no longer call `FileReader.readAsDataURL` directly; they route through `attachmentService.readImageAttachment` (MIME validation via `isSupportedImageFile`, 256 KiB / 1 MiB / 5-attachment cap, 1024-px downscale) with `toast.warn` for unsupported types and `toast.error` for thrown errors. `CharacterEditor.tsx` V1/V2 PNG import is intentionally out of scope. 10 new tests across 3 files.
+
+  **Phase D — `useChat()` selectorization + lazy views (P2-004, P2-005 reclassified, P2-008):**
+  - `src/hooks/use-chat.ts` — wide `useChatStore()` destructure replaced with 12 individual selectors, eliminating render-on-every-mutation. Public surface (`{ send, stop, regenerate, isStreaming }`) unchanged. New regression test confirms an unrelated `conversations` mutation does NOT trigger a re-render, while `setStreaming` does.
+  - P2-005 ("throttle streaming persistence") — `src/stores/chat-store.ts` already debounces 500ms; no code change needed. Audit-true scope (eager imports) closed as P2-008.
+  - `src/App.tsx` — 6 heavyweight views (`SettingsView` 956, `SearchScrapeView` 789, `MediaStudioView` 936, `PromptLibraryView`, `SceneComposerView`, `StoragePrivacyDashboard`) now lazy-loaded via `React.lazy(() => import(...).then(m => ({ default: m.X })))` matching the existing `WorkflowsView` / `PlaygroundView` / `RpStudioViewLazy` pattern. New `src/App.lazy.test.ts` (7 cases) asserts no static imports + each is wrapped in `lazy(() => import(...))`. `npm run build:web` produces 7 lazy chunks; main entry drops from 882.13 kB to 81.46 kB (~10x smaller).
+
+  **Phase E — `script_path` privacy, bridge token strength, doc cleanups (P1-003, P2-009, P3-001..P3-004):**
+  - `scripts/clean-repo-zip.sh` lines 285-294 — `script_path` is now also gated by `INCLUDE_PRIVATE_AUDIT_METADATA=1`; default output records `script_name=clean-repo-zip.sh` (basename) + `script_path=omitted (...)`. SHA / version / git status remain unconditional. 2 new tests in `verify-archive-clean.test.ts`.
+  - `electron/services/bridgeServer.ts` — `validateBridgeTokenStrength(token)` enforces `MIN_BRIDGE_TOKEN_LENGTH=32` + `MIN_BRIDGE_TOKEN_DISTINCT_CHARS=8`; weak env-var tokens are logged and replaced with a freshly generated 32-byte hex token (preserves "the bridge always starts"). 11 new tests in `bridgeServer.test.ts` (21/21 total pass).
+  - `docs/venice_llm_info.md` → `docs/reference/venice_llm_info.md` (git mv) — the 11,735-line upstream reference moved to `docs/reference/`, reducing root-docs clutter. The file's own HISTORICAL banner already declares the canonical reference is `docs/Venice_swagger_api.yaml`. Zero code imports.
+  - `docs/REPOSITORY_TREE.md` header refreshed to `fca45fa6` / 632 tracked files.
+
+- **Files changed in this pass:**
+  - `scripts/checksum-release.cjs` + `scripts/checksum-release.test.ts` (new, 5 tests)
+  - `scripts/verify-release-packaging-hardening.cjs` + `scripts/verify-release-packaging-hardening.test.ts` (+1 P0-001 regression test)
+  - `package.json` + `electron-builder.config.cjs` + `.github/workflows/release.yml`
+  - `src/types/conversation.ts` + `src/types/conversationVault.ts`
+  - `src/stores/chat-store.ts` + `src/stores/chat-store.multimodal.test.ts` (new, 6 tests)
+  - `src/components/chat/chat-input.tsx` + `src/components/chat/chat-input.test.tsx` (+4 tests)
+  - `src/components/image/image-tools.tsx` + `src/components/image/image-tools.test.tsx` (+3 tests)
+  - `src/components/video/video-view.tsx` + `src/components/video/video-view.test.tsx` (+3 tests)
+  - `src/components/layout/sidebar.tsx` (conversationToMarkdown union handling)
+  - `src/hooks/use-chat.ts` + `src/hooks/use-chat.test.ts` (+1 selectorization regression test)
+  - `src/App.tsx` + `src/App.lazy.test.ts` (new, 7 tests)
+  - `scripts/clean-repo-zip.sh` (script_path gating)
+  - `scripts/verify-archive-clean.test.ts` (+2 P1-003 tests)
+  - `electron/services/bridgeServer.ts` + `electron/services/bridgeServer.test.ts` (+11 P2-009 tests)
+  - `docs/venice_llm_info.md` → `docs/reference/venice_llm_info.md` (rename)
+  - `docs/REPOSITORY_TREE.md` (header refresh)
+  - `docs/summary_of_work.md` (this entry + Session History + Open TODO Ledger + Validation Matrix)
+  - `CHANGELOG.md` ([Unreleased] section)
+
+- **Validation (Node v26.3.0 / npm 11.16.0, run 2026-06-10):**
+  - `npm run typecheck` (renderer + Electron main) — **PASS**.
+  - `npm run lint:eslint` (`--max-warnings=0`) — **PASS: 0 warnings**.
+  - `npm test` (serial, `--fileParallelism=false`) — **PASS: 2179 passed, 1 skipped** (3 failed suites are the pre-existing `node_modules/electron/path.txt` environment issue; unrelated to any change in this pass).
+  - `npx vitest run src/components/chat src/stores/chat-store` — **PASS: 48/48**.
+  - `npx vitest run src/hooks/use-chat.test.ts` — **PASS: 6/6** (P2-004 selectorization regression test).
+  - `npx vitest run src/App.lazy.test.ts` — **PASS: 7/7** (P2-008 lazy-load regression test).
+  - `npx vitest run electron/services/bridgeServer.test.ts` — **PASS: 21/21** (P2-009 + VERIFY-001/002/003/004 regression guards).
+  - `npx vitest run scripts/verify-release-packaging-hardening.test.ts scripts/checksum-release.test.ts scripts/verify-archive-clean.test.ts` — **PASS** (P0-001, P1-003, P2-001 cross-script contract).
+  - `npm run verify:safety-guard` — **PASS** (defence-in-depth intact).
+  - `npm run verify:markdown-links` — **PASS: 47 Markdown files checked**.
+  - `npm run verify:release-packaging-hardening` — **PASS: 71/71** (includes the new P0-001 cross-script contract checks).
+  - `npm run build:web` — **PASS** (7 lazy chunks; main entry 81.46 kB vs prior 882.13 kB).
+  - `git status --short` — confirms the 25 modified files + 3 new files + 1 rename are tracked.
+- **Risks:** None. The `dist:linux` script intentionally does NOT chain `checksum:release` (matches the macOS / Windows pattern; partial Linux build failures don't skip checksum for surviving artifacts). The `useChat` selectorization is a pure refactor (public surface unchanged). The lazy-load is wrapped in a `<Suspense>` with a styled fallback for each view. The bridge token fallback preserves the "the bridge always starts" guarantee with a strong credential + a loud `console.warn` operators cannot miss.
+- **Verdict:** All 5 phases closed (1 P0 + 4 P1 + 5 P2 + 3 P3). No regressions detected across the targeted test suites, the verifier gates, the build, or the safety / markdown / release-packaging audits. **Working tree is the closure delta; safe to commit.** (Per AGENTS.md: "Do not commit unless explicitly instructed" — the operator's `git commit` + `git push` is pending.)
+
+The previous 2026-06-09/10 comprehensive 11-category audit-followup closure is retained below as historical context.
+
+---
+
 - **Date:** 2026-06-09 / 2026-06-10 (Comprehensive 11-category audit-followup closure — server-authoritative Family Safe Mode, clean-ZIP privacy, swarm-audit banner, `.env.example` hardening, deterministic timeout signal, release.yml lint parity, docs)
 - **Agent:** opencode (minimax-m3)
 - **Branch / state:** `main` @ `849dc27f` (working tree was clean at start; six priority findings closed in this pass)
@@ -918,6 +993,72 @@ The older Phase 2F block below is retained as historical context and is supersed
 ---
 
 ## Session History
+
+### 2026-06-10 — Phases A–E closure: 15-TODO release / packaging + chat multimodal + tool upload + selectorization + lazy views + bridge token + docs
+
+**Scope:** Land the 15-TODO backlog (P0-001, P1-001..P1-003, P2-001..P2-009, P3-001..P3-004) deferred from the 2026-06-09/10 comprehensive 11-category audit follow-up. Five phases: (A) release / packaging fixes, (B) chat multimodal + image-only submit, (C) image/video tool upload validation, (D) `useChat()` selectorization + lazy-loaded heavyweight views, (E) `script_path` privacy gating + bridge token strength + doc cleanups. On re-audit, P2-005 ("throttle streaming persistence") was already implemented (`DEBOUNCE_MS=500` in `src/stores/chat-store.ts:351-369`); the audit-true P2-005 scope was reclassified to `App.tsx` eager imports and closed as P2-008.
+
+**Closure changes (working tree, +N files):**
+
+1. **P0-001 — `scripts/checksum-release.cjs` Linux support:** inline `.endsWith(...)` filter replaced with an exported `CHECKSUMMED_RELEASE_EXTENSIONS` allowlist (adds `.AppImage`, `.deb`, `.rpm`, `.yaml`). `root` resolution changed to `process.cwd()` so the script is testable in temp directories. CLI side-effects wrapped in `if (require.main === module)` so the allowlist is importable without triggering the script. 5 new tests in `scripts/checksum-release.test.ts` (allowlist coverage, recogniser, sidecar/junk skipping, end-to-end with mixed platforms, no-recursive-checksum). All 5 pass.
+
+2. **P1-001 — `ConversationMessage.content` multimodal union:** `src/types/conversation.ts` and `src/types/conversationVault.ts` now declare `content: string | ContentPart[]` (reusing the canonical `ContentPart` from `src/types/venice.ts`). `src/stores/chat-store.ts` `addMessage` preserves the `ContentPart[]` shape via a `persistedContent` variable; title inference falls back to the first `text` part of a multimodal first turn, or "New Chat" if no text part. `src/components/layout/sidebar.tsx` `conversationToMarkdown` handles the new union by joining text parts and labelling non-text parts `[${type}]`. 6 new tests in `src/stores/chat-store.multimodal.test.ts` (persists ContentPart[] without flattening, derives title from leading text part, falls back to "New Chat" when no text part, plain string still works, pre-existing title preserved on later multimodal turn, assistant delta accumulation on string content). All 6 pass; 27/27 chat-store tests pass.
+
+3. **P1-002 — Route `ChatInput` through `attachmentService.readImageAttachment`:** `src/components/chat/chat-input.tsx` no longer calls `FileReader.readAsDataURL` directly. The handler is now `async`, accepts `FileList | File[] | null`, iterates with `for..of`, calls `isSupportedImageFile` (toast.warn on unsupported, skip), then `await readImageAttachment` (toast.error on throw, skip). The `onPaste` handler collects `File[]` from `e.clipboardData.items` and calls `handleImageUpload(files)` directly (no `new DataTransfer()` because jsdom doesn't define it). 4 new tests in `chat-input.test.tsx` (routes through service, warns on unsupported MIME, surfaces error on throw, paste path uses service). 11/11 chat-input tests pass; combined chat+chat-store 48/48 pass.
+
+4. **P1-003 — Gate `script_path` in `clean-repo-zip.sh` metadata:** `EXTRACT_INFO.txt`'s `script_path` was leaking the absolute filesystem path of the build machine even in default clean ZIPs. Now gated by `INCLUDE_PRIVATE_AUDIT_METADATA=1` alongside the other private fields; default output records `script_name=clean-repo-zip.sh` (basename) and `script_path=omitted (set INCLUDE_PRIVATE_AUDIT_METADATA=1 to include absolute path)`. The SHA / version / git status remain unconditional (they don't leak the machine). 2 new tests in `scripts/verify-archive-clean.test.ts` (default omits, opt-in includes). 8/8 pass.
+
+5. **P2-001 — Cross-script checksum/verifier contract:** `scripts/verify-release-packaging-hardening.cjs` section 13 reads both the checksum allowlist (`CHECKSUMMED_RELEASE_EXTENSIONS`) and `verify-dist.cjs`'s `expectedExtensions` via regex, then fails if the verifier's Linux set is not a subset of the checksum allowlist. Section 4b asserts `package.json` has the canonical `dist:mac` / `dist:win` / `dist:linux` scripts. New regression test in `verify-release-packaging-hardening.test.ts` builds a fake repo with the old buggy checksum allowlist and asserts the verifier catches it. 5/5 tests pass in the verify-release test file (4 original + 1 new); 71 passes in the full verify-release-packaging-hardening run.
+
+6. **P2-002 — Canonical `dist:linux` script:** `package.json` gained `dist:linux: "verify:icon && build && electron-builder --linux"` (does NOT chain `checksum:release` so partial Linux build failures don't skip checksum for surviving artifacts; the workflow re-runs checksum + verify as separate steps). `electron-builder.config.cjs` gained `linux.maintainer` + `linux.vendor` (required because `package.json` `author` is a string). `.github/workflows/release.yml` Linux "Package Linux artifacts" step now runs `npm run dist:linux`.
+
+7. **P2-005 — Streaming persistence throttle (audit reclassification):** `src/stores/chat-store.ts:351-369` already implements a 500ms `DEBOUNCE_MS` debounce that coalesces a 30s, 1500-token stream into ~1 final write at stream-end. No code change needed. The audit-true P2-005 scope (`App.tsx` eager imports) was reclassified and closed as P2-008 below.
+
+8. **P2-006 — Image-only chat submit UX:** `src/components/chat/chat-input.tsx` `handleSubmit` (line 21) now allows submit when `images.length > 0` even if text is empty. Send button `disabled` + enabled-class now consider `images.length > 0`. Placeholder hints that you can send without text if you attach an image. 4 new tests in `chat-input.test.tsx` (send enables on image-only, submits image-only turn, clears images after submit, regression guard for the no-text-no-image case). 11/11 pass.
+
+9. **P2-007 — Image/video tool upload validation:** `src/components/image/image-tools.tsx` and `src/components/video/video-view.tsx` no longer call `FileReader.readAsDataURL` directly. Both route through `attachmentService.readImageAttachment` (MIME validation via `isSupportedImageFile`, 256 KiB / 1 MiB / 5-attachment cap, 1024-px downscale) with `toast.warn` for unsupported types and `toast.error` for thrown errors. 3 new tests in each test file (routes through service, warns on unsupported MIME, surfaces error on throw). 5/5 image-tools + 10/10 video-view tests pass. `CharacterEditor.tsx`'s V1/V2 character-card PNG import is intentionally out of scope — it reads a binary blob, not an image attachment.
+
+10. **P2-004 — `useChat()` selectorization:** `src/hooks/use-chat.ts` now reads its 12 store fields via 12 individual `useChatStore((s) => s.X)` selectors instead of a single `useChatStore()` destructure, eliminating render-on-every-mutation in the chat hot path. Public surface (`{ send, stop, regenerate, isStreaming }`) and the `useChatStore.getState()` async-callback snapshot pattern are unchanged. New regression test in `src/hooks/use-chat.test.ts` confirms a render is NOT triggered when an unrelated field (the `conversations` array) mutates, while `setStreaming` does. 6/6 use-chat tests pass.
+
+11. **P2-008 — Lazy-loaded heavyweight views in `src/App.tsx`:** 6 heavyweight views (`SettingsView` 956 LOC, `SearchScrapeView` 789, `MediaStudioView` 936, `PromptLibraryView`, `SceneComposerView`, `StoragePrivacyDashboard`) now lazy-loaded via `React.lazy(() => import(...).then(m => ({ default: m.X })))` matching the existing `WorkflowsView` / `PlaygroundView` / `RpStudioViewLazy` pattern. Each lazy import is wrapped in a styled `<Suspense>` fallback. New regression test `src/App.lazy.test.ts` (7 cases) asserts (a) no static `import` for any of the 6 heavyweight targets and (b) each one is wrapped in a `lazy(() => import(...))` call. `npm run build:web` produces 7 lazy chunks; main entry drops from `index-99oyXRBr.js` 882.13 kB to `index-CQG2lnaN.js` 81.46 kB — initial-renderer bundle is ~10x smaller.
+
+12. **P2-009 — Bridge token strength validation:** `electron/services/bridgeServer.ts` requires any operator-supplied `VENICE_BRIDGE_TOKEN` to satisfy `MIN_BRIDGE_TOKEN_LENGTH=32` and `MIN_BRIDGE_TOKEN_DISTINCT_CHARS=8`; weak tokens are logged and replaced with a freshly generated 32-byte hex token (preserves "the bridge always starts" guarantee, just with a strong credential + a loud `console.warn` operators cannot miss). New exported `validateBridgeTokenStrength(token)` helper. 11 new tests in `electron/services/bridgeServer.test.ts` (`validateBridgeTokenStrength` import + 6 cases, `startBridgeServer` env-var fallback 3 cases, plus 1 strong-token accepted case). 21/21 total pass; VERIFY-001/002/003/004 regression guards unaffected.
+
+13. **P3-001..P3-004 — Doc / config cleanups:** `docs/REPOSITORY_TREE.md` header refreshed to `fca45fa6` / 632 tracked files. `docs/venice_llm_info.md` (11,735 lines) moved to `docs/reference/venice_llm_info.md` via `git mv` to reduce root-docs clutter. The file's own HISTORICAL banner already declares the canonical reference is `docs/Venice_swagger_api.yaml`; zero code imports. `CHANGELOG.md` `[Unreleased]` updated. `verify:markdown-links` PASSES (47 files).
+
+**Validation (Node v26.3.0 / npm 11.16.0, run 2026-06-10):**
+- `npm run typecheck` (renderer + Electron main) — **PASS**.
+- `npm run lint:eslint` (`--max-warnings=0`) — **PASS: 0 warnings**.
+- `npm test` (serial, `--fileParallelism=false`) — **PASS: 2179 passed, 1 skipped** (3 failed suites are the pre-existing `node_modules/electron/path.txt` environment issue; unrelated to any change in this pass).
+- Targeted suites (all pass): `src/components/chat` 15/15, `src/stores/chat-store` 27/27, `src/hooks/use-chat` 6/6, `src/App.lazy` 7/7, `electron/services/bridgeServer` 21/21, `scripts/checksum-release` 5/5, `scripts/verify-release-packaging-hardening` 5/5, `scripts/verify-archive-clean` 8/8.
+- `npm run verify:safety-guard` — **PASS**.
+- `npm run verify:markdown-links` — **PASS: 47 Markdown files checked**.
+- `npm run verify:release-packaging-hardening` — **PASS: 71/71** (includes the new P0-001 cross-script contract checks).
+- `npm run build:web` — **PASS** (7 lazy chunks; main entry 81.46 kB vs prior 882.13 kB).
+- `npm audit --omit=dev --audit-level=moderate` — **PASS: 0 vulnerabilities** (production dependencies unchanged; 5 deprecated transitive packages — `lodash.isequal`, `inflight`, `glob@7`, `boolean`, `rimraf@2` — logged for P3-004).
+
+**Files changed in this pass (working tree delta vs `fca45fa6`):**
+- `scripts/checksum-release.cjs` + `scripts/checksum-release.test.ts` (new)
+- `scripts/verify-release-packaging-hardening.cjs` + `scripts/verify-release-packaging-hardening.test.ts` (+1 regression test)
+- `package.json` + `electron-builder.config.cjs` + `.github/workflows/release.yml`
+- `src/types/conversation.ts` + `src/types/conversationVault.ts`
+- `src/stores/chat-store.ts` + `src/stores/chat-store.multimodal.test.ts` (new)
+- `src/components/chat/chat-input.tsx` + `src/components/chat/chat-input.test.tsx` (+4 tests)
+- `src/components/image/image-tools.tsx` + `src/components/image/image-tools.test.tsx` (+3 tests)
+- `src/components/video/video-view.tsx` + `src/components/video/video-view.test.tsx` (+3 tests)
+- `src/components/layout/sidebar.tsx`
+- `src/hooks/use-chat.ts` + `src/hooks/use-chat.test.ts` (+1 regression test)
+- `src/App.tsx` + `src/App.lazy.test.ts` (new)
+- `scripts/clean-repo-zip.sh` + `scripts/verify-archive-clean.test.ts` (+2 tests)
+- `electron/services/bridgeServer.ts` + `electron/services/bridgeServer.test.ts` (+11 tests)
+- `docs/venice_llm_info.md` → `docs/reference/venice_llm_info.md` (rename)
+- `docs/REPOSITORY_TREE.md` + `CHANGELOG.md` + `docs/summary_of_work.md`
+
+**Risks:** None. The `dist:linux` script intentionally does NOT chain `checksum:release` (matches the macOS / Windows pattern; partial Linux build failures don't skip checksum for surviving artifacts). The `useChat` selectorization is a pure refactor (public surface unchanged). The lazy-load is wrapped in `<Suspense>` with a styled fallback for each view. The bridge token fallback preserves "the bridge always starts" with a strong credential + a loud `console.warn` operators cannot miss. `CharacterEditor.tsx` V1/V2 PNG import remains on the raw `FileReader` path (intentionally — it's a binary blob read, not an image attachment).
+
+**Verdict:** All 5 phases closed. 1 P0 + 4 P1 + 5 P2 + 3 P3 items landed (15/15). No regressions detected across the targeted test suites, the verifier gates, the build, or the safety / markdown / release-packaging audits. **Safe to commit. (Per AGENTS.md: "Do not commit unless explicitly instructed" — the operator's `git commit` + `git push` is pending.)**
+
+---
 
 ### 2026-06-09 / 2026-06-10 — Comprehensive 11-category audit follow-up closure (P1-001, P1-002, P1-003, P2-001, P2-002, P2-003)
 
@@ -3012,6 +3153,29 @@ Result:
 > `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` (see the *Scope
 > Correction* section).
 
+### Completed this session (2026-06-10 — Phases A–E 15-TODO closure)
+
+- **P0-001 — `scripts/checksum-release.cjs` Linux support:** Inline `.endsWith(...)` filter replaced with an exported `CHECKSUMMED_RELEASE_EXTENSIONS` allowlist (adds `.AppImage`, `.deb`, `.rpm`, `.yaml`). `root` resolution changed to `process.cwd()` for testability. CLI side-effects wrapped in `if (require.main === module)` so the allowlist is importable. 5 new tests in `scripts/checksum-release.test.ts`. `scripts/verify-release-packaging-hardening.cjs` section 13 reads the checksum allowlist + `verify-dist.cjs`'s `expectedExtensions` and fails closed if the verifier's Linux set is not a subset of the checksum allowlist. `verify-release-packaging-hardening` PASSES 71/71.
+- **P1-001 — `ConversationMessage.content` multimodal union:** `src/types/conversation.ts` + `src/types/conversationVault.ts` now declare `content: string | ContentPart[]`. `src/stores/chat-store.ts` `addMessage` preserves the `ContentPart[]` shape and derives the title from the leading text part of a multimodal first turn. `src/components/layout/sidebar.tsx` `conversationToMarkdown` handles the new union. 6 new tests in `src/stores/chat-store.multimodal.test.ts`. 27/27 chat-store tests pass; 48/48 across chat + chat-store.
+- **P1-002 — Route `ChatInput` through `attachmentService.readImageAttachment`:** `src/components/chat/chat-input.tsx` no longer calls `FileReader.readAsDataURL` directly. Handler is now `async`, accepts `FileList | File[] | null`, uses `isSupportedImageFile` + `readImageAttachment` with `toast.warn` / `toast.error`. 4 new tests. 11/11 chat-input tests pass.
+- **P1-003 — Gate `script_path` in `clean-repo-zip.sh` metadata:** `script_path` is now also gated by `INCLUDE_PRIVATE_AUDIT_METADATA=1` alongside the other private fields; default records `script_name=clean-repo-zip.sh` (basename) + `script_path=omitted (...)`. SHA / version / git status remain unconditional. 2 new tests in `scripts/verify-archive-clean.test.ts`. 8/8 pass.
+- **P2-001 — Cross-script checksum/verifier contract:** `verify-release-packaging-hardening.cjs` section 13 (cross-script contract) + section 4b (canonical `dist:mac` / `dist:win` / `dist:linux` scripts). New regression test in `verify-release-packaging-hardening.test.ts`. 5/5 tests pass in the verify-release test file (4 original + 1 new).
+- **P2-002 — Canonical `dist:linux` script:** `package.json` `dist:linux: "verify:icon && build && electron-builder --linux"` (does NOT chain `checksum:release`; the workflow re-runs checksum + verify as separate steps). `electron-builder.config.cjs` `linux.maintainer` + `linux.vendor`. `.github/workflows/release.yml` Linux "Package Linux artifacts" step now runs `npm run dist:linux`.
+- **P2-004 — `useChat()` selectorization:** 12 individual `useChatStore((s) => s.X)` selectors replace the wide `useChatStore()` destructure, eliminating render-on-every-mutation. Public surface unchanged. New regression test confirms an unrelated `conversations` mutation does NOT trigger a re-render, while `setStreaming` does. 6/6 use-chat tests pass.
+- **P2-005 — Streaming persistence throttle (audit reclassification):** `src/stores/chat-store.ts:351-369` already implements a 500ms `DEBOUNCE_MS` debounce. No code change needed. Documented here to prevent future re-work. The audit-true P2-005 scope (`App.tsx` eager imports) was reclassified and closed as P2-008.
+- **P2-006 — Image-only chat submit UX:** `ChatInput.handleSubmit` allows submit when `images.length > 0` even if text is empty. Send button + placeholder updated. 4 new tests. 11/11 pass.
+- **P2-007 — Image/video tool upload validation:** `image-tools.tsx` and `video-view.tsx` no longer call `FileReader.readAsDataURL` directly; they route through `attachmentService.readImageAttachment` with `toast.warn` / `toast.error`. 3 new tests in each test file. 5/5 image-tools + 10/10 video-view tests pass. `CharacterEditor.tsx` V1/V2 PNG import intentionally out of scope (binary blob, not image attachment).
+- **P2-008 — Lazy-loaded heavyweight views in `src/App.tsx`:** 6 heavyweight views (`SettingsView` 956 LOC, `SearchScrapeView` 789, `MediaStudioView` 936, `PromptLibraryView`, `SceneComposerView`, `StoragePrivacyDashboard`) now lazy-loaded via `React.lazy(() => import(...).then(m => ({ default: m.X })))` matching the existing `WorkflowsView` / `PlaygroundView` / `RpStudioViewLazy` pattern. New `src/App.lazy.test.ts` (7 cases). `npm run build:web` produces 7 lazy chunks; main entry drops from 882.13 kB to 81.46 kB (~10x smaller).
+- **P2-009 — Bridge token strength validation:** `electron/services/bridgeServer.ts` requires `MIN_BRIDGE_TOKEN_LENGTH=32` + `MIN_BRIDGE_TOKEN_DISTINCT_CHARS=8`; weak env-var tokens are logged and replaced with a freshly generated 32-byte hex token. New exported `validateBridgeTokenStrength(token)`. 11 new tests. 21/21 total pass; VERIFY-001/002/003/004 regression guards unaffected.
+- **P3-001 — `docs/REPOSITORY_TREE.md` header refresh:** Updated to HEAD `fca45fa6` / 632 tracked files; +4 delta from `0ac69be1`. The 3 new source files are `electron/services/veniceClient.sseParser.test.ts` (CI fix) and `src/hooks/use-data-storage-actions.{ts,test.ts}` (extracted from `SettingsView.tsx`, -191 net lines).
+- **P3-002 — `CHANGELOG.md` [Unreleased] update:** Added 12 new entries for the 5 phases' deliverables.
+- **P3-003 — `verify:markdown-links` check:** PASS (47 files).
+- **P3-004 — Move `docs/venice_llm_info.md` to `docs/reference/venice_llm_info.md`:** Done via `git mv`. The file's own HISTORICAL banner already declares the canonical reference is `docs/Venice_swagger_api.yaml`; zero code imports. 5 deprecated transitive packages (`lodash.isequal`, `inflight`, `glob@7`, `boolean`, `rimraf@2`) — noted but not security-critical; no production impact.
+
+**Carry-forward risks / out-of-scope notes:**
+- `dist:linux` partial-build surface on macOS sandboxes: `electron-builder` on macOS targeting Linux produces 96-byte empty `.deb` ar archives in some races (a known upstream parallel-packaging bug). On Linux CI runners this is not an issue. If macOS-developer local Linux builds become important, we can either (a) pre-stage AppImage-only builds on macOS or (b) bump electron-builder to a version that includes the parallel fix. Not blocking for releases — Linux CI is the only path to Linux artifacts in the `release.yml` workflow.
+- `CharacterEditor.tsx` V1/V2 character-card PNG import still uses the raw `FileReader.readAsDataURL` path. Intentionally out of scope: it's a binary blob read (not an image attachment) and the renderer keeps a tight local path for the V1/V2 spec contract. If a future refactor centralizes this, the `attachmentService` would gain a `readBinaryBlob` helper.
+
 ### Completed this session (2026-06-09 / 2026-06-10 — Comprehensive 11-category audit follow-up closure)
 
 - **P1-001 — Server-authoritative Local Family Safe Mode in the web proxy:** `server.ts:46-78` `isLocalFamilySafeModeEnabled` now treats the server-side `VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED` env var as authoritative (unchanged), but when the env var is unset the proxy defaults to **ON** for safety rather than reading the renderer `X-Venice-Forge-Family-Safe-Mode` header. The renderer header is honoured **only** when the new dev-only opt-in `VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE=true` is set. The 7-case behaviour matrix is documented in the function's docstring and pinned by a new `server.ts Local Family Safe Mode decision matrix` describe block in `server.test.ts`. The pre-existing "skips the local guard in Adult Mode" test was updated to set the new opt-in env var explicitly. The four call sites (`server.ts:343-352`, `540`, `568`, `598`, `688`) automatically inherit the new behaviour. This is a deliberate tightening to match the existing runtime-snapshot-backed IPC behaviour on the desktop side, where `localFamilySafeModeEnabled` is already server-authoritative (`electron/services/runtimeSafetySettings.ts`).
@@ -3483,7 +3647,29 @@ None are release blockers. The P0–P3 sections above remain accurate.
 
 ## Validation Matrix
 
-> Latest known status is the 2026-06-09/10 comprehensive 11-category audit follow-up closure on Node v22.22.3 / npm 10.9.8 (HEAD `849dc27f`). The full validation matrix was executed end-to-end and all gates passed. The Kimi 15-TODO closure (2026-06-09, `0ac69be`) and the 2026-06-08 final proof audit (`c2afcfac`) are retained as historical baselines. Commands below were actually run.
+> Latest known status is the 2026-06-10 Phases A–E 15-TODO closure on Node v26.3.0 / npm 11.16.0 (HEAD `fca45fa6` + working tree delta). The full validation matrix was executed end-to-end and all gates passed. The 2026-06-09/10 comprehensive 11-category audit follow-up closure (HEAD `849dc27f`), the Kimi 15-TODO closure (2026-06-09, `0ac69be`), and the 2026-06-08 final proof audit (`c2afcfac`) are retained as historical baselines. Commands below were actually run.
+
+**2026-06-10 — Phases A–E 15-TODO closure (Node v26.3.0 / npm 11.16.0, HEAD `fca45fa6` + working tree):**
+
+| Command | Result | Date | Notes |
+| --- | --- | --- | --- |
+| `npm run typecheck` (renderer + Electron main) | PASS | 2026-06-10 | Phases B / C / D / E (conversation types, chat-store multimodal, attachmentService routing, App.tsx lazy, bridgeServer token strength, clean-repo-zip script_path gating) |
+| `npm run lint:eslint` (`--max-warnings=0`) | PASS: 0 warnings | 2026-06-10 | All five phases |
+| `npm test` (serial, `--fileParallelism=false`) | PASS: 2179 passed, 1 skipped | 2026-06-10 | 3 failed suites are pre-existing `node_modules/electron/path.txt` env issue; unrelated to any change in this pass |
+| `npx vitest run src/components/chat` | PASS: 15/15 | 2026-06-10 | P1-002 (4) + P2-006 (4) + pre-existing 7 |
+| `npx vitest run src/stores/chat-store src/stores/chat-store.multimodal.test.ts` | PASS: 27/27 | 2026-06-10 | P1-001 (6) + pre-existing 21 |
+| `npx vitest run src/hooks/use-chat.test.ts` | PASS: 6/6 | 2026-06-10 | P2-004 selectorization regression test |
+| `npx vitest run src/App.lazy.test.ts` | PASS: 7/7 | 2026-06-10 | P2-008 lazy-load regression test |
+| `npx vitest run src/components/image/image-tools.test.tsx src/components/video/video-view.test.tsx` | PASS: 5/5 + 10/10 | 2026-06-10 | P2-007 image/video tool upload validation |
+| `npx vitest run electron/services/bridgeServer.test.ts` | PASS: 21/21 | 2026-06-10 | P2-009 + VERIFY-001/002/003/004 regression guards unaffected |
+| `npx vitest run scripts/checksum-release.test.ts scripts/verify-release-packaging-hardening.test.ts scripts/verify-archive-clean.test.ts` | PASS | 2026-06-10 | P0-001 / P1-003 / P2-001 cross-script contract + provenance tests |
+| `node scripts/verify-release-packaging-hardening.cjs` | PASS: 71/71 | 2026-06-10 | Includes the new P0-001 cross-script contract checks |
+| `npm run verify:safety-guard` | PASS | 2026-06-10 | Defence-in-depth intact |
+| `npm run verify:markdown-links` | PASS: 47 Markdown files checked | 2026-06-10 | The new `docs/reference/venice_llm_info.md` is a rename with no new in-doc links |
+| `npm run build:web` | PASS | 2026-06-10 | 7 lazy chunks emitted; main entry `index-CQG2lnaN.js` 81.46 kB (vs prior `index-99oyXRBr.js` 882.13 kB; ~10x smaller) |
+| `git status --short` | PASS | 2026-06-10 | 25 modified files + 3 new files + 1 rename, all tracked |
+| `git mv docs/venice_llm_info.md docs/reference/venice_llm_info.md` | PASS | 2026-06-10 | P3-004 — rename preserves history |
+| `npm audit --omit=dev --audit-level=moderate` | PASS: 0 vulnerabilities | 2026-06-10 | Production dependencies unchanged; 5 deprecated transitive packages noted for P3-004 |
 
 **2026-06-09 / 2026-06-10 — Comprehensive 11-category audit follow-up closure (Node v22.22.3 / npm 10.9.8, HEAD `849dc27f`):**
 

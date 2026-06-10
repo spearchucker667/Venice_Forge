@@ -9,6 +9,7 @@ import { cn, generateId } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
 import { useMediaStore } from '../../stores/media-store'
 import type { VideoQueueRequest, VideoConstraints } from '../../types/venice'
+import { isSupportedImageFile, readImageAttachment } from '../../services/attachmentService'
 
 export function VideoView() {
   const promptId = useId()
@@ -139,13 +140,18 @@ export function VideoView() {
     [groups],
   )
 
-  const handleImageUpload = (file: File) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      setImageUrl(reader.result as string)
-      setImageName(file.name)
+  const handleImageUpload = async (file: File) => {
+    if (!isSupportedImageFile(file)) {
+      toast.warn(`Unsupported image type: ${file.type || file.name}. Use PNG, JPEG, or WEBP.`)
+      return
     }
-    reader.readAsDataURL(file)
+    try {
+      const attachment = await readImageAttachment(file)
+      setImageUrl(attachment.content)
+      setImageName(file.name)
+    } catch (err) {
+      toast.error('Failed to read image', err instanceof Error ? err.message : String(err))
+    }
   }
 
   const handleGenerate = () => {

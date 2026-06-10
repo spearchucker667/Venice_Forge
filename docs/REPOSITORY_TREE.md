@@ -10,16 +10,15 @@ Express/Vite web development mode.
 > Studio implementation lives under `src/components/gallery/` (canonical id
 > `media`); the legacy `gallery` id is preserved as a tab-registry alias for
 > back-compat. All paths in this document are derived from `git ls-files` at
-> HEAD `0ac69be1` (628 tracked files). 11 files were added since the prior
-> regeneration at `c5fcb849` (618 files): 1 storage-policy doc, 2 verifier
-> scripts (`verify-network-boundaries.cjs`, `verify-storage-policy.cjs`), and
-> 8 test files (SettingsView, audio-view, chat-input, chat-view, shared UI,
-> workflow-node, chat-store, plus `veniceClient.sseParser.test.ts` from the
-> 2026-06-09 CI fix). The 2026-06-09 "remaining issues" pass also added
-> `src/hooks/use-data-storage-actions.ts` + `.test.ts` (extracted from
-> `SettingsView.tsx`, -191 net lines) and upgraded `concurrently` to 10.0.3
-> (transitive `shell-quote@1.8.4`; clears the 2 critical dev-only audit
-> findings).
+> HEAD `fca45fa6` (632 tracked files). The previous regeneration at
+> `0ac69be1` recorded 628 files; the +4 delta across commits
+> `6033253a`, `849dc27f`, `fca45fa6` is 1 doc report
+> (`docs/REPORTS/CI_FAILURE_AND_BUG_HUNT_2026_06_09.md`) and 3 source
+> files: `electron/services/veniceClient.sseParser.test.ts` (CI fix),
+> `src/hooks/use-data-storage-actions.{ts,test.ts}` (extracted from
+> `SettingsView.tsx`, -191 net lines). The 2026-06-09 "remaining issues"
+> pass also upgraded `concurrently` to 10.0.3 (transitive
+> `shell-quote@1.8.4`; clears the 2 critical dev-only audit findings).
 >
 > **Clean audit ZIP policy:** The `scripts/clean-repo-zip.sh` archive includes
 > tracked source, required static packaging assets (`build/icon.*`), and

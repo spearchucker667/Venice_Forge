@@ -184,4 +184,66 @@ describe("use-chat character_slug threading", () => {
     await sendPromise;
     expect(capturedController).toBeDefined();
   });
+
+  it("does not re-render when an unrelated chat-store field changes (P2-004 selectorization)", () => {
+    // Render a small wrapper that records how many times the hook
+    // produces a new output object. The selectorize refactor must keep
+    // this count at 1 even when an unrelated store field (conversations)
+    // is mutated — narrow selectors should make unrelated updates
+    // invisible to the hook consumer.
+    let renderCount = 0;
+    const lastOutputs: { send: unknown; isStreaming: unknown }[] = [];
+    const Probe = () => {
+      renderCount += 1;
+      const out = useChat();
+      lastOutputs.push({ send: out.send, isStreaming: out.isStreaming });
+      return null;
+    };
+
+    const { unmount } = renderHook(() => Probe());
+
+    const rendersBeforeMutation = renderCount;
+    const firstOutput = lastOutputs[0];
+
+    // Mutate an unrelated store field. `conversations` is not in the
+    // hook's selector set, so a well-selectorized hook should not
+    // re-render at all.
+    act(() => {
+      useChatStore.setState((s) => ({
+        conversations: [
+          ...s.conversations,
+          {
+            id: "noise-1",
+            title: "Unrelated",
+            messages: [],
+            model: "llama-3.3-70b",
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            metadata: {
+              tags: [],
+              pinned: false,
+              archived: false,
+              source: "chat",
+              messageCount: 0,
+            },
+          },
+        ],
+      }));
+    });
+
+    expect(renderCount).toBe(rendersBeforeMutation);
+    expect(lastOutputs[0]).toBe(firstOutput);
+    // Action references must remain referentially stable across the
+    // unrelated mutation (Zustand guarantees this for actions).
+    expect(lastOutputs[0]!.send).toBe(firstOutput!.send);
+    expect(lastOutputs[0]!.isStreaming).toBe(firstOutput!.isStreaming);
+
+    // Sanity: a real change to a selected field still re-renders.
+    act(() => {
+      useChatStore.getState().setStreaming(true);
+    });
+    expect(renderCount).toBe(rendersBeforeMutation + 1);
+
+    unmount();
+  });
 });

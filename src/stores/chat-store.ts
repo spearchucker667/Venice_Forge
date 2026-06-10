@@ -225,10 +225,14 @@ export const useChatStore = create<ChatState>()(
         set((s) => ({
           conversations: s.conversations.map((c) => {
             if (c.id !== conversationId) return c
+            const persistedContent: ConversationMessage['content'] =
+              typeof message.content === 'string'
+                ? message.content
+                : [...message.content]
             const persisted: ConversationMessage = {
               id: generateId(),
               role: message.role,
-              content: typeof message.content === 'string' ? message.content : '',
+              content: persistedContent,
               reasoning_content: message.reasoning_content,
               timestamp: Date.now(),
             }
@@ -237,12 +241,12 @@ export const useChatStore = create<ChatState>()(
               messages: [...(c.messages ?? []), persisted],
             }
             const updated = touchConversation(withMessage)
-            if (
-              message.role === 'user' &&
-              (c.messages?.length ?? 0) === 0 &&
-              typeof message.content === 'string'
-            ) {
-              updated.title = message.content.slice(0, 50) || 'New Chat'
+            if (message.role === 'user' && (c.messages?.length ?? 0) === 0) {
+              const titleSeed =
+                typeof message.content === 'string'
+                  ? message.content
+                  : message.content.find((p) => p.type === 'text' && p.text)?.text ?? ''
+              updated.title = titleSeed.slice(0, 50) || 'New Chat'
             }
             return updated
           }),

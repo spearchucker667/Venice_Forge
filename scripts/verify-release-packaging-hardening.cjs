@@ -179,6 +179,20 @@ if (pkg) {
   } else {
     pass(`package.json engines.node pins Node 22 (${nodeRange})`);
   }
+
+  // 4b. Canonical dist:<platform> scripts (P2-002 — release hygiene).
+  //
+  // The release workflow calls `npm run dist:<platform>`. If a future refactor
+  // drops one of these scripts, the release job will fail with a confusing
+  // "Missing script: dist:linux" error. The verifier must catch that here.
+  const expectedDistScripts = ["dist:mac", "dist:win", "dist:linux"];
+  for (const s of expectedDistScripts) {
+    if (typeof pkg.scripts?.[s] !== "string" || pkg.scripts[s].length === 0) {
+      fail(`package.json is missing the canonical "${s}" packaging script (P2-002)`);
+    } else {
+      pass(`package.json has canonical "${s}" packaging script`);
+    }
+  }
 }
 
 // 6. AGENTS.md has VERIFY-052
@@ -387,6 +401,95 @@ if (isGitWorktree) {
       fail("README.md does not reference any Phase 2J / release-readiness surface");
     } else {
       pass("README.md references release-readiness / verify:dist / verify:release-packaging-hardening");
+    }
+  }
+}
+
+// 13. Cross-script checksum/verifier contract (P0-001 / P2-001 regression guard).
+//
+// This catches the exact failure mode that slipped past 2026-06-09: the
+// release workflow packaged Linux artifacts, ran `checksum:release` (which
+// did not cover `.AppImage` / `.deb` / `.rpm`), then failed at
+// `verify:dist:linux` with "Missing checksum sidecar". The fix is to require
+// every artifact extension `verify-dist.cjs` demands a sidecar for to be
+// present in the `CHECKSUMMED_RELEASE_EXTENSIONS` allowlist exported by
+// `scripts/checksum-release.cjs`.
+{
+  const checksumPath = path.join(root, "scripts/checksum-release.cjs");
+  const verifyDistPath = path.join(root, "scripts/verify-dist.cjs");
+  const releaseYmlPath = path.join(root, ".github/workflows/release.yml");
+
+  if (!existsSync(checksumPath)) {
+    fail("scripts/checksum-release.cjs is missing (required for P0-001 contract check)");
+  } else if (!existsSync(verifyDistPath)) {
+    fail("scripts/verify-dist.cjs is missing (required for P0-001 contract check)");
+  } else {
+    const checksumSrc = readFileSync(checksumPath, "utf8");
+    const verifyDistSrc = readFileSync(verifyDistPath, "utf8");
+
+    // Extract the literal allowlist literal from checksum-release.cjs.
+    // The list is declared as a JS array literal beginning with `const
+    // CHECKSUMMED_RELEASE_EXTENSIONS = [` or equivalent.
+    const checksumListMatch = checksumSrc.match(
+      /CHECKSUMMED_RELEASE_EXTENSIONS\s*=\s*\[([\s\S]*?)\]/,
+    );
+    if (!checksumListMatch) {
+      fail(
+        "scripts/checksum-release.cjs must export a CHECKSUMMED_RELEASE_EXTENSIONS array literal " +
+          "so this verifier can read it (P0-001 contract check).",
+      );
+    } else {
+      const checksumExts = Array.from(
+        checksumListMatch[1].matchAll(/["']([^"']+)["']/g),
+      ).map((m) => m[1]);
+
+      // Every Linux extension in verify-dist's `expectedExtensions = [...]`
+      // must be in the checksum allowlist.
+      const linuxExtMatch = verifyDistSrc.match(/expectedExtensions\s*=\s*\[([^\]]+)\]/);
+      if (linuxExtMatch) {
+        const linuxExts = Array.from(linuxExtMatch[1].matchAll(/["']([^"']+)["']/g)).map((m) => m[1]);
+        for (const ext of linuxExts) {
+          if (!checksumExts.includes(ext)) {
+            fail(
+              `P0-001 contract: scripts/verify-dist.cjs expects ${ext} artifacts in release/ but ` +
+                `scripts/checksum-release.cjs does not include ${ext} in CHECKSUMMED_RELEASE_EXTENSIONS. ` +
+                `The release workflow will fail at \`verify:dist:linux\` with "Missing checksum sidecar".`,
+            );
+          } else {
+            pass(`P0-001 contract: checksum-release.cjs covers verify-dist Linux extension ${ext}`);
+          }
+        }
+      } else {
+        pass(
+          "scripts/verify-dist.cjs has no explicit Linux expectedExtensions literal (skipping P0-001 Linux check)",
+        );
+      }
+
+      // If the release workflow runs Linux packaging or verify:dist:linux,
+      // the checksum script must at minimum cover the canonical Linux triple.
+      if (existsSync(releaseYmlPath)) {
+        const release = readFileSync(releaseYmlPath, "utf8");
+        const workflowRunsLinux = /--linux\b/.test(release) || /verify:dist:linux/.test(release);
+        if (workflowRunsLinux) {
+          for (const required of [".AppImage", ".deb", ".rpm"]) {
+            if (!checksumExts.includes(required)) {
+              fail(
+                `P0-001 contract: .github/workflows/release.yml runs Linux packaging or ` +
+                  `verify:dist:linux, but scripts/checksum-release.cjs is missing ${required} ` +
+                  `in CHECKSUMMED_RELEASE_EXTENSIONS.`,
+              );
+            } else {
+              pass(
+                `P0-001 contract: .github/workflows/release.yml Linux path is checksummed for ${required}`,
+              );
+            }
+          }
+        } else {
+          pass(
+            ".github/workflows/release.yml does not run --linux / verify:dist:linux (P0-001 Linux contract not required)",
+          );
+        }
+      }
     }
   }
 }

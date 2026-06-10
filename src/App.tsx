@@ -17,19 +17,20 @@ import { MusicView } from './components/music/music-view'
 import { VideoView } from './components/video/video-view'
 import { EmbeddingsView } from './components/embeddings/embeddings-view'
 import { StatusView } from './components/StatusView'
-import { SettingsView } from './components/SettingsView'
-import { SearchScrapeView } from './components/SearchScrapeView'
 import { CharactersView } from './components/CharactersView'
-import { MediaStudioView } from './components/gallery/gallery-view'
-import { PromptLibraryView } from './components/prompts/PromptLibraryView'
-import { SceneComposerView } from './components/scenes/SceneComposerView'
-import { StoragePrivacyDashboard } from './components/privacy/StoragePrivacyDashboard'
 import { ErrorBoundary } from './components/ui/error-boundary'
 import { Toaster } from './components/ui/toaster'
 import { FIRST_RUN_ACK_KEY } from './shared/legal'
 import { applyTheme, resolveInitialTheme } from './theme'
 import { CANONICAL_TAB_ORDER, normaliseTab, type TabId } from './config/tabs'
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion'
+
+// Heavyweight views are dynamically imported so the initial renderer bundle
+// does not pay for Settings (956 lines), Media Studio (936 lines), Search &
+// Scrape (789 lines), Scene Composer (768), Prompt Library (686), or the
+// Storage / Privacy dashboard (249) until the user actually navigates to
+// them. Each lazy wrapper preserves the existing React.lazy / Suspense
+// fallback contract used by Workflows / Playground / RP Studio (P2-008).
 
 const LazyWorkflowsView = lazy(() => import('./components/workflows/workflows-view').then((m) => ({ default: m.WorkflowsView })))
 function WorkflowsView() {
@@ -44,6 +45,36 @@ function PlaygroundView() {
 const LazyRpStudioView = lazy(() => import('./components/rp-studio').then((m) => ({ default: m.RpStudioView })))
 function RpStudioViewLazy() {
   return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading RP studio…</div>}><LazyRpStudioView /></Suspense>
+}
+
+const LazySettingsView = lazy(() => import('./components/SettingsView').then((m) => ({ default: m.SettingsView })))
+function SettingsView() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading settings…</div>}><LazySettingsView /></Suspense>
+}
+
+const LazySearchScrapeView = lazy(() => import('./components/SearchScrapeView').then((m) => ({ default: m.SearchScrapeView })))
+function SearchScrapeView() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading search…</div>}><LazySearchScrapeView /></Suspense>
+}
+
+const LazyMediaStudioView = lazy(() => import('./components/gallery/gallery-view').then((m) => ({ default: m.MediaStudioView })))
+function MediaStudioView() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading media studio…</div>}><LazyMediaStudioView /></Suspense>
+}
+
+const LazyPromptLibraryView = lazy(() => import('./components/prompts/PromptLibraryView').then((m) => ({ default: m.PromptLibraryView })))
+function PromptLibraryView() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading prompt library…</div>}><LazyPromptLibraryView /></Suspense>
+}
+
+const LazySceneComposerView = lazy(() => import('./components/scenes/SceneComposerView').then((m) => ({ default: m.SceneComposerView })))
+function SceneComposerView() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading scenes…</div>}><LazySceneComposerView /></Suspense>
+}
+
+const LazyStoragePrivacyDashboard = lazy(() => import('./components/privacy/StoragePrivacyDashboard').then((m) => ({ default: m.StoragePrivacyDashboard })))
+function StoragePrivacyDashboard() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading storage…</div>}><LazyStoragePrivacyDashboard /></Suspense>
 }
 
 const views: Record<TabId, React.ComponentType> = {

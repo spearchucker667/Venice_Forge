@@ -115,6 +115,11 @@ const config = {
     ],
     icon: "build/icon.png",
     category: "Utility",
+    // Maintainer is required for .deb/.rpm packages because the
+    // package.json `author` field is a string, not an object with email.
+    // Without this, electron-builder aborts on the FpmTarget step.
+    maintainer: "Venice Forge contributors <venice-forge@localhost.invalid>",
+    vendor: "Venice Forge contributors",
     // artifactName helps with consistent naming across arches.
     artifactName: "Venice-Forge-${version}-${arch}.${ext}",
   },

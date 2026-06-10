@@ -5,12 +5,13 @@ import type {
   ConversationSource,
   MemoryFact,
 } from "./conversationVault";
+import type { ContentPart } from "./venice";
 
 /** A single message within a conversation. */
 export interface ConversationMessage {
   id: string;
   role: "system" | "user" | "assistant" | "tool";
-  content: string;
+  content: string | ContentPart[];
   reasoning_content?: string;
   timestamp: number;
   metadata?: {

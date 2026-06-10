@@ -11,11 +11,52 @@ import { isValidBridgeHost } from "../utils/bridgeHost";
 const BRIDGE_BODY_LIMIT = "10mb";
 const BRIDGE_REQUEST_TIMEOUT_MS = 5 * 60 * 1000;
 
+/** Minimum length for an env-supplied bridge bearer token (P2-009). The
+ *  generated token is `crypto.randomBytes(32).toString("hex")` = 64 hex
+ *  chars, so this is well below that ceiling. Catches short or accidental
+ *  test tokens like "abc" or "dev" that would otherwise be accepted as
+ *  the only credential guarding /chat/completions. */
+const MIN_BRIDGE_TOKEN_LENGTH = 32;
+
+/** Minimum number of distinct characters in an env-supplied token. A
+ *  brute-force attacker can guess "aaaaaaaaaaaaaaaaaaaaaaaaaaaa" in a
+ *  fraction of a millisecond; this guard rejects such all-same tokens
+ *  even if they meet the length floor. */
+const MIN_BRIDGE_TOKEN_DISTINCT_CHARS = 8;
+
 let serverInstance: Server | null = null;
 let bridgeToken: string = "";
 
 export function getBridgeToken(): string {
   return bridgeToken;
+}
+
+/** Validates that an env-supplied bridge token has enough entropy to be
+ *  used as the sole credential for the loopback bridge. P2-009 closes
+ *  the "operator sets VENICE_BRIDGE_TOKEN=abc and forgets" gap.
+ *
+ *  Rules:
+ *  1. At least `MIN_BRIDGE_TOKEN_LENGTH` characters.
+ *  2. At least `MIN_BRIDGE_TOKEN_DISTINCT_CHARS` distinct characters.
+ *     Rejects "aaaaaaaa…" / "11111111…" / "12341234…" (periodic low-entropy).
+ *  3. Not all whitespace.
+ *
+ *  Returns a human-readable failure reason or null when the token is OK. */
+export function validateBridgeTokenStrength(token: string): string | null {
+  if (typeof token !== "string") {
+    return "bridge token must be a string";
+  }
+  if (token.length < MIN_BRIDGE_TOKEN_LENGTH) {
+    return `bridge token is too short (${token.length} < ${MIN_BRIDGE_TOKEN_LENGTH} chars)`;
+  }
+  if (token.trim().length === 0) {
+    return "bridge token is empty or whitespace";
+  }
+  const distinct = new Set(token);
+  if (distinct.size < MIN_BRIDGE_TOKEN_DISTINCT_CHARS) {
+    return `bridge token has insufficient entropy (${distinct.size} distinct chars < ${MIN_BRIDGE_TOKEN_DISTINCT_CHARS})`;
+  }
+  return null;
 }
 
 /** Constant-time comparison of two bearer tokens.
@@ -58,8 +99,27 @@ export function startBridgeServer(
       return;
     }
 
-    // Load or generate authentication token
-    bridgeToken = process.env.VENICE_BRIDGE_TOKEN || crypto.randomBytes(32).toString("hex");
+    // Load or generate authentication token. If the operator supplied one
+    // via VENICE_BRIDGE_TOKEN, validate its strength (P2-009) before
+    // trusting it — a short or all-same token is the only credential
+    // guarding /chat/completions etc. On validation failure we warn and
+    // fall back to a freshly generated 32-byte hex token rather than
+    // refusing to start; the alternative is a hard crash that operators
+    // could accidentally bypass by setting an even weaker token in a
+    // panic.
+    const envToken = process.env.VENICE_BRIDGE_TOKEN;
+    if (envToken) {
+      const strengthError = validateBridgeTokenStrength(envToken);
+      if (strengthError) {
+        logError("VENICE_BRIDGE_TOKEN rejected by strength check; falling back to a generated token", strengthError);
+        console.warn(`[Bridge Server] VENICE_BRIDGE_TOKEN rejected: ${strengthError}. Generating a fresh token.`);
+        bridgeToken = crypto.randomBytes(32).toString("hex");
+      } else {
+        bridgeToken = envToken;
+      }
+    } else {
+      bridgeToken = crypto.randomBytes(32).toString("hex");
+    }
 
     const app = express();
     // SECURITY: cap the JSON body to prevent OOM via a single huge payload.

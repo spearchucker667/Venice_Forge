@@ -285,7 +285,16 @@ echo "==> Writing metadata..."
   echo "Script provenance"
   echo "-----------------"
   echo "script_version=$SCRIPT_VERSION"
-  echo "script_path=$SCRIPT_ABS_PATH"
+  # PRIVACY: script_path leaks the absolute filesystem path of the script
+  # on the build machine (e.g. /Users/<u>/Projects/.../scripts/clean-repo-zip.sh).
+  # The script_name (basename) is safe to share with auditors / external reviewers
+  # and is sufficient to identify the script that produced the extract.
+  if [[ "${INCLUDE_PRIVATE_AUDIT_METADATA:-0}" == "1" ]]; then
+    echo "script_path=$SCRIPT_ABS_PATH"
+  else
+    echo "script_name=$(basename "$SCRIPT_ABS_PATH")"
+    echo "script_path=omitted (set INCLUDE_PRIVATE_AUDIT_METADATA=1 to include absolute path)"
+  fi
   echo "script_sha256=$SCRIPT_SHA256"
   if command -v git >/dev/null 2>&1 && git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     script_status="$(git -C "$REPO_ROOT" status --short -- "scripts/clean-repo-zip.sh" 2>/dev/null || true)"

@@ -604,7 +604,12 @@ function conversationToMarkdown(conv: Conversation): string {
   const lines: string[] = [`# ${conv.title}`, '', `_Model: ${conv.model} · Created: ${new Date(conv.createdAt).toISOString()}_`, '']
   for (const m of conv.messages) {
     lines.push(`## ${m.role === 'user' ? 'You' : m.role === 'assistant' ? 'Assistant' : 'System'}`)
-    lines.push(m.content)
+    const text = typeof m.content === 'string'
+      ? m.content
+      : m.content
+          .map((p) => (p.type === 'text' && p.text ? p.text : `[${p.type}]`))
+          .join('\n')
+    lines.push(text)
     lines.push('')
   }
   return lines.join('\n')

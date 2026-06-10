@@ -5,20 +5,42 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { ChatInput } from "./chat-input";
 
-class MockFileReader {
-  result: string | ArrayBuffer | null = null;
-  onload: (() => void) | null = null;
-  readAsDataURL(_file: Blob) {
-    this.result = "data:image/png;base64,mock";
-    queueMicrotask(() => {
-      if (this.onload) this.onload();
-    });
-  }
-}
+vi.mock("../../services/attachmentService", () => ({
+  isSupportedImageFile: vi.fn((file: File) => file.type === "image/png" || file.type === "image/jpeg" || file.type === "image/webp"),
+  readImageAttachment: vi.fn(async (file: File) => ({
+    id: "mock-id",
+    type: "image" as const,
+    name: file.name,
+    content: `data:${file.type};base64,mock`,
+    size: 1,
+  })),
+}));
+
+vi.mock("../../stores/toast-store", () => ({
+  toast: { warn: vi.fn(), error: vi.fn(), success: vi.fn(), info: vi.fn() },
+}));
+
+import { isSupportedImageFile, readImageAttachment } from "../../services/attachmentService";
+import { toast } from "../../stores/toast-store";
+
+const mockIsSupportedImageFile = vi.mocked(isSupportedImageFile);
+const mockReadImageAttachment = vi.mocked(readImageAttachment);
+const mockToastWarn = vi.mocked(toast.warn);
+const mockToastError = vi.mocked(toast.error);
 
 describe("ChatInput", () => {
   beforeEach(() => {
-    Object.assign(globalThis, { FileReader: MockFileReader });
+    vi.clearAllMocks();
+    mockIsSupportedImageFile.mockImplementation(
+      (file: File) => file.type === "image/png" || file.type === "image/jpeg" || file.type === "image/webp",
+    );
+    mockReadImageAttachment.mockImplementation(async (file: File) => ({
+      id: "mock-id",
+      type: "image" as const,
+      name: file.name,
+      content: `data:${file.type};base64,mock`,
+      size: 1,
+    }));
   });
 
   it("renders a disabled textarea and send button when disabled", () => {
@@ -93,11 +115,138 @@ describe("ChatInput", () => {
     await userEvent.upload(fileInput, file);
 
     await waitFor(() => expect(screen.getByAltText("Attachment 1")).toBeInTheDocument());
+    expect(mockReadImageAttachment).toHaveBeenCalledWith(file);
 
     const input = screen.getByLabelText("Message input");
     await userEvent.type(input, "Look at this");
     await userEvent.keyboard("{Enter}");
 
     expect(onSend).toHaveBeenCalledWith("Look at this", ["data:image/png;base64,mock"]);
+  });
+
+  it("enables the send button when only an image is attached (no text)", async () => {
+    const onSend = vi.fn();
+    render(<ChatInput onSend={onSend} onStop={vi.fn()} isStreaming={false} />);
+
+    const file = new File(["dummy"], "test.png", { type: "image/png" });
+    const fileInput = screen.getByLabelText("Message input").parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
+
+    expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
+
+    await userEvent.upload(fileInput, file);
+
+    await waitFor(() => expect(screen.getByAltText("Attachment 1")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Send message" })).toBeEnabled();
+  });
+
+  it("submits an image-only turn with empty text via Enter", async () => {
+    const onSend = vi.fn();
+    render(<ChatInput onSend={onSend} onStop={vi.fn()} isStreaming={false} />);
+
+    const file = new File(["dummy"], "test.png", { type: "image/png" });
+    const fileInput = screen.getByLabelText("Message input").parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
+
+    await userEvent.upload(fileInput, file);
+    await waitFor(() => expect(screen.getByAltText("Attachment 1")).toBeInTheDocument());
+
+    const input = screen.getByLabelText("Message input");
+    await userEvent.click(input);
+    await userEvent.keyboard("{Enter}");
+
+    expect(onSend).toHaveBeenCalledWith("", ["data:image/png;base64,mock"]);
+    expect(input).toHaveValue("");
+  });
+
+  it("clears attached images after a successful submit", async () => {
+    const onSend = vi.fn();
+    render(<ChatInput onSend={onSend} onStop={vi.fn()} isStreaming={false} />);
+
+    const file = new File(["dummy"], "test.png", { type: "image/png" });
+    const fileInput = screen.getByLabelText("Message input").parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
+    await userEvent.upload(fileInput, file);
+    await waitFor(() => expect(screen.getByAltText("Attachment 1")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    await waitFor(() => expect(screen.queryByAltText("Attachment 1")).not.toBeInTheDocument());
+    expect(onSend).toHaveBeenCalledWith("", ["data:image/png;base64,mock"]);
+  });
+
+  it("does not submit when no text and no images are present (regression guard)", async () => {
+    const onSend = vi.fn();
+    render(<ChatInput onSend={onSend} onStop={vi.fn()} isStreaming={false} />);
+
+    const input = screen.getByLabelText("Message input");
+    await userEvent.click(input);
+    await userEvent.keyboard("{Enter}");
+
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it("routes image uploads through attachmentService.readImageAttachment (P1-002)", async () => {
+    const onSend = vi.fn();
+    render(<ChatInput onSend={onSend} onStop={vi.fn()} isStreaming={false} />);
+
+    const file = new File(["hello"], "photo.jpg", { type: "image/jpeg" });
+    const fileInput = screen.getByLabelText("Message input").parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
+
+    await userEvent.upload(fileInput, file);
+
+    await waitFor(() => expect(screen.getByAltText("Attachment 1")).toBeInTheDocument());
+    expect(mockIsSupportedImageFile).toHaveBeenCalledWith(file);
+    expect(mockReadImageAttachment).toHaveBeenCalledWith(file);
+  });
+
+  it("warns and skips an unsupported image MIME type instead of crashing", async () => {
+    const onSend = vi.fn();
+    mockIsSupportedImageFile.mockReturnValue(false);
+    render(<ChatInput onSend={onSend} onStop={vi.fn()} isStreaming={false} />);
+
+    const file = new File(["dummy"], "photo.bmp", { type: "image/bmp" });
+    const fileInput = screen.getByLabelText("Message input").parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
+
+    await userEvent.upload(fileInput, file);
+
+    await waitFor(() => expect(mockToastWarn).toHaveBeenCalledWith(
+      "Unsupported image",
+      expect.stringContaining("photo.bmp"),
+    ));
+    expect(mockReadImageAttachment).not.toHaveBeenCalled();
+    expect(screen.queryByAltText("Attachment 1")).not.toBeInTheDocument();
+  });
+
+  it("surfaces a toast error when readImageAttachment throws", async () => {
+    const onSend = vi.fn();
+    mockReadImageAttachment.mockRejectedValueOnce(new Error("decode failure"));
+    render(<ChatInput onSend={onSend} onStop={vi.fn()} isStreaming={false} />);
+
+    const file = new File(["dummy"], "broken.png", { type: "image/png" });
+    const fileInput = screen.getByLabelText("Message input").parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
+
+    await userEvent.upload(fileInput, file);
+
+    await waitFor(() => expect(mockToastError).toHaveBeenCalledWith(
+      "Image attachment failed",
+      expect.stringContaining("decode failure"),
+    ));
+    expect(screen.queryByAltText("Attachment 1")).not.toBeInTheDocument();
+  });
+
+  it("uses the attachmentService pipeline for pasted images, not the raw FileReader", async () => {
+    const onSend = vi.fn();
+    render(<ChatInput onSend={onSend} onStop={vi.fn()} isStreaming={false} />);
+
+    const file = new File(["pasted"], "paste.png", { type: "image/png" });
+    const clipboardData = {
+      items: [
+        { type: "image/png", getAsFile: () => file },
+      ],
+    };
+
+    const input = screen.getByLabelText("Message input") as HTMLTextAreaElement;
+    fireEvent.paste(input, { clipboardData });
+
+    await waitFor(() => expect(screen.getByAltText("Attachment 1")).toBeInTheDocument());
+    expect(mockReadImageAttachment).toHaveBeenCalledWith(file);
   });
 });

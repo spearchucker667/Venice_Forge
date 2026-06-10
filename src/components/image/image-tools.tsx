@@ -10,6 +10,7 @@ import { useMediaStore } from '../../stores/media-store'
 import { blobToDataUrl } from '../../utils/image'
 import type { MediaOperation } from '../../types/media'
 import { useImageWorkspaceStore } from '../../stores/image-workspace-store'
+import { isSupportedImageFile, readImageAttachment } from '../../services/attachmentService'
 
 type Tool = 'edit' | 'upscale' | 'remove-bg'
 
@@ -69,15 +70,20 @@ export function ImageTools() {
     useImageWorkspaceStore.getState().consume(pendingHandoff.id)
   }, [pendingHandoff, resetResult])
 
-  const handleFileSelect = (file: File) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      setImageData(reader.result as string)
+  const handleFileSelect = async (file: File) => {
+    if (!isSupportedImageFile(file)) {
+      toast.warn(`Unsupported image type: ${file.type || file.name}. Use PNG, JPEG, or WEBP.`)
+      return
+    }
+    try {
+      const attachment = await readImageAttachment(file)
+      setImageData(attachment.content)
       setImageName(file.name)
       setParentId(null)
       resetResult()
+    } catch (err) {
+      toast.error('Failed to read image', err instanceof Error ? err.message : String(err))
     }
-    reader.readAsDataURL(file)
   }
 
   const handleProcess = () => {

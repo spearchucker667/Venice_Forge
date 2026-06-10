@@ -26,20 +26,20 @@ function resolveCharacterSlug(conv: Conversation | undefined): string | null {
 
 export function useChat() {
   const abortRef = useRef<AbortController | null>(null)
-  const {
-    addMessage,
-    appendToLastAssistant,
-    appendReasoningToLastAssistant,
-    deleteMessage,
-    setStreaming,
-    isStreaming,
-    veniceParams,
-    systemPrompt,
-    temperature,
-    topP,
-    maxTokens,
-    createConversation,
-  } = useChatStore()
+  const addMessage = useChatStore((s) => s.addMessage)
+  const appendToLastAssistant = useChatStore((s) => s.appendToLastAssistant)
+  const appendReasoningToLastAssistant = useChatStore(
+    (s) => s.appendReasoningToLastAssistant,
+  )
+  const deleteMessage = useChatStore((s) => s.deleteMessage)
+  const setStreaming = useChatStore((s) => s.setStreaming)
+  const isStreaming = useChatStore((s) => s.isStreaming)
+  const veniceParams = useChatStore((s) => s.veniceParams)
+  const systemPrompt = useChatStore((s) => s.systemPrompt)
+  const temperature = useChatStore((s) => s.temperature)
+  const topP = useChatStore((s) => s.topP)
+  const maxTokens = useChatStore((s) => s.maxTokens)
+  const createConversation = useChatStore((s) => s.createConversation)
 
   const streamResponse = useCallback(
     async (convId: string, model: string, abortController: AbortController) => {

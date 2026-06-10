@@ -29,29 +29,33 @@ vi.mock('../../stores/auth-store', () => ({
   useAuthStore: (selector: (s: { apiKey: string | null; isConfigured: boolean }) => unknown) => selector({ apiKey: 'test-key', isConfigured: true }),
 }))
 
-// jsdom does not provide a working FileReader. Patch it so onload fires
-// immediately with a synthetic data URL when readAsDataURL is called.
-class FakeFileReader {
-  public result: string | ArrayBuffer | null = null
-  public onload: ((ev: ProgressEvent) => void) | null = null
-  public onerror: ((ev: ProgressEvent) => void) | null = null
-  readAsDataURL(blob: Blob) {
-    void blob
-    this.result = 'data:image/png;base64,FAKE'
-    queueMicrotask(() => this.onload?.(new ProgressEvent('load')))
-  }
-  readAsText() {
-    queueMicrotask(() => this.onload?.(new ProgressEvent('load')))
-  }
-}
-// @ts-expect-error — test stub
-globalThis.FileReader = FakeFileReader
+vi.mock('../../services/attachmentService', () => ({
+  isSupportedImageFile: vi.fn((file: File) => file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/webp'),
+  readImageAttachment: vi.fn(async (file: File) => ({
+    id: 'mock-id',
+    type: 'image' as const,
+    name: file.name,
+    content: `data:${file.type};base64,FAKE`,
+    size: 1,
+  })),
+}))
+
+vi.mock('../../stores/toast-store', () => ({
+  toast: { warn: vi.fn(), error: vi.fn(), success: vi.fn(), info: vi.fn(), fromError: vi.fn() },
+}))
 
 import StorageService from '../../services/storageService'
 import { useMediaStore } from '../../stores/media-store'
 import { ImageTools } from './image-tools'
 import { useImageWorkspaceStore } from '../../stores/image-workspace-store'
+import { isSupportedImageFile, readImageAttachment } from '../../services/attachmentService'
+import { toast } from '../../stores/toast-store'
 import type { MediaItem } from '../../types/media'
+
+const mockIsSupportedImageFile = vi.mocked(isSupportedImageFile)
+const mockReadImageAttachment = vi.mocked(readImageAttachment)
+const mockToastWarn = vi.mocked(toast.warn)
+const mockToastError = vi.mocked(toast.error)
 
 describe('ImageTools → Media Studio wiring (P3 regression guard)', () => {
   beforeEach(() => {
@@ -69,6 +73,16 @@ describe('ImageTools → Media Studio wiring (P3 regression guard)', () => {
       if (!existing) throw new Error('not found')
       return { ...existing, ...patch, id } as MediaItem
     })
+    mockIsSupportedImageFile.mockImplementation(
+      (file: File) => file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/webp',
+    )
+    mockReadImageAttachment.mockImplementation(async (file: File) => ({
+      id: 'mock-id',
+      type: 'image' as const,
+      name: file.name,
+      content: `data:${file.type};base64,FAKE`,
+      size: 1,
+    }))
   })
 
   // VERIFY-020 regression guard: edit/upscale/background-remove result MUST be
@@ -179,5 +193,64 @@ describe('ImageTools → Media Studio wiring (P3 regression guard)', () => {
       expect(child).toMatchObject({ operation: 'upscale', parentId: parent.id })
       expect(useMediaStore.getState().byId(parent.id)?.childrenIds).toEqual([child?.id])
     })
+  })
+
+  // P2-007: image-tools source-image upload MUST go through the
+  // attachmentService pipeline (MIME validation, size cap, downscale)
+  // instead of the raw FileReader.readAsDataURL fallback.
+  it('routes image-tools source uploads through attachmentService.readImageAttachment (P2-007)', async () => {
+    render(<ImageTools />)
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+    const fakeFile = new File(['a'], 'source.png', { type: 'image/png' })
+    Object.defineProperty(fileInput, 'files', { value: [fakeFile], configurable: true })
+
+    await act(async () => {
+      fireEvent.change(fileInput)
+    })
+
+    expect(mockReadImageAttachment).toHaveBeenCalledWith(fakeFile)
+    await waitFor(() => {
+      expect(screen.getByText('source.png')).toBeInTheDocument()
+    })
+    // The synthetic data URL produced by the mock is what becomes the source.
+    const img = screen.getByAltText('Source') as HTMLImageElement
+    expect(img.src).toBe('data:image/png;base64,FAKE')
+  })
+
+  it('warns and skips an unsupported image MIME type instead of crashing (P2-007)', async () => {
+    render(<ImageTools />)
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+    const bmpFile = new File(['a'], 'source.bmp', { type: 'image/bmp' })
+    Object.defineProperty(fileInput, 'files', { value: [bmpFile], configurable: true })
+
+    await act(async () => {
+      fireEvent.change(fileInput)
+    })
+
+    expect(mockIsSupportedImageFile).toHaveBeenCalledWith(bmpFile)
+    expect(mockReadImageAttachment).not.toHaveBeenCalled()
+    expect(mockToastWarn).toHaveBeenCalledWith(expect.stringContaining('Unsupported image type'))
+    // No image rendered because the file was rejected.
+    expect(screen.queryByAltText('Source')).toBeNull()
+  })
+
+  it('surfaces a toast error when readImageAttachment throws (P2-007)', async () => {
+    mockReadImageAttachment.mockRejectedValueOnce(new Error('Downscale failed'))
+    render(<ImageTools />)
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+    const fakeFile = new File(['a'], 'huge.png', { type: 'image/png' })
+    Object.defineProperty(fileInput, 'files', { value: [fakeFile], configurable: true })
+
+    await act(async () => {
+      fireEvent.change(fileInput)
+    })
+
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalledWith('Failed to read image', 'Downscale failed')
+    })
+    expect(screen.queryByAltText('Source')).toBeNull()
   })
 })

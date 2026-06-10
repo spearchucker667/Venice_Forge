@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '../../lib/utils'
+import { isSupportedImageFile, readImageAttachment } from '../../services/attachmentService'
+import { toast } from '../../stores/toast-store'
 
 interface ChatInputProps {
   onSend: (message: string, images?: string[]) => void
@@ -20,7 +22,8 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
 
   const handleSubmit = () => {
     const trimmed = value.trim()
-    if (!trimmed || disabled) return
+    if (disabled) return
+    if (!trimmed && images.length === 0) return
     onSend(trimmed, images.length > 0 ? images : undefined)
     setValue('')
     setImages([])
@@ -32,13 +35,27 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
     ? 'Selected model does not support image attachments'
     : 'Attach image (or drag/paste)'
 
-  const handleImageUpload = (files: FileList | null) => {
+  const handleImageUpload = async (files: FileList | File[] | null) => {
     if (!files) return
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader()
-      reader.onload = () => setImages((prev) => [...prev, reader.result as string])
-      reader.readAsDataURL(file)
-    })
+    const list = Array.from(files)
+    for (const file of list) {
+      if (!isSupportedImageFile(file)) {
+        toast.warn(
+          'Unsupported image',
+          `"${file.name}" is not a supported image. Use PNG, JPEG, or WEBP.`,
+        )
+        continue
+      }
+      try {
+        const attachment = await readImageAttachment(file)
+        setImages((prev) => [...prev, attachment.content])
+      } catch (err) {
+        toast.error(
+          'Image attachment failed',
+          err instanceof Error ? err.message : `Could not read "${file.name}".`,
+        )
+      }
+    }
   }
 
   return (
@@ -87,18 +104,18 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
               if (disableImageAttach) return
               const items = e.clipboardData?.items
               if (!items) return
+              const files: File[] = []
               for (const item of items) {
                 if (item.type.startsWith('image/')) {
                   const file = item.getAsFile()
-                  if (file) {
-                    const reader = new FileReader()
-                    reader.onload = () => setImages((prev) => [...prev, reader.result as string])
-                    reader.readAsDataURL(file)
-                  }
+                  if (file) files.push(file)
                 }
               }
+              if (files.length > 0) {
+                void handleImageUpload(files)
+              }
             }}
-            placeholder={disabled ? 'Connect an API key to start…' : dragOver ? 'Drop image to attach' : 'Ask anything — Enter to send, Shift+Enter for newline'}
+            placeholder={disabled ? 'Connect an API key to start…' : dragOver ? 'Drop image to attach' : 'Ask anything — Enter to send, Shift+Enter for newline. Attach an image to send without text.'}
             rows={1}
             aria-label="Message input"
             className="w-full bg-transparent px-5 pt-4 pb-1 text-[16px] text-white outline-none resize-none max-h-48 placeholder:text-white/30 leading-relaxed"
@@ -131,11 +148,11 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
             ) : (
               <button
                 onClick={handleSubmit}
-                disabled={!value.trim() || disabled}
+                disabled={(!value.trim() && images.length === 0) || disabled}
                 aria-label="Send message"
                 className={cn(
                   'w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2',
-                  value.trim() && !disabled
+                  (value.trim() || images.length > 0) && !disabled
                     ? 'bg-white text-black hover:bg-white/95 active:scale-95 shadow-sm'
                     : 'bg-white/[0.06] text-white/25',
                 )}

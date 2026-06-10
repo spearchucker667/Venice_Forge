@@ -215,7 +215,7 @@ jobs:
         run: npm run build
 
       - name: Package Linux artifacts
-        run: npx electron-builder --config electron-builder.config.cjs --linux --publish never
+        run: npm run dist:linux
 
       - name: Generate SHA-256 checksums
         run: npm run checksum:release

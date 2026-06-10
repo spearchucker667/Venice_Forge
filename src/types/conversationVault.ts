@@ -1,5 +1,7 @@
 /** @fileoverview Shared type definitions for the Venice Forge Encrypted Conversation Vault. */
 
+import type { ContentPart } from "./venice";
+
 export type ConversationSource =
   | "chat"
   | "playground"
@@ -34,7 +36,7 @@ export interface ConversationCharacterMeta {
 export interface ConversationMessage {
   id: string;
   role: ConversationRole;
-  content: string;
+  content: string | ContentPart[];
   reasoning_content?: string;
   timestamp: number;
   metadata?: {

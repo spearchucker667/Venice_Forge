@@ -357,3 +357,94 @@ describe("bridgeServer", () => {
     await startBridgeServer(port, host);
   });
 });
+
+describe("validateBridgeTokenStrength (P2-009)", () => {
+  it("imports the validator from bridgeServer", async () => {
+    const { validateBridgeTokenStrength } = await import("./bridgeServer");
+    expect(typeof validateBridgeTokenStrength).toBe("function");
+  });
+
+  it("accepts a canonical 32-byte hex token (the generated default)", async () => {
+    const { validateBridgeTokenStrength } = await import("./bridgeServer");
+    // 64-char hex string with 16 distinct chars (0-9, a-f). Mirrors
+    // the actual output of crypto.randomBytes(32).toString("hex").
+    const ok = "0123456789abcdef".repeat(4);
+    expect(ok.length).toBe(64);
+    expect(validateBridgeTokenStrength(ok)).toBeNull();
+  });
+
+  it("rejects a too-short env-supplied token", async () => {
+    const { validateBridgeTokenStrength } = await import("./bridgeServer");
+    expect(validateBridgeTokenStrength("abc")).toMatch(/too short/);
+    expect(validateBridgeTokenStrength("dev")).toMatch(/too short/);
+  });
+
+  it("rejects a token made entirely of one repeated character (low entropy)", async () => {
+    const { validateBridgeTokenStrength } = await import("./bridgeServer");
+    const weak = "a".repeat(64);
+    expect(validateBridgeTokenStrength(weak)).toMatch(/insufficient entropy/);
+  });
+
+  it("rejects a periodic low-entropy token (e.g. 12abc repeating)", async () => {
+    const { validateBridgeTokenStrength } = await import("./bridgeServer");
+    const weak = "12abc".repeat(13); // 65 chars, but only 4 distinct chars
+    expect(validateBridgeTokenStrength(weak)).toMatch(/insufficient entropy/);
+  });
+
+  it("rejects an all-whitespace token", async () => {
+    const { validateBridgeTokenStrength } = await import("./bridgeServer");
+    expect(validateBridgeTokenStrength(" ".repeat(64))).toMatch(/whitespace/);
+  });
+
+  it("rejects a non-string input", async () => {
+    const { validateBridgeTokenStrength } = await import("./bridgeServer");
+    // @ts-expect-error — intentionally passing a bad type to test the runtime guard.
+    expect(validateBridgeTokenStrength(12345)).toMatch(/must be a string/);
+  });
+});
+
+describe("startBridgeServer env-var fallback (P2-009)", () => {
+  const port = 5065;
+  const host = "127.0.0.1";
+  let envBackup: string | undefined;
+
+  beforeAll(() => {
+    envBackup = process.env.VENICE_BRIDGE_TOKEN;
+  });
+
+  afterAll(() => {
+    stopBridgeServer();
+    if (envBackup === undefined) {
+      delete process.env.VENICE_BRIDGE_TOKEN;
+    } else {
+      process.env.VENICE_BRIDGE_TOKEN = envBackup;
+    }
+  });
+
+  it("falls back to a generated token when VENICE_BRIDGE_TOKEN is too short", async () => {
+    stopBridgeServer();
+    process.env.VENICE_BRIDGE_TOKEN = "abc"; // 3 chars — way below MIN_BRIDGE_TOKEN_LENGTH
+    const generated = await startBridgeServer(port, host);
+    expect(generated).not.toBe("abc");
+    expect(generated.length).toBe(64); // 32 bytes hex
+    // The generated token must satisfy the strength validator too.
+    const { validateBridgeTokenStrength } = await import("./bridgeServer");
+    expect(validateBridgeTokenStrength(generated)).toBeNull();
+  }, 10000);
+
+  it("falls back to a generated token when VENICE_BRIDGE_TOKEN is low-entropy", async () => {
+    stopBridgeServer();
+    process.env.VENICE_BRIDGE_TOKEN = "a".repeat(64); // length ok, but only 1 distinct char
+    const generated = await startBridgeServer(port, host);
+    expect(generated).not.toBe("a".repeat(64));
+    expect(generated.length).toBe(64);
+  }, 10000);
+
+  it("accepts a strong VENICE_BRIDGE_TOKEN (the operator path)", async () => {
+    stopBridgeServer();
+    const strong = "x9K!qL_2#pNz" + "wR4v" + "mZbH" + "Tf8" + "gPj" + "Cy3" + "Ae5" + "Yh1"; // 48 chars, high entropy
+    process.env.VENICE_BRIDGE_TOKEN = strong;
+    const accepted = await startBridgeServer(port, host);
+    expect(accepted).toBe(strong);
+  }, 10000);
+});

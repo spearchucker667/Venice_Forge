@@ -206,4 +206,87 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       rmSync(extractDir, { recursive: true, force: true });
     }
   });
+
+  // P1-003: gate script_path in clean-repo-zip.sh metadata so the default
+  // extract does not leak the absolute filesystem path of the build machine.
+  // script_name (basename) is safe to share and is sufficient to identify
+  // the producing script.
+  it("clean-repo-zip.sh omits script_path by default but still emits script_name (P1-003)", () => {
+    const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-p1-003-repo-"));
+    const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-p1-003-out-"));
+    const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-p1-003-extract-"));
+    try {
+      writeFileSync(join(repo, "package.json"), JSON.stringify({ name: "fake-repo" }));
+      writeFileSync(join(repo, "README.md"), "# fake");
+      mkdirSync(join(repo, "src"), { recursive: true });
+      writeFileSync(join(repo, "src", "x.ts"), "export const ok = 1;\n");
+
+      // Default invocation — no opt-in env var.
+      execSync(`bash ${join(__dirname, "clean-repo-zip.sh")} ${repo} ${outDir}`, {
+        encoding: "utf8",
+        stdio: "pipe",
+      });
+
+      const zipPath = findZip(outDir);
+      expect(zipPath).not.toBeNull();
+
+      execSync(`unzip -q "${zipPath!}" -d ${extractDir}`, { stdio: "pipe" });
+
+      const extractedName = readdirSync(extractDir)[0];
+      const metaDir = join(extractDir, extractedName, "_REPO_EXTRACT_METADATA");
+      const extractInfoPath = join(metaDir, "EXTRACT_INFO.txt");
+      expect(existsSync(extractInfoPath)).toBe(true);
+      const extractInfo = readFileSync(extractInfoPath, "utf8");
+
+      // Safe basename must always be present.
+      expect(extractInfo).toMatch(/script_name=clean-repo-zip\.sh/);
+      // script_path must NOT leak the absolute build-machine path.
+      expect(extractInfo).not.toMatch(/script_path=\//);
+      // Omission must be documented for reviewers.
+      expect(extractInfo).toMatch(/script_path=omitted/);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+      rmSync(outDir, { recursive: true, force: true });
+      rmSync(extractDir, { recursive: true, force: true });
+    }
+  });
+
+  it("clean-repo-zip.sh emits script_path when INCLUDE_PRIVATE_AUDIT_METADATA=1 (P1-003 opt-in)", () => {
+    const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-p1-003-optin-repo-"));
+    const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-p1-003-optin-out-"));
+    const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-p1-003-optin-extract-"));
+    try {
+      writeFileSync(join(repo, "package.json"), JSON.stringify({ name: "fake-repo" }));
+      writeFileSync(join(repo, "README.md"), "# fake");
+      mkdirSync(join(repo, "src"), { recursive: true });
+      writeFileSync(join(repo, "src", "x.ts"), "export const ok = 1;\n");
+
+      // Opt-in invocation: the full absolute path is included for internal
+      // audit use, gated behind INCLUDE_PRIVATE_AUDIT_METADATA=1.
+      execSync(
+        `INCLUDE_PRIVATE_AUDIT_METADATA=1 bash ${join(__dirname, "clean-repo-zip.sh")} ${repo} ${outDir}`,
+        { encoding: "utf8", stdio: "pipe" },
+      );
+
+      const zipPath = findZip(outDir);
+      expect(zipPath).not.toBeNull();
+
+      execSync(`unzip -q "${zipPath!}" -d ${extractDir}`, { stdio: "pipe" });
+
+      const extractedName = readdirSync(extractDir)[0];
+      const metaDir = join(extractDir, extractedName, "_REPO_EXTRACT_METADATA");
+      const extractInfoPath = join(metaDir, "EXTRACT_INFO.txt");
+      const extractInfo = readFileSync(extractInfoPath, "utf8");
+
+      // Opt-in path: script_path is an absolute path ending in the canonical
+      // script filename.
+      expect(extractInfo).toMatch(/script_path=\/.*clean-repo-zip\.sh/);
+      // Omission marker must NOT appear when the opt-in is set.
+      expect(extractInfo).not.toMatch(/script_path=omitted/);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+      rmSync(outDir, { recursive: true, force: true });
+      rmSync(extractDir, { recursive: true, force: true });
+    }
+  });
 });
