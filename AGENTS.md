@@ -85,9 +85,12 @@ npm run smoke:electron   # tests/smoke/electron-smoke.test.ts (Playwright; skipp
 npm run test:coverage    # v8 coverage; thresholds 70/80/80/80
 npm run profile:media-studio # Isolated Electron profile with 1,000 encrypted media records
 npm run verify:dist      # Build outputs only; does not require release/
+npm run verify:build-output  # Alias of verify:dist (semantically clearer name)
 npm run verify:dist:win  # Windows artifacts (NSIS + portable)
 npm run verify:dist:mac  # macOS artifacts (DMG + ZIP, both archs)
+npm run verify:dist:linux  # Linux artifacts (AppImage + .deb + .rpm)
 npm run verify:dist:portable  # Windows portable only
+npm run verify:dist:release  # All three platforms in one run
 npm run clean            # Remove dist/ dist-electron/ release/
 ```
 
@@ -283,7 +286,7 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `electron/utils/urlSecurity.ts` | `isTrustedExternalUrl`, `isPrivateHostname` |
 | `server.ts` | Express proxy (`/api/venice/*`, `/api/proxy-scrape`); vite only in dev |
 | `scripts/verify-safety-guard.cjs` | CI gate — see Security section |
-| `scripts/verify-dist.cjs` | Build-output verification by default; explicit platform modes verify packaged release artifacts (`verify:dist:win`, `verify:dist:mac`, `verify:dist:portable`) |
+| `scripts/verify-dist.cjs` | Build-output verification by default (`verify:dist` / `verify:build-output`); explicit platform modes verify packaged release artifacts (`verify:dist:win`, `verify:dist:mac`, `verify:dist:linux`, `verify:dist:portable`, `verify:dist:release`) |
 | `scripts/verify-markdown-links.cjs` | CI documentation-link verifier for local files and heading fragments (`verify:markdown-links`) |
 | `scripts/profile-media-studio.mjs` | Opt-in Playwright Electron profile for encrypted Media Studio pagination, heap/DOM metrics, console health, and temporary screenshots |
 | `src/shared/safety/childExploitationGuard.ts` | Public safety-guard API + decision orchestration (T15 split: matchTables + normalization extracted) |

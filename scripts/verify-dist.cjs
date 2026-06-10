@@ -243,6 +243,11 @@ assertNoSecretsInDist(path.join(root, "dist-electron"));
 assertBrandingNoticesInSync();
 
 if (!verifyRelease) {
+  // Build-output-only mode: `npm run verify:dist` / `verify:build-output` checks
+  // dist/ + dist-electron/ + hygiene guards. It does NOT inspect packaged
+  // release artifacts in release/. For packaged-artifact verification, use one
+  // of the explicit flags below (or `verify:dist:release` to check all three
+  // platforms in a single run).
   console.log("[verify:dist] Successfully verified build outputs.");
   process.exit(0);
 }

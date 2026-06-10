@@ -38,6 +38,7 @@
     "generate:icon": "node scripts/generate-placeholder-icon.cjs",
     "verify:icon": "node scripts/verify-icon.cjs",
     "verify:dist": "node scripts/verify-dist.cjs",
+    "verify:build-output": "node scripts/verify-dist.cjs",
     "verify:dist:win": "node scripts/verify-dist.cjs --win",
     "verify:dist:mac": "node scripts/verify-dist.cjs --mac",
     "verify:dist:linux": "node scripts/verify-dist.cjs --linux",

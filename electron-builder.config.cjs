@@ -1,10 +1,12 @@
 /**
  * electron-builder configuration for Venice Forge desktop app.
- * Produces Windows (NSIS installer + portable .exe) and macOS (DMG + zip)
- * artifacts.
+ * Produces:
+ *   Windows: NSIS installer + portable .exe
+ *   macOS:   DMG + ZIP (both arm64 and x64)
+ *   Linux:   AppImage + .deb + .rpm
  *
  * Build outputs go to release/
- * Run: npm run dist:win or npm run dist:mac
+ * Run: npm run dist:win / dist:mac / dist:linux
  */
 
 const isCIRelease =
