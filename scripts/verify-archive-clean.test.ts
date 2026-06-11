@@ -10,6 +10,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
 
+function shellQuote(s: string): string {
+  return `"${s.replace(/"/g, '\\"')}"`;
+}
+
 function findZip(outDir: string): string | null {
   try {
     const entries = readdirSync(outDir);
@@ -69,7 +73,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     const root = mkdtempSync(join(tmpdir(), "venice-archive-clean-"));
     try {
       // Clean tree should pass
-      const cleanOut = execSync(`node ${join(__dirname, "verify-archive-clean.cjs")} --root ${root}`, { encoding: "utf8" });
+      const cleanOut = execSync(`node ${shellQuote(join(__dirname, "verify-archive-clean.cjs"))} --root ${shellQuote(root)}`, { encoding: "utf8" });
       expect(cleanOut).toMatch(/OK/);
 
       // Plant a forbidden item
@@ -79,7 +83,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
         writeFileSync(join(badRoot, "._evil"), "x");
         let failed = false;
         try {
-          execSync(`node ${join(__dirname, "verify-archive-clean.cjs")} --root ${badRoot}`, { stdio: "pipe" });
+          execSync(`node ${shellQuote(join(__dirname, "verify-archive-clean.cjs"))} --root ${shellQuote(badRoot)}`, { stdio: "pipe" });
         } catch (e: any) {
           failed = e.status !== 0;
         }
@@ -93,7 +97,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
   });
 
   it("--check-config validates .gitignore and clean ZIP script on a real checkout", () => {
-    const out = execSync(`node ${join(__dirname, "verify-archive-clean.cjs")} --check-config`, { encoding: "utf8" });
+    const out = execSync(`node ${shellQuote(join(__dirname, "verify-archive-clean.cjs"))} --check-config`, { encoding: "utf8" });
     expect(out).toMatch(/OK/);
   });
 
@@ -101,7 +105,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     const root = mkdtempSync(join(tmpdir(), "venice-archive-clean-extract-"));
     try {
       // Simulate an extracted clean archive that lacks the tracked clean script
-      const out = execSync(`node ${join(__dirname, "verify-archive-clean.cjs")} --root ${root}`, { encoding: "utf8" });
+      const out = execSync(`node ${shellQuote(join(__dirname, "verify-archive-clean.cjs"))} --root ${shellQuote(root)}`, { encoding: "utf8" });
       expect(out).toMatch(/OK/);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -120,7 +124,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       mkdirSync(join(repo, "src"), { recursive: true });
       writeFileSync(join(repo, "src", "secret-like.ts"), `export const key = "${rawToken}";\n`);
 
-      execSync(`bash ${join(__dirname, "clean-repo-zip.sh")} ${repo} ${outDir}`, {
+      execSync(`bash ${shellQuote(join(__dirname, "clean-repo-zip.sh"))} ${shellQuote(repo)} ${shellQuote(outDir)}`, {
         encoding: "utf8",
         stdio: "pipe",
       });
@@ -128,7 +132,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       const zipPath = findZip(outDir);
       expect(zipPath).not.toBeNull();
 
-      execSync(`unzip -q "${zipPath!}" -d ${extractDir}`, { stdio: "pipe" });
+      execSync(`unzip -q ${shellQuote(zipPath!)} -d ${shellQuote(extractDir)}`, { stdio: "pipe" });
 
       const extractedName = readdirSync(extractDir)[0];
       const metaDir = join(extractDir, extractedName, "_REPO_EXTRACT_METADATA");
@@ -178,7 +182,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       mkdirSync(join(repo, "src"), { recursive: true });
       writeFileSync(join(repo, "src", "x.ts"), "export const ok = 1;\n");
 
-      execSync(`bash ${join(__dirname, "clean-repo-zip.sh")} ${repo} ${outDir}`, {
+      execSync(`bash ${shellQuote(join(__dirname, "clean-repo-zip.sh"))} ${shellQuote(repo)} ${shellQuote(outDir)}`, {
         encoding: "utf8",
         stdio: "pipe",
       });
@@ -186,7 +190,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       const zipPath = findZip(outDir);
       expect(zipPath).not.toBeNull();
 
-      execSync(`unzip -q "${zipPath!}" -d ${extractDir}`, { stdio: "pipe" });
+      execSync(`unzip -q ${shellQuote(zipPath!)} -d ${shellQuote(extractDir)}`, { stdio: "pipe" });
 
       const extractedName = readdirSync(extractDir)[0];
       const metaDir = join(extractDir, extractedName, "_REPO_EXTRACT_METADATA");
@@ -222,7 +226,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       writeFileSync(join(repo, "src", "x.ts"), "export const ok = 1;\n");
 
       // Default invocation — no opt-in env var.
-      execSync(`bash ${join(__dirname, "clean-repo-zip.sh")} ${repo} ${outDir}`, {
+      execSync(`bash ${shellQuote(join(__dirname, "clean-repo-zip.sh"))} ${shellQuote(repo)} ${shellQuote(outDir)}`, {
         encoding: "utf8",
         stdio: "pipe",
       });
@@ -230,7 +234,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       const zipPath = findZip(outDir);
       expect(zipPath).not.toBeNull();
 
-      execSync(`unzip -q "${zipPath!}" -d ${extractDir}`, { stdio: "pipe" });
+      execSync(`unzip -q ${shellQuote(zipPath!)} -d ${shellQuote(extractDir)}`, { stdio: "pipe" });
 
       const extractedName = readdirSync(extractDir)[0];
       const metaDir = join(extractDir, extractedName, "_REPO_EXTRACT_METADATA");
@@ -264,14 +268,14 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       // Opt-in invocation: the full absolute path is included for internal
       // audit use, gated behind INCLUDE_PRIVATE_AUDIT_METADATA=1.
       execSync(
-        `INCLUDE_PRIVATE_AUDIT_METADATA=1 bash ${join(__dirname, "clean-repo-zip.sh")} ${repo} ${outDir}`,
-        { encoding: "utf8", stdio: "pipe" },
+        `bash ${shellQuote(join(__dirname, "clean-repo-zip.sh"))} ${shellQuote(repo)} ${shellQuote(outDir)}`,
+        { encoding: "utf8", stdio: "pipe", env: { ...process.env, INCLUDE_PRIVATE_AUDIT_METADATA: "1" } },
       );
 
       const zipPath = findZip(outDir);
       expect(zipPath).not.toBeNull();
 
-      execSync(`unzip -q "${zipPath!}" -d ${extractDir}`, { stdio: "pipe" });
+      execSync(`unzip -q ${shellQuote(zipPath!)} -d ${shellQuote(extractDir)}`, { stdio: "pipe" });
 
       const extractedName = readdirSync(extractDir)[0];
       const metaDir = join(extractDir, extractedName, "_REPO_EXTRACT_METADATA");
@@ -313,7 +317,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       // Running without ALLOW_DIRTY_REPO_EXTRACT should fail
       let failed = false;
       try {
-        execSync(`bash ${join(__dirname, "clean-repo-zip.sh")} ${repo} ${outDir}`, {
+        execSync(`bash ${shellQuote(join(__dirname, "clean-repo-zip.sh"))} ${shellQuote(repo)} ${shellQuote(outDir)}`, {
           encoding: "utf8",
           stdio: "pipe",
         });
@@ -323,16 +327,17 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       expect(failed).toBe(true);
 
       // Running with ALLOW_DIRTY_REPO_EXTRACT=1 should succeed
-      execSync(`ALLOW_DIRTY_REPO_EXTRACT=1 bash ${join(__dirname, "clean-repo-zip.sh")} ${repo} ${outDir}`, {
+      execSync(`bash ${shellQuote(join(__dirname, "clean-repo-zip.sh"))} ${shellQuote(repo)} ${shellQuote(outDir)}`, {
         encoding: "utf8",
         stdio: "pipe",
+        env: { ...process.env, ALLOW_DIRTY_REPO_EXTRACT: "1" },
       });
 
       const zipPath = findZip(outDir);
       expect(zipPath).not.toBeNull();
       expect(zipPath).toMatch(/-dirty\.zip$/);
 
-      execSync(`unzip -q "${zipPath!}" -d ${extractDir}`, { stdio: "pipe" });
+      execSync(`unzip -q ${shellQuote(zipPath!)} -d ${shellQuote(extractDir)}`, { stdio: "pipe" });
 
       const extractedName = readdirSync(extractDir)[0];
       const metaDir = join(extractDir, extractedName, "_REPO_EXTRACT_METADATA");
@@ -366,7 +371,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       const scriptDest = join(repo, "scripts", "clean-repo-zip.sh");
       writeFileSync(scriptDest, readFileSync(join(__dirname, "clean-repo-zip.sh")));
 
-      execSync(`bash ${scriptDest} ${repo} ${outDir}`, {
+      execSync(`bash ${shellQuote(scriptDest)} ${shellQuote(repo)} ${shellQuote(outDir)}`, {
         encoding: "utf8",
         stdio: "pipe",
       });
@@ -374,7 +379,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       const zipPath = findZip(outDir);
       expect(zipPath).not.toBeNull();
 
-      execSync(`unzip -q "${zipPath!}" -d ${extractDir}`, { stdio: "pipe" });
+      execSync(`unzip -q ${shellQuote(zipPath!)} -d ${shellQuote(extractDir)}`, { stdio: "pipe" });
 
       const extractedName = readdirSync(extractDir)[0];
       const metaDir = join(extractDir, extractedName, "_REPO_EXTRACT_METADATA");
@@ -404,7 +409,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     try {
       let failed = false;
       try {
-        execSync(`node ${join(__dirname, "verify-archive-clean.cjs")} --root ${root}`, { stdio: "pipe" });
+        execSync(`node ${shellQuote(join(__dirname, "verify-archive-clean.cjs"))} --root ${shellQuote(root)}`, { stdio: "pipe" });
       } catch (e: any) {
         failed = e.status !== 0;
       }
@@ -426,7 +431,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     );
 
     try {
-      const out = execSync(`INCLUDE_PRIVATE_AUDIT_METADATA=1 node ${join(__dirname, "verify-archive-clean.cjs")} --root ${root}`, { encoding: "utf8" });
+      const out = execSync(`node ${shellQuote(join(__dirname, "verify-archive-clean.cjs"))} --root ${shellQuote(root)}`, { encoding: "utf8", env: { ...process.env, INCLUDE_PRIVATE_AUDIT_METADATA: "1" } });
       expect(out).toMatch(/OK/);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -451,7 +456,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     try {
       let failed = false;
       try {
-        execSync(`node ${join(__dirname, "verify-archive-clean.cjs")} --root ${root}`, { stdio: "pipe" });
+        execSync(`node ${shellQuote(join(__dirname, "verify-archive-clean.cjs"))} --root ${shellQuote(root)}`, { stdio: "pipe" });
       } catch (e: any) {
         failed = e.status !== 0;
       }

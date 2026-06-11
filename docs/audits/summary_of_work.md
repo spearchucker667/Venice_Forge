@@ -106,6 +106,22 @@ blockers remain.
 
 ## Latest Session Summary
 
+- **Date:** 2026-06-11 (Windows CI Fix for verify-archive-clean)
+- **Agent:** Antigravity (gemini-3.1-pro)
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Addressed release-blocking Windows CI failure caused by cross-platform incompatibility in the archive cleaning script and tests.
+  - **rsync fallback:** Replaced the hard dependency on `rsync` in `scripts/clean-repo-zip.sh` with a `tar` fallback mechanism. The `tar` copy logic identically recreates the expected archive by honoring the `RSYNC_EXCLUDES` while manually restoring the specifically included items (`build/icon.*`, `.config/*.example.yaml`, `.env.example`).
+  - **execSync environment quoting and options:** Replaced inline POSIX environment variable definitions (e.g. `VAR=1 cmd`) with the `env: { ...process.env, VAR: "1" }` option in `scripts/verify-archive-clean.test.ts`. Introduced a `shellQuote` helper and quoted paths everywhere to safeguard against `cmd.exe` choking on paths with spaces on Windows CI runners.
+- **Files changed in this pass:**
+  - `scripts/clean-repo-zip.sh`
+  - `scripts/verify-archive-clean.test.ts`
+  - `docs/audits/summary_of_work.md`
+- **Validation:**
+  - `npm run test -- scripts/verify-archive-clean.test.ts` — **PASS**.
+  - `npm run verify:release-packaging-hardening` — **PASS**.
+
+---
+
 - **Date:** 2026-06-10 (Version bump to 2.0.0 and release preparation)
 - **Agent:** Antigravity (gemini-3.1-pro)
 - **Branch / state:** `main` (working tree has modifications to `package.json`, `package-lock.json`, `AGENTS.md`, `README.md`, `docs/DEVELOPMENT/CONFIG.md`, `docs/audits/CHANGELOG.md`, `docs/audits/summary_of_work.md`)

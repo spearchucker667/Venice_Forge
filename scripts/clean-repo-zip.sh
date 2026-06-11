@@ -69,7 +69,10 @@ need_cmd() {
   }
 }
 
-need_cmd rsync
+if ! command -v rsync >/dev/null 2>&1 && ! command -v tar >/dev/null 2>&1; then
+  echo "ERROR: neither rsync nor tar is available. One is required." >&2
+  exit 1
+fi
 need_cmd zip
 need_cmd find
 need_cmd sed
@@ -270,10 +273,55 @@ RSYNC_EXCLUDES=(
   "--exclude=secrets.json"
 )
 
-rsync -a \
-  "${RSYNC_EXCLUDES[@]}" \
-  "$REPO_ROOT/" \
-  "$STAGE_DIR/"
+if command -v rsync >/dev/null 2>&1; then
+  rsync -a \
+    "${RSYNC_EXCLUDES[@]}" \
+    "$REPO_ROOT/" \
+    "$STAGE_DIR/"
+else
+  # tar fallback for environments without rsync (e.g. Windows Git Bash)
+  TAR_EXCLUDES=()
+  for rule in "${RSYNC_EXCLUDES[@]}"; do
+    if [[ "$rule" == --exclude=* ]]; then
+      pat="${rule#--exclude=}"
+      pat="${pat%/}"
+      if [[ "$pat" == *"/**" ]]; then
+        pat="${pat%/**}/*"
+      fi
+      TAR_EXCLUDES+=("--exclude=$pat")
+    fi
+  done
+
+  (cd "$REPO_ROOT" && tar -cf - "${TAR_EXCLUDES[@]}" .) | (cd "$STAGE_DIR" && tar -xf -)
+
+  # Restore explicitly included items that tar excluded globally
+  if [[ -d "$REPO_ROOT/build" ]]; then
+    mkdir -p "$STAGE_DIR/build"
+    for f in icon.ico icon.icns icon.png; do
+      if [[ -f "$REPO_ROOT/build/$f" ]]; then
+        cp "$REPO_ROOT/build/$f" "$STAGE_DIR/build/"
+      fi
+    done
+  fi
+
+  if [[ -d "$REPO_ROOT/.config" ]]; then
+    mkdir -p "$STAGE_DIR/.config"
+    for ext in yaml yml; do
+      # Disable failglob just in case
+      for f in "$REPO_ROOT/.config/"*.example."$ext"; do
+        if [[ -f "$f" ]]; then
+          cp "$f" "$STAGE_DIR/.config/"
+        fi
+      done
+    done
+  fi
+
+  for f in .env.example .env.sample .env.template .env.defaults; do
+    if [[ -f "$REPO_ROOT/$f" ]]; then
+      cp "$REPO_ROOT/$f" "$STAGE_DIR/"
+    fi
+  done
+fi
 
 mkdir -p "$META_DIR"
 
