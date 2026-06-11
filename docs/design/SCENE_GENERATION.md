@@ -99,7 +99,7 @@ The Asset Gallery is a separate sub-tab. It shows **all** scene assets across al
 ## See also
 
 - [CHARACTER_RP.md](./CHARACTER_RP.md) — full RP studio overview
-- [SECURITY.md](../SECURITY.md) — safety guard contract
+- [SECURITY.md](../../SECURITY.md) — safety guard contract
 - `src/services/rp/sceneGenerationService.ts` — extractor and dispatcher
 - `src/services/rp/assetService.ts` — CRUD for `RpAssetV1`
 - `src/shared/safety/characterImportSafety.ts` — `assessScenePrompt` wrapper

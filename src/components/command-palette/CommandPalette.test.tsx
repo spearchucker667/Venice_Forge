@@ -43,7 +43,9 @@ describe('CommandPalette', () => {
     render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
     const image = TAB_REGISTRY.find((tab) => tab.id === 'image')
     expect(image).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${image!.label}\\s*${image!.group}$`, 'i') }))
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${image!.label}\\s*${image!.group}$`, 'i') }))
+    })
     expect(useSettingsStore.getState().activeTab).toBe('image')
   })
 
@@ -54,7 +56,9 @@ describe('CommandPalette', () => {
     const setActiveProject = vi.spyOn(useProjectStore.getState(), 'setActiveProject')
     render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'New Project' }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'New Project' }))
+    })
     await vi.waitFor(() => expect(createProject).toHaveBeenCalledWith('New Project'))
     expect(setActiveProject).toHaveBeenCalledWith('project-new')
   })
@@ -180,11 +184,13 @@ describe("CommandPalette — Phase 2B selection-aware Media Studio commands", ()
   })
 
   afterEach(() => {
-    registerMediaCommandHandlers({
-      visibleIds: () => [],
-      resolveItems: () => [],
-      isMediaActive: () => false,
-    })()
+    act(() => {
+      registerMediaCommandHandlers({
+        visibleIds: () => [],
+        resolveItems: () => [],
+        isMediaActive: () => false,
+      })()
+    })
   })
 
   it("does NOT render media commands when no handlers are registered", () => {
@@ -248,7 +254,7 @@ describe("CommandPalette — Phase 2B selection-aware Media Studio commands", ()
     expect((screen.getByTestId("command-palette-compare") as HTMLButtonElement).disabled).toBe(false)
   })
 
-  it("Select all invokes onSelectAllVisible with the visible ids", () => {
+  it("Select all invokes onSelectAllVisible with the visible ids", async () => {
     const onSelectAllVisible = vi.fn()
     registerMediaCommandHandlers({
       visibleIds: () => ["a", "b", "c"],
@@ -257,7 +263,10 @@ describe("CommandPalette — Phase 2B selection-aware Media Studio commands", ()
       onSelectAllVisible,
     })
     render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
-    fireEvent.click(screen.getByTestId("command-palette-select-all"))
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("command-palette-select-all"))
+      await Promise.resolve()
+    })
     expect(onSelectAllVisible).toHaveBeenCalledTimes(1)
   })
 
@@ -273,7 +282,9 @@ describe("CommandPalette — Phase 2B selection-aware Media Studio commands", ()
     expect((screen.getByTestId("command-palette-export") as HTMLButtonElement).disabled).toBe(true)
     act(() => { useMediaSelectionStore.getState().selectMedia("a") })
     expect((screen.getByTestId("command-palette-export") as HTMLButtonElement).disabled).toBe(false)
-    fireEvent.click(screen.getByTestId("command-palette-export"))
+    act(() => {
+      fireEvent.click(screen.getByTestId("command-palette-export"))
+    })
     expect(onExport).toHaveBeenCalledWith(["a"])
   })
 
@@ -287,7 +298,9 @@ describe("CommandPalette — Phase 2B selection-aware Media Studio commands", ()
     })
     render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
     act(() => { useMediaSelectionStore.getState().selectMedia("a") })
-    fireEvent.click(screen.getByTestId("command-palette-send-image"))
+    act(() => {
+      fireEvent.click(screen.getByTestId("command-palette-send-image"))
+    })
     expect(onSendToImage).toHaveBeenCalledWith(["a"])
   })
 
@@ -304,7 +317,9 @@ describe("CommandPalette — Phase 2B selection-aware Media Studio commands", ()
       useMediaSelectionStore.getState().selectMedia("a")
       useMediaSelectionStore.getState().toggleMedia("b")
     })
-    fireEvent.click(screen.getByTestId("command-palette-copy-recipe"))
+    act(() => {
+      fireEvent.click(screen.getByTestId("command-palette-copy-recipe"))
+    })
     expect(onCopyRecipe).toHaveBeenCalledWith(["a", "b"])
   })
 
@@ -318,7 +333,9 @@ describe("CommandPalette — Phase 2B selection-aware Media Studio commands", ()
     })
     render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
     act(() => { useMediaSelectionStore.getState().selectMedia("a") })
-    fireEvent.click(screen.getByTestId("command-palette-favorite"))
+    act(() => {
+      fireEvent.click(screen.getByTestId("command-palette-favorite"))
+    })
     expect(onFavorite).toHaveBeenCalledWith(["a"])
   })
 
@@ -332,7 +349,9 @@ describe("CommandPalette — Phase 2B selection-aware Media Studio commands", ()
     })
     render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
     act(() => { useMediaSelectionStore.getState().selectMedia("a") })
-    fireEvent.click(screen.getByTestId("command-palette-add-tag"))
+    act(() => {
+      fireEvent.click(screen.getByTestId("command-palette-add-tag"))
+    })
     expect(onAddTag).toHaveBeenCalledWith(["a"])
   })
 
@@ -349,7 +368,9 @@ describe("CommandPalette — Phase 2B selection-aware Media Studio commands", ()
       useMediaSelectionStore.getState().selectMedia("a")
       useMediaSelectionStore.getState().toggleMedia("b")
     })
-    fireEvent.click(screen.getByTestId("command-palette-compare"))
+    act(() => {
+      fireEvent.click(screen.getByTestId("command-palette-compare"))
+    })
     expect(onCompare).toHaveBeenCalledWith(["a", "b"])
   })
 
@@ -389,14 +410,18 @@ describe("CommandPalette — Phase 2F RP Studio commands", () => {
 
   it("Open RP Studio routes to rp-studio tab", () => {
     render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
-    fireEvent.click(screen.getByTestId("command-palette-open-rp-studio"))
+    act(() => {
+      fireEvent.click(screen.getByTestId("command-palette-open-rp-studio"))
+    })
     expect(useSettingsStore.getState().activeTab).toBe('rp-studio')
   })
 
   it("New Character creates blank character and routes to rp-studio", () => {
     const createBlank = vi.spyOn(useCharacterCardStore.getState(), 'createBlank')
     render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
-    fireEvent.click(screen.getByTestId("command-palette-new-character"))
+    act(() => {
+      fireEvent.click(screen.getByTestId("command-palette-new-character"))
+    })
     expect(createBlank).toHaveBeenCalled()
     expect(useSettingsStore.getState().activeTab).toBe('rp-studio')
   })
@@ -405,14 +430,18 @@ describe("CommandPalette — Phase 2F RP Studio commands", () => {
     const cardId = 'c-1'
     useCharacterCardStore.setState({ editingId: cardId })
     render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
-    fireEvent.click(screen.getByTestId("command-palette-start-character-chat"))
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("command-palette-start-character-chat"))
+    });
     expect(rpHelpers.startChatForCharacter).toHaveBeenCalledWith(cardId)
   })
 
   it("New Scenario creates blank scenario and routes to scenes tab", () => {
     const createBlank = vi.spyOn(useScenarioStore.getState(), 'createBlank')
     render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
-    fireEvent.click(screen.getByTestId("command-palette-new-scenario"))
+    act(() => {
+      fireEvent.click(screen.getByTestId("command-palette-new-scenario"))
+    })
     expect(createBlank).toHaveBeenCalled()
     expect(useSettingsStore.getState().activeTab).toBe('scenes')
   })
@@ -424,28 +453,36 @@ import { useStoragePrivacyStore } from '../../stores/storage-privacy-store'
 describe("CommandPalette — Phase 2H Storage / Privacy commands", () => {
   it("Open Privacy Dashboard routes to privacy tab", () => {
     render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
-    fireEvent.click(screen.getByTestId("command-palette-open-privacy"))
+    act(() => {
+      fireEvent.click(screen.getByTestId("command-palette-open-privacy"))
+    })
     expect(useSettingsStore.getState().activeTab).toBe('privacy')
   })
 
   it("Refresh Storage Inventory calls the store action", async () => {
     const refreshInventory = vi.spyOn(useStoragePrivacyStore.getState(), 'refreshInventory').mockResolvedValue(undefined)
     render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
-    fireEvent.click(screen.getByTestId("command-palette-refresh-inventory"))
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("command-palette-refresh-inventory"))
+    });
     expect(refreshInventory).toHaveBeenCalled()
   })
 
   it("Copy Safe Privacy Summary calls the store action", async () => {
     const copySafeSummary = vi.spyOn(useStoragePrivacyStore.getState(), 'copySafeSummary').mockResolvedValue(undefined)
     render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
-    fireEvent.click(screen.getByTestId("command-palette-copy-privacy-summary"))
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("command-palette-copy-privacy-summary"))
+    });
     expect(copySafeSummary).toHaveBeenCalled()
   })
 
   it("Export Safe Privacy Summary calls the store action", () => {
     const exportSafeSummary = vi.spyOn(useStoragePrivacyStore.getState(), 'exportSafeSummary').mockReturnValue(undefined)
     render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
-    fireEvent.click(screen.getByTestId("command-palette-export-privacy-summary"))
+    act(() => {
+      fireEvent.click(screen.getByTestId("command-palette-export-privacy-summary"))
+    })
     expect(exportSafeSummary).toHaveBeenCalled()
   })
 })

@@ -106,21 +106,33 @@ blockers remain.
 
 ## Latest Session Summary
 
-- **Date:** 2026-06-10 (Markdown link verification and correction pass)
-- **Agent:** Antigravity (gemini-3.5-flash-high)
-- **Branch / state:** `main` (working tree has modifications to CONTRIBUTING.md, README.md, docs/ABOUT.md, docs/DEVELOPMENT/BRIDGE.md, docs/FAQ.md, docs/RELEASE/release.md, docs/SUPPORT.md, and docs/audits/summary_of_work.md)
-- **Diagnosis:** Fixed 29 broken markdown links across 7 documentation files (CONTRIBUTING.md, README.md, docs/ABOUT.md, docs/DEVELOPMENT/BRIDGE.md, docs/FAQ.md, docs/RELEASE/release.md, docs/SUPPORT.md). Verified links point to correct relative directories (`design/`, `audits/`, `DEVELOPMENT/`) following previous re-organizations.
+- **Date:** 2026-06-10 (CI workflow repair: DNS lookup, act warnings, Node 24 upgrade, and relative link fixes)
+- **Agent:** Antigravity (gemini-3.1-pro)
+- **Branch / state:** `main` (working tree has modifications to `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `docs/audits/CHANGELOG.md`, `docs/design/CHARACTER_RP.md`, `docs/design/SCENE_GENERATION.md`, `docs/design/THEME_SYSTEM.md`, `server.ts`, `server.test.ts`, `src/components/command-palette/CommandPalette.test.tsx`, `docs/audits/summary_of_work.md`)
+- **Diagnosis:** Resolved CI-blocking issues:
+  - **Scrape Proxy DNS Error:** Hardened `/api/proxy-scrape` endpoint in `server.ts` to decode URL percent-encoding safely, and added guards for undefined/empty lookup results from `dns.lookup`. Added global mock in `server.test.ts` to avoid making network requests during tests.
+  - **React act(...) Warnings:** Wrapped fireEvent triggers and mock unregistration callbacks in `src/components/command-palette/CommandPalette.test.tsx` inside `act(...)`, fully eliminating state-update warnings during test cleanup.
+  - **Workflow Node 24 Actions Upgrade:** Added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` at the root-level `env` blocks of `.github/workflows/ci.yml` and `.github/workflows/release.yml` to prevent Node 20 deprecation warnings.
+  - **Markdown Link Validation:** Corrected broken relative documentation links in `docs/audits/CHANGELOG.md`, `docs/design/CHARACTER_RP.md`, `docs/design/SCENE_GENERATION.md`, and `docs/design/THEME_SYSTEM.md`.
 - **Files changed in this pass:**
-  - `CONTRIBUTING.md`
-  - `README.md`
-  - `docs/ABOUT.md`
-  - `docs/DEVELOPMENT/BRIDGE.md`
-  - `docs/FAQ.md`
-  - `docs/RELEASE/release.md`
-  - `docs/SUPPORT.md`
+  - `.github/workflows/ci.yml`
+  - `.github/workflows/release.yml`
+  - `docs/audits/CHANGELOG.md`
+  - `docs/design/CHARACTER_RP.md`
+  - `docs/design/SCENE_GENERATION.md`
+  - `docs/design/THEME_SYSTEM.md`
   - `docs/audits/summary_of_work.md`
+  - `server.ts`
+  - `server.test.ts`
+  - `src/components/command-palette/CommandPalette.test.tsx`
 - **Validation (Node v22.13.0 / npm 10.9.2, run 2026-06-10):**
-  - `npm run verify:markdown-links` — **PASS: 37 Markdown files checked**.
+  - `npm run lint:eslint` — **PASS**.
+  - `npm run typecheck` — **PASS**.
+  - `npm test` — **PASS: 2236 passed, 1 skipped** (0 failures).
+  - `npm run verify:safety-guard` — **PASS**.
+  - `npm run verify:markdown-links` — **PASS: 51 Markdown files checked**.
+  - `npm run ci` — **PASS**.
+  - `npm run verify:dist` — **PASS**.
 
 ---
 
@@ -1044,6 +1056,25 @@ The older Phase 2F block below is retained as historical context and is supersed
 ---
 
 ## Session History
+
+### 2026-06-10 — Markdown link verification and correction pass
+
+- **Agent:** Antigravity (gemini-3.5-flash-high)
+- **Branch / state:** `main`
+- **Diagnosis:** Fixed 29 broken markdown links across 7 documentation files (CONTRIBUTING.md, README.md, docs/ABOUT.md, docs/DEVELOPMENT/BRIDGE.md, docs/FAQ.md, docs/RELEASE/release.md, docs/SUPPORT.md). Verified links point to correct relative directories (`design/`, `audits/`, `DEVELOPMENT/`) following previous re-organizations.
+- **Files changed in this pass:**
+  - `CONTRIBUTING.md`
+  - `README.md`
+  - `docs/ABOUT.md`
+  - `docs/DEVELOPMENT/BRIDGE.md`
+  - `docs/FAQ.md`
+  - `docs/RELEASE/release.md`
+  - `docs/SUPPORT.md`
+  - `docs/audits/summary_of_work.md`
+- **Validation (Node v22.13.0 / npm 10.9.2, run 2026-06-10):**
+  - `npm run verify:markdown-links` — **PASS: 37 Markdown files checked**.
+
+---
 
 ### 2026-06-10 — ZIP audit followup closure: Header central tab registry integration, safe multimodal prependInjectedContext helper, recursive package script resolver in CI contract / release packaging hardening / storage privacy tests, RP avatar 5 MiB cap, command palette bounded JSON file reading, attachmentService image dimension validation, docs sync
 
@@ -3221,6 +3252,13 @@ Result:
 > `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` (see the *Scope
 > Correction* section).
 
+### Completed this session (2026-06-10 — CI workflow repair: DNS lookup, act warnings, Node 24 upgrade, and relative link fixes)
+
+- **Scrape Proxy DNS Error:** Hardened `/api/proxy-scrape` in `server.ts` to decode URL percent-encoding safely, and added guards for undefined/empty lookup results from `dns.lookup`. Added `node:dns/promises` mocks in `server.test.ts` to ensure offline/sandboxed test reliability.
+- **React act(...) Warnings:** Wrapped the command handler unregistration cleanup inside `CommandPalette.test.tsx` inside `act(...)` blocks, resolving the remaining React `act` state-update warnings during unmount.
+- **Workflow Node 24 Actions Upgrade:** Added root-level `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` environment variable to `.github/workflows/ci.yml` and `.github/workflows/release.yml` to force runner Node.js runtime upgrade.
+- **Markdown Link Validation:** Repaired relative documentation links pointing outside nested folders in `docs/audits/CHANGELOG.md`, `docs/design/CHARACTER_RP.md`, `docs/design/SCENE_GENERATION.md`, and `docs/design/THEME_SYSTEM.md`.
+
 ### Completed this session (2026-06-10 — Audit followup: attachment pipeline, History view, search, and zip provenance/privacy hardening)
 
 - **P0-001 / P2-008 — REPORTS Directory Casing:** Resolved REPORTS casing mismatch on case-sensitive filesystems. Moved files under `docs/REPORTS/` to `docs/reports/` and updated all links to be strictly lowercase.
@@ -3734,7 +3772,20 @@ None are release blockers. The P0–P3 sections above remain accurate.
 
 ## Validation Matrix
 
-> Latest known status is the 2026-06-10 Phases A–E 15-TODO closure on Node v26.3.0 / npm 11.16.0 (HEAD `fca45fa6` + working tree delta). The full validation matrix was executed end-to-end and all gates passed. The 2026-06-09/10 comprehensive 11-category audit follow-up closure (HEAD `849dc27f`), the Kimi 15-TODO closure (2026-06-09, `0ac69be`), and the 2026-06-08 final proof audit (`c2afcfac`) are retained as historical baselines. Commands below were actually run.
+> Latest known status is the 2026-06-10 CI workflow repair on Node v22.13.0 / npm 10.9.2 (HEAD `92db2dc0` + working tree delta). The full validation matrix was executed end-to-end and all gates passed. Commands below were actually run.
+
+**2026-06-10 — CI workflow repair (Node v22.13.0 / npm 10.9.2, HEAD `92db2dc0` + working tree):**
+
+| Command | Result | Date | Notes |
+| --- | --- | --- | --- |
+| `npm run typecheck` | PASS | 2026-06-10 | Renderer + Electron main typecheck passes cleanly |
+| `npm run lint:eslint` | PASS | 2026-06-10 | Zero warnings enforced (`--max-warnings=0`) |
+| `npm test` | PASS: 2236 passed, 1 skipped | 2026-06-10 | Full serial test suite green, all React `act(...)` warnings resolved |
+| `npm run verify:safety-guard` | PASS | 2026-06-10 | Safety guard contract checks pass |
+| `npm run verify:markdown-links` | PASS: 51 Markdown files checked | 2026-06-10 | Checked 51 markdown files; all relative targets and fragment links resolve |
+| `npm run ci` | PASS | 2026-06-10 | Full CI aggregate suite passes |
+| `npm run build` | PASS | 2026-06-10 | Web, server, and Electron assets compile successfully |
+| `npm run verify:dist` | PASS | 2026-06-10 | Build output verifications pass |
 
 **2026-06-10 — Phases A–E 15-TODO closure (Node v26.3.0 / npm 11.16.0, HEAD `fca45fa6` + working tree):**
 

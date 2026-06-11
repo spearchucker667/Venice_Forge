@@ -595,6 +595,12 @@ export function createServerApp() {
         return res.status(400).json({ error: "Missing or invalid URL" });
       }
 
+      try {
+        decodeURIComponent(url);
+      } catch {
+        return res.status(400).json({ error: "Malformed percent-encoding in URL" });
+      }
+
       const decision = maybeRunLocalFamilyGuard(
         { endpoint: url, method: "GET", text: safeDecodeForScreening(url), source: "web-proxy" },
         isLocalFamilySafeModeEnabled(req),
@@ -628,12 +634,19 @@ export function createServerApp() {
         return res.status(400).json({ error: "DNS lookup failed" });
       }
 
+      if (!lookupResults || lookupResults.length === 0) {
+        return res.status(400).json({ error: "DNS lookup failed" });
+      }
+
       for (const r of lookupResults) {
-        if (isPrivateHostname(r.address)) {
+        if (!r.address || isPrivateHostname(r.address)) {
           return res.status(403).json({ error: "Access to private IPs blocked" });
         }
       }
       const lookupResult = lookupResults[0];
+      if (!lookupResult || !lookupResult.address) {
+        return res.status(400).json({ error: "DNS lookup failed" });
+      }
 
       const scrapeResult = await new Promise<{
         status: number;

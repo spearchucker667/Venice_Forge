@@ -145,5 +145,5 @@ All pre-existing CSAM / safety tests remain green.
 - [LOREBOOKS.md](./LOREBOOKS.md) — lorebook entry semantics and insertion-order details
 - [MEMORY.md](./MEMORY.md) — RP memory model, scope selection, budgets
 - [SCENE_GENERATION.md](./SCENE_GENERATION.md) — scene prompt extraction, image flow, asset routing
-- [SECURITY.md](../SECURITY.md) — safety guard contract
-- [AGENTS.md](../AGENTS.md) — VERIFY-011…014 regression guards
+- [SECURITY.md](../../SECURITY.md) — safety guard contract
+- [AGENTS.md](../../AGENTS.md) — VERIFY-011…014 regression guards

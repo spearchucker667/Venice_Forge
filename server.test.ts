@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
 import request from "supertest";
 import express from "express";
+import dns from "node:dns/promises";
 
 // Stub out the proxy so the augment (and other allowed) endpoint tests don't make
 // real network calls to api.venice.ai. The assertions only care about validation
@@ -15,6 +16,19 @@ vi.mock("http-proxy-middleware", () => ({
 import { applyVeniceProxyHeaders, createServerApp } from "./server";
 import * as safetyModule from "./src/shared/safety";
 import * as localFamilyGuardRules from "./src/shared/safety/localFamilyGuardRules";
+
+beforeEach(() => {
+  vi.spyOn(dns as any, "lookup").mockImplementation(async (hostname: any, _options?: any) => {
+    if (hostname === "example.com" || hostname === "r.jina.ai") {
+      return [{ address: "127.0.0.1", family: 4 }];
+    }
+    throw new Error("ENOTFOUND");
+  });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("server.ts Jina response limits", () => {
   const originalFetch = globalThis.fetch;
@@ -641,5 +655,58 @@ describe("server.ts scrape proxy error handling", () => {
     // continues validation. The exact downstream status is not the focus
     // of this regression guard — we only assert it did not throw.
     expect([400, 403, 451, 200, 500, 504]).toContain(response.status);
+  });
+
+  it("/api/proxy-scrape rejects malformed percent-encoding before DNS/network", async () => {
+    const lookupSpy = vi.spyOn(dns as any, "lookup");
+    const response = await request(createServerApp())
+      .post("/api/proxy-scrape")
+      .set("X-Venice-Forge-Family-Safe-Mode", "false")
+      .send({ url: "https://example.com/bad%ZZ" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe("Malformed percent-encoding in URL");
+    expect(lookupSpy).not.toHaveBeenCalled();
+    lookupSpy.mockRestore();
+  });
+
+  it("/api/proxy-scrape rejects unresolved DNS without throwing ERR_INVALID_IP_ADDRESS", async () => {
+    const lookupSpy = vi.spyOn(dns as any, "lookup").mockRejectedValue(new Error("ENOTFOUND"));
+    const response = await request(createServerApp())
+      .post("/api/proxy-scrape")
+      .set("X-Venice-Forge-Family-Safe-Mode", "false")
+      .send({ url: "https://some-unresolved-domain-xyz.com" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe("DNS lookup failed");
+    lookupSpy.mockRestore();
+  });
+
+  it("/api/proxy-scrape rejects unresolved DNS (empty results) without throwing ERR_INVALID_IP_ADDRESS", async () => {
+    const lookupSpy = vi.spyOn(dns as any, "lookup").mockResolvedValue([]);
+    const response = await request(createServerApp())
+      .post("/api/proxy-scrape")
+      .set("X-Venice-Forge-Family-Safe-Mode", "false")
+      .send({ url: "https://some-empty-dns-domain.com" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe("DNS lookup failed");
+    lookupSpy.mockRestore();
+  });
+
+  it("/api/proxy-scrape rejects loopback/private/metadata targets", async () => {
+    const response1 = await request(createServerApp())
+      .post("/api/proxy-scrape")
+      .set("X-Venice-Forge-Family-Safe-Mode", "false")
+      .send({ url: "https://127.0.0.1" });
+    expect(response1.status).toBe(403);
+    expect(response1.body.error).toMatch(/Access to private (hostnames|IPs) blocked/i);
+
+    const response2 = await request(createServerApp())
+      .post("/api/proxy-scrape")
+      .set("X-Venice-Forge-Family-Safe-Mode", "false")
+      .send({ url: "https://169.254.169.254" });
+    expect(response2.status).toBe(403);
+    expect(response2.body.error).toMatch(/Access to private (hostnames|IPs) blocked/i);
   });
 });
