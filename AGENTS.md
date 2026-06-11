@@ -5,7 +5,7 @@
 > and `docs/AGENTS/agent-reinitialization.md`. They are gitignored and are
 > not part of the committed source of truth.
 
-**Version:** 1.0.6 | **Stack:** React 19 + TS strict, Electron 42, Express 4, Vitest 4 | **Node:** 22.13+, npm 10+
+**Version:** 2.0.0 | **Stack:** React 19 + TS strict, Electron 42, Express 4, Vitest 4 | **Node:** 22.13+, npm 10+
 
 ---
 

@@ -8,6 +8,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 
 ## [Unreleased]
 
+## [2.0.0] — 2026-06-10
+
 ### Fixed
 - **Reports casing & markdown links cleanup (2026-06-10):** Resolved REPORTS casing mismatch on case-sensitive filesystems. Moved files under `docs/REPORTS/` to `docs/reports/` and updated all links to be strictly lowercase.
 - **CI contract and verifier non-recursive aggregation (2026-06-10):** Refactored `verify-ci-contract.cjs` to support non-recursive aggregate validation via the `ci` script.

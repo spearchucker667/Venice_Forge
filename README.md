@@ -14,7 +14,7 @@
     <img alt="CI" src="https://github.com/spearchucker667/Venice-API-connector/actions/workflows/ci.yml/badge.svg" />
   </a>
   <a href="https://github.com/spearchucker667/Venice-API-connector/releases">
-    <img alt="Release" src="https://img.shields.io/badge/release-v1.0.6-blue.svg" />
+    <img alt="Release" src="https://img.shields.io/badge/release-v2.0.0-blue.svg" />
   </a>
   <a href="https://github.com/spearchucker667/Venice-API-connector/releases">
     <img alt="Windows" src="https://img.shields.io/badge/platform-Windows-0078d4?logo=windows11" />
@@ -72,7 +72,7 @@
 
 | Area | Status |
 | --- | --- |
-| Current release | `v1.0.6` |
+| Current release | `v2.0.0` |
 | Maintenance | Active |
 | Windows | Supported |
 | macOS | Supported, Intel + Apple Silicon |

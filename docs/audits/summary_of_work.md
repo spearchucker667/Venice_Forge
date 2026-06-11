@@ -106,33 +106,26 @@ blockers remain.
 
 ## Latest Session Summary
 
-- **Date:** 2026-06-10 (CI workflow repair: DNS lookup, act warnings, Node 24 upgrade, and relative link fixes)
+- **Date:** 2026-06-10 (Version bump to 2.0.0 and release preparation)
 - **Agent:** Antigravity (gemini-3.1-pro)
-- **Branch / state:** `main` (working tree has modifications to `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `docs/audits/CHANGELOG.md`, `docs/design/CHARACTER_RP.md`, `docs/design/SCENE_GENERATION.md`, `docs/design/THEME_SYSTEM.md`, `server.ts`, `server.test.ts`, `src/components/command-palette/CommandPalette.test.tsx`, `docs/audits/summary_of_work.md`)
-- **Diagnosis:** Resolved CI-blocking issues:
-  - **Scrape Proxy DNS Error:** Hardened `/api/proxy-scrape` endpoint in `server.ts` to decode URL percent-encoding safely, and added guards for undefined/empty lookup results from `dns.lookup`. Added global mock in `server.test.ts` to avoid making network requests during tests.
-  - **React act(...) Warnings:** Wrapped fireEvent triggers and mock unregistration callbacks in `src/components/command-palette/CommandPalette.test.tsx` inside `act(...)`, fully eliminating state-update warnings during test cleanup.
-  - **Workflow Node 24 Actions Upgrade:** Added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` at the root-level `env` blocks of `.github/workflows/ci.yml` and `.github/workflows/release.yml` to prevent Node 20 deprecation warnings.
-  - **Markdown Link Validation:** Corrected broken relative documentation links in `docs/audits/CHANGELOG.md`, `docs/design/CHARACTER_RP.md`, `docs/design/SCENE_GENERATION.md`, and `docs/design/THEME_SYSTEM.md`.
+- **Branch / state:** `main` (working tree has modifications to `package.json`, `package-lock.json`, `AGENTS.md`, `README.md`, `docs/DEVELOPMENT/CONFIG.md`, `docs/audits/CHANGELOG.md`, `docs/audits/summary_of_work.md`)
+- **Diagnosis:** Prepared the codebase for release tag `v2.0.0`:
+  - **Version Updates:** Bumped application version from `1.0.6` to `2.0.0` in `package.json`, `package-lock.json`, `AGENTS.md`, `README.md`, and `docs/DEVELOPMENT/CONFIG.md`.
+  - **Changelog Update:** Promoted unreleased changes to `[2.0.0] — 2026-06-10` section in `docs/audits/CHANGELOG.md`.
 - **Files changed in this pass:**
-  - `.github/workflows/ci.yml`
-  - `.github/workflows/release.yml`
+  - `package.json`
+  - `package-lock.json`
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/DEVELOPMENT/CONFIG.md`
   - `docs/audits/CHANGELOG.md`
-  - `docs/design/CHARACTER_RP.md`
-  - `docs/design/SCENE_GENERATION.md`
-  - `docs/design/THEME_SYSTEM.md`
   - `docs/audits/summary_of_work.md`
-  - `server.ts`
-  - `server.test.ts`
-  - `src/components/command-palette/CommandPalette.test.tsx`
 - **Validation (Node v22.13.0 / npm 10.9.2, run 2026-06-10):**
   - `npm run lint:eslint` — **PASS**.
   - `npm run typecheck` — **PASS**.
   - `npm test` — **PASS: 2236 passed, 1 skipped** (0 failures).
-  - `npm run verify:safety-guard` — **PASS**.
+  - `npm run verify:release-packaging-hardening` — **PASS**.
   - `npm run verify:markdown-links` — **PASS: 51 Markdown files checked**.
-  - `npm run ci` — **PASS**.
-  - `npm run verify:dist` — **PASS**.
 
 ---
 
@@ -1056,6 +1049,37 @@ The older Phase 2F block below is retained as historical context and is supersed
 ---
 
 ## Session History
+
+### 2026-06-10 — CI workflow repair: DNS lookup, act warnings, Node 24 upgrade, and relative link fixes
+
+- **Agent:** Antigravity (gemini-3.1-pro)
+- **Branch / state:** `main`
+- **Diagnosis:** Resolved CI-blocking issues:
+  - **Scrape Proxy DNS Error:** Hardened `/api/proxy-scrape` endpoint in `server.ts` to decode URL percent-encoding safely, and added guards for undefined/empty lookup results from `dns.lookup`. Added global mock in `server.test.ts` to avoid making network requests during tests.
+  - **React act(...) Warnings:** Wrapped fireEvent triggers and mock unregistration callbacks in `src/components/command-palette/CommandPalette.test.tsx` inside `act(...)`, fully eliminating state-update warnings during test cleanup.
+  - **Workflow Node 24 Actions Upgrade:** Added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` at the root-level `env` blocks of `.github/workflows/ci.yml` and `.github/workflows/release.yml` to prevent Node 20 deprecation warnings.
+  - **Markdown Link Validation:** Corrected broken relative documentation links in `docs/audits/CHANGELOG.md`, `docs/design/CHARACTER_RP.md`, `docs/design/SCENE_GENERATION.md`, and `docs/design/THEME_SYSTEM.md`.
+- **Files changed in this pass:**
+  - `.github/workflows/ci.yml`
+  - `.github/workflows/release.yml`
+  - `docs/audits/CHANGELOG.md`
+  - `docs/design/CHARACTER_RP.md`
+  - `docs/design/SCENE_GENERATION.md`
+  - `docs/design/THEME_SYSTEM.md`
+  - `docs/audits/summary_of_work.md`
+  - `server.ts`
+  - `server.test.ts`
+  - `src/components/command-palette/CommandPalette.test.tsx`
+- **Validation (Node v22.13.0 / npm 10.9.2, run 2026-06-10):**
+  - `npm run lint:eslint` — **PASS**.
+  - `npm run typecheck` — **PASS**.
+  - `npm test` — **PASS: 2236 passed, 1 skipped** (0 failures).
+  - `npm run verify:safety-guard` — **PASS**.
+  - `npm run verify:markdown-links` — **PASS: 51 Markdown files checked**.
+  - `npm run ci` — **PASS**.
+  - `npm run verify:dist` — **PASS**.
+
+---
 
 ### 2026-06-10 — Markdown link verification and correction pass
 
