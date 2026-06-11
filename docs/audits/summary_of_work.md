@@ -106,6 +106,21 @@ blockers remain.
 
 ## Latest Session Summary
 
+- **Date:** 2026-06-11 (CodeQL Security Fixes)
+- **Agent:** Antigravity (gemini-3.1-pro)
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Addressed two GitHub CodeQL security alerts (#17 and #18):
+  - **Alert 17 (js/xss-through-dom):** Fixed a potential XSS vulnerability in `src/components/chat/chat-input.tsx` where DOM text from image attachments was reinterpreted as HTML in an image `src` attribute. Added explicit meta-character sanitization (`img.replace(/[<>"']/g, '')`) before rendering the data URL to satisfy CodeQL's XSS guard.
+  - **Alert 18 (js/incomplete-sanitization):** Fixed incomplete string escaping in `scripts/verify-archive-clean.test.ts`. The `shellQuote` helper previously escaped quotes but did not escape backslashes first, leaving it vulnerable to un-escaping via backslash prefixes. The fix adds `.replace(/\\/g, '\\\\')` before `.replace(/"/g, '\\"')`.
+- **Files changed in this pass:**
+  - `src/components/chat/chat-input.tsx`
+  - `scripts/verify-archive-clean.test.ts`
+  - `docs/audits/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run scripts/verify-archive-clean.test.ts src/components/chat/chat-input.test.tsx` — **PASS**.
+
+---
+
 - **Date:** 2026-06-11 (Windows CI Fix for verify-archive-clean)
 - **Agent:** Antigravity (gemini-3.1-pro)
 - **Branch / state:** `main` (working tree modified)

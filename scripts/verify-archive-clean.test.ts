@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { execSync } from "node:child_process";
 
 function shellQuote(s: string): string {
-  return `"${s.replace(/"/g, '\\"')}"`;
+  return `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
 function findZip(outDir: string): string | null {
