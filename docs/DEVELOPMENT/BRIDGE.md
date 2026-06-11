@@ -5,7 +5,7 @@ Venice Forge supports running as an autonomous headless loopback server. This mo
 > **Current contract (2026-06-06):** For the **canonical** headless bridge
 > security model — bearer-token auth, child-exploitation safety guard
 > pipeline, canonical 451 block shape, return-content screening, and
-> rate limiting — see **[`SECURITY.md` § Headless Bridge Security](../SECURITY.md#headless-bridge-security)**.
+> rate limiting — see **[`SECURITY.md` § Headless Bridge Security](../../SECURITY.md#headless-bridge-security)**.
 > This document is the operator-facing **usage** guide; the security
 > contract is consolidated in `SECURITY.md` to keep one source of truth.
 

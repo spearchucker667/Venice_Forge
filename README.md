@@ -312,7 +312,7 @@ Plaintext API keys placed in local YAML are imported into OS-level secure storag
 
 Read:
 
-- [docs/CONFIG.md](docs/CONFIG.md)
+- [docs/DEVELOPMENT/CONFIG.md](docs/DEVELOPMENT/CONFIG.md)
 - [.env.example](.env.example)
 
 ---
@@ -540,7 +540,7 @@ Venice Forge uses named regression guards to prevent accidental weakening of sec
 
 Canonical audit and guard documentation lives in:
 
-- [docs/summary_of_work.md](docs/summary_of_work.md)
+- [docs/audits/summary_of_work.md](docs/audits/summary_of_work.md)
 - [docs/reports/historical/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md](docs/reports/historical/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md)
 - [docs/reports/historical/DOCS_CANONICALIZATION_AND_STALE_PRUNE.md](docs/reports/historical/DOCS_CANONICALIZATION_AND_STALE_PRUNE.md)
 - [docs/reports/historical/AUDIT_FOLLOWUP_2026_06_05.md](docs/reports/historical/AUDIT_FOLLOWUP_2026_06_05.md)
@@ -588,7 +588,7 @@ Theme features:
 
 Read:
 
-- [docs/THEME_SYSTEM.md](docs/THEME_SYSTEM.md)
+- [docs/design/THEME_SYSTEM.md](docs/design/THEME_SYSTEM.md)
 
 ---
 
@@ -630,23 +630,23 @@ Read:
 - [docs/DEVELOPMENT/platform-support.md](docs/DEVELOPMENT/platform-support.md)
 - [docs/DEVELOPMENT/troubleshooting.md](docs/DEVELOPMENT/troubleshooting.md)
 - [docs/DEVELOPMENT/macos.md](docs/DEVELOPMENT/macos.md)
-- [docs/REPOSITORY_TREE.md](docs/REPOSITORY_TREE.md)
+- [docs/design/REPOSITORY_TREE.md](docs/design/REPOSITORY_TREE.md)
 
 ### Release
 
 - [docs/RELEASE/release.md](docs/RELEASE/release.md)
 - [docs/RELEASE/signing-and-notarization.md](docs/RELEASE/signing-and-notarization.md)
-- [CHANGELOG.md](CHANGELOG.md)
+- [CHANGELOG.md](docs/audits/CHANGELOG.md)
 
 ### Feature References
 
-- [docs/THEME_SYSTEM.md](docs/THEME_SYSTEM.md)
-- [docs/MEDIA_STUDIO.md](docs/MEDIA_STUDIO.md)
-- [docs/CHARACTER_RP.md](docs/CHARACTER_RP.md)
-- [docs/RESEARCH_PROVIDERS.md](docs/RESEARCH_PROVIDERS.md)
-- [docs/JINA_PROVIDER.md](docs/JINA_PROVIDER.md)
-- [docs/PUBLIC_PROFILE_DISCOVERY.md](docs/PUBLIC_PROFILE_DISCOVERY.md)
-- [docs/CONFIG.md](docs/CONFIG.md)
+- [docs/design/THEME_SYSTEM.md](docs/design/THEME_SYSTEM.md)
+- [docs/design/MEDIA_STUDIO.md](docs/design/MEDIA_STUDIO.md)
+- [docs/design/CHARACTER_RP.md](docs/design/CHARACTER_RP.md)
+- [docs/audits/RESEARCH_PROVIDERS.md](docs/audits/RESEARCH_PROVIDERS.md)
+- [docs/DEVELOPMENT/JINA_PROVIDER.md](docs/DEVELOPMENT/JINA_PROVIDER.md)
+- [docs/design/PUBLIC_PROFILE_DISCOVERY.md](docs/design/PUBLIC_PROFILE_DISCOVERY.md)
+- [docs/DEVELOPMENT/CONFIG.md](docs/DEVELOPMENT/CONFIG.md)
 
 ### Governance
 
@@ -658,8 +658,8 @@ Read:
 
 ### Project Ledger
 
-- [docs/summary_of_work.md](docs/summary_of_work.md)
-- [docs/TODO.md](docs/TODO.md)
+- [docs/audits/summary_of_work.md](docs/audits/summary_of_work.md)
+- [docs/audits/todo.md](docs/audits/todo.md)
 
 ---
 
@@ -708,8 +708,8 @@ Use:
 
 Active work is tracked in:
 
-- [docs/TODO.md](docs/TODO.md)
-- [docs/summary_of_work.md](docs/summary_of_work.md)
+- [docs/audits/todo.md](docs/audits/todo.md)
+- [docs/audits/summary_of_work.md](docs/audits/summary_of_work.md)
 
 Current priorities:
 
