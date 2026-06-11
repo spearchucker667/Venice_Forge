@@ -5,11 +5,13 @@ docs/AGENTS/
 docs/HQE_AUDIT_REPORT.md
 
 # Design-roadmap scratchpads (tokens are already in src/styles/theme.css).
-docs/design/
+docs/design/*
+!docs/design/*.md
 
 # Local-only audit / cross-ref scratchpads (canonical record lives in docs/summary_of_work.md).
 todo.md
-docs/audits/
+docs/audits/*
+!docs/audits/*.md
 
 # Dev-tool generated design capture output (must live under .design-captures/ only).
 scripts/dev-tools/venice-styles.json
