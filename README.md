@@ -58,33 +58,6 @@
 >
 > Do not use this project to create, request, store, distribute, or facilitate child sexual exploitation material, non-consensual sexual content, harassment, doxxing, illegal instructions, or other unlawful abuse.
 
----
-
-## Current Status
-
-> [!WARNING]
-> **Major workspace refactor in progress.**  
-> The `main` branch is being transformed from a tabbed API client into a cohesive local creative workspace with Projects, shared assets, recipes, prompt libraries, research sessions, media lineage, command palette actions, and cross-studio handoffs.
->
-> During this refactor, `main` may be unstable. APIs, storage migrations, UI layout, and internal contracts may change.
->
-> For the most stable build, use the latest versioned artifact from [GitHub Releases](https://github.com/spearchucker667/Venice-API-connector/releases).
-
-| Area | Status |
-| --- | --- |
-| Current release | `v2.0.0` |
-| Maintenance | Active |
-| Windows | Supported |
-| macOS | Supported, Intel + Apple Silicon |
-| Linux | CI artifact support when configured; local cross-builds are not maintained |
-| Node.js | `22.13+` |
-| TypeScript | Strict mode |
-| License | MIT, excluding third-party marks/assets |
-| Safety mode | Local Family Safe Mode available; provider safe-mode remains separate |
-| Test posture | Vitest suite plus named regression guards |
-
----
-
 ## Quick Start
 
 1. Download a build from [GitHub Releases](https://github.com/spearchucker667/Venice-API-connector/releases).
