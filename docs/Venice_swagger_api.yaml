@@ -5,7 +5,7 @@ info:
   description: The Venice.ai API.
   termsOfService: https://venice.ai/legal/tos
   title: Venice.ai API
-  version: "20260422.185330"
+  version: "20260610.174719"
   x-guidance: >-
     Venice.ai is an OpenAI-compatible inference API supporting text, image,
     audio, and video generation.
@@ -15,14 +15,16 @@ info:
 
     - API Key: Use Bearer token in Authorization header
 
-    - x402 Wallet: Use USDC credits via Ethereum wallet (no account required)
+    - x402 Wallet: Use USDC credits via EVM or Solana wallet (no account
+    required)
 
 
     **For x402 wallet access:**
 
     1. POST /x402/top-up without headers to get payment requirements
 
-    2. Sign a USDC payment using the x402 SDK
+    2. Choose one of the returned Base or Solana payment options and sign a USDC
+    payment using the x402 SDK
 
     3. POST /x402/top-up with X-402-Payment header to add credits
 
@@ -60,18 +62,20 @@ tags:
     name: Crypto RPC
   - description: >-
       Wallet-based API access using the x402 protocol. No API key required —
-      authenticate with an Ethereum wallet.
+      authenticate with an EVM or Solana wallet.
 
 
       **How it works:**
 
       1. **Authenticate** — Send an `X-Sign-In-With-X` header (base64-encoded
-      signed SIWE message) with any request. See the `siwx` security scheme for
-      the exact format.
+      signed SIWX payload) with any request. EVM wallets sign an EIP-4361 SIWE
+      message; Solana wallets sign the Solana SIWX message with Ed25519. See the
+      `siwx` security scheme for the exact format.
 
-      2. **Top up** — `POST /x402/top-up` without a payment header returns
-      payment requirements. Sign a USDC transfer on Base using the x402 SDK
-      (`npm install x402`) and re-submit with the `X-402-Payment` header.
+      2. **Top up** — `POST /x402/top-up` without a payment header returns an
+      `accepts` array with Base and Solana USDC payment options. Choose one
+      entry, sign it using the x402 SDK (`npm install x402`), and re-submit with
+      the `X-402-Payment` header.
 
       3. **Use any endpoint** — All inference endpoints (chat, image, audio,
       video, embeddings) accept `siwx` as an alternative to `BearerAuth`.
@@ -90,16 +94,17 @@ tags:
 
       const venice = new VeniceClient(process.env.WALLET_KEY)
 
-      await venice.topUp(10) // $10 USDC on Base
+      await venice.topUp(10) // $10 USDC on a supported x402 rail
 
-      const res = await venice.chat({ model: 'llama-3.3-70b', messages: [{ role:
-      'user', content: 'Hello!' }] })
+      const res = await venice.chat({ model: 'zai-org-glm-5-1', messages: [{
+      role: 'user', content: 'Hello!' }] })
 
       ```
 
 
-      **Payment:** USDC on Base (chain ID 8453). Minimum top-up: $5.
-      Alternatively, stake DIEM tokens for daily credits (1 DIEM = $1/day).
+      **Payment:** USDC on Base (chain ID 8453) or Solana mainnet. Minimum
+      top-up: $5. Alternatively, stake DIEM tokens for daily credits (1 DIEM =
+      $1/day).
     name: x402
 components:
   securitySchemes:
@@ -109,26 +114,31 @@ components:
       type: http
     siwx:
       description: >-
-        Wallet-based authentication using the x402 protocol (Sign-In-With-X /
-        EIP-4361 SIWE).
+        Wallet-based authentication using the x402 protocol (Sign-In-With-X).
+        Supports EVM SIWE signatures on Base and Ed25519 signatures on Solana
+        mainnet.
 
 
         **Header format:** Base64-encoded JSON object with the following fields:
 
-        - `address` — Ethereum wallet address (checksummed)
+        - `address` — EVM or Solana wallet address
 
-        - `message` — EIP-4361 SIWE message string (created with
-        `SiweMessage.prepareMessage()`)
+        - `message` — Signed SIWX message. EVM wallets use EIP-4361 SIWE; Solana
+        wallets use the Solana SIWX message format.
 
-        - `signature` — Hex-encoded signature of the message, signed by the
-        wallet's private key
+        - `signature` — Signature of the message, signed by the wallet's private
+        key. EVM signatures are hex; Solana signatures may be base58 or base64.
 
         - `timestamp` — Unix timestamp in milliseconds
 
-        - `chainId` — Chain ID (use `8453` for Base)
+        - `chainId` — Chain identity. Use `8453`, `"8453"`, or `"eip155:8453"`
+        for Base; use `"solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"` for Solana.
+
+        - `type` — Optional signature type. Use `"ed25519"` for Solana. Omitted
+        means EVM/EIP-191 for backward compatibility.
 
 
-        **SIWE message fields:**
+        **EVM SIWE message fields:**
 
         - `domain`: `outerface.venice.ai`
 
@@ -173,6 +183,14 @@ components:
         // Set header: X-Sign-In-With-X: <header>
 
         ```
+
+
+        **Solana message fields:** The signed message starts with `<domain>
+        wants you to sign in with your Solana account:`, followed by the wallet
+        address and the standard `URI`, `Version`, `Chain ID`, `Nonce`, `Issued
+        At`, and optional `Expiration Time` fields. Use `type: "ed25519"` and
+        `chainId: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"` in the encoded JSON
+        payload.
 
 
         **SDK:** `npm install @venice-ai/x402-client` provides `VeniceClient`
@@ -225,6 +243,40 @@ components:
             tension.
       required:
         - error
+    ProviderContentPolicyError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+              description: A human-readable explanation of the provider content policy
+                rejection and the recommended next action.
+              example: The selected model provider rejected this request due to its content
+                policies. Credits have been refunded. Try using
+                wan-2-7-text-to-video instead.
+            type:
+              type: string
+              enum:
+                - provider_content_policy
+              description: Machine-readable error type for provider content policy rejections.
+              example: provider_content_policy
+            recommended_model:
+              type: string
+              description: A model ID that can be used as an alternative when a recommendation
+                is available.
+              example: wan-2-7-text-to-video
+            credits_refunded:
+              type: boolean
+              description: Whether credits were refunded for the rejected generation.
+              example: true
+          required:
+            - message
+            - type
+            - credits_refunded
+      required:
+        - error
     PayloadTooLargeError:
       type: object
       properties:
@@ -242,150 +294,330 @@ components:
         - code
         - error
     X402InferencePaymentRequired:
-      type: object
-      properties:
-        error:
-          type: string
-          enum:
-            - Payment required
-          description: Error message indicating payment is required.
-        code:
-          type: string
-          enum:
-            - PAYMENT_REQUIRED
-          description: Machine-readable error code.
-        message:
-          type: string
-          description: Human-readable context about the payment requirement.
-          example: Insufficient x402 balance
-        suggestedTopUpUsd:
-          type: number
-          description: Suggested amount to top up in USD.
-          example: 10
-        minimumTopUpUsd:
-          type: number
-          description: Minimum allowed top-up amount in USD.
-          example: 5
-        supportedTokens:
-          type: array
-          items:
-            type: string
-          description: List of supported token symbols for payment.
-          example:
-            - USDC
-        supportedChains:
-          type: array
-          items:
-            type: string
-          description: List of supported blockchain networks.
-          example:
-            - base
-        topUpInstructions:
-          type: object
+      anyOf:
+        - type: object
           properties:
-            step1:
-              type: string
-              description: "First step: get payment requirements."
-              example: POST /api/v1/x402/top-up with no payment header to get payment
-                requirements
-            step2:
-              type: string
-              description: "Second step: sign the payment."
-              example: Sign a USDC transfer authorization using the x402 SDK
-                (createPaymentHeader)
-            step3:
-              type: string
-              description: "Third step: submit the payment."
-              example: POST /api/v1/x402/top-up with the signed X-402-Payment header
-            receiverWallet:
-              type: string
-              description: Venice receiver wallet address.
-              example: <RECEIVER_WALLET_ADDRESS>
-            tokenAddress:
-              type: string
-              description: USDC token contract address.
-              example: <USDC_TOKEN_ADDRESS>
-            tokenDecimals:
+            x402Version:
               type: number
-              description: Token decimal places.
-              example: 6
-            network:
+              description: x402 protocol version.
+              example: 2
+            error:
               type: string
-              description: Target blockchain network.
-              example: eip155:8453
-            minimumAmountUsd:
+              description: Human-readable payment requirement message.
+              example: Payment required
+            resource:
+              type: object
+              properties:
+                url:
+                  type: string
+                  description: Protected resource URL.
+                  example: https://api.venice.ai/api/v1/chat/completions
+                description:
+                  type: string
+                  description: Human-readable resource description.
+                  example: Venice API
+                mimeType:
+                  type: string
+                  description: Resource MIME type.
+                  example: application/json
+              required:
+                - url
+                - description
+                - mimeType
+              additionalProperties: false
+            accepts:
+              type: array
+              items:
+                type: object
+                properties:
+                  scheme:
+                    type: string
+                    enum:
+                      - exact
+                    description: x402 payment scheme.
+                    example: exact
+                  network:
+                    type: string
+                    description: Payment network for this requirement.
+                    example: solana
+                  asset:
+                    type: string
+                    description: USDC token address or mint for the selected network.
+                    example: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+                  amount:
+                    type: string
+                    description: Required payment amount in base units (USDC has 6 decimals).
+                    example: "10000000"
+                  payTo:
+                    type: string
+                    description: Receiver wallet address for the selected network.
+                    example: 8qUL23aSj7mDWdoLMXGHFvnVCT9wd7jXcysiekroADEL
+                  maxTimeoutSeconds:
+                    type: number
+                    description: Maximum time allowed for payment settlement.
+                    example: 300
+                  extra:
+                    type: object
+                    properties: {}
+                    description: Network-specific x402 metadata. Solana requirements include a
+                      feePayer.
+                    example:
+                      name: USD Coin
+                      version: "2"
+                      feePayer: BFK9TLC3edb13K6v4YyH3DwPb5DSUpkWvb7XnqCL9b4F
+                required:
+                  - scheme
+                  - network
+                  - asset
+                  - amount
+                  - payTo
+                  - maxTimeoutSeconds
+                  - extra
+                additionalProperties: false
+              description: Protocol payment requirements. Clients should choose one entry,
+                such as Base or Solana, and sign exactly that requirement.
+            authOptions:
+              type: object
+              properties:
+                apiKey:
+                  type: object
+                  properties:
+                    header:
+                      type: string
+                      description: API key authentication header format.
+                      example: "Authorization: Bearer YOUR_API_KEY"
+                    getKey:
+                      type: string
+                      description: Where to create or manage API keys.
+                      example: https://venice.ai/settings/api
+                    docs:
+                      type: string
+                      description: API key documentation URL.
+                      example: https://docs.venice.ai/api-reference
+                  required:
+                    - header
+                    - getKey
+                    - docs
+                  additionalProperties: false
+                x402Wallet:
+                  type: object
+                  properties:
+                    header:
+                      type: string
+                      description: Header used for Sign-In-With-X wallet authentication.
+                      example: X-Sign-In-With-X
+                    topUp:
+                      type: string
+                      description: Endpoint used to discover and submit x402 top-up payments.
+                      example: POST /api/v1/x402/top-up
+                    docs:
+                      type: string
+                      description: x402 top-up API documentation URL.
+                      example: https://docs.venice.ai/api-reference/endpoint/x402/top-up
+                  required:
+                    - header
+                    - topUp
+                    - docs
+                  additionalProperties: false
+              required:
+                - apiKey
+                - x402Wallet
+              additionalProperties: false
+          required:
+            - x402Version
+            - resource
+            - accepts
+            - authOptions
+          additionalProperties: false
+          description: Returned when an inference request has no API key or wallet
+            authentication. The JSON body includes x402 discovery requirements
+            and authentication options.
+        - type: object
+          properties:
+            error:
+              type: string
+              enum:
+                - Payment required
+              description: Error message indicating payment is required.
+            code:
+              type: string
+              enum:
+                - PAYMENT_REQUIRED
+              description: Machine-readable error code.
+            reason:
+              type: string
+              enum:
+                - insufficient_balance
+              description: Reason the x402-authenticated request could not proceed.
+            message:
+              type: string
+              description: Human-readable context about the payment requirement.
+              example: Insufficient x402 balance
+            currentBalanceUsd:
               type: number
-              description: Minimum top-up amount in USD.
+              description: Current x402 credit balance for the wallet.
+              example: 0.01
+            minimumBalanceUsd:
+              type: number
+              description: Minimum x402 credit balance required before the request can run.
+              example: 0.1
+            description:
+              type: string
+              description: Protected resource description.
+              example: Venice API
+            suggestedTopUpUsd:
+              type: number
+              description: Suggested amount to top up in USD.
+              example: 10
+            minimumTopUpUsd:
+              type: number
+              description: Minimum allowed top-up amount in USD.
               example: 5
+            supportedTokens:
+              type: array
+              items:
+                type: string
+              description: List of supported token symbols for payment.
+              example:
+                - USDC
+            supportedChains:
+              type: array
+              items:
+                type: string
+              description: List of supported top-up rails.
+              example:
+                - base
+                - solana
+            topUpInstructions:
+              type: object
+              properties:
+                step1:
+                  type: string
+                  description: "First step: get payment requirements."
+                  example: POST /api/v1/x402/top-up with no payment header to get payment
+                    requirements
+                step2:
+                  type: string
+                  description: "Second step: sign the payment."
+                  example: Choose a payment option from accepts and sign a USDC transfer
+                    authorization using the x402 SDK (createPaymentHeader)
+                step3:
+                  type: string
+                  description: "Third step: submit the payment."
+                  example: POST /api/v1/x402/top-up with the signed X-402-Payment header
+                receiverWallet:
+                  type: string
+                  description: Legacy Base receiver wallet address. Prefer the selected accepts
+                    entry from /x402/top-up for network-specific payTo values.
+                  example: <RECEIVER_WALLET_ADDRESS>
+                tokenAddress:
+                  type: string
+                  description: Legacy Base USDC token address. Prefer the selected accepts entry
+                    from /x402/top-up for network-specific assets.
+                  example: <USDC_TOKEN_ADDRESS>
+                tokenDecimals:
+                  type: number
+                  description: Token decimal places.
+                  example: 6
+                network:
+                  type: string
+                  description: Legacy Base target network. Prefer the selected accepts entry from
+                    /x402/top-up for network-specific values.
+                  example: eip155:8453
+                minimumAmountUsd:
+                  type: number
+                  description: Minimum top-up amount in USD.
+                  example: 5
+              required:
+                - step1
+                - step2
+                - step3
+                - receiverWallet
+                - tokenAddress
+                - tokenDecimals
+                - network
+                - minimumAmountUsd
+              additionalProperties: false
+            siwxChallenge:
+              type: object
+              properties:
+                info:
+                  type: object
+                  properties:
+                    domain:
+                      type: string
+                      description: Domain for the SIWX challenge.
+                      example: api.venice.ai
+                    uri:
+                      type: string
+                      description: Resource URI for the challenge.
+                      example: https://api.venice.ai/api/v1/chat/completions
+                    version:
+                      type: string
+                      description: SIWX version.
+                      example: "1"
+                    nonce:
+                      type: string
+                      description: Unique nonce for replay protection.
+                      example: "{{nonce}}"
+                    issuedAt:
+                      type: string
+                      description: ISO timestamp when the challenge was issued.
+                      example: 2026-04-09T12:00:00.000Z
+                    expirationTime:
+                      type: string
+                      description: ISO timestamp when the challenge expires.
+                      example: 2026-04-09T12:05:00.000Z
+                    statement:
+                      type: string
+                      description: Human-readable statement for the signature.
+                      example: Sign in to Venice AI
+                  required:
+                    - domain
+                    - uri
+                    - version
+                    - nonce
+                    - issuedAt
+                    - expirationTime
+                    - statement
+                  additionalProperties: false
+                supportedChains:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      chainId:
+                        type: string
+                        description: Supported chain identity.
+                        example: solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp
+                      type:
+                        type: string
+                        enum:
+                          - eip191
+                          - eip1271
+                          - ed25519
+                        description: Signature type accepted for this chain.
+                        example: ed25519
+                    required:
+                      - chainId
+                      - type
+                    additionalProperties: false
+                  description: Supported SIWX chains and signature types.
+              required:
+                - info
+                - supportedChains
+              additionalProperties: false
           required:
-            - step1
-            - step2
-            - step3
-            - receiverWallet
-            - tokenAddress
-            - tokenDecimals
-            - network
-            - minimumAmountUsd
+            - error
+            - code
+            - reason
+            - suggestedTopUpUsd
+            - minimumTopUpUsd
+            - supportedTokens
+            - supportedChains
+            - topUpInstructions
+            - siwxChallenge
           additionalProperties: false
-        siwxChallenge:
-          type: object
-          properties:
-            domain:
-              type: string
-              description: Domain for the SIWX challenge.
-              example: api.venice.ai
-            address:
-              type: string
-              description: Placeholder for wallet address.
-              example: "{{walletAddress}}"
-            uri:
-              type: string
-              description: Resource URI for the challenge.
-              example: https://api.venice.ai/api/v1/x402/top-up
-            version:
-              type: string
-              description: SIWX version.
-              example: "1"
-            chainId:
-              type: number
-              description: Chain ID for the signature.
-              example: 8453
-            nonce:
-              type: string
-              description: Unique nonce for replay protection.
-              example: "{{nonce}}"
-            issuedAt:
-              type: string
-              description: ISO timestamp when the challenge was issued.
-              example: 2026-04-09T12:00:00.000Z
-            expirationTime:
-              type: string
-              description: ISO timestamp when the challenge expires.
-              example: 2026-04-09T12:05:00.000Z
-            statement:
-              type: string
-              description: Human-readable statement for the signature.
-              example: Sign in with your wallet to access Venice x402 API
-          required:
-            - domain
-            - address
-            - uri
-            - version
-            - chainId
-            - nonce
-            - issuedAt
-            - expirationTime
-            - statement
-          additionalProperties: false
-      required:
-        - error
-        - code
-        - suggestedTopUpUsd
-        - minimumTopUpUsd
-        - supportedTokens
-        - supportedChains
-        - topUpInstructions
-        - siwxChallenge
     ChatCompletionRequest:
       type: object
       properties:
@@ -643,6 +875,68 @@ components:
                                 video_url:
                                   url: https://www.youtube.com/watch?v=dQw4w9WgXcQ
                               title: video_url
+                            - type: object
+                              properties:
+                                cache_control:
+                                  type: object
+                                  properties:
+                                    ttl:
+                                      type: string
+                                      description: Optional TTL for extended cache duration. Beta feature requiring
+                                        special header.
+                                      example: 1h
+                                    type:
+                                      type: string
+                                      enum:
+                                        - ephemeral
+                                      description: The type of cache control. Currently only "ephemeral" is supported.
+                                      example: ephemeral
+                                  required:
+                                    - type
+                                  description: Optional cache control for prompt caching on supported providers.
+                                  example:
+                                    type: ephemeral
+                                  title: Cache Control
+                                type:
+                                  type: string
+                                  enum:
+                                    - file
+                                file:
+                                  type: object
+                                  properties:
+                                    file_data:
+                                      type: string
+                                      description: "The file content as a data URL (e.g.,
+                                        data:application/pdf;base64,...) or a
+                                        publicly accessible URL. Supported
+                                        formats: PDF, EPUB, DOCX, PPTX, XLSX,
+                                        XLS, plain text, Markdown, CSV, JSON,
+                                        and most source-code files (e.g., .py,
+                                        .js, .ts, .c, .cpp, .java, .go, .rs,
+                                        .ps1, .sh, .yaml, .sql)."
+                                    filename:
+                                      type: string
+                                      description: Optional filename for the file. Used for display purposes.
+                                      example: document.pdf
+                                  required:
+                                    - file_data
+                                  description: Object containing the file data and optional filename
+                                  title: File Object
+                              required:
+                                - type
+                                - file
+                              description: File input message type for document processing. Supports PDF,
+                                EPUB, DOCX, PPTX, XLSX, plain text, and most
+                                source-code files (e.g., .py, .js, .ts, .c,
+                                .cpp, .java, .go, .rs, .ps1, .sh, .yaml, .sql).
+                                Files are extracted to text before being sent to
+                                the model.
+                              example:
+                                type: file
+                                file:
+                                  file_data: data:application/pdf;base64,JVBERi0xLjQK...
+                                  filename: document.pdf
+                              title: file
                         title: Objects
                   name:
                     type: string
@@ -945,7 +1239,7 @@ components:
             of models available to you. You can use feature suffixes to enable
             features from the venice_parameters object. Please see "Model
             Feature Suffix" documentation for more details.
-          example: zai-org-glm-4.7
+          example: zai-org-glm-5-1
         n:
           type: integer
           default: 1
@@ -1091,10 +1385,35 @@ components:
           type: string
           description: This field is discarded on the request but is supported in the
             Venice API for compatibility with OpenAI clients.
+        fallbacks:
+          type: array
+          items:
+            type: object
+            properties:
+              model:
+                type: string
+            required:
+              - model
+          maxItems: 10
+          description: Anthropic beta parameter for Claude Fable 5 server-side refusal
+            fallback. Forwarded only for direct Anthropic routes; ignored for
+            other providers.
+          example:
+            - model: claude-opus-4-8
         store:
           type: boolean
           description: This field is accepted for OpenAI compatibility but is not used by
             Venice.
+        verbosity:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - auto
+          description: Controls the verbosity of the text response. Currently supported
+            values are `low`, `medium`, and `high`.
+          example: low
         text:
           type: object
           properties:
@@ -1453,7 +1772,7 @@ components:
           description: The ID of the model to use. E2EE-capable models are not supported
             on /api/v1/responses; use /api/v1/chat/completions with the required
             E2EE headers instead.
-          example: zai-org-glm-5
+          example: zai-org-glm-5-1
         input:
           anyOf:
             - type: string
@@ -1778,6 +2097,21 @@ components:
           minimum: 0
           maximum: 1
           description: Nucleus sampling parameter.
+        fallbacks:
+          type: array
+          items:
+            type: object
+            properties:
+              model:
+                type: string
+            required:
+              - model
+          maxItems: 10
+          description: Anthropic beta parameter for Claude Fable 5 server-side refusal
+            fallback. Forwarded only for direct Anthropic routes; ignored for
+            other providers.
+          example:
+            - model: claude-opus-4-8
         reasoning:
           type: object
           nullable: true
@@ -2276,7 +2610,7 @@ components:
         model:
           type: string
           description: The model to use for image generation.
-          example: z-image-turbo
+          example: grok-imagine-image
         negative_prompt:
           type: string
           maxLength: 7500
@@ -2340,6 +2674,16 @@ components:
           description: 'Resolution (utilized by certain image models including Nano
             Banana). Examples: "1K", "2K", "4K".'
           example: 1K
+        quality:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+          description: Output quality for supported models (e.g. GPT Image 2 / GPT Image 2
+            Edit). Higher values can increase the final request charge. See the
+            model list for supported options.
+          example: high
         enable_web_search:
           type: boolean
           description: Enable web search for the image generation task. This will allow
@@ -2379,7 +2723,7 @@ components:
           description: The model to use for image generation. Defaults to Venice's default
             image model. If a non-existent model is specified (ie an OpenAI
             model name), it will default to Venice's default image model.
-          example: z-image-turbo
+          example: grok-imagine-image
         moderation:
           type: string
           nullable: true
@@ -2563,10 +2907,20 @@ components:
             - 2:3
             - 3:4
             - 4:5
-          description: The aspect ratio for the output image. Omit this parameter to use
-            the model's default setting. Supported values vary by model - check
-            GET /api/v1/models for model-specific options.
+          description: The aspect ratio for the output image. Use 'auto' or omit this
+            parameter to infer the closest supported aspect ratio from the input
+            image when explicit sizing is required by the model. Supported
+            values vary by model - check GET /api/v1/models for model-specific
+            options.
           example: 16:9
+        resolution:
+          type: string
+          minLength: 1
+          maxLength: 10
+          description: Resolution tier for the output image (e.g. "1K", "2K", "4K").
+            Supported values vary by model - check GET /api/v1/models for
+            model-specific options. Defaults to "1K" when not specified.
+          example: 1K
         image:
           anyOf:
             - {}
@@ -2580,7 +2934,7 @@ components:
         model:
           type: string
           minLength: 1
-          default: qwen-edit
+          default: firered-image-edit
           description: The model ID to use for image editing.
         modelId:
           type: string
@@ -2588,6 +2942,16 @@ components:
           description: 'Deprecated: Use "model" instead. The model ID to use for image
             editing.'
           deprecated: true
+        output_format:
+          type: string
+          enum:
+            - jpeg
+            - png
+            - webp
+          description: "Output format for the edited image. Accepts jpeg, jpg, png, or
+            webp. When omitted, the format is inferred from resolution: PNG for
+            1K edits and JPEG for 2K/4K edits."
+          example: png
         prompt:
           type: string
           minLength: 1
@@ -2614,11 +2978,37 @@ components:
     MultiEditImageRequest:
       type: object
       properties:
+        aspect_ratio:
+          type: string
+          enum:
+            - auto
+            - 1:1
+            - 3:2
+            - 16:9
+            - 21:9
+            - 9:16
+            - 2:3
+            - 3:4
+            - 4:5
+          description: The aspect ratio for the output image. Use 'auto' or omit this
+            parameter to infer the closest supported aspect ratio from the first
+            input image when explicit sizing is required by the model.
+          example: 16:9
         modelId:
           type: string
           minLength: 1
-          default: qwen-edit
+          default: firered-image-edit
           description: The model ID to use for multi-edit.
+        output_format:
+          type: string
+          enum:
+            - jpeg
+            - png
+            - webp
+          description: "Output format for the edited image. Accepts jpeg, jpg, png, or
+            webp. When omitted, the format is inferred from resolution: PNG for
+            1K edits and JPEG for 2K/4K edits."
+          example: png
         prompt:
           type: string
           minLength: 1
@@ -2644,6 +3034,24 @@ components:
             starting with http:// or https://. Image dimensions must be at least
             65536 pixels and must not exceed 33177600 pixels. File size must be
             less than 25MB.
+        quality:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+          description: Output quality for supported models (e.g. GPT Image 2 / GPT Image 2
+            Edit). Higher values can increase the final request charge. See the
+            model list for supported options.
+          example: high
+        resolution:
+          type: string
+          minLength: 1
+          maxLength: 10
+          description: Resolution tier for the output image (e.g. "1K", "2K", "4K").
+            Supported values vary by model - check GET /api/v1/models for
+            model-specific options. Defaults to "1K" when not specified.
+          example: 1K
         safe_mode:
           type: boolean
           default: true
@@ -2659,11 +3067,37 @@ components:
     MultiEditImageMultipartRequest:
       type: object
       properties:
+        aspect_ratio:
+          type: string
+          enum:
+            - auto
+            - 1:1
+            - 3:2
+            - 16:9
+            - 21:9
+            - 9:16
+            - 2:3
+            - 3:4
+            - 4:5
+          description: The aspect ratio for the output image. Use 'auto' or omit this
+            parameter to infer the closest supported aspect ratio from the first
+            input image when explicit sizing is required by the model.
+          example: 16:9
         modelId:
           type: string
           minLength: 1
-          default: qwen-edit
+          default: firered-image-edit
           description: The model ID to use for multi-edit.
+        output_format:
+          type: string
+          enum:
+            - jpeg
+            - png
+            - webp
+          description: "Output format for the edited image. Accepts jpeg, jpg, png, or
+            webp. When omitted, the format is inferred from resolution: PNG for
+            1K edits and JPEG for 2K/4K edits."
+          example: png
         prompt:
           type: string
           minLength: 1
@@ -2681,6 +3115,24 @@ components:
           maxItems: 3
           description: Array of 1 to 3 image files. The first image is treated as the base
             image, and the remaining images are used as edit layers/masks.
+        quality:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+          description: Output quality for supported models (e.g. GPT Image 2 / GPT Image 2
+            Edit). Higher values can increase the final request charge. See the
+            model list for supported options.
+          example: high
+        resolution:
+          type: string
+          minLength: 1
+          maxLength: 10
+          description: Resolution tier for the output image (e.g. "1K", "2K", "4K").
+            Supported values vary by model - check GET /api/v1/models for
+            model-specific options. Defaults to "1K" when not specified.
+          example: 1K
         safe_mode:
           type: boolean
           default: true
@@ -2847,9 +3299,10 @@ components:
             - tts-elevenlabs-turbo-v2-5
             - tts-minimax-speech-02-hd
             - tts-gemini-3-1-flash
+            - tts-gradium-v1
           default: tts-kokoro
           description: The model ID of a Venice TTS model.
-          example: tts-kokoro
+          example: tts-xai-v1
         prompt:
           type: string
           maxLength: 500
@@ -2901,179 +3354,197 @@ components:
             `supportsTopPParam` (currently Qwen 3 TTS). Ignored by other models.
           example: 1
         voice:
-          type: string
-          enum:
-            - af_alloy
-            - af_aoede
-            - af_bella
-            - af_heart
-            - af_jadzia
-            - af_jessica
-            - af_kore
-            - af_nicole
-            - af_nova
-            - af_river
-            - af_sarah
-            - af_sky
-            - am_adam
-            - am_echo
-            - am_eric
-            - am_fenrir
-            - am_liam
-            - am_michael
-            - am_onyx
-            - am_puck
-            - am_santa
-            - bf_alice
-            - bf_emma
-            - bf_lily
-            - bm_daniel
-            - bm_fable
-            - bm_george
-            - bm_lewis
-            - zf_xiaobei
-            - zf_xiaoni
-            - zf_xiaoxiao
-            - zf_xiaoyi
-            - zm_yunjian
-            - zm_yunxi
-            - zm_yunxia
-            - zm_yunyang
-            - ff_siwis
-            - hf_alpha
-            - hf_beta
-            - hm_omega
-            - hm_psi
-            - if_sara
-            - im_nicola
-            - jf_alpha
-            - jf_gongitsune
-            - jf_nezumi
-            - jf_tebukuro
-            - jm_kumo
-            - pf_dora
-            - pm_alex
-            - pm_santa
-            - ef_dora
-            - em_alex
-            - em_santa
-            - Vivian
-            - Serena
-            - Ono_Anna
-            - Sohee
-            - Uncle_Fu
-            - Dylan
-            - Eric
-            - Ryan
-            - Aiden
-            - eve
-            - ara
-            - rex
-            - sal
-            - leo
-            - Craig
-            - Ashley
-            - Olivia
-            - Sarah
-            - Elizabeth
-            - Priya
-            - Alex
-            - Edward
-            - Theodore
-            - Ronald
-            - Mark
-            - Hades
-            - Luna
-            - Pixie
-            - Aurora
-            - Britney
-            - Siobhan
-            - Vicky
-            - Blade
-            - Carl
-            - Cliff
-            - Richard
-            - Rico
-            - tara
-            - leah
-            - jess
-            - mia
-            - zoe
-            - dan
-            - zac
-            - Rachel
-            - Aria
-            - Laura
-            - Charlotte
-            - Alice
-            - Matilda
-            - Jessica
-            - Lily
-            - Roger
-            - Charlie
-            - George
-            - Callum
-            - River
-            - Liam
-            - Will
-            - Chris
-            - Brian
-            - Daniel
-            - Bill
-            - WiseWoman
-            - FriendlyPerson
-            - InspirationalGirl
-            - CalmWoman
-            - LivelyGirl
-            - LovelyGirl
-            - SweetGirl
-            - ExuberantGirl
-            - DeepVoiceMan
-            - CasualGuy
-            - PatientMan
-            - YoungKnight
-            - DeterminedMan
-            - ImposingManner
-            - ElegantMan
-            - Achernar
-            - Achird
-            - Algenib
-            - Algieba
-            - Alnilam
-            - Aoede
-            - Autonoe
-            - Callirrhoe
-            - Charon
-            - Despina
-            - Enceladus
-            - Erinome
-            - Fenrir
-            - Gacrux
-            - Iapetus
-            - Kore
-            - Laomedeia
-            - Leda
-            - Orus
-            - Pulcherrima
-            - Puck
-            - Rasalgethi
-            - Sadachbia
-            - Sadaltager
-            - Schedar
-            - Sulafat
-            - Umbriel
-            - Vindemiatrix
-            - Zephyr
-            - Zubenelgenubi
+          anyOf:
+            - type: string
+              enum:
+                - af_alloy
+                - af_aoede
+                - af_bella
+                - af_heart
+                - af_jadzia
+                - af_jessica
+                - af_kore
+                - af_nicole
+                - af_nova
+                - af_river
+                - af_sarah
+                - af_sky
+                - am_adam
+                - am_echo
+                - am_eric
+                - am_fenrir
+                - am_liam
+                - am_michael
+                - am_onyx
+                - am_puck
+                - am_santa
+                - bf_alice
+                - bf_emma
+                - bf_lily
+                - bm_daniel
+                - bm_fable
+                - bm_george
+                - bm_lewis
+                - zf_xiaobei
+                - zf_xiaoni
+                - zf_xiaoxiao
+                - zf_xiaoyi
+                - zm_yunjian
+                - zm_yunxi
+                - zm_yunxia
+                - zm_yunyang
+                - ff_siwis
+                - hf_alpha
+                - hf_beta
+                - hm_omega
+                - hm_psi
+                - if_sara
+                - im_nicola
+                - jf_alpha
+                - jf_gongitsune
+                - jf_nezumi
+                - jf_tebukuro
+                - jm_kumo
+                - pf_dora
+                - pm_alex
+                - pm_santa
+                - ef_dora
+                - em_alex
+                - em_santa
+                - Vivian
+                - Serena
+                - Ono_Anna
+                - Sohee
+                - Uncle_Fu
+                - Dylan
+                - Eric
+                - Ryan
+                - Aiden
+                - eve
+                - ara
+                - rex
+                - sal
+                - leo
+                - Craig
+                - Ashley
+                - Olivia
+                - Sarah
+                - Elizabeth
+                - Priya
+                - Alex
+                - Edward
+                - Theodore
+                - Ronald
+                - Mark
+                - Hades
+                - Luna
+                - Pixie
+                - Aurora
+                - Britney
+                - Siobhan
+                - Vicky
+                - Blade
+                - Carl
+                - Cliff
+                - Richard
+                - Rico
+                - tara
+                - leah
+                - jess
+                - mia
+                - zoe
+                - dan
+                - zac
+                - Rachel
+                - Aria
+                - Laura
+                - Charlotte
+                - Alice
+                - Matilda
+                - Jessica
+                - Lily
+                - Roger
+                - Charlie
+                - George
+                - Callum
+                - River
+                - Liam
+                - Will
+                - Chris
+                - Brian
+                - Daniel
+                - Bill
+                - WiseWoman
+                - FriendlyPerson
+                - InspirationalGirl
+                - CalmWoman
+                - LivelyGirl
+                - LovelyGirl
+                - SweetGirl
+                - ExuberantGirl
+                - DeepVoiceMan
+                - CasualGuy
+                - PatientMan
+                - YoungKnight
+                - DeterminedMan
+                - ImposingManner
+                - ElegantMan
+                - Achernar
+                - Achird
+                - Algenib
+                - Algieba
+                - Alnilam
+                - Aoede
+                - Autonoe
+                - Callirrhoe
+                - Charon
+                - Despina
+                - Enceladus
+                - Erinome
+                - Fenrir
+                - Gacrux
+                - Iapetus
+                - Kore
+                - Laomedeia
+                - Leda
+                - Orus
+                - Pulcherrima
+                - Puck
+                - Rasalgethi
+                - Sadachbia
+                - Sadaltager
+                - Schedar
+                - Sulafat
+                - Umbriel
+                - Vindemiatrix
+                - Zephyr
+                - Zubenelgenubi
+                - Emma
+                - Kent
+                - Eva
+                - Jack
+                - Mia
+                - Maximilian
+                - Valentina
+                - Sergio
+                - Elise
+                - Leo
+                - Davi
+            - type: string
+              pattern: ^vv_[A-Za-z0-9_-]+$
           default: af_sky
           description: "The voice to use when generating the audio. Voices are
             model-specific: Kokoro (e.g. af_sky, af_bella, am_adam), Qwen 3
             (e.g. Vivian, Serena, Dylan), xAI (eve, ara, rex, sal, leo), Orpheus
             (tara, leah, jess, leo, dan, mia, zac, zoe), Inworld (Craig, Ashley,
             ...), Chatterbox (Aurora, Blade, ...), ElevenLabs Turbo (Rachel,
-            Aria, ...), MiniMax (WiseWoman, DeepVoiceMan, ...). Using an
-            incompatible voice returns a 400 error. Call GET /models/{id} to
-            list voices for a specific model."
+            Aria, ...), MiniMax (WiseWoman, DeepVoiceMan, ...), Gradium (Emma,
+            Kent, Mia, Maximilian, Valentina, Sergio, Elise, Leo, Alice, Davi —
+            spanning en/de/es/fr/pt). You can also pass a cloned-voice handle
+            (`vv_<id>`) returned by POST /v1/audio/voices to synthesize in a
+            previously cloned voice; the handle must be paired with the same
+            model used to create it. Using an incompatible voice returns a 400
+            error. Call GET /models/{id} to list voices for a specific model."
           example: af_sky
       required:
         - input
@@ -3081,7 +3552,7 @@ components:
       description: Request to generate audio from text.
       example:
         input: Hello, welcome to Venice Voice.
-        model: tts-kokoro
+        model: tts-xai-v1
         response_format: mp3
         speed: 1
         streaming: false
@@ -3105,7 +3576,7 @@ components:
           default: nvidia/parakeet-tdt-0.6b-v3
           description: The model to use for transcription. See
             https://docs.venice.ai/models/overview for more information.
-          example: nvidia/parakeet-tdt-0.6b-v3
+          example: openai/whisper-large-v3
         response_format:
           type: string
           enum:
@@ -3131,29 +3602,86 @@ components:
       description: Request to transcribe audio to text.
       example:
         file: "[audio file]"
-        model: nvidia/parakeet-tdt-0.6b-v3
+        model: openai/whisper-large-v3
         response_format: json
         timestamps: false
+    CreateClonedVoiceRequestSchema:
+      type: object
+      properties:
+        file:
+          type: string
+          description: 'The voice sample audio file (multipart/form-data, field name
+            "file"). Accepted containers depend on the selected model:
+            `tts-chatterbox-hd` accepts MP3, WAV, FLAC, and M4A;
+            `tts-minimax-speech-02-hd` accepts MP3 and WAV only. Recommended: a
+            clean speech recording of at least 5–10 seconds.'
+          format: binary
+        model:
+          type: string
+          enum:
+            - tts-chatterbox-hd
+            - tts-minimax-speech-02-hd
+          default: tts-chatterbox-hd
+          description: The Venice TTS model the cloned voice will be paired with. The
+            returned voice handle is only valid against this model on POST
+            /v1/audio/speech.
+          example: tts-chatterbox-hd
+      description: Request to create a cloned voice from an audio sample. The returned
+        `vv_<id>` handle is passed back as the `voice` parameter on POST
+        /v1/audio/speech.
     QueueVideoRequest:
       type: object
       properties:
         model:
           type: string
           description: The model to use for video generation.
-          example: wan-2-7-text-to-video
+          example: seedance-2-0-text-to-video
+        consents:
+          type: object
+          properties:
+            seedance:
+              type: object
+              properties:
+                confirmed_terms_and_privacy:
+                  type: boolean
+                  enum:
+                    - true
+                  description: Confirms acceptance of the current Seedance face-media policy text
+                    returned in the needs_consent response.
+                  example: true
+                confirmed_legal_right:
+                  type: boolean
+                  enum:
+                    - true
+                  description: Confirms the API user has the legal right to use the face-bearing
+                    media.
+                  example: true
+                confirmed_screening_acknowledged:
+                  type: boolean
+                  enum:
+                    - true
+                  description: Acknowledges that submitted media may be screened before private
+                    asset submission.
+                  example: true
+              required:
+                - confirmed_terms_and_privacy
+                - confirmed_legal_right
+                - confirmed_screening_acknowledged
+          description: Optional provider-specific consent attestations. Seedance consent
+            is required only when submitted media contains faces.
         prompt:
           type: string
           minLength: 1
-          maxLength: 3500
+          maxLength: 10000
           description: The prompt to use for video generation. Required for most models.
             The maximum length varies by model (default 2500 characters, up to
-            3500 for some models such as Seedance 2.0).
+            10000 for some models such as Seedance 2.0).
           example: Commerce being conducted in the city of Venice, Italy.
         negative_prompt:
           type: string
-          maxLength: 3500
+          maxLength: 10000
           description: Optional negative prompt. The maximum length varies by model
-            (default 2500 characters, up to 3500 for some models).
+            (default 2500 characters, up to 10000 for some models).
           example: low resolution, error, worst quality, low quality, defects
         duration:
           type: string
@@ -3181,7 +3709,7 @@ components:
             - Auto
           description: The duration of the video to generate. Available options vary by
             model.
-          example: 5s
+          example: 10s
         aspect_ratio:
           type: string
           enum:
@@ -3261,6 +3789,32 @@ components:
             character/style consistency. Each must be a URL or data URL.
           example:
             - data:image/png;base64,iVBORw0K...
+        reference_video_urls:
+          type: array
+          items:
+            type: string
+          maxItems: 3
+          description: 'For models with reference video support (e.g. Seedance 2.0 R2V),
+            up to 3 reference video URLs (`role: "reference_video"`) used to
+            inherit subject motion, camera movement, and overall style. Per-clip
+            2–15 s, .mp4 or .mov, ≤50 MB; aggregate duration ≤15 s. Each must be
+            a URL or data URL.'
+          example:
+            - https://example.com/reference-clip.mp4
+        reference_audio_urls:
+          type: array
+          items:
+            type: string
+          maxItems: 3
+          description: 'For models with reference audio support (e.g. Seedance 2.0 R2V),
+            up to 3 reference audio URLs (`role: "reference_audio"`) used as
+            donors for vocal timbre, narration, or sound effects. Per-clip 2–15
+            s, .wav or .mp3; aggregate duration ≤15 s. Must be paired with at
+            least one reference image or reference video — audio-only Reference
+            workflows are rejected at validation. Each must be a URL or data
+            URL.'
+          example:
+            - data:audio/mpeg;base64,SUQzBAAAAAA...
         elements:
           type: array
           items:
@@ -3304,7 +3858,7 @@ components:
         model:
           type: string
           description: The model to get a price quote for.
-          example: wan-2-7-text-to-video
+          example: seedance-2-0-text-to-video
         duration:
           type: string
           enum:
@@ -3330,7 +3884,7 @@ components:
             - 1 gen
             - Auto
           description: The duration of the video. Available options vary by model.
-          example: 5s
+          example: 10s
         aspect_ratio:
           type: string
           enum:
@@ -3383,6 +3937,16 @@ components:
           description: For upscale models, the video to upscale. Required to auto-detect
             duration for pricing.
           example: data:video/mp4;base64,AAAAFGZ0eXA...
+        reference_video_total_duration:
+          type: number
+          minimum: 0
+          description: For R2V models (e.g. Seedance 2.0 R2V), the aggregate duration in
+            seconds of all reference videos to include in the quote (max 45s;
+            per-clip 2–15s, total ≤15s for Seedance). When provided, the quote
+            reflects the BytePlus 'input with video' rate tier and the
+            (input+output)×pixels token formula. When omitted, the quote returns
+            the no-reference baseline.
+          example: 5
       required:
         - model
         - duration
@@ -3450,8 +4014,10 @@ components:
       properties:
         file:
           type: string
-          description: "The document file to parse. Supported formats: PDF, DOCX, XLSX,
-            and plain text files. Maximum size: 25MB."
+          description: "The document file to parse. Supported formats: PDF, EPUB, DOCX,
+            PPTX, XLSX, plain text, Markdown, CSV, JSON, and most source-code
+            files (e.g., .py, .js, .ts, .c, .cpp, .java, .go, .rs, .ps1, .sh,
+            .yaml, .sql). Maximum size: 25MB."
           format: binary
         response_format:
           type: string
@@ -3816,7 +4382,7 @@ components:
             inferenceDetails: null
             notes: API Inference
             pricePerUnitUsd: 0.1
-            sku: venice-sd35-image-unit
+            sku: grok-imagine-image-image-unit
             timestamp: {}
             units: 1
           - amount: -0.06356
@@ -3828,7 +4394,7 @@ components:
               requestId: chatcmpl-4007fd29f42b7d3c4107f4345e8d174a
             notes: API Inference
             pricePerUnitUsd: 2.8
-            sku: llama-3.3-70b-llm-output-mtoken
+            sku: zai-org-glm-5-1-llm-output-mtoken
             timestamp: {}
             units: 0.000227
         pagination:
@@ -3894,7 +4460,7 @@ components:
               modelName:
                 type: string
                 description: Display name of the model
-                example: Llama 3.3 70B
+                example: GLM 5.1
               unitType:
                 type: string
                 description: Type of units (tokens, images, chars, minutes, seconds)
@@ -4021,7 +4587,7 @@ components:
             USD: 0.3
             DIEM: 8.75
         byModel:
-          - modelName: Llama 3.3 70B
+          - modelName: GLM 5.1
             unitType: tokens
             modelType: LLM
             totalUsd: 0.4
@@ -4038,11 +4604,11 @@ components:
                 units: 15000
         byModelDaily:
           - date: 1705276800000
-            Llama 3.3 70B: 5.5
-            Claude 3.5 Sonnet: 3.2
+            GLM 5.1: 5.5
+            Kimi K2.6: 3.2
         topModels:
-          - Llama 3.3 70B
-          - Claude 3.5 Sonnet
+          - GLM 5.1
+          - Kimi K2.6
         byKey:
           - apiKeyId: key_abc123
             description: Production Key
@@ -4105,6 +4671,13 @@ components:
     ModelResponse:
       type: object
       properties:
+        context_length:
+          type: number
+          description: The context length (maximum input tokens) supported by the model.
+            Only present for text models. This is a standard OpenAI-compatible
+            field that mirrors model_spec.availableContextTokens for client
+            compatibility.
+          example: 131072
         created:
           type: number
           description: Release date on Venice API
@@ -4156,14 +4729,44 @@ components:
             deprecation:
               type: object
               properties:
+                autoRemap:
+                  type: boolean
+                  description: When true, Venice may automatically remap API requests for this
+                    model ID to replacementModelId instead of returning an
+                    error.
+                  example: false
                 date:
                   type: string
-                  description: The ISO 8601 date when this model is scheduled to be deprecated
+                  description: Legacy ISO 8601 instant aligned with the deprecation sunset used in
+                    response headers (`x-venice-model-deprecation-date`). Prefer
+                    startsAt / removesAt for new integrations.
+                  example: 2025-03-01T00:00:00.000Z
+                removesAt:
+                  type: string
+                  description: ISO 8601 instant when this model ID is omitted from public GET
+                    /models listings (same value as `date` today). Consumers
+                    should treat the current wall-clock time as past this
+                    instant when deciding whether the model remains listed.
+                  example: 2025-04-01T00:00:00.000Z
+                replacementModelId:
+                  type: string
+                  description: Suggested public API model ID to migrate to, when one exists.
+                  example: llama-3-3-70b
+                startsAt:
+                  type: string
+                  description: ISO 8601 instant when deprecation warnings and documentation should
+                    be considered active for this model.
                   example: 2025-03-01T00:00:00.000Z
               required:
+                - autoRemap
                 - date
+                - removesAt
               description: Deprecation information for the model. Only present for models
                 scheduled to be retired
+              example:
+                autoRemap: false
+                date: 2025-03-01T00:00:00.000Z
+                removesAt: 2025-03-01T00:00:00.000Z
             capabilities:
               type: object
               properties:
@@ -4187,6 +4790,10 @@ components:
                   type: boolean
                   description: Does the LLM model support function calling?
                   example: true
+                supportsAudioInput:
+                  type: boolean
+                  description: Does the LLM support audio input?
+                  example: false
                 supportsReasoning:
                   type: boolean
                   description: Does the model support reasoning with <thinking> blocks of output.
@@ -4194,8 +4801,42 @@ components:
                 supportsReasoningEffort:
                   type: boolean
                   description: Does the model support the reasoning_effort parameter to control
-                    reasoning depth (low, medium, high).
+                    reasoning depth.
                   example: true
+                reasoningEffortOptions:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - none
+                      - minimal
+                      - low
+                      - medium
+                      - high
+                      - xhigh
+                      - max
+                  description: Supported reasoning_effort values for this model. Only present when
+                    supportsReasoningEffort is true. The "none" option means
+                    reasoning can be disabled.
+                  example:
+                    - none
+                    - low
+                    - medium
+                    - high
+                defaultReasoningEffort:
+                  type: string
+                  enum:
+                    - none
+                    - minimal
+                    - low
+                    - medium
+                    - high
+                    - xhigh
+                    - max
+                  description: Default reasoning_effort value used when the request does not
+                    specify one. Only present when supportsReasoningEffort is
+                    true.
+                  example: medium
                 supportsResponseSchema:
                   type: boolean
                   description: Does the LLM model support response schema? Only models that
@@ -4252,6 +4893,7 @@ components:
                 - optimizedForCode
                 - quantization
                 - supportsFunctionCalling
+                - supportsAudioInput
                 - supportsReasoning
                 - supportsReasoningEffort
                 - supportsResponseSchema
@@ -4291,10 +4933,6 @@ components:
                       description: The default resolution for this model. Only present for models that
                         support resolution selection.
                       example: 1K
-                    promptCharacterLimit:
-                      type: number
-                      description: The maximum supported prompt length.
-                      example: 2048
                     resolutions:
                       type: array
                       items:
@@ -4305,6 +4943,35 @@ components:
                         - 1K
                         - 2K
                         - 4K
+                    defaultQuality:
+                      type: string
+                      enum:
+                        - low
+                        - medium
+                        - high
+                      description: The default quality for this model. Only present for models that
+                        accept the `quality` request parameter (currently GPT
+                        Image 2).
+                      example: high
+                    qualities:
+                      type: array
+                      items:
+                        type: string
+                        enum:
+                          - low
+                          - medium
+                          - high
+                      description: Supported quality options for this model. Only present for models
+                        that accept the `quality` request parameter (currently
+                        GPT Image 2).
+                      example:
+                        - low
+                        - medium
+                        - high
+                    promptCharacterLimit:
+                      type: number
+                      description: The maximum supported prompt length.
+                      example: 2048
                     steps:
                       type: object
                       properties:
@@ -4466,6 +5133,53 @@ components:
                       type: boolean
                       description: Whether this model supports combining multiple input images.
                       example: true
+                    singleImageAspectRatio:
+                      type: boolean
+                      description: If false, output dimensions match the input on single-image edits
+                        and `aspect_ratio` is ignored. Multi-image edits are
+                        unaffected. Defaults to true.
+                      example: true
+                    defaultResolution:
+                      type: string
+                      description: The default resolution for this inpaint model. Only present for
+                        models that support resolution selection (e.g. GPT Image
+                        2 Edit).
+                      example: 1K
+                    resolutions:
+                      type: array
+                      items:
+                        type: string
+                      description: Supported resolution options for this inpaint model. Only present
+                        for models that support resolution selection.
+                      example:
+                        - 1K
+                        - 2K
+                        - 4K
+                    defaultQuality:
+                      type: string
+                      enum:
+                        - low
+                        - medium
+                        - high
+                      description: The default quality for this inpaint model. Only present for models
+                        that accept the `quality` request parameter (currently
+                        GPT Image 2 Edit).
+                      example: high
+                    qualities:
+                      type: array
+                      items:
+                        type: string
+                        enum:
+                          - low
+                          - medium
+                          - high
+                      description: Supported quality options for this inpaint model. Only present for
+                        models that accept the `quality` request parameter
+                        (currently GPT Image 2 Edit).
+                      example:
+                        - low
+                        - medium
+                        - high
                   required:
                     - aspectRatios
                     - promptCharacterLimit
@@ -4672,10 +5386,10 @@ components:
                         required:
                           - usd
                           - diem
-                      description: Resolution-specific pricing. Keys are resolution names (e.g., "1K",
+                      description: Resolution-specific pricing. Keys are resolution tiers (e.g. "1K",
                         "2K", "4K"). Only present for models that support
-                        resolution selection. When present, "generation" pricing
-                        will not be included.
+                        resolution selection. When present, replaces
+                        `generation`.
                       example:
                         1K:
                           usd: 0.18
@@ -4686,6 +5400,87 @@ components:
                         4K:
                           usd: 0.35
                           diem: 0.35
+                    quality:
+                      type: object
+                      additionalProperties:
+                        type: object
+                        properties:
+                          low:
+                            type: object
+                            properties:
+                              usd:
+                                type: number
+                                description: USD cost for this resolution
+                                example: 0.18
+                              diem:
+                                type: number
+                                description: Diem cost for this resolution
+                                example: 0.18
+                            required:
+                              - usd
+                              - diem
+                          medium:
+                            type: object
+                            properties:
+                              usd:
+                                type: number
+                                description: USD cost for this resolution
+                                example: 0.18
+                              diem:
+                                type: number
+                                description: Diem cost for this resolution
+                                example: 0.18
+                            required:
+                              - usd
+                              - diem
+                          high:
+                            type: object
+                            properties:
+                              usd:
+                                type: number
+                                description: USD cost for this resolution
+                                example: 0.18
+                              diem:
+                                type: number
+                                description: Diem cost for this resolution
+                                example: 0.18
+                            required:
+                              - usd
+                              - diem
+                      description: Per-(resolution, quality) pricing. Only present for models that
+                        accept the `quality` request parameter (currently GPT
+                        Image 2 / GPT Image 2 Edit).
+                      example:
+                        1K:
+                          high:
+                            usd: 0.27
+                            diem: 0.27
+                          low:
+                            usd: 0.02
+                            diem: 0.02
+                          medium:
+                            usd: 0.07
+                            diem: 0.07
+                        2K:
+                          high:
+                            usd: 0.5
+                            diem: 0.5
+                          low:
+                            usd: 0.03
+                            diem: 0.03
+                          medium:
+                            usd: 0.13
+                            diem: 0.13
+                        4K:
+                          high:
+                            usd: 0.83
+                            diem: 0.83
+                          low:
+                            usd: 0.05
+                            diem: 0.05
+                          medium:
+                            usd: 0.21
+                            diem: 0.21
                     upscale:
                       type: object
                       properties:
@@ -4780,6 +5575,116 @@ components:
                       required:
                         - usd
                         - diem
+                    resolutions:
+                      type: object
+                      additionalProperties:
+                        type: object
+                        properties:
+                          usd:
+                            type: number
+                            description: USD cost for this resolution
+                            example: 0.18
+                          diem:
+                            type: number
+                            description: Diem cost for this resolution
+                            example: 0.18
+                        required:
+                          - usd
+                          - diem
+                      description: Resolution-specific pricing. Keys are resolution tiers (e.g. "1K",
+                        "2K", "4K"). Only present for inpaint models that
+                        support resolution selection.
+                      example:
+                        1K:
+                          usd: 0.36
+                          diem: 0.36
+                        2K:
+                          usd: 0.53
+                          diem: 0.53
+                        4K:
+                          usd: 0.85
+                          diem: 0.85
+                    quality:
+                      type: object
+                      additionalProperties:
+                        type: object
+                        properties:
+                          low:
+                            type: object
+                            properties:
+                              usd:
+                                type: number
+                                description: USD cost for this resolution
+                                example: 0.18
+                              diem:
+                                type: number
+                                description: Diem cost for this resolution
+                                example: 0.18
+                            required:
+                              - usd
+                              - diem
+                          medium:
+                            type: object
+                            properties:
+                              usd:
+                                type: number
+                                description: USD cost for this resolution
+                                example: 0.18
+                              diem:
+                                type: number
+                                description: Diem cost for this resolution
+                                example: 0.18
+                            required:
+                              - usd
+                              - diem
+                          high:
+                            type: object
+                            properties:
+                              usd:
+                                type: number
+                                description: USD cost for this resolution
+                                example: 0.18
+                              diem:
+                                type: number
+                                description: Diem cost for this resolution
+                                example: 0.18
+                            required:
+                              - usd
+                              - diem
+                      description: Per-(resolution, quality) pricing. Only present for models that
+                        accept the `quality` request parameter (currently GPT
+                        Image 2 / GPT Image 2 Edit).
+                      example:
+                        1K:
+                          high:
+                            usd: 0.27
+                            diem: 0.27
+                          low:
+                            usd: 0.02
+                            diem: 0.02
+                          medium:
+                            usd: 0.07
+                            diem: 0.07
+                        2K:
+                          high:
+                            usd: 0.5
+                            diem: 0.5
+                          low:
+                            usd: 0.03
+                            diem: 0.03
+                          medium:
+                            usd: 0.13
+                            diem: 0.13
+                        4K:
+                          high:
+                            usd: 0.83
+                            diem: 0.83
+                          low:
+                            usd: 0.05
+                            diem: 0.05
+                          medium:
+                            usd: 0.21
+                            diem: 0.21
                   required:
                     - inpaint
                   description: Pricing for image editing/inpainting models
@@ -4922,6 +5827,63 @@ components:
                 - Aiden
                 - Alex
                 - Algenib
+            voice_cloning:
+              type: object
+              properties:
+                mode:
+                  type: string
+                  enum:
+                    - zero_shot
+                    - persistent
+                  description: How the upstream provider implements voice cloning. `zero_shot`
+                    re-reads the reference audio on every synthesis call and
+                    never derives a persistent voice template (e.g. Chatterbox
+                    HD). `persistent` derives a custom voice template upstream
+                    that survives across synthesis calls (e.g. MiniMax Speech-02
+                    HD).
+                  example: zero_shot
+                accepted_formats:
+                  type: array
+                  items:
+                    type: string
+                  description: Audio container formats this model accepts as a reference sample on
+                    POST /v1/audio/voices. Samples in other containers are
+                    rejected with HTTP 400 before any upload.
+                  example:
+                    - mp3
+                    - wav
+                    - flac
+                    - mp4
+                min_sample_seconds:
+                  type: number
+                  description: Recommended minimum length of the reference audio sample, in
+                    seconds, for an intelligible clone.
+                  example: 5
+                retention_days:
+                  type: number
+                  description: Days a `vv_<id>` voice handle remains valid against this model. For
+                    `persistent` models the upstream provider auto-deletes the
+                    cloned voice after this many days without use; each
+                    successful TTS request resets the window. For `zero_shot`
+                    models this is the storage TTL on the uploaded reference
+                    audio; the handle stops working when it expires and the user
+                    must re-upload.
+                  example: 7
+              required:
+                - mode
+                - accepted_formats
+                - min_sample_seconds
+                - retention_days
+              additionalProperties: false
+              description: Voice-cloning capability. Only present for TTS models whose cloning
+                endpoint is publicly available — pass the model to POST
+                /v1/audio/voices to mint a `vv_<id>` voice handle, then pass
+                that handle back as the `voice` parameter on POST
+                /v1/audio/speech alongside the same `model`. Models with cloning
+                gated behind a private alpha (e.g. MiniMax during the
+                biometric-data legal review) omit this field for non-staff
+                callers; the model itself still appears in the listing.
+              title: TTS Voice Cloning
             default_voice:
               type: string
               description: Default voice for voice-enabled music models.
@@ -5036,6 +5998,7 @@ components:
           capabilities:
             optimizedForCode: false
             quantization: fp16
+            supportsAudioInput: false
             supportsFunctionCalling: true
             supportsLogProbs: true
             supportsMultipleImages: false
@@ -5077,15 +6040,15 @@ components:
         type: string
       description: List of available models
       example:
-        default: zai-org-glm-4.7
-        fastest: ""
+        default: zai-org-glm-5-1
+        fastest: kimi-k2-6
     ModelCompatibilitySchema:
       type: object
       additionalProperties:
         type: string
       description: List of available models
       example:
-        gpt-4o: llama-3.3-70b
+        gpt-4o: zai-org-glm-5-1
     WebScrapeResponse:
       type: object
       properties:
@@ -5143,9 +6106,11 @@ paths:
     post:
       description: >-
         Run text inference based on the supplied parameters. Supports multimodal
-        inputs including text, images (image_url), audio (input_audio), and
-        video (video_url) for compatible models. Long running requests should
-        use the streaming API by setting stream=true in your request.
+        inputs including text, images (image_url), audio (input_audio), video
+        (video_url), and files (file) for compatible models. File inputs (PDF,
+        DOCX, PPTX, XLSX, TXT, etc.) are automatically extracted to text before
+        being sent to the model. Long running requests should use the streaming
+        API by setting stream=true in your request.
 
 
         **Authentication:** This endpoint accepts either a Bearer API key or an
@@ -5446,7 +6411,7 @@ paths:
                   model:
                     type: string
                     description: The model id used for the request.
-                    example: zai-org-glm-4.7
+                    example: zai-org-glm-5-1
                   object:
                     type: string
                     enum:
@@ -5681,7 +6646,7 @@ paths:
                       stop_reason: null
                   created: 1739928524
                   id: chatcmpl-a81fbc2d81a7a083bb83ccf9f44c6e5e
-                  model: qwen-2.5-vl
+                  model: zai-org-glm-5-1
                   object: chat.completion
                   prompt_logprobs: null
                   usage:
@@ -5718,7 +6683,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -5726,26 +6692,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -5755,8 +6725,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "415":
           description: Invalid request content-type
           content:
@@ -6081,7 +7049,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -6089,26 +7058,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -6118,8 +7091,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "429":
           description: Rate limit exceeded
           content:
@@ -6212,6 +7183,20 @@ paths:
               schema:
                 type: string
                 format: date-time
+            x-venice-deprecated:
+              description: Present and set to "true" when the model is deprecated. Absent
+                otherwise.
+              required: false
+              schema:
+                type: string
+                enum:
+                  - "true"
+            x-venice-deprecated-replacement:
+              description: Public API model ID clients should migrate to. Only present when a
+                replacement is published.
+              required: false
+              schema:
+                type: string
           content:
             application/json:
               schema:
@@ -6284,7 +7269,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -6292,26 +7278,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -6321,8 +7311,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "415":
           description: Invalid request content-type
           content:
@@ -6429,6 +7417,20 @@ paths:
               schema:
                 type: string
                 format: date-time
+            x-venice-deprecated:
+              description: Present and set to "true" when the model is deprecated. Absent
+                otherwise.
+              required: false
+              schema:
+                type: string
+                enum:
+                  - "true"
+            x-venice-deprecated-replacement:
+              description: Public API model ID clients should migrate to. Only present when a
+                replacement is published.
+              required: false
+              schema:
+                type: string
           content:
             application/json:
               schema:
@@ -6478,7 +7480,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -6486,26 +7489,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -6515,8 +7522,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "415":
           description: Invalid request content-type
           content:
@@ -6654,7 +7659,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -6662,26 +7668,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -6691,8 +7701,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "415":
           description: Invalid request content-type
           content:
@@ -6722,7 +7730,11 @@ paths:
       description: >-
         Edit or modify an image based on the supplied prompt. The image can be
         provided either as a multipart form-data file upload or as a
-        base64-encoded string in a JSON request.
+        base64-encoded string in a JSON request. For models with resolution
+        tiers that require explicit dimensions, omit aspect_ratio or set it to
+        auto to infer the closest supported aspect ratio from the input image;
+        provide aspect_ratio directly when exact output dimensions are required.
+        Use output_format to request jpeg, jpg, png, or webp output.
 
 
         **Authentication:** This endpoint accepts either a Bearer API key or an
@@ -6741,14 +7753,17 @@ paths:
                     modelId:
                       type: string
                       enum:
-                        - qwen-edit
                         - firered-image-edit
+                        - qwen-edit
+                        - qwen-edit-uncensored
                         - grok-imagine-edit
+                        - grok-imagine-quality-edit
                         - qwen-image-2-edit
                         - qwen-image-2-pro-edit
+                        - wan-2-7-pro-edit
                         - flux-2-max-edit
-                        - gpt-image-1-5-edit
                         - gpt-image-2-edit
+                        - gpt-image-1-5-edit
                         - nano-banana-2-edit
                         - nano-banana-pro-edit
                         - seedream-v5-lite-edit
@@ -6762,14 +7777,17 @@ paths:
                     modelId:
                       type: string
                       enum:
-                        - qwen-edit
                         - firered-image-edit
+                        - qwen-edit
+                        - qwen-edit-uncensored
                         - grok-imagine-edit
+                        - grok-imagine-quality-edit
                         - qwen-image-2-edit
                         - qwen-image-2-pro-edit
+                        - wan-2-7-pro-edit
                         - flux-2-max-edit
-                        - gpt-image-1-5-edit
                         - gpt-image-2-edit
+                        - gpt-image-1-5-edit
                         - nano-banana-2-edit
                         - nano-banana-pro-edit
                         - seedream-v5-lite-edit
@@ -6826,8 +7844,30 @@ paths:
               schema:
                 type: string
                 format: date-time
+            x-venice-deprecated:
+              description: Present and set to "true" when the model is deprecated. Absent
+                otherwise.
+              required: false
+              schema:
+                type: string
+                enum:
+                  - "true"
+            x-venice-deprecated-replacement:
+              description: Public API model ID clients should migrate to. Only present when a
+                replacement is published.
+              required: false
+              schema:
+                type: string
           content:
             image/png:
+              schema:
+                format: binary
+                type: string
+            image/jpeg:
+              schema:
+                format: binary
+                type: string
+            image/webp:
               schema:
                 format: binary
                 type: string
@@ -6845,7 +7885,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -6853,26 +7894,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -6882,8 +7927,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "415":
           description: Invalid request content-type
           content:
@@ -6927,6 +7970,13 @@ paths:
           - Data URL: `"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."`
           - HTTP/HTTPS URL: `"https://example.com/image.png"`
 
+        For models with resolution tiers that require explicit dimensions, omit
+        `aspect_ratio` or set it to `auto` to infer the closest supported aspect
+        ratio from the first input image. Provide `aspect_ratio` directly when
+        exact output dimensions are required. Use `output_format` to request
+        jpeg, jpg, png, or webp output.
+
+
 
         **Authentication:** This endpoint accepts either a Bearer API key or an
         `X-Sign-In-With-X` header for x402 wallet-based authentication. When
@@ -6944,14 +7994,17 @@ paths:
                     modelId:
                       type: string
                       enum:
-                        - qwen-edit
                         - firered-image-edit
+                        - qwen-edit
+                        - qwen-edit-uncensored
                         - grok-imagine-edit
+                        - grok-imagine-quality-edit
                         - qwen-image-2-edit
                         - qwen-image-2-pro-edit
+                        - wan-2-7-pro-edit
                         - flux-2-max-edit
-                        - gpt-image-1-5-edit
                         - gpt-image-2-edit
+                        - gpt-image-1-5-edit
                         - nano-banana-2-edit
                         - nano-banana-pro-edit
                         - seedream-v5-lite-edit
@@ -6965,14 +8018,17 @@ paths:
                     modelId:
                       type: string
                       enum:
-                        - qwen-edit
                         - firered-image-edit
+                        - qwen-edit
+                        - qwen-edit-uncensored
                         - grok-imagine-edit
+                        - grok-imagine-quality-edit
                         - qwen-image-2-edit
                         - qwen-image-2-pro-edit
+                        - wan-2-7-pro-edit
                         - flux-2-max-edit
-                        - gpt-image-1-5-edit
                         - gpt-image-2-edit
+                        - gpt-image-1-5-edit
                         - nano-banana-2-edit
                         - nano-banana-pro-edit
                         - seedream-v5-lite-edit
@@ -7019,8 +8075,30 @@ paths:
               schema:
                 type: string
                 format: date-time
+            x-venice-deprecated:
+              description: Present and set to "true" when the model is deprecated. Absent
+                otherwise.
+              required: false
+              schema:
+                type: string
+                enum:
+                  - "true"
+            x-venice-deprecated-replacement:
+              description: Public API model ID clients should migrate to. Only present when a
+                replacement is published.
+              required: false
+              schema:
+                type: string
           content:
             image/png:
+              schema:
+                format: binary
+                type: string
+            image/jpeg:
+              schema:
+                format: binary
+                type: string
+            image/webp:
               schema:
                 format: binary
                 type: string
@@ -7038,7 +8116,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -7046,26 +8125,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -7075,8 +8158,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "415":
           description: Invalid request content-type
           content:
@@ -7167,7 +8248,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -7175,26 +8257,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -7204,8 +8290,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "415":
           description: Invalid request content-type
           content:
@@ -7530,11 +8614,23 @@ paths:
                               description: VCU limit (deprecated - use Diem instead)
                               deprecated: true
                               example: 100
-                          description: The API Key consumption limits for each epoch.
+                          description: The API Key consumption limits, evaluated against the window
+                            selected by `limitPeriod`.
                           example:
                             usd: 50
                             diem: 10
                             vcu: 30
+                        limitPeriod:
+                          type: string
+                          enum:
+                            - EPOCH
+                            - MONTH
+                            - LIFETIME
+                          description: Reset window the consumption limits apply to. `EPOCH` resets every
+                            UTC day (legacy default). `MONTH` resets on the 1st
+                            of each UTC calendar month. `LIFETIME` never resets,
+                            so the limit acts as a permanent cap on the key.
+                          example: MONTH
                         createdAt:
                           type: string
                           nullable: true
@@ -7587,9 +8683,26 @@ paths:
                                 - diem
                           required:
                             - trailingSevenDays
+                        currentPeriodUsage:
+                          type: object
+                          properties:
+                            usd:
+                              type: string
+                              description: USD usage in the current limit period
+                              example: "5.1234"
+                            diem:
+                              type: string
+                              description: Diem usage in the current limit period
+                              example: "2.5000"
+                          required:
+                            - usd
+                            - diem
+                          description: Usage within the current limit period window. Only present for keys
+                            that have consumption limits set.
                       required:
                         - apiKeyType
                         - consumptionLimits
+                        - limitPeriod
                         - createdAt
                         - expiresAt
                         - id
@@ -7718,11 +8831,23 @@ paths:
                       description: VCU limit (deprecated - use Diem instead)
                       deprecated: true
                       example: 100
-                  description: The API Key consumption limits for each epoch.
+                  description: The API Key consumption limits, evaluated against the window
+                    selected by `limitPeriod`.
                   example:
                     usd: 50
                     diem: 10
                     vcu: 30
+                limitPeriod:
+                  type: string
+                  enum:
+                    - EPOCH
+                    - MONTH
+                    - LIFETIME
+                  description: Reset window the consumption limits apply to. `EPOCH` resets every
+                    UTC day (legacy default). `MONTH` resets on the 1st of each
+                    UTC calendar month. `LIFETIME` never resets, so the limit
+                    acts as a permanent cap on the key.
+                  example: MONTH
                 description:
                   type: string
                   description: The API Key description
@@ -7807,11 +8932,23 @@ paths:
                             description: VCU limit (deprecated - use Diem instead)
                             deprecated: true
                             example: 100
-                        description: The API Key consumption limits for each epoch.
+                        description: The API Key consumption limits, evaluated against the window
+                          selected by `limitPeriod`.
                         example:
                           usd: 50
                           diem: 10
                           vcu: 30
+                      limitPeriod:
+                        type: string
+                        enum:
+                          - EPOCH
+                          - MONTH
+                          - LIFETIME
+                        description: Reset window the consumption limits apply to. `EPOCH` resets every
+                          UTC day (legacy default). `MONTH` resets on the 1st of
+                          each UTC calendar month. `LIFETIME` never resets, so
+                          the limit acts as a permanent cap on the key.
+                        example: MONTH
                       description:
                         type: string
                         description: The API Key description
@@ -7829,6 +8966,7 @@ paths:
                       - apiKey
                       - apiKeyType
                       - consumptionLimit
+                      - limitPeriod
                       - expiresAt
                       - id
                     additionalProperties: false
@@ -7912,11 +9050,23 @@ paths:
                       description: VCU limit (deprecated - use Diem instead)
                       deprecated: true
                       example: 100
-                  description: The API Key consumption limits for each epoch.
+                  description: The API Key consumption limits, evaluated against the window
+                    selected by `limitPeriod`.
                   example:
                     usd: 50
                     diem: 10
                     vcu: 30
+                limitPeriod:
+                  type: string
+                  enum:
+                    - EPOCH
+                    - MONTH
+                    - LIFETIME
+                  description: Reset window the consumption limits apply to. `EPOCH` resets every
+                    UTC day (legacy default). `MONTH` resets on the 1st of each
+                    UTC calendar month. `LIFETIME` never resets, so the limit
+                    acts as a permanent cap on the key.
+                  example: MONTH
                 description:
                   type: string
                   description: The API Key description
@@ -7945,7 +9095,8 @@ paths:
                 - id
               additionalProperties: false
               description: The request body for updating an existing API key. The description,
-                expiration date, and consumption limits can be updated.
+                expiration date, consumption limits and limit period (epoch /
+                month / lifetime) can be updated.
       responses:
         "200":
           description: OK
@@ -8001,11 +9152,23 @@ paths:
                             description: VCU limit (deprecated - use Diem instead)
                             deprecated: true
                             example: 100
-                        description: The API Key consumption limits for each epoch.
+                        description: The API Key consumption limits, evaluated against the window
+                          selected by `limitPeriod`.
                         example:
                           usd: 50
                           diem: 10
                           vcu: 30
+                      limitPeriod:
+                        type: string
+                        enum:
+                          - EPOCH
+                          - MONTH
+                          - LIFETIME
+                        description: Reset window the consumption limits apply to. `EPOCH` resets every
+                          UTC day (legacy default). `MONTH` resets on the 1st of
+                          each UTC calendar month. `LIFETIME` never resets, so
+                          the limit acts as a permanent cap on the key.
+                        example: MONTH
                       createdAt:
                         type: string
                         nullable: true
@@ -8036,6 +9199,7 @@ paths:
                     required:
                       - apiKeyType
                       - consumptionLimits
+                      - limitPeriod
                       - createdAt
                       - expiresAt
                       - id
@@ -8136,11 +9300,23 @@ paths:
                             description: VCU limit (deprecated - use Diem instead)
                             deprecated: true
                             example: 100
-                        description: The API Key consumption limits for each epoch.
+                        description: The API Key consumption limits, evaluated against the window
+                          selected by `limitPeriod`.
                         example:
                           usd: 50
                           diem: 10
                           vcu: 30
+                      limitPeriod:
+                        type: string
+                        enum:
+                          - EPOCH
+                          - MONTH
+                          - LIFETIME
+                        description: Reset window the consumption limits apply to. `EPOCH` resets every
+                          UTC day (legacy default). `MONTH` resets on the 1st of
+                          each UTC calendar month. `LIFETIME` never resets, so
+                          the limit acts as a permanent cap on the key.
+                        example: MONTH
                       createdAt:
                         type: string
                         nullable: true
@@ -8193,9 +9369,26 @@ paths:
                               - diem
                         required:
                           - trailingSevenDays
+                      currentPeriodUsage:
+                        type: object
+                        properties:
+                          usd:
+                            type: string
+                            description: USD usage in the current limit period
+                            example: "5.1234"
+                          diem:
+                            type: string
+                            description: Diem usage in the current limit period
+                            example: "2.5000"
+                        required:
+                          - usd
+                          - diem
+                        description: Usage within the current limit period window. Only present for keys
+                          that have consumption limits set.
                     required:
                       - apiKeyType
                       - consumptionLimits
+                      - limitPeriod
                       - createdAt
                       - expiresAt
                       - id
@@ -8212,6 +9405,7 @@ paths:
                     consumptionLimits:
                       usd: 50
                       diem: 10
+                    limitPeriod: MONTH
                     createdAt: {}
                     description: Example API Key
                     expiresAt: {}
@@ -8300,7 +9494,7 @@ paths:
                             apiModelId:
                               type: string
                               description: The ID of the API model.
-                              example: zai-org-glm-4.7
+                              example: zai-org-glm-5-1
                             rateLimits:
                               type: array
                               items:
@@ -8367,7 +9561,7 @@ paths:
                           description: The ID of the API key that exceeded the limit.
                         modelId:
                           type: string
-                          default: zai-org-glm-4.7
+                          default: zai-org-glm-5-1
                           description: The ID of the model that was used when the rate limit was exceeded.
                         rateLimitTier:
                           type: string
@@ -8497,11 +9691,23 @@ paths:
                       description: VCU limit (deprecated - use Diem instead)
                       deprecated: true
                       example: 100
-                  description: The API Key consumption limits for each epoch.
+                  description: The API Key consumption limits, evaluated against the window
+                    selected by `limitPeriod`.
                   example:
                     usd: 50
                     diem: 10
                     vcu: 30
+                limitPeriod:
+                  type: string
+                  enum:
+                    - EPOCH
+                    - MONTH
+                    - LIFETIME
+                  description: Reset window the consumption limits apply to. `EPOCH` resets every
+                    UTC day (legacy default). `MONTH` resets on the 1st of each
+                    UTC calendar month. `LIFETIME` never resets, so the limit
+                    acts as a permanent cap on the key.
+                  example: MONTH
                 description:
                   type: string
                   default: Web3 API Key
@@ -8599,11 +9805,23 @@ paths:
                             description: VCU limit (deprecated - use Diem instead)
                             deprecated: true
                             example: 100
-                        description: The API Key consumption limits for each epoch.
+                        description: The API Key consumption limits, evaluated against the window
+                          selected by `limitPeriod`.
                         example:
                           usd: 50
                           diem: 10
                           vcu: 30
+                      limitPeriod:
+                        type: string
+                        enum:
+                          - EPOCH
+                          - MONTH
+                          - LIFETIME
+                        description: Reset window the consumption limits apply to. `EPOCH` resets every
+                          UTC day (legacy default). `MONTH` resets on the 1st of
+                          each UTC calendar month. `LIFETIME` never resets, so
+                          the limit acts as a permanent cap on the key.
+                        example: MONTH
                       description:
                         type: string
                         description: The API Key description
@@ -8621,6 +9839,7 @@ paths:
                       - apiKey
                       - apiKeyType
                       - consumptionLimit
+                      - limitPeriod
                       - expiresAt
                       - id
                     additionalProperties: false
@@ -8705,8 +9924,8 @@ paths:
             description: Filter by model ID(s). Repeat the parameter for multiple values.
               Comma-separated values are also accepted.
             example:
-              - llama-3.3-70b
-              - venice-uncensored
+              - zai-org-glm-5-1
+              - kimi-k2-6
           required: false
           name: modelId
           in: query
@@ -8880,7 +10099,7 @@ paths:
                         modelId:
                           type: string
                           description: API model ID for the character
-                          example: venice-uncensored
+                          example: venice-uncensored-1-2
                       required:
                         - adult
                         - author
@@ -9042,7 +10261,7 @@ paths:
                       modelId:
                         type: string
                         description: API model ID for the character
-                        example: venice-uncensored
+                        example: venice-uncensored-1-2
                     required:
                       - adult
                       - author
@@ -9425,7 +10644,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -9433,26 +10653,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -9462,8 +10686,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "415":
           description: Invalid request content-type
           content:
@@ -9492,6 +10714,14 @@ paths:
     post:
       description: >-
         Converts text to speech using various voice models and formats.
+
+
+        **Voice cloning:** Some TTS models (e.g. `tts-chatterbox-hd`) accept a
+        cloned-voice handle in the `voice` field. Mint a handle by uploading a
+        reference audio sample to POST /v1/audio/voices, then pass the returned
+        `vv_<id>` value as `voice` here paired with the same `model`. Supported
+        voice-cloning models advertise the `voice_cloning` capability on GET
+        /models?type=tts.
 
 
         **Authentication:** This endpoint accepts either a Bearer API key or an
@@ -9571,7 +10801,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -9579,26 +10810,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -9608,8 +10843,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "403":
           description: Unauthorized access
           content:
@@ -9765,7 +10998,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -9773,26 +11007,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -9802,8 +11040,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "403":
           description: Unauthorized access
           content:
@@ -9832,6 +11068,188 @@ paths:
                 properties:
                   error:
                     type: string
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardError"
+        "500":
+          description: Inference processing failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardError"
+        "503":
+          description: The model is at capacity. Please try again later.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardError"
+  /audio/voices:
+    post:
+      description: >-
+        Clone a voice from an audio sample. Returns a voice handle (`vv_...`)
+        that can be passed to POST /v1/audio/speech as the `voice` parameter to
+        synthesize speech in the cloned voice; the handle must be paired with
+        the same `model` used to create it.
+
+
+        Supported models:
+
+
+        - `tts-chatterbox-hd` (Resemble AI) — accepts MP3, WAV, FLAC, and M4A
+        samples. Zero-shot: no persistent voice template is derived; the
+        reference audio is uploaded to a TTL’d storage object and re-read on
+        each synthesis call. Handles expire automatically after 7 days.
+
+
+        - `tts-minimax-speech-02-hd` (MiniMax) — accepts MP3 and WAV only.
+        Persistent: the upstream provider derives a custom voice template that
+        survives across synthesis calls. Auto-deleted after 7 days without use;
+        each successful TTS request resets the window. Currently limited access
+        — contact support@venice.ai if you need it enabled.
+
+
+        Samples in containers outside the per-model allowlist are rejected with
+        HTTP 400 before any upload.
+
+
+        **Authentication:** This endpoint accepts either a Bearer API key or an
+        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
+        using x402, a `402 Payment Required` response indicates insufficient
+        balance and includes top-up instructions.
+      operationId: createClonedVoice
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/CreateClonedVoiceRequestSchema"
+      security:
+        - BearerAuth: []
+        - siwx: []
+      x-payment-info:
+        price:
+          mode: dynamic
+          currency: USD
+          min: "0.001"
+          max: "10.00"
+        protocols:
+          - x402: {}
+      summary: /api/v1/audio/voices
+      tags:
+        - Audio
+        - Voices
+      responses:
+        "200":
+          description: Voice cloned successfully
+          headers:
+            X-Balance-Remaining:
+              description: Remaining x402 credit balance in USD after this request (only
+                present for x402 auth).
+              required: false
+              schema:
+                type: string
+                example: "4.230000"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: The cloned voice handle. Pass this to POST /v1/audio/speech as the
+                      `voice` parameter alongside the same `model` used to
+                      create it. Handles expire automatically after the
+                      per-model retention window (currently 7 days for both
+                      supported models); for `tts-minimax-speech-02-hd` each
+                      successful TTS request resets that window.
+                    example: vv_voice_abc123xyz
+                  model:
+                    type: string
+                    description: The Venice TTS model this voice can be used with.
+                    example: tts-chatterbox-hd
+                required:
+                  - id
+                  - model
+                additionalProperties: false
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DetailedError"
+        "401":
+          description: |-
+            - Authentication failed
+            - This model is only available to Pro users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardError"
+        "402":
+          description: >-
+            Payment or balance required. Response varies by authentication
+            state:
+
+
+            **API Key users:** Standard error response with
+            `INSUFFICIENT_BALANCE` code. Top up your Venice balance at
+            venice.ai.
+
+
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
+
+            - `topUpInstructions`: Step-by-step guide to top up via x402
+            protocol
+
+            - `supportedTokens` / `supportedChains`: Accepted payment methods
+
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
+
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
+          headers:
+            PAYMENT-REQUIRED:
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
+              required: false
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/StandardError"
+                  - $ref: "#/components/schemas/X402InferencePaymentRequired"
+        "403":
+          description: Unauthorized access
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardError"
+        "413":
+          description: The request payload is too large. Please reduce the size of your
+            request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayloadTooLargeError"
+        "415":
+          description: Invalid request content-type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardError"
         "429":
           description: Rate limit exceeded
           content:
@@ -9921,7 +11339,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -9929,26 +11348,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -9958,8 +11381,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "500":
           description: Inference processing failed
           content:
@@ -10047,7 +11468,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -10055,26 +11477,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -10084,8 +11510,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "403":
           description: The specified model is unavailable in your region. Use of Tor,
             VPNs, proxies, or other means to circumvent this restriction is a
@@ -10094,6 +11518,60 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/StandardError"
+        "409":
+          description: Seedance consent is required before this request can be queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        enum:
+                          - needs_consent
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                    additionalProperties: false
+                  consent_flow:
+                    type: string
+                    enum:
+                      - seedance
+                  face_media_roles:
+                    type: array
+                    items:
+                      type: string
+                      enum:
+                        - image
+                        - end_image
+                        - reference_image
+                        - video
+                        - reference_video
+                  consent:
+                    type: object
+                    properties:
+                      consent_version:
+                        type: string
+                      policy_text:
+                        type: string
+                    required:
+                      - consent_version
+                      - policy_text
+                    additionalProperties: false
+                  docs_url:
+                    type: string
+                required:
+                  - error
+                  - consent_flow
+                  - face_media_roles
+                  - consent
+                  - docs_url
+                additionalProperties: false
         "413":
           description: The request payload is too large. Please reduce the size of your
             request.
@@ -10241,7 +11719,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -10249,26 +11728,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -10278,8 +11761,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "403":
           description: The specified model is unavailable in your region. Use of Tor,
             VPNs, proxies, or other means to circumvent this restriction is a
@@ -10296,12 +11777,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/StandardError"
         "422":
-          description: Your prompt violates the content policy of Venice.ai or the model
-            provider
+          description: The selected model provider rejected this request due to its
+            content policies.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ContentViolationError"
+                $ref: "#/components/schemas/ProviderContentPolicyError"
         "500":
           description: Inference processing failed
           content:
@@ -10389,7 +11870,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -10397,26 +11879,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -10426,8 +11912,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "403":
           description: Unauthorized access
           content:
@@ -10449,8 +11933,8 @@ paths:
   /augment/text-parser:
     post:
       description: >-
-        Extracts text from a document file. Supports PDF, DOCX, XLSX, and plain
-        text formats. Upload a file via multipart/form-data.
+        Extracts text from a document file. Supports PDF, DOCX, PPTX, XLSX, and
+        plain text formats. Upload a file via multipart/form-data.
 
 
         **Privacy:** Text parsing runs entirely in-memory on Venice's
@@ -10474,8 +11958,8 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: "The document file to parse. Supported formats: PDF, DOCX, XLSX,
-                    and plain text files. Maximum size: 25MB."
+                  description: "The document file to parse. Supported formats: PDF, DOCX, PPTX,
+                    XLSX, and plain text files. Maximum size: 25MB."
                 response_format:
                   type: string
                   enum:
@@ -10544,7 +12028,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -10552,26 +12037,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -10581,8 +12070,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "403":
           description: Unauthorized access
           content:
@@ -10673,7 +12160,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -10681,26 +12169,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -10710,8 +12202,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "500":
           description: Inference processing failed
           content:
@@ -10800,7 +12290,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -10808,26 +12299,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -10837,8 +12332,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "422":
           description: Your prompt violates the content policy of Venice.ai or the model
             provider
@@ -10998,7 +12491,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -11006,26 +12500,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -11035,8 +12533,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "404":
           description: Media could not be found. Request may may be invalid, expired, or
             deleted.
@@ -11358,7 +12854,7 @@ paths:
                       inferenceDetails: null
                       notes: API Inference
                       pricePerUnitUsd: 0.1
-                      sku: venice-sd35-image-unit
+                      sku: grok-imagine-image-image-unit
                       timestamp: {}
                       units: 1
                     - amount: -0.06356
@@ -11370,7 +12866,7 @@ paths:
                         requestId: chatcmpl-4007fd29f42b7d3c4107f4345e8d174a
                       notes: API Inference
                       pricePerUnitUsd: 2.8
-                      sku: llama-3.3-70b-llm-output-mtoken
+                      sku: zai-org-glm-5-1-llm-output-mtoken
                       timestamp: {}
                       units: 0.000227
                   pagination:
@@ -11485,7 +12981,7 @@ paths:
                         modelName:
                           type: string
                           description: Display name of the model
-                          example: Llama 3.3 70B
+                          example: GLM 5.1
                         unitType:
                           type: string
                           description: Type of units (tokens, images, chars, minutes, seconds)
@@ -11612,7 +13108,7 @@ paths:
                       USD: 0.3
                       DIEM: 8.75
                   byModel:
-                    - modelName: Llama 3.3 70B
+                    - modelName: GLM 5.1
                       unitType: tokens
                       modelType: LLM
                       totalUsd: 0.4
@@ -11629,11 +13125,11 @@ paths:
                           units: 15000
                   byModelDaily:
                     - date: 1705276800000
-                      Llama 3.3 70B: 5.5
-                      Claude 3.5 Sonnet: 3.2
+                      GLM 5.1: 5.5
+                      Kimi K2.6: 3.2
                   topModels:
-                    - Llama 3.3 70B
-                    - Claude 3.5 Sonnet
+                    - GLM 5.1
+                    - Kimi K2.6
                   byKey:
                     - apiKeyId: key_abc123
                       description: Production Key
@@ -12072,9 +13568,9 @@ paths:
             instructions and payment requirements per the x402 v2 spec.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -12084,8 +13580,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "429":
           description: Rate limit tripped. Either the per-minute request cap, the per-day
             credit cap, or a concurrent-call collision on the per-user mutex.
@@ -12122,10 +13616,11 @@ paths:
   /x402/balance/{walletAddress}:
     get:
       description: Get the x402 credit balance for a wallet address. Requires
-        Sign-in-with-x authentication (via SIWE) for the same wallet.
+        Sign-in-with-x authentication for the same EVM or Solana wallet.
       operationId: getX402Balance
       parameters:
-        - description: base64-encoded JSON SIWE payload message proving wallet ownership
+        - description: base64-encoded JSON SIWX payload proving EVM or Solana wallet
+            ownership
           in: header
           name: X-Sign-In-With-X
           required: true
@@ -12134,8 +13629,8 @@ paths:
             type: string
         - schema:
             type: string
-            pattern: ^0x[a-fA-F0-9]{40}$
-            description: Ethereum wallet address.
+            pattern: ^(0x[a-fA-F0-9]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})$
+            description: EVM or Solana wallet address.
             example: 0xYOUR_WALLET_ADDRESS
           required: true
           name: walletAddress
@@ -12233,12 +13728,14 @@ paths:
         the header is missing, the endpoint returns payment requirements.
 
 
-        This is the primary x402 payment endpoint. All inference endpoints
-        (chat, image, audio, video) consume from the credit balance you
-        establish here.
+        This is the primary x402 payment endpoint. It currently returns Base and
+        Solana USDC payment options in the `accepts` array. All inference
+        endpoints (chat, image, audio, video) consume from the credit balance
+        you establish here.
       operationId: topUpX402Balance
       parameters:
-        - description: Signed x402 payment payload used to top up the wallet balance.
+        - description: Signed x402 payment payload used to top up the wallet balance on a
+            supported rail such as Base or Solana.
           in: header
           name: X-402-Payment
           required: false
@@ -12359,12 +13856,13 @@ paths:
                           example: 2
                         network:
                           type: string
-                          description: Network in EIP-155 CAIP-2 format.
-                          example: eip155:8453
+                          description: Payment network. Base uses CAIP-2 EIP-155 format; Solana uses the
+                            x402 Solana network alias.
+                          example: solana
                         asset:
                           type: string
-                          description: Token contract address.
-                          example: <USDC_TOKEN_ADDRESS>
+                          description: USDC token address or mint for the selected network.
+                          example: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
                         amount:
                           type: string
                           description: Minimum payment amount in base units (USDC has 6 decimals).
@@ -12372,7 +13870,15 @@ paths:
                         payTo:
                           type: string
                           description: Receiver wallet address.
-                          example: <RECEIVER_WALLET_ADDRESS>
+                          example: 8qUL23aSj7mDWdoLMXGHFvnVCT9wd7jXcysiekroADEL
+                        extra:
+                          type: object
+                          properties: {}
+                          description: Network-specific x402 metadata. Solana accepts include a feePayer.
+                          example:
+                            name: USD Coin
+                            version: "2"
+                            feePayer: BFK9TLC3edb13K6v4YyH3DwPb5DSUpkWvb7XnqCL9b4F
                       required:
                         - protocol
                         - version
@@ -12420,10 +13926,12 @@ paths:
   /x402/transactions/{walletAddress}:
     get:
       description: Get paginated x402 transaction history for a wallet address.
-        Requires Sign-in-with-x authentication for the same wallet.
+        Requires Sign-in-with-x authentication for the same EVM or Solana
+        wallet.
       operationId: getX402Transactions
       parameters:
-        - description: base64-encoded JSON SIWE payload message proving wallet ownership
+        - description: base64-encoded JSON SIWX payload proving EVM or Solana wallet
+            ownership
           in: header
           name: X-Sign-In-With-X
           required: true
@@ -12432,8 +13940,8 @@ paths:
             type: string
         - schema:
             type: string
-            pattern: ^0x[a-fA-F0-9]{40}$
-            description: Ethereum wallet address.
+            pattern: ^(0x[a-fA-F0-9]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})$
+            description: EVM or Solana wallet address.
             example: 0xYOUR_WALLET_ADDRESS
           required: true
           name: walletAddress
@@ -12649,7 +14157,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -12657,26 +14166,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -12686,8 +14199,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "403":
           description: Unauthorized access
           content:
@@ -12777,7 +14288,8 @@ paths:
                 $ref: "#/components/schemas/StandardError"
         "402":
           description: >-
-            Insufficient balance. Response varies by authentication method:
+            Payment or balance required. Response varies by authentication
+            state:
 
 
             **API Key users:** Standard error response with
@@ -12785,26 +14297,30 @@ paths:
             venice.ai.
 
 
-            **x402 wallet users:** Structured response with `PAYMENT_REQUIRED`
-            code containing:
+            **Unauthenticated x402 discovery:** Structured x402 response with
+            `x402Version`, `resource`, `accepts`, and `authOptions`. The
+            `accepts` array advertises Base and Solana payment requirements.
+
+
+            **Authenticated x402 wallet users with insufficient credit:**
+            Structured response with `PAYMENT_REQUIRED` code containing:
 
             - `topUpInstructions`: Step-by-step guide to top up via x402
             protocol
 
-            - `siwxChallenge`: Sign-In-With-X challenge template for
-            authentication
-
             - `supportedTokens` / `supportedChains`: Accepted payment methods
 
+            - `siwxChallenge`: Fresh Sign-In-With-X challenge metadata
 
-            The `PAYMENT-REQUIRED` header also contains a base64-encoded JSON
-            object with the same payment requirements for protocol-level
-            discovery (x402 v2 spec).
+
+            The `PAYMENT-REQUIRED` header also contains a base64-encoded x402
+            protocol object with the payment requirements for programmatic
+            discovery.
           headers:
             PAYMENT-REQUIRED:
-              description: Base64-encoded JSON with x402 payment requirements and SIWX
-                challenge. Present only for x402 wallet authentication. Decode
-                to get payment instructions programmatically.
+              description: Base64-encoded JSON with x402 payment requirements. Present on x402
+                middleware 402 responses. Decode to choose and sign one accepted
+                payment requirement programmatically.
               required: false
               schema:
                 type: string
@@ -12814,8 +14330,6 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/StandardError"
                   - $ref: "#/components/schemas/X402InferencePaymentRequired"
-                discriminator:
-                  propertyName: code
         "403":
           description: Unauthorized access
           content:
