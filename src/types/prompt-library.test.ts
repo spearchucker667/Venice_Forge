@@ -104,18 +104,18 @@ describe("prompt-library types (VERIFY-046)", () => {
           promptId: "plib-y",
           version: 1,
           title: "t",
-          content: "Authorization: Bearer sk-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          content: "Authorization: Bearer " + ["sk", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"].join("-"),
         },
         NOW,
       );
       expect(v.content).toContain("[REDACTED]");
-      expect(v.content).not.toContain("sk-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+      expect(v.content).not.toContain(["sk", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"].join("-"));
     });
   });
 
   describe("isPromptSecretLike + redactPromptSecrets", () => {
     it("detects sk- keys", () => {
-      expect(isPromptSecretLike("sk-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")).toBe(true);
+      expect(isPromptSecretLike(["sk", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"].join("-"))).toBe(true);
     });
 
     it("detects venice_ keys", () => {

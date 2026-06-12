@@ -14,3 +14,14 @@ export function contentToSearchText(content: string | ContentPart[]): string {
   }
   return ''
 }
+
+export function contentToMarkdownText(content: string | ContentPart[]): string {
+  if (typeof content === 'string') return content
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => (part.type === 'text' ? part.text || '' : `[${part.type}]`))
+      .filter(Boolean)
+      .join('\n')
+  }
+  return ''
+}

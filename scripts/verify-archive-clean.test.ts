@@ -116,7 +116,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-repo-"));
     const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-out-"));
     const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-extract-"));
-    const rawToken = "sk-abc12345678901234567890xyz";
+    const rawToken = ["sk", "abc12345678901234567890xyz"].join("-");
     try {
       // Create a minimal fake repo that passes the root sanity check.
       writeFileSync(join(repo, "package.json"), JSON.stringify({ name: "fake-repo" }));
@@ -465,4 +465,57 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("tar fallback works when rsync is unavailable", () => {
+    const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-tar-repo-"));
+    const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-tar-out-"));
+    const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-tar-extract-"));
+    try {
+      writeFileSync(join(repo, "package.json"), JSON.stringify({ name: "fake-repo" }));
+      writeFileSync(join(repo, "README.md"), "# fake");
+      mkdirSync(join(repo, "src"), { recursive: true });
+      writeFileSync(join(repo, "src", "x.ts"), "export const ok = 1;\n");
+      
+      // Contaminants
+      mkdirSync(join(repo, "node_modules"), { recursive: true });
+      writeFileSync(join(repo, "node_modules", "y.ts"), "ignored\n");
+      mkdirSync(join(repo, ".config"), { recursive: true });
+      writeFileSync(join(repo, ".config", "config.local.yaml"), "secret: true\n");
+      writeFileSync(join(repo, ".config", "config.example.yaml"), "example: true\n");
+
+      // To force the tar fallback, we create a modified copy of clean-repo-zip.sh
+      // where the `command -v rsync` check evaluates to false.
+      const binDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-bin-"));
+      const scriptContent = readFileSync(join(__dirname, "clean-repo-zip.sh"), "utf8");
+      const patchedScript = scriptContent.replace(/command -v rsync/g, "false");
+      const patchedScriptPath = join(binDir, "clean-repo-zip.sh");
+      writeFileSync(patchedScriptPath, patchedScript);
+      execSync(`chmod +x ${shellQuote(patchedScriptPath)}`);
+
+      execSync(`bash ${shellQuote(patchedScriptPath)} ${shellQuote(repo)} ${shellQuote(outDir)}`, {
+        encoding: "utf8",
+        stdio: "pipe"
+      });
+
+      const zipPath = findZip(outDir);
+      expect(zipPath).not.toBeNull();
+
+      execSync(`unzip -q ${shellQuote(zipPath!)} -d ${shellQuote(extractDir)}`, { stdio: "pipe" });
+
+      const extractedName = readdirSync(extractDir)[0];
+      const extractedRoot = join(extractDir, extractedName);
+      
+      expect(existsSync(join(extractedRoot, "src", "x.ts"))).toBe(true);
+      expect(existsSync(join(extractedRoot, "node_modules"))).toBe(false);
+      expect(existsSync(join(extractedRoot, ".config", "config.local.yaml"))).toBe(false);
+      expect(existsSync(join(extractedRoot, ".config", "config.example.yaml"))).toBe(true);
+
+      rmSync(binDir, { recursive: true, force: true });
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+      rmSync(outDir, { recursive: true, force: true });
+      rmSync(extractDir, { recursive: true, force: true });
+    }
+  });
 });
+

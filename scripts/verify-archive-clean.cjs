@@ -142,8 +142,6 @@ function checkCleanScript(root, violations) {
     { pattern: "--exclude=coverage/", label: "coverage/" },
     { pattern: "--exclude=.design-captures/", label: ".design-captures/" },
     { pattern: "--exclude=docs/AGENTS/", label: "docs/AGENTS/" },
-    { pattern: "--exclude=docs/audits/", label: "docs/audits/" },
-    { pattern: "--exclude=docs/design/", label: "docs/design/" },
     { pattern: "--exclude=docs/HQE_AUDIT_REPORT.md", label: "docs/HQE_AUDIT_REPORT.md" },
     { pattern: "--exclude=todo.md", label: "todo.md" },
     { pattern: "--exclude=scripts/dev-tools/venice-styles.json", label: "scripts/dev-tools/venice-styles.json" },

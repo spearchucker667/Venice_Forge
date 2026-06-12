@@ -233,8 +233,6 @@ RSYNC_EXCLUDES=(
   # Local design captures / agent scratch / config files (keep examples only)
   "--exclude=.design-captures/"
   "--exclude=docs/AGENTS/"
-  "--exclude=docs/audits/"
-  "--exclude=docs/design/"
   "--exclude=docs/HQE_AUDIT_REPORT.md"
   "--exclude=todo.md"
   "--exclude=scripts/dev-tools/venice-styles.json"

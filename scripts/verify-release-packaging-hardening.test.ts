@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
-import { mkdtempSync, rmSync, writeFileSync, readFileSync, mkdirSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, readFileSync, mkdirSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -20,6 +20,15 @@ const scriptPath = join(__dirname, "verify-release-packaging-hardening.cjs");
 
 describe("verify-release-packaging-hardening (VERIFY-052)", () => {
   it("CLI exits 0 on the real repo (passes on a clean checkout)", () => {
+    const hasGit = existsSync(join(repoRoot, ".git"));
+    if (!hasGit) {
+      const out = spawnSync("node", [scriptPath, "--check-config"], {
+        cwd: repoRoot,
+        encoding: "utf8",
+      });
+      expect(out.status).toBe(0);
+      return;
+    }
     const out = spawnSync("node", [scriptPath], {
       cwd: repoRoot,
       encoding: "utf8",

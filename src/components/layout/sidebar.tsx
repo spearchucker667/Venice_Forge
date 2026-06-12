@@ -9,7 +9,7 @@ import type { Conversation } from '../../types/conversation'
 import { desktopConfig, isElectron } from '../../services/desktopBridge'
 import { reloadConfig } from '../../stores/config-store'
 import { TAB_REGISTRY, TAB_GROUP_LABELS, type TabGroup, type TabId } from '../../config/tabs'
-import { contentToSearchText } from '../../utils/messageContent'
+import { contentToSearchText, contentToMarkdownText } from '../../utils/messageContent'
 
 function ChatIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>)
@@ -609,12 +609,7 @@ function conversationToMarkdown(conv: Conversation): string {
   const lines: string[] = [`# ${conv.title}`, '', `_Model: ${conv.model} · Created: ${new Date(conv.createdAt).toISOString()}_`, '']
   for (const m of conv.messages) {
     lines.push(`## ${m.role === 'user' ? 'You' : m.role === 'assistant' ? 'Assistant' : 'System'}`)
-    const text = typeof m.content === 'string'
-      ? m.content
-      : m.content
-          .map((p) => (p.type === 'text' && p.text ? p.text : `[${p.type}]`))
-          .join('\n')
-    lines.push(text)
+    lines.push(contentToMarkdownText(m.content))
     lines.push('')
   }
   return lines.join('\n')

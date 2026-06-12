@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { ChatMessage, VeniceParameters } from '../types/venice'
 import type { Conversation, ConversationMessage } from '../types/conversation'
+import { contentToSearchText } from '../utils/messageContent'
 import type { ConversationCharacterMeta } from '../types/conversationVault'
 import type { VeniceCharacter } from '../types/characters'
 import { generateId } from '../lib/utils'
@@ -243,10 +244,7 @@ export const useChatStore = create<ChatState>()(
             }
             const updated = touchConversation(withMessage)
             if (message.role === 'user' && (c.messages?.length ?? 0) === 0) {
-              const titleSeed =
-                typeof message.content === 'string'
-                  ? message.content
-                  : message.content.find((p) => p.type === 'text' && p.text)?.text ?? ''
+              const titleSeed = contentToSearchText(message.content)
               updated.title = titleSeed.slice(0, 50) || 'New Chat'
             }
             return updated
