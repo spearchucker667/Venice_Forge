@@ -5,6 +5,7 @@ import type { ChatMessage, ContentPart } from '../../types/venice'
 import { cn } from '../../lib/utils'
 import { useSettingsStore } from '../../stores/settings-store'
 import { maybeRunLocalFamilyGuard } from '../../shared/safety'
+import { safeMediaPreviewUrl } from '../../utils/safePreviewUrl'
 
 // Allow http/https/mailto links and image data: URIs only. Strips javascript:,
 // vbscript:, file:, and any other smuggled protocols.
@@ -146,9 +147,20 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
           <div className="bg-surface-elevated border border-border rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
             {images.length > 0 && (
               <div className="flex gap-1.5 mb-2">
-                {images.map((img, i) => (
-                  <img key={i} src={img} alt={`Attachment ${i + 1}`} className="h-24 rounded-lg border border-border" />
-                ))}
+                {images.map((img, i) => {
+                  const safeImg = safeMediaPreviewUrl(img, [
+                    "data:image/png;base64,",
+                    "data:image/jpeg;base64,",
+                    "data:image/webp;base64,",
+                    "blob:",
+                    "https://",
+                    "http://",
+                  ]);
+                  if (!safeImg) return null;
+                  return (
+                    <img key={i} src={safeImg} alt={`Attachment ${i + 1}`} className="h-24 rounded-lg border border-border" />
+                  );
+                })}
               </div>
             )}
             <div className="text-text-primary text-[15.5px] leading-relaxed whitespace-pre-wrap break-words">

@@ -106,6 +106,19 @@ blockers remain.
 
 ## Latest Session Summary
 
+- **Date:** 2026-06-13 (CodeQL Alert 19 XSS Fix)
+- **Agent:** Antigravity (Gemini 3.5 Flash)
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Fixed CodeQL Alert 19 (`js/xss-through-dom`) in `src/components/chat/message-bubble.tsx`. Multimodal attachment image URLs derived from untrusted message content were being rendered directly in `<img>` tags without protocol sanitization. Hardened this sink by introducing `safeMediaPreviewUrl` filtering (allowing only `"data:image/png;base64,"`, `"data:image/jpeg;base64,"`, `"data:image/webp;base64,"`, `"blob:"`, `"https://"`, and `"http://"`) and omitting rendering of unsafe URLs. Added corresponding tests in `message-bubble.test.tsx`.
+- **Files changed in this pass:**
+  - `src/components/chat/message-bubble.tsx`
+  - `src/components/chat/message-bubble.test.tsx`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npm run lint:eslint && npm run typecheck && npm test && npm run verify:safety-guard && npm run build` — **PASS**.
+
+---
+
 - **Date:** 2026-06-13 (Validation & Release Push)
 - **Agent:** Antigravity (Gemini 3.5 Flash)
 - **Branch / state:** `main` (clean, ready to push)

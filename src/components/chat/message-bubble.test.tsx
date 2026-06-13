@@ -71,4 +71,22 @@ describe("MessageBubble accessibility", () => {
 
     unmount();
   });
+
+  it("sanitizes image URLs using safeMediaPreviewUrl in user messages", () => {
+    const message: ChatMessage = {
+      role: "user",
+      content: [
+        { type: "text", text: "Look at these images" },
+        { type: "image_url", image_url: { url: "https://example.com/pic.png" } },
+        { type: "image_url", image_url: { url: "javascript:alert(1)" } },
+      ],
+    };
+    const { container } = render(
+      <MessageBubble message={message} index={0} onCopy={() => {}} onDelete={() => {}} />
+    );
+
+    const imgs = container.querySelectorAll("img");
+    expect(imgs).toHaveLength(1);
+    expect(imgs[0]).toHaveAttribute("src", "https://example.com/pic.png");
+  });
 });
