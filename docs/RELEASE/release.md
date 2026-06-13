@@ -7,7 +7,7 @@
 1. Update `version` in `package.json`.
 2. Run `npm install` so `package-lock.json` stays in sync.
 3. Update `CHANGELOG.md` with the new version section.
-4. Confirm `README.md`, `AGENTS.md`, [LEGAL.md](../LEGAL.md), [SECURITY.md](../../SECURITY.md), [REPOSITORY_TREE.md](../design/REPOSITORY_TREE.md), `CHANGELOG.md`, `SUPPORT.md`, `PRIVACY.md`, and this checklist match the release.
+4. Confirm `README.md`, `AGENTS.md`, [LEGAL.md](../LEGAL.md), [SECURITY.md](../../SECURITY.md), `SUPPORT.md`, `PRIVACY.md`, and this checklist match the release.
    - Validate Family Safe Mode and Adult Mode independently, including proof that Adult Mode does not invoke the local rule engine and that Venice API Safe Mode changes only the provider request parameter.
    - **Trigger:** Update this checklist and the linked docs whenever artifact filenames, signing steps, verification commands, or the release workflow changes.
    - **Trigger:** Update `SECURITY.md` whenever allowed Venice endpoints, safety guard boundaries, or the supported version policy changes.

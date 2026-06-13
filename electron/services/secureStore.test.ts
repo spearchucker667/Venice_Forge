@@ -23,6 +23,7 @@ import {
   getApiKey,
   deleteApiKey,
   isApiKeyConfigured,
+  __clearCacheForTests,
 } from "./secureStore";
 
 const STORE_PATH = path.join(os.tmpdir(), "secure-prefs.json");
@@ -34,6 +35,7 @@ function cleanStore() {
 
 describe("secureStore", () => {
   beforeEach(() => {
+    __clearCacheForTests();
     cleanStore();
   });
   afterEach(() => cleanStore());
@@ -53,9 +55,11 @@ describe("secureStore", () => {
 
   it("rejects non-string or empty raw values (H-005 / H-009)", () => {
     fs.writeFileSync(STORE_PATH, JSON.stringify({ apiKey: "", apiKeyEncrypted: "true" }), "utf-8");
+    __clearCacheForTests();
     expect(getApiKey()).toBeNull();
 
     fs.writeFileSync(STORE_PATH, JSON.stringify({ apiKey: 123, apiKeyEncrypted: "true" }), "utf-8");
+    __clearCacheForTests();
     expect(getApiKey()).toBeNull();
   });
 });

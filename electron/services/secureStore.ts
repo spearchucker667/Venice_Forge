@@ -25,6 +25,14 @@ const lastReadErrors: Record<string, string | null> = {
   jinaApiKey: null,
 };
 
+/** In-memory cache to prevent blocking main-process disk I/O on repeated reads. */
+let memoryCache: Record<string, string> | null = null;
+
+/** Exposed strictly for test isolation. */
+export function __clearCacheForTests(): void {
+  memoryCache = null;
+}
+
 /** Returns the absolute path to the secure preferences file. */
 function getStorePath(): string {
   return path.join(app.getPath("userData"), STORE_FILE);
@@ -34,6 +42,9 @@ function getStorePath(): string {
  *  @returns A record of string key-value pairs.
  */
 function readStore(prefKey: keyof typeof lastReadErrors): Record<string, string> {
+  if (memoryCache !== null) {
+    return memoryCache;
+  }
   try {
     const raw = fs.readFileSync(getStorePath(), "utf-8");
     const parsed = JSON.parse(raw);
@@ -42,7 +53,8 @@ function readStore(prefKey: keyof typeof lastReadErrors): Record<string, string>
       return {};
     }
     lastReadErrors[prefKey] = null;
-    return parsed as Record<string, string>;
+    memoryCache = parsed as Record<string, string>;
+    return memoryCache;
   } catch (err) {
     if (err && typeof err === "object" && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
       lastReadErrors[prefKey] = null;
@@ -67,6 +79,7 @@ function writeStore(data: Record<string, string>): void {
       mode: 0o600,
     });
     fs.renameSync(tempPath, storePath);
+    memoryCache = { ...data };
   } catch (err) {
     try { fs.unlinkSync(tempPath); } catch { /* ignore cleanup errors */ }
     throw err;

@@ -10,7 +10,7 @@ Please read and follow our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 - Keep pull requests focused and reviewable.
 - Do not commit secrets, `.env` files, generated release artifacts, or local logs.
-- Keep README, [docs/ABOUT.md](docs/ABOUT.md), [docs/FAQ.md](docs/FAQ.md), [docs/REPOSITORY_TREE.md](docs/design/REPOSITORY_TREE.md), [docs/THEME_SYSTEM.md](docs/design/THEME_SYSTEM.md), [SECURITY.md](SECURITY.md), [docs/RELEASE/release.md](docs/RELEASE/release.md), [docs/LEGAL.md](docs/LEGAL.md), [docs/RESEARCH_PROVIDERS.md](docs/audits/RESEARCH_PROVIDERS.md), [docs/JINA_PROVIDER.md](docs/DEVELOPMENT/JINA_PROVIDER.md), and [docs/PUBLIC_PROFILE_DISCOVERY.md](docs/design/PUBLIC_PROFILE_DISCOVERY.md) current when behavior, packaging, or legal assumptions change.
+- Keep README, [docs/ABOUT.md](docs/ABOUT.md), [docs/FAQ.md](docs/FAQ.md), [SECURITY.md](SECURITY.md), [docs/RELEASE/release.md](docs/RELEASE/release.md), [docs/LEGAL.md](docs/LEGAL.md), and [docs/JINA_PROVIDER.md](docs/DEVELOPMENT/JINA_PROVIDER.md) current when behavior, packaging, or legal assumptions change.
 - Treat all API keys (Venice and Jina) as secrets. Never expose them to renderer code, frontend bundles, issue screenshots, or test fixtures.
 - Every new prompt-sending path **must** call `assessChildExploitationSafety()` and `recordDecision()` before forwarding to Venice. Do not bypass the guard. Be aware that the guard actively screens `negative_prompt` fields and analyzes cross-sentence contexts. Do not log raw prompt text. Safety tests must use synthetic/redacted fixtures only.
 
@@ -114,7 +114,7 @@ See [SECURITY.md](SECURITY.md) for the full security model.
 - [ ] `npm run build` passes
 - [ ] Platform-specific packaging checks (`npm run verify:dist:win`, `npm run verify:dist:mac`, and `npm run verify:dist:portable`) pass
 - [ ] New code includes tests where applicable
-- [ ] Documentation updated (README, AGENTS.md, docs/FAQ.md, docs/REPOSITORY_TREE.md, docs/THEME_SYSTEM.md, etc.)
+- [ ] Documentation updated (README, AGENTS.md, docs/FAQ.md, etc.)
 - [ ] CHANGELOG.md updated under `[Unreleased]`
 - [ ] Legal/TOS notes reviewed if Venice API behavior, privacy, or release claims changed
 - [ ] Markdown links checked when docs changed
