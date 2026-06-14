@@ -1,0 +1,27 @@
+---
+# Monokai theme template
+# "details" is a surface/border color; "name" is the display name.
+name: "Forge Monokai"
+accent: "#a6e22e"
+background: "#272822"
+details: "#49483e"
+foreground: "#f8f8f2"
+terminal_colors:
+  normal:
+    black: "#272822"
+    red: "#f92672"
+    green: "#a6e22e"
+    yellow: "#e6db74"
+    blue: "#66d9ef"
+    magenta: "#ae81ff"
+    cyan: "#a1efe4"
+    white: "#f8f8f2"
+  bright:
+    black: "#75715e"
+    red: "#ff6188"
+    green: "#a9dc76"
+    yellow: "#ffd866"
+    blue: "#78dce8"
+    magenta: "#ab9df2"
+    cyan: "#a1efe4"
+    white: "#fcfcfa"

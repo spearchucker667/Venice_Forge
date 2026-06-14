@@ -1,4 +1,4 @@
-function luminance(hex: string): number {
+export function luminance(hex: string): number {
   const c = hex.replace('#', '');
   const full = c.length === 3 ? c.split('').map((x) => x + x).join('') : c;
   const [r, g, b] = [0, 2, 4].map((i) => {

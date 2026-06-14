@@ -1,0 +1,25 @@
+---
+# Venice Forge built-in theme template — Forge Solarized Dark
+accent: "#b58900"
+background: "#002b36"
+details: "Forge Solarized Dark"
+foreground: "#eee8d5"
+terminal_colors:
+  bright:
+    black: "#657b83"
+    blue: "#268bd2"
+    cyan: "#2aa198"
+    green: "#859900"
+    magenta: "#d33682"
+    red: "#ff5252"
+    white: "#93a1a1"
+    yellow: "#b58900"
+  normal:
+    black: "#073642"
+    blue: "#268bd2"
+    cyan: "#2aa198"
+    green: "#859900"
+    magenta: "#d33682"
+    red: "#ff5252"
+    white: "#eee8d5"
+    yellow: "#b58900"

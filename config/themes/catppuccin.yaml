@@ -1,0 +1,25 @@
+---
+# Venice Forge built-in theme template — Forge Catppuccin
+accent: "#f38ba8"
+background: "#1e1e2e"
+details: "Forge Catppuccin"
+foreground: "#cdd6f4"
+terminal_colors:
+  bright:
+    black: "#6c7086"
+    blue: "#89b4fa"
+    cyan: "#89dceb"
+    green: "#a6e3a1"
+    magenta: "#f38ba8"
+    red: "#f38ba8"
+    white: "#cdd6f4"
+    yellow: "#f9e2af"
+  normal:
+    black: "#313244"
+    blue: "#89b4fa"
+    cyan: "#89dceb"
+    green: "#a6e3a1"
+    magenta: "#f38ba8"
+    red: "#f38ba8"
+    white: "#cdd6f4"
+    yellow: "#f9e2af"

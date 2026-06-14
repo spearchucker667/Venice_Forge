@@ -1,0 +1,27 @@
+---
+# GitHub Light theme template
+# "details" is a surface/border color; "name" is the display name.
+name: "Forge GitHub Light"
+accent: "#0969da"
+background: "#ffffff"
+details: "#d0d7de"
+foreground: "#24292f"
+terminal_colors:
+  normal:
+    black: "#24292f"
+    red: "#cf222e"
+    green: "#116329"
+    yellow: "#4d2d00"
+    blue: "#0969da"
+    magenta: "#8250df"
+    cyan: "#1b7c83"
+    white: "#f6f8fa"
+  bright:
+    black: "#57606a"
+    red: "#a40e26"
+    green: "#1a7f37"
+    yellow: "#9a6700"
+    blue: "#218bff"
+    magenta: "#a475f9"
+    cyan: "#3192aa"
+    white: "#ffffff"

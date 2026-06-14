@@ -1,0 +1,25 @@
+---
+# Venice Forge built-in theme template — Forge Nord
+accent: "#88C0D0"
+background: "#2E3440"
+details: "Forge Nord"
+foreground: "#D8DEE9"
+terminal_colors:
+  bright:
+    black: "#4C566A"
+    blue: "#8FBCBB"
+    cyan: "#8FBCBB"
+    green: "#A3BE8C"
+    magenta: "#B48EAD"
+    red: "#ff6b6b"
+    white: "#E5E9F0"
+    yellow: "#EBCB8B"
+  normal:
+    black: "#3B4252"
+    blue: "#88C0D0"
+    cyan: "#81A1C1"
+    green: "#A3BE8C"
+    magenta: "#B48EAD"
+    red: "#ff6b6b"
+    white: "#D8DEE9"
+    yellow: "#EBCB8B"

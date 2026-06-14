@@ -2,6 +2,7 @@
 
 > Scope: Complete token-based theming architecture, live theme editor, FOUC prevention, and WCAG AA contrast compliance.
 > Implemented: 2026-05-28
+> Last updated: 2026-06-14
 > Commit: `715fa1d`
 
 ---
@@ -25,7 +26,7 @@
 
 Venice Forge uses a **semantic token-based theme system** built on Tailwind CSS v4 CSS variables. Core surfaces, text, status, form, button, link, focus, and selection colors derive from 29 canonical semantic roles mapped to CSS custom properties. This enables:
 
-- **Built-in themes:** Venice Parity Dark (default), Forge Graphite (dark), Forge Daylight (light), Forge Copper (dark), Forge Dracula (dark), GruvBox Dark (dark), Rosepine (dark).
+- **Built-in themes:** Venice Parity Dark (default), Forge Graphite (dark), Forge Daylight (light), Forge Copper (dark), Forge Dracula (dark), GruvBox Dark (dark), Rosepine (dark), Forge Nord (dark), Forge Tokyo (dark), Forge Catppuccin (dark), Forge Solarized Dark (dark), Forge Solarized Light (light), Forge One Dark (dark), Forge Monokai (dark), Forge GitHub Light (light).
 - **Custom themes:** Users can define every token via the in-app ThemeMaker and import/export configurations in YAML format. The starter configurations for all built-in themes are provided in the `config/themes/` directory as `.yaml` files.
 - **Live preview:** Changes apply immediately without reload.
 - **Persistent storage:** Canonical settings live in encrypted IndexedDB; a lightweight `localStorage` bootstrap cache prevents FOUC on startup.
@@ -135,6 +136,14 @@ All built-in themes are configured as YAML templates under the `config/themes/` 
 - `config/themes/dracula.yaml`
 - `config/themes/gruvbox_dark.yaml`
 - `config/themes/rosepine.yaml`
+- `config/themes/nord.yaml`
+- `config/themes/tokyo_night.yaml`
+- `config/themes/catppuccin.yaml`
+- `config/themes/solarized_dark.yaml`
+- `config/themes/solarized_light.yaml`
+- `config/themes/one_dark.yaml`
+- `config/themes/monokai.yaml`
+- `config/themes/github_light.yaml`
 
 ### Venice Parity Dark — `builtin-venice`
 The default theme, matching the official Venice dark aesthetic. Deep blue-black background (`#050a0f`) with a light-blue accent.
@@ -152,10 +161,34 @@ Dark graphite base with a copper accent (`#a65c20`) for warm contrast.
 Dracula-inspired dark theme with dark purple background (`#282a36`) and lavender accent.
 
 ### GruvBox Dark — `builtin-gruvbox-dark`
-Retro-style dark theme with retro-gray background (`#282828`) and orange accent.
+Retro-style dark theme with retro-gray background (`#282828`) and warm yellow accent (`#fabd2f`).
 
 ### Rosepine — `builtin-rosepine`
 Sleek dark theme with dark pink-ish purple background (`#191724`) and rose-gold accent.
+
+### Forge Nord — `builtin-nord`
+Arctic dark theme with a polar-night background (`#2E3440`) and a frost-blue accent (`#88C0D0`).
+
+### Forge Tokyo — `builtin-tokyo-night`
+Deep purple/blue dark theme (`#1a1b26`) with a calm periwinkle accent (`#7aa2f7`).
+
+### Forge Catppuccin — `builtin-catppuccin`
+Soft pastel dark theme (`#1e1e2e`) with a warm pink accent (`#f38ba8`).
+
+### Forge Solarized Dark — `builtin-solarized-dark`
+Classic low-contrast dark theme (`#002b36`) with a muted yellow accent (`#b58900`).
+
+### Forge Solarized Light — `builtin-solarized-light`
+Light beige companion (`#fdf6e3`) with an orange accent (`#cb4b16`).
+
+### Forge One Dark — `builtin-one-dark`
+Popular code-editor dark theme (`#282c34`) with a calm blue accent (`#61afef`).
+
+### Forge Monokai — `builtin-monokai`
+Classic Monokai dark theme (`#272822`) with a bright lime accent (`#a6e22e`).
+
+### Forge GitHub Light — `builtin-github-light`
+Clean light theme (`#ffffff`) with a blue accent (`#0969da`) that mirrors GitHub's default light UI.
 
 ### Contrast Verification
 
@@ -170,7 +203,7 @@ All ratios exceed WCAG AA thresholds (4.5:1 for normal text, 3:1 for large text)
 Located in **Settings → Appearance → Theme Maker** (`src/components/ThemeMaker.tsx`).
 
 ### Features
-- **Theme selector:** Switch between Forge Graphite, Forge Daylight, Forge Copper, or Custom.
+- **Theme selector:** Switch between all built-in themes or Custom.
 - **Token editor:** Each token has a synced native color picker and hex text input.
 - **Hex validation:** Regex `/^#([0-9a-f]{3}|[0-9a-f]{6})$/i`; invalid input falls back to `#000000`.
 - **Live preview:** `applyTheme(draftTheme)` updates the entire app in real time as you edit.
@@ -180,7 +213,7 @@ Located in **Settings → Appearance → Theme Maker** (`src/components/ThemeMak
 ### Controls
 - **Save custom theme:** Persists to canonical IndexedDB settings + refreshes bootstrap cache.
 - **Export theme:** Saves the current custom theme as a standalone `.yaml` file conforming to the `theme.yaml` schema using native OS dialogs.
-- **Import theme:** Loads a previously exported `.yaml` theme file, validating its schema and applying it.
+- **Import theme:** Loads a previously exported `.yaml` theme file or any legacy `accent/background/details/foreground/terminal_colors` template, validating its schema, inferring light/dark mode from the background luminance, and applying it.
 - **Reset custom theme:** Reverts editor to last saved custom theme.
 - **Restore defaults:** Switches to Forge Graphite and clears the custom theme.
 

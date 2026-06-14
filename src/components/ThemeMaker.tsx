@@ -1,5 +1,28 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { BUILTIN_VENICE, BUILTIN_DARK, BUILTIN_LIGHT, BUILTIN_COPPER, BUILTIN_DRACULA, BUILTIN_GRUVBOX_DARK, BUILTIN_ROSEPINE, applyTheme, completeThemeTokens, type Theme, type ThemeMode, type ThemeTokenInput, type ThemeTokens } from "../theme";
+import {
+  BUILTIN_VENICE,
+  BUILTIN_DARK,
+  BUILTIN_LIGHT,
+  BUILTIN_COPPER,
+  BUILTIN_DRACULA,
+  BUILTIN_GRUVBOX_DARK,
+  BUILTIN_ROSEPINE,
+  BUILTIN_NORD,
+  BUILTIN_TOKYO_NIGHT,
+  BUILTIN_CATPPUCCIN,
+  BUILTIN_SOLARIZED_DARK,
+  BUILTIN_SOLARIZED_LIGHT,
+  BUILTIN_ONE_DARK,
+  BUILTIN_MONOKAI,
+  BUILTIN_GITHUB_LIGHT,
+  applyTheme,
+  completeThemeTokens,
+  luminance,
+  type Theme,
+  type ThemeMode,
+  type ThemeTokenInput,
+  type ThemeTokens,
+} from "../theme";
 import { COLOR_INPUT_FALLBACK } from "../theme/fallbacks";
 import { isValidColorValue } from "../theme/validateColor";
 import { ThemePreview } from "./ThemePreview";
@@ -120,37 +143,51 @@ export async function yamlToTheme(yamlStr: string): Promise<Theme> {
   const foreground = typeof raw.foreground === "string" ? raw.foreground : null;
   const accent = typeof raw.accent === "string" ? raw.accent : null;
   const details = typeof raw.details === "string" ? raw.details : null;
-  if (!background || !foreground || !accent || !details) {
-    throw new Error("Invalid theme yaml: expected a themes block or legacy background/foreground/accent/details fields.");
+  if (!background || !foreground || !accent) {
+    throw new Error("Invalid theme yaml: expected a themes block or legacy background/foreground/accent fields.");
   }
   if (![background, foreground, accent].every(isValidColorValue)) {
     throw new Error("Invalid theme yaml: legacy color fields contain an unsafe value.");
   }
+
+  const detailsIsColor = typeof details === "string" && isValidColorValue(details);
+  const rawName = typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : null;
+  const name = rawName || (detailsIsColor || !details ? "Imported Theme" : details);
+
+  const inferredMode: ThemeMode = luminance(background) > 0.5 ? "light" : "dark";
+  const mode: ThemeMode = raw.mode === "light" || raw.mode === "dark" ? raw.mode : inferredMode;
+
   const terminal = isRecord(raw.terminal_colors) ? raw.terminal_colors : {};
   const bright = isRecord(terminal.bright) ? terminal.bright : {};
   const normal = isRecord(terminal.normal) ? terminal.normal : {};
   const color = (record: Record<string, unknown>, key: string, fallback: string): string =>
     typeof record[key] === "string" && isValidColorValue(record[key]) ? record[key] : fallback;
+
+  const surfaceFallback = detailsIsColor && details ? details : color(normal, "black", background);
+  const surfaceElevatedFallback = detailsIsColor && details ? details : color(bright, "black", background);
+  const borderFallback = detailsIsColor && details ? details : color(normal, "white", foreground);
+  const accentForeground = luminance(accent) > 0.5 ? foreground : background;
+
   const legacy: ThemeTokenInput = {
     background,
-    surface: color(normal, "black", background),
-    surfaceElevated: color(bright, "black", background),
-    border: color(normal, "white", foreground),
+    surface: surfaceFallback,
+    surfaceElevated: surfaceElevatedFallback,
+    border: borderFallback,
     textPrimary: foreground,
     textSecondary: color(normal, "white", foreground),
     textMuted: color(bright, "black", foreground),
     accent,
     accentHover: color(bright, "blue", accent),
-    accentForeground: background,
+    accentForeground,
     success: color(bright, "green", "#74d66a"),
     warning: color(bright, "yellow", "#d6a84f"),
     danger: color(bright, "red", "#ef4444"),
     info: color(bright, "cyan", "#7da7ff"),
     focusRing: accent,
-    overlay: "rgba(0, 0, 0, 0.6)",
+    overlay: mode === "light" ? "rgba(0, 0, 0, 0.25)" : "rgba(0, 0, 0, 0.6)",
     glow: `${accent}25`,
   };
-  return { id: "custom", name: details, mode: "dark", tokens: completeThemeTokens("dark", legacy) };
+  return { id: "custom", name, mode, tokens: completeThemeTokens(mode, legacy) };
 }
 
 export function ThemeMaker() {
@@ -179,6 +216,14 @@ export function ThemeMaker() {
       "builtin-dracula": BUILTIN_DRACULA,
       "builtin-gruvbox-dark": BUILTIN_GRUVBOX_DARK,
       "builtin-rosepine": BUILTIN_ROSEPINE,
+      "builtin-nord": BUILTIN_NORD,
+      "builtin-tokyo-night": BUILTIN_TOKYO_NIGHT,
+      "builtin-catppuccin": BUILTIN_CATPPUCCIN,
+      "builtin-solarized-dark": BUILTIN_SOLARIZED_DARK,
+      "builtin-solarized-light": BUILTIN_SOLARIZED_LIGHT,
+      "builtin-one-dark": BUILTIN_ONE_DARK,
+      "builtin-monokai": BUILTIN_MONOKAI,
+      "builtin-github-light": BUILTIN_GITHUB_LIGHT,
     }),
     []
   );
@@ -271,6 +316,14 @@ export function ThemeMaker() {
             { id: "builtin-dracula", label: "Forge Dracula" },
             { id: "builtin-gruvbox-dark", label: "GruvBox Dark" },
             { id: "builtin-rosepine", label: "Rosepine" },
+            { id: "builtin-nord", label: "Forge Nord" },
+            { id: "builtin-tokyo-night", label: "Forge Tokyo" },
+            { id: "builtin-catppuccin", label: "Forge Catppuccin" },
+            { id: "builtin-solarized-dark", label: "Forge Solarized Dark" },
+            { id: "builtin-solarized-light", label: "Forge Solarized Light" },
+            { id: "builtin-one-dark", label: "Forge One Dark" },
+            { id: "builtin-monokai", label: "Forge Monokai" },
+            { id: "builtin-github-light", label: "Forge GitHub Light" },
             { id: "custom", label: "Custom" },
           ].map((opt) => (
             <button
