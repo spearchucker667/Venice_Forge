@@ -36,7 +36,7 @@ export function ChatView() {
     model,
     liveVisionSupports === null ? null : { supportsVision: liveVisionSupports },
   )
-  const { send, stop, regenerate, isStreaming } = useChat()
+  const { send, stop, regenerate, isStreaming, createScene } = useChat()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const handleSend = (message: string, images?: string[]) => {
@@ -124,6 +124,7 @@ export function ChatView() {
   const [starters, setStarters] = useState<PromptStarter[]>([])
 
   const conversationId = conversation?.id
+  const isCharacterBound = !!conversation?.metadata?.character?.slug
   const messageCount = conversation?.messages.length ?? 0
 
   useEffect(() => {
@@ -232,6 +233,8 @@ export function ChatView() {
                   onCopy={() => {}}
                   onDelete={() => { if (conversation) deleteMessage(conversation.id, i) }}
                   onRegenerate={msg.role === 'assistant' && i === conversation.messages.length - 1 ? () => regenerate(model) : undefined}
+                  onGenerateScene={msg.role === 'assistant' ? () => createScene(msg.id) : undefined}
+                  isCharacterBound={isCharacterBound}
                 />
               ))}
               <div ref={messagesEndRef} />

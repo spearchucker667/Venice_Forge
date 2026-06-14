@@ -7,6 +7,10 @@ import { desktopConversations } from '../services/desktopBridge'
 import type { ChatMessage, ContentPart, VeniceParameters } from '../types/venice'
 import type { Conversation } from '../types/conversation'
 import { applyVeniceApiSafeMode } from '../shared/veniceSafeMode'
+import { generateCharacterScene } from '../services/characterSceneGenerationService'
+import { parseCharacterSceneRequest } from '../services/characterSceneRequestParser'
+import { CharacterSceneRateLimiter } from '../services/characterSceneRateLimiter'
+import type { CharacterSceneGenerationResult } from '../types/characterSceneGeneration'
 
 /** Resolves the character slug for a conversation, in priority order:
  *  1. The conversation's persisted character metadata (authoritative).
@@ -23,6 +27,9 @@ function resolveCharacterSlug(conv: Conversation | undefined): string | null {
   if (globalSlug) return globalSlug.trim();
   return null;
 }
+
+/** Module-level rate limiter shared across hook instances and lifetimes. */
+const sceneRateLimiter = new CharacterSceneRateLimiter();
 
 function prependInjectedContext(
   content: string | ContentPart[],
@@ -48,12 +55,14 @@ function prependInjectedContext(
 
 export function useChat() {
   const abortRef = useRef<AbortController | null>(null)
+  const sceneAbortRef = useRef<AbortController | null>(null)
   const addMessage = useChatStore((s) => s.addMessage)
   const appendToLastAssistant = useChatStore((s) => s.appendToLastAssistant)
   const appendReasoningToLastAssistant = useChatStore(
     (s) => s.appendReasoningToLastAssistant,
   )
   const deleteMessage = useChatStore((s) => s.deleteMessage)
+  const setMessageMetadata = useChatStore((s) => s.setMessageMetadata)
   const setStreaming = useChatStore((s) => s.setStreaming)
   const isStreaming = useChatStore((s) => s.isStreaming)
   const veniceParams = useChatStore((s) => s.veniceParams)
@@ -62,6 +71,8 @@ export function useChat() {
   const topP = useChatStore((s) => s.topP)
   const maxTokens = useChatStore((s) => s.maxTokens)
   const createConversation = useChatStore((s) => s.createConversation)
+  const characterSceneGenerationEnabled = useSettingsStore((s) => s.characterSceneGenerationEnabled)
+  const characterSceneGenerationMode = useSettingsStore((s) => s.characterSceneGenerationMode)
 
   const streamResponse = useCallback(
     async (convId: string, model: string, abortController: AbortController) => {
@@ -128,6 +139,91 @@ export function useChat() {
     [appendToLastAssistant, appendReasoningToLastAssistant, veniceParams, systemPrompt, temperature, topP, maxTokens],
   )
 
+  const runSceneGeneration = useCallback(
+    async (
+      convId: string,
+      source: 'on_demand' | 'automatic',
+      selectedMessageId?: string,
+      assistantMessageId?: string,
+    ) => {
+      const conv = useChatStore.getState().conversations.find((c) => c.id === convId)
+      if (!conv) return
+      if (!resolveCharacterSlug(conv)) return
+
+      const messageIndex = conv.messages.findIndex((m) => m.id === (assistantMessageId ?? selectedMessageId))
+      if (messageIndex === -1 && source === 'on_demand') return
+
+      const initialResult: CharacterSceneGenerationResult = {
+        requestId: 'pending',
+        status: 'queued',
+        updatedAt: new Date().toISOString(),
+      }
+      if (messageIndex >= 0) {
+        setMessageMetadata(convId, messageIndex, { sceneGeneration: initialResult })
+      }
+
+      sceneAbortRef.current?.abort()
+      const sceneAbort = new AbortController()
+      sceneAbortRef.current = sceneAbort
+
+      const result = await generateCharacterScene({
+        conversation: conv,
+        source,
+        selectedMessageId,
+        assistantMessageId,
+        limiter: sceneRateLimiter,
+        signal: sceneAbort.signal,
+      })
+
+      if (sceneAbort.signal.aborted) return
+
+      const enriched: CharacterSceneGenerationResult = { ...result }
+      if (messageIndex >= 0) {
+        setMessageMetadata(convId, messageIndex, { sceneGeneration: enriched })
+      }
+    },
+    [setMessageMetadata],
+  )
+
+  const maybeAutoGenerateScene = useCallback(
+    async (convId: string) => {
+      if (!characterSceneGenerationEnabled || characterSceneGenerationMode !== 'auto') return
+      const conv = useChatStore.getState().conversations.find((c) => c.id === convId)
+      if (!conv || !resolveCharacterSlug(conv)) return
+
+      const lastAssistant = [...conv.messages].reverse().find((m) => m.role === 'assistant')
+      if (!lastAssistant || !lastAssistant.id) return
+
+      const text = typeof lastAssistant.content === 'string' ? lastAssistant.content : ''
+      const { request, displayText } = parseCharacterSceneRequest(text)
+      if (!request) return
+
+      const assistantIndex = conv.messages.findIndex((m) => m.id === lastAssistant.id)
+      if (assistantIndex >= 0 && displayText !== text) {
+        setMessageMetadata(convId, assistantIndex, { sceneGeneration: { requestId: 'pending', status: 'queued', updatedAt: new Date().toISOString() } })
+        // Update content to strip marker without mutating the message object shape.
+        const msgs = [...conv.messages]
+        msgs[assistantIndex] = { ...msgs[assistantIndex], content: displayText }
+        useChatStore.setState((s) => ({
+          conversations: s.conversations.map((c) => (c.id === convId ? { ...c, messages: msgs } : c)),
+        }))
+      }
+
+      await runSceneGeneration(convId, 'automatic', undefined, lastAssistant.id)
+    },
+    [characterSceneGenerationEnabled, characterSceneGenerationMode, runSceneGeneration, setMessageMetadata],
+  )
+
+  const createScene = useCallback(
+    async (selectedMessageId?: string) => {
+      const convId = useChatStore.getState().activeConversationId
+      if (!convId) return
+      if (!characterSceneGenerationEnabled) return
+      await runSceneGeneration(convId, 'on_demand', selectedMessageId)
+    },
+    [characterSceneGenerationEnabled, runSceneGeneration],
+  )
+
   const send = useCallback(
     async (userMessage: string, model: string, imageAttachments?: string[]) => {
       let convId = useChatStore.getState().activeConversationId
@@ -190,6 +286,9 @@ export function useChat() {
 
       try {
         await streamResponse(convId, model, abortController)
+        if (!abortController.signal.aborted) {
+          await maybeAutoGenerateScene(convId)
+        }
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
         const message = err instanceof Error ? err.message : 'Unknown error'
@@ -199,7 +298,7 @@ export function useChat() {
         abortRef.current = null
       }
     },
-    [addMessage, appendToLastAssistant, createConversation, setStreaming, streamResponse],
+    [addMessage, appendToLastAssistant, createConversation, setStreaming, streamResponse, maybeAutoGenerateScene],
   )
 
   const regenerate = useCallback(
@@ -222,6 +321,9 @@ export function useChat() {
 
       try {
         await streamResponse(convId, model, abortController)
+        if (!abortController.signal.aborted) {
+          await maybeAutoGenerateScene(convId)
+        }
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
         const message = err instanceof Error ? err.message : 'Unknown error'
@@ -231,11 +333,12 @@ export function useChat() {
         abortRef.current = null
       }
     },
-    [addMessage, appendToLastAssistant, deleteMessage, setStreaming, streamResponse],
+    [addMessage, appendToLastAssistant, deleteMessage, setStreaming, streamResponse, maybeAutoGenerateScene],
   )
 
   const stop = useCallback(() => {
     abortRef.current?.abort()
+    sceneAbortRef.current?.abort()
     setStreaming(false)
   }, [setStreaming])
 
@@ -244,9 +347,11 @@ export function useChat() {
   useEffect(() => {
     return () => {
       abortRef.current?.abort()
+      sceneAbortRef.current?.abort()
       abortRef.current = null
+      sceneAbortRef.current = null
     }
   }, [])
 
-  return { send, stop, regenerate, isStreaming }
+  return { send, stop, regenerate, isStreaming, createScene }
 }

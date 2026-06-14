@@ -6,6 +6,8 @@ import { cn } from '../../lib/utils'
 import { useSettingsStore } from '../../stores/settings-store'
 import { maybeRunLocalFamilyGuard } from '../../shared/safety'
 import { safeMediaPreviewUrl } from '../../utils/safePreviewUrl'
+import { CharacterSceneCard } from './CharacterSceneCard'
+import type { CharacterSceneGenerationResult } from '../../types/characterSceneGeneration'
 
 // Allow http/https/mailto links and image data: URIs only. Strips javascript:,
 // vbscript:, file:, and any other smuggled protocols.
@@ -80,17 +82,22 @@ interface MessageBubbleProps {
   onCopy: () => void
   onDelete: () => void
   onRegenerate?: () => void
+  onGenerateScene?: () => void
+  isCharacterBound?: boolean
 }
 
-export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: MessageBubbleProps) {
+export function MessageBubble({ message, onCopy, onDelete, onRegenerate, onGenerateScene, isCharacterBound }: MessageBubbleProps) {
   const [hovering, setHovering] = useState(false)
   const [copied, setCopied] = useState(false)
   const [reasoningOpen, setReasoningOpen] = useState(false)
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isUser = message.role === 'user'
+  const isAssistant = message.role === 'assistant'
   const { text: content, images } = extractContent(message.content)
   const redTeamMode = useSettingsStore((s) => s.redTeamMode)
   const localFamilySafeModeEnabled = useSettingsStore((s) => s.localFamilySafeModeEnabled)
+  const characterSceneGenerationEnabled = useSettingsStore((s) => s.characterSceneGenerationEnabled)
+  const sceneGeneration = message.metadata?.sceneGeneration as CharacterSceneGenerationResult | undefined
 
   const localSafetyDecision = content && localFamilySafeModeEnabled ? (() => {
     try {
@@ -131,6 +138,11 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
       {!isUser && onRegenerate && (
         <ActionBtn label="Regenerate" onClick={onRegenerate}>
           <svg aria-hidden="true" focusable="false" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg>
+        </ActionBtn>
+      )}
+      {!isUser && isAssistant && characterSceneGenerationEnabled && isCharacterBound && onGenerateScene && (
+        <ActionBtn label="Create scene" onClick={onGenerateScene}>
+          <svg aria-hidden="true" focusable="false" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>
         </ActionBtn>
       )}
       <ActionBtn label="Delete" onClick={onDelete}>
@@ -273,6 +285,22 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
             <span className="w-1 h-1 rounded-full bg-text-muted animate-pulse-dot [animation-delay:200ms]" />
             <span className="w-1 h-1 rounded-full bg-text-muted animate-pulse-dot [animation-delay:400ms]" />
           </span>
+        )}
+        {isAssistant && sceneGeneration && (
+          <CharacterSceneCard
+            status={sceneGeneration.status}
+            prompt={sceneGeneration.prompt}
+            imageUrl={sceneGeneration.imageUrl}
+            error={sceneGeneration.error}
+            rateLimitReason={sceneGeneration.rateLimitReason}
+            onRetry={onGenerateScene}
+            onRegenerate={onGenerateScene}
+            onCopyPrompt={() => {
+              if (sceneGeneration.prompt) {
+                navigator.clipboard.writeText(sceneGeneration.prompt)
+              }
+            }}
+          />
         )}
         <div className="mt-0.5">{actions}</div>
       </div>

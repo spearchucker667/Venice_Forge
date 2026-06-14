@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 
 ## [Unreleased]
 
+### Added
+- **Character Chat Scene Generation (2026-06-14):** Added on-demand and automatic scene image generation scoped to character-bound conversations. New canonical types in `src/types/characterSceneGeneration.ts`, current-conversation context extractor (`characterSceneContext.ts`), cinematic prompt compiler (`characterScenePromptCompiler.ts`), strict `<venice_forge_scene_request>` marker parser (`characterSceneRequestParser.ts`), local app-side rate limiter (`characterSceneRateLimiter.ts`), and orchestration service (`characterSceneGenerationService.ts`) that runs the existing `assessScenePrompt` guard before calling Venice `/image/generate` through `buildImagePayload` + `veniceFetch` and persists the resulting image via `useMediaStore.upsert()`. Settings store gained `characterSceneGenerationEnabled` (default `false`) and `characterSceneGenerationMode` (`manual` default) with a v5 migration; a toggle and mode selector were added to `SettingsView`. New `CharacterSceneCard` component surfaces queued/compiling/generating/complete/failed/blocked/rate-limited states. `use-chat.ts` exposes `createScene()`, parses the marker after assistant streams in `auto` mode, and aborts in-flight scene generation on `stop()`. Integrated into `chat-view.tsx` and `message-bubble.tsx`. Privacy boundary is enforced: only visible messages from the current conversation plus character metadata are used; `injectedContext`, other conversations, memories, and search are excluded. Added service, settings, component, and hook integration tests.
+
 ## [2.0.0] — 2026-06-10
 
 ### Fixed

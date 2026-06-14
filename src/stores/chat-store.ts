@@ -52,6 +52,7 @@ interface ChatState {
   appendToLastAssistant: (conversationId: string, token: string) => void
   appendReasoningToLastAssistant: (conversationId: string, token: string) => void
   deleteMessage: (conversationId: string, index: number) => void
+  setMessageMetadata: (conversationId: string, messageIndex: number, metadataPatch: Record<string, unknown>) => void
   setStreaming: (streaming: boolean) => void
   setVeniceParams: (params: Partial<VeniceParameters>) => void
   setSystemPrompt: (prompt: string) => void
@@ -282,6 +283,18 @@ export const useChatStore = create<ChatState>()(
           conversations: s.conversations.map((c) => {
             if (c.id !== conversationId) return c
             const msgs = (c.messages ?? []).filter((_, i) => i !== index)
+            return touchConversation({ ...c, messages: msgs })
+          }),
+        })),
+
+      setMessageMetadata: (conversationId, messageIndex, metadataPatch) =>
+        set((s) => ({
+          conversations: s.conversations.map((c) => {
+            if (c.id !== conversationId) return c
+            const msgs = [...(c.messages ?? [])]
+            const msg = msgs[messageIndex]
+            if (!msg) return c
+            msgs[messageIndex] = { ...msg, metadata: { ...msg.metadata, ...metadataPatch } }
             return touchConversation({ ...c, messages: msgs })
           }),
         })),

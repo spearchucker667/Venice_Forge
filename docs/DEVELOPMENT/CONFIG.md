@@ -85,6 +85,11 @@ chat:
   enable_web_citations: false
   strip_thinking_response: false
   disable_thinking: false
+  # Character chat scene generation is currently controlled from the UI
+  # (Settings → Defaults & Behavior). It defaults to disabled with a manual
+  # mode; an automatic mode generates a scene when the assistant emits the
+  # <venice_forge_scene_request> marker. These settings are not exposed in
+  # YAML because the feature is scoped per-user and is toggled at runtime.
 
 memory:
   enable_memory_retrieval: true

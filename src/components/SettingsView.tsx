@@ -10,6 +10,7 @@ import { ThemeMaker } from "./ThemeMaker";
 import { MemoryPanel } from "./layout/memory-panel";
 import { ConfirmModal } from "./ConfirmModal";
 import { toast } from "../stores/toast-store";
+import { PillGroup } from "./ui/shared";
 import { isElectron, desktopApiKey, desktopJinaApiKey, desktopFiles, desktopUpdates, desktopConfig } from "../services/desktopBridge";
 import { APP_NAME, OFFICIAL_LINKS, FIRST_RUN_ACK_KEY } from "../shared/legal";
 import type { UpdateInfo, ProgressInfo } from "electron-updater";
@@ -25,6 +26,10 @@ export function SettingsView() {
     setLocalFamilySafeModeEnabled,
     veniceApiSafeMode,
     setVeniceApiSafeMode,
+    characterSceneGenerationEnabled,
+    setCharacterSceneGenerationEnabled,
+    characterSceneGenerationMode,
+    setCharacterSceneGenerationMode,
   } = useSettingsStore();
   
   // Chat store settings
@@ -523,6 +528,42 @@ export function SettingsView() {
                     />
                     <span className="text-[13.5px] text-text-primary">Enable Citations by Default</span>
                   </label>
+                </div>
+
+                <div className="flex flex-col gap-3.5 p-4 rounded-xl border border-border bg-surface-elevated">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-[14.5px] font-medium text-text-primary">Character Scene Generation</h3>
+                      <p className="mt-1 text-[12.5px] text-text-secondary leading-relaxed">
+                        Allow character chats to create inline scene images from the current conversation only. Protected by local rate limits.
+                      </p>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={characterSceneGenerationEnabled}
+                        onChange={(e) => setCharacterSceneGenerationEnabled(e.target.checked)}
+                        className="h-4 w-4 rounded border-border bg-surface text-accent cursor-pointer"
+                      />
+                      <span className="text-[12.5px] font-medium text-text-primary">
+                        {characterSceneGenerationEnabled ? 'On' : 'Off'}
+                      </span>
+                    </label>
+                  </div>
+                  {characterSceneGenerationEnabled && (
+                    <div className="pt-2 border-t border-border/50">
+                      <label className="text-[12.5px] text-text-secondary block mb-2 font-medium">Mode</label>
+                      <PillGroup
+                        ariaLabel="Character scene generation mode"
+                        options={[
+                          { value: 'manual', label: 'Manual only' },
+                          { value: 'auto', label: 'Automatic + manual' },
+                        ]}
+                        value={characterSceneGenerationMode}
+                        onChange={(v) => setCharacterSceneGenerationMode(v as 'manual' | 'auto')}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

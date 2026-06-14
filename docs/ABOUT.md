@@ -79,7 +79,7 @@ tabs are:
 
 | Tab | Feature |
 |-----|---------|
-| Chat | Streaming chat with Venice text models, memory injection & management, drag & drop context reordering, Agent vs Classic toggle |
+| Chat | Streaming chat with Venice text models, memory injection & management, drag & drop context reordering, Agent vs Classic toggle, and optional character-bound scene generation |
 | Image Studio | Generate images, **Edit** (single image inpainting), **Combine** (multi-image referencing), and **Upscale** (separate from video upscaling) |
 | Media Studio | Generated-image and -video library with local persistence, full-size preview, batch favorite/unstar/delete, lineage (parent + children) tracking, and per-model capability hints |
 | Audio Studio | Text-to-speech with 50+ voices and formats, plus audio transcription via Whisper |

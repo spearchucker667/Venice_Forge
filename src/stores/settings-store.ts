@@ -61,6 +61,12 @@ interface SettingsState {
   // default to this project via projectRefs tagging. Null/undefined = "All / unscoped".
   activeProjectId: string | null
   setActiveProjectId: (projectId: string | null) => void
+
+  // Character Chat Scene Generation
+  characterSceneGenerationEnabled: boolean
+  setCharacterSceneGenerationEnabled: (enabled: boolean) => void
+  characterSceneGenerationMode: 'manual' | 'auto'
+  setCharacterSceneGenerationMode: (mode: 'manual' | 'auto') => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -108,10 +114,16 @@ export const useSettingsStore = create<SettingsState>()(
       // Project Workspace defaults (Phase 1). null means "global / unscoped view".
       activeProjectId: null,
       setActiveProjectId: (projectId) => set({ activeProjectId: projectId }),
+
+      // Character Chat Scene Generation defaults — OFF by default.
+      characterSceneGenerationEnabled: false,
+      setCharacterSceneGenerationEnabled: (enabled) => set({ characterSceneGenerationEnabled: enabled }),
+      characterSceneGenerationMode: 'manual',
+      setCharacterSceneGenerationMode: (mode) => set({ characterSceneGenerationMode: mode }),
     }),
     {
       name: 'venice-settings',
-      version: 4,
+      version: 5,
       storage: createJSONStorage(() => createSafeStorage()),
       migrate: (persisted) => {
         const state = persisted && typeof persisted === 'object'
@@ -125,6 +137,9 @@ export const useSettingsStore = create<SettingsState>()(
           activeTab: safeNormaliseTab(state.activeTab) as Tab,
           // v4 (workspace): ensure activeProjectId exists for Project switcher.
           activeProjectId: state.activeProjectId ?? null,
+          // v5 (character scene generation): default off.
+          characterSceneGenerationEnabled: state.characterSceneGenerationEnabled ?? false,
+          characterSceneGenerationMode: state.characterSceneGenerationMode ?? 'manual',
         } as SettingsState
       },
     },

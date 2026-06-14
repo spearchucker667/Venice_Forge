@@ -103,6 +103,7 @@ Core capabilities:
 - Prompt Library with versioning, import/export, project/global scope, favorites, archives, and secret filtering
 - Research workspace using Venice and optional Jina-backed search/scrape flows
 - Character browsing and character chat using Venice-hosted characters
+- Optional character chat scene generation (manual on-demand or automatic marker-based) scoped to the current conversation
 - Local RP Studio for character cards, personas, scenarios, lorebooks, prompt stacks, and scene context
 - Scene Composer for reusable image prompt components
 - Workflow templates and visual workflow execution planning
@@ -120,7 +121,7 @@ Core capabilities:
 
 | Area | Purpose |
 | --- | --- |
-| **Chat** | Streaming conversations, system prompts, attachments, persistent history, memory injection, chat forking, and Agent/Classical mode controls |
+| **Chat** | Streaming conversations, system prompts, attachments, persistent history, memory injection, chat forking, Agent/Classical mode controls, and optional character-bound scene generation |
 | **Image Studio** | Image generation, editing, multi-image combine/reference flows, upscaling, model-aware controls, seed handling, negative prompts, styles, steps, and capabilities display |
 | **Media Studio** | Search, filter, inspect, tag, favorite, export, compare, bulk-select, assign to project, trace lineage, reuse recipes, regenerate, remix, upscale, and route media into other studios |
 | **Prompts** | Prompt Library with version chains, tags, favorites, archives, safe import/export, and apply/save handoffs across Chat, Image Studio, Media Studio, Research, and workflows |

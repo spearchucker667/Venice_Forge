@@ -106,16 +106,49 @@ blockers remain.
 
 ## Latest Session Summary
 
-- **Date:** 2026-06-13 (CodeQL Alert 19 XSS Fix)
-- **Agent:** Antigravity (Gemini 3.5 Flash)
+- **Date:** 2026-06-14 (Character Chat Scene Generation)
+- **Agent:** Kimi Code
 - **Branch / state:** `main` (working tree modified)
-- **Diagnosis:** Fixed CodeQL Alert 19 (`js/xss-through-dom`) in `src/components/chat/message-bubble.tsx`. Multimodal attachment image URLs derived from untrusted message content were being rendered directly in `<img>` tags without protocol sanitization. Hardened this sink by introducing `safeMediaPreviewUrl` filtering (allowing only `"data:image/png;base64,"`, `"data:image/jpeg;base64,"`, `"data:image/webp;base64,"`, `"blob:"`, `"https://"`, and `"http://"`) and omitting rendering of unsafe URLs. Added corresponding tests in `message-bubble.test.tsx`.
+- **Diagnosis:** Implemented the Character Chat Scene Generation feature. Adds on-demand and automatic (marker-based) scene image generation scoped to the current character-bound conversation only. Introduced canonical types (`src/types/characterSceneGeneration.ts`), a current-conversation context extractor (`characterSceneContext.ts`), a cinematic prompt compiler (`characterScenePromptCompiler.ts`), a strict marker parser (`characterSceneRequestParser.ts`), a local app-side rate limiter (`characterSceneRateLimiter.ts`), and an orchestration service (`characterSceneGenerationService.ts`) that runs `assessScenePrompt` before calling `/image/generate` through `buildImagePayload` + `veniceFetch` and persists the result via `useMediaStore.upsert()`. Added `characterSceneGenerationEnabled` (default `false`) and `characterSceneGenerationMode` (`manual` default) to `useSettingsStore` with a v5 migration, a Settings UI toggle/selector, and a `CharacterSceneCard` component that surfaces queued/compiling/generating/complete/failed/blocked/rate-limited states. Integrated the feature into `use-chat.ts` (`createScene`, post-stream automatic marker parsing, abort on `stop()`), `chat-view.tsx`, and `message-bubble.tsx`. Privacy boundary is enforced: only visible messages from the current conversation plus character metadata are used; `injectedContext`, other conversations, memories, and search are excluded. Added regression coverage for the new services, settings migration, card rendering, and hook integration.
 - **Files changed in this pass:**
+  - `src/types/characterSceneGeneration.ts` (new)
+  - `src/services/characterSceneContext.ts` (new)
+  - `src/services/characterSceneContext.test.ts` (new)
+  - `src/services/characterScenePromptCompiler.ts` (new)
+  - `src/services/characterScenePromptCompiler.test.ts` (new)
+  - `src/services/characterSceneRequestParser.ts` (new)
+  - `src/services/characterSceneRequestParser.test.ts` (new)
+  - `src/services/characterSceneRateLimiter.ts` (new)
+  - `src/services/characterSceneRateLimiter.test.ts` (new)
+  - `src/services/characterSceneGenerationService.ts` (new)
+  - `src/services/characterSceneGenerationService.test.ts` (new)
+  - `src/stores/settings-store.ts`
+  - `src/stores/settings-store.character-scene.test.ts` (new)
+  - `src/stores/chat-store.ts`
+  - `src/components/SettingsView.tsx`
+  - `src/components/chat/CharacterSceneCard.tsx` (new)
+  - `src/components/chat/CharacterSceneCard.test.tsx` (new)
+  - `src/components/chat/chat-view.tsx`
   - `src/components/chat/message-bubble.tsx`
-  - `src/components/chat/message-bubble.test.tsx`
+  - `src/hooks/use-chat.ts`
+  - `src/hooks/use-chat.character-scene.test.ts` (new)
   - `docs/summary_of_work.md`
+  - `docs/audits/CHANGELOG.md`
+  - `README.md`
+  - `docs/ABOUT.md`
+  - `docs/design/CHARACTER_RP.md`
+  - `docs/DEVELOPMENT/CONFIG.md`
 - **Validation:**
-  - `npm run lint:eslint && npm run typecheck && npm test && npm run verify:safety-guard && npm run build` — **PASS**.
+  - `npm run lint:eslint` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS**.
+  - `npm test` — **PASS: 215 test files, 2288 passed, 1 skipped**.
+  - `npm run verify:safety-guard` — **PASS**.
+  - `npm run verify:network-boundaries` — **PASS**.
+  - `npm run verify:markdown-links` — **PASS: 54 Markdown files checked**.
+  - `npm run verify:contracts` — **PASS**.
+  - `npm run build` — **PASS**.
+  - `npm run dist:mac:arm64` — **PASS**: produced `release/Venice-Forge-2.0.0-arm64.dmg`, `release/Venice-Forge-2.0.0-x64.dmg`, and corresponding `.zip` files; checksums written.
+  - Packaged app launch / smoke test (`RUN_ELECTRON_SMOKE=true npx vitest run tests/smoke/electron-smoke.test.ts`) — **PASS**: mounted the arm64 DMG, launched `Venice Forge.app`, verified clean 5-second startup and graceful shutdown.
 
 ---
 
@@ -1119,6 +1152,17 @@ The older Phase 2F block below is retained as historical context and is supersed
 ---
 
 ## Session History
+
+### 2026-06-13 (CodeQL Alert 19 XSS Fix)
+- **Agent:** Antigravity (Gemini 3.5 Flash)
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Fixed CodeQL Alert 19 (`js/xss-through-dom`) in `src/components/chat/message-bubble.tsx`. Multimodal attachment image URLs derived from untrusted message content were being rendered directly in `<img>` tags without protocol sanitization. Hardened this sink by introducing `safeMediaPreviewUrl` filtering (allowing only `"data:image/png;base64,"`, `"data:image/jpeg;base64,"`, `"data:image/webp;base64,"`, `"blob:"`, `"https://"`, and `"http://"`) and omitting rendering of unsafe URLs. Added corresponding tests in `message-bubble.test.tsx`.
+- **Files changed in this pass:**
+  - `src/components/chat/message-bubble.tsx`
+  - `src/components/chat/message-bubble.test.tsx`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npm run lint:eslint && npm run typecheck && npm test && npm run verify:safety-guard && npm run build` — **PASS**.
 
 ### 2026-06-12 (P2 Refactoring & P3 Performance)
 - Refactored `SearchScrapeView.tsx` into smaller modules under `src/components/search/`.
