@@ -106,6 +106,43 @@ blockers remain.
 
 ## Latest Session Summary
 
+- **Date:** 2026-06-14 (Real Venice character image resolver + separate desktop cache)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Implemented a real, validated desktop cache for Venice character avatar images (registered as regression guard `VERIFY-053`). The renderer no longer loads remote `<img src>` URLs directly; instead it requests a local `file://` handle from the main process. Added `electron/services/characterImageCache.ts` (2 MiB/item, 100 MiB total, 7-day TTL, stale-while-revalidate) under `userData/cache/character-images/`, isolated from encrypted user-content stores. Wired IPC channels `app:characterImage:get`, `app:characterImage:clearCache`, and `app:characterImage:inventory` through `electron/ipc/handlers.ts` and `electron/preload.ts`. Added `desktopCharacterImage` bridge in `src/services/desktopBridge.ts` and a `useCharacterImage` hook that drives `src/components/CharactersView.tsx` and the active-character pill in `src/components/chat/chat-view.tsx`. Extended `src/utils/characterImageResolver.ts` with `extractCharacterImageFromPage` for an optional, feature-flagged public-page fallback (Open Graph / Twitter Card / JSON-LD / Next.js data) that still validates every candidate against the 3-host SSRF allowlist. Integrated the cache into Storage & Privacy (`src/services/storagePrivacyService.ts`, `src/services/storageMaintenance.ts`, `src/stores/storage-privacy-store.ts`) with a destructive "Clear Character Image Cache" maintenance action. Added safe diagnostics logging via `src/services/characterImageDiagnostics.ts`. Added/extended tests in `electron/services/characterImageCache.test.ts`, `src/utils/characterImageResolver.test.ts`, `src/components/CharactersView.test.tsx`, `src/services/storageMaintenance.test.ts`, and `src/services/storagePrivacyService.test.ts`; added `VERIFY-053` references to each test header and to `AGENTS.md`.
+- **Files changed in this pass:**
+  - `electron/services/characterImageCache.ts` (new)
+  - `electron/services/characterImageCache.test.ts` (new)
+  - `electron/ipc/handlers.ts`
+  - `electron/preload.ts`
+  - `src/services/desktopBridge.ts`
+  - `src/services/characterImageFallback.ts` (new)
+  - `src/services/characterImageDiagnostics.ts` (new)
+  - `src/services/storagePrivacyService.ts`
+  - `src/services/storagePrivacyService.test.ts` (updated)
+  - `src/services/storageMaintenance.ts`
+  - `src/services/storageMaintenance.test.ts` (updated)
+  - `src/stores/storage-privacy-store.ts`
+  - `src/hooks/useCharacterImage.ts` (new)
+  - `src/utils/characterImageResolver.ts`
+  - `src/utils/characterImageResolver.test.ts` (updated)
+  - `src/components/CharactersView.tsx`
+  - `src/components/CharactersView.test.tsx` (new)
+  - `src/components/chat/chat-view.tsx`
+  - `src/types/desktop.ts`
+  - `AGENTS.md` (added `VERIFY-053` regression-guard row)
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npm run lint:eslint` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+  - `npm test` — **PASS: 2361 passed, 1 skipped**.
+  - `npm run build` — **PASS**.
+  - `npm run ci` — **PASS**.
+
+---
+
+## Latest Session Summary
+
 - **Date:** 2026-06-14 (Theme-token migration audit)
 - **Agent:** Kimi Code
 - **Branch / state:** `main` (working tree modified)
@@ -1132,6 +1169,90 @@ The older Phase 2F block below is retained as historical context and is supersed
 ---
 
 ## Session History
+
+### 2026-06-14 (Real Venice character image resolver + separate desktop cache)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Implemented a desktop-only character avatar image cache (`userData/cache/character-images/`) so the renderer displays local `file://` URLs instead of loading remote images directly. Added cache service, IPC channels, preload bindings, `desktopCharacterImage` bridge, `useCharacterImage` hook, and updated `CharactersView.tsx` and `chat-view.tsx` active-character pill. Extended the resolver with a feature-flagged public-page image fallback that validates extracted URLs against the existing 3-host allowlist. Wired cache inventory and clear action into Storage & Privacy. Added safe diagnostics logging and regression tests.
+- **Files changed in this pass:**
+  - `electron/services/characterImageCache.ts`
+  - `electron/services/characterImageCache.test.ts`
+  - `electron/ipc/handlers.ts`
+  - `electron/preload.ts`
+  - `src/services/desktopBridge.ts`
+  - `src/services/characterImageFallback.ts`
+  - `src/services/characterImageDiagnostics.ts`
+  - `src/services/storagePrivacyService.ts`
+  - `src/services/storagePrivacyService.test.ts`
+  - `src/services/storageMaintenance.ts`
+  - `src/services/storageMaintenance.test.ts`
+  - `src/stores/storage-privacy-store.ts`
+  - `src/hooks/useCharacterImage.ts`
+  - `src/utils/characterImageResolver.ts`
+  - `src/utils/characterImageResolver.test.ts`
+  - `src/components/CharactersView.tsx`
+  - `src/components/CharactersView.test.tsx`
+  - `src/components/chat/chat-view.tsx`
+  - `src/types/desktop.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npm run lint:eslint` — PASS: 0 warnings.
+  - `npm run typecheck` — PASS.
+  - `npm test` — PASS: 2361 passed, 1 skipped.
+  - `npm run build` — PASS.
+  - `npm run ci` — PASS.
+
+### 2026-06-14 (Add five more built-in themes + robust YAML import/export)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Added Dracula, GruvBox Dark, One Dark, Monokai, and GitHub Light as first-class built-in themes. Dracula and GruvBox Dark already existed as built-ins; their YAML templates were updated to the new `accent/background/details/foreground/terminal_colors` layout with an explicit `name` field, and GruvBox's accent was aligned to `#fabd2f`. One Dark, Monokai, and GitHub Light were added as new built-ins in `src/theme/themes.ts` and registered in `src/components/ThemeMaker.tsx`. All themes pass the 29-token semantic contract and WCAG AA contrast checks. Hardened `yamlToTheme` so legacy YAML templates are imported directly: optional `name` field, `details` treated as a color when valid, light/dark mode inferred from background luminance (or overridden by an explicit `mode` field), and surface/border derived from a color `details`. Exported custom themes continue to use the version-1 YAML schema. Updated `docs/design/THEME_SYSTEM.md`, `docs/audits/CHANGELOG.md`, and this file. Added/extended regression tests in `src/theme/themes.test.ts`, `src/components/ThemeMaker.test.ts`, and `src/components/ThemeMaker.ui.test.tsx`.
+- **Files changed in this pass:**
+  - `src/theme/themes.ts`
+  - `src/theme/contrast.ts`
+  - `src/components/ThemeMaker.tsx`
+  - `config/themes/dracula.yaml`
+  - `config/themes/gruvbox_dark.yaml`
+  - `config/themes/one_dark.yaml` (new)
+  - `config/themes/monokai.yaml` (new)
+  - `config/themes/github_light.yaml` (new)
+  - `src/theme/themes.test.ts` (updated)
+  - `src/components/ThemeMaker.test.ts` (updated)
+  - `src/components/ThemeMaker.ui.test.tsx` (updated)
+  - `docs/design/THEME_SYSTEM.md`
+  - `docs/audits/CHANGELOG.md`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npm run lint:eslint` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS**.
+  - `npx vitest run src/theme/contrast.test.ts src/theme/themes.test.ts src/components/ThemeMaker.test.ts src/components/ThemeMaker.ui.test.tsx --fileParallelism=false` — **PASS: 83/83**.
+  - `npm run verify:theme-tokens` — **PASS**.
+  - `npm run verify:markdown-links` — **PASS**.
+  - `npm run verify:contracts` — **PASS**.
+  - `npm run build` — **PASS**.
+
+### 2026-06-14 (Theme-token migration audit)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Performed a component-level semantic theme-token migration audit to fix hardcoded light/dark Tailwind color regressions in Privacy, Status, Research, and Characters surfaces. Replaced hardcoded `text-white/*`, `bg-white/*`, `border-white/*`, `divide-white/*`, `bg-black/*`, and the static dark `bg-bg-base` token with canonical semantic theme tokens. Added `scripts/verify-theme-tokens.cjs` (and `npm run verify:theme-tokens`) and wired it into `verify:contracts`. Updated `StatusIndicator.test.tsx` and `ResearchWorkspaceView.test.tsx` assertions/comments for semantic tokens.
+- **Files changed in this pass:**
+  - `scripts/verify-theme-tokens.cjs` (new)
+  - `package.json`
+  - `scripts/verify-status-diagnostics.cjs`
+  - `src/components/privacy/StoragePrivacyDashboard.tsx`
+  - `src/components/StatusView.tsx`
+  - `src/components/status/DiagnosticsDrawer.tsx`
+  - `src/components/status/StatusIndicator.tsx`
+  - `src/components/status/StatusIndicator.test.tsx`
+  - `src/components/research/ResearchWorkspaceView.tsx`
+  - `src/components/research/ResearchWorkspaceView.test.tsx`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npm run lint:eslint` — PASS.
+  - `npm run typecheck` — PASS.
+  - `npm test` — PASS: 2288 passed, 1 skipped.
+  - `npm run verify:theme-tokens` — PASS.
+  - `npm run verify:contracts` — PASS.
+  - `npm run build` — PASS.
 
 ### 2026-06-13 (CodeQL Alert 19 XSS Fix)
 - **Agent:** Antigravity (Gemini 3.5 Flash)
@@ -3427,6 +3548,35 @@ Result:
 > `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` (see the *Scope
 > Correction* section).
 
+### Completed this session (2026-06-14 — Real Venice character image resolver + separate desktop cache)
+
+- Added `electron/services/characterImageCache.ts` with SHA-256-keyed files under `userData/cache/character-images/`, 2 MiB/item, 100 MiB total, 7-day TTL, stale-while-revalidate, allowed-content-type allowlist, and API-key retry on 401/403.
+- Registered IPC handlers `app:characterImage:get`, `app:characterImage:clearCache`, and `app:characterImage:inventory` in `electron/ipc/handlers.ts` and exposed them in `electron/preload.ts`.
+- Added `desktopCharacterImage` helper in `src/services/desktopBridge.ts` (desktop → IPC; web → direct trusted URL fallback).
+- Created `src/hooks/useCharacterImage.ts` to resolve, cache, and log character avatars; consumed by `src/components/CharactersView.tsx` and `src/components/chat/chat-view.tsx`.
+- Removed the inline `style={{ width, height }}` JSX attribute from `CharactersView.tsx` `Avatar` to satisfy `VERIFY-007`.
+- Added `extractCharacterImageFromPage` to `src/utils/characterImageResolver.ts` for optional public-page metadata fallback (Open Graph / Twitter Card / JSON-LD / Next.js data) behind `VENICE_FORGE_ENABLE_CHARACTER_PAGE_IMAGE_FALLBACK`.
+- Integrated cache inventory and a destructive "Clear Character Image Cache" action into Storage & Privacy.
+- Added safe diagnostics logging via `src/services/characterImageDiagnostics.ts`.
+- Added/extended tests for cache service, resolver page extraction, Avatar rendering, and privacy/maintenance clear action.
+
+### Completed this session (2026-06-14 — Add five more built-in themes + robust YAML import/export)
+
+- Added `BUILTIN_ONE_DARK`, `BUILTIN_MONOKAI`, and `BUILTIN_GITHUB_LIGHT` to `src/theme/themes.ts` using the 29-token semantic contract; aligned `BUILTIN_GRUVBOX_DARK` accent to `#fabd2f`.
+- Registered the three new themes in `src/components/ThemeMaker.tsx` `builtInMap` and selector list.
+- Hardened `yamlToTheme` legacy parser in `src/components/ThemeMaker.tsx`:
+  - Reads optional `name` field and falls back to `details` only when it is not a valid color.
+  - Infers `light`/`dark` mode from background luminance when no explicit `mode` is provided.
+  - Uses a color-valued `details` as the surface/border basis.
+  - Derives `accentForeground` from whichever of background/foreground gives better contrast on the accent.
+- Exported `luminance` from `src/theme/contrast.ts` and consumed it statically in `ThemeMaker.tsx`.
+- Updated `config/themes/dracula.yaml` and `config/themes/gruvbox_dark.yaml` to the new layout with explicit `name` fields.
+- Added `config/themes/one_dark.yaml`, `config/themes/monokai.yaml`, and `config/themes/github_light.yaml` templates.
+- Extended `src/theme/themes.test.ts` contrast/token tests to cover the new themes.
+- Extended `src/components/ThemeMaker.test.ts` with round-trip tests for all new themes plus legacy-parser tests for name fallback, color-`details`, light-mode inference, and explicit mode override.
+- Extended `src/components/ThemeMaker.ui.test.tsx` selector tests to cover the new themes.
+- Updated `docs/design/THEME_SYSTEM.md` and `docs/audits/CHANGELOG.md`.
+
 ### Completed this session (2026-06-14 — Theme-token migration audit)
 
 - Fixed hardcoded light/dark Tailwind color regressions across Privacy, Status, Research, and Characters surfaces:
@@ -3962,8 +4112,7 @@ None are release blockers. The P0–P3 sections above remain accurate.
 | --- | --- | --- |
 | npm run lint:eslint | PASS | 0 warnings |
 | npm run typecheck | PASS | renderer + electron |
-| npm test | PASS | 2288 passed, 1 skipped |
-| npm run verify:theme-tokens | PASS | 0 forbidden hardcoded color classes in themeable UI targets |
-| npm run verify:contracts | PASS | all aggregate gates pass |
+| npm test | PASS | 2361 passed, 1 skipped |
 | npm run build | PASS | dist + dist-electron generated |
-| npx vitest run src/components/privacy/StoragePrivacyDashboard.test.tsx src/components/status/StatusIndicator.test.tsx src/components/status/DiagnosticsDrawer.test.tsx src/components/research/ResearchWorkspaceView.test.tsx --fileParallelism=false | PASS | 30/30 tests passed |
+| npm run ci | PASS | full parity gate passes |
+| npx vitest run electron/services/characterImageCache.test.ts src/utils/characterImageResolver.test.ts src/components/CharactersView.test.tsx src/services/storageMaintenance.test.ts src/services/storagePrivacyService.test.ts --fileParallelism=false | PASS | 65/65 tests passed |
