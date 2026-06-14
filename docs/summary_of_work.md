@@ -149,6 +149,7 @@ blockers remain.
   - `npm run build` — **PASS**.
   - `npm run dist:mac:arm64` — **PASS**: produced `release/Venice-Forge-2.0.0-arm64.dmg`, `release/Venice-Forge-2.0.0-x64.dmg`, and corresponding `.zip` files; checksums written.
   - Packaged app launch / smoke test (`RUN_ELECTRON_SMOKE=true npx vitest run tests/smoke/electron-smoke.test.ts`) — **PASS**: mounted the arm64 DMG, launched `Venice Forge.app`, verified clean 5-second startup and graceful shutdown.
+  - Pushed the working tree to a new branch `testing` on origin (`git push -u origin testing`) with commit `0d29944`.
 
 ---
 
