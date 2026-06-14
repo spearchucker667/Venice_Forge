@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
+// VERIFY-053 regression guard: Storage & Privacy surfaces the character image
+// cache inventory and a destructive clear-maintenance action.
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createStorageMaintenancePlan, applyMaintenanceAction } from "./storageMaintenance";
+import { desktopCharacterImage } from "./desktopBridge";
 
 // Polyfill localStorage for Node 26+ so vi.spyOn can intercept removeItem.
 const localStorageStore: Record<string, string> = {}
@@ -58,5 +62,20 @@ describe("storageMaintenance", () => {
     expect(removeItemSpy).toHaveBeenCalledWith("venice-forge-models-cache");
     expect(result.succeeded).toContain("model-cache");
     expect(localStorageStore["venice-forge-models-cache"]).toBeUndefined();
+  });
+
+  it("includes a clear-character-image-cache action", () => {
+    const plan = createStorageMaintenancePlan(mockInventory);
+    const action = plan.actions.find((a) => a.id === "clear-character-image-cache");
+    expect(action).toBeDefined();
+    expect(action?.destructive).toBe(true);
+    expect(action?.affectedCategories).toContain("cache");
+  });
+
+  it("applies clear-character-image-cache through the desktop bridge", async () => {
+    vi.spyOn(desktopCharacterImage, "clearCache").mockResolvedValueOnce({ ok: true, deletedCount: 3 });
+    const result = await applyMaintenanceAction("clear-character-image-cache");
+    expect(desktopCharacterImage.clearCache).toHaveBeenCalled();
+    expect(result.succeeded).toContain("character-image-cache");
   });
 });

@@ -248,6 +248,79 @@ export function resolveCharacterImageUrl(
 
 /** Returns a deterministic fallback avatar label (initials) for a character
  *  when no image URL is available. */
+/** Extracts a candidate character image URL from a Venice public character
+ *  page. Looks for Open Graph, Twitter Card, JSON-LD, and Next.js
+ *  `__NEXT_DATA__` image fields. Every candidate is validated with
+ *  {@link isTrustedVeniceImageUrl} before being returned.
+ */
+export function extractCharacterImageFromPage(slug: string, html: string): string | null {
+  if (!html || typeof html !== "string") return null;
+
+  const candidates: string[] = [];
+
+  // Open Graph image
+  const ogMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
+  if (ogMatch?.[1]) candidates.push(ogMatch[1]);
+
+  // Twitter image
+  const twitterMatch = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i) ??
+    html.match(/<meta[^>]+property=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
+  if (twitterMatch?.[1]) candidates.push(twitterMatch[1]);
+
+  // JSON-LD image
+  const jsonLdRe = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let jsonLdMatch: RegExpExecArray | null;
+  while ((jsonLdMatch = jsonLdRe.exec(html)) !== null) {
+    try {
+      const data = JSON.parse(jsonLdMatch[1] ?? "") as unknown;
+      if (data && typeof data === "object") {
+        const d = data as Record<string, unknown>;
+        if (typeof d.image === "string") candidates.push(d.image);
+        if (Array.isArray(d.image)) {
+          for (const img of d.image) {
+            if (typeof img === "string") candidates.push(img);
+          }
+        }
+      }
+    } catch {
+      // ignore malformed JSON-LD
+    }
+  }
+
+  // Next.js data
+  const nextDataRe = /<script[^>]+id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i;
+  const nextMatch = nextDataRe.exec(html);
+  if (nextMatch?.[1]) {
+    try {
+      const data = JSON.parse(nextMatch[1]) as unknown;
+      const walk = (value: unknown): string[] => {
+        const found: string[] = [];
+        if (!value || typeof value !== "object") return found;
+        if (Array.isArray(value)) {
+          for (const item of value) found.push(...walk(item));
+          return found;
+        }
+        const record = value as Record<string, unknown>;
+        for (const key of ["photoUrl", "photo_url", "avatarUrl", "avatar_url", "imageUrl", "image_url", "image"]) {
+          const v = record[key];
+          if (typeof v === "string") found.push(v);
+        }
+        for (const v of Object.values(record)) found.push(...walk(v));
+        return found;
+      };
+      candidates.push(...walk(data));
+    } catch {
+      // ignore malformed Next.js data
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (isTrustedVeniceImageUrl(candidate)) return candidate;
+  }
+
+  return null;
+}
+
 export function avatarFallback(name: string): string {
   const trimmed = name.trim();
   if (!trimmed) return "?";

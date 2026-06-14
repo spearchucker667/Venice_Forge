@@ -4,6 +4,7 @@ import {
   type StorageInventoryResult,
   type StorageReferenceIssue,
 } from "../types/storage-privacy";
+import { desktopCharacterImage } from "./desktopBridge";
 
 export interface StorageMaintenanceDryRunResult {
   plan: StorageMaintenancePlan;
@@ -54,6 +55,14 @@ export function createStorageMaintenancePlan(inventory: StorageInventoryResult):
     requiresConfirmation: true,
     affectedCategories: ["cache"],
   });
+  actions.push({
+    id: "clear-character-image-cache",
+    label: "Clear Character Image Cache",
+    description: "Delete locally cached Venice character avatar images. They will be re-fetched as needed.",
+    destructive: true,
+    requiresConfirmation: true,
+    affectedCategories: ["cache"],
+  });
 
   const warnings = inventory.issues.map((issue: StorageReferenceIssue) => ({
     id: issue.id,
@@ -97,6 +106,15 @@ export async function applyMaintenanceAction(actionId: string): Promise<StorageM
                 localStorage.removeItem("venice-forge-models-cache") /* localStorage-allowed: transient model-list cache */;
                 result.succeeded.push("model-cache");
                 break;
+            case "clear-character-image-cache": {
+                const cacheResult = await desktopCharacterImage.clearCache();
+                if (cacheResult.ok) {
+                    result.succeeded.push("character-image-cache");
+                } else {
+                    result.failed.push({ id: actionId, reason: cacheResult.error ?? "Unknown error" });
+                }
+                break;
+            }
             case "refresh-inventory":
                 // Handled by UI/Store
                 result.succeeded.push("refresh");

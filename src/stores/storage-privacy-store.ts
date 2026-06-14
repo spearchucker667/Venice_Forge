@@ -17,6 +17,7 @@ import * as logger from "../shared/logger";
 import { useLorebookStore } from "./lorebook-store";
 import { useSettingsStore } from "./settings-store";
 import { toast } from "./toast-store";
+import { desktopCharacterImage } from "../services/desktopBridge";
 
 export interface StoragePrivacyState {
   inventory: StorageInventoryResult | null;
@@ -51,6 +52,10 @@ export const useStoragePrivacyStore = create<StoragePrivacyState>((set, get) => 
         useWorkflowTemplateStore.getState().ensureWorkflowTemplatesLoaded(),
       ]);
 
+      const [cacheInventory] = await Promise.all([
+        desktopCharacterImage.getInventory(),
+      ]);
+
       const inventory = buildStorageInventory({
         projects: useProjectStore.getState().projects as unknown as StorageInventoryRecord[],
         prompts: usePromptLibraryStore.getState().prompts as unknown as StorageInventoryRecord[],
@@ -62,6 +67,9 @@ export const useStoragePrivacyStore = create<StoragePrivacyState>((set, get) => 
         personas: usePersonaStore.getState().personas as unknown as StorageInventoryRecord[],
         scenarios: useScenarioStore.getState().scenarios as unknown as StorageInventoryRecord[],
         settings: useSettingsStore.getState() as unknown as { veniceApiKey?: string },
+        characterImageCache: cacheInventory.ok
+          ? { count: cacheInventory.count ?? 0, totalBytes: cacheInventory.totalBytes ?? 0 }
+          : undefined,
       });
 
       const maintenancePlan = createStorageMaintenancePlan(inventory);

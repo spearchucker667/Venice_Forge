@@ -213,6 +213,21 @@ const veniceForge = {
     }> {
       return ipcRenderer.invoke("app:media:thumb", input);
     },
+    /** Character avatar cache: fetch and cache a Venice character photo
+     *  and return a file:// URL for the renderer. */
+    getCharacterImage(url: string): Promise<{
+      ok: boolean; url?: string; contentType?: string; bytes?: number; error?: string;
+    }> {
+      return ipcRenderer.invoke("app:characterImage:get", url);
+    },
+    clearCharacterImageCache(): Promise<{ ok: boolean; deletedCount?: number; error?: string }> {
+      return ipcRenderer.invoke("app:characterImage:clearCache");
+    },
+    getCharacterImageCacheInventory(): Promise<{
+      ok: boolean; count?: number; totalBytes?: number; error?: string;
+    }> {
+      return ipcRenderer.invoke("app:characterImage:inventory");
+    },
   },
 
   chat: {

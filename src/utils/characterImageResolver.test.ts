@@ -1,3 +1,6 @@
+// VERIFY-053 regression guard: character image URL resolution validates
+// candidates against the 3-host SSRF allowlist and rejects malformed/unsafe IDs.
+
 /** @fileoverview Tests for character image URL resolution + allowlist. */
 
 import { describe, expect, it } from "vitest";
@@ -5,6 +8,7 @@ import {
   VENICE_CHARACTER_IMAGE_HOSTS,
   avatarFallback,
   buildSyntheticCharacterPhotoUrl,
+  extractCharacterImageFromPage,
   isSafeCharacterId,
   isTrustedVeniceImageUrl,
   resolveCharacterImageUrl,
@@ -270,5 +274,38 @@ describe("avatarFallback", () => {
 
   it("uppercases lowercase initials", () => {
     expect(avatarFallback("zelda")).toBe("ZE");
+  });
+});
+
+describe("extractCharacterImageFromPage", () => {
+  const trustedImage = "https://outerface.venice.ai/api/characters/abc/photo";
+
+  it("extracts an Open Graph image URL", () => {
+    const html = `<html><head><meta property="og:image" content="${trustedImage}"></head></html>`;
+    expect(extractCharacterImageFromPage("abc", html)).toBe(trustedImage);
+  });
+
+  it("extracts a Twitter Card image URL", () => {
+    const html = `<html><head><meta name="twitter:image" content="${trustedImage}"></head></html>`;
+    expect(extractCharacterImageFromPage("abc", html)).toBe(trustedImage);
+  });
+
+  it("extracts a JSON-LD image URL", () => {
+    const html = `<script type="application/ld+json">{"image":"${trustedImage}","name":"ABC"}</script>`;
+    expect(extractCharacterImageFromPage("abc", html)).toBe(trustedImage);
+  });
+
+  it("extracts a Next.js __NEXT_DATA__ image field", () => {
+    const html = `<script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"character":{"photoUrl":"${trustedImage}"}}}}</script>`;
+    expect(extractCharacterImageFromPage("abc", html)).toBe(trustedImage);
+  });
+
+  it("rejects extracted URLs outside the allowlist", () => {
+    const html = `<meta property="og:image" content="https://evil.example/img.png">`;
+    expect(extractCharacterImageFromPage("abc", html)).toBeNull();
+  });
+
+  it("returns null when no image is present", () => {
+    expect(extractCharacterImageFromPage("abc", "<html></html>")).toBeNull();
   });
 });

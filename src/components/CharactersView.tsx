@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useCharacterStore } from "../stores/character-store";
 import { useChatStore } from "../stores/chat-store";
 import { useSettingsStore } from "../stores/settings-store";
-import { resolveCharacterImageUrl, avatarFallback } from "../utils/characterImageResolver";
+import { useCharacterImage } from "../hooks/useCharacterImage";
 import type {
   CharacterSortBy,
   CharacterSortOrder,
@@ -32,37 +32,27 @@ const SORT_ORDER_OPTIONS: Array<{ value: CharacterSortOrder; label: string }> = 
   { value: "asc", label: "Ascending" },
 ];
 
-function Avatar({ character, size = 64 }: { character: VeniceCharacter; size?: number }) {
-  const [errored, setErrored] = useState(false);
-  const resolvedUrl = resolveCharacterImageUrl(character);
-  const showImage = !!resolvedUrl && !errored;
-  const dim = `${size}px`;
-
-  useEffect(() => {
-    setErrored(false);
-  }, [character.slug, character.photoUrl]);
-
+export function Avatar({ character }: { character: VeniceCharacter }) {
+  const { imageUrl, fallbackInitials } = useCharacterImage(character);
   const altText = `${character.name} avatar`;
   return (
     <div
-      className="rounded-full bg-surface-elevated border border-border flex items-center justify-center overflow-hidden text-text-secondary text-[18px] font-semibold shrink-0"
-      style={{ width: dim, height: dim }}
+      className="h-16 w-16 rounded-full bg-surface-elevated border border-border flex items-center justify-center overflow-hidden text-text-secondary text-[18px] font-semibold shrink-0"
       role="img"
       aria-label={altText}
     >
-      {showImage ? (
+      {imageUrl ? (
         <img
-          src={resolvedUrl!}
+          src={imageUrl}
           alt={altText}
-          width={size}
-          height={size}
+          width={64}
+          height={64}
           loading="lazy"
           referrerPolicy="no-referrer"
-          onError={() => setErrored(true)}
           className="w-full h-full object-cover"
         />
       ) : (
-        <span aria-hidden="true">{avatarFallback(character.name)}</span>
+        <span aria-hidden="true">{fallbackInitials}</span>
       )}
     </div>
   );
@@ -84,7 +74,7 @@ function CharacterCard({
       data-character-slug={character.slug}
     >
       <div className="flex items-start gap-3">
-        <Avatar character={character} size={64} />
+        <Avatar character={character} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-[15px] font-semibold text-text-primary truncate">

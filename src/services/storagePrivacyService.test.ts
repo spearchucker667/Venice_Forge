@@ -1,3 +1,6 @@
+// VERIFY-053 regression guard: Storage & Privacy inventory includes the
+// character image cache as a cache-category row with byte/count metadata.
+
 import { describe, it, expect } from "vitest";
 import { buildStorageInventory, buildSafePrivacySummary } from "./storagePrivacyService";
 import { type StorageStoreInventoryItem } from "../types/storage-privacy";
@@ -46,5 +49,18 @@ describe("storagePrivacyService", () => {
     const prompts = [{ id: "pr1", title: "Original" }];
     buildStorageInventory({ prompts });
     expect(prompts[0].title).toBe("Original");
+  });
+
+  it("surfaces the character image cache as a cache-category store", () => {
+    const inventory = buildStorageInventory({
+      characterImageCache: { count: 5, totalBytes: 2_097_152 },
+    });
+    const cacheStore = inventory.stores.find((s) => s.id === "character-image-cache");
+    expect(cacheStore).toBeDefined();
+    expect(cacheStore?.category).toBe("cache");
+    expect(cacheStore?.count).toBe(5);
+    expect(cacheStore?.containsSecrets).toBe(false);
+    expect(cacheStore?.containsUserContent).toBe(false);
+    expect(cacheStore?.summary).toContain("2.0 MiB");
   });
 });

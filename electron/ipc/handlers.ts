@@ -44,6 +44,11 @@ import {
   readMediaMeta,
   revealMediaInFolder,
 } from "../services/mediaService";
+import {
+  clearCharacterImageCache,
+  getCachedCharacterImage,
+  getCharacterImageCacheInventory,
+} from "../services/characterImageCache";
 import { JINA_MAX_RESPONSE_BYTES, VENICE_MAX_BODY_BYTES } from "../../src/shared/limits";
 import { FetchBodyTooLargeError, parseJsonOrNull, readBoundedFetchBody } from "../../src/shared/readBoundedFetchBody";
 import { SafetyGuardBlockedError, screenResponseBody } from "../../src/shared/safety";
@@ -818,6 +823,47 @@ export function registerIpcHandlers(): void {
       return { ok: true, filePath: result.filePath, url: result.url };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  // Character avatar image cache: fetch and cache a Venice character photo
+  // and return a file:// URL. The renderer never loads remote URLs directly.
+  ipcMain.handle("app:characterImage:get", async (_event, input: unknown) => {
+    try {
+      let url = "";
+      if (typeof input === "string") {
+        url = input;
+      } else if (input && typeof input === "object") {
+        const record = input as Record<string, unknown>;
+        if (typeof record.url === "string") {
+          url = record.url;
+        }
+      }
+      if (!url) return { ok: false, error: "Missing image URL." };
+      const result = await getCachedCharacterImage(url);
+      if (!result.ok) return { ok: false, error: redactErrorMessage(result.error) };
+      return { ok: true, url: result.url, contentType: result.contentType, bytes: result.bytes };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("app:characterImage:clearCache", async () => {
+    try {
+      const result = await clearCharacterImageCache();
+      if (!result.ok) return { ok: false, error: redactErrorMessage(result.error) };
+      return { ok: true, deletedCount: result.deletedCount };
+    } catch (err) {
+      return { ok: false, deletedCount: 0, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("app:characterImage:inventory", async () => {
+    try {
+      const inventory = await getCharacterImageCacheInventory();
+      return { ok: true, ...inventory };
+    } catch (err) {
+      return { ok: false, count: 0, totalBytes: 0, error: redactErrorMessage(err) };
     }
   });
 

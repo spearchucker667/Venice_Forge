@@ -431,6 +431,30 @@ export const desktopMedia = {
   },
 };
 
+/** Character avatar image cache bridge.
+ *  Desktop: asks the main process to fetch and cache the image, returning a
+ *  local file:// URL. Web: falls back to the direct allowlisted URL. */
+export const desktopCharacterImage = {
+  async getCachedUrl(url: string): Promise<{ ok: boolean; url?: string; error?: string }> {
+    if (!isElectron()) {
+      // Web mode has no local file cache; the URL has already been validated
+      // by resolveCharacterImageUrl, so we can hand it straight to the browser.
+      return { ok: true, url };
+    }
+    return window.veniceForge!.files.getCharacterImage(url);
+  },
+
+  async clearCache(): Promise<{ ok: boolean; deletedCount?: number; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Character image cache is only available in desktop mode." };
+    return window.veniceForge!.files.clearCharacterImageCache();
+  },
+
+  async getInventory(): Promise<{ ok: boolean; count?: number; totalBytes?: number; error?: string }> {
+    if (!isElectron()) return { ok: true, count: 0, totalBytes: 0 };
+    return window.veniceForge!.files.getCharacterImageCacheInventory();
+  },
+};
+
 /** Conversation vault: next-generation conversation persistence with
  *  memory, search, and index management. Desktop-only; web mode returns
  *  stub errors so callers can fall back to IndexedDB. */

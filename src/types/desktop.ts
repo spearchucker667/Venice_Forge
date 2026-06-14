@@ -104,6 +104,13 @@ export interface VeniceForgeFiles {
   generateMediaThumb(input: { sha256: string; source: string; maxDimension?: number }): Promise<{
     ok: boolean; filePath?: string; url?: string; error?: string;
   }>;
+  getCharacterImage(url: string): Promise<{
+    ok: boolean; url?: string; contentType?: string; bytes?: number; error?: string;
+  }>;
+  clearCharacterImageCache(): Promise<{ ok: boolean; deletedCount?: number; error?: string }>;
+  getCharacterImageCacheInventory(): Promise<{
+    ok: boolean; count?: number; totalBytes?: number; error?: string;
+  }>;
 }
 
 /** Exposes Auto-Update helpers available through the preload bridge. */

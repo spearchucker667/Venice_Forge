@@ -14,6 +14,14 @@ export interface StorageInventoryRecord {
   archivedAt?: string | number | null;
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KiB", "MiB", "GiB"];
+  const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
+  const value = bytes / 1024 ** i;
+  return `${value.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+}
+
 export interface BuildStorageInventoryInput {
   projects?: StorageInventoryRecord[];
   conversations?: StorageInventoryRecord[];
@@ -26,6 +34,7 @@ export interface BuildStorageInventoryInput {
   scenarios?: StorageInventoryRecord[];
   workflows?: StorageInventoryRecord[];
   settings?: { veniceApiKey?: string };
+  characterImageCache?: { count: number; totalBytes: number };
 }
 
 const ENCRYPTED_STORES = [
@@ -118,6 +127,24 @@ export function buildStorageInventory(input: BuildStorageInventoryInput): Storag
     severity: hasVeniceKey ? "ok" : "info",
     summary: hasVeniceKey ? "Venice API key present" : "No Venice API key configured",
   });
+
+  // Character Image Cache (transient, non-encrypted, no user content)
+  if (input.characterImageCache) {
+    const { count, totalBytes } = input.characterImageCache;
+    stores.push({
+      id: "character-image-cache",
+      label: "Character Image Cache",
+      category: "cache",
+      storeName: "character-image-cache",
+      count,
+      encrypted: false,
+      containsSecrets: false,
+      containsUserContent: false,
+      exportableInSafeSummary: true,
+      severity: "ok",
+      summary: `${count} image${count === 1 ? "" : "s"} cached (${formatBytes(totalBytes)})`,
+    });
+  }
 
   // Reference checks
   const projectIds = new Set(input.projects?.map((p) => p.id) || []);
