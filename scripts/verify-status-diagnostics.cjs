@@ -128,7 +128,7 @@ if (store) {
 if (indicator) {
   check(
     "StatusIndicator maps each severity to a tone class",
-    /emerald/.test(indicator) && /amber/.test(indicator) && /red/.test(indicator),
+    /(?:success|emerald)/.test(indicator) && /(?:warning|amber)/.test(indicator) && /(?:danger|red)/.test(indicator),
   );
   check(
     "StatusIndicator exposes data-severity attribute",

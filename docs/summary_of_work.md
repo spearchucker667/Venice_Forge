@@ -106,50 +106,29 @@ blockers remain.
 
 ## Latest Session Summary
 
-- **Date:** 2026-06-14 (Character Chat Scene Generation)
+- **Date:** 2026-06-14 (Theme-token migration audit)
 - **Agent:** Kimi Code
 - **Branch / state:** `main` (working tree modified)
-- **Diagnosis:** Implemented the Character Chat Scene Generation feature. Adds on-demand and automatic (marker-based) scene image generation scoped to the current character-bound conversation only. Introduced canonical types (`src/types/characterSceneGeneration.ts`), a current-conversation context extractor (`characterSceneContext.ts`), a cinematic prompt compiler (`characterScenePromptCompiler.ts`), a strict marker parser (`characterSceneRequestParser.ts`), a local app-side rate limiter (`characterSceneRateLimiter.ts`), and an orchestration service (`characterSceneGenerationService.ts`) that runs `assessScenePrompt` before calling `/image/generate` through `buildImagePayload` + `veniceFetch` and persists the result via `useMediaStore.upsert()`. Added `characterSceneGenerationEnabled` (default `false`) and `characterSceneGenerationMode` (`manual` default) to `useSettingsStore` with a v5 migration, a Settings UI toggle/selector, and a `CharacterSceneCard` component that surfaces queued/compiling/generating/complete/failed/blocked/rate-limited states. Integrated the feature into `use-chat.ts` (`createScene`, post-stream automatic marker parsing, abort on `stop()`), `chat-view.tsx`, and `message-bubble.tsx`. Privacy boundary is enforced: only visible messages from the current conversation plus character metadata are used; `injectedContext`, other conversations, memories, and search are excluded. Added regression coverage for the new services, settings migration, card rendering, and hook integration.
+- **Diagnosis:** Performed a component-level semantic theme-token migration audit to fix hardcoded light/dark Tailwind color regressions in Privacy, Status, Research, and Characters surfaces. Replaced hardcoded `text-white/*`, `bg-white/*`, `border-white/*`, `divide-white/*`, `bg-black/*`, and the static dark `bg-bg-base` token with canonical semantic theme tokens (`text-text-primary`, `text-text-secondary`, `text-text-muted`, `bg-bg`, `bg-surface`, `bg-surface-muted`, `bg-surface-elevated`, `bg-overlay`, `border-border`, `divide-border`, `text-success`/`warning`/`danger`, `bg-success`/`warning`/`danger`) in `src/components/privacy/StoragePrivacyDashboard.tsx`, `src/components/StatusView.tsx`, `src/components/status/DiagnosticsDrawer.tsx`, `src/components/status/StatusIndicator.tsx`, and `src/components/research/ResearchWorkspaceView.tsx`. Added a new `scripts/verify-theme-tokens.cjs` audit (and `npm run verify:theme-tokens` script) that scans the themeable UI directories and fails on forbidden hardcoded classes, with a per-line `THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR` escape hatch. Wired `verify:theme-tokens` into `verify:contracts`. Updated `StatusIndicator.test.tsx` and `ResearchWorkspaceView.test.tsx` assertions/comments to match the semantic tokens. `src/components/CharactersView.tsx` was audited and already theme-clean; no edits required. Also updated `scripts/verify-status-diagnostics.cjs` to accept semantic `success`/`warning`/`danger` tone classes in addition to the legacy `emerald`/`amber`/`red` literals.
 - **Files changed in this pass:**
-  - `src/types/characterSceneGeneration.ts` (new)
-  - `src/services/characterSceneContext.ts` (new)
-  - `src/services/characterSceneContext.test.ts` (new)
-  - `src/services/characterScenePromptCompiler.ts` (new)
-  - `src/services/characterScenePromptCompiler.test.ts` (new)
-  - `src/services/characterSceneRequestParser.ts` (new)
-  - `src/services/characterSceneRequestParser.test.ts` (new)
-  - `src/services/characterSceneRateLimiter.ts` (new)
-  - `src/services/characterSceneRateLimiter.test.ts` (new)
-  - `src/services/characterSceneGenerationService.ts` (new)
-  - `src/services/characterSceneGenerationService.test.ts` (new)
-  - `src/stores/settings-store.ts`
-  - `src/stores/settings-store.character-scene.test.ts` (new)
-  - `src/stores/chat-store.ts`
-  - `src/components/SettingsView.tsx`
-  - `src/components/chat/CharacterSceneCard.tsx` (new)
-  - `src/components/chat/CharacterSceneCard.test.tsx` (new)
-  - `src/components/chat/chat-view.tsx`
-  - `src/components/chat/message-bubble.tsx`
-  - `src/hooks/use-chat.ts`
-  - `src/hooks/use-chat.character-scene.test.ts` (new)
+  - `scripts/verify-theme-tokens.cjs` (new)
+  - `package.json` (added `verify:theme-tokens` script and included it in `verify:contracts`)
+  - `scripts/verify-status-diagnostics.cjs`
+  - `src/components/privacy/StoragePrivacyDashboard.tsx`
+  - `src/components/StatusView.tsx`
+  - `src/components/status/DiagnosticsDrawer.tsx`
+  - `src/components/status/StatusIndicator.tsx`
+  - `src/components/status/StatusIndicator.test.tsx`
+  - `src/components/research/ResearchWorkspaceView.tsx`
+  - `src/components/research/ResearchWorkspaceView.test.tsx`
   - `docs/summary_of_work.md`
-  - `docs/audits/CHANGELOG.md`
-  - `README.md`
-  - `docs/ABOUT.md`
-  - `docs/design/CHARACTER_RP.md`
-  - `docs/DEVELOPMENT/CONFIG.md`
 - **Validation:**
   - `npm run lint:eslint` — **PASS: 0 warnings**.
   - `npm run typecheck` — **PASS**.
   - `npm test` — **PASS: 215 test files, 2288 passed, 1 skipped**.
-  - `npm run verify:safety-guard` — **PASS**.
-  - `npm run verify:network-boundaries` — **PASS**.
-  - `npm run verify:markdown-links` — **PASS: 54 Markdown files checked**.
+  - `npm run verify:theme-tokens` — **PASS**: zero forbidden hardcoded color classes in themeable UI targets.
   - `npm run verify:contracts` — **PASS**.
   - `npm run build` — **PASS**.
-  - `npm run dist:mac:arm64` — **PASS**: produced `release/Venice-Forge-2.0.0-arm64.dmg`, `release/Venice-Forge-2.0.0-x64.dmg`, and corresponding `.zip` files; checksums written.
-  - Packaged app launch / smoke test (`RUN_ELECTRON_SMOKE=true npx vitest run tests/smoke/electron-smoke.test.ts`) — **PASS**: mounted the arm64 DMG, launched `Venice Forge.app`, verified clean 5-second startup and graceful shutdown.
-  - Pushed the working tree to a new branch `testing` on origin (`git push -u origin testing`) with commit `0d29944`.
 
 ---
 
@@ -3274,6 +3253,53 @@ Result:
 
 ---
 
+- **Date:** 2026-06-14 (Character Chat Scene Generation)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Implemented the Character Chat Scene Generation feature. Adds on-demand and automatic (marker-based) scene image generation scoped to the current character-bound conversation only. Introduced canonical types (`src/types/characterSceneGeneration.ts`), a current-conversation context extractor (`characterSceneContext.ts`), a cinematic prompt compiler (`characterScenePromptCompiler.ts`), a strict marker parser (`characterSceneRequestParser.ts`), a local app-side rate limiter (`characterSceneRateLimiter.ts`), and an orchestration service (`characterSceneGenerationService.ts`) that runs `assessScenePrompt` before calling `/image/generate` through `buildImagePayload` + `veniceFetch` and persists the result via `useMediaStore.upsert()`. Added `characterSceneGenerationEnabled` (default `false`) and `characterSceneGenerationMode` (`manual` default) to `useSettingsStore` with a v5 migration, a Settings UI toggle/selector, and a `CharacterSceneCard` component that surfaces queued/compiling/generating/complete/failed/blocked/rate-limited states. Integrated the feature into `use-chat.ts` (`createScene`, post-stream automatic marker parsing, abort on `stop()`), `chat-view.tsx`, and `message-bubble.tsx`. Privacy boundary is enforced: only visible messages from the current conversation plus character metadata are used; `injectedContext`, other conversations, memories, and search are excluded. Added regression coverage for the new services, settings migration, card rendering, and hook integration.
+- **Files changed in this pass:**
+  - `src/types/characterSceneGeneration.ts` (new)
+  - `src/services/characterSceneContext.ts` (new)
+  - `src/services/characterSceneContext.test.ts` (new)
+  - `src/services/characterScenePromptCompiler.ts` (new)
+  - `src/services/characterScenePromptCompiler.test.ts` (new)
+  - `src/services/characterSceneRequestParser.ts` (new)
+  - `src/services/characterSceneRequestParser.test.ts` (new)
+  - `src/services/characterSceneRateLimiter.ts` (new)
+  - `src/services/characterSceneRateLimiter.test.ts` (new)
+  - `src/services/characterSceneGenerationService.ts` (new)
+  - `src/services/characterSceneGenerationService.test.ts` (new)
+  - `src/stores/settings-store.ts`
+  - `src/stores/settings-store.character-scene.test.ts` (new)
+  - `src/stores/chat-store.ts`
+  - `src/components/SettingsView.tsx`
+  - `src/components/chat/CharacterSceneCard.tsx` (new)
+  - `src/components/chat/CharacterSceneCard.test.tsx` (new)
+  - `src/components/chat/chat-view.tsx`
+  - `src/components/chat/message-bubble.tsx`
+  - `src/hooks/use-chat.ts`
+  - `src/hooks/use-chat.character-scene.test.ts` (new)
+  - `docs/summary_of_work.md`
+  - `docs/audits/CHANGELOG.md`
+  - `README.md`
+  - `docs/ABOUT.md`
+  - `docs/design/CHARACTER_RP.md`
+  - `docs/DEVELOPMENT/CONFIG.md`
+- **Validation:**
+  - `npm run lint:eslint` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS**.
+  - `npm test` — **PASS: 215 test files, 2288 passed, 1 skipped**.
+  - `npm run verify:safety-guard` — **PASS**.
+  - `npm run verify:network-boundaries` — **PASS**.
+  - `npm run verify:markdown-links` — **PASS: 54 Markdown files checked**.
+  - `npm run verify:contracts` — **PASS**.
+  - `npm run build` — **PASS**.
+  - `npm run dist:mac:arm64` — **PASS**: produced `release/Venice-Forge-2.0.0-arm64.dmg`, `release/Venice-Forge-2.0.0-x64.dmg`, and corresponding `.zip` files; checksums written.
+  - Packaged app launch / smoke test (`RUN_ELECTRON_SMOKE=true npx vitest run tests/smoke/electron-smoke.test.ts`) — **PASS**: mounted the arm64 DMG, launched `Venice Forge.app`, verified clean 5-second startup and graceful shutdown.
+  - Pushed the working tree to a new branch `testing` on origin (`git push -u origin testing`) with commit `0d29944`.
+
+---
+
 ## Active Architecture Notes
 
 ### Provider / API Layer
@@ -3400,6 +3426,18 @@ Result:
 > "Venice + Jina only" scope correction are tracked in detail in
 > `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` (see the *Scope
 > Correction* section).
+
+### Completed this session (2026-06-14 — Theme-token migration audit)
+
+- Fixed hardcoded light/dark Tailwind color regressions across Privacy, Status, Research, and Characters surfaces:
+  - `StoragePrivacyDashboard.tsx`: replaced `text-white/*`, `bg-white/*`, `border-white/*`, `divide-white/*`, severity literals with semantic tokens.
+  - `StatusView.tsx`, `status/DiagnosticsDrawer.tsx`, `status/StatusIndicator.tsx`: replaced `text-white/*`, `bg-white/*`, `border-white/*`, `bg-black/50`, `text-red/*`, `text-emerald/*`, `text-amber/*`, and severity dot colors with semantic `success`/`warning`/`danger`/`text-muted` tokens; backdrop now uses `bg-overlay`; panels use `bg-surface-muted` + `border-border`.
+  - `research/ResearchWorkspaceView.tsx`: replaced static-dark `bg-bg-base` and other hardcoded surface classes with `bg-bg`/`bg-surface`; inputs/textareas use `bg-surface`.
+  - `CharactersView.tsx` audited and already theme-clean; no edits required.
+- Added `scripts/verify-theme-tokens.cjs` with `npm run verify:theme-tokens`, scanning themeable UI directories for forbidden hardcoded color classes and providing a per-line `THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR` escape hatch.
+- Wired `verify:theme-tokens` into the `verify:contracts` aggregate gate.
+- Updated `StatusIndicator.test.tsx` and `ResearchWorkspaceView.test.tsx` assertions/comments for the new semantic tokens.
+- Updated `scripts/verify-status-diagnostics.cjs` to accept semantic `success`/`warning`/`danger` tone classes alongside legacy `emerald`/`amber`/`red` literals.
 
 ### Completed this session (2026-06-10 — CI workflow repair: DNS lookup, act warnings, Node 24 upgrade, and relative link fixes)
 
@@ -3922,9 +3960,10 @@ None are release blockers. The P0–P3 sections above remain accurate.
 ## Validation Matrix
 | Command | Status | Evidence |
 | --- | --- | --- |
-| npm run verify:markdown-links | PASS | 0 broken links |
-| npm run verify:contracts | PASS | all aggregate gates pass |
 | npm run lint:eslint | PASS | 0 warnings |
 | npm run typecheck | PASS | renderer + electron |
-| npm test | PASS | 2242 passed, 1 skipped |
+| npm test | PASS | 2288 passed, 1 skipped |
+| npm run verify:theme-tokens | PASS | 0 forbidden hardcoded color classes in themeable UI targets |
+| npm run verify:contracts | PASS | all aggregate gates pass |
 | npm run build | PASS | dist + dist-electron generated |
+| npx vitest run src/components/privacy/StoragePrivacyDashboard.test.tsx src/components/status/StatusIndicator.test.tsx src/components/status/DiagnosticsDrawer.test.tsx src/components/research/ResearchWorkspaceView.test.tsx --fileParallelism=false | PASS | 30/30 tests passed |

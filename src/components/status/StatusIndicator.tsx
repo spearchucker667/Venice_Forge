@@ -11,17 +11,17 @@ import type { StatusSeverity } from "../../types/status";
  * ----------------------------------------------------------------- */
 
 const TONE_CLASS: Record<StatusSeverity, string> = {
-  ok: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-  warn: "bg-amber-500/15 text-amber-200 border-amber-500/30",
-  error: "bg-red-500/15 text-red-300 border-red-500/30",
-  unknown: "bg-white/[0.04] text-text-muted border-white/[0.08]",
+  ok: "bg-success/15 text-success border-success/30",
+  warn: "bg-warning/15 text-warning border-warning/30",
+  error: "bg-danger/15 text-danger border-danger/30",
+  unknown: "bg-surface-muted text-text-muted border-border",
 };
 
 const DOT_CLASS: Record<StatusSeverity, string> = {
-  ok: "bg-emerald-400",
-  warn: "bg-amber-400",
-  error: "bg-red-400",
-  unknown: "bg-white/30",
+  ok: "bg-success",
+  warn: "bg-warning",
+  error: "bg-danger",
+  unknown: "bg-text-muted",
 };
 
 const LABEL_PREFIX: Record<StatusSeverity, string> = {

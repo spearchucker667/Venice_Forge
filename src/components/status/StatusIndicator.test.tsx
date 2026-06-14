@@ -13,17 +13,17 @@ import type { StatusSeverity } from "../../types/status";
 
 describe("StatusIndicator (VERIFY-045)", () => {
   it("uses the right tone class per severity", () => {
-    expect(getIndicatorToneClass("ok")).toMatch(/emerald/i);
-    expect(getIndicatorToneClass("warn")).toMatch(/amber/i);
-    expect(getIndicatorToneClass("error")).toMatch(/red/i);
-    expect(getIndicatorToneClass("unknown")).toMatch(/white/);
+    expect(getIndicatorToneClass("ok")).toMatch(/success/i);
+    expect(getIndicatorToneClass("warn")).toMatch(/warning/i);
+    expect(getIndicatorToneClass("error")).toMatch(/danger/i);
+    expect(getIndicatorToneClass("unknown")).toMatch(/text-muted/i);
   });
 
   it("uses the right dot class per severity", () => {
-    expect(getIndicatorDotClass("ok")).toMatch(/emerald/i);
-    expect(getIndicatorDotClass("warn")).toMatch(/amber/i);
-    expect(getIndicatorDotClass("error")).toMatch(/red/i);
-    expect(getIndicatorDotClass("unknown")).toMatch(/white/);
+    expect(getIndicatorDotClass("ok")).toMatch(/success/i);
+    expect(getIndicatorDotClass("warn")).toMatch(/warning/i);
+    expect(getIndicatorDotClass("error")).toMatch(/danger/i);
+    expect(getIndicatorDotClass("unknown")).toMatch(/text-muted/i);
   });
 
   it("computes an accessible label combining category + severity word", () => {

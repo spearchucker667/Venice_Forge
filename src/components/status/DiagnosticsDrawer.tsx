@@ -52,10 +52,10 @@ const SECTION_ORDER: Array<{ key: keyof AppStatusSnapshot; label: string }> = [
 ];
 
 const SEVERITY_BADGE: Record<StatusSeverity, string> = {
-  ok: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-  warn: "bg-amber-500/15 text-amber-200 border-amber-500/30",
-  error: "bg-red-500/15 text-red-300 border-red-500/30",
-  unknown: "bg-white/[0.04] text-text-muted border-white/[0.08]",
+  ok: "bg-success/15 text-success border-success/30",
+  warn: "bg-warning/15 text-warning border-warning/30",
+  error: "bg-danger/15 text-danger border-danger/30",
+  unknown: "bg-surface-muted text-text-muted border-border",
 };
 
 const SEVERITY_LABEL: Record<StatusSeverity, string> = {
@@ -97,19 +97,19 @@ function Section({ sectionId, title, item, focused, children }: SectionProps) {
       id={`diagnostics-section-${sectionId}`}
       data-testid={`diagnostics-section-${sectionId}`}
       data-focused={focused}
-      className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 space-y-1.5"
+      className="rounded-lg border border-border bg-surface-muted p-3 space-y-1.5"
     >
       <header className="flex items-center justify-between gap-2">
-        <h3 className="text-[12px] uppercase tracking-wide text-white/55">
+        <h3 className="text-[12px] uppercase tracking-wide text-text-secondary">
           {title}
         </h3>
         <SeverityBadge severity={item.severity} />
       </header>
-      <p className="text-[12.5px] text-white/85 leading-relaxed">
+      <p className="text-[12.5px] text-text-primary leading-relaxed">
         {item.summary}
       </p>
       {item.detail && (
-        <p className="text-[11.5px] text-white/50 leading-relaxed">
+        <p className="text-[11.5px] text-text-muted leading-relaxed">
           {item.detail}
         </p>
       )}
@@ -211,7 +211,7 @@ export function DiagnosticsDrawer() {
         aria-label="Close diagnostics"
         data-testid="diagnostics-backdrop"
         onClick={closeDrawer}
-        className="flex-1 bg-black/50 backdrop-blur-sm"
+        className="flex-1 bg-overlay backdrop-blur-sm"
       />
       <aside
         className="w-[420px] max-w-[92vw] h-full bg-surface border-l border-border overflow-y-auto p-3 space-y-3 animate-slide-in-right"
@@ -311,7 +311,7 @@ export function DiagnosticsDrawer() {
                     {models.isFetching ? "Refreshing models…" : "Refresh Models"}
                   </button>
                   {modelsError && (
-                    <p className="text-[11px] text-red-300/95 break-words">
+                    <p className="text-[11px] text-danger break-words">
                       Last refresh error: {modelsError}
                     </p>
                   )}

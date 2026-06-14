@@ -189,7 +189,7 @@ export const ResearchWorkspaceView: React.FC = () => {
   };
 
   return (
-    <div className="flex h-full bg-bg-base text-text-primary overflow-hidden">
+    <div className="flex h-full bg-bg text-text-primary overflow-hidden">
       {/* Sidebar - Session List */}
       <div className="w-64 flex-shrink-0 border-r border-border flex flex-col bg-surface">
         <div className="p-4 border-b border-border flex justify-between items-center">
@@ -276,7 +276,7 @@ export const ResearchWorkspaceView: React.FC = () => {
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
                       placeholder="Search query..."
-                      className="flex-1 bg-bg-base border border-border rounded px-3 py-2 text-sm text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
+                      className="flex-1 bg-surface border border-border rounded px-3 py-2 text-sm text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
                     />
                     <button 
                       type="submit"
@@ -294,7 +294,7 @@ export const ResearchWorkspaceView: React.FC = () => {
                       value={scrapeUrl}
                       onChange={e => setScrapeUrl(e.target.value)}
                       placeholder="Scrape URL (https://...)"
-                      className="flex-1 bg-bg-base border border-border rounded px-3 py-2 text-sm text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
+                      className="flex-1 bg-surface border border-border rounded px-3 py-2 text-sm text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
                     />
                     <button 
                       type="submit"
@@ -345,7 +345,7 @@ export const ResearchWorkspaceView: React.FC = () => {
                         value={findingTitle}
                         onChange={e => setFindingTitle(e.target.value)}
                         placeholder="Summarize the finding"
-                        className="w-full bg-bg-base border border-border rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
+                        className="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
                       />
                     </div>
                     <div className="space-y-1">
@@ -358,7 +358,7 @@ export const ResearchWorkspaceView: React.FC = () => {
                         onChange={e => setFindingContent(e.target.value)}
                         placeholder="Add supporting details and citations"
                         rows={4}
-                        className="w-full bg-bg-base border border-border rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none"
+                        className="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none"
                       />
                     </div>
                     <button 

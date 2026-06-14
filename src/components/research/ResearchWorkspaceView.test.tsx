@@ -134,7 +134,7 @@ describe('ResearchWorkspaceView', () => {
   });
 
   // REGRESSION GUARD: every Tailwind class in ResearchWorkspaceView.tsx
-  // must use the canonical theme tokens (bg-surface / bg-bg-base /
+  // must use the canonical theme tokens (bg-surface / bg-bg /
   // border-border / text-text-primary / bg-accent / bg-danger / etc.)
   // — never hardcoded `bg-slate-*`, `bg-blue-*`, `text-slate-*`,
   // `text-blue-*`, `bg-red-*`, `border-slate-*`, `border-blue-*`, or

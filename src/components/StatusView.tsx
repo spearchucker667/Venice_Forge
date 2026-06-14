@@ -88,8 +88,8 @@ export function StatusView() {
   return (
     <div className="flex flex-col h-full overflow-y-auto px-4 py-4 gap-4">
       <section className="space-y-2">
-        <h2 className="text-[15px] font-semibold text-white/85">Status</h2>
-        <p className="text-[12.5px] text-white/45 leading-relaxed">
+        <h2 className="text-[15px] font-semibold text-text-primary">Status</h2>
+        <p className="text-[12.5px] text-text-muted leading-relaxed">
           Aggregated runtime info for the current build. Open{' '}
           <a className="underline" href="#" onClick={(e) => {
             e.preventDefault();
@@ -101,8 +101,8 @@ export function StatusView() {
         </p>
       </section>
 
-      <section className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 space-y-1.5">
-        <h3 className="text-[12px] uppercase tracking-wide text-white/45">Runtime</h3>
+      <section className="rounded-lg border border-border bg-surface-muted p-3 space-y-1.5">
+        <h3 className="text-[12px] uppercase tracking-wide text-text-muted">Runtime</h3>
         <Row k="App version" v={diag.appVersion} />
         <Row k="Transport" v={diag.transport} />
         <Row k="Mode" v={diag.isDesktop ? 'Electron desktop' : 'Web (browser)'} />
@@ -111,8 +111,8 @@ export function StatusView() {
         <Row k="Node" v={diag.nodeVersion || 'n/a'} />
       </section>
 
-      <section className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 space-y-1.5">
-        <h3 className="text-[12px] uppercase tracking-wide text-white/45">Storage</h3>
+      <section className="rounded-lg border border-border bg-surface-muted p-3 space-y-1.5">
+        <h3 className="text-[12px] uppercase tracking-wide text-text-muted">Storage</h3>
         <Row k="Secure store" v={diag.storageMode} />
         <Row k="Encryption available" v={diag.secureStorageAvailable ? 'yes' : 'no'} />
         <Row k="Venice key configured" v={diag.apiKeyConfigured ? 'yes' : 'no'} />
@@ -120,15 +120,15 @@ export function StatusView() {
         <Row k="Logs path" v={diag.logsPath} mono />
       </section>
 
-      <section className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 space-y-1.5">
-        <h3 className="text-[12px] uppercase tracking-wide text-white/45">Safety guard audit</h3>
+      <section className="rounded-lg border border-border bg-surface-muted p-3 space-y-1.5">
+        <h3 className="text-[12px] uppercase tracking-wide text-text-muted">Safety guard audit</h3>
         <Row k="Allowed" v={String(audit.allowed)} />
         <Row k="Warned" v={String(audit.warned)} />
         <Row k="Blocked" v={String(audit.blocked)} />
         <Row k="Last reason" v={audit.lastReasonCode ?? 'none'} />
         <Row k="Last decision at" v={audit.lastDecisionAt ?? 'n/a'} mono />
         {Object.keys(audit.bySeverity).length > 0 && (
-          <div className="text-[11.5px] text-white/45 pt-1">
+          <div className="text-[11.5px] text-text-muted pt-1">
             By severity: {Object.entries(audit.bySeverity)
               .map(([k, v]) => `${k}=${v}`)
               .join(' · ')}
@@ -136,17 +136,17 @@ export function StatusView() {
         )}
       </section>
 
-      <section className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 space-y-1.5">
-        <h3 className="text-[12px] uppercase tracking-wide text-white/45">Last request</h3>
+      <section className="rounded-lg border border-border bg-surface-muted p-3 space-y-1.5">
+        <h3 className="text-[12px] uppercase tracking-wide text-text-muted">Last request</h3>
         <Chip>no requests yet (last error below if any)</Chip>
         {diag.lastApiError && (
-          <div className="text-[11.5px] text-red-300/95 pt-1 break-words">
+          <div className="text-[11.5px] text-danger pt-1 break-words">
             Last error: {diag.lastApiError}
           </div>
         )}
       </section>
 
-      <p className="text-[11px] text-white/30">
+      <p className="text-[11px] text-text-muted">
         Status provides transport, storage, audit, and request diagnostics. Use the dedicated Library, Research, Settings, and workflow tabs for feature-specific controls.
       </p>
     </div>
@@ -156,8 +156,8 @@ export function StatusView() {
 function Row({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
   return (
     <div className="flex items-start gap-3 text-[12.5px]">
-      <span className="text-white/45 min-w-[160px] shrink-0">{k}</span>
-      <span className={mono ? 'font-mono text-[11.5px] text-white/70 break-all' : 'text-white/85'}>
+      <span className="text-text-muted min-w-[160px] shrink-0">{k}</span>
+      <span className={mono ? 'font-mono text-[11.5px] text-text-secondary break-all' : 'text-text-secondary'}>
         {v}
       </span>
     </div>
