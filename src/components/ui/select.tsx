@@ -139,7 +139,7 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
           role="listbox"
           aria-labelledby={triggerId}
           tabIndex={-1}
-          className="absolute z-50 w-full mt-0.5 bg-surface-elevated border border-border rounded-lg shadow-2xl shadow-black/30 animate-scale-in overflow-hidden"
+          className="absolute z-50 w-full mt-0.5 bg-surface-elevated border border-border rounded-lg shadow-2xl shadow-overlay animate-scale-in overflow-hidden"
         >
           {searchable && (
             <div className="p-1 border-b border-border">

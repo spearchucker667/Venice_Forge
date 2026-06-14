@@ -25,7 +25,8 @@ describe("applyTheme", () => {
     expect(setPropertySpy).toHaveBeenCalledWith("--input-bg", BUILTIN_DARK.tokens.inputBackground);
     expect(setPropertySpy).toHaveBeenCalledWith("--button-primary-fg", BUILTIN_DARK.tokens.buttonPrimaryForeground);
     expect(setPropertySpy).toHaveBeenCalledWith("--selection-fg", BUILTIN_DARK.tokens.selectionForeground);
-    expect(setPropertySpy).toHaveBeenCalledTimes(36);
+    expect(setPropertySpy).toHaveBeenCalledWith("--app-mesh-opacity", "0.12");
+    expect(setPropertySpy).toHaveBeenCalledTimes(37);
   });
 
   it("sets data-theme-mode attribute", () => {

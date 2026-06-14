@@ -115,7 +115,7 @@ export default function HistoryView() {
         </div>
         <button
           onClick={handleStartNew}
-          className="flex items-center gap-2 px-4 py-2 bg-accent text-white text-[13px] font-medium rounded-md hover:bg-accent/90 transition-colors shadow-sm cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2 bg-accent text-accent-fg text-[13px] font-medium rounded-md hover:bg-accent/90 transition-colors shadow-sm cursor-pointer"
         >
           <Plus size={16} />
           New Chat
@@ -196,7 +196,7 @@ export default function HistoryView() {
                 <p className="text-[13px] opacity-60">Try a different search term or start a new chat</p>
                 <button
                   onClick={handleStartNew}
-                  className="mt-6 px-5 py-2 border border-accent text-accent hover:bg-accent hover:text-white rounded-md transition-all text-[13px] font-medium cursor-pointer"
+                  className="mt-6 px-5 py-2 border border-accent text-accent hover:bg-accent hover:text-accent-fg rounded-md transition-all text-[13px] font-medium cursor-pointer"
                 >
                   Start New Conversation
                 </button>

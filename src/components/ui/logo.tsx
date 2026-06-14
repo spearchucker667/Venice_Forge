@@ -14,7 +14,7 @@ export function VeniceLogo({ className, size = 24 }: { className?: string; size?
 
 export function VeniceWordmark({ className }: { className?: string }) {
   return (
-    <span className={cn('font-semibold tracking-[-0.02em] text-white/90', className)}>
+    <span className={cn('font-semibold tracking-[-0.02em] text-text-primary', className)}>
       Venice Forge
     </span>
   )

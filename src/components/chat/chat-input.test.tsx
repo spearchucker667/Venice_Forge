@@ -249,4 +249,36 @@ describe("ChatInput", () => {
     await waitFor(() => expect(screen.getByAltText("Attachment 1")).toBeInTheDocument());
     expect(mockReadImageAttachment).toHaveBeenCalledWith(file);
   });
+
+  it("does not use hardcoded white/black theme classes (light-theme regression guard)", () => {
+    render(<ChatInput onSend={vi.fn()} onStop={vi.fn()} isStreaming={false} />);
+    const textarea = screen.getByLabelText("Message input");
+    expect(textarea.className).not.toMatch(/\btext-white/);
+    expect(textarea.className).not.toMatch(/\bplaceholder:text-white/);
+  });
+
+  it("uses semantic accent tokens for the active send button", async () => {
+    render(<ChatInput onSend={vi.fn()} onStop={vi.fn()} isStreaming={false} />);
+    const input = screen.getByLabelText("Message input");
+    await userEvent.type(input, "Hello");
+
+    const sendButton = screen.getByRole("button", { name: "Send message" });
+    expect(sendButton.className).toContain("bg-accent");
+    expect(sendButton.className).toContain("text-accent-fg");
+    expect(sendButton.className).toContain("hover:bg-accent-hover");
+  });
+
+  it("uses semantic surface tokens for the disabled send button", async () => {
+    render(<ChatInput onSend={vi.fn()} onStop={vi.fn()} isStreaming={false} />);
+    const sendButton = screen.getByRole("button", { name: "Send message" });
+    expect(sendButton.className).toContain("bg-surface-elevated");
+    expect(sendButton.className).toContain("text-text-muted");
+  });
+
+  it("uses semantic surface tokens for the stop button", () => {
+    render(<ChatInput onSend={vi.fn()} onStop={vi.fn()} isStreaming />);
+    const stopButton = screen.getByRole("button", { name: "Stop generating" });
+    expect(stopButton.className).toContain("bg-surface-elevated");
+    expect(stopButton.className).toContain("text-text-primary");
+  });
 });

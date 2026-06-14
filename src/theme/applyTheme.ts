@@ -41,6 +41,7 @@ export function applyTheme(theme: Theme): void {
     '--selection-fg': t.selectionForeground,
     '--overlay': t.overlay,
     '--glow': t.glow,
+    '--app-mesh-opacity': theme.mode === 'light' ? '0.08' : '0.12',
   };
   Object.entries(map).forEach(([k, v]) => root.style.setProperty(k, v));
   root.dataset.themeMode = theme.mode;

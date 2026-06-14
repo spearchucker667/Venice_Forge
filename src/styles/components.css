@@ -32,3 +32,16 @@
 .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 15%, transparent); }
 .btn.ghost { border-color: transparent; background: transparent; }
 .btn.ghost:hover:not(:disabled) { background: var(--surface); }
+
+/* App-wide ambient mesh overlay — subtle, theme-aware, non-interactive */
+.app-mesh-overlay {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 32rem),
+    radial-gradient(circle at 82% 18%, color-mix(in srgb, var(--color-surface-elevated) 22%, transparent), transparent 34rem),
+    radial-gradient(circle at 42% 92%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 36rem);
+  opacity: var(--app-mesh-opacity, 0.12);
+}

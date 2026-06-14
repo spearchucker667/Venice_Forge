@@ -127,7 +127,7 @@ export function ErrorText({ children }: { children: React.ReactNode }) {
 }
 
 export function EmptyState({ children }: { children: React.ReactNode }) {
-  return <div className="flex items-center justify-center flex-1 text-white/30 text-[14px]">{children}</div>
+  return <div className="flex items-center justify-center flex-1 text-text-muted text-[14px]">{children}</div>
 }
 
 export function ExamplePrompts({ items, onPick, title = 'Try one of these', onShuffle }: {
@@ -139,7 +139,7 @@ export function ExamplePrompts({ items, onPick, title = 'Try one of these', onSh
   return (
     <div className="w-full max-w-md flex flex-col gap-2.5">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] uppercase tracking-[0.08em] text-white/40 font-semibold">{title}</div>
+        <div className="text-[11px] uppercase tracking-[0.08em] text-text-muted font-semibold">{title}</div>
         {onShuffle && (
           <button
             type="button"
@@ -158,10 +158,10 @@ export function ExamplePrompts({ items, onPick, title = 'Try one of these', onSh
             key={text}
             type="button"
             onClick={() => onPick(text)}
-            className="group text-left px-3.5 py-3 rounded-xl border border-white/[0.06] bg-white/[0.015] hover:border-white/[0.16] hover:bg-white/[0.04] transition-all text-[13.5px] text-white/70 hover:text-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
+            className="group text-left px-3.5 py-3 rounded-xl border border-border/60 bg-surface-muted hover:border-border-strong hover:bg-surface-elevated transition-all text-[13.5px] text-text-secondary hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
           >
             <span className="flex items-start gap-2">
-              <span className="text-white/25 group-hover:text-[var(--color-accent)] transition-colors mt-px">→</span>
+              <span className="text-text-muted/50 group-hover:text-[var(--color-accent)] transition-colors mt-px">→</span>
               <span className="leading-relaxed">{text}</span>
             </span>
           </button>
@@ -173,7 +173,7 @@ export function ExamplePrompts({ items, onPick, title = 'Try one of these', onSh
 
 export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('bg-surface border border-white/[0.06] rounded-xl', className)}>
+    <div className={cn('bg-surface border border-border/60 rounded-xl', className)}>
       {children}
     </div>
   )
@@ -182,7 +182,7 @@ export function Card({ children, className }: { children: React.ReactNode; class
 export function SectionHeading({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between mb-2.5">
-      <h3 className="text-[11px] uppercase tracking-[0.08em] text-white/40 font-semibold">{children}</h3>
+      <h3 className="text-[11px] uppercase tracking-[0.08em] text-text-muted font-semibold">{children}</h3>
       {action}
     </div>
   )
@@ -194,7 +194,7 @@ const TONE: Record<string, string> = {
   violet: 'bg-violet-400/15 text-violet-300 border-violet-400/20',
   amber: 'bg-amber-400/15 text-amber-300 border-amber-400/20',
   pink: 'bg-pink-400/15 text-pink-300 border-pink-400/20',
-  slate: 'bg-white/[0.05] text-white/60 border-white/10',
+  slate: 'bg-surface-muted text-text-secondary border-border',
   rose: 'bg-rose-400/15 text-rose-300 border-rose-400/20',
   teal: 'bg-[var(--color-accent-soft)] text-[var(--color-accent)] border-[var(--color-accent)]/30',
 }
@@ -212,7 +212,7 @@ export function StatusDot({ tone = 'slate', pulsing }: { tone?: 'emerald' | 'amb
     : tone === 'amber' ? 'bg-amber-400'
     : tone === 'rose' ? 'bg-rose-400'
     : tone === 'teal' ? 'bg-[var(--color-accent)]'
-    : 'bg-white/30'
+    : 'bg-text-muted/40'
   return (
     <span className={cn('inline-block w-1.5 h-1.5 rounded-full', color, pulsing && 'animate-pulse-dot')} />
   )

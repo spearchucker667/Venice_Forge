@@ -10,6 +10,7 @@ import { InspectorPane } from './components/layout/inspector-pane'
 import { FirstRunModal } from './components/FirstRunModal'
 import { ChatView } from './components/chat/chat-view'
 import { CommandPalette } from './components/command-palette/CommandPalette'
+import { AppMeshOverlay } from './components/layout/AppMeshOverlay'
 import { DiagnosticsDrawer } from './components/status/DiagnosticsDrawer'
 import { ImagePage } from './components/image/image-page'
 import { AudioView } from './components/audio/audio-view'
@@ -34,52 +35,52 @@ import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion'
 
 const LazyWorkflowsView = lazy(() => import('./components/workflows/workflows-view').then((m) => ({ default: m.WorkflowsView })))
 function WorkflowsView() {
-  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading workflows…</div>}><LazyWorkflowsView /></Suspense>
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading workflows…</div>}><LazyWorkflowsView /></Suspense>
 }
 
 const LazyPlaygroundView = lazy(() => import('./components/playground/playground-view').then((m) => ({ default: m.PlaygroundView })))
 function PlaygroundView() {
-  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading playground…</div>}><LazyPlaygroundView /></Suspense>
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading playground…</div>}><LazyPlaygroundView /></Suspense>
 }
 
 const LazyRpStudioView = lazy(() => import('./components/rp-studio').then((m) => ({ default: m.RpStudioView })))
 function RpStudioViewLazy() {
-  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading RP studio…</div>}><LazyRpStudioView /></Suspense>
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading RP studio…</div>}><LazyRpStudioView /></Suspense>
 }
 
 const LazyHistoryView = lazy(() => import('./components/chat/HistoryView'))
 function HistoryView() {
-  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading history…</div>}><LazyHistoryView /></Suspense>
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading history…</div>}><LazyHistoryView /></Suspense>
 }
 
 const LazySettingsView = lazy(() => import('./components/SettingsView').then((m) => ({ default: m.SettingsView })))
 function SettingsView() {
-  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading settings…</div>}><LazySettingsView /></Suspense>
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading settings…</div>}><LazySettingsView /></Suspense>
 }
 
 const LazySearchScrapeView = lazy(() => import('./components/SearchScrapeView').then((m) => ({ default: m.SearchScrapeView })))
 function SearchScrapeView() {
-  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading search…</div>}><LazySearchScrapeView /></Suspense>
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading search…</div>}><LazySearchScrapeView /></Suspense>
 }
 
 const LazyMediaStudioView = lazy(() => import('./components/gallery/gallery-view').then((m) => ({ default: m.MediaStudioView })))
 function MediaStudioView() {
-  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading media studio…</div>}><LazyMediaStudioView /></Suspense>
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading media studio…</div>}><LazyMediaStudioView /></Suspense>
 }
 
 const LazyPromptLibraryView = lazy(() => import('./components/prompts/PromptLibraryView').then((m) => ({ default: m.PromptLibraryView })))
 function PromptLibraryView() {
-  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading prompt library…</div>}><LazyPromptLibraryView /></Suspense>
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading prompt library…</div>}><LazyPromptLibraryView /></Suspense>
 }
 
 const LazySceneComposerView = lazy(() => import('./components/scenes/SceneComposerView').then((m) => ({ default: m.SceneComposerView })))
 function SceneComposerView() {
-  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading scenes…</div>}><LazySceneComposerView /></Suspense>
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading scenes…</div>}><LazySceneComposerView /></Suspense>
 }
 
 const LazyStoragePrivacyDashboard = lazy(() => import('./components/privacy/StoragePrivacyDashboard').then((m) => ({ default: m.StoragePrivacyDashboard })))
 function StoragePrivacyDashboard() {
-  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading storage…</div>}><LazyStoragePrivacyDashboard /></Suspense>
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading storage…</div>}><LazyStoragePrivacyDashboard /></Suspense>
 }
 
 const views: Record<TabId, React.ComponentType> = {
@@ -194,17 +195,18 @@ export function App() {
   }, [setActiveTab])
 
   return (
-    <div className="flex h-[100dvh] w-screen overflow-hidden">
+    <div className="relative isolate flex h-[100dvh] w-screen overflow-hidden bg-bg">
+      <AppMeshOverlay />
       {/* Mobile drawer overlay */}
       {mobileSidebarOpen && (
         <button
           aria-label="Close menu"
-          className="md:hidden fixed inset-0 z-30 bg-black/60 backdrop-blur-sm animate-fade-in"
+          className="md:hidden fixed inset-0 z-30 bg-overlay backdrop-blur-sm animate-fade-in"
           onClick={() => setMobileSidebarOpen(false)}
         />
       )}
       <Sidebar mobileOpen={mobileSidebarOpen} onMobileClose={() => setMobileSidebarOpen(false)} />
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="relative z-10 flex flex-col flex-1 min-w-0">
         <Header
           onOpenApiKey={() => setApiKeyOpen(true)}
           onOpenMobileSidebar={() => setMobileSidebarOpen(true)}

@@ -106,66 +106,44 @@ blockers remain.
 
 ## Latest Session Summary
 
-- **Date:** 2026-06-14 (Real Venice character image resolver + separate desktop cache)
+- **Date:** 2026-06-14 (UI regression debug — sidebar footer, chat composer, mesh overlay, theme verifier)
 - **Agent:** Kimi Code
 - **Branch / state:** `main` (working tree modified)
-- **Diagnosis:** Implemented a real, validated desktop cache for Venice character avatar images (registered as regression guard `VERIFY-053`). The renderer no longer loads remote `<img src>` URLs directly; instead it requests a local `file://` handle from the main process. Added `electron/services/characterImageCache.ts` (2 MiB/item, 100 MiB total, 7-day TTL, stale-while-revalidate) under `userData/cache/character-images/`, isolated from encrypted user-content stores. Wired IPC channels `app:characterImage:get`, `app:characterImage:clearCache`, and `app:characterImage:inventory` through `electron/ipc/handlers.ts` and `electron/preload.ts`. Added `desktopCharacterImage` bridge in `src/services/desktopBridge.ts` and a `useCharacterImage` hook that drives `src/components/CharactersView.tsx` and the active-character pill in `src/components/chat/chat-view.tsx`. Extended `src/utils/characterImageResolver.ts` with `extractCharacterImageFromPage` for an optional, feature-flagged public-page fallback (Open Graph / Twitter Card / JSON-LD / Next.js data) that still validates every candidate against the 3-host SSRF allowlist. Integrated the cache into Storage & Privacy (`src/services/storagePrivacyService.ts`, `src/services/storageMaintenance.ts`, `src/stores/storage-privacy-store.ts`) with a destructive "Clear Character Image Cache" maintenance action. Added safe diagnostics logging via `src/services/characterImageDiagnostics.ts`. Added/extended tests in `electron/services/characterImageCache.test.ts`, `src/utils/characterImageResolver.test.ts`, `src/components/CharactersView.test.tsx`, `src/services/storageMaintenance.test.ts`, and `src/services/storagePrivacyService.test.ts`; added `VERIFY-053` references to each test header and to `AGENTS.md`.
+- **Diagnosis:** Fixed the three reported layout/theme regressions.
+  1. **Sidebar footer squishing:** Restructured `src/components/layout/sidebar.tsx` so the sidebar root is a bounded flex column, the nav/history area is a scrollable flex-1 middle section, and the footer controls are `shrink-0` with stable vertical spacing. Red-Team Mode, Family Safe Mode, Show Inspector, New chat, and Switch tab are now in distinct rows/sections with label-left/switch-right toggle rows and leading-snug descriptions. Replaced hardcoded `bg-white` toggle thumbs, `text-red-400`, and non-semantic `bg-background` with theme tokens.
+  2. **Light-theme chat composer invisible text:** Rewrote `src/components/chat/chat-input.tsx` to use semantic tokens throughout — `text-text-primary`, `placeholder:text-text-muted`, `bg-surface`, `border-border`, `focus-within:border-accent`, active send `bg-accent text-accent-fg hover:bg-accent-hover`, disabled send `bg-surface-elevated text-text-muted border-border`, stop `bg-surface-elevated text-text-primary`, and danger tokens for attachment remove. Removed all `text-white/*`, `bg-white`, `bg-black`, `border-white`, and `shadow-black` literals.
+  3. **Soft app-wide mesh overlay:** Added `src/components/layout/AppMeshOverlay.tsx`, wired it into `src/App.tsx` behind all content with `pointer-events-none`/`aria-hidden`, and set `--app-mesh-opacity` (0.08 light / 0.12 dark) in `src/theme/applyTheme.ts`. The overlay uses radial gradients built from `var(--color-accent)` and `var(--color-surface-elevated)` so it stays subtle and theme-aware.
+  4. **Theme-token verifier hardening:** Extended `scripts/verify-theme-tokens.cjs` to scan `src/App.tsx`, `src/components/chat`, `src/components/layout`, and `src/components/ui`; added `divide-black`, `placeholder:text-black`, `ring-black`, `shadow-black`, and `shadow-white` to the forbidden list; and excluded `*.test.ts(x)` files from scanning so test regexes do not trigger false positives. A subagent cleaned up the remaining hardcoded colors in `App.tsx`, `HistoryView.tsx`, `venice-params.tsx`, `api-key-dialog.tsx`, and the `ui/*` surfaces so the verifier passes.
 - **Files changed in this pass:**
-  - `electron/services/characterImageCache.ts` (new)
-  - `electron/services/characterImageCache.test.ts` (new)
-  - `electron/ipc/handlers.ts`
-  - `electron/preload.ts`
-  - `src/services/desktopBridge.ts`
-  - `src/services/characterImageFallback.ts` (new)
-  - `src/services/characterImageDiagnostics.ts` (new)
-  - `src/services/storagePrivacyService.ts`
-  - `src/services/storagePrivacyService.test.ts` (updated)
-  - `src/services/storageMaintenance.ts`
-  - `src/services/storageMaintenance.test.ts` (updated)
-  - `src/stores/storage-privacy-store.ts`
-  - `src/hooks/useCharacterImage.ts` (new)
-  - `src/utils/characterImageResolver.ts`
-  - `src/utils/characterImageResolver.test.ts` (updated)
-  - `src/components/CharactersView.tsx`
-  - `src/components/CharactersView.test.tsx` (new)
-  - `src/components/chat/chat-view.tsx`
-  - `src/types/desktop.ts`
-  - `AGENTS.md` (added `VERIFY-053` regression-guard row)
+  - `src/components/layout/sidebar.tsx`
+  - `src/components/layout/sidebar.test.tsx`
+  - `src/components/chat/chat-input.tsx`
+  - `src/components/chat/chat-input.test.tsx`
+  - `src/components/layout/AppMeshOverlay.tsx` (new)
+  - `src/App.tsx`
+  - `src/styles/components.css`
+  - `src/theme/applyTheme.ts`
+  - `src/theme/applyTheme.test.ts`
+  - `scripts/verify-theme-tokens.cjs`
+  - `src/App.tsx` (theme-token cleanup)
+  - `src/components/chat/HistoryView.tsx` (theme-token cleanup)
+  - `src/components/chat/venice-params.tsx` (theme-token cleanup)
+  - `src/components/layout/api-key-dialog.tsx` (theme-token cleanup)
+  - `src/components/ui/error-boundary.tsx` (theme-token cleanup)
+  - `src/components/ui/generation-view.tsx` (theme-token cleanup)
+  - `src/components/ui/logo.tsx` (theme-token cleanup)
+  - `src/components/ui/select.tsx` (theme-token cleanup)
+  - `src/components/ui/shared.tsx` (theme-token cleanup)
+  - `src/components/ui/toaster.tsx` (theme-token cleanup)
   - `docs/summary_of_work.md`
 - **Validation:**
   - `npm run lint:eslint` — **PASS: 0 warnings**.
   - `npm run typecheck` — **PASS** (renderer + electron).
-  - `npm test` — **PASS: 2361 passed, 1 skipped**.
-  - `npm run build` — **PASS**.
-  - `npm run ci` — **PASS**.
-
----
-
-## Latest Session Summary
-
-- **Date:** 2026-06-14 (Theme-token migration audit)
-- **Agent:** Kimi Code
-- **Branch / state:** `main` (working tree modified)
-- **Diagnosis:** Performed a component-level semantic theme-token migration audit to fix hardcoded light/dark Tailwind color regressions in Privacy, Status, Research, and Characters surfaces. Replaced hardcoded `text-white/*`, `bg-white/*`, `border-white/*`, `divide-white/*`, `bg-black/*`, and the static dark `bg-bg-base` token with canonical semantic theme tokens (`text-text-primary`, `text-text-secondary`, `text-text-muted`, `bg-bg`, `bg-surface`, `bg-surface-muted`, `bg-surface-elevated`, `bg-overlay`, `border-border`, `divide-border`, `text-success`/`warning`/`danger`, `bg-success`/`warning`/`danger`) in `src/components/privacy/StoragePrivacyDashboard.tsx`, `src/components/StatusView.tsx`, `src/components/status/DiagnosticsDrawer.tsx`, `src/components/status/StatusIndicator.tsx`, and `src/components/research/ResearchWorkspaceView.tsx`. Added a new `scripts/verify-theme-tokens.cjs` audit (and `npm run verify:theme-tokens` script) that scans the themeable UI directories and fails on forbidden hardcoded classes, with a per-line `THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR` escape hatch. Wired `verify:theme-tokens` into `verify:contracts`. Updated `StatusIndicator.test.tsx` and `ResearchWorkspaceView.test.tsx` assertions/comments to match the semantic tokens. `src/components/CharactersView.tsx` was audited and already theme-clean; no edits required. Also updated `scripts/verify-status-diagnostics.cjs` to accept semantic `success`/`warning`/`danger` tone classes in addition to the legacy `emerald`/`amber`/`red` literals.
-- **Files changed in this pass:**
-  - `scripts/verify-theme-tokens.cjs` (new)
-  - `package.json` (added `verify:theme-tokens` script and included it in `verify:contracts`)
-  - `scripts/verify-status-diagnostics.cjs`
-  - `src/components/privacy/StoragePrivacyDashboard.tsx`
-  - `src/components/StatusView.tsx`
-  - `src/components/status/DiagnosticsDrawer.tsx`
-  - `src/components/status/StatusIndicator.tsx`
-  - `src/components/status/StatusIndicator.test.tsx`
-  - `src/components/research/ResearchWorkspaceView.tsx`
-  - `src/components/research/ResearchWorkspaceView.test.tsx`
-  - `docs/summary_of_work.md`
-- **Validation:**
-  - `npm run lint:eslint` — **PASS: 0 warnings**.
-  - `npm run typecheck` — **PASS**.
-  - `npm test` — **PASS: 215 test files, 2288 passed, 1 skipped**.
-  - `npm run verify:theme-tokens` — **PASS**: zero forbidden hardcoded color classes in themeable UI targets.
+  - `node scripts/verify-theme-tokens.cjs` — **PASS**.
   - `npm run verify:contracts` — **PASS**.
+  - `npm test` — **PASS: 2367 passed, 1 skipped**.
   - `npm run build` — **PASS**.
+  - Targeted tests: `npx vitest run src/components/chat/chat-input.test.tsx src/components/layout/sidebar.test.tsx src/theme/applyTheme.test.ts --fileParallelism=false` — **PASS**.
 
 ---
 
@@ -1170,6 +1148,26 @@ The older Phase 2F block below is retained as historical context and is supersed
 
 ## Session History
 
+### 2026-06-14 (Theme-token hardcoded-color cleanup — App/chat/layout/ui)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Fixed hardcoded white/black Tailwind color regressions in themeable UI surfaces scanned by `scripts/verify-theme-tokens.cjs`, excluding `chat-input.tsx` and `sidebar.tsx`. Replaced literals with semantic theme tokens (`text-text-primary`, `text-text-secondary`, `text-text-muted`, `text-accent-fg`, `bg-surface`, `bg-surface-elevated`, `bg-surface-muted`, `bg-overlay`, `border-border`, `border-border-strong`, `shadow-overlay`, `bg-text-primary`/`text-bg` for high-contrast active pills, etc.).
+- **Files changed in this pass:**
+  - `src/App.tsx`
+  - `src/components/chat/HistoryView.tsx`
+  - `src/components/chat/venice-params.tsx`
+  - `src/components/layout/api-key-dialog.tsx`
+  - `src/components/ui/error-boundary.tsx`
+  - `src/components/ui/generation-view.tsx`
+  - `src/components/ui/logo.tsx`
+  - `src/components/ui/select.tsx`
+  - `src/components/ui/shared.tsx`
+  - `src/components/ui/toaster.tsx`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `node scripts/verify-theme-tokens.cjs` — PASS for edited files; residual violations only in `chat-input.tsx` and `sidebar.tsx` (handled separately).
+  - `npm run lint:eslint` — PASS: 0 warnings.
+
 ### 2026-06-14 (Real Venice character image resolver + separate desktop cache)
 - **Agent:** Kimi Code
 - **Branch / state:** `main` (working tree modified)
@@ -1201,6 +1199,26 @@ The older Phase 2F block below is retained as historical context and is supersed
   - `npm test` — PASS: 2361 passed, 1 skipped.
   - `npm run build` — PASS.
   - `npm run ci` — PASS.
+
+### 2026-06-14 (Theme-token hardcoded-color cleanup — App/chat/layout/ui)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Fixed all remaining hardcoded white/black Tailwind color classes in the themeable UI surfaces covered by `scripts/verify-theme-tokens.cjs`, excluding the separately-handled `src/components/chat/chat-input.tsx` and `src/components/layout/sidebar.tsx`. Replaced `text-white/*`, `bg-white/*`, `bg-black/*`, `border-white/*`, `shadow-black/*`, and `shadow-white/*` literals with canonical semantic tokens (`text-text-primary`, `text-text-secondary`, `text-text-muted`, `text-accent-fg`, `bg-surface`, `bg-surface-elevated`, `bg-surface-muted`, `bg-text-primary`, `text-bg`, `bg-overlay`, `border-border`, `border-border-strong`, `shadow-overlay`, etc.) while preserving the original visual intent. Updated loading fallbacks, mobile drawer overlay, error-boundary fallback, toasts, selects, cards, badges, status dots, example prompts, and the Venice parameters/settings pills.
+- **Files changed in this pass:**
+  - `src/App.tsx`
+  - `src/components/chat/HistoryView.tsx`
+  - `src/components/chat/venice-params.tsx`
+  - `src/components/layout/api-key-dialog.tsx`
+  - `src/components/ui/error-boundary.tsx`
+  - `src/components/ui/generation-view.tsx`
+  - `src/components/ui/logo.tsx`
+  - `src/components/ui/select.tsx`
+  - `src/components/ui/shared.tsx`
+  - `src/components/ui/toaster.tsx`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `node scripts/verify-theme-tokens.cjs` — **PASS** for all edited files; only expected residual violations remain in `src/components/chat/chat-input.tsx` and `src/components/layout/sidebar.tsx` (out of scope for this pass).
+  - `npm run lint:eslint` — **PASS: 0 warnings**.
 
 ### 2026-06-14 (Add five more built-in themes + robust YAML import/export)
 - **Agent:** Kimi Code
@@ -3543,6 +3561,21 @@ Result:
 ## Open TODO Ledger
 
 
+### Completed this session (2026-06-14 — UI regression debug: sidebar footer, chat composer, mesh overlay, theme verifier)
+
+- Restructured `src/components/layout/sidebar.tsx` to keep footer controls `shrink-0` and vertically stable; nav/history share a scrollable flex-1 middle section.
+- Rewrote `src/components/chat/chat-input.tsx` with semantic theme tokens so typed text and placeholders are visible in light themes.
+- Added `src/components/layout/AppMeshOverlay.tsx` and wired it into `src/App.tsx` with theme-aware opacity and accent/surface-elevated gradients.
+- Hardened `scripts/verify-theme-tokens.cjs` to scan `src/App.tsx`, `src/components/chat`, `src/components/layout`, and `src/components/ui`; added `divide-black`, `placeholder:text-black`, `ring-black`, `shadow-black`, `shadow-white` forbidden patterns; and excluded test files from scanning.
+- Resolved the remaining hardcoded white/black classes in `App.tsx`, `HistoryView.tsx`, `venice-params.tsx`, `api-key-dialog.tsx`, and `ui/*` so the verifier passes repository-wide.
+- Added regression tests for sidebar footer layout, chat-input semantic tokens, and the updated CSS variable contract in `applyTheme.test.ts`.
+
+### Completed this session (2026-06-14 — Theme-token hardcoded-color cleanup in App/chat/layout/ui)
+
+- Replaced hardcoded `text-white/*`, `bg-white/*`, `bg-black/*`, `border-white/*`, `shadow-black/*`, and `shadow-white/*` Tailwind classes with canonical semantic theme tokens across `src/App.tsx`, `src/components/chat/HistoryView.tsx`, `src/components/chat/venice-params.tsx`, `src/components/layout/api-key-dialog.tsx`, `src/components/ui/error-boundary.tsx`, `src/components/ui/generation-view.tsx`, `src/components/ui/logo.tsx`, `src/components/ui/select.tsx`, `src/components/ui/shared.tsx`, and `src/components/ui/toaster.tsx`.
+- Left `src/components/chat/chat-input.tsx` and `src/components/layout/sidebar.tsx` untouched per task scope; those surfaces are being handled separately and still show the expected verifier violations.
+- No new `THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR` allowlist comments were added; all violations were resolved with semantic tokens.
+
 > Living list. The 2026-06-06 round-2 audit and its same-day
 > "Venice + Jina only" scope correction are tracked in detail in
 > `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md` (see the *Scope
@@ -4110,9 +4143,10 @@ None are release blockers. The P0–P3 sections above remain accurate.
 ## Validation Matrix
 | Command | Status | Evidence |
 | --- | --- | --- |
-| npm run lint:eslint | PASS | 0 warnings |
-| npm run typecheck | PASS | renderer + electron |
-| npm test | PASS | 2361 passed, 1 skipped |
-| npm run build | PASS | dist + dist-electron generated |
-| npm run ci | PASS | full parity gate passes |
-| npx vitest run electron/services/characterImageCache.test.ts src/utils/characterImageResolver.test.ts src/components/CharactersView.test.tsx src/services/storageMaintenance.test.ts src/services/storagePrivacyService.test.ts --fileParallelism=false | PASS | 65/65 tests passed |
+| `npm run lint:eslint` | PASS | 0 warnings |
+| `npm run typecheck` | PASS | renderer + electron |
+| `node scripts/verify-theme-tokens.cjs` | PASS | zero violations across all scanned surfaces |
+| `npm run verify:contracts` | PASS | aggregate parity gate |
+| `npm test` | PASS | 2367 passed, 1 skipped |
+| `npm run build` | PASS | dist/ + dist-electron/ + dist/server.cjs |
+| Targeted tests | PASS | `chat-input.test.tsx`, `sidebar.test.tsx`, `applyTheme.test.ts` |

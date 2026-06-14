@@ -27,10 +27,14 @@ const ROOT = path.resolve(__dirname, "..");
 const ALLOW_COMMENT = "THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR";
 
 const TARGETS = [
+  "src/App.tsx",
+  "src/components/chat",
+  "src/components/layout",
   "src/components/privacy",
-  "src/components/status",
   "src/components/research",
   "src/components/search",
+  "src/components/status",
+  "src/components/ui",
   "src/components/CharactersView.tsx",
   "src/components/StatusView.tsx",
 ];
@@ -43,9 +47,13 @@ const FORBIDDEN = [
   { pattern: /\bborder-white(?:\/|\b)/, name: "border-white" },
   { pattern: /\bborder-black(?:\/|\b)/, name: "border-black" },
   { pattern: /\bdivide-white(?:\/|\b)/, name: "divide-white" },
+  { pattern: /\bdivide-black(?:\/|\b)/, name: "divide-black" },
   { pattern: /\bplaceholder:text-white(?:\/|\b)/, name: "placeholder:text-white" },
+  { pattern: /\bplaceholder:text-black(?:\/|\b)/, name: "placeholder:text-black" },
   { pattern: /\bring-white(?:\/|\b)/, name: "ring-white" },
+  { pattern: /\bring-black(?:\/|\b)/, name: "ring-black" },
   { pattern: /\bshadow-white(?:\/|\b)/, name: "shadow-white" },
+  { pattern: /\bshadow-black(?:\/|\b)/, name: "shadow-black" },
   { pattern: /\bbg-\[#0{3,6}\]/, name: "hardcoded bg-[#000]" },
   { pattern: /\bbg-\[#050505\]/, name: "hardcoded bg-[#050505]" },
   { pattern: /\bbg-neutral-950\b/, name: "bg-neutral-950" },
@@ -69,7 +77,12 @@ function collectFiles(target) {
       const s = fs.statSync(full);
       if (s.isDirectory()) {
         walk(full);
-      } else if (s.isFile() && (entry.endsWith(".tsx") || entry.endsWith(".ts"))) {
+      } else if (
+        s.isFile() &&
+        (entry.endsWith(".tsx") || entry.endsWith(".ts")) &&
+        !entry.endsWith(".test.ts") &&
+        !entry.endsWith(".test.tsx")
+      ) {
         files.push(path.relative(ROOT, full));
       }
     }

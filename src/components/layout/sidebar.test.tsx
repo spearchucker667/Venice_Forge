@@ -165,4 +165,38 @@ describe('Sidebar controls', () => {
 
     vi.useRealTimers()
   })
+
+  it('renders footer controls without overlap indicators and uses semantic layout classes', () => {
+    const { container } = render(<Sidebar />)
+
+    expect(screen.getByRole('switch', { name: 'Toggle Red-Team Mode' })).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Toggle Family Safe Mode' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Show Inspector/i })).toBeInTheDocument()
+    expect(screen.getByText('New chat')).toBeInTheDocument()
+    expect(screen.getByText('Switch tab')).toBeInTheDocument()
+
+    const aside = container.querySelector('aside')
+    expect(aside).toHaveClass('flex', 'flex-col', 'h-full', 'min-h-0')
+
+    // The scrollable middle section must flex and clip, and nav must be scrollable.
+    const scrollWrapper = aside?.querySelector('.flex-1.min-h-0.overflow-hidden')
+    expect(scrollWrapper).toBeInTheDocument()
+    const nav = scrollWrapper?.querySelector('nav')
+    expect(nav).toHaveClass('flex-1', 'min-h-0', 'overflow-y-auto')
+
+    // Footer must never shrink.
+    const footer = aside?.querySelector('.shrink-0.border-t.border-border.bg-surface\\/95')
+    expect(footer).toBeInTheDocument()
+  })
+
+  it('does not use hardcoded white/black theme classes in the footer (light-theme regression guard)', () => {
+    render(<Sidebar />)
+    const switches = screen.getAllByRole('switch')
+    for (const sw of switches) {
+      expect(sw.className).not.toMatch(/\bbg-white\b/)
+      expect(sw.className).not.toMatch(/\bbg-black\b/)
+      expect(sw.className).not.toMatch(/\btext-white\b/)
+      expect(sw.className).not.toMatch(/\btext-black\b/)
+    }
+  })
 })

@@ -61,7 +61,7 @@ export function VeniceParams() {
           {activeConversationId !== null && hasMessages && (
             <button
               onClick={() => setActiveConversation(null)}
-              className="flex items-center gap-1 text-[13px] font-medium px-2.5 py-[2px] rounded-full bg-white/[0.03] text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-colors duration-100 cursor-pointer"
+              className="flex items-center gap-1 text-[13px] font-medium px-2.5 py-[2px] rounded-full bg-surface-elevated/40 text-text-muted/60 hover:text-text-secondary hover:bg-surface-elevated/50 transition-colors duration-100 cursor-pointer"
               title="New Chat (⌘N)"
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
@@ -72,7 +72,7 @@ export function VeniceParams() {
             onClick={() => setShowSettings(!showSettings)}
             className={cn(
               'flex items-center gap-1 text-[13px] font-medium px-2 py-[2px] rounded-full transition-colors duration-100',
-              showSettings ? 'bg-white/90 text-black' : 'bg-white/[0.03] text-white/18 hover:text-white/35 hover:bg-white/[0.05] cursor-pointer',
+              showSettings ? 'bg-text-primary text-bg' : 'bg-surface-elevated/40 text-text-muted/40 hover:text-text-muted/60 hover:bg-surface-elevated/50 cursor-pointer',
             )}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -86,13 +86,13 @@ export function VeniceParams() {
       {showSettings && (
         <div className="mt-2.5 pb-1 flex flex-col gap-2.5">
           <div>
-            <label className="text-[13px] text-white/15 font-medium mb-1 block uppercase tracking-[0.08em]">System Prompt</label>
+            <label className="text-[13px] text-text-muted/40 font-medium mb-1 block uppercase tracking-[0.08em]">System Prompt</label>
             <textarea
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
               placeholder="You are a helpful assistant..."
               rows={2}
-              className="w-full bg-white/[0.02] border border-white/[0.05] rounded-lg px-3 py-2 text-[15px] text-white/50 outline-none resize-none placeholder:text-white/8 focus:border-white/[0.1] transition-colors"
+              className="w-full bg-surface-muted border border-border rounded-lg px-3 py-2 text-[15px] text-text-secondary outline-none resize-none placeholder:text-text-muted/30 focus:border-border-strong transition-colors"
             />
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -119,8 +119,8 @@ function ParamSlider({ label, value, onChange, min, max, step, format }: {
   return (
     <div>
       <div className="flex items-center justify-between mb-0.5">
-        <label className="text-[12px] text-white/15 font-medium uppercase tracking-[0.08em]">{label}</label>
-        <span className="text-[12px] text-white/25 font-mono">{display}</span>
+        <label className="text-[12px] text-text-muted/40 font-medium uppercase tracking-[0.08em]">{label}</label>
+        <span className="text-[12px] text-text-muted/50 font-mono">{display}</span>
       </div>
       <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-full" />
     </div>
@@ -134,8 +134,8 @@ function Pill({ label, active, onClick }: { label: string; active: boolean; onCl
       className={cn(
         'text-[13px] font-medium px-2 py-[2px] rounded-full transition-colors duration-100',
         active
-          ? 'bg-white/90 text-black'
-          : 'bg-white/[0.03] text-white/18 hover:text-white/35 hover:bg-white/[0.05]',
+          ? 'bg-text-primary text-bg'
+          : 'bg-surface-elevated/40 text-text-muted/40 hover:text-text-muted/60 hover:bg-surface-elevated/50',
       )}
     >
       {label}
@@ -158,8 +158,8 @@ function SearchPill({ value, onChange }: { value: string; onChange: (v: SearchMo
       className={cn(
         'text-[13px] font-medium px-2 py-[2px] rounded-full transition-colors duration-100',
         active
-          ? 'bg-white/90 text-black'
-          : 'bg-white/[0.03] text-white/18 hover:text-white/35 hover:bg-white/[0.05]',
+          ? 'bg-text-primary text-bg'
+          : 'bg-surface-elevated/40 text-text-muted/40 hover:text-text-muted/60 hover:bg-surface-elevated/50',
       )}
     >
       {label}
@@ -171,15 +171,15 @@ function Toggle({ label, active, onChange }: { label: string; active: boolean; o
   return (
     <button
       onClick={() => onChange(!active)}
-      className="flex items-center gap-2 text-[14px] text-white/30 hover:text-white/50 transition-colors"
+      className="flex items-center gap-2 text-[14px] text-text-muted/60 hover:text-text-secondary transition-colors"
     >
       <div className={cn(
         'w-6 h-3.5 rounded-full transition-colors duration-150 relative',
-        active ? 'bg-white/80' : 'bg-white/[0.08]',
+        active ? 'bg-text-primary' : 'bg-border',
       )}>
         <div className={cn(
           'absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all duration-150',
-          active ? 'left-3 bg-black' : 'left-0.5 bg-white/30',
+          active ? 'left-3 bg-bg' : 'left-0.5 bg-text-muted/40',
         )} />
       </div>
       {label}

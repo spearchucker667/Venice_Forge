@@ -39,7 +39,7 @@ export function ApiKeyDialog({ open, onClose }: { open: boolean; onClose: () => 
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <button aria-label="Close dialog" className="absolute inset-0 bg-overlay/80 backdrop-blur-sm" onClick={onClose} />
       <div
-        className="relative bg-surface-elevated border border-border rounded-xl p-6 w-full max-w-sm mx-4 animate-scale-in shadow-2xl shadow-black/60"
+        className="relative bg-surface-elevated border border-border rounded-xl p-6 w-full max-w-sm mx-4 animate-scale-in shadow-2xl shadow-overlay"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 mb-5">
