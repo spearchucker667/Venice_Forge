@@ -158,7 +158,7 @@ export function LorebookManager({ disabled = false }: { disabled?: boolean } = {
   );
 }
 
-function LorebookEditor({ lorebookId, onClose, disabled = false }: { lorebookId: string; onClose: () => void; disabled?: boolean }) {
+export function LorebookEditor({ lorebookId, onClose, disabled = false }: { lorebookId: string; onClose: () => void; disabled?: boolean }) {
   const lorebooks = useLorebookStore((s) => s.lorebooks);
   const upsert = useLorebookStore((s) => s.upsert);
   const initial = useMemo(() => lorebooks.find((l) => l.id === lorebookId), [lorebooks, lorebookId]);
@@ -205,7 +205,7 @@ function LorebookEditor({ lorebookId, onClose, disabled = false }: { lorebookId:
     try {
       await upsert(draft);
       onClose();
-    } catch (err) {
+    } catch {
       setError("Failed to save lorebook. Please try again.");
     } finally {
       setSaving(false);

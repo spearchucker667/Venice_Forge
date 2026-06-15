@@ -149,7 +149,7 @@ export function VideoView() {
       const attachment = await readImageAttachment(file)
       setImageUrl(attachment.content)
       setImageName(file.name)
-    } catch (err) {
+    } catch {
       toast.error('Failed to read image', 'Please choose a PNG, JPEG, or WEBP image under the size limit.')
     }
   }

@@ -37,7 +37,7 @@
 </p>
 
 <p align="center">
-  <img width="1774" height="887" alt="Venice Forge application preview" src="./assets/preview.png" />
+  <img width="1774" height="998" alt="Venice Forge application preview" src="./assets/preview.jpg" />
 </p>
 
 ---
@@ -209,7 +209,7 @@ Read:
 | Desktop main process | `electron/` |
 | Renderer application | `src/` |
 | Local storage services | `src/services/` |
-| Theme system | `src/theme/`, `src/styles/`, `docs/THEME_SYSTEM.md` |
+| Theme system | `src/theme/`, `src/styles/`, `docs/design/THEME_SYSTEM.md` |
 | Release workflow | `.github/workflows/` |
 | Release documentation | `docs/RELEASE/` |
 | Security policy | `SECURITY.md` |
@@ -317,7 +317,7 @@ Notes:
 - Desktop Venice keys are stored through OS secure storage.
 - Web-mode Venice keys belong in the Express server `.env`.
 - Desktop Jina keys are stored through OS secure storage.
-- Web-mode Jina browser overrides are session-memory only and should not be persisted in browser storage.
+- Web-mode Jina credentials belong in the Express server `.env`; renderer-supplied `Authorization` and `x-jina-api-key` values are dropped by the proxy.
 - Never commit `.env`, local config files containing secrets, generated logs, release artifacts, or exported private workspace data.
 
 ---

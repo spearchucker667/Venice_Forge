@@ -180,8 +180,8 @@ export async function readImageAttachment(file: File): Promise<Attachment> {
   let dims: { width: number; height: number };
   try {
     dims = await inspectImageDimensions(file);
-  } catch (err) {
-    throw new Error(`Failed to read image dimensions: ${err instanceof Error ? err.message : String(err)}`);
+  } catch {
+    throw new Error("Failed to read image dimensions.");
   }
 
   // Dimension limit rules (4096px or 16MP)

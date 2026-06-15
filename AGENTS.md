@@ -344,4 +344,4 @@ No live vision flag from Venice API. Use `modelSupportsVision(modelId)` in `src/
 - Streaming uses `createTimeoutSignal()` (not `AbortSignal.timeout` / `AbortSignal.any`) for older browser compat.
 - `indexedDB` exports to `release/`, `dist/`, `dist-electron/`, `coverage/` are gitignored. Build icons under `build/icon.{ico,icns,png}` are tracked; everything else in `build/` is ignored.
 - Web-mode `.env` is read at startup; `NODE_ENV=production` is required for `npm start` (use `scripts/start-production.cjs`).
-- `npm test` excludes `server.ts` from coverage (see `vitest.config.ts` exclude list); integration coverage for the proxy is via `server.test.ts` only.
+- `npm run test:coverage` includes `server.ts`; proxy behavior is exercised by `server.test.ts`.

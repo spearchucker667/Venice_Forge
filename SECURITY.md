@@ -66,8 +66,8 @@ npm run verify:safety-guard
 
 A comprehensive safety guard audit was conducted in May–June 2026 covering all
 request paths, payload extraction coverage, logging/diagnostics behavior, static
-verification script robustness, and test fixture safety. Findings are tracked in
-`TODO.md` under "CSAM Safety Guard Audit (June 2026)".
+verification script robustness, and test fixture safety. Current findings and
+validation evidence are tracked in `docs/summary_of_work.md`.
 
 > **Maintainer trigger:** Update this document whenever the allowed Venice API endpoint list (`src/shared/validation.ts`) or the safety guard enforcement boundaries change.
 
@@ -119,7 +119,7 @@ The optional `config.yaml` and `themes.yaml` files are a **bootstrap mechanism**
 
 ## Research Provider Security
 
-- **Jina AI**: Requests are sent directly to `r.jina.ai` and `s.jina.ai`. The Jina API key is redacted from all logs, diagnostics, and exports. A renderer-layer safety guard runs before all Jina dispatch (see Content Safety above).
+- **Jina AI**: Electron sends requests from the main process using the OS-secure Jina key. Web mode sends requests through the Express proxy using only the server-side `JINA_API_KEY`; renderer-supplied Jina credential headers are dropped. Keys are redacted from logs, diagnostics, and exports. A renderer-layer safety guard runs before dispatch (see Content Safety above).
 - **Generic HTTP**: Disabled by default. When enabled, it routes traffic through a backend proxy to perform DNS resolution and enforce strict SSRF blocklists on the resolved IP. Only allows `text/html`, `text/plain`, `application/xhtml+xml`, and `application/json` responses.
 - All research traffic respects the same endpoint allowlist and safety guard as Venice API calls.
 

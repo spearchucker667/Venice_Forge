@@ -369,10 +369,9 @@ export const desktopMedia = {
     return window.veniceForge!.files.exportMedia(input);
   },
 
-  /** Reads a file from an allowlisted directory and returns it as a data URL.
-   *  Desktop-only. The renderer must already have a path (from the
-   *  `import:` UI flow); the main process validates the path against the
-   *  safe directory list before reading. */
+  /** Reads an app-managed media path and returns it as a data URL.
+   *  Desktop-only. Arbitrary user-library paths are rejected by the main
+   *  process; user-selected imports require a main-process dialog flow. */
   async importMedia(input: { filePath: string }): Promise<{
     ok: boolean; canceled?: boolean; dataUrl?: string; filePath?: string;
     filename?: string; bytes?: number; contentType?: string; error?: string;

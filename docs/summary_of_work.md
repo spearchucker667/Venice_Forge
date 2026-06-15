@@ -107,6 +107,19 @@ blockers remain.
 
 ## Latest Session Summary
 
+- **Date:** 2026-06-15 (ZIP audit closure and README preview optimization)
+- **Agent:** Codex
+- **Branch / state:** `main` at `02f3d76`; working tree modified by the audited closure batch. Validation used Node `v22.22.3` / npm `10.9.8`.
+- **Result:** Replaced the 12,470,121-byte `assets/preview.png` with a visually verified 1774x998 JPEG at `assets/preview.jpg` (approximately 374 KiB) and updated the README reference. Repaired the source, regression tests, CI verifier, agent-doc parity, custody documentation, and stale paths identified by the T-001 through T-030 cross-check.
+- **Validation:** Focused audit suite passed (16 files / 186 tests). ESLint, TypeScript, final full Vitest (2,565 passed / 1 skipped), all contract verifiers, production build, Markdown links, agent-doc parity, archive cleanliness, and coverage execution passed. A sandboxed final full-suite attempt reproduced the known local-port binding failures; the identical unsandboxed Node 22 run passed.
+- **Residual follow-up:** `vitest.config.ts` places documented coverage percentages under `thresholds.global`. Vitest 4 treats that key as a file-pattern threshold, so those percentages are not enforced globally. `server.ts` is included in coverage, closing T-022, but threshold enforcement needs a separate configuration correction and intentional baseline decision.
+
+- **Date:** 2026-06-15 (ZIP audit work-order cross-check, T-001 through T-030)
+- **Agent:** Codex
+- **Branch / state:** `main` at `02f3d76`; working tree was clean at audit start. Interactive shell resolved Node `v26.3.0` / npm `11.16.0`; all validation below was rerun with Node `v22.22.3` / npm `10.9.8`.
+- **Result:** The latest committed fix batch is not fully closed. Source fixes exist for secure auth-store custody, generic UI/IPC errors, restricted media MIME sniffing, dialog-based text attachments, Linux checksums, Windows signing envs, archive exclusions, and `server.ts` coverage inclusion. Closure is blocked by seven ESLint warnings, three stale/failing tests, incomplete CI-contract gate enumeration, stale documentation/agent-doc parity, and the full test/coverage/contract failures listed below.
+- **Validation:** `npm run typecheck` and `npm run build` passed. `npm run lint:eslint`, `npm test`, `npm run verify:contracts`, `npm run test:coverage`, and `npm run verify:agent-docs` failed. Focused release, CI-contract, archive, Markdown-link, attachment, updater, chat-storage, and RP-storage checks were also run; exact results are recorded in the validation append.
+
 - **Date:** 2026-06-15 (Deep Static Audit of `src/stores/`, `server.ts`, and CI tooling)
 - **Agent:** Antigravity
 - **Branch / state:** `main` (validated working tree)
@@ -1017,6 +1030,23 @@ blockers remain.
   - `npm run typecheck` — **FAIL (exit 2)** on pre-existing unrelated errors in `src/stores/rp-chat-store.test.ts` (`personaId: null` incompatible with `string | undefined`) and `src/stores/prompt-library-store.test.ts`; `src/stores/media-store.ts` and `src/stores/media-store.test.ts` produce no type errors.
 
 ## Session History
+
+### 2026-06-15 - ZIP Audit Closure and README Preview Optimization
+
+- Optimized the README preview from a 4096x2304, 12,470,121-byte PNG to a visually verified 1774x998 JPEG of approximately 374 KiB and updated the README image dimensions and path.
+- Repaired the auth-store failure contract, generic UI/IPC error handling, restricted media imports, Jina web-key custody contract, updater diagnostics, chat-storage and RP-delete errors, attachment dialog filename contract, CI gate enumeration, archive exclusions, and stale documentation identified by the prior cross-check.
+- Added focused regression coverage for auth save failures and key non-retention, API-key and RP editor error redaction, embeddings/video/updater failures, media rejection, chat-storage writes, RP deletes, desktop attachments, Jina header dropping, and CI-contract omissions.
+- Validation under Node `v22.22.3` / npm `10.9.8`: focused suite PASS (16 files / 186 tests); ESLint PASS; typecheck PASS; final unsandboxed full suite PASS (2,565 passed / 1 skipped); `verify:contracts` PASS; build PASS; coverage execution PASS; Markdown links, agent docs, CI contract, and archive cleanliness PASS. The sandboxed final suite reproduced the known loopback-binding restriction in server tests and was superseded by the passing unsandboxed run.
+- Coverage output includes `server.ts` at 53.20% statements, 43.04% branches, 51.16% functions, and 53.88% lines. Aggregate coverage is 65.26% statements, 57.01% branches, 61.05% functions, and 68.61% lines. The documented `thresholds.global` values are not enforced by Vitest 4 and remain an explicit follow-up.
+
+### 2026-06-15 - ZIP Audit Work-Order Cross-Check
+
+- Audited current source and HEAD delta directly against T-001 through T-030; no item was accepted from commit or ledger claims alone.
+- Confirmed full-suite failures in `server.test.ts`, `electron/services/mediaService.test.ts`, and `src/components/video/video-view.test.tsx` are current test/implementation contract mismatches, not sandbox artifacts.
+- Confirmed `verify:agent-docs` fails because `CLAUDE.md` and `GEMINI.md` do not contain the required handoff-ledger string.
+- Confirmed `scripts/verify-ci-contract.cjs` omits `verify:theme-tokens`, `verify:ci-contract`, and `verify:agent-docs` from `requiredGates`, despite the aggregate script currently containing them.
+- Confirmed README/SECURITY/AGENTS documentation still contains stale theme/TODO/coverage statements.
+- No runtime source fixes were made during this cross-check; only this mandatory handoff ledger was updated.
 
 - **Date:** 2026-06-15 (Deep Static Audit of `src/stores/`, `server.ts`, and CI tooling)
 - **Agent:** Antigravity
@@ -4964,6 +4994,18 @@ Result:
 
 ## Open TODO Ledger
 
+### Completed 2026-06-15 ZIP Audit Cross-Check Blockers
+
+- Restored the green full gate by updating stale tests and removing unused catch bindings introduced by generic-error handling.
+- Added all current aggregate gates to `scripts/verify-ci-contract.cjs` and regression coverage proving omitted gates fail verification.
+- Repaired agent-doc parity and stale README/SECURITY/AGENTS paths, custody statements, and coverage documentation.
+- Added the requested focused regression coverage for auth setter failures, Persona/Lorebook/Embeddings error redaction, updater diagnostics, chat-storage write failures, RP delete failures, and media unknown/text/JSON/database rejection.
+- Reran coverage successfully and recorded the actual aggregate and `server.ts` coverage rows.
+
+### Open Follow-Up from 2026-06-15 ZIP Audit Closure
+
+- **P1:** Correct the Vitest 4 coverage threshold schema and choose an intentional achievable baseline. The current `thresholds.global` object is interpreted as a glob-specific threshold and does not enforce the documented 70/80/80/80 percentages.
+
 ### Completed this session (2026-06-15 — Windows CI theme-token contract repair)
 
 - Removed the broad 19-file `KNOWN_EXCEPTIONS` bypass from `scripts/verify-theme-tokens.cjs`; no scan roots or forbidden patterns were removed.
@@ -5559,3 +5601,38 @@ Result:
 - **Diagnosis:** Addressed the remainder of the backlog. Validated that `server.ts` already correctly implemented SSRF protection via `dns.lookup` to prevent localhost DNS rebinding (closing T-020). Corrected `audio-view.tsx` to redact error messages correctly (T-006ish related to audio error redaction). Also verified that CI workflows and other findings (T-021..T-030) were either already resolved in previous batches or false positives. Fixed lingering type errors in `src/types/desktop.ts` and `src/stores/auth-store.ts`.
 - **Closed findings:** T-020, T-021, T-027, T-028, T-029, T-030, and audio error redaction.
 - **Validation:** `npm run typecheck` PASS. `npm run verify:contracts` PASS.
+
+## Validation Matrix (2026-06-15 ZIP audit cross-check append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| Provenance (`git status --short`; branch; HEAD; Node/npm) | PASS | Clean start; `main`; `02f3d76`; shell Node/npm `v26.3.0`/`11.16.0`; validation Node/npm `v22.22.3`/`10.9.8` |
+| Focused Vitest batch for requested T-001..T-030 files | FAIL | 3 contract regressions plus initial sandbox-only loopback failures; unsandboxed rerun isolated the same 3 real failures |
+| `npm run lint:eslint` | FAIL | 7 unused catch-binding warnings in newly genericized error handlers; zero-warning policy enforced |
+| `npm run typecheck` | PASS | Renderer and Electron TypeScript builds passed |
+| `npm test` | FAIL | 228 files passed, 3 failed, 1 skipped; 2,539 tests passed, 3 failed, 1 skipped |
+| `npm run verify:contracts` | FAIL | All earlier gates passed; `verify:agent-docs` failed for `CLAUDE.md` and `GEMINI.md` |
+| `npm run build` | PASS | Renderer, server bundle, and Electron main build passed |
+| `npm run test:coverage` | FAIL | Aborted on the same 3 failing tests; no final coverage table/threshold result produced |
+| `npm run verify:release-packaging-hardening` | PASS | 75 checks passed |
+| `npm run verify:ci-contract` | PASS (insufficient contract) | Script passes but its `requiredGates` omits theme-token, self, and agent-doc gates |
+| `npm run verify:archive-clean` | PASS | Tracked archive inputs clean; Kimi/ledger patterns enforced |
+| `npm run verify:markdown-links` | PASS | 55 Markdown files checked |
+| `npm run verify:agent-docs` | FAIL | Required `docs/summary_of_work.md` string missing from `CLAUDE.md` and `GEMINI.md` |
+
+## Validation Matrix (2026-06-15 ZIP audit closure append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| README preview optimization | PASS | `assets/preview.jpg`; 1774x998; approximately 374 KiB; visual inspection passed; obsolete 12,470,121-byte PNG removed |
+| Focused Vitest audit batch | PASS | 16 test files passed; 186 tests passed after adding the final attachment raw-error regression guard |
+| `npm run lint:eslint` | PASS | Zero warnings under the enforced policy |
+| `npm run typecheck` | PASS | Renderer and Electron TypeScript builds passed |
+| `npm test` | PASS after unsandboxed rerun | Final tree: 235 files passed, 1 skipped; 2,565 tests passed, 1 skipped. The sandboxed attempt reproduced known loopback-binding failures in server tests. |
+| `npm run verify:contracts` | PASS | Full aggregate contract gate passed, including CI, agent-doc, archive, and security verifiers |
+| `npm run build` | PASS | Renderer, server bundle, and Electron main build passed |
+| `npm run test:coverage` | PASS with threshold caveat | Aggregate: 65.26% statements, 57.01% branches, 61.05% functions, 68.61% lines. `server.ts`: 53.20% / 43.04% / 51.16% / 53.88%. Current `thresholds.global` schema does not enforce documented percentages in Vitest 4. |
+| `npm run verify:ci-contract` | PASS | Current aggregate gates, including theme tokens, self-verification, and agent docs, are required |
+| `npm run verify:archive-clean` | PASS | Tracked archive inputs and banned Kimi/ledger patterns passed |
+| `npm run verify:markdown-links` | PASS | Current Markdown links and heading fragments passed |
+| `npm run verify:agent-docs` | PASS | Required handoff-ledger instructions are present across agent surfaces |

@@ -272,24 +272,23 @@ describe("exportMedia", () => {
 });
 
 describe("importMediaFromPath", () => {
+  const managedImportDir = path.join(TMP_PICTURES, "Venice Forge");
+
   beforeEach(async () => {
-    await removeFixture(path.join(TMP_DOWNLOADS, "import.png"));
+    await fs.mkdir(managedImportDir, { recursive: true });
+    await removeFixturesIn(managedImportDir, ["import.png", "unknown.bin", "secret.json", "vault.db"]);
     await removeFixture(path.join(TMP_OUTSIDE, "outside.txt"));
   });
   afterEach(async () => {
-    await removeFixture(path.join(TMP_DOWNLOADS, "import.png"));
+    await removeFixturesIn(managedImportDir, ["import.png", "unknown.bin", "secret.json", "vault.db"]);
     await removeFixture(path.join(TMP_OUTSIDE, "outside.txt"));
   });
 
-  it("reads a file from Downloads and returns a data URL", async () => {
-    const target = path.join(TMP_DOWNLOADS, "import.png");
+  it("reads an app-managed image and returns a typed data URL", async () => {
+    const target = path.join(managedImportDir, "import.png");
     await fs.writeFile(target, tinyPngBuffer());
     const result = await importMediaFromPath({ filePath: target });
-    expect(
-      result.ok,
-      `importMediaFromPath returned ok=false for ${target}; error=${result.error ?? "<none>"}; ` +
-        `TMP_DOWNLOADS=${TMP_DOWNLOADS}; mock getPath('downloads')=${TMP_DOWNLOADS}`,
-    ).toBe(true);
+    expect(result.ok, result.error).toBe(true);
     expect(result.dataUrl).toMatch(/^data:image\/png;base64,/);
     expect(result.bytes).toBe(tinyPngBuffer().length);
     expect(result.contentType).toBe("image/png");
@@ -301,7 +300,27 @@ describe("importMediaFromPath", () => {
     await fs.writeFile(outsideFile, "not an image");
     const result = await importMediaFromPath({ filePath: outsideFile });
     expect(result.ok, `importMediaFromPath unexpectedly succeeded: ${result.error ?? "<no error>"}`).toBe(false);
-    expect(result.error).toMatch(/Downloads|Documents|Desktop|Pictures/);
+    expect(result.error).toMatch(/Pictures\/Venice Forge/);
+  });
+
+  it("rejects renderer-directed files from Downloads", async () => {
+    const target = path.join(TMP_DOWNLOADS, "import.png");
+    await fs.writeFile(target, tinyPngBuffer());
+    const result = await importMediaFromPath({ filePath: target });
+    expect(result).toMatchObject({ ok: false, error: "File must be inside Pictures/Venice Forge." });
+    await removeFixture(target);
+  });
+
+  it.each([
+    ["unknown.bin", Buffer.from([0x00, 0x01, 0x02, 0x03])],
+    ["secret.json", Buffer.from('{"apiKey":"not-media"}')],
+    ["vault.db", Buffer.from("SQLite format 3\0")],
+  ])("rejects non-image bytes in %s", async (filename, bytes) => {
+    const target = path.join(managedImportDir, filename);
+    await fs.writeFile(target, bytes);
+    const result = await importMediaFromPath({ filePath: target });
+    expect(result).toMatchObject({ ok: false, error: "Unsupported media type." });
+    expect(result.dataUrl).toBeUndefined();
   });
 
   it("rejects null bytes and overlong paths", async () => {

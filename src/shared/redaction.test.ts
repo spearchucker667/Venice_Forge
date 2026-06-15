@@ -45,4 +45,9 @@ describe("redactErrorMessage", () => {
     expect(redactErrorMessage(new Error("failed with sk-1234567890abcdef")))
       .toBe("failed with [REDACTED]");
   });
+
+  it("redacts local absolute paths", () => {
+    expect(redactErrorMessage(new Error("failed at /Users/private/config.json")))
+      .toBe("failed at [REDACTED-PATH]");
+  });
 });

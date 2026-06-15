@@ -20,6 +20,8 @@ const mocks = vi.hoisted(() => {
     mockDownloadUpdate: vi.fn(),
     mockQuitAndInstall: vi.fn(),
     mockOn: vi.fn(),
+    mockLogError: vi.fn(),
+    isPackaged: { value: false },
     mockAutoDownload: { value: false },
     mockAutoInstallOnAppQuit: { value: false },
   };
@@ -28,7 +30,7 @@ const mocks = vi.hoisted(() => {
 vi.mock("electron", () => ({
   app: {
     getPath: vi.fn(() => os.tmpdir()),
-    isPackaged: false,
+    get isPackaged() { return mocks.isPackaged.value; },
     getAppPath: vi.fn(() => process.cwd()),
     getVersion: vi.fn(() => "1.0.3-test"),
   },
@@ -60,7 +62,7 @@ vi.mock("electron-updater", () => ({
 }));
 
 vi.mock("../services/logger", () => ({
-  logError: vi.fn(),
+  logError: mocks.mockLogError,
   logInfo: vi.fn(),
   getLogsDir: vi.fn(() => path.join(os.tmpdir(), "vf-logs")),
   openLogsFolder: vi.fn(),
@@ -106,6 +108,8 @@ describe("app:*update IPC handlers", () => {
     mocks.mockCheckForUpdates.mockReset();
     mocks.mockDownloadUpdate.mockReset();
     mocks.mockQuitAndInstall.mockReset();
+    mocks.mockLogError.mockReset();
+    mocks.isPackaged.value = false;
   });
 
   it("app:checkForUpdates returns a friendly error in dev mode", async () => {
@@ -122,6 +126,29 @@ describe("app:*update IPC handlers", () => {
     expect(result).toMatchObject({ ok: false });
     expect(result.error).toMatch(/no update downloaded/i);
     expect(mocks.mockQuitAndInstall).not.toHaveBeenCalled();
+  });
+
+  it("returns and logs safe errors when update checks fail", async () => {
+    mocks.isPackaged.value = true;
+    mocks.mockCheckForUpdates.mockRejectedValueOnce(
+      new Error("feed https://secret.example Authorization: Bearer fixture /Users/private/update.yml"),
+    );
+    const handler = mocks.capturedHandlers.get("app:checkForUpdates");
+    const result = await handler!();
+    expect(result).toEqual({ ok: false, error: "Update check failed. Please try again later." });
+    expect(JSON.stringify(mocks.mockLogError.mock.calls)).not.toContain("Bearer fixture");
+    expect(JSON.stringify(mocks.mockLogError.mock.calls)).not.toContain("/Users/private");
+  });
+
+  it("returns and logs safe errors when update downloads fail", async () => {
+    mocks.mockDownloadUpdate.mockRejectedValueOnce(
+      new Error("token sk-secret-fixture at /Users/private/update.zip"),
+    );
+    const handler = mocks.capturedHandlers.get("app:downloadUpdate");
+    const result = await handler!();
+    expect(result).toEqual({ ok: false, error: "Update download failed. Please try again later." });
+    expect(JSON.stringify(mocks.mockLogError.mock.calls)).not.toContain("sk-secret-fixture");
+    expect(JSON.stringify(mocks.mockLogError.mock.calls)).not.toContain("/Users/private");
   });
 
   it("autoDownload is disabled by default to keep the user in control", () => {

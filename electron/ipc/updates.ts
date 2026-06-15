@@ -102,8 +102,7 @@ export function registerUpdateHandlers(): void {
   });
 
   autoUpdater.on("error", (err) => {
-    const msg = err instanceof Error ? err.message : String(err);
-    logError("AutoUpdater error", msg);
-    broadcast("updates:error", msg);
+    logError("AutoUpdater error", redactErrorMessage(err));
+    broadcast("updates:error", "Update operation failed. Please try again later.");
   });
 }

@@ -107,4 +107,15 @@ describe("rpSingleFileStore", () => {
     const r = await store.remove("nope");
     expect(r).toEqual({ ok: true });
   });
+
+  it("returns a fixed safe error for non-ENOENT delete failures", async () => {
+    const unlinkSpy = vi.spyOn(fs, "unlink").mockRejectedValueOnce(
+      Object.assign(new Error("EACCES /Users/private/persona.json Bearer fixture"), { code: "EACCES" }),
+    );
+    const result = await store.remove("demo-safe");
+    unlinkSpy.mockRestore();
+    expect(result).toEqual({ ok: false, error: "Failed to delete item." });
+    expect(JSON.stringify(result)).not.toContain("/Users/private");
+    expect(JSON.stringify(result)).not.toContain("Bearer fixture");
+  });
 });

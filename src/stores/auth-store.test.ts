@@ -2,10 +2,40 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
-import { selectHasVeniceKey } from "./auth-store";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const bridgeMocks = vi.hoisted(() => ({
+  setApiKey: vi.fn(),
+  setJinaApiKey: vi.fn(),
+}));
+
+vi.mock("../services/desktopBridge", () => ({
+  desktopApiKey: {
+    set: bridgeMocks.setApiKey,
+    delete: vi.fn(),
+    isConfigured: vi.fn(async () => false),
+  },
+  desktopJinaApiKey: {
+    set: bridgeMocks.setJinaApiKey,
+    delete: vi.fn(),
+    isConfigured: vi.fn(async () => false),
+  },
+}));
+
+import { selectHasVeniceKey, useAuthStore } from "./auth-store";
 
 describe("configured Venice key gating", () => {
+  beforeEach(() => {
+    bridgeMocks.setApiKey.mockReset();
+    bridgeMocks.setJinaApiKey.mockReset();
+    useAuthStore.setState({
+      apiKey: null,
+      isConfigured: false,
+      jinaApiKey: null,
+      jinaIsConfigured: false,
+    });
+  });
+
   // VERIFY-037: persisted OS-secure configuration must unlock the UI without
   // copying the raw key back into renderer memory after restart.
   it("treats OS-secure configured state as usable without a renderer key", () => {
@@ -32,5 +62,28 @@ describe("configured Venice key gating", () => {
       expect(source, file).toContain("selectHasVeniceKey");
       expect(source, file).not.toMatch(/useAuthStore\(\(s\) => s\.apiKey/);
     }
+  });
+
+  it("does not retain a Venice key after a successful secure-store write", async () => {
+    bridgeMocks.setApiKey.mockResolvedValueOnce({ ok: true });
+    await useAuthStore.getState().setApiKey("venice_secret_fixture");
+    expect(useAuthStore.getState()).toMatchObject({ apiKey: null, isConfigured: true });
+  });
+
+  it("keeps Venice configured state unchanged when secure-store write fails", async () => {
+    bridgeMocks.setApiKey.mockResolvedValueOnce({ ok: false, error: "/Users/private/key" });
+    await expect(useAuthStore.getState().setApiKey("venice_secret_fixture")).rejects.toThrow("Failed to save API key.");
+    expect(useAuthStore.getState()).toMatchObject({ apiKey: null, isConfigured: false });
+  });
+
+  it("does not retain a Jina key and rejects failed secure-store writes", async () => {
+    bridgeMocks.setJinaApiKey.mockResolvedValueOnce({ ok: true });
+    await useAuthStore.getState().setJinaApiKey("jina_secret_fixture");
+    expect(useAuthStore.getState()).toMatchObject({ jinaApiKey: null, jinaIsConfigured: true });
+
+    useAuthStore.setState({ jinaApiKey: null, jinaIsConfigured: false });
+    bridgeMocks.setJinaApiKey.mockResolvedValueOnce({ ok: false, error: "Bearer secret" });
+    await expect(useAuthStore.getState().setJinaApiKey("jina_secret_fixture")).rejects.toThrow("Failed to save Jina API key.");
+    expect(useAuthStore.getState()).toMatchObject({ jinaApiKey: null, jinaIsConfigured: false });
   });
 });

@@ -220,8 +220,8 @@ describe('VideoView accessibility', () => {
     expect(screen.queryByAltText('Reference')).toBeNull()
   })
 
-  it('surfaces a toast error when readImageAttachment throws (P2-007)', async () => {
-    mockReadImageAttachment.mockRejectedValueOnce(new Error('Bad image'))
+  it('surfaces a generic toast when readImageAttachment throws (P2-007, T-012)', async () => {
+    mockReadImageAttachment.mockRejectedValueOnce(new Error('Authorization: Bearer secret /Users/private/image.png'))
     render(<VideoView />)
     fireEvent.click(screen.getByRole('button', { name: 'Image to Video' }))
 
@@ -234,7 +234,12 @@ describe('VideoView accessibility', () => {
     })
 
     await waitFor(() => {
-      expect(mockToastError).toHaveBeenCalledWith('Failed to read image', 'Bad image')
+      expect(mockToastError).toHaveBeenCalledWith(
+        'Failed to read image',
+        'Please choose a PNG, JPEG, or WEBP image under the size limit.',
+      )
     })
+    expect(JSON.stringify(mockToastError.mock.calls)).not.toContain('Bearer secret')
+    expect(JSON.stringify(mockToastError.mock.calls)).not.toContain('/Users/private')
   })
 })

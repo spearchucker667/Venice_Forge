@@ -6,8 +6,10 @@ import {
   isSupportedImageFile,
   assembleAttachmentContext,
   processFileAttachment,
+  readLocalPathAttachment,
   readTextFileAttachment,
 } from "./attachmentService";
+import { desktopFileReader } from "./desktopBridge";
 import type { Attachment } from "../types/attachment";
 
 // Mock the research provider to avoid network calls.
@@ -134,6 +136,27 @@ describe("processFileAttachment", () => {
   });
 });
 
+describe("readLocalPathAttachment", () => {
+  const readLocalFile = vi.mocked(desktopFileReader.readLocalFile);
+
+  beforeEach(() => readLocalFile.mockReset());
+
+  it("uses the main-process selected filename", async () => {
+    readLocalFile.mockResolvedValueOnce({ ok: true, content: "hello", filename: "selected.md" });
+    await expect(readLocalPathAttachment()).resolves.toMatchObject({
+      type: "file",
+      name: "selected.md",
+      content: "hello",
+    });
+    expect(readLocalFile).toHaveBeenCalledWith();
+  });
+
+  it("returns null when the main-process dialog is canceled", async () => {
+    readLocalFile.mockResolvedValueOnce({ ok: true, canceled: true });
+    await expect(readLocalPathAttachment()).resolves.toBeNull();
+  });
+});
+
 describe("readImageAttachment dimensions validation", () => {
   let originalCreateObjectURL: any;
   let originalRevokeObjectURL: any;
@@ -201,7 +224,18 @@ describe("readImageAttachment dimensions validation", () => {
     global.Image = MockCorruptImage as any;
 
     const file = new File([new ArrayBuffer(100)], "corrupt.png", { type: "image/png" });
-    await expect(processFileAttachment(file)).rejects.toThrow(/Failed to decode image dimensions/);
+    await expect(processFileAttachment(file)).rejects.toThrow("Failed to read image dimensions.");
+  });
+
+  it("does not propagate raw image inspection errors", async () => {
+    global.URL.createObjectURL = vi.fn(() => {
+      throw new Error("Authorization: Bearer secret-token /Users/private/image.png");
+    });
+
+    const file = new File([new ArrayBuffer(100)], "private.png", { type: "image/png" });
+    const rejection = processFileAttachment(file);
+    await expect(rejection).rejects.toThrow("Failed to read image dimensions.");
+    await expect(rejection).rejects.not.toThrow("secret-token");
   });
 });
 

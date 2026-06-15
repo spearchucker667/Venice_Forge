@@ -7,10 +7,18 @@ import fs from "fs/promises";
 import path from "path";
 import os from "os";
 
+const loggerMocks = vi.hoisted(() => ({ logError: vi.fn() }));
+
 vi.mock("electron", () => ({
   app: {
     getPath: vi.fn(() => os.tmpdir()),
   },
+}));
+
+vi.mock("./logger", () => ({
+  logError: loggerMocks.logError,
+  logInfo: vi.fn(),
+  logWarn: vi.fn(),
 }));
 
 import {
@@ -136,6 +144,21 @@ describe("chatStorage", () => {
     const result = await saveConversation(bad);
     expect(result.ok).toBe(false);
     expect(result.error).toMatch(/Invalid conversation schema/);
+  });
+
+  it("returns a generic error and basename-only diagnostics on write failure", async () => {
+    const writeSpy = vi.spyOn(fs, "writeFile").mockRejectedValueOnce(
+      Object.assign(new Error("EACCES /Users/private/chat-history/secret.json Bearer fixture"), { code: "EACCES" }),
+    );
+    loggerMocks.logError.mockClear();
+    const result = await saveConversation(makeConv({ id: "safe-id" }));
+    writeSpy.mockRestore();
+
+    expect(result).toEqual({ ok: false, error: "Failed to save conversation." });
+    const diagnostics = JSON.stringify(loggerMocks.logError.mock.calls);
+    expect(diagnostics).toContain("safe-id.json");
+    expect(diagnostics).not.toContain("/Users/private");
+    expect(diagnostics).not.toContain("Bearer fixture");
   });
 
   it("rejects path traversal ids", async () => {

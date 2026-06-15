@@ -9,8 +9,25 @@ describe('ApiKeyDialog', () => {
     useAuthStore.setState({
       apiKey: null,
       isConfigured: true,
+      setApiKey: vi.fn().mockResolvedValue(undefined),
       clearApiKey: vi.fn().mockResolvedValue(undefined),
     })
+  })
+
+  it('shows a safe error when setApiKey() fails without leaking raw exception text', async () => {
+    useAuthStore.setState({
+      isConfigured: false,
+      setApiKey: vi.fn().mockRejectedValueOnce(new Error('Authorization: Bearer secret /Users/private/key')),
+    })
+
+    render(<ApiKeyDialog open={true} onClose={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Venice API key'), { target: { value: 'venice_secret_fixture' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Failed to save key. Please check the value and try again.')
+    expect(alert.textContent).not.toContain('Bearer secret')
+    expect(alert.textContent).not.toContain('/Users/private')
   })
 
   // T-037 regression guard: Disconnect must await clearApiKey() and handle failures safely.

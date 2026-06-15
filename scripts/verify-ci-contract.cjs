@@ -24,6 +24,7 @@ const ciYaml = fs.readFileSync(ciYamlPath, 'utf8');
 const requiredGates = [
   'verify:safety-guard',
   'verify:markdown-links',
+  'verify:theme-tokens',
   'verify:model-aware-recipes',
   'verify:media-studio-power-tools',
   'verify:status-diagnostics',
@@ -35,7 +36,9 @@ const requiredGates = [
   'verify:storage-policy',
   'verify:research-workspace',
   'verify:network-boundaries',
-  'verify:release-packaging-hardening'
+  'verify:release-packaging-hardening',
+  'verify:ci-contract',
+  'verify:agent-docs'
 ];
 
 console.log("Checking CI contract...");

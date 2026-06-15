@@ -94,6 +94,11 @@ const mocks = vi.hoisted(() => ({
   setActiveChatMock: vi.fn(),
   readImageAttachmentMock: vi.fn(),
   isSupportedImageFileMock: vi.fn(),
+  toastErrorMock: vi.fn(),
+}));
+
+vi.mock("../../stores/toast-store", () => ({
+  toast: { success: vi.fn(), error: mocks.toastErrorMock },
 }));
 
 vi.mock("../../stores/settings-store", () => {
@@ -168,6 +173,7 @@ function resetMocks(): void {
   mocks.setActiveChatMock.mockReset();
   mocks.readImageAttachmentMock.mockReset();
   mocks.isSupportedImageFileMock.mockReset();
+  mocks.toastErrorMock.mockReset();
 
   mocks.upsertMock.mockResolvedValue(sampleCard);
   mocks.saveToLibMock.mockResolvedValue("prompt_new");
@@ -231,6 +237,23 @@ describe("CharacterEditor — Workflow section", () => {
     await waitFor(() => {
       expect(onClose).toHaveBeenCalled();
     });
+  });
+
+  it("uses generic errors for save, prompt-library, and start-chat failures", async () => {
+    const sensitive = new Error("Authorization: Bearer secret /Users/private/card.json");
+    mocks.upsertMock.mockRejectedValue(sensitive);
+    render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByText("Failed to save character. Please try again.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("character-editor-save-to-prompt-library"));
+    await waitFor(() => expect(mocks.toastErrorMock).toHaveBeenCalledWith("Could not save to Prompt Library", "Please try again."));
+
+    fireEvent.click(screen.getByTestId("character-editor-start-chat"));
+    await waitFor(() => expect(mocks.toastErrorMock).toHaveBeenCalledWith("Could not start chat", "Please try again."));
+    expect(JSON.stringify(mocks.toastErrorMock.mock.calls)).not.toContain("Bearer secret");
+    expect(JSON.stringify(mocks.toastErrorMock.mock.calls)).not.toContain("/Users/private");
   });
 
   it("Attach scene dropdown renders the scene options from useSceneComposerStore", () => {

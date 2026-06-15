@@ -103,8 +103,8 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
       const byteLength = Math.round((base64.length * 3) / 4);
       update("avatar", { data: base64, mimeType, byteLength });
       setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to read avatar image.");
+    } catch {
+      setError("Failed to read avatar image.");
     }
   };
 
@@ -149,7 +149,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
     try {
       await upsert(draft);
       onClose();
-    } catch (err) {
+    } catch {
       setError("Failed to save character. Please try again.");
     } finally {
       setSaving(false);
@@ -193,7 +193,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
       } else {
         toast.error("Could not save to Prompt Library", "Safety guard blocked the prompt.");
       }
-    } catch (err) {
+    } catch {
       toast.error("Could not save to Prompt Library", "Please try again.");
     }
   };
@@ -209,7 +209,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
       } else {
         toast.error("Could not start chat", "Storage rejected the request.");
       }
-    } catch (err) {
+    } catch {
       toast.error("Could not start chat", "Please try again.");
     }
   };

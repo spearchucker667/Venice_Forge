@@ -421,7 +421,7 @@ describe("server.ts Jina proxy header allowlist", () => {
     expect(forwardHeaders).not.toHaveProperty("X-Forwarded-For");
   });
 
-  it("extracts Authorization bearer into the Jina key without forwarding raw renderer Authorization", async () => {
+  it("drops renderer-supplied Jina credentials", async () => {
     const fetchMock = vi.fn(async () => new Response("ok", {
       status: 200,
       headers: { "content-type": "text/plain" },
@@ -433,7 +433,10 @@ describe("server.ts Jina proxy header allowlist", () => {
       .set("X-Venice-Forge-Family-Safe-Mode", "false")
       .send({
         url: "https://r.jina.ai/http://example.com",
-        headers: { Authorization: "Bearer test_jina_key" },
+        headers: {
+          Authorization: "Bearer test_jina_key",
+          "x-jina-api-key": "test_jina_key_2",
+        },
       });
 
     expect(fetchMock).toHaveBeenCalled();
@@ -441,7 +444,8 @@ describe("server.ts Jina proxy header allowlist", () => {
       .mock.calls[0]?.[1];
     expect(init).toBeDefined();
     const forwardHeaders = init?.headers as Record<string, string> | undefined;
-    expect(forwardHeaders?.Authorization).toBe("Bearer test_jina_key");
+    expect(forwardHeaders).not.toHaveProperty("Authorization");
+    expect(forwardHeaders).not.toHaveProperty("x-jina-api-key");
   });
 });
 

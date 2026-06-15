@@ -168,7 +168,7 @@ export function PersonaManager({ disabled = false }: { disabled?: boolean } = {}
   );
 }
 
-function PersonaEditor({ personaId, onClose, onSave, disabled = false }: { personaId: string; onClose: () => void; onSave: (p: UserPersonaV1) => Promise<void>; disabled?: boolean }) {
+export function PersonaEditor({ personaId, onClose, onSave, disabled = false }: { personaId: string; onClose: () => void; onSave: (p: UserPersonaV1) => Promise<void>; disabled?: boolean }) {
   const personas = usePersonaStore((s) => s.personas);
   const initial = useMemo(() => personas.find((p) => p.id === personaId), [personas, personaId]);
   const [draft, setDraft] = useState<UserPersonaV1 | null>(initial ?? null);
@@ -197,7 +197,7 @@ function PersonaEditor({ personaId, onClose, onSave, disabled = false }: { perso
     setError(null);
     try {
       await onSave(draft);
-    } catch (err) {
+    } catch {
       setError("Failed to save persona. Please try again.");
     } finally {
       setSaving(false);

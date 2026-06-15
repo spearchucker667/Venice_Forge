@@ -218,9 +218,9 @@ function sniffContentType(buffer: Buffer): string | null {
   return null;
 }
 
-/** Reads a file from a path the renderer provides. The path must be inside
- *  one of the allowlisted base directories (Downloads / Documents / Desktop /
- *  Pictures/Venice Forge). Returns the file bytes as a data URL plus metadata. */
+/** Reads an existing app-managed media path. Arbitrary user-library paths are
+ *  intentionally rejected; user-selected imports must use a main-process
+ *  dialog flow. Returns validated image bytes as a data URL plus metadata. */
 export async function importMediaFromPath(input: { filePath: string }): Promise<MediaImportResult> {
   try {
     if (typeof input?.filePath !== "string" || input.filePath.length === 0) {

@@ -71,7 +71,7 @@ Equivalent instructions live in `AGENTS.md`, `CLAUDE.md`, and
 The renderer (`src/`) runs identically in both modes. Transport is selected at runtime by `isElectron()` in `src/services/desktopBridge.ts`:
 
 - **Electron mode**: renderer calls `window.veniceForge.*` (the contextBridge API exposed by `electron/preload.ts`), which invokes IPC channels handled in `electron/ipc/handlers.ts`. The main process holds API keys (Venice + optional Jina) in `safeStorage` and makes HTTPS calls directly to `api.venice.ai` (and optionally to Jina endpoints).
-- **Web mode**: renderer calls `fetch('/api/venice/...')`, proxied by the Express server in `server.ts` to `api.venice.ai`. The server injects `Authorization` from `VENICE_API_KEY` in `.env`; browser Settings cannot save or forward an API key.
+- **Web mode**: renderer calls the Express server in `server.ts`. Venice uses server-side `VENICE_API_KEY`; Jina uses server-side `JINA_API_KEY`. Browser Settings cannot forward provider credentials, and the Jina proxy drops renderer-supplied `Authorization` / `x-jina-api-key` headers.
 
 All Venice API requests go through `src/services/veniceClient.ts` — `veniceFetch()` for non-streaming and `veniceStreamChat()` for chat streams. Both paths include up to 3 retries with exponential back-off for 429/500/503 responses. (See also `src/lib/venice-client.ts` for the thin Electron passthrough used by some legacy hooks.)
 
@@ -119,7 +119,7 @@ The `src/research/` directory contains a pluggable provider system for search, s
 
 - **Providers**: `veniceResearchProvider.ts` (Venice `/augment/*`), `jinaResearchProvider.ts` (`r.jina.ai` / `s.jina.ai`), `genericHttpScrapeProvider.ts` (SSRF-safe fallback, disabled by default)
 - **Agent**: `researchRunner.ts` enforces budgets (`maxQueries`, `maxPages`, `totalJobTimeoutMs`); `researchSynthesis.ts` builds evidence-only prompts; `socialDiscovery.ts` generates platform-specific `site:` queries for public-profile discovery
-- **Key rule**: The renderer never sees raw API keys. Jina keys are stored via `safeStorage` alongside Venice keys.
+- **Key rule**: The renderer never sees raw API keys. Electron stores Jina keys via `safeStorage`; web mode uses only server-side `JINA_API_KEY` and rejects renderer-supplied Jina credentials.
 
 ### Theme System
 
@@ -283,6 +283,7 @@ Copy `.env.example` to `.env` for web-mode dev:
 | Variable | Purpose |
 |----------|---------|
 | `VENICE_API_KEY` | Venice API key (required for web mode) |
+| `JINA_API_KEY` | Optional server-side Jina key for web research; renderer credentials are ignored |
 | `PORT` | Express port (default: 3000) |
 | `HOST` | Express bind host (default: 127.0.0.1) |
 | `VENICE_API_HOST` | Upstream API host (default: api.venice.ai) |

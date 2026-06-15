@@ -79,8 +79,8 @@ export function redactSecrets<T>(value: T, seen = new WeakSet<object>()): T {
  * @returns A redacted string representation.
  */
 export function redactErrorMessage(value: unknown): string {
-  if (value instanceof Error) return redactString(value.message);
-  return redactString(String(value || "Unknown error"));
+  if (value instanceof Error) return sanitizeErrorText(value.message);
+  return sanitizeErrorText(String(value || "Unknown error"));
 }
 
 /**
