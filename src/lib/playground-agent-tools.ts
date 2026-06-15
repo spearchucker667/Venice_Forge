@@ -28,6 +28,28 @@ import type { AgentModel } from '../hooks/use-agent-models'
 
 const NODE_TYPES = Object.keys(NODE_SCHEMAS) as VeniceNodeType[]
 
+// Safe identifiers: alphanumeric, underscore, hyphen; capped to avoid injection
+// or overflow from model-supplied ids.
+const MAX_ID_LEN = 64
+const ID_RE = /^[a-zA-Z0-9_-]+$/
+
+function isValidId(value: unknown): value is string {
+  return typeof value === 'string' && value.length <= MAX_ID_LEN && ID_RE.test(value)
+}
+
+function safeIdError(field: string): string {
+  return `Invalid ${field}. Use up to ${MAX_ID_LEN} alphanumeric characters, hyphens, or underscores.`
+}
+
+// Union of all known node params so the tool schemas can declare
+// additionalProperties: false rather than allowing arbitrary keys.
+const PARAM_SCHEMA_PROPERTIES: Record<string, { type: ('string' | 'number' | 'boolean')[] }> = {}
+for (const schema of Object.values(NODE_SCHEMAS)) {
+  for (const p of schema.params) {
+    PARAM_SCHEMA_PROPERTIES[p.name] = { type: ['string', 'number', 'boolean'] }
+  }
+}
+
 interface ToolDefinition {
   type: 'function'
   function: {
@@ -64,12 +86,15 @@ const TOOLS: ToolDefinition[] = [
           },
           id: {
             type: 'string',
+            pattern: '^[a-zA-Z0-9_-]{1,64}$',
+            maxLength: MAX_ID_LEN,
             description: 'Optional explicit id. If omitted, a uuid is generated. Use this id in subsequent connect/set_params calls.',
           },
           params: {
             type: 'object',
             description: 'Node-specific params (model, prompt, temperature, etc). See system prompt for the full schema per node type.',
-            additionalProperties: true,
+            properties: PARAM_SCHEMA_PROPERTIES,
+            additionalProperties: false,
           },
         },
         required: ['node_type'],
@@ -85,8 +110,8 @@ const TOOLS: ToolDefinition[] = [
       parameters: {
         type: 'object',
         properties: {
-          source: { type: 'string', description: 'Source node id.' },
-          target: { type: 'string', description: 'Target node id.' },
+          source: { type: 'string', pattern: '^[a-zA-Z0-9_-]{1,64}$', maxLength: MAX_ID_LEN, description: 'Source node id.' },
+          target: { type: 'string', pattern: '^[a-zA-Z0-9_-]{1,64}$', maxLength: MAX_ID_LEN, description: 'Target node id.' },
         },
         required: ['source', 'target'],
         additionalProperties: false,
@@ -101,8 +126,8 @@ const TOOLS: ToolDefinition[] = [
       parameters: {
         type: 'object',
         properties: {
-          id: { type: 'string' },
-          params: { type: 'object', additionalProperties: true },
+          id: { type: 'string', pattern: '^[a-zA-Z0-9_-]{1,64}$', maxLength: MAX_ID_LEN },
+          params: { type: 'object', properties: PARAM_SCHEMA_PROPERTIES, additionalProperties: false },
         },
         required: ['id', 'params'],
         additionalProperties: false,
@@ -116,7 +141,7 @@ const TOOLS: ToolDefinition[] = [
       description: 'Remove a node and all its connected edges.',
       parameters: {
         type: 'object',
-        properties: { id: { type: 'string' } },
+        properties: { id: { type: 'string', pattern: '^[a-zA-Z0-9_-]{1,64}$', maxLength: MAX_ID_LEN } },
         required: ['id'],
         additionalProperties: false,
       },
@@ -156,7 +181,7 @@ const TOOLS: ToolDefinition[] = [
         'Pause the build to ask the user a clarifying question (e.g., "Vertical (9:16) or square (1:1)?"). The build will resume on their reply.',
       parameters: {
         type: 'object',
-        properties: { question: { type: 'string' } },
+        properties: { question: { type: 'string', maxLength: 500 } },
         required: ['question'],
         additionalProperties: false,
       },
@@ -170,7 +195,7 @@ const TOOLS: ToolDefinition[] = [
         'Signal the workflow is complete. Provide a one-sentence summary of what you built for the user.',
       parameters: {
         type: 'object',
-        properties: { summary: { type: 'string' } },
+        properties: { summary: { type: 'string', maxLength: 500 } },
         required: ['summary'],
         additionalProperties: false,
       },
@@ -363,6 +388,7 @@ function handleTool(name: string, args: Record<string, unknown>, opts: RunOption
       case 'add_node': {
         const node_type = args.node_type as VeniceNodeType
         if (!node_type || !(node_type in NODE_SCHEMAS)) return { error: `Unknown node_type: ${String(node_type)}` }
+        if (typeof args.id === 'string' && args.id && !isValidId(args.id)) return { error: safeIdError('node id') }
         const id = (typeof args.id === 'string' && args.id) || generateId()
         const rawParams = (typeof args.params === 'object' && args.params !== null ? args.params : {}) as Record<string, unknown>
 
@@ -406,13 +432,15 @@ function handleTool(name: string, args: Record<string, unknown>, opts: RunOption
       case 'connect': {
         const source = String(args.source ?? '')
         const target = String(args.target ?? '')
-        if (!source || !target) return { error: 'Both source and target are required.' }
+        if (!isValidId(source)) return { error: safeIdError('source id') }
+        if (!isValidId(target)) return { error: safeIdError('target id') }
         const r = opts.applyPatch({ op: 'connect', source, target })
         if ('error' in r) return { error: r.error }
         return { ok: true, edge_id: r.edge_id }
       }
       case 'set_params': {
         const id = String(args.id ?? '')
+        if (!isValidId(id)) return { error: safeIdError('node id') }
         const params = (typeof args.params === 'object' && args.params !== null ? args.params : {}) as Partial<VeniceNodeData>
         const r = opts.applyPatch({ op: 'set_params', id, params })
         if ('error' in r) return { error: r.error }
@@ -420,6 +448,7 @@ function handleTool(name: string, args: Record<string, unknown>, opts: RunOption
       }
       case 'remove_node': {
         const id = String(args.id ?? '')
+        if (!isValidId(id)) return { error: safeIdError('node id') }
         const r = opts.applyPatch({ op: 'remove_node', id })
         if ('error' in r) return { error: r.error }
         return { ok: true }
@@ -439,8 +468,10 @@ function handleTool(name: string, args: Record<string, unknown>, opts: RunOption
       }
     }
     return { error: `Unknown tool: ${name}` }
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : 'Tool failed' }
+  } catch {
+    // Never return raw exception text to the model or UI; it may contain
+    // paths, stack traces, or other implementation details.
+    return { error: 'Tool execution failed. Please check your arguments and try again.' }
   }
 }
 

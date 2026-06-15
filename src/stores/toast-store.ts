@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { redactErrorMessage } from '../shared/redaction'
 
 export type ToastVariant = 'info' | 'success' | 'error' | 'warn'
 
@@ -44,7 +45,12 @@ export const toast = {
   error: (title: string, description?: string, action?: Toast['action']) =>
     useToastStore.getState().push({ variant: 'error', title, description, action, duration: 6500 }),
   fromError: (err: unknown, title = 'Something went wrong') => {
-    const description = err instanceof Error ? err.message : typeof err === 'string' ? err : undefined
+    let description: string | undefined
+    if (err instanceof Error) {
+      description = redactErrorMessage(err.message)
+    } else if (typeof err === 'string') {
+      description = redactErrorMessage(err)
+    }
     return useToastStore.getState().push({ variant: 'error', title, description, duration: 6500 })
   },
 }

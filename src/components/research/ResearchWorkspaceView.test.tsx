@@ -6,6 +6,7 @@ import { useResearchStore } from '../../stores/research-store';
 import type { ResearchState } from '../../stores/research-store';
 import React from 'react';
 import { sanitizeResearchSession } from '../../types/research';
+import type { ResearchSession, ResearchSource } from '../../types/research';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -28,6 +29,44 @@ vi.mock('../../stores/toast-store', () => ({
 vi.mock('../../stores/workflow-template-store', () => ({
   useWorkflowTemplateStore: () => ({ createWorkflow: vi.fn() }),
 }));
+
+function mockSessionWithSources(
+  sources: Array<{ title: string; url?: string }>,
+): ResearchSession {
+  const now = new Date().toISOString();
+  return {
+    id: 's1',
+    title: 'Active Research',
+    scope: 'global',
+    projectId: null,
+    description: undefined,
+    tags: [],
+    queryHistory: [],
+    sources: sources.map(
+      (s, i): ResearchSource => ({
+        id: `source-${i}`,
+        kind: 'search_result',
+        provider: 'venice',
+        title: s.title,
+        url: s.url,
+        excerpt: undefined,
+        summary: undefined,
+        query: undefined,
+        retrievedAt: now,
+        citations: [],
+        tags: [],
+        archivedAt: null,
+        metadata: {},
+      }),
+    ),
+    findings: [],
+    favorite: false,
+    archivedAt: null,
+    createdAt: now,
+    updatedAt: now,
+    metadata: {},
+  };
+}
 
 function researchState(overrides: Partial<ResearchState>): ResearchState {
   return {
@@ -203,5 +242,50 @@ describe('ResearchWorkspaceView', () => {
     for (const re of forbidden) {
       expect(source, `Source contains forbidden class ${re}`).not.toMatch(re);
     }
+  });
+
+  // REGRESSION GUARD (T-055): research source links must only render URLs
+  // that pass the protocol allowlist (http/https). Dangerous schemes such as
+  // javascript:, file:, or data: must not produce clickable anchors, even if
+  // a stored source record somehow contains them.
+  it('renders only allowlisted http/https source URLs as links', () => {
+    const session = mockSessionWithSources([
+      { title: 'Safe HTTPS', url: 'https://example.com' },
+      { title: 'Safe HTTP', url: 'http://example.com' },
+      { title: 'Unsafe JS', url: 'javascript:alert(1)' },
+      { title: 'Unsafe File', url: 'file:///etc/passwd' },
+      { title: 'Unsafe Data', url: 'data:text/html,<script>alert(1)</script>' },
+    ]);
+
+    vi.mocked(useResearchStore).mockReturnValue(
+      researchState({
+        sessions: [session],
+        activeSessionId: 's1',
+      }),
+    );
+
+    render(<ResearchWorkspaceView />);
+
+    const safeHttps = screen.getByRole('link', { name: 'Safe HTTPS' });
+    expect(safeHttps).toHaveAttribute('href', 'https://example.com/');
+    expect(safeHttps).toHaveAttribute('target', '_blank');
+    expect(safeHttps).toHaveAttribute('rel', 'noreferrer');
+
+    const safeHttp = screen.getByRole('link', { name: 'Safe HTTP' });
+    expect(safeHttp).toHaveAttribute('href', 'http://example.com/');
+
+    expect(
+      screen.queryByRole('link', { name: 'Unsafe JS' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Unsafe File' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Unsafe Data' }),
+    ).not.toBeInTheDocument();
+
+    expect(screen.getByText('Unsafe JS')).toBeInTheDocument();
+    expect(screen.getByText('Unsafe File')).toBeInTheDocument();
+    expect(screen.getByText('Unsafe Data')).toBeInTheDocument();
   });
 });

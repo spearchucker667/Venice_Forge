@@ -12,6 +12,7 @@ import { app, shell } from "electron";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import zlib from "node:zlib";
 import { MIB, VENICE_MAX_BODY_BYTES } from "../../src/shared/limits";
 
@@ -369,7 +370,7 @@ function isValidSha256(s: string): boolean {
   return typeof s === "string" && /^[0-9a-f]{64}$/i.test(s);
 }
 
-/** Atomically writes the thumb bytes to `<thumbsDir>/<sha>.webp`. */
+/** Atomically writes the thumb bytes to `<thumbsDir>/<sha>.png`. */
 async function writeThumb(targetPath: string, buffer: Buffer): Promise<void> {
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
   const tmpPath = `${targetPath}.${process.pid}.${Date.now()}.tmp`;
@@ -383,7 +384,7 @@ function stripDataUrl(s: string): string {
 }
 
 /** Generates a thumbnail and stores it on disk. The sha256 is used as the
- *  cache key; the file is keyed `<sha>.webp` and is content-addressable.
+ *  cache key; the file is keyed `<sha>.png` and is content-addressable.
  *  Returns the on-disk path and a file:// URL the renderer can drop into
  *  an <img src>.
  *
@@ -407,13 +408,13 @@ export async function generateMediaThumb(input: MediaThumbInput): Promise<MediaT
     }
 
     const maxDim = Math.max(32, Math.min(1024, Math.floor(input.maxDimension ?? THUMB_MAX_DIMENSION)));
-    const targetPath = path.join(thumbsDir(), `${input.sha256.toLowerCase()}.webp`);
+    const targetPath = path.join(thumbsDir(), `${input.sha256.toLowerCase()}.png`);
 
     // Fast path: cache hit.
     try {
       const stat = await fs.stat(targetPath);
       if (stat.isFile() && stat.size > 0) {
-        return { ok: true, filePath: targetPath, url: `file://${targetPath}` };
+        return { ok: true, filePath: targetPath, url: pathToFileURL(targetPath).href };
       }
     } catch {
       /* not cached */
@@ -434,7 +435,7 @@ export async function generateMediaThumb(input: MediaThumbInput): Promise<MediaT
     const webp = encodePng(thumb.pixels, thumb.width, thumb.height);
 
     await writeThumb(targetPath, webp);
-    return { ok: true, filePath: targetPath, url: `file://${targetPath}` };
+    return { ok: true, filePath: targetPath, url: pathToFileURL(targetPath).href };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
@@ -598,8 +599,7 @@ function downscalePixels(pixels: Uint8Array, width: number, height: number, max:
 
 /** Encodes RGBA pixels as a minimal PNG (8-bit RGBA, non-interlaced,
  *  filter type 0). Lossless and browser-compatible. The output file is
- *  named `.webp` for cache-key compatibility but is actually PNG — the
- *  renderer treats it as opaque bytes and displays it via <img>. */
+ *  named `.png` and the renderer treats it as opaque bytes and displays it via <img>. */
 function encodePng(pixels: Uint8Array, width: number, height: number): Buffer {
   const stride = width * 4;
   const raw = Buffer.alloc((stride + 1) * height);

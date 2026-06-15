@@ -57,6 +57,29 @@ describe("media-export-bundle (VERIFY-044)", () => {
       expect(text).not.toContain("sha256")
     })
 
+    it("redacts secrets from prompt fields and nested recipes", () => {
+      const sidecar = buildSidecar(makeItem({
+        prompt: "use sk-1234567890abcdef",
+        negative: "OPENAI_API_KEY=sk-fedcba0987654321",
+        recipe: {
+          prompt: "Bearer secret-token-value",
+          model: "flux-dev",
+          metadata: { Api_Key: "nested-secret" },
+        } as never,
+      }), "2026-06-08T00:00:00.000Z")
+      const text = JSON.stringify(sidecar)
+
+      expect(text).not.toContain("sk-1234567890abcdef")
+      expect(text).not.toContain("sk-fedcba0987654321")
+      expect(text).not.toContain("secret-token-value")
+      expect(text).not.toContain("nested-secret")
+    })
+
+    it("preserves the media item's original creation timestamp", () => {
+      const sidecar = buildSidecar(makeItem({ timestamp: Date.parse("2026-01-02T03:04:05.000Z") }), "2026-06-08T00:00:00.000Z")
+      expect(sidecar.createdAt).toBe("2026-01-02T03:04:05.000Z")
+    })
+
     it("includes the recipe when present (without `cfg` legacy alias)", () => {
       const item = makeItem({
         recipe: {
@@ -145,6 +168,13 @@ describe("media-export-bundle (VERIFY-044)", () => {
     it("falls back to the id when the prompt is empty", () => {
       const name = buildMediaFilename(makeItem({ prompt: "" }))
       expect(name).toMatch(/^m-1.*\.png$/)
+    })
+
+    it("sanitises the id prefix so it cannot influence the export path", () => {
+      const name = buildMediaFilename(makeItem({ prompt: "safe" }, "../../outside"))
+      expect(name).toBe(".._.._outsid-safe.png")
+      expect(name).not.toContain("/")
+      expect(name).not.toContain("\\")
     })
   })
 

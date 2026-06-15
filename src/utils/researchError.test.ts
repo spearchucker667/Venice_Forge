@@ -67,4 +67,9 @@ describe("describeResearchError", () => {
     expect(msg).toMatch(/Jina API is temporarily unavailable/);
     expect(msg).not.toMatch(/API key is not configured/);
   });
+
+  it("does not classify an unrelated digit 5 as a server outage", () => {
+    expect(describeResearchError({ message: "parser failed at position 5" }, "x"))
+      .toBe("parser failed at position 5");
+  });
 });

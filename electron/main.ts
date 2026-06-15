@@ -3,9 +3,9 @@
 
 // Code Owner: fayeblade (@spearchucker667)
 // Primary maintainer and security gatekeeper for the Electron main process.
-import { app, BrowserWindow, dialog, shell, session } from "electron";
+import { app, BrowserWindow, dialog, shell, session, protocol, net } from "electron";
 import path from "path";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 import { registerIpcHandlers } from "./ipc/handlers";
 import { initializeConfig } from "./services/configService";
 import { logError, logInfo } from "./services/logger";
@@ -14,8 +14,13 @@ import { checkPathContained } from "./utils/navigation";
 import { isTrustedExternalUrl } from "./utils/urlSecurity";
 import { startBridgeServer, stopBridgeServer } from "./services/bridgeServer";
 import { isValidBridgeHost } from "./utils/bridgeHost";
+import { getCharacterImageCacheDir } from "./services/characterImageCache";
 
 export { isValidBridgeHost };
+
+protocol.registerSchemesAsPrivileged([
+  { scheme: "venice-character-cache", privileges: { secure: true, standard: true, supportFetchAPI: true } }
+]);
 
 /** Indicates whether the app is running in development mode. */
 const isDev = !app.isPackaged;
@@ -54,7 +59,7 @@ function rendererCsp(): string {
     "default-src 'self'",
     `script-src ${scriptSrc}`,
     `style-src ${styleSrc}`,
-    "img-src 'self' data: blob: https:",
+    "img-src 'self' data: blob: https: venice-character-cache:",
     `connect-src ${connectSrc}`,
     "font-src 'self' data:",
     "media-src 'self' blob:",
@@ -299,7 +304,25 @@ if (!gotLock) {
     }
   });
 
-  app.whenReady().then(bootstrap).catch((err) => {
+  app.whenReady().then(() => {
+    protocol.handle("venice-character-cache", (request) => {
+      const parsedUrl = new URL(request.url);
+      const key = parsedUrl.hostname ? parsedUrl.hostname : parsedUrl.pathname.replace(/^\/+/, "");
+
+      if (!/^[a-f0-9]{64}$/.test(key)) {
+        return new Response("Invalid image key", { status: 400 });
+      }
+
+      const dp = path.join(getCharacterImageCacheDir(), `${key}.bin`);
+      if (!checkPathContained(dp, getCharacterImageCacheDir())) {
+        return new Response("Forbidden", { status: 403 });
+      }
+
+      return net.fetch(pathToFileURL(dp).href);
+    });
+
+    return bootstrap();
+  }).catch((err) => {
     logError("Bootstrap failed", err);
     app.quit();
   });

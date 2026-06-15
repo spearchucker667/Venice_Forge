@@ -236,7 +236,9 @@ export function redactResearchSecrets(content: string): string {
   let redacted = content;
   
   // Venice / Jina / Generic keys
-  redacted = redacted.replace(/\b(venice|sk|jina)_[a-zA-Z0-9]{32,}\b/g, '[REDACTED_KEY]');
+  redacted = redacted
+    .replace(/\b(?:venice|jina)_[a-zA-Z0-9]{20,}\b/g, '[REDACTED_KEY]')
+    .replace(/\bsk-[a-zA-Z0-9._~-]{20,}\b/g, '[REDACTED_KEY]');
   
   // Bearer tokens
   redacted = redacted.replace(/Bearer\s+[a-zA-Z0-9\-._~+/]+=*/g, 'Bearer [REDACTED_TOKEN]');
@@ -272,13 +274,13 @@ export function sanitizeResearchUrl(url: unknown): string | undefined {
       return undefined;
     }
     
-    if (!researchUrlIsSafe(parsed.toString())) {
-      return undefined;
-    }
-    
     // Remove credentials from URL
     parsed.username = '';
     parsed.password = '';
+
+    if (!researchUrlIsSafe(parsed.toString())) {
+      return undefined;
+    }
     
     return parsed.toString();
   } catch {
@@ -290,7 +292,6 @@ function researchUrlIsSafe(url: string): boolean {
   try {
     const parsed = new URL(url);
     const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
-    if (parsed.username || parsed.password) return true;
     if (hostname === "localhost" || hostname.endsWith(".localhost") || hostname.endsWith(".local") || hostname.endsWith(".internal")) return false;
     if (/^[0.]+$/.test(hostname) || /^\d+$/.test(hostname) || /^0x[0-9a-f]+(?:\.[0-9a-f]+){0,3}$/i.test(hostname)) return false;
     const parts = hostname.split(".").map(Number);

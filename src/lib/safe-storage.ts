@@ -29,23 +29,24 @@ import * as logger from '../shared/logger'
 export function createSafeStorage(): StateStorage {
   return {
     getItem: (name) => {
-      try { return localStorage.getItem(name) /* localStorage-allowed: zustand persist safeStorage wrapper */ } catch { return null }
+      try { return typeof window !== 'undefined' && window.localStorage ? window.localStorage.getItem(name) /* localStorage-allowed: zustand persist safeStorage wrapper */ : null } catch { return null }
     },
     setItem: (name, value) => {
       try {
-        localStorage.setItem(name, value) /* localStorage-allowed: zustand persist safeStorage wrapper */
+        if (typeof window === 'undefined' || !window.localStorage /* localStorage-allowed: zustand persist safeStorage wrapper */) return
+        window.localStorage.setItem(name, value) /* localStorage-allowed: zustand persist safeStorage wrapper */
       } catch (err) {
         if (!isQuotaErr(err)) { logger.warn('[storage] setItem failed', name, err); return }
         const pruned = pruneOversized(value)
         if (pruned) {
-          try { localStorage.setItem(name, pruned) /* localStorage-allowed: zustand persist safeStorage wrapper */; return } catch { /* fall through */ }
+          try { window.localStorage.setItem(name, pruned) /* localStorage-allowed: zustand persist safeStorage wrapper */; return } catch { /* fall through */ }
         }
-        try { localStorage.removeItem(name) /* localStorage-allowed: zustand persist safeStorage wrapper */ } catch { /* noop */ }
+        try { window.localStorage.removeItem(name) /* localStorage-allowed: zustand persist safeStorage wrapper */ } catch { /* noop */ }
         logger.warn(`[storage] quota exceeded for ${name}; cleared persisted state`)
       }
     },
     removeItem: (name) => {
-      try { localStorage.removeItem(name) /* localStorage-allowed: zustand persist safeStorage wrapper */ } catch { /* noop */ }
+      try { if (typeof window !== 'undefined' && window.localStorage) window.localStorage.removeItem(name) /* localStorage-allowed: zustand persist safeStorage wrapper */ } catch { /* noop */ }
     },
   }
 }

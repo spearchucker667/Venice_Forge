@@ -8,10 +8,21 @@ const BEARER_PATTERN = /Bearer\s+[A-Za-z0-9._~+/=-]+/gi;
 
 /** Pattern matching secret assignment expressions like apiKey="value". */
 const ASSIGNMENT_PATTERN =
-  /\b(api[-_ ]?key|token|secret|password)\s*[:=]\s*["']?[^"',\s}]+/gi;
+  /\b(api[-_ ]?key|token|secret|password)\s*[:=]\s*["']?[^"',\s}]+["']?/gi;
 
 /** Pattern matching Venice API keys (vn-...). */
 const VENICE_KEY_PATTERN = /\bvn-[A-Za-z0-9._~+/=-]{8,}\b/gi;
+
+/** Pattern matching common OpenAI-compatible API keys (sk-...). */
+const SK_KEY_PATTERN = /\bsk-[A-Za-z0-9._~+/=-]{8,}\b/gi;
+
+/** Pattern matching named environment-variable secret assignments. */
+const ENV_ASSIGNMENT_PATTERN =
+  /\b([A-Z][A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD))\s*=\s*["']?[^"'\s,;}]+["']?/g;
+
+/** Pattern matching local source URLs and absolute file paths that can leak machine/user info. */
+const LOCAL_PATH_PATTERN =
+  /(?:https?:\/\/|file:\/\/)[^\s"')]+|\/(?:Users|home|root|private)\/[^\s"')]+|[A-Za-z]:\\[^\s"')]+/gi;
 
 /**
  * Redacts sensitive patterns from a single string.
@@ -22,7 +33,18 @@ function redactString(value: string): string {
   return value
     .replace(BEARER_PATTERN, "Bearer [REDACTED]")
     .replace(ASSIGNMENT_PATTERN, "$1=[REDACTED]")
-    .replace(VENICE_KEY_PATTERN, "[REDACTED]");
+    .replace(VENICE_KEY_PATTERN, "[REDACTED]")
+    .replace(SK_KEY_PATTERN, "[REDACTED]")
+    .replace(ENV_ASSIGNMENT_PATTERN, "$1=[REDACTED]");
+}
+
+/**
+ * Redacts local paths and source URLs from a string.
+ * @param value The raw string to sanitize.
+ * @returns The redacted string.
+ */
+function redactPaths(value: string): string {
+  return value.replace(LOCAL_PATH_PATTERN, "[REDACTED-PATH]");
 }
 
 /**
@@ -59,4 +81,24 @@ export function redactSecrets<T>(value: T, seen = new WeakSet<object>()): T {
 export function redactErrorMessage(value: unknown): string {
   if (value instanceof Error) return redactString(value.message);
   return redactString(String(value || "Unknown error"));
+}
+
+/**
+ * Sanitizes a string for logging or display by redacting secrets and local paths.
+ * @param value The raw string to sanitize.
+ * @returns The sanitized string.
+ */
+export function sanitizeErrorText(value: string): string {
+  return redactPaths(redactString(value));
+}
+
+/**
+ * Redacts secrets and local paths from an Error, returning a safe details object.
+ * @param error The error to sanitize.
+ * @returns A safe object with redacted message and optional stack.
+ */
+export function redactErrorDetails(error: Error): { message: string; stack?: string } {
+  const message = sanitizeErrorText(error.message);
+  const stack = error.stack ? sanitizeErrorText(error.stack) : undefined;
+  return { message, stack };
 }

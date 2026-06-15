@@ -112,8 +112,13 @@ else
   SCRIPT_SHA256="$(shasum -a 256 "$SCRIPT_ABS_PATH" | awk '{print $1}')"
 fi
 
-echo "==> Repo root: $REPO_ROOT"
-echo "==> Output dir: $OUT_DIR"
+if [[ "${INCLUDE_PRIVATE_AUDIT_METADATA:-0}" == "1" ]]; then
+  echo "==> Repo root: $REPO_ROOT"
+  echo "==> Output dir: $OUT_DIR"
+else
+  echo "==> Repo: $REPO_NAME"
+  echo "==> Output: private path omitted"
+fi
 echo "==> Staging clean copy..."
 
 mkdir -p "$STAGE_DIR"
@@ -532,7 +537,8 @@ SECRET_SCAN_SUMMARY="$META_DIR/SECRET_SCAN_SUMMARY.txt"
 
       scan_pattern "api-key-or-secret"    "(api[_-]?key|secret|token|password|passwd)"    "example-or-docs"
       scan_pattern "bearer-token"         "bearer[[:space:]]+[A-Za-z0-9._~+/=-]{20,}"    "high-risk-source"
-      scan_pattern "sk-token"             "sk-[A-Za-z0-9]{20,}"                           "high-risk-source"
+      scan_pattern "sk-token"             "sk-[A-Za-z0-9._~+/=-]{8,}"                     "high-risk-source"
+      scan_pattern "venice-vn-token"      "vn-[A-Za-z0-9._~+/=-]{8,}"                     "high-risk-source"
       scan_pattern "github-token"         "ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}" "high-risk-source"
       scan_pattern "aws-access-key"       "AKIA[0-9A-Z]{16}"                              "high-risk-source"
     )
@@ -653,7 +659,11 @@ fi
 echo
 echo "DONE"
 echo "===="
-echo "ZIP:     $ZIP_PATH"
+if [[ "${INCLUDE_PRIVATE_AUDIT_METADATA:-0}" == "1" ]]; then
+  echo "ZIP:     $ZIP_PATH"
+else
+  echo "ZIP:     $(basename "$ZIP_PATH") (output path omitted)"
+fi
 echo "SIZE:    $ZIP_SIZE"
 echo "SHA256:  $ZIP_SHA"
 echo

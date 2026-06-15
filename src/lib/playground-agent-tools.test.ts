@@ -203,4 +203,142 @@ describe('playground-agent-tools', () => {
     expect(steps[0].result.error).toBeDefined()
     expect(steps[0].result.error).toContain("Unknown model 'nonexistent-model'")
   })
+
+  it('T-127: does not leak raw exception text when applyPatch throws', async () => {
+    vi.mocked(venice).mockResolvedValueOnce({
+      choices: [{
+        message: {
+          content: null,
+          tool_calls: [
+            {
+              id: 'call-1',
+              type: 'function',
+              function: {
+                name: 'add_node',
+                arguments: JSON.stringify({ node_type: 'textInput', id: 'ok-id', params: { inputText: 'hello' } }),
+              },
+            },
+            {
+              id: 'call-2',
+              type: 'function',
+              function: {
+                name: 'done',
+                arguments: JSON.stringify({ summary: 'Finished' }),
+              },
+            }
+          ]
+        },
+        finish_reason: 'tool_calls'
+      }]
+    })
+
+    const applyPatch = vi.fn().mockImplementation(() => {
+      throw new Error('secret/path/leaked: /Users/admin/.venice/config.yaml')
+    })
+    const steps: RunStep[] = []
+
+    await runAgentTools({
+      userMessage: 'add node',
+      draft: { nodes: [], edges: [] },
+      history: [],
+      model: 'qwen3-next-80b',
+      applyPatch,
+      onStep: (step) => steps.push(step),
+    })
+
+    expect(steps[0].result.error).toBe('Tool execution failed. Please check your arguments and try again.')
+    expect(steps[0].result.error).not.toContain('/Users/admin')
+    expect(steps[0].result.error).not.toContain('secret')
+    expect(steps[0].result.error).not.toContain('config.yaml')
+  })
+
+  it('T-126: rejects invalid node ids with a safe message', async () => {
+    vi.mocked(venice).mockResolvedValueOnce({
+      choices: [{
+        message: {
+          content: null,
+          tool_calls: [
+            {
+              id: 'call-1',
+              type: 'function',
+              function: {
+                name: 'add_node',
+                arguments: JSON.stringify({ node_type: 'textInput', id: '../../etc/passwd', params: { inputText: 'x' } }),
+              },
+            },
+            {
+              id: 'call-2',
+              type: 'function',
+              function: {
+                name: 'done',
+                arguments: JSON.stringify({ summary: 'Finished' }),
+              },
+            }
+          ]
+        },
+        finish_reason: 'tool_calls'
+      }]
+    })
+
+    const applyPatch = vi.fn()
+    const steps: RunStep[] = []
+
+    await runAgentTools({
+      userMessage: 'add node',
+      draft: { nodes: [], edges: [] },
+      history: [],
+      model: 'qwen3-next-80b',
+      applyPatch,
+      onStep: (step) => steps.push(step),
+    })
+
+    expect(applyPatch).not.toHaveBeenCalled()
+    expect(steps[0].result.error).toContain('Invalid node id')
+    expect(steps[0].result.error).not.toContain('../../etc/passwd')
+  })
+
+  it('T-126: rejects invalid connect source/target with a safe message', async () => {
+    vi.mocked(venice).mockResolvedValueOnce({
+      choices: [{
+        message: {
+          content: null,
+          tool_calls: [
+            {
+              id: 'call-1',
+              type: 'function',
+              function: {
+                name: 'connect',
+                arguments: JSON.stringify({ source: 'valid-a', target: '<script>alert(1)</script>' }),
+              },
+            },
+            {
+              id: 'call-2',
+              type: 'function',
+              function: {
+                name: 'done',
+                arguments: JSON.stringify({ summary: 'Finished' }),
+              },
+            }
+          ]
+        },
+        finish_reason: 'tool_calls'
+      }]
+    })
+
+    const applyPatch = vi.fn()
+    const steps: RunStep[] = []
+
+    await runAgentTools({
+      userMessage: 'connect nodes',
+      draft: { nodes: [], edges: [] },
+      history: [],
+      model: 'qwen3-next-80b',
+      applyPatch,
+      onStep: (step) => steps.push(step),
+    })
+
+    expect(applyPatch).not.toHaveBeenCalled()
+    expect(steps[0].result.error).toContain('Invalid target id')
+    expect(steps[0].result.error).not.toContain('<script>')
+  })
 })

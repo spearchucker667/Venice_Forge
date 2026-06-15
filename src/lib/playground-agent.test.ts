@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { parseAgentResponse, callAgent, DEFAULT_AGENT_MODEL } from './playground-agent'
+import { parseAgentResponse, callAgent, DEFAULT_AGENT_MODEL, MAX_AGENT_SAY_LENGTH, MAX_AGENT_PATCH_COUNT } from './playground-agent'
 import { venice } from './venice-client'
 
 vi.mock('./venice-client', () => ({
@@ -46,6 +46,31 @@ describe('playground-agent', () => {
         expect(patch.params).toHaveProperty('prompt')
         expect(patch.params).not.toHaveProperty('invalid_param')
       }
+    })
+
+    it('should cap say length (T-130 regression guard)', () => {
+      const longSay = 'a'.repeat(MAX_AGENT_SAY_LENGTH + 50)
+      const raw = JSON.stringify({ say: longSay, patches: [] })
+      const parsed = parseAgentResponse(raw)
+      expect(parsed.say.length).toBe(MAX_AGENT_SAY_LENGTH)
+      expect(parsed.say).toBe('a'.repeat(MAX_AGENT_SAY_LENGTH))
+    })
+
+    it('should cap patch count and count overflow as invalid (T-130 regression guard)', () => {
+      const patches = Array.from({ length: MAX_AGENT_PATCH_COUNT + 5 }, () => ({ op: 'clear' }))
+      const raw = JSON.stringify({ say: 'Too many patches', patches })
+      const parsed = parseAgentResponse(raw)
+      expect(parsed.patches.length).toBe(MAX_AGENT_PATCH_COUNT)
+      expect(parsed.invalidPatches).toBe(5)
+    })
+
+    it('should keep valid responses exactly at the caps (T-130 regression guard)', () => {
+      const patches = Array.from({ length: MAX_AGENT_PATCH_COUNT }, () => ({ op: 'clear' }))
+      const raw = JSON.stringify({ say: 'a'.repeat(MAX_AGENT_SAY_LENGTH), patches })
+      const parsed = parseAgentResponse(raw)
+      expect(parsed.say.length).toBe(MAX_AGENT_SAY_LENGTH)
+      expect(parsed.patches.length).toBe(MAX_AGENT_PATCH_COUNT)
+      expect(parsed.invalidPatches).toBe(0)
     })
   })
 

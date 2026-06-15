@@ -193,6 +193,18 @@ describe("refreshConfig", () => {
 
     expect(useConfigStore.getState().error).toBe("config unreadable");
   });
+
+  it("redacts raw exception messages when desktopConfig.get throws", async () => {
+    desktopConfigGetMock.mockRejectedValue(
+      new Error("config load failed: vn-deadbeef123456789 exposed")
+    );
+
+    await refreshConfig();
+
+    const error = useConfigStore.getState().error;
+    expect(error).not.toContain("vn-deadbeef123456789");
+    expect(error).toContain("[REDACTED]");
+  });
 });
 
 describe("reloadConfig", () => {
@@ -274,5 +286,17 @@ describe("reloadConfig", () => {
     await reloadConfig();
 
     expect(useConfigStore.getState().error).toBe("reload failed");
+  });
+
+  it("redacts raw exception messages when desktopConfig.reload throws", async () => {
+    desktopConfigReloadMock.mockRejectedValue(
+      new Error("reload crashed: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9 token leaked")
+    );
+
+    await reloadConfig();
+
+    const error = useConfigStore.getState().error;
+    expect(error).not.toContain("Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9");
+    expect(error).toContain("[REDACTED]");
   });
 });

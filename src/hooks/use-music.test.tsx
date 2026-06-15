@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
-import { useMusic } from './use-music'
+import { useMusic, SAFE_ERROR_MESSAGES } from './use-music'
 import { venice } from '../lib/venice-client'
 
 vi.mock('../lib/venice-client', () => ({
@@ -176,5 +176,69 @@ describe('useMusic polling race conditions', () => {
 
     await waitFor(() => expect(result.current.status).toBe('failed'))
     expect(result.current.error).toBe('Generation took too long. Cancel and try again.')
+  })
+})
+
+describe('useMusic safe error handling (T-121/T-122)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+  })
+
+  it('does not surface raw queue mutation errors', async () => {
+    const rawError = new Error('Internal server error at /etc/secrets/key.pem: socket hang up')
+    mockedVenice.mockRejectedValue(rawError)
+
+    const { result } = renderHook(() => useMusic(), { wrapper: createWrapper() })
+
+    await act(async () => {
+      result.current.queue({ model: 'test', prompt: 'hello' })
+    })
+
+    await waitFor(() => expect(result.current.status).toBe('failed'))
+    expect(result.current.error).toBe(SAFE_ERROR_MESSAGES.queue)
+    expect(result.current.error).not.toContain('/etc/secrets')
+    expect(result.current.error).not.toContain('socket hang up')
+  })
+
+  it('does not surface raw retrieve failure error payloads', async () => {
+    mockedVenice.mockResolvedValueOnce({ queue_id: 'q-1' })
+    mockedVenice.mockResolvedValue({ status: 'FAILED', error: 'Database connection failed: sk-abc123-def456' })
+
+    const { result } = renderHook(() => useMusic(), { wrapper: createWrapper() })
+
+    await act(async () => {
+      result.current.queue({ model: 'test', prompt: 'hello' })
+    })
+
+    act(() => vi.advanceTimersByTime(3000))
+    await act(async () => Promise.resolve())
+
+    await waitFor(() => expect(result.current.status).toBe('failed'))
+    expect(result.current.error).toBe(SAFE_ERROR_MESSAGES.generation)
+    expect(result.current.error).not.toContain('Database connection failed')
+    expect(result.current.error).not.toContain('sk-abc123')
+  })
+
+  it('does not surface raw polling exception messages', async () => {
+    mockedVenice.mockResolvedValueOnce({ queue_id: 'q-1' })
+    mockedVenice.mockRejectedValue(new Error('ENOENT: /Users/bob/.venice/config.json'))
+
+    const { result } = renderHook(() => useMusic(), { wrapper: createWrapper() })
+
+    await act(async () => {
+      result.current.queue({ model: 'test', prompt: 'hello' })
+    })
+
+    // Burn through attempts until the catch block records a failure.
+    for (let i = 0; i < 120; i += 1) {
+      act(() => vi.advanceTimersByTime(3000))
+      await act(async () => Promise.resolve())
+    }
+
+    await waitFor(() => expect(result.current.status).toBe('failed'))
+    expect(result.current.error).toBe(SAFE_ERROR_MESSAGES.polling)
+    expect(result.current.error).not.toContain('ENOENT')
+    expect(result.current.error).not.toContain('/Users/bob')
   })
 })

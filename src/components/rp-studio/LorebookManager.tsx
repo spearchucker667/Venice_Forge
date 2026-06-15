@@ -13,6 +13,7 @@ import { formatRelativeTime, truncate } from "./_shared";
 import {
   MAX_LOREBOOK_ENTRIES,
   MAX_LOREBOOK_ENTRY_CHARS,
+  MAX_TAGS,
   type LorebookEntryV1,
   type LorebookInsertionMode,
   type LorebookV1,
@@ -75,13 +76,13 @@ export function LorebookManager({ disabled = false }: { disabled?: boolean } = {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-border">
         <input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search lorebooks…"
           aria-label="Search lorebooks"
-          className="flex-1 min-w-[12rem] bg-surface border border-white/[0.08] rounded-lg px-3 py-1.5 text-[13.5px] text-white/90 outline-none focus:border-white/[0.22] transition-colors placeholder:text-white/25"
+          className="flex-1 min-w-[12rem] bg-surface border border-border rounded-lg px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
         />
         <PrimaryButton
           size="sm"
@@ -99,8 +100,8 @@ export function LorebookManager({ disabled = false }: { disabled?: boolean } = {
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {isLoading && !hasLoaded ? (
-          <div className="flex items-center justify-center h-full text-white/30 gap-2 text-[13px]">
-            <Spinner className="text-white/45" /> Loading…
+          <div className="flex items-center justify-center h-full text-text-muted gap-2 text-[13px]">
+            <Spinner className="text-text-muted" /> Loading…
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState>{hasLoaded ? "No lorebooks yet" : ""}</EmptyState>
@@ -109,20 +110,20 @@ export function LorebookManager({ disabled = false }: { disabled?: boolean } = {
             {filtered.map((l) => (
               <li
                 key={l.id}
-                className="flex flex-col gap-1.5 bg-surface border border-white/[0.06] hover:border-white/[0.18] rounded-xl p-3 transition-colors"
+                className="flex flex-col gap-1.5 bg-surface border border-border hover:border-accent/40 rounded-xl p-3 transition-colors"
               >
-                <div className="text-[14px] font-semibold text-white/90 truncate">{l.name}</div>
+                <div className="text-[14px] font-semibold text-text-primary truncate">{l.name}</div>
                 {l.description && (
-                  <p className="text-[12.5px] text-white/55 line-clamp-2">{truncate(l.description, 180)}</p>
+                  <p className="text-[12.5px] text-text-secondary line-clamp-2">{truncate(l.description, 180)}</p>
                 )}
-                <div className="text-[11.5px] text-white/40 mt-0.5">
+                <div className="text-[11.5px] text-text-muted mt-0.5">
                   {l.entries.length} {l.entries.length === 1 ? "entry" : "entries"} · {formatRelativeTime(l.updatedAt)}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2">
                   <button
                     type="button"
                     onClick={() => setEditingId(l.id)}
-                    className="flex-1 text-[12px] py-1.5 rounded-md border border-white/[0.1] text-white/75 hover:text-white hover:bg-white/[0.03] transition-colors"
+                    className="flex-1 text-[12px] py-1.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
                   >
                     Edit
                   </button>
@@ -139,7 +140,7 @@ export function LorebookManager({ disabled = false }: { disabled?: boolean } = {
                       type="button"
                       onClick={() => armConfirm(l.id)}
                       aria-label={`Delete ${l.name}`}
-                      className="text-white/40 hover:text-rose-300 p-1.5"
+                      className="text-text-muted hover:text-rose-300 p-1.5"
                     >
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                         <line x1="18" y1="6" x2="6" y2="18" />
@@ -213,18 +214,18 @@ function LorebookEditor({ lorebookId, onClose, disabled = false }: { lorebookId:
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
         <button
           type="button"
           onClick={onClose}
           aria-label="Back"
-          className="text-white/55 hover:text-white p-1.5 rounded-md hover:bg-white/[0.04]"
+          className="text-text-secondary hover:text-text-primary p-1.5 rounded-md hover:bg-surface-elevated"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <h2 className="text-[15px] font-semibold text-white/90 truncate">{draft.name}</h2>
+        <h2 className="text-[15px] font-semibold text-text-primary truncate">{draft.name}</h2>
         <div className="ml-auto">
           <PrimaryButton size="sm" loading={saving} disabled={disabled} onClick={handleSave}>Save</PrimaryButton>
         </div>
@@ -239,7 +240,7 @@ function LorebookEditor({ lorebookId, onClose, disabled = false }: { lorebookId:
               value={draft.name}
               onChange={(e) => update("name", e.target.value)}
               maxLength={200}
-              className="w-full bg-surface border border-white/[0.08] rounded-lg px-3 py-2 text-[14px] text-white/90 outline-none focus:border-white/[0.22] transition-colors"
+              className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
             />
           </div>
           <div>
@@ -247,8 +248,13 @@ function LorebookEditor({ lorebookId, onClose, disabled = false }: { lorebookId:
             <input
               id="lb-tags"
               value={draft.tags.join(", ")}
-              onChange={(e) => update("tags", e.target.value.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean))}
-              className="w-full bg-surface border border-white/[0.08] rounded-lg px-3 py-2 text-[14px] text-white/90 outline-none focus:border-white/[0.22] transition-colors"
+              onChange={(e) => {
+                const tags = Array.from(
+                  new Set(e.target.value.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean)),
+                ).slice(0, MAX_TAGS);
+                update("tags", tags);
+              }}
+              className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
             />
           </div>
         </div>
@@ -270,7 +276,7 @@ function LorebookEditor({ lorebookId, onClose, disabled = false }: { lorebookId:
         </div>
 
         {draft.entries.length === 0 ? (
-          <div className="text-[12px] text-white/30 italic">No entries yet.</div>
+          <div className="text-[12px] text-text-muted italic">No entries yet.</div>
         ) : (
           <div className="space-y-2">
             {draft.entries.map((entry, i) => (
@@ -298,25 +304,30 @@ function EntryRow({
   onRemove: () => void;
 }) {
   const [keysText, setKeysText] = useState(entry.keys.join(", "));
+  const parseKeys = (value: string) =>
+    Array.from(new Set(value.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean)));
   return (
-    <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-3 space-y-2">
+    <div className="bg-surface-elevated border border-border rounded-lg p-3 space-y-2">
       <div className="flex items-center gap-2">
         <input
           value={keysText}
-          onChange={(e) => setKeysText(e.target.value)}
-          onBlur={() => onChange({ keys: keysText.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean) })}
+          onChange={(e) => {
+            const next = e.target.value;
+            setKeysText(next);
+            onChange({ keys: parseKeys(next) });
+          }}
           placeholder="trigger keys (comma-separated)"
-          className="flex-1 bg-surface border border-white/[0.08] rounded-md px-2 py-1 text-[12.5px] text-white/90 outline-none focus:border-white/[0.22] transition-colors placeholder:text-white/25"
+          className="flex-1 bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
         />
-        <label className="flex items-center gap-1.5 text-[11.5px] text-white/55">
+        <label className="flex items-center gap-1.5 text-[11.5px] text-text-secondary">
           <input type="checkbox" checked={entry.enabled} onChange={(e) => onChange({ enabled: e.target.checked })} className="accent-[var(--color-accent)]" />
           enabled
         </label>
-        <label className="flex items-center gap-1.5 text-[11.5px] text-white/55">
+        <label className="flex items-center gap-1.5 text-[11.5px] text-text-secondary">
           <input type="checkbox" checked={entry.constant} onChange={(e) => onChange({ constant: e.target.checked })} className="accent-[var(--color-accent)]" />
           always
         </label>
-        <label className="flex items-center gap-1.5 text-[11.5px] text-white/55">
+        <label className="flex items-center gap-1.5 text-[11.5px] text-text-secondary">
           <input type="checkbox" checked={entry.matchWholeWords} onChange={(e) => onChange({ matchWholeWords: e.target.checked })} className="accent-[var(--color-accent)]" />
           whole words
         </label>
@@ -324,7 +335,7 @@ function EntryRow({
           type="button"
           onClick={onRemove}
           aria-label="Remove entry"
-          className="text-white/40 hover:text-rose-300 p-1"
+          className="text-text-muted hover:text-rose-300 p-1"
         >
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <line x1="18" y1="6" x2="6" y2="18" />
@@ -346,7 +357,7 @@ function EntryRow({
             onChange={(e) => onChange({ depth: Math.max(0, parseInt(e.target.value, 10) || 0) })}
             min={0}
             max={50}
-            className="w-20 bg-surface border border-white/[0.08] rounded-md px-2 py-1 text-[12.5px] text-white/90 outline-none focus:border-white/[0.22] transition-colors"
+            className="w-20 bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors"
             aria-label="Depth"
           />
         )}
@@ -356,7 +367,7 @@ function EntryRow({
           onChange={(e) => onChange({ order: parseInt(e.target.value, 10) || 0 })}
           min={0}
           max={1000}
-          className="w-20 bg-surface border border-white/[0.08] rounded-md px-2 py-1 text-[12.5px] text-white/90 outline-none focus:border-white/[0.22] transition-colors"
+          className="w-20 bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors"
           aria-label="Order"
         />
       </div>

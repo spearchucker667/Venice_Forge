@@ -1,9 +1,24 @@
 /** @fileoverview Phase 2D — Prompt Library store contract tests (VERIFY-046). */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import "fake-indexeddb/auto";
-import { usePromptLibraryStore, resolvePromptProjectId, selectActivePrompts, selectArchivedPrompts, selectPromptsForProject } from "./prompt-library-store";
+import {
+  usePromptLibraryStore,
+  resolvePromptProjectId,
+  selectActivePrompts,
+  selectArchivedPrompts,
+  selectPromptsForProject,
+} from "./prompt-library-store";
 import type { PromptLibraryItem } from "../types/prompt-library";
+import { redactErrorMessage } from "../shared/redaction";
+import StorageService from "../services/storageService";
+
+/** Type-safe mocked handles for the StorageService singleton. */
+const mockStorage = StorageService as unknown as {
+  getItems: ReturnType<typeof vi.fn>;
+  saveItem: ReturnType<typeof vi.fn>;
+  deleteItem: ReturnType<typeof vi.fn>;
+};
 
 function reset(): void {
   // Replace state with a clean snapshot. The store is a Zustand `create`
@@ -19,7 +34,11 @@ function reset(): void {
 
 describe("prompt-library-store (VERIFY-046)", () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     reset();
+    mockStorage.getItems = vi.fn().mockResolvedValue([]);
+    mockStorage.saveItem = vi.fn().mockResolvedValue(undefined);
+    mockStorage.deleteItem = vi.fn().mockResolvedValue(true);
   });
 
   it("createPrompt returns a version-1 record with a stable id", async () => {
@@ -283,5 +302,112 @@ describe("prompt-library-store (VERIFY-046)", () => {
     expect(after.versions).toHaveLength(2);
     expect(after.favorite).toBe(true);
     expect(after.archivedAt).toBeNull();
+  });
+
+  // ---------------------------------------------------------------------------
+  // T-192 / store-level safe error handling regression guards
+  // ---------------------------------------------------------------------------
+
+  describe("safe error handling (T-192)", () => {
+    it("ensureLoaded redacts persistence errors in loadError", async () => {
+      const raw = new Error("IndexedDB read failed for key vn-aaaaaaaaaaaaaaaa");
+      mockStorage.getItems.mockRejectedValueOnce(raw);
+      await usePromptLibraryStore.getState().ensureLoaded();
+      const { loadError, hydrated } = usePromptLibraryStore.getState();
+      expect(hydrated).toBe(true);
+      expect(loadError).toBe(redactErrorMessage(raw));
+      expect(loadError).toContain("IndexedDB read failed");
+      expect(loadError).not.toContain("vn-aaaaaaaaaaaaaaaa");
+      expect(loadError).toContain("[REDACTED]");
+    });
+
+    it("createPrompt reverts state and redacts loadError on persistence failure", async () => {
+      const raw = new Error("write failed: apiKey=vn-bbbbbbbbbbbbbbbb");
+      mockStorage.saveItem.mockRejectedValueOnce(raw);
+      await expect(
+        usePromptLibraryStore.getState().createPrompt({
+          title: "T",
+          kind: "general",
+          content: "c",
+          scope: "global",
+        }),
+      ).rejects.toThrow();
+      const { prompts, loadError } = usePromptLibraryStore.getState();
+      expect(prompts).toHaveLength(0);
+      expect(loadError).toBe(redactErrorMessage(raw));
+      expect(loadError).toContain("write failed");
+      expect(loadError).not.toContain("vn-bbbbbbbbbbbbbbbb");
+      expect(loadError).toContain("[REDACTED]");
+    });
+
+    it("updatePrompt reverts state and redacts loadError on persistence failure", async () => {
+      const created = await usePromptLibraryStore.getState().createPrompt({
+        title: "T",
+        kind: "general",
+        content: "c",
+        scope: "global",
+      });
+      const raw = new Error("update failed: token=vn-cccccccccccccccc");
+      mockStorage.saveItem.mockRejectedValueOnce(raw);
+      await expect(
+        usePromptLibraryStore.getState().updatePrompt(created.id, { title: "Renamed" }),
+      ).rejects.toThrow();
+      const { prompts, loadError } = usePromptLibraryStore.getState();
+      expect(prompts[0]!.title).toBe("T");
+      expect(loadError).toBe(redactErrorMessage(raw));
+      expect(loadError).not.toContain("vn-cccccccccccccccc");
+      expect(loadError).toContain("[REDACTED]");
+    });
+
+    it("deletePrompt reverts state and redacts loadError on persistence failure", async () => {
+      const created = await usePromptLibraryStore.getState().createPrompt({
+        title: "T",
+        kind: "general",
+        content: "c",
+        scope: "global",
+      });
+      const raw = new Error("delete failed: sk-dddddddddddddddd");
+      mockStorage.deleteItem.mockRejectedValueOnce(raw);
+      await expect(usePromptLibraryStore.getState().deletePrompt(created.id)).rejects.toThrow();
+      const { prompts, loadError } = usePromptLibraryStore.getState();
+      expect(prompts).toHaveLength(1);
+      expect(loadError).toBe(redactErrorMessage(raw));
+      expect(loadError).not.toContain("sk-dddddddddddddddd");
+      expect(loadError).toContain("[REDACTED]");
+    });
+
+    it("importPrompts redacts persistence errors in skipped reasons (T-192)", async () => {
+      const created = await usePromptLibraryStore.getState().createPrompt({
+        title: "Importable",
+        kind: "general",
+        content: "body",
+        scope: "global",
+      });
+      const exported = usePromptLibraryStore.getState().exportPrompts([created.id]);
+      const raw = new Error("batch write failed: Bearer cccccccccccccccc");
+      mockStorage.saveItem.mockRejectedValueOnce(raw);
+      const result = await usePromptLibraryStore.getState().importPrompts(exported);
+      expect(result.skipped).toHaveLength(1);
+      const reason = result.skipped[0]!.reason;
+      expect(reason).toBe(`Persistence failed: ${redactErrorMessage(raw)}`);
+      expect(reason).toContain("batch write failed");
+      expect(reason).not.toContain("cccccccccccccccc");
+      expect(reason).toContain("[REDACTED]");
+    });
+  });
+
+  describe("id generation (T-199)", () => {
+    it("prefers crypto.randomUUID for prompt ids when available", async () => {
+      const item = await usePromptLibraryStore.getState().createPrompt({
+        title: "UUID",
+        kind: "general",
+        content: "c",
+        scope: "global",
+      });
+      // crypto.randomUUID, when available, produces a 36-char hyphenated UUID.
+      expect(item.id).toMatch(
+        /^plib-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      );
+    });
   });
 });

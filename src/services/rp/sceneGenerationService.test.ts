@@ -171,12 +171,26 @@ describe("generateScene", () => {
     );
   });
 
-  it("returns an error when veniceFetch throws", async () => {
+  it("returns a safe error when veniceFetch throws", async () => {
     (veniceFetch as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network timeout"));
     (readCharacterCard as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
     const result = await generateScene(baseChat(), baseReq());
-    expectError(result, "Network timeout");
+    expectError(result, "Image generation failed. Please try again.");
+  });
+
+  it("does not leak raw veniceFetch error messages", async () => {
+    (veniceFetch as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("ENOENT: no such file or directory, open /Users/admin/.venice/secret.key")
+    );
+    (readCharacterCard as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+    const result = await generateScene(baseChat(), baseReq());
+    expectError(result, "Image generation failed. Please try again.");
+    const err = result as unknown as SceneGenerationError;
+    expect(err.error).not.toContain("ENOENT");
+    expect(err.error).not.toContain("secret.key");
+    expect(err.error).not.toContain("/Users/admin");
   });
 
   it("returns an error when the response has no images", async () => {
@@ -227,7 +241,7 @@ describe("generateScene", () => {
     }
   });
 
-  it("returns error when saveAsset throws", async () => {
+  it("returns a safe error when saveAsset throws", async () => {
     (veniceFetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { images: [{ url: "https://venice.ai/image.png" }] },
     });
@@ -235,6 +249,23 @@ describe("generateScene", () => {
     (saveAsset as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Disk full"));
 
     const result = await generateScene(baseChat(), baseReq());
-    expectError(result, "Disk full");
+    expectError(result, "Failed to save scene asset. Please try again.");
+  });
+
+  it("does not leak raw saveAsset error messages", async () => {
+    (veniceFetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { images: [{ url: "https://venice.ai/image.png" }] },
+    });
+    (readCharacterCard as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (saveAsset as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("EACCES: permission denied, mkdir /Users/admin/.venice/rp_assets")
+    );
+
+    const result = await generateScene(baseChat(), baseReq());
+    expectError(result, "Failed to save scene asset. Please try again.");
+    const err = result as unknown as SceneGenerationError;
+    expect(err.error).not.toContain("EACCES");
+    expect(err.error).not.toContain("permission denied");
+    expect(err.error).not.toContain("/Users/admin");
   });
 });

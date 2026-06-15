@@ -90,6 +90,14 @@ describe("Workflow Templates Data Model", () => {
   });
 
   describe("import/export", () => {
+    it("does not expose raw validation exceptions in skipped reasons", () => {
+      const result = parseWorkflowTemplateImport({
+        version: 1,
+        app: "Venice Forge",
+        workflows: [{ title: "Broken", value: 1n }],
+      });
+      expect(result.skipped[0]?.reason).toBe("Workflow validation failed.");
+    });
     it("exports correctly, skipping items with raw secrets", () => {
       const safeItem = createWorkflowTemplateItem({ title: "Safe" });
       const unsafeItem = createWorkflowTemplateItem({ title: "My secret is sk-ant-api03-12345678901234567890" }); // Secret in title

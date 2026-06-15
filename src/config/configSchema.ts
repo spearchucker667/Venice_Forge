@@ -306,8 +306,8 @@ function clampPath(value: unknown, warnings: ConfigWarning[], field: string, fal
   if (typeof value !== "string") return fallback;
   if (value.length === 0) return fallback;
   if (value.length > PATH_MAX_LENGTH) {
-    warnings.push({ field, message: `Path exceeds ${PATH_MAX_LENGTH} characters; truncated.`, severity: "warn" });
-    return value.slice(0, PATH_MAX_LENGTH);
+    warnings.push({ field, message: `Path exceeds ${PATH_MAX_LENGTH} characters; rejected.`, severity: "error" });
+    return fallback;
   }
   if (looksLikeUrl(value)) {
     warnings.push({ field, message: `Path "${value}" looks like a URL. Local file paths only.`, severity: "error" });
@@ -404,6 +404,7 @@ export function validateConfig(raw: unknown): ConfigValidationResult {
 
   if (r.version !== 1) {
     warnings.push({ field: "version", message: `Unknown config version "${String(r.version)}"; expected 1. Falling back to defaults.`, severity: "error" });
+    return { config: emptyConfig(), warnings, redactedFields };
   }
 
   // ── app ──

@@ -70,4 +70,23 @@ describe('modelService cache behavior', () => {
     expect(veniceFetch).toHaveBeenCalledTimes(1);
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "SET_MODELS" }));
   });
+
+  // T-166 regression guard: model-discovery failures must not dispatch raw
+  // exception text (paths, upstream bodies, secrets) into app state.
+  it("dispatches a safe fallback error when discovery fails without cache", async () => {
+    const rawMessage = "ENOENT: /super/secret/path leaked and bearer sk-abc123";
+    vi.mocked(veniceFetch).mockRejectedValue(new Error(rawMessage));
+
+    await refreshModels(dispatch, false);
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_MODELS",
+      models: undefined,
+      fallback: true,
+      error: "Model discovery failed; using non-exhaustive static fallbacks.",
+    });
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({ error: expect.stringContaining(rawMessage) })
+    );
+  });
 });

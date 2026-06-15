@@ -206,8 +206,8 @@ export function useDataStorageActions(
         `venice-forge-export-${new Date().toISOString().slice(0, 10)}.json`,
       );
       if (ok) toast.success("Data exported successfully.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Export failed.");
+    } catch {
+      toast.error("Export failed. Please try again.");
     }
   }, [localFamilySafeModeEnabled, veniceApiSafeMode]);
 
@@ -381,8 +381,8 @@ export function useDataStorageActions(
       toast.success(
         `Imported ${summary.conversationsFound} conversations and ${summary.aiMemoryFound} memories successfully.`,
       );
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Import failed.");
+    } catch {
+      toast.error("Import failed. Please check the file and try again.");
     }
   }, [
     setPendingConfirm,

@@ -9,9 +9,35 @@ import { fileURLToPath } from "node:url";
 import { _electron as electron } from "playwright";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const recordCount = Math.max(1, Number.parseInt(process.env.MEDIA_PROFILE_COUNT || "1000", 10));
+function parseRecordCount(value) {
+  const parsed = Number.parseInt(value || "1000", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1000;
+}
+
+function sanitizeDiagnostic(value) {
+  return String(value)
+    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [REDACTED]")
+    .replace(/\b(?:sk|vn)-[A-Za-z0-9._~+/=-]{8,}\b/gi, "[REDACTED]")
+    .replace(/\/(?:Users|home|root|private)\/[^\s"')]+|[A-Za-z]:\\[^\s"')]+/g, "[REDACTED-PATH]")
+    .slice(0, 500);
+}
+
+const recordCount = parseRecordCount(process.env.MEDIA_PROFILE_COUNT);
 const screenshotDir = process.env.MEDIA_PROFILE_SCREENSHOT_DIR || path.join(os.tmpdir(), "venice-forge-media-profile");
 const userDataDir = await fs.mkdtemp(path.join(os.tmpdir(), "venice-forge-profile-"));
+
+async function loadDbConstants() {
+  const constantsPath = path.join(root, "src", "constants", "venice.ts");
+  const text = await fs.readFile(constantsPath, "utf-8");
+  const nameMatch = text.match(/export\s+const\s+DB_NAME\s*=\s*"([^"]+)"/);
+  const versionMatch = text.match(/export\s+const\s+DB_VERSION\s*=\s*(\d+)/);
+  if (!nameMatch || !versionMatch) {
+    throw new Error(`Unable to parse DB_NAME/DB_VERSION from ${constantsPath}`);
+  }
+  return { dbName: nameMatch[1], dbVersion: Number.parseInt(versionMatch[1], 10) };
+}
+
+const { dbName, dbVersion } = await loadDbConstants();
 
 function percentile(values, fraction) {
   if (values.length === 0) return 0;
@@ -59,9 +85,9 @@ async function waitForAppWindow(app) {
 }
 
 async function clearMedia(page) {
-  await page.evaluate(async () => {
+  await page.evaluate(async ({ dbName, dbVersion }) => {
     await new Promise((resolve, reject) => {
-      const request = indexedDB.open("venice_canvas_studio_v1", 6);
+      const request = indexedDB.open(dbName, dbVersion);
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
         const db = request.result;
@@ -74,11 +100,11 @@ async function clearMedia(page) {
         tx.onerror = () => reject(tx.error);
       };
     });
-  });
+  }, { dbName, dbVersion });
 }
 
 async function seedMedia(page) {
-  const batchDurations = await page.evaluate(async (count) => {
+  const batchDurations = await page.evaluate(async ({ count, dbName, dbVersion }) => {
     const openDatabase = (name, version, onUpgrade) => new Promise((resolve, reject) => {
       const request = indexedDB.open(name, version);
       request.onupgradeneeded = () => onUpgrade?.(request.result);
@@ -103,7 +129,7 @@ async function seedMedia(page) {
       });
     }
 
-    const mediaDb = await openDatabase("venice_canvas_studio_v1", 6);
+    const mediaDb = await openDatabase(dbName, dbVersion);
     const durations = [];
     for (let offset = 0; offset < count; offset += 25) {
       const started = performance.now();
@@ -147,7 +173,7 @@ async function seedMedia(page) {
     keyDb.close();
     mediaDb.close();
     return durations;
-  }, recordCount);
+  }, { count: recordCount, dbName, dbVersion });
 
   return {
     totalMs: batchDurations.reduce((sum, value) => sum + value, 0),
@@ -184,14 +210,14 @@ try {
   const page = await waitForAppWindow(app);
   page.on("console", (message) => {
     if (!["warning", "error"].includes(message.type())) return;
-    const issue = `${message.type()}: ${message.text()}`;
+    const issue = sanitizeDiagnostic(`${message.type()}: ${message.text()}`);
     if (/crypto\.subtle available: true|Electron Security Warning \(Insecure Content-Security-Policy\)/.test(issue)) {
       ignoredConsoleIssues.push(issue);
     } else {
       consoleIssues.push(issue);
     }
   });
-  page.on("pageerror", (error) => consoleIssues.push(`pageerror: ${error.message}`));
+  page.on("pageerror", (error) => consoleIssues.push(sanitizeDiagnostic(`pageerror: ${error.message}`)));
 
   await page.waitForLoadState("domcontentloaded");
   await page.evaluate(() => localStorage.setItem("vf.legal.firstRunAcknowledged", "1"));

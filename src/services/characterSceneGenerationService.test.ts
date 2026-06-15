@@ -106,4 +106,38 @@ describe('generateCharacterScene', () => {
       undefined,
     );
   });
+
+  // BUG-158 regression guard: concurrency must be released on API or persistence failure.
+  it('releases the concurrency limiter slot when veniceFetch fails', async () => {
+    const limiter = new CharacterSceneRateLimiter();
+    const deps = makeDeps({ veniceFetch: vi.fn().mockRejectedValue(new Error('Venice unreachable')) });
+    const result = await generateCharacterScene({ conversation: makeConversation(), source: 'on_demand', limiter }, deps);
+    expect(result.status).toBe('failed');
+    expect(limiter.check({ conversationId: 'conv-1' }).allowed).toBe(true);
+  });
+
+  it('releases the concurrency limiter slot when upsertMedia fails', async () => {
+    const limiter = new CharacterSceneRateLimiter();
+    const deps = makeDeps({ upsertMedia: vi.fn().mockRejectedValue(new Error('IDB write failed')) });
+    const result = await generateCharacterScene({ conversation: makeConversation(), source: 'on_demand', limiter }, deps);
+    expect(result.status).toBe('failed');
+    expect(limiter.check({ conversationId: 'conv-1' }).allowed).toBe(true);
+  });
+
+  // T-159 regression guard: catch block must not return raw exception text.
+  it('returns a safe error message when veniceFetch fails', async () => {
+    const deps = makeDeps({ veniceFetch: vi.fn().mockRejectedValue(new Error('Venice unreachable')) });
+    const result = await generateCharacterScene({ conversation: makeConversation(), source: 'on_demand' }, deps);
+    expect(result.status).toBe('failed');
+    expect(result.error).toBe('Character scene generation failed. Please try again.');
+    expect(result.error).not.toContain('Venice unreachable');
+  });
+
+  it('returns a safe error message when upsertMedia fails', async () => {
+    const deps = makeDeps({ upsertMedia: vi.fn().mockRejectedValue(new Error('IDB write failed')) });
+    const result = await generateCharacterScene({ conversation: makeConversation(), source: 'on_demand' }, deps);
+    expect(result.status).toBe('failed');
+    expect(result.error).toBe('Character scene generation failed. Please try again.');
+    expect(result.error).not.toContain('IDB write failed');
+  });
 });

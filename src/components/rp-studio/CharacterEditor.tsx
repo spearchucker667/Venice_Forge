@@ -55,7 +55,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
 
   if (!draft) {
     return (
-      <div className="flex items-center justify-center h-full text-white/30 text-[13px]">
+      <div className="flex items-center justify-center h-full text-text-muted text-[13px]">
         Character not found.
       </div>
     );
@@ -256,18 +256,18 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
         <button
           type="button"
           onClick={onClose}
           aria-label="Back to library"
-          className="text-white/55 hover:text-white p-1.5 rounded-md hover:bg-white/[0.04] transition-colors"
+          className="text-text-secondary hover:text-text-primary p-1.5 rounded-md hover:bg-surface-elevated transition-colors"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <h2 className="text-[15px] font-semibold text-white/90 truncate">{draft.name || "Untitled"}</h2>
+        <h2 className="text-[15px] font-semibold text-text-primary truncate">{draft.name || "Untitled"}</h2>
         <div className="ml-auto flex items-center gap-2">
           <GhostButton onClick={handleDelete}>Delete</GhostButton>
           <PrimaryButton
@@ -291,7 +291,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
         <section className="flex gap-4 items-start">
           <div className="shrink-0">
-            <div className="w-24 h-24 rounded-xl overflow-hidden border border-white/[0.08] bg-white/[0.04] flex items-center justify-center text-white/30 text-3xl font-semibold">
+            <div className="w-24 h-24 rounded-xl overflow-hidden border border-border bg-surface-elevated flex items-center justify-center text-text-muted text-3xl font-semibold">
               {avatarSrc ? (
                 <img src={avatarSrc} alt="" className="w-full h-full object-cover" />
               ) : (
@@ -312,7 +312,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="mt-2 w-24 text-[11px] py-1 rounded-md border border-white/[0.1] text-white/65 hover:text-white hover:bg-white/[0.03] transition-colors"
+              className="mt-2 w-24 text-[11px] py-1 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
             >
               {draft.avatar ? "Replace" : "Upload"} avatar
             </button>
@@ -320,7 +320,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
               <button
                 type="button"
                 onClick={() => update("avatar", undefined)}
-                className="mt-1 w-24 text-[11px] py-1 rounded-md text-white/40 hover:text-rose-300 transition-colors"
+                className="mt-1 w-24 text-[11px] py-1 rounded-md text-text-muted hover:text-rose-300 transition-colors"
               >
                 Remove
               </button>
@@ -335,7 +335,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 value={draft.name}
                 onChange={(e) => update("name", e.target.value)}
                 maxLength={200}
-                className="w-full bg-surface border border-white/[0.08] rounded-lg px-3 py-2 text-[14px] text-white/90 outline-none focus:border-white/[0.22] transition-colors"
+                className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
               />
             </div>
             <div>
@@ -346,7 +346,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 onChange={(e) => update("author", e.target.value || undefined)}
                 placeholder="optional"
                 maxLength={200}
-                className="w-full bg-surface border border-white/[0.08] rounded-lg px-3 py-2 text-[14px] text-white/90 outline-none focus:border-white/[0.22] transition-colors placeholder:text-white/25"
+                className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
               />
             </div>
             <div>
@@ -357,7 +357,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 id="card-model"
                 value={draft.modelId ?? ""}
                 onChange={(e) => update("modelId", e.target.value || undefined)}
-                className="w-full bg-surface border border-white/[0.08] rounded-lg px-3 py-2 text-[14px] text-white/90 outline-none focus:border-white/[0.22] transition-colors"
+                className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
               >
                 <option value="">Use chat default</option>
                 {FALLBACK_MODELS.text.map((m) => (
@@ -439,7 +439,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
               }}
               placeholder="Add a tag and press Enter…"
               maxLength={64}
-              className="flex-1 bg-surface border border-white/[0.08] rounded-lg px-3 py-1.5 text-[13.5px] text-white/90 outline-none focus:border-white/[0.22] transition-colors placeholder:text-white/25"
+              className="flex-1 bg-surface border border-border rounded-lg px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
             />
             <GhostButton onClick={addTag} disabled={!tagInput.trim()}>
               Add
@@ -452,7 +452,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   key={t}
                   type="button"
                   onClick={() => removeTag(t)}
-                  className="text-[11.5px] px-2 py-0.5 rounded-md border border-white/[0.1] bg-white/[0.04] text-white/70 hover:text-white hover:border-white/[0.2] transition-colors"
+                  className="text-[11.5px] px-2 py-0.5 rounded-md border border-border bg-surface-elevated text-text-secondary hover:text-text-primary hover:border-accent/40 transition-colors"
                   aria-label={`Remove tag ${t}`}
                 >
                   {t} ×
@@ -468,17 +468,17 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
             <GhostButton onClick={addExample}>Add example</GhostButton>
           </div>
           {draft.exampleDialogues.length === 0 ? (
-            <div className="text-[12px] text-white/30 italic">No examples. Add a few-shot exchange to lock in voice.</div>
+            <div className="text-[12px] text-text-muted italic">No examples. Add a few-shot exchange to lock in voice.</div>
           ) : (
             <div className="space-y-2">
               {draft.exampleDialogues.map((d, i) => (
-                <div key={getExampleKey(d)} className="flex gap-2 items-start bg-white/[0.02] border border-white/[0.06] rounded-lg p-2">
+                <div key={getExampleKey(d)} className="flex gap-2 items-start bg-surface-elevated border border-border rounded-lg p-2">
                   <input
                     value={d.speaker}
                     onChange={(e) => updateExample(i, "speaker", e.target.value)}
                     placeholder="Speaker"
                     maxLength={200}
-                    className="w-32 shrink-0 bg-surface border border-white/[0.08] rounded-md px-2 py-1 text-[12.5px] text-white/90 outline-none focus:border-white/[0.22] transition-colors placeholder:text-white/25"
+                    className="w-32 shrink-0 bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
                   />
                   <textarea
                     value={d.text}
@@ -486,13 +486,13 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                     placeholder="What they say…"
                     rows={2}
                     maxLength={CARD_FIELD_MAX}
-                    className="flex-1 bg-surface border border-white/[0.08] rounded-md px-2 py-1 text-[12.5px] text-white/90 outline-none focus:border-white/[0.22] transition-colors placeholder:text-white/25 resize-none"
+                    className="flex-1 bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted resize-none"
                   />
                   <button
                     type="button"
                     onClick={() => removeExample(i)}
                     aria-label="Remove example"
-                    className="text-white/40 hover:text-rose-300 p-1"
+                    className="text-text-muted hover:text-rose-300 p-1"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                       <line x1="18" y1="6" x2="6" y2="18" />
@@ -505,7 +505,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
           )}
         </section>
 
-        <section className="space-y-2 pt-3 border-t border-white/[0.06]" data-testid="character-editor-workflow">
+        <section className="space-y-2 pt-3 border-t border-border" data-testid="character-editor-workflow">
           <Label>Workflow</Label>
           <div className="flex flex-wrap gap-2">
             <button
@@ -513,7 +513,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
               onClick={() => void handleSaveToPromptLibrary()}
               disabled={disabled}
               data-testid="character-editor-save-to-prompt-library"
-              className="text-[12px] px-2.5 py-1.5 rounded-md border border-white/[0.1] text-white/75 hover:text-white hover:bg-white/[0.04] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-[12px] px-2.5 py-1.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Save to Prompt Library
             </button>
@@ -527,7 +527,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
               }}
               disabled={disabled}
               data-testid="character-editor-attach-scene"
-              className="text-[12px] px-2 py-1.5 rounded-md border border-white/[0.1] bg-surface text-white/80 hover:bg-white/[0.04] transition-colors disabled:opacity-50"
+              className="text-[12px] px-2 py-1.5 rounded-md border border-border bg-surface text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors disabled:opacity-50"
             >
               <option value="">Attach scene…</option>
               {useSceneComposerStore.getState().scenes.map((s) => (
@@ -546,7 +546,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
               }}
               disabled={disabled}
               data-testid="character-editor-attach-prompt"
-              className="text-[12px] px-2 py-1.5 rounded-md border border-white/[0.1] bg-surface text-white/80 hover:bg-white/[0.04] transition-colors disabled:opacity-50"
+              className="text-[12px] px-2 py-1.5 rounded-md border border-border bg-surface text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors disabled:opacity-50"
             >
               <option value="">Attach prompt…</option>
               {usePromptLibraryStore.getState().prompts
@@ -571,7 +571,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
               onClick={() => void handleCreateScenarioFromCharacter()}
               disabled={disabled}
               data-testid="character-editor-create-scenario"
-              className="text-[12px] px-2.5 py-1.5 rounded-md border border-white/[0.1] text-white/75 hover:text-white hover:bg-white/[0.04] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-[12px] px-2.5 py-1.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Create scenario from character
             </button>
@@ -580,14 +580,14 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
               onClick={() => void handleCreateWorkflow()}
               disabled={disabled}
               data-testid="character-editor-create-workflow"
-              className="text-[12px] px-2.5 py-1.5 rounded-md border border-white/[0.1] text-white/75 hover:text-white hover:bg-white/[0.04] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-[12px] px-2.5 py-1.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Create workflow
             </button>
           </div>
           {(typeof draft.metadata?.attachedSceneId === "string" ||
             typeof draft.metadata?.attachedPromptId === "string") && (
-            <div className="text-[11px] text-white/45 mt-1" data-testid="character-editor-workflow-summary">
+            <div className="text-[11px] text-text-muted mt-1" data-testid="character-editor-workflow-summary">
               {draft.metadata?.attachedSceneId ? (
                 <span>Scene: {String(draft.metadata.attachedSceneId).slice(0, 32)}</span>
               ) : null}
@@ -601,8 +601,8 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
       </div>
 
       {saving && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
-          <Spinner className="text-white/70" />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none"> {/* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */}
+          <Spinner className="text-text-muted" />
         </div>
       )}
     </div>

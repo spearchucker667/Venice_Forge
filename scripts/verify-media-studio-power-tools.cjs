@@ -126,8 +126,8 @@ function main() {
       "validateSidecar",
       "EXPORT_BUNDLE_VERSION",
       "EXPORT_BUNDLE_APP",
-      "apiKey",
-      "exportedPathToken",
+      "apikey",
+      "exportedpathtoken",
     ],
     "export-bundle surface",
   );

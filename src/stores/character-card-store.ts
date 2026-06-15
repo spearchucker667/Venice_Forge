@@ -23,6 +23,13 @@ import { toast } from "./toast-store";
 
 const PAGE_SIZE = 60;
 
+/** Safe, non-disclosing user-facing messages for persistence failures.
+ *  Raw exception text (paths, driver internals, secrets) must never reach
+ *  the UI or the store's `error` field. See T-185. */
+const SAFE_LOAD_ERROR = "Could not load character cards. Please try again.";
+const SAFE_UPSERT_ERROR = "Could not save character. Please try again.";
+const SAFE_REMOVE_ERROR = "Could not delete character. Please try again.";
+
 export interface CharacterCardState {
   cards: CharacterCardV1[];
   isLoading: boolean;
@@ -59,8 +66,9 @@ export const useCharacterCardStore = create<CharacterCardState>((set, get) => ({
       const items = await listCharacterCards();
       const sorted = items.slice().sort((a, b) => b.updatedAt - a.updatedAt);
       set({ cards: sorted, isLoading: false, hasLoaded: true, error: null });
-    } catch (e) {
-      set({ isLoading: false, error: e instanceof Error ? e.message : String(e) });
+    } catch {
+      set({ isLoading: false, error: SAFE_LOAD_ERROR });
+      toast.error("Could not load characters", "Please try again.");
     }
   },
 
@@ -111,10 +119,9 @@ export const useCharacterCardStore = create<CharacterCardState>((set, get) => ({
         return { cards: next, editingId: saved.id, error: null };
       });
       return saved;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      set({ error: msg });
-      toast.error("Could not save character", msg);
+    } catch {
+      set({ error: SAFE_UPSERT_ERROR });
+      toast.error("Could not save character", "Please try again.");
       return null;
     }
   },
@@ -131,10 +138,9 @@ export const useCharacterCardStore = create<CharacterCardState>((set, get) => ({
         editingId: s.editingId === id ? null : s.editingId,
       }));
       return true;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      set({ error: msg });
-      toast.error("Could not delete character", msg);
+    } catch {
+      set({ error: SAFE_REMOVE_ERROR });
+      toast.error("Could not delete character", "Please try again.");
       return false;
     }
   },

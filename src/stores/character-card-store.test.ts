@@ -8,9 +8,11 @@
  *  exercised through the integration tests; we stub the service via
  *  fake-indexeddb/auto + the existing service code path.) */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import "fake-indexeddb/auto";
 import { useCharacterCardStore } from "./character-card-store";
+import { useToastStore } from "./toast-store";
+import * as characterCardService from "../services/rp/characterCardService";
 import type { CharacterCardV1 } from "../types/rp";
 
 function reset(): void {
@@ -23,6 +25,8 @@ function reset(): void {
     includeAdult: false,
     editingId: null,
   });
+  useToastStore.setState({ toasts: [] });
+  vi.restoreAllMocks();
 }
 
 function baseCard(overrides: Partial<CharacterCardV1> = {}): CharacterCardV1 {
@@ -152,5 +156,72 @@ describe("character-card-store", () => {
     const saved = await useCharacterCardStore.getState().upsert(card);
     expect(saved).not.toBeNull();
     expect(saved!.metadata).toEqual({ ok: "string", n: 42, b: true, n2: null });
+  });
+
+  // T-185 regression guard: persistence failures must never expose raw
+  // exception text (paths, driver internals, secrets) in store state or toasts.
+  describe("safe persistence error handling (T-185)", () => {
+    const rawError = new Error(
+      "ENOSPC: no space left on device at /Users/super_user/.secret/path",
+    );
+
+    it("load surfaces a safe generic error and toast when listCharacterCards fails", async () => {
+      vi.spyOn(characterCardService, "listCharacterCards").mockRejectedValue(
+        rawError,
+      );
+      await useCharacterCardStore.getState().load();
+
+      const state = useCharacterCardStore.getState();
+      expect(state.error).toBe("Could not load character cards. Please try again.");
+      expect(state.error).not.toContain("ENOSPC");
+      expect(state.error).not.toContain("/Users");
+      expect(state.isLoading).toBe(false);
+
+      const toasts = useToastStore.getState().toasts;
+      expect(toasts).toHaveLength(1);
+      expect(toasts[0]!.variant).toBe("error");
+      expect(toasts[0]!.title).toBe("Could not load characters");
+      expect(toasts[0]!.description).toBe("Please try again.");
+      expect(toasts[0]!.description).not.toContain("ENOSPC");
+    });
+
+    it("upsert surfaces a safe generic error and toast when saveCharacterCard fails", async () => {
+      vi.spyOn(characterCardService, "saveCharacterCard").mockRejectedValue(
+        rawError,
+      );
+      const result = await useCharacterCardStore
+        .getState()
+        .upsert(baseCard());
+
+      expect(result).toBeNull();
+      const state = useCharacterCardStore.getState();
+      expect(state.error).toBe("Could not save character. Please try again.");
+      expect(state.error).not.toContain("ENOSPC");
+      expect(state.error).not.toContain("/Users");
+
+      const toasts = useToastStore.getState().toasts;
+      expect(toasts).toHaveLength(1);
+      expect(toasts[0]!.title).toBe("Could not save character");
+      expect(toasts[0]!.description).toBe("Please try again.");
+    });
+
+    it("remove surfaces a safe generic error and toast when deleteCharacterCard fails", async () => {
+      const id = useCharacterCardStore.getState().createBlank();
+      vi.spyOn(characterCardService, "deleteCharacterCard").mockRejectedValue(
+        rawError,
+      );
+      const ok = await useCharacterCardStore.getState().remove(id);
+
+      expect(ok).toBe(false);
+      const state = useCharacterCardStore.getState();
+      expect(state.error).toBe("Could not delete character. Please try again.");
+      expect(state.error).not.toContain("ENOSPC");
+      expect(state.error).not.toContain("/Users");
+
+      const toasts = useToastStore.getState().toasts;
+      expect(toasts).toHaveLength(1);
+      expect(toasts[0]!.title).toBe("Could not delete character");
+      expect(toasts[0]!.description).toBe("Please try again.");
+    });
   });
 });

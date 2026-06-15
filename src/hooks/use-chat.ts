@@ -11,6 +11,11 @@ import { generateCharacterScene } from '../services/characterSceneGenerationServ
 import { parseCharacterSceneRequest } from '../services/characterSceneRequestParser'
 import { CharacterSceneRateLimiter } from '../services/characterSceneRateLimiter'
 import type { CharacterSceneGenerationResult } from '../types/characterSceneGeneration'
+import * as logger from '../shared/logger'
+
+/** Safe, non-disclosing error text appended to assistant messages when a
+ *  chat stream fails. Never include raw exception text, paths, or secrets. */
+const SAFE_STREAM_ERROR_MESSAGE = 'Sorry, something went wrong. Please try again.'
 
 /** Resolves the character slug for a conversation, in priority order:
  *  1. The conversation's persisted character metadata (authoritative).
@@ -291,8 +296,10 @@ export function useChat() {
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
-        const message = err instanceof Error ? err.message : 'Unknown error'
-        appendToLastAssistant(convId!, `\n\n[Error: ${message}]`)
+        // T-114/T-115: do not persist raw exception text (paths, secrets,
+        // provider internals) into the conversation history.
+        logger.error('useChat send failed', err)
+        appendToLastAssistant(convId!, `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]`)
       } finally {
         setStreaming(false)
         abortRef.current = null
@@ -326,8 +333,10 @@ export function useChat() {
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
-        const message = err instanceof Error ? err.message : 'Unknown error'
-        appendToLastAssistant(convId, `\n\n[Error: ${message}]`)
+        // T-114/T-115: do not persist raw exception text (paths, secrets,
+        // provider internals) into the conversation history.
+        logger.error('useChat regenerate failed', err)
+        appendToLastAssistant(convId, `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]`)
       } finally {
         setStreaming(false)
         abortRef.current = null

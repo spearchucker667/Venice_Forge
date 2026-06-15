@@ -383,8 +383,8 @@ export function parseWorkflowTemplateImport(input: unknown): WorkflowImportResul
       const resultWithItems = result as WorkflowImportResult & { _items?: WorkflowTemplateItem[] };
       resultWithItems._items = (resultWithItems._items || []).concat(item);
 
-    } catch (err) {
-      result.skipped.push({ title, reason: err instanceof Error ? err.message : "Unknown validation error" });
+    } catch {
+      result.skipped.push({ title, reason: "Workflow validation failed." });
     }
   }
 

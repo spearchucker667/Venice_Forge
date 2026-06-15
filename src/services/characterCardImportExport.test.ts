@@ -188,5 +188,50 @@ describe("characterCardImportExport", () => {
       expect(out.imported).toHaveLength(1);
       expect(out.imported[0]!.firstMessage).toBe("Hi, friend.");
     });
+
+    // T-157 regression guard — every free-text field must be redacted on import.
+    it("redacts secrets embedded in native scenario, examples, and author", async () => {
+      const longKey = "venice_abcdefghijklmnopqrstuvwxyz1234";
+      const out = await parseCharacterCardImport({
+        ...baseCard({
+          id: "c_t157_native",
+          scenario: `Set in a world where the key is ${longKey}.`,
+          exampleDialogues: [
+            { speaker: "User", text: `I found ${longKey} in the ruins.` },
+          ],
+          author: `alice-${longKey}`,
+        }),
+      });
+      expect(out.imported).toHaveLength(1);
+      const c = out.imported[0]!;
+      expect(c.scenario).not.toContain(longKey);
+      expect(c.scenario).toContain("[REDACTED]");
+      expect(c.exampleDialogues[0]!.text).not.toContain(longKey);
+      expect(c.exampleDialogues[0]!.text).toContain("[REDACTED]");
+      expect(c.author).not.toContain(longKey);
+      expect(c.author).toContain("[REDACTED]");
+    });
+
+    it("redacts secrets embedded in Tavern scenario, examples, and creator notes", async () => {
+      const longKey = "venice_abcdefghijklmnopqrstuvwxyz1234";
+      const out = await parseCharacterCardImport({
+        name: "Tavern Secret",
+        system_prompt: "Speak like a wizard.",
+        scenario: `The spell costs ${longKey}.`,
+        mes_example: `Wizard: My token is ${longKey}.`,
+        alternate_greetings: [`Greetings, bearer of ${longKey}.`],
+        creator_notes: `Created with ${longKey}`,
+      });
+      expect(out.imported).toHaveLength(1);
+      const c = out.imported[0]!;
+      expect(c.scenario).not.toContain(longKey);
+      expect(c.scenario).toContain("[REDACTED]");
+      expect(c.exampleDialogues[0]!.text).not.toContain(longKey);
+      expect(c.exampleDialogues[0]!.text).toContain("[REDACTED]");
+      expect(c.exampleDialogues[1]!.text).not.toContain(longKey);
+      expect(c.exampleDialogues[1]!.text).toContain("[REDACTED]");
+      expect(c.metadata?.creator).not.toContain(longKey);
+      expect(c.metadata?.creator).toContain("[REDACTED]");
+    });
   });
 });

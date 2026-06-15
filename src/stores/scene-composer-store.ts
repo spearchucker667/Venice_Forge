@@ -46,6 +46,7 @@ import { useProjectStore } from "./project-store";
 import { useSettingsStore } from "./settings-store";
 import { useAuthStore } from "./auth-store";
 import StorageService from "../services/storageService";
+import { redactErrorMessage } from "../shared/redaction";
 
 export interface SceneComposerState {
   scenes: SceneComposerItem[];
@@ -144,7 +145,7 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
     } catch (err) {
       set({
         loading: false,
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
         hydrated: true,
       });
     }
@@ -180,7 +181,7 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
       set((s) => ({
         scenes: s.scenes.filter((p) => p.id !== item.id),
         activeSceneId: s.activeSceneId === item.id ? null : s.activeSceneId,
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -212,7 +213,7 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
     } catch (err) {
       set((s) => ({
         scenes: s.scenes.map((p) => (p.id === sceneId ? current : p)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -256,7 +257,7 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
     } catch (err) {
       set((s) => ({
         scenes: s.scenes.map((p) => (p.id === sceneId ? current : p)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -281,7 +282,7 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
     } catch (err) {
       set((s) => ({
         scenes: s.scenes.map((p) => (p.id === sceneId ? current : p)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -306,7 +307,7 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
     } catch (err) {
       set((s) => ({
         scenes: s.scenes.map((p) => (p.id === sceneId ? current : p)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -329,7 +330,7 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
     } catch (err) {
       set((s) => ({
         scenes: s.scenes.map((p) => (p.id === sceneId ? current : p)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -352,7 +353,7 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
     } catch (err) {
       set((s) => ({
         scenes: s.scenes.map((p) => (p.id === sceneId ? current : p)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -374,7 +375,7 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
     } catch (err) {
       set((s) => ({
         scenes: s.scenes.map((p) => (p.id === sceneId ? current : p)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -392,7 +393,7 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
     } catch (err) {
       set((s) => ({
         scenes: [current, ...s.scenes.filter((p) => p.id !== sceneId)],
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -414,7 +415,7 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
     } catch (err) {
       set((s) => ({
         scenes: s.scenes.map((p) => (p.id === sceneId ? current : p)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -434,7 +435,7 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
         await persistOne(fresh);
       } catch (err) {
         result.skipped.push({
-          reason: `Persistence failed: ${err instanceof Error ? err.message : String(err)}`,
+          reason: `Persistence failed: ${redactErrorMessage(err)}`,
           title: fresh.title,
         });
         continue;

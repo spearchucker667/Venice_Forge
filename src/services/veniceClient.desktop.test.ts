@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppDispatch } from "../types/app";
+import { useInspectorStore } from "../stores/inspector-store";
 
 vi.mock("./desktopBridge", () => ({
   isElectron: vi.fn(() => true),
@@ -11,6 +12,11 @@ vi.mock("./desktopBridge", () => ({
 
 import { veniceFetch, veniceStreamChat } from "./veniceClient";
 import { desktopVenice } from "./desktopBridge";
+
+function getLatestInspectorError(): string | undefined {
+  const logs = useInspectorStore.getState().logs;
+  return logs[0]?.error;
+}
 
 describe("veniceClient desktop regressions", () => {
   beforeEach(() => {
@@ -71,5 +77,42 @@ describe("veniceClient desktop regressions", () => {
         }),
       })
     );
+  });
+
+  // T-170 regression guard: veniceFetch must redact secret-like tokens from
+  // inspector log errors instead of storing the raw exception text.
+  it("redacts secret-like tokens in inspector log errors for desktop veniceFetch", async () => {
+    const dispatch = vi.fn() as unknown as AppDispatch;
+    vi.mocked(desktopVenice.request).mockRejectedValue(
+      new Error("Desktop transport failed with sk-1234567890abcdef")
+    );
+
+    await expect(veniceFetch("/models", { method: "GET", dispatch, retry: false })).rejects.toThrow();
+
+    const loggedError = getLatestInspectorError();
+    expect(loggedError).toBeDefined();
+    expect(loggedError).not.toContain("sk-1234567890abcdef");
+    expect(loggedError).toContain("[REDACTED]");
+  });
+
+  // T-171 regression guard: veniceStreamChat must redact secret-like tokens from
+  // inspector log errors instead of storing the raw exception text.
+  it("redacts secret-like tokens in inspector log errors for desktop veniceStreamChat", async () => {
+    const dispatch = vi.fn() as unknown as AppDispatch;
+    vi.mocked(desktopVenice.streamChat).mockRejectedValue(
+      new Error("Desktop stream failed with vn-leaked-key-12345678")
+    );
+
+    await expect(
+      veniceStreamChat(
+        { model: "venice-uncensored", messages: [] },
+        { dispatch, onDelta: vi.fn() }
+      )
+    ).rejects.toThrow();
+
+    const loggedError = getLatestInspectorError();
+    expect(loggedError).toBeDefined();
+    expect(loggedError).not.toContain("vn-leaked-key-12345678");
+    expect(loggedError).toContain("[REDACTED]");
   });
 });

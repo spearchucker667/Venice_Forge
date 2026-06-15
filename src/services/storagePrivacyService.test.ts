@@ -45,6 +45,34 @@ describe("storagePrivacyService", () => {
     expect(summary.exclusions).toContain("API Keys");
   });
 
+  it("T-168 / VERIFY-168: safe summary redacts user titles and names from issue messages", () => {
+    const inventory = buildStorageInventory({
+      projects: [{ id: "p1" }],
+      prompts: [{ id: "pr1", projectId: "missing-project", title: "My Secret Prompt" }],
+      scenes: [{ id: "sc1", projectId: "missing-project", name: "My Private Scene" }],
+      workflows: [{ id: "wf1", projectId: "missing-project", title: "My Workflow" }],
+    });
+
+    // Internal inventory still has the detailed diagnostic message.
+    expect(inventory.issues.some((i) => i.message.includes("My Secret Prompt"))).toBe(true);
+    expect(inventory.issues.some((i) => i.message.includes("My Private Scene"))).toBe(true);
+    expect(inventory.issues.some((i) => i.message.includes("My Workflow"))).toBe(true);
+
+    const summary = buildSafePrivacySummary(inventory);
+    expect(summary.issues).toHaveLength(3);
+
+    for (const issue of summary.issues) {
+      expect(issue.message).not.toContain("My Secret Prompt");
+      expect(issue.message).not.toContain("My Private Scene");
+      expect(issue.message).not.toContain("My Workflow");
+      expect(issue.message).not.toContain('"');
+      expect(issue.message).toMatch(/^.+ item has a missing .+ reference$/);
+    }
+
+    const promptIssue = summary.issues.find((i) => i.sourceCategory === "prompts");
+    expect(promptIssue?.message).toBe("prompts item has a missing projects reference");
+  });
+
   it("does not mutate input records", () => {
     const prompts = [{ id: "pr1", title: "Original" }];
     buildStorageInventory({ prompts });

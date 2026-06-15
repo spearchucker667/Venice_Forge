@@ -23,6 +23,15 @@ describe("contrastRatio", () => {
     expect(contrastRatio("#FFFFFF", "#000000")).toBeCloseTo(21, 1);
   });
 
+  it("handles rgb colors without returning NaN", () => {
+    expect(contrastRatio("rgb(255, 255, 255)", "rgb(0, 0, 0)")).toBeCloseTo(21, 1);
+  });
+
+  it("returns a finite conservative result for unsupported colors", () => {
+    expect(contrastRatio("transparent", "#ffffff")).toBe(21);
+    expect(Number.isFinite(contrastRatio("not-a-color", "#ffffff"))).toBe(true);
+  });
+
   it("returns ~4.5 for #767676 on white (AA boundary)", () => {
     const ratio = contrastRatio("#767676", "#ffffff");
     expect(ratio).toBeGreaterThanOrEqual(4.5);

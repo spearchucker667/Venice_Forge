@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useCharacterCardStore, useFilteredCharacterCards } from "../../stores/character-card-store";
+import { useCharacterCardStore } from "../../stores/character-card-store";
 import { GhostButton, PillGroup, PrimaryButton, ErrorText, EmptyState } from "../ui/shared";
 import { Spinner } from "../ui/spinner";
 import { avatarDataUri, formatRelativeTime, truncate } from "./_shared";
@@ -31,7 +31,7 @@ export function CharacterLibrary({ onEdit }: Props) {
   const upsert = useCharacterCardStore((s) => s.upsert);
   const setSearchQuery = useCharacterCardStore((s) => s.setSearchQuery);
   const searchQuery = useCharacterCardStore((s) => s.searchQuery);
-  const cards = useFilteredCharacterCards();
+  const allCards = useCharacterCardStore((s) => s.cards);
 
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
   // Adult filtering is a normal user preference and is no longer gated by
@@ -44,9 +44,15 @@ export function CharacterLibrary({ onEdit }: Props) {
   }, [hasLoaded, load]);
 
   const filtered = useMemo(() => {
-    if (adultFilter === "adult") return cards.filter((c) => c.adult);
-    return cards.filter((c) => !c.adult);
-  }, [cards, adultFilter]);
+    const needle = searchQuery.trim().toLowerCase();
+    return allCards.filter((card) => {
+      if (adultFilter === "adult" && !card.adult) return false;
+      if (adultFilter === "standard" && card.adult) return false;
+      if (!needle) return true;
+      const haystack = `${card.name}\n${card.description}\n${card.tags.join(" ")}`.toLowerCase();
+      return haystack.includes(needle);
+    });
+  }, [allCards, searchQuery, adultFilter]);
 
   const handleCreate = async () => {
     const now = Date.now();
@@ -62,19 +68,20 @@ export function CharacterLibrary({ onEdit }: Props) {
       createdAt: now,
       updatedAt: now,
     };
-    await upsert(blank);
-    onEdit(blank.id);
+    const saved = await upsert(blank);
+    if (!saved) return;
+    onEdit(saved.id);
   };
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-border">
         <input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search characters…"
           aria-label="Search characters"
-          className="flex-1 min-w-[12rem] bg-surface border border-white/[0.08] rounded-lg px-3 py-1.5 text-[13.5px] text-white/90 outline-none focus:border-white/[0.22] transition-colors placeholder:text-white/25"
+          className="flex-1 min-w-[12rem] bg-surface border border-border rounded-lg px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
         />
         <PillGroup
           options={adultFilterOptions.map((o) => ({ value: o.value, label: o.label }))}
@@ -98,8 +105,8 @@ export function CharacterLibrary({ onEdit }: Props) {
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {isLoading && !hasLoaded ? (
-          <div className="flex items-center justify-center h-full text-white/30 gap-2 text-[13px]">
-            <Spinner className="text-white/45" /> Loading characters…
+          <div className="flex items-center justify-center h-full text-text-muted gap-2 text-[13px]">
+            <Spinner className="text-text-muted" /> Loading characters…
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3">
@@ -164,15 +171,15 @@ function CardTile({
   const avatarSrc = avatarDataUri(card.avatar);
   return (
     <div
-      className="group relative flex flex-col gap-2 bg-surface border border-white/[0.06] hover:border-white/[0.18] rounded-xl p-3 transition-colors focus-within:border-white/[0.22]"
+      className="group relative flex flex-col gap-2 bg-surface border border-border hover:border-accent/40 rounded-xl p-3 transition-colors focus-within:border-accent"
       role="article"
       aria-label={`Character ${card.name}`}
     >
-      <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-white/[0.04] border border-white/[0.06]">
+      <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-surface-elevated border border-border">
         {avatarSrc ? (
           <img src={avatarSrc} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-white/30 text-3xl font-semibold">
+          <div className="w-full h-full flex items-center justify-center text-text-muted text-3xl font-semibold">
             {card.name.slice(0, 1).toUpperCase() || "?"}
           </div>
         )}
@@ -184,12 +191,12 @@ function CardTile({
       </div>
 
       <div className="min-h-0">
-        <div className="text-[13.5px] font-semibold text-white/90 truncate">{card.name}</div>
-        <div className="text-[11.5px] text-white/40 mt-0.5">
+        <div className="text-[13.5px] font-semibold text-text-primary truncate">{card.name}</div>
+        <div className="text-[11.5px] text-text-muted mt-0.5">
           {formatRelativeTime(card.updatedAt)}
         </div>
         {card.description && (
-          <div className="text-[12px] text-white/55 mt-1.5 line-clamp-2">
+          <div className="text-[12px] text-text-secondary mt-1.5 line-clamp-2">
             {truncate(card.description, 120)}
           </div>
         )}
@@ -199,7 +206,7 @@ function CardTile({
         <button
           type="button"
           onClick={onEdit}
-          className="flex-1 text-[12px] py-1.5 rounded-md border border-white/[0.1] text-white/75 hover:text-white hover:border-white/[0.2] hover:bg-white/[0.03] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
+          className="flex-1 text-[12px] py-1.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:border-accent/40 hover:bg-surface-elevated transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
         >
           Edit
         </button>
@@ -219,7 +226,7 @@ function CardTile({
             type="button"
             onClick={armConfirm}
             aria-label={`Delete ${card.name}`}
-            className="text-[12px] py-1.5 px-2 rounded-md text-white/40 hover:text-rose-300 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
+            className="text-[12px] py-1.5 px-2 rounded-md text-text-muted hover:text-rose-300 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <line x1="18" y1="6" x2="6" y2="18" />

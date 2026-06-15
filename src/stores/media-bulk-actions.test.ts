@@ -253,4 +253,56 @@ describe("media-bulk-actions (VERIFY-044)", () => {
     const out = listAssignableProjects()
     expect(out).toEqual([{ id: "live", name: "Live" }])
   })
+
+  describe("T-191 regression — raw exception strings are redacted", () => {
+    it.each([
+      {
+        name: "bulkSetFavorite",
+        setup: () => vi.spyOn(useMediaStore.getState(), "setFavoriteMany").mockRejectedValueOnce(new Error("vn-deadbeefsecret123")),
+        run: () => bulkSetFavorite(["a"], true),
+      },
+      {
+        name: "bulkAddTags",
+        setup: () => vi.spyOn(useMediaStore.getState(), "addTagsMany").mockRejectedValueOnce(new Error("Bearer eyJzdWIiOiIxMjM0NTY3ODkw")),
+        run: () => bulkAddTags(["a"], ["tag"]),
+      },
+      {
+        name: "bulkRemoveTag",
+        setup: () => vi.spyOn(useMediaStore.getState(), "removeTagMany").mockRejectedValueOnce(new Error("sk-abc123def456")),
+        run: () => bulkRemoveTag(["a"], "tag"),
+      },
+      {
+        name: "bulkDelete",
+        setup: () => vi.spyOn(useMediaStore.getState(), "removeMany").mockRejectedValueOnce(new Error("Authorization: vn-leakedkey")),
+        run: () => bulkDelete(["a"], { confirm: true }),
+      },
+    ])("$name redacts secrets from failure reasons", async ({ setup, run }) => {
+      await seed([makeItem({ id: "a" })])
+      setup()
+      const r = await run()
+      expect(r.succeeded).toEqual([])
+      expect(r.failed).toHaveLength(1)
+      expect(r.failed[0].id).toBe("a")
+      expect(r.failed[0].reason).not.toMatch(/vn-deadbeefsecret123|eyJzdWIiOiIxMjM0NTY3ODkw|sk-abc123def456|vn-leakedkey/)
+      expect(r.failed[0].reason).toMatch(/\[REDACTED\]|Unknown error/)
+    })
+
+    it("bulkAssignProject redacts secrets from per-id patch failures", async () => {
+      await seed([makeItem({ id: "a" })])
+      useProjectStore.setState({ projects: [makeProject({ id: "p1", name: "P1" })] })
+      vi.spyOn(useMediaStore.getState(), "patch").mockRejectedValueOnce(new Error("Request failed with apiKey=sk-live-leaked"))
+      const r = await bulkAssignProject(["a"], "p1")
+      expect(r.succeeded).toEqual([])
+      expect(r.failed[0].reason).not.toMatch(/sk-live-leaked/)
+      expect(r.failed[0].reason).toMatch(/\[REDACTED\]|Unknown error/)
+    })
+
+    it("string errors are redacted rather than returned raw", async () => {
+      await seed([makeItem({ id: "a" })])
+      vi.spyOn(useMediaStore.getState(), "setFavoriteMany").mockRejectedValueOnce("vn-stringsecret")
+      const r = await bulkSetFavorite(["a"], true)
+      expect(r.failed[0].reason).not.toMatch(/vn-stringsecret/)
+      expect(r.failed[0].reason).toMatch(/\[REDACTED\]|Unknown error/)
+    })
+  })
 })

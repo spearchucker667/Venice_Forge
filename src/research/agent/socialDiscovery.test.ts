@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { runSocialDiscovery, type SocialDiscoveryInput } from "./socialDiscovery";
 import type { ResearchProvider } from "../providerTypes";
 
@@ -9,6 +9,17 @@ function makeMockProvider(results: Array<{ title: string; url: string; snippet?:
     supports: { search: true, scrape: false, socialDiscovery: true, documentParsing: false },
     async search() {
       return results.map((r) => ({ provider: "venice" as const, ...r }));
+    },
+  };
+}
+
+function makeFailingProvider(error: unknown): ResearchProvider {
+  return {
+    id: "venice",
+    label: "Mock",
+    supports: { search: true, scrape: false, socialDiscovery: true, documentParsing: false },
+    async search() {
+      throw error;
     },
   };
 }
@@ -127,5 +138,48 @@ describe("runSocialDiscovery", () => {
     const result = await runSocialDiscovery(baseInput, provider);
     expect(result.ok).toBe(false);
     expect(result.error).toMatch(/does not support search/i);
+  });
+
+  it("does not return raw provider error text to the UI (T-147)", async () => {
+    const provider = makeFailingProvider(new Error("Internal provider error: /secret/path"));
+    const originalError = console.error;
+    console.error = vi.fn();
+    const result = await runSocialDiscovery(baseInput, provider);
+    console.error = originalError;
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("Profile discovery failed. Please try again later.");
+    expect(result.error).not.toMatch(/Internal provider error/);
+    expect(result.error).not.toMatch(/\/secret\/path/);
+  });
+
+  it("redacts secrets from logged provider errors (T-147)", async () => {
+    const provider = makeFailingProvider(new Error("request failed with sk-1234567890abcdef"));
+    const originalError = console.error;
+    const errorMock = vi.fn();
+    console.error = errorMock;
+    const result = await runSocialDiscovery(baseInput, provider);
+    console.error = originalError;
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("Profile discovery failed. Please try again later.");
+    expect(result.error).not.toMatch(/sk-/);
+    expect(errorMock).toHaveBeenCalledTimes(1);
+    expect(errorMock.mock.calls[0][1]).toContain("[REDACTED]");
+    expect(errorMock.mock.calls[0][1]).not.toContain("sk-1234567890abcdef");
+  });
+
+  it("returns a safe cancel message when aborted (T-147)", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const provider = makeMockProvider([
+      { title: "Example", url: "https://github.com/example" },
+    ]);
+    const result = await runSocialDiscovery(
+      { ...baseInput, signal: controller.signal },
+      provider
+    );
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("Search cancelled.");
   });
 });

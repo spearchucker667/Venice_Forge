@@ -268,6 +268,36 @@ if (pkg) {
     } else {
       pass(".github/workflows/release.yml Linux job does not run Windows packaging scripts");
     }
+
+    // Windows job must use Windows-specific signing env vars only (VERIFY-054).
+    // Generic CSC_LINK / CSC_KEY_PASSWORD are macOS signing secrets and must not
+    // be mapped into the Windows packaging environment.
+    const windowsJobMatch = release.match(/build-windows:\s*\n([\s\S]*?)(?=^ {2}build-linux:|^ {2}publish:)/m);
+    if (!windowsJobMatch) {
+      fail(".github/workflows/release.yml is missing a 'build-windows' job (VERIFY-054)");
+    } else {
+      const windowsJob = windowsJobMatch[1];
+      if (/\bCSC_LINK\s*:/.test(windowsJob)) {
+        fail(".github/workflows/release.yml Windows job maps generic CSC_LINK into the Windows signing env (VERIFY-054); use WIN_CSC_LINK only");
+      } else {
+        pass(".github/workflows/release.yml Windows job does not map generic CSC_LINK (VERIFY-054)");
+      }
+      if (/\bCSC_KEY_PASSWORD\s*:/.test(windowsJob)) {
+        fail(".github/workflows/release.yml Windows job maps generic CSC_KEY_PASSWORD into the Windows signing env (VERIFY-054); use WIN_CSC_KEY_PASSWORD only");
+      } else {
+        pass(".github/workflows/release.yml Windows job does not map generic CSC_KEY_PASSWORD (VERIFY-054)");
+      }
+      if (!/\bWIN_CSC_LINK\s*:/.test(windowsJob)) {
+        fail(".github/workflows/release.yml Windows job is missing WIN_CSC_LINK signing env var (VERIFY-054)");
+      } else {
+        pass(".github/workflows/release.yml Windows job sets WIN_CSC_LINK (VERIFY-054)");
+      }
+      if (!/\bWIN_CSC_KEY_PASSWORD\s*:/.test(windowsJob)) {
+        fail(".github/workflows/release.yml Windows job is missing WIN_CSC_KEY_PASSWORD signing env var (VERIFY-054)");
+      } else {
+        pass(".github/workflows/release.yml Windows job sets WIN_CSC_KEY_PASSWORD (VERIFY-054)");
+      }
+    }
   }
 }
 

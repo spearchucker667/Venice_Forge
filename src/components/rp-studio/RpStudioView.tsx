@@ -56,15 +56,15 @@ export function RpStudioView() {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex items-center gap-1 px-3 py-2 border-b border-white/[0.06] bg-surface/40 overflow-x-auto">
-        <div className="text-[11px] uppercase tracking-[0.08em] text-white/40 font-semibold mr-2 shrink-0">RP Studio</div>
+      <div className="flex items-center gap-1 px-3 py-2 border-b border-border bg-surface/40 overflow-x-auto">
+        <div className="text-[11px] uppercase tracking-[0.08em] text-text-muted font-semibold mr-2 shrink-0">RP Studio</div>
         {SUB_TABS.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setSub(t.id)}
             aria-pressed={sub === t.id}
-            className={`text-[12.5px] px-2.5 py-1 rounded-md border transition-colors shrink-0 ${sub === t.id ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]" : "border-white/[0.1] text-white/60 hover:text-white"}`}
+            className={`text-[12.5px] px-2.5 py-1 rounded-md border transition-colors shrink-0 ${sub === t.id ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]" : "border-border text-text-secondary hover:text-text-primary"}`}
           >
             {t.label}
           </button>
@@ -87,7 +87,7 @@ export function RpStudioView() {
       )}
 
       {sub === "scenes" && (
-        <div className="px-3 py-1.5 border-b border-white/[0.06]">
+        <div className="px-3 py-1.5 border-b border-border">
           <PillGroup
             options={[{ value: "generate", label: "Generate" }, { value: "gallery", label: "Gallery" }]}
             value={sceneView}

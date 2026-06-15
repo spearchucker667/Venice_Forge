@@ -94,8 +94,13 @@ describe("configSchema", () => {
     });
 
     it("falls back to a valid default for unknown version", () => {
-      const result = validateConfig({ version: 999 });
+      const result = validateConfig({
+        version: 999,
+        developer: { force_apply_config: true },
+        theme: { themes_file: "https://example.com/evil.yaml" },
+      });
       expect(result.warnings.some((w) => w.field === "version" && w.severity === "error")).toBe(true);
+      expect(result.config).toEqual(emptyConfig());
     });
 
     it("treats string 'yes' as not-true for booleans", () => {

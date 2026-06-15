@@ -2,6 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import StorageService from '../services/storageService'
+import * as logger from '../shared/logger'
 import type { Conversation } from '../types/conversation'
 import type { MediaItem } from '../types/media'
 import { useChatStore } from './chat-store'
@@ -15,6 +16,11 @@ vi.mock('../services/storageService', () => ({
     saveItem: vi.fn(async (_store, item) => item),
     deleteItem: vi.fn(async () => true),
   },
+}))
+
+vi.mock('../shared/logger', () => ({
+  error: vi.fn(),
+  warn: vi.fn(),
 }))
 
 const mockStorage = StorageService as unknown as {
@@ -149,7 +155,28 @@ describe('project-store Phase 1 contracts', () => {
     mockStorage.getItems.mockRejectedValue(new Error('IndexedDB unavailable'))
     expect(await useProjectStore.getState().deleteProject(project.id)).toBe(false)
     expect(useProjectStore.getState().byId(project.id)).toBeTruthy()
-    expect(useProjectStore.getState().lastError).toBe('IndexedDB unavailable')
+    expect(useProjectStore.getState().lastError).toBe('Could not verify project references. Please try again.')
+  })
+
+  it('T-195: does not store raw storage exception messages in lastError during reference verification', async () => {
+    const project = await useProjectStore.getState().createProject('Sensitive')
+    mockStorage.getItems.mockRejectedValue(new Error('ENOENT: /Users/admin/.venice/sk-abc123'))
+    expect(await useProjectStore.getState().deleteProject(project.id)).toBe(false)
+    const lastError = useProjectStore.getState().lastError
+    expect(lastError).toBe('Could not verify project references. Please try again.')
+    expect(lastError).not.toContain('/Users/admin')
+    expect(lastError).not.toContain('sk-abc123')
+    expect(logger.error).toHaveBeenCalled()
+  })
+
+  it('T-195: does not store raw storage exception messages in lastError during refresh', async () => {
+    mockStorage.getItems.mockRejectedValue(new Error('IDB failed at /Users/admin/.venice with vn-secret'))
+    await useProjectStore.getState().refresh()
+    const lastError = useProjectStore.getState().lastError
+    expect(lastError).toBe('Failed to load projects. Please try again.')
+    expect(lastError).not.toContain('/Users/admin')
+    expect(lastError).not.toContain('vn-secret')
+    expect(logger.error).toHaveBeenCalled()
   })
 
   it('fails closed until conversation history hydration succeeds', async () => {

@@ -1,7 +1,7 @@
 /** @fileoverview Unit tests for redaction of secrets and tokens. */
 
 import { describe, expect, it } from "vitest";
-import { redactSecrets } from "./redaction";
+import { redactErrorMessage, redactSecrets } from "./redaction";
 
 /** Tests for redactSecrets. */
 describe("redactSecrets", () => {
@@ -20,6 +20,14 @@ describe("redactSecrets", () => {
     expect(serialized).toContain("[REDACTED]");
   });
 
+  it("redacts sk keys and named environment secret assignments", () => {
+    const value = redactSecrets(
+      "OPENAI_API_KEY=sk-1234567890abcdef JINA_TOKEN='token-value-123'"
+    );
+
+    expect(value).toBe("OPENAI_API_KEY=[REDACTED] JINA_TOKEN=[REDACTED]");
+  });
+
   // BUG-011 regression guard: redaction must not recurse forever on cyclic objects.
   it("replaces cyclic references with a placeholder", () => {
     const value: { name: string; self?: unknown } = { name: "diagnostics" };
@@ -29,5 +37,12 @@ describe("redactSecrets", () => {
       name: "diagnostics",
       self: "[Circular]",
     });
+  });
+});
+
+describe("redactErrorMessage", () => {
+  it("redacts secrets embedded in errors", () => {
+    expect(redactErrorMessage(new Error("failed with sk-1234567890abcdef")))
+      .toBe("failed with [REDACTED]");
   });
 });

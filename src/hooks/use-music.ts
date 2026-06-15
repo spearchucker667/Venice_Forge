@@ -6,6 +6,13 @@ import type { MusicQueueRequest, MusicQueueResponse, MusicRetrieveResponse } fro
 const POLL_INTERVAL_MS = 3000
 const MAX_ATTEMPTS = 120 // ~6 minutes
 
+export const SAFE_ERROR_MESSAGES = {
+  queue: 'Unable to queue music generation. Please try again.',
+  polling: 'Unable to check generation status. Please try again.',
+  generation: 'Music generation failed. Please try again.',
+  timeout: 'Generation took too long. Cancel and try again.',
+} as const
+
 export function useMusic() {
   const [status, setStatus] = useState<'idle' | 'queued' | 'processing' | 'completed' | 'failed'>('idle')
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
@@ -49,7 +56,7 @@ export function useMusic() {
       if (attemptsRef.current > MAX_ATTEMPTS) {
         isPollingRef.current = false
         stopPolling()
-        setError('Generation took too long. Cancel and try again.')
+        setError(SAFE_ERROR_MESSAGES.timeout)
         setStatus('failed')
         return
       }
@@ -65,13 +72,14 @@ export function useMusic() {
           setAudioUrl(result.audio_url)
           stopPolling()
         } else if (s === 'failed') {
-          setError(result.error ?? 'Music generation failed')
+          setError(SAFE_ERROR_MESSAGES.generation)
           stopPolling()
         }
-      } catch (err) {
+      } catch {
         if (token !== generationTokenRef.current) return
         if (attemptsRef.current >= MAX_ATTEMPTS) {
-          setError(err instanceof Error ? err.message : 'Polling failed')
+          setError(SAFE_ERROR_MESSAGES.polling)
+          setStatus('failed')
           stopPolling()
         }
       } finally {
@@ -95,8 +103,8 @@ export function useMusic() {
       setError(null)
       startPolling()
     },
-    onError: (err) => {
-      setError(err instanceof Error ? err.message : 'Queue failed')
+    onError: () => {
+      setError(SAFE_ERROR_MESSAGES.queue)
       setStatus('failed')
     },
   })

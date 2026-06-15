@@ -11,6 +11,8 @@ import {
   normalizeAsset,
 } from "../services/rp/assetService";
 import type { RpAssetV1 } from "../types/rp";
+import * as logger from "../shared/logger";
+import { sanitizeErrorText } from "../shared/redaction";
 import { toast } from "./toast-store";
 
 export interface SceneAssetState {
@@ -48,7 +50,9 @@ export const useSceneAssetStore = create<SceneAssetState>((set, get) => ({
       const sorted = items.slice().sort((a, b) => b.createdAt - a.createdAt);
       set({ assets: sorted, isLoading: false, hasLoaded: true });
     } catch (e) {
-      set({ isLoading: false, error: e instanceof Error ? e.message : String(e) });
+      logger.error("[scene-asset-store] load failed", sanitizeErrorText(String(e)));
+      set({ isLoading: false, error: "Could not load assets." });
+      toast.error("Could not load assets", "Please try again.");
     }
   },
 
@@ -75,9 +79,9 @@ export const useSceneAssetStore = create<SceneAssetState>((set, get) => ({
       });
       return saved;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      set({ error: msg });
-      toast.error("Could not save asset", msg);
+      logger.error("[scene-asset-store] upsert failed", sanitizeErrorText(String(e)));
+      set({ error: "Could not save asset." });
+      toast.error("Could not save asset", "Please try again.");
       return null;
     }
   },
@@ -95,9 +99,9 @@ export const useSceneAssetStore = create<SceneAssetState>((set, get) => ({
       }));
       return true;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      set({ error: msg });
-      toast.error("Could not delete asset", msg);
+      logger.error("[scene-asset-store] remove failed", sanitizeErrorText(String(e)));
+      set({ error: "Could not delete asset." });
+      toast.error("Could not delete asset", "Please try again.");
       return false;
     }
   },

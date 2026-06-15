@@ -14,9 +14,9 @@ import { isTrustedVeniceImageUrl, extractCharacterImageFromPage } from "../utils
 import { desktopApp } from "./desktopBridge";
 import * as logger from "../shared/logger";
 
-const ENABLED =
+const DISABLED =
   (import.meta as unknown as { env?: Record<string, string> }).env
-    ?.VENICE_FORGE_ENABLE_CHARACTER_PAGE_IMAGE_FALLBACK === "true";
+    ?.VENICE_FORGE_DISABLE_CHARACTER_PAGE_IMAGE_FALLBACK === "true";
 
 /** Builds the public character page URL for a safe slug. */
 function buildCharacterPageUrl(slug: string): string | null {
@@ -31,7 +31,7 @@ function buildCharacterPageUrl(slug: string): string | null {
 export async function tryResolveCharacterImageFromPublicPage(
   slug: string,
 ): Promise<string | undefined> {
-  if (!ENABLED) return undefined;
+  if (DISABLED) return undefined;
 
   const url = buildCharacterPageUrl(slug);
   if (!url) return undefined;

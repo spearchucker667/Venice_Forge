@@ -2,6 +2,25 @@ import { describe, expect, it } from "vitest";
 import { extractPromptLikeFields } from "./promptPayloadExtractor";
 
 describe("extractPromptLikeFields", () => {
+  it("parses a prompt field that appears after the extraction value cap in JSON text", () => {
+    const body = JSON.stringify({ padding: "x".repeat(40_000), prompt: "late prompt" });
+
+    expect(extractPromptLikeFields(body, "/image/generate")).toContainEqual({
+      path: "prompt",
+      value: "late prompt",
+    });
+  });
+
+  it("parses a prompt field that appears late in a UTF-8 request buffer", () => {
+    const body = new TextEncoder().encode(
+      JSON.stringify({ padding: "x".repeat(40_000), prompt: "late buffer prompt" })
+    );
+
+    expect(extractPromptLikeFields(body, "/image/generate")).toContainEqual({
+      path: "prompt",
+      value: "late buffer prompt",
+    });
+  });
   it("extracts prompt-like text from serialized FormData object entries", () => {
     const payload = {
       _isSerializedFormData: true,

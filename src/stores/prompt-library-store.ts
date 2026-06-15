@@ -21,6 +21,8 @@
  *    re-validating through the sanitiser.
  *  - The import path regenerates ids so the user can re-import the
  *    same export without collision.
+ *  - Persistence errors are redacted before they reach UI-facing state
+ *    or import result metadata (T-192 / store-level error handling).
  */
 
 import { create } from "zustand";
@@ -44,6 +46,7 @@ import { useProjectStore } from "./project-store";
 import { useSettingsStore } from "./settings-store";
 import { useAuthStore } from "./auth-store";
 import StorageService from "../services/storageService";
+import { redactErrorMessage } from "../shared/redaction";
 
 export interface PromptLibraryState {
   prompts: PromptLibraryItem[];
@@ -139,7 +142,7 @@ export const usePromptLibraryStore = create<PromptLibraryState>((set, get) => ({
     } catch (err) {
       set({
         loading: false,
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
         hydrated: true,
       });
     }
@@ -177,7 +180,7 @@ export const usePromptLibraryStore = create<PromptLibraryState>((set, get) => ({
       set((s) => ({
         prompts: s.prompts.filter((p) => p.id !== item.id),
         activePromptId: s.activePromptId === item.id ? null : s.activePromptId,
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -206,7 +209,7 @@ export const usePromptLibraryStore = create<PromptLibraryState>((set, get) => ({
     } catch (err) {
       set((s) => ({
         prompts: s.prompts.map((p) => (p.id === promptId ? current : p)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -249,7 +252,7 @@ export const usePromptLibraryStore = create<PromptLibraryState>((set, get) => ({
     } catch (err) {
       set((s) => ({
         prompts: s.prompts.map((p) => (p.id === promptId ? current : p)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -274,7 +277,7 @@ export const usePromptLibraryStore = create<PromptLibraryState>((set, get) => ({
     } catch (err) {
       set((s) => ({
         prompts: s.prompts.map((p) => (p.id === promptId ? current : p)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -299,7 +302,7 @@ export const usePromptLibraryStore = create<PromptLibraryState>((set, get) => ({
     } catch (err) {
       set((s) => ({
         prompts: s.prompts.map((p) => (p.id === promptId ? current : p)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -321,7 +324,7 @@ export const usePromptLibraryStore = create<PromptLibraryState>((set, get) => ({
     } catch (err) {
       set((s) => ({
         prompts: s.prompts.map((p) => (p.id === promptId ? current : p)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -339,7 +342,7 @@ export const usePromptLibraryStore = create<PromptLibraryState>((set, get) => ({
     } catch (err) {
       set((s) => ({
         prompts: [current, ...s.prompts.filter((p) => p.id !== promptId)],
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -361,7 +364,7 @@ export const usePromptLibraryStore = create<PromptLibraryState>((set, get) => ({
     } catch (err) {
       set((s) => ({
         prompts: s.prompts.map((p) => (p.id === promptId ? current : p)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -383,7 +386,7 @@ export const usePromptLibraryStore = create<PromptLibraryState>((set, get) => ({
         await persistOne(fresh);
       } catch (err) {
         result.skipped.push({
-          reason: `Persistence failed: ${err instanceof Error ? err.message : String(err)}`,
+          reason: `Persistence failed: ${redactErrorMessage(err)}`,
           title: fresh.title,
         });
         continue;

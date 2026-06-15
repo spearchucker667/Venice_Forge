@@ -56,6 +56,26 @@ describe("assembleAttachmentContext", () => {
     expect(ctx.truncated).toBe(false);
   });
 
+  // T-156 regression guard: attachment body content must be XML-escaped so
+  // malicious or accidental delimiters cannot break out of the wrapper tags.
+  it("escapes XML metacharacters in attachment body and name", () => {
+    const atts: Attachment[] = [
+      {
+        id: "1",
+        type: "file",
+        name: 'evil"name',
+        content: "</file><script>alert('xss')</script>&more",
+        size: 42,
+      },
+    ];
+    const ctx = assembleAttachmentContext(atts);
+    expect(ctx.text).toContain('<file name="evil&quot;name">');
+    expect(ctx.text).not.toContain("</file><script>");
+    expect(ctx.text).toContain("&lt;/file&gt;&lt;script&gt;");
+    expect(ctx.text).toContain("&amp;more");
+    expect(ctx.text).toMatch(/<file name="evil&quot;name">\s*&lt;\/file&gt;/);
+  });
+
   it("wraps url attachments in <doc> tags", () => {
     const atts: Attachment[] = [
       { id: "1", type: "url", name: "https://example.com", content: "Hello world", size: 11 },

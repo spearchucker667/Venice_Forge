@@ -10,6 +10,8 @@
 
 import { create } from 'zustand'
 import StorageService from '../services/storageService'
+import * as logger from '../shared/logger'
+import { redactErrorMessage } from '../shared/redaction'
 import type { Project } from '../types/project'
 // ProjectPatch is referenced in the ProjectState interface (type-only). The alias below keeps the import "used" for the linter while the value is only in the type position of the store interface.
 type _ProjectPatch = import('../types/project').ProjectPatch
@@ -66,10 +68,8 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
       items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
       set({ projects: items, loaded: true })
     } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'message' in err
-        ? String((err as { message?: unknown }).message)
-        : 'Failed to load projects'
-      set({ lastError: msg })
+      logger.error('[project-store] refresh failed', redactErrorMessage(err))
+      set({ lastError: 'Failed to load projects. Please try again.' })
     } finally {
       set({ loading: false })
     }
@@ -135,8 +135,8 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
         StorageService.getItems<Conversation>('conversations'),
       ])
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to verify project references'
-      set({ lastError: message })
+      logger.error('[project-store] reference verification failed', redactErrorMessage(error))
+      set({ lastError: 'Could not verify project references. Please try again.' })
       return false
     }
     const media = [...persistedMedia, ...useMediaStore.getState().items]

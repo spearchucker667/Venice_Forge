@@ -22,4 +22,10 @@ describe('safeMediaPreviewUrl', () => {
     const payload = "data:image/png;base64,abcd==";
     expect(safeMediaPreviewUrl(payload, allowed)).toBe(payload);
   });
+
+  it('validates absolute allowed prefixes structurally', () => {
+    const absolute = ["https://cdn.example.com/media/"];
+    expect(safeMediaPreviewUrl("https://cdn.example.com/media/a.png", absolute)).toContain("a.png");
+    expect(safeMediaPreviewUrl("https://cdn.example.com.evil.test/media/a.png", absolute)).toBe("");
+  });
 });

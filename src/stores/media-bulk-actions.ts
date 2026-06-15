@@ -18,6 +18,7 @@
 
 import type { MediaItemPatch } from "../types/media";
 import type { Project } from "../types/project";
+import { redactErrorMessage } from "../shared/redaction";
 import { useMediaStore } from "./media-store";
 import { useProjectStore } from "./project-store";
 
@@ -288,9 +289,7 @@ export function bulkHasFailure(result: BulkMediaActionResult): boolean {
 }
 
 function errorReason(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  if (typeof err === "string") return err;
-  return "Unknown error";
+  return redactErrorMessage(err);
 }
 
 /** Resolved project context (used by tests and the gallery-view). */

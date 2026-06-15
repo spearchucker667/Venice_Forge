@@ -31,6 +31,7 @@
 
 import type { MediaItem } from "../types/media";
 import { extractGenerationRecipe } from "../types/project";
+import { redactSecrets } from "../shared/redaction";
 
 export const EXPORT_BUNDLE_VERSION = 1 as const;
 export const EXPORT_BUNDLE_APP = "Venice Forge" as const;
@@ -74,17 +75,17 @@ export interface ExportBundle {
 }
 
 const STRIPPED_KEYS = new Set([
-  "apiKey",
-  "api_key",
   "apikey",
   "token",
   "bearer",
   "authorization",
-  "exportedPathToken",
+  "exportedpathtoken",
   "image", // raw bytes go to media/ subdir
-  "thumbHash",
+  "thumbhash",
   "sha256", // not needed for export
 ]);
+
+const SECRET_KEY_NAME = /(authorization|api[-_ ]?key|token|secret|password)/i;
 
 const SANITISED_FILENAME = /[^a-zA-Z0-9._-]/g;
 const MAX_FILENAME = 80;
@@ -132,7 +133,8 @@ function deepStrip(value: unknown, seen: WeakSet<object> = new WeakSet()): unkno
   }
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-    if (STRIPPED_KEYS.has(k)) continue;
+    const normalizedKey = k.toLowerCase().replace(/[-_ ]/g, "");
+    if (STRIPPED_KEYS.has(normalizedKey) || SECRET_KEY_NAME.test(k)) continue;
     out[k] = deepStrip(v, seen);
   }
   return out;
@@ -147,8 +149,8 @@ export function buildSidecar(item: MediaItem, exportedAt: string): MediaSidecar 
     id: item.id,
     type: item.mediaType ?? "image",
     model: item.model,
-    prompt: item.prompt ?? "",
-    createdAt: exportedAt,
+    prompt: redactSecrets(item.prompt ?? ""),
+    createdAt: Number.isFinite(item.timestamp) ? new Date(item.timestamp).toISOString() : exportedAt,
     provenance: "venice-forge-export",
     lineage: {
       parentId: item.parentId ?? null,
@@ -164,8 +166,8 @@ export function buildSidecar(item: MediaItem, exportedAt: string): MediaSidecar 
     },
   };
   if (item.projectId) sidecar.projectId = item.projectId;
-  if (item.negative) sidecar.negative = item.negative;
-  if (recipe) sidecar.recipe = deepStrip(recipe) as MediaSidecar["recipe"];
+  if (item.negative) sidecar.negative = redactSecrets(item.negative);
+  if (recipe) sidecar.recipe = redactSecrets(deepStrip(recipe)) as MediaSidecar["recipe"];
   return sidecar;
 }
 
@@ -187,7 +189,8 @@ export function buildExportBundle(items: readonly MediaItem[], exportedAt: strin
 export function buildMediaFilename(item: MediaItem): string {
   const ext = extensionFor(item);
   const stem = sanitiseFilename(item.prompt || item.id);
-  return `${item.id.slice(0, 12)}-${stem}.${ext}`;
+  const id = sanitiseFilename(item.id).slice(0, 12);
+  return `${id}-${stem}.${ext}`;
 }
 
 /** Pure: validates that a sidecar shape is correct. Used by the

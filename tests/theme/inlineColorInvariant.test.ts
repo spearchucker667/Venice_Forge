@@ -36,6 +36,25 @@ const HEX_BG_ALLOWLIST = new Set([
   'src/components/workflows/workflows-view.tsx',
 ])
 
+// Existing violations exposed when T-202 corrected the matcher. This is an
+// exact non-growth baseline while the tracked theme migration removes them.
+const TEXT_WHITE_BASELINE = new Map([
+  ['src/components/audio/audio-view.tsx', 8],
+  ['src/components/embeddings/embeddings-view.tsx', 10],
+  ['src/components/image/image-page.tsx', 2],
+  ['src/components/image/image-tools.tsx', 9],
+  ['src/components/image/image-view.tsx', 6],
+  ['src/components/music/music-view.tsx', 13],
+  ['src/components/playground/agent-model-picker.tsx', 12],
+  ['src/components/playground/playground-chat.tsx', 14],
+  ['src/components/playground/playground-view.tsx', 19],
+  ['src/components/playground/preview-node.tsx', 5],
+  ['src/components/playground/workflow-preview.tsx', 3],
+  ['src/components/video/video-view.tsx', 22],
+  ['src/components/workflows/workflow-node.tsx', 28],
+  ['src/components/workflows/workflows-view.tsx', 20],
+])
+
 const SCAN_DIRS = ['src/components', 'src/layouts', 'src/views', 'src/pages']
 const SCAN_EXTS = new Set(['.tsx', '.jsx'])
 const IGNORE_PATH_PREFIXES = [
@@ -78,11 +97,15 @@ function countMatches(patterns: RegExp[], paths: string[]): Array<{ file: string
 }
 
 describe('Theme token coverage invariant (VERIFY-010, T11)', () => {
-  it('renderer has zero `text-white/[opacity]` violations', () => {
+  it('renderer does not grow the known `text-white/[opacity]` baseline', () => {
     const files: string[] = []
     for (const sub of SCAN_DIRS) files.push(...walk(join(ROOT, sub)))
-    const counts = countMatches([/text-white\[\/[\d.]+\]/g], files)
-    expect(counts, JSON.stringify(counts, null, 2)).toEqual([])
+    const counts = countMatches([/text-white(?:\/\d+|\/\[[\d.]+\])/g], files)
+    const unexpected = counts.filter(({ file, matches }) => {
+      const baseline = TEXT_WHITE_BASELINE.get(file)
+      return baseline === undefined || matches > baseline
+    })
+    expect(unexpected, JSON.stringify(unexpected, null, 2)).toEqual([])
   })
 
   it('renderer has zero `bg-[#hex]` violations OUTSIDE the documented allowlist', () => {

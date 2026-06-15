@@ -205,12 +205,13 @@ export async function generateCharacterScene(
       galleryItemId: saved.id,
       updatedAt: new Date().toISOString(),
     };
-  } catch (err) {
+  } catch {
+    limiter.recordFailure({ conversationId: conversation.id, assistantMessageId });
     return {
       requestId,
       status: 'failed',
       prompt: resultPrompt,
-      error: err instanceof Error ? err.message : String(err),
+      error: 'Character scene generation failed. Please try again.',
       updatedAt: new Date().toISOString(),
     };
   }

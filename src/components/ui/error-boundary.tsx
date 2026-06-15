@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import * as logger from '../../shared/logger'
+import { redactErrorDetails, sanitizeErrorText } from '../../shared/redaction'
 
 interface Props {
   children: ReactNode
@@ -20,7 +21,11 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     if (this.props.onError) this.props.onError(error, info)
-    logger.error('[Venice Forge ErrorBoundary]', error, info)
+    const safeError = redactErrorDetails(error)
+    const safeInfo = info.componentStack
+      ? { componentStack: sanitizeErrorText(info.componentStack) }
+      : {}
+    logger.error('[Venice Forge ErrorBoundary]', safeError, safeInfo)
   }
 
   reset = () => this.setState({ error: null })
@@ -38,6 +43,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
 // Default fallback for error boundary
 function DefaultFallback({ error, reset }: { error: Error; reset: () => void }) {
+  const { message, stack } = redactErrorDetails(error)
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 text-center" role="alert">
       <div className="max-w-md">
@@ -47,9 +53,9 @@ function DefaultFallback({ error, reset }: { error: Error; reset: () => void }) 
         </p>
         <details className="mb-5 text-left">
           <summary className="text-[13px] text-text-muted cursor-pointer hover:text-text-secondary">Show details</summary>
-          <pre className="mt-2 text-[12px] text-red-300/70 bg-surface-muted border border-border rounded-lg p-3 overflow-auto max-h-40 whitespace-pre-wrap break-words">
-            {error.message}
-            {error.stack ? `\n\n${error.stack}` : ''}
+          <pre className="mt-2 text-[12px] text-danger/70 bg-surface-muted border border-border rounded-lg p-3 overflow-auto max-h-40 whitespace-pre-wrap break-words">
+            {message}
+            {stack ? `\n\n${stack}` : ''}
           </pre>
         </details>
         <div className="flex gap-2 justify-center">

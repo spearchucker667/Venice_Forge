@@ -18,6 +18,12 @@ const VALID_OPS = new Set(['add_node', 'remove_node', 'set_params', 'move_node',
 // qwen3-next-80b: ~2s, perfect output, supports response_format.
 export const DEFAULT_AGENT_MODEL = 'qwen3-next-80b'
 
+/** Maximum characters allowed in the agent's narrated `say` response. */
+export const MAX_AGENT_SAY_LENGTH = 1000
+
+/** Maximum number of patches the agent may emit in a single turn. */
+export const MAX_AGENT_PATCH_COUNT = 100
+
 function nodeCatalog(): string {
   return Object.values(NODE_SCHEMAS)
     .map((s) => {
@@ -150,10 +156,15 @@ export function parseAgentResponse(raw: string): AgentResponse {
   } catch {
     return { say: '', patches: [], invalidPatches: 0 }
   }
-  const say = typeof parsed.say === 'string' ? parsed.say : ''
-  const rawPatches = Array.isArray(parsed.patches) ? parsed.patches : []
-  const patches: WorkflowPatch[] = []
+  const rawSay = typeof parsed.say === 'string' ? parsed.say : ''
+  const say = rawSay.slice(0, MAX_AGENT_SAY_LENGTH)
+  let rawPatches = Array.isArray(parsed.patches) ? parsed.patches : []
   let invalidPatches = 0
+  if (rawPatches.length > MAX_AGENT_PATCH_COUNT) {
+    invalidPatches += rawPatches.length - MAX_AGENT_PATCH_COUNT
+    rawPatches = rawPatches.slice(0, MAX_AGENT_PATCH_COUNT)
+  }
+  const patches: WorkflowPatch[] = []
   for (const raw of rawPatches) {
     if (!isValidPatch(raw)) { invalidPatches++; continue }
     if (raw.op === 'add_node' && raw.params) {

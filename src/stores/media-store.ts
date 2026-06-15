@@ -4,6 +4,8 @@ import { create } from 'zustand'
 import StorageService from '../services/storageService'
 import { migrateAll, migrateGalleryImageToMediaItem } from '../services/mediaMigration'
 import { isMediaItemLike, type MediaItem, type MediaItemPatch } from '../types/media'
+import { redactErrorMessage, sanitizeErrorText } from '../shared/redaction'
+import { error as logError } from '../shared/logger'
 import { toast } from './toast-store'
 import { useSettingsStore } from './settings-store' // for attaching active project to new media (Phase 1 hardening)
 
@@ -61,6 +63,18 @@ export interface MediaUpsertOptions {
 
 export const MEDIA_PAGE_SIZE = 60
 
+/** Safe user-facing messages for Media Store load/rollback failures (T-190). */
+const SAFE_REFRESH_ERROR = 'Media Studio failed to load. Please try again.'
+const SAFE_LOAD_MORE_ERROR = 'Media Studio failed to load more. Please try again.'
+const SAFE_DERIVATIVE_ERROR = 'Derivative save failed. Please try again.'
+const SAFE_DERIVATIVE_ROLLBACK_ERROR =
+  'Derivative save failed and could not be cleaned up. Please try again.'
+
+/** Returns a redacted diagnostic string that is safe for toast descriptions. */
+function safeDiagnostic(err: unknown): string {
+  return sanitizeErrorText(redactErrorMessage(err))
+}
+
 function reconcileList(current: MediaItem[], next: MediaItem[]): MediaItem[] {
   // Build a map of incoming items by id; any id present in `next` is considered
   // authoritative. Items only present in `current` (e.g. unrelated records) are
@@ -102,9 +116,9 @@ export const useMediaStore = create<MediaState>((set, get) => ({
         nextOffset: Math.min(page.total, page.offset + page.limit),
       })
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      set({ loading: false, loaded: true, lastError: msg })
-      toast.error('Media Studio failed to load', msg)
+      logError('[media-store] refresh failed', err)
+      set({ loading: false, loaded: true, lastError: SAFE_REFRESH_ERROR })
+      toast.error(SAFE_REFRESH_ERROR, safeDiagnostic(err))
     }
   },
 
@@ -131,9 +145,9 @@ export const useMediaStore = create<MediaState>((set, get) => ({
         }
       })
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      set({ loadingMore: false, lastError: msg })
-      toast.error('Media Studio failed to load more', msg)
+      logError('[media-store] loadMore failed', err)
+      set({ loadingMore: false, lastError: SAFE_LOAD_MORE_ERROR })
+      toast.error(SAFE_LOAD_MORE_ERROR, safeDiagnostic(err))
     }
   },
 
@@ -184,18 +198,19 @@ export const useMediaStore = create<MediaState>((set, get) => ({
         await StorageService.deleteMedia(saved.id)
         rollbackOk = true
       } catch (rollbackErr) {
-        const rollbackMessage = rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr)
-        toast.error('Derivative save failed and rollback incomplete', `Parent update failed. Child record ${saved.id} could not be removed: ${rollbackMessage}`)
+        logError('[media-store] upsertDerivative rollback failed', rollbackErr)
+        toast.error(SAFE_DERIVATIVE_ROLLBACK_ERROR, safeDiagnostic(rollbackErr))
         // Keep the child in the in-memory cache so it matches IDB reality.
         set((state) => {
           const withoutChild = state.items.filter((existing) => existing.id !== saved.id)
           const items = reconcileList([saved, ...withoutChild], [])
           items.sort((a, b) => b.timestamp - a.timestamp)
-          return { items, totalCount: state.totalCount + 1, lastError: `Derivative rollback incomplete: ${rollbackMessage}` }
+          return { items, totalCount: state.totalCount + 1, lastError: SAFE_DERIVATIVE_ROLLBACK_ERROR }
         })
       }
       if (rollbackOk) {
-        set({ lastError: `Derivative save failed for ${parentId}: ${err instanceof Error ? err.message : String(err)}` })
+        logError('[media-store] upsertDerivative parent update failed', err)
+        set({ lastError: SAFE_DERIVATIVE_ERROR })
       }
       throw err
     }

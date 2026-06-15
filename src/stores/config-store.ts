@@ -7,6 +7,7 @@
  */
 import { create } from "zustand";
 import { desktopConfig, isElectron } from "../services/desktopBridge";
+import { redactErrorMessage } from "../shared/redaction";
 import { useSettingsStore } from "./settings-store";
 import type { YamlInternalPromptEnhancer } from "../config/configSchema";
 
@@ -137,7 +138,7 @@ export async function refreshConfig(): Promise<void> {
       useConfigStore.getState().setError(res.error || "Failed to load config.");
     }
   } catch (err) {
-    useConfigStore.getState().setError(err instanceof Error ? err.message : String(err));
+    useConfigStore.getState().setError(redactErrorMessage(err));
   }
 }
 
@@ -159,6 +160,6 @@ export async function reloadConfig(): Promise<void> {
       useConfigStore.getState().setError(reloadRes.error || "Failed to reload config.");
     }
   } catch (err) {
-    useConfigStore.getState().setError(err instanceof Error ? err.message : String(err));
+    useConfigStore.getState().setError(redactErrorMessage(err));
   }
 }

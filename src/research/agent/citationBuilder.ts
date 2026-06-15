@@ -35,6 +35,8 @@ export function buildCitations(evidence: ResearchEvidence): Citation[] {
   return citations;
 }
 
+const ALLOWED_CITATION_SCHEMES = new Set(["http:", "https:"]);
+
 function escapeMarkdownLinkText(text: string): string {
   return text.replace(/\\/g, "\\\\").replace(/\]/g, "\\]");
 }
@@ -43,9 +45,18 @@ function escapeMarkdownLinkUrl(url: string): string {
   return url.replace(/\\/g, "\\\\").replace(/\)/g, "\\)");
 }
 
+function isSafeCitationUrl(url: string): boolean {
+  try {
+    return ALLOWED_CITATION_SCHEMES.has(new URL(url).protocol);
+  } catch {
+    return false;
+  }
+}
+
 export function formatCitationsMarkdown(citations: Citation[]): string {
-  if (!citations.length) return "No citations available.";
-  return citations
+  const safe = citations.filter((c) => isSafeCitationUrl(c.url));
+  if (!safe.length) return "No citations available.";
+  return safe
     .map((c) => `${c.index}. [${escapeMarkdownLinkText(c.title || "Source")}](${escapeMarkdownLinkUrl(c.url)})`)
     .join("\n");
 }

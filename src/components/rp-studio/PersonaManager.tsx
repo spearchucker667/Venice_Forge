@@ -72,13 +72,13 @@ export function PersonaManager({ disabled = false }: { disabled?: boolean } = {}
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-border">
         <input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search personas…"
           aria-label="Search personas"
-          className="flex-1 min-w-[12rem] bg-surface border border-white/[0.08] rounded-lg px-3 py-1.5 text-[13.5px] text-white/90 outline-none focus:border-white/[0.22] transition-colors placeholder:text-white/25"
+          className="flex-1 min-w-[12rem] bg-surface border border-border rounded-lg px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
         />
         <PrimaryButton
           size="sm"
@@ -100,8 +100,8 @@ export function PersonaManager({ disabled = false }: { disabled?: boolean } = {}
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {isLoading && !hasLoaded ? (
-          <div className="flex items-center justify-center h-full text-white/30 gap-2 text-[13px]">
-            <Spinner className="text-white/45" /> Loading personas…
+          <div className="flex items-center justify-center h-full text-text-muted gap-2 text-[13px]">
+            <Spinner className="text-text-muted" /> Loading personas…
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState>{hasLoaded ? "No personas yet" : ""}</EmptyState>
@@ -110,30 +110,30 @@ export function PersonaManager({ disabled = false }: { disabled?: boolean } = {}
             {filtered.map((p) => (
               <li
                 key={p.id}
-                className={`flex flex-col gap-1.5 bg-surface border rounded-xl p-3 transition-colors ${p.id === activePersonaId ? "border-[var(--color-accent)]/50 bg-[var(--color-accent-soft)]" : "border-white/[0.06] hover:border-white/[0.18]"}`}
+                className={`flex flex-col gap-1.5 bg-surface border rounded-xl p-3 transition-colors ${p.id === activePersonaId ? "border-[var(--color-accent)]/50 bg-[var(--color-accent-soft)]" : "border-border hover:border-accent/40"}`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-[14px] font-semibold text-white/90 truncate">{p.name}</div>
+                  <div className="text-[14px] font-semibold text-text-primary truncate">{p.name}</div>
                   {p.id === activePersonaId && (
                     <span className="text-[10px] uppercase tracking-wider text-[var(--color-accent)] font-semibold">Active</span>
                   )}
                 </div>
                 {p.description && (
-                  <p className="text-[12.5px] text-white/55 line-clamp-3">{truncate(p.description, 240)}</p>
+                  <p className="text-[12.5px] text-text-secondary line-clamp-3">{truncate(p.description, 240)}</p>
                 )}
-                <div className="text-[11px] text-white/35 mt-0.5">{formatRelativeTime(p.updatedAt)}</div>
+                <div className="text-[11px] text-text-muted mt-0.5">{formatRelativeTime(p.updatedAt)}</div>
                 <div className="flex items-center gap-1.5 mt-2">
                   <button
                     type="button"
                     onClick={() => setEditingId(p.id)}
-                    className="flex-1 text-[12px] py-1.5 rounded-md border border-white/[0.1] text-white/75 hover:text-white hover:bg-white/[0.03] transition-colors"
+                    className="flex-1 text-[12px] py-1.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
                   >
                     Edit
                   </button>
                   <button
                     type="button"
-                    onClick={() => setActive(p.id === activePersonaId ? null : p.id)}
-                    className="flex-1 text-[12px] py-1.5 rounded-md border border-white/[0.1] text-white/75 hover:text-white hover:bg-white/[0.03] transition-colors"
+                    onClick={() => void setActive(p.id === activePersonaId ? null : p.id)}
+                    className="flex-1 text-[12px] py-1.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
                   >
                     {p.id === activePersonaId ? "Deactivate" : "Set active"}
                   </button>
@@ -150,7 +150,7 @@ export function PersonaManager({ disabled = false }: { disabled?: boolean } = {}
                       type="button"
                       onClick={() => armConfirm(p.id)}
                       aria-label={`Delete ${p.name}`}
-                      className="text-white/40 hover:text-rose-300 p-1.5"
+                      className="text-text-muted hover:text-rose-300 p-1.5"
                     >
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                         <line x1="18" y1="6" x2="6" y2="18" />
@@ -206,18 +206,18 @@ function PersonaEditor({ personaId, onClose, onSave, disabled = false }: { perso
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
         <button
           type="button"
           onClick={onClose}
           aria-label="Back"
-          className="text-white/55 hover:text-white p-1.5 rounded-md hover:bg-white/[0.04]"
+          className="text-text-secondary hover:text-text-primary p-1.5 rounded-md hover:bg-surface-elevated"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <h2 className="text-[15px] font-semibold text-white/90 truncate">{draft.name}</h2>
+        <h2 className="text-[15px] font-semibold text-text-primary truncate">{draft.name}</h2>
         <div className="ml-auto">
           <PrimaryButton size="sm" loading={saving} disabled={disabled} onClick={handleSave}>Save</PrimaryButton>
         </div>
@@ -231,7 +231,7 @@ function PersonaEditor({ personaId, onClose, onSave, disabled = false }: { perso
             value={draft.name}
             onChange={(e) => update("name", e.target.value)}
             maxLength={200}
-            className="w-full bg-surface border border-white/[0.08] rounded-lg px-3 py-2 text-[14px] text-white/90 outline-none focus:border-white/[0.22] transition-colors"
+            className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
           />
         </div>
         <div>
@@ -244,7 +244,7 @@ function PersonaEditor({ personaId, onClose, onSave, disabled = false }: { perso
             onChange={(e) => update("reference", e.target.value || undefined)}
             placeholder="e.g. The Wanderer"
             maxLength={200}
-            className="w-full bg-surface border border-white/[0.08] rounded-lg px-3 py-2 text-[14px] text-white/90 outline-none focus:border-white/[0.22] transition-colors placeholder:text-white/25"
+            className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
           />
         </div>
         <div>
@@ -266,7 +266,7 @@ function PersonaEditor({ personaId, onClose, onSave, disabled = false }: { perso
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(); } }}
               placeholder="Add tag…"
-              className="flex-1 bg-surface border border-white/[0.08] rounded-lg px-3 py-1.5 text-[13.5px] text-white/90 outline-none focus:border-white/[0.22] transition-colors placeholder:text-white/25"
+              className="flex-1 bg-surface border border-border rounded-lg px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
             />
             <GhostButton onClick={addTag} disabled={!tagInput.trim()}>Add</GhostButton>
           </div>
@@ -277,7 +277,7 @@ function PersonaEditor({ personaId, onClose, onSave, disabled = false }: { perso
                   key={t}
                   type="button"
                   onClick={() => update("tags", draft.tags.filter((x) => x !== t))}
-                  className="text-[11.5px] px-2 py-0.5 rounded-md border border-white/[0.1] bg-white/[0.04] text-white/70 hover:text-white"
+                  className="text-[11.5px] px-2 py-0.5 rounded-md border border-border bg-surface-elevated text-text-secondary hover:text-text-primary"
                 >
                   {t} ×
                 </button>

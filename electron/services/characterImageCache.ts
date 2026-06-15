@@ -10,7 +10,6 @@ import { app } from "electron";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import { isTrustedVeniceImageUrl } from "../../src/utils/characterImageResolver";
 import { getApiKey } from "./secureStore";
 import { logError, logWarn } from "./logger";
@@ -270,7 +269,7 @@ export async function getCachedCharacterImage(url: string): Promise<CharacterIma
       await fs.access(dp);
       return {
         ok: true,
-        url: pathToFileURL(dp).href,
+        url: `venice-character-cache://${key}`,
         contentType: existing.contentType,
         bytes: existing.bytes,
       };
@@ -279,7 +278,7 @@ export async function getCachedCharacterImage(url: string): Promise<CharacterIma
     }
   }
 
-  const staleUrl = existing ? pathToFileURL(dp).href : undefined;
+  const staleUrl = existing ? `venice-character-cache://${key}` : undefined;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -310,7 +309,7 @@ export async function getCachedCharacterImage(url: string): Promise<CharacterIma
 
     return {
       ok: true,
-      url: pathToFileURL(dp).href,
+      url: `venice-character-cache://${key}`,
       contentType,
       bytes: buffer.length,
     };

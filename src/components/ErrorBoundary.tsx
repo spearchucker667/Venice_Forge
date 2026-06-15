@@ -8,7 +8,6 @@ interface Props {
 
 interface State {
   hasError: boolean;
-  error?: Error;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -16,20 +15,26 @@ export class ErrorBoundary extends Component<Props, State> {
     hasError: false
   };
 
-  public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+  public static getDerivedStateFromError(_error: Error): State {
+    return { hasError: true };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    logError("ErrorBoundary caught an error:", error, errorInfo);
+  public componentDidCatch(_error: Error, _errorInfo: ErrorInfo) {
+    // T-026: never log or render raw exception text, messages, or stacks.
+    logError("ErrorBoundary caught an error");
   }
 
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="m-8 rounded-2xl border border-danger/20 bg-danger/10 p-8 backdrop-blur-md shadow-lg">
+        <div
+          role="alert"
+          className="m-8 rounded-2xl border border-danger/20 bg-danger/10 p-8 backdrop-blur-md shadow-lg"
+        >
           <h2 className="text-xl font-display font-semibold text-danger mb-3">Something went wrong.</h2>
-          <p className="text-sm text-danger/80 mb-6">{this.state.error?.message}</p>
+          <p className="text-sm text-danger/80 mb-6">
+            The app hit an unexpected error and couldn&apos;t render this view. Your work is safe — try again or reload to recover.
+          </p>
           <div className="flex flex-wrap gap-3">
             <button
               className="btn primary"

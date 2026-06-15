@@ -6,6 +6,7 @@
  */
 
 import type { ResearchProvider, SearchResult } from "../providerTypes";
+import { redactErrorMessage } from "../../shared/redaction";
 
 export interface SocialDiscoveryInput {
   targetName: string;
@@ -327,12 +328,22 @@ export async function runSocialDiscovery(
       queriesUsed: queries,
     };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
+    if (err instanceof DOMException && err.name === "AbortError") {
+      return {
+        ok: false,
+        candidates: [],
+        queriesUsed: queries,
+        error: "Search cancelled.",
+      };
+    }
+
+    // Log a redacted diagnostic copy; never return raw provider text to the UI.
+    console.error("[socialDiscovery] provider error:", redactErrorMessage(err));
     return {
       ok: false,
       candidates: [],
       queriesUsed: queries,
-      error: message,
+      error: "Profile discovery failed. Please try again later.",
     };
   }
 }

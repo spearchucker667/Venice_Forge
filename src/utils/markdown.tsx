@@ -63,19 +63,21 @@ export function minimalMarkdown(text: string) {
 export function Markdown({ text }: { text: string }) {
   const ref = useRef<HTMLDivElement>(null);
 
-  const handleCopy = useCallback((e: MouseEvent) => {
+  const handleCopy = useCallback(async (e: MouseEvent) => {
     const btn = e.target as HTMLElement | null;
     if (!btn || !btn.classList.contains("copy-code-btn")) return;
     const encoded = btn.getAttribute("data-code");
     if (!encoded) return;
     try {
       const code = decodeURIComponent(escape(atob(encoded)));
-      navigator.clipboard.writeText(code).catch(() => {});
       const original = btn.textContent;
-      btn.textContent = "✓";
+      await navigator.clipboard.writeText(code);
+      btn.textContent = "Copied";
       setTimeout(() => { btn.textContent = original; }, 1500);
     } catch {
-      // ignore decode errors
+      const original = btn.textContent;
+      btn.textContent = "Copy failed";
+      setTimeout(() => { btn.textContent = original; }, 1500);
     }
   }, []);
 

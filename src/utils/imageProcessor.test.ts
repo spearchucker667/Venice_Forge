@@ -9,6 +9,15 @@ import {
 } from "./imageProcessor";
 
 describe("Image Processor - Metadata Stripping", () => {
+  it("does not label unknown binary data as PNG", () => {
+    const bytes = new Uint8Array([1, 2, 3, 4, 5]);
+    expect(detectMimeType(bytes)).toBeNull();
+    const { data, report } = stripImageMetadata(bytes);
+    expect(data).toEqual(bytes);
+    expect(report.mimeType).toBe("application/octet-stream");
+    expect(report.extension).toBe("bin");
+    expect(report.warnings).toContain("Unsupported image format");
+  });
   it("detects JPEG MIME type and strips APP1 segments", () => {
     // SOI (2 bytes) + APP1 marker with length (8 bytes) + APP0 (JFIF) with length (6 bytes) + EOI (2 bytes)
     const dummyJpeg = new Uint8Array([
@@ -18,7 +27,7 @@ describe("Image Processor - Metadata Stripping", () => {
       0xFF, 0xD9, // EOI
     ]);
 
-    const { mimeType } = detectMimeType(dummyJpeg);
+    const { mimeType } = detectMimeType(dummyJpeg)!;
     expect(mimeType).toBe("image/jpeg");
 
     const { data, report } = stripImageMetadata(dummyJpeg);
@@ -55,7 +64,7 @@ describe("Image Processor - Metadata Stripping", () => {
       0xAE, 0x42, 0x60, 0x82, // CRC
     ]);
 
-    const { mimeType } = detectMimeType(dummyPng);
+    const { mimeType } = detectMimeType(dummyPng)!;
     expect(mimeType).toBe("image/png");
 
     const { data, report } = stripImageMetadata(dummyPng);
@@ -99,7 +108,7 @@ describe("Image Processor - Metadata Stripping", () => {
 
     const dummyWebp = new Uint8Array([...header, ...vp8xChunk, ...exifChunk]);
 
-    const { mimeType } = detectMimeType(dummyWebp);
+    const { mimeType } = detectMimeType(dummyWebp)!;
     expect(mimeType).toBe("image/webp");
 
     const { data, report } = stripImageMetadata(dummyWebp);

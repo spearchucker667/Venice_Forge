@@ -1,10 +1,25 @@
 import { useMutation } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { venice } from '../lib/venice-client'
+import { sanitizeErrorText } from '../shared/redaction'
 import type { VideoQueueRequest, VideoQueueResponse, VideoRetrieveResponse } from '../types/venice'
 
 const POLL_INTERVAL_MS = 3000
 const MAX_ATTEMPTS = 200 // ~10 minutes
+const MAX_ERROR_LENGTH = 200
+
+/**
+ * Sanitizes a raw provider or polling error into a safe UI string.
+ * Secrets (API keys, bearer tokens) are redacted and the result is capped
+ * so the UI never surfaces raw exception text, paths, or oversized payloads.
+ */
+/** @internal exported for testing */
+export function toUserFacingVideoError(value: unknown, fallback: string): string {
+  const normalized = value || fallback
+  const text = typeof normalized === 'string' ? normalized : normalized instanceof Error ? normalized.message : String(normalized)
+  const redacted = sanitizeErrorText(text)
+  return redacted.length > MAX_ERROR_LENGTH ? `${redacted.slice(0, MAX_ERROR_LENGTH)}…` : redacted
+}
 
 export function useVideo() {
   const [status, setStatus] = useState<'idle' | 'queued' | 'processing' | 'completed' | 'failed'>('idle')
@@ -66,14 +81,14 @@ export function useVideo() {
           setVideoUrl(result.video_url)
           stopPolling()
         } else if (result.status === 'failed') {
-          setError(result.error ?? 'Video generation failed')
+          setError(toUserFacingVideoError(result.error, 'Video generation failed'))
           stopPolling()
         }
       } catch (err) {
         if (token !== generationTokenRef.current) return
         // Transient failure — keep polling unless we've burned through too many attempts.
         if (attemptsRef.current >= MAX_ATTEMPTS) {
-          setError(err instanceof Error ? err.message : 'Polling failed')
+          setError(toUserFacingVideoError(err, 'Polling failed'))
           stopPolling()
         }
       } finally {
@@ -101,7 +116,7 @@ export function useVideo() {
       startPolling()
     },
     onError: (err) => {
-      setError(err instanceof Error ? err.message : 'Queue failed')
+      setError(toUserFacingVideoError(err, 'Queue failed'))
       setStatus('failed')
     },
   })

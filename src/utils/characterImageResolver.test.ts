@@ -285,6 +285,18 @@ describe("extractCharacterImageFromPage", () => {
     expect(extractCharacterImageFromPage("abc", html)).toBe(trustedImage);
   });
 
+  it("extracts meta images when content appears before property", () => {
+    const html = `<meta content="${trustedImage}" property="og:image">`;
+    expect(extractCharacterImageFromPage("abc", html)).toBe(trustedImage);
+  });
+
+  it("bounds deeply nested Next.js data traversal", () => {
+    let nested = `{"photoUrl":"${trustedImage}"}`;
+    for (let i = 0; i < 20; i += 1) nested = `{"child":${nested}}`;
+    const html = `<script id="__NEXT_DATA__" type="application/json">${nested}</script>`;
+    expect(extractCharacterImageFromPage("abc", html)).toBeNull();
+  });
+
   it("extracts a Twitter Card image URL", () => {
     const html = `<html><head><meta name="twitter:image" content="${trustedImage}"></head></html>`;
     expect(extractCharacterImageFromPage("abc", html)).toBe(trustedImage);

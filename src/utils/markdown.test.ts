@@ -1,7 +1,9 @@
 /** @fileoverview Unit tests for minimal markdown rendering and HTML escaping. */
 
-import { describe, it, expect } from "vitest";
-import { minimalMarkdown, escapeHtml } from "./markdown";
+import { describe, it, expect, vi } from "vitest";
+import { fireEvent, render, waitFor } from "@testing-library/react";
+import { createElement } from "react";
+import { Markdown, minimalMarkdown, escapeHtml } from "./markdown";
 
 /** Tests for the escapeHtml helper. */
 describe("escapeHtml", () => {
@@ -68,5 +70,30 @@ describe("minimalMarkdown", () => {
     const output = minimalMarkdown("#### H4");
     expect(output).not.toContain("<h3>H4</h3>");
     expect(output).toContain("#### H4");
+  });
+});
+
+describe("Markdown copy control", () => {
+  it("shows success only after the clipboard write resolves", async () => {
+    let resolveCopy!: () => void;
+    const writeText = vi.fn(() => new Promise<void>((resolve) => { resolveCopy = resolve; }));
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+    const { container } = render(createElement(Markdown, { text: "```code```" }));
+    const button = container.querySelector("button")!;
+    fireEvent.click(button);
+    expect(button.textContent).toBe("⎘");
+    resolveCopy();
+    await waitFor(() => expect(button.textContent).toBe("Copied"));
+  });
+
+  it("shows copy failure when the clipboard rejects", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: vi.fn().mockRejectedValue(new Error("denied")) },
+    });
+    const { container } = render(createElement(Markdown, { text: "```code```" }));
+    const button = container.querySelector("button")!;
+    fireEvent.click(button);
+    await waitFor(() => expect(button.textContent).toBe("Copy failed"));
   });
 });

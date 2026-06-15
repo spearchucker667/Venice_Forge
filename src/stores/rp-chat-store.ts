@@ -25,6 +25,7 @@ import {
 import type { RpChatV1, RpMessageV1 } from "../types/rp";
 import { MAX_ACTIVE_CHARACTERS } from "../types/rp";
 import { toast } from "./toast-store";
+import { redactErrorMessage, sanitizeErrorText } from "../shared/redaction";
 
 export interface RpChatState {
   chats: RpChatV1[];
@@ -61,7 +62,20 @@ export interface RpChatState {
 }
 
 function newMessageId(): string {
+  try {
+    const crypto = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+    if (crypto && typeof crypto.randomUUID === "function") {
+      return `m_${crypto.randomUUID()}`;
+    }
+  } catch {
+    // fall through to Math.random fallback
+  }
   return `m_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** Returns a redacted diagnostic string that is safe for UI state. */
+function safeDiagnostic(err: unknown): string {
+  return sanitizeErrorText(redactErrorMessage(err));
 }
 
 /** Per-chat mutex. Each append chains a Promise onto the previous in-flight
@@ -105,7 +119,7 @@ export const useRpChatStore = create<RpChatState>((set, get) => ({
       const sorted = items.slice().sort((a, b) => b.updatedAt - a.updatedAt);
       set({ chats: sorted, isLoading: false, hasLoaded: true });
     } catch (e) {
-      set({ isLoading: false, error: e instanceof Error ? e.message : String(e) });
+      set({ isLoading: false, error: safeDiagnostic(e) });
     }
   },
 
@@ -133,9 +147,8 @@ export const useRpChatStore = create<RpChatState>((set, get) => ({
       set((s) => ({ chats: [saved, ...s.chats], activeChatId: id, error: null }));
       return id;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      set({ error: msg });
-      toast.error("Could not create RP chat", msg);
+      set({ error: safeDiagnostic(e) });
+      toast.error("Could not create RP chat", "Please try again.");
       return null;
     }
   },
@@ -163,9 +176,8 @@ export const useRpChatStore = create<RpChatState>((set, get) => ({
       });
       return saved;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      set({ error: msg });
-      toast.error("Could not save RP chat", msg);
+      set({ error: safeDiagnostic(e) });
+      toast.error("Could not save RP chat", "Please try again.");
       return null;
     }
   },
@@ -183,9 +195,8 @@ export const useRpChatStore = create<RpChatState>((set, get) => ({
       }));
       return true;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      set({ error: msg });
-      toast.error("Could not delete RP chat", msg);
+      set({ error: safeDiagnostic(e) });
+      toast.error("Could not delete RP chat", "Please try again.");
       return false;
     }
   },
@@ -199,8 +210,8 @@ export const useRpChatStore = create<RpChatState>((set, get) => ({
         const saved = await svcAppend(chat, msg);
         set((s) => ({ chats: s.chats.map((c) => (c.id === chatId ? saved : c)) }));
         return msg;
-      } catch (e) {
-        toast.error("Could not save message", e instanceof Error ? e.message : String(e));
+      } catch {
+        toast.error("Could not save message", "Please try again.");
         return null;
       }
     });
@@ -222,8 +233,8 @@ export const useRpChatStore = create<RpChatState>((set, get) => ({
         const saved = await svcAppend(chat, msg);
         set((s) => ({ chats: s.chats.map((c) => (c.id === chatId ? saved : c)) }));
         return msg;
-      } catch (e) {
-        toast.error("Could not save message", e instanceof Error ? e.message : String(e));
+      } catch {
+        toast.error("Could not save message", "Please try again.");
         return null;
       }
     });
@@ -238,8 +249,8 @@ export const useRpChatStore = create<RpChatState>((set, get) => ({
         const saved = await svcAppend(chat, msg);
         set((s) => ({ chats: s.chats.map((c) => (c.id === chatId ? saved : c)) }));
         return msg;
-      } catch (e) {
-        toast.error("Could not save message", e instanceof Error ? e.message : String(e));
+      } catch {
+        toast.error("Could not save message", "Please try again.");
         return null;
       }
     });

@@ -33,6 +33,20 @@ export function ApiKeyDialog({ open, onClose }: { open: boolean; onClose: () => 
     }
   }
 
+  const handleDisconnect = async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      await clearApiKey()
+      setValue('')
+      toast.info('API key cleared')
+    } catch {
+      setError('Failed to disconnect. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const titleId = 'apikey-dialog-title'
 
   return (
@@ -84,8 +98,9 @@ export function ApiKeyDialog({ open, onClose }: { open: boolean; onClose: () => 
         <div className="flex flex-wrap gap-2 mt-6 justify-end">
           {(apiKey || isConfigured) && (
             <button
-              onClick={() => { clearApiKey(); setValue(''); toast.info('API key cleared') }}
-              className="px-3 py-1.5 text-[14px] text-text-secondary hover:text-danger cursor-pointer transition-colors"
+              onClick={handleDisconnect}
+              disabled={busy}
+              className="px-3 py-1.5 text-[14px] text-text-secondary hover:text-danger cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Disconnect
             </button>

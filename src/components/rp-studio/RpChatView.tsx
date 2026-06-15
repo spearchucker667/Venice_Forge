@@ -20,7 +20,7 @@ import { useSettingsStore } from "../../stores/settings-store";
 import { getEffectiveRendererLocalFamilySafeModeEnabled } from "../../safetyHydration";
 import { GhostButton, Label, PrimaryButton, ErrorText, TextArea } from "../ui/shared";
 import { Spinner } from "../ui/spinner";
-import { RolePill, avatarDataUri, formatRelativeTime } from "./_shared";
+import { avatarDataUri, formatRelativeTime } from "./_shared";
 import { buildRpPrompt } from "../../services/rp/promptBuilderService";
 import { assessRpContext } from "../../shared/safety/characterImportSafety";
 import type { CharacterCardV1, LorebookV1, PromptAssemblyResult, RpMessageV1, UserPersonaV1 } from "../../types/rp";
@@ -89,15 +89,16 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
 
   if (!chat) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
-          <button type="button" onClick={onBack} aria-label="Back" className="text-white/55 hover:text-white p-1.5 rounded-md hover:bg-white/[0.04]">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-          <h2 className="text-[15px] font-semibold text-white/90">Chat not found</h2>
+      <div className="flex flex-col items-center justify-center h-full text-center px-6">
+        <div className="w-16 h-16 mb-4 rounded-full bg-surface-elevated flex items-center justify-center text-text-muted">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
         </div>
+        <h2 className="text-[15px] font-semibold text-text-primary">Chat not found</h2>
+        <p className="text-[13px] text-text-secondary mt-1 max-w-[260px]">
+          The conversation you're looking for doesn't exist or has been deleted.
+        </p>
       </div>
     );
   }
@@ -219,7 +220,10 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
       if (err instanceof DOMException && err.name === "AbortError") {
         aborted = true;
       } else {
-        streamError = err instanceof Error ? err.message : "Stream failed.";
+        // Never surface raw upstream error text in the RP UI: it may contain
+        // secrets, file paths, or model-specific diagnostics. A generic safe
+        // message is enough; detailed diagnostics live in the Inspector log.
+        streamError = "The character response could not be generated. Please try again.";
       }
     } finally {
       if (abortRef.current === ctrl) abortRef.current = null;
@@ -267,14 +271,19 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
-        <button type="button" onClick={onBack} aria-label="Back" className="text-white/55 hover:text-white p-1.5 rounded-md hover:bg-white/[0.04]">
+    <div className="flex flex-col h-full min-h-0 relative">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Back"
+          className="text-text-secondary hover:text-text-primary p-1.5 rounded-md hover:bg-surface-elevated"
+        >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <h2 className="text-[15px] font-semibold text-white/90 truncate">{chat.title}</h2>
+        <h2 className="text-[15px] font-semibold text-text-primary truncate">{chat.title}</h2>
         {chat.adult && (
           <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/30 text-rose-200 border border-rose-500/30">18+</span>
         )}
@@ -286,7 +295,7 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" ref={scrollRef}>
         {chat.messages.length === 0 && (
-          <div className="text-center text-white/40 text-[13px] mt-12">
+          <div className="text-center text-text-muted text-[13px] mt-12">
             Start the roleplay by sending a message. {roster[0] ? `${roster[0].name} will respond first.` : ""}
           </div>
         )}
@@ -299,12 +308,12 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
           );
         })}
         {isStreaming && (
-          <div className="space-y-1 px-1">
-            <div className="flex items-center gap-2 text-white/40 text-[12.5px]">
-              <Spinner className="text-white/45" /> Streaming…
+          <div className="mt-4 p-4 rounded-xl border border-border bg-surface shadow-sm">
+            <div className="flex items-center gap-2 text-text-muted text-[12.5px]">
+              <Spinner className="text-text-muted" /> Streaming…
             </div>
             {reasoning && (
-              <details className="text-white/40 text-[12px]">
+              <details className="text-text-muted text-[12px] mt-2 group">
                 <summary className="cursor-pointer select-none">Thinking…</summary>
                 <pre className="mt-1 whitespace-pre-wrap font-sans">{reasoning}</pre>
               </details>
@@ -319,7 +328,7 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
         </div>
       )}
 
-      <div className="border-t border-white/[0.06] px-4 py-3 space-y-2">
+      <div className="border-t border-border px-4 py-3 space-y-2">
         {roster.length > 1 && (
           <div className="flex items-center gap-2">
             <Label>Speaker:</Label>
@@ -330,7 +339,7 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
                   type="button"
                   onClick={() => { setSpeakerIdx(i); setNarratorMode(false); }}
                   aria-pressed={!narratorMode && speakerIdx === i}
-                  className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${!narratorMode && speakerIdx === i ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]" : "border-white/[0.1] text-white/65 hover:text-white"}`}
+                  className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${!narratorMode && speakerIdx === i ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]" : "border-border text-text-secondary hover:text-text-primary"}`}
                 >
                   {c.name}
                 </button>
@@ -339,7 +348,7 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
                 type="button"
                 onClick={() => setNarratorMode(true)}
                 aria-pressed={narratorMode}
-                className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${narratorMode ? "border-amber-400/40 bg-amber-400/10 text-amber-200" : "border-white/[0.1] text-white/65 hover:text-white"}`}
+                className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${narratorMode ? "border-amber-400/40 bg-amber-400/10 text-amber-200" : "border-border text-text-secondary hover:text-text-primary"}`}
               >
                 Narrator
               </button>
@@ -387,10 +396,11 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
 function MessageBubble({ message, speaker }: { message: RpMessageV1; speaker?: CharacterCardV1 }) {
   const isUser = message.role === "user";
   const isNarrator = message.role === "narrator";
+  const name = speaker?.name ?? (isNarrator ? "Narrator" : isUser ? "You" : "Character");
   return (
     <div className={`flex gap-2.5 ${isUser ? "justify-end" : "justify-start"}`}>
       {!isUser && (
-        <div className="shrink-0 w-8 h-8 rounded-full overflow-hidden border border-white/[0.08] bg-white/[0.04] flex items-center justify-center text-[11px] font-semibold text-white/60">
+        <div className="shrink-0 w-8 h-8 rounded-full overflow-hidden border border-border bg-surface-elevated flex items-center justify-center text-[11px] font-semibold text-text-muted">
           {speaker ? (
             avatarDataUri(speaker.avatar) ? (
               <img src={avatarDataUri(speaker.avatar)} alt="" className="w-full h-full object-cover" />
@@ -405,11 +415,11 @@ function MessageBubble({ message, speaker }: { message: RpMessageV1; speaker?: C
         </div>
       )}
       <div className={`max-w-[80%] flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
-        <div className="flex items-center gap-1.5">
-          <RolePill role={message.role} characterName={speaker?.name} />
-          <span className="text-[10.5px] text-white/30">{formatRelativeTime(message.createdAt)}</span>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[12.5px] font-semibold text-text-primary">{name}</span>
+          <span className="text-[10.5px] text-text-muted">{formatRelativeTime(message.createdAt)}</span>
         </div>
-        <div className={`rounded-2xl px-3.5 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap ${isUser ? "bg-white/[0.06] text-white/90" : "bg-surface-elevated text-white/85"} ${isNarrator ? "italic" : ""}`}>
+        <div className={`rounded-2xl px-3.5 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap ${isUser ? "bg-surface border border-border text-text-primary" : "bg-surface-elevated text-text-primary"} ${isNarrator ? "italic" : ""}`}>
           {message.content}
         </div>
       </div>

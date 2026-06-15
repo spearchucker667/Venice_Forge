@@ -28,16 +28,16 @@ function summarizeStep(step: RunStep): PlaygroundActivity {
     case 'add_node': {
       const id = (step.result as { id?: string }).id
       const type = String(a.node_type ?? '?')
-      return { tool: step.tool, summary: ok ? `Added ${type}${id ? ` "${id}"` : ''}` : `Failed to add ${type}: ${(step.result as { error?: string }).error}`, ok }
+      return { tool: step.tool, summary: ok ? `Added ${type}${id ? ` "${id}"` : ''}` : `Failed to add ${type}`, ok }
     }
     case 'connect': {
       const s = String(a.source ?? ''), t = String(a.target ?? '')
-      return { tool: step.tool, summary: ok ? `Connected ${s} → ${t}` : `Connect failed (${s} → ${t}): ${(step.result as { error?: string }).error}`, ok }
+      return { tool: step.tool, summary: ok ? `Connected ${s} → ${t}` : `Connect failed`, ok }
     }
     case 'set_params':
-      return { tool: step.tool, summary: ok ? `Updated params on ${String(a.id ?? '')}` : `set_params failed: ${(step.result as { error?: string }).error}`, ok }
+      return { tool: step.tool, summary: ok ? `Updated params on ${String(a.id ?? '')}` : 'set_params failed', ok }
     case 'remove_node':
-      return { tool: step.tool, summary: ok ? `Removed ${String(a.id ?? '')}` : `remove failed: ${(step.result as { error?: string }).error}`, ok }
+      return { tool: step.tool, summary: ok ? `Removed ${String(a.id ?? '')}` : 'remove failed', ok }
     case 'pick_model': {
       const model = (step.result as { model?: string }).model
       return { tool: step.tool, summary: ok ? `Picked ${model} for ${String(a.node_type ?? '')}` : `pick_model failed`, ok }
@@ -131,8 +131,8 @@ export function PlaygroundChat() {
               const r = applyPatch({ nodes: current.nodes, edges: current.edges }, patch)
               usePlaygroundStore.setState({ draft: { nodes: r.nodes, edges: r.edges } })
               return { ok: true, id: r.addedNodeId, edge_id: r.addedEdgeId }
-            } catch (e) {
-              return { error: e instanceof Error ? e.message : 'Patch failed' }
+            } catch {
+              return { error: 'Patch failed' }
             }
           },
           onStep: (step) => {
@@ -161,8 +161,8 @@ export function PlaygroundChat() {
         let patchError: string | undefined
         try {
           if (response.patches.length > 0) applyAgentPatches(response.patches)
-        } catch (e) {
-          patchError = e instanceof Error ? e.message : 'Failed to apply patches'
+        } catch {
+          patchError = 'Failed to apply patches'
         }
 
         const invalidNote = response.invalidPatches > 0
@@ -180,12 +180,11 @@ export function PlaygroundChat() {
           pending: false,
         })
       }
-    } catch (e) {
+    } catch {
       if (controller.signal.aborted) {
         updateMessage(pendingMsg.id, { content: '', error: 'Cancelled', pending: false })
       } else {
-        const message = e instanceof Error ? e.message : 'Agent request failed'
-        updateMessage(pendingMsg.id, { content: '', error: message, pending: false })
+        updateMessage(pendingMsg.id, { content: '', error: 'Agent request failed', pending: false })
       }
     } finally {
       setThinking(false)

@@ -84,7 +84,7 @@ All Venice API requests go through `src/services/veniceClient.ts` — `veniceFet
 
 ### Storage (current)
 
-Renderer IndexedDB (via `src/services/storageService.ts` + `STORE_NAMES`): multiple stores including conversations, settings, images/media, memories, files, character cards, personas, lorebooks, rp-chats, rp-assets. `ENCRYPTED_STORES` use AES-GCM. Desktop chat history uses atomic JSON files under userData/chat-history/. Secrets: OS `safeStorage` (Electron) or server `.env` (web). See `AGENTS.md` and `docs/CONFIG.md`.
+Renderer IndexedDB (via `src/services/storageService.ts` + `STORE_NAMES`): multiple stores including conversations, settings, images/media, memories, files, character cards, personas, lorebooks, rp-chats, rp-assets. `ENCRYPTED_STORES` use AES-GCM. Desktop chat history uses atomic JSON files under userData/chat-history/. Secrets: OS `safeStorage` (Electron) or server `.env` (web). See `AGENTS.md` and `docs/DEVELOPMENT/CONFIG.md`.
 
 - Exports/imports are versioned JSON; secret-like fields are redacted on export; import merges by ID (additive, never destructive).
 - See `src/services/exportImport.ts`, `src/services/storageService.ts`.

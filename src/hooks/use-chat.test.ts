@@ -309,4 +309,47 @@ describe("use-chat character_slug threading", () => {
       { type: "image_url", image_url: { url: "data:image/png;base64,abc" } }
     ]);
   });
+
+  describe("safe error handling (T-114/T-115)", () => {
+    it("send appends a generic error message, never raw exception text", async () => {
+      const sensitive = "Network error at /Users/super_user/secret/path with token venice_abc123";
+      mockedVeniceStreamChat.mockRejectedValueOnce(new Error(sensitive));
+
+      const { result } = renderHook(() => useChat());
+      await act(async () => {
+        await result.current.send("Hello", "llama-3.3-70b");
+      });
+
+      const conv = useChatStore.getState().conversations[0];
+      expect(conv).toBeDefined();
+      const lastAssistant = conv.messages[conv.messages.length - 1];
+      expect(lastAssistant?.role).toBe("assistant");
+      expect(lastAssistant?.content).toContain("Sorry, something went wrong");
+      expect(lastAssistant?.content).not.toContain(sensitive);
+      expect(lastAssistant?.content).not.toContain("/Users/super_user");
+      expect(lastAssistant?.content).not.toContain("venice_abc123");
+    });
+
+    it("regenerate appends a generic error message, never raw exception text", async () => {
+      const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+      useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+      useChatStore.getState().addMessage(convId, { role: "assistant", content: "Hi." });
+
+      const sensitive = "Provider failed: Bearer sk-1234567890abcdef";
+      mockedVeniceStreamChat.mockRejectedValueOnce(new Error(sensitive));
+
+      const { result } = renderHook(() => useChat());
+      await act(async () => {
+        await result.current.regenerate("llama-3.3-70b");
+      });
+
+      const conv = useChatStore.getState().conversations.find((c) => c.id === convId)!;
+      const lastAssistant = conv.messages[conv.messages.length - 1];
+      expect(lastAssistant?.role).toBe("assistant");
+      expect(lastAssistant?.content).toContain("Sorry, something went wrong");
+      expect(lastAssistant?.content).not.toContain(sensitive);
+      expect(lastAssistant?.content).not.toContain("Bearer");
+      expect(lastAssistant?.content).not.toContain("sk-1234567890abcdef");
+    });
+  });
 });

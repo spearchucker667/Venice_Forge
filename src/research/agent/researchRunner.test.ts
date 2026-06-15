@@ -98,7 +98,7 @@ describe("runResearchJob budgets", () => {
     });
 
     expect(result.ok).toBe(false);
-    expect(result.error).toMatch(/aborted|timeout/i);
+    expect(result.error).toMatch(/cancelled|timeout/i);
   });
 
   it("enforces perRequestTimeoutMs via signal", async () => {
@@ -126,7 +126,7 @@ describe("runResearchJob budgets", () => {
     });
 
     expect(result.ok).toBe(false);
-    expect(result.error).toMatch(/aborted/i);
+    expect(result.error).toMatch(/cancelled/i);
   });
 
   it("dedupes URLs across queries", async () => {
@@ -192,5 +192,114 @@ describe("runResearchJob budgets", () => {
 
     expect(result.ok).toBe(false);
     expect(result.error).toMatch(/does not support search/i);
+  });
+
+  // T-141 regression guard: research job errors must not be returned raw to UI state.
+  describe("safe error messages (T-141)", () => {
+    it("does not return raw exception text for unexpected provider errors", async () => {
+      const provider: ResearchProvider = {
+        id: "venice",
+        label: "Mock",
+        supports: { search: true, scrape: false, socialDiscovery: false, documentParsing: false },
+        async search() {
+          throw new Error("Internal provider explosion at /var/log/venice/debug.log");
+        },
+      };
+
+      const result = await runResearchJob({
+        question: "q",
+        provider,
+        budget: defaultBudget,
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.error).toBe("Research job failed.");
+      expect(result.error).not.toMatch(/explosion/i);
+      expect(result.error).not.toMatch(/\/var\/log/i);
+    });
+
+    it("does not return secret-like text from provider errors", async () => {
+      const provider: ResearchProvider = {
+        id: "venice",
+        label: "Mock",
+        supports: { search: true, scrape: false, socialDiscovery: false, documentParsing: false },
+        async search() {
+          throw new Error("Bearer vn-deadbeef1234567890abcdef token rejected by upstream");
+        },
+      };
+
+      const result = await runResearchJob({
+        question: "q",
+        provider,
+        budget: defaultBudget,
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.error).not.toMatch(/vn-deadbeef/i);
+      expect(result.error).not.toMatch(/Bearer/i);
+      expect(result.error).toBe("Research job failed.");
+    });
+
+    it("classifies network failures as a safe network message", async () => {
+      const provider: ResearchProvider = {
+        id: "venice",
+        label: "Mock",
+        supports: { search: true, scrape: false, socialDiscovery: false, documentParsing: false },
+        async search() {
+          throw new Error("Failed to fetch");
+        },
+      };
+
+      const result = await runResearchJob({
+        question: "q",
+        provider,
+        budget: defaultBudget,
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.error).toMatch(/network error/i);
+      expect(result.error).not.toBe("Failed to fetch");
+    });
+
+    it("classifies timeouts as a safe timeout message", async () => {
+      const provider: ResearchProvider = {
+        id: "venice",
+        label: "Mock",
+        supports: { search: true, scrape: false, socialDiscovery: false, documentParsing: false },
+        async search() {
+          throw new Error("Request timed out");
+        },
+      };
+
+      const result = await runResearchJob({
+        question: "q",
+        provider,
+        budget: defaultBudget,
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.error).toMatch(/timed out/i);
+      expect(result.error).not.toBe("Request timed out");
+    });
+
+    it("returns 'Cancelled.' for abort errors", async () => {
+      const provider: ResearchProvider = {
+        id: "venice",
+        label: "Mock",
+        supports: { search: true, scrape: false, socialDiscovery: false, documentParsing: false },
+        async search() {
+          throw new DOMException("Research job aborted", "AbortError");
+        },
+      };
+
+      const result = await runResearchJob({
+        question: "q",
+        provider,
+        budget: defaultBudget,
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.error).toBe("Cancelled.");
+    });
   });
 });

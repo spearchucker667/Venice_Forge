@@ -27,8 +27,8 @@ export async function readBoundedJsonFile<T>(
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
-  } catch (err) {
-    throw new Error(`Invalid JSON format: ${err instanceof Error ? err.message : "parse error"}`);
+  } catch {
+    throw new Error("Invalid JSON format. Check the file and try again.");
   }
 
   if (!parsed || typeof parsed !== "object") {

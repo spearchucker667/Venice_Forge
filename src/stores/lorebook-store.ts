@@ -46,8 +46,9 @@ export const useLorebookStore = create<LorebookState>((set, get) => ({
       const items = await listLorebooks();
       const sorted = items.slice().sort((a, b) => b.updatedAt - a.updatedAt);
       set({ lorebooks: sorted, isLoading: false, hasLoaded: true });
-    } catch (e) {
-      set({ isLoading: false, error: e instanceof Error ? e.message : String(e) });
+    } catch {
+      set({ isLoading: false, error: "Could not load lorebooks." });
+      toast.error("Could not load lorebooks", "Please try again.");
     }
   },
 
@@ -89,10 +90,9 @@ export const useLorebookStore = create<LorebookState>((set, get) => ({
         return { lorebooks: next, editingId: saved.id, error: null };
       });
       return saved;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      set({ error: msg });
-      toast.error("Could not save lorebook", msg);
+    } catch {
+      set({ error: "Could not save lorebook." });
+      toast.error("Could not save lorebook", "Please try again.");
       return null;
     }
   },
@@ -109,10 +109,9 @@ export const useLorebookStore = create<LorebookState>((set, get) => ({
         editingId: s.editingId === id ? null : s.editingId,
       }));
       return true;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      set({ error: msg });
-      toast.error("Could not delete lorebook", msg);
+    } catch {
+      set({ error: "Could not delete lorebook." });
+      toast.error("Could not delete lorebook", "Please try again.");
       return false;
     }
   },

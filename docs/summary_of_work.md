@@ -35,11 +35,12 @@ to keep the regression-guard sequence stable.
 **Safety architecture.** Three independent layers:
 1. **Local Family Safe Mode** — runtime-snapshot-backed
    `assessChildExploitationSafety` guard. Authoritative flag lives in
-   `electron/services/runtimeSafetySettings.ts`; renderer-supplied
-   `localFamilySafeModeEnabled` is intentionally dropped at the IPC
-   boundary. The web proxy reads it from the
-   `X-Venice-Forge-Family-Safe-Mode` header (renderer-sourced from
-   `useSettingsStore`).
+   `electron/services/runtimeSafetySettings.ts` (desktop) and
+   `VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED` (web). In web mode, the server-side
+   env var is authoritative and takes precedence over all other settings. If unset,
+   it defaults to ON. The renderer-supplied `localFamilySafeModeEnabled` /
+   `X-Venice-Forge-Family-Safe-Mode` flags are intentionally ignored unless the dev-only
+   `VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE` is active AND the server env var is unset.
 2. **Venice provider `safe_mode`** — independent per-request
    parameter, gated by `src/shared/veniceSafeMode.ts`'s
    `VENICE_API_SAFE_MODE_MATRIX` so non-supporting endpoints never
@@ -106,6 +107,1361 @@ blockers remain.
 
 ## Latest Session Summary
 
+- **Date:** 2026-06-15 (Resumed Kimi interrupted types/utils/theme/scripts audit batch)
+- **Agent:** Codex
+- **Branch / state:** `main` (working tree modified; resumed from `kimi-export-session_-20260615-052400.md`)
+- **Diagnosis:** Reviewed the 10,201-line Kimi export, verified the completed store batch, recovered six partially edited files from the interrupted swarm, and finished the same queued types/utils/theme/scripts batch without overwriting the parallel RP/UI/store work.
+- **Closed or completed in this resumed batch:** T-018, T-156, T-183, T-205, T-208, T-209, T-210, T-211, T-213, T-214, T-215, T-216, T-217, T-218, T-219, T-220, T-221, T-222, T-223, T-224, T-240/T-264, T-244, T-254, T-255, T-256, T-257, T-262, T-263, T-267, and T-268. T-178/T-179/T-203 were revalidated as already closed by the prior reconciliation batch.
+- **Key changes:** boot errors are redacted before logging/display; persisted custom themes receive final shape/token validation; Prompt Library notes/variables/metadata redact secrets; workflow import reasons are generic; preview/download URL and MIME validation reject spoofed absolute prefixes, SVG data URLs, and non-image responses; Markdown copy state awaits clipboard success; unknown image bytes are no longer labeled PNG; image scrubber errors are generic; character-page extraction supports attribute order and bounds recursive JSON traversal; contrast accepts RGB without NaN; profiler DB version/count/diagnostics are safe; dist and clean-ZIP secret patterns cover flexible `sk-`/`vn-`/env assignments; updater metadata and blockmaps require checksum sidecars; bootstrap theme parsing validates object shape; default clean-ZIP output omits absolute paths.
+- **Validation:** focused batch 18 files / 283 tests PASS; affected safe-preview/message-bubble rerun 10/10 PASS; focused ESLint PASS; `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm test` PASS (2,542 passed, 1 skipped); `npm run verify:contracts` PASS; `npm run build` PASS.
+
+- **Date:** 2026-06-15 (T-011..T-270 static-audit reconciliation — store error-handling batch + full validation)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified, pre-existing parallel RP/UI changes)
+- **Diagnosis:** Closed the remaining store-level raw-error findings and the T-199 ID-generation finding. Every touched store now redacts secrets and local paths before persisting errors to UI state or toast descriptions, and `rp-chat-store` prefers `crypto.randomUUID()` for message IDs. Full validation gates pass.
+- **Closed in this batch:** T-187, T-188, T-189, T-190, T-191, T-192, T-193, T-194, T-195, T-196, T-197, T-199.
+- **Files changed in this pass (representative):**
+  - `src/stores/scenario-store.ts` + `scenario-store.errors.test.ts`
+  - `src/stores/scene-asset-store.ts` + `.test.ts`
+  - `src/stores/rp-chat-store.ts` + `.test.ts`
+  - `src/stores/media-store.ts` + `.test.ts`
+  - `src/stores/media-bulk-actions.ts` + `.test.ts`
+  - `src/stores/prompt-library-store.ts` + `.test.ts`
+  - `src/stores/scene-composer-store.ts` + `.test.ts`
+  - `src/stores/config-store.ts` + `.test.ts`
+  - `src/stores/project-store.ts` + `.test.ts`
+  - `src/stores/research-store.ts` + `.test.ts`
+  - `src/stores/toast-store.ts` + `toast-store.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npm run lint:eslint` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+  - `npm test` — **PASS: 2523 passed, 1 skipped**.
+  - `npm run build` — **PASS**.
+  - `npm run verify:contracts` — **PASS** (all parity gates).
+
+- **Date:** 2026-06-15 (T-189 / T-199 static-audit reconciliation — rp-chat-store safe error handling + crypto.randomUUID)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-189 — `src/stores/rp-chat-store.ts` stored raw caught exception messages (`e instanceof Error ? e.message : String(e)`) directly in the UI-facing `error` state and in `toast.error` descriptions for `load`, `createChat`, `upsert`, `remove`, and the three `append*Message` paths, risking disclosure of API keys, bearer tokens, local paths, and other persistence diagnostics.
+- **Status:** Fixed.
+- **Fix:**
+  - Imported `redactErrorMessage` and `sanitizeErrorText` from `src/shared/redaction.ts`.
+  - Added a local `safeDiagnostic(err)` helper that composes the two redaction helpers so both secrets and local paths are redacted before entering UI-facing state.
+  - Replaced raw exception-to-string conversion in the `load`, `createChat`, `upsert`, and `remove` catch blocks with `safeDiagnostic(e)` for `state.error` and `"Please try again."` for toast descriptions.
+  - Replaced raw exception text in the `appendUserMessage`, `appendCharacterMessage`, and `appendNarratorMessage` catch blocks with the generic toast description `"Please try again."` and removed the unused catch bindings.
+- **T-199 note:** Fixed. `src/stores/rp-chat-store.ts` `newMessageId()` now prefers `globalThis.crypto.randomUUID()` and only falls back to the previous `Date.now()` + `Math.random()` shape when the Web Crypto API is unavailable.
+- **Regression tests:** Added T-189/T-199 regression guards in `src/stores/rp-chat-store.test.ts`:
+  - `load` redacts secrets and local paths in the stored error.
+  - `createChat`, `upsert`, `remove`, and all three `append*Message` paths toast a generic description and never leak raw exception text.
+  - `newMessageId` uses `crypto.randomUUID()` when available and falls back to a non-UUID shape when unavailable.
+- **Files changed:**
+  - `src/stores/rp-chat-store.ts`
+  - `src/stores/rp-chat-store.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/stores/rp-chat-store.test.ts` — **PASS: 11/11** (2 pre-existing VERIFY-025 tests + 7 new T-189 regression guards + 2 new T-199 regression guards).
+  - `npx eslint src/stores/rp-chat-store.ts src/stores/rp-chat-store.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL (exit 2)** on pre-existing unrelated errors in `src/stores/prompt-library-store.test.ts`; `src/stores/rp-chat-store.ts` and `src/stores/rp-chat-store.test.ts` produce no type errors.
+
+- **Date:** 2026-06-15 (T-187 static-audit reconciliation — scenario-store raw persistence exception redaction)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-187 — `src/stores/scenario-store.ts` stored raw caught exception messages (`e instanceof Error ? e.message : String(e)`) directly in the UI-facing `error` state and in `toast.error` descriptions for `load`, `upsert`, and `remove`, risking disclosure of API keys, bearer tokens, local paths, and other persistence diagnostics.
+- **Status:** Fixed.
+- **Fix:**
+  - Imported `sanitizeErrorText` from `src/shared/redaction.ts`.
+  - Replaced raw exception-to-string conversion in the `load`, `upsert`, and `remove` catch blocks with `sanitizeErrorText(e instanceof Error ? e.message : String(e))` so both secrets and local paths are redacted before entering the store's `error` state.
+  - Replaced raw exception text in `toast.error` descriptions with the safe generic message `"Please try again."`.
+  - Added `console.error` diagnostics with the raw `Error` object so developers still have access to the unredacted stack in the renderer console.
+- **T-199 note:** Not applicable to this file. `src/stores/scenario-store.ts` does not use `Math.random()` directly; scenario id generation is delegated to `src/services/rp/scenarioService.ts` `generateId()`, which already prefers `crypto.randomUUID()` with a `Math.random()` fallback as the last resort.
+- **Regression tests:** Added T-187 regression guards in `src/stores/scenario-store.errors.test.ts`:
+  - `load` redacts secrets and local paths from the stored error and toasts safely when `listScenarios` rejects.
+  - `upsert` redacts secrets from the stored error and toasts safely when `saveScenario` rejects.
+  - `remove` redacts bearer tokens from the stored error and toasts safely when `deleteScenario` rejects.
+  - Delete backend rejection still surfaces the safe `"Storage rejected the request."` toast.
+  - Successful `upsert` clears any previous error and does not toast.
+- **Files changed:**
+  - `src/stores/scenario-store.ts`
+  - `src/stores/scenario-store.errors.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/stores/scenario-store.errors.test.ts src/stores/scenario-store.test.ts` — **PASS: 15/15** (5 new T-187 regression guards + 10 pre-existing scenario-store contract tests).
+  - `npx eslint src/stores/scenario-store.ts src/stores/scenario-store.errors.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL (exit 2)** on pre-existing unrelated errors in `src/stores/rp-chat-store.test.ts` (`personaId: null` incompatible with `string \| undefined`); `src/stores/scenario-store.ts` and `src/stores/scenario-store.errors.test.ts` produce no type errors.
+
+- **Date:** 2026-06-15 (T-193 static-audit reconciliation — scene-composer-store raw persistence exception redaction)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-193 — `src/stores/scene-composer-store.ts` wrote raw persistence exception messages (`err instanceof Error ? err.message : String(err)`) directly into the UI-facing `loadError` state and into `importScenes` skipped reasons, risking disclosure of API keys, bearer tokens, local paths, and other secret-bearing storage diagnostics in the renderer.
+- **Status:** Fixed.
+- **Fix:**
+  - Imported `redactErrorMessage` from `src/shared/redaction.ts`.
+  - Replaced all 11 raw exception-to-string conversions written to `loadError` across `ensureLoaded`, `createScene`, `updateScene`, `addSceneVersion`, `setCurrentVersion`, `addOutputMedia`, `removeOutputMedia`, `archiveScene`, `unarchiveScene`, `deleteScene`, and `toggleFavorite` with `redactErrorMessage(err)`.
+  - Replaced the raw exception interpolation in `importScenes` skipped reasons with `redactErrorMessage(err)`.
+- **T-199 note:** Not applicable to this file. `src/stores/scene-composer-store.ts` does not use `Math.random()`. The related ID helper in `src/types/scene.ts` (`generateStableId`) already prefers `crypto.randomUUID()` and only falls back to `Math.random()` as a last resort.
+- **Regression tests:** Added T-193 regression guards in `src/stores/scene-composer-store.test.ts`:
+  - `ensureLoaded` redacts persistence errors in `loadError` (Venice key).
+  - `createScene` reverts state and redacts `loadError` on persistence failure (Venice key).
+  - `importScenes` redacts persistence errors in skipped reasons (Bearer token).
+- **Files changed:**
+  - `src/stores/scene-composer-store.ts`
+  - `src/stores/scene-composer-store.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/stores/scene-composer-store.test.ts` — **PASS: 30/30** (27 pre-existing + 3 new T-193 regression guards).
+  - `npx eslint src/stores/scene-composer-store.ts src/stores/scene-composer-store.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+
+- **Date:** 2026-06-15 (T-197 static-audit reconciliation — toast-store central error helpers redaction)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-197 — `src/stores/toast-store.ts` `toast.fromError` pushed raw exception messages (`err.message` / raw string errors) directly into toast UI state, risking disclosure of API keys, bearer tokens, and other secret-bearing diagnostics in the renderer.
+- **Status:** Fixed.
+- **Fix:**
+  - Imported `redactErrorMessage` from `src/shared/redaction.ts`.
+  - Updated `toast.fromError` so `Error` messages and string errors are redacted before being stored as the toast description; non-Error, non-string values still leave `description` undefined.
+  - Left `toast.error` unchanged because it receives caller-supplied, already-reviewed descriptions.
+- **T-199 note:** Not applicable to this file. `src/stores/toast-store.ts` does not use `Math.random()`; toast IDs use a sequential counter.
+- **Regression tests:** Added T-197 regression guard in `src/stores/toast-store.test.ts`:
+  - `fromError` redacts `vn-…` Venice API keys from `Error` messages.
+  - `fromError` redacts `sk-…` OpenAI-style API keys from `Error` messages.
+  - `fromError` redacts `Bearer …` tokens from `Error` messages.
+  - `fromError` redacts secret assignments (`apiKey="…"`) from `Error` messages.
+  - `fromError` redacts secrets from string errors.
+  - `fromError` preserves non-sensitive error context.
+  - `fromError` leaves `description` undefined for `null` / non-string / non-Error values.
+- **Files changed:**
+  - `src/stores/toast-store.ts`
+  - `src/stores/toast-store.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/stores/toast-store.test.ts` — **PASS: 8/8** (7 new T-197 regression guards + 1 existing helper sanity check).
+  - `npx eslint src/stores/toast-store.ts src/stores/toast-store.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL (exit 2)** on pre-existing unrelated errors in `src/stores/rp-chat-store.test.ts` (`personaId: null` incompatible with `string | undefined`); `src/stores/toast-store.ts` and `src/stores/toast-store.test.ts` produce no type errors.
+
+- **Date:** 2026-06-15 (T-194 static-audit reconciliation — config-store raw exception redaction)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-194 — `src/stores/config-store.ts` `refreshConfig` and `reloadConfig` stored raw caught exception messages directly in Zustand state (`err instanceof Error ? err.message : String(err)`), risking secret, token, and local-path disclosure in the renderer config error surface.
+- **Status:** Fixed.
+- **Fix:**
+  - Imported `redactErrorMessage` from `src/shared/redaction.ts`.
+  - Replaced the raw exception-to-string conversion in both `refreshConfig` and `reloadConfig` catch blocks with `redactErrorMessage(err)` so secrets are redacted before entering the store's `error` state.
+- **T-199 note:** Not applicable to this file. `src/stores/config-store.ts` does not use `Math.random()`.
+- **Regression tests:** Added T-194 regression guards in `src/stores/config-store.test.ts`:
+  - `refreshConfig` redacts secrets from the stored error when `desktopConfig.get` rejects.
+  - `reloadConfig` redacts secrets from the stored error when `desktopConfig.reload` rejects.
+- **Files changed:**
+  - `src/stores/config-store.ts`
+  - `src/stores/config-store.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/stores/config-store.test.ts` — **PASS: 9/9** (7 pre-existing + 2 new T-194 regression guards).
+  - `npx eslint src/stores/config-store.ts src/stores/config-store.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+
+- **Date:** 2026-06-15 (T-191 static-audit reconciliation — media-bulk-actions failure reason redaction)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-191 — `src/stores/media-bulk-actions.ts` `errorReason` returned raw exception messages (`err.message` / raw string throws) directly in `BulkMediaActionResult.failed.reason`, exposing secrets, bearer tokens, API keys, and local paths in UI-facing bulk-action failure results.
+- **Status:** Fixed.
+- **Fix:**
+  - Imported `redactErrorMessage` from `src/shared/redaction.ts`.
+  - Replaced the raw `err.message` / raw string path in `errorReason` with `redactErrorMessage(err)` so every failure reason is redacted before entering the result contract.
+- **T-199 note:** Not applicable to this file. `src/stores/media-bulk-actions.ts` does not use `Math.random()`.
+- **Regression tests:** Added T-191 regression guards in `src/stores/media-bulk-actions.test.ts`:
+  - Parameterized tests for `bulkSetFavorite`, `bulkAddTags`, `bulkRemoveTag`, `bulkDelete` redact secrets from failure reasons.
+  - `bulkAssignProject` redacts secrets from per-id patch failures.
+  - String errors are redacted rather than returned raw.
+- **Files changed:**
+  - `src/stores/media-bulk-actions.ts`
+  - `src/stores/media-bulk-actions.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/stores/media-bulk-actions.test.ts --reporter=verbose` — **PASS: 26/26** (20 pre-existing + 6 new T-191 regression guards).
+  - `npx eslint src/stores/media-bulk-actions.ts src/stores/media-bulk-actions.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npx tsc --noEmit -p tsconfig.json` — **FAIL (exit 2)** on pre-existing unrelated errors in `src/components/playground/playground-chat.test.tsx` and `src/components/ui/error-boundary.test.tsx`; changed files produce no type errors.
+
+- **Date:** 2026-06-15 (T-195 static-audit reconciliation — project-store raw storage exception redaction)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-195 — `src/stores/project-store.ts` stored raw storage exception messages in the UI-facing `lastError` state during `refresh()` and during `deleteProject()` reference verification, risking secret, token, and local-path disclosure.
+- **Status:** Fixed.
+- **Fix:**
+  - Imported `redactErrorMessage` from `src/shared/redaction.ts` and `logger` from `src/shared/logger`.
+  - Replaced the raw message extraction in `refresh()` with a safe generic user-facing message (`'Failed to load projects. Please try again.'`) and routed a redacted diagnostic to the dev/test log sink.
+  - Replaced the raw message extraction in `deleteProject()` reference verification with a safe generic user-facing message (`'Could not verify project references. Please try again.'`) and routed a redacted diagnostic to the dev/test log sink.
+- **T-199 note:** Not applicable to this file. `src/stores/project-store.ts` does not use `Math.random()`; project IDs already use `crypto.randomUUID()`.
+- **Regression tests:** Added two T-195 regression guards in `src/stores/project-store.test.ts`:
+  - Reference-verification failures do not store raw storage exception messages (paths / secrets) in `lastError`.
+  - `refresh()` failures do not store raw storage exception messages (paths / secrets) in `lastError`.
+- **Files changed:**
+  - `src/stores/project-store.ts`
+  - `src/stores/project-store.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/stores/project-store.test.ts --reporter=verbose` — **PASS: 15/15**.
+  - `npx eslint src/stores/project-store.ts src/stores/project-store.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npx tsc --noEmit -p tsconfig.json` — **PASS** (renderer; changed files clean).
+  - `npx tsc --noEmit --project tsconfig.electron.json` — **PASS** (electron main; changed files clean).
+  - `npm run typecheck` — **FAIL (exit 2)** on pre-existing unrelated errors in `src/stores/scenario-store.ts` and `src/stores/rp-chat-store.test.ts`; changed files produce no type errors.
+
+- **Date:** 2026-06-15 (T-196 static-audit reconciliation — research-store raw load exception redaction)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-196 — `src/stores/research-store.ts` `ensureResearchLoaded` logged the raw caught exception (`logger.error('[ResearchStore] Failed to load research sessions:', err)`), risking secret, token, and local-path disclosure in development/test logs.
+- **Status:** Fixed.
+- **Fix:**
+  - Imported `redactErrorMessage` from `src/shared/redaction.ts`.
+  - Replaced the raw `err` argument with `redactErrorMessage(err)` so secrets and local paths are redacted before the log sink receives the diagnostic.
+- **T-199 note:** Not applicable to this file. `src/stores/research-store.ts` does not use `Math.random()`; ID regeneration on import already uses `crypto.randomUUID()`.
+- **Regression tests:** Added T-196 regression guard in `src/stores/research-store.test.ts`:
+  - `ensureResearchLoaded` redacts secrets and local paths from the logged error when `StorageService.getItems` rejects.
+- **Files changed:**
+  - `src/stores/research-store.ts`
+  - `src/stores/research-store.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/stores/research-store.test.ts` — **PASS: 6/6** (5 pre-existing + 1 new T-196 regression guard).
+  - `npx eslint src/stores/research-store.ts src/stores/research-store.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+
+- **Date:** 2026-06-14 (T-011..T-270 static-audit reconciliation — medium security batch + full validation)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified, pre-existing parallel RP/UI changes)
+- **Diagnosis:** Resumed the security/logic finding swarm after the first wave suffered OAuth/connection failures. Closed 31 medium security findings with safe-error handling, input validation, URL allowlists, and prompt-injection hardening. All changes include regression tests. Full validation gates now pass.
+- **Closed in this batch:** T-026, T-037, T-047, T-055, T-076, T-092, T-093, T-095, T-114, T-115, T-119, T-120, T-121, T-122, T-126, T-127, T-130, T-134, T-135, T-141, T-143, T-144, T-147, T-159, T-161, T-162, T-166, T-168, T-170, T-171, T-184, T-185, T-186.
+- **Files changed in this pass (representative):**
+  - `src/components/ErrorBoundary.tsx` + `.test.tsx`
+  - `src/components/layout/api-key-dialog.tsx` + `.test.tsx`
+  - `src/components/playground/playground-chat.tsx` + `.test.tsx`
+  - `src/components/research/ResearchWorkspaceView.tsx` + `.test.tsx`
+  - `src/components/rp-studio/RpChatView.tsx` + `.test.tsx`
+  - `src/components/ui/error-boundary.tsx` + `.test.tsx`
+  - `src/hooks/use-video.ts` + `.test.tsx`
+  - `src/hooks/use-chat.ts` + `.test.ts`
+  - `src/hooks/use-data-storage-actions.ts` + `.test.ts`
+  - `src/hooks/use-music.ts` + `.test.tsx`
+  - `src/lib/playground-agent-tools.ts` + `.test.ts`
+  - `src/lib/playground-agent.ts` + `.test.ts`
+  - `src/lib/workflow-engine.ts` + `.test.ts`
+  - `src/research/agent/researchRunner.ts` + `.test.ts`
+  - `src/research/agent/citationBuilder.ts` + `.test.ts`
+  - `src/research/agent/researchSynthesis.ts` + `.test.ts`
+  - `src/research/agent/socialDiscovery.ts` + `.test.ts`
+  - `src/services/characterSceneGenerationService.ts` + `.test.ts`
+  - `src/services/rp/sceneGenerationService.ts` + `.test.ts`
+  - `src/services/modelService.ts` + `.test.ts`
+  - `src/services/storagePrivacyService.ts` + `.test.ts`
+  - `src/services/veniceClient.ts` + `.web.test.ts` + `.desktop.test.ts`
+  - `src/stores/character-store.ts` + `.test.ts`
+  - `src/stores/character-card-store.ts` + `.test.ts`
+  - `src/stores/lorebook-store.ts` + `.test.ts`
+  - `src/shared/redaction.ts`
+  - `AGENTS.md`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npm run lint:eslint` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+  - `npm test` — **PASS: 2470 passed, 1 skipped**.
+  - `npm run build` — **PASS**.
+  - `npm run verify:contracts` — **PASS** (all parity gates, including VERIFY-054).
+
+- **Date:** 2026-06-14 (T-170 / T-171 static-audit reconciliation — veniceClient inspector error redaction)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:**
+  - **T-170** — `src/services/veniceClient.ts` `veniceFetch` caught request failures and stored `errAny.message || String(err)` directly in the Traffic Inspector log. Raw exception text can disclose API keys, bearer tokens, local paths, or upstream diagnostics in a log surface that can be viewed and exported.
+  - **T-171** — `src/services/veniceClient.ts` `veniceStreamChat` used the same raw `errAny.message || String(err)` pattern in its outer catch block, exposing the same leakage risk for streaming chat completions.
+- **Fix:**
+  - Added `safeInspectorError(err)` helper in `src/services/veniceClient.ts` that extracts `err.message` only for `Error` instances, redacts string errors, and returns `"Unknown error"` for arbitrary thrown objects — eliminating `String(err)` on unknown values.
+  - Routed both `veniceFetch` and `veniceStreamChat` inspector error logs through the helper; the existing `buildInspectorTelemetryPatch` redaction remains as defense-in-depth.
+- **Regression tests:** Added T-170/T-171 regression guards in `src/services/veniceClient.web.test.ts` and `src/services/veniceClient.desktop.test.ts`:
+  - `veniceFetch` redacts `sk-...` secret-like tokens from web-mode inspector log errors.
+  - `veniceStreamChat` redacts `vn-...` secret-like tokens from web-mode inspector log errors.
+  - `veniceFetch` does not stringify arbitrary thrown objects into web-mode inspector log errors.
+  - Desktop `veniceFetch` redacts `sk-...` secret-like tokens from inspector log errors.
+  - Desktop `veniceStreamChat` redacts `vn-...` secret-like tokens from inspector log errors.
+- **Files changed in this pass:**
+  - `src/services/veniceClient.ts`
+  - `src/services/veniceClient.web.test.ts`
+  - `src/services/veniceClient.desktop.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/services/veniceClient.test.ts src/services/veniceClient.web.test.ts src/services/veniceClient.desktop.test.ts src/services/veniceClient.edge.test.ts` — **PASS: 42/42**.
+  - `npx eslint src/services/veniceClient.ts src/services/veniceClient.web.test.ts src/services/veniceClient.desktop.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL (exit 2)** on pre-existing unrelated errors in `src/components/playground/playground-chat.test.tsx`; no type errors in the changed files.
+
+- **Date:** 2026-06-14 (T-095 static-audit reconciliation — useVideo safe error handling)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-095 — `src/hooks/use-video.ts` stored raw provider/polling/queue errors as UI strings. `result.error` from the upstream video retrieve response was passed directly to `setError`, and caught exceptions in the polling timeout path and the queue mutation `onError` surfaced `err.message` verbatim, risking secret, token, and local-path disclosure.
+- **Fix:**
+  - Added `toUserFacingVideoError(value, fallback)` helper that routes every video error through `sanitizeErrorText` (canonical secret/token **and** local-path redaction) and caps the result at `MAX_ERROR_LENGTH = 200` characters.
+  - Replaced the three raw error assignments in the provider-failed, polling-timeout, and queue-failure paths with the helper.
+  - Exported the helper (`/** @internal exported for testing */`) so the redaction/capping/fallback behavior has direct unit coverage.
+- **Regression tests:** Added T-095 regression guards in `src/hooks/use-video.test.tsx`:
+  - Provider `status: 'failed'` error strings are redacted before entering UI state.
+  - Provider `status: 'failed'` without an error message falls back to the safe `"Video generation failed"` copy.
+  - Polling errors at max attempts are redacted before entering UI state.
+  - Queue mutation errors are redacted before entering UI state.
+  - Errors longer than 200 characters are truncated.
+  - Direct `toUserFacingVideoError` unit tests for Venice key, bearer-token, local-path, fallback, and length-cap behavior.
+- **Files changed in this pass:**
+  - `src/hooks/use-video.ts`
+  - `src/hooks/use-video.test.tsx`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/hooks/use-video.test.tsx --reporter=verbose` — **PASS: 14/14**.
+  - `npx eslint src/hooks/use-video.ts src/hooks/use-video.test.tsx --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL (exit 2)** on pre-existing unrelated errors in `src/components/playground/playground-chat.test.tsx`; no type errors in the changed files.
+
+- **Date:** 2026-06-14 (T-134 / T-135 static-audit reconciliation — workflow-engine safe error handling)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:**
+  - **T-134** — `src/lib/workflow-engine.ts` caught node execution errors in `executeWorkflow` and surfaced `err.message` verbatim through `onUpdate(..., { error: message })` and the thrown `WorkflowExecutionError`, exposing raw upstream exception text to the UI.
+  - **T-135** — `pollUntilDone` for queued audio/video generation surfaced the upstream `error` payload verbatim (`throw new Error(getError(result) ?? 'Generation failed')`), and the timeout messages included raw status strings and durations that could leak internal queue state.
+- **Fix:**
+  - Added `safeNodeErrorMessage(node)` helper that derives a generic node-type label from `NODE_SCHEMAS` and returns `"<Kind> failed. Check your connection and try again."`. All non-abort node failures now route through this helper before updating the UI or throwing.
+  - Updated `executeWorkflow` catch block to reuse an already-safe `WorkflowExecutionError` message for queued-media failures, and to wrap all other raw errors with the safe node-level message. Abort errors still surface `"Cancelled"`.
+  - Removed the raw `getError` path from `pollUntilDone`; added a `kind` option and replaced every thrown message with a safe, kind-specific phrase (`"Audio generation failed."`, `"Video generation timed out waiting in queue."`, etc.).
+- **Regression tests:** Added two T-134/T-135 regression guards in `src/lib/workflow-engine.test.ts`:
+  - `never surfaces raw node exception text, paths, or secrets (T-134)` — mocks a Venice failure containing a path and a secret-like token, then asserts the UI update and thrown error message are the generic safe copy.
+  - `never surfaces raw queued-media error payloads (T-135)` — mocks a queued video workflow whose retrieve call returns `status: 'failed'` with a raw upstream error, then asserts the UI update and thrown error are the safe `"Video generation failed."` message.
+- **Files changed in this pass:**
+  - `src/lib/workflow-engine.ts`
+  - `src/lib/workflow-engine.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/lib/workflow-engine.test.ts --reporter=verbose` — **PASS: 6/6**.
+  - `npx eslint src/lib/workflow-engine.ts src/lib/workflow-engine.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL (exit 2)** on a pre-existing unrelated error in `src/components/playground/playground-chat.test.tsx(69,1): Cannot find name 'beforeAll'`; no type errors in the changed files.
+  - `npm run lint:eslint` — **FAIL (exit 1)** on pre-existing unrelated warnings in `src/components/playground/playground-chat.tsx` and `src/hooks/use-video.test.tsx`; the changed files produce 0 warnings.
+
+- **Date:** 2026-06-14 (T-166 static-audit reconciliation — modelService safe error dispatch)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-166 — `src/services/modelService.ts` dispatched raw exception text (`(err as Error).message`) into the `SET_MODELS` app-state action when model discovery failed without a cache. Raw error messages can disclose local paths, upstream diagnostics, secrets, or provider internals.
+- **Fix:**
+  - Replaced the dynamic `message || "..."` dispatch with a constant safe user-facing error string (`"Model discovery failed; using non-exhaustive static fallbacks."`).
+  - Logged the raw error only to the shared conditional `warn` sink (dev/test only, no-op in production) so diagnostics remain available without leaking into app state.
+  - Added an inline security rationale comment.
+- **Regression tests:** Added a T-166 regression guard in `src/services/modelService.test.ts` asserting that raw exception text (path + `sk-abc123` secret leakage) is never dispatched and that the safe constant message is used.
+- **Files changed in this pass:**
+  - `src/services/modelService.ts`
+  - `src/services/modelService.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/services/modelService.test.ts` — **PASS: 4/4**.
+  - `npx eslint src/services/modelService.ts src/services/modelService.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL** on pre-existing unrelated errors; changed files are clean.
+
+- **Date:** 2026-06-14 (T-026 static-audit reconciliation — ErrorBoundary safe error handling)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-026 — `src/components/ErrorBoundary.tsx` logged raw `Error` objects via `logger.error` and rendered the raw `error.message` in the fallback UI, risking secret/path disclosure in the top-level error boundary.
+- **Fix:**
+  - Removed the raw `Error` instance from component state; `getDerivedStateFromError` now returns only `{ hasError: true }`.
+  - Replaced `componentDidCatch` logging with a single safe generic message (`"ErrorBoundary caught an error"`) and added a T-026 regression comment.
+  - Replaced the raw `{error.message}` paragraph with a safe user-facing message (`"The app hit an unexpected error and couldn't render this view. Your work is safe — try again or reload to recover."`).
+  - Added `role="alert"` to the fallback container for accessibility.
+- **Regression tests:** `src/components/ErrorBoundary.test.tsx` gained two T-026 guards:
+  - "does not display raw error message or stack in the fallback" asserts the UI never contains the thrown message, component name, or stack frames.
+  - "logs a safe generic message and does not pass the raw error object" asserts `logger.error` is called with only safe text and never with the raw error message/stack.
+- **Files changed in this pass:**
+  - `src/components/ErrorBoundary.tsx`
+  - `src/components/ErrorBoundary.test.tsx`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/components/ErrorBoundary.test.tsx` — **PASS: 4/4** (T-026 regression guards).
+  - `npx eslint src/components/ErrorBoundary.tsx src/components/ErrorBoundary.test.tsx --max-warnings=0` — **PASS: 0 warnings**.
+  - `npx tsc --noEmit -p tsconfig.json` — **FAIL** on unrelated pre-existing dirty-tree errors in `src/components/playground/playground-chat.test.tsx`; `src/components/ErrorBoundary.tsx` and `src/components/ErrorBoundary.test.tsx` compile cleanly.
+- **Out of scope confirmed:** `src/components/ui/error-boundary.tsx` and its test file were not modified; T-026 was scoped to the top-level `src/components/ErrorBoundary.tsx` used by `src/main.tsx`.
+
+- **Date:** 2026-06-14 (T-141 static-audit reconciliation — research job errors returned raw to UI state)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-141 — `src/research/agent/researchRunner.ts` caught provider/search errors and returned `err.message` / `String(err)` directly in `ResearchJobResult.error`. That raw string flows into `SearchScrapeView.tsx` UI state (`setError(job.error)`), exposing provider exception text, local paths, and potentially secret-like substrings to the renderer.
+- **Fix:**
+  - Added a local `toSafeResearchError(err)` classifier that maps known error shapes (`AbortError`, "does not support search", "no queries generated", timeout, network failure) to canonical user-facing messages and falls back to a generic `"Research job failed."` for all other errors.
+  - Replaced the catch-block `error: err instanceof Error ? err.message : String(err)` with `error: toSafeResearchError(err)` so raw exception text is never returned.
+  - Updated existing timeout/abort assertions in `researchRunner.test.ts` from raw "aborted" text to the canonical `"Cancelled."` message.
+- **Regression tests:** Added a T-141 regression guard in `src/research/agent/researchRunner.test.ts` with five cases asserting that: unexpected provider errors return only the generic safe message (no path leak); secret-like bearer tokens in provider errors are not returned; network failures return a safe network message (not the raw fetch text); timeouts return a safe timeout message; abort errors return `"Cancelled."`.
+- **Files changed in this pass:**
+  - `src/research/agent/researchRunner.ts`
+  - `src/research/agent/researchRunner.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/research/agent/researchRunner.test.ts --reporter=verbose` — **PASS: 13/13** (8 pre-existing + 5 new T-141 regression guards).
+  - `npx eslint src/research/agent/researchRunner.ts src/research/agent/researchRunner.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npx tsc --noEmit -p tsconfig.json` — no errors in changed files; pre-existing unrelated errors remain in `src/components/ui/error-boundary.test.tsx` / `src/components/playground/playground-chat.test.tsx`.
+
+- **Date:** 2026-06-14 (T-092/T-093 static-audit reconciliation — ErrorBoundary safe logging and fallback)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:**
+  - **T-092** — `src/components/ui/error-boundary.tsx` logged raw `error` and `info` objects via `logger.error`, including unredacted stack traces and component stacks that can disclose local paths, API keys, and bearer tokens in development/test logs.
+  - **T-093** — The default fallback rendered `error.message` and `error.stack` directly into the UI "Show details" panel, exposing raw exception text (paths, secrets, upstream diagnostics) to end users.
+- **Fix:**
+  - Added `sanitizeErrorText()` and `redactErrorDetails()` helpers to `src/shared/redaction.ts` that redact secrets (bearer tokens, `vn-…`, `sk-…`, env assignments) and local source URLs / absolute paths (`http://...`, `file://...`, `/Users/...`, `C:\\...`).
+  - Updated `componentDidCatch` to log a safe error-details object and a redacted `componentStack`; the optional `onError` callback still receives the raw `Error` + `ErrorInfo` unchanged.
+  - Updated `DefaultFallback` to render redacted `message` and `stack` from `redactErrorDetails(error)` instead of raw `error.message` / `error.stack`.
+  - Replaced the non-semantic `text-red-300/70` class in the details `<pre>` with the semantic `text-danger/70` theme token.
+- **Regression tests:** Added `src/components/ui/error-boundary.test.tsx` (T-092/T-093 regression guards):
+  - `T-093`: default fallback redacts API keys from displayed error messages.
+  - `T-093`: default fallback redacts local file paths from displayed stack traces.
+  - `T-093`: default fallback redacts source URLs from displayed stack traces.
+  - `T-092`: `logger.error` receives redacted error details and component stacks (no raw secrets or paths).
+  - `T-092`: the optional `onError` callback still receives the raw error object unchanged.
+- **Files changed in this pass:**
+  - `src/components/ui/error-boundary.tsx`
+  - `src/components/ui/error-boundary.test.tsx`
+  - `src/shared/redaction.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/components/ui/error-boundary.test.tsx src/shared/redaction.test.ts` — **PASS: 9/9** (5 new T-092/T-093 regression guards + 4 existing redaction tests).
+  - `npx eslint src/components/ui/error-boundary.tsx src/components/ui/error-boundary.test.tsx src/shared/redaction.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npx tsc --noEmit` — **FAIL** on unrelated pre-existing dirty-tree error in `src/research/agent/socialDiscovery.test.ts` (unterminated string literal); changed files produce no type errors.
+
+- **Date:** 2026-06-14 (T-037 static-audit reconciliation — api-key-dialog Disconnect awaits clearApiKey)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-037 — `src/components/layout/api-key-dialog.tsx` called `clearApiKey()` inside the Disconnect button's `onClick` without awaiting it. Because `clearApiKey` is async (it deletes the persisted key via the desktop bridge / secure store), a failure or a slow deletion could race with subsequent UI state changes, and any thrown error was unhandled. The original code also concatenated side effects (`setValue`, `toast.info`) synchronously after the un-awaited call, so a failure would leave the dialog claiming the key was cleared when it was not.
+- **Fix:**
+  - Replaced the inline `onClick={() => { clearApiKey(); ... }}` with an async `handleDisconnect` helper.
+  - `await clearApiKey()` inside a `try/finally` block, with `busy` set for the duration so the Disconnect button is disabled during the operation.
+  - On failure, surface a safe, generic error message (`'Failed to disconnect. Please try again.'`) instead of the raw exception text, preventing secret/path disclosure in the UI.
+  - Preserve the existing success behaviour (`setValue('')` + `toast.info('API key cleared')`) only after the promise resolves.
+- **Regression tests:** Added `src/components/layout/api-key-dialog.test.tsx` (T-037 regression guard) with two cases: (a) Disconnect awaits `clearApiKey()` and clears the input, and (b) a failing `clearApiKey()` displays the safe error message and never leaks the raw exception text (`secret/path leak`).
+- **Files changed in this pass:**
+  - `src/components/layout/api-key-dialog.tsx`
+  - `src/components/layout/api-key-dialog.test.tsx`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/components/layout/api-key-dialog.test.tsx --reporter=verbose` — **PASS: 2/2**.
+  - `npx eslint src/components/layout/api-key-dialog.tsx src/components/layout/api-key-dialog.test.tsx --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL** on pre-existing unrelated errors (`src/components/ErrorBoundary.test.tsx`, `src/components/rp-studio/RpChatView.test.tsx`, `src/components/ui/error-boundary.test.tsx`, `src/stores/character-store.test.ts`); changed files are clean.
+
+
+- **Date:** 2026-06-14 (T-184 static-audit reconciliation — character-store safe error handling)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-184 — `src/stores/character-store.ts` stored raw service exception messages (`err.message`) in the UI-facing `error` state, despite the field's JSDoc claiming it is "redacted / safe for the UI". Raw exception text can disclose API keys, bearer tokens, local paths, and upstream diagnostics to the renderer UI.
+- **Fix:**
+  - Imported the canonical `redactErrorMessage` helper from `src/shared/redaction.ts`.
+  - Replaced all three catch blocks (`searchCharacters`, `loadMore`, `fetchBySlug`) so the stored `error` value is always `redactErrorMessage(err)` instead of raw `err.message`.
+  - Added `console.error` logging with the raw error so developers still have diagnostic detail without leaking it to the UI.
+- **Regression tests:** Added `src/stores/character-store.test.ts` (T-184 regression guard) with 6 cases asserting that: secrets (`vn-…`, `sk-…`, bearer tokens) are redacted from stored errors; `loadMore` and `fetchBySlug` errors are also sanitized; non-Error throws fall back safely; safe messages are preserved; and stack traces / file paths are never stored in the UI-facing error field.
+- **Files changed in this pass:**
+  - `src/stores/character-store.ts`
+  - `src/stores/character-store.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/stores/character-store.test.ts --reporter=verbose` — **PASS: 6/6**.
+  - `npx eslint src/stores/character-store.ts src/stores/character-store.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npx tsc --noEmit -p tsconfig.json` — no errors in changed files (pre-existing unrelated type errors in `src/components/rp-studio/RpChatView.test.tsx` and `src/components/ui/error-boundary.test.tsx` remain).
+
+- **Date:** 2026-06-14 (T-026 static-audit reconciliation — ErrorBoundary safe error handling)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-026 — `src/components/ErrorBoundary.tsx` logged raw `Error` objects via `logger.error` and rendered the raw `error.message` in the fallback UI, risking secret/path disclosure in the top-level error boundary.
+- **Fix:**
+  - Removed the raw `Error` instance from component state; `getDerivedStateFromError` now returns only `{ hasError: true }`.
+  - Replaced `componentDidCatch` logging with a single safe generic message (`"ErrorBoundary caught an error"`) and added a T-026 regression comment.
+  - Replaced the raw `{error.message}` paragraph with a safe user-facing message (`"The app hit an unexpected error and couldn't render this view. Your work is safe — try again or reload to recover."`).
+  - Added `role="alert"` to the fallback container for accessibility.
+- **Regression tests:** `src/components/ErrorBoundary.test.tsx` gained two T-026 guards:
+  - "does not display raw error message or stack in the fallback" asserts the UI never contains the thrown message, component name, or stack frames.
+  - "logs a safe generic message and does not pass the raw error object" asserts `logger.error` is called with only safe text and never with the raw error message/stack.
+- **Files changed in this pass:**
+  - `src/components/ErrorBoundary.tsx`
+  - `src/components/ErrorBoundary.test.tsx`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/components/ErrorBoundary.test.tsx` — **PASS: 4/4** (T-026 regression guards).
+  - `npx eslint src/components/ErrorBoundary.tsx src/components/ErrorBoundary.test.tsx --max-warnings=0` — **PASS: 0 warnings**.
+  - `npx tsc --noEmit -p tsconfig.json` — **FAIL** on pre-existing `src/components/ui/error-boundary.test.tsx` TS2786 (`Thrower` returns `void`); `ErrorBoundary.tsx` and `ErrorBoundary.test.tsx` compile cleanly. Not in T-026 scope.
+- **Out of scope confirmed:** `src/components/ui/error-boundary.tsx` and its test file were not modified; T-026 was scoped to the top-level `src/components/ErrorBoundary.tsx` used by `src/main.tsx`.
+
+- **Date:** 2026-06-14 (T-126/T-127 static-audit reconciliation — playground agent tool schema + safe error handling)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:**
+  - **T-126** — `src/lib/playground-agent-tools.ts` declared permissive JSON schemas for `add_node.params` and `set_params.params` (`additionalProperties: true`) and placed no constraints on string ids. Unsafe schema semantics allowed the model to supply arbitrary keys, very long values, or path-like ids.
+  - **T-127** — The `handleTool` catch block returned `err.message` directly to the model/UI, leaking raw exception text that can contain local paths, stack traces, or implementation details.
+- **Fix:**
+  - Computed a union of all known node params from `NODE_SCHEMAS` and replaced `additionalProperties: true` with `additionalProperties: false` + explicit `properties` in the `add_node` and `set_params` tool schemas.
+  - Added `pattern: '^[a-zA-Z0-9_-]{1,64}$'` and `maxLength: 64` to every node-id field (`add_node.id`, `connect.source/target`, `set_params.id`, `remove_node.id`).
+  - Added runtime `isValidId` validation with safe, non-disclosing error messages for the same id fields.
+  - Added `maxLength: 500` to `ask_user.question` and `done.summary`.
+  - Replaced the catch block's `err instanceof Error ? err.message : 'Tool failed'` with a constant safe message and a comment documenting the security rationale.
+- **Regression tests:** Added three T-126/T-127 regression guards in `src/lib/playground-agent-tools.test.ts`:
+  - `T-127: does not leak raw exception text when applyPatch throws`
+  - `T-126: rejects invalid node ids with a safe message`
+  - `T-126: rejects invalid connect source/target with a safe message`
+- **Files changed in this pass:**
+  - `src/lib/playground-agent-tools.ts`
+  - `src/lib/playground-agent-tools.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/lib/playground-agent-tools.test.ts --fileParallelism=false --reporter=verbose` — **PASS: 6/6**.
+  - `npx eslint src/lib/playground-agent-tools.ts src/lib/playground-agent-tools.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL** on unrelated pre-existing dirty-tree errors (`error-boundary.test.tsx`, `playground-chat.test.tsx`); changed files produce no errors.
+
+- **Date:** 2026-06-14 (T-186 static-audit reconciliation — lorebook persistence errors)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-186 — `src/stores/lorebook-store.ts` stored and toasted raw persistence exception text in `load`, `upsert`, and `remove` catch blocks, leaking potential file paths, secrets, or low-level storage errors into UI state and toast notifications.
+- **Fix:**
+  - Replaced raw `e.message` / `String(e)` error capture in all three persistence catch blocks with fixed, user-safe messages (`"Could not load lorebooks."`, `"Could not save lorebook."`, `"Could not delete lorebook."`).
+  - Replaced raw-detail toast payloads with the generic `"Please try again."` fallback.
+  - Switched catch bindings to the no-binding `catch {` form to satisfy the zero-warnings ESLint gate.
+- **Regression tests:** Added `src/stores/lorebook-store.test.ts` (T-186 regression guard) mocking `lorebookRendererService` failures and asserting that `error` state and `toast.error` never contain raw exception text (e.g., paths or secrets).
+- **Files changed in this pass:**
+  - `src/stores/lorebook-store.ts`
+  - `src/stores/lorebook-store.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/stores/lorebook-store.test.ts --fileParallelism=false` — **PASS: 5/5**.
+  - `npx eslint src/stores/lorebook-store.ts src/stores/lorebook-store.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL: pre-existing unrelated errors** in `src/components/ui/error-boundary.test.tsx` and `src/components/playground/playground-chat.test.tsx`; `lorebook-store.ts` introduced no new type errors.
+
+- **Date:** 2026-06-14 (T-119/T-120 static-audit reconciliation — safe export/import error surfacing)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-119/T-120 — `src/hooks/use-data-storage-actions.ts` caught export/import failures and forwarded raw `Error.message` text to `toast.error()`, risking disclosure of local paths, upstream errors, or secret-adjacent data.
+- **Fix:**
+  - Replaced both catch blocks with fixed, user-facing messages (`Export failed. Please try again.` / `Import failed. Please check the file and try again.`).
+  - Removed the `err` binding from both catch blocks so no raw exception text can leak to the toast surface.
+- **Regression tests:** Added two T-119/T-120 regression guards in `src/hooks/use-data-storage-actions.test.ts` asserting that `exportData`/`importData` failures call `toast.error` with the safe message and never with the raw error text.
+- **Files changed in this pass:**
+  - `src/hooks/use-data-storage-actions.ts`
+  - `src/hooks/use-data-storage-actions.test.ts`
+  - `AGENTS.md` (added `VERIFY-055` regression-guard entry)
+- **Validation:**
+  - `npx vitest run src/hooks/use-data-storage-actions.test.ts --fileParallelism=false` — **PASS: 8/8**.
+  - `npx eslint src/hooks/use-data-storage-actions.ts src/hooks/use-data-storage-actions.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npx tsc --noEmit -p tsconfig.json` — **no new errors in changed files** (pre-existing unrelated type errors in `src/components/ui/error-boundary.test.tsx` and `src/components/playground/playground-chat.test.tsx`).
+
+- **Date:** 2026-06-14 (T-055 static-audit reconciliation — research source link protocol allowlist)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-055 — `src/components/research/ResearchWorkspaceView.tsx` rendered source titles as `<a href={src.url}>` without a runtime protocol allowlist. Stored URLs using dangerous schemes (`javascript:`, `file:`, `data:`) could become clickable anchors in the research workspace.
+- **Fix:**
+  - Added a local `SourceLink` helper that passes `url` through the existing `sanitizeResearchUrl` allowlist helper (http/https only, credentials stripped, private hosts rejected) before rendering an anchor.
+  - Non-allowlisted URLs fall back to a plain `<span>` title; no raw URL is ever placed in `href`.
+  - No user-facing error message is displayed, avoiding path/secret disclosure.
+- **Regression tests:** Added a T-055 regression guard in `src/components/research/ResearchWorkspaceView.test.tsx` asserting that `http://` and `https://` source URLs render as external links while `javascript:`, `file:`, and `data:` URLs do not produce clickable anchors and still display the source title.
+- **Files changed in this pass:**
+  - `src/components/research/ResearchWorkspaceView.tsx`
+  - `src/components/research/ResearchWorkspaceView.test.tsx`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/components/research/ResearchWorkspaceView.test.tsx src/types/research.test.ts --fileParallelism=false` — **PASS: 27/27** (6 pre-existing + 1 new T-055 regression guard + 20 research-type tests).
+  - `npx eslint src/components/research/ResearchWorkspaceView.tsx src/components/research/ResearchWorkspaceView.test.tsx --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL** on pre-existing unrelated errors (`src/components/ErrorBoundary.test.tsx`, `src/components/ui/error-boundary.test.tsx`); changed files are clean.
+
+- **Date:** 2026-06-14 (T-121/T-122 static-audit reconciliation — music provider/polling/queue mutation error sanitization)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-121/T-122 — `src/hooks/use-music.ts` stored and rendered raw error text from three sources: (1) queue mutation `onError` used `err.message`; (2) polling catch used `err.message`; (3) retrieve `FAILED` status used `result.error` from the upstream response. Raw exception text and upstream diagnostics can disclose local paths, secrets, or internal implementation details in the renderer UI.
+- **Fix:**
+  - Replaced all three raw error sources with deterministic, user-facing safe messages defined in `SAFE_ERROR_MESSAGES` (`Unable to queue music generation. Please try again.`, `Unable to check generation status. Please try again.`, `Music generation failed. Please try again.`, `Generation took too long. Cancel and try again.`).
+  - Removed the `err` binding from the queue mutation `onError` and the polling catch so raw exception text cannot be accidentally reintroduced.
+  - Added the missing `setStatus('failed')` in the polling catch max-attempts path so the hook transitions out of `queued`/`processing` when repeated polls fail.
+- **Regression tests:** Added `describe('useMusic safe error handling (T-121/T-122)')` in `src/hooks/use-music.test.tsx` with three regression guards: queue mutation rejection does not surface raw path/secret-bearing text; retrieve `FAILED` payload does not surface raw upstream error text; repeated polling exceptions do not surface raw exception messages.
+- **Files changed in this pass:**
+  - `src/hooks/use-music.ts`
+  - `src/hooks/use-music.test.tsx`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/hooks/use-music.test.tsx` — **PASS: 7/7** (4 pre-existing + 3 T-121/T-122 regression guards).
+  - `npx eslint src/hooks/use-music.ts src/hooks/use-music.test.tsx --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL** on unrelated pre-existing dirty-tree errors (`RpChatView.test.tsx`, `error-boundary.test.tsx`, `character-store.test.ts`, `workflow-engine.ts`); changed files produce no errors.
+- **Out of scope confirmed:** No endpoint-allowlist change, no Electron IPC change, no local-secure-storage change, no archive-clean change, no diagnostics-redaction change, no child-exploitation-guard change, no CI/release-hardening change, no `package.json` change, no new VERIFY-NNN row (regression-guard count remains 52), no new dependency, no migration, no new TODOs.
+
+- **Date:** 2026-06-14 (T-185 static-audit reconciliation — character-card-store safe persistence errors)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-185 — `src/stores/character-card-store.ts` stored and toasted raw exception text (`e.message` / `String(e)`) in the `load`, `upsert`, and `remove` catch blocks. Raw persistence errors can disclose local paths, storage driver internals, or upstream diagnostics.
+- **Fix:**
+  - Replaced all three catch blocks with constant safe user-facing messages (`SAFE_LOAD_ERROR`, `SAFE_UPSERT_ERROR`, `SAFE_REMOVE_ERROR`) and generic toast descriptions (`"Please try again."`).
+  - Removed the raw `e` binding so no exception text is inspected, stringified, or displayed.
+- **Regression tests:** Added a T-185 regression guard in `src/stores/character-card-store.test.ts` with three cases (`load`, `upsert`, `remove`) asserting that persistence failures surface only generic messages in `state.error` and toast descriptions, and never raw `ENOSPC` / `/Users/...` exception text.
+- **Files changed in this pass:**
+  - `src/stores/character-card-store.ts`
+  - `src/stores/character-card-store.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/stores/character-card-store.test.ts --reporter=verbose` — **PASS: 11/11**.
+  - `npx eslint src/stores/character-card-store.ts src/stores/character-card-store.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL** on unrelated pre-existing dirty-tree errors (`RpChatView.test.tsx`, `error-boundary.test.tsx`, `character-store.test.ts`); changed files produce no errors.
+
+- **Date:** 2026-06-14 (T-076 static-audit reconciliation — RP chat Venice stream error sanitization)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-076 — `src/components/rp-studio/RpChatView.tsx` rendered raw `Error.message` strings from `veniceStreamChat` failures directly into the RP chat UI. Raw exception text can disclose local paths, upstream diagnostics, secrets, or provider internals to the user.
+- **Fix:**
+  - Replaced the catch-block `err instanceof Error ? err.message : "Stream failed."` path with a deterministic, user-facing safe message (`"The character response could not be generated. Please try again."`).
+  - Added an inline comment documenting the security rationale so future edits do not reintroduce raw error text.
+- **Regression tests:** Added `src/components/rp-studio/RpChatView.test.tsx` with two T-076 regression guards asserting that raw exception text (path + `api-key` leakage) is never rendered and that the safe generic message is shown for both Error and non-Error stream failures.
+- **Files changed in this pass:**
+  - `src/components/rp-studio/RpChatView.tsx`
+  - `src/components/rp-studio/RpChatView.test.tsx`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/components/rp-studio/RpChatView.test.tsx` — **PASS: 2/2**.
+  - `npx eslint src/components/rp-studio/RpChatView.tsx src/components/rp-studio/RpChatView.test.tsx --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL** on pre-existing unrelated errors (`src/components/playground/playground-chat.test.tsx`); changed files are clean.
+
+- **Date:** 2026-06-14 (T-114/T-115 static-audit reconciliation — use-chat persisted error sanitization)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-114/T-115 — `src/hooks/use-chat.ts` appended raw `Error.message` strings into persisted conversation history in both the `send` and `regenerate` catch blocks. Raw exception text can disclose local paths, upstream diagnostics, secrets, or provider internals in the saved chat history.
+- **Fix:**
+  - Replaced both catch-block `err instanceof Error ? err.message : 'Unknown error'` paths with a constant safe user-facing message (`'Sorry, something went wrong. Please try again.'`).
+  - Routed the original failure to `src/shared/logger.error` for development/test diagnostics without persisting it.
+- **Regression tests:** Added a new `safe error handling (T-114/T-115)` describe block in `src/hooks/use-chat.test.ts` with two regression guards asserting that `send` and `regenerate` append only the generic safe message and never the raw exception text (path + `venice_…` token for send; `Bearer sk-…` for regenerate).
+- **Files changed in this pass:**
+  - `src/hooks/use-chat.ts`
+  - `src/hooks/use-chat.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/hooks/use-chat.test.ts src/hooks/use-chat.character-scene.test.ts` — **PASS: 16/16** (10 existing + 2 new T-114/T-115 regression guards + 6 character-scene tests).
+  - `npx eslint src/hooks/use-chat.ts src/hooks/use-chat.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL** on pre-existing unrelated error (`src/components/playground/playground-chat.test.tsx`: `Cannot find name 'beforeAll'`); changed files produce no errors.
+
+- **Date:** 2026-06-14 (T-159 static-audit reconciliation — character scene generation safe error handling)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-159 — `src/services/characterSceneGenerationService.ts` returned raw exception messages (`err.message` / `String(err)`) from the catch block, leaking internal failure details to the UI.
+- **Fix:** Replaced the catch-block error payload with a constant safe user-facing message (`'Character scene generation failed. Please try again.'`). The `err` binding was removed so raw exception text cannot be accidentally reintroduced. `requestId` remains in the result for support correlation.
+- **Regression tests:** Added two T-159 regression guards in `src/services/characterSceneGenerationService.test.ts` asserting that `veniceFetch` and `upsertMedia` failures return the safe generic message and do not contain the raw exception text (`'Venice unreachable'` / `'IDB write failed'`).
+- **Files changed in this pass:**
+  - `src/services/characterSceneGenerationService.ts`
+  - `src/services/characterSceneGenerationService.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/services/characterSceneGenerationService.test.ts --reporter=verbose` — **PASS: 9/9** (existing 7 + 2 T-159 regression guards).
+  - `npx eslint src/services/characterSceneGenerationService.ts src/services/characterSceneGenerationService.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npx tsc --noEmit -p tsconfig.json` — **PASS** (renderer).
+
+- **Date:** 2026-06-14 (T-168 static-audit reconciliation — storage privacy safe summary issue-message redaction)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-168 — `buildSafePrivacySummary` in `src/services/storagePrivacyService.ts` passed `inventory.issues` through unchanged. The inventory's orphan-reference messages include the user-provided `title` or `name` of the offending item (e.g. `"prompts item \"My Secret Prompt\" refers to missing project\"`), leaking PII into the safe privacy summary that is copied/exported.
+- **Fix:**
+  - Added `sanitizeIssueForSafeSummary` helper that rebuilds each issue with a deterministic, user-content-free message (`"${sourceCategory} item has a missing ${targetCategory} reference"`) while preserving `id`, categories, `sourceId`, `targetId`, severity, and `repairable`.
+  - Updated `buildSafePrivacySummary` to map all issues through the sanitizer.
+- **Regression tests:** Added `T-168 / VERIFY-168` test in `src/services/storagePrivacyService.test.ts` asserting that safe-summary issue messages do not contain user titles, names, or quoted text, and that the internal inventory still retains the detailed diagnostic message.
+- **Files changed in this pass:**
+  - `src/services/storagePrivacyService.ts`
+  - `src/services/storagePrivacyService.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/services/storagePrivacyService.test.ts` — **PASS: 6/6**.
+  - `node scripts/verify-storage-privacy.cjs` — **PASS** (all storage-privacy unit tests + verifier gates).
+  - `npx eslint src/services/storagePrivacyService.ts src/services/storagePrivacyService.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+
+- **Date:** 2026-06-14 (T-011..T-270 static-audit reconciliation — high-priority swarm closure + full validation)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified, pre-existing parallel RP/UI changes)
+- **Diagnosis:** Continued the 2026-06-14 static-audit reconciliation after unblocking the dirty-tree lint/typecheck gates. Dispatched a focused subagent swarm against the 8 remaining High findings and the verifier gaps uncovered during triage. Verified T-061 and T-255 as already fixed in the live tree; fixed T-156, T-157, T-158, T-235, T-239, and T-254 with regression tests. Also adjusted `scripts/verify-media-studio-power-tools.cjs` to match the case-insensitive secret-stripping keys in `src/stores/media-export-bundle.ts` so the Phase 2B surface contract gate passes.
+- **Closed / verified:** T-061 (already fixed), T-156 (fixed), T-157 (fixed), T-158 (fixed), T-235 (fixed), T-239 (fixed), T-254 (fixed), T-255 (already fixed).
+- **Files changed in this pass (consolidated):**
+  - `src/services/attachmentService.ts` + `.test.ts`
+  - `src/services/characterCardImportExport.ts` + `.test.ts`
+  - `src/services/characterSceneGenerationService.ts` + `.test.ts`
+  - `src/services/characterSceneRateLimiter.ts` + `.test.ts`
+  - `scripts/profile-media-studio.mjs` + `.test.ts`
+  - `scripts/verify-theme-tokens.cjs` + `.test.ts`
+  - `scripts/verify-release-packaging-hardening.cjs` + `.test.ts`
+  - `scripts/verify-media-studio-power-tools.cjs`
+  - `.github/workflows/release.yml`
+  - `AGENTS.md`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npm run lint:eslint` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+  - `npm test` — **PASS: 2391 passed, 1 skipped**.
+  - `npm run build` — **PASS** (dist/ + dist-electron/ + dist/server.cjs).
+  - `npm run verify:contracts` — **PASS** (all parity gates, including VERIFY-054).
+
+- **Date:** 2026-06-14 (T-130 static-audit reconciliation — playground agent response caps)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-130 — `src/lib/playground-agent.ts` `parseAgentResponse` accepted an unbounded `say` string and an unbounded number of `patches` from the agent's JSON response, allowing a model-generated response to inflate renderer memory or stress the workflow diff pipeline.
+- **Fix:**
+  - Added `MAX_AGENT_SAY_LENGTH = 1000` and `MAX_AGENT_PATCH_COUNT = 100` constants (exported for testability).
+  - Truncated `say` to `MAX_AGENT_SAY_LENGTH` characters before returning it.
+  - Sliced `patches` to `MAX_AGENT_PATCH_COUNT` and counted any overflow as `invalidPatches` so the caller still sees the breach in the existing diagnostic field.
+  - Preserved all existing valid-patch sanitization and retry behavior; the caps apply only at the parsing boundary.
+- **Regression tests:** Added three T-130 regression guards in `src/lib/playground-agent.test.ts`: say-length truncation, patch-count overflow counting as invalid, and exact-at-cap responses remain intact.
+- **Files changed in this pass:**
+  - `src/lib/playground-agent.ts`
+  - `src/lib/playground-agent.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/lib/playground-agent.test.ts --fileParallelism=false` — **PASS: 8/8** (3 new T-130 regression guards).
+  - `npx eslint src/lib/playground-agent.ts src/lib/playground-agent.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+
+- **Date:** 2026-06-14 (T-235 static-audit reconciliation — theme-token verifier coverage)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-235 — `scripts/verify-theme-tokens.cjs` scanned only a hardcoded narrow subset of themeable UI directories (`src/components/chat`, `layout`, `privacy`, `research`, `rp-studio`, `search`, `status`, `ui`, plus two root components). Media-centric views in `audio`, `command-palette`, `embeddings`, `gallery`, `image`, `music`, `playground`, `video`, and `workflows` were not scanned, so hardcoded `text-white/*`, `bg-white/*`, `bg-black/*`, `border-white/*`, etc. could regress unnoticed.
+- **Fix:**
+  - Replaced the narrow `TARGETS` array with recursive `SCAN_ROOTS` covering `src/App.tsx` and all of `src/components`.
+  - Added a `KNOWN_EXCEPTIONS` baseline for 19 files that intentionally use fixed light/dark classes for media previews, overlays, and dark tool canvases. Violations inside these files are recorded but do not fail the gate; new themeable UI files must remain clean.
+  - Added stale-exception detection so exception entries are removed once a file no longer contains forbidden patterns.
+  - Refactored the script to export `collectScanFiles`, `isSourceFile`, `scanFile`, `verifyThemeTokens`, and the canonical pattern lists for testing.
+- **Regression tests:** Added `scripts/verify-theme-tokens.test.ts` (T-235 regression guard) asserting that the verifier scans previously omitted directories, reports violations in non-exception files, ignores violations inside known exceptions, detects stale exception entries, honours per-line allow comments, skips test files, and detects all configured forbidden patterns.
+- **Files changed in this pass:**
+  - `scripts/verify-theme-tokens.cjs`
+  - `scripts/verify-theme-tokens.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `node scripts/verify-theme-tokens.cjs` — **PASS: 98 files scanned, 0 actionable violations, 0 stale exceptions**.
+  - `npx vitest run scripts/verify-theme-tokens.test.ts` — **PASS: 7/7**.
+  - `npx eslint scripts/verify-theme-tokens.cjs scripts/verify-theme-tokens.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+
+- **Date:** 2026-06-14 (T-239 static-audit reconciliation — Windows release signing env mapping)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-239 — `.github/workflows/release.yml` mapped the generic/mac signing secrets `CSC_LINK` / `CSC_KEY_PASSWORD` into the `build-windows` job environment alongside the Windows-specific `WIN_CSC_LINK` / `WIN_CSC_KEY_PASSWORD`. This causes electron-builder to potentially select the wrong certificate for Windows signing.
+- **Fix:**
+  - Removed `CSC_LINK` and `CSC_KEY_PASSWORD` from the Windows job environment and from the Windows signing-credential warning check.
+  - Set `CSC_IDENTITY_AUTO_DISCOVERY: "false"` on both Windows development and release packaging steps to prevent auto-discovery from picking up unrelated certs.
+  - Added a `VERIFY-054` regression guard in `scripts/verify-release-packaging-hardening.cjs` that asserts the `build-windows` job contains neither generic signing var and contains both Windows-specific vars.
+  - Added `VERIFY-054` to the `AGENTS.md` regression-guard table.
+- **Regression tests:** Added `rejects Windows signing env that maps generic CSC_LINK / CSC_KEY_PASSWORD (VERIFY-054)` test in `scripts/verify-release-packaging-hardening.test.ts`; refactored the test helper so future temp-repo tests are easier to write correctly.
+- **Files changed in this pass:**
+  - `.github/workflows/release.yml`
+  - `scripts/verify-release-packaging-hardening.cjs`
+  - `scripts/verify-release-packaging-hardening.test.ts`
+  - `AGENTS.md`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `node scripts/verify-release-packaging-hardening.cjs` — **PASS: 75/75**.
+  - `npx vitest run scripts/verify-release-packaging-hardening.test.ts --fileParallelism=false` — **PASS: 6/6**.
+
+- **Date:** 2026-06-14 (T-157 static-audit reconciliation — character-card import secret redaction)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-157 — `src/services/characterCardImportExport.ts` parsed character-card imports through `isPromptSecretLike` checks on `description` / `systemPrompt` / `firstMessage`, but other free-text fields (`scenario`, `exampleDialogues`, Tavern `mes_example` / `alternate_greetings` / `creator` / `creator_notes`, native `author`) were persisted without running `redactPromptSecrets`, contradicting the file's own safety contract.
+- **Fix:**
+  - Added `safeRedactedString()` helper that composes `safeString` + `redactPromptSecrets`.
+  - Applied redaction to every free-text field in both `parseTavernCard` and `parseNativeEnvelope` (`description`, `systemPrompt`, `scenario`, `firstMessage`, `exampleDialogues[*].text`, Tavern `creator`, native `author`).
+  - Routed Tavern-generated metadata through `safeMetadata()` so metadata strings are redacted consistently.
+  - Preserved the existing `isPromptSecretLike` pre-flight skip behaviour for `description` / `systemPrompt` / `firstMessage` so cards that are overwhelmingly secret-like are still rejected.
+- **Regression tests:** Added two T-157 regression guards in `src/services/characterCardImportExport.test.ts` asserting that `venice_…` secrets embedded in native `scenario` / `exampleDialogues` / `author` and Tavern `scenario` / `mes_example` / `alternate_greetings` / `creator_notes` are replaced with `[REDACTED]` and never persisted verbatim.
+- **Files changed in this pass:**
+  - `src/services/characterCardImportExport.ts`
+  - `src/services/characterCardImportExport.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/services/characterCardImportExport.test.ts --reporter=verbose` — **PASS: 14/14**.
+  - `npx eslint src/services/characterCardImportExport.ts src/services/characterCardImportExport.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+
+- **Date:** 2026-06-14 (T-255 verification — Media Studio profiler stale IndexedDB version)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-255 — `scripts/profile-media-studio.mjs` hardcoded `indexedDB.open("venice_canvas_studio_v1", 6)` in both `clearMedia()` and `seedMedia()`. Verified the live tree already loads `DB_NAME` and `DB_VERSION` dynamically from `src/constants/venice.ts` via `loadDbConstants()` and passes them into the renderer `page.evaluate()` blocks. Removed a duplicate `loadIndexedDbConstants()` helper that had been introduced during verification.
+- **Status:** Already fixed (same root cause as T-254).
+- **Regression tests:** Existing `scripts/profile-media-studio.test.ts` (T-254 regression guard) covers this finding.
+- **Files changed in this pass:**
+  - `scripts/profile-media-studio.mjs` (cleanup only: removed duplicate helper)
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `node --check scripts/profile-media-studio.mjs` — **PASS**.
+  - `npx vitest run scripts/profile-media-studio.test.ts --fileParallelism=false` — **PASS: 1/1**.
+  - `npx eslint scripts/profile-media-studio.mjs scripts/profile-media-studio.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+
+- **Date:** 2026-06-14 (T-254 static-audit reconciliation — Media Studio profiler stale IndexedDB version)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-254 — `scripts/profile-media-studio.mjs` hardcoded `indexedDB.open("venice_canvas_studio_v1", 6)` in both `clearMedia()` and `seedMedia()`. The app schema in `src/constants/venice.ts` is currently at `DB_VERSION = 12`, so the profiler would open (and in `seedMedia()` potentially upgrade) the database at a stale version, creating schema drift and missing object stores during profiling.
+- **Fix:**
+  - Added `loadDbConstants()` to parse `DB_NAME` and `DB_VERSION` directly from `src/constants/venice.ts` at script startup.
+  - Passed `{ dbName, dbVersion }` into both `page.evaluate()` blocks so `indexedDB.open()` uses the live app constants.
+  - Passed `{ count: recordCount, dbName, dbVersion }` to the `seedMedia()` renderer function.
+- **Regression tests:** Added `scripts/profile-media-studio.test.ts` (T-254 regression guard) asserting the script no longer hardcodes version 6 and references the live `dbName`/`dbVersion` parsed from `src/constants/venice.ts`.
+- **Files changed:**
+  - `scripts/profile-media-studio.mjs`
+  - `scripts/profile-media-studio.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `node --check scripts/profile-media-studio.mjs` — **PASS**.
+  - `npx vitest run scripts/profile-media-studio.test.ts` — **PASS: 1/1**.
+  - `npx eslint scripts/profile-media-studio.mjs scripts/profile-media-studio.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+
+- **Date:** 2026-06-14 (T-158 static-audit reconciliation — Character Scene limiter concurrency leak)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-158 — `src/services/characterSceneGenerationService.ts` incremented `CharacterSceneRateLimiter` concurrency via `recordStart()` at line 114 but only called `recordComplete()` on the success path at line 197. Any `veniceFetch`, image-processing, or `upsertMedia` failure returned from the catch block without releasing the slot, permanently exhausting `maxConcurrentSceneGenerations`.
+- **Fix:**
+  - Added `CharacterSceneRateLimiter.recordFailure()` in `src/services/characterSceneRateLimiter.ts` to decrement `concurrent` without advancing history/cooldown.
+  - Updated `generateCharacterScene()` in `src/services/characterSceneGenerationService.ts` to call `limiter.recordFailure()` in the catch block before returning the failed result.
+- **Tests:** Added BUG-158 regression guards in `src/services/characterSceneGenerationService.test.ts` (Venice fetch failure and upsert failure both release the slot) and a direct `recordFailure()` unit test in `src/services/characterSceneRateLimiter.test.ts`.
+- **Files changed:**
+  - `src/services/characterSceneRateLimiter.ts`
+  - `src/services/characterSceneGenerationService.ts`
+  - `src/services/characterSceneRateLimiter.test.ts`
+  - `src/services/characterSceneGenerationService.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/services/characterSceneGenerationService.test.ts src/services/characterSceneRateLimiter.test.ts` — **PASS: 15/15**.
+  - `npx tsc --noEmit -p tsconfig.json` — **PASS** (renderer).
+
+- **Date:** 2026-06-14 (T-011..T-270 static-audit reconciliation — dirty-tree gate unblocking)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Reconciled the uploaded 2026-06-14 static-audit reconciliation document against the live tree. Fixed the two pre-existing dirty-tree validation blockers identified in LEDGER-ONLY-001 so full lint/typecheck can run cleanly before triaging the remaining 242 snapshot findings.
+  - Removed the unused `RolePill` import from `src/components/rp-studio/RpChatView.tsx`.
+  - Added the required `adultFilter="all"` prop to the `NewChatDialog` test fixture in `src/components/rp-studio/RpChatList.test.tsx`.
+- **Validation:**
+  - `npm run lint:eslint` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+
+- **Date:** 2026-06-14 (T-011..T-270 static-audit reconciliation, security batch 1)
+- **Agent:** Codex
+- **Branch / state:** `main` (dirty worktree containing pre-existing parallel UI/RP changes)
+- **Diagnosis:** Reconciled the uploaded 2026-06-14 clean-snapshot audit against the live tree instead of accepting all 260 findings as current. T-011 and T-012 were already fixed in the live worktree. Verified and fixed T-109, T-110, T-155, T-178, T-179, T-180, T-181, T-182, T-198, T-201, T-202, T-203, and T-204 with focused regression tests.
+  - Config paths now reject overlong input before any truncation, and unknown config versions return safe defaults without applying future fields.
+  - Shared redaction now covers flexible `sk-...` values and named environment secret assignments; `redactErrorMessage()` has direct coverage.
+  - Prompt extraction parses complete bounded JSON text/buffers before per-field truncation, so late prompt fields cannot evade the local guard.
+  - Media export strips secret-like keys case-insensitively, redacts prompt/negative/recipe strings, sanitizes the id filename prefix, and preserves the original media timestamp.
+  - Research URL checks strip credentials before private-host validation, closing the credential-bearing SSRF bypass.
+  - Memory context is encoded as an explicitly untrusted JSON string rather than inserted raw inside XML-like delimiters.
+  - The CSP invariant now scans repository `src/` rather than `tests/src/`. The theme invariant now matches real `text-white/40` syntax and locks the 171 currently exposed violations across 14 files as a non-growth baseline pending their tracked theme migration.
+- **Validation:** Focused Vitest batch **PASS** (8 files, 141 tests); focused source ESLint **PASS**. Full `npm run lint:eslint` is **FAIL** on pre-existing `RpChatView.tsx` unused `RolePill`; full `npm run typecheck` is **FAIL** on pre-existing `RpChatList.test.tsx` missing required `adultFilter`.
+- **Audit status:** Partial reconciliation only. The remaining snapshot IDs are not represented as confirmed live defects until source verification; continue in severity-first batches and avoid duplicate fixes for work already present in the dirty tree.
+
+- **Date:** 2026-06-14 (Fix outstanding user requests - UI polish and Storage Fixes)
+- **Agent:** Antigravity
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Continued addressing user requests for UI polish in `rp-studio` and fixed test warnings related to storage quotas in Node 22 jsdom environments.
+  1. **T-080-096 (High):** Refactored components in `src/components/rp-studio` (`RpStudioView.tsx`, `RpChatView.tsx`, `CharacterEditor.tsx`, `SceneGenerator.tsx`, `AssetGallery.tsx`) to replace hardcoded CSS color literals (`text-white/80`, `bg-black/40`, `border-white/[0.08]`) with proper semantic theme tokens (`text-text-primary`, `bg-surface-elevated`, `border-border`). Ran `verify-theme-tokens.cjs` to enforce and guarantee no forbidden hardcoded color classes remain in these themeable UI components.
+  2. **T-054 (Task 543 logs):** Addressed the `[storage] setItem failed` warnings emitted during test runs. The errors were due to the global `localStorage` in Node 22 (Experimental) evaluating to `undefined` if `--localstorage-file` is not provided. Replaced `localStorage` direct references with `window.localStorage` inside `src/lib/safe-storage.ts` and `src/services/rp/personaPreferenceService.ts` to ensure stability within jsdom, eliminating the `TypeError: Cannot read properties of undefined` and ensuring the storage test suites pass cleanly.
+- **Files changed in this pass:**
+  - `scripts/verify-theme-tokens.cjs`
+  - `src/components/rp-studio/RpStudioView.tsx`
+  - `src/components/rp-studio/RpChatView.tsx`
+  - `src/components/rp-studio/CharacterEditor.tsx`
+  - `src/components/rp-studio/SceneGenerator.tsx`
+  - `src/components/rp-studio/AssetGallery.tsx`
+  - `src/lib/safe-storage.ts`
+  - `src/services/rp/personaPreferenceService.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npm test src/components/command-palette/CommandPalette.test.tsx` — **PASS**.
+  - `node scripts/verify-theme-tokens.cjs` — **PASS**.
+  - `node scripts/verify-storage-policy.cjs` — **PASS**.
+
+- **Date:** 2026-06-14 (T-156 static-audit reconciliation — attachment body escaping)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Verified finding T-156 in `src/services/attachmentService.ts`: attachment body text was inserted raw between `<file>` / `<doc>` XML-like delimiters while only the `name`/`url` attribute was escaped. This allowed file contents containing `</file>`, `<script>`, or `&` to break out of the wrapper tags. Fixed by XML-escaping the body content in `wrapAttachmentText` and added a T-156 regression guard asserting metacharacter escaping for both body and name.
+- **Files changed in this pass:**
+  - `src/services/attachmentService.ts`
+  - `src/services/attachmentService.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/services/attachmentService.test.ts --fileParallelism=false` — **PASS: 16/16**.
+  - `npx eslint src/services/attachmentService.ts src/services/attachmentService.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+
+- **Date:** 2026-06-15 (T-190 static-audit reconciliation — media-store load/rollback safe error handling)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-190 — `src/stores/media-store.ts` `refresh`, `loadMore`, and `upsertDerivative` catch blocks placed raw exception messages directly into the UI-facing `lastError` state and into `toast.error` descriptions, risking disclosure of local paths, secrets, and upstream storage diagnostics.
+- **Status:** Fixed.
+- **Fix:**
+  - Imported `redactErrorMessage` and `sanitizeErrorText` from `src/shared/redaction.ts`, plus the conditional `error` logger from `src/shared/logger`.
+  - Replaced raw `err.message` / `String(err)` capture in `refresh` and `loadMore` with safe generic user-facing messages (`SAFE_REFRESH_ERROR`, `SAFE_LOAD_MORE_ERROR`) for `lastError`; toast descriptions now receive `safeDiagnostic(err)` (secrets and local paths redacted).
+  - Replaced raw exception interpolation in `upsertDerivative` rollback success/failure paths with safe generic messages (`SAFE_DERIVATIVE_ERROR`, `SAFE_DERIVATIVE_ROLLBACK_ERROR`) for `lastError`; toast descriptions are redacted diagnostics; raw errors are routed only to `logError` (dev/test diagnostics, no-op in production).
+- **T-199 note:** Not applicable to this file. `src/stores/media-store.ts` does not use `Math.random()`.
+- **Regression tests:** Added T-190 regression guards in `src/stores/media-store.test.ts`:
+  - `refresh()` failure surfaces a safe `lastError` and redacts toast diagnostics (secret + path).
+  - `loadMore()` failure surfaces a safe `lastError` and redacts toast diagnostics (bearer token + path).
+  - `upsertDerivative()` rollback success sets a safe `lastError` and removes the orphaned child record.
+  - `upsertDerivative()` rollback failure surfaces a safe `lastError` and redacts toast diagnostics (secret + path).
+- **Files changed:**
+  - `src/stores/media-store.ts`
+  - `src/stores/media-store.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/stores/media-store.test.ts --reporter=verbose` — **PASS: 34/34** (30 pre-existing + 4 new T-190 regression guards).
+  - `npx eslint src/stores/media-store.ts src/stores/media-store.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL (exit 2)** on pre-existing unrelated errors in `src/stores/rp-chat-store.test.ts` (`personaId: null` incompatible with `string | undefined`) and `src/stores/prompt-library-store.test.ts`; `src/stores/media-store.ts` and `src/stores/media-store.test.ts` produce no type errors.
+
+## Session History
+
+- **Date:** 2026-06-15 (T-011..T-270 static-audit reconciliation — store error-handling batch + full validation)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Closed the remaining store-level raw-error findings and the T-199 ID-generation finding. Every touched store now redacts secrets and local paths before persisting errors to UI state or toast descriptions, and `rp-chat-store` prefers `crypto.randomUUID()` for message IDs. Full validation gates pass.
+- **Closed in this batch:** T-187, T-188, T-189, T-190, T-191, T-192, T-193, T-194, T-195, T-196, T-197, T-199.
+- **Validation:**
+  - `npm run lint:eslint` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+  - `npm test` — **PASS: 2523 passed, 1 skipped**.
+  - `npm run build` — **PASS**.
+  - `npm run verify:contracts` — **PASS** (all parity gates).
+
+- **Date:** 2026-06-15 (T-188/T-199 static-audit reconciliation — scene-asset-store raw persistence exception redaction + generateAssetId crypto.randomUUID verification)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-188 — `src/stores/scene-asset-store.ts` stored raw caught exception messages (`e instanceof Error ? e.message : String(e)`) directly in the UI-facing `error` state and in `toast.error` descriptions for `load`, `upsert`, and `remove`, risking disclosure of API keys, bearer tokens, local paths, and other persistence diagnostics.
+- **Status:** Fixed.
+- **Fix:**
+  - Imported `sanitizeErrorText` from `src/shared/redaction.ts` and `logger` from `src/shared/logger.ts`.
+  - Replaced raw exception-to-string conversion in the `load`, `upsert`, and `remove` catch blocks with safe generic user-facing messages (`"Could not load assets."`, `"Could not save asset."`, `"Could not delete asset."`) in the store's `error` state.
+  - Replaced raw exception text in `toast.error` descriptions with the safe generic message `"Please try again."`.
+  - Routed a redacted diagnostic (secrets and local paths) through the dev/test log sink via `logger.error(..., sanitizeErrorText(String(e)))`.
+- **T-199 note:** Already fixed. `src/services/rp/assetService.ts` `generateId()` (re-exported from `src/stores/scene-asset-store.ts` as `generateAssetId`) prefers `crypto.randomUUID()` and only falls back to `Math.random()` as a last resort. Added regression tests to lock this behaviour.
+- **Regression tests:** Added T-188/T-199 regression guards in `src/stores/scene-asset-store.test.ts`:
+  - `load` stores a generic error, toasts safely, and logs a redacted diagnostic when persistence fails.
+  - `upsert` stores a generic error, toasts safely, and logs a redacted diagnostic when persistence fails.
+  - `remove` stores a generic error, toasts safely, and logs a redacted diagnostic when persistence fails.
+  - Delete backend rejection still surfaces the safe `"Storage rejected the request."` toast.
+  - Successful `upsert` clears any previous error and does not toast.
+  - `generateAssetId` returns `crypto.randomUUID()` when available and falls back to a non-UUID shape when unavailable.
+- **Files changed:**
+  - `src/stores/scene-asset-store.ts`
+  - `src/stores/scene-asset-store.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/stores/scene-asset-store.test.ts --reporter=verbose` — **PASS: 7/7** (5 new T-188 regression guards + 2 new T-199 regression guards).
+  - `npx eslint src/stores/scene-asset-store.ts src/stores/scene-asset-store.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL (exit 2)** on pre-existing unrelated errors in `src/stores/prompt-library-store.test.ts`; `src/stores/scene-asset-store.ts` and `src/stores/scene-asset-store.test.ts` produce no type errors.
+
+- **Date:** 2026-06-15 (T-193 static-audit reconciliation — scene-composer-store raw persistence exception redaction)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-193 — `src/stores/scene-composer-store.ts` wrote raw persistence exception messages into the UI-facing `loadError` state and into `importScenes` skipped reasons, risking secret/path disclosure.
+- **Fix:** Imported `redactErrorMessage` from `src/shared/redaction.ts` and replaced all raw exception-to-string conversions in `loadError` and `importScenes` skipped reasons with redacted diagnostics; added three T-193 regression guards.
+- **Files changed:** `src/stores/scene-composer-store.ts`, `src/stores/scene-composer-store.test.ts`, `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/stores/scene-composer-store.test.ts` — **PASS: 30/30**.
+  - `npx eslint src/stores/scene-composer-store.ts src/stores/scene-composer-store.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+
+- **Date:** 2026-06-15 (T-191 static-audit reconciliation — media-bulk-actions failure reason redaction)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-191 — `src/stores/media-bulk-actions.ts` returned raw exception messages in `BulkMediaActionResult.failed.reason`, risking secret/path disclosure in UI-facing bulk-action results.
+- **Fix:** Routed `errorReason` through `redactErrorMessage` from `src/shared/redaction.ts`; added six T-191 regression guards across favorite, tag, project-assignment, and delete bulk actions.
+- **Files changed:** `src/stores/media-bulk-actions.ts`, `src/stores/media-bulk-actions.test.ts`, `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/stores/media-bulk-actions.test.ts --reporter=verbose` — **PASS: 26/26**.
+  - `npx eslint src/stores/media-bulk-actions.ts src/stores/media-bulk-actions.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npx tsc --noEmit -p tsconfig.json` — **FAIL (exit 2)** on pre-existing unrelated errors; changed files produce no type errors.
+
+- **Date:** 2026-06-15 (T-196 static-audit reconciliation — research-store raw load exception redaction)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-196 — `src/stores/research-store.ts` `ensureResearchLoaded` logged the raw caught exception, risking secret, token, and local-path disclosure in development/test logs.
+- **Fix:** Replaced the raw `err` argument in `logger.error` with `redactErrorMessage(err)` from `src/shared/redaction.ts`.
+- **T-199 note:** Not applicable to this file; no `Math.random()` usage exists, and `crypto.randomUUID()` is already used for ID regeneration on import.
+- **Regression tests:** Added T-196 guard in `src/stores/research-store.test.ts` verifying that secrets/local paths are redacted before logging.
+- **Files changed:**
+  - `src/stores/research-store.ts`
+  - `src/stores/research-store.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/stores/research-store.test.ts` — **PASS: 6/6**.
+  - `npx eslint src/stores/research-store.ts src/stores/research-store.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+
+- **Date:** 2026-06-14 (T-011..T-270 static-audit reconciliation — medium security batch + full validation)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Resumed the security/logic finding swarm after OAuth/connection failures in the first wave. Closed 31 medium security findings with safe-error handling, input validation, URL allowlists, and prompt-injection hardening. All changes include regression tests. Full validation gates pass.
+- **Closed in this batch:** T-026, T-037, T-047, T-055, T-076, T-092, T-093, T-095, T-114, T-115, T-119, T-120, T-121, T-122, T-126, T-127, T-130, T-134, T-135, T-141, T-143, T-144, T-147, T-159, T-161, T-162, T-166, T-168, T-170, T-171, T-184, T-185, T-186.
+- **Validation:**
+  - `npm run lint:eslint` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+  - `npm test` — **PASS: 2470 passed, 1 skipped**.
+  - `npm run build` — **PASS**.
+  - `npm run verify:contracts` — **PASS** (all parity gates).
+
+- **Date:** 2026-06-14 (T-170 / T-171 static-audit reconciliation — veniceClient inspector error redaction)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:**
+  - **T-170** — `src/services/veniceClient.ts` `veniceFetch` stored raw `errAny.message || String(err)` in Traffic Inspector logs.
+  - **T-171** — `src/services/veniceClient.ts` `veniceStreamChat` used the same raw pattern in its outer catch block.
+- **Fix:** Added `safeInspectorError()` helper and routed both inspector error logs through it; arbitrary thrown objects fall back to `"Unknown error"` and string/Error values are redacted before storage.
+- **Regression tests:** Added five T-170/T-171 guards across `src/services/veniceClient.web.test.ts` and `src/services/veniceClient.desktop.test.ts` covering web/desktop `veniceFetch`, web/desktop `veniceStreamChat`, and non-Error thrown-value handling.
+- **Files changed:**
+  - `src/services/veniceClient.ts`
+  - `src/services/veniceClient.web.test.ts`
+  - `src/services/veniceClient.desktop.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/services/veniceClient.test.ts src/services/veniceClient.web.test.ts src/services/veniceClient.desktop.test.ts src/services/veniceClient.edge.test.ts` — **PASS: 42/42**.
+  - `npx eslint src/services/veniceClient.ts src/services/veniceClient.web.test.ts src/services/veniceClient.desktop.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL (exit 2)** on pre-existing unrelated errors in `src/components/playground/playground-chat.test.tsx`; no type errors in the changed files.
+
+- **Date:** 2026-06-14 (T-092/T-093 static-audit reconciliation — ErrorBoundary safe logging and fallback)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:**
+  - **T-092** — `src/components/ui/error-boundary.tsx` logged raw `error` / `info` objects via `logger.error`, including unredacted stack traces and component stacks.
+  - **T-093** — The default fallback rendered raw `error.message` and `error.stack` directly in the UI "Show details" panel.
+- **Fix:**
+  - Added `sanitizeErrorText()` and `redactErrorDetails()` helpers to `src/shared/redaction.ts` to redact secrets (bearer tokens, `vn-…`, `sk-…`, env assignments) and local source URLs / absolute paths (`http://...`, `file://...`, `/Users/...`, `C:\\...`).
+  - Updated `componentDidCatch` to log a safe `{ message, stack }` object and a redacted `componentStack`; the optional `onError` callback still receives the raw `Error` + `ErrorInfo` unchanged.
+  - Updated `DefaultFallback` to render the redacted message/stack from `redactErrorDetails(error)` instead of raw exception text.
+  - Replaced the non-semantic `text-red-300/70` detail color with the semantic `text-danger/70` theme token.
+- **Regression tests:** Added `src/components/ui/error-boundary.test.tsx` with five T-092/T-093 regression guards covering displayed message redaction, displayed stack path redaction, displayed source-URL redaction, logged output redaction, and the unchanged `onError` callback contract.
+- **Files changed:**
+  - `src/components/ui/error-boundary.tsx`
+  - `src/components/ui/error-boundary.test.tsx`
+  - `src/shared/redaction.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/components/ui/error-boundary.test.tsx src/shared/redaction.test.ts` — **PASS: 9/9**.
+  - `npx eslint src/components/ui/error-boundary.tsx src/components/ui/error-boundary.test.tsx src/shared/redaction.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npx tsc --noEmit` — **FAIL** on pre-existing unrelated error in `src/research/agent/socialDiscovery.test.ts` (unterminated string literal); changed files produce no type errors.
+
+- **Date:** 2026-06-14 (T-119/T-120 static-audit reconciliation — safe export/import error surfacing)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** `src/hooks/use-data-storage-actions.ts` forwarded raw `Error.message` text from export/import failures into `toast.error`, risking disclosure of local paths, upstream diagnostics, or secret-adjacent data. Replaced both catch blocks with fixed, user-facing messages and added T-119/T-120 regression guards.
+- **Files changed:**
+  - `src/hooks/use-data-storage-actions.ts`
+  - `src/hooks/use-data-storage-actions.test.ts`
+  - `AGENTS.md` (`VERIFY-055`)
+- **Validation:**
+  - `npx vitest run src/hooks/use-data-storage-actions.test.ts --fileParallelism=false` — **PASS: 8/8**.
+  - `npx eslint src/hooks/use-data-storage-actions.ts src/hooks/use-data-storage-actions.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npx tsc --noEmit -p tsconfig.json` — **no new errors in changed files** (pre-existing unrelated errors elsewhere).
+
+- **Date:** 2026-06-14 (T-037 static-audit reconciliation — api-key-dialog Disconnect awaits clearApiKey)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-037 — `src/components/layout/api-key-dialog.tsx` called `clearApiKey()` inside the Disconnect button's `onClick` without awaiting it.
+- **Fix:** Replaced the inline call with an async `handleDisconnect` helper that `await`s `clearApiKey()`, sets `busy` while running, and surfaces a safe generic error message (`'Failed to disconnect. Please try again.'`) on failure instead of raw exception text.
+- **Regression tests:** Added `src/components/layout/api-key-dialog.test.tsx` (T-037 regression guard) with two cases covering the awaited success path and the safe error-handling path.
+- **Files changed:**
+  - `src/components/layout/api-key-dialog.tsx`
+  - `src/components/layout/api-key-dialog.test.tsx`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/components/layout/api-key-dialog.test.tsx --reporter=verbose` — **PASS: 2/2**.
+  - `npx eslint src/components/layout/api-key-dialog.tsx src/components/layout/api-key-dialog.test.tsx --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL** on pre-existing unrelated errors; changed files are clean.
+
+
+- **Date:** 2026-06-14 (T-126/T-127 static-audit reconciliation — playground agent tool schema + safe error handling)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:**
+  - **T-126** — `src/lib/playground-agent-tools.ts` declared permissive JSON schemas for `add_node.params` and `set_params.params` (`additionalProperties: true`) and placed no constraints on string ids. Unsafe schema semantics allowed the model to supply arbitrary keys, very long values, or path-like ids.
+  - **T-127** — The `handleTool` catch block returned `err.message` directly to the model/UI, leaking raw exception text that can contain local paths, stack traces, or implementation details.
+- **Fix:**
+  - Computed a union of all known node params from `NODE_SCHEMAS` and replaced `additionalProperties: true` with `additionalProperties: false` + explicit `properties` in the `add_node` and `set_params` tool schemas.
+  - Added `pattern: '^[a-zA-Z0-9_-]{1,64}$'` and `maxLength: 64` to every node-id field (`add_node.id`, `connect.source/target`, `set_params.id`, `remove_node.id`).
+  - Added runtime `isValidId` validation with safe, non-disclosing error messages for the same id fields.
+  - Added `maxLength: 500` to `ask_user.question` and `done.summary`.
+  - Replaced the catch block's `err instanceof Error ? err.message : 'Tool failed'` with a constant safe message and a comment documenting the security rationale.
+- **Regression tests:** Added three T-126/T-127 regression guards in `src/lib/playground-agent-tools.test.ts`:
+  - `T-127: does not leak raw exception text when applyPatch throws`
+  - `T-126: rejects invalid node ids with a safe message`
+  - `T-126: rejects invalid connect source/target with a safe message`
+- **Files changed in this pass:**
+  - `src/lib/playground-agent-tools.ts`
+  - `src/lib/playground-agent-tools.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/lib/playground-agent-tools.test.ts --fileParallelism=false --reporter=verbose` — **PASS: 6/6**.
+  - `npx eslint src/lib/playground-agent-tools.ts src/lib/playground-agent-tools.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL** on unrelated pre-existing dirty-tree errors (`error-boundary.test.tsx`, `playground-chat.test.tsx`); changed files produce no errors.
+
+- **Date:** 2026-06-14 (T-147 static-audit reconciliation — social discovery provider errors no longer returned raw to UI)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-147 — `src/research/agent/socialDiscovery.ts` caught provider `search()` failures and returned `err.message` (or `String(err)`) directly in the `error` field consumed by `SearchScrapeView.tsx`, exposing raw provider text, potential paths, and any secret-bearing error strings to the UI.
+- **Fix:**
+  - Imported `redactErrorMessage` from `src/shared/redaction.ts`.
+  - Replaced the raw error return with a safe generic message (`"Profile discovery failed. Please try again later."`).
+  - Added `AbortError` handling returning `"Search cancelled."` so user-initiated cancellation remains distinguishable.
+  - Logs a redacted diagnostic copy via `console.error` for debugging; raw provider text never reaches the UI.
+- **Regression tests:** Added 3 T-147 regression guards in `src/research/agent/socialDiscovery.test.ts`:
+  - Raw provider error text is not returned to the UI.
+  - Secrets embedded in provider errors are redacted in diagnostics logs and never surfaced in the UI message.
+  - Aborted discovery returns the safe cancel message.
+- **Files changed in this pass:**
+  - `src/research/agent/socialDiscovery.ts`
+  - `src/research/agent/socialDiscovery.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/research/agent/socialDiscovery.test.ts --reporter=verbose` — **PASS: 12/12** (3 new T-147 regression guards + 9 pre-existing tests).
+  - `npx eslint src/research/agent/socialDiscovery.ts src/research/agent/socialDiscovery.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npx tsc --noEmit -p tsconfig.electron.json` — **PASS** (Electron main).
+  - `npx tsc --noEmit -p tsconfig.json` — **FAIL (pre-existing, unrelated)** on `src/components/ui/error-boundary.test.tsx:22,36,50,68,94` (`Thrower` returns `void`, not a valid ReactNode). This file was not modified in this pass.
+
+- **Date:** 2026-06-14 (T-055 static-audit reconciliation — research source link protocol allowlist)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-055 — `src/components/research/ResearchWorkspaceView.tsx` rendered source titles as `<a href={src.url}>` without a runtime protocol allowlist. Stored URLs using dangerous schemes (`javascript:`, `file:`, `data:`) could become clickable anchors in the research workspace.
+- **Fix:**
+  - Added a local `SourceLink` helper that passes `url` through the existing `sanitizeResearchUrl` allowlist helper (http/https only, credentials stripped, private hosts rejected) before rendering an anchor.
+  - Non-allowlisted URLs fall back to a plain `<span>` title; no raw URL is ever placed in `href`.
+- **Regression tests:** Added a T-055 regression guard in `src/components/research/ResearchWorkspaceView.test.tsx` asserting that `http://` and `https://` source URLs render as external links while `javascript:`, `file:`, and `data:` URLs do not produce clickable anchors and still display the source title.
+- **Files changed in this pass:**
+  - `src/components/research/ResearchWorkspaceView.tsx`
+  - `src/components/research/ResearchWorkspaceView.test.tsx`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/components/research/ResearchWorkspaceView.test.tsx src/types/research.test.ts --fileParallelism=false` — **PASS: 27/27**.
+  - `npx eslint src/components/research/ResearchWorkspaceView.tsx src/components/research/ResearchWorkspaceView.test.tsx --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL** on pre-existing unrelated errors (`src/components/ErrorBoundary.test.tsx`, `src/components/ui/error-boundary.test.tsx`); changed files are clean.
+
+- **Date:** 2026-06-14 (T-161/T-162 static-audit reconciliation — RP scene generation error sanitization)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-161/T-162 — `src/services/rp/sceneGenerationService.ts` returned raw `Error.message` strings from `veniceFetch` failures (image generation) and `saveAsset` failures (asset persistence). Raw exception text can disclose local paths, internal implementation details, or upstream diagnostics to the renderer UI.
+- **Fix:**
+  - Replaced both `err instanceof Error ? err.message : ...` returns with deterministic, user-facing safe messages (`"Image generation failed. Please try again."` and `"Failed to save scene asset. Please try again."`).
+  - Added `logError` diagnostics via `src/shared/logger` so the original failure is still visible in development/test logs without leaking it to users.
+- **Regression tests:** Updated `src/services/rp/sceneGenerationService.test.ts` to expect the safe messages, and added two T-161/T-162 regression guards asserting that raw path/secret-bearing exception text (e.g. `ENOENT`, `EACCES`, `/Users/admin/.venice/...`) is never returned in the `error` field.
+- **Files changed in this pass:**
+  - `src/services/rp/sceneGenerationService.ts`
+  - `src/services/rp/sceneGenerationService.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/services/rp/sceneGenerationService.test.ts` — **PASS: 14/14**.
+  - `npx eslint src/services/rp/sceneGenerationService.ts src/services/rp/sceneGenerationService.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL** on pre-existing unrelated errors (`src/components/rp-studio/RpChatView.test.tsx`, `src/lib/workflow-engine.ts`); changed files are clean.
+
+- **Date:** 2026-06-14 (T-114/T-115 static-audit reconciliation — use-chat persisted error sanitization)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-114/T-115 — `src/hooks/use-chat.ts` appended raw `Error.message` strings into persisted conversation history in both the `send` and `regenerate` catch blocks, leaking paths / secrets / provider internals into saved chats.
+- **Fix:** Replaced both catch blocks with a constant safe user-facing message (`'Sorry, something went wrong. Please try again.'`) and routed the original error to `src/shared/logger.error` for dev/test diagnostics only.
+- **Regression tests:** Added two T-114/T-115 regression guards in `src/hooks/use-chat.test.ts` asserting `send` and `regenerate` never persist raw exception text.
+- **Files changed in this pass:**
+  - `src/hooks/use-chat.ts`
+  - `src/hooks/use-chat.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/hooks/use-chat.test.ts src/hooks/use-chat.character-scene.test.ts` — **PASS: 16/16**.
+  - `npx eslint src/hooks/use-chat.ts src/hooks/use-chat.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **FAIL** on pre-existing unrelated error (`src/components/playground/playground-chat.test.tsx`: `Cannot find name 'beforeAll'`); changed files produce no errors.
+
+- **Date:** 2026-06-14 (T-143 static-audit reconciliation — citation markdown URL scheme allowlist)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-143 — `src/research/agent/citationBuilder.ts` `formatCitationsMarkdown()` rendered citation URLs inside Markdown links without scheme validation, allowing arbitrary schemes (`javascript:`, `data:`, `file:`, etc.).
+- **Fix:** Added an HTTP(S) scheme allowlist and `isSafeCitationUrl()` helper; `formatCitationsMarkdown()` now filters citations to safe schemes and falls back to "No citations available." when none remain.
+- **Regression tests:** Added three T-143 regression guards in `src/research/agent/citationBuilder.test.ts` covering unsafe schemes, malformed URLs, and the all-unsafe fallback.
+- **Files changed in this pass:**
+  - `src/research/agent/citationBuilder.ts`
+  - `src/research/agent/citationBuilder.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/research/agent/citationBuilder.test.ts` — PASS (11/11).
+  - `npx eslint src/research/agent/citationBuilder.ts src/research/agent/citationBuilder.test.ts --max-warnings=0` — PASS (0 warnings).
+  - `npm run typecheck` — PASS (renderer + electron).
+
+- **Date:** 2026-06-14 (T-159 static-audit reconciliation — character scene generation safe error handling)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-159 — `src/services/characterSceneGenerationService.ts` returned raw exception messages (`err.message` / `String(err)`) from the catch block, leaking internal failure details to the UI.
+- **Fix:** Replaced the catch-block error payload with a constant safe user-facing message (`'Character scene generation failed. Please try again.'`). Removed the `err` binding so raw exception text cannot be accidentally reintroduced.
+- **Regression tests:** Added two T-159 regression guards in `src/services/characterSceneGenerationService.test.ts` asserting that `veniceFetch` and `upsertMedia` failures return the safe generic message and do not contain raw exception text.
+- **Files changed in this pass:**
+  - `src/services/characterSceneGenerationService.ts`
+  - `src/services/characterSceneGenerationService.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/services/characterSceneGenerationService.test.ts --reporter=verbose` — PASS (9/9).
+  - `npx eslint src/services/characterSceneGenerationService.ts src/services/characterSceneGenerationService.test.ts --max-warnings=0` — PASS (0 warnings).
+  - `npx tsc --noEmit -p tsconfig.json` — PASS (renderer).
+
+- **Date:** 2026-06-14 (T-168 static-audit reconciliation — storage privacy safe summary issue-message redaction)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-168 — safe privacy summaries included user titles/names in orphan-reference issue messages.
+- **Fix:**
+  - Added `sanitizeIssueForSafeSummary` in `src/services/storagePrivacyService.ts` to produce deterministic, user-content-free issue messages for safe summaries.
+  - `buildSafePrivacySummary` now maps issues through the sanitizer.
+- **Regression tests:** Added `T-168 / VERIFY-168` guard in `src/services/storagePrivacyService.test.ts`.
+- **Files changed in this pass:**
+  - `src/services/storagePrivacyService.ts`
+  - `src/services/storagePrivacyService.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/services/storagePrivacyService.test.ts` — PASS (6/6).
+  - `node scripts/verify-storage-privacy.cjs` — PASS.
+  - `npx eslint src/services/storagePrivacyService.ts src/services/storagePrivacyService.test.ts --max-warnings=0` — PASS (0 warnings).
+  - `npm run typecheck` — PASS (renderer + electron).
+
+- **Date:** 2026-06-14 (T-011..T-270 static-audit reconciliation — high-priority swarm closure + full validation)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Continued the reconciliation after unblocking dirty-tree lint/typecheck gates. Dispatched a subagent swarm against the 8 remaining High findings. Verified T-061 and T-255 as already fixed; fixed T-156, T-157, T-158, T-235, T-239, and T-254 with regression tests. Adjusted `scripts/verify-media-studio-power-tools.cjs` to match the updated case-insensitive secret-stripping keys in `src/stores/media-export-bundle.ts`.
+- **Closed / verified:** T-061 (already fixed), T-156 (fixed), T-157 (fixed), T-158 (fixed), T-235 (fixed), T-239 (fixed), T-254 (fixed), T-255 (already fixed).
+- **Files changed in this pass:**
+  - `src/services/attachmentService.ts` + `.test.ts`
+  - `src/services/characterCardImportExport.ts` + `.test.ts`
+  - `src/services/characterSceneGenerationService.ts` + `.test.ts`
+  - `src/services/characterSceneRateLimiter.ts` + `.test.ts`
+  - `scripts/profile-media-studio.mjs` + `.test.ts`
+  - `scripts/verify-theme-tokens.cjs` + `.test.ts`
+  - `scripts/verify-release-packaging-hardening.cjs` + `.test.ts`
+  - `scripts/verify-media-studio-power-tools.cjs`
+  - `.github/workflows/release.yml`
+  - `AGENTS.md`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npm run lint:eslint` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+  - `npm test` — **PASS: 2391 passed, 1 skipped**.
+  - `npm run build` — **PASS** (dist/ + dist-electron/ + dist/server.cjs).
+  - `npm run verify:contracts` — **PASS** (all parity gates, including VERIFY-054).
+
+- **Date:** 2026-06-14 (T-235 static-audit reconciliation — theme-token verifier coverage)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-235 — `scripts/verify-theme-tokens.cjs` scanned only a hardcoded narrow subset of themeable UI directories, omitting media-centric views and tools.
+- **Fix:**
+  - Replaced `TARGETS` with recursive `SCAN_ROOTS` covering `src/App.tsx` and all of `src/components`.
+  - Added `KNOWN_EXCEPTIONS` baseline for 19 files that intentionally use fixed light/dark classes for media previews and dark tool canvases.
+  - Added stale-exception detection and exported testable helpers.
+- **Regression tests:**
+  - `scripts/verify-theme-tokens.test.ts` — T-235 regression guard verifying full-tree scanning, exception handling, stale detection, per-line allow comments, and pattern coverage.
+- **Files changed in this pass:**
+  - `scripts/verify-theme-tokens.cjs`
+  - `scripts/verify-theme-tokens.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `node scripts/verify-theme-tokens.cjs` — **PASS: 98 files scanned, 0 actionable violations, 0 stale exceptions**.
+  - `npx vitest run scripts/verify-theme-tokens.test.ts` — **PASS: 7/7**.
+  - `npx eslint scripts/verify-theme-tokens.cjs scripts/verify-theme-tokens.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+
+- **Date:** 2026-06-14 (T-239 static-audit reconciliation — Windows release signing env mapping)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-239 — `.github/workflows/release.yml` mapped the generic/mac signing secrets `CSC_LINK` / `CSC_KEY_PASSWORD` into the `build-windows` job environment alongside the Windows-specific `WIN_CSC_LINK` / `WIN_CSC_KEY_PASSWORD`.
+- **Fix:**
+  - Removed `CSC_LINK` and `CSC_KEY_PASSWORD` from the Windows job environment and warning check.
+  - Added `CSC_IDENTITY_AUTO_DISCOVERY: "false"` to both Windows development and release packaging steps.
+  - Added `VERIFY-054` regression guard in `scripts/verify-release-packaging-hardening.cjs` and `AGENTS.md`.
+- **Regression tests:**
+  - `scripts/verify-release-packaging-hardening.test.ts` — `rejects Windows signing env that maps generic CSC_LINK / CSC_KEY_PASSWORD (VERIFY-054)`.
+- **Files changed in this pass:**
+  - `.github/workflows/release.yml`
+  - `scripts/verify-release-packaging-hardening.cjs`
+  - `scripts/verify-release-packaging-hardening.test.ts`
+  - `AGENTS.md`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `node scripts/verify-release-packaging-hardening.cjs` — **PASS: 75/75**.
+  - `npx vitest run scripts/verify-release-packaging-hardening.test.ts --fileParallelism=false` — **PASS: 6/6**.
+
+- **Date:** 2026-06-14 (T-157 static-audit reconciliation — character-card import secret redaction)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-157 — `src/services/characterCardImportExport.ts` parsed character-card imports through `isPromptSecretLike` checks on `description` / `systemPrompt` / `firstMessage`, but other free-text fields (`scenario`, `exampleDialogues`, Tavern `mes_example` / `alternate_greetings` / `creator` / `creator_notes`, native `author`) were persisted without running `redactPromptSecrets`.
+- **Fix:**
+  - Added `safeRedactedString()` helper composing `safeString` + `redactPromptSecrets`.
+  - Applied redaction to every free-text field in both `parseTavernCard` and `parseNativeEnvelope`.
+  - Routed Tavern-generated metadata through `safeMetadata()` for consistent metadata-string redaction.
+  - Preserved existing `isPromptSecretLike` pre-flight skip behaviour for `description` / `systemPrompt` / `firstMessage`.
+- **Regression tests:**
+  - `src/services/characterCardImportExport.test.ts` — two T-157 regression guards verifying secrets embedded in native `scenario` / `exampleDialogues` / `author` and Tavern `scenario` / `mes_example` / `alternate_greetings` / `creator_notes` are redacted to `[REDACTED]`.
+- **Files changed in this pass:**
+  - `src/services/characterCardImportExport.ts`
+  - `src/services/characterCardImportExport.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/services/characterCardImportExport.test.ts --reporter=verbose` — **PASS: 14/14**.
+  - `npx eslint src/services/characterCardImportExport.ts src/services/characterCardImportExport.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+
+- **Date:** 2026-06-14 (T-254 static-audit reconciliation — Media Studio profiler stale IndexedDB version)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-254 — `scripts/profile-media-studio.mjs` hardcoded `indexedDB.open("venice_canvas_studio_v1", 6)` while the live app schema is at `DB_VERSION = 12`.
+- **Fix:**
+  - Added `loadDbConstants()` to parse `DB_NAME` and `DB_VERSION` from `src/constants/venice.ts`.
+  - Routed `{ dbName, dbVersion }` into both `page.evaluate()` blocks and replaced hardcoded values.
+- **Regression tests:**
+  - `scripts/profile-media-studio.test.ts` — T-254 regression guard verifying no stale hardcoded version and live constant usage.
+- **Files changed in this pass:**
+  - `scripts/profile-media-studio.mjs`
+  - `scripts/profile-media-studio.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `node --check scripts/profile-media-studio.mjs` — **PASS**.
+  - `npx vitest run scripts/profile-media-studio.test.ts` — **PASS: 1/1**.
+  - `npx eslint scripts/profile-media-studio.mjs scripts/profile-media-studio.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+
+- **Date:** 2026-06-14 (T-158 static-audit reconciliation — Character Scene limiter concurrency leak)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-158 — `src/services/characterSceneGenerationService.ts` incremented `CharacterSceneRateLimiter` concurrency via `recordStart()` but only released it via `recordComplete()` on the success path, leaking the slot on API or persistence failure.
+- **Fix:**
+  - Added `CharacterSceneRateLimiter.recordFailure()` in `src/services/characterSceneRateLimiter.ts` to release concurrency without advancing history/cooldown.
+  - Updated `generateCharacterScene()` in `src/services/characterSceneGenerationService.ts` to call `limiter.recordFailure()` in the catch block before returning a failed result.
+- **Regression tests:**
+  - `src/services/characterSceneGenerationService.test.ts` — 2 new BUG-158 cases (Venice fetch failure and upsert failure both release the limiter slot).
+  - `src/services/characterSceneRateLimiter.test.ts` — 1 new direct `recordFailure()` case.
+- **Files changed in this pass:**
+  - `src/services/characterSceneRateLimiter.ts`
+  - `src/services/characterSceneGenerationService.ts`
+  - `src/services/characterSceneRateLimiter.test.ts`
+  - `src/services/characterSceneGenerationService.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/services/characterSceneGenerationService.test.ts src/services/characterSceneRateLimiter.test.ts` — **PASS: 15/15**.
+  - `npx tsc --noEmit -p tsconfig.json` — **PASS** (renderer).
+
+- **Date:** 2026-06-14 (T-011..T-270 static-audit reconciliation — dirty-tree gate unblocking)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Fixed the two dirty-tree validation blockers recorded in LEDGER-ONLY-001 so full lint/typecheck pass before triaging the remaining 242 snapshot findings.
+  - Removed unused `RolePill` import from `src/components/rp-studio/RpChatView.tsx`.
+  - Added required `adultFilter="all"` prop to `src/components/rp-studio/RpChatList.test.tsx` `NewChatDialog` test fixture.
+- **Files changed in this pass:**
+  - `src/components/rp-studio/RpChatView.tsx`
+  - `src/components/rp-studio/RpChatList.test.tsx`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npm run lint:eslint` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+
+- **Date:** 2026-06-14 (T-011..T-270 static-audit reconciliation, security batch 1)
+- **Scope:** Live verification and remediation of the first non-overlapping high-risk batch from the uploaded 260-finding snapshot.
+- **Closed:** T-109, T-110, T-155, T-178, T-179, T-180, T-181, T-182, T-198, T-201, T-202, T-203, T-204. T-011 and T-012 were verified already fixed by current parallel work.
+- **Validation:** `npx vitest run ... --fileParallelism=false` — 141/141 PASS; focused source `npx eslint ... --max-warnings=0` — PASS. Whole-repo lint/typecheck failures are recorded as unrelated dirty-tree blockers, not hidden as passes.
+
+- **Date:** 2026-06-14 (Fix outstanding user requests)
+- **Agent:** Antigravity
+- **Branch / state:** `main` (working tree modified)
+- **Diagnosis:** Addressed several user requests spanning component logic and hardcoded CSS values.
+  1. **T-012 (High):** Optimized `veniceBlob()` in `src/services/veniceClient.ts` to avoid redundant POST requests. Removed the discarded `webVeniceFetch` branch from the Web execution path.
+  2. **T-013 (Medium):** Corrected thumbnail extension drift in `electron/services/mediaService.ts` by explicitly using `.png` where the file was written, satisfying tests and the frontend assumptions.
+  3. **T-014 (Medium):** Found no evidence of `Compare with original` or the specified unreadable white alpha classes within `src/components/image/image-view.tsx`.
+  4. **T-015 (Low):** Refactored hardcoded CSS colors in `src/components/workflows/WorkflowTemplatesView.tsx` to use the standard Venice theme variables (`bg-venice-surface-elevated/20`, `text-text-primary`, `border-border`, etc.).
+- **Files changed in this pass:**
+  - `package.json`
+  - `src/services/veniceClient.ts`
+  - `electron/services/mediaService.ts`
+  - `electron/services/characterImageCache.test.ts`
+  - `src/components/workflows/WorkflowTemplatesView.tsx`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npm run ci` — **PASS**.
+
 - **Date:** 2026-06-14 (UI regression debug — sidebar footer, chat composer, mesh overlay, theme verifier)
 - **Agent:** Kimi Code
 - **Branch / state:** `main` (working tree modified)
@@ -144,6 +1500,27 @@ blockers remain.
   - `npm test` — **PASS: 2367 passed, 1 skipped**.
   - `npm run build` — **PASS**.
   - Targeted tests: `npx vitest run src/components/chat/chat-input.test.tsx src/components/layout/sidebar.test.tsx src/theme/applyTheme.test.ts --fileParallelism=false` — **PASS**.
+
+- **Date:** 2026-06-15 (T-192 / T-199 static-audit reconciliation — prompt-library-store safe error handling + crypto.randomUUID)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` (working tree modified)
+- **Finding:** T-192 — `src/stores/prompt-library-store.ts` wrote raw persistence exception text into `loadError` on every mutation/load path and into `importPrompts` skipped reasons, exposing potential API keys, bearer tokens, and upstream diagnostics in UI-facing state and import metadata.
+- **Finding:** T-199 — `generateStableId` in `src/types/prompt-library.ts` already uses `crypto.randomUUID()` when available and falls back to `Math.random()` only as a last resort; verified as already fixed.
+- **Status:** T-192 fixed; T-199 verified already fixed.
+- **Fix:**
+  - Imported `redactErrorMessage` from `src/shared/redaction.ts`.
+  - Replaced every `err instanceof Error ? err.message : String(err)` assignment to `loadError` with `redactErrorMessage(err)`.
+  - Replaced the raw persistence error in `importPrompts` skipped reasons with `Persistence failed: ${redactErrorMessage(err)}`.
+- **Regression tests:** Added T-192 guards in `src/stores/prompt-library-store.test.ts` for `ensureLoaded`, `createPrompt`, `updatePrompt`, `deletePrompt`, and `importPrompts`, asserting that secrets are redacted and state is rolled back on failures. Added T-199 guard verifying UUID-format ids when `crypto.randomUUID` is available.
+- **Files changed:**
+  - `src/stores/prompt-library-store.ts`
+  - `src/stores/prompt-library-store.test.ts`
+  - `docs/summary_of_work.md`
+- **Validation:**
+  - `npx vitest run src/stores/prompt-library-store.test.ts --fileParallelism=false --reporter=verbose` — **PASS: 28/28** (22 pre-existing + 5 new T-192 regression guards + 1 new T-199 regression guard).
+  - `npx eslint src/stores/prompt-library-store.ts src/stores/prompt-library-store.test.ts --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+  - `npm run verify:prompt-library` — **PASS**.
 
 ---
 
@@ -1145,8 +2522,6 @@ The older Phase 2F block below is retained as historical context and is supersed
   MiniMax scope-correction block above).
 
 ---
-
-## Session History
 
 ### 2026-06-14 (Theme-token hardcoded-color cleanup — App/chat/layout/ui)
 - **Agent:** Kimi Code
@@ -3560,6 +4935,103 @@ Result:
 
 ## Open TODO Ledger
 
+### In progress (2026-06-14 — T-011..T-270 static-audit reconciliation)
+
+- Continue live source verification for the remaining Medium/Low findings; do not bulk-import snapshot claims as confirmed defects.
+- Triage the ~54 remaining medium security/logic findings in severity-first batches, checking for fixes already present in the current dirty worktree.
+- Remove the T-202 `TEXT_WHITE_BASELINE` entries as the 171 exposed theme violations across 14 files are migrated to semantic tokens; the corrected invariant now fails on any new file or count growth.
+- Resume the static audit at `electron/ipc/handlers.ts` (LEDGER-ONLY-002) once the current snapshot batch is closed.
+
+### Completed this session (2026-06-15 — Resumed interrupted types/utils/theme/scripts batch)
+
+- Reviewed `kimi-export-session_-20260615-052400.md` and resumed its aborted swarm from the live dirty tree.
+- Closed the exact IDs listed in the Latest Session Summary above; no range-based or prose-only closure claims were used.
+- Added or extended regression coverage in theme, prompt/workflow/research types, preview/download/Markdown/image utilities, character image resolution, profiler, dist verification, bootstrap theme loading, attachment wrapping, prompt extraction, and archive-clean verification.
+- Full repository validation passed: lint, renderer+Electron typecheck, 2,542 tests with one display-gated skip, all contract verifiers, and production build.
+
+
+### Completed this session (2026-06-14 — T-092/T-093 ErrorBoundary safe logging and fallback)
+
+- **T-092** — Fixed `src/components/ui/error-boundary.tsx` so `componentDidCatch` no longer logs raw `error` / `info` objects. It now logs a redacted `{ message, stack }` object and a redacted `componentStack`, using the new `sanitizeErrorText()` / `redactErrorDetails()` helpers in `src/shared/redaction.ts`. Secrets (bearer tokens, `vn-…`, `sk-…`, env assignments) and local paths / source URLs are replaced with `[REDACTED]` / `[REDACTED-PATH]`.
+- **T-093** — Fixed the default fallback so it no longer renders raw `error.message` / `error.stack`. It now displays the same redacted `{ message, stack }` output, preventing path / secret / upstream-diagnostic disclosure to end users. Also replaced the non-semantic `text-red-300/70` detail color with the semantic `text-danger/70` token.
+- Added five T-092/T-093 regression guards in `src/components/ui/error-boundary.test.tsx` covering displayed message redaction, displayed stack path redaction, displayed source-URL redaction, logged output redaction, and the unchanged `onError` callback contract.
+- **Validation:** `npx vitest run src/components/ui/error-boundary.test.tsx src/shared/redaction.test.ts` PASS 9/9; `npx eslint src/components/ui/error-boundary.tsx src/components/ui/error-boundary.test.tsx src/shared/redaction.ts --max-warnings=0` PASS (0 warnings); `npx tsc --noEmit` FAIL on unrelated pre-existing dirty-tree error in `src/research/agent/socialDiscovery.test.ts`; changed files produce no type errors.
+
+### Completed this session (2026-06-14 — T-037 api-key-dialog disconnect await)
+
+- **T-037** — Fixed `src/components/layout/api-key-dialog.tsx`: the Disconnect button now calls an async `handleDisconnect` helper that `await`s `clearApiKey()`, disables the button via `busy` while the operation runs, and shows a safe generic error message on failure instead of leaking raw exception text. Added T-037 regression guards in `src/components/layout/api-key-dialog.test.tsx`.
+
+### Completed this session (2026-06-14 — T-166 modelService safe error dispatch)
+
+- **T-166** — Fixed `src/services/modelService.ts`: the catch block no longer dispatches raw exception text into the `SET_MODELS` app-state action. It now dispatches a constant safe user-facing message (`"Model discovery failed; using non-exhaustive static fallbacks."`) and logs the raw error only to the conditional `warn` sink (dev/test only, no-op in production). Added an inline security rationale comment and a T-166 regression guard in `src/services/modelService.test.ts` proving raw exception text (paths / `sk-…` secrets) never reaches the dispatched action.
+- **Validation:**
+  - `npx vitest run src/services/modelService.test.ts` — PASS 4/4.
+  - `npx eslint src/services/modelService.ts src/services/modelService.test.ts --max-warnings=0` — PASS 0 warnings.
+  - `npm run typecheck` — FAIL on pre-existing unrelated errors; changed files are clean.
+
+### Completed this session (2026-06-14 — T-144 research synthesis prompt-injection hardening)
+
+- **T-144** — Fixed `src/research/agent/researchSynthesis.ts`: untrusted search-result title/url/snippet and scraped-page title/url/content are now wrapped in explicit `<<<UNTRUSTED_EVIDENCE_BEGIN>>>` / `<<<UNTRUSTED_EVIDENCE_END>>>` delimiter blocks, and any occurrences of those markers inside the untrusted content are neutralised to `[EVIDENCE_MARKER_REMOVED]` so third-party data cannot forge a block boundary.
+- Added an injection-warning instruction to the synthesis system prompt instructing the model to treat evidence blocks as untrusted third-party data, ignore embedded instructions, and base answers only on factual claims inside the blocks.
+- Added three T-144 regression guards in `src/research/agent/researchSynthesis.test.ts` asserting that evidence is wrapped in markers, adversarial marker sequences are escaped, and the system prompt carries the injection warning.
+- **Validation:** `npx vitest run src/research/agent/researchSynthesis.test.ts` PASS 6/6; `npx eslint src/research/agent/researchSynthesis.ts src/research/agent/researchSynthesis.test.ts --max-warnings=0` PASS (0 warnings); `npm run typecheck` FAIL on pre-existing unrelated errors in `src/components/ui/error-boundary.test.tsx` (no new errors in changed files).
+
+### Completed this session (2026-06-14 — T-185 character-card-store safe persistence errors)
+
+- **T-185** — Fixed `src/stores/character-card-store.ts`: `load`, `upsert`, and `remove` catch blocks now store and toast only generic safe messages (`"Could not load character cards. Please try again."`, `"Could not save character. Please try again."`, `"Could not delete character. Please try again."`) instead of raw `e.message` / `String(e)`. Added a T-185 regression guard with three cases in `src/stores/character-card-store.test.ts` asserting that raw exception text (paths / driver internals) never reaches `state.error` or toast descriptions.
+
+### Completed this session (2026-06-14 — T-159 character scene generation safe error handling)
+
+- **T-159** — Fixed `src/services/characterSceneGenerationService.ts`: the catch block now returns a constant safe error message instead of `err.message` / `String(err)`, preventing raw exception text (and any secret/path details it might carry) from reaching the UI. Added two T-159 regression guards in `src/services/characterSceneGenerationService.test.ts`.
+
+### Completed this session (2026-06-14 — T-161/T-162 RP scene generation error sanitization)
+
+- **T-161** — Fixed `src/services/rp/sceneGenerationService.ts`: `veniceFetch` failures during scene image generation now return the safe user-facing message `"Image generation failed. Please try again."` instead of raw `err.message`.
+- **T-162** — Fixed the same file: `saveAsset` failures during asset persistence now return the safe user-facing message `"Failed to save scene asset. Please try again."` instead of raw `err.message`.
+- Added `logError` diagnostics via `src/shared/logger` so developers still see the original failure in dev/test logs without leaking it to the renderer UI.
+- Added two T-161/T-162 regression guards in `src/services/rp/sceneGenerationService.test.ts` proving that path/secret-bearing raw exception text is never surfaced in the returned `error` field.
+- **Validation:** `npx vitest run src/services/rp/sceneGenerationService.test.ts` PASS 14/14; `npx eslint src/services/rp/sceneGenerationService.ts src/services/rp/sceneGenerationService.test.ts --max-warnings=0` PASS (0 warnings); `npm run typecheck` FAIL on pre-existing unrelated errors in `src/components/rp-studio/RpChatView.test.tsx` and `src/lib/workflow-engine.ts`.
+
+### Completed this session (2026-06-14 — T-011..T-270 high-priority swarm closure)
+
+- Dispatched a subagent swarm against the 8 remaining High findings.
+- **T-061** — Verified already fixed: `CharacterLibrary` reads raw cards from the store and applies the adult filter locally.
+- **T-156** — Fixed `src/services/attachmentService.ts`: `wrapAttachmentText()` now XML-escapes attachment body content, not just attributes.
+- **T-157** — Fixed `src/services/characterCardImportExport.ts`: every free-text field is run through `redactPromptSecrets` before persistence.
+- **T-158** — Fixed `src/services/characterSceneGenerationService.ts`: added `recordFailure()` to the rate limiter and call it from the catch block so concurrency slots are released on API/persistence failures.
+- **T-235** — Fixed `scripts/verify-theme-tokens.cjs`: expanded scan roots to all of `src/App.tsx` + `src/components`, added `KNOWN_EXCEPTIONS` baseline and stale-exception detection, exported testable helpers.
+- **T-239** — Fixed `.github/workflows/release.yml`: Windows job no longer maps generic/mac `CSC_LINK` / `CSC_KEY_PASSWORD`; added `VERIFY-054` gate.
+- **T-254** — Fixed `scripts/profile-media-studio.mjs`: load `DB_NAME` / `DB_VERSION` dynamically from `src/constants/venice.ts` instead of hardcoding version 6.
+- **T-255** — Verified already fixed (same root cause as T-254).
+- Adjusted `scripts/verify-media-studio-power-tools.cjs` to match the case-insensitive secret-stripping keys in `src/stores/media-export-bundle.ts`.
+- Full validation passes: lint, typecheck, test (2391 passed / 1 skipped), build, and `verify:contracts`.
+
+### Completed this session (2026-06-14 — T-239 Windows release signing env mapping)
+
+- Fixed `.github/workflows/release.yml` so the `build-windows` job uses only Windows-specific signing secrets (`WIN_CSC_LINK` / `WIN_CSC_KEY_PASSWORD`) and no longer maps the generic/mac `CSC_LINK` / `CSC_KEY_PASSWORD` into the Windows environment.
+- Added `CSC_IDENTITY_AUTO_DISCOVERY: "false"` to both Windows development and release packaging steps.
+- Added `VERIFY-054` regression guard in `scripts/verify-release-packaging-hardening.cjs` and a corresponding test in `scripts/verify-release-packaging-hardening.test.ts`.
+- Updated `AGENTS.md` regression-guard table with `VERIFY-054`.
+
+### Completed this session (2026-06-14 — T-235 theme-token verifier coverage)
+
+- Expanded `scripts/verify-theme-tokens.cjs` to scan the full themeable UI tree (`src/App.tsx` + all of `src/components`) instead of a hardcoded narrow subset.
+- Established a tight `KNOWN_EXCEPTIONS` baseline for 19 media/tool files with intentional fixed light/dark classes, plus stale-exception detection.
+- Added `scripts/verify-theme-tokens.test.ts` with T-235 regression guards.
+
+### Completed this session (2026-06-14 — T-157 character-card import secret redaction)
+
+- Fixed `src/services/characterCardImportExport.ts` so every free-text field in both Tavern and native import paths is run through `redactPromptSecrets` before persistence.
+- Added `safeRedactedString()` helper and applied it to `description`, `systemPrompt`, `scenario`, `firstMessage`, `exampleDialogues[*].text`, Tavern `creator`, and native `author`.
+- Routed Tavern-generated metadata through `safeMetadata()` for consistent metadata redaction.
+- Added two T-157 regression guards in `src/services/characterCardImportExport.test.ts`.
+
+### Completed this session (2026-06-14 — T-011..T-270 dirty-tree gate unblocking)
+
+- Fixed the pre-existing dirty-tree `RolePill` unused-import warning in `src/components/rp-studio/RpChatView.tsx`.
+- Fixed the pre-existing dirty-tree `adultFilter` missing-prop test fixture error in `src/components/rp-studio/RpChatList.test.tsx`.
+- Full `npm run lint:eslint` and `npm run typecheck` now pass, unblocking the broader audit verification gates.
+
 
 ### Completed this session (2026-06-14 — UI regression debug: sidebar footer, chat composer, mesh overlay, theme verifier)
 
@@ -3689,464 +5161,279 @@ Result:
 - **P1-004 — Web Jina proxy header allowlist:** `server.ts` introduces `JINA_ALLOWED_FORWARD_HEADERS` (allow: `accept`, `x-return-format`, `x-with-generated-alt`, `x-with-iframe`, `x-target-selector`, `x-wait-for-selector`, `x-timeout`), `JINA_BLOCKED_FORWARD_HEADER_PATTERNS` (deny: `host`, `cookie`, `set-cookie`, `forwarded`, `x-forwarded-*`, `content-length`, `transfer-encoding`, `connection`, `proxy-*`, `origin`, `referer`), and `isAllowedJinaForwardHeader()`. The `/api/proxy-jina` block now drops all non-allowlisted renderer headers. New `server.test.ts` block covers unsafe-header dropping and the Authorization-extraction path.
 - **P1-005 / P2-002 — Research Workspace a11y:** `ResearchWorkspaceView.tsx` icon-only buttons gained `type="button"`, `aria-label`, and `<span aria-hidden="true">` SVG wrappers. Finding title/content inputs now have `<label htmlFor>` + associated `<input id>` / `<textarea id>` and rewritten placeholder copy.
 - **P2-003 — Playground save-toast timer:** `playground-view.tsx` extracted `showSaveToast()` helper backed by a `useRef<setTimeout>` and unmount-clearing `useEffect`. Inline `setTimeout(() => setSaveToast(null), 2000)` calls (no cleanup) are gone.
-- **P2-005 — Secret-scan redaction metadata:** `POSSIBLE_SECRET_WARNINGS.txt` → `.tsv` (4 columns: `path\tline\tpattern\tcategory`). New `SECRET_SCAN_SUMMARY.txt` records `high_risk_hits` / `example_hits` / `raw_line_content_emitted=false` derived from the TSV file itself (the previous subshell `((var++))` counter never propagated to the parent). `verify-archive-clean.test.ts` updated to assert the new 4-column format, the new file names, and the example-categorization of `docs/*.md`/`.env.example`/`.config/*.example.{yaml,yml}`.
-- **P2-009 — Network-boundaries Jina assertion:** `verify-network-boundaries.cjs` now scans `server.ts` for the canonical `JINA_ALLOWED_FORWARD_HEADERS` and `isAllowedJinaForwardHeader` symbols and fails closed if the `/api/proxy-jina` block contains arbitrary `headers[key] = value` pass-through without the allowlist guard.
-- **P2-007 — Ledger sync:** `docs/summary_of_work.md` Latest Session Summary replaced, Session History gains this entry, Open TODO Ledger gains this sub-section, Current Project State "Current open items" paragraph updated. (P2-006 REPOSITORY_TREE not regenerated in this pass; tracked-file count is unchanged at 628.)
-
-### Completed this session (2026-06-09 — ChatGPT 5.5 audit follow-up closure)
-
-- **ARCHIVE-001 — Tracked clean ZIP script:** Moved `clean-repo-zip.sh` from repo root to `scripts/clean-repo-zip.sh` and updated `.gitignore` so the root scratch copy is ignored while the scripts/ copy is tracked. Updated `scripts/verify-archive-clean.cjs` to inspect the new path.
-- **ARCHIVE-002 — Clean ZIP includes required build icons:** `scripts/clean-repo-zip.sh` now includes `build/icon.ico`, `build/icon.icns`, and `build/icon.png` via rsync include rules while excluding all other generated content under `build/`.
-- **ARCHIVE-003 — Clean ZIP excludes local-only scratch:** Added rsync excludes for `docs/audits/`, `docs/design/`, `docs/HQE_AUDIT_REPORT.md`, `todo.md`, and `scripts/dev-tools/venice-styles.json` so gitignored/local-only files do not leak into the clean archive.
-- **ARCHIVE-004 — `verify-archive-clean` modes:** Added `--check-config` (config-only) and made `--root` fully extract-safe (no `.git` required). Added tests for both modes in `scripts/verify-archive-clean.test.ts`.
-- **ARCHIVE-005 — Release verifier hardening:** `scripts/verify-release-packaging-hardening.cjs` now asserts that `scripts/clean-repo-zip.sh` exists, is tracked, and is not gitignored; and that `.github/workflows/release.yml` does not contain `dist:win || true` in the Linux job.
-- **ARCHIVE-006 — Linux workflow fix:** Removed `npm run dist:win || true` from the `build-linux` job in `.github/workflows/release.yml`.
-- **A11Y-012 — Video reference image dropzone keyboard accessible:** Converted the interactive `<div>` dropzone in `src/components/video/video-view.tsx` to a native `<button type="button" aria-label="Choose reference image">`. Added `src/components/video/video-view.test.tsx` with 5 tests covering role, click, Enter/Space activation, and upload display.
-- **SAFETY-001 — RP avatar URI protocol hardening:** Tightened `avatarDataUri()` in `src/components/rp-studio/_shared.tsx` to accept only `data:image/(png|jpeg|webp);base64,...` or raw base64 wrapped with a safe MIME type. Rejects `file:`, `http:`, `https:`, `javascript:`, `blob:`, and non-base64 payloads. Added `src/components/rp-studio/_shared.test.tsx` with 12 regression tests.
-- **DOCS-010 — Stale audit banner:** Added a `SUPERSEDED` banner to `docs/audits/EXHAUSTIVE_REPO_SCAN_TODO.md` pointing to current commits and this ledger.
-- **DOCS-011 — Repository tree metadata refresh:** Updated `docs/REPOSITORY_TREE.md` header to HEAD `c5fcb849` / 618 tracked files and documented the clean-ZIP inclusion policy.
-- **DOCS-012 — Canonical TODO policy:** Confirmed `docs/TODO.md` is the tracked historical/public roadmap and `todo.md` is gitignored/local-only; both are excluded from clean ZIPs. The live ledger is this file (`docs/summary_of_work.md`).
-- **CLEANUP-001 — Sidebar delete-confirm timeout cleanup:** `ConversationRow` in `src/components/layout/sidebar.tsx` now stores the confirm timeout in a `useRef`, clears before setting a new one, and clears on unmount. Added a fake-timer regression test in `src/components/layout/sidebar.test.tsx`.
-- **CLEANUP-002 — Logger migration:** Replaced direct `console.error` / `console.warn` calls in `src/stores/chat-store.ts`, `src/stores/storage-privacy-store.ts`, `src/stores/research-store.ts`, `src/stores/workflow-template-store.ts`, `src/components/ui/error-boundary.tsx`, and `src/lib/safe-storage.ts` with the shared `logger` from `src/shared/logger.ts`.
-- **CLEANUP-003 — LocalStorage access policy:** Documented the canonical localStorage access policy in `src/lib/safe-storage.ts`: Zustand persist (`createSafeStorage`), transient model cache (`modelService`), theme bootstrap (`useThemeLifecycle`), and ephemeral prompt-starter rotation (`promptStarterService`) only; no secrets or conversation content.
-- **ARCHIVE-007 — Validation:** `npm run lint:eslint` PASS (0 warnings); `npm run typecheck` PASS (renderer + Electron main); `npm test` PASS 2034/1 skipped (+20 tests); `npm run verify:safety-guard` PASS; `npm run verify:markdown-links` PASS (45 files); `npm run verify:archive-clean` PASS; `npm run verify:release-packaging-hardening` PASS (62 checks); `npm run build` PASS; `npm run verify:dist` PASS; clean ZIP end-to-end PASS.
-
-### Completed this session (2026-06-09 — 064425 ZIP verification closure)
-
-- **ZIPBLOCK-001 — `docs/AGENTS/` exclusion:** Added `--exclude=docs/AGENTS/` to `clean-repo-zip.sh` so agent scratch files (gitignored locally) are never included in clean ZIPs.
-- **ZIPBLOCK-002 — Staged-root verification before zipping:** `clean-repo-zip.sh` now runs `node scripts/verify-archive-clean.cjs --root "$STAGE_DIR"` after rsync and fails closed (exit 1) if any forbidden path leaks into the staged archive root.
-- **ZIPBLOCK-003 — End-to-end ZIP proof:** Generated a clean ZIP with the updated script, extracted it, and confirmed both `node scripts/verify-archive-clean.cjs --root <extract>` passes and `docs/AGENTS/` is absent.
-- **A11Y-008 — Video/audio toggle `aria-pressed`:** `video-view.tsx` text/image mode buttons and `audio-view.tsx` tts/transcribe buttons now expose `aria-pressed` so screen readers announce the active mode.
-- **A11Y-009 — LineageViewer warning semantics:** Cycle and missing-reference warning boxes now have `role="alert"`.
-- **A11Y-010 — Chat pending-context live region:** The dynamic "Matched Local Memory Context" panel now has `aria-live="polite"`.
-- **A11Y-011 — Label/control associations:** `TextArea` and `Select` components accept an optional `id` prop. `image-view.tsx`, `video-view.tsx`, and `audio-view.tsx` use `useId()` to wire every `Label htmlFor` to its control id (prompt, negative prompt, model, dimensions, style, seed, steps, variants, text, voice, format, speed).
-- **HYGIENE-005 — modelService cache documented and hardened:** Direct `window.localStorage` reads/writes replaced with a small inline `cacheStorage` helper that catches quota/read errors. Comment documents the cache as intentional, transient, and secret-free.
-- **HYGIENE-006 — Redaction utility moved to shared surface:** `src/services/redaction.ts` and its test moved to `src/shared/redaction.ts`. Imports updated in `electron/main.ts`, `electron/ipc/handlers.ts`, `electron/ipc/rpHandlers.ts`, `electron/services/veniceClient.ts`, `src/services/exportImport.ts`, and `src/services/inspectorTelemetry.ts`.
-- **HYGIENE-007 — Duplicate NOTICE files documented and locked:** Added header comments to `assets/branding/NOTICE.md` and `public/assets/branding/NOTICE.md` explaining the intentional source + runtime copy relationship. Added `assertBrandingNoticesInSync()` to `scripts/verify-dist.cjs` so the dist gate fails if the copies diverge.
-- **ZIPBLOCK-004 — Validation:** `npm run typecheck` PASS; `npm run lint:eslint -- --max-warnings=0` PASS; `npm test` PASS 2014/1 skipped; `npm run verify:safety-guard` PASS; `npm run verify:markdown-links` PASS (46 files); `npm run verify:archive-clean` PASS; `npm run verify:dist` PASS (including new NOTICE sync check); `bash clean-repo-zip.sh ...` + `--root` verification PASS; `npm run build` PASS.
-
-### Completed this session (2026-06-09 — Repo hygiene: archive-clean script hardening)
-
-- **HYGIENE-001 — `clean-repo-zip.sh` exclusion expansion:** Added explicit `--exclude=dist-electron/` to the build-outputs block. Added a dedicated "Local design captures / config files (keep examples only)" block covering `--exclude=.design-captures/`, `--include=.config/*.example.yaml`/`.yml`, `--exclude=.config/*.local.yaml`/`.yml`, and `--exclude=.config/*.yaml`/`.yml`. Added a dedicated "AppleDouble / macOS resource forks / Windows metadata" block covering `--exclude=.AppleDouble/`, `--exclude=._*`, and `--exclude=__MACOSX/`. The existing `.env`/`.env.*` exclusions with `.env.example` include are unchanged and already cover the audit requirement.
-- **HYGIENE-002 — `scripts/verify-archive-clean.cjs` canonical checker rewrite:** Default mode now verifies (a) `.gitignore` contains all required archive-exclusion patterns, (b) `clean-repo-zip.sh` contains the matching rsync excludes, and (c) no forbidden paths are tracked in git. `--root <dir>` performs a filesystem walk for extracted-archive verification. `--strict` performs a filesystem walk on the current repo for pre-archive sanity checks. The walk skips `.git/` and `node_modules/`, avoids recursing into forbidden directories, and reports every offending path or missing exclusion.
-- **HYGIENE-003 — `.gitignore` explicit local-config rules:** Added `.config/*.local.yaml` and `.config/*.local.yml` above the existing `.config/*.yaml`/`.yml` rules so the intent is explicit even though the broader patterns already covered them.
-- **HYGIENE-004 — Validation:** `npm run verify:archive-clean` PASS; `npx vitest run scripts/verify-archive-clean.test.ts` PASS 2/2; `node scripts/verify-archive-clean.cjs --strict` correctly FAILS and lists expected untracked contaminants (confirming the scan works); `npm run lint:eslint -- --max-warnings=0` PASS (0 warnings); `npm run typecheck` PASS (renderer + Electron main).
-- **HYGIENE-005 — Out of scope confirmed:** No source code outside the guard script, no test files other than the guard's own test, no `package.json` change, no CI/workflow change, no safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/diagnostics-redaction/child-exploitation-guard/CI/release-hardening surface touched, no new VERIFY-NNN row (regression-guard count remains 52), no new dependency, no migration, no new TODOs. Build outputs (`dist/`, `dist-electron/`, `release/`, `coverage/`) were not deleted; the script only verifies they would not be included in an archive.
-
-### Completed this session (2026-06-09 — Accessibility: CommandPalette + Select)
-
-- **A11Y-001 — CommandPalette roving index and keyboard navigation:** `src/components/command-palette/CommandPalette.tsx` now tracks `activeIndex` starting at `0`, resets it when the query changes, handles `ArrowDown`/`ArrowUp` (wrapping), `Home`, `End`, and `Enter` on the dialog container, assigns dynamic `cmd-item-N` IDs, sets `data-active="true"` for visual feedback, exposes `aria-activedescendant` on the search input, and scrolls the active item into view.
-- **A11Y-002 — CommandPalette keyboard regression tests:** `src/components/command-palette/CommandPalette.test.tsx` gained 6 new tests covering initial active item + `aria-activedescendant`, ArrowDown/Up wrapping, Home/End jumps, Enter activation, and query-change reset. Full file passes 33/33.
-- **A11Y-003 — Select ARIA and listbox semantics:** `src/components/ui/select.tsx` trigger now exposes `aria-haspopup="listbox"`, `aria-expanded`, `aria-controls`, and `aria-label`. The popup container has `role="listbox"` with `aria-labelledby` and `tabIndex={-1}`. Options render as `<div role="option" aria-selected={...}>`.
-- **A11Y-004 — Select keyboard navigation:** `src/components/ui/select.tsx` now handles `ArrowDown`/`ArrowUp` (wrapping), `Home`, `End`, `Enter` (select + close), `Escape` (close), and first-character typeahead while the popup is open. Active option scrolls into view.
-- **A11Y-005 — Select regression tests:** `src/components/ui/select.test.tsx` (new, 12 tests) covers trigger ARIA, listbox/options roles, `aria-selected`, click-outside close, open on Enter, ArrowDown/Up wrap, Home/End, Enter selection, Escape close, and typeahead.
-- **A11Y-006 — Validation:** `npx vitest run src/components/command-palette/CommandPalette.test.tsx` PASS 33/33; `npx vitest run src/components/ui/select.test.tsx` PASS 12/12; `npm run typecheck` PASS; `npm run lint:eslint -- --max-warnings=0` PASS.
-- **A11Y-007 — Out of scope confirmed:** No safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/archive-clean/diagnostics-redaction/child-exploitation-guard/CI/release-hardening surface touched, no `package.json` change, no new VERIFY-NNN row (regression-guard count remains 52), no new dependency, no migration, no new TODOs.
-
-### Completed this session (2026-06-09 — Venice client consolidation + streaming timeout fix)
-
-- **CLIENT-001 — Consolidated Venice client entry points (P0-004):** `src/lib/venice-client.ts` is now a thin compatibility wrapper. It re-exports `VeniceAPIError`, `venice`, `veniceBlob`, and `veniceFormData` from `src/services/veniceClient.ts`, and adapts `veniceStreamChat` to the canonical implementation while preserving the legacy signature. The duplicated `webVeniceFetch`, desktop-call, and error-body extraction code was removed from the lib wrapper.
-- **CLIENT-002 — Legacy compatibility surface in services (P0-004):** `src/services/veniceClient.ts` gained the legacy exports (`VeniceAPIError`, `venice`, `veniceBlob`, `veniceFormData`) and an internal `webVeniceFetch` helper so the lib wrapper has a single source of truth. No call sites outside the wrapper were changed.
-- **CLIENT-003 — Single absolute streaming deadline (P1-004):** Replaced the two independent 300s timeouts in the web-mode `veniceStreamChat` (fetch timeout + read timeout) with one `AbortController` deadline covering the entire stream lifetime from initial fetch through every `reader.read()`. On expiry the reader is cancelled and the promise rejects with `"Stream timed out after 5 minutes. The server may be overloaded — please try again."`. Parent-signal abort remains supported and maps to `"Aborted"`.
-- **CLIENT-004 — Regression test for P1-004:** `src/services/veniceClient.web.test.ts` added "enforces a single absolute 5-minute deadline across fetch and read". Uses mocked `fetch` + a hanging reader, fake timers, and proves timeout at 300001ms with `cancel()` invoked.
-- **CLIENT-005 — Test-shape update:** `src/lib/venice-client.test.ts` `should handle streaming completions` now uses `expect.objectContaining` + `expect.any(Function)` so the canonical wrapped `onDelta` and optional `Content-Type` header do not fail the passthrough assertion.
-- **CLIENT-006 — Validation:** `npx vitest run src/lib/venice-client.test.ts` 12/12 PASS; `npx vitest run src/lib/venice-client.dual.test.ts` 4/4 PASS; `npx vitest run src/services/veniceClient.test.ts` 21/21 PASS; `npx vitest run src/services/veniceClient.web.test.ts` 6/6 PASS (new regression test); downstream consumer tests (`veniceClient.desktop/edge`, `use-chat`, `researchSynthesis`) 18/18 PASS; `npm run typecheck` PASS; `npm run lint:eslint -- --max-warnings=0` PASS.
-- **CLIENT-007 — Out of scope confirmed:** No safety/security/privacy regression, no endpoint-allowlist change, no Electron IPC change, no local-secure-storage change, no archive-clean change, no diagnostics-redaction change, no child-exploitation-guard change, no CI/release-hardening change, no `package.json` change, no new VERIFY-NNN row (regression-guard count remains 52), no new dependency, no migration, no new TODOs.
-
-### Completed this session (2026-06-09 — Documentation sync: P2-010..P2-014)
-
-- **DOCSYNC-001 — README tab count corrected:** `README.md` `Fourteen integrated tabs` → `Seventeen integrated tabs`. Source: `src/config/tabs.ts` `TAB_REGISTRY` contains 17 canonical tab descriptors (verified by `CANONICAL_TAB_ORDER.length`). The existing 14-row feature table is unchanged because the additional 3 tabs (`scenes`, `privacy`, `playground`) were already present elsewhere in the README.
-- **DOCSYNC-002 — README Node compatibility corrected:** `README.md` Project Status table `Node.js | v20, v22` → `Node.js | 22.13+ (Node 22.x)`. Source: `package.json` `engines.node` is `>=22.13.0 <23`.
-- **DOCSYNC-003 — CONTRIBUTING Node version corrected:** `CONTRIBUTING.md` `Node.js 20 or 22` → `Node.js 22.13 or newer (Node 22.x)`. Source: `package.json` `engines.node`.
-- **DOCSYNC-004 — ABOUT.md Linux packaging statement corrected:** `docs/ABOUT.md` Non-Goals `Venice Forge does not support Linux native packaging in the current release.` → `Linux packaging is produced by the release workflow (AppImage/deb/rpm for x64+arm64). Local cross-build from macOS/Windows is not supported; use the CI artifacts or build on a Linux runner.` Source: `.github/workflows/release.yml` `build-linux` job runs `npx electron-builder --config electron-builder.config.cjs --linux --publish never` and uploads Linux artifacts.
-- **DOCSYNC-005 — CONFIG.md last-updated stamp corrected:** `docs/CONFIG.md` `Last updated: 1.0.5` → `Last updated: 1.0.6`. Source: `package.json` `version` is `1.0.6`.
-- **DOCSYNC-006 — CLAUDE.md / GEMINI.md MiniMax reference removed:** Both agent instruction files had the security bullet `Never expose or log Venice/Jina/MiniMax API keys.`. Updated to `Never expose or log Venice/Jina API keys.` to match the 2026-06-06 "Venice + Jina only" scope correction tracked in `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`. `.github/copilot-instructions.md` had no MiniMax or stale tab-count references.
-- **DOCSYNC-007 — Validation:** `npm run verify:markdown-links` PASS (46 Markdown files checked); `npm run lint:eslint -- --max-warnings=0` PASS (0 warnings).
-- **DOCSYNC-008 — Out of scope confirmed:** No code changes, no test changes, no CI/workflow changes, no `package.json` changes, no safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/archive-clean/diagnostics-redaction/child-exploitation-guard/CI/release-hardening surface touched, no new VERIFY-NNN row (regression-guard count remains 52), no new dependency, no migration, no new TODOs.
-
-### Completed this session (2026-06-09 — Fix Music/Video polling race conditions)
-
-- **POLL-001 — In-flight guard + generation token in `useMusic`:** `src/hooks/use-music.ts` now uses `isPollingRef` to skip a new interval tick when the previous `venice('/audio/retrieve', …)` call is still pending. A `generationTokenRef` is incremented on every `startPolling`, queue success, and `cancel`; each interval callback captures the token at fire time and discards the response after `await` if the token no longer matches. `startPolling()` calls `stopPolling()` first so a new generation cannot leak the old interval.
-- **POLL-002 — Same guard applied to `useVideo`:** `src/hooks/use-video.ts` receives the identical in-flight / token pattern for `/video/retrieve` polling.
-- **POLL-003 — Hook regression tests for music:** `src/hooks/use-music.test.tsx` (new, 4 tests) proves: stale responses after cancel are ignored; stale responses from an earlier generation are ignored; overlapping callbacks don't produce duplicate state updates; elapsed timer and max-attempts failure path are preserved.
-- **POLL-004 — Hook regression tests for video:** `src/hooks/use-video.test.tsx` (new, 4 tests) proves the same three race-condition contracts plus max-attempts preservation for video.
-- **POLL-005 — Validation:** `npx vitest run src/hooks/use-music.test.tsx src/hooks/use-video.test.tsx` PASS 8/8; `npm run typecheck` PASS (renderer + Electron main); `npm run lint:eslint -- --max-warnings=0` PASS (0 warnings).
-- **POLL-006 — Out of scope confirmed:** No safety/security/privacy regression, no endpoint-allowlist change, no Electron IPC change, no local-secure-storage change, no archive-clean change, no diagnostics-redaction change, no child-exploitation-guard change, no CI/release-hardening change, no `package.json` change, no new VERIFY-NNN row (regression-guard count remains 52), no new dependency, no migration, no new TODOs.
-
-### Completed this session (2026-06-09 — Chat 400 Bad Request error fix)
-
-- **CHAT-001 — `safe_mode` removed from `/chat/completions` endpoint:** `src/shared/veniceSafeMode.ts:28` — removed `/chat/completions` from `ENDPOINTS_WITH_SAFE_MODE`. The Venice chat completions API does not accept a top-level `safe_mode` field; sending it caused a `400 Unrecognized key(s) in object: safe_mode`. The provider-side `safe_mode` guard still applies to `/image/generate`, `/image/upscale`, `/image/edit`, `/image/multi-edit`, `/video/queue`, and `/video/retrieve`. `tests/safety/veniceSafeMode.test.ts` updated — the "chat completions never receives safe_mode" test now asserts 0 calls with `safe_mode: true` (was expecting 2).
-- **CHAT-002 — Error body extraction in `venice-client.ts`:** Added `readVeniceErrorBody(body: unknown): string` helper that extracts `error` (string), then `details` (flattened `_errors` arrays), then `message` (string), falling back to `statusText`. `venice()` now calls it on non-OK responses before throwing `VeniceAPIError`. `src/lib/venice-client.test.ts` — 3 new tests cover extraction from `body.error`, fallback to `statusText` when body is null, and flattening of `details._errors`. Also fixed 4 `unknown` type errors on caught errors (TypeScript strict mode: added `as unknown` + `as VeniceAPIError` casts).
-- **CHAT-003 — Transport migration in use-chat.ts:** `src/hooks/use-chat.ts` migrated from legacy `venice()` + `parseSSEStream()` to `veniceStreamChat()` from `services/veniceClient.ts` with proper `onDelta` callback. Removed direct `desktopBridge.ts` imports. `src/hooks/use-chat.test.ts` — 4 test assertions updated to match the `veniceStreamChat`-based dispatch. All 11 tests pass.
-- **CHAT-004 — Validation:** `npm run typecheck` PASS (0 errors), `npm run lint:eslint` PASS (0 warnings), `npm test` PASS 1946/1947 (1 display-gated skip). All modified test surfaces green.
-- **CHAT-005 — Out of scope confirmed:** No safety/security/privacy regression, no endpoint-allowlist change (the removal from `ENDPOINTS_WITH_SAFE_MODE` is a restriction, not an expansion), no Electron IPC change, no local-secure-storage change, no archive-clean change, no diagnostics-redaction change, no child-exploitation-guard change, no CI/release-hardening change, no `package.json` change, no new VERIFY-NNN row (regression-guard count remains 52), no new dependency, no migration, no new TODOs.
-
-- **DEFECT1-001 — Synthetic canonical photo URL fallback in `src/utils/characterImageResolver.ts`:** Added `SAFE_CHARACTER_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/`, `isSafeCharacterId()`, and `buildSyntheticCharacterPhotoUrl()`. The resolver now constructs `https://outerface.venice.ai/api/characters/{encodeURIComponent(id)}/photo` as a final fallback when the Venice `/characters` response omits every recognized image field (`photoUrl` / `photo_url` / `avatarUrl` / `avatar_url` / `imageUrl` / `image_url` / `profileImageUrl` / `profile_image_url` / `image` / `avatar` / `profileImage` / `profile_image`, plus the nested `url` / `src` / `href` for object values), preferring the provider-side `id` and falling back to the `slug` — but only when the candidate passes the same character-id regex used by the storage validator. The host is already in `VENICE_CHARACTER_IMAGE_HOSTS` so SSRF controls stay strict; the id is double-validated so a path-traversal id cannot break out of `/api/characters/<id>/photo`. This closes the user-reported defect that the webserver `/characters` view was showing initials `SA, VE, BA, IS, AI, CA` when the API response didn't include `photoUrl` in any recognized field.
-- **DEFECT1-002 — Resolver regression-guard tests for the synthetic fallback:** `src/utils/characterImageResolver.test.ts` gained 12 new cases: 3 in the existing `resolveCharacterImageUrl` describe block (UUID-based id, slug-based id, synthesised URL passes the allowlist helper), 2 in a new `isSafeCharacterId` describe (accept UUID + slug + minimum-length; reject path-traversal + non-string + oversized), 3 in a new `buildSyntheticCharacterPhotoUrl` describe (basic id, UUID-with-hyphens non-over-encoding, unsafe id returns null). The existing "returns null when no recognized field has a valid URL" test was updated to expect null only when the id is unsafe (path-traversal), since the new contract is "fall back to the synthetic URL when the id is safe". `REGRESSION GUARD` comments on every new case so a future change cannot silently weaken the synthetic-URL contract.
-- **DEFECT1-003 — `characterService.normalizeCharacter` test updated to lock the new contract:** The pre-existing `drops malformed optional fields without throwing` test at `src/services/characterService.test.ts:81` previously asserted `expect(char?.photoUrl).toBeUndefined()`. With the synthetic fallback, the `{ id: "id-1", slug: "alan-watts", …, photoUrl: undefined }` fixture now resolves to `https://outerface.venice.ai/api/characters/id-1/photo` (the canonical id wins over slug). The test was updated to assert the new contract with a `REGRESSION GUARD` comment; the change is consistent with the user-reported defect (no more initials).
-- **DEFECT1-004 — `characterCardService` test file (first coverage of this surface):** `src/services/rp/characterCardService.test.ts` is a new 13-case test file covering `normalizeCard`: minimal valid record, null/non-object rejection, invalid id rejection, name clamping, valid avatar with `data` + `mimeType` + `byteLength` round-trips, missing byteLength drops avatar, mime-type clamping (`image/gif` → `image/png`; `image/jpeg` + `image/webp` preserved), oversized example-dialogue rows dropped, tag normalization (trim, lowercase, reject empty/overlong; no dedup, which matches the actual code behavior and is documented in the test). The `characterCardSchemaVersion` and `generateId` exports also got a basic smoke test. This pins the local-card round-trip contract so a future tightening of `normalizeCard` cannot silently drop avatars (the local card surface was reported by the user as also failing; the surface itself was actually fine — the `avatarDataUri` helper in `src/components/rp-studio/_shared.tsx:75` correctly builds `data:${mime};base64,${data}` — but the test file is the missing piece that proves the round-trip).
-- **DEFECT2-001 — Research Workspace theme token sweep:** `src/components/research/ResearchWorkspaceView.tsx` JSX was rewritten to replace every hardcoded `bg-slate-N` / `text-slate-N` / `bg-blue-N` / `text-blue-N` / `bg-red-N` / `hover:bg-red-N` / `border-slate-N` / `border-blue-N` / `border-red-N` / `border-l-blue-N` (30+ occurrences) with the canonical app-wide theme tokens: `bg-bg-base` for the deepest surface, `bg-surface` for the main panel, `bg-surface-elevated` for cards and elevated buttons, `border-border` for borders, `border-l-accent` for the active session indicator, `text-text-primary` / `text-text-secondary` / `text-text-muted` for the three-tier semantic text scale, `bg-accent text-accent-fg hover:bg-accent-hover` for the primary CTAs (Save Summary / Save Finding / New Session), `text-accent` for source-title links, `hover:bg-danger/15 text-danger` for the destructive Delete button (visible on the themed surface, with semantic danger tone). The page is now fully theme-aware: switching the active theme recolors it. The pre-existing `🔬` icon (line 353) was not changed in shape; only a `text-text-muted` class was added so it picks up the current theme's muted-text color. The user constraint was no new emoji; no new emoji was introduced.
-- **DEFECT2-002 — Theme-token regression-guard tests for `ResearchWorkspaceView.tsx`:** `src/components/research/ResearchWorkspaceView.test.tsx` gained 2 new tests with explicit `REGRESSION GUARD` comments: (a) "does not use hardcoded slate/blue/red Tailwind colors anywhere in the rendered output" — renders the view, scans `container.innerHTML` against a 13-pattern regex list; (b) "source file contains no hardcoded slate/blue/red color classes" — reads the .tsx source from disk and applies the same regex matrix. The two tests are independent so a regression in either the rendered output OR the source itself will be caught (a contributor who pastes in `bg-slate-900` will fail the test even if the rendered output happens to be hidden by a wrapping class). The 2 pre-existing tests still pass.
-- **DEFECT2-003 — Ledger update:** This `docs/summary_of_work.md` (Latest Session Summary replaced with the DEFECT1 + DEFECT2 block, Session History gains this entry, Open TODO Ledger gains this sub-section, Validation Matrix gains four rows for the targeted test reruns + the full CI rerun).
-- **DEFECT2-004 — Validation:** `npm run lint:eslint` PASS (zero warnings, `--max-warnings=0`); `npm run typecheck` PASS; `npx vitest run src/utils/characterImageResolver.test.ts` 36/36 PASS; `npx vitest run src/services/rp/characterCardService.test.ts` 13/13 PASS; `npx vitest run src/services/characterService.test.ts` 21/21 PASS; `npx vitest run src/components/research/ResearchWorkspaceView.test.tsx` 4/4 PASS; full `npm test` (serial) 1944 passed / 1 skipped; `npm run verify:safety-guard` PASS (synthetic URL resolves to a host already in the 3-host allowlist, so SSRF controls stay strict); `npm run verify:research-workspace` PASS: 80 tests (VERIFY-051); `npm run verify:markdown-links` PASS: 44 files; full `npm run ci` PASS end-to-end (every `verify:*.cjs` audit script + the full Vitest suite + lint + typecheck + production build all green). Pre-fix the same `npm test` run was 1921 passed / 1 skipped at the `c2afcfac` baseline; post-fix is 1944 / 1 skipped. The +23 net new tests = 12 resolver + 13 card-service - 1 characterService updated - 1 net (no other test counts shifted; the +1 skipped is the same display-gated electron smoke). 181 → 182 test files.
-- **DEFECT2-005 — Out of scope confirmed:** No safety / security / privacy regression, no endpoint-allowlist change (3-host allowlist is identical), no Electron IPC change, no local-secure-storage change, no archive-clean change, no diagnostics-redaction change, no child-exploitation-guard change, no CI / release-hardening change, no `package.json` change, no `package-scripts.test.ts` change, no new VERIFY-NNN row (regression-guard count remains 52; both contracts are locked in their existing test files with `REGRESSION GUARD` comments, so no new audit script is needed), no new dependency, no migration, no new TODOs. The gitignored `docs/HQE_AUDIT_REPORT.md`, `docs/AGENTS/*`, `docs/design/`, and root `todo.md` / `TODO.md` were not touched (verified via `git check-ignore -v`). All 5 expected source files modified; no off-surface edits.
-
-### Completed this session (2026-06-08 — Repository tree refresh, AGENTS.md version sync, Phase 2H test-pattern fix)
-
-- **TREE-001 — `docs/REPOSITORY_TREE.md` rewrite:** 119L → 357L. Now a curated directory-level map sourced from `git ls-files` (601 tracked files). Replaces the old map that was missing the `src/components/` 18-subdir layout, the `src/services/` table, the 28+ `src/stores/` entry inventory, the `src/research/agent/` and `src/research/providers/` subdirs, the `tests/` subtree, the `electron/ipc/`, `electron/services/`, `electron/utils/` subdirs, and listed a non-existent `electron/ipc/services/` path. New map covers: top-level layout, `src/components/` 18-subdir table, root-level view shells, `src/services/` table (incl. `src/services/rp/`), 28+ entry `src/stores/` table, `src/research/` subdirs, `src/types/`, `src/hooks/`, `src/utils/`, `src/shared/` + `src/shared/safety/`, `src/constants/`, `src/lib/`, `electron/` 3-subdir layout, `scripts/`, `tests/`, `config/themes/`, `docs/` 4-subdir layout, runtime segments, source organization, generated/ignored output. The fake `electron/ipc/services/` path was replaced with accurate `electron/services/` + `electron/utils/`.
-- **TREE-002 — `AGENTS.md` version sync:** Line 2 `**Version:** 1.0.5` → `**Version:** 1.0.6`. Single-line drift fix. Matches `package.json` line 8, `README.md` Project Status, `CHANGELOG.md` `[Unreleased]`.
-- **TREE-003 — `storageMaintenance.test.ts` vitest pattern fix:** The pre-existing `applies clear-model-cache` test spied on `Storage.prototype.removeItem`, but jsdom's own-property `localStorage` shadows the prototype chain so the spy never intercepted. Rewrote the test using the canonical polyfill-and-spy pattern from `src/lib/safe-storage.test.ts:5-14` (`localStorageMock` + `vi.spyOn(localStorageMock, "removeItem")`). Added `// @vitest-environment jsdom` pragma, `beforeEach` to clear the store and restore mocks, strengthened the assertion to also verify the side-effect (`expect(localStorageStore["venice-forge-models-cache"]).toBeUndefined()`), and added a `BUG-2026-06-08 storageMaintenance.test.ts regression guard` comment documenting the prototype-chain pitfall so the wrong vitest pattern cannot be re-introduced. 4 tests, 4 pass. Note: `src/services/storageMaintenance.ts:97` had a pre-existing 1-char working-tree edit (the prior session changed `window.localStorage.removeItem("venice-forge-models-cache")` → `localStorage.removeItem("venice-forge-models-cache")` while investigating this same bug; both forms refer to the same `localStorage` object in the renderer, so the change is functionally a no-op, but it is staged in the working tree and is the diff line visible in `git diff`). The production behavior is identical and the implementation is correct.
-- **TREE-004 — Ledger update:** This `docs/summary_of_work.md` (Latest Session Summary, Session History, Open TODO Ledger, Validation Matrix) gains the matching entries for this pass.
-- **TREE-005 — Validation:** `npm run lint:eslint` PASS (zero warnings, `--max-warnings=0`); `npm run typecheck` PASS; `npm test` (serial) 1921 passed, 1 skipped; `npx vitest run src/services/storageMaintenance.test.ts` (targeted) 4/4; `npm run verify:safety-guard` PASS; `npm run verify:archive-clean` PASS; `npm run verify:markdown-links` PASS (44 Markdown files). Pre-fix the same `npm test` run was 1920 passed + 1 failed at the same `storageMaintenance.test.ts:33`; post-fix is 1921 passed + 0 failed. The +16 vs the 2026-06-08 final proof audit's reported 1905 is the P3 vision cleanup test additions from earlier this session.
-- **TREE-006 — Out of scope confirmed:** No safety / security / privacy regression, no endpoint-allowlist change, no Electron IPC change, no local-secure-storage change, no archive-clean change, no diagnostics-redaction change, no child-exploitation-guard change, no CI / release-hardening change, no `package.json` change, no `package-scripts.test.ts` change, no new VERIFY-NNN row (regression-guard count remains 52), no new dependency, no migration, no new TODOs. The gitignored `docs/HQE_AUDIT_REPORT.md`, `docs/AGENTS/*`, `docs/design/`, and root `todo.md` / `TODO.md` were not touched (verified via `git check-ignore -v`). `AGENTS.md` change is a 1-line version string; no VERIFY table row, no Architecture paragraph, no Commands block modified.
-
-### Completed this session (2026-06-08 — P3 vision-capability and alias-contract cleanup)
-
-- **P3-001 — `modelSupportsVision` live-capability hook:** `src/constants/venice.ts:107-177` now exports `modelSupportsVision(modelId, liveCapabilities?: MinimalVisionCapabilities | null)`. Resolution order: (a) live metadata wins — a live `supportsVision: false` is honored (overrides even direct allowlist hits, the dangerous case), a live `supportsVision: true` enables vision even for unknown ids, `{}` / `null` falls through; (b) static `VISION_CAPABLE_MODEL_IDS` set; (c) conservative `VISION_CAPABLE_PATTERNS` regex fallback. Helper stays a pure function, never inspects API keys / raw prompt payloads / persisted secrets. `MinimalVisionCapabilities` is a local interface so the constants module does not import the renderer-only type graph.
-- **P3-002 — MediaItem live-capability threading:** `src/utils/mediaItem.ts` adds an optional `liveCapabilities` field on the call site; `mediaCapabilities()` threads it through to `modelSupportsVision`. The `MediaCapabilities` interface is unchanged for backward compatibility — every existing call site defaults to `null` and the static fallback path is preserved.
-- **P3-003 — Media Inspector live lookup:** `src/components/gallery/media-inspector.tsx` now reads `useModels('text')` and derives `liveVisionSupports` by `find(m => m.id === item.model)?.model_spec?.capabilities?.supportsVision` (or `null` if not in cache / not yet loaded). Forwards it to `mediaCapabilities`. Persisted MediaItems whose source model is in the current live cache are now evaluated against the API, not the hard-coded list.
-- **P3-004 — Chat vision UI warning:** `src/components/chat/chat-view.tsx` defines a `handleSend` wrapper that calls `toast.warn("Model does not support images", "“{model}” cannot process image attachments. Pick a vision-capable model in the header before sending.")` if the user attempts to send image attachments on a non-vision model. The `visionSupported` flag is computed from `useModels('text')` and the new `liveCapabilities` block.
-- **P3-005 — ChatInput attach gating:** `src/components/chat/chat-input.tsx` accepts a new `disableImageAttach` prop. When true, the attach button is disabled, the `aria-label` / `title` text reads "Selected model does not support image attachments", and the drag/drop + paste paths are short-circuited so the user cannot build an invalid request.
-- **P3-006 — Vision helper tests:** `src/constants/venice.test.ts` (new, 9 cases) covers the full resolution matrix: static allowlist, static pattern, unknown defaults OFF, live `true` enables unknown id, live `false` overrides pattern, live `false` overrides direct allowlist (regression guard), empty `{}` falls back, `null` falls back, case-insensitive id.
-- **P3-007 — MediaItem live-capability tests:** `src/utils/mediaItem.test.ts` (+4 cases at the end of the `mediaCapabilities` describe block) covers: live `true` enables unknown id, live `false` overrides pattern match (regression guard for the 2026-06-08 P3 cleanup), unknown id with no live metadata defaults to non-vision, `null` live caps fall back to static list (does not crash, does not silently drop to non-vision).
-- **P3-008 — Alias-contract test:** `scripts/verify-storage-privacy.test.ts` (new, 3 cases) locks: canonical `verify:storage-privacy` script body matches `node scripts/verify-storage-privacy.cjs`; back-compat `verify:storage-privacy-dashboard` alias delegates through the canonical name and never points to a different verifier file; `ci` script references the canonical name and never the alias. The test deliberately asserts the contract against `package.json` directly (not via shelling out to the storage-privacy CLI) to avoid the pre-existing `src/services/storageMaintenance.test.ts` flake.
-- **P3-009 — Current audit banner:** `docs/reports/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md` gained an explicit `Status: ACTIVE — 2026-06-08 release-blocking audit (current report of record)` banner at the top, mirroring the convention used by every other retained report (HISTORICAL / SUPERSEDED / ACTIVE). The audit was already the canonical reference in the audit trail, but the banner was implicit; making it explicit closes the docs-canonicalization loop.
-- **P3-010 — CHANGELOG `[Unreleased]` entry:** New "P3 vision-capability and alias-contract cleanup (2026-06-08)" bullet under `[Unreleased] ## Added` describing every change. Future agents reading only the CHANGELOG can see what this pass did without leaving the file.
-- **P3-011 — Ledger update:** This `docs/summary_of_work.md` (Latest Session Summary replaced with the P3 block, Session History gains this entry, Open TODO Ledger gains this sub-section, Validation Matrix gains three rows for the targeted test runs and the markdown-links re-run).
-- **P3-012 — Validation:** `npx vitest run src/constants/venice.test.ts src/utils/mediaItem.test.ts` — **20/20 PASS**; `npx vitest run scripts/verify-storage-privacy.test.ts` — **3/3 PASS**; `node scripts/verify-markdown-links.cjs` — **PASS** (44/44 files). Pre-existing `src/services/storageMaintenance.test.ts` `applies clear-model-cache` flake verified to exist on `c2afcfac` baseline (independent of this P3 work) via `git stash` + targeted `npx vitest run`. Out of scope per the audit's "fix only real remaining issues" rule.
-- **P3-013 — Out of scope confirmed:** No safety/security/privacy regression, no endpoint-allowlist change, no Electron IPC change, no local-secure-storage change, no archive-clean change, no diagnostics-redaction change, no child-exploitation-guard change, no CI / release-hardening change, no `package.json` change, no `package-scripts.test.ts` change, no new VERIFY-NNN row (regression-guard count remains 52), no new dependency, no migration, no `CHANGELOG.md` version bump, no new TODOs.
-
-### Completed this session (2026-06-08 — Documentation canonicalization & stale-prune)
-
-- **DOCS-001 — `BUG_HUNT_REVIEW.md` SUPERSEDED banner:** Added a 15-line `SUPERSEDED — 2026-06-08` banner at the top of `docs/reports/BUG_HUNT_REVIEW.md` pointing to the three current reports of record (`FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md`, `POST_VENICE_JINA_AUDIT_2026_06_06.md`, `summary_of_work.md`). Future agents reading the `docs/reports/` directory in filename-sort order will now see the canonical final audit and the 2026-06-08 docs canonicalization report before the older `BUG_HUNT_REVIEW.md`, and the banner tells them in greppable form that the latter is superseded.
-- **DOCS-002 — `BUG_HUNT_REVIEW.md` section 1.1 status fix:** Section 1.1 ("Deletion of TARGET-Only Features") was a stale "Critical" finding with no status marker. Now stamped `✅ Fixed (2026-06-04/05 modules→components refactor; see SUPERSEDED banner above)` to match the `✅ Fixed` marker that sections 1.2, 3.1, 3.2 already carried. The conclusion paragraph is re-written in past tense ("was at that point structurally sound but functionally incomplete") with a pointer line to the current conclusion of record in `FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md`.
-- **DOCS-003 — `README.md` regression-guard count sync:** Line 444 "Full Vitest suite plus 40 active named regression guards" → "Full Vitest suite plus 52 active named regression guards" to match the same file's own guard table (line 260), `AGENTS.md`, `CHANGELOG.md`, and `verify:release-packaging-hardening`. The "40" was a stale carry-over from a pre-2A count.
-- **DOCS-004 — `README.md` version sync:** Line 436 `Current Version | v1.0.5` → `v1.0.6` to match `package.json` (1.0.6) and the CHANGELOG `[Unreleased]` block.
-- **DOCS-005 — `README.md` VERIFY-047..051 expansion:** Line 309 single collapsed row (`VERIFY-047`–`VERIFY-051` | Reserved: Phase 2E Scene Composer, 2F RP Studio Polish, 2G Workflow Templates, 2H Storage/Privacy Dashboard, 2I Research Workspace Polish. See `AGENTS.md` for the full description of each guard) expanded into 5 individual rows matching the AGENTS.md descriptions 1-for-1, each citing the locked test files and the `verify:*.cjs` audit script. Brings the README regression-guard table to parity with `AGENTS.md`.
-- **DOCS-006 — `README.md` audit-trail sentence:** Line 316 extended to also point to the 2026-06-08 final proof audit (`docs/reports/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md`) and the 2026-06-08 docs canonicalization report (`docs/reports/DOCS_CANONICALIZATION_AND_STALE_PRUNE.md`). Provides a complete audit trail 2026-06-05 → 2026-06-06 → 2026-06-08 in a single sentence.
-- **DOCS-007 — `CHANGELOG.md` Unreleased entry:** New bullet under `[Unreleased] ## Added` describing the documentation canonicalization. The entry lists every modified file and the specific change in each, so a future audit reading only the CHANGELOG can see what this pass did without leaving the file.
-- **DOCS-008 — `docs/reports/DOCS_CANONICALIZATION_AND_STALE_PRUNE.md` (new file):** 162L new report. Captures the audit/decision history (scope, files inspected, files modified, files explicitly NOT modified and why, validation performed, allowed/growth surfaces, disallowed surfaces) so the next session can audit the auditors.
-- **DOCS-009 — `docs/summary_of_work.md` ledger update:** *Latest Session Summary* block replaced with the canonicalization block (matching the existing pattern at lines 99, 109, 119 where the prior final-audit block is retained as "historical context and is superseded"); *Session History* gains this session's entry; *Open TODO Ledger* gains this sub-section; *Validation Matrix* gains one row confirming `verify:markdown-links` post-edit PASS.
-- **DOCS-010 — Validation:** `node scripts/verify-markdown-links.cjs` PASS post-edit. No other command was re-run because no surface those commands exercise was modified (no code, no test, no CI surface, no package, no `package.json`, no `.github/workflows/*`).
-- **DOCS-011 — Out of scope confirmed:** No code changes, no new tests, no new dependencies, no CI / workflow changes, no new regression guards, no new scripts, no `.gitignore` changes, no version bump, no new TODOs, no P0/P1/P2/P3 audit-ledger items. The deprecated `src/modules/` directory is already gone; the gitignored local-only `todo.md` / `TODO.md` / `docs/AGENTS/*` / `docs/HQE_AUDIT_REPORT.md` / `docs/design/` are already handled by `.gitignore` and the canonical ledger.
-
-### Completed this session (2026-06-08 — Phase 2J Release / Packaging Hardening)
-
-- **PHASE2J-001 — Single-source-of-truth audit:** `scripts/verify-release-packaging-hardening.cjs` reads the live `package.json`, `ci` script, `.github/workflows/{ci,release}.yml`, `electron-builder.config.cjs`, `AGENTS.md`, `.gitignore`, `build/icon.{ico,icns,png}`, and `README.md`; fails on missing files, wrong script strings, missing CI chain entries, Node 22 unpinned, electron-builder invariants, or tracked archive contaminants. The script resolves `root` from `process.cwd()` and the `BAD_PATTERNS` source-of-truth from `scripts/verify-archive-clean.cjs` so there is exactly one place to update.
-- **PHASE2J-002 — `ci` chain + release workflow parity:** `verify:release-packaging-hardening` is wired into the `ci` script (after `verify:research-workspace`) and into the GitHub `release.yml` workflow for all three platforms (macOS, Windows, Linux), after the icon check and before `typecheck`/`test`/`build`. The release workflow also runs `node scripts/verify-archive-clean.cjs` after every `dist:*` packaging step.
-- **PHASE2J-003 — `verify-dist.cjs` hygiene + secret-leak guards:** Added `FORBIDDEN_DIST_PATTERNS` (source maps, test files, `.env*`, `.config/*.local.yaml`, `*.db`, `chat-history/`, `.design-captures/`, `.integration-src/`) and `SECRET_PATTERNS` (tight regex for `venice_<40+ alnum/dash>` / `sk-<20+ alnum>` / `Bearer <20+ chars>` that does not match internal constants). Both run in local AND release modes so a dirty dev build never reaches CI. `assertNoSecretsInDist` skips the legal-only `dist/assets/branding/NOTICE.md` and LICENSE.
-- **PHASE2J-004 — `verify-archive-clean.cjs` extension:** Added Windows metadata (`Thumbs.db`, `desktop.ini`), `*.log`, `*.tmp`, `target_inventory.txt`, explicit `.config/*.local.yaml` exclusion, and `.env.<anything-but-example>` exclusion. Diagnostic message updated to list every forbidden pattern with rationale.
-- **PHASE2J-005 — `.gitignore` extension:** Added `Thumbs.db`, `desktop.ini`, `*.tmp`.
-- **PHASE2J-006 — AGENTS.md + README:** Added VERIFY-052 row to `AGENTS.md`; bumped the README regression-guard count from 40 to 52; added the canonical `npm run verify:release-packaging-hardening` and `npm run verify:archive-clean` lines to the "Key Development Commands" table.
-- **PHASE2J-007 — Docs:** `docs/RELEASE/release.md` got a new "Phase 2J: Release / Packaging Hardening" section with the audit table, local release validation matrix, safe-GPT-ZIP command, platform packaging commands, checksum behavior, and artifact-naming consistency rules. `docs/DEVELOPMENT/troubleshooting.md` got "Archive Hygiene Failures", "Dist Verification Failures", and "Release Packaging Hardening Gate Failures" sections. `docs/DEVELOPMENT/platform-support.md` got the VERIFY-052 cross-platform section and updated the Linux row to reflect the CI Linux job.
-- **PHASE2J-008 — CHANGELOG + summary-of-work:** CHANGELOG `[Unreleased]` carries a complete Phase 2J entry; `docs/summary_of_work.md` Latest Session Summary, Session History, Open TODO Ledger, and Validation Matrix are all updated.
-- **PHASE2J-009 — Tests:** `scripts/verify-release-packaging-hardening.test.ts` has 2 tests (clean-repo PASS, missing-files FAIL). `scripts/verify-archive-clean.test.ts` was extended with the new patterns. `scripts/verify-dist.test.ts` was extended with `FORBIDDEN_DIST_PATTERNS` and `SECRET_PATTERNS` coverage.
-- **PHASE2J-010 — Out of scope confirmed:** No Phase 2K work, no updater infrastructure, no telemetry, no marketplace, no plugin system, no cloud sync, no security regression, no API-key-in-dist leak, no source-map shipped, no new packaging platform.
-
-### Completed this session (2026-06-08 — Phase 2I continuation / closure)
-
-- **PHASE2I-001 — Compatibility restored:** Research Workspace is the default subview under canonical tab `search`; Search / Scrape, Text Parser, AI Research, and Profile Discovery remain available.
-- **PHASE2I-002 — Provider and scrape correctness:** Search honors Venice/Jina selection; direct scrape calls the selected provider without placeholder search queries; generic HTTP remains behind the existing proxy and SSRF controls.
-- **PHASE2I-003 — Data and import/export safety:** Research fields are bounded, nested metadata is recursively redacted, private/ambiguous URL forms are rejected, project scope is validated, and imported sessions are merged into the live store.
-- **PHASE2I-004 — Summary and integrations:** Default summaries include findings and sources; Prompt Library, Workflow, diagnostics, and Command Palette integrations are active.
-- **PHASE2I-005 — Verification and hygiene:** VERIFY-051 now checks legacy Research compatibility; changelog and lockfile damage was repaired; unused `canvas` was removed; archive verification passes on tracked content and retains exhaustive `--root` scans.
-- **PHASE2I-006 — Out of scope confirmed:** No Phase 2J or unrelated feature work was started.
-
-### Completed this session (2026-06-08 — Phase 2E Scene Composer Foundation)
-
-- **PHASE2E-001 — Scene data model:** `src/types/scene.ts` (533 lines) defines `SceneComponentKind` (exhaustive union: subject / character / location / mood / style / camera / lighting / composition / negative / note), `SceneScope` (global / project), `SceneComposerItem`, `SceneVersion` (append-only), `SceneComponent` (kind, title, content, enabled), `SceneMediaRef`, `ScenePromptRef`. `SCENE_COMPOSER_VERSION = 1`. Sanitizers reject / redact `sk-…` / `venice_…` / `Bearer …` / `Authorization:` payloads and cap every field. `isSecretLike` / `redactSecrets` are the canonical secret-detection helpers. `sanitizeSceneVersion` allows empty initial versions. Export pre-checks raw content before sanitization.
-- **PHASE2E-002 — Persistence + migration:** Added `scenes` to `STORE_NAMES` (DB_VERSION 9), `ENCRYPTED_STORES`, and `dbMigrations.toVersion = 9`. Encryption is automatic via existing `StorageService.saveItem` / `getItems` / `deleteItem` path.
-- **PHASE2E-003 — Store:** `src/stores/scene-composer-store.ts` — thin Zustand store with `ensureLoaded` / `createScene` / `updateScene` / `addSceneVersion` / `setCurrentVersion` / `archiveScene` / `unarchiveScene` / `deleteScene` / `toggleFavorite` / `addOutputMedia` / `removeOutputMedia` / `importScenes` / `exportScenes`. Selectors `selectActiveScenes`, `selectArchivedScenes`, `selectScenesForProject`.
-- **PHASE2E-004 — Compiler:** `src/services/sceneCompiler.ts` — `compileSceneToRecipe(item, version, options)` combines components in canonical order (subject→character→location→mood→style→camera→lighting→composition→note), extracts negative/style, maps defaults, resolves Prompt Library refs.
-- **PHASE2E-005 — UI:** `src/components/scenes/SceneComposerView.tsx` — split layout (list + detail), component grid with 10 kind options, version history, compile+send-to-image-studio, copy-recipe, confirm-gated delete.
-- **PHASE2E-006 — Tab / sidebar / App integration:** Registered `scenes` tab in `TAB_IDS`, `TAB_REGISTRY` (group=generate), added `SceneIcon` to `TAB_ICONS` in sidebar, mounted `SceneComposerView` in `App.tsx` views map.
-- **PHASE2E-007 — Command Palette:** Added Scene Composer section (3 commands: Open Scene Composer / Export Scenes / Import Scenes) using `useSceneComposerStore`, wired into live store actions.
-- **PHASE2E-008 — Import / export safety:** `exportSceneComposerItems` strips secret-like content before producing the envelope; `parseSceneComposerImport` regenerates ids, validates version, skips invalid records.
-- **PHASE2E-009 — Tests:** 83 new tests (26 types + 27 store + 13 compiler + 17 view). Total: 1767 passed, 1 skipped.
-- **PHASE2E-010 — Verify script + regression guard:** `scripts/verify-scene-composer.cjs` (45 assertions) + `verify:scene-composer` npm script + `VERIFY-047` row in `AGENTS.md`. Wired into the `ci` parity command.
-- **PHASE2E-011 — Out of scope confirmed:** No RP overhaul, workflow marketplace, onboarding overhaul, density modes, cloud sync, plugin systems, or large visual redesigns were touched.
-
-### Completed this session (2026-06-08 — Phase 2F RP Studio Character + Lore Polish — STOPPED on user request)
-
-- **PHASE2F-001 — Type polish (no regression):** `src/types/rp.ts` (501 lines) adds OPTIONAL `firstMessage`, `versions`, `currentVersionId`, `metadata` to `CharacterCardV1`; OPTIONAL `projectId`, `scope` to `UserPersonaV1`; OPTIONAL `projectId`, `characterId`, `scope` to `LorebookV1`. Bumped `RP_SCHEMA_VERSION 1→2`. All existing fields preserved.
-- **PHASE2F-002 — Service normalizers handle Phase 2F fields:** `characterCardService.normalizeCard` (firstMessage slice, versions, currentVersionId, metadata primitive-only coercion), `personaService.normalizePersona` (scope, projectId), `lorebookService.normalizeLorebook` (scope, projectId, characterId). All normalize and persist round-trips.
-- **PHASE2F-003 — ScenarioV1 + scenario service:** `src/types/rp.ts` defines `ScenarioV1` (id, scope, projectId, characterId, sceneId, name, description, content, firstUserMessage, tags, favorite, archivedAt). `src/services/rp/scenarioService.ts` (110 lines) provides list / read / save (gated by `assessScenario`) / delete / generateId with Electron + Web backends. `MAX_LIST_SCENARIOS=1_000`. `normalizeScenario` returns `ScenarioV1 | null`.
-- **PHASE2F-004 — Scenario store:** `src/stores/scenario-store.ts` (252 lines) — `useScenarioStore` with `scenarios` (plural) field, full CRUD + archive / favorite / import / export / selectForProject. Field name matches `usePersonaStore.personas` convention.
-- **PHASE2F-005 — Storage + migration:** Added `rpScenarios` to `STORE_NAMES`, `ENCRYPTED_STORES`, `dbMigrations.toVersion = 10`. `DB_VERSION` bumped 9→10. Electron file path `app.getPath("userData")/rp-scenarios/<id>.json`.
-- **PHASE2F-006 — Safety extension:** `assessScenario(scenario, enabled)` in `src/shared/safety/characterImportSafety.ts` routes name / description / content / firstUserMessage through the existing `assess` pipeline at endpoint `/scenario/import`. `saveScenario` re-runs this guard on every persist.
-- **PHASE2F-007 — Electron main-process wiring:** `electron/services/rpStores.ts` exports `scenarioStore = createSingleFileStore<ScenarioV1>("rp-scenarios", isValidScenario)`. `electron/ipc/rpHandlers.ts` registers 4 IPC handlers (`scenarios:list/get/save/delete`). `electron/preload.ts` exposes `scenarios: { list, get, save, delete }` on the `veniceForge` bridge. `src/services/desktopBridge.ts` exports `desktopScenarios`. `src/types/desktop.ts` defines `VeniceForgeScenarios` and adds `scenarios: VeniceForgeScenarios` to the `VeniceForge` root.
-- **PHASE2F-008 — Helper module:** `src/services/rpHelpers.ts` (250 lines) — `blankCharacterCard`, `createCharacterFromMedia(media)`, `createCharacterFromScene(scene)`, `attachSceneToCharacter(characterId, sceneId)`, `attachPromptToCharacter(characterId, promptId)`, `saveCharacterPromptToLibrary(characterId)`, `startChatForCharacter(characterId, opts?)`, `bulkPatchCharacters(ids, patch)`. All redact secrets via `redactPromptSecrets` / `isPromptSecretLike`. SVG data URLs rejected for avatars. Lorebook scope filtering: character→matching id, project→active project, global→all. Default model: `settings.selectedModels["chat"] ?? FALLBACK_MODELS.text[0]?.id ?? "venice-uncensored"`.
-- **PHASE2F-009 — Import/export:** `src/services/characterCardImportExport.ts` (335 lines) — `exportCharacterCards(cards)` strips avatars, redacts secrets, caps fields. `parseCharacterCardImport(raw)` handles stringified JSON, arrays, native envelopes, single CharacterCardV1, and Tavern-style (heuristic: name + (system_prompt or description)). Tavern maps: first_mes→firstMessage, mes_example→first example, system_prompt→systemPrompt, description ?? personality→description, creator_notes/creator/character_name→metadata.creator, character_version→metadata.importedVersion, alternate_greetings→extra examples. Always sets `metadata.importedFrom = "tavern"`. Re-runs `assessCharacterImport` (safety guard) on every imported card. Rejects string inputs >8 MiB.
-- **PHASE2F-010 — RP prompt stack compiler:** `src/services/rpPromptCompiler.ts` (444 lines) — `compileRpPrompt`, `compileSystemPrompt`, `CHARS_PER_TOKEN=4`. Wraps `buildRpPrompt` and adds prompt-library refs, scene-composer ref, first-message greeting, example-dialogues block. Returns `RpCompileResult { version, sections[], systemPrompt, recentMessages, userMessage, firstMessage?, exampleDialogue?, warnings[], totalSystemChars, totalSystemTokens, budgetExceeded }`. Section order: safety-preamble → model-identity → persona → character → scenario → prompt-library refs → scene-compiler → lorebook → memory → example-dialogue → recent-message → first-message → active-turn-instruction → user-message. Token estimator: `Math.max(1, Math.ceil(text.length / 4))`. Budget enforcement walks Phase 2F sections in priority order (scene-compiler → example-dialogue → prompt-library).
-- **PHASE2F-011 — CharacterEditor Workflow section:** `src/components/rp-studio/CharacterEditor.tsx` (600 lines, was 439) — 5 new action handlers + JSX "Workflow" section with 5 buttons (Save to Prompt Library, Attach Scene dropdown, Attach Prompt Library item dropdown, Start Chat, Create Scenario from Character). data-testids: `character-editor-workflow`, `character-editor-save-to-prompt-library`, `character-editor-attach-scene`, `character-editor-attach-prompt`, `character-editor-start-chat`, `character-editor-create-scenario`, `character-editor-workflow-summary`. `import type { Tab } from "../../stores/settings-store";` for typed `setActiveTab("scenes" as Tab)`.
-- **PHASE2F-012 — Tests added (58 passing):** `src/stores/scenario-store.test.ts` (10), `src/stores/character-card-store.test.ts` (8), `src/services/characterCardImportExport.test.ts` (12), `src/services/rpPromptCompiler.test.ts` (13), `src/components/rp-studio/CharacterEditor.test.tsx` (6), `src/components/command-palette/CommandPalette.test.tsx` (9 new cases).
-- **PHASE2F-013 — Phase 2F Recovery Completed:**
-  - Fixed 2 failing tests in `CharacterEditor.test.tsx` (start chat mismatch and mock depth).
-  - Extended Command Palette with RP Studio section (Open, New Character, Start Chat, New Scenario).
-  - Added tests for Command Palette RP section.
-  - Created `scripts/verify-rp-studio-polish.cjs` with 45+ assertions.
-  - Wired `verify:rp-studio-polish` into `package.json` and CI.
-  - Appended VERIFY-048 to `AGENTS.md`.
-  - Updated `CHANGELOG.md` with Phase 2F entry.
-  - Verified full Node 22 validation matrix.
-  - Re-ran `npm test` post-fixes (PASS).
-
-### Completed this session (2026-06-08 — Phase 2D Prompt Library Foundation)
-
-- **PHASE2D-001 — Prompt data contract:** `src/types/prompt-library.ts` defines the exhaustive `PromptKind` union, `PromptScope`, `PromptVersion`, `PromptLibraryItem`, and the JSON-serialisable `PromptLibraryExport` envelope. `PROMPT_LIBRARY_VERSION = 1` pins the export contract. `sanitizePromptLibraryItem` and `sanitizePromptVersion` reject / redact `sk-…` / `venice_…` / `Bearer …` / `Authorization:` payloads and cap every field so a corrupt record cannot inflate the storage budget. `isPromptSecretLike` and `redactPromptSecrets` are the canonical secret-detection helpers used by the save / import / export paths.
-- **PHASE2D-002 — Persistence + migration:** Added `promptLibrary` to `STORE_NAMES`, `ENCRYPTED_STORES`, and `dbMigrations.toVersion = 8` (additive — no prior data is deleted). The store uses the existing `StorageService.saveItem` / `getItems` / `deleteItem` path so encryption is automatic.
-- **PHASE2D-003 — Store:** `src/stores/prompt-library-store.ts` is a thin Zustand store: `ensureLoaded` / `createPrompt` / `updatePrompt` / `addPromptVersion` / `setCurrentVersion` / `archivePrompt` / `unarchivePrompt` / `deletePrompt` / `toggleFavorite` / `importPrompts` / `exportPrompts`. Selectors `selectActivePrompts`, `selectArchivedPrompts`, and `selectPromptsForProject(state, activeProjectId)` cover the canonical list filters.
-- **PHASE2D-004 — UI:** `src/components/prompts/PromptLibraryView.tsx` is mounted in `App.tsx` for the canonical `prompts` tab (registered in `TAB_IDS` + `TAB_REGISTRY`, icon wired in `Sidebar.tsx`). List view + detail editor with confirm-gated delete.
-- **PHASE2D-005 — Save from existing surfaces:** Image Studio prompt + negative prompt + Media Inspector recipe each expose a "Save to library" / "Save recipe" button. The action infers the `PromptKind`, preserves the active project scope, defaults the title to the first 80 chars of the content, and records `source: { type: "image" | "media", sourceId }` metadata.
-- **PHASE2D-006 — Apply prompt:** Prompt Library detail exposes "Use in Image Studio" (enqueues a draft via `useImageWorkspaceStore.enqueueGenerate` and routes to the `image` tab) and "Use in Chat" (writes the content to `useChatStore.systemPrompt` and routes to the `chat` tab). The buttons are hidden for incompatible kinds.
-- **PHASE2D-007 — Command Palette integration:** `src/components/command-palette/CommandPalette.tsx` adds a Prompt Library section with Open / New / Use Selected / Export / Import commands. Export / import use safe browser `<a download>` + file-picker patterns; no file path leaks into the renderer.
-- **PHASE2D-008 — Import / export safety:** `exportPromptLibraryItems` strips obvious secret-like content before producing the envelope; `parsePromptLibraryImport` regenerates ids, validates the export version, skips invalid records with reasons.
-- **PHASE2D-009 — Tests:** 65 new tests (31 type / 22 store / 12 UI). Total: 1684 passed, 1 skipped.
-- **PHASE2D-010 — Verify script + regression guard:** `scripts/verify-prompt-library.cjs` + `verify:prompt-library` npm script + `VERIFY-046` row in `AGENTS.md`. Wired into the `ci` parity command.
-- **PHASE2D-011 — Out of scope confirmed:** No Scene Composer, RP overhaul, workflow marketplace, onboarding overhaul, density modes, cloud sync, plugin systems, public sharing/social features, advanced variable templating, or AI auto-tagging were touched.
-
-### Completed this session (2026-06-08 — Phase 2C Header Status Cluster + Diagnostics Polish)
-
-- **PHASE2C-001 — Status type contract:** `src/types/status.ts` defines the exhaustive `StatusSeverity` union, `AppStatusItem`, `AppStatusSnapshot` (api / apiKey / model / storage / project / safety / provider / desktop / diagnostics), and the JSON-serialisable `SafeDiagnosticsSnapshot`. `SAFE_DIAGNOSTICS_SNAPSHOT_VERSION = 1` pins the contract.
-- **PHASE2C-002 — Snapshot service:** `src/services/diagnosticsService.ts` is a pure store-state → status → safe-snapshot builder. Worst-of aggregation is collapsed by `pickWorst()`. The service never mutates inputs and never holds caches; the store's `recompute()` rebuilds on demand.
-- **PHASE2C-003 — Status store:** `src/stores/status-store.ts` is a thin Zustand store: `recompute`, `refresh` (non-overlapping via `isRefreshing`), `openDrawer` / `closeDrawer`, `setFocusedSection`, plus the safe snapshot for the "Copy Safe Diagnostics" action.
-- **PHASE2C-004 — Header cluster:** `src/components/status/HeaderStatusCluster.tsx` renders 8 indicators via `StatusIndicator` (per-severity tone class, dot, aria-label, compact). Each indicator is a `<button>` that calls `useStatusStore.openDrawer(key)`. Mounted in `src/components/layout/header.tsx`.
-- **PHASE2C-005 — Diagnostics drawer:** `src/components/status/DiagnosticsDrawer.tsx` is mounted in `src/App.tsx` and renders 10 sections (Overview + 8 categories + Repair). Per-section actions route through `useSettingsStore.setActiveTab()` (with `isTabId()` guard). The "Copy Safe Diagnostics" action is verified to never include API keys, bearer tokens, raw prompts, base64 blobs, or full local absolute paths. Web-mode Mode section explains limitations; Repair section is read-only.
-- **PHASE2C-006 — Storage / project / safety / provider coverage:** Status items read from `useProjectStore`, `useMediaStore`, `useSettingsStore`, `useChatStore` (counts), `useSafetyHydration` for the local guard, and `getAuditSnapshot()` for the audit-derived provider mode. All status text is human-readable; no IDs of media records or conversations are surfaced.
-- **PHASE2C-007 — Toast warn variant:** `src/stores/toast-store.ts` adds `warn` and `toast.warn()`; `src/components/ui/toaster.tsx` styles it. Used by diagnostics for soft-warning cases.
-- **PHASE2C-008 — Tests:** 48 new tests added (22 service + 5 store + 7 indicator + 6 cluster + 26 drawer; one deduplication so net is 48). Total: 1619 passed, 1 skipped.
-- **PHASE2C-009 — Verify script + regression guard:** `scripts/verify-status-diagnostics.cjs` (pending) + `verify:status-diagnostics` npm script (pending) + `VERIFY-045` row in `AGENTS.md` (pending). The regression-guard slot is reserved; the audit script is a near-future commit hook. For this commit the test suite + the in-test redaction assertions are the locking mechanism.
-- **PHASE2C-010 — Out of scope confirmed:** No Prompt Library, Scene Composer, RP overhaul, workflow marketplace, onboarding overhaul, density modes, cloud sync, plugin systems, or large visual redesigns were touched.
-
-### Completed this session (2026-06-08 — Phase 1 contract completion)
-
-- **PHASE1-001 — Project context integrity:** Completed. All Projects clears and persists `activeProjectId: null`; invalid/archived IDs are rejected; archive/delete transitions cannot leave a stale active ID; referenced projects are archive-only.
-- **PHASE1-002 — GenerationRecipe contract:** Completed. Stable schema, legacy `cfg` normalization, source IDs, immutable extraction/sanitization, deterministic form mapping, and use/same-seed/new-seed handoff are covered by direct tests.
-- **PHASE1-003 — Media project association:** Completed. Only explicit generated save paths attach the active project. Imports, legacy records, existing unscoped updates, and already-scoped records preserve their scope. Project gallery views are exact match; unscoped media is All Projects only.
-- **PHASE1-004 — Command Palette completion:** Completed. Mounted Cmd/Ctrl+K, Escape, canonical routing, New Project activation, and listener cleanup are tested. Recipe placeholders are hidden because no global selected-recipe context exists in Phase 1.
-- **PHASE1-005 — Workspace verification guard:** Completed. The script runs nine contract files and passed 91/91 in the final matrix.
-- **PHASE1-006 — Initialization retry semantics:** Completed. Concurrent hydration shares a promise, the promise clears after settlement, and an unsuccessful attempt can be retried in the same renderer process.
-
-### Completed this session (2026-06-06 — Media Studio / Image View / Character Photo fixes (5 issues))
-
-- **Issue 1 — Character profile photos:** `characterService.normalizeCharacter()` now resolves URLs through `resolveCharacterImageUrl()` (reads `photoUrl`/`photo_url`/`avatar_url`/`image`/`image_url`/nested `{url}`; normalizes relative URLs; rejects invalid). `CharactersView` avatar falls back to `avatarFallback()` initials.
-- **Issue 2 — Model-aware image dimensions:** New `image-model-capabilities.ts` registry (flux-dev, z-image-turbo, hidream, sdxl, nano-banana, venice/*) with pattern-matching fallback. `image-view` exposes 13 width×height pairs (and aspect ratios where supported) instead of the previous 4 fixed square sizes; dimension state resets on model switch.
-- **Issue 3 — Seed support:** `GalleryImage.seed` (number | null), `ImageSeedMode` (off | fixed | null), `ImageSeedState`, `serializeSeed()`, `VENICE_SEED_MIN/MAX` constants. `image-view` exposes a seed checkbox + number input + Randomize/Clear. `buildImagePayload()` accepts an optional `seedState`; only sends the field in `fixed`/`null` modes.
-- **Issue 4 — Gallery metadata + actions:** `GalleryImage` gains `seed`, `source`, `enhancedPrompt`, `originalPrompt`, `remixPrompt`; `MediaItemPatch` exposes them. `media-card` shows a seed badge. `media-detail-dialog` shows the full parameter row. `media-inspector` shows the Parameters section, readouts for `enhancedPrompt` / `originalPrompt` / `remixPrompt`, and an Actions section with Copy prompt, Copy metadata (JSON), Enhance, and Remix. The Enhance / Remix buttons call the new `prompt-enhancer-service` and present a review modal that patches via `onPatch` only after explicit user approval.
-- **Issue 5 — Internal prompt-enhancer LLM:** New `prompt-enhancer-service.ts` exposing `enhancePrompt()` and `remixPrompt()` (default model `venice-uncensored 1.2`, configured via `internal_prompt_enhancer` in `config.yaml`). The config section is threaded through `validateConfig`, `emptyConfig`, `sanitizeConfig`, and the two `YamlConfig` reconstruction sites in `configService.ts`. Output is stripped of Markdown fences and explanatory wrappers.
-- **Migration:** `mediaMigration.ts` is updated to populate the new fields tolerantly (typed coercion) so existing MediaItem records read in from IDB surface the new metadata without re-import.
-
-### Completed this session (2026-06-06 — packaged blank-screen repair)
-
-- **Packaged renderer startup restored (VERIFY-036).** Removed the temp-file HTML relocation and mismatched per-layer nonce generation. Production now loads `dist/index.html` beside its relative assets under `script-src 'self'`; inline scripts and eval remain disabled. No open follow-up remains for this defect.
-
-### Completed this session (2026-06-06 — combined audit follow-up)
-
-- **BUG-001 / VERIFY-037:** Configured OS-secure Venice keys now unlock all primary UI actions after restart without exposing the persisted key to the renderer.
-- **SEC-001 / VERIFY-038:** Web Jina keys are memory-only and never persisted in browser storage.
-- **SEC-002 / VERIFY-039:** Both Jina proxy boundaries enforce a streaming 2 MiB response cap.
-- **BUILD-001..004:** Build-only distribution verification, deterministic bridge tests, Node 22 support, source-map-free packages, and release signing identity discovery are implemented. Signing validation remains credential-blocked.
-- **HYGIENE-001..002 / DOC-001..003:** Generated captures are ignored/untracked, style output is redirected, local-only docs are non-links, and current audit/provider docs are synchronized.
-
-### Completed this session (2026-06-06 — MiniMax scope correction)
-
-- **MiniMax LLM forward-compat scaffold removed wholesale.** The
-  `LlmProvider` type, `PROVIDER_CAPABILITIES` matrix,
-  `capabilitiesFor()` helper, `secrets.minimax_api_key`,
-  `sanitized.secrets.has_minimax_api_key`, the
-  `research.llm_provider` field, the `MINIMAX_API_*` env keys,
-  and the `DEFAULT_PROVIDER` env selector are all removed from
-  `src/config/configSchema.ts`, `src/shared/configSchema.ts`,
-  `electron/services/configService.ts`, `.env.example`, and
-  `.config/config.local.yaml`. The 6 VERIFY-033 cases in
-  `src/config/configSchema.test.ts` are removed; the
-  `VERIFY-033` slot is reserved (retired marker) to keep the
-  regression-guard sequence stable.
-- **Audit doc renamed and updated.** `docs/POST_MINIMAX_M3_AUDIT.md`
-  is renamed to `docs/POST_VENICE_JINA_AUDIT_2026_06_06.md`; the
-  F-1..F-8 migration follow-up section is replaced with a *Scope
-  Correction* section that documents the removal and points at
-  this ledger for the active state of every follow-up.
-- **F-1..F-8 closed by the single scope-correction decision.**
-  The "F-1 wire MiniMax as a live transport", "F-2 MiniMax SSE
-  streaming parser", "F-3 MiniMax endpoint allowlist", "F-4
-  per-feature flags driven by `PROVIDER_CAPABILITIES`", "F-5
-  chat/image payload builders per provider", "F-6 MiniMax model
-  discovery", "F-7 tests for the MiniMax path", and "F-8
-  documentation refresh" follow-ups are all retired. None of
-  them are open.
-- **Audit/transport docs refreshed.** `AGENTS.md`,
-  `README.md`, `CHANGELOG.md`, the renamed audit doc, and
-  `tests/csp/inlineStyleInvariant.test.ts` all reflect the
-  current "Venice + Jina only" scope and the retired
-  `VERIFY-033` slot.
-- **Deprecated `TABS` constant removed from
-  `src/constants/venice.ts`** (BUG-009 final disposition).
-  The prior audit batch marked it `@deprecated` and pointed at
-  `src/config/tabs.ts`; this commit removes the constant
-  wholesale. A `rg "\\bTABS\\b"` search confirms zero active
-  importers. `VERIFY-022` continues to lock the canonical
-  registry in `src/config/tabs.ts` (the legacy `gallery`
-  alias resolves to the `media` descriptor through the
-  registry, and `CANONICAL_TAB_ORDER` does NOT contain any
-  legacy id). `CHANGELOG.md` and the audit doc's BUG-009
-  entry are updated to reflect the final disposition.
-- **Media Studio dangling-reference automated repair
-  (P3 → VERIFY-035).** The gallery inspector now surfaces a
-  one-click "Missing references" recovery section when a
-  `parentId` or any `childrenIds` entry refers to a record
-  the IDB has confirmed absent. Two single-click repair
-  actions are offered: "Clear parent link" calls `patchMedia`
-  with `{ parentId: null }`; "Clear N missing refs" calls
-  `patchMedia` with the filtered `childrenIds` array. The
-  inspector walks the inspected record's `childrenIds` and
-  runs a deferred `loadById` for each missing id, accumulating
-  confirmed-missing ids in a `missingChildIds` state that is
-  reset whenever the inspected record changes. The
-  `MediaItemPatch` type gains a `childrenIds` field so the
-  same `patch` action handles both repairs. The
-  `gallery-view.test.tsx` test now asserts the section
-  appears, that both buttons call `patchMedia` with the right
-  partial update, and that the recovery flow does not crash
-  the media card after the patch. The P3 *Media Studio
-  dangling-parent repair* item in the Open TODO Ledger is
-  retired.
-
-### Completed this session (2026-06-06 — repo hygiene + CI fix)
-
-- **CI gate — `verify:markdown-links` honours `.gitignore`
-  (VERIFY-034).** Mini-gitignore parser in
-  `scripts/verify-markdown-links.cjs` skips both the Markdown scan
-  root and in-doc link targets that match a pattern in the root
-  `.gitignore`. Unblocks CI on `main` (seven of the last thirty
-  `build-and-test` runs had been failing on the local-only
-  gitignored `docs/AGENTS/AGENTS.md` and
-  `docs/AGENTS/agent-reinitialization.md` being reported as broken).
-  Locked by 2 new test cases in
-  `scripts/verify-markdown-links.test.ts`.
-- **CI hardening — per-job timeouts + concurrency group.** No new
-  behavior; the safety, lint, and typecheck gates are unchanged. The
-  goal is to keep a stuck job from blocking the queue and to prevent
-  parallel re-runs from clobbering artifacts.
-- **Doc consolidation.** 3 stale audit/research docs deleted, 2
-  design-roadmap scratchpads moved to `.gitignore/docs/design/`, 2
-  audit docs get "superseded" headers, 4 user-facing docs refreshed
-  against the canonical tab registry / state row / theme file list,
-  1 user-facing TODO tracker relabelled HISTORICAL. Cross-link fixes
-  in `tests/csp/inlineStyleInvariant.test.ts` and `docs/TODO.md`.
-
-### P0 — Must fix before release
-
-- None outstanding. The 2026-06-06 round-2 audit batch and its
-  same-day "Venice + Jina only" scope correction both landed
-  today; nothing remains in P0.
-
-### P1 — Should fix before release
-
-- None outstanding. PHASE1-001 through PHASE1-005 are completed and locked by `VERIFY-042`.
-
-### P2 — Hardening / follow-up
-
-- No Phase 1 hardening follow-up remains. PHASE1-006 is complete.
-- Existing `BUG-001`, `API-001`, `UI-001`, `TEST-001`, and `DOC-001` remain completed and locked by `VERIFY-040` / `VERIFY-041`.
-
-### P3 — Polish / backlog
-
-- None outstanding. The last P3 item was the Media Studio dangling-
-  reference automated repair path, which is now implemented and
-  locked by `VERIFY-035` in the same commit.
-
-### Items surfaced by exhaustive review (raw.githubusercontent.com + tree pages + cross-ref audits) — completed + pushed to main
-
-**All P1/P2 from review addressed in this work and pushed (see History entry above for details). Ledger updated at push time.**
-
-**P1 (critical — completed):**
-- CI / release `npm audit` gate aligned to moderate (no continue-on-error) in .github/workflows/ci.yml + release.yml. Matches AGENTS.md "is a release gate". Clean run recorded.
-- Linux packaging + security: electron-builder.config.cjs now ships arm64 AppImage + deb + rpm. secureStore.ts plaintext fallback (Linux-only) now emits clear security warnings on set/get. Docs/CHANGELOG updated.
-- CSP nonce for prod static loadFile was implemented in that review, but it caused the packaged blank screen and was superseded by `VERIFY-036`: production now loads `dist/index.html` in place under `script-src 'self'` with inline/eval execution disabled.
-
-**P1 (other — residual audit complete + additional forwarding added):**
-- Safety/abort/signal forwarding: full grep + spot reads across veniceClient (desktop/web), desktopBridge (attachAbort + beforeunload/pagehide), lib/venice-client (all three venice* functions forward), bridgeServer, research providers, RP/scene, attachment, timeout utils. All key paths already forward AbortSignal or use createTimeoutSignal + parent. Additional: direct AbortSignal support added to electron https.request in veniceClient.ts for completeness (P1-SAFETY-ABORT-RESIDUAL). Web scene gen fetch now forwards signal (sceneGenerationService.ts). Re-ran verify:safety-guard (pass).
-
-**P2 (completed in this pass + continuation):**
-- ARIA/keyboard/a11y sweep: added type=button, role=switch + aria-checked, aria-label, aria-hidden, etc. to controls in image-tools.tsx, layout/inspector-pane.tsx, gallery-view/media-inspector, audio-view, and video-view (reset buttons + generate another). Core post-video gaps addressed; sweep continued.
-- Legacy direct window.veniceForge.chat.* : explicit block comment in src/stores/chat-store.ts citing AGENTS.md "do not add new" and the pre-bridge exception. No new direct calls added.
-
-**P3 / polish + enhancements (implemented or documented):**
-- Linux full (arm64 + multiple targets) + plaintext security surfacing landed.
-- CSP hardening was corrected by `VERIFY-036`: web mode retains synchronized response nonces, while packaged Electron loads self-hosted scripts in place under `script-src 'self'`.
-- Bulk actions / memory / streaming / theme: media already had strong bulk; added notes + small a11y as proxy. Larger UI overhauls left as explicit backlog (user can request specific PRs).
-- Tests/guards: no new named VERIFY this pass (existing matrix sufficient for the changes); safety-guard and a11y-related tests implicitly exercised via full runs. Additional abort tests coverage via existing VERIFY-006/031.
-- All other items from the original review TODO (dead code, small races, docs sync, coverage notes, etc.) either had no actionable code smell on re-scan or were addressed via the above changes + ledger hygiene.
-
-Remaining true backlog (enhancement-tier or large scope) moved to "Future / user-directed" below. No P0/P1 left from the review. 
-
-### Hygiene follow-ups (informational — surfaced by the 2026-06-07 repo-hygiene review)
-
-These are repo-hygiene observations, not bug or feature TODOs. They are
-informational and require a user decision (or commit action) to clear.
-None are release blockers. The P0–P3 sections above remain accurate.
-
-- **HYG-001 — Commit the 2026-06-07 VERIFY-040/041 batch. (RETIRED
-  2026-06-07, commit `1b2cf713`.)** The 39 modified + 4 new source
-  / test files representing the production Media Studio handoffs,
-  derivative lineage, image-payload work, and 29-role semantic
-  theme contract were committed and pushed in this session. The
-  `todo.md` gitignored scratchpad was correctly left untracked.
-  See the *Session History* entry "Land VERIFY-040 / VERIFY-041
-  batch" for the Node 22.22.3 validation matrix that re-ran
-  before the commit.
-- **HYG-002 — Resolve the `scripts/dev-tools/venice-styles.json`
-  design-capture conflict. (RESOLVED 2026-06-07 docs+hygiene review).**
-  `git rm --cached` performed; `scripts/dev-tools/venice-styles.json`
-  added to `.gitignore`. The capture script + its README already
-  document that output belongs under the gitignored `.design-captures/`
-  tree. Divergence stopped; committed tree is clean.
-- **HYG-003 — Decide on `docs/venice_llm_info.md` (484 KB, 11,729
-  lines). (ADDRESSED 2026-06-07 docs+hygiene review).** Added
-  deprecation/historical banner at top of file explicitly stating it
-  is not referenced by code, the swagger YAML is the canonical
-  machine-readable source used by `image-model-capabilities.ts` and
-  `payloadBuilders.ts`, and the file is retained only for provenance.
-  Updated `docs/summary_of_work.md` and the file itself. User may
-  still delete the file later if desired; banner makes the status
-  unambiguous for future agents/readers.
-- **HYG-004 — Cross-link the root `todo.md` to this ledger. (ADDRESSED
-  2026-06-07 docs+hygiene review).** Added prominent HISTORICAL banner
-  at top of `todo.md` (root) with direct pointer to
-  `docs/summary_of_work.md`, explanation that it is an audit snapshot
-  whose findings were all VERIFIED FIXED, and note that the ledger is
-  the canonical handoff. Additionally `git rm --cached todo.md` +
-  `.gitignore` entry so it behaves as the local-only scratch prior
-  sessions intended.
-- **HYG-005 — Restructure the "Items surfaced by exhaustive review"
-  section header.** (Carried forward; the header in the current ledger
-  structure is acceptable now that the 2026-06-07 review pass has its
-  own explicit *Session History* entry and the hygiene items are
-  called out separately.)
-- **Additional hygiene (2026-06-07 review):** `.github/copilot-instructions.md`
-  (the last drifting "equivalent instructions" surface) was brought
-  into alignment by delegating architecture/state/tab details to
-  `AGENTS.md` (the declared source of truth) while keeping the
-  mandatory handoff contract and non-drifting invariants. This
-  eliminates the primary source of future doc drift for AI agents.
-
-### Future / user-directed (from review, not completed in this "get everything done" pass)
-- Major new features (recursive research, full memory search modal overhaul, new studios bulk parity, advanced theme maker, etc.).
-- Additional P3 polish and coverage pushes.
-- Any follow-up after user review of this session's changes.
-- **Inspector "Regenerate" navigation hookup** — the inspector now exposes Copy/Enhance/Remix; a future enhancement can add a Regenerate button that opens the Image view pre-filled with the inspected item's prompt and seed, calling back into `gallery-view` for cross-tab navigation.
-- **Unit tests for `prompt-enhancer-service`** — current coverage is exercised indirectly through `image-view` UI flows; explicit unit tests would lock the markdown-fence stripping, default-model selection, and the remix vs. enhance prompt templates.
+- **P2-005 — Secret-scan redaction metadata:** `POSSIBLE_SECRET_WARNINGS.txt` → `.tsv` (4 columns: `path\tline\tpattern\tcategory`). New `SECRET_SCAN_SUMMARY.txt` records `high_risk_hits` /
+
+## Validation Matrix
+
+| Command | Result | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/lib/playground-agent-tools.test.ts --fileParallelism=false --reporter=verbose` | PASS | 6/6 |
+| `npx eslint src/lib/playground-agent-tools.ts src/lib/playground-agent-tools.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | FAIL (unrelated pre-existing dirty-tree errors) | `error-boundary.test.tsx`, `playground-chat.test.tsx`; changed files clean |
+| `npx vitest run src/research/agent/socialDiscovery.test.ts --reporter=verbose` | PASS | 12/12 (9 pre-existing + 3 new T-147 regression guards) |
+| `npx eslint src/research/agent/socialDiscovery.ts src/research/agent/socialDiscovery.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npx tsc --noEmit -p tsconfig.electron.json` | PASS | Electron main typecheck |
+| `npx tsc --noEmit -p tsconfig.json` | FAIL (unrelated pre-existing dirty-tree error) | `src/components/ui/error-boundary.test.tsx` (`Thrower` returns `void`); changed files clean |
+
+| `npx vitest run src/stores/lorebook-store.test.ts --fileParallelism=false` | PASS | 5/5 (T-186 regression guards) |
+| `npx eslint src/stores/lorebook-store.ts src/stores/lorebook-store.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | FAIL (exit 2) | Pre-existing unrelated errors in `src/components/ui/error-boundary.test.tsx` and `src/components/playground/playground-chat.test.tsx`; `lorebook-store.ts` introduced no new type errors |
+
+## Validation Matrix (T-121/T-122 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/hooks/use-music.test.tsx` | PASS | 7/7 (4 pre-existing + 3 T-121/T-122 regression guards) |
+| `npx eslint src/hooks/use-music.ts src/hooks/use-music.test.tsx --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | FAIL (exit 2) | Pre-existing unrelated errors in `RpChatView.test.tsx`, `error-boundary.test.tsx`, `character-store.test.ts`, `workflow-engine.ts`; changed files produce no errors |
+
+## Validation Matrix (T-026 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/components/ErrorBoundary.test.tsx` | PASS | 4/4 (T-026 regression guards) |
+| `npx eslint src/components/ErrorBoundary.tsx src/components/ErrorBoundary.test.tsx --max-warnings=0` | PASS | 0 warnings |
+| `npx tsc --noEmit -p tsconfig.json` | FAIL (exit 2) | Pre-existing unrelated errors in `src/components/playground/playground-chat.test.tsx`; `src/components/ErrorBoundary.tsx` and `src/components/ErrorBoundary.test.tsx` compile cleanly |
+| `npx vitest run src/components/layout/api-key-dialog.test.tsx --reporter=verbose` | PASS | 2/2 (T-037 regression guards) |
+| `npx eslint src/components/layout/api-key-dialog.tsx src/components/layout/api-key-dialog.test.tsx --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | FAIL | Pre-existing unrelated errors in `src/components/ErrorBoundary.test.tsx`, `src/components/rp-studio/RpChatView.test.tsx`, `src/components/ui/error-boundary.test.tsx`, `src/stores/character-store.test.ts`; changed files are clean |
+
+## Validation Matrix (T-095 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/hooks/use-video.test.tsx --reporter=verbose` | PASS | 14/14 (4 pre-existing + 10 T-095 regression guards) |
+| `npx eslint src/hooks/use-video.ts src/hooks/use-video.test.tsx --max-warnings=0` | PASS | 0 warnings |
+| `npx tsc --noEmit -p tsconfig.json` | FAIL (exit 2) | Pre-existing unrelated errors in `src/components/playground/playground-chat.test.tsx`; changed files produce no type errors |
+
+## Validation Matrix (T-134/T-135 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/lib/workflow-engine.test.ts --reporter=verbose` | PASS | 6/6 |
+| `npx eslint src/lib/workflow-engine.ts src/lib/workflow-engine.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | FAIL (exit 2) | Pre-existing unrelated error in `src/components/playground/playground-chat.test.tsx(69,1): Cannot find name 'beforeAll'`; changed files produce no type errors |
+| `npm run lint:eslint` | FAIL (exit 1) | Pre-existing unrelated warnings in `src/components/playground/playground-chat.tsx` and `src/hooks/use-video.test.tsx`; changed files produce 0 warnings |
+
+## Validation Matrix (T-114/T-115 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/hooks/use-chat.test.ts src/hooks/use-chat.character-scene.test.ts` | PASS | 16/16 (10 existing + 2 new T-114/T-115 regression guards + 6 character-scene tests) |
+| `npx eslint src/hooks/use-chat.ts src/hooks/use-chat.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | FAIL (exit 2) | Pre-existing unrelated error: `src/components/playground/playground-chat.test.tsx` `Cannot find name 'beforeAll'`; changed files produce no errors |
+
+## Validation Matrix (T-184 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/stores/character-store.test.ts --reporter=verbose` | PASS | 6/6 (T-184 regression guards) |
+| `npx eslint src/stores/character-store.ts src/stores/character-store.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npx tsc --noEmit -p tsconfig.json` | FAIL (exit 2) | Pre-existing unrelated errors in `src/components/rp-studio/RpChatView.test.tsx` and `src/components/ui/error-boundary.test.tsx`; `character-store.ts` / `character-store.test.ts` produce no errors |
+
+
+## Validation Matrix (T-126/T-127 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/lib/playground-agent-tools.test.ts --fileParallelism=false --reporter=verbose` | PASS | 6/6 |
+| `npx eslint src/lib/playground-agent-tools.ts src/lib/playground-agent-tools.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | FAIL (exit 2) | Pre-existing unrelated errors in `error-boundary.test.tsx`, `playground-chat.test.tsx`; changed files produce no errors |
+
+## Validation Matrix (T-092/T-093 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/components/ui/error-boundary.test.tsx src/shared/redaction.test.ts` | PASS | 9/9 (5 new T-092/T-093 regression guards + 4 existing redaction tests) |
+| `npx eslint src/components/ui/error-boundary.tsx src/components/ui/error-boundary.test.tsx src/shared/redaction.ts --max-warnings=0` | PASS | 0 warnings |
+| `npx tsc --noEmit` | FAIL (exit 2) | Pre-existing unrelated error in `src/research/agent/socialDiscovery.test.ts` (unterminated string literal); changed files produce no type errors |
+
+## Validation Matrix (T-076 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/components/rp-studio/RpChatView.test.tsx` | PASS | 2/2 (T-076 regression guards) |
+| `npx eslint src/components/rp-studio/RpChatView.tsx src/components/rp-studio/RpChatView.test.tsx --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | FAIL (exit 2) | Pre-existing unrelated errors in `src/components/playground/playground-chat.test.tsx`; changed files produce no errors |
+
+## Validation Matrix (T-170/T-171 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/services/veniceClient.test.ts src/services/veniceClient.web.test.ts src/services/veniceClient.desktop.test.ts src/services/veniceClient.edge.test.ts` | PASS | 42/42 (29 pre-existing + 5 new T-170/T-171 regression guards + edge FormData/rate-limit tests) |
+| `npx eslint src/services/veniceClient.ts src/services/veniceClient.web.test.ts src/services/veniceClient.desktop.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | FAIL (exit 2) | Pre-existing unrelated errors in `src/components/playground/playground-chat.test.tsx`; changed files produce no type errors |
+
 
 ---
 
-## Validation Matrix
+### T-026 static-audit reconciliation — `src/components/ErrorBoundary.tsx`
+
+- **Agent:** Kimi Code
+- **Finding:** `src/components/ErrorBoundary.tsx` logged raw `Error` objects via `logger.error` and rendered the raw `error.message` in the fallback UI, risking secret/path disclosure in the top-level error boundary.
+- **Status:** Fixed.
+- **Fix:**
+  - Removed the raw `Error` instance from component state; `getDerivedStateFromError` returns only `{ hasError: true }`.
+  - Replaced `componentDidCatch` logging with a single safe generic message.
+  - Replaced the raw `{error.message}` paragraph with a safe user-facing message.
+  - Added `role="alert"` to the fallback container.
+- **Files changed:** `src/components/ErrorBoundary.tsx`, `src/components/ErrorBoundary.test.tsx`
+- **Validation:**
+  - `npx vitest run src/components/ErrorBoundary.test.tsx` — **PASS: 4/4** (T-026 regression guards).
+  - `npx eslint src/components/ErrorBoundary.tsx src/components/ErrorBoundary.test.tsx --max-warnings=0` — **PASS: 0 warnings**.
+  - `npx tsc --noEmit -p tsconfig.json` — **FAIL (exit 2)** on unrelated pre-existing dirty-tree errors in `src/components/playground/playground-chat.test.tsx`; changed files compile cleanly.
+
+---
+
+### Completed this session (2026-06-14 — T-047 playground-chat raw exception sanitization)
+
+- **Agent:** Kimi Code
+- **Finding:** `src/components/playground/playground-chat.tsx` stored and rendered raw agent exception messages (`e.message`, `step.result.error`) in the chat UI, risking secret/path disclosure.
+- **Status:** Fixed.
+- **Fix:**
+  - Replaced the outer request catch message with the constant safe message `"Agent request failed"`.
+  - Replaced the legacy `applyAgentPatches` catch message with `"Failed to apply patches"`.
+  - Replaced the inline `applyPatch` callback catch message with `"Patch failed"`.
+  - Removed raw `step.result.error` text from activity summaries (`summarizeStep`), leaving generic per-tool failure messages.
+- **Files changed:** `src/components/playground/playground-chat.tsx`, `src/components/playground/playground-chat.test.tsx`
+- **Validation:**
+  - `npx vitest run src/components/playground/playground-chat.test.tsx --fileParallelism=false` — **PASS: 4/4** (T-047 regression guards).
+  - `npx eslint src/components/playground/playground-chat.tsx src/components/playground/playground-chat.test.tsx --max-warnings=0` — **PASS: 0 warnings**.
+  - `npm run typecheck` — **PASS** (renderer + electron).
+
+## Validation Matrix (T-047 append)
+
 | Command | Status | Evidence |
 | --- | --- | --- |
-| `npm run lint:eslint` | PASS | 0 warnings |
+| `npx vitest run src/components/playground/playground-chat.test.tsx --fileParallelism=false` | PASS | 4/4 (T-047 regression guards) |
+| `npx eslint src/components/playground/playground-chat.tsx src/components/playground/playground-chat.test.tsx --max-warnings=0` | PASS | 0 warnings |
 | `npm run typecheck` | PASS | renderer + electron |
-| `node scripts/verify-theme-tokens.cjs` | PASS | zero violations across all scanned surfaces |
-| `npm run verify:contracts` | PASS | aggregate parity gate |
-| `npm test` | PASS | 2367 passed, 1 skipped |
-| `npm run build` | PASS | dist/ + dist-electron/ + dist/server.cjs |
-| Targeted tests | PASS | `chat-input.test.tsx`, `sidebar.test.tsx`, `applyTheme.test.ts` |
+| `npm run lint:eslint` | PASS | 0 warnings (security-batch consolidated gate) |
+| `npm run typecheck` | PASS | renderer + electron (security-batch consolidated gate) |
+| `npm test` | PASS | 2470 passed, 1 skipped (security-batch consolidated gate) |
+| `npm run build` | PASS | dist/ + dist-electron/ + dist/server.cjs (security-batch consolidated gate) |
+| `npm run verify:contracts` | PASS | all parity gates (security-batch consolidated gate) |
+
+## Validation Matrix (T-196 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/stores/research-store.test.ts` | PASS | 6/6 (5 pre-existing + 1 new T-196 regression guard) |
+| `npx eslint src/stores/research-store.ts src/stores/research-store.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | PASS | renderer + electron |
+
+## Validation Matrix (T-195 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/stores/project-store.test.ts --reporter=verbose` | PASS | 15/15 (13 pre-existing + 2 new T-195 regression guards) |
+| `npx eslint src/stores/project-store.ts src/stores/project-store.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npx tsc --noEmit -p tsconfig.json` | PASS | renderer typecheck; changed files produce no errors |
+| `npx tsc --noEmit --project tsconfig.electron.json` | PASS | electron main typecheck |
+| `npm run typecheck` | FAIL (exit 2) | Pre-existing unrelated errors in `src/stores/scenario-store.ts` and `src/stores/rp-chat-store.test.ts`; changed files produce no type errors |
+
+## Validation Matrix (T-194 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/stores/config-store.test.ts` | PASS | 9/9 (7 pre-existing + 2 new T-194 regression guards) |
+| `npx eslint src/stores/config-store.ts src/stores/config-store.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | PASS | renderer + electron |
+
+## Validation Matrix (T-191 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/stores/media-bulk-actions.test.ts --reporter=verbose` | PASS | 26/26 (20 pre-existing + 6 new T-191 regression guards) |
+| `npx eslint src/stores/media-bulk-actions.ts src/stores/media-bulk-actions.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npx tsc --noEmit -p tsconfig.json` | FAIL (exit 2) | Pre-existing unrelated errors in `src/components/playground/playground-chat.test.tsx` and `src/components/ui/error-boundary.test.tsx`; changed files produce no type errors |
+
+## Validation Matrix (T-197 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/stores/toast-store.test.ts` | PASS | 8/8 (7 new T-197 regression guards + 1 existing helper sanity check) |
+| `npx eslint src/stores/toast-store.ts src/stores/toast-store.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | FAIL (exit 2) | Pre-existing unrelated errors in `src/stores/rp-chat-store.test.ts` (`personaId: null` incompatible with `string | undefined`); `src/stores/toast-store.ts` and `src/stores/toast-store.test.ts` produce no type errors |
+
+## Validation Matrix (T-187 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/stores/scenario-store.errors.test.ts src/stores/scenario-store.test.ts` | PASS | 15/15 (5 new T-187 regression guards + 10 pre-existing scenario-store contract tests) |
+| `npx eslint src/stores/scenario-store.ts src/stores/scenario-store.errors.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | FAIL (exit 2) | Pre-existing unrelated errors in `src/stores/rp-chat-store.test.ts` (`personaId: null` incompatible with `string \| undefined`); `src/stores/scenario-store.ts` and `src/stores/scenario-store.errors.test.ts` produce no type errors |
+
+## Validation Matrix (T-193 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/stores/scene-composer-store.test.ts` | PASS | 30/30 (27 pre-existing + 3 new T-193 regression guards) |
+| `npx eslint src/stores/scene-composer-store.ts src/stores/scene-composer-store.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | PASS | renderer + electron |
+
+## Validation Matrix (T-195 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/stores/project-store.test.ts --reporter=verbose` | PASS | 15/15 (13 pre-existing + 2 new T-195 regression guards) |
+| `npx eslint src/stores/project-store.ts src/stores/project-store.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npx tsc --noEmit -p tsconfig.json` | PASS | renderer typecheck; changed files produce no errors |
+| `npx tsc --noEmit --project tsconfig.electron.json` | PASS | electron main typecheck |
+| `npm run typecheck` | FAIL (exit 2) | Pre-existing unrelated errors in `src/stores/scenario-store.ts` and `src/stores/rp-chat-store.test.ts`; changed files produce no type errors |
+
+## Validation Matrix (T-190 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/stores/media-store.test.ts --reporter=verbose` | PASS | 34/34 (30 pre-existing + 4 new T-190 regression guards) |
+| `npx eslint src/stores/media-store.ts src/stores/media-store.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | FAIL (exit 2) | Pre-existing unrelated errors in `src/stores/rp-chat-store.test.ts` (`personaId: null` incompatible with `string | undefined`) and `src/stores/prompt-library-store.test.ts`; `src/stores/media-store.ts` and `src/stores/media-store.test.ts` produce no type errors |
+
+## Validation Matrix (T-188/T-199 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/stores/scene-asset-store.test.ts --reporter=verbose` | PASS | 7/7 (5 new T-188 regression guards + 2 new T-199 regression guards) |
+| `npx eslint src/stores/scene-asset-store.ts src/stores/scene-asset-store.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | FAIL (exit 2) | Pre-existing unrelated errors in `src/stores/prompt-library-store.test.ts`; `src/stores/scene-asset-store.ts` and `src/stores/scene-asset-store.test.ts` produce no type errors |
+
+## Validation Matrix (T-189/T-199 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/stores/rp-chat-store.test.ts` | PASS | 11/11 (2 pre-existing VERIFY-025 tests + 7 new T-189 regression guards + 2 new T-199 regression guards) |
+| `npx eslint src/stores/rp-chat-store.ts src/stores/rp-chat-store.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | FAIL (exit 2) | Pre-existing unrelated errors in `src/stores/prompt-library-store.test.ts`; `src/stores/rp-chat-store.ts` and `src/stores/rp-chat-store.test.ts` produce no type errors |
+
+### Completed this session (2026-06-15 — T-192/T-199 prompt-library-store reconciliation)
+
+- **Agent:** Kimi Code
+- **Finding:** T-192 — `src/stores/prompt-library-store.ts` wrote raw persistence exception text into `loadError` on every mutation/load path and into `importPrompts` skipped reasons, exposing potential API keys, bearer tokens, and upstream diagnostics in UI-facing state and import metadata.
+- **Finding:** T-199 — `generateStableId` in `src/types/prompt-library.ts` already uses `crypto.randomUUID()` when available and falls back to `Math.random()` only as a last resort; verified as already fixed.
+- **Status:** T-192 fixed; T-199 verified already fixed.
+- **Fix:**
+  - Imported `redactErrorMessage` from `src/shared/redaction.ts`.
+  - Replaced every `err instanceof Error ? err.message : String(err)` assignment to `loadError` with `redactErrorMessage(err)`.
+  - Replaced the raw persistence error in `importPrompts` skipped reasons with `Persistence failed: ${redactErrorMessage(err)}`.
+- **Files changed:** `src/stores/prompt-library-store.ts`, `src/stores/prompt-library-store.test.ts`
+- **Regression tests:** Added T-192 guards in `src/stores/prompt-library-store.test.ts` for `ensureLoaded`, `createPrompt`, `updatePrompt`, `deletePrompt`, and `importPrompts`, asserting that secrets are redacted and state is rolled back on failures. Added T-199 guard verifying UUID-format ids when `crypto.randomUUID` is available.
+
+## Validation Matrix (T-192/T-199 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/stores/prompt-library-store.test.ts --fileParallelism=false --reporter=verbose` | PASS | 28/28 (22 pre-existing + 5 new T-192 regression guards + 1 new T-199 regression guard) |
+| `npx eslint src/stores/prompt-library-store.ts src/stores/prompt-library-store.test.ts --max-warnings=0` | PASS | 0 warnings |
+| `npm run typecheck` | PASS | renderer + electron |
+| `npm run lint:eslint` | PASS | 0 warnings (store-batch consolidated gate) |
+| `npm run typecheck` | PASS | renderer + electron (store-batch consolidated gate) |
+| `npm test` | PASS | 2523 passed, 1 skipped (store-batch consolidated gate) |
+| `npm run build` | PASS | dist/ + dist-electron/ + dist/server.cjs (store-batch consolidated gate) |
+| `npm run verify:contracts` | PASS | all parity gates (store-batch consolidated gate) |
+| Resumed types/utils/theme/scripts targeted tests | PASS | 18 files, 283 tests |
+| `npm run lint:eslint` | PASS | 0 warnings after resumed batch |
+| `npm run typecheck` | PASS | renderer + electron after resumed batch |
+| `npm test` | PASS | 2542 passed, 1 skipped after resumed batch |
+| `npm run verify:contracts` | PASS | all parity gates after resumed batch |
+| `npm run build` | PASS | dist/ + dist-electron/ + dist/server.cjs after resumed batch |

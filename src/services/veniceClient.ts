@@ -8,6 +8,7 @@ import type { VeniceForgeResponse } from "../types/desktop";
 import type { DiagnosticsEntry } from "../types/venice";
 import type { AppDispatch } from "../types/app";
 import { MIB, VENICE_MAX_RAW_UPLOAD_BYTES, VENICE_MAX_SERIALIZED_UPLOAD_BYTES } from "../shared/limits";
+import { redactErrorMessage } from "../shared/redaction";
 import { maybeRunLocalFamilyGuard, previewLocalFamilyGuard, SafetyGuardBlockedError } from "../shared/safety";
 import {
   buildInspectorTelemetryPatch,
@@ -311,6 +312,17 @@ export function normalizeError(status: number | null, rawMessage: string) {
     503: "503 Venice/server retryable error",
   };
   return status && map[status] ? `${map[status]}: ${base}` : base;
+}
+
+/**
+ * Produces a safe, redacted error string for inspector telemetry.
+ * Avoids stringifying arbitrary thrown objects (which can leak paths or
+ * implementation details) and redacts secret-like tokens before storage.
+ */
+function safeInspectorError(err: unknown): string {
+  if (err instanceof Error) return redactErrorMessage(err.message);
+  if (typeof err === "string") return redactErrorMessage(err);
+  return "Unknown error";
 }
 
 /**
@@ -923,7 +935,7 @@ export async function veniceFetch<T = unknown>(
       );
       return result as { data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> };
     } catch (err: unknown) {
-      const errAny = err as { status?: number; message?: string };
+      const errAny = err as { status?: number };
       useInspectorStore.getState().updateLog(
         logId,
         buildInspectorTelemetryPatch({
@@ -931,7 +943,7 @@ export async function veniceFetch<T = unknown>(
           durationMs: Date.now() - startedAt,
           previewDurationMs,
           guardOutcome,
-          error: errAny.message || String(err),
+          error: safeInspectorError(err),
         }),
       );
       throw err;
@@ -1248,7 +1260,7 @@ export async function veniceStreamChat(
       reader?.releaseLock();
     }
   } catch (err: unknown) {
-    const errAny = err as { status?: number; message?: string };
+    const errAny = err as { status?: number };
     useInspectorStore.getState().updateLog(
       logId,
       buildInspectorTelemetryPatch({
@@ -1256,7 +1268,7 @@ export async function veniceStreamChat(
         durationMs: Date.now() - startedAtTime,
         previewDurationMs,
         guardOutcome,
-        error: errAny.message || String(err),
+        error: safeInspectorError(err),
       }),
     );
     throw err;
@@ -1418,11 +1430,7 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
   if (init.signal?.aborted) throw new Error("Aborted");
 
   if (!isElectron()) {
-    const response = await webVeniceFetch(path, { method: "POST", body, signal: init.signal });
-    if (!response.ok) {
-      const bodyMessage = readVeniceErrorBody(response.body);
-      throw new VeniceAPIError(bodyMessage || `HTTP ${response.status}`, response.status);
-    }
+
     const url = `${PROXY_BASE_PATH}${path.replace("/api/v1", "")}`;
     const fetchResponse = await fetch(url, {
       method: "POST",
@@ -1434,7 +1442,11 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
       signal: init.signal,
     });
     if (!fetchResponse.ok) {
-      throw new VeniceAPIError(fetchResponse.statusText || `HTTP ${fetchResponse.status}`, fetchResponse.status);
+      const text = await fetchResponse.text().catch(() => "");
+      let parsed = null;
+      try { parsed = JSON.parse(text); } catch { parsed = null; }
+      const bodyMessage = readVeniceErrorBody(parsed || text || fetchResponse.statusText);
+      throw new VeniceAPIError(bodyMessage || `HTTP ${fetchResponse.status}`, fetchResponse.status);
     }
     return await fetchResponse.blob();
   }

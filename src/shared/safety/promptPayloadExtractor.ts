@@ -38,6 +38,9 @@ const DENY_FIELD_NAMES = new Set<string>([
 /** Max characters per extracted field value to prevent excessive processing. */
 const MAX_FIELD_CHARS = 8_000;
 
+/** Matches the maximum request-body size enforced at the proxy boundaries. */
+const MAX_JSON_BODY_CHARS = 10 * 1024 * 1024;
+
 /** Max number of fields to extract per payload. */
 const MAX_FIELDS = 32;
 
@@ -158,7 +161,8 @@ function extractFromBuffer(buffer: Uint8Array, fieldNames: readonly string[]): E
     const decoder = typeof TextDecoder !== "undefined"
       ? new TextDecoder("utf-8", { fatal: false })
       : { decode: (b: Uint8Array) => Buffer.from(b).toString("utf-8") };
-    const str = decoder.decode(buffer).slice(0, MAX_FIELD_CHARS * 4);
+    const str = decoder.decode(buffer);
+    if (str.length > MAX_JSON_BODY_CHARS) return [];
     const parsed: unknown = JSON.parse(str);
     if (isRecord(parsed)) {
       return extractFromObject(parsed, fieldNames, "", 0);
@@ -187,8 +191,7 @@ function extractFromBuffer(buffer: Uint8Array, fieldNames: readonly string[]): E
  * @param payload - The request body. May be a parsed object, string, Buffer/Uint8Array,
  *                  or serialized FormData `{ _isSerializedFormData, entries }`.
  * @param endpoint - The Venice endpoint path (e.g. "/chat/completions").
- * @returns Array of `{ path, value }` pairs. No field values are returned verbatim;
- *          they are truncated to MAX_FIELD_CHARS.
+ * @returns Array of `{ path, value }` pairs. Values are capped at MAX_FIELD_CHARS.
  */
 export function extractPromptLikeFields(
   payload: unknown,
@@ -225,8 +228,11 @@ export function extractPromptLikeFields(
 
   // Plain string
   if (typeof payload === "string") {
-    const trimmed = payload.slice(0, MAX_FIELD_CHARS).trim();
+    const trimmed = payload.trim();
     if (!trimmed) return [];
+    if (trimmed.length > MAX_JSON_BODY_CHARS) {
+      return [{ path: "body", value: trimmed.slice(0, MAX_FIELD_CHARS) }];
+    }
     // Attempt JSON parse
     try {
       const parsed: unknown = JSON.parse(trimmed);

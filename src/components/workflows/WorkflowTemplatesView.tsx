@@ -57,12 +57,12 @@ export function WorkflowTemplatesView() {
   if (!activeWorkflow || !activeVersion) {
     return (
       <div className="flex h-full" data-testid="workflow-templates-view">
-        <div className="w-1/3 border-r border-white/10 p-4 overflow-y-auto">
+        <div className="w-1/3 border-r border-border p-4 overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-sm font-semibold text-white/80">Workflows</h2>
+            <h2 className="text-sm font-semibold text-text-primary">Workflows</h2>
             <button
               onClick={handleCreateWorkflow}
-              className="text-xs bg-white/10 hover:bg-white/20 text-white px-2 py-1 rounded"
+              className="text-xs bg-venice-surface-elevated/20 hover:bg-venice-surface-elevated/40 text-text-primary px-2 py-1 rounded"
               data-testid="create-workflow-btn"
             >
               New
@@ -73,28 +73,28 @@ export function WorkflowTemplatesView() {
             placeholder="Search workflows..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-black/20 border border-white/10 rounded px-2 py-1 text-xs text-white mb-4"
+            className="w-full bg-surface border border-border rounded px-2 py-1 text-xs text-text-primary mb-4"
             data-testid="workflow-search-input"
           />
           <div className="space-y-2">
             {filteredWorkflows.length === 0 ? (
-              <div className="text-xs text-white/40">No workflows found.</div>
+              <div className="text-xs text-text-tertiary">No workflows found.</div>
             ) : (
               filteredWorkflows.map((w) => (
                 <div
                   key={w.id}
                   onClick={() => setActiveWorkflow(w.id)}
-                  className="cursor-pointer p-2 rounded hover:bg-white/5 border border-transparent"
+                  className="cursor-pointer p-2 rounded hover:bg-venice-surface-elevated/10 border border-transparent"
                   data-testid="workflow-list-item"
                 >
-                  <div className="text-sm text-white/90 truncate">{w.title}</div>
-                  <div className="text-[10px] text-white/40">{w.scope === "global" ? "Global" : "Project"}</div>
+                  <div className="text-sm text-text-primary truncate">{w.title}</div>
+                  <div className="text-[10px] text-text-tertiary">{w.scope === "global" ? "Global" : "Project"}</div>
                 </div>
               ))
             )}
           </div>
         </div>
-        <div className="flex-1 flex items-center justify-center text-sm text-white/30" data-testid="empty-state">
+        <div className="flex-1 flex items-center justify-center text-sm text-text-tertiary" data-testid="empty-state">
           Select or create a workflow to begin.
         </div>
       </div>
@@ -104,12 +104,12 @@ export function WorkflowTemplatesView() {
   return (
     <div className="flex h-full" data-testid="workflow-templates-view">
       {/* Sidebar List */}
-      <div className="w-1/3 border-r border-white/10 p-4 overflow-y-auto">
+      <div className="w-1/3 border-r border-border p-4 overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-sm font-semibold text-white/80">Workflows</h2>
+          <h2 className="text-sm font-semibold text-text-primary">Workflows</h2>
           <button
             onClick={handleCreateWorkflow}
-            className="text-xs bg-white/10 hover:bg-white/20 text-white px-2 py-1 rounded"
+            className="text-xs bg-venice-surface-elevated/20 hover:bg-venice-surface-elevated/40 text-text-primary px-2 py-1 rounded"
             data-testid="create-workflow-btn"
           >
             New
@@ -120,28 +120,28 @@ export function WorkflowTemplatesView() {
             <div
               key={w.id}
               onClick={() => setActiveWorkflow(w.id)}
-              className={`cursor-pointer p-2 rounded border ${w.id === activeWorkflow.id ? "bg-white/10 border-white/20" : "hover:bg-white/5 border-transparent"}`}
+              className={`cursor-pointer p-2 rounded border ${w.id === activeWorkflow.id ? "bg-venice-surface-elevated/20 border-border" : "hover:bg-venice-surface-elevated/10 border-transparent"}`}
             >
-              <div className="text-sm text-white/90 truncate">{w.title}</div>
+              <div className="text-sm text-text-primary truncate">{w.title}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Detail View */}
-      <div className="flex-1 flex flex-col h-full bg-black/10 overflow-y-auto p-6" data-testid="workflow-detail">
+      <div className="flex-1 flex flex-col h-full bg-surface overflow-y-auto p-6" data-testid="workflow-detail">
         <div className="flex justify-between items-start mb-6">
           <input
             type="text"
             value={activeWorkflow.title}
             onChange={(e) => updateWorkflow(activeWorkflow.id, { title: e.target.value })}
-            className="bg-transparent text-xl font-semibold text-white outline-none border-b border-transparent focus:border-white/20 w-1/2"
+            className="bg-transparent text-xl font-semibold text-text-primary outline-none border-b border-transparent focus:border-border w-1/2"
             data-testid="workflow-title-input"
           />
           <div className="flex gap-2">
             <button
               onClick={() => archiveWorkflow(activeWorkflow.id)}
-              className="text-xs bg-white/5 hover:bg-white/10 text-white/60 px-3 py-1.5 rounded"
+              className="text-xs bg-venice-surface-elevated/10 hover:bg-venice-surface-elevated/20 text-text-secondary px-3 py-1.5 rounded"
               data-testid="archive-workflow-btn"
             >
               Archive
@@ -163,10 +163,10 @@ export function WorkflowTemplatesView() {
         {/* Steps List */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-3">
-            <h3 className="text-sm font-medium text-white/80">Steps</h3>
+            <h3 className="text-sm font-medium text-text-primary">Steps</h3>
             <button
               onClick={() => addStep(activeWorkflow.id, { kind: "prompt", target: "chat", title: "New Prompt Step", enabled: true })}
-              className="text-[11px] bg-white/10 hover:bg-white/20 text-white px-2 py-1 rounded"
+              className="text-[11px] bg-venice-surface-elevated/20 hover:bg-venice-surface-elevated/40 text-text-primary px-2 py-1 rounded"
               data-testid="add-step-btn"
             >
               Add Step
@@ -174,14 +174,14 @@ export function WorkflowTemplatesView() {
           </div>
           <div className="space-y-2">
             {activeVersion.steps.map((step) => (
-              <div key={step.id} className="p-3 bg-white/5 rounded border border-white/5 flex justify-between items-center" data-testid="workflow-step-item">
+              <div key={step.id} className="p-3 bg-surface-elevated rounded border border-border flex justify-between items-center" data-testid="workflow-step-item">
                 <div className="flex flex-col">
-                  <span className="text-xs font-medium text-white/80">{step.title}</span>
-                  <span className="text-[10px] text-white/40 uppercase">{step.kind} → {step.target}</span>
+                  <span className="text-xs font-medium text-text-primary">{step.title}</span>
+                  <span className="text-[10px] text-text-tertiary uppercase">{step.kind} → {step.target}</span>
                 </div>
                 <button
                   onClick={() => removeStep(activeWorkflow.id, step.id)}
-                  className="text-[10px] text-white/40 hover:text-red-400"
+                  className="text-[10px] text-text-tertiary hover:text-red-400"
                   data-testid="remove-step-btn"
                 >
                   Remove
@@ -193,8 +193,8 @@ export function WorkflowTemplatesView() {
 
         {/* Compile Preview & Run Plan */}
         <div className="grid grid-cols-2 gap-4 mt-auto">
-          <div className="p-4 bg-black/30 rounded border border-white/5" data-testid="compile-preview">
-            <h4 className="text-[11px] uppercase tracking-wider font-medium text-white/50 mb-2">Compile Preview</h4>
+          <div className="p-4 bg-surface-elevated rounded border border-border" data-testid="compile-preview">
+            <h4 className="text-[11px] uppercase tracking-wider font-medium text-text-secondary mb-2">Compile Preview</h4>
             {compiled?.canRun ? (
               <div className="text-xs text-green-400/80">Workflow is valid.</div>
             ) : (
@@ -207,15 +207,15 @@ export function WorkflowTemplatesView() {
             ))}
           </div>
 
-          <div className="p-4 bg-black/30 rounded border border-white/5" data-testid="run-plan-preview">
-            <h4 className="text-[11px] uppercase tracking-wider font-medium text-white/50 mb-2">Run Plan</h4>
+          <div className="p-4 bg-surface-elevated rounded border border-border" data-testid="run-plan-preview">
+            <h4 className="text-[11px] uppercase tracking-wider font-medium text-text-secondary mb-2">Run Plan</h4>
             {runPlan?.actions.length === 0 ? (
-              <div className="text-xs text-white/40">No runnable actions.</div>
+              <div className="text-xs text-text-tertiary">No runnable actions.</div>
             ) : (
               <div className="space-y-2">
                 {runPlan?.actions.map((action, i) => (
                   <div key={action.id} className="flex justify-between items-center">
-                    <span className="text-xs text-white/70">{action.label}</span>
+                    <span className="text-xs text-text-secondary">{action.label}</span>
                     {i === 0 && (
                       <button
                         onClick={() => handleRunStep(action.tabId)}

@@ -7,7 +7,7 @@ Before making changes, read:
 1. `AGENTS.md`
 2. `README.md`
 3. `docs/summary_of_work.md` — canonical session handoff ledger
-4. `docs/TODO.md` when doing audits, bug fixes, or documentation sync
+4. `docs/summary_of_work.md` Open TODO Ledger when doing audits, bug fixes, or documentation sync
 
 Mandatory: update `docs/summary_of_work.md` at the end of every
 session (see `AGENTS.md` § *Mandatory Session Handoff*).

@@ -102,7 +102,7 @@ export function uint8ArrayToBase64(bytes: Uint8Array, mimeType: string): string 
   return `data:${mimeType};base64,${btoa(binary)}`;
 }
 
-export function detectMimeType(bytes: Uint8Array): { mimeType: string; extension: string } {
+export function detectMimeType(bytes: Uint8Array): { mimeType: string; extension: string } | null {
   if (bytes.length >= 4) {
     // PNG: 89 50 4E 47
     if (bytes[0] === 137 && bytes[1] === 80 && bytes[2] === 78 && bytes[3] === 71) {
@@ -121,7 +121,7 @@ export function detectMimeType(bytes: Uint8Array): { mimeType: string; extension
       }
     }
   }
-  return { mimeType: "image/png", extension: "png" }; // Default fallback
+  return null;
 }
 
 function stripJpeg(data: Uint8Array, report: ImagePostProcessReport): Uint8Array {
@@ -310,7 +310,21 @@ function stripWebp(data: Uint8Array, report: ImagePostProcessReport): Uint8Array
 export function stripImageMetadata(
   bytes: Uint8Array
 ): { data: Uint8Array; report: ImagePostProcessReport } {
-  const { mimeType, extension } = detectMimeType(bytes);
+  const detected = detectMimeType(bytes);
+  if (!detected) {
+    return {
+      data: bytes,
+      report: {
+        originalBytes: bytes.length,
+        processedBytes: bytes.length,
+        mimeType: "application/octet-stream",
+        extension: "bin",
+        metadataRemoved: false,
+        warnings: ["Unsupported image format"],
+      },
+    };
+  }
+  const { mimeType, extension } = detected;
   const report: ImagePostProcessReport = {
     originalBytes: bytes.length,
     processedBytes: bytes.length,
@@ -330,8 +344,8 @@ export function stripImageMetadata(
       processed = stripWebp(bytes, report);
     }
     report.processedBytes = processed.length;
-  } catch (err) {
-    report.warnings.push(`Scrubbing failed: ${err instanceof Error ? err.message : String(err)}`);
+  } catch {
+    report.warnings.push("Image metadata scrubbing failed");
   }
 
   return { data: processed, report };

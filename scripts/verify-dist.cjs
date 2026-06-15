@@ -58,8 +58,10 @@ const FORBIDDEN_DIST_PATTERNS = [
 // have lowercase snake_case mid-tokens and do NOT match.
 const SECRET_PATTERNS = [
   /venice_[A-Za-z0-9-]{40,}/g, // venice_ + 40+ alnum/dash chars (no underscores)
-  /\bsk-[A-Za-z0-9]{20,}/g, // sk-… vendor key
-  /Bearer\s+[A-Za-z0-9._-]{20,}/g, // Bearer tokens
+  /\bvn-[A-Za-z0-9._~+/=-]{8,}/g, // Venice inference key
+  /\bsk-[A-Za-z0-9._~+/=-]{8,}/g, // OpenAI-compatible vendor key
+  /Bearer\s+[A-Za-z0-9._~+/=-]{8,}/g, // Bearer tokens
+  /\b[A-Z][A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD)\s*=\s*["']?[^"'\s,;}]{8,}/g,
 ];
 
 if (require.main !== module) {
@@ -279,6 +281,7 @@ if (checkWin) {
 
   const latestYml = path.join(releaseDir, "latest.yml");
   verifyFileExists(latestYml, 50);
+  verifyChecksum(latestYml);
   verified.push("latest.yml");
 
   const blockmapFiles = fs.readdirSync(releaseDir).filter((f) => f.endsWith(".blockmap"));
@@ -287,6 +290,7 @@ if (checkWin) {
   }
   blockmapFiles.forEach((f) => {
     verifyFileExists(path.join(releaseDir, f), 50);
+    verifyChecksum(path.join(releaseDir, f));
     verified.push(f);
   });
 }
@@ -309,6 +313,7 @@ if (checkMac) {
 
   const latestMacYml = path.join(releaseDir, "latest-mac.yml");
   verifyFileExists(latestMacYml, 50);
+  verifyChecksum(latestMacYml);
   verified.push("latest-mac.yml");
 
   const macBlockmapFiles = fs.readdirSync(releaseDir).filter((f) => f.endsWith(".blockmap"));
@@ -317,6 +322,7 @@ if (checkMac) {
   }
   macBlockmapFiles.forEach((f) => {
     verifyFileExists(path.join(releaseDir, f), 50);
+    verifyChecksum(path.join(releaseDir, f));
     verified.push(f);
   });
 }

@@ -11,6 +11,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { MutableRefObject } from "react";
 
+// VERIFY-055 regression guard: export/import failure paths must surface
+// safe, generic toast messages and never emit raw exception text that
+// could disclose local paths, upstream errors, or secret-adjacent data.
+vi.mock("../stores/toast-store", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    fromError: vi.fn(),
+  },
+}));
+
 // Mock the desktop bridge so the hook's IPC calls do not actually
 // try to talk to Electron in jsdom (which would hang). We only need
 // the hook to compile + run; we are not exercising the IPC paths.
@@ -30,8 +43,8 @@ vi.mock("../services/desktopBridge", async (importOriginal) => {
     desktopApp: { getVersion: async () => "test-version" },
     desktopConfig: { writeSanitized: async () => ({ ok: true }) },
     desktopFiles: {
-      exportJson: async () => true,
-      importJsonString: async () => null, // simulates user cancelling the file picker
+      exportJson: vi.fn().mockResolvedValue(true),
+      importJsonString: vi.fn().mockResolvedValue(null), // simulates user cancelling the file picker
     },
     // Explicit stubs for the surface the chat-store bootstrap touches.
     // These prevent a "desktopConversations is undefined" unhandled
@@ -60,6 +73,8 @@ vi.mock("../services/storageService", () => ({
 }));
 
 import { useDataStorageActions } from "./use-data-storage-actions";
+import { toast } from "../stores/toast-store";
+import { desktopFiles } from "../services/desktopBridge";
 
 function buildSetters() {
   return {
@@ -179,6 +194,60 @@ describe("useDataStorageActions", () => {
     expect(refs.applySafetyCancelRef.current).toBeNull();
     expect(refs.applySafetyTertiaryRef.current).toBeNull();
     expect(refs.applySafetyDismissRef.current).toBeNull();
+  });
+
+  it("T-119 / VERIFY-055: exportData failure toasts a safe message, not raw exception text", async () => {
+    const setters = buildSetters();
+    const refs = buildSafetyRefs();
+    vi.mocked(desktopFiles).exportJson.mockRejectedValueOnce(
+      new Error("ENOENT: /Users/sensitive/path/to-secret.json"),
+    );
+
+    const { result } = renderHook(() =>
+      useDataStorageActions({
+        ...setters,
+        localFamilySafeModeEnabled: true,
+        veniceApiSafeMode: true,
+        ...refs,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.exportData();
+    });
+
+    expect(toast.error).toHaveBeenCalledWith("Export failed. Please try again.");
+    expect(toast.error).not.toHaveBeenCalledWith(
+      expect.stringContaining("/Users/sensitive/path/to-secret.json"),
+    );
+  });
+
+  it("T-120 / VERIFY-055: importData failure toasts a safe message, not raw exception text", async () => {
+    const setters = buildSetters();
+    const refs = buildSafetyRefs();
+    vi.mocked(desktopFiles).importJsonString.mockRejectedValueOnce(
+      new Error("Unexpected token at /Users/sensitive/path/backup.json:12"),
+    );
+
+    const { result } = renderHook(() =>
+      useDataStorageActions({
+        ...setters,
+        localFamilySafeModeEnabled: true,
+        veniceApiSafeMode: true,
+        ...refs,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.importData();
+    });
+
+    expect(toast.error).toHaveBeenCalledWith(
+      "Import failed. Please check the file and try again.",
+    );
+    expect(toast.error).not.toHaveBeenCalledWith(
+      expect.stringContaining("/Users/sensitive/path/backup.json"),
+    );
   });
 
   it("clearLocalSettings and clearAllHistory are referentially stable across re-renders", () => {

@@ -73,7 +73,7 @@ describe('workflow-engine', () => {
     expect(updates).toContainEqual(expect.objectContaining({ nodeId: 'n2', status: 'done', output: 'AI Response' }))
   })
 
-  it('should fail-closed and report errors if a node fails', async () => {
+  it('should fail-closed and report a safe error when a node fails', async () => {
     vi.mocked(venice).mockRejectedValue(new Error('Venice rate limit exceeded'))
 
     const nodes: Node<VeniceNodeData>[] = [
@@ -89,6 +89,73 @@ describe('workflow-engine', () => {
       updates.push({ nodeId, ...res })
     })).rejects.toThrow(WorkflowExecutionError)
 
-    expect(updates).toContainEqual(expect.objectContaining({ nodeId: 'n2', status: 'error', error: 'Venice rate limit exceeded' }))
+    expect(updates).toContainEqual(expect.objectContaining({ nodeId: 'n2', status: 'error', error: 'LLM failed. Check your connection and try again.' }))
+  })
+
+  // T-134 regression guard: workflow node errors must not surface raw exception
+  // text, paths, or secrets to the UI or the thrown error.
+  it('never surfaces raw node exception text, paths, or secrets (T-134)', async () => {
+    vi.mocked(venice).mockRejectedValue(
+      new Error('Venice rate limit exceeded for /Users/dev/secret.key and vn-deadbeef1234')
+    )
+
+    const nodes: Node<VeniceNodeData>[] = [
+      { id: 'n1', type: 'venice', position: { x: 0, y: 0 }, data: { label: 'In', nodeType: 'textInput', inputText: 'prompt', model: '', prompt: '' } },
+      { id: 'n2', type: 'venice', position: { x: 0, y: 0 }, data: { label: 'LLM', nodeType: 'chat', model: 'llama-3.3-70b', prompt: 'Instruction' } }
+    ]
+    const edges: Edge[] = [{ id: 'e1', source: 'n1', target: 'n2' }]
+
+    const updates: Record<string, any>[] = []
+    let thrown: WorkflowExecutionError | undefined
+    try {
+      await executeWorkflow(nodes, edges, (nodeId, res) => {
+        updates.push({ nodeId, ...res })
+      })
+    } catch (err) {
+      thrown = err as WorkflowExecutionError
+    }
+
+    const updateError = updates.find((u) => u.nodeId === 'n2' && u.status === 'error')?.error ?? ''
+    expect(updateError).toBe('LLM failed. Check your connection and try again.')
+    expect(updateError).not.toContain('rate limit')
+    expect(updateError).not.toContain('/Users/dev/secret.key')
+    expect(updateError).not.toContain('vn-deadbeef')
+
+    expect(thrown).toBeInstanceOf(WorkflowExecutionError)
+    expect(thrown?.message).toBe('LLM failed. Check your connection and try again.')
+    expect(thrown?.message).not.toContain('rate limit')
+  })
+
+  // T-135 regression guard: queued media (video/audio) failures must not surface
+  // the upstream error payload, which may contain paths or internal details.
+  it('never surfaces raw queued-media error payloads (T-135)', async () => {
+    vi.useFakeTimers()
+    try {
+      vi.mocked(venice)
+        .mockResolvedValueOnce({ queue_id: 'v1' }) // /video/queue
+        .mockResolvedValueOnce({ status: 'failed', error: 'Internal error: /secret/path' }) // /video/retrieve
+
+      const nodes: Node<VeniceNodeData>[] = [
+        { id: 'n1', type: 'venice', position: { x: 0, y: 0 }, data: { label: 'In', nodeType: 'textInput', inputText: 'prompt', model: '', prompt: '' } },
+        { id: 'n2', type: 'venice', position: { x: 0, y: 0 }, data: { label: 'Video', nodeType: 'video', model: 'wan-2.1', prompt: '', videoAspectRatio: '16:9' } }
+      ]
+      const edges: Edge[] = [{ id: 'e1', source: 'n1', target: 'n2' }]
+
+      const updates: Record<string, any>[] = []
+      const assertion = expect(executeWorkflow(nodes, edges, (nodeId, res) => {
+        updates.push({ nodeId, ...res })
+      })).rejects.toThrow(WorkflowExecutionError)
+
+      await vi.advanceTimersByTimeAsync(3000)
+
+      await assertion
+
+      const updateError = updates.find((u) => u.nodeId === 'n2' && u.status === 'error')?.error ?? ''
+      expect(updateError).toBe('Video generation failed.')
+      expect(updateError).not.toContain('Internal error')
+      expect(updateError).not.toContain('/secret/path')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

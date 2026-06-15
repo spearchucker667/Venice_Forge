@@ -93,4 +93,33 @@ describe("formatCitationsMarkdown", () => {
     ]);
     expect(md).toMatch(/path\\\)/);
   });
+
+  it("filters out non-http(s) URL schemes (T-143 regression)", () => {
+    const md = formatCitationsMarkdown([
+      { index: 1, url: "javascript:alert(1)", title: "Unsafe JS" },
+      { index: 2, url: "data:text/html,<script>alert(1)</script>", title: "Unsafe data" },
+      { index: 3, url: "file:///etc/passwd", title: "Unsafe file" },
+      { index: 4, url: "https://safe.example", title: "Safe" },
+    ]);
+    expect(md).not.toMatch(/javascript:/);
+    expect(md).not.toMatch(/data:/);
+    expect(md).not.toMatch(/file:/);
+    expect(md).toMatch(/4\. \[Safe\]\(https:\/\/safe\.example\)/);
+  });
+
+  it("filters out citations with malformed URLs (T-143 regression)", () => {
+    const md = formatCitationsMarkdown([
+      { index: 1, url: "not a valid url", title: "Bad URL" },
+      { index: 2, url: "https://valid.example", title: "Valid" },
+    ]);
+    expect(md).not.toMatch(/Bad URL/);
+    expect(md).toMatch(/2\. \[Valid\]\(https:\/\/valid\.example\)/);
+  });
+
+  it("falls back to the placeholder when all citations use unsafe schemes (T-143 regression)", () => {
+    const md = formatCitationsMarkdown([
+      { index: 1, url: "javascript:alert(1)", title: "Unsafe" },
+    ]);
+    expect(md).toMatch(/no citations/i);
+  });
 });

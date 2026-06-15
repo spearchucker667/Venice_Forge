@@ -1,8 +1,9 @@
 /** @fileoverview Phase 2E — Scene Composer store contract tests. */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import "fake-indexeddb/auto";
 import { useSceneComposerStore, resolveSceneProjectId, selectActiveScenes, selectArchivedScenes, selectScenesForProject } from "./scene-composer-store";
+import StorageService from "../services/storageService";
 import type { SceneComposerItem } from "../types/scene";
 
 function reset(): void {
@@ -325,5 +326,51 @@ describe("scene-composer-store", () => {
     expect(after.favorite).toBe(true);
     expect(after.archivedAt).toBeNull();
     expect(after.outputMediaIds).toEqual(["media-1"]);
+  });
+
+  // T-193 regression guard: persistence errors written to loadError must be redacted.
+  describe("error redaction (T-193)", () => {
+    beforeEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("ensureLoaded redacts persistence errors in loadError", async () => {
+      vi.spyOn(StorageService, "getItems").mockRejectedValueOnce(
+        new Error("IndexedDB failed for key vn-aaaaaaaaaaaaaaaa"),
+      );
+      await useSceneComposerStore.getState().ensureLoaded();
+      const { loadError, hydrated } = useSceneComposerStore.getState();
+      expect(hydrated).toBe(true);
+      expect(loadError).toContain("IndexedDB failed");
+      expect(loadError).not.toContain("vn-aaaaaaaaaaaaaaaa");
+      expect(loadError).toContain("[REDACTED]");
+    });
+
+    it("createScene reverts state and redacts loadError on persistence failure", async () => {
+      vi.spyOn(StorageService, "saveItem").mockRejectedValueOnce(
+        new Error("write failed: apiKey=vn-bbbbbbbbbbbbbbbb"),
+      );
+      await expect(
+        useSceneComposerStore.getState().createScene({ title: "Doomed" }),
+      ).rejects.toThrow();
+      const { scenes, loadError } = useSceneComposerStore.getState();
+      expect(scenes).toHaveLength(0);
+      expect(loadError).toContain("write failed");
+      expect(loadError).not.toContain("vn-bbbbbbbbbbbbbbbb");
+      expect(loadError).toContain("[REDACTED]");
+    });
+
+    it("importScenes redacts persistence errors in skipped reasons", async () => {
+      const a = await useSceneComposerStore.getState().createScene({ title: "A" });
+      const exported = useSceneComposerStore.getState().exportScenes([a.id]);
+      vi.spyOn(StorageService, "saveItem").mockRejectedValue(
+        new Error("batch write failed: Bearer cccccccccccccccc"),
+      );
+      const result = await useSceneComposerStore.getState().importScenes(exported);
+      expect(result.skipped).toHaveLength(1);
+      expect(result.skipped[0]!.reason).toContain("batch write failed");
+      expect(result.skipped[0]!.reason).not.toContain("cccccccccccccccc");
+      expect(result.skipped[0]!.reason).toContain("[REDACTED]");
+    });
   });
 });

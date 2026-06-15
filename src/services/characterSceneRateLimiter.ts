@@ -81,6 +81,10 @@ export class CharacterSceneRateLimiter {
     this.concurrent = Math.min(this.concurrent + 1, this.limits.maxConcurrentSceneGenerations);
   }
 
+  recordFailure(input: CharacterSceneRateLimitInput, _now = Date.now()): void {
+    this.concurrent = Math.max(this.concurrent - 1, 0);
+  }
+
   recordComplete(input: CharacterSceneRateLimitInput, now = Date.now()): void {
     this.concurrent = Math.max(this.concurrent - 1, 0);
     this.lastGenerationTime = now;

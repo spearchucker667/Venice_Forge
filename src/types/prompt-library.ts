@@ -273,7 +273,7 @@ export function sanitizePromptVersion(
     ? clampString(redactPromptSecrets(negativeRaw), MAX_TEXT)
     : undefined;
   const notesRaw = asString(input.notes, "");
-  const notes = notesRaw ? clampString(notesRaw, MAX_TEXT) : undefined;
+  const notes = notesRaw ? clampString(redactPromptSecrets(notesRaw), MAX_TEXT) : undefined;
   const createdAt = safeIso(input.createdAt, fallback.now);
   const createdBy = asCreatedBy(input.createdBy);
   const sourceRaw = isRecord(input.source) ? input.source : null;
@@ -355,9 +355,13 @@ export function sanitizePromptLibraryItem(
       if (!name) return null;
       const variable: PromptVariable = {
         name,
-        description: typeof v.description === "string" ? clampString(v.description, 200) : undefined,
+        description: typeof v.description === "string"
+          ? clampString(redactPromptSecrets(v.description), 200)
+          : undefined,
         defaultValue:
-          typeof v.defaultValue === "string" ? clampString(v.defaultValue, 1_000) : undefined,
+          typeof v.defaultValue === "string"
+            ? clampString(redactPromptSecrets(v.defaultValue), 1_000)
+            : undefined,
         required: asBoolean(v.required, false),
       };
       return variable;
@@ -400,7 +404,7 @@ export function sanitizePromptLibraryItem(
       if (metadata && Object.keys(metadata).length >= 32) break;
       if (typeof v === "string" && v.length > 1_000) continue;
       if (typeof v !== "string" && typeof v !== "number" && typeof v !== "boolean") continue;
-      metadata[k] = v;
+      metadata[k] = typeof v === "string" ? redactPromptSecrets(v) : v;
     }
     if (Object.keys(metadata).length === 0) metadata = undefined;
   }
@@ -459,7 +463,7 @@ export function createPromptVersion(input: CreatePromptVersionInput, now: string
     negativeContent: input.negativeContent
       ? redactPromptSecrets(input.negativeContent).slice(0, MAX_TEXT)
       : undefined,
-    notes: input.notes ? clampString(input.notes, MAX_TEXT) : undefined,
+    notes: input.notes ? clampString(redactPromptSecrets(input.notes), MAX_TEXT) : undefined,
     createdAt: now,
     createdBy: input.createdBy ?? "user",
     source: input.source,

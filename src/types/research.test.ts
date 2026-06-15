@@ -28,6 +28,10 @@ describe('Research Data Model', () => {
   });
 
   describe('redactResearchSecrets', () => {
+    it('redacts common sk- API keys', () => {
+      expect(redactResearchSecrets('key=sk-1234567890abcdefghijklmnop'))
+        .toBe('key=[REDACTED_KEY]');
+    });
     it('redacts Venice keys', () => {
       const content = 'My key is venice_12345678901234567890123456789012';
       expect(redactResearchSecrets(content)).toBe('My key is [REDACTED_KEY]');
@@ -82,6 +86,11 @@ describe('Research Data Model', () => {
     it('redacts credentials from URLs', () => {
       const url = 'https://user:pass@example.com';
       expect(sanitizeResearchUrl(url)).toBe('https://example.com/');
+    });
+
+    it('rejects private hosts even when the URL contains credentials', () => {
+      expect(sanitizeResearchUrl('http://user:pass@127.0.0.1/private')).toBeUndefined();
+      expect(sanitizeResearchUrl('http://user:pass@169.254.169.254/latest/meta-data')).toBeUndefined();
     });
   });
 

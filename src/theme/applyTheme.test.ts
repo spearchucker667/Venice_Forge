@@ -55,6 +55,16 @@ describe("resolveInitialTheme", () => {
     expect(result.id).toBe("custom");
   });
 
+  it("rejects persisted custom themes with unsafe token values", () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true });
+    const custom = {
+      ...BUILTIN_DARK,
+      id: "custom",
+      tokens: { ...BUILTIN_DARK.tokens, accent: "url(javascript:alert(1))" },
+    };
+    expect(resolveInitialTheme({ selectedThemeId: "custom", customTheme: custom })).toBe(BUILTIN_VENICE);
+  });
+
   it("returns BUILTIN_LIGHT when selectedThemeId is 'builtin-light'", () => {
     expect(resolveInitialTheme({ selectedThemeId: "builtin-light" })).toBe(BUILTIN_LIGHT);
   });

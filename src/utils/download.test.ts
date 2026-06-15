@@ -91,6 +91,22 @@ describe("downloadImage", () => {
     expect(result).toEqual({ confirmed: false, usedFallback: false });
   });
 
+  it("rejects SVG data URL fallback", async () => {
+    globalThis.fetch = vi.fn<typeof fetch>().mockRejectedValue(new Error("network"));
+    await expect(downloadImage("data:image/svg+xml,<svg onload=alert(1)>", "x.svg"))
+      .resolves.toEqual({ confirmed: false, usedFallback: false });
+  });
+
+  it("does not save a successful non-image response", async () => {
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(new Response("html", {
+      status: 200,
+      headers: { "content-type": "text/html" },
+    }));
+    await expect(downloadImage("https://example.com/image.png", "image.png"))
+      .resolves.toEqual({ confirmed: false, usedFallback: true });
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
+  });
+
   it("allows same-origin relative app URL fallback", async () => {
     globalThis.fetch = vi.fn<typeof fetch>().mockRejectedValue(new Error("network"));
 
@@ -107,6 +123,7 @@ describe("isSafeDownloadUrl", () => {
     ["blob:https://app/uuid", true],
     ["data:image/png;base64,abcd", true],
     ["data:image/webp;base64,abcd", true],
+    ["data:image/svg+xml,<svg></svg>", false],
     ["/api/internal/image.png", true],
     ["", false],
     ["javascript:alert(1)", false],

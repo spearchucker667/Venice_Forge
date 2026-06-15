@@ -259,14 +259,14 @@ export function extractCharacterImageFromPage(slug: string, html: string): strin
   const candidates: string[] = [];
 
   // Open Graph image
-  const ogMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
-  if (ogMatch?.[1]) candidates.push(ogMatch[1]);
+  const metaTags = html.match(/<meta\b[^>]*>/gi) ?? [];
+  for (const tag of metaTags) {
+    const property = /\b(?:property|name)=["']([^"']+)["']/i.exec(tag)?.[1]?.toLowerCase();
+    const content = /\bcontent=["']([^"']+)["']/i.exec(tag)?.[1];
+    if (content && (property === "og:image" || property === "twitter:image")) candidates.push(content);
+  }
 
   // Twitter image
-  const twitterMatch = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i) ??
-    html.match(/<meta[^>]+property=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
-  if (twitterMatch?.[1]) candidates.push(twitterMatch[1]);
-
   // JSON-LD image
   const jsonLdRe = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
   let jsonLdMatch: RegExpExecArray | null;
@@ -293,11 +293,12 @@ export function extractCharacterImageFromPage(slug: string, html: string): strin
   if (nextMatch?.[1]) {
     try {
       const data = JSON.parse(nextMatch[1]) as unknown;
-      const walk = (value: unknown): string[] => {
+      const walk = (value: unknown, depth = 0, visited = { count: 0 }): string[] => {
         const found: string[] = [];
-        if (!value || typeof value !== "object") return found;
+        if (!value || typeof value !== "object" || depth > 12 || visited.count >= 10_000) return found;
+        visited.count += 1;
         if (Array.isArray(value)) {
-          for (const item of value) found.push(...walk(item));
+          for (const item of value) found.push(...walk(item, depth + 1, visited));
           return found;
         }
         const record = value as Record<string, unknown>;
@@ -305,7 +306,7 @@ export function extractCharacterImageFromPage(slug: string, html: string): strin
           const v = record[key];
           if (typeof v === "string") found.push(v);
         }
-        for (const v of Object.values(record)) found.push(...walk(v));
+        for (const v of Object.values(record)) found.push(...walk(v, depth + 1, visited));
         return found;
       };
       candidates.push(...walk(data));

@@ -99,6 +99,8 @@ describe("verify-dist Phase 2J hygiene guards", () => {
       "const k = 'venice_" + "a".repeat(40) + "';",
       "Authorization: Bearer " + "a".repeat(40),
       "sk-" + "x".repeat(40),
+      "vn-abc_DEF.1234567890",
+      "OPENAI_API_KEY=sk-abc_DEF.1234567890",
     ];
     for (const s of real) {
       const hit = SECRET_PATTERNS.some((re: RegExp) => {

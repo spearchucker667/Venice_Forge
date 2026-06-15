@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useResearchStore } from './research-store';
 import StorageService from '../services/storageService';
+import * as logger from '../shared/logger';
+import { redactErrorMessage } from '../shared/redaction';
 
 vi.mock('../services/storageService', () => ({
   default: {
@@ -69,5 +71,24 @@ describe('Research Workspace Store', () => {
     
     expect(useResearchStore.getState().sessions).toHaveLength(0);
     expect(StorageService.deleteItem).toHaveBeenCalledWith('researchSessions', session.id);
+  });
+
+  // T-196 regression guard: raw load exceptions must be redacted before logging.
+  it('redacts raw load exceptions before logging', async () => {
+    useResearchStore.setState({ hydrated: false, isInitialLoading: false });
+    const rawError = new Error('IDB read failed at /Users/super_user/.config with sk-1234567890abcdef');
+    vi.mocked(StorageService.getItems).mockRejectedValueOnce(rawError);
+    const loggerError = vi.spyOn(logger, 'error').mockImplementation(() => {});
+
+    await useResearchStore.getState().ensureResearchLoaded();
+
+    expect(useResearchStore.getState().hydrated).toBe(false);
+    expect(loggerError).toHaveBeenCalledTimes(1);
+    const loggedArg = loggerError.mock.calls[0][1];
+    expect(String(loggedArg)).not.toContain('sk-1234567890abcdef');
+    expect(String(loggedArg)).toBe(redactErrorMessage(rawError));
+    expect(String(loggedArg)).toContain('[REDACTED]');
+
+    loggerError.mockRestore();
   });
 });

@@ -55,4 +55,14 @@ describe('CharacterSceneRateLimiter', () => {
     const later = now + DEFAULT_CHARACTER_SCENE_LIMITS.cooldownMsAfterSceneGeneration + 100;
     expect(limiter.check({ conversationId: 'c1' }, later).allowed).toBe(true);
   });
+
+  it('releases concurrency on failure without advancing history or cooldown', () => {
+    const now = Date.now();
+    limiter.recordStart({ conversationId: 'c1' });
+    expect(limiter.check({ conversationId: 'c2' }).allowed).toBe(false);
+    limiter.recordFailure({ conversationId: 'c1' }, now);
+    // Concurrency released, but no cooldown or history should be recorded.
+    expect(limiter.check({ conversationId: 'c2' }).allowed).toBe(true);
+    expect(limiter.check({ conversationId: 'c1' }).allowed).toBe(true);
+  });
 });

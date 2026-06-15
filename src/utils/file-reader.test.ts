@@ -25,10 +25,13 @@ describe('readBoundedJsonFile helper', () => {
     );
   });
 
-  it('rejects invalid JSON content', async () => {
+  it('rejects invalid JSON content without surfacing raw parser messages', async () => {
     const file = new File(['{invalid'], 'test.json', { type: 'application/json' });
     await expect(readBoundedJsonFile(file, { maxBytes: 1000 })).rejects.toThrow(
       /Invalid JSON format/
+    );
+    await expect(readBoundedJsonFile(file, { maxBytes: 1000 })).rejects.toSatisfy(
+      (err: unknown) => err instanceof Error && !err.message.includes('Unexpected token')
     );
   });
 

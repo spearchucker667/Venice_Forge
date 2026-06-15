@@ -1,5 +1,20 @@
 import { completeThemeTokens, type Theme } from './themeTypes';
 import { BUILTIN_THEMES, DEFAULT_THEME } from './themes';
+import { isValidColorValue } from './validateColor';
+
+function isValidPersistedTheme(value: unknown): value is Theme {
+  if (!value || typeof value !== 'object') return false;
+  const theme = value as Partial<Theme>;
+  if (theme.id !== 'custom' || typeof theme.name !== 'string' || theme.name.length > 200) return false;
+  if (theme.mode !== 'dark' && theme.mode !== 'light') return false;
+  if (!theme.tokens || typeof theme.tokens !== 'object') return false;
+  try {
+    const tokens = completeThemeTokens(theme.mode, theme.tokens as Theme['tokens']);
+    return Object.values(tokens).every((token) => isValidColorValue(token));
+  } catch {
+    return false;
+  }
+}
 
 export function applyTheme(theme: Theme): void {
   const root = document.documentElement;
@@ -81,7 +96,7 @@ export function resolveInitialTheme(bootstrap?: Partial<{
   appearanceMode: 'dark' | 'light';
   customTheme: Theme | null;
 }>): Theme {
-  if (bootstrap?.selectedThemeId === 'custom' && bootstrap.customTheme) {
+  if (bootstrap?.selectedThemeId === 'custom' && isValidPersistedTheme(bootstrap.customTheme)) {
     return bootstrap.customTheme;
   }
   const builtin = findBuiltinTheme(bootstrap?.selectedThemeId);

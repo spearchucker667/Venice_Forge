@@ -110,12 +110,14 @@ export async function refreshModels(dispatch: AppDispatch, force = false): Promi
   } catch (err: unknown) {
     // If we already served cached data, swallow the error silently.
     if (!cached) {
-      const message = (err as { message?: string })?.message;
+      // Do NOT propagate raw exception text (paths, upstream bodies, secrets)
+      // into app state. Log the raw error only to the dev/test sink.
+      warn("[modelService] Model discovery failed:", err);
       dispatch({
         type: "SET_MODELS",
         models: undefined,
         fallback: true,
-        error: message || "Model discovery failed; using non-exhaustive static fallbacks.",
+        error: "Model discovery failed; using non-exhaustive static fallbacks.",
       });
     }
   }

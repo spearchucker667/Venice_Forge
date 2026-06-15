@@ -18,6 +18,7 @@ import {
 import {
   buildResearchSummary,
 } from '../../services/researchSummaries';
+import { sanitizeResearchUrl } from '../../types/research';
 import { usePromptLibraryStore } from '../../stores/prompt-library-store';
 import { useWorkflowTemplateStore } from '../../stores/workflow-template-store';
 import { toast } from '../../stores/toast-store';
@@ -29,6 +30,18 @@ const PlusIcon = () => <span>+</span>;
 const TrashIcon = () => <span>🗑️</span>;
 const ArchiveIcon = () => <span>📦</span>;
 const StarIcon = ({ filled }: { filled: boolean }) => <span>{filled ? '⭐' : '☆'}</span>;
+
+function SourceLink({ title, url }: { title: string; url?: string }) {
+  const safeUrl = sanitizeResearchUrl(url);
+  if (!safeUrl) {
+    return <span>{title}</span>;
+  }
+  return (
+    <a href={safeUrl} target="_blank" rel="noreferrer" className="hover:underline">
+      {title}
+    </a>
+  );
+}
 
 export const ResearchWorkspaceView: React.FC = () => {
   const { 
@@ -320,7 +333,7 @@ export const ResearchWorkspaceView: React.FC = () => {
                         <span aria-hidden="true"><TrashIcon /></span>
                       </button>
                       <h4 className="font-bold text-accent truncate pr-6">
-                        <a href={src.url} target="_blank" rel="noreferrer" className="hover:underline">{src.title}</a>
+                        <SourceLink title={src.title} url={src.url} />
                       </h4>
                       <p className="text-xs text-text-muted truncate mb-2">{src.url}</p>
                       <div className="text-sm text-text-secondary line-clamp-3">

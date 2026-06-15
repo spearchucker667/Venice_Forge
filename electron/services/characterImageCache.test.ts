@@ -90,7 +90,7 @@ describe("characterImageCache", () => {
 
     const first = await getCachedCharacterImage(OFFICIAL_URL);
     expect(first.ok).toBe(true);
-    expect(first.url).toMatch(/^file:\/\//);
+    expect(first.url).toMatch(/^venice-character-cache:\/\//);
     expect(first.bytes).toBe(1024);
     expect(first.contentType).toBe("image/png");
     expect(mockedFetch).toHaveBeenCalledTimes(1);

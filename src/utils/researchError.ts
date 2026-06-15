@@ -68,7 +68,7 @@ export function describeResearchError(
   if (lower.includes("429")) {
     return `${service} API rate limit reached. Wait a moment and try again.`;
   }
-  if (lower.includes("5")) {
+  if (/\b5\d{2}\b/.test(lower)) {
     return `${service} API is temporarily unavailable. Please try again in a few seconds.`;
   }
   return raw;

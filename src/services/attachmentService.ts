@@ -342,9 +342,9 @@ export function assembleAttachmentContext(
 
 function wrapAttachmentText(type: string, name: string, content: string): string {
   if (type === "url") {
-    return `<doc url="${escapeXml(name)}">\n${content}\n</doc>`;
+    return `<doc url="${escapeXml(name)}">\n${escapeXml(content)}\n</doc>`;
   }
-  return `<file name="${escapeXml(name)}">\n${content}\n</file>`;
+  return `<file name="${escapeXml(name)}">\n${escapeXml(content)}\n</file>`;
 }
 
 function escapeXml(value: string): string {

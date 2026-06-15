@@ -47,6 +47,40 @@ export interface ResearchJobResult {
 
 import { sleep, createTimeoutSignal } from "../../utils/timeout";
 
+/**
+ * Maps a thrown error to a safe, user-facing message.
+ *
+ * The returned string is intentionally generic for unknown errors so that raw
+ * exception text, file paths, network addresses, or provider internals are
+ * never propagated into UI state.
+ */
+function toSafeResearchError(err: unknown): string {
+  if (err instanceof DOMException && err.name === "AbortError") {
+    return "Cancelled.";
+  }
+  if (err instanceof Error) {
+    const lower = err.message.toLowerCase();
+    if (lower.includes("does not support search")) {
+      return "Provider does not support search.";
+    }
+    if (lower.includes("no queries generated")) {
+      return "No search queries could be generated.";
+    }
+    if (lower.includes("timeout") || lower.includes("timed out")) {
+      return "A request timed out. Please try again.";
+    }
+    if (
+      lower.includes("failed to fetch") ||
+      lower.includes("networkerror") ||
+      lower.includes("network request failed") ||
+      lower.includes("fetch failed")
+    ) {
+      return "Network error. Check your connection and try again.";
+    }
+  }
+  return "Research job failed.";
+}
+
 /** Generates simple search queries from a research question if none are supplied. */
 function generateQueries(question: string, maxQueries: number): string[] {
   const base = question.trim();
@@ -235,7 +269,6 @@ export async function runResearchJob(input: ResearchJobInput): Promise<ResearchJ
       pagesScraped: scrapes.length,
     };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
     return {
       ok: false,
       evidence: {
@@ -246,7 +279,7 @@ export async function runResearchJob(input: ResearchJobInput): Promise<ResearchJ
       store,
       queriesUsed,
       pagesScraped: scrapes.length,
-      error: message,
+      error: toSafeResearchError(err),
     };
   }
 }

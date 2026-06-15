@@ -38,6 +38,7 @@ import {
   getEffectiveRendererLocalFamilySafeModeEnabled,
   getEffectiveRendererVeniceApiSafeMode,
 } from "../../safetyHydration";
+import { error as logError } from "../../shared/logger";
 
 const RECENT_WINDOW = 8;
 /** Default model when none is supplied. */
@@ -139,9 +140,10 @@ export async function generateScene(
     });
     response = data;
   } catch (err) {
+    logError("[sceneGenerationService] Image generation request failed", err instanceof Error ? err.message : err);
     return {
       ok: false,
-      error: err instanceof Error ? err.message : "Image generation failed.",
+      error: "Image generation failed. Please try again.",
       safetyBlocked: false,
     };
   }
@@ -172,9 +174,10 @@ export async function generateScene(
     const saved = await saveAsset(asset);
     return { ok: true, asset: saved };
   } catch (err) {
+    logError("[sceneGenerationService] Asset persistence failed", err instanceof Error ? err.message : err);
     return {
       ok: false,
-      error: err instanceof Error ? err.message : "Failed to register scene asset.",
+      error: "Failed to save scene asset. Please try again.",
       safetyBlocked: false,
     };
   }

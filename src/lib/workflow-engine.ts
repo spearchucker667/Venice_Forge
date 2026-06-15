@@ -23,6 +23,13 @@ export class WorkflowExecutionError extends Error {
   }
 }
 
+/** Returns a safe, generic error message for a failed node. Never exposes raw
+ *  exception text, upstream error payloads, paths, or secrets to the UI. */
+function safeNodeErrorMessage(node: Node<VeniceNodeData>): string {
+  const kind = NODE_SCHEMAS[node.data.nodeType]?.label ?? 'Node'
+  return `${kind} failed. Check your connection and try again.`
+}
+
 // Group nodes into topological "levels" — nodes within a level have no dependency
 // on each other and can run in parallel. Returns null on cycle.
 function topoLevels(nodes: Node<VeniceNodeData>[], edges: Edge[]): string[][] | null {
@@ -71,13 +78,13 @@ function resolvePrompt(template: string, input: string): string {
 interface PollOptions<T> {
   path: string
   id: string
+  kind: string
   getStatus: (r: T) => string
   getResult: (r: T) => string | undefined
-  getError: (r: T) => string | undefined
   signal?: AbortSignal
 }
 
-async function pollUntilDone<T>({ path, id, getStatus, getResult, getError, signal }: PollOptions<T>): Promise<string> {
+async function pollUntilDone<T>({ path, id, kind, getStatus, getResult, signal }: PollOptions<T>): Promise<string> {
   const queueStartedAt = Date.now();
   for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
@@ -94,22 +101,21 @@ async function pollUntilDone<T>({ path, id, getStatus, getResult, getError, sign
     if (status === 'completed') {
       const url = getResult(result)
       if (url) return url
-      throw new Error('Completed but no output URL returned')
+      throw new WorkflowExecutionError(`${kind} generation finished but produced no output.`)
     }
     if (status === 'failed') {
-      throw new Error(getError(result) ?? 'Generation failed')
+      // Never surface the upstream error payload (T-135): it may contain paths,
+      // internal identifiers, or provider-specific exception text.
+      throw new WorkflowExecutionError(`${kind} generation failed.`)
     }
     // Per-stage queue timeout: if a job is still 'queued' or 'pending' after
     // QUEUE_TIMEOUT_MS, abort with a clear error instead of burning the
     // full POLL_MAX_ATTEMPTS budget.
     if ((status === 'queued' || status === 'pending') && Date.now() - queueStartedAt > QUEUE_TIMEOUT_MS) {
-      throw new Error(
-        `Generation stayed in "${status}" for more than ${QUEUE_TIMEOUT_MS / 1000}s. ` +
-        `The upstream may be overloaded; try again later.`
-      );
+      throw new WorkflowExecutionError(`${kind} generation timed out waiting in queue.`)
     }
   }
-  throw new Error(`Generation timed out after ${(POLL_MAX_ATTEMPTS * POLL_INTERVAL_MS) / 1000}s`)
+  throw new WorkflowExecutionError(`${kind} generation timed out.`)
 }
 
 async function executeNode(
@@ -197,9 +203,9 @@ async function executeNode(
       const url = await pollUntilDone<MusicRetrieveResponse>({
         path: '/audio/retrieve',
         id: queueResp.queue_id,
+        kind: 'Audio',
         getStatus: (r) => r.status,
         getResult: (r) => r.audio_url,
-        getError: (r) => r.error,
         signal,
       })
       return `[audio:${url}]`
@@ -223,9 +229,9 @@ async function executeNode(
       const url = await pollUntilDone<VideoRetrieveResponse>({
         path: '/video/retrieve',
         id: videoId,
+        kind: 'Video',
         getStatus: (r) => r.status,
         getResult: (r) => r.video_url,
-        getError: (r) => r.error,
         signal,
       })
       return `[video:${url}]`
@@ -278,7 +284,11 @@ export async function executeWorkflow(
           onUpdate(nodeId, { status: 'error', error: 'Cancelled' })
           throw err
         }
-        const message = err instanceof Error ? err.message : 'Unknown error'
+        // T-134: never surface raw exception text, upstream payloads, paths,
+        // or secrets in the UI or thrown error. Use a safe node-level message.
+        const message = err instanceof WorkflowExecutionError
+          ? err.message
+          : safeNodeErrorMessage(node)
         onUpdate(nodeId, { status: 'error', error: message })
         throw new WorkflowExecutionError(message, nodeId)
       }

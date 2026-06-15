@@ -68,14 +68,15 @@ export function useCharacterImage(
     const requestId = ++latestRequestRef.current;
     let cancelled = false;
 
-    async function resolveAndCache(targetUrl: string, source: import("../services/characterImageDiagnostics").CharacterImageSource) {
+    async function resolveAndCache(targetUrl: string, source: import("../services/characterImageDiagnostics").CharacterImageSource): Promise<boolean> {
       try {
         const result = await desktopCharacterImage.getCachedUrl(targetUrl);
-        if (cancelled || requestId !== latestRequestRef.current) return;
+        if (cancelled || requestId !== latestRequestRef.current) return false;
         if (result.ok && result.url) {
           setImageUrl(result.url);
           setError(undefined);
           recordCharacterImageResolution({ slug: char.slug, source, ok: true, cached: !result.url.startsWith("http") });
+          return true;
         } else {
           setImageUrl(undefined);
           setError(result.error ?? "Failed to load character image.");
@@ -86,9 +87,10 @@ export function useCharacterImage(
             cached: false,
             errorCategory: "unknown",
           });
+          return false;
         }
       } catch (err) {
-        if (cancelled || requestId !== latestRequestRef.current) return;
+        if (cancelled || requestId !== latestRequestRef.current) return false;
         setImageUrl(undefined);
         const message = err instanceof Error ? err.message : String(err);
         setError(message);
@@ -99,6 +101,7 @@ export function useCharacterImage(
           cached: false,
           errorCategory: /content-type|MIME/i.test(message) ? "content-type" : "network",
         });
+        return false;
       } finally {
         if (!cancelled && requestId === latestRequestRef.current) {
           setLoading(false);
@@ -110,19 +113,27 @@ export function useCharacterImage(
       setLoading(true);
       setError(undefined);
 
+      let primaryFailed = false;
+
       if (sourceUrl) {
         const source = char.photoUrl ? "api-photoUrl" : "api-field";
-        await resolveAndCache(sourceUrl, source);
-        return;
+        const primaryOk = await resolveAndCache(sourceUrl, source);
+
+        if (cancelled || requestId !== latestRequestRef.current) return;
+
+        if (!primaryOk) {
+          primaryFailed = true;
+        } else {
+          return;
+        }
       }
 
-      // Optional public-page fallback when no API/synthetic URL exists.
       const fallbackUrl = await tryResolveCharacterImageFromPublicPage(char.slug);
       if (cancelled || requestId !== latestRequestRef.current) return;
 
       if (fallbackUrl) {
-        await resolveAndCache(fallbackUrl, "page-fallback");
-      } else {
+        await resolveAndCache(fallbackUrl, primaryFailed ? "page-fallback" : "page-fallback");
+      } else if (!sourceUrl) {
         setImageUrl(undefined);
         recordCharacterImageResolution({
           slug: char.slug,
@@ -134,6 +145,8 @@ export function useCharacterImage(
         if (!cancelled && requestId === latestRequestRef.current) {
           setLoading(false);
         }
+      } else if (primaryFailed && !cancelled && requestId === latestRequestRef.current) {
+        setLoading(false);
       }
     }
 

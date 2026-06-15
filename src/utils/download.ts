@@ -6,6 +6,9 @@ export interface DownloadImageResult {
 }
 
 const MAX_FILENAME_LENGTH = 200;
+const SAFE_IMAGE_MIME_TYPES = new Set([
+  "image/png", "image/jpeg", "image/webp", "image/gif", "image/avif",
+]);
 
 /**
  * Sanitizes a suggested filename so it cannot be used as a path-traversal or
@@ -46,7 +49,8 @@ export function isSafeDownloadUrl(url: string): boolean {
 
   // Safe schemes.
   if (/^blob:/i.test(url)) return true;
-  if (/^data:image\//i.test(url)) return true;
+  const dataMime = /^data:([^;,]+)/i.exec(url)?.[1]?.toLowerCase();
+  if (dataMime) return SAFE_IMAGE_MIME_TYPES.has(dataMime);
   if (/^https:\/\//i.test(url)) return true;
 
   // Same-origin relative app URLs only — absolute paths on the current origin.
@@ -98,6 +102,10 @@ export async function downloadImage(url: string, filename: string): Promise<Down
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Image download failed with HTTP ${res.status}.`);
+    const contentType = res.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
+    if (!contentType || !SAFE_IMAGE_MIME_TYPES.has(contentType)) {
+      throw new Error("Image download returned an unsupported content type.");
+    }
     const blob = await res.blob();
     const blobUrl = URL.createObjectURL(blob);
 

@@ -3,8 +3,15 @@
     var raw = localStorage.getItem('vf.theme.bootstrap');
     if (!raw) return;
     var boot = JSON.parse(raw);
+    if (!boot || typeof boot !== 'object' || Array.isArray(boot)) return;
+    if (boot.appearanceMode !== 'dark' && boot.appearanceMode !== 'light') boot.appearanceMode = 'dark';
     var root = document.documentElement;
-    var t = (boot.customTheme && boot.customTheme.tokens) || {};
+    var customTheme = boot.customTheme && typeof boot.customTheme === 'object' && !Array.isArray(boot.customTheme)
+      ? boot.customTheme
+      : null;
+    var t = customTheme && customTheme.tokens && typeof customTheme.tokens === 'object' && !Array.isArray(customTheme.tokens)
+      ? customTheme.tokens
+      : {};
     // Validate token values to prevent CSS injection via malicious localStorage.
     function validColor(v) {
       if (typeof v !== 'string' || v.length > 128) return false;

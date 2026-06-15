@@ -78,7 +78,7 @@ export function RpChatList({ onOpen }: Props) {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-border">
         <PillGroup
           options={[{ value: "all", label: "All" }, { value: "standard", label: "Standard" }]}
           value={adultFilter}
@@ -93,8 +93,8 @@ export function RpChatList({ onOpen }: Props) {
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {isLoading && !hasLoaded ? (
-          <div className="flex items-center justify-center h-full text-white/30 gap-2 text-[13px]">
-            <Spinner className="text-white/45" /> Loading chats…
+          <div className="flex items-center justify-center h-full text-text-muted gap-2 text-[13px]">
+            <Spinner className="text-text-muted" /> Loading chats…
           </div>
         ) : filteredChats.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3">
@@ -110,12 +110,12 @@ export function RpChatList({ onOpen }: Props) {
               return (
                 <li
                   key={chat.id}
-                  className="flex flex-col gap-2 bg-surface border border-white/[0.06] hover:border-white/[0.18] rounded-xl p-3 transition-colors"
+                  className="flex flex-col gap-2 bg-surface border border-border hover:border-accent/40 rounded-xl p-3 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="text-[14px] font-semibold text-white/90 truncate">{chat.title}</div>
-                      <div className="text-[11.5px] text-white/40 mt-0.5">
+                      <div className="text-[14px] font-semibold text-text-primary truncate">{chat.title}</div>
+                      <div className="text-[11.5px] text-text-muted mt-0.5">
                         {roster.length} {roster.length === 1 ? "character" : "characters"} · {formatRelativeTime(chat.updatedAt)}
                       </div>
                     </div>
@@ -133,7 +133,7 @@ export function RpChatList({ onOpen }: Props) {
                           <div
                             key={c.id}
                             title={c.name}
-                            className="w-7 h-7 rounded-full overflow-hidden border border-white/[0.1] bg-white/[0.04] flex items-center justify-center text-[10px] font-semibold text-white/60"
+                            className="w-7 h-7 rounded-full overflow-hidden border border-border bg-surface-elevated flex items-center justify-center text-[10px] font-semibold text-text-secondary"
                           >
                             {src ? (
                               <img src={src} alt="" className="w-full h-full object-cover" />
@@ -144,20 +144,20 @@ export function RpChatList({ onOpen }: Props) {
                         );
                       })}
                       {roster.length > 5 && (
-                        <div className="w-7 h-7 rounded-full border border-white/[0.1] bg-white/[0.04] flex items-center justify-center text-[10px] text-white/60">
+                        <div className="w-7 h-7 rounded-full border border-border bg-surface-elevated flex items-center justify-center text-[10px] text-text-secondary">
                           +{roster.length - 5}
                         </div>
                       )}
                     </div>
                   )}
                   {chat.scenario && (
-                    <p className="text-[12.5px] text-white/55 line-clamp-2">{truncate(chat.scenario, 180)}</p>
+                    <p className="text-[12.5px] text-text-secondary line-clamp-2">{truncate(chat.scenario, 180)}</p>
                   )}
                   <div className="flex items-center gap-1.5 mt-1">
                     <button
                       type="button"
                       onClick={() => { setActive(chat.id); onOpen(chat.id); }}
-                      className="flex-1 text-[12px] py-1.5 rounded-md border border-white/[0.1] text-white/75 hover:text-white hover:bg-white/[0.03] transition-colors"
+                      className="flex-1 text-[12px] py-1.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
                     >
                       Open
                     </button>
@@ -174,7 +174,7 @@ export function RpChatList({ onOpen }: Props) {
                         type="button"
                         onClick={() => armConfirm(chat.id)}
                         aria-label={`Delete ${chat.title}`}
-                        className="text-white/40 hover:text-rose-300 p-1.5"
+                        className="text-text-muted hover:text-rose-300 p-1.5"
                       >
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                           <line x1="18" y1="6" x2="6" y2="18" />
@@ -193,6 +193,7 @@ export function RpChatList({ onOpen }: Props) {
       {creating && (
         <NewChatDialog
           onClose={() => setCreating(false)}
+          adultFilter={adultFilter}
           onCreate={async (init) => {
             const id = await useRpChatStore.getState().createChat({
               title: init.title,
@@ -207,6 +208,7 @@ export function RpChatList({ onOpen }: Props) {
               setCreating(false);
               onOpen(id);
             }
+            return id;
           }}
           cards={cards}
           personas={personas}
@@ -225,13 +227,15 @@ export function NewChatDialog({
   personas,
   lorebooks,
   defaultModel,
+  adultFilter,
 }: {
   onClose: () => void;
-  onCreate: (init: { title: string; characterIds: string[]; personaId: string | null; lorebookIds: string[]; modelId: string; scenario: string | undefined; adult: boolean }) => void;
+  onCreate: (init: { title: string; characterIds: string[]; personaId: string | null; lorebookIds: string[]; modelId: string; scenario: string | undefined; adult: boolean }) => Promise<string | null>;
   cards: CharacterCardV1[];
   personas: UserPersonaV1[];
   lorebooks: LorebookV1[];
   defaultModel: string;
+  adultFilter: "all" | "standard";
 }) {
   const [title, setTitle] = useState("New RP");
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
@@ -240,15 +244,15 @@ export function NewChatDialog({
   const [modelId, setModelId] = useState(defaultModel);
   const [scenario, setScenario] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const includeAdult = true;
+  const [saving, setSaving] = useState(false);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const titleRef = useRef<HTMLInputElement | null>(null);
 
   useFocusTrap(dialogRef, true, onClose, titleRef);
 
   const visibleCards = useMemo(() => {
-    return includeAdult ? cards : cards.filter((c) => !c.adult);
-  }, [cards, includeAdult]);
+    return adultFilter === "all" ? cards : cards.filter((c) => !c.adult);
+  }, [cards, adultFilter]);
 
   const toggleCard = (id: string) => {
     setSelectedCards((prev) => {
@@ -262,7 +266,8 @@ export function NewChatDialog({
     setSelectedLorebooks((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
+    setError(null);
     if (selectedCards.length === 0) {
       setError("Pick at least one character.");
       return;
@@ -281,7 +286,8 @@ export function NewChatDialog({
       setError(decision.userMessage);
       return;
     }
-    onCreate({
+    setSaving(true);
+    const id = await onCreate({
       title,
       characterIds: selectedCards,
       personaId: personaId || null,
@@ -290,6 +296,10 @@ export function NewChatDialog({
       scenario: scenario.trim() || undefined,
       adult,
     });
+    setSaving(false);
+    if (!id) {
+      setError("Failed to create chat. Check the logs for details.");
+    }
   };
 
   return (
@@ -299,14 +309,14 @@ export function NewChatDialog({
       role="dialog"
       aria-modal="true"
       aria-label="New RP chat"
-      className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="absolute inset-0 z-30 flex items-center justify-center bg-bg/70 backdrop-blur-sm"
     >
-      <div className="w-full max-w-2xl max-h-[85%] flex flex-col bg-surface border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden">
-        <div className="flex items-center gap-2 px-5 py-3 border-b border-white/[0.06]">
-          <h2 className="text-[15px] font-semibold text-white/90">New RP chat</h2>
+      <div className="w-full max-w-2xl max-h-[85%] flex flex-col bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
+        <div className="flex items-center gap-2 px-5 py-3 border-b border-border">
+          <h2 className="text-[15px] font-semibold text-text-primary">New RP chat</h2>
           <div className="ml-auto flex items-center gap-2">
-            <GhostButton onClick={onClose}>Cancel</GhostButton>
-            <PrimaryButton size="sm" onClick={handleCreate}>Create</PrimaryButton>
+            <GhostButton onClick={onClose} disabled={saving}>Cancel</GhostButton>
+            <PrimaryButton size="sm" onClick={() => void handleCreate()} loading={saving}>Create</PrimaryButton>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
@@ -319,7 +329,7 @@ export function NewChatDialog({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={200}
-              className="w-full bg-surface-elevated border border-white/[0.08] rounded-lg px-3 py-2 text-[14px] text-white/90 outline-none focus:border-white/[0.22] transition-colors"
+              className="w-full bg-surface-elevated border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
             />
           </div>
           <div>
@@ -328,7 +338,7 @@ export function NewChatDialog({
               id="rp-model"
               value={modelId}
               onChange={(e) => setModelId(e.target.value)}
-              className="w-full bg-surface-elevated border border-white/[0.08] rounded-lg px-3 py-2 text-[14px] text-white/90 outline-none focus:border-white/[0.22] transition-colors"
+              className="w-full bg-surface-elevated border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
             >
               {FALLBACK_MODELS.text.map((m) => (
                 <option key={m.id} value={m.id}>{m.name}</option>
@@ -339,7 +349,7 @@ export function NewChatDialog({
             <Label hint={`${selectedCards.length}/${MAX_ACTIVE_CHARACTERS}`}>Characters</Label>
             <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-1">
               {visibleCards.length === 0 ? (
-                <div className="text-[12px] text-white/30 italic">No characters yet — create one in the Characters tab.</div>
+                <div className="text-[12px] text-text-muted italic">No characters yet — create one in the Characters tab.</div>
               ) : (
                 visibleCards.map((c) => (
                   <button
@@ -347,7 +357,7 @@ export function NewChatDialog({
                     type="button"
                     onClick={() => toggleCard(c.id)}
                     aria-pressed={selectedCards.includes(c.id)}
-                    className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${selectedCards.includes(c.id) ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]" : "border-white/[0.1] text-white/65 hover:text-white hover:border-white/[0.2]"}`}
+                    className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${selectedCards.includes(c.id) ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]" : "border-border text-text-secondary hover:text-text-primary hover:border-accent/40"}`}
                   >
                     {c.name}
                     {c.adult && <span className="ml-1 text-rose-300">18+</span>}
@@ -362,7 +372,7 @@ export function NewChatDialog({
               id="rp-persona"
               value={personaId}
               onChange={(e) => setPersonaId(e.target.value)}
-              className="w-full bg-surface-elevated border border-white/[0.08] rounded-lg px-3 py-2 text-[14px] text-white/90 outline-none focus:border-white/[0.22] transition-colors"
+              className="w-full bg-surface-elevated border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
             >
               <option value="">No persona</option>
               {personas.map((p) => (
@@ -380,7 +390,7 @@ export function NewChatDialog({
                     type="button"
                     onClick={() => toggleLorebook(l.id)}
                     aria-pressed={selectedLorebooks.includes(l.id)}
-                    className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${selectedLorebooks.includes(l.id) ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]" : "border-white/[0.1] text-white/65 hover:text-white hover:border-white/[0.2]"}`}
+                    className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${selectedLorebooks.includes(l.id) ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]" : "border-border text-text-secondary hover:text-text-primary hover:border-accent/40"}`}
                   >
                     {l.name} ({l.entries.length})
                   </button>
@@ -398,7 +408,7 @@ export function NewChatDialog({
               onChange={(e) => setScenario(e.target.value)}
               rows={3}
               placeholder="Leave blank to use the first character's scenario."
-              className="w-full bg-surface-elevated border border-white/[0.08] rounded-lg px-3 py-2 text-[14px] text-white/90 outline-none focus:border-white/[0.22] transition-colors placeholder:text-white/25 resize-none"
+              className="w-full bg-surface-elevated border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted resize-none"
             />
           </div>
         </div>

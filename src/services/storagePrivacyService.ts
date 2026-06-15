@@ -174,6 +174,18 @@ export function buildStorageInventory(input: BuildStorageInventoryInput): Storag
   return { stores, issues, generatedAt };
 }
 
+function sanitizeIssueForSafeSummary(issue: StorageReferenceIssue): StorageReferenceIssue {
+  // T-168 / VERIFY-168: safe privacy summaries must not include user titles,
+  // names, or other free-text content in issue messages. Keep categories, ids,
+  // severity, and repairability so the summary remains actionable without
+  // disclosing user content.
+  const target = issue.targetCategory ?? "reference";
+  return {
+    ...issue,
+    message: `${issue.sourceCategory} item has a missing ${target} reference`,
+  };
+}
+
 export function buildSafePrivacySummary(inventory: StorageInventoryResult): SafePrivacySummary {
   const counts: Record<string, number> = {};
   inventory.stores.forEach((s: StorageStoreInventoryItem) => {
@@ -195,7 +207,7 @@ export function buildSafePrivacySummary(inventory: StorageInventoryResult): Safe
     app: "Venice Forge",
     stores: inventory.stores.filter((s: StorageStoreInventoryItem) => s.exportableInSafeSummary),
     counts,
-    issues: inventory.issues,
+    issues: inventory.issues.map(sanitizeIssueForSafeSummary),
     exclusions,
   };
 }

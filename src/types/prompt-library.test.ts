@@ -33,6 +33,26 @@ function buildBaseItem(overrides: Partial<PromptLibraryItem> = {}): PromptLibrar
 }
 
 describe("prompt-library types (VERIFY-046)", () => {
+  it("redacts secrets from notes, variables, and metadata", () => {
+    const item = sanitizePromptLibraryItem({
+      ...buildBaseItem(),
+      versions: [{
+        ...buildBaseItem().versions[0],
+        notes: "OPENAI_API_KEY=sk-12345678901234567890",
+      }],
+      variables: [{
+        name: "key",
+        description: "Bearer abcdefghijklmnopqrstuv",
+        defaultValue: "sk-abcdefghijklmnopqrstuv",
+      }],
+      metadata: { note: "venice_abcdefghijklmnopqrstuv" },
+    }, { now: NOW });
+
+    const text = JSON.stringify(item);
+    expect(text).not.toContain("sk-12345678901234567890");
+    expect(text).not.toContain("abcdefghijklmnopqrstuv");
+    expect(text).toContain("[REDACTED]");
+  });
   describe("createPromptLibraryItem", () => {
     it("creates a valid prompt item with version 1", () => {
       const item = createPromptLibraryItem(

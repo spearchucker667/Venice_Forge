@@ -18,6 +18,7 @@ describe("NewChatDialog focus management", () => {
         personas={[]}
         lorebooks={[]}
         defaultModel="test-model"
+        adultFilter="all"
       />,
     );
 

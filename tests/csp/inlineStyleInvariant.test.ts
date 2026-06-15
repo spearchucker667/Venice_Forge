@@ -22,7 +22,7 @@ import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, extname, relative } from 'node:path'
 
-const ROOT = join(import.meta.dirname, '..')
+const ROOT = join(import.meta.dirname, '..', '..')
 const SCAN_DIRS = ['src/components', 'src/layouts', 'src/views', 'src/pages']
 const SCAN_EXTS = new Set(['.tsx', '.jsx'])
 const IGNORE_PATH_PREFIXES = [

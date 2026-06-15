@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useMediaStore, filterMedia, sortMedia, searchMedia } from './media-store'
 import { useSettingsStore } from './settings-store'
+import { toast, useToastStore } from './toast-store'
 import { MEDIA_ITEM_VERSION, type MediaItem } from '../types/media'
 
 vi.mock('../services/storageService', () => {
@@ -75,6 +76,8 @@ type MockedService = typeof StorageService & {
 
 const mockService = StorageService as unknown as MockedService
 
+vi.spyOn(toast, 'error')
+
 function makeItem(over: Partial<MediaItem> = {}): MediaItem {
   return {
     id: over.id ?? crypto.randomUUID(),
@@ -109,6 +112,8 @@ describe('mediaStore', () => {
       lastError: null,
     })
     useSettingsStore.setState({ activeProjectId: null } as never)
+    useToastStore.setState({ toasts: [] })
+    vi.mocked(toast.error).mockClear()
   })
 
   afterEach(() => {
@@ -215,6 +220,103 @@ describe('mediaStore', () => {
     ).rejects.toThrow('write failed')
     expect(mockService.__all().some((item) => item.id === 'child')).toBe(false)
     expect(useMediaStore.getState().byId('child')).toBeUndefined()
+  })
+
+  // T-190 regression guard: load and rollback errors must not expose raw
+  // exception text (paths, secrets, or upstream diagnostics) in UI state or
+  // toast notifications.
+  describe('media store safe error handling (T-190)', () => {
+    it('refresh() surfaces a safe message and redacts diagnostics on failure', async () => {
+      vi.mocked(StorageService.getItemsPageWithMeta).mockRejectedValueOnce(
+        new Error('IDB failure: /Users/admin/data and sk-leaked123'),
+      )
+      await useMediaStore.getState().refresh()
+
+      const lastError = useMediaStore.getState().lastError
+      expect(lastError).toBe('Media Studio failed to load. Please try again.')
+      expect(lastError).not.toContain('IDB failure')
+      expect(lastError).not.toContain('/Users/admin')
+      expect(lastError).not.toContain('sk-leaked123')
+
+      expect(toast.error).toHaveBeenCalledWith(
+        'Media Studio failed to load. Please try again.',
+        expect.any(String),
+      )
+      const description = vi.mocked(toast.error).mock.calls[0][1] as string
+      expect(description).not.toContain('sk-leaked123')
+      expect(description).not.toContain('/Users/admin')
+    })
+
+    it('loadMore() surfaces a safe message and redacts diagnostics on failure', async () => {
+      for (let index = 0; index < 65; index += 1) {
+        mockService.__seed(makeItem({ id: `item-${index}`, timestamp: index }))
+      }
+      await useMediaStore.getState().refresh()
+      vi.mocked(StorageService.getItemsPageWithMeta).mockRejectedValueOnce(
+        new Error('IDB failure: /Users/admin/data and Bearer token_leak'),
+      )
+
+      await useMediaStore.getState().loadMore()
+
+      const lastError = useMediaStore.getState().lastError
+      expect(lastError).toBe('Media Studio failed to load more. Please try again.')
+      expect(lastError).not.toContain('IDB failure')
+      expect(lastError).not.toContain('/Users/admin')
+      expect(lastError).not.toContain('Bearer')
+
+      expect(toast.error).toHaveBeenCalledWith(
+        'Media Studio failed to load more. Please try again.',
+        expect.any(String),
+      )
+      const description = vi.mocked(toast.error).mock.calls[0][1] as string
+      expect(description).not.toContain('token_leak')
+      expect(description).not.toContain('/Users/admin')
+    })
+
+    it('upsertDerivative() rollback success surfaces a safe lastError and removes the child', async () => {
+      const parent = makeItem({ id: 'parent' })
+      mockService.__seed(parent)
+      await useMediaStore.getState().refresh()
+      vi.mocked(StorageService.patchMedia).mockRejectedValueOnce(new Error('parent write failed'))
+
+      await expect(
+        useMediaStore.getState().upsertDerivative(makeItem({ id: 'child' }), 'parent'),
+      ).rejects.toThrow('parent write failed')
+
+      expect(useMediaStore.getState().lastError).toBe('Derivative save failed. Please try again.')
+      expect(useMediaStore.getState().lastError).not.toContain('parent write failed')
+      expect(useMediaStore.getState().byId('child')).toBeUndefined()
+    })
+
+    it('upsertDerivative() rollback failure surfaces a safe message and redacts diagnostics', async () => {
+      const parent = makeItem({ id: 'parent' })
+      mockService.__seed(parent)
+      await useMediaStore.getState().refresh()
+      vi.mocked(StorageService.patchMedia).mockRejectedValueOnce(new Error('parent write failed'))
+      vi.mocked(StorageService.deleteMedia).mockRejectedValueOnce(
+        new Error('delete failed: /Users/admin and sk-rollback123'),
+      )
+
+      await expect(
+        useMediaStore.getState().upsertDerivative(makeItem({ id: 'child' }), 'parent'),
+      ).rejects.toThrow('parent write failed')
+
+      const lastError = useMediaStore.getState().lastError
+      expect(lastError).toBe(
+        'Derivative save failed and could not be cleaned up. Please try again.',
+      )
+      expect(lastError).not.toContain('parent write failed')
+      expect(lastError).not.toContain('/Users/admin')
+      expect(lastError).not.toContain('sk-rollback123')
+
+      expect(toast.error).toHaveBeenCalledWith(
+        'Derivative save failed and could not be cleaned up. Please try again.',
+        expect.any(String),
+      )
+      const description = vi.mocked(toast.error).mock.calls[0][1] as string
+      expect(description).not.toContain('sk-rollback123')
+      expect(description).not.toContain('/Users/admin')
+    })
   })
 
   // VERIFY-028: Media Studio hydrates incrementally instead of loading the full encrypted store.

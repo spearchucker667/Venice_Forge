@@ -46,6 +46,10 @@ function safeString(value: unknown, max = CARD_FIELD_MAX): string {
   return value;
 }
 
+function safeRedactedString(value: unknown, max = CARD_FIELD_MAX): string {
+  return redactPromptSecrets(safeString(value, max));
+}
+
 function safeTags(input: unknown): string[] {
   if (!Array.isArray(input)) return [];
   const out: string[] = [];
@@ -67,7 +71,7 @@ function safeExamples(input: unknown): CharacterExampleDialogue[] {
   for (const raw of input) {
     if (!raw || typeof raw !== "object") continue;
     const r = raw as Record<string, unknown>;
-    const text = safeString(r.text, EXAMPLE_TEXT_MAX);
+    const text = redactPromptSecrets(safeString(r.text, EXAMPLE_TEXT_MAX));
     if (!text) continue;
     const speaker = safeString(r.speaker ?? r.name ?? "", 64);
     out.push({ speaker: speaker || "Example", text });
@@ -189,26 +193,28 @@ function parseTavernCard(input: unknown, now: number): CharacterCardV1 | null {
   if (!t) return null;
   const name = safeString(t.name ?? t.character_name, 200);
   if (!name) return null;
-  const description = safeString(t.description ?? t.personality, CARD_FIELD_MAX);
-  const systemPrompt = safeString(t.system_prompt ?? "", CARD_FIELD_MAX);
-  if (isPromptSecretLike(description) || isPromptSecretLike(systemPrompt)) return null;
-  const scenario = safeString(pick(t.scenario) ?? "", CARD_FIELD_MAX);
-  const firstMessage = safeString(pick(t.first_mes) ?? "", CARD_FIELD_MAX);
-  if (firstMessage && isPromptSecretLike(firstMessage)) return null;
-  const creator = safeString(pick(t.creator, t.creator_notes) ?? "", 200);
+  const descriptionRaw = safeString(t.description ?? t.personality, CARD_FIELD_MAX);
+  const systemPromptRaw = safeString(t.system_prompt ?? "", CARD_FIELD_MAX);
+  if (isPromptSecretLike(descriptionRaw) || isPromptSecretLike(systemPromptRaw)) return null;
+  const description = safeRedactedString(t.description ?? t.personality, CARD_FIELD_MAX);
+  const systemPrompt = safeRedactedString(t.system_prompt ?? "", CARD_FIELD_MAX);
+  const scenario = safeRedactedString(pick(t.scenario) ?? "", CARD_FIELD_MAX);
+  const firstMessageRaw = safeString(pick(t.first_mes) ?? "", CARD_FIELD_MAX);
+  if (firstMessageRaw && isPromptSecretLike(firstMessageRaw)) return null;
+  const firstMessage = safeRedactedString(pick(t.first_mes) ?? "", CARD_FIELD_MAX);
+  const creator = safeRedactedString(pick(t.creator, t.creator_notes) ?? "", 200);
   const tags = safeTags(t.tags);
-  const example = safeString(pick(t.mes_example) ?? "", EXAMPLE_TEXT_MAX);
+  const example = redactPromptSecrets(safeString(pick(t.mes_example) ?? "", EXAMPLE_TEXT_MAX));
   const examples: CharacterExampleDialogue[] = example
     ? [{ speaker: "Example", text: example }]
     : [];
   const altGreetings = Array.isArray(t.alternate_greetings)
     ? t.alternate_greetings
-        .map((g) => safeString(g, EXAMPLE_TEXT_MAX))
+        .map((g) => redactPromptSecrets(safeString(g, EXAMPLE_TEXT_MAX)))
         .filter((g) => g.length > 0)
         .slice(0, EXAMPLE_DIALOGUE_MAX - examples.length)
     : [];
   for (const g of altGreetings) {
-    if (isPromptSecretLike(g)) continue;
     examples.push({ speaker: "Greeting", text: g });
   }
   const meta: Record<string, unknown> = {};
@@ -228,7 +234,7 @@ function parseTavernCard(input: unknown, now: number): CharacterCardV1 | null {
     exampleDialogues: examples,
     createdAt: now,
     updatedAt: now,
-    metadata: meta,
+    metadata: safeMetadata(meta) ?? {},
   };
 }
 
@@ -239,12 +245,15 @@ function parseNativeEnvelope(input: unknown, now: number): CharacterCardV1 | nul
   if (!isValidId(r.id)) return null;
   const name = safeString(r.name, 200);
   if (!name) return null;
-  const description = safeString(r.description, CARD_FIELD_MAX);
-  const systemPrompt = safeString(r.systemPrompt, CARD_FIELD_MAX);
-  if (isPromptSecretLike(description) || isPromptSecretLike(systemPrompt)) return null;
-  const scenario = r.scenario ? safeString(r.scenario, CARD_FIELD_MAX) : undefined;
-  const firstMessage = r.firstMessage ? safeString(r.firstMessage, CARD_FIELD_MAX) : undefined;
-  if (firstMessage && isPromptSecretLike(firstMessage)) return null;
+  const descriptionRaw = safeString(r.description, CARD_FIELD_MAX);
+  const systemPromptRaw = safeString(r.systemPrompt, CARD_FIELD_MAX);
+  if (isPromptSecretLike(descriptionRaw) || isPromptSecretLike(systemPromptRaw)) return null;
+  const description = safeRedactedString(r.description, CARD_FIELD_MAX);
+  const systemPrompt = safeRedactedString(r.systemPrompt, CARD_FIELD_MAX);
+  const scenario = r.scenario ? safeRedactedString(r.scenario, CARD_FIELD_MAX) : undefined;
+  const firstMessageRaw = r.firstMessage ? safeString(r.firstMessage, CARD_FIELD_MAX) : undefined;
+  if (firstMessageRaw && isPromptSecretLike(firstMessageRaw)) return null;
+  const firstMessage = r.firstMessage ? safeRedactedString(r.firstMessage, CARD_FIELD_MAX) : undefined;
   return {
     schema: "CharacterCardV1",
     id: r.id as string,
@@ -259,7 +268,7 @@ function parseNativeEnvelope(input: unknown, now: number): CharacterCardV1 | nul
     createdAt: typeof r.createdAt === "number" ? r.createdAt : now,
     updatedAt: typeof r.updatedAt === "number" ? r.updatedAt : now,
     ...(typeof r.modelId === "string" ? { modelId: r.modelId.slice(0, 200) } : {}),
-    ...(typeof r.author === "string" ? { author: r.author.slice(0, 200) } : {}),
+    ...(typeof r.author === "string" ? { author: safeRedactedString(r.author, 200) } : {}),
     ...(r.metadata && typeof r.metadata === "object" ? { metadata: safeMetadata(r.metadata) ?? {} } : {}),
   };
 }

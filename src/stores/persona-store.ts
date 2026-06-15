@@ -12,6 +12,7 @@ import {
 } from "../services/rp/personaService";
 import type { UserPersonaV1 } from "../types/rp";
 import { toast } from "./toast-store";
+import { getActivePersonaId, setActivePersonaId } from "../services/rp/personaPreferenceService";
 
 export interface PersonaState {
   personas: UserPersonaV1[];
@@ -23,7 +24,7 @@ export interface PersonaState {
 
   load: () => Promise<void>;
   createBlank: () => string;
-  setActive: (id: string | null) => void;
+  setActive: (id: string | null) => Promise<void>;
   setSearchQuery: (q: string) => void;
   upsert: (persona: UserPersonaV1) => Promise<UserPersonaV1 | null>;
   remove: (id: string) => Promise<boolean>;
@@ -44,7 +45,9 @@ export const usePersonaStore = create<PersonaState>((set, get) => ({
     try {
       const items = await listPersonas();
       const sorted = items.slice().sort((a, b) => b.updatedAt - a.updatedAt);
-      set({ personas: sorted, isLoading: false, hasLoaded: true });
+      const persistedId = await getActivePersonaId();
+      const activePersonaId = persistedId && sorted.some((p) => p.id === persistedId) ? persistedId : null;
+      set({ personas: sorted, isLoading: false, hasLoaded: true, activePersonaId });
     } catch (e) {
       set({ isLoading: false, error: e instanceof Error ? e.message : String(e) });
     }
@@ -66,7 +69,10 @@ export const usePersonaStore = create<PersonaState>((set, get) => ({
     return id;
   },
 
-  setActive: (id) => set({ activePersonaId: id }),
+  setActive: async (id) => {
+    await setActivePersonaId(id);
+    set({ activePersonaId: id });
+  },
   setSearchQuery: (q) => set({ searchQuery: q }),
 
   upsert: async (persona) => {
