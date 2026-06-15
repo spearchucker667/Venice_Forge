@@ -66,7 +66,7 @@ export function MediaDetailDialog({
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
-      className="fixed inset-0 z-50 flex bg-overlay backdrop-blur-sm"
+      className="mesh-panel fixed inset-0 z-50 flex rounded-none border-0 bg-overlay backdrop-blur-sm"
     >
       <div className="relative flex flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-border bg-overlay px-5 py-3 text-text-primary">

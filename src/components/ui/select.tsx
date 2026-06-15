@@ -122,7 +122,7 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
         aria-label={ariaLabel}
         aria-labelledby={labelledBy}
         className={cn(
-          'w-full flex items-center justify-between gap-2 bg-surface border border-border rounded-md px-2.5 py-1.5 text-[15px] hover:border-text-muted transition-colors outline-none cursor-pointer',
+          'mesh-input w-full flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-[15px] hover:border-text-muted outline-none cursor-pointer',
           open && 'border-accent',
         )}
       >
@@ -139,7 +139,7 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
           role="listbox"
           aria-labelledby={triggerId}
           tabIndex={-1}
-          className="absolute z-50 w-full mt-0.5 bg-surface-elevated border border-border rounded-lg shadow-2xl shadow-overlay animate-scale-in overflow-hidden"
+          className="mesh-panel absolute z-50 w-full mt-0.5 rounded-lg animate-scale-in overflow-hidden"
         >
           {searchable && (
             <div className="p-1 border-b border-border">
@@ -148,7 +148,7 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search..."
-                className="w-full bg-surface rounded px-2 py-1 text-[15px] text-text-primary outline-none placeholder:text-text-muted/50"
+                className="mesh-input w-full rounded px-2 py-1 text-[15px] text-text-primary outline-none placeholder:text-text-muted/50"
               />
             </div>
           )}

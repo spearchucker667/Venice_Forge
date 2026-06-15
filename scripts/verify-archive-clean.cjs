@@ -40,6 +40,7 @@ const BAD_PATTERNS = [
   /(^|\/)desktop\.ini$/i,
   // Generated build / test output (must never be archived)
   /(^|\/)node_modules\//,
+  /(^|\/)\.node22\//,
   /(^|\/)dist\//,
   /(^|\/)dist-electron\//,
   /(^|\/)release\//,
@@ -109,6 +110,8 @@ function readText(p) {
 function checkGitignore(root, violations) {
   const gitignore = readText(path.join(root, ".gitignore"));
   const required = [
+    { pattern: "node_modules/", label: "node_modules/" },
+    { pattern: ".node22/", label: ".node22/" },
     { pattern: "dist/", label: "dist/" },
     { pattern: "dist-electron/", label: "dist-electron/" },
     { pattern: "release/", label: "release/" },

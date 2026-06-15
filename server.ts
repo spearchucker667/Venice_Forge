@@ -35,6 +35,11 @@ function safeDecodeForScreening(value: string): string {
   }
 }
 
+function isLoopbackClient(req: express.Request): boolean {
+  const address = req.socket.remoteAddress ?? "";
+  return address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1";
+}
+
 dotenv.config();
 
 /** Determines whether Local Family Safe Mode is enabled in the web proxy.
@@ -106,13 +111,14 @@ const FORBIDDEN_RENDERER_PROXY_HEADERS = ["Authorization", "Cookie", "Host"] as 
 
 export function applyVeniceProxyHeaders(
   proxyReq: VeniceProxyOutboundRequest,
-  req: VeniceProxyRequest
+  req: VeniceProxyRequest,
+  apiKey = AppConfig.VENICE_API_KEY,
 ) {
   for (const header of FORBIDDEN_RENDERER_PROXY_HEADERS) {
     proxyReq.removeHeader(header);
   }
 
-  proxyReq.setHeader("Authorization", `Bearer ${AppConfig.VENICE_API_KEY}`);
+  proxyReq.setHeader("Authorization", `Bearer ${apiKey}`);
   proxyReq.setHeader("Host", VENICE_API_HOST);
 
   if (req.method !== "GET" && req.body) {
@@ -131,6 +137,7 @@ export function applyVeniceProxyHeaders(
 
 export function createServerApp() {
   const app = express();
+  let devSessionVeniceApiKey = "";
   app.disable("x-powered-by");
 
   // Structured request logging (no bodies, no secrets) in development/test only.
@@ -158,6 +165,41 @@ export function createServerApp() {
 
   app.get("/health", (_req, res) => {
     res.status(200).json({ status: "ok", version: appVersion });
+  });
+
+  // UIAUTH-001: browser development may use a process-memory-only Venice key.
+  // Production never exposes this endpoint, and general proxy requests still
+  // discard renderer-controlled Authorization headers below.
+  app.all("/api/session-key", express.json({ limit: "2kb" }), (req, res) => {
+    if (AppConfig.NODE_ENV === "production") {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    if (!isLoopbackClient(req)) {
+      res.status(403).json({ error: "Local development access only." });
+      return;
+    }
+
+    if (req.method === "GET") {
+      res.status(200).json({ configured: devSessionVeniceApiKey.length > 0 });
+      return;
+    }
+    if (req.method === "DELETE") {
+      devSessionVeniceApiKey = "";
+      res.status(200).json({ ok: true });
+      return;
+    }
+    if (req.method === "POST") {
+      const key = typeof req.body?.key === "string" ? req.body.key.trim() : "";
+      if (!key || key.length > 512) {
+        res.status(400).json({ error: "A valid API key is required." });
+        return;
+      }
+      devSessionVeniceApiKey = key;
+      res.status(200).json({ ok: true });
+      return;
+    }
+    res.status(405).json({ error: "Method not allowed" });
   });
 
   // Trust proxy only when explicitly configured via TRUST_PROXY env var,
@@ -271,7 +313,7 @@ export function createServerApp() {
   const proxyRateLimiter = createRateLimiter("proxy");
 
   app.use("/api/venice", veniceRateLimiter, (req, res, next) => {
-    if (!AppConfig.VENICE_API_KEY && AppConfig.NODE_ENV !== "test") {
+    if (!AppConfig.VENICE_API_KEY && !devSessionVeniceApiKey && AppConfig.NODE_ENV !== "test") {
       return res.status(500).json({ error: "VENICE_API_KEY is not configured on the server." });
     }
     next();
@@ -418,7 +460,7 @@ export function createServerApp() {
       },
       on: {
         proxyReq: (proxyReq: VeniceProxyOutboundRequest, req: express.Request, _res: express.Response) => {
-          applyVeniceProxyHeaders(proxyReq, req);
+          applyVeniceProxyHeaders(proxyReq, req, devSessionVeniceApiKey || AppConfig.VENICE_API_KEY);
         },
         proxyRes: (proxyRes: http.IncomingMessage, req: express.Request, res: express.Response) => {
           // Forward rate-limit headers so the client can respect them.

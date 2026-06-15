@@ -212,7 +212,7 @@ export function App() {
           onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
         />
         <div className="flex flex-1 min-h-0 overflow-hidden">
-          <main className="flex-1 min-h-0 overflow-hidden">
+          <main className="mesh-panel flex-1 min-h-0 overflow-hidden rounded-none border-0 shadow-none">
             <ErrorBoundary key={normalisedActiveTab}>
               <div key={normalisedActiveTab} className="section-transition h-full">
                 <ActiveView />

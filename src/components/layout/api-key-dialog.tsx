@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '../../stores/auth-store'
 import { VeniceLogo } from '../ui/logo'
 import { toast } from '../../stores/toast-store'
+import { isElectron } from '../../services/desktopBridge'
 
 export function ApiKeyDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { apiKey, isConfigured, setApiKey, clearApiKey } = useAuthStore()
@@ -53,7 +54,7 @@ export function ApiKeyDialog({ open, onClose }: { open: boolean; onClose: () => 
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <button aria-label="Close dialog" className="absolute inset-0 bg-overlay/80 backdrop-blur-sm" onClick={onClose} />
       <div
-        className="relative bg-surface-elevated border border-border rounded-xl p-6 w-full max-w-sm mx-4 animate-scale-in shadow-2xl shadow-overlay"
+        className="mesh-panel relative rounded-xl p-6 w-full max-w-sm mx-4 animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 mb-5">
@@ -63,7 +64,7 @@ export function ApiKeyDialog({ open, onClose }: { open: boolean; onClose: () => 
               Connect to Venice
             </h2>
             <p className="text-[13px] text-text-secondary">
-              Stored securely in OS Keychain/Credential Manager.
+              {isElectron() ? 'Stored securely in OS Keychain/Credential Manager.' : 'Held in memory for this local development session only.'}
             </p>
           </div>
         </div>
@@ -75,7 +76,7 @@ export function ApiKeyDialog({ open, onClose }: { open: boolean; onClose: () => 
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="sk-..."
-          className="w-full bg-surface border border-border rounded-lg px-3.5 py-2.5 text-[16px] text-text-primary outline-none focus:border-accent transition-colors font-mono placeholder:text-text-muted/50"
+          className="mesh-input w-full rounded-lg px-3.5 py-2.5 text-[16px] text-text-primary outline-none focus:border-accent font-mono placeholder:text-text-muted/50"
           autoFocus
           autoComplete="off"
           onKeyDown={(e) => { if (e.key === 'Enter') handleConnect() }}

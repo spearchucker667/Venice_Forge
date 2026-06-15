@@ -198,7 +198,7 @@ export function SettingsView() {
     try {
       await setApiKey(apiKeyInput.trim());
       setApiKeyInput("");
-      toast.success("Venice API key saved securely.");
+      toast.success(isElectron() ? "Venice API key saved securely." : "Venice API key saved for this development session.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save API key.");
     }
@@ -207,7 +207,9 @@ export function SettingsView() {
   async function handleDeleteApiKey() {
     setPendingConfirm({
       message: "Delete Venice API key?",
-      detail: "This will remove your Venice API key from OS secure storage. You will need to re-enter it to make requests.",
+      detail: isElectron()
+        ? "This will remove your Venice API key from OS secure storage. You will need to re-enter it to make requests."
+        : "This will remove the Venice API key from the current development session.",
       onConfirm: async () => {
         try {
           await clearApiKey();

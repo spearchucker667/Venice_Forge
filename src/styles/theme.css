@@ -59,6 +59,12 @@
   --color-accent-soft: rgba(110, 231, 211, 0.16);
 }
 
+:root {
+  --motion-fast: 140ms;
+  --motion-medium: 220ms;
+  --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
 html { color-scheme: light dark; }
 body {
   margin: 0;
@@ -107,7 +113,7 @@ a { color: var(--link); }
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.section-transition { animation: section-enter 0.15s cubic-bezier(0.2, 0, 0, 1); }
+.section-transition { animation: section-enter var(--motion-medium) var(--motion-ease); }
 
 .skeleton {
   background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 100%);

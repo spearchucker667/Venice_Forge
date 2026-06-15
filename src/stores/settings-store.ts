@@ -123,7 +123,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'venice-settings',
-      version: 5,
+      version: 6,
       storage: createJSONStorage(() => createSafeStorage()),
       migrate: (persisted) => {
         const state = persisted && typeof persisted === 'object'
@@ -131,6 +131,9 @@ export const useSettingsStore = create<SettingsState>()(
           : {}
         return {
           ...state,
+          // v6: collapsed state is session-only. Old false/corrupt values must
+          // never hide the labeled desktop menu on the next launch.
+          sidebarOpen: true,
           localFamilySafeModeEnabled: state.localFamilySafeModeEnabled ?? true,
           veniceApiSafeMode: state.veniceApiSafeMode ?? true,
           // v3: normalise legacy tab aliases (e.g. 'gallery' → 'media').
@@ -142,6 +145,11 @@ export const useSettingsStore = create<SettingsState>()(
           characterSceneGenerationMode: state.characterSceneGenerationMode ?? 'manual',
         } as SettingsState
       },
+      merge: (persisted, current) => ({
+        ...current,
+        ...(persisted && typeof persisted === 'object' ? persisted : {}),
+        sidebarOpen: true,
+      }),
     },
   ),
 )

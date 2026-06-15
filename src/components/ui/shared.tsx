@@ -173,7 +173,7 @@ export function ExamplePrompts({ items, onPick, title = 'Try one of these', onSh
 
 export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('bg-surface border border-border/60 rounded-xl', className)}>
+    <div className={cn('mesh-card rounded-xl', className)}>
       {children}
     </div>
   )

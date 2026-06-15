@@ -76,6 +76,25 @@ describe("server.ts health endpoint", () => {
   });
 });
 
+describe("server.ts development session key", () => {
+  it("stores and clears a Venice key only in the server process", async () => {
+    const app = createServerApp();
+    const save = await request(app).post("/api/session-key").send({ key: "vn-session-fixture" });
+    expect(save.status).toBe(200);
+    expect(save.body).toEqual({ ok: true });
+    expect(JSON.stringify(save.body)).not.toContain("vn-session-fixture");
+    expect((await request(app).get("/api/session-key")).body).toEqual({ configured: true });
+    expect((await request(app).delete("/api/session-key")).body).toEqual({ ok: true });
+    expect((await request(app).get("/api/session-key")).body).toEqual({ configured: false });
+  });
+
+  it("rejects empty and oversized session keys", async () => {
+    const app = createServerApp();
+    expect((await request(app).post("/api/session-key").send({ key: "" })).status).toBe(400);
+    expect((await request(app).post("/api/session-key").send({ key: "x".repeat(513) })).status).toBe(400);
+  });
+});
+
 describe("server.ts proxy validation", () => {
   let app: any;
 
@@ -224,6 +243,13 @@ describe("server.ts proxy header sanitization", () => {
 
     expect(proxyReq.write).not.toHaveBeenCalled();
     expect(proxyReq.setHeader).not.toHaveBeenCalledWith("Content-Length", expect.any(Number));
+  });
+
+  it("uses an explicit development session key without trusting renderer headers", () => {
+    const proxyReq = { removeHeader: vi.fn(), setHeader: vi.fn(), write: vi.fn() };
+    applyVeniceProxyHeaders(proxyReq, { method: "GET" }, "vn-session-fixture");
+    expect(proxyReq.removeHeader).toHaveBeenCalledWith("Authorization");
+    expect(proxyReq.setHeader).toHaveBeenCalledWith("Authorization", "Bearer vn-session-fixture");
   });
 });
 

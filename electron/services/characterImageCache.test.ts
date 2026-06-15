@@ -101,6 +101,12 @@ describe("characterImageCache", () => {
     expect(mockedFetch).toHaveBeenCalledTimes(1); // no refetch
   });
 
+  it("accepts AVIF images returned by the Venice character CDN", async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce(makeImageResponse(512, "image/avif"));
+    const result = await getCachedCharacterImage(OFFICIAL_URL);
+    expect(result).toMatchObject({ ok: true, contentType: "image/avif", bytes: 512 });
+  });
+
   it("rejects disallowed content types", async () => {
     const mockedFetch = vi.mocked(globalThis.fetch);
     mockedFetch.mockResolvedValueOnce(makeImageResponse(100, "image/gif"));

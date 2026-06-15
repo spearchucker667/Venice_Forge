@@ -52,6 +52,63 @@ describe('Sidebar controls', () => {
     expect(useSettingsStore.getState().activeTab).toBe('media')
   })
 
+  it('shows the complete labeled menu on initial desktop render', () => {
+    render(<Sidebar />)
+    for (const label of ['Chat', 'History', 'Image Studio', 'Media Studio', 'Prompts', 'Research', 'Characters', 'RP Studio', 'Workflows', 'Privacy', 'Config', 'Status']) {
+      expect(screen.getByRole('button', { name: label })).toBeInTheDocument()
+    }
+  })
+
+  it('forces persisted collapsed state open during hydration while allowing in-session collapse', () => {
+    const merge = useSettingsStore.persist.getOptions().merge
+    expect(merge).toBeTypeOf('function')
+    const merged = merge?.({ sidebarOpen: false }, useSettingsStore.getState()) as { sidebarOpen: boolean }
+    expect(merged.sidebarOpen).toBe(true)
+    useSettingsStore.getState().setSidebarOpen(false)
+    expect(useSettingsStore.getState().sidebarOpen).toBe(false)
+  })
+
+  it('places the primary New chat action directly after the project selector', () => {
+    render(<Sidebar />)
+    const project = screen.getByRole('combobox', { name: 'Active project' })
+    const newChat = screen.getByRole('button', { name: '+ New chat' })
+    expect(project.nextElementSibling).toBe(newChat)
+  })
+
+  it('creates and selects a new chat in the active project context', async () => {
+    useSettingsStore.setState({ activeProjectId: 'project-a', activeTab: 'media' })
+    render(<Sidebar mobileOpen onMobileClose={vi.fn()} />)
+    await userEvent.click(screen.getByRole('button', { name: '+ New chat' }))
+    const state = useChatStore.getState()
+    expect(state.activeConversationId).not.toBeNull()
+    expect(state.conversations[0].memory?.projectRefs).toEqual(['project-a'])
+    expect(useSettingsStore.getState().activeTab).toBe('chat')
+  })
+
+  it('provides an accessible Chat options menu that closes on Escape', async () => {
+    useChatStore.getState().createConversation('test-model')
+    render(<Sidebar />)
+    const trigger = screen.getByRole('button', { name: 'Chat options' })
+    await userEvent.click(trigger)
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('menu', { name: 'Chat options' })).toBeInTheDocument()
+    for (const action of ['New chat', 'Search chats', 'Export active chat', 'Delete active chat', 'Clear active chat selection']) {
+      expect(screen.getByRole('menuitem', { name: action })).toBeInTheDocument()
+    }
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByRole('menu', { name: 'Chat options' })).not.toBeInTheDocument()
+  })
+
+  it('requires confirmation before deleting the active chat from Chat options', async () => {
+    useChatStore.getState().createConversation('test-model')
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    render(<Sidebar />)
+    await userEvent.click(screen.getByRole('button', { name: 'Chat options' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Delete active chat' }))
+    expect(confirmSpy).toHaveBeenCalledTimes(1)
+    expect(useChatStore.getState().conversations).toHaveLength(1)
+  })
+
   it('makes Red-Team Mode visible by opening the Inspector', () => {
     render(<Sidebar />)
     fireEvent.click(screen.getByRole('switch', { name: 'Toggle Red-Team Mode' }))
@@ -185,8 +242,16 @@ describe('Sidebar controls', () => {
     expect(nav).toHaveClass('flex-1', 'min-h-0', 'overflow-y-auto')
 
     // Footer must never shrink.
-    const footer = aside?.querySelector('.shrink-0.border-t.border-border.bg-surface\\/95')
+    const footer = aside?.querySelector('.shrink-0.soft-separator-y')
     expect(footer).toBeInTheDocument()
+  })
+
+  it('uses the global mesh utilities for shell, inputs, and menus', async () => {
+    const { container } = render(<Sidebar />)
+    expect(container.querySelector('aside')).toHaveClass('mesh-sidebar')
+    expect(screen.getByRole('combobox', { name: 'Active project' }).nextElementSibling).toHaveClass('mesh-input')
+    await userEvent.click(screen.getByRole('button', { name: 'Chat options' }))
+    expect(screen.getByRole('menu', { name: 'Chat options' })).toHaveClass('mesh-panel')
   })
 
   it('does not use hardcoded white/black theme classes in the footer (light-theme regression guard)', () => {

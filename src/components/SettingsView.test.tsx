@@ -148,7 +148,7 @@ describe("SettingsView API key safety controls", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Save Key" })[0]);
 
     await waitFor(() => expect(setApiKey).toHaveBeenCalledWith("sk-secret123"));
-    expect(successSpy).toHaveBeenCalledWith("Venice API key saved securely.");
+    expect(successSpy).toHaveBeenCalledWith("Venice API key saved for this development session.");
     expect(input).toHaveValue("");
   });
 

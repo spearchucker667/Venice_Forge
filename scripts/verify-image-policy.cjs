@@ -4,7 +4,7 @@
  *
  * Phase 2J Image Policy guard (VERIFY-053).
  * Static audit of the source tree to ensure PNG/JPEG/WEBP normalization
- * across ingress paths, preload, and Electron services.
+ * across user ingress paths while allowing AVIF from the Venice avatar CDN.
  */
 "use strict";
 
@@ -38,6 +38,7 @@ function mustNotContain(rel, fragments, label) {
 
 function main() {
   const POLICY_TYPES = ["image/png", "image/jpeg", "image/webp"];
+  const CHARACTER_CACHE_TYPES = [...POLICY_TYPES, "image/avif"];
   const ACCEPT_LIST = "image/png,image/jpeg,image/webp";
 
   // 1. attachmentService.ts (canonical set)
@@ -49,8 +50,8 @@ function main() {
   mustNotContain("electron/services/mediaService.ts", ["image/gif", "decodeGif", "isGif"], "GIF support");
 
   // 3. characterImageCache.ts (Venice avatar cache)
-  mustContain("electron/services/characterImageCache.ts", POLICY_TYPES, "character cache allowed types");
-  mustNotContain("electron/services/characterImageCache.ts", ["image/avif", "image/gif"], "non-canonical types");
+  mustContain("electron/services/characterImageCache.ts", CHARACTER_CACHE_TYPES, "character cache allowed types");
+  mustNotContain("electron/services/characterImageCache.ts", ["image/gif"], "non-canonical types");
 
   // 4. Component Accept Lists
   mustContain("src/components/chat/chat-input.tsx", [`accept="${ACCEPT_LIST}"`], "chat-input accept list");
@@ -65,7 +66,7 @@ function main() {
     process.exit(1);
   }
 
-  console.log("[verify:image-policy] OK — Image policy (PNG/JPEG/WEBP) is consistent across all ingress paths.");
+  console.log("[verify:image-policy] OK — ingress uses PNG/JPEG/WEBP and the Venice avatar cache also permits AVIF.");
   process.exit(0);
 }
 

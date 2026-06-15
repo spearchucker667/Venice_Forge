@@ -131,6 +131,7 @@ RSYNC_EXCLUDES=(
 
   # Dependency folders
   "--exclude=node_modules/"
+  "--exclude=.node22/"
   "--exclude=bower_components/"
   "--exclude=vendor/bundle/"
   "--exclude=.pnpm-store/"

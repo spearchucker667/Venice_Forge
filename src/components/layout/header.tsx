@@ -31,7 +31,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   const modelOptions = hasOwnSelector ? [] : (models?.map((m) => ({ value: m.id, label: m.model_spec?.name || m.id })) ?? [])
 
   return (
-    <header className="flex items-center gap-3 h-14 px-3 soft-separator-y mesh-surface shrink-0 shell-region">
+    <header className="flex items-center gap-3 h-14 px-3 soft-separator-y mesh-surface mesh-header shrink-0 shell-region">
       <button
         type="button"
         onClick={() => onOpenMobileSidebar?.()}

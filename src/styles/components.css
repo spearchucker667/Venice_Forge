@@ -48,28 +48,97 @@
 
 /* Shell UI System */
 .mesh-surface {
-  background-color: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  background:
+    radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--color-accent) 7%, transparent), transparent 24rem),
+    linear-gradient(145deg, color-mix(in srgb, var(--color-surface) 82%, transparent), color-mix(in srgb, var(--color-surface-elevated) 52%, transparent));
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
 .mesh-surface-elevated {
-  background-color: color-mix(in srgb, var(--color-surface-elevated) 55%, transparent);
+  background:
+    radial-gradient(circle at 90% 0%, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 18rem),
+    linear-gradient(155deg, color-mix(in srgb, var(--color-surface-elevated) 78%, transparent), color-mix(in srgb, var(--color-surface) 66%, transparent));
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
-.soft-separator-x {
-  box-shadow: inset -1px 0 0 0 color-mix(in srgb, var(--color-border) 60%, transparent);
+.soft-separator-x,
+.soft-separator-y {
+  position: relative;
 }
 
-.soft-separator-y {
-  box-shadow: inset 0 -1px 0 0 color-mix(in srgb, var(--color-border) 60%, transparent);
+.soft-separator-x::after,
+.soft-separator-y::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.82;
+}
+
+.soft-separator-x::after {
+  inset: 2% -1px 2% auto;
+  width: 2px;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-border) 24%, transparent) 16%, color-mix(in srgb, var(--color-border) 28%, transparent) 50%, color-mix(in srgb, var(--color-border) 24%, transparent) 84%, transparent);
+  filter: blur(0.4px);
+}
+
+.soft-separator-y::after {
+  inset: auto 2% -1px 2%;
+  height: 2px;
+  background: linear-gradient(to right, transparent, color-mix(in srgb, var(--color-border) 24%, transparent) 16%, color-mix(in srgb, var(--color-border) 28%, transparent) 50%, color-mix(in srgb, var(--color-border) 24%, transparent) 84%, transparent);
+  filter: blur(0.4px);
 }
 
 .soft-panel {
   box-shadow: 0 4px 24px -4px color-mix(in srgb, #000 10%, transparent);
 }
+
+.mesh-card,
+.mesh-panel,
+.mesh-input,
+.mesh-sidebar,
+.mesh-header {
+  border-color: color-mix(in srgb, var(--color-border) 28%, transparent);
+  transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-medium) var(--motion-ease), transform var(--motion-fast) var(--motion-ease), opacity var(--motion-fast) var(--motion-ease);
+}
+
+.mesh-card,
+.mesh-panel {
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 16rem),
+    linear-gradient(145deg, color-mix(in srgb, var(--color-surface-elevated) 82%, transparent), color-mix(in srgb, var(--color-surface) 68%, transparent));
+  border: 1px solid color-mix(in srgb, var(--color-border) 24%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border) 14%, transparent), 0 12px 40px color-mix(in srgb, #000 10%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.mesh-input {
+  border: 1px solid color-mix(in srgb, var(--color-border) 28%, transparent);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--color-input-bg) 86%, transparent), color-mix(in srgb, var(--color-surface-elevated) 56%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border) 10%, transparent);
+}
+
+.mesh-sidebar,
+.mesh-header {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border) 10%, transparent);
+}
+
+.menu-action {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  color: var(--color-text-secondary);
+  transition: color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease), opacity var(--motion-fast) var(--motion-ease);
+}
+.menu-action:hover:not(:disabled),
+.menu-action:focus-visible { color: var(--color-text-primary); background: color-mix(in srgb, var(--color-surface-elevated) 72%, transparent); }
+.menu-action:disabled { cursor: not-allowed; opacity: 0.42; }
 
 .shell-region {
   position: relative;

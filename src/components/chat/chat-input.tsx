@@ -86,7 +86,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
 
         <div
           className={cn(
-            'relative bg-surface border rounded-2xl overflow-hidden transition-all shadow-lg',
+            'mesh-input relative rounded-2xl overflow-hidden shadow-lg',
             'focus-within:border-accent focus-within:shadow-xl',
             dragOver ? 'border-accent bg-accent/10' : 'border-border',
           )}

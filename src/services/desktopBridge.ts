@@ -111,6 +111,9 @@ export const desktopVenice = {
   },
 };
 
+/** Ephemeral web-session Venice key. It is intentionally never persisted. */
+let webSessionVeniceApiKey = "";
+
 /** Manages the Venice API key across desktop and web storage backends. */
 export const desktopApiKey = {
   /**
@@ -119,7 +122,7 @@ export const desktopApiKey = {
    */
   async isConfigured(): Promise<boolean> {
     if (isElectron()) return window.veniceForge!.apiKey.isConfigured();
-    return false;
+    return webSessionVeniceApiKey.length > 0;
   },
 
   /**
@@ -129,7 +132,14 @@ export const desktopApiKey = {
    */
   async set(key: string): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.apiKey.set(key);
-    throw new Error("API key storage is desktop-only. Web mode uses the server .env key.");
+    const response = await fetch("/api/session-key", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key }),
+    });
+    if (!response.ok) return { ok: false };
+    webSessionVeniceApiKey = key;
+    return { ok: true };
   },
 
   /**
@@ -138,6 +148,9 @@ export const desktopApiKey = {
    */
   async delete(): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.apiKey.delete();
+    const response = await fetch("/api/session-key", { method: "DELETE" });
+    if (!response.ok) return { ok: false };
+    webSessionVeniceApiKey = "";
     return { ok: true };
   },
 

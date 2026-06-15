@@ -35,14 +35,32 @@ const localStorageMock = {
   localStorageMock as unknown as Storage;
 
 /** Resets IndexedDB, localStorage mock, and clears mocks before each test. */
-beforeEach(() => {
+beforeEach(async () => {
   global.indexedDB = new FDBFactory();
   for (const k of Object.keys(localStorageStore)) delete localStorageStore[k];
   vi.clearAllMocks();
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  })));
+  vi.stubGlobal("window", { indexedDB: global.indexedDB, localStorage: localStorageMock as unknown as Storage });
+  await desktopApiKey.delete();
 });
 
 /** Tests for desktopBridge fallback behavior in web (non-Electron) mode. */
 describe("desktopBridge web fallback", () => {
+  it("keeps Electron Venice key writes on the secure IPC bridge", async () => {
+    const set = vi.fn(async () => ({ ok: true }));
+    vi.stubGlobal("window", {
+      indexedDB: global.indexedDB,
+      veniceForge: { isDesktop: true, apiKey: { set } },
+    });
+
+    await expect(desktopApiKey.set("vn-electron-fixture")).resolves.toEqual({ ok: true });
+    expect(set).toHaveBeenCalledWith("vn-electron-fixture");
+    expect(vi.mocked(fetch).mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
+  });
+
   /** Verifies that web mode reports correctly and delegates to veniceFetch. */
   it("reports non-Electron mode and avoids desktop IPC calls in browser mode", async () => {
     vi.stubGlobal("window", { indexedDB: global.indexedDB });
@@ -66,18 +84,16 @@ describe("desktopBridge web fallback", () => {
     ).rejects.toThrow(/desktop mode/i);
   });
 
-  /** Verifies that web mode refuses to store API keys locally. */
-  it("rejects setting API key in web mode", async () => {
-    vi.stubGlobal("window", { indexedDB: global.indexedDB });
-    await expect(desktopApiKey.set("vn-test-key")).rejects.toThrow(
-      /desktop-only/i
-    );
-  });
+  /** UIAUTH-001: web Venice keys stay in memory and are registered with the dev proxy. */
+  it("keeps web-mode Venice keys ephemeral and out of browser storage", async () => {
+    const preKeys = Object.keys(localStorageStore);
+    await expect(desktopApiKey.set("vn-test-key")).resolves.toEqual({ ok: true });
+    await expect(desktopApiKey.isConfigured()).resolves.toBe(true);
+    expect(fetch).toHaveBeenCalledWith("/api/session-key", expect.objectContaining({ method: "POST" }));
+    expect(Object.keys(localStorageStore)).toEqual(preKeys);
 
-  /** Verifies that deleting API key in web mode is a safe no-op. */
-  it("allows deleting API key in web mode as a no-op", async () => {
-    vi.stubGlobal("window", { indexedDB: global.indexedDB });
     await expect(desktopApiKey.delete()).resolves.toEqual({ ok: true });
+    await expect(desktopApiKey.isConfigured()).resolves.toBe(false);
   });
 
   // VERIFY-038: browser-mode Jina overrides are session-memory only.

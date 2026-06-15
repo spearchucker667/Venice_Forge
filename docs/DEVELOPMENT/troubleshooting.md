@@ -55,7 +55,7 @@ If conversations fail to appear after restart:
 
 ## Archive Hygiene Failures
 
-`verify-archive-clean.cjs` (and the new `verify:release-packaging-hardening` gate) fail when forbidden paths are tracked in git or present in a scan root. The most common cause is a developer accidentally adding a `dist/`, `node_modules/`, `.env.local`, or `*.log` file to git.
+`verify-archive-clean.cjs` (and the new `verify:release-packaging-hardening` gate) fail when forbidden paths are tracked in git or present in a scan root. The most common cause is a developer accidentally adding a `dist/`, `node_modules/`, `.node22/`, `.env.local`, or `*.log` file to git.
 
 Solution:
 1. Run `node scripts/verify-archive-clean.cjs` and read the printed list of contaminants.

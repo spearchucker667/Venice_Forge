@@ -63,7 +63,9 @@ return-content `screenResponseBody` screening.
   above. The web mode is for development / preview, not a hardened
   threat surface.
 - **Secrets:** Electron uses `safeStorage` (DPAPI on Windows,
-  Keychain on macOS). Web uses a server-side `.env`. The local YAML
+  Keychain on macOS). Web production uses a server-side `.env`; local
+  web development may use a loopback-only, process-memory session key
+  that is cleared when the dev server stops and is never written to browser storage. The local YAML
   config supports `secrets.venice_api_key` / `jina_api_key` for
   one-time import into the secure store; the YAML is then
   atomically rewritten to redact plaintext.
@@ -104,21 +106,28 @@ comments and multiple Markdown documents. No runtime safety or release
 blockers remain.
 
 ### Latest Session Summary
-- **UI System Refactoring:** Replaced hard-line section borders across major shell regions (`App.tsx`, `sidebar.tsx`, `header.tsx`, `inspector-pane.tsx`, `CharactersView.tsx`) with a unified system of `.mesh-surface` and `.soft-separator-x/y` utilities, revealing the global mesh overlay.
-- **Sidebar Footer Consolidation:** Refactored sidebar footer controls into a single bottom panel with a max height and internal scroll fallback, preventing overlapping of components in constrained window heights.
-- **Header Status Cluster:** Updated the header status cluster to use `flex-nowrap overflow-x-auto` to prevent wrapping and row-height expansion in the fixed `h-14` header.
-- **CharactersView Layout:** Merged header/search areas into a unified `.soft-panel` and transitioned to the `.mesh-surface` system.
-- **Image Fallback/Cache Sync:** Updated `characterImageFallback.ts` comments to correctly state the feature is ON by default. Exported `ALLOWED_CONTENT_TYPES` (including `image/avif`) from `characterImageCache.ts` and synced the `main.ts` protocol handler to use this canonical list.
-- **Regression Testing:** Added a static shell layout test (`tests/theme/meshSurfaceInvariant.test.ts`) that bans raw `border-[trbl] border-border` classes in major shell regions, enforcing the new `.soft-separator` invariant.
+- **T-001 through T-030 ZIP-audit work-order cross-check:** Audited each finding against current source with direct evidence and runnable checks. Produced the YAML report `docs/audits/cross-check-T001-T030-2026-06-15.yaml`. All 30 findings are closed in the current tree.
+- **Focused cross-checks XC-001..XC-019:** Verified auth-store key custody, API-key dialog errors, restricted media imports, Jina proxy key custody, UI error redaction in Character/Persona/Lorebook/embeddings/video surfaces, updater IPC redaction, chat-storage generic errors, RP single-file delete idempotency, dialog-based text attachments, Linux checksums, Windows signing env mapping, CI-contract gate enumeration, server.ts coverage inclusion, archive cleanliness, Markdown-link and agent-doc parity.
+- **Hygiene sweeps:** Raw-error pattern sweep completed and identified residual unredacted user-facing surfaces outside the T-001..T-030 scope. Secret-retention sweep confirmed no API keys/bearer tokens in localStorage/sessionStorage and all localStorage calls are tagged. Artifact-cleanliness sweep confirmed no tracked `.env`, `.DS_Store`, Kimi exports, or ledger Python files.
+- **Validation:** Full gate `lint:eslint && typecheck && npm test && verify:contracts && build` passed on Node `v22.22.3` / npm `10.9.8`. Coverage run included `server.ts`. No Node-22-specific issues were introduced.
+- **Local Node 22 toolchain hygiene:** Added `.node22/` to `.gitignore` so the local Node 22 installation used for canonical validation is ignored by git. Updated `scripts/verify-archive-clean.cjs` to flag `.node22/` as a forbidden archive contaminant and require it in `.gitignore`, and updated `scripts/clean-repo-zip.sh` to exclude `.node22/` from source archives. Synchronized `AGENTS.md` (VERIFY-052), `docs/RELEASE/release.md`, and `docs/DEVELOPMENT/troubleshooting.md` to document the `.node22/` exclusion alongside `node_modules/`.
 
 ### Open TODO Ledger
 - Add visual snapshots or Playwright screenshots for Characters, Settings, Research, Chat.
+- Route residual unredacted user-facing error surfaces identified in the T-001..T-030 cross-check through `redactErrorMessage` / `sanitizeErrorText` or `toast.fromError`.
 
 ### Validation Matrix
-- `npm run typecheck`: PASS
-- `npm run lint:eslint`: PASS
-- `npm run verify:theme-tokens`: PASS
-- `npm run test`: PASS (CharactersView, characterImageResolver, meshSurfaceInvariant)
+- Runtime: Node `v22.22.3`, npm `10.9.8` (matches project engines `>=22.13.0 <23`).
+- `npm run lint:eslint`: PASS (zero warnings, `--max-warnings=0`).
+- `npm run typecheck`: PASS (renderer + Electron main).
+- `npm test`: PASS (236 test files passed, 1 skipped; 2578 tests passed, 1 skipped).
+- `npm run verify:contracts`: PASS (all parity gates including safety-guard, markdown-links, theme-tokens, model-aware-recipes, media-studio-power-tools, status-diagnostics, prompt-library, scene-composer, rp-studio-polish, workflow-templates, storage-privacy, storage-policy, research-workspace, network-boundaries, release-packaging-hardening, ci-contract, agent-docs, image-policy, work-orders).
+- `npm run build`: PASS (`dist/`, `dist/server.cjs`, `dist-electron/`).
+- `npm run test:coverage`: PASS; `server.ts` included at 55.75% stmts / 46.66% branches / 53.33% funcs / 56.47% lines.
+- `npm run verify:archive-clean`: PASS (tracked inputs and banned Kimi/ledger patterns clean).
+- `npm run verify:markdown-links`: PASS (55 Markdown files checked).
+- `npm run verify:agent-docs`: PASS.
+- `node scripts/verify-storage-policy.cjs`: PASS (all localStorage references tagged).
 
 - **Date:** 2026-06-15 (Electron macOS App Build and Run)
 - **Agent:** Antigravity (Gemini 3.5 Flash)
@@ -1049,6 +1058,44 @@ blockers remain.
   - `npm run typecheck` — **FAIL (exit 2)** on pre-existing unrelated errors in `src/stores/rp-chat-store.test.ts` (`personaId: null` incompatible with `string | undefined`) and `src/stores/prompt-library-store.test.ts`; `src/stores/media-store.ts` and `src/stores/media-store.test.ts` produce no type errors.
 
 ## Session History
+
+### 2026-06-15 - T-001 through T-030 ZIP-Audit Work-Order Cross-Check
+
+- Agent: Kimi Code.
+- Branch / state: `main` at `0769428`; 22-file dirty working tree from parallel UI/sidebar/server session-key changes.
+- Ran the YAML work-order cross-check against T-001..T-030 using direct source reads and runnable checks only; no finding was accepted from commit or ledger claims alone.
+- Closed/verified each T item:
+  - T-001: `app:readLocalFile` is dialog-based with text-attachment filters and hidden-file rejection.
+  - T-002: `app:getDiagnostics` returns basenames and redacts `securePrefsError` / `lastApiError`; `app:getDataPath` is removed.
+  - T-003/T-004: `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` and `shell: bash` Windows overrides are removed from CI workflows.
+  - T-005..T-009: README docs table, AGENTS.md references, agent-doc/copilot parity, and release `verify:dist:*` checks are correct.
+  - T-010..T-012: `venice-character-cache` protocol uses `fs.createReadStream` with strict content-type validation; preload/AGENTS docs are correct.
+  - T-013..T-015: `useCharacterImage` synthetic-photo category, page-fallback path, and primitive dependency array are in place.
+  - T-016..T-018: `CLAUDE.md`/`GEMINI.md` are thin pointers; `.gitignore` uses stable wildcards; `.gitattributes` marks binaries.
+  - T-019: Agent-doc parity includes `.cursorrules` and `.windsurfrules`.
+  - T-020: `server.ts` Jina/scrape proxies use `dns.lookup` and reject loopback/private/metadata targets.
+  - T-021..T-030: Verified by passing aggregate contract gates and no source contradictions; details recorded in `docs/audits/cross-check-T001-T030-2026-06-15.yaml`.
+- Executed focused cross-checks XC-001..XC-019 and three hygiene sweeps (raw errors, secret retention, artifact cleanliness).
+- Installed a local Node `v22.22.3` / npm `10.9.8` toolchain under `.node22/` and ran `npm ci`; full validation gate passed on Node 22: `lint:eslint`, `typecheck`, `npm test`, `verify:contracts`, `build`.
+- Residual caveats: a few user-facing surfaces still render raw `err.message` outside the T-001..T-030 scope; Vitest 4 `thresholds.global` schema does not enforce the documented global percentages.
+
+### 2026-06-15 - Local Node 22 Toolchain Hygiene
+
+- Agent: Kimi Code.
+- Branch / state: `main` at `0769428`; 22-file dirty working tree from parallel UI/sidebar/server session-key changes; new untracked `.node22/` local Node 22 toolchain.
+- Added `.node22/` to `.gitignore` so the local Node 22 dependency tree is ignored by git and never committed.
+- Updated `scripts/verify-archive-clean.cjs` to treat `.node22/` as a forbidden archive contaminant, require it in `.gitignore`, and list it in failure output.
+- Updated `scripts/clean-repo-zip.sh` to exclude `.node22/` from source archives (rsync and tar fallback paths).
+- Synchronized documentation: `AGENTS.md` VERIFY-052 row, `docs/RELEASE/release.md` `.gitignore` / archive-hygiene table rows, and `docs/DEVELOPMENT/troubleshooting.md` common-contaminant example.
+- Validation on Node `v22.22.3` / npm `10.9.8`: `verify:archive-clean` (config + tracked scan) PASS, `verify:release-packaging-hardening` PASS, `verify:markdown-links` PASS, `verify:agent-docs` PASS.
+
+### 2026-06-15 - Dev API Key, Sidebar Actions, and Global Mesh Polish
+
+- Added ephemeral local-web Venice API key support through a non-production, loopback-only, process-memory server endpoint. Web keys are not persisted to localStorage, sessionStorage, IndexedDB, YAML, or Zustand; Electron writes still route only through the secure preload bridge.
+- Forced the desktop sidebar open on every hydration, preserved in-session collapse, moved the full-width New chat action below the project selector, and added the accessible Chat Options menu with outside-click/Escape/action close behavior and confirm-gated deletion.
+- Replaced hard shell separator lines with low-opacity gradient falloff and added reusable mesh/motion utilities across shell, shared controls, chat input, media cards, and dialogs while retaining focus-visible outlines.
+- Reconciled the stale image-policy verifier with the already-canonical AVIF character-cache allowlist and added an AVIF cache regression test.
+- Validation on Node `v22.22.3` / npm `10.9.8`: lint/typecheck PASS; focused suite PASS (12 files / 148 tests); full suite PASS (2,576 passed / 1 skipped); theme tokens PASS; aggregate contracts PASS; production build PASS; live `npm run dev` browser inspection and session-key lifecycle PASS.
 
 ### 2026-06-15 - ZIP Audit Closure and README Preview Optimization
 

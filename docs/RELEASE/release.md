@@ -133,8 +133,8 @@ The release pipeline is protected by a single-source-of-truth audit at `scripts/
 | Release workflow | Runs `verify:dist:*` + `checksum:release` + archive hygiene after every platform packaging job |
 | Electron builder | `electron-builder.config.cjs` declares `appId`, `directories`, `asar: true`, and excludes `.map` source maps |
 | Docs present | `docs/RELEASE/release.md`, `docs/RELEASE/signing-and-notarization.md`, `docs/DEVELOPMENT/building.md`, `docs/DEVELOPMENT/platform-support.md`, `docs/DEVELOPMENT/troubleshooting.md` |
-| `.gitignore` | Excludes `node_modules/`, `/dist/`, `/dist-electron/`, `/release/`, `/coverage/`, `.env*` (allowlisting `.env.example`), `.config/*.yaml` (allowlisting `.config/*.example.yaml`) |
-| Archive hygiene | `git ls-files` contains no `node_modules/`, `dist/`, `dist-electron/`, `release/`, `coverage/`, `.env*` (non-example), `.config/*.local.yaml`, `*.db`, `*.log`, `chat-history/`, `docs/AGENTS/`, etc. (delegates to `scripts/verify-archive-clean.cjs` `BAD_PATTERNS`) |
+| `.gitignore` | Excludes `node_modules/`, `.node22/`, `/dist/`, `/dist-electron/`, `/release/`, `/coverage/`, `.env*` (allowlisting `.env.example`), `.config/*.yaml` (allowlisting `.config/*.example.yaml`) |
+| Archive hygiene | `git ls-files` contains no `node_modules/`, `.node22/`, `dist/`, `dist-electron/`, `release/`, `coverage/`, `.env*` (non-example), `.config/*.local.yaml`, `*.db`, `*.log`, `chat-history/`, `docs/AGENTS/`, etc. (delegates to `scripts/verify-archive-clean.cjs` `BAD_PATTERNS`) |
 | Icon assets | `build/icon.{ico,icns,png}` are tracked |
 | Dist hygiene (build outputs) | `verify-dist.cjs` rejects source maps, test files, `.env*`, `.config/*.local.yaml`, `*.db`, `chat-history/`, `.design-captures/`, `.integration-src/` in `dist/` and `dist-electron/` (always — even in local mode) |
 | Secret-leak heuristic | `verify-dist.cjs` scans text files in `dist/` and `dist-electron/` for `venice_<40+ alnum>` / `sk-<20+ alnum>` / `Bearer <20+ chars>` tokens (the regex is intentionally tight and does not match internal constants like `venice_forge_traffic_logs_v1`) |
