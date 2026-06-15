@@ -37,7 +37,7 @@
 </p>
 
 <p align="center">
-  <img width="1774" height="998" alt="Venice Forge application preview" src="./assets/preview.jpg" />
+  <img width="1774" height="998" alt="Venice Forge application preview" src="./assets/preview.png" />
 </p>
 
 ---
