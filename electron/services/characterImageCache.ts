@@ -26,12 +26,11 @@ export const CHARACTER_IMAGE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 /** Upstream fetch timeout. */
 const FETCH_TIMEOUT_MS = 15_000;
 
-/** Allowed image content types. GIF is intentionally excluded. */
+/** Allowed image content types. GIF and AVIF are intentionally excluded. */
 const ALLOWED_CONTENT_TYPES = new Set([
   "image/png",
   "image/jpeg",
   "image/webp",
-  "image/avif",
 ]);
 
 /** Maximum accepted URL length. */

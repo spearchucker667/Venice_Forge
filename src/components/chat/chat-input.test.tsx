@@ -205,7 +205,7 @@ describe("ChatInput", () => {
     const file = new File(["dummy"], "photo.bmp", { type: "image/bmp" });
     const fileInput = screen.getByLabelText("Message input").parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
 
-    await userEvent.upload(fileInput, file);
+    fireEvent.change(fileInput, { target: { files: [file] } });
 
     await waitFor(() => expect(mockToastWarn).toHaveBeenCalledWith(
       "Unsupported image",

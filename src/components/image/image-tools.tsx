@@ -82,7 +82,7 @@ export function ImageTools() {
       setParentId(null)
       resetResult()
     } catch (err) {
-      toast.error('Failed to read image', err instanceof Error ? err.message : String(err))
+      toast.fromError(err, 'Failed to read image')
     }
   }
 
@@ -148,7 +148,7 @@ export function ImageTools() {
       }
       toast.success('Saved to Media Studio')
     } catch (err) {
-      toast.error('Save failed', err instanceof Error ? err.message : String(err))
+      toast.fromError(err, 'Save failed')
     }
   }
 
@@ -200,7 +200,7 @@ export function ImageTools() {
               onClick={() => fileRef.current?.click()}
               className="w-full border border-dashed border-border hover:border-accent rounded-lg py-8 text-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
             >
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleFileSelect(e.target.files[0]) }} />
+              <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleFileSelect(e.target.files[0]) }} />
               <p className="text-[14px] text-text-muted">Click to upload image</p>
             </button>
           )}

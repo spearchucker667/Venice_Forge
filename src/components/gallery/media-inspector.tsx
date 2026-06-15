@@ -204,7 +204,7 @@ export function MediaInspector({
       });
       toast.success("Saved recipe to Prompt Library");
     } catch (err) {
-      toast.error(`Could not save recipe: ${err instanceof Error ? err.message : String(err)}`);
+      toast.fromError(err, "Could not save recipe");
     }
   }, [generationRecipe, item.prompt, item.negative, item.id, item.projectId]);
 

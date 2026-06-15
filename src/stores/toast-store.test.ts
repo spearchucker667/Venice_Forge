@@ -63,10 +63,10 @@ describe('toast-store safe error handling (T-197)', () => {
     expect(t.description).toBe('Network timeout')
   })
 
-  it('fromError leaves description undefined for non-Error non-string values', () => {
+  it('fromError uses "Unknown error" for non-Error non-string values', () => {
     toast.fromError(null)
     const t = useToastStore.getState().toasts[0]
-    expect(t.description).toBeUndefined()
+    expect(t.description).toBe('Unknown error')
   })
 
   it('toast.error stores caller-provided description unchanged', () => {

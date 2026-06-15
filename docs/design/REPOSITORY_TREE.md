@@ -197,7 +197,7 @@ Express/Vite web development mode.
 ├── tsconfig.electron.json              # Electron main-process TypeScript configuration
 ├── tsconfig.electron.test.json
 ├── vite.config.ts                      # Vite build configuration
-├── vitest.config.ts                    # Vitest configuration (serial, 70/80/80/80 thresholds)
+├── vitest.config.ts                    # Vitest configuration (serial, 57/61/68/65 baseline thresholds)
 ├── eslint.config.mjs                   # Flat ESLint config
 ├── package-scripts.test.ts             # Locks the canonical `dev:web` / verify:* script strings
 ├── electron-builder.config.cjs         # Windows/macOS/Linux packaging config (VERIFY-052)

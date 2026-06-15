@@ -128,7 +128,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
           />
           <div className="flex items-center justify-between px-3 pb-2.5">
             <div className="flex items-center gap-1">
-              <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleImageUpload(e.target.files)} />
+              <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" multiple className="hidden" onChange={(e) => handleImageUpload(e.target.files)} />
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={attachDisabled}

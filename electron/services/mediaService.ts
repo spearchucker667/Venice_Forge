@@ -197,16 +197,13 @@ export interface MediaImportResult {
 }
 
 /** Decodes raw bytes to a data URL. Content type is sniffed from the
- *  leading bytes (PNG / JPEG / WebP / GIF). */
+ *  leading bytes (PNG / JPEG / WebP). */
 function sniffContentType(buffer: Buffer): string | null {
   if (buffer.length >= 8 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
     return "image/png";
   }
   if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
     return "image/jpeg";
-  }
-  if (buffer.length >= 6 && buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
-    return "image/gif";
   }
   if (
     buffer.length >= 12 &&
@@ -394,7 +391,7 @@ function stripDataUrl(s: string): string {
  *  Implementation note: we deliberately do not pull in a heavy native
  *  image library (e.g. sharp). Decoding + re-encoding WebP inside Electron's
  *  main process is done via a tiny pure-JS pipeline: detect dimensions
- *  from the source bytes (PNG / JPEG / WebP / GIF), then DOWNSCALE the
+ *  from the source bytes (PNG / JPEG / WebP), then DOWNSCALE the
  *  pixel data with the built-in `zlib` and a nearest-neighbour sampler,
  *  then re-encode as PNG. The result is a small, lossless thumbnail that
  *  any browser can render. */
@@ -444,27 +441,16 @@ export async function generateMediaThumb(input: MediaThumbInput): Promise<MediaT
   }
 }
 
-/** Decodes the four formats we support natively for thumbs: PNG, JPEG, WebP, GIF.
+/** Decodes the formats we support natively for thumbs: PNG, JPEG, WebP.
  *  Returns RGBA8888 pixels. Returns null on unsupported / malformed input. */
 function decodeImage(buffer: Buffer): { width: number; height: number; pixels: Uint8Array } | null {
   if (isPng(buffer)) return decodePng(buffer);
-  if (isJpeg(buffer)) return decodeJpeg(buffer);
-  if (isGif(buffer)) return decodeGif(buffer);
-  if (isWebp(buffer)) return decodeWebp(buffer);
+  // JPEG and WebP fallback to the renderer's canvas-based thumb cache (useMediaThumb).
   return null;
 }
 
 function isPng(b: Buffer): boolean {
   return b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;
-}
-function isJpeg(b: Buffer): boolean {
-  return b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
-}
-function isGif(b: Buffer): boolean {
-  return b.length >= 6 && b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46;
-}
-function isWebp(b: Buffer): boolean {
-  return b.length >= 12 && b.toString("ascii", 0, 4) === "RIFF" && b.toString("ascii", 8, 12) === "WEBP";
 }
 
 /** Reads a 4-byte big-endian unsigned integer. */
@@ -555,25 +541,6 @@ function decodePng(buffer: Buffer): { width: number; height: number; pixels: Uin
   } catch {
     return null;
   }
-}
-
-/** Decodes a baseline JPEG. We only need the dimensions for downscaling, so
- *  this implementation intentionally errors out — JPEGs from Venice are
- *  decoded by the browser's <img> element directly via data URLs. We keep
- *  a stub so a JPEG blob returns null and falls back to the renderer's
- *  canvas-based thumb cache (useMediaThumb) instead. */
-function decodeJpeg(_buffer: Buffer): { width: number; height: number; pixels: Uint8Array } | null {
-  return null;
-}
-
-/** Decodes a GIF (first frame). Stub — falls back to the renderer. */
-function decodeGif(_buffer: Buffer): { width: number; height: number; pixels: Uint8Array } | null {
-  return null;
-}
-
-/** Decodes a WebP. Stub — falls back to the renderer. */
-function decodeWebp(_buffer: Buffer): { width: number; height: number; pixels: Uint8Array } | null {
-  return null;
 }
 
 /** Downscales RGBA pixels to fit within `max` on the longest side, using

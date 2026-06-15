@@ -54,7 +54,7 @@ export default function HistoryView() {
           await restoreConversation(conv)
           toast.success('Conversation restored')
         } catch (err) {
-          toast.error('Failed to restore', err instanceof Error ? err.message : String(err))
+          toast.fromError(err, 'Failed to restore')
         }
       },
     })

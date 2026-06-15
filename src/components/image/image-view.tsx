@@ -220,7 +220,7 @@ export function ImageView() {
         })
         toast.success(`Saved ${kind} prompt to library`)
       } catch (err) {
-        toast.error(`Could not save prompt: ${err instanceof Error ? err.message : String(err)}`)
+        toast.fromError(err, 'Could not save prompt')
       }
     },
     [],

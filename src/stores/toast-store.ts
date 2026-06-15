@@ -45,12 +45,6 @@ export const toast = {
   error: (title: string, description?: string, action?: Toast['action']) =>
     useToastStore.getState().push({ variant: 'error', title, description, action, duration: 6500 }),
   fromError: (err: unknown, title = 'Something went wrong') => {
-    let description: string | undefined
-    if (err instanceof Error) {
-      description = redactErrorMessage(err.message)
-    } else if (typeof err === 'string') {
-      description = redactErrorMessage(err)
-    }
-    return useToastStore.getState().push({ variant: 'error', title, description, duration: 6500 })
+    return toast.error(title, redactErrorMessage(err))
   },
 }

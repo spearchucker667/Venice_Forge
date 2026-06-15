@@ -102,5 +102,19 @@ if (runsAggregate) {
   console.log("✓ ci.yml covers all individual gates");
 }
 
+// 3. Verify Vitest coverage configuration
+const vitestConfigPath = path.join(root, 'vitest.config.ts');
+if (fs.existsSync(vitestConfigPath)) {
+  const vitestConfig = fs.readFileSync(vitestConfigPath, 'utf8');
+  if (vitestConfig.includes('global:') && vitestConfig.includes('thresholds:')) {
+    const coverageBlock = vitestConfig.match(/coverage:\s*\{[\s\S]*?thresholds:\s*\{([\s\S]*?)\}/);
+    if (coverageBlock && coverageBlock[1].includes('global:')) {
+      console.error("❌ vitest.config.ts: Coverage thresholds must not be nested under 'global' for Vitest 4 compatibility.");
+      process.exit(1);
+    }
+  }
+  console.log("✓ vitest.config.ts coverage schema is valid");
+}
+
 console.log("CI contract check: PASS");
 process.exit(0);

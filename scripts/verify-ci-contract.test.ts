@@ -14,4 +14,9 @@ describe("verify:ci-contract required gate coverage", () => {
     const requiredGates = source.match(/const requiredGates = \[([\s\S]*?)\];/)?.[1] ?? "";
     expect(requiredGates).toContain(`'${gate}'`);
   });
+
+  it("fails if vitest.config.ts uses the unsupported global threshold key", () => {
+    const source = fs.readFileSync(path.resolve(__dirname, "verify-ci-contract.cjs"), "utf8");
+    expect(source).toContain("Coverage thresholds must not be nested under 'global'");
+  });
 });

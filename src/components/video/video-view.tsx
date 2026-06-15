@@ -275,7 +275,7 @@ export function VideoView() {
                 aria-label="Choose reference image"
                 className="w-full border border-dashed border-border hover:border-accent rounded-lg py-5 text-center transition-colors"
               >
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0]) }} />
+                <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0]) }} />
                 <p className="text-[14px] text-text-muted">Click to add image</p>
               </button>
             )}

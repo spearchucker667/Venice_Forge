@@ -219,7 +219,7 @@ The same exclusion list is enforced by `verify-archive-clean.cjs` and `verify-di
 | macOS (x64 + arm64) | `npm run dist:mac` | `release/Venice-Forge-<version>-{x64,arm64}.{dmg,zip}`, `.sha256` |
 | macOS (arm64) | `npm run dist:mac:arm64` | `release/Venice-Forge-<version>-arm64.{dmg,zip}` |
 | macOS (x64) | `npm run dist:mac:x64` | `release/Venice-Forge-<version>-x64.{dmg,zip}` |
-| Linux (AppImage, deb, rpm) | `npx electron-builder --config electron-builder.config.cjs --linux` (no first-class `dist:linux` script) | `release/Venice-Forge-<version>-{x64,arm64}.{AppImage,deb,rpm}` |
+| Linux (AppImage, deb, rpm) | `npm run dist:linux` | `release/Venice-Forge-<version>-{x64,arm64}.{AppImage,deb,rpm}` |
 
 Every `dist:*` script automatically runs `verify:icon && build && electron-builder && checksum:release`. The `verify:dist:*` scripts validate the resulting artifacts and their `.sha256` sidecars.
 

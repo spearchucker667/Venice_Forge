@@ -56,6 +56,7 @@ const mockIsSupportedImageFile = vi.mocked(isSupportedImageFile)
 const mockReadImageAttachment = vi.mocked(readImageAttachment)
 const mockToastWarn = vi.mocked(toast.warn)
 const mockToastError = vi.mocked(toast.error)
+const mockToastFromError = vi.mocked(toast.fromError)
 
 describe('ImageTools → Media Studio wiring (P3 regression guard)', () => {
   beforeEach(() => {
@@ -249,7 +250,7 @@ describe('ImageTools → Media Studio wiring (P3 regression guard)', () => {
     })
 
     await waitFor(() => {
-      expect(mockToastError).toHaveBeenCalledWith('Failed to read image', 'Downscale failed')
+      expect(mockToastFromError).toHaveBeenCalledWith(expect.any(Error), 'Failed to read image')
     })
     expect(screen.queryByAltText('Source')).toBeNull()
   })
