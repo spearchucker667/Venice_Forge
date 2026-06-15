@@ -107,6 +107,12 @@ blockers remain.
 
 ## Latest Session Summary
 
+- **Date:** 2026-06-15 (Electron macOS App Build and Run)
+- **Agent:** Antigravity (Gemini 3.5 Flash)
+- **Branch / state:** `main` (clean working tree)
+- **Result:** Successfully compiled and built the macOS ARM64 bundle (`release/mac-arm64/Venice Forge.app` and `release/Venice-Forge-2.0.0-arm64.dmg`) and started the app.
+- **Validation:** Build run completed successfully using `npm run dist:mac:arm64` and application was started via `open`.
+
 - **Date:** 2026-06-15 (ZIP audit closure and README preview optimization)
 - **Agent:** Codex
 - **Branch / state:** `main` at `02f3d76`; working tree modified by the audited closure batch. Validation used Node `v22.22.3` / npm `10.9.8`.
