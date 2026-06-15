@@ -61,6 +61,8 @@ const BAD_PATTERNS = [
   /(^|\/)\.config\/.*\.local\.(yaml|yml)$/,
   // Agent scratch space (gitignored, never archive)
   /(^|\/)docs\/AGENTS\//,
+  /(^|\/)kimi-export-session_.*\.md$/,
+  /(^|\/).*_ledger\.py$/,
 ];
 
 const SKIP_DIRS = new Set([".git", "node_modules"]);

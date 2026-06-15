@@ -30,7 +30,6 @@ export default defineConfig({
         "**/*.test.tsx",
         "vite.config.ts",
         "vitest.config.ts",
-        "server.ts",
       ],
     },
   },

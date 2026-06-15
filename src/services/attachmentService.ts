@@ -18,15 +18,15 @@ const SUPPORTED_TEXT_TYPES = new Set([
   "text/markdown",
   "text/x-markdown",
   "application/json",
-  "text/javascript",
-  "application/javascript",
-  "text/typescript",
-  "text/x-typescript",
-  "text/python",
-  "text/x-python",
+  "text/csv",
+  "application/csv",
+  "text/yaml",
+  "text/x-yaml",
+  "application/yaml",
+  "application/x-yaml",
 ]);
 
-const SUPPORTED_TEXT_EXTENSIONS = /\.(txt|md|markdown|ts|tsx|json|py|js|jsx|css|html|htm|yaml|yml|xml|csv|log|sh|bash|zsh|ps1|go|rs|java|c|cpp|h|hpp|swift|kt|rb|php)$/i;
+const SUPPORTED_TEXT_EXTENSIONS = /\.(txt|md|json|csv|yaml|yml)$/i;
 
 /** Supported image MIME types. */
 const SUPPORTED_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
@@ -80,15 +80,16 @@ export async function readTextFileAttachment(file: File): Promise<Attachment> {
 }
 
 /** Reads a local file path (desktop only) as a text attachment. */
-export async function readLocalPathAttachment(filePath: string): Promise<Attachment> {
-  const result = await desktopFileReader.readLocalFile(filePath);
+export async function readLocalPathAttachment(): Promise<Attachment | null> {
+  const result = await desktopFileReader.readLocalFile();
+  if (result.canceled) return null;
   if (!result.ok || result.content === undefined) {
     throw new Error(result.error || "Failed to read local file.");
   }
   return {
     id: crypto.randomUUID(),
     type: "file",
-    name: filePath.split(/[/\\]/).pop() || "file",
+    name: result.filename || "file",
     content: result.content,
     size: new TextEncoder().encode(result.content).length,
   };

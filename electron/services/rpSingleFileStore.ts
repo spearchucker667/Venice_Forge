@@ -8,6 +8,7 @@ import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
 import { logError, logInfo } from "./logger";
+import { redactErrorMessage } from "../../src/shared/redaction";
 
 const TMP_SUFFIX = ".tmp";
 const VALID_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/;
@@ -110,7 +111,9 @@ export function createSingleFileStore<T>(
       if (err && typeof err === "object" && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
         return { ok: true };
       }
-      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      const diagnostic = redactErrorMessage(err);
+      logError("Failed to remove RP file", { id, error: diagnostic });
+      return { ok: false, error: "Failed to delete item." };
     }
   }
 

@@ -150,7 +150,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
       await upsert(draft);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save character.");
+      setError("Failed to save character. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -194,7 +194,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
         toast.error("Could not save to Prompt Library", "Safety guard blocked the prompt.");
       }
     } catch (err) {
-      toast.error("Could not save to Prompt Library", err instanceof Error ? err.message : String(err));
+      toast.error("Could not save to Prompt Library", "Please try again.");
     }
   };
 
@@ -210,7 +210,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
         toast.error("Could not start chat", "Storage rejected the request.");
       }
     } catch (err) {
-      toast.error("Could not start chat", err instanceof Error ? err.message : String(err));
+      toast.error("Could not start chat", "Please try again.");
     }
   };
 

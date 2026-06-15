@@ -198,7 +198,7 @@ function PersonaEditor({ personaId, onClose, onSave, disabled = false }: { perso
     try {
       await onSave(draft);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save persona.");
+      setError("Failed to save persona. Please try again.");
     } finally {
       setSaving(false);
     }

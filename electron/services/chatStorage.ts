@@ -8,6 +8,7 @@ import fs from "fs/promises";
 import path from "path";
 import type { Conversation, ConversationFile } from "../../src/types/conversation";
 import { logError, logInfo, logWarn } from "./logger";
+import { redactErrorMessage } from "../../src/shared/redaction";
 
 /** Sub-directory inside userData where conversation files live. */
 const CHAT_DIR = "chat-history";
@@ -273,9 +274,9 @@ export async function saveConversation(conversation: Conversation): Promise<{ ok
     return { ok: true };
   } catch (err) {
     await fs.unlink(tempPath).catch(() => undefined);
-    const message = err instanceof Error ? err.message : String(err);
-    logError("Failed to write conversation file", { path: filePath, error: message });
-    return { ok: false, error: message };
+    const diagnostic = redactErrorMessage(err);
+    logError("Failed to write conversation file", { path: path.basename(filePath), error: diagnostic });
+    return { ok: false, error: "Failed to save conversation." };
   }
 }
 

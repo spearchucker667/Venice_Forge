@@ -330,9 +330,9 @@ export const desktopFiles = {
 
 /** Reads a local file via the main process (desktop only). */
 export const desktopFileReader = {
-  async readLocalFile(filePath: string): Promise<{ ok: boolean; content?: string; error?: string }> {
-    if (!isElectron()) return { ok: false, error: "Local file reading is only available in desktop mode." };
-    return window.veniceForge!.files.readLocalFile(filePath);
+  async readLocalFile(): Promise<{ ok: boolean; canceled?: boolean; content?: string; filename?: string; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Not running in Electron" };
+    return window.veniceForge!.files.readLocalFile();
   },
 };
 

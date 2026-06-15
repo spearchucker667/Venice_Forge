@@ -5552,3 +5552,10 @@ Result:
     *   `veniceResearchProvider.ts` and `jinaResearchProvider.ts` securely manage backend proxy invocations without exposing keys.
 *   **Status:** The `src/research/` directory is highly secure. Prompt injection and SSRF defenses are implemented robustly.
 
+
+- **Date:** 2026-06-15 (T-020 and final static audit defect cleanup)
+- **Agent:** Antigravity
+- **Branch / state:** `main` (validated working tree)
+- **Diagnosis:** Addressed the remainder of the backlog. Validated that `server.ts` already correctly implemented SSRF protection via `dns.lookup` to prevent localhost DNS rebinding (closing T-020). Corrected `audio-view.tsx` to redact error messages correctly (T-006ish related to audio error redaction). Also verified that CI workflows and other findings (T-021..T-030) were either already resolved in previous batches or false positives. Fixed lingering type errors in `src/types/desktop.ts` and `src/stores/auth-store.ts`.
+- **Closed findings:** T-020, T-021, T-027, T-028, T-029, T-030, and audio error redaction.
+- **Validation:** `npm run typecheck` PASS. `npm run verify:contracts` PASS.

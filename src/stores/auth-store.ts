@@ -35,8 +35,11 @@ export const useAuthStore = create<AuthState>()((set) => ({
   },
 
   setApiKey: async (key) => {
-    await desktopApiKey.set(key)
-    set({ isConfigured: true, apiKey: key }) // Hold in memory for current session
+    const result = await desktopApiKey.set(key)
+    if (!result.ok) {
+      throw new Error("Failed to save API key.")
+    }
+    set({ isConfigured: true, apiKey: null })
   },
 
   clearApiKey: async () => {
@@ -45,8 +48,11 @@ export const useAuthStore = create<AuthState>()((set) => ({
   },
 
   setJinaApiKey: async (key) => {
-    await desktopJinaApiKey.set(key)
-    set({ jinaIsConfigured: true, jinaApiKey: key })
+    const result = await desktopJinaApiKey.set(key)
+    if (!result.ok) {
+      throw new Error("Failed to save Jina API key.")
+    }
+    set({ jinaIsConfigured: true, jinaApiKey: null })
   },
 
   clearJinaApiKey: async () => {

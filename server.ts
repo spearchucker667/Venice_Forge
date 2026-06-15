@@ -513,15 +513,12 @@ export function createServerApp() {
       }
 
       const headers: Record<string, string> = {};
-      let clientJinaKey = "";
       if (requestHeaders && typeof requestHeaders === "object" && !Array.isArray(requestHeaders)) {
         for (const [key, value] of Object.entries(requestHeaders)) {
           if (typeof value === "string") {
-            if (/^authorization$/i.test(key)) {
-              const match = value.match(/^bearer\s+(.+)$/i);
-              if (match) clientJinaKey = match[1];
-            } else if (/^x-jina-api-key$/i.test(key)) {
-              clientJinaKey = value;
+            if (/^authorization$/i.test(key) || /^x-jina-api-key$/i.test(key)) {
+              // Dropped: renderer is not allowed to supply Jina keys
+              continue;
             } else if (isAllowedJinaForwardHeader(key)) {
               headers[key] = value;
             }
@@ -530,9 +527,8 @@ export function createServerApp() {
         }
       }
 
-      const finalJinaKey = clientJinaKey || AppConfig.JINA_API_KEY;
-      if (finalJinaKey) {
-        headers["Authorization"] = `Bearer ${finalJinaKey}`;
+      if (AppConfig.JINA_API_KEY) {
+        headers["Authorization"] = `Bearer ${AppConfig.JINA_API_KEY}`;
       }
 
       const controller = new AbortController();

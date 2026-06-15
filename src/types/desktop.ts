@@ -89,7 +89,10 @@ export interface VeniceForgeFiles {
   loadJsonFile(): Promise<{ ok: boolean; canceled: boolean; data?: string; error?: string }>;
   saveYamlFile(data: string, defaultPath?: string): Promise<{ ok: boolean; canceled: boolean }>;
   loadYamlFile(): Promise<{ ok: boolean; canceled: boolean; data?: string; error?: string }>;
-  readLocalFile(filePath: string): Promise<{ ok: boolean; content?: string; error?: string }>;
+  /** Opens a dialog to select and read a text file (for attachment import).
+   *  @returns A promise resolving with the file contents and filename.
+   */
+  readLocalFile(): Promise<{ ok: boolean; canceled?: boolean; content?: string; filename?: string; error?: string }>;
   saveRoutedImage(base64Data: string, filename: string, subfolder: string): Promise<{ ok: boolean; filePath?: string; error?: string }>;
   exportMedia(input: { base64Data: string; filename: string; subfolder?: string; dryRun?: boolean }): Promise<{ ok: boolean; filePath?: string; canceled?: boolean; error?: string }>;
   importMedia(input: { filePath: string }): Promise<{

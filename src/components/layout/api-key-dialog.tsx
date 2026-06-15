@@ -27,7 +27,7 @@ export function ApiKeyDialog({ open, onClose }: { open: boolean; onClose: () => 
       toast.success('Key saved securely')
       onClose()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save key')
+      setError('Failed to save key. Please check the value and try again.')
     } finally {
       setBusy(false)
     }

@@ -10,6 +10,7 @@ import { GenerationView } from '../ui/generation-view'
 import { cn } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
 import { getPromptStartersForCategory } from '../../services/promptStarterService'
+import { redactErrorMessage } from '../../shared/redaction'
 
 const VOICES = [
   // American Female
@@ -135,7 +136,7 @@ export function AudioView() {
             </div>
           </div>
           <PrimaryButton onClick={handleTTS} disabled={!text.trim() || !hasVeniceKey} loading={tts.isPending} size="lg">Generate Speech</PrimaryButton>
-          {tts.error && <ErrorText>{tts.error.message}</ErrorText>}
+          {tts.error && <ErrorText>{redactErrorMessage(tts.error)}</ErrorText>}
         </>
       ) : (
         <>
@@ -151,7 +152,7 @@ export function AudioView() {
           <PrimaryButton onClick={() => { if (file) transcription.mutate(file, { onSuccess: (d) => setTranscript(d.text), onError: (err) => toast.fromError(err, 'Transcription failed') }) }} disabled={!file || !hasVeniceKey} loading={transcription.isPending} size="lg">
             Transcribe
           </PrimaryButton>
-          {transcription.error && <ErrorText>{transcription.error.message}</ErrorText>}
+          {transcription.error && <ErrorText>{redactErrorMessage(transcription.error)}</ErrorText>}
         </>
       )}
     </>

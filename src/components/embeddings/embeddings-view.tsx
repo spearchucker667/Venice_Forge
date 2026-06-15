@@ -6,6 +6,7 @@ import { useEmbeddings } from '../../hooks/use-embeddings'
 import { Label, TextArea, PrimaryButton, ErrorText, EmptyState, ExamplePrompts } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
 import { getPromptStartersForCategory } from '../../services/promptStarterService'
+import { redactErrorMessage } from '../../shared/redaction'
 
 const PREVIEW_COUNT = 100
 
@@ -36,7 +37,7 @@ export function EmbeddingsView() {
       <PrimaryButton onClick={() => { mutation.mutate({ model, input: input.trim() }); setExpanded(false) }} disabled={!input.trim() || !hasVeniceKey} loading={mutation.isPending} size="lg">
         Generate Embeddings
       </PrimaryButton>
-      {mutation.error && <ErrorText>{mutation.error.message}</ErrorText>}
+      {mutation.error && <ErrorText>{redactErrorMessage(mutation.error)}</ErrorText>}
     </>
   )
 

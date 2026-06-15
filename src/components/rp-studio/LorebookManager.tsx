@@ -206,7 +206,7 @@ function LorebookEditor({ lorebookId, onClose, disabled = false }: { lorebookId:
       await upsert(draft);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save lorebook.");
+      setError("Failed to save lorebook. Please try again.");
     } finally {
       setSaving(false);
     }

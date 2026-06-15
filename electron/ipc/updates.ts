@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import { autoUpdater } from "electron-updater";
 import { logError, logInfo } from "../services/logger";
+import { redactErrorMessage } from "../../src/shared/redaction";
 
 /** Timeout (ms) for a manual update check before giving up. */
 const UPDATE_CHECK_TIMEOUT_MS = 30_000;
@@ -42,8 +43,9 @@ export function registerUpdateHandlers(): void {
       const result = await Promise.race([autoUpdater.checkForUpdates(), timeoutPromise]);
       return { ok: true, version: result?.updateInfo?.version };
     } catch (err) {
-      logError("Check for updates failed", String(err));
-      return { ok: false, error: String(err) };
+      const diagnostic = redactErrorMessage(err);
+      logError("Check for updates failed", diagnostic);
+      return { ok: false, error: "Update check failed. Please try again later." };
     }
   });
 
@@ -56,8 +58,9 @@ export function registerUpdateHandlers(): void {
       await Promise.race([autoUpdater.downloadUpdate(), timeoutPromise]);
       return { ok: true };
     } catch (err) {
-      logError("Download update failed", String(err));
-      return { ok: false, error: String(err) };
+      const diagnostic = redactErrorMessage(err);
+      logError("Download update failed", diagnostic);
+      return { ok: false, error: "Update download failed. Please try again later." };
     }
   });
 

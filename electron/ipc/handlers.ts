@@ -699,7 +699,7 @@ export function registerIpcHandlers(): void {
           return { ok: false, error: `File too large (${stat.size} bytes). Max: ${MAX_TEXT_ATTACHMENT_BYTES} bytes.` };
         }
         const content = await fh.readFile({ encoding: "utf-8" });
-        return { ok: true, content };
+        return { ok: true, content, filename: base };
       } finally {
         await fh?.close().catch(() => undefined);
       }

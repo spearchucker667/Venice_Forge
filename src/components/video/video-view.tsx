@@ -150,7 +150,7 @@ export function VideoView() {
       setImageUrl(attachment.content)
       setImageName(file.name)
     } catch (err) {
-      toast.error('Failed to read image', err instanceof Error ? err.message : String(err))
+      toast.error('Failed to read image', 'Please choose a PNG, JPEG, or WEBP image under the size limit.')
     }
   }
 

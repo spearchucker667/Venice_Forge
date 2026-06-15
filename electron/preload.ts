@@ -174,12 +174,11 @@ const veniceForge = {
     loadYamlFile(): Promise<{ ok: boolean; canceled: boolean; data?: string; error?: string }> {
       return ipcRenderer.invoke("app:loadYamlFile");
     },
-    /** Reads a local file directly (for attachment import).
-     *  @param filePath Absolute path to the file.
-     *  @returns A promise resolving with the file contents.
+    /** Opens a dialog to select and read a text file (for attachment import).
+     *  @returns A promise resolving with the file contents and filename.
      */
-    readLocalFile(filePath: string): Promise<{ ok: boolean; content?: string; error?: string }> {
-      return ipcRenderer.invoke("app:readLocalFile", filePath);
+    readLocalFile(): Promise<{ ok: boolean; canceled?: boolean; content?: string; filename?: string; error?: string }> {
+      return ipcRenderer.invoke("app:readLocalFile");
     },
     saveRoutedImage(base64Data: string, filename: string, subfolder: string): Promise<{ ok: boolean; filePath?: string; error?: string }> {
       return ipcRenderer.invoke("app:saveRoutedImage", base64Data, filename, subfolder);

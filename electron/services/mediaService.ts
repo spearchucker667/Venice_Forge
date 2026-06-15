@@ -198,7 +198,7 @@ export interface MediaImportResult {
 
 /** Decodes raw bytes to a data URL. Content type is sniffed from the
  *  leading bytes (PNG / JPEG / WebP / GIF). */
-function sniffContentType(buffer: Buffer): string {
+function sniffContentType(buffer: Buffer): string | null {
   if (buffer.length >= 8 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
     return "image/png";
   }
@@ -215,7 +215,7 @@ function sniffContentType(buffer: Buffer): string {
   ) {
     return "image/webp";
   }
-  return "application/octet-stream";
+  return null;
 }
 
 /** Reads a file from a path the renderer provides. The path must be inside
@@ -237,10 +237,10 @@ export async function importMediaFromPath(input: { filePath: string }): Promise<
       return { ok: false, error: "File not found." };
     }
 
-    const allowedDirs = await canonicalizeBaseDirs(importSafeBaseDirs());
+    const allowedDirs = await canonicalizeBaseDirs([picturesBaseDir(), thumbsDir()]);
     const isAllowed = allowedDirs.some((dir) => isWithin(dir, resolved));
     if (!isAllowed) {
-      return { ok: false, error: "File must be inside Downloads, Documents, Desktop, or Pictures/Venice Forge." };
+      return { ok: false, error: "File must be inside Pictures/Venice Forge." };
     }
 
     const stat = await fs.stat(resolved);
@@ -253,6 +253,9 @@ export async function importMediaFromPath(input: { filePath: string }): Promise<
 
     const buffer = await fs.readFile(resolved);
     const contentType = sniffContentType(buffer);
+    if (!contentType) {
+      return { ok: false, error: "Unsupported media type." };
+    }
     const dataUrl = `data:${contentType};base64,${buffer.toString("base64")}`;
 
     return {
