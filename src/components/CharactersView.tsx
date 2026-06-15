@@ -69,7 +69,7 @@ function CharacterCard({
 }) {
   return (
     <article
-      className="flex flex-col gap-3 rounded-xl border border-border bg-surface-elevated p-4 shadow-sm hover:border-accent/40 transition-colors"
+      className="flex flex-col gap-3 rounded-xl border border-border/35 mesh-surface-elevated soft-panel p-4 shadow-sm hover:border-accent/40 transition-colors"
       data-testid="character-card"
       data-character-slug={character.slug}
     >
@@ -225,75 +225,77 @@ export function CharactersView() {
   }, [results]);
 
   return (
-    <div className="flex flex-col h-full bg-surface">
-      <header className="flex-none p-5 border-b border-border bg-surface">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="text-[17px] font-semibold text-text-primary">Venice Characters</h2>
-            <p className="text-[12.5px] text-text-muted mt-0.5">
-              Browse characters hosted on Venice.ai and chat using{" "}
-              <code className="font-mono text-text-secondary">venice_parameters.character_slug</code>.
-            </p>
+    <div className="flex flex-col h-full mesh-surface shell-region">
+      <div className="flex-none flex flex-col gap-3 p-5 soft-panel z-10 bg-surface/40 backdrop-blur">
+        <header>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-[17px] font-semibold text-text-primary">Venice Characters</h2>
+              <p className="text-[12.5px] text-text-muted mt-0.5">
+                Browse characters hosted on Venice.ai and chat using{" "}
+                <code className="font-mono text-text-secondary">venice_parameters.character_slug</code>.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-[11.5px] uppercase tracking-wider text-text-muted font-semibold">
+                Sort
+              </label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as CharacterSortBy)}
+                className="bg-surface-elevated border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary cursor-pointer"
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as CharacterSortOrder)}
+                className="bg-surface-elevated border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary cursor-pointer"
+              >
+                {SORT_ORDER_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="text-[11.5px] uppercase tracking-wider text-text-muted font-semibold">
-              Sort
-            </label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as CharacterSortBy)}
-              className="bg-surface-elevated border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary cursor-pointer"
-            >
-              {SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value as CharacterSortOrder)}
-              className="bg-surface-elevated border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary cursor-pointer"
-            >
-              {SORT_ORDER_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </header>
+        </header>
 
-      <div className="flex-none p-4 border-b border-border bg-surface flex flex-col gap-3">
-        <input
-          type="search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search Venice characters…"
-          aria-label="Search characters"
-          className="w-full bg-surface-elevated border border-border rounded-md px-3 py-2 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors"
-        />
-        <div className="flex flex-wrap items-center gap-4 text-[12px] text-text-secondary">
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={includeAdultCharacters}
-              onChange={(e) => setIncludeAdult(e.target.checked)}
-              data-testid="character-include-adult"
-              className="rounded border-border bg-surface-elevated text-accent focus:ring-offset-0 focus:ring-0 w-4 h-4 cursor-pointer"
-            />
-            <span>Include adult characters</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={webEnabledOnly}
-              onChange={(e) => setWebEnabledOnly(e.target.checked)}
-              className="rounded border-border bg-surface-elevated text-accent focus:ring-offset-0 focus:ring-0 w-4 h-4 cursor-pointer"
-            />
-            <span>Web-enabled only</span>
-          </label>
+        <div className="flex flex-col gap-3 pt-3 soft-separator-y">
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search Venice characters…"
+            aria-label="Search characters"
+            className="w-full bg-surface-elevated border border-border rounded-md px-3 py-2 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors"
+          />
+          <div className="flex flex-wrap items-center gap-4 text-[12px] text-text-secondary">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={includeAdultCharacters}
+                onChange={(e) => setIncludeAdult(e.target.checked)}
+                data-testid="character-include-adult"
+                className="rounded border-border bg-surface-elevated text-accent focus:ring-offset-0 focus:ring-0 w-4 h-4 cursor-pointer"
+              />
+              <span>Include adult characters</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={webEnabledOnly}
+                onChange={(e) => setWebEnabledOnly(e.target.checked)}
+                className="rounded border-border bg-surface-elevated text-accent focus:ring-offset-0 focus:ring-0 w-4 h-4 cursor-pointer"
+              />
+              <span>Web-enabled only</span>
+            </label>
+          </div>
         </div>
       </div>
 

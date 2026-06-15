@@ -15,7 +15,7 @@ import { checkPathContained } from "./utils/navigation";
 import { isTrustedExternalUrl } from "./utils/urlSecurity";
 import { startBridgeServer, stopBridgeServer } from "./services/bridgeServer";
 import { isValidBridgeHost } from "./utils/bridgeHost";
-import { getCharacterImageCacheDir } from "./services/characterImageCache";
+import { getCharacterImageCacheDir, ALLOWED_CONTENT_TYPES } from "./services/characterImageCache";
 
 export { isValidBridgeHost };
 
@@ -340,14 +340,7 @@ if (!gotLock) {
         // Fallback to octet-stream if meta missing or invalid
       }
 
-      const allowedContentTypes = new Set([
-        "image/png",
-        "image/jpeg",
-        "image/webp",
-        "image/avif"
-      ]);
-
-      if (!allowedContentTypes.has(metaContentType)) {
+      if (!ALLOWED_CONTENT_TYPES.has(metaContentType)) {
         return new Response("Unsupported Media Type", { status: 415 });
       }
 

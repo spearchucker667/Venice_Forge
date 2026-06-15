@@ -103,9 +103,22 @@ namespace) was deferred because the files are referenced from source
 comments and multiple Markdown documents. No runtime safety or release
 blockers remain.
 
----
+### Latest Session Summary
+- **UI System Refactoring:** Replaced hard-line section borders across major shell regions (`App.tsx`, `sidebar.tsx`, `header.tsx`, `inspector-pane.tsx`, `CharactersView.tsx`) with a unified system of `.mesh-surface` and `.soft-separator-x/y` utilities, revealing the global mesh overlay.
+- **Sidebar Footer Consolidation:** Refactored sidebar footer controls into a single bottom panel with a max height and internal scroll fallback, preventing overlapping of components in constrained window heights.
+- **Header Status Cluster:** Updated the header status cluster to use `flex-nowrap overflow-x-auto` to prevent wrapping and row-height expansion in the fixed `h-14` header.
+- **CharactersView Layout:** Merged header/search areas into a unified `.soft-panel` and transitioned to the `.mesh-surface` system.
+- **Image Fallback/Cache Sync:** Updated `characterImageFallback.ts` comments to correctly state the feature is ON by default. Exported `ALLOWED_CONTENT_TYPES` (including `image/avif`) from `characterImageCache.ts` and synced the `main.ts` protocol handler to use this canonical list.
+- **Regression Testing:** Added a static shell layout test (`tests/theme/meshSurfaceInvariant.test.ts`) that bans raw `border-[trbl] border-border` classes in major shell regions, enforcing the new `.soft-separator` invariant.
 
-## Latest Session Summary
+### Open TODO Ledger
+- Add visual snapshots or Playwright screenshots for Characters, Settings, Research, Chat.
+
+### Validation Matrix
+- `npm run typecheck`: PASS
+- `npm run lint:eslint`: PASS
+- `npm run verify:theme-tokens`: PASS
+- `npm run test`: PASS (CharactersView, characterImageResolver, meshSurfaceInvariant)
 
 - **Date:** 2026-06-15 (Electron macOS App Build and Run)
 - **Agent:** Antigravity (Gemini 3.5 Flash)

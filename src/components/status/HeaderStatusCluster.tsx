@@ -76,7 +76,7 @@ export function HeaderStatusCluster({ status: statusOverride, compact = false }:
       aria-label="App status cluster"
       data-testid="header-status-cluster"
       data-app-mode={isElectron() ? "desktop" : "web"}
-      className="flex flex-wrap items-center gap-1.5"
+      className="flex flex-nowrap overflow-x-auto items-center gap-1.5"
     >
       {items.map(({ key, label, item }) => (
         <StatusIndicator

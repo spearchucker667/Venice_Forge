@@ -54,10 +54,10 @@ export function InspectorPane() {
 
   return (
     <aside
-      className="w-[480px] border-l border-border bg-surface flex flex-col h-full shrink-0 min-w-0"
+      className="w-[480px] soft-separator-x mesh-surface flex flex-col h-full shrink-0 min-w-0 shell-region"
       aria-label="Developer traffic inspector"
     >
-      <div className="flex items-center justify-between px-3 h-14 border-b border-border">
+      <div className="flex items-center justify-between px-3 h-14 soft-separator-y">
         <div className="flex items-center gap-2">
           <svg
             className="text-accent"
@@ -133,7 +133,7 @@ export function InspectorPane() {
         </div>
       </div>
 
-      <div className="px-2 py-2 border-b border-border flex flex-wrap gap-1">
+      <div className="px-2 py-2 soft-separator-y flex flex-wrap gap-1">
         {FILTER_CHIPS.map((chip) => (
           <button
             key={chip.id}
@@ -152,7 +152,7 @@ export function InspectorPane() {
       </div>
 
       <div className="flex-1 flex min-h-0">
-        <div className="w-[180px] border-r border-border overflow-y-auto flex flex-col shrink-0">
+        <div className="w-[180px] soft-separator-x overflow-y-auto flex flex-col shrink-0">
           {filteredLogs.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-4 text-[12px] text-text-muted text-center">
               <span>No requests captured yet</span>

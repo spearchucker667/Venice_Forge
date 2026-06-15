@@ -45,3 +45,33 @@
     radial-gradient(circle at 42% 92%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 36rem);
   opacity: var(--app-mesh-opacity, 0.12);
 }
+
+/* Shell UI System */
+.mesh-surface {
+  background-color: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.mesh-surface-elevated {
+  background-color: color-mix(in srgb, var(--color-surface-elevated) 55%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.soft-separator-x {
+  box-shadow: inset -1px 0 0 0 color-mix(in srgb, var(--color-border) 60%, transparent);
+}
+
+.soft-separator-y {
+  box-shadow: inset 0 -1px 0 0 color-mix(in srgb, var(--color-border) 60%, transparent);
+}
+
+.soft-panel {
+  box-shadow: 0 4px 24px -4px color-mix(in srgb, #000 10%, transparent);
+}
+
+.shell-region {
+  position: relative;
+  z-index: 10;
+}

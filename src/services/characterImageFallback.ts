@@ -5,8 +5,8 @@
  *  public character page on `venice.ai` and extract an allowlisted image URL
  *  from Open Graph / Twitter Card / JSON-LD / Next.js data.
  *
- *  The fallback is gated by the `VENICE_FORGE_ENABLE_CHARACTER_PAGE_IMAGE_FALLBACK`
- *  environment flag and is OFF by default. It never relaxes the 3-host SSRF
+ *  The fallback is gated by the `VENICE_FORGE_DISABLE_CHARACTER_PAGE_IMAGE_FALLBACK`
+ *  environment flag and is ON by default. It never relaxes the 3-host SSRF
  *  allowlist; every extracted URL is validated with `isTrustedVeniceImageUrl`.
  */
 

@@ -249,13 +249,13 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
     <aside
       aria-label="Primary navigation"
       className={cn(
-        'flex flex-col h-full min-h-0 bg-surface border-r border-border transition-all duration-200 ease-out',
+        'flex flex-col h-full min-h-0 mesh-surface soft-separator-x transition-all duration-200 ease-out shell-region',
         'fixed top-0 left-0 z-40 w-72 h-[100dvh] md:static md:h-full md:w-auto',
         mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
         sidebarOpen ? 'md:w-64' : 'md:w-[60px]',
       )}
     >
-      <div className={cn('flex items-center gap-2.5 h-14 shrink-0 border-b border-border', expanded ? 'px-4' : 'md:px-3 md:justify-center px-4')}>
+      <div className={cn('flex items-center gap-2.5 h-14 shrink-0 soft-separator-y', expanded ? 'px-4' : 'md:px-3 md:justify-center px-4')}>
         <VeniceLogo size={20} />
         {expanded && <VeniceWordmark className="text-[15px] tracking-tight" />}
         <button
@@ -272,7 +272,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           New assets (e.g. chats) default to active project via projectRefs.
           Default project is ensured on load (safe for fresh/corrupt/migration). */}
       {expanded && (
-        <div className="px-3 pt-1 pb-2 border-b border-border/60 shrink-0">
+        <div className="px-3 pt-1 pb-2 soft-separator-y shrink-0">
           <div className="text-[10px] uppercase tracking-[0.08em] text-text-muted font-semibold mb-1.5 px-1 flex items-center justify-between">
             <span>Project</span>
             <button
@@ -396,7 +396,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
         </nav>
 
         {expanded && activeTab === 'chat' && (
-          <div className="flex flex-col flex-1 min-h-0 border-t border-border">
+          <div className="flex flex-col flex-1 min-h-0 soft-separator-y">
             <div className="flex items-center justify-between px-3 pt-3 pb-1.5 shrink-0">
               <span className="text-[10.5px] font-semibold text-text-muted uppercase tracking-[0.1em]">History</span>
               <button
@@ -450,12 +450,12 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
       </div>
 
       {expanded && (
-        <div className="shrink-0 border-t border-border bg-surface/95 backdrop-blur p-3 gap-2 flex flex-col">
+        <div className="shrink-0 soft-separator-y p-3 gap-2 flex flex-col max-h-[35vh] overflow-y-auto">
           {/* Developer / Red-Team controls */}
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted leading-none">Red-Team Mode</span>
-              <p className="text-[10.5px] leading-snug text-text-muted mt-0.5">
+              <p className="text-[10.5px] leading-snug text-text-muted mt-0.5 [@media(max-height:720px)]:hidden">
                 Shows raw model output and local safety decisions.
               </p>
             </div>
@@ -477,10 +477,10 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
             </button>
           </div>
 
-          <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/70">
+          <div className="flex items-center justify-between gap-3 pt-2">
             <div className="min-w-0">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted leading-none">Family Safe Mode</span>
-              <p className="text-[10.5px] leading-snug text-text-muted mt-0.5">
+              <p className="text-[10.5px] leading-snug text-text-muted mt-0.5 [@media(max-height:720px)]:hidden">
                 {localFamilySafeModeEnabled ? 'ON: local family filter runs.' : 'OFF: Adult Mode skips the local filter.'}
               </p>
             </div>
@@ -516,7 +516,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
             <span>{showInspector ? 'Hide Inspector' : 'Show Inspector'}</span>
           </button>
 
-          <div className="pt-2 border-t border-border text-[11px] text-text-secondary flex flex-col gap-1 shrink-0">
+          <div className="pt-2 text-[11px] text-text-secondary flex flex-col gap-1 shrink-0 [@media(max-height:640px)]:hidden">
             <div className="flex justify-between items-center leading-none"><span>New chat</span><kbd className="font-mono text-text-muted">⌘N</kbd></div>
             <div className="flex justify-between items-center leading-none"><span>Switch tab</span><kbd className="font-mono text-text-muted">⌘1-8</kbd></div>
           </div>
