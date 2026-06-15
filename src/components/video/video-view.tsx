@@ -213,14 +213,14 @@ export function VideoView() {
 
         {/* Text / Image mode toggle */}
         {(hasTextMode || hasImageMode) && (
-          <div className="flex gap-px bg-white/[0.02] rounded-lg p-0.5 border border-white/[0.04]">
+          <div className="flex gap-px bg-surface-elevated rounded-lg p-0.5 border border-border">
             {hasTextMode && (
               <button
                 onClick={() => setMode('text')}
                 aria-pressed={mode === 'text'}
                 className={cn(
                   'flex-1 px-3 py-2.5 text-[15px] font-medium rounded-[7px] transition-all duration-150',
-                  mode === 'text' ? 'bg-white text-black' : 'text-white/25 hover:text-white/45',
+                  mode === 'text' ? 'bg-accent text-accent-fg' : 'text-text-muted hover:text-text-muted',
                 )}
               >
                 Text to Video
@@ -232,7 +232,7 @@ export function VideoView() {
                 aria-pressed={mode === 'image'}
                 className={cn(
                   'flex-1 px-3 py-2.5 text-[15px] font-medium rounded-[7px] transition-all duration-150',
-                  mode === 'image' ? 'bg-white text-black' : 'text-white/25 hover:text-white/45',
+                  mode === 'image' ? 'bg-accent text-accent-fg' : 'text-text-muted hover:text-text-muted',
                 )}
               >
                 Image to Video
@@ -257,26 +257,26 @@ export function VideoView() {
             <Label>Reference image</Label>
             {imageUrl ? (
               <div className="relative group">
-                <img src={imageUrl} alt="Reference" className="w-full rounded-lg border border-white/[0.06]" />
+                <img src={imageUrl} alt="Reference" className="w-full rounded-lg border border-border" />
                 <button
                   type="button"
                   onClick={() => { setImageUrl(null); setImageName('') }}
                   aria-label="Remove reference image"
-                  className="absolute top-1.5 right-1.5 p-1 bg-black/60 rounded-md text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+                  className="absolute top-1.5 right-1.5 p-1 bg-overlay rounded-md text-text-secondary hover:text-text-primary opacity-0 group-hover:opacity-100 transition-all"
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                 </button>
-                <span className="text-[16px] text-white/15 mt-1 block truncate">{imageName}</span>
+                <span className="text-[16px] text-text-muted mt-1 block truncate">{imageName}</span>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 aria-label="Choose reference image"
-                className="w-full border border-dashed border-white/[0.08] hover:border-white/[0.15] rounded-lg py-5 text-center transition-colors"
+                className="w-full border border-dashed border-border hover:border-accent rounded-lg py-5 text-center transition-colors"
               >
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0]) }} />
-                <p className="text-[14px] text-white/15">Click to add image</p>
+                <p className="text-[14px] text-text-muted">Click to add image</p>
               </button>
             )}
           </div>
@@ -326,12 +326,12 @@ export function VideoView() {
               onClick={() => setAudioEnabled(!audioEnabled)}
               className={cn(
                 'w-8 h-[18px] rounded-full transition-colors relative',
-                audioEnabled ? 'bg-white' : 'bg-white/[0.08]',
+                audioEnabled ? 'bg-accent' : 'bg-surface-elevated',
               )}
             >
               <div className={cn(
                 'absolute top-[2px] w-[14px] h-[14px] rounded-full transition-all',
-                audioEnabled ? 'left-[16px] bg-black' : 'left-[2px] bg-white/30',
+                audioEnabled ? 'left-[16px] bg-accent-fg' : 'left-[2px] bg-text-muted',
               )} />
             </button>
           </div>
@@ -341,7 +341,7 @@ export function VideoView() {
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {tags.map((t) => (
-              <span key={t} className="text-[16px] text-white/20 bg-white/[0.03] border border-white/[0.04] rounded px-1.5 py-0.5">{t}</span>
+              <span key={t} className="text-[16px] text-text-muted bg-surface-elevated border border-border rounded px-1.5 py-0.5">{t}</span>
             ))}
           </div>
         )}
@@ -356,7 +356,7 @@ export function VideoView() {
       {error && (
         <div className="flex items-center justify-between gap-2">
           <ErrorText>{error}</ErrorText>
-          <button type="button" aria-label="Reset video generation form" onClick={reset} className="text-[13px] text-white/55 hover:text-white underline underline-offset-2 shrink-0 transition-colors">Reset</button>
+          <button type="button" aria-label="Reset video generation form" onClick={reset} className="text-[13px] text-text-secondary hover:text-text-primary underline underline-offset-2 shrink-0 transition-colors">Reset</button>
         </div>
       )}
     </>
@@ -413,7 +413,7 @@ export function VideoView() {
                   className={cn(
                     'text-[14px] flex items-center gap-1.5 transition-opacity',
                     alreadySaved
-                      ? 'text-white/30 cursor-default'
+                      ? 'text-text-muted cursor-default'
                       : 'text-[var(--color-accent)] hover:opacity-85',
                   )}
                   title={alreadySaved ? 'Already saved to Media Studio' : 'Save to Media Studio'}
@@ -424,31 +424,31 @@ export function VideoView() {
                 </button>
                   )
                 })()}
-                <a href={videoUrl} download="venice-video.mp4" target="_blank" rel="noopener noreferrer" className="text-[14px] text-white/20 hover:text-white/40 transition-colors flex items-center gap-1.5">
+                <a href={videoUrl} download="venice-video.mp4" target="_blank" rel="noopener noreferrer" className="text-[14px] text-text-muted hover:text-text-muted transition-colors flex items-center gap-1.5">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
                   Download
                 </a>
               </div>
             </div>
-            <video controls src={videoUrl} className="w-full rounded-lg bg-black border border-white/[0.04]" />
-            <button type="button" aria-label="Generate another video" onClick={reset} className="self-start text-[14px] text-white/15 hover:text-white/35 transition-colors">Generate another</button>
+            <video controls src={videoUrl} className="w-full rounded-lg bg-overlay border border-border" />
+            <button type="button" aria-label="Generate another video" onClick={reset} className="self-start text-[14px] text-text-muted hover:text-text-muted transition-colors">Generate another</button>
           </div>
         ) : (
-          <div className="flex items-center justify-center flex-1 text-white/30 text-[15px]">
+          <div className="flex items-center justify-center flex-1 text-text-muted text-[15px]">
             {isProcessing ? (
               <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
-                <div className="w-7 h-7 border border-white/[0.08] border-t-white/40 rounded-full animate-spin" />
-                <span className="text-white/55 text-center">
+                <div className="w-7 h-7 border border-border border-t-accent rounded-full animate-spin" />
+                <span className="text-text-secondary text-center">
                   {status === 'queued' ? 'Queued — waiting for a slot' : 'Generating your video'}
                   {elapsedMs > 0 && (
-                    <span className="block text-[12px] text-white/30 font-mono mt-1">
+                    <span className="block text-[12px] text-text-muted font-mono mt-1">
                       {formatElapsed(elapsedMs)} · typically 30s–2min
                     </span>
                   )}
                 </span>
                 <button
                   onClick={cancel}
-                  className="text-[13px] text-white/35 hover:text-white/65 underline underline-offset-2 transition-colors"
+                  className="text-[13px] text-text-muted hover:text-text-secondary underline underline-offset-2 transition-colors"
                 >
                   Cancel
                 </button>
@@ -456,7 +456,7 @@ export function VideoView() {
             ) : (
               <div className="flex flex-col items-center gap-2">
                 <span>Generated videos appear here</span>
-                <span className="text-[12px] text-white/35">Average generation time: 30s–2min</span>
+                <span className="text-[12px] text-text-muted">Average generation time: 30s–2min</span>
               </div>
             )}
           </div>
@@ -480,8 +480,8 @@ function DurationSlider({ options, value, onChange }: { options: string[]; value
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[16px] text-white/30 font-mono">{options[currentIdx]}</span>
-        <span className="text-[16px] text-white/15">{options[0]} — {options[options.length - 1]}</span>
+        <span className="text-[16px] text-text-muted font-mono">{options[currentIdx]}</span>
+        <span className="text-[16px] text-text-muted">{options[0]} — {options[options.length - 1]}</span>
       </div>
       <input
         type="range"

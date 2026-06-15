@@ -88,9 +88,9 @@ export function MusicView() {
           <button
             onClick={() => setInstrumental(!instrumental)}
             aria-pressed={instrumental}
-            className={cn('w-9 h-5 rounded-full transition-colors relative', instrumental ? 'bg-[var(--color-accent)]' : 'bg-white/[0.1]')}
+            className={cn('w-9 h-5 rounded-full transition-colors relative', instrumental ? 'bg-[var(--color-accent)]' : 'bg-surface-elevated')}
           >
-            <div className={cn('absolute top-[2px] w-[16px] h-[16px] rounded-full bg-white transition-all', instrumental ? 'left-[20px]' : 'left-[2px]')} />
+            <div className={cn('absolute top-[2px] w-[16px] h-[16px] rounded-full bg-accent-fg transition-all', instrumental ? 'left-[20px]' : 'left-[2px]')} />
           </button>
         </div>
       )}
@@ -113,7 +113,7 @@ export function MusicView() {
       {error && (
         <div className="flex items-center justify-between gap-2">
           <ErrorText>{error}</ErrorText>
-          <button onClick={reset} className="text-[13px] text-white/55 hover:text-white underline underline-offset-2 shrink-0 transition-colors">Reset</button>
+          <button onClick={reset} className="text-[13px] text-text-secondary hover:text-text-primary underline underline-offset-2 shrink-0 transition-colors">Reset</button>
         </div>
       )}
     </>
@@ -125,34 +125,34 @@ export function MusicView() {
           <div className="animate-fade-in flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <Label>Output</Label>
-              <a href={audioUrl} download="venice-music.mp3" target="_blank" rel="noopener noreferrer" className="text-[14px] text-white/20 hover:text-white/40 transition-colors flex items-center gap-1.5">
+              <a href={audioUrl} download="venice-music.mp3" target="_blank" rel="noopener noreferrer" className="text-[14px] text-text-muted hover:text-text-muted transition-colors flex items-center gap-1.5">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
                 Download
               </a>
             </div>
             <audio controls src={audioUrl} className="w-full" />
-            <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-4">
-              <p className="text-[15px] text-white/30 leading-relaxed">{prompt}</p>
-              {lyrics && <p className="text-[14px] text-white/15 mt-2 italic">{lyrics}</p>}
+            <div className="bg-surface-elevated border border-border rounded-lg p-4">
+              <p className="text-[15px] text-text-muted leading-relaxed">{prompt}</p>
+              {lyrics && <p className="text-[14px] text-text-muted mt-2 italic">{lyrics}</p>}
             </div>
-            <button onClick={reset} className="self-start text-[14px] text-white/15 hover:text-white/35 transition-colors">Generate another</button>
+            <button onClick={reset} className="self-start text-[14px] text-text-muted hover:text-text-muted transition-colors">Generate another</button>
           </div>
         ) : (
-          <div className="flex items-center justify-center flex-1 text-white/30 text-[15px]">
+          <div className="flex items-center justify-center flex-1 text-text-muted text-[15px]">
             {isProcessing ? (
               <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
-                <div className="w-7 h-7 border border-white/[0.08] border-t-white/40 rounded-full animate-spin" />
-                <span className="text-white/55 text-center">
+                <div className="w-7 h-7 border border-border border-t-accent rounded-full animate-spin" />
+                <span className="text-text-secondary text-center">
                   {status === 'queued' ? 'Queued — waiting for a slot' : 'Composing your track'}
                   {elapsedMs > 0 && (
-                    <span className="block text-[12px] text-white/30 font-mono mt-1">
+                    <span className="block text-[12px] text-text-muted font-mono mt-1">
                       {formatElapsedMusic(elapsedMs)} · typically 20s–90s
                     </span>
                   )}
                 </span>
                 <button
                   onClick={cancel}
-                  className="text-[13px] text-white/35 hover:text-white/65 underline underline-offset-2 transition-colors"
+                  className="text-[13px] text-text-muted hover:text-text-secondary underline underline-offset-2 transition-colors"
                 >
                   Cancel
                 </button>
@@ -184,7 +184,7 @@ function formatElapsedMusic(ms: number): string {
 
 function Tag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-[12px] text-white/55 bg-white/[0.04] border border-white/[0.06] rounded px-1.5 py-0.5">
+    <span className="text-[12px] text-text-secondary bg-surface-elevated border border-border rounded px-1.5 py-0.5">
       {children}
     </span>
   )

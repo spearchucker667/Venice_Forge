@@ -48,12 +48,12 @@ function Inner({ nodes: source, edges: sourceEdges }: { nodes: Node<VeniceNodeDa
       elementsSelectable={false}
       proOptions={{ hideAttribution: true }}
       className="bg-surface"
-      defaultEdgeOptions={{ animated: true, style: { stroke: 'rgba(255,255,255,0.1)', strokeWidth: 2 } }}
+      defaultEdgeOptions={{ animated: true, style: { stroke: 'var(--border)', strokeWidth: 2 } }}
     >
-      <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="rgba(255,255,255,0.03)" />
+      <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="var(--border)" />
       <Controls
         showInteractive={false}
-        className="!bg-[#111] !border-white/[0.06] !shadow-xl [&>button]:!bg-[#111] [&>button]:!border-white/[0.06] [&>button]:!text-white/30 [&>button:hover]:!bg-white/[0.06]"
+        className="!bg-surface-elevated !border-border !shadow-xl [&>button]:!bg-surface-elevated [&>button]:!border-border [&>button]:!text-text-muted [&>button:hover]:!bg-surface-elevated"
       />
     </ReactFlow>
   )
@@ -64,8 +64,8 @@ export function WorkflowPreview({ nodes, edges }: { nodes: Node<VeniceNodeData>[
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center max-w-sm">
-          <p className="text-[14px] text-white/20 mb-2">No workflow yet</p>
-          <p className="text-[13px] text-white/10">Tell the agent what you want to build — it will assemble the pipeline here in real time.</p>
+          <p className="text-[14px] text-text-muted mb-2">No workflow yet</p>
+          <p className="text-[13px] text-text-muted">Tell the agent what you want to build — it will assemble the pipeline here in real time.</p>
         </div>
       </div>
     )

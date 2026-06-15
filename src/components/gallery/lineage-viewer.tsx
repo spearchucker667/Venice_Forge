@@ -201,9 +201,9 @@ export function LineageViewer({
 
       {chain.ancestors.length > 0 && (
         <ol className="space-y-1" data-testid="lineage-ancestors">
-          {chain.ancestors.map((node) => (
+          {chain.ancestors.map((node, index) => (
             <li
-              key={`a-${node.id}`}
+              key={`a-${node.id}-${node.cycle ? "cycle" : node.missing ? "missing" : "item"}-${index}`}
               className="flex items-center gap-1.5 text-[11.5px]"
               data-testid={`lineage-ancestor-${node.id}`}
               data-missing={node.missing}
@@ -243,9 +243,9 @@ export function LineageViewer({
 
       {chain.descendants.length > 0 && (
         <ul className="mt-1 space-y-1" data-testid="lineage-descendants">
-          {chain.descendants.map((node) => (
+          {chain.descendants.map((node, index) => (
             <li
-              key={`d-${node.id}`}
+              key={`d-${node.id}-${node.cycle ? "cycle" : node.missing ? "missing" : "item"}-${index}`}
               className="ml-3 flex items-center gap-1.5 text-[11.5px]"
               data-testid={`lineage-descendant-${node.id}`}
               data-missing={node.missing}

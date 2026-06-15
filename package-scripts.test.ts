@@ -42,3 +42,10 @@ describe("package.json dev scripts (dev:web regression guard)", () => {
     expect(de).toContain("electron .");
   });
 });
+
+describe("package.json test scripts", () => {
+  it("leaves serial execution to vitest.config.ts so callers can pass the CLI option", () => {
+    expect(pkg.scripts.test).toBe("vitest run");
+    expect(pkg.scripts["test:watch"]).toBe("vitest");
+  });
+});

@@ -47,11 +47,11 @@ const NODE_CONFIG: Record<VeniceNodeType, { label: string; Icon: () => React.JSX
   tts: { label: 'Text to Speech', Icon: SpeakerIcon, color: 'border-green-500/30', hasInput: true, hasOutput: true },
   music: { label: 'Music Gen', Icon: MusicIcon, color: 'border-yellow-500/30', hasInput: true, hasOutput: true },
   video: { label: 'Video Gen', Icon: VideoIcon, color: 'border-orange-500/30', hasInput: true, hasOutput: true },
-  output: { label: 'Output', Icon: OutputIcon, color: 'border-white/20', hasInput: true, hasOutput: false },
+  output: { label: 'Output', Icon: OutputIcon, color: 'border-border', hasInput: true, hasOutput: false },
 }
 
-const selectCls = 'nodrag bg-white/[0.03] border border-white/[0.06] rounded px-1.5 py-0.5 text-[12px] text-white/40 outline-none'
-const inputCls = 'nodrag w-full bg-white/[0.03] border border-white/[0.06] rounded-md px-2 py-1 text-[13px] text-white/60 outline-none placeholder:text-white/15'
+const selectCls = 'nodrag bg-surface-elevated border border-border rounded px-1.5 py-0.5 text-[12px] text-text-muted outline-none'
+const inputCls = 'nodrag w-full bg-surface-elevated border border-border rounded-md px-2 py-1 text-[13px] text-text-secondary outline-none placeholder:text-text-muted'
 
 type WorkflowNode = Node<VeniceNodeData>
 
@@ -96,27 +96,27 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
       className={cn(
         'rounded-xl border-2 bg-[var(--color-surface-elevated)] shadow-xl min-w-[300px] max-w-[340px]',
         config.color,
-        result?.status === 'running' && 'ring-2 ring-white/20 animate-pulse',
+        result?.status === 'running' && 'ring-2 ring-accent animate-pulse',
         result?.status === 'done' && 'ring-2 ring-green-500/30',
         result?.status === 'error' && 'ring-2 ring-red-500/30',
       )}
     >
       {config.hasInput && (
-        <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-white/30 !border-2 !border-[var(--color-surface-elevated)]" />
+        <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-surface-elevated !border-2 !border-[var(--color-surface-elevated)]" />
       )}
 
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
-        <span className="text-white/30"><config.Icon /></span>
-        <span className="text-[14px] font-medium text-white/60">{config.label}</span>
-        {result?.status === 'running' && <span className="text-[12px] text-white/30 ml-auto mr-1">Running...</span>}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+        <span className="text-text-muted"><config.Icon /></span>
+        <span className="text-[14px] font-medium text-text-secondary">{config.label}</span>
+        {result?.status === 'running' && <span className="text-[12px] text-text-muted ml-auto mr-1">Running...</span>}
         {result?.status === 'done' && <span className="text-[12px] text-green-400/60 ml-auto mr-1">Done</span>}
         {result?.status === 'error' && <span className="text-[12px] text-red-400/60 ml-auto mr-1">Error</span>}
         {!result?.status && <span className="ml-auto" />}
         <button
           type="button"
           onClick={deleteNode}
-          className="nodrag text-white/10 hover:text-red-400/60 transition-colors p-0.5"
+          className="nodrag text-text-muted hover:text-red-400/60 transition-colors p-0.5"
           title="Delete node"
           aria-label="Delete workflow node"
         >
@@ -137,13 +137,13 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
               ) : result.output.startsWith('[video:') ? (
                 <a href={result.output.slice(7, -1)} target="_blank" rel="noreferrer" className="text-[14px] text-blue-400 underline">Open video</a>
               ) : result.output.startsWith('[image:') ? (
-                <img src={result.output.slice(7, -1)} alt="Generated" className="w-full rounded-lg border border-white/[0.06]" />
+                <img src={result.output.slice(7, -1)} alt="Generated" className="w-full rounded-lg border border-border" />
               ) : (
                 <button
                   type="button"
                   aria-expanded={outputExpanded}
                   aria-label={outputExpanded ? 'Collapse output' : 'Expand output'}
-                  className={cn('text-left w-full text-[14px] text-white/60 leading-relaxed whitespace-pre-wrap', !outputExpanded && 'line-clamp-8')}
+                  className={cn('text-left w-full text-[14px] text-text-secondary leading-relaxed whitespace-pre-wrap', !outputExpanded && 'line-clamp-8')}
                   onClick={() => setOutputExpanded(!outputExpanded)}
                 >
                   {result.output}
@@ -152,13 +152,13 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
             </div>
           ) : result?.status === 'running' ? (
             <div className="min-h-[40px] flex items-center justify-center">
-              <span className="text-[13px] text-white/20">Waiting for input...</span>
+              <span className="text-[13px] text-text-muted">Waiting for input...</span>
             </div>
           ) : result?.status === 'error' ? (
             <p className="text-[13px] text-red-400/60">{result.error}</p>
           ) : (
             <div className="min-h-[40px] flex items-center justify-center">
-              <span className="text-[13px] text-white/10">Run workflow to see output</span>
+              <span className="text-[13px] text-text-muted">Run workflow to see output</span>
             </div>
           )
         ) : data.nodeType === 'textInput' ? (
@@ -167,7 +167,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
             onChange={(e) => updateNode({ inputText: e.target.value })}
             placeholder="Enter starting text..."
             rows={3}
-            className="nodrag nowheel w-full bg-white/[0.03] border border-white/[0.06] rounded-md px-2 py-1.5 text-[14px] text-white/70 outline-none resize-none placeholder:text-white/15"
+            className="nodrag nowheel w-full bg-surface-elevated border border-border rounded-md px-2 py-1.5 text-[14px] text-text-secondary outline-none resize-none placeholder:text-text-muted"
           />
         ) : (
           <>
@@ -181,7 +181,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
               onChange={(e) => updateNode({ prompt: e.target.value })}
               placeholder="Instructions for this step..."
               rows={2}
-              className="nodrag nowheel w-full bg-white/[0.03] border border-white/[0.06] rounded-md px-2 py-1.5 text-[14px] text-white/70 outline-none resize-none placeholder:text-white/15"
+              className="nodrag nowheel w-full bg-surface-elevated border border-border rounded-md px-2 py-1.5 text-[14px] text-text-secondary outline-none resize-none placeholder:text-text-muted"
             />
 
             {/* Chat params */}
@@ -230,7 +230,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                 />
                 <div className="flex gap-1.5">
                   <div className="flex-1">
-                    <label className="text-[11px] text-white/20 mb-0.5 block">Steps</label>
+                    <label className="text-[11px] text-text-muted mb-0.5 block">Steps</label>
                     <input
                       type="number"
                       value={data.steps ?? 20}
@@ -241,7 +241,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="text-[11px] text-white/20 mb-0.5 block">Size</label>
+                    <label className="text-[11px] text-text-muted mb-0.5 block">Size</label>
                     <select
                       value={`${data.width ?? 1024}x${data.height ?? 1024}`}
                       onChange={(e) => {
@@ -264,12 +264,12 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                     placeholder="Style preset..."
                     className={cn(inputCls, 'flex-1')}
                   />
-                  <label className="nodrag flex items-center gap-1 text-[12px] text-white/30 cursor-pointer shrink-0">
+                  <label className="nodrag flex items-center gap-1 text-[12px] text-text-muted cursor-pointer shrink-0">
                     <input
                       type="checkbox"
                       checked={data.hideWatermark ?? true}
                       onChange={(e) => updateNode({ hideWatermark: e.target.checked })}
-                      className="nodrag w-3 h-3 accent-white/50"
+                      className="nodrag w-3 h-3 accent-accent"
                     />
                     No WM
                   </label>
@@ -281,7 +281,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
             {data.nodeType === 'tts' && (
               <div className="flex flex-wrap gap-1.5">
                 <div className="flex-1 min-w-[80px]">
-                  <label className="text-[11px] text-white/20 mb-0.5 block">Voice</label>
+                  <label className="text-[11px] text-text-muted mb-0.5 block">Voice</label>
                   <input
                     value={data.voice ?? 'af_sky'}
                     onChange={(e) => updateNode({ voice: e.target.value })}
@@ -290,7 +290,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                   />
                 </div>
                 <div className="w-14">
-                  <label className="text-[11px] text-white/20 mb-0.5 block">Speed</label>
+                  <label className="text-[11px] text-text-muted mb-0.5 block">Speed</label>
                   <input
                     type="number"
                     value={data.speed ?? 1}
@@ -302,7 +302,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                   />
                 </div>
                 <div className="w-16">
-                  <label className="text-[11px] text-white/20 mb-0.5 block">Format</label>
+                  <label className="text-[11px] text-text-muted mb-0.5 block">Format</label>
                   <select
                     value={data.responseFormat ?? 'mp3'}
                     onChange={(e) => updateNode({ responseFormat: e.target.value })}
@@ -326,11 +326,11 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                   onChange={(e) => updateNode({ lyrics: e.target.value })}
                   placeholder="Lyrics (optional)..."
                   rows={2}
-                  className="nodrag nowheel w-full bg-white/[0.03] border border-white/[0.06] rounded-md px-2 py-1.5 text-[14px] text-white/70 outline-none resize-none placeholder:text-white/15"
+                  className="nodrag nowheel w-full bg-surface-elevated border border-border rounded-md px-2 py-1.5 text-[14px] text-text-secondary outline-none resize-none placeholder:text-text-muted"
                 />
                 <div className="flex gap-1.5 items-end">
                   <div className="flex-1">
-                    <label className="text-[11px] text-white/20 mb-0.5 block">Duration (s)</label>
+                    <label className="text-[11px] text-text-muted mb-0.5 block">Duration (s)</label>
                     <input
                       type="number"
                       value={data.duration ?? 30}
@@ -341,12 +341,12 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                       className={selectCls + ' w-full'}
                     />
                   </div>
-                  <label className="nodrag flex items-center gap-1 text-[12px] text-white/30 cursor-pointer pb-0.5">
+                  <label className="nodrag flex items-center gap-1 text-[12px] text-text-muted cursor-pointer pb-0.5">
                     <input
                       type="checkbox"
                       checked={data.instrumental ?? false}
                       onChange={(e) => updateNode({ instrumental: e.target.checked })}
-                      className="nodrag w-3 h-3 accent-white/50"
+                      className="nodrag w-3 h-3 accent-accent"
                     />
                     Instrumental
                   </label>
@@ -358,7 +358,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
             {data.nodeType === 'video' && (
               <div className="flex flex-wrap gap-1.5">
                 <div className="flex-1 min-w-[60px]">
-                  <label className="text-[11px] text-white/20 mb-0.5 block">Aspect</label>
+                  <label className="text-[11px] text-text-muted mb-0.5 block">Aspect</label>
                   <select
                     value={data.videoAspectRatio ?? '16:9'}
                     onChange={(e) => updateNode({ videoAspectRatio: e.target.value })}
@@ -372,7 +372,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                   </select>
                 </div>
                 <div className="flex-1 min-w-[60px]">
-                  <label className="text-[11px] text-white/20 mb-0.5 block">Duration</label>
+                  <label className="text-[11px] text-text-muted mb-0.5 block">Duration</label>
                   <select
                     value={data.videoDuration ?? ''}
                     onChange={(e) => updateNode({ videoDuration: e.target.value })}
@@ -384,7 +384,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                   </select>
                 </div>
                 <div className="flex-1 min-w-[60px]">
-                  <label className="text-[11px] text-white/20 mb-0.5 block">Resolution</label>
+                  <label className="text-[11px] text-text-muted mb-0.5 block">Resolution</label>
                   <select
                     value={data.videoResolution ?? ''}
                     onChange={(e) => updateNode({ videoResolution: e.target.value })}
@@ -422,9 +422,9 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                 Open video
               </a>
             ) : result.output.startsWith('[image:') ? (
-              <img src={result.output.slice(7, -1)} alt="Generated" className="w-full rounded border border-white/[0.06]" />
+              <img src={result.output.slice(7, -1)} alt="Generated" className="w-full rounded border border-border" />
             ) : (
-              <p className={cn('text-[13px] text-white/50 leading-relaxed whitespace-pre-wrap', !outputExpanded && 'line-clamp-3')}>
+              <p className={cn('text-[13px] text-text-secondary leading-relaxed whitespace-pre-wrap', !outputExpanded && 'line-clamp-3')}>
                 {result.output}
               </p>
             )}
@@ -439,7 +439,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
       </div>
 
       {config.hasOutput && (
-        <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-white/30 !border-2 !border-[var(--color-surface-elevated)]" />
+        <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-surface-elevated !border-2 !border-[var(--color-surface-elevated)]" />
       )}
     </div>
   )

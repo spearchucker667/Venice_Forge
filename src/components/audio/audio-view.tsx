@@ -109,11 +109,11 @@ export function AudioView() {
 
   const controls = (
     <>
-      <div className="flex gap-px bg-white/[0.03] rounded-lg p-0.5 border border-white/[0.05]">
+      <div className="flex gap-px bg-surface-elevated rounded-lg p-0.5 border border-border">
         {(['tts', 'transcribe'] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)} aria-pressed={tab === t} className={cn(
             'flex-1 px-3 py-2 text-[13px] font-medium rounded-[7px] transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]',
-            tab === t ? 'bg-white text-black shadow-sm' : 'text-white/55 hover:text-white/85',
+            tab === t ? 'bg-accent text-accent-fg shadow-sm' : 'text-text-secondary hover:text-text-secondary',
           )}>
             {t === 'tts' ? 'Text to Speech' : 'Transcribe'}
           </button>
@@ -142,11 +142,11 @@ export function AudioView() {
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="w-full border border-dashed border-white/[0.1] hover:border-white/[0.22] hover:bg-white/[0.02] rounded-xl p-8 text-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
+            className="w-full border border-dashed border-border hover:border-accent hover:bg-surface-muted rounded-xl p-8 text-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
           >
             <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="mx-auto mb-2 text-white/40"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
-            <p className="text-[14px] text-white/65">{file ? file.name : 'Click to select audio file'}</p>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="mx-auto mb-2 text-text-muted"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
+            <p className="text-[14px] text-text-secondary">{file ? file.name : 'Click to select audio file'}</p>
           </button>
           <PrimaryButton onClick={() => { if (file) transcription.mutate(file, { onSuccess: (d) => setTranscript(d.text), onError: (err) => toast.fromError(err, 'Transcription failed') }) }} disabled={!file || !hasVeniceKey} loading={transcription.isPending} size="lg">
             Transcribe
@@ -164,14 +164,14 @@ export function AudioView() {
             <div className="flex flex-col gap-4 animate-fade-in">
               <div className="flex items-center justify-between">
                 <Label>Output</Label>
-                <a href={audioUrl} download={`venice-speech.${format}`} className="text-[14px] text-white/20 hover:text-white/40 transition-colors flex items-center gap-1.5">
+                <a href={audioUrl} download={`venice-speech.${format}`} className="text-[14px] text-text-muted hover:text-text-muted transition-colors flex items-center gap-1.5">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
                   Download
                 </a>
               </div>
               <audio controls src={audioUrl} className="w-full" />
-              <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-4">
-                <p className="text-[15px] text-white/30 leading-relaxed">{text}</p>
+              <div className="bg-surface-elevated border border-border rounded-lg p-4">
+                <p className="text-[15px] text-text-muted leading-relaxed">{text}</p>
               </div>
             </div>
           ) : !text ? (
@@ -189,7 +189,7 @@ export function AudioView() {
           transcript ? (
             <div className="flex flex-col gap-3 animate-fade-in">
               <Label>Transcript</Label>
-              <div className="bg-surface border border-white/[0.06] rounded-xl p-6 text-[15px] text-white/85 whitespace-pre-wrap leading-relaxed">
+              <div className="bg-surface border border-border rounded-xl p-6 text-[15px] text-text-secondary whitespace-pre-wrap leading-relaxed">
                 {transcript}
               </div>
             </div>

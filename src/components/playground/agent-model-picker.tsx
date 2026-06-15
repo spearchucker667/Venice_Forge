@@ -52,39 +52,39 @@ export function AgentModelPicker({ value, onChange }: Props) {
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'w-full flex items-center justify-between gap-2 bg-white/[0.03] border border-white/[0.08] rounded-md px-2.5 py-1.5 text-[13px] hover:border-white/[0.18] transition-colors text-left',
-          open && 'border-white/[0.25]',
+          'w-full flex items-center justify-between gap-2 bg-surface-elevated border border-border rounded-md px-2.5 py-1.5 text-[13px] hover:border-accent transition-colors text-left',
+          open && 'border-border',
         )}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
         <span className="flex items-center gap-1.5 min-w-0 flex-1">
-          <span className="truncate text-white/85">{label}</span>
+          <span className="truncate text-text-secondary">{label}</span>
           {current?.recommended && (
             <span className="shrink-0 text-[10px] px-1 py-px rounded bg-emerald-400/15 text-emerald-300 font-medium uppercase tracking-wider">Rec</span>
           )}
         </span>
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
-          className={cn('shrink-0 text-white/40 transition-transform duration-150', open && 'rotate-180')}>
+          className={cn('shrink-0 text-text-muted transition-transform duration-150', open && 'rotate-180')}>
           <path d="M2.5 3.75L5 6.25L7.5 3.75" />
         </svg>
       </button>
 
       {open && (
-        <div className="absolute top-full right-0 mt-1 w-[340px] z-50 bg-surface-elevated border border-white/[0.1] rounded-lg shadow-2xl shadow-black/70 animate-scale-in overflow-hidden">
-          <div className="px-2 py-2 border-b border-white/[0.06] flex items-center gap-2">
+        <div className="absolute top-full right-0 mt-1 w-[340px] z-50 bg-surface-elevated border border-border rounded-lg shadow-2xl shadow-none animate-scale-in overflow-hidden">
+          <div className="px-2 py-2 border-b border-border flex items-center gap-2">
             <input
               autoFocus
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search models…"
-              className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded px-2 py-1 text-[13px] text-white/85 outline-none focus:border-white/[0.2] placeholder:text-white/30"
+              className="flex-1 bg-surface-elevated border border-border rounded px-2 py-1 text-[13px] text-text-secondary outline-none focus:border-accent placeholder:text-text-muted"
             />
             <button
               onClick={() => setShowAll(!showAll)}
               className={cn(
                 'text-[11px] px-1.5 py-1 rounded border transition-colors',
-                showAll ? 'bg-white/[0.08] border-white/[0.15] text-white/85' : 'border-white/[0.08] text-white/45 hover:text-white/70',
+                showAll ? 'bg-surface-elevated border-border text-text-secondary' : 'border-border text-text-muted hover:text-text-secondary',
               )}
               title={showAll ? 'Showing all models' : 'Showing only schema-capable models'}
             >
@@ -93,22 +93,22 @@ export function AgentModelPicker({ value, onChange }: Props) {
           </div>
           <div className="max-h-[380px] overflow-y-auto py-1">
             {grouped.length === 0 && (
-              <div className="px-3 py-6 text-center text-[13px] text-white/30">No matches</div>
+              <div className="px-3 py-6 text-center text-[13px] text-text-muted">No matches</div>
             )}
             {grouped.map((group) => (
               <div key={group.label}>
-                <div className="px-3 pt-2 pb-1 text-[10.5px] uppercase tracking-[0.08em] text-white/30 font-medium">{group.label}</div>
+                <div className="px-3 pt-2 pb-1 text-[10.5px] uppercase tracking-[0.08em] text-text-muted font-medium">{group.label}</div>
                 {group.items.map((m) => (
                   <button
                     key={m.id}
                     onClick={() => { onChange(m.id); setOpen(false); setSearch('') }}
                     className={cn(
-                      'w-full text-left px-3 py-2 hover:bg-white/[0.04] transition-colors',
-                      m.id === value && 'bg-white/[0.06]',
+                      'w-full text-left px-3 py-2 hover:bg-surface-muted transition-colors',
+                      m.id === value && 'bg-surface-elevated',
                     )}
                   >
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[13px] text-white/90 font-medium truncate flex-1">{m.name}</span>
+                      <span className="text-[13px] text-text-secondary font-medium truncate flex-1">{m.name}</span>
                       {m.id === value && (
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400 shrink-0">
                           <path d="M20 6L9 17l-5-5" />
@@ -124,7 +124,7 @@ export function AgentModelPicker({ value, onChange }: Props) {
                       {m.capabilities.supportsWebSearch && <Badge tone="slate">Web</Badge>}
                       {m.uncensored && <Badge tone="rose">Uncensored</Badge>}
                     </div>
-                    <div className="text-[11px] text-white/35 mt-1 font-mono truncate">
+                    <div className="text-[11px] text-text-muted mt-1 font-mono truncate">
                       {m.id}{m.contextTokens ? ` · ${formatCtx(m.contextTokens)} ctx` : ''}
                     </div>
                   </button>
@@ -144,7 +144,7 @@ const TONE: Record<string, string> = {
   violet: 'bg-violet-400/15 text-violet-300',
   amber: 'bg-amber-400/15 text-amber-300',
   pink: 'bg-pink-400/15 text-pink-300',
-  slate: 'bg-white/[0.06] text-white/55',
+  slate: 'bg-surface-elevated text-text-secondary',
   rose: 'bg-rose-400/15 text-rose-300',
 }
 

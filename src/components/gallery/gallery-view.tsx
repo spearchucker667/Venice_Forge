@@ -750,7 +750,7 @@ export function MediaStudioView() {
       {compareOpen && (
         <div
           ref={compareModalRef}
-          className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 p-6"
+          className="fixed inset-0 z-[150] flex items-center justify-center bg-overlay p-6"
           data-testid="compare-modal"
           onClick={() => setCompareOpen(false)}
           role="dialog"
@@ -772,7 +772,7 @@ export function MediaStudioView() {
       {lineageOpen && inspectorItem && (
         <div
           ref={lineageModalRef}
-          className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 p-6"
+          className="fixed inset-0 z-[150] flex items-center justify-center bg-overlay p-6"
           data-testid="lineage-modal"
           onClick={() => setLineageOpen(false)}
           role="dialog"

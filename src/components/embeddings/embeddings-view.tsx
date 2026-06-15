@@ -60,23 +60,23 @@ export function EmbeddingsView() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <Label>Vector ({dims} dimensions)</Label>
-                <button onClick={handleCopyVector} className="text-[13px] text-white/20 hover:text-white/40 transition-colors">Copy</button>
+                <button onClick={handleCopyVector} className="text-[13px] text-text-muted hover:text-text-muted transition-colors">Copy</button>
               </div>
-              <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-4 max-h-[calc(100vh-240px)] overflow-y-auto">
-                <code className="text-[14px] text-white/35 font-mono break-all leading-loose">
+              <div className="bg-surface-elevated border border-border rounded-lg p-4 max-h-[calc(100vh-240px)] overflow-y-auto">
+                <code className="text-[14px] text-text-muted font-mono break-all leading-loose">
                   [{displayValues?.map((n, i) => (
                     <span key={i}>
-                      <span className="text-white/50">{n.toFixed(6)}</span>
-                      {i < (displayValues.length) - 1 && <span className="text-white/15">, </span>}
+                      <span className="text-text-secondary">{n.toFixed(6)}</span>
+                      {i < (displayValues.length) - 1 && <span className="text-text-muted">, </span>}
                     </span>
                   ))}
-                  {!expanded && dims > PREVIEW_COUNT && <span className="text-white/15">, ...</span>}]
+                  {!expanded && dims > PREVIEW_COUNT && <span className="text-text-muted">, ...</span>}]
                 </code>
               </div>
               {dims > PREVIEW_COUNT && (
                 <button
                   onClick={() => setExpanded(!expanded)}
-                  className="text-[13px] text-white/20 hover:text-white/40 mt-2 transition-colors"
+                  className="text-[13px] text-text-muted hover:text-text-muted mt-2 transition-colors"
                 >
                   {expanded ? `Show first ${PREVIEW_COUNT}` : `Show all ${dims} values`}
                 </button>
@@ -95,8 +95,8 @@ export function EmbeddingsView() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-white/20">{label}</span>
-      <span className="text-white/55 bg-white/[0.03] border border-white/[0.04] rounded px-2 py-0.5 font-mono text-[13px]">{value}</span>
+      <span className="text-text-muted">{label}</span>
+      <span className="text-text-secondary bg-surface-elevated border border-border rounded px-2 py-0.5 font-mono text-[13px]">{value}</span>
     </div>
   )
 }

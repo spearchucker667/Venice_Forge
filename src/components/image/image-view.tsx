@@ -517,7 +517,7 @@ export function ImageView() {
                   e.target.value = "";
                 }
               }}
-              className="text-[12px] bg-white/[0.04] text-white/50 border border-white/[0.08] rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-accent hover:text-white/80 transition-colors cursor-pointer"
+              className="text-[12px] bg-surface-elevated text-text-secondary border border-border rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-accent hover:text-text-secondary transition-colors cursor-pointer"
               defaultValue=""
             >
               <option value="" disabled>Add Template...</option>
@@ -705,16 +705,16 @@ export function ImageView() {
           role="dialog"
           aria-modal="true"
           aria-label="Image preview"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay backdrop-blur-sm animate-fade-in"
           onClick={() => setSelectedImage(null)}
         >
           <div className="relative" onClick={(e) => e.stopPropagation()}>
             <img src={toImageSrc(selectedImage)} alt="Generated" className="max-w-[90vw] max-h-[90vh] rounded-xl shadow-2xl" />
             <div className="absolute top-3 right-3 flex gap-1.5">
-              <button onClick={() => downloadImage(selectedImage)} aria-label="Download" className="p-2 bg-black/60 hover:bg-black/80 rounded-lg text-white/70 hover:text-white transition-colors backdrop-blur-sm">
+              <button onClick={() => downloadImage(selectedImage)} aria-label="Download" className="p-2 bg-overlay hover:bg-overlay rounded-lg text-text-secondary hover:text-text-primary transition-colors backdrop-blur-sm">
                 <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
               </button>
-              <button onClick={() => setSelectedImage(null)} aria-label="Close" className="p-2 bg-black/60 hover:bg-black/80 rounded-lg text-white/70 hover:text-white transition-colors backdrop-blur-sm">
+              <button onClick={() => setSelectedImage(null)} aria-label="Close" className="p-2 bg-overlay hover:bg-overlay rounded-lg text-text-secondary hover:text-text-primary transition-colors backdrop-blur-sm">
                 <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
               </button>
             </div>
@@ -725,8 +725,8 @@ export function ImageView() {
         <div className="flex items-center justify-center h-full">
           {mutation.isPending ? (
             <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
-              <div className="w-8 h-8 border-2 border-white/[0.08] border-t-[var(--color-accent)] rounded-full animate-spin" />
-              <span className="text-[13px] text-white/55">Generating…</span>
+              <div className="w-8 h-8 border-2 border-border border-t-[var(--color-accent)] rounded-full animate-spin" />
+              <span className="text-[13px] text-text-secondary">Generating…</span>
             </div>
           ) : (
             <ExamplePrompts
@@ -747,13 +747,13 @@ export function ImageView() {
                 src={toImageSrc(img)}
                 alt={`Generated ${i + 1}`}
                 tabIndex={-1}
-                className="w-full rounded-xl cursor-pointer border border-white/[0.05] hover:border-white/[0.18] transition-all duration-200"
+                className="w-full rounded-xl cursor-pointer border border-border hover:border-accent transition-all duration-200"
                 onClick={(e) => { (e.currentTarget as HTMLImageElement).focus(); setSelectedImage(img) }}
               />
               <button
                 onClick={(e) => { e.stopPropagation(); downloadImage(img, i) }}
                 aria-label="Download"
-                className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/85 rounded-lg text-white/70 hover:text-white opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
+                className="absolute top-2 right-2 p-1.5 bg-overlay hover:bg-overlay rounded-lg text-text-secondary hover:text-text-primary opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
                 title="Download"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>

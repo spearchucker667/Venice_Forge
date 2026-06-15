@@ -67,8 +67,16 @@ describe("LineageViewer (VERIFY-044)", () => {
     // a -> b -> a (parent of a is b, parent of b is a).
     const a = makeItem({ parentId: "b" }, "a");
     const b = makeItem({ parentId: "a" }, "b");
-    render(<LineageViewer item={a} items={[a, b]} />);
-    expect(screen.getByTestId("lineage-cycle-warning")).toBeInTheDocument();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      render(<LineageViewer item={a} items={[a, b]} />);
+      expect(screen.getByTestId("lineage-cycle-warning")).toBeInTheDocument();
+      expect(consoleError.mock.calls.flat().join(" ")).not.toContain(
+        "Encountered two children with the same key",
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 
   it("cycle in the children list is detected and rendered as a warning", () => {

@@ -119,7 +119,7 @@ function MediaCardImpl({
           <span
             className={cn(
               "absolute left-2 top-2 grid h-5 w-5 place-items-center rounded border bg-surface/80 text-[10px] font-bold",
-              selected ? "border-accent bg-accent text-black" : "border-white/30 text-text-muted",
+              selected ? "border-accent bg-accent text-accent-fg" : "border-border text-text-muted",
             )}
             aria-hidden="true"
           >
@@ -128,14 +128,14 @@ function MediaCardImpl({
         )}
 
         {item.favorite && (
-          <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] text-rose-200 backdrop-blur">
+          <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md bg-overlay px-1.5 py-0.5 text-[10px] text-rose-200 backdrop-blur">
             <Heart className="h-3 w-3 fill-current" />
             <span>Favorite</span>
           </span>
         )}
 
         {isVideo && duration && (
-          <span className="absolute bottom-2 right-2 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+          <span className="absolute bottom-2 right-2 rounded-md bg-overlay px-1.5 py-0.5 text-[10px] font-medium text-text-primary">
             {duration}
           </span>
         )}
@@ -159,7 +159,7 @@ function MediaCardImpl({
             {item.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="rounded-md border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-text-secondary"
+                className="rounded-md border border-border bg-surface-elevated px-1.5 py-0.5 text-[10px] text-text-secondary"
               >
                 #{tag}
               </span>

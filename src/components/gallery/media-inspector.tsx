@@ -790,7 +790,7 @@ export function MediaInspector({
                 key={tag}
                 onClick={() => void handleRemoveTag(tag)}
                 title="Remove tag"
-                className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[11px] text-text-secondary hover:border-rose-400/40 hover:text-rose-300"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-surface-elevated px-1.5 py-0.5 text-[11px] text-text-secondary hover:border-rose-400/40 hover:text-rose-300"
               >
                 #{tag}
                 <span aria-hidden="true">×</span>

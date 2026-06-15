@@ -69,7 +69,7 @@ export function MediaDetailDialog({
       className="fixed inset-0 z-50 flex bg-overlay backdrop-blur-sm"
     >
       <div className="relative flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-white/10 bg-black/60 px-5 py-3 text-text-primary">
+        <header className="flex items-center justify-between border-b border-border bg-overlay px-5 py-3 text-text-primary">
           <div className="flex items-center gap-2">
             <Badge tone={isVideo ? "rose" : "slate"}>{isVideo ? "Video" : "Image"}</Badge>
             <Badge tone="slate">{item.operation}</Badge>
@@ -85,7 +85,7 @@ export function MediaDetailDialog({
                 "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11.5px] transition-colors",
                 item.favorite
                   ? "border-rose-400/40 bg-rose-500/10 text-rose-300"
-                  : "border-white/10 text-text-secondary hover:border-accent hover:text-accent",
+                  : "border-border text-text-secondary hover:border-accent hover:text-accent",
               )}
             >
               <Heart className={cn("h-3.5 w-3.5", item.favorite && "fill-current")} />
@@ -102,20 +102,20 @@ export function MediaDetailDialog({
               ref={closeRef}
               type="button"
               onClick={onClose}
-              className="rounded-md border border-white/10 px-2 py-1 text-[11.5px] text-text-secondary hover:border-accent hover:text-accent"
+              className="rounded-md border border-border px-2 py-1 text-[11.5px] text-text-secondary hover:border-accent hover:text-accent"
             >
               Close (Esc)
             </button>
           </div>
         </header>
 
-        <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-black/50 p-4">
+        <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-overlay p-4">
           <button
             type="button"
             onClick={() => onNavigate("prev")}
             disabled={currentIndex <= 0}
             aria-label="Previous"
-            className="absolute left-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/10 bg-black/60 text-text-primary transition-opacity hover:border-accent disabled:opacity-30"
+            className="absolute left-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-border bg-overlay text-text-primary transition-opacity hover:border-accent disabled:opacity-30"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -144,13 +144,13 @@ export function MediaDetailDialog({
             onClick={() => onNavigate("next")}
             disabled={currentIndex < 0 || currentIndex >= allItems.length - 1}
             aria-label="Next"
-            className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/10 bg-black/60 text-text-primary transition-opacity hover:border-accent disabled:opacity-30"
+            className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-border bg-overlay text-text-primary transition-opacity hover:border-accent disabled:opacity-30"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="border-t border-white/10 bg-black/60 px-4 py-2">
+        <div className="border-t border-border bg-overlay px-4 py-2">
           <p className="line-clamp-2 text-[12.5px] text-text-primary" title={item.prompt}>
             {item.prompt || "Untitled"}
           </p>
@@ -174,7 +174,7 @@ export function MediaDetailDialog({
         </div>
       </div>
 
-      <aside className="hidden w-72 shrink-0 border-l border-white/10 bg-black/70 p-4 text-text-primary lg:flex lg:flex-col">
+      <aside className="hidden w-72 shrink-0 border-l border-border bg-overlay p-4 text-text-primary lg:flex lg:flex-col">
         <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">Filmstrip</h3>
         <div className="grid grid-cols-3 gap-2 overflow-y-auto pr-1">
           {allItems.map((candidate) => {
@@ -187,7 +187,7 @@ export function MediaDetailDialog({
                 onClick={() => onSelect(candidate)}
                 className={cn(
                   "relative aspect-square overflow-hidden rounded-md border bg-surface-elevated",
-                  selected ? "border-accent ring-2 ring-accent/40" : "border-white/10 hover:border-accent",
+                  selected ? "border-accent ring-2 ring-accent/40" : "border-border hover:border-accent",
                 )}
                 aria-label={`Open ${candidate.prompt || "untitled"}`}
               >

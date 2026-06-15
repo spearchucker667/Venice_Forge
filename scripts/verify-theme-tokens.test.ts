@@ -19,9 +19,8 @@ const {
       scanRoots?: string[];
       forbidden?: Array<{ pattern: RegExp; name: string }>;
       allowComment?: string;
-      knownExceptions?: string[];
     },
-  ) => { ok: boolean; filesScanned: number; violations: string[]; staleExceptions: string[] };
+  ) => { ok: boolean; filesScanned: number; violations: string[] };
 };
 
 const tempDirs: string[] = [];
@@ -61,44 +60,27 @@ describe("verifyThemeTokens", () => {
     ]);
   });
 
-  it("reports forbidden hardcoded colors in non-exception files", () => {
+  it("reports forbidden hardcoded colors", () => {
     const root = fixture({
       "src/components/clean/clean-view.tsx": "export function CleanView() { return <div className='text-white' />; }\n",
     });
 
-    const result = verifyThemeTokens(root, { scanRoots: ["src/components"], knownExceptions: [] });
+    const result = verifyThemeTokens(root, { scanRoots: ["src/components"] });
     expect(result.ok).toBe(false);
     expect(result.violations.length).toBe(1);
     expect(result.violations[0]).toContain("clean-view.tsx");
     expect(result.violations[0]).toContain("text-white");
   });
 
-  it("ignores violations in known-exception files but still scans them", () => {
+  it("does not support file-level exceptions", () => {
     const root = fixture({
       "src/components/media/media-view.tsx": "export function MediaView() { return <div className='text-white' />; }\n",
     });
 
-    const result = verifyThemeTokens(root, {
-      scanRoots: ["src/components"],
-      knownExceptions: ["src/components/media/media-view.tsx"],
-    });
-    expect(result.ok).toBe(true);
-    expect(result.filesScanned).toBe(1);
-    expect(result.violations).toEqual([]);
-  });
-
-  it("reports stale exception entries that no longer contain forbidden patterns", () => {
-    const root = fixture({
-      "src/components/media/media-view.tsx": "export function MediaView() { return <div className='bg-surface text-text' />; }\n",
-    });
-
-    const result = verifyThemeTokens(root, {
-      scanRoots: ["src/components"],
-      knownExceptions: ["src/components/media/media-view.tsx"],
-    });
+    const result = verifyThemeTokens(root, { scanRoots: ["src/components"] });
     expect(result.ok).toBe(false);
-    expect(result.violations).toEqual([]);
-    expect(result.staleExceptions).toEqual(["src/components/media/media-view.tsx"]);
+    expect(result.filesScanned).toBe(1);
+    expect(result.violations).toHaveLength(1);
   });
 
   it("honours per-line allow comments", () => {
@@ -107,7 +89,7 @@ describe("verifyThemeTokens", () => {
         "export function CleanView() { return <div className='text-white' // THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR\n />; }\n",
     });
 
-    const result = verifyThemeTokens(root, { scanRoots: ["src/components"], knownExceptions: [] });
+    const result = verifyThemeTokens(root, { scanRoots: ["src/components"] });
     expect(result.ok).toBe(true);
     expect(result.violations).toEqual([]);
   });
@@ -131,7 +113,7 @@ describe("verifyThemeTokens", () => {
         "export function BadView() { return <div className='text-white bg-black border-white/10 placeholder:text-white ring-white shadow-black bg-[#000] bg-neutral-950 bg-bg-base' />; }\n",
     });
 
-    const result = verifyThemeTokens(root, { scanRoots: ["src/components"], knownExceptions: [] });
+    const result = verifyThemeTokens(root, { scanRoots: ["src/components"] });
     expect(result.ok).toBe(false);
     expect(result.violations.length).toBeGreaterThanOrEqual(9);
   });

@@ -209,7 +209,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
   return (
     <div
       ref={dialogRef}
-      className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh] bg-black/40"
+      className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh] bg-overlay"
       onClick={onClose}
       role="dialog"
       aria-modal="true"

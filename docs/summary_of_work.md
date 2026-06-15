@@ -107,6 +107,15 @@ blockers remain.
 
 ## Latest Session Summary
 
+- **Date:** 2026-06-15 (Windows CI theme-token contract repair)
+- **Agent:** Codex
+- **Branch / state:** `main` (validated working tree; commit/push pending)
+- **Diagnosis:** `scripts/verify-theme-tokens.cjs` contained a broad 19-file `KNOWN_EXCEPTIONS` list that suppressed the same 321 hardcoded light/dark class violations reported by Windows CI. Removing the suppression reproduced the failure locally.
+- **Fix:** Removed file-level verifier exceptions, migrated all 19 affected UI files to semantic theme tokens and CSS variables, and retained the verifier's full scan roots and forbidden-pattern set. Also fixed cyclic lineage keys that could render duplicate `a-b` React keys.
+- **Closed findings:** T-014, T-016, T-017, T-030, T-033, T-034, T-035, T-036, T-041, T-043, T-044, T-045, T-046, T-048, T-049, T-050, T-098, T-099, T-100, and T-235.
+- **Test command compatibility:** Moved `fileParallelism: false` into `vitest.config.ts` and removed the duplicate CLI flag from `package.json`, preserving serial default execution while allowing the required `npm test -- --fileParallelism=false` command.
+- **Validation (Node 22.22.3):** theme verifier PASS (98 files); ESLint PASS; renderer + Electron typecheck PASS; all contract gates PASS; full serial suite PASS (231 files passed, 1 skipped; 2,542 tests passed, 1 skipped); production build PASS. The first sandboxed full-suite attempt failed 41 `server.test.ts` cases because loopback binding was restricted; the identical unsandboxed Node 22 command passed.
+
 - **Date:** 2026-06-15 (Resumed Kimi interrupted types/utils/theme/scripts audit batch)
 - **Agent:** Codex
 - **Branch / state:** `main` (working tree modified; resumed from `kimi-export-session_-20260615-052400.md`)
@@ -1000,6 +1009,12 @@ blockers remain.
   - `npm run typecheck` — **FAIL (exit 2)** on pre-existing unrelated errors in `src/stores/rp-chat-store.test.ts` (`personaId: null` incompatible with `string | undefined`) and `src/stores/prompt-library-store.test.ts`; `src/stores/media-store.ts` and `src/stores/media-store.test.ts` produce no type errors.
 
 ## Session History
+
+- **Date:** 2026-06-15 (Windows CI `verify:theme-tokens` repair with proof)
+- **Agent:** Codex
+- **Root cause:** A broad `KNOWN_EXCEPTIONS` list in `scripts/verify-theme-tokens.cjs` suppressed 321 real violations across 19 themeable UI files on the live branch.
+- **Changes:** Deleted file-level suppression support and its permissive tests; converted hardcoded white/black/RGBA/hex UI colors to semantic theme tokens; fixed cyclic lineage React keys and added a no-duplicate-key assertion; moved serial Vitest configuration into `vitest.config.ts` so the required test invocation is valid.
+- **Validation:** `node scripts/verify-theme-tokens.cjs`, `npm run lint:eslint`, `npm run typecheck`, `npm run verify:contracts`, `npm test -- --fileParallelism=false`, and `npm run build` all passed under Node 22.22.3. Full suite: 2,542 passed, 1 skipped.
 
 - **Date:** 2026-06-15 (T-011..T-270 static-audit reconciliation — store error-handling batch + full validation)
 - **Agent:** Kimi Code
@@ -4935,6 +4950,14 @@ Result:
 
 ## Open TODO Ledger
 
+### Completed this session (2026-06-15 — Windows CI theme-token contract repair)
+
+- Removed the broad 19-file `KNOWN_EXCEPTIONS` bypass from `scripts/verify-theme-tokens.cjs`; no scan roots or forbidden patterns were removed.
+- Replaced all 321 reported hardcoded light/dark class violations with semantic tokens across workflow, video, playground, image, music, audio, gallery, embeddings, and command-palette surfaces.
+- Replaced additional hardcoded React Flow RGBA values, `bg-[#111]`, white focus outlines, white checkbox accents, and the fixed checkerboard colors with theme variables/tokens.
+- Fixed the cyclic lineage duplicate-key warning and added regression coverage.
+- Closed T-014, T-016, T-017, T-030, T-033, T-034, T-035, T-036, T-041, T-043, T-044, T-045, T-046, T-048, T-049, T-050, T-098, T-099, T-100, and T-235.
+
 ### In progress (2026-06-14 — T-011..T-270 static-audit reconciliation)
 
 - Continue live source verification for the remaining Medium/Low findings; do not bulk-import snapshot claims as confirmed defects.
@@ -5437,3 +5460,16 @@ Result:
 | `npm test` | PASS | 2542 passed, 1 skipped after resumed batch |
 | `npm run verify:contracts` | PASS | all parity gates after resumed batch |
 | `npm run build` | PASS | dist/ + dist-electron/ + dist/server.cjs after resumed batch |
+
+## Validation Matrix (Windows CI theme-token repair append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `node scripts/verify-theme-tokens.cjs` | PASS | No forbidden hardcoded color classes; 98 files scanned |
+| `npx vitest run scripts/verify-theme-tokens.test.ts src/components/gallery/lineage-viewer.test.tsx --fileParallelism=false` | PASS | 2 files, 21 tests |
+| `npm run lint:eslint` | PASS | 0 warnings under Node 22.22.3 |
+| `npm run typecheck` | PASS | Renderer + Electron under Node 22.22.3 |
+| `npm run verify:contracts` | PASS | All contract gates, including unexceptioned `verify:theme-tokens` |
+| `npm test -- --fileParallelism=false` | PASS | 231 files passed, 1 skipped; 2,542 tests passed, 1 skipped; unsandboxed Node 22.22.3 |
+| `npm run build` | PASS | Vite renderer, Express server bundle, and Electron main build |
+| Sandbox-only `npm test -- --fileParallelism=false` attempt | FAIL (environment) | 41 `server.test.ts` failures while loopback binding was restricted; identical unsandboxed command passed |

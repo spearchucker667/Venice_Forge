@@ -201,14 +201,14 @@ export function PlaygroundChat() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
         {messages.length === 0 ? (
           <div className="flex flex-col gap-3 pt-8">
-            <div className="text-[15px] text-white/85 font-semibold mb-1">What should I build?</div>
-            <div className="text-[13px] text-white/45 mb-4">Describe a workflow in plain language. I&apos;ll assemble it on the canvas in real time.</div>
+            <div className="text-[15px] text-text-secondary font-semibold mb-1">What should I build?</div>
+            <div className="text-[13px] text-text-muted mb-4">Describe a workflow in plain language. I&apos;ll assemble it on the canvas in real time.</div>
             <div className="flex flex-col gap-2">
               {STARTER_PROMPTS.map((p) => (
                 <button
                   key={p}
                   onClick={() => send(p)}
-                  className="text-left px-3 py-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.16] hover:bg-white/[0.04] transition-all text-[13px] text-white/65 hover:text-white/85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
+                  className="text-left px-3 py-2.5 rounded-lg border border-border bg-surface-elevated hover:border-accent hover:bg-surface-muted transition-all text-[13px] text-text-secondary hover:text-text-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
                 >
                   {p}
                 </button>
@@ -226,33 +226,33 @@ export function PlaygroundChat() {
                   className={cn(
                     'max-w-[88%] px-3.5 py-2 rounded-xl text-[13.5px] leading-relaxed whitespace-pre-wrap',
                     m.role === 'user'
-                      ? 'bg-white/[0.09] text-white border border-white/[0.05]'
-                      : 'bg-white/[0.04] border border-white/[0.07] text-white/85',
+                      ? 'bg-surface-elevated text-text-primary border border-border'
+                      : 'bg-surface-elevated border border-border text-text-secondary',
                   )}
                 >
                   {m.pending && (!m.activity || m.activity.length === 0) ? (
-                    <span className="text-white/45 inline-flex items-center gap-1.5">
-                      <span className="inline-block w-3 h-3 border-2 border-white/20 border-t-[var(--color-accent)] rounded-full animate-spin" />
+                    <span className="text-text-muted inline-flex items-center gap-1.5">
+                      <span className="inline-block w-3 h-3 border-2 border-border border-t-[var(--color-accent)] rounded-full animate-spin" />
                       Thinking…
                     </span>
                   ) : m.error ? (
                     <span className="text-red-300/95">{m.error}</span>
                   ) : (
-                    m.content || <span className="text-white/35 italic">(no message)</span>
+                    m.content || <span className="text-text-muted italic">(no message)</span>
                   )}
                 </div>
 
                 {m.activity && m.activity.length > 0 && (
-                  <div className="max-w-[88%] flex flex-col gap-px text-[11.5px] font-mono text-white/45 px-1">
+                  <div className="max-w-[88%] flex flex-col gap-px text-[11.5px] font-mono text-text-muted px-1">
                     {m.activity.map((a, i) => (
                       <div key={i} className={cn('flex items-center gap-1.5', !a.ok && 'text-rose-300/85')}>
-                        <span className="text-white/30">·</span>
+                        <span className="text-text-muted">·</span>
                         <span>{a.summary}</span>
                       </div>
                     ))}
                     {m.pending && (
-                      <div className="flex items-center gap-1.5 text-white/35">
-                        <span className="inline-block w-2 h-2 border border-white/20 border-t-[var(--color-accent)] rounded-full animate-spin" />
+                      <div className="flex items-center gap-1.5 text-text-muted">
+                        <span className="inline-block w-2 h-2 border border-border border-t-[var(--color-accent)] rounded-full animate-spin" />
                         <span>Working…</span>
                       </div>
                     )}
@@ -260,7 +260,7 @@ export function PlaygroundChat() {
                 )}
 
                 {m.patches && m.patches.length > 0 && !m.activity?.length && (
-                  <div className="max-w-[88%] px-3 py-1 text-[11px] text-white/40 font-mono tracking-wide">
+                  <div className="max-w-[88%] px-3 py-1 text-[11px] text-text-muted font-mono tracking-wide">
                     {m.patches.length} patch{m.patches.length === 1 ? '' : 'es'} applied
                   </div>
                 )}
@@ -270,7 +270,7 @@ export function PlaygroundChat() {
         )}
       </div>
 
-      <div className="shrink-0 border-t border-white/[0.06] p-3">
+      <div className="shrink-0 border-t border-border p-3">
         {error && <div className="mb-2 text-[13px] text-red-300/95">{error}</div>}
         <div className="flex items-end gap-2">
           <textarea
@@ -285,12 +285,12 @@ export function PlaygroundChat() {
             placeholder={isThinking ? 'Agent is working…' : 'Describe a workflow or change…'}
             rows={2}
             disabled={isThinking}
-            className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[13.5px] text-white/90 outline-none resize-none placeholder:text-white/30 focus:border-white/[0.2] disabled:opacity-60"
+            className="flex-1 bg-surface-elevated border border-border rounded-lg px-3 py-2 text-[13.5px] text-text-secondary outline-none resize-none placeholder:text-text-muted focus:border-accent disabled:opacity-60"
           />
           {isThinking ? (
             <button
               onClick={cancel}
-              className="shrink-0 px-3 py-2 text-[13px] text-white/85 hover:text-white border border-white/[0.12] hover:bg-white/[0.05] rounded-lg transition-colors"
+              className="shrink-0 px-3 py-2 text-[13px] text-text-secondary hover:text-text-primary border border-border hover:bg-surface-muted rounded-lg transition-colors"
             >
               Stop
             </button>
@@ -298,7 +298,7 @@ export function PlaygroundChat() {
             <button
               onClick={() => send(input)}
               disabled={!input.trim()}
-              className="shrink-0 px-4 py-2 text-[13px] font-medium bg-white text-black rounded-lg hover:bg-white/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="shrink-0 px-4 py-2 text-[13px] font-medium bg-accent text-accent-fg rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Send
             </button>
