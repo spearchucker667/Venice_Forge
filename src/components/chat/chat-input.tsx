@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import { cn } from '../../lib/utils'
 import { isSupportedImageFile, readImageAttachment } from '../../services/attachmentService'
 import { toast } from '../../stores/toast-store'
-import { safeMediaPreviewUrl } from '../../utils/safePreviewUrl'
 
 interface ChatInputProps {
   onSend: (message: string, images?: string[]) => void
@@ -66,8 +65,10 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
           <div className="flex gap-2 mb-2 overflow-x-auto pb-1">
             {images.map((img, i) => {
               // Sanitize base64/blob URL to satisfy CodeQL "js/xss-through-dom" guard
-              // by explicitly stripping meta-characters, even though React escapes props.
-              const safeImg = safeMediaPreviewUrl(img, ["data:image/png;base64,", "data:image/jpeg;base64,", "data:image/webp;base64,", "blob:"]);
+              // by explicitly stripping meta-characters and enforcing strict prefix matching,
+              // even though React escapes props inherently.
+              const isSafe = ["data:image/png;base64,", "data:image/jpeg;base64,", "data:image/webp;base64,", "blob:"].some(prefix => img.startsWith(prefix));
+              const safeImg = isSafe ? img.replace(/[<>"']/g, "") : "";
               return (
               <div key={i} className="relative group shrink-0">
                 <img src={safeImg} alt={`Attachment ${i + 1}`} className="h-16 w-16 object-cover rounded-lg border border-border" />

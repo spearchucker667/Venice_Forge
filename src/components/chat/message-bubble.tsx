@@ -5,7 +5,6 @@ import type { ChatMessage, ContentPart } from '../../types/venice'
 import { cn } from '../../lib/utils'
 import { useSettingsStore } from '../../stores/settings-store'
 import { maybeRunLocalFamilyGuard } from '../../shared/safety'
-import { safeMediaPreviewUrl } from '../../utils/safePreviewUrl'
 import { CharacterSceneCard } from './CharacterSceneCard'
 import type { CharacterSceneGenerationResult } from '../../types/characterSceneGeneration'
 
@@ -160,21 +159,25 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate, onGener
             {images.length > 0 && (
               <div className="flex gap-1.5 mb-2">
                 {images.map((img, i) => {
-                  const safeImg = safeMediaPreviewUrl(img, [
+                  const allowedPrefixes = [
                     "data:image/png;base64,",
                     "data:image/jpeg;base64,",
                     "data:image/webp;base64,",
                     "blob:",
                     "https://",
-                    "http://",
-                  ]);
-                  if (!safeImg) return null;
-                  return (
-                    <img key={i} src={safeImg} alt={`Attachment ${i + 1}`} className="h-24 rounded-lg border border-border" />
-                  );
+                    "http://"
+                  ]
+                  const isSafe = allowedPrefixes.some(prefix => img.startsWith(prefix))
+                  const safeImg = isSafe ? img.replace(/[<>"']/g, "") : ""
+                  if (safeImg) {
+                    return (
+                      <img key={i} src={safeImg} alt={`Attachment ${i + 1}`} className="h-24 rounded-lg border border-border" />
+                    )
+                  }
+                  return null
                 })}
-              </div>
-            )}
+                </div>
+              )}
             <div className="text-text-primary text-[15.5px] leading-relaxed whitespace-pre-wrap break-words">
               {content}
             </div>

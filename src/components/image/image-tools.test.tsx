@@ -55,7 +55,6 @@ import type { MediaItem } from '../../types/media'
 const mockIsSupportedImageFile = vi.mocked(isSupportedImageFile)
 const mockReadImageAttachment = vi.mocked(readImageAttachment)
 const mockToastWarn = vi.mocked(toast.warn)
-const mockToastError = vi.mocked(toast.error)
 const mockToastFromError = vi.mocked(toast.fromError)
 
 describe('ImageTools → Media Studio wiring (P3 regression guard)', () => {
