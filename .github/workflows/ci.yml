@@ -7,7 +7,6 @@ on:
     branches: [ main ]
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 permissions:
   contents: read
@@ -57,29 +56,20 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Typecheck (renderer + electron)
-        shell: bash
         run: npm run typecheck
       - name: Run Electron main-process tests on Windows
-        shell: bash
         run: npx vitest run electron/services/configService.test.ts electron/services/mediaService.test.ts electron/services/chatStorage.test.ts electron/services/characterCardStorage.test.ts electron/services/rpChatStorage.test.ts
       - name: Run renderer tests on Windows (Electron-sensitive subset)
-        shell: bash
         run: npx vitest run src/components/gallery src/components/image src/utils/payloadBuilders.test.ts src/services/prompt-enhancer-service.test.ts
       - name: Verify safety guard
-        shell: bash
         run: npm run verify:safety-guard
       - name: Verify markdown links
-        shell: bash
         run: npm run verify:markdown-links
       - name: Audit dependencies (prod-only, release gate)
-        shell: bash
         run: npm audit --omit=dev --audit-level=moderate
       - name: Verify workspace contracts
-        shell: bash
         run: npm run verify:contracts
       - name: Build
-        shell: bash
         run: npm run build
       - name: Verify Windows output
-        shell: bash
         run: npm run verify:dist:win

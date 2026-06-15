@@ -62,5 +62,5 @@ docs/audits/repo-tree-current.txt
 # Ignore root-level scratch copy; canonical tracked script lives in scripts/.
 /clean-repo-zip.sh
 !/scripts/clean-repo-zip.sh
-kimi-export-session_-20260615-052400.md
-update_ledger.py
+kimi-export-session_*.md
+*_ledger.py

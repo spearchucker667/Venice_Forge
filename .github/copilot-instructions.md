@@ -15,15 +15,12 @@ npm run dev:electron    # Electron desktop (recommended for full dev)
 npm run dev             # Concurrent dev:server + dev:web (web dev)
 npm run dev:server      # Express proxy only
 npm run dev:web         # Vite only (renderer)
-npm run typecheck       # Type-check renderer AND Electron main (both tsconfigs)
-npm run lint            # Runs ESLint + TypeScript type-check
-npm run lint:eslint     # ESLint for src/, electron/, server.ts, and scripts/
-npm test                # Vitest unit + integration tests (single run)
-npm run test:watch      # Vitest in watch mode
-npx vitest run src/services/veniceClient.test.ts   # Run a single test file
-npx vitest run server.test.ts -t "should block disallowed endpoints"  # Run one test case
-npm run test:coverage   # Vitest with coverage report
-npm run build           # Full build: web (dist/) + Electron main (dist-electron/)
+npm run lint:eslint          # ESLint — zero warnings enforced (--max-warnings=0)
+npm run typecheck            # Renderer (tsconfig.json) + Electron main (tsconfig.electron.json)
+npm test                     # Vitest, serial (--fileParallelism=false)
+npm run verify:safety-guard  # Mandatory CI gate; see Security below
+npm run verify:markdown-links # Local Markdown files + heading fragments
+npm run build                # dist/ + dist-electron/ + dist/server.cjs
 npm run build:web       # Renderer build only
 npm run build:server    # Express server bundle only
 npm run build:electron  # Electron main/preload build only
@@ -126,7 +123,7 @@ The `src/research/` directory contains a pluggable provider system for search, s
 
 ### Theme System
 
-`src/theme/` provides a 29-role semantic token system with seven built-in palettes and a live ThemeMaker UI. `completeThemeTokens()` preserves legacy persisted themes; ThemeMaker YAML uses the full snake_case contract. Themes persist to encrypted IndexedDB. See `docs/THEME_SYSTEM.md` for the token reference and `VERIFY-041` guards.
+`src/theme/` provides a 29-role semantic token system with seven built-in palettes and a live ThemeMaker UI. `completeThemeTokens()` preserves legacy persisted themes; ThemeMaker YAML uses the full snake_case contract. Themes persist to encrypted IndexedDB.
 
 ### Auto-Updates
 Auto-updates are fetched via GitHub Releases. The `electron/ipc/updates.ts` module securely exposes `checkForUpdates`, `downloadUpdate`, and `installUpdate` to the renderer while keeping download logic in the sandboxed main process.
@@ -314,7 +311,5 @@ Copy `.env.example` to `.env` for web-mode dev:
 ## Files to Keep Current
 
 When changing behavior, packaging, or storage, also update:
-- `README.md`, `CHANGELOG.md`, `AGENTS.md`, `.github/copilot-instructions.md`
+- `README.md`, `docs/audits/CHANGELOG.md`, `AGENTS.md`, `.github/copilot-instructions.md`
 - `docs/ABOUT.md`, `SECURITY.md`, `docs/RELEASE/release.md`, `docs/LEGAL.md`
-- `docs/RESEARCH_PROVIDERS.md`, `docs/JINA_PROVIDER.md`, `docs/PUBLIC_PROFILE_DISCOVERY.md` (research provider changes)
-- `docs/THEME_SYSTEM.md` (theming/token changes)

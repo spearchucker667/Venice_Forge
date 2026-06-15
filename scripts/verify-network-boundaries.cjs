@@ -17,7 +17,7 @@
 "use strict";
 
 const path = require("path");
-const { execSync } = require("child_process");
+const { execFileSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..");
 
@@ -33,7 +33,7 @@ function grepFor(pattern, includeGlobs, excludeGlobs = []) {
     ...excludeGlobs.flatMap((g) => ["--glob", "!" + g]),
   ];
   try {
-    const out = execSync(args.join(" "), { cwd: ROOT, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
+    const out = execFileSync(args[0], args.slice(1), { cwd: ROOT, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
     return out
       .split("\n")
       .filter(Boolean)

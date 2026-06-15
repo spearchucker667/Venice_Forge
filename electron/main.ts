@@ -3,9 +3,10 @@
 
 // Code Owner: fayeblade (@spearchucker667)
 // Primary maintainer and security gatekeeper for the Electron main process.
-import { app, BrowserWindow, dialog, shell, session, protocol, net } from "electron";
+import { app, BrowserWindow, dialog, shell, session, protocol } from "electron";
 import path from "path";
-import { fileURLToPath, pathToFileURL } from "url";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import { registerIpcHandlers } from "./ipc/handlers";
 import { initializeConfig } from "./services/configService";
 import { logError, logInfo } from "./services/logger";
@@ -305,7 +306,7 @@ if (!gotLock) {
   });
 
   app.whenReady().then(() => {
-    protocol.handle("venice-character-cache", (request) => {
+    protocol.handle("venice-character-cache", async (request) => {
       const parsedUrl = new URL(request.url);
       const key = parsedUrl.hostname ? parsedUrl.hostname : parsedUrl.pathname.replace(/^\/+/, "");
 
@@ -318,7 +319,45 @@ if (!gotLock) {
         return new Response("Forbidden", { status: 403 });
       }
 
-      return net.fetch(pathToFileURL(dp).href);
+      try {
+        const stat = await fs.promises.stat(dp);
+        if (!stat.isFile()) {
+          return new Response("Not found", { status: 404 });
+        }
+      } catch {
+        return new Response("Not found", { status: 404 });
+      }
+
+      let metaContentType = "application/octet-stream";
+      try {
+        const metaPath = path.join(getCharacterImageCacheDir(), `${key}.meta.json`);
+        const metaRaw = await fs.promises.readFile(metaPath, "utf-8");
+        const meta = JSON.parse(metaRaw);
+        if (meta.contentType) {
+          metaContentType = meta.contentType;
+        }
+      } catch {
+        // Fallback to octet-stream if meta missing or invalid
+      }
+
+      const allowedContentTypes = new Set([
+        "image/png",
+        "image/jpeg",
+        "image/webp",
+        "image/avif"
+      ]);
+
+      if (!allowedContentTypes.has(metaContentType)) {
+        return new Response("Unsupported Media Type", { status: 415 });
+      }
+
+      const stream = fs.createReadStream(dp);
+      return new Response(stream as unknown as ReadableStream, {
+        headers: {
+          "Content-Type": metaContentType,
+          "Cache-Control": "private, max-age=604800"
+        }
+      });
     });
 
     return bootstrap();

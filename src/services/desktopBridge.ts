@@ -168,15 +168,6 @@ export const desktopApp = {
   },
 
   /**
-   * Retrieves the user data directory path.
-   * @returns A promise resolving to the path, or a web storage indicator in browser mode.
-   */
-  getDataPath(): Promise<string> {
-    if (!isElectron()) return Promise.resolve("IndexedDB (browser)");
-    return window.veniceForge!.app.getDataPath();
-  },
-
-  /**
    * Checks whether OS-level encryption is available for key storage.
    * @returns A promise resolving to true if encryption is available.
    */

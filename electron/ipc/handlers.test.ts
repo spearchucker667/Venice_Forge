@@ -289,32 +289,41 @@ describe("registerIpcHandlers", () => {
   });
 
   describe("app:readLocalFile", () => {
-    it("rejects paths outside Downloads and Documents", async () => {
+    it("rejects hidden files (dotfiles)", async () => {
       const handler = capturedHandlers.get("app:readLocalFile");
       expect(handler).toBeDefined();
 
-      // Use the home directory itself — it exists but is outside Downloads/Documents
+      const { dialog } = await import("electron");
+      vi.mocked(dialog.showOpenDialog).mockResolvedValueOnce({
+        canceled: false,
+        filePaths: ["/Users/test/.hidden.txt"],
+      });
+
       const result = await handler!(
-        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
-        os.homedir()
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents }
       );
 
       expect(result).toMatchObject({
         ok: false,
-        error: "File must be inside Downloads or Documents.",
+        error: "Hidden files are not importable.",
       });
     });
 
-    it("rejects paths with null bytes", async () => {
+    it("rejects unsupported extensions", async () => {
       const handler = capturedHandlers.get("app:readLocalFile");
+      const { dialog } = await import("electron");
+      vi.mocked(dialog.showOpenDialog).mockResolvedValueOnce({
+        canceled: false,
+        filePaths: ["/Users/test/malicious.exe"],
+      });
+
       const result = await handler!(
-        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
-        "file\0.txt"
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents }
       );
 
       expect(result).toMatchObject({
         ok: false,
-        error: "Invalid file path.",
+        error: "Unsupported attachment type.",
       });
     });
   });

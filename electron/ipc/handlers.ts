@@ -487,7 +487,6 @@ export function registerIpcHandlers(): void {
   });
 
   ipcMain.handle("app:getVersion", () => app.getVersion());
-  ipcMain.handle("app:getDataPath", () => app.getPath("userData"));
   ipcMain.handle("app:isEncryptionAvailable", () => getSecureStoreStatus().encryptionAvailable);
   ipcMain.handle("app:getDiagnostics", () => {
     const secureStore = getSecureStoreStatus();
@@ -497,15 +496,15 @@ export function registerIpcHandlers(): void {
       electronVersion: process.versions.electron,
       chromeVersion: process.versions.chrome,
       nodeVersion: process.versions.node,
-      userDataPath: app.getPath("userData"),
-      logsPath: getLogsDir(),
+      userDataPath: path.basename(app.getPath("userData")),
+      logsPath: path.basename(getLogsDir()),
       storageMode: secureStore.mode,
       secureStorageAvailable: secureStore.encryptionAvailable,
       securePrefsCorrupted: secureStore.corrupted,
-      securePrefsError: secureStore.error,
+      securePrefsError: secureStore.error ? redactErrorMessage(secureStore.error) : null,
       apiKeyConfigured: isApiKeyConfigured(),
       transport: "direct-ipc",
-      lastApiError: getLastApiError(),
+      lastApiError: getLastApiError() ? redactErrorMessage(getLastApiError()) : "",
     };
   });
   ipcMain.handle("app:openLogsFolder", () => openLogsFolder());
@@ -666,35 +665,32 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("app:readLocalFile", async (_event, filePath: unknown) => {
+  ipcMain.handle("app:readLocalFile", async () => {
     try {
-      if (typeof filePath !== "string" || filePath.length > 4096 || filePath.includes("\0")) {
-        return { ok: false, error: "Invalid file path." };
-      }
-      // Resolve symlinks and normalize the path; path.resolve() already strips ".." segments
-      // so a post-resolve includes("..") check is always false and provides no protection.
-      // Restrict reads to paths under Downloads or Documents to prevent exfiltration of
-      // sensitive files (SSH keys, shell history, secure storage, etc.).
-      let resolved: string;
-      try {
-        resolved = await fs.realpath(path.resolve(filePath));
-      } catch {
-        return { ok: false, error: "File not found." };
-      }
-      const allowedDirs = [app.getPath("downloads"), app.getPath("documents")];
-      const isAllowed = allowedDirs.some((dir) => {
-        if (!dir) return false;
-        return resolved === dir || resolved.startsWith(dir + path.sep);
+      const result = await dialog.showOpenDialog({
+        title: "Import text attachment",
+        properties: ["openFile"],
+        filters: [
+          { name: "Text attachments", extensions: ["txt", "md", "json", "csv", "yaml", "yml"] },
+        ],
       });
-      if (!isAllowed) {
-        return { ok: false, error: "File must be inside Downloads or Documents." };
+      if (result.canceled || !result.filePaths[0]) return { ok: true, canceled: true };
+
+      const selected = result.filePaths[0];
+      const base = path.basename(selected);
+      if (base.startsWith(".")) return { ok: false, error: "Hidden files are not importable." };
+
+      const ext = path.extname(base).toLowerCase();
+      if (!new Set([".txt", ".md", ".json", ".csv", ".yaml", ".yml"]).has(ext)) {
+        return { ok: false, error: "Unsupported attachment type." };
       }
+
       // Open first, then fstat the same file descriptor to prevent TOCTOU between
       // the stat and read calls (a symlink or file swap between those steps is blocked).
       const MAX_TEXT_ATTACHMENT_BYTES = 256 * 1024;
       let fh: Awaited<ReturnType<typeof fs.open>> | null = null;
       try {
-        fh = await fs.open(resolved, "r");
+        fh = await fs.open(selected, "r");
         const stat = await fh.stat();
         if (!stat.isFile()) {
           return { ok: false, error: "Not a regular file." };

@@ -48,7 +48,7 @@ export function useCharacterImage(
 
   const sourceUrl = useMemo(
     () => (character ? resolveCharacterImageUrl(character) ?? undefined : undefined),
-    [character],
+    [character?.slug, character?.id, character?.photoUrl],
   );
 
   const fallbackInitials = useMemo(
@@ -116,7 +116,10 @@ export function useCharacterImage(
       let primaryFailed = false;
 
       if (sourceUrl) {
-        const source = char.photoUrl ? "api-photoUrl" : "api-field";
+        const source =
+          char.photoUrl ? "api-photoUrl" :
+          sourceUrl.includes("/api/characters/") && sourceUrl.endsWith("/photo") ? "synthetic-photo" :
+          "api-field";
         const primaryOk = await resolveAndCache(sourceUrl, source);
 
         if (cancelled || requestId !== latestRequestRef.current) return;
@@ -132,7 +135,7 @@ export function useCharacterImage(
       if (cancelled || requestId !== latestRequestRef.current) return;
 
       if (fallbackUrl) {
-        await resolveAndCache(fallbackUrl, primaryFailed ? "page-fallback" : "page-fallback");
+        await resolveAndCache(fallbackUrl, "page-fallback");
       } else if (!sourceUrl) {
         setImageUrl(undefined);
         recordCharacterImageResolution({

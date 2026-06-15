@@ -77,7 +77,6 @@ export interface VeniceForgeDiagnostics {
 /** Exposes application-level helpers available through the preload bridge. */
 export interface VeniceForgeApp {
   getVersion(): Promise<string>;
-  getDataPath(): Promise<string>;
   isEncryptionAvailable(): Promise<boolean>;
   getDiagnostics(): Promise<VeniceForgeDiagnostics>;
   openLogsFolder(): Promise<{ ok: boolean; path: string }>;

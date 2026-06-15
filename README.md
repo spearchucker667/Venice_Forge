@@ -37,7 +37,7 @@
 </p>
 
 <p align="center">
-  <img width="1774" height="887" alt="Venice Forge application preview" src="https://github.com/user-attachments/assets/4981bc4d-a743-4a0f-a6e7-48ddffb6edcb" />
+  <img width="1774" height="887" alt="Venice Forge application preview" src="./assets/preview.png" />
 </p>
 
 ---
@@ -214,8 +214,8 @@ Read:
 | Release documentation | `docs/RELEASE/` |
 | Security policy | `SECURITY.md` |
 | Privacy documentation | `docs/legal/PRIVACY.md` |
-| Work ledger | `docs/summary_of_work.md` |
-| Current TODO | `docs/TODO.md` |
+| Current audit ledger | `docs/summary_of_work.md` |
+| Historical audit logs | `docs/audits/summary_of_work.md` |
 
 ---
 

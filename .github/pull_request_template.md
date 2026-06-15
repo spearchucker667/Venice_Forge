@@ -15,6 +15,7 @@
 - [ ] `npm run typecheck`
 - [ ] `npm test`
 - [ ] `npm run verify:safety-guard`
+- [ ] `npm run verify:markdown-links`
 - [ ] `npm run build`
 - [ ] Platform packaging validated (`npm run verify:dist:win` or `npm run verify:dist:mac`)
 

@@ -134,9 +134,7 @@ const veniceForge = {
     /** Returns the path to the application's user data directory.
      *  @returns A promise resolving with the absolute path.
      */
-    getDataPath(): Promise<string> {
-      return ipcRenderer.invoke("app:getDataPath");
-    },
+
     /** Checks whether OS-level encryption is available for secure storage.
      *  @returns A promise resolving to true when encryption is available.
      */
@@ -213,8 +211,7 @@ const veniceForge = {
     }> {
       return ipcRenderer.invoke("app:media:thumb", input);
     },
-    /** Character avatar cache: fetch and cache a Venice character photo
-     *  and return a file:// URL for the renderer. */
+    /** Character avatar cache: fetch/cache a Venice character photo and return a venice-character-cache:// URL for renderer img-src loading. */
     getCharacterImage(url: string): Promise<{
       ok: boolean; url?: string; contentType?: string; bytes?: number; error?: string;
     }> {

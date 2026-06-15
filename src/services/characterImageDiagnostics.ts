@@ -11,6 +11,7 @@ export type CharacterImageSource =
   | "api-photoUrl"
   | "api-field"
   | "synthetic"
+  | "synthetic-photo"
   | "page-fallback"
   | "none";
 
