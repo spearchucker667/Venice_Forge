@@ -6,8 +6,6 @@ on:
     tags:
       - "v*"
 
-env:
-
 permissions:
   contents: read
 
