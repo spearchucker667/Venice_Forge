@@ -1,5 +1,15 @@
 # Venice UI Parity Reference
 
+> [!NOTE]
+> Historical design reference. Archived on 2026-06-15.
+> The implementation map below cites paths that existed during the 2026-06-03
+> capture and have since been removed or refactored. Do not treat this document
+> as current implementation guidance. The canonical UI surfaces live in
+> `src/components/layout/`, `src/components/chat/`, `src/components/image/`,
+> `src/components/video/`, `src/components/prompts/`, `src/components/scenes/`,
+> `src/components/rp-studio/`, and the canonical tab registry in
+> `src/config/tabs.ts`.
+
 ## 1. Capture Method and Date
 - **Method:** Ephemeral Playwright script targeting public pages (home, chat, studio, api) with Chromium.
 - **Date:** 2026-06-03

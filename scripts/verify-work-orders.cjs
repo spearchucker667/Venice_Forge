@@ -15,6 +15,7 @@ const YAML = require("yaml");
 
 const ROOT = path.resolve(__dirname, "..");
 const SCAN_DIRS = ["docs/audits", "docs/reports/historical"];
+const SKIP_FILES = new Set(["Venice_swagger_api.yaml", "combined-todo.yml"]);
 const violations = [];
 
 function validateWorkOrder(filePath) {
@@ -63,8 +64,8 @@ function main() {
     const files = fs.readdirSync(fullDir);
     for (const file of files) {
       if (file.endsWith(".yaml") || file.endsWith(".yml")) {
-        // Skip some known non-work-order yamls if they exist
-        if (file === "Venice_swagger_api.yaml") continue;
+        // Skip known non-work-order YAMLs (OpenAPI spec, audit backlog artifact).
+        if (SKIP_FILES.has(file)) continue;
         validateWorkOrder(path.join(fullDir, file));
       }
     }

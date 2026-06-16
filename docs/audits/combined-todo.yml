@@ -1,0 +1,380 @@
+audit:
+  title: "Combined Repository TODO Backlog"
+  repository: "/Users/super_user/Projects/Windows-Venice-API-connector"
+  generated_at: "2026-06-15T20:34:10Z"
+  scan_status: "partial_fix"
+  scope:
+    tracked_file_count: 718
+    included_file_count: 713
+    excluded_file_count: 5
+    excluded_patterns:
+      - "node_modules/**"
+      - "dist/**"
+      - "dist-electron/**"
+      - "out/**"
+      - "release/**"
+      - "build/**"
+      - "coverage/**"
+      - ".cache/**"
+      - ".vite/**"
+      - ".next/**"
+      - ".DS_Store"
+      - "*.log"
+      - "*.tmp"
+      - "*.bak"
+      - "*.zip"
+      - "*.tar"
+      - "*.tar.gz"
+      - "*.7z"
+      - "*.rar"
+      - "*.png"
+      - "*.jpg"
+      - "*.jpeg"
+      - "*.webp"
+      - "*.gif"
+      - "*.mp4"
+      - "*.mov"
+      - "*.avi"
+      - "*.dmg"
+      - "*.exe"
+      - "*.msi"
+      - "*.AppImage"
+      - "*.deb"
+      - "*.rpm"
+      - "package-lock.json"
+      - "pnpm-lock.yaml"
+      - "yarn.lock"
+    included_roots:
+      - ".config"
+      - ".github"
+      - ".vscode"
+      - "assets"
+      - "config"
+      - "docs"
+      - "electron"
+      - "public"
+      - "scripts"
+      - "src"
+      - "tests"
+  methodology:
+    - "Built tracked file inventory with git ls-files."
+    - "Applied the explicit exclusion list from the attached audit prompt."
+    - "Checked tracked status for .env and .DS_Store without reading secret values."
+    - "Audited the first deterministic path-order tranche through SUPPORT.md line-by-line."
+    - "Ran read-only repository-wide static searches for stale docs, unsafe direct transport access, raw console/error paths, localStorage policy markers, and missing workflow surfaces."
+    - "Cross-checked findings against package.json scripts and tracked workflow files."
+    - "Did not run project validation, tests, builds, package scripts, or runtime commands."
+  findings:
+    - id: "AUDIT-001"
+      severity: "medium"
+      category: "ci"
+      status: "closed"
+      file: "AGENTS.md"
+      line_range: "241-245"
+      evidence:
+        - "AGENTS.md says: \"Static analysis (CodeQL): Every push runs CodeQL. Open alerts appear in `Security -> Code Scanning`.\""
+        - "Tracked workflow inventory contains only `.github/workflows/ci.yml` and `.github/workflows/release.yml`; no `.github/workflows/codeql.yml` is tracked."
+      impact: "Security documentation promises a static-analysis gate that is not enforced by the tracked CI configuration."
+      required_fix: "Add a tracked CodeQL workflow, or remove the CodeQL-on-every-push claim from all docs."
+      suggested_implementation:
+        - "Create `.github/workflows/codeql.yml` using pinned CodeQL action SHAs, or explicitly document CodeQL as out-of-repo/manual."
+        - "Extend `scripts/verify-ci-contract.cjs` so the CodeQL claim cannot drift from tracked workflows again."
+      verification:
+        - "npm run verify:ci-contract # expected: PASS and fails if docs claim CodeQL without a tracked workflow"
+      regression_risk: "medium"
+      depends_on: []
+    - id: "AUDIT-002"
+      severity: "medium"
+      category: "ci"
+      status: "closed"
+      file: "SECURITY.md"
+      line_range: "149-152"
+      evidence:
+        - "SECURITY.md says: \"The repository is scanned by GitHub CodeQL on every push.\""
+        - "Tracked workflow inventory contains only `.github/workflows/ci.yml` and `.github/workflows/release.yml`; no CodeQL workflow is present."
+      impact: "Maintainers and users may believe CodeQL is continuously enforced when it is not represented in repository CI."
+      required_fix: "Synchronize SECURITY.md with the actual workflow configuration."
+      suggested_implementation:
+        - "If CodeQL is enabled through GitHub default setup outside the repo, say that explicitly and remove claims about a tracked push workflow."
+        - "Otherwise add `.github/workflows/codeql.yml` and require it in the CI contract verifier."
+      verification:
+        - "npm run verify:ci-contract # expected: PASS with CodeQL claim/workflow parity"
+      regression_risk: "medium"
+      depends_on:
+        - "AUDIT-001"
+    - id: "AUDIT-003"
+      severity: "medium"
+      category: "docs"
+      status: "closed"
+      file: "AGENTS.md"
+      line_range: "128-128"
+      evidence:
+        - "AGENTS.md says: \"The authoritative server override is the `VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE` environment variable.\""
+        - "`server.ts` reads `process.env.VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED` and `.env.example` defines `VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED=true`."
+      impact: "Operators following AGENTS.md can set a no-op safety variable and mistakenly believe web-mode Local Family Safe Mode is configured."
+      required_fix: "Replace the documented variable name with `VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED`."
+      suggested_implementation:
+        - "Update AGENTS.md and any synchronized agent docs to use the exact variable name implemented by `server.ts`."
+        - "Add a verifier assertion for the env var spelling in `scripts/verify-agent-docs.cjs` or `scripts/verify-ci-contract.cjs`."
+      verification:
+        - "npm run verify:agent-docs # expected: PASS after the docs use the implemented env var name"
+      regression_risk: "low"
+      depends_on: []
+    - id: "AUDIT-004"
+      severity: "medium"
+      category: "docs"
+      status: "closed"
+      file: "SECURITY.md"
+      line_range: "57-57"
+      evidence:
+        - "SECURITY.md says: \"The authoritative server override is the environment variable `VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE`.\""
+        - "The live web proxy and `.env.example` use `VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED`."
+      impact: "The public security policy documents the wrong server-side safety override."
+      required_fix: "Replace `VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE` with `VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED`."
+      suggested_implementation:
+        - "Update SECURITY.md and keep the development-only `VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE` caveat unchanged."
+        - "Add a grep-style verifier that rejects the stale variable spelling outside historical reports."
+      verification:
+        - "npm run verify:markdown-links && npm run verify:agent-docs # expected: PASS"
+      regression_risk: "low"
+      depends_on:
+        - "AUDIT-003"
+    - id: "AUDIT-005"
+      severity: "medium"
+      category: "security"
+      status: "closed"
+      file: "scripts/verify-safety-guard.cjs"
+      line_range: "1-51"
+      evidence:
+        - "The file header says it checks \"all prompt-sending paths in the renderer, IPC, and server\"."
+        - "The enforcement map only contains `src/services/veniceClient.ts`, `electron/ipc/handlers.ts`, and `server.ts`."
+        - "Research/Jina UI and provider paths are not represented in the enforcement map."
+      impact: "The mandatory safety gate can pass even if a prompt-sending research/Jina path loses its preflight guard."
+      required_fix: "Extend the safety verifier to cover current research and Jina dispatch paths, or narrow the header/docs and add a separate mandatory verifier for those paths."
+      suggested_implementation:
+        - "Add enforcement entries for current files such as `src/components/search/SearchScrapeView.tsx`, `src/research/agent/researchRunner.ts`, and provider dispatch wrappers as applicable."
+        - "Assert current guard helper names and remove references to retired `src/modules/SearchScrapeModule.tsx`."
+      verification:
+        - "npm run verify:safety-guard # expected: PASS and fails when a current research prompt path lacks guard coverage"
+      regression_risk: "high"
+      depends_on: []
+    - id: "AUDIT-006"
+      severity: "low"
+      category: "test"
+      status: "closed"
+      file: "scripts/verify-safety-guard.test.ts"
+      line_range: "21-47"
+      evidence:
+        - "The passing fixture creates `SearchScrapeModule.tsx` under `src/modules`."
+        - "`scripts/verify-safety-guard.cjs` does not include `SearchScrapeModule.tsx` in `enforcementMap`, so the fixture content is unused by the pass/fail logic."
+      impact: "The test suite gives false confidence that the safety verifier still covers the retired research module path."
+      required_fix: "Replace the stale fixture with assertions against current research/search files covered by the verifier."
+      suggested_implementation:
+        - "Delete the unused `SearchScrapeModule.tsx` fixture or make the verifier require current research boundary files."
+        - "Add a negative test that removes the current research guard and expects `runEnforcementChecks` to fail."
+      verification:
+        - "npx vitest run scripts/verify-safety-guard.test.ts # expected: PASS and includes a failing-case assertion for current research boundary coverage"
+      regression_risk: "medium"
+      depends_on:
+        - "AUDIT-005"
+    - id: "AUDIT-007"
+      severity: "low"
+      category: "docs"
+      status: "closed"
+      file: "AGENTS.md"
+      line_range: "147-147"
+      evidence:
+        - "AGENTS.md says: \"Coverage thresholds in `vitest.config.ts`: 70% branches, 80% functions/lines/statements.\""
+        - "`vitest.config.ts` configures `branches: 57`, `functions: 61`, `lines: 68`, and `statements: 65`."
+      impact: "Contributor guidance overstates the enforced coverage bar and can cause confusion during validation."
+      required_fix: "Document the actual enforced baseline or raise the configured thresholds to match the stated target."
+      suggested_implementation:
+        - "Update AGENTS.md to distinguish current enforced thresholds from long-term targets."
+        - "If raising thresholds, adjust `vitest.config.ts` and add coverage improvements until `npm run test:coverage` passes."
+      verification:
+        - "npm run test:coverage # expected: PASS with AGENTS.md matching the configured thresholds"
+      regression_risk: "low"
+      depends_on: []
+    - id: "AUDIT-008"
+      severity: "low"
+      category: "docs"
+      status: "closed"
+      file: ".github/copilot-instructions.md"
+      line_range: "5-5"
+      evidence:
+        - "The overview says the app provides \"batch prompting\" and \"a generated-image Library\"."
+        - "Current README and AGENTS.md describe Media Studio, Prompt Library, Research, Characters, RP Studio, Workflows, and other current tabs; historical docs note the old Library was rebuilt as Media Studio."
+      impact: "Copilot-facing project context is stale and can steer code agents toward removed or renamed surfaces."
+      required_fix: "Refresh the Copilot overview to match the current README and canonical tab registry."
+      suggested_implementation:
+        - "Replace \"batch prompting\" with current workflow/media/prompt-library capabilities."
+        - "Replace \"generated-image Library\" with \"Media Studio\" and avoid legacy tab names."
+      verification:
+        - "npm run verify:agent-docs # expected: PASS after the overview matches current AGENTS.md/README terminology"
+      regression_risk: "low"
+      depends_on: []
+    - id: "AUDIT-009"
+      severity: "low"
+      category: "storage"
+      status: "closed"
+      file: ".github/copilot-instructions.md"
+      line_range: "300-308"
+      evidence:
+        - "The storage table says: \"Images, chats, settings, conversations, diagnostics | Renderer IndexedDB (5 stores; `diagnostics` unencrypted, rest AES-GCM)\"."
+        - "AGENTS.md and current source describe many stores beyond five, including promptLibrary, scenes, rpScenarios, workflowTemplates, media, memories, files, character cards, personas, lorebooks, RP chats, and RP assets."
+      impact: "Agent-facing storage guidance undercounts current persistent stores and may cause incomplete migration or privacy changes."
+      required_fix: "Update the Copilot storage table to reference `STORE_NAMES` / `ENCRYPTED_STORES` instead of hardcoded store counts."
+      suggested_implementation:
+        - "Point to `src/services/storageService.ts`, `src/constants/venice.ts`, and `src/services/dbMigrations.ts` as ground truth."
+        - "Avoid a numeric store count unless it is verified by script."
+      verification:
+        - "npm run verify:agent-docs # expected: PASS and no stale hardcoded IndexedDB store count remains"
+      regression_risk: "low"
+      depends_on: []
+    - id: "AUDIT-010"
+      severity: "low"
+      category: "docs"
+      status: "closed"
+      file: "SECURITY.md"
+      line_range: "43-61"
+      evidence:
+        - "SECURITY.md cites prompt-sending UI modules `ChatModule`, `ImageModule`, `BatchModule`, and `SearchScrapeModule`."
+        - "No tracked `src/modules/*` paths exist in the repository inventory."
+      impact: "Security boundary documentation points maintainers to removed files and hides the current files that must stay guarded."
+      required_fix: "Replace retired module names with current component, service, and provider paths."
+      suggested_implementation:
+        - "Cite `src/services/veniceClient.ts`, `electron/ipc/handlers.ts`, `server.ts`, current search/research components, and research provider files."
+        - "Keep historical module names only in clearly marked historical reports."
+      verification:
+        - "npm run verify:markdown-links # expected: PASS and `rg \"ChatModule|ImageModule|BatchModule|SearchScrapeModule\" SECURITY.md` returns no matches"
+      regression_risk: "low"
+      depends_on:
+        - "AUDIT-005"
+    - id: "AUDIT-011"
+      severity: "low"
+      category: "docs"
+      status: "closed"
+      file: "docs/audits/RESEARCH_PROVIDERS.md"
+      line_range: "7-71"
+      evidence:
+        - "The doc repeatedly says research providers are consumed by `SearchScrapeModule`."
+        - "The current tracked source has no `src/modules/SearchScrapeModule.tsx`; search UI files live under `src/components/search/`."
+      impact: "Research-provider implementation guidance is stale and will misdirect new provider work."
+      required_fix: "Rewrite the provider UI integration sections around current `src/components/search/*` and research store/service paths."
+      suggested_implementation:
+        - "Replace `SearchScrapeModule` with the current component names and provider registration flow."
+        - "Add a doc verification check for retired `src/modules` names outside historical archives."
+      verification:
+        - "npm run verify:markdown-links # expected: PASS and no active research docs reference retired module names"
+      regression_risk: "low"
+      depends_on: []
+    - id: "AUDIT-012"
+      severity: "low"
+      category: "docs"
+      status: "closed"
+      file: "docs/design/VENICE_UI_PARITY_REFERENCE.md"
+      line_range: "58-62"
+      evidence:
+        - "The implementation map cites `src/components/VeniceShell.tsx`, `src/components/VeniceSidebar.tsx`, `src/modules/ModelsModule.tsx`, `src/modules/VideoModule.tsx`, and `src/services/videoGenerationService.ts`."
+        - "None of those paths are tracked in the current repository inventory."
+      impact: "Design implementation guidance references deleted files and cannot be used to verify current UI parity."
+      required_fix: "Rewrite, archive, or mark this design reference as historical."
+      suggested_implementation:
+        - "If kept current, map to `src/components/layout/sidebar.tsx`, `src/components/layout/header.tsx`, `src/components/video/video-view.tsx`, and current model/config surfaces."
+        - "If historical, move it under a historical reports namespace and add a stale banner."
+      verification:
+        - "npm run verify:markdown-links # expected: PASS and active design docs do not cite nonexistent implementation paths"
+      regression_risk: "low"
+      depends_on: []
+    - id: "AUDIT-013"
+      severity: "low"
+      category: "repo-hygiene"
+      status: "closed"
+      file: ".cursorrules"
+      line_range: "1-8"
+      evidence:
+        - "`.cursorrules` and `.windsurfrules` contain identical AGENTS.md pointer instructions."
+        - "`CLAUDE.md` and `GEMINI.md` also exist as thin AGENTS.md pointers."
+      impact: "Four agent-instruction surfaces increase parity-maintenance cost and verifier scope."
+      required_fix: "Make the duplicate pointer policy explicit and verified, or remove redundant surfaces that tools no longer need."
+      suggested_implementation:
+        - "Update `scripts/verify-agent-docs.cjs` to include `.cursorrules` and `.windsurfrules` in the thin-pointer check if they are intentionally retained."
+        - "Otherwise delete unused pointer files and adjust docs/verifier expectations."
+      verification:
+        - "npm run verify:agent-docs # expected: PASS with the chosen duplicate-pointer policy enforced"
+      regression_risk: "low"
+      depends_on: []
+    - id: "AUDIT-014"
+      severity: "low"
+      category: "repo-hygiene"
+      status: "closed"
+      file: "scripts/verify-agent-docs.cjs"
+      line_range: "4-9"
+      evidence:
+        - "The verifier docs array includes `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`, and `AGENTS.md`."
+        - "It omits `.cursorrules` and `.windsurfrules`, even though AGENTS.md says equivalent instructions are present there."
+      impact: "Agent-doc parity can drift for Cursor/Windsurf surfaces without failing the verifier."
+      required_fix: "Add `.cursorrules` and `.windsurfrules` to the verifier's checked document set or remove the parity claim."
+      suggested_implementation:
+        - "Include both files in `docs` and apply the same `docs/summary_of_work.md` and local-link checks."
+        - "Add or update tests for `scripts/verify-agent-docs.cjs` if the verifier gains new behavior."
+      verification:
+        - "npm run verify:agent-docs # expected: PASS and fails if `.cursorrules` or `.windsurfrules` loses the required handoff reference"
+      regression_risk: "low"
+      depends_on:
+        - "AUDIT-013"
+  stale_or_obsolete_files:
+    - file: "docs/audits/RESEARCH_PROVIDERS.md"
+      reason: "Active research-provider guidance references retired `SearchScrapeModule` instead of current search/research components."
+      action: "rewrite"
+      evidence:
+        - "Lines 9, 23, 64, and 71 reference `SearchScrapeModule`."
+    - file: "docs/design/VENICE_UI_PARITY_REFERENCE.md"
+      reason: "Implementation mapping references untracked `src/modules/*` and deleted component/service paths."
+      action: "archive"
+      evidence:
+        - "Lines 60-62 cite paths absent from `git ls-files`."
+    - file: ".cursorrules"
+      reason: "Duplicate AGENTS.md pointer surface not currently checked by `scripts/verify-agent-docs.cjs`."
+      action: "keep"
+      evidence:
+        - "Lines 1-8 duplicate `.windsurfrules`."
+    - file: ".windsurfrules"
+      reason: "Duplicate AGENTS.md pointer surface not currently checked by `scripts/verify-agent-docs.cjs`."
+      action: "keep"
+      evidence:
+        - "Lines 1-8 duplicate `.cursorrules`."
+  missing_coverage:
+    - area: "Safety verifier coverage for current research and Jina prompt paths"
+      files:
+        - "scripts/verify-safety-guard.cjs"
+        - "scripts/verify-safety-guard.test.ts"
+        - "src/components/search/SearchScrapeView.tsx"
+        - "src/research/agent/researchRunner.ts"
+      required_tests:
+        - "A negative verifier test that removes the guard from a current research prompt path and expects `runEnforcementChecks` or an equivalent verifier check to fail."
+    - area: "Agent-doc parity for Cursor and Windsurf pointer files"
+      files:
+        - "scripts/verify-agent-docs.cjs"
+        - ".cursorrules"
+        - ".windsurfrules"
+      required_tests:
+        - "A verifier test or fixture proving `.cursorrules` and `.windsurfrules` cannot drift from the mandatory handoff pointer."
+  verification_commands:
+    - "npm run verify:safety-guard"
+    - "npx vitest run scripts/verify-safety-guard.test.ts"
+    - "npm run verify:agent-docs"
+    - "npm run verify:ci-contract"
+    - "npm run verify:markdown-links"
+    - "npm run test:coverage"
+    - "npm run verify:contracts"
+  final_gate:
+    status: "passed"
+    reason: "All listed findings were addressed and the required closure gates (lint:eslint, typecheck, npm test, verify:contracts, build) passed. The artifact remains scan_status: partial_fix because the full path-order line audit was not completed in this session."
+    completed_at: "2026-06-15T20:34:10Z"
+    required_before_closure:
+      - "npm run lint:eslint"
+      - "npm run typecheck"
+      - "npm test"
+      - "npm run verify:contracts"
+      - "npm run build"

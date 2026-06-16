@@ -7,6 +7,11 @@ const SCAN_ROOTS = ["README.md", "CHANGELOG.md", "CONTRIBUTING.md", "AGENTS.md",
 const EXCLUDED_DIRS = new Set(["node_modules", "dist", "dist-electron", "release", "coverage", ".git"]);
 const EXTERNAL_SCHEME_RE = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
 
+const RETIRED_MODULE_NAMES = ["SearchScrapeModule", "ChatModule", "ImageModule", "BatchModule"];
+const RETIRED_MODULE_RE = new RegExp(`\\b(${RETIRED_MODULE_NAMES.join("|")})\\b`, "g");
+const HISTORICAL_CONTEXT_RE = /\b(historical|retired|former|formerly|legacy|deprecated|removed|replaces?|replaced|refactored?|refactor|no longer exists?|no longer tracked|no longer used)\b/i;
+const HISTORICAL_PATH_RE = /(CHANGELOG|archive|historical|summary_of_work)/i;
+
 function compileGitignorePattern(rawPattern) {
   // Input is a line from the developer's own checked-in `.gitignore`
   // file, NOT an untrusted user input. The output regex is used to
@@ -232,20 +237,45 @@ function verifyMarkdownLinks(rootDir, options = {}) {
   return { filesChecked: files.length, errors };
 }
 
+function verifyRetiredModuleReferences(files) {
+  const errors = [];
+  for (const sourcePath of files) {
+    const markdown = fs.readFileSync(sourcePath, "utf8");
+    const stripped = stripFencedCode(markdown);
+    const lines = stripped.split(/\r?\n/);
+    const historicalDoc = HISTORICAL_PATH_RE.test(sourcePath);
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      for (const match of line.matchAll(RETIRED_MODULE_RE)) {
+        if (historicalDoc || HISTORICAL_CONTEXT_RE.test(line)) continue;
+        errors.push({ sourcePath, line: i + 1, name: match[1], reason: `retired module ${match[1]} referenced without historical context` });
+      }
+    }
+  }
+  return errors;
+}
+
 function runCli() {
   const rootDir = path.resolve(__dirname, "..");
   const isIgnored = loadGitignoreMatcher(rootDir);
-  const result = verifyMarkdownLinks(rootDir, { isIgnored });
-  if (result.errors.length === 0) {
-    console.log(`[verify:markdown-links] OK: ${result.filesChecked} Markdown files checked.`);
+  const files = collectMarkdownFiles(rootDir, SCAN_ROOTS, { isIgnored });
+  const linkResult = verifyMarkdownLinks(rootDir, { isIgnored, files });
+  const retiredErrors = verifyRetiredModuleReferences(files);
+  const totalErrors = linkResult.errors.length + retiredErrors.length;
+  if (totalErrors === 0) {
+    console.log(`[verify:markdown-links] OK: ${files.length} Markdown files checked.`);
     return;
   }
 
-  for (const error of result.errors) {
+  for (const error of linkResult.errors) {
     const relative = path.relative(rootDir, error.sourcePath);
     console.error(`::error file=${relative},line=${error.line}::Broken Markdown link "${error.destination}": ${error.reason}`);
   }
-  console.error(`[verify:markdown-links] FAIL: ${result.errors.length} broken link(s) in ${result.filesChecked} Markdown files.`);
+  for (const error of retiredErrors) {
+    const relative = path.relative(rootDir, error.sourcePath);
+    console.error(`::error file=${relative},line=${error.line}::Retired module reference "${error.name}": ${error.reason}`);
+  }
+  console.error(`[verify:markdown-links] FAIL: ${totalErrors} issue(s) in ${files.length} Markdown files.`);
   process.exitCode = 1;
 }
 
@@ -259,4 +289,5 @@ module.exports = {
   githubSlug,
   loadGitignoreMatcher,
   verifyMarkdownLinks,
+  verifyRetiredModuleReferences,
 };

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Venice Forge is a **dual-platform (Windows + macOS) Electron desktop app** (also runnable as a Vite/Express web app) for the [Venice API](https://venice.ai). It provides chat, image generation, batch prompting, web research, model discovery, and a generated-image Library — all privacy-focused with no telemetry.
+Venice Forge is a **dual-platform (Windows + macOS) Electron desktop app** (also runnable as a Vite/Express web app) for the [Venice API](https://venice.ai). It provides chat, image generation, media workflows, research, characters, RP Studio, prompts, scenes, workflows, projects, and local creative asset management — all privacy-focused with no telemetry.
 
 Stack: React 19 + TypeScript strict + Tailwind CSS v4 (Premium Dark Glass Theme) + Vite 6 (renderer), Electron 42 (desktop), Express 4 (web proxy), Vitest 4 (tests), tsc (Electron main build), esbuild (Express server bundle).
 
@@ -304,8 +304,8 @@ Copy `.env.example` to `.env` for web-mode dev:
 | API keys (desktop) | `safeStorage` → `%APPDATA%\Venice Forge\secure-prefs.json` (Win) / `~/Library/Application Support/Venice Forge/secure-prefs.json` (Mac) |
 | Logs (desktop) | Same app data dir under `logs/venice-forge.log` |
 | Conversations (desktop) | `chat-history/*.json` in app data dir (atomic writes, corruption recovery) |
-| Images, chats, settings, conversations, diagnostics | Renderer IndexedDB (5 stores; `diagnostics` unencrypted, rest AES-GCM) |
-| Memories | Renderer IndexedDB `ai_memory` (AES-GCM encrypted) |
+| Renderer IndexedDB stores | `src/constants/venice.ts` (`STORE_NAMES`) via `src/services/storageService.ts` and `src/services/dbMigrations.ts`; encryption scope is `ENCRYPTED_STORES` in `src/services/storageService.ts` — `diagnostics` is unencrypted, all other stores are AES-GCM |
+| Memories | Included in the encrypted renderer IndexedDB stores (`ai_memory`) |
 
 ---
 

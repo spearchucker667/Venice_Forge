@@ -1,6 +1,7 @@
 /** @fileoverview Improved safety guard verification script.
- *  Checks that all prompt-sending paths in the renderer, IPC, and server
- *  are routed through the conditional local Family Safe Mode pipeline.
+ *  Checks that all prompt-sending paths in the renderer, IPC, server,
+ *  research UI, and research/Jina provider dispatch are routed through the
+ *  conditional local Family Safe Mode pipeline.
  *  Also ensures that no raw prompt text is logged to console or diagnostics.
  */
 const fs = require('fs');
@@ -47,6 +48,43 @@ const enforcementMap = [
       return content.includes('maybeRunLocalFamilyGuard') && content.includes('isLocalFamilySafeModeEnabled');
     },
     message: 'Express proxy middleware must call safety guard'
+  },
+  {
+    file: 'src/components/search/SearchScrapeView.tsx',
+    name: 'Research UI Dispatch',
+    check: (content) => {
+      // Search, AI research, and profile discovery each call the guard before
+      // sending user-controlled prompt text to a provider.
+      const guardCalls = (content.match(/maybeRunLocalFamilyGuard\s*\(/g) || []).length;
+      return guardCalls >= 3;
+    },
+    message: 'Research UI prompt dispatch must call local family safety guard for search, AI research, and profile discovery'
+  },
+  {
+    file: 'src/research/agent/researchRunner.ts',
+    name: 'Research Runner Orchestration',
+    check: (content) => {
+      // The runner must route all searches/scrapes through guarded research
+      // providers and must never call fetch() directly.
+      return content.includes('provider.search') && content.includes('provider.scrape') && !/\bfetch\s*\(/.test(content);
+    },
+    message: 'Research runner must route searches/scrapes through guarded research providers and not call fetch directly'
+  },
+  {
+    file: 'src/research/providers/veniceResearchProvider.ts',
+    name: 'Venice Research Provider Dispatch',
+    check: (content) => {
+      return content.includes('veniceFetch') && !/\bfetch\s*\(/.test(content);
+    },
+    message: 'Venice research provider must dispatch through the guarded veniceFetch transport'
+  },
+  {
+    file: 'src/research/providers/jinaResearchProvider.ts',
+    name: 'Jina Provider Dispatch',
+    check: (content) => {
+      return content.includes('desktopJina.request') && content.includes('createJinaProvider');
+    },
+    message: 'Jina provider must dispatch through the guarded desktopJina bridge'
   }
 ];
 

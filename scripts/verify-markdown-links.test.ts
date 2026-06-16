@@ -9,6 +9,7 @@ const {
   compileGitignorePattern,
   loadGitignoreMatcher,
   verifyMarkdownLinks,
+  verifyRetiredModuleReferences,
   // eslint-disable-next-line @typescript-eslint/no-require-imports
 } = require("./verify-markdown-links.cjs") as {
   compileGitignorePattern: (raw: string) => { regex: RegExp; negated: boolean; dirOnly: boolean } | null;
@@ -20,6 +21,9 @@ const {
     filesChecked: number;
     errors: Array<{ destination: string; reason: string }>;
   };
+  verifyRetiredModuleReferences: (
+    files: string[],
+  ) => Array<{ sourcePath: string; line: number; name: string; reason: string }>;
 };
 
 const tempDirs: string[] = [];
@@ -125,5 +129,28 @@ describe("verifyMarkdownLinks", () => {
     expect(compileGitignorePattern("")?.negated).toBeUndefined();
     expect(compileGitignorePattern("   ")?.negated).toBeUndefined();
     expect(compileGitignorePattern("# comment")?.negated).toBeUndefined();
+  });
+
+  it("reports retired src/modules names without historical context", () => {
+    const { files } = fixture({
+      "docs/RESEARCH_PROVIDERS.md": "All providers are consumed through `SearchScrapeModule`.\n",
+      "SECURITY.md": "The guard wraps `ChatModule`, `ImageModule`, `BatchModule`, and `SearchScrapeModule`.\n",
+    });
+    const errors = verifyRetiredModuleReferences(files);
+    expect(errors).toEqual([
+      expect.objectContaining({ sourcePath: expect.stringContaining("docs/RESEARCH_PROVIDERS.md"), line: 1, name: "SearchScrapeModule" }),
+      expect.objectContaining({ sourcePath: expect.stringContaining("SECURITY.md"), line: 1, name: "ChatModule" }),
+      expect.objectContaining({ sourcePath: expect.stringContaining("SECURITY.md"), line: 1, name: "ImageModule" }),
+      expect.objectContaining({ sourcePath: expect.stringContaining("SECURITY.md"), line: 1, name: "BatchModule" }),
+      expect.objectContaining({ sourcePath: expect.stringContaining("SECURITY.md"), line: 1, name: "SearchScrapeModule" }),
+    ]);
+  });
+
+  it("allows retired module names in historical context or changelog files", () => {
+    const { files } = fixture({
+      "docs/design/THEME_SYSTEM.md": "`src/components/SearchScrapeView.tsx` reskinned research UI (replaces historical `src/modules/SearchScrapeModule.tsx`).\n",
+      "docs/audits/CHANGELOG.md": "Refactored `ChatModule` with left sidebar.\n",
+    });
+    expect(verifyRetiredModuleReferences(files)).toEqual([]);
   });
 });

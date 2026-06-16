@@ -1,4 +1,4 @@
-Read AGENTS.md first and treat it as the source of truth for architecture, commands, security rules, and coding conventions.
+Read [AGENTS.md](AGENTS.md) first and treat it as the source of truth for architecture, commands, security rules, and coding conventions. Follow the mandatory [docs/summary_of_work.md](docs/summary_of_work.md) handoff described there.
 
 Key rules:
 - Use TypeScript strict patterns and existing React/Electron/Express architecture.

@@ -33,9 +33,38 @@ describe("verify-safety-guard", () => {
         subdir: "",
         content: "app.use(() => { maybeRunLocalFamilyGuard(); isLocalFamilySafeModeEnabled(); });",
       },
-      "SearchScrapeModule.tsx": {
-        subdir: "src/modules",
-        content: "function r1() { assessChildExploitationSafety(); } function r2() { assessChildExploitationSafety(); } function r3() { assessChildExploitationSafety(); }",
+      "SearchScrapeView.tsx": {
+        subdir: "src/components/search",
+        content:
+          "function runSearch() { maybeRunLocalFamilyGuard(); } " +
+          "function runAiResearch() { maybeRunLocalFamilyGuard(); } " +
+          "function runProfileDiscovery() { maybeRunLocalFamilyGuard(); }",
+      },
+      "researchRunner.ts": {
+        subdir: "src/research/agent",
+        content:
+          "export async function runResearchJob(input) { " +
+          "const results = await provider.search({ query }); " +
+          "const scrape = await provider.scrape({ url }); " +
+          "return { ok: true }; " +
+          "}",
+      },
+      "veniceResearchProvider.ts": {
+        subdir: "src/research/providers",
+        content:
+          "import { veniceFetch } from '../../services/veniceClient'; " +
+          "export const veniceResearchProvider = { " +
+          "async search() { return veniceFetch('/augment/search'); }, " +
+          "async scrape() { return veniceFetch('/augment/scrape'); } " +
+          "};",
+      },
+      "jinaResearchProvider.ts": {
+        subdir: "src/research/providers",
+        content:
+          "import { desktopJina } from '../../services/desktopBridge'; " +
+          "export function createJinaProvider() { " +
+          "return { async search() { return desktopJina.request({ url }); } }; " +
+          "}",
       },
     };
 
@@ -76,6 +105,37 @@ describe("verify-safety-guard", () => {
       });
       const result = runEnforcementChecks(tmpDir);
       expect(result.some((r: string) => r.includes("Web Proxy Server"))).toBe(true);
+    });
+
+    it("fails when the research UI prompt dispatch lacks guard calls", () => {
+      createPassingMocks(tmpDir, {
+        "SearchScrapeView.tsx": "function runSearch() { /* no guard */ }",
+      });
+      const result = runEnforcementChecks(tmpDir);
+      expect(result.some((r: string) => r.includes("Research UI Dispatch"))).toBe(true);
+    });
+
+    it("fails when the research runner calls fetch directly", () => {
+      createPassingMocks(tmpDir, {
+        "researchRunner.ts":
+          "export async function runResearchJob(input) { " +
+          "const res = await fetch('https://example.com'); " +
+          "return { ok: true }; " +
+          "}",
+      });
+      const result = runEnforcementChecks(tmpDir);
+      expect(result.some((r: string) => r.includes("Research Runner Orchestration"))).toBe(true);
+    });
+
+    it("fails when the Jina provider bypasses the guarded bridge", () => {
+      createPassingMocks(tmpDir, {
+        "jinaResearchProvider.ts":
+          "export function createJinaProvider() { " +
+          "return { async search() { return fetch('https://s.jina.ai/q'); } }; " +
+          "}",
+      });
+      const result = runEnforcementChecks(tmpDir);
+      expect(result.some((r: string) => r.includes("Jina Provider Dispatch"))).toBe(true);
     });
   });
 

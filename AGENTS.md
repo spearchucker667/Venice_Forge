@@ -83,7 +83,7 @@ npm run build:electron   # Only electron main/preload → dist-electron/
 npm run build:web        # Only renderer → dist/ (sets ELECTRON_BUILD=true)
 npm run build:server     # Only proxy → dist/server.cjs
 npm run smoke:electron   # tests/smoke/electron-smoke.test.ts (Playwright; skipped when no display)
-npm run test:coverage    # v8 coverage; thresholds 70/80/80/80
+npm run test:coverage    # v8 coverage; current enforced thresholds branches 57 / functions 61 / lines 68 / statements 65 (long-term target 70/80/80/80)
 npm run profile:media-studio # Isolated Electron profile with 1,000 encrypted media records
 npm run verify:dist      # Build outputs only; does not require release/
 npm run verify:build-output  # Alias of verify:dist (semantically clearer name)
@@ -125,7 +125,7 @@ npm run clean            # Remove dist/ dist-electron/ release/
 
 **RP Studio Polish (Phase 2F).** `src/types/rp.ts` defines the canonical `CharacterCardV1`, `LorebookV1`, `PersonaV1`, and `ScenarioV1` models with associated normalization and secret-redaction helpers. The `rpScenarios` store is a dedicated IndexedDB store (toVersion 10, encrypted) for scenario persistence. `src/stores/scenario-store.ts` provides the Zustand interface for scenarios. `src/services/rpPromptCompiler.ts` is the central engine for building RP prompts from the constituent parts. `src/components/rp-studio/CharacterEditor.tsx` adds a "Workflow" section for linking characters to scenes, prompts, and starting chats or creating scenarios. The Command Palette adds an RP Studio section for common tasks. The `verify:rp-studio-polish` audit script (`scripts/verify-rp-studio-polish.cjs`) is wired into the `ci` parity command. See `VERIFY-048`.
 
-**Local Family Safe Mode runtime snapshot:** The main-process `runtimeSafetySettings` module holds the canonical enabled/disabled state. Every Venice-touching IPC handler must route through `performGuardedVeniceRequest` / `checkLocalFamilyGuard` in `electron/services/guardPipeline.ts`; the renderer-supplied `localFamilySafeModeEnabled` field on `VeniceIpcRequest` is no longer trusted (kept on the type for back-compat but ignored). The 451 block shape (`{ ok: false, status: 451, body: { error, reasonCode, category, severity } }`) is canonical across all entry points. The web proxy defaults Local Family Safe Mode to ON, ignoring the client-sent `X-Venice-Forge-Family-Safe-Mode` header unless the server-side environment variable `VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE=true` is set. The authoritative server override is the `VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE` environment variable. Returned body screening (`screenResponseBody`) covers Jina and scrape endpoints. See VERIFY-015 in `tests/safety/guardPipeline.test.ts`.
+**Local Family Safe Mode runtime snapshot:** The main-process `runtimeSafetySettings` module holds the canonical enabled/disabled state. Every Venice-touching IPC handler must route through `performGuardedVeniceRequest` / `checkLocalFamilyGuard` in `electron/services/guardPipeline.ts`; the renderer-supplied `localFamilySafeModeEnabled` field on `VeniceIpcRequest` is no longer trusted (kept on the type for back-compat but ignored). The 451 block shape (`{ ok: false, status: 451, body: { error, reasonCode, category, severity } }`) is canonical across all entry points. The web proxy defaults Local Family Safe Mode to ON, ignoring the client-sent `X-Venice-Forge-Family-Safe-Mode` header unless the server-side environment variable `VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE=true` is set. The authoritative server override is the `VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED` environment variable. Returned body screening (`screenResponseBody`) covers Jina and scrape endpoints. See VERIFY-015 in `tests/safety/guardPipeline.test.ts`.
 
 **Conversation persistence (dual-mode):**
 - Desktop: atomic JSON files under `userData/chat-history/` (temp + rename)
@@ -144,7 +144,7 @@ npm run clean            # Remove dist/ dist-electron/ release/
 - Tests live next to source: `src/services/foo.ts` → `src/services/foo.test.ts`. Server test is `server.test.ts` at root.
 - Regression guards: `// BUG-NNN regression guard` (or `// VERIFY-NNN`) comment in tests that would have caught a fixed bug.
 - Node-level tests (rate-limiting, etc.): create fresh `app` in `beforeEach`, not `beforeAll`, to isolate state.
-- Coverage thresholds in `vitest.config.ts`: 70% branches, 80% functions/lines/statements.
+- Coverage thresholds in `vitest.config.ts`: current enforced baseline is branches 57%, functions 61%, lines 68%, statements 65%. The long-term target remains 70% branches and 80% functions/lines/statements.
 
 ### Named regression guards (VERIFY-NNN)
 
@@ -242,7 +242,7 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 
 **Audit:** `npm audit --omit=dev --audit-level=moderate` is a release gate.
 
-**Static analysis (CodeQL):** Every push runs CodeQL. Open alerts appear in `Security → Code Scanning`. The current set of defended false positives is documented in `SECURITY.md` and annotated at each call site.
+**Static analysis (CodeQL):** CodeQL is configured through GitHub's default setup for this repository (not a tracked workflow file). Open alerts appear in `Security → Code Scanning`. The current set of defended false positives is documented in `SECURITY.md` and annotated at each call site.
 
 ---
 

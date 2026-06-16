@@ -41,24 +41,30 @@ The application connects to unrestricted AI endpoints that may generate explicit
 When **Family Safe Mode** is enabled (the default), outgoing requests are screened by Venice Forge's local family-safe guard
 (`src/shared/safety/childExploitationGuard.ts`) before the payload is
 forwarded. The conditional pipeline runs at every enforcement boundary — the renderer transport
-(`veniceClient.ts`), Electron IPC handlers, the Express web proxy, and every
-prompt-sending UI module (`ChatModule`, `ImageModule`, `BatchModule`,
-`SearchScrapeModule`). The guard implements advanced features such as
+(`src/services/veniceClient.ts`), Electron IPC handlers
+(`electron/ipc/handlers.ts`), the Express web proxy (`server.ts`), research
+and Jina dispatch (`src/components/search/SearchScrapeView.tsx`,
+`src/research/agent/researchRunner.ts`), and RP/scene prompt paths
+(`src/shared/safety/characterImportSafety.ts`,
+`src/services/rp/sceneGenerationService.ts`). The guard implements advanced features such as
 cross-sentence context detection and `negative_prompt` extraction. The proxy
 operates on a "fail-close" design (returning a 500 status) if the guard
 encounters any extraction errors. Raw prompt text is never logged by the safety
 system. When Family Safe Mode is disabled, **Adult Mode** skips the local rule engine entirely. This does not disable or alter Venice's provider-side moderation or the independent Venice API Safe Mode parameter.
 
-The Jina research provider (`r.jina.ai`/`s.jina.ai`) sends requests via direct
-`fetch()` outside the Venice transport chain. A renderer-layer guard runs in
-`SearchScrapeModule.tsx` (both `runAiResearch()` and `runProfileDiscovery()`)
-before any Jina or research dispatch, ensuring this path is also guarded.
+The Jina research provider (`r.jina.ai`/`s.jina.ai`) and generic HTTP scrape
+traffic route through renderer-side safety wrappers in
+`src/components/search/SearchScrapeView.tsx` before any research dispatch,
+ensuring this path is also guarded.
 
-> **Web Deployment Warning:** In web mode, the web proxy defaults Local Family Safe Mode to ON. The client-sent `X-Venice-Forge-Family-Safe-Mode` header is ignored unless the server-side environment variable `VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE=true` is explicitly set. The authoritative server override is the environment variable `VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE`. The client header is dev-only compatibility plumbing, not a production safety boundary. Use Electron/local desktop mode for owner-controlled Family Safe Mode behavior. Provider/API restrictions may still apply regardless of Adult Mode.
+> **Web Deployment Warning:** In web mode, the web proxy defaults Local Family Safe Mode to ON. The client-sent `X-Venice-Forge-Family-Safe-Mode` header is ignored unless the server-side environment variable `VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE=true` is explicitly set. The authoritative server override is the environment variable `VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED`. The client header is dev-only compatibility plumbing, not a production safety boundary. Use Electron/local desktop mode for owner-controlled Family Safe Mode behavior. Provider/API restrictions may still apply regardless of Adult Mode.
 
 Safety-guard enforcement is verified by `scripts/verify-safety-guard.cjs`,
-which checks all enforcement boundaries (`veniceClient.ts`, `handlers.ts`,
-`server.ts`, `SearchScrapeModule.tsx`) as a CI gate. Run it with:
+which checks the core enforcement boundaries (`src/services/veniceClient.ts`,
+`electron/ipc/handlers.ts`, `server.ts`) plus current research/Jina dispatch
+paths (`src/components/search/SearchScrapeView.tsx`,
+`src/research/agent/researchRunner.ts`, `src/research/providers/veniceResearchProvider.ts`,
+`src/research/providers/jinaResearchProvider.ts`) as a CI gate. Run it with:
 
 ```bash
 npm run verify:safety-guard
@@ -148,7 +154,8 @@ A clean audit at the `moderate` level or higher (`npm audit --audit-level=modera
 
 ## Static Analysis (CodeQL)
 
-The repository is scanned by GitHub CodeQL on every push. Findings appear in
+GitHub CodeQL is enabled for this repository through GitHub's default setup
+(not a tracked workflow file). Findings appear in
 [Security → Code Scanning](https://github.com/spearchucker667/Venice-API-connector/security/code-scanning).
 
 ### Current open alerts: **0**
