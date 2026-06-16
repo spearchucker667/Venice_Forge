@@ -269,6 +269,42 @@ describe("exportMedia", () => {
     const written = await fs.readFile(result.filePath!);
     expect(written.equals(tinyPngBuffer())).toBe(true);
   });
+
+  it("rejects arbitrary bytes renamed to an image extension", async () => {
+    const result = await exportMedia({
+      base64Data: Buffer.from("not really a png").toString("base64"),
+      filename: "spoof.png",
+    });
+    expect(result).toMatchObject({ ok: false, error: "Decoded payload is not a supported image." });
+  });
+
+  it("rejects mismatched data URL MIME and filename extension", async () => {
+    const mimeMismatch = await exportMedia({
+      base64Data: `data:image/jpeg;base64,${tinyPngBuffer().toString("base64")}`,
+      filename: "image.jpg",
+    });
+    expect(mimeMismatch).toMatchObject({
+      ok: false,
+      error: "Image data URL MIME type does not match decoded bytes.",
+    });
+
+    const extensionMismatch = await exportMedia({
+      base64Data: `data:image/png;base64,${tinyPngBuffer().toString("base64")}`,
+      filename: "image.webp",
+    });
+    expect(extensionMismatch).toMatchObject({
+      ok: false,
+      error: "Filename extension does not match decoded image type.",
+    });
+  });
+
+  it("rejects unsupported media data URLs in the image export path", async () => {
+    const result = await exportMedia({
+      base64Data: `data:video/mp4;base64,${tinyPngBuffer().toString("base64")}`,
+      filename: "video.mp4",
+    });
+    expect(result).toMatchObject({ ok: false, error: "Image data URL MIME type is not supported." });
+  });
 });
 
 describe("importMediaFromPath", () => {

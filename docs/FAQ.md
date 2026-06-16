@@ -28,7 +28,7 @@ Node.js **22.13 or newer within Node 22.x** with npm 10+. CI tests the supported
 npm install
 npm run dev:electron   # Desktop mode (recommended)
 # or
-npm run dev:web        # Web proxy mode
+npm run dev            # Express proxy + Vite web renderer
 ```
 
 ### What is the full validation gate?
@@ -45,8 +45,8 @@ The project enforces **zero warnings** (`--max-warnings=0`). Common causes:
 - Using `any` instead of narrow types — replace with `unknown` + runtime guards.
 - Unused variables — prefix intentionally unused parameters with `_`.
 
-### Why are `dev` and `dev:web` the same command?
-Both run `tsx server.ts` (the Express web proxy). `dev:web` is the explicit alias used throughout documentation. `dev` is the shorthand default.
+### Why are `dev`, `dev:server`, and `dev:web` separate?
+`npm run dev` starts both the Express proxy and the Vite renderer. `npm run dev:server` starts only the Express proxy. `npm run dev:web` starts only Vite and relies on the Vite `/api/*` proxy to reach the Express server.
 
 ## API Keys & Security
 

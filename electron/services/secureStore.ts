@@ -10,8 +10,9 @@ import path from "path";
 const STORE_FILE = "secure-prefs.json";
 
 /** Whether plaintext fallback is permitted when OS encryption is unavailable. */
-const ALLOW_PLAINTEXT_FALLBACK =
-  process.env.VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE === "true";
+function isPlaintextFallbackAllowed(): boolean {
+  return process.env.VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE === "true";
+}
 
 /** Describes the current secure storage mode. */
 export type SecureStorageMode = "encrypted" | "unavailable" | "plaintext-fallback";
@@ -100,7 +101,7 @@ export function setApiKey(key: string): void {
         `${process.platform === "win32" ? "Windows" : "macOS"} secure storage is unavailable. Venice Forge will not store the API key without OS encryption.`
       );
     }
-    if (!ALLOW_PLAINTEXT_FALLBACK) {
+    if (!isPlaintextFallbackAllowed()) {
       throw new Error(
         "OS secure storage is unavailable. Set VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true to allow documented plaintext fallback (Linux-only, emits security warning)."
       );
@@ -141,6 +142,12 @@ export function getApiKey(): string | null {
     return null;
   }
 
+  if (!isPlaintextFallbackAllowed()) {
+    lastReadErrors.apiKey =
+      "Plaintext API key storage is disabled. Re-save credentials so they are written to OS secure storage, or explicitly set VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true for Linux fallback.";
+    return null;
+  }
+
   if (process.platform === "linux") {
     console.warn("[SECURITY] Returning plaintext-stored API key (Linux fallback only).");
   }
@@ -172,7 +179,7 @@ export function setJinaApiKey(key: string): void {
         `${process.platform === "win32" ? "Windows" : "macOS"} secure storage is unavailable. Venice Forge will not store the API key without OS encryption.`
       );
     }
-    if (!ALLOW_PLAINTEXT_FALLBACK) {
+    if (!isPlaintextFallbackAllowed()) {
       throw new Error(
         "OS secure storage is unavailable. Set VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true to allow documented plaintext fallback."
       );
@@ -205,6 +212,12 @@ export function getJinaApiKey(): string | null {
 
   if (process.platform === "win32" || process.platform === "darwin") {
     lastReadErrors.jinaApiKey = "Plaintext Jina API key storage is not allowed on this platform.";
+    return null;
+  }
+
+  if (!isPlaintextFallbackAllowed()) {
+    lastReadErrors.jinaApiKey =
+      "Plaintext Jina API key storage is disabled. Re-save credentials so they are written to OS secure storage, or explicitly set VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true for Linux fallback.";
     return null;
   }
 
@@ -241,7 +254,7 @@ export function isEncryptionAvailable(): boolean {
  */
 export function getStorageMode(): SecureStorageMode {
   if (safeStorage.isEncryptionAvailable()) return "encrypted";
-  if (process.platform !== "win32" && process.platform !== "darwin" && ALLOW_PLAINTEXT_FALLBACK) return "plaintext-fallback";
+  if (process.platform !== "win32" && process.platform !== "darwin" && isPlaintextFallbackAllowed()) return "plaintext-fallback";
   return "unavailable";
 }
 

@@ -25,6 +25,10 @@ const LIST_LIMIT_MIN = 1;
 const SEARCH_MAX_LENGTH = 200;
 /** Slug max length matches the validator in shared/validation. */
 const SLUG_MAX_LENGTH = 128;
+const VENICE_CHARACTER_SHARE_HOSTS: ReadonlySet<string> = new Set([
+  "venice.ai",
+  "www.venice.ai",
+]);
 
 /** Allowed sort fields, kept in sync with `CharacterSortBy`. */
 const ALLOWED_SORT_FIELDS = new Set<NonNullable<ListCharactersRequest["sortBy"]>>([
@@ -52,6 +56,27 @@ export function isValidCharacterSlug(slug: unknown): slug is string {
   if (typeof slug !== "string") return false;
   if (slug.length < 1 || slug.length > SLUG_MAX_LENGTH) return false;
   return /^[A-Za-z0-9_-]+$/.test(slug);
+}
+
+/** Normalizes a public Venice character share URL.
+ *  Only HTTPS Venice-owned character pages are renderable as links.
+ *  Invalid, script/data/file, private-host, or non-character URLs are
+ *  deliberately reduced to `undefined` so components can omit the anchor. */
+export function resolveCharacterShareUrl(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > 2048) return undefined;
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return undefined;
+  }
+  const host = parsed.hostname.toLowerCase();
+  if (parsed.protocol !== "https:" || !VENICE_CHARACTER_SHARE_HOSTS.has(host)) return undefined;
+  if (!/^\/characters(?:\/|$)/i.test(parsed.pathname)) return undefined;
+  parsed.hash = "";
+  return parsed.toString();
 }
 
 /** Normalizes a Venice character payload to a fully-populated record.
@@ -89,7 +114,7 @@ export function normalizeCharacter(raw: unknown): VeniceCharacter | null {
     author: typeof r.author === "string" ? r.author : undefined,
     adult: r.adult === true,
     featured: r.featured === true,
-    shareUrl: typeof r.shareUrl === "string" ? r.shareUrl : undefined,
+    shareUrl: resolveCharacterShareUrl(r.shareUrl),
     photoUrl: resolveCharacterImageUrl(raw) ?? undefined,
     tags,
     webEnabled: r.webEnabled === true,

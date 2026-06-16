@@ -39,8 +39,23 @@ import {
 
 const OFFICIAL_URL = "https://outerface.venice.ai/api/characters/abc/photo";
 
-function makeImageResponse(bytes: number, contentType = "image/png", status = 200): Response {
-  const buffer = Buffer.alloc(bytes, 0xab);
+function pngBytes(bytes = 1024): Buffer {
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    Buffer.alloc(Math.max(0, bytes - 8), 0xab),
+  ]);
+}
+
+function avifBytes(bytes = 512): Buffer {
+  return Buffer.concat([
+    Buffer.from([0, 0, 0, 24]),
+    Buffer.from("ftypavif", "ascii"),
+    Buffer.alloc(Math.max(0, bytes - 12), 0xab),
+  ]);
+}
+
+function makeImageResponse(bytes: number, contentType = "image/png", status = 200, body?: Buffer): Response {
+  const buffer = body ?? (contentType === "image/avif" ? avifBytes(bytes) : pngBytes(bytes));
   return new Response(buffer, {
     status,
     headers: { "content-type": contentType },
@@ -114,6 +129,15 @@ describe("characterImageCache", () => {
     const result = await getCachedCharacterImage(OFFICIAL_URL);
     expect(result.ok).toBe(false);
     expect(result.error).toMatch(/content type/i);
+  });
+
+  it("rejects HTML bytes served with an image content type", async () => {
+    const mockedFetch = vi.mocked(globalThis.fetch);
+    mockedFetch.mockResolvedValueOnce(makeImageResponse(100, "image/png", 200, Buffer.from("<html>not an image</html>")));
+
+    const result = await getCachedCharacterImage(OFFICIAL_URL);
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/bytes do not match/i);
   });
 
   it("rejects images exceeding the per-item size limit", async () => {

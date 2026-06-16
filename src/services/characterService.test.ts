@@ -7,6 +7,7 @@ import {
   isValidCharacterSlug,
   listCharacters,
   normalizeCharacter,
+  resolveCharacterShareUrl,
 } from "./characterService";
 import { venice, VeniceAPIError } from "../lib/venice-client";
 
@@ -105,6 +106,28 @@ describe("characterService", () => {
       expect(char?.photoUrl).toBe(
         "https://outerface.venice.ai/api/characters/id-1/photo",
       );
+    });
+
+    it("normalizes unsafe shareUrl values to undefined", () => {
+      const base = { id: "id-1", slug: "alan-watts", name: "Alan Watts" };
+      expect(normalizeCharacter({ ...base, shareUrl: "javascript:alert(1)" })?.shareUrl).toBeUndefined();
+      expect(normalizeCharacter({ ...base, shareUrl: "data:text/html;base64,PHNjcmlwdA==" })?.shareUrl).toBeUndefined();
+      expect(normalizeCharacter({ ...base, shareUrl: "file:///etc/passwd" })?.shareUrl).toBeUndefined();
+      expect(normalizeCharacter({ ...base, shareUrl: "http://venice.ai/characters/alan-watts" })?.shareUrl).toBeUndefined();
+      expect(normalizeCharacter({ ...base, shareUrl: "https://evil.example/characters/alan-watts" })?.shareUrl).toBeUndefined();
+      expect(normalizeCharacter({ ...base, shareUrl: "https://venice.ai/settings" })?.shareUrl).toBeUndefined();
+    });
+
+    it("preserves HTTPS Venice character share links", () => {
+      expect(resolveCharacterShareUrl(" https://venice.ai/characters/alan-watts#frag ")).toBe(
+        "https://venice.ai/characters/alan-watts",
+      );
+      expect(normalizeCharacter({
+        id: "id-1",
+        slug: "alan-watts",
+        name: "Alan Watts",
+        shareUrl: "https://www.venice.ai/characters/alan-watts?ref=app",
+      })?.shareUrl).toBe("https://www.venice.ai/characters/alan-watts?ref=app");
     });
   });
 

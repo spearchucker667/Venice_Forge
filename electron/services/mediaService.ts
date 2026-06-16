@@ -21,12 +21,18 @@ const MAX_IMPORT_BYTES = 50 * MIB;
 
 /** Maximum decoded image size for export. Base64 string length budget. */
 const MAX_EXPORT_B64_BYTES = 50 * 1024 * 1024 * 1.37;
+const MAX_EXPORT_IMAGE_BYTES = 50 * 1024 * 1024;
 
 /** Per-item thumbnail size in pixels. */
 const THUMB_MAX_DIMENSION = 256;
 
 /** Filename subfolder for routed export. */
 const EXPORT_SUBFOLDER = "Media Studio";
+const IMAGE_EXTENSIONS_BY_MIME: Record<string, readonly string[]> = {
+  "image/png": [".png"],
+  "image/jpeg": [".jpg", ".jpeg"],
+  "image/webp": [".webp"],
+};
 
 /** Returns the absolute, normalized Pictures/Venice Forge base directory. */
 function picturesBaseDir(): string {
@@ -119,6 +125,43 @@ function sanitizeSubfolder(input: string): string {
   return cleaned.slice(0, 60);
 }
 
+function parseImageDataUrl(value: string): { mime: string | null; rawBase64: string } | null {
+  const match = /^data:([^;,]+);base64,([A-Za-z0-9+/=\r\n]+)$/i.exec(value.trim());
+  if (!match) return { mime: null, rawBase64: value };
+  const mime = match[1].toLowerCase();
+  if (!Object.hasOwn(IMAGE_EXTENSIONS_BY_MIME, mime)) return null;
+  return { mime, rawBase64: match[2] };
+}
+
+function decodeStrictBase64(value: string): Buffer | null {
+  const compact = value.replace(/\s+/g, "");
+  if (!compact || compact.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(compact)) return null;
+  const buffer = Buffer.from(compact, "base64");
+  if (buffer.length === 0 || buffer.toString("base64") !== compact) return null;
+  return buffer;
+}
+
+function validateImagePayloadForFilename(input: string, filename: string): { ok: true; buffer: Buffer; contentType: string } | { ok: false; error: string } {
+  const parsed = parseImageDataUrl(input);
+  if (!parsed) return { ok: false, error: "Image data URL MIME type is not supported." };
+  const buffer = decodeStrictBase64(parsed.rawBase64);
+  if (!buffer) return { ok: false, error: "Image data is not valid base64." };
+  if (buffer.length > MAX_EXPORT_IMAGE_BYTES) return { ok: false, error: "Decoded image data is too large." };
+
+  const sniffed = sniffContentType(buffer);
+  if (!sniffed) return { ok: false, error: "Decoded payload is not a supported image." };
+  if (parsed.mime && parsed.mime !== sniffed) {
+    return { ok: false, error: "Image data URL MIME type does not match decoded bytes." };
+  }
+
+  const ext = path.extname(filename).toLowerCase();
+  if (!IMAGE_EXTENSIONS_BY_MIME[sniffed]?.includes(ext)) {
+    return { ok: false, error: "Filename extension does not match decoded image type." };
+  }
+
+  return { ok: true, buffer, contentType: sniffed };
+}
+
 export interface MediaExportInput {
   /** Base64 payload (with or without data URL prefix). */
   base64Data: string;
@@ -167,16 +210,13 @@ export async function exportMedia(input: MediaExportInput): Promise<MediaExportR
       return { ok: true, filePath: targetPath, canceled: false };
     }
 
-    const raw = input.base64Data.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, "");
-    const buffer = Buffer.from(raw, "base64");
-    if (buffer.length === 0) {
-      return { ok: false, error: "Decoded payload is empty." };
-    }
+    const validated = validateImagePayloadForFilename(input.base64Data, cleanFilename);
+    if (!validated.ok) return validated;
 
     await fs.mkdir(path.dirname(targetPath), { recursive: true });
     // Atomic write: temp + rename.
     const tmpPath = `${targetPath}.${process.pid}.${Date.now()}.tmp`;
-    await fs.writeFile(tmpPath, buffer, { mode: 0o600 });
+    await fs.writeFile(tmpPath, validated.buffer, { mode: 0o600 });
     await fs.rename(tmpPath, targetPath);
 
     return { ok: true, filePath: targetPath };

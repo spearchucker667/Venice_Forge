@@ -70,6 +70,43 @@ import {
 
 /** Maximum size in bytes for JSON import and export files. */
 const MAX_JSON_FILE_BYTES = VENICE_MAX_BODY_BYTES;
+const JINA_ALLOWED_FORWARD_HEADERS = new Set([
+  "accept",
+  "x-return-format",
+  "x-with-generated-alt",
+  "x-with-iframe",
+  "x-target-selector",
+  "x-wait-for-selector",
+  "x-timeout",
+]);
+const JINA_BLOCKED_FORWARD_HEADER_PATTERNS = [
+  /^authorization$/i,
+  /^x-jina-api-key$/i,
+  /^host$/i,
+  /^cookie$/i,
+  /^set-cookie$/i,
+  /^forwarded$/i,
+  /^x-forwarded-/i,
+  /^content-length$/i,
+  /^transfer-encoding$/i,
+  /^connection$/i,
+  /^proxy-/i,
+  /^origin$/i,
+  /^referer$/i,
+];
+
+function sanitizeJinaForwardHeaders(input: unknown): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (!input || typeof input !== "object" || Array.isArray(input)) return headers;
+  for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
+    const normalized = key.trim().toLowerCase();
+    if (!normalized || typeof value !== "string") continue;
+    if (JINA_BLOCKED_FORWARD_HEADER_PATTERNS.some((pattern) => pattern.test(normalized))) continue;
+    if (!JINA_ALLOWED_FORWARD_HEADERS.has(normalized)) continue;
+    headers[normalized] = value;
+  }
+  return headers;
+}
 
 /** Safely sends a payload to a renderer process, returning false if the
  *  WebContents has already been destroyed.
@@ -259,14 +296,7 @@ export function registerIpcHandlers(): void {
       );
       if (decision) return { ok: false, status: 451, error: decision.body.error };
 
-      const headers: Record<string, string> = {};
-      if (request.headers && typeof request.headers === "object" && !Array.isArray(request.headers)) {
-        for (const [key, value] of Object.entries(request.headers as Record<string, unknown>)) {
-          if (typeof value === "string" && !/^authorization$/i.test(key)) {
-            headers[key] = value;
-          }
-        }
-      }
+      const headers = sanitizeJinaForwardHeaders(request.headers);
 
       const jinaKey = (() => { try { return getJinaApiKey(); } catch { return null; } })();
       if (jinaKey) headers["Authorization"] = `Bearer ${jinaKey}`;

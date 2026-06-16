@@ -248,15 +248,19 @@ npm run dev:electron
 Web-mode development:
 
 ```bash
+npm run dev
+```
+
+Or run the two processes separately:
+
+```bash
 npm run dev:server
 npm run dev:web
 ```
 
-Or run both the Express server and web renderer:
-
-```bash
-npm run dev
-```
+The Vite renderer proxies `/api/*` to `http://127.0.0.1:3000` by
+default. Set `VITE_API_PROXY_TARGET` when the Express proxy uses a
+different host or port.
 
 ---
 
@@ -327,7 +331,7 @@ Notes:
 | Command | Purpose |
 | --- | --- |
 | `npm run dev:electron` | Start Electron app with live reload |
-| `npm run dev:web` | Start Vite renderer only |
+| `npm run dev:web` | Start Vite renderer only; `/api/*` proxies to Express |
 | `npm run dev:server` | Start Express proxy only |
 | `npm run dev` | Start server + web renderer |
 | `npm run lint:eslint` | Run ESLint |

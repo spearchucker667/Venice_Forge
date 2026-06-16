@@ -8,8 +8,12 @@ This document covers all commands for local development, packaging, and validati
 npm install
 npm run dev:electron   # Start the desktop app in development mode
 # or
-npm run dev:web        # Start the web proxy development mode
+npm run dev            # Start Express proxy + Vite web renderer
 ```
+
+`npm run dev:web` starts only the Vite renderer. It proxies `/api/*` to
+the Express proxy at `http://127.0.0.1:3000` by default; override with
+`VITE_API_PROXY_TARGET` if the proxy runs elsewhere.
 
 ## Cross-Platform Validation
 

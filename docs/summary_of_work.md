@@ -93,31 +93,49 @@ telemetry expansion all landed the same day. The production Media
 Studio action, image-payload, and semantic theme-token audit findings
 are resolved.
 
-**Current open items.** As of the 2026-06-09 Kimi 15-TODO ZIP-audit follow-up
-closure (the 13-file working-tree delta from the kimi-export hand-off),
-all P0/P1 crash/data-loss, accessibility, archive-contract, proxy-hardening,
-direct `window.veniceForge`, and the 15 specific TODO items from the prior
-exhaustive audit follow-up are closed. The lone remaining medium-priority
-architecture item is the component-extraction roadmap for oversized views
-(`SettingsView`, `media-inspector`, `CommandPalette`, `image-view`).
-P3-004 (moving large third-party reference docs under a `docs/reference/`
-namespace) was deferred because the files are referenced from source
-comments and multiple Markdown documents. No runtime safety or release
-blockers remain.
+**Current open items.** The 2026-06-16 consolidated audit cross-check
+repaired confirmed high-risk findings in dev API routing, secure-store
+plaintext reads, character share URL rendering, Electron Jina header
+forwarding, Media Studio export validation, and character image cache
+byte validation. The repo is not fully release-gate-passable yet:
+`npm audit --omit=dev --audit-level=moderate` fails on a moderate
+`js-yaml` advisory, and production `prompt()` / `confirm()` call sites
+remain in `src/`. The component-extraction roadmap for oversized views
+(`SettingsView`, `media-inspector`, `CommandPalette`, `image-view`)
+also remains.
 
 ### Latest Session Summary
-- **Combined audit-fix closure:** Addressed all open findings in `docs/audits/combined-todo.yml` (AUDIT-001 through AUDIT-014) via parallel subagent groups, then reconciled the artifact and verification gates.
-- **Docs / parity fixes:** Removed unenforced CodeQL-on-every-push claims from `AGENTS.md` and `SECURITY.md` (AUDIT-001/002); corrected the Local Family Safe Mode env var name to `VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED` (AUDIT-003/004); documented the actual enforced coverage baseline in `AGENTS.md` (AUDIT-007); refreshed `.github/copilot-instructions.md` overview and storage table (AUDIT-008/009); replaced retired `ChatModule|ImageModule|BatchModule|SearchScrapeModule` references in `SECURITY.md` with current paths (AUDIT-010); rewrote `docs/audits/RESEARCH_PROVIDERS.md` around current research components (AUDIT-011); archived `docs/design/VENICE_UI_PARITY_REFERENCE.md` to `docs/reports/historical/` (AUDIT-012).
-- **Verifier hardening:** Extended `scripts/verify-safety-guard.cjs` and its tests to cover current research/Jina prompt dispatch paths (AUDIT-005/006); added `.cursorrules` and `.windsurfrules` to `scripts/verify-agent-docs.cjs` parity checks and regression tests (AUDIT-013/014); added retired-module reference detection to `scripts/verify-markdown-links.cjs` and its tests.
-- **Artifact reconciliation:** Updated `docs/audits/combined-todo.yml` to mark all findings `closed` and `scan_status: partial_fix`; fixed the `verify:work-orders` schema guard by skipping the non-work-order backlog artifact in `scripts/verify-work-orders.cjs`.
-- **Validation:** Full closure gates pass — `npm run lint:eslint`, `npm run typecheck`, `npm test` (2596 passed / 1 skipped), `npm run verify:contracts`, and `npm run build`.
+- **Consolidated audit cross-check:** Read the supplied 2026-06-16 repair work order, established a live baseline on `main` at `b6337fc239fd2929564b0582c967ab37a3ebe8c3`, and created `docs/audits/current-audit-cross-check-status.md`, `docs/audits/current-audit-cross-check-status.yaml`, and `docs/audits/agent-repair-status-2026-06-16.yaml`.
+- **Confirmed repairs:** Added a Vite `/api` dev proxy and corrected dev-mode docs; gated plaintext secure-store reads behind `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true`; sanitized hosted-character `shareUrl`; aligned Electron Jina header forwarding with the web proxy allowlist/blocklist; validated Media Studio image exports by strict base64, data URL MIME, magic bytes, extension, and decoded size; validated character image cache bytes against declared PNG/JPEG/WebP/AVIF content type.
+- **Verifier compatibility:** Added the two new audit status YAMLs to `scripts/verify-work-orders.cjs`'s non-work-order skip list so the strict work-order schema gate still passes.
+- **Residual blockers:** Final status is intentionally `pass: false`: `npm audit --omit=dev --audit-level=moderate` fails on `js-yaml`, and `rg -n "prompt\\(|confirm\\(" src` still finds production native prompt/confirm call sites.
+- **Validation:** Focused repaired-surface tests pass (94/94); `npm run lint:eslint`, `npm run typecheck`, `npm run test:coverage` (2604 passed / 1 skipped), `npm run verify:contracts`, `npm run build`, `npm run verify:dist`, `verify:image-policy`, `verify:network-boundaries`, `verify:ci-contract`, `verify:work-orders`, `verify:agent-docs`, `verify:storage-policy`, and `verify:theme-tokens` pass. `npm ci` succeeds with EBADENGINE warnings because this shell is Node 26/npm 11 while the project requires Node 22/npm 10.
 
 ### Open TODO Ledger
+- Resolve the 2026-06-16 residual release blockers recorded in `docs/audits/agent-repair-status-2026-06-16.yaml`: update/remediate the moderate `js-yaml` audit advisory and replace production native `prompt()` / `confirm()` call sites with controlled app modals.
+- Follow up the `needs-human-review` audit IDs in `docs/audits/agent-repair-status-2026-06-16.yaml`; many were not re-audited line-by-line in this pass and are explicitly not claimed closed.
 - `docs/audits/combined-todo.yml` findings AUDIT-001..AUDIT-014 are closed and all required verification gates pass. The artifact remains `scan_status: partial_fix` because the full path-order line audit was not completed in this session; update it to `completed` only after the remaining line audit is finished.
 - Add visual snapshots or Playwright screenshots for Characters, Settings, Research, Chat.
 - Route residual unredacted user-facing error surfaces identified in the T-001..T-030 cross-check through `redactErrorMessage` / `sanitizeErrorText` or `toast.fromError`.
 
 ### Validation Matrix
+- Runtime this session: Node `v26.3.0`, npm `11.16.0` (outside project engines; `npm ci` emitted EBADENGINE).
+- `npm ci`: PASS with EBADENGINE and allow-scripts warnings.
+- `npm audit --omit=dev --audit-level=moderate`: FAIL (`js-yaml <=4.1.1`, GHSA-h67p-54hq-rp68).
+- `npm run lint:eslint`: PASS.
+- `npm run typecheck`: PASS.
+- `npm run test -- electron/services/secureStore.test.ts src/services/characterService.test.ts electron/ipc/handlers.test.ts electron/services/mediaService.test.ts electron/services/characterImageCache.test.ts`: PASS (5 files, 94 tests).
+- `npm run test:coverage`: PASS (237 files passed, 1 skipped; 2604 tests passed, 1 skipped; statements 65.52 / branches 57.32 / functions 61.37 / lines 68.91).
+- `npm run verify:contracts`: PASS.
+- `npm run build`: PASS.
+- `npm run verify:dist`: PASS.
+- `node scripts/verify-image-policy.cjs`: PASS.
+- `node scripts/verify-network-boundaries.cjs`: PASS.
+- `node scripts/verify-ci-contract.cjs`: PASS.
+- `node scripts/verify-work-orders.cjs`: PASS after status YAML skip-list update.
+- `node scripts/verify-agent-docs.cjs`: PASS.
+- `node scripts/verify-storage-policy.cjs`: PASS.
+- `node scripts/verify-theme-tokens.cjs`: PASS.
 - Runtime: Node `v22.22.3`, npm `10.9.8` (matches project engines `>=22.13.0 <23`).
 - `npm run lint:eslint`: PASS (zero warnings, `--max-warnings=0`).
 - `npm run typecheck`: PASS (renderer + Electron main).
@@ -127,6 +145,15 @@ blockers remain.
 - `npm run verify:markdown-links`: PASS (55 Markdown files checked).
 - `npm run verify:agent-docs`: PASS.
 - `npx vitest run scripts/verify-agent-docs.test.ts scripts/verify-safety-guard.test.ts scripts/verify-markdown-links.test.ts`: PASS (36/36).
+
+- **Date:** 2026-06-16 (Consolidated audit cross-check partial repair)
+- **Agent:** Codex
+- **Branch / state:** `main` at `b6337fc239fd2929564b0582c967ab37a3ebe8c3`; working tree modified.
+- **Closed / repaired findings:** AUDIT-001, AUDIT-004, AUDIT-024, AUDIT-032, AUDIT-033, AUDIT-040, AUDIT-048, AUDIT-054.
+- **Summary:** Cross-checked the supplied `AUDIT-001..AUDIT-072` repair order against the live checkout, created the required baseline and final repair status artifacts, fixed confirmed high-risk source issues, and explicitly marked residual blockers instead of claiming full release closure.
+- **Files changed:** `vite.config.ts`, `README.md`, `docs/DEVELOPMENT/building.md`, `docs/FAQ.md`, `docs/audits/current-audit-cross-check-status.md`, `docs/audits/current-audit-cross-check-status.yaml`, `docs/audits/agent-repair-status-2026-06-16.yaml`, `electron/services/secureStore.ts`, `electron/services/secureStore.test.ts`, `src/services/characterService.ts`, `src/services/characterService.test.ts`, `electron/ipc/handlers.ts`, `electron/ipc/handlers.test.ts`, `electron/services/mediaService.ts`, `electron/services/mediaService.test.ts`, `electron/services/characterImageCache.ts`, `electron/services/characterImageCache.test.ts`, `scripts/verify-work-orders.cjs`, `docs/summary_of_work.md`.
+- **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; focused repaired-surface tests PASS (94/94); `npm run test:coverage` PASS (2604 passed / 1 skipped); `npm run verify:contracts` PASS; `npm run build` PASS; `npm run verify:dist` PASS; individual verifier scripts for image policy, network boundaries, CI contract, work orders, agent docs, storage policy, and theme tokens PASS; `npm ci` PASS with Node 26 engine warning; `npm audit --omit=dev --audit-level=moderate` FAIL on `js-yaml`.
+- **Residual risk:** Production native `prompt()` / `confirm()` call sites remain and the dependency audit failure remains. The per-ID disposition file records additional `needs-human-review` items that were not line-audited in this pass.
 
 - **Date:** 2026-06-15 (SAFETY_VERIFIER — AUDIT-005/006)
 - **Agent:** Kimi Code

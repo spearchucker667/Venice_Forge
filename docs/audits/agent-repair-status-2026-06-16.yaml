@@ -1,0 +1,651 @@
+repair_status:
+  generated_at: "2026-06-16T05:02:00-07:00"
+  branch: main
+  head_before: b6337fc239fd2929564b0582c967ab37a3ebe8c3
+  head_after: b6337fc239fd2929564b0582c967ab37a3ebe8c3
+  node: v26.3.0
+  npm: 11.16.0
+  baseline_match:
+    status: partial
+    notes:
+      - "Live repo has verify:contracts and current contract verifiers; some audit assumptions were stale."
+      - "Live repo also confirmed several Phase 1 findings that were repaired in this pass."
+      - "Node/npm used by this shell are outside package engines; npm ci emitted EBADENGINE."
+  findings:
+    - id: AUDIT-001
+      source_status: confirmed
+      severity: high
+      category: dev-routing
+      files_checked: [vite.config.ts, server.ts, src/services/desktopBridge.ts, README.md, docs/DEVELOPMENT/building.md, docs/FAQ.md]
+      files_changed: [vite.config.ts, README.md, docs/DEVELOPMENT/building.md, docs/FAQ.md]
+      proof:
+        evidence_before: ["vite.config.ts had no /api proxy while dev:web was standalone Vite."]
+        implementation_notes: ["Added Vite /api proxy to VITE_API_PROXY_TARGET or http://127.0.0.1:3000; corrected dev-mode docs."]
+        tests_added_or_updated: []
+        verification_commands: ["npm run typecheck", "npm run lint:eslint", "npm run build"]
+        verification_result: pass
+      residual_risk: "Did not run live npm run dev plus curl smoke in this turn."
+    - id: AUDIT-002
+      source_status: needs-human-review
+      severity: medium
+      category: web-key-state
+      files_checked: [src/services/desktopBridge.ts, src/services/desktopBridge.test.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited line-by-line in this pass."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Needs focused web reload/key-state verification."
+    - id: AUDIT-003
+      source_status: resolved
+      severity: high
+      category: jina-web-credentials
+      files_checked: [server.ts, src/services/desktopBridge.ts, README.md]
+      files_changed: []
+      proof:
+        evidence_before: ["server.ts drops renderer Authorization/x-jina-api-key and attaches Jina key server-side."]
+        implementation_notes: ["Existing implementation matched the server-side credential model."]
+        tests_added_or_updated: []
+        verification_commands: ["npm run verify:network-boundaries", "npm run verify:contracts"]
+        verification_result: pass
+      residual_risk: "No live Jina credential smoke was run."
+    - id: AUDIT-004
+      source_status: confirmed
+      severity: high
+      category: secure-store
+      files_checked: [electron/services/secureStore.ts, electron/services/secureStore.test.ts]
+      files_changed: [electron/services/secureStore.ts, electron/services/secureStore.test.ts]
+      proof:
+        evidence_before: ["getApiKey/getJinaApiKey returned Linux plaintext fallback without checking VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE."]
+        implementation_notes: ["Read paths now fail closed unless the fallback flag is enabled; Win/mac remain blocked."]
+        tests_added_or_updated: ["electron/services/secureStore.test.ts plaintext Venice/Jina read regression"]
+        verification_commands: ["npm run test -- electron/services/secureStore.test.ts"]
+        verification_result: pass
+      residual_risk: "Linux plaintext-allowed branch was asserted conditionally but not executed on a Linux host."
+    - id: AUDIT-005
+      source_status: needs-human-review
+      severity: medium
+      category: settings-schema
+      files_checked: [src/shared/configSchema.ts, src/stores/settings-store.ts]
+      files_changed: []
+      proof: { evidence_before: ["Covered indirectly by typecheck and verify:contracts, not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run typecheck"], verification_result: pass }
+      residual_risk: "Needs dedicated schema/store partialization audit."
+    - id: AUDIT-006
+      source_status: needs-human-review
+      severity: medium
+      category: keyboard-shortcuts
+      files_checked: [src/App.tsx, src/config/tabs.ts, src/components/layout/sidebar.tsx]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Shortcut/editable-target behavior needs focused UI tests."
+    - id: AUDIT-007
+      source_status: confirmed
+      severity: high
+      category: native-prompts
+      files_checked: [src/components/layout/sidebar.tsx, src/components/command-palette/CommandPalette.tsx]
+      files_changed: []
+      proof: { evidence_before: ["Final grep found prompt()/confirm() in production src files."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["rg -n \"prompt\\\\(|confirm\\\\(\" src"], verification_result: fail }
+      residual_risk: "Blocking production UI cleanup remains."
+    - id: AUDIT-008
+      source_status: needs-human-review
+      severity: medium
+      category: aria-semantics
+      files_checked: [src/components/layout/sidebar.tsx, src/components/command-palette/CommandPalette.tsx]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Needs focused accessibility keyboard-model audit."
+    - id: AUDIT-009
+      source_status: resolved
+      severity: medium
+      category: theme-token
+      files_checked: [scripts/verify-theme-tokens.cjs, src/styles/components.css, src/main.tsx, electron/main.ts]
+      files_changed: []
+      proof: { evidence_before: ["Theme token verifier passed."], implementation_notes: ["No source changes in this pass."], tests_added_or_updated: [], verification_commands: ["node scripts/verify-theme-tokens.cjs"], verification_result: pass }
+      residual_risk: "Final grep still reports fixed inline fallback colors in crash UI; verifier allows current policy."
+    - id: AUDIT-010
+      source_status: resolved
+      severity: medium
+      category: theme-token
+      files_checked: [scripts/verify-theme-tokens.cjs]
+      files_changed: []
+      proof: { evidence_before: ["verify:theme-tokens scanned 98 files and passed."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["node scripts/verify-theme-tokens.cjs"], verification_result: pass }
+      residual_risk: "No additional manual visual QA."
+    - id: AUDIT-011
+      source_status: needs-human-review
+      severity: low
+      category: docs-hygiene
+      files_checked: [README.md, docs]
+      files_changed: []
+      proof: { evidence_before: ["Not fully re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run verify:markdown-links"], verification_result: pass }
+      residual_risk: "Docs grep still returns historical docs references."
+    - id: AUDIT-012
+      source_status: needs-human-review
+      severity: low
+      category: docs-hygiene
+      files_checked: [README.md, docs]
+      files_changed: []
+      proof: { evidence_before: ["Not fully re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run verify:markdown-links"], verification_result: pass }
+      residual_risk: "Historical archive banner policy not fully normalized."
+    - id: AUDIT-013
+      source_status: needs-human-review
+      severity: low
+      category: docs-hygiene
+      files_checked: [README.md, docs, package.json]
+      files_changed: []
+      proof: { evidence_before: ["Not fully re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run verify:agent-docs"], verification_result: pass }
+      residual_risk: "Docs consistency grep remains noisy due historical audit files."
+    - id: AUDIT-014
+      source_status: needs-human-review
+      severity: low
+      category: docs-hygiene
+      files_checked: [README.md, docs]
+      files_changed: []
+      proof: { evidence_before: ["Not fully re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run verify:agent-docs"], verification_result: pass }
+      residual_risk: "Historical docs cleanup remains broader than this pass."
+    - id: AUDIT-015
+      source_status: needs-human-review
+      severity: low
+      category: docs-hygiene
+      files_checked: [docs, package.json]
+      files_changed: []
+      proof: { evidence_before: ["Not fully re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Needs dedicated stale-doc pass."
+    - id: AUDIT-016
+      source_status: needs-human-review
+      severity: medium
+      category: character-image-cache
+      files_checked: [src/hooks/useCharacterImage.ts, electron/services/characterImageCache.ts]
+      files_changed: []
+      proof: { evidence_before: ["Cache byte validation was fixed under AUDIT-054; hook churn/orphan inventory not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run test -- electron/services/characterImageCache.test.ts"], verification_result: pass }
+      residual_risk: "Hook dependency/orphan cleanup remains."
+    - id: AUDIT-017
+      source_status: needs-human-review
+      severity: low
+      category: docs-hygiene
+      files_checked: [docs]
+      files_changed: []
+      proof: { evidence_before: ["Not fully re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Needs stale-doc pass."
+    - id: AUDIT-018
+      source_status: needs-human-review
+      severity: low
+      category: docs-hygiene
+      files_checked: [docs]
+      files_changed: []
+      proof: { evidence_before: ["Not fully re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Needs stale-doc pass."
+    - id: AUDIT-019
+      source_status: needs-human-review
+      severity: low
+      category: docs-hygiene
+      files_checked: [docs]
+      files_changed: []
+      proof: { evidence_before: ["Not fully re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Needs stale-doc pass."
+    - id: AUDIT-020
+      source_status: resolved
+      severity: medium
+      category: storage-policy
+      files_checked: [scripts/verify-storage-policy.cjs, public/bootstrap-theme.js, src]
+      files_changed: []
+      proof: { evidence_before: ["Storage policy verifier passed."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["node scripts/verify-storage-policy.cjs"], verification_result: pass }
+      residual_risk: "No source changes in this pass."
+    - id: AUDIT-021
+      source_status: resolved
+      severity: medium
+      category: storage-policy
+      files_checked: [scripts/verify-storage-policy.cjs]
+      files_changed: []
+      proof: { evidence_before: ["Storage policy verifier passed."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["node scripts/verify-storage-policy.cjs"], verification_result: pass }
+      residual_risk: "No source changes in this pass."
+    - id: AUDIT-022
+      source_status: needs-human-review
+      severity: medium
+      category: theme-lifecycle
+      files_checked: [src/hooks/useThemeLifecycle.ts, src/App.tsx]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Dead-hook decision still needs focused review."
+    - id: AUDIT-023
+      source_status: resolved
+      severity: medium
+      category: theme-token
+      files_checked: [scripts/verify-theme-tokens.cjs]
+      files_changed: []
+      proof: { evidence_before: ["Theme verifier passed."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["node scripts/verify-theme-tokens.cjs"], verification_result: pass }
+      residual_risk: "No visual QA."
+    - id: AUDIT-024
+      source_status: confirmed
+      severity: high
+      category: character-share-url
+      files_checked: [src/services/characterService.ts, src/components/CharactersView.tsx, src/services/characterService.test.ts]
+      files_changed: [src/services/characterService.ts, src/services/characterService.test.ts]
+      proof:
+        evidence_before: ["normalizeCharacter passed raw shareUrl through to CharactersView href."]
+        implementation_notes: ["Added resolveCharacterShareUrl and normalize invalid values to undefined."]
+        tests_added_or_updated: ["Unsafe javascript/data/file/http/unknown-host shareUrl cases; valid Venice link case."]
+        verification_commands: ["npm run test -- src/services/characterService.test.ts"]
+        verification_result: pass
+      residual_risk: "Allowlist intentionally limited to venice.ai/www.venice.ai character paths."
+    - id: AUDIT-025
+      source_status: resolved
+      severity: medium
+      category: theme-token
+      files_checked: [scripts/verify-theme-tokens.cjs]
+      files_changed: []
+      proof: { evidence_before: ["Theme verifier passed."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["node scripts/verify-theme-tokens.cjs"], verification_result: pass }
+      residual_risk: "No visual QA."
+    - id: AUDIT-026
+      source_status: needs-human-review
+      severity: medium
+      category: settings-schema
+      files_checked: [src/shared/configSchema.ts, src/stores/settings-store.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run typecheck"], verification_result: pass }
+      residual_risk: "Schema/store coverage needs focused audit."
+    - id: AUDIT-027
+      source_status: needs-human-review
+      severity: medium
+      category: rp-avatar
+      files_checked: [src/services/rp/characterCardService.ts, src/types/rp.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run verify:rp-studio-polish"], verification_result: pass }
+      residual_risk: "Avatar base64/max-size service enforcement needs focused review."
+    - id: AUDIT-028
+      source_status: needs-human-review
+      severity: medium
+      category: rp-avatar
+      files_checked: [src/services/rp/characterCardService.ts, src/types/rp.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run verify:rp-studio-polish"], verification_result: pass }
+      residual_risk: "Avatar import validation needs focused review."
+    - id: AUDIT-029
+      source_status: needs-human-review
+      severity: medium
+      category: keyboard-shortcuts
+      files_checked: [src/App.tsx, src/config/tabs.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Shortcut hint/implementation parity needs focused tests."
+    - id: AUDIT-030
+      source_status: resolved
+      severity: medium
+      category: storage-policy
+      files_checked: [scripts/verify-storage-policy.cjs, public/bootstrap-theme.js]
+      files_changed: []
+      proof: { evidence_before: ["Storage policy verifier passed."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["node scripts/verify-storage-policy.cjs"], verification_result: pass }
+      residual_risk: "No source changes in this pass."
+    - id: AUDIT-031
+      source_status: needs-human-review
+      severity: medium
+      category: theme-lifecycle
+      files_checked: [src/hooks/useThemeLifecycle.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Dead hook decision remains."
+    - id: AUDIT-032
+      source_status: confirmed
+      severity: high
+      category: media-write-validation
+      files_checked: [electron/services/mediaService.ts, electron/services/mediaService.test.ts, scripts/verify-image-policy.cjs]
+      files_changed: [electron/services/mediaService.ts, electron/services/mediaService.test.ts]
+      proof:
+        evidence_before: ["exportMedia stripped data URL prefix and wrote Buffer.from(raw, base64) without magic/extension agreement."]
+        implementation_notes: ["Added strict base64, data URL MIME, magic-byte, extension, and decoded-size validation."]
+        tests_added_or_updated: ["Reject arbitrary bytes renamed .png; reject MIME/extension mismatches; reject video data URL."]
+        verification_commands: ["npm run test -- electron/services/mediaService.test.ts", "npm run verify:image-policy"]
+        verification_result: pass
+      residual_risk: "Verifier script was not extended to inspect every IPC write boundary."
+    - id: AUDIT-033
+      source_status: confirmed
+      severity: high
+      category: media-write-validation
+      files_checked: [electron/services/mediaService.ts]
+      files_changed: [electron/services/mediaService.ts, electron/services/mediaService.test.ts]
+      proof: { evidence_before: ["Image export accepted arbitrary base64."], implementation_notes: ["Now image-only validated; video data URLs rejected."], tests_added_or_updated: ["mediaService export rejection tests"], verification_commands: ["npm run test -- electron/services/mediaService.test.ts"], verification_result: pass }
+      residual_risk: "No separately named video export path was added."
+    - id: AUDIT-034
+      source_status: needs-human-review
+      severity: medium
+      category: media-safe-dir
+      files_checked: [electron/services/mediaService.ts]
+      files_changed: []
+      proof: { evidence_before: ["revealSafeBaseDirs still includes Documents/Downloads; not changed in this pass."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Safe reveal/import directory policy still needs a separate decision."
+    - id: AUDIT-035
+      source_status: resolved
+      severity: medium
+      category: thumbnail-contract
+      files_checked: [electron/services/mediaService.ts, electron/services/mediaService.test.ts]
+      files_changed: []
+      proof: { evidence_before: ["Desktop thumbnail path documents PNG decoder with renderer fallback for JPEG/WebP."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run test -- electron/services/mediaService.test.ts"], verification_result: pass }
+      residual_risk: "No new decoder support added."
+    - id: AUDIT-036
+      source_status: needs-human-review
+      severity: medium
+      category: sse-robustness
+      files_checked: [src/services/veniceClient.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Streaming content-type/parse error behavior needs focused review."
+    - id: AUDIT-037
+      source_status: needs-human-review
+      severity: medium
+      category: sse-robustness
+      files_checked: [src/services/veniceClient.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Malformed SSE JSON behavior needs focused tests."
+    - id: AUDIT-038
+      source_status: needs-human-review
+      severity: medium
+      category: chat-attachments
+      files_checked: [src/components/chat/chat-input.tsx, src/components/chat/message-bubble.tsx]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Attachment paste/drop and source allowlist need focused UI tests."
+    - id: AUDIT-039
+      source_status: needs-human-review
+      severity: medium
+      category: chat-attachments
+      files_checked: [src/components/chat/chat-input.tsx, src/components/chat/message-bubble.tsx]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "File input reset behavior needs focused review."
+    - id: AUDIT-040
+      source_status: confirmed
+      severity: high
+      category: jina-ipc-headers
+      files_checked: [electron/ipc/handlers.ts, electron/ipc/handlers.test.ts, server.ts]
+      files_changed: [electron/ipc/handlers.ts, electron/ipc/handlers.test.ts]
+      proof:
+        evidence_before: ["Electron Jina IPC forwarded all renderer string headers except Authorization."]
+        implementation_notes: ["Added Electron Jina positive allowlist and blocklist aligned with web proxy before adding server-side Jina key."]
+        tests_added_or_updated: ["Electron Jina header sanitization regression."]
+        verification_commands: ["npm run test -- electron/ipc/handlers.test.ts", "npm run verify:network-boundaries"]
+        verification_result: pass
+      residual_risk: "Shared server/Electron sanitizer extraction was not done."
+    - id: AUDIT-041
+      source_status: resolved
+      severity: high
+      category: renderer-file-write
+      files_checked: [electron/ipc/handlers.ts, electron/services/configService.ts]
+      files_changed: []
+      proof: { evidence_before: ["Existing tests/mock show dialog.showSaveDialog path for config template export."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run test -- electron/ipc/handlers.test.ts"], verification_result: pass }
+      residual_risk: "configService test was not run separately in this pass."
+    - id: AUDIT-042
+      source_status: resolved
+      severity: medium
+      category: verifier-drift
+      files_checked: [scripts/verify-network-boundaries.cjs]
+      files_changed: []
+      proof: { evidence_before: ["Network boundary verifier passed."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["node scripts/verify-network-boundaries.cjs"], verification_result: pass }
+      residual_risk: "No source changes in this pass."
+    - id: AUDIT-043
+      source_status: resolved
+      severity: medium
+      category: verifier-drift
+      files_checked: [scripts/verify-ci-contract.cjs, package.json, .github/workflows]
+      files_changed: []
+      proof: { evidence_before: ["CI contract verifier passed and includes verify:image-policy/verify:work-orders via aggregate verify:contracts."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["node scripts/verify-ci-contract.cjs"], verification_result: pass }
+      residual_risk: "No source changes in this pass."
+    - id: AUDIT-044
+      source_status: resolved
+      severity: medium
+      category: verifier-drift
+      files_checked: [scripts/verify-work-orders.cjs]
+      files_changed: []
+      proof: { evidence_before: ["Work-order verifier passed."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["node scripts/verify-work-orders.cjs"], verification_result: pass }
+      residual_risk: "No source changes in this pass."
+    - id: AUDIT-045
+      source_status: resolved
+      severity: high
+      category: release-artifacts
+      files_checked: [.github/workflows/release.yml, scripts/checksum-release.cjs, scripts/verify-dist.cjs]
+      files_changed: []
+      proof: { evidence_before: ["Release packaging hardening verifier passed."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run verify:release-packaging-hardening", "npm run verify:dist"], verification_result: pass }
+      residual_risk: "No package artifact publish dry-run."
+    - id: AUDIT-046
+      source_status: needs-human-review
+      severity: medium
+      category: server-cleanup
+      files_checked: [server.ts, server.test.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Rate-limiter cleanup handle ownership needs focused review."
+    - id: AUDIT-047
+      source_status: needs-human-review
+      severity: low
+      category: docs-ledger
+      files_checked: [docs/summary_of_work.md, docs/audits/summary_of_work.md, scripts/verify-agent-docs.cjs]
+      files_changed: []
+      proof: { evidence_before: ["verify:agent-docs passes but historical docs/audits/summary_of_work.md still exists."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["node scripts/verify-agent-docs.cjs"], verification_result: pass }
+      residual_risk: "Historical summary relocation/banner cleanup remains."
+    - id: AUDIT-048
+      source_status: confirmed
+      severity: high
+      category: media-write-validation
+      files_checked: [electron/services/mediaService.ts]
+      files_changed: [electron/services/mediaService.ts, electron/services/mediaService.test.ts]
+      proof: { evidence_before: ["Image export trusted filename/base64 too much."], implementation_notes: ["Added decoded image validation before write."], tests_added_or_updated: ["mediaService export validation tests"], verification_commands: ["npm run test -- electron/services/mediaService.test.ts"], verification_result: pass }
+      residual_risk: "Static verifier not expanded for every IPC write boundary."
+    - id: AUDIT-049
+      source_status: needs-human-review
+      severity: medium
+      category: web-import-export
+      files_checked: [src/services/desktopBridge.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Web FileReader size/MIME checks need focused review."
+    - id: AUDIT-050
+      source_status: needs-human-review
+      severity: medium
+      category: web-import-export
+      files_checked: [src/services/desktopBridge.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Export Blob MIME derivation needs focused review."
+    - id: AUDIT-051
+      source_status: needs-human-review
+      severity: medium
+      category: web-import-export
+      files_checked: [src/services/desktopBridge.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Web fallback saveRoutedImage href/name validation needs focused review."
+    - id: AUDIT-052
+      source_status: needs-human-review
+      severity: medium
+      category: character-image-cache
+      files_checked: [electron/services/characterImageCache.ts]
+      files_changed: []
+      proof: { evidence_before: ["Byte validation fixed under AUDIT-054; stale cache file existence not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run test -- electron/services/characterImageCache.test.ts"], verification_result: pass }
+      residual_risk: "Stale cache URL readability check needs focused review."
+    - id: AUDIT-053
+      source_status: needs-human-review
+      severity: medium
+      category: character-image-cache
+      files_checked: [electron/services/characterImageCache.ts]
+      files_changed: []
+      proof: { evidence_before: ["Orphan inventory/clear was not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run test -- electron/services/characterImageCache.test.ts"], verification_result: pass }
+      residual_risk: "Orphan .bin/.tmp cleanup needs focused review."
+    - id: AUDIT-054
+      source_status: confirmed
+      severity: high
+      category: character-image-cache
+      files_checked: [electron/services/characterImageCache.ts, electron/services/characterImageCache.test.ts]
+      files_changed: [electron/services/characterImageCache.ts, electron/services/characterImageCache.test.ts]
+      proof:
+        evidence_before: ["fetchImage accepted allowed Content-Type without checking downloaded bytes."]
+        implementation_notes: ["Added PNG/JPEG/WebP/AVIF signature checks after bounded read."]
+        tests_added_or_updated: ["Reject HTML bytes served as image/png; updated valid fixtures to carry image signatures."]
+        verification_commands: ["npm run test -- electron/services/characterImageCache.test.ts"]
+        verification_result: pass
+      residual_risk: "AVIF validation is signature-level, not full decode."
+    - id: AUDIT-055
+      source_status: needs-human-review
+      severity: medium
+      category: settings-copy
+      files_checked: [src/components/SettingsView.tsx, src/stores/auth-store.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Mode-specific credential copy and state refresh need focused UI tests."
+    - id: AUDIT-056
+      source_status: needs-human-review
+      severity: medium
+      category: jina-state
+      files_checked: [src/components/SettingsView.tsx, src/stores/auth-store.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Settings/auth Jina state path needs focused review."
+    - id: AUDIT-057
+      source_status: resolved
+      severity: medium
+      category: external-url
+      files_checked: [electron/utils/urlSecurity.ts, electron/main.ts]
+      files_changed: []
+      proof: { evidence_before: ["urlSecurity.ts explicitly documents pure hostname parsing and no DNS resolution."], implementation_notes: ["Audit allowed either DNS resolution or weaker documented claim; current docs/code use weaker claim."], tests_added_or_updated: [], verification_commands: ["npm run test:coverage"], verification_result: pass }
+      residual_risk: "DNS rebinding/private-resolution risk remains accepted by current implementation."
+    - id: AUDIT-058
+      source_status: needs-human-review
+      severity: medium
+      category: headless-bridge
+      files_checked: [electron/main.ts, electron/preload.ts, docs]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Headless bridge credential UX/threat model needs focused review."
+    - id: AUDIT-059
+      source_status: needs-human-review
+      severity: high
+      category: workflow-media-output
+      files_checked: [src/components/workflows/workflow-node.tsx, src/lib/workflow-engine.ts, src/types/workflow.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run verify:workflow-templates"], verification_result: pass }
+      residual_risk: "Sentinel-string media rendering needs focused source/test review."
+    - id: AUDIT-060
+      source_status: needs-human-review
+      severity: high
+      category: media-response-memory
+      files_checked: [src/services/veniceClient.ts, electron/main.ts, server.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Provider media response size/CSP model needs focused review."
+    - id: AUDIT-061
+      source_status: needs-human-review
+      severity: medium
+      category: media-safe-dir
+      files_checked: [electron/services/mediaService.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited beyond write validation."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run test -- electron/services/mediaService.test.ts"], verification_result: pass }
+      residual_risk: "Reveal/import safe directory drift remains."
+    - id: AUDIT-062
+      source_status: needs-human-review
+      severity: low
+      category: docs-ledger
+      files_checked: [docs, AGENTS.md, .github/copilot-instructions.md]
+      files_changed: []
+      proof: { evidence_before: ["verify:agent-docs passes."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["node scripts/verify-agent-docs.cjs"], verification_result: pass }
+      residual_risk: "Historical summary cleanup remains."
+    - id: AUDIT-063
+      source_status: needs-human-review
+      severity: high
+      category: csp-media
+      files_checked: [electron/main.ts, server.ts, src]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "CSP media-src alignment needs focused review."
+    - id: AUDIT-064
+      source_status: needs-human-review
+      severity: high
+      category: agent-docs
+      files_checked: [AGENTS.md, .github/copilot-instructions.md, scripts/verify-agent-docs.cjs]
+      files_changed: []
+      proof: { evidence_before: ["verify:agent-docs passes, but docs/audits/summary_of_work.md still exists."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["node scripts/verify-agent-docs.cjs"], verification_result: pass }
+      residual_risk: "Exactly-one-summary cleanup not completed."
+    - id: AUDIT-065
+      source_status: needs-human-review
+      severity: low
+      category: docs-ledger
+      files_checked: [docs, AGENTS.md]
+      files_changed: []
+      proof: { evidence_before: ["verify:agent-docs passes."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["node scripts/verify-agent-docs.cjs"], verification_result: pass }
+      residual_risk: "Contradictory historical docs still need archival pass."
+    - id: AUDIT-066
+      source_status: needs-human-review
+      severity: low
+      category: dead-hooks
+      files_checked: [src/hooks/useSettingsPersistence.ts, src/hooks/use-model-catalog-mock.ts, src/hooks/use-models-mock.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run typecheck"], verification_result: pass }
+      residual_risk: "Dead/mock hook deletion needs focused review."
+    - id: AUDIT-067
+      source_status: needs-human-review
+      severity: low
+      category: dead-hooks
+      files_checked: [src/hooks/use-model-catalog-mock.ts, src/hooks/use-models-mock.ts]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run typecheck"], verification_result: pass }
+      residual_risk: "Mock hook production placement needs focused review."
+    - id: AUDIT-068
+      source_status: resolved
+      severity: high
+      category: memory-chat-send
+      files_checked: [src/hooks/use-chat.ts]
+      files_changed: []
+      proof: { evidence_before: ["Coverage suite includes use-chat tests and passed; hook code was not changed in this pass."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run test:coverage"], verification_result: pass }
+      residual_risk: "Focused use-chat test command was not run separately."
+    - id: AUDIT-069
+      source_status: confirmed
+      severity: high
+      category: native-prompts
+      files_checked: [src/components/layout/sidebar.tsx, src/components/command-palette/CommandPalette.tsx]
+      files_changed: []
+      proof: { evidence_before: ["Final grep found native prompt()/confirm() production calls."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["rg -n \"prompt\\\\(|confirm\\\\(\" src"], verification_result: fail }
+      residual_risk: "Blocking modal replacement work remains."
+    - id: AUDIT-070
+      source_status: needs-human-review
+      severity: medium
+      category: project-store
+      files_checked: [src/stores/project-store.ts, src/components/layout/sidebar.tsx]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run test:coverage"], verification_result: pass }
+      residual_risk: "Initial activeProjectId invariant needs focused review."
+    - id: AUDIT-071
+      source_status: needs-human-review
+      severity: medium
+      category: chat-attachments
+      files_checked: [src/components/chat/message-bubble.tsx]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "Attachment source allowlist/CSP alignment needs focused review."
+    - id: AUDIT-072
+      source_status: needs-human-review
+      severity: medium
+      category: aria-semantics
+      files_checked: [src/components/command-palette/CommandPalette.tsx, src/components/layout/sidebar.tsx]
+      files_changed: []
+      proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
+      residual_risk: "ARIA role/key behavior needs focused review."
+  stale_docs:
+    archived: []
+    deleted: []
+    rewritten: [README.md, docs/DEVELOPMENT/building.md, docs/FAQ.md]
+  final_gate:
+    pass: false
+    commands_run:
+      - "npm ci: pass with EBADENGINE warning under Node v26.3.0/npm 11.16.0"
+      - "npm audit --omit=dev --audit-level=moderate: fail, js-yaml moderate advisory"
+      - "npm run lint:eslint: pass"
+      - "npm run typecheck: pass"
+      - "npm run test:coverage: pass, 2604 passed / 1 skipped"
+      - "npm run build: pass"
+      - "npm run verify:contracts: pass"
+      - "npm run verify:dist: pass"
+      - "node scripts/verify-image-policy.cjs: pass"
+      - "node scripts/verify-network-boundaries.cjs: pass"
+      - "node scripts/verify-ci-contract.cjs: pass"
+      - "node scripts/verify-work-orders.cjs: pass"
+      - "node scripts/verify-agent-docs.cjs: pass"
+      - "node scripts/verify-storage-policy.cjs: pass"
+      - "node scripts/verify-theme-tokens.cjs: pass"
+      - "npm run test -- electron/services/secureStore.test.ts src/services/characterService.test.ts electron/ipc/handlers.test.ts electron/services/mediaService.test.ts electron/services/characterImageCache.test.ts: pass, 94 passed"
+    failures:
+      - "npm audit --omit=dev --audit-level=moderate fails on GHSA-h67p-54hq-rp68 in js-yaml <=4.1.1."
+      - "rg -n \"prompt\\(|confirm\\(\" src still finds production native prompt/confirm call sites."

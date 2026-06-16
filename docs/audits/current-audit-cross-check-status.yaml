@@ -1,0 +1,20 @@
+baseline:
+  branch: main
+  head: b6337fc239fd2929564b0582c967ab37a3ebe8c3
+  node: v26.3.0
+  npm: 11.16.0
+  package_version: 2.0.0
+  scripts:
+    dev: 'concurrently -n server,vite -c green,cyan "npm run dev:server" "npm run dev:web"'
+    dev_web: vite
+    dev_electron: 'npm run build:electron && concurrently -n vite,electron -c cyan,yellow "vite" "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron ."'
+    ci: 'npm run lint:eslint && npm run typecheck && npm test && npm audit --omit=dev --audit-level=moderate && npm run verify:safety-guard && npm run verify:markdown-links && npm run verify:contracts && npm run build && npm run verify:dist'
+    verify_contracts: 'npm run verify:safety-guard && npm run verify:markdown-links && npm run verify:theme-tokens && npm run verify:model-aware-recipes && npm run verify:media-studio-power-tools && npm run verify:status-diagnostics && npm run verify:prompt-library && npm run verify:scene-composer && npm run verify:rp-studio-polish && npm run verify:workflow-templates && npm run verify:storage-privacy && npm run verify:storage-policy && npm run verify:research-workspace && npm run verify:network-boundaries && npm run verify:release-packaging-hardening && npm run verify:ci-contract && npm run verify:agent-docs && npm run verify:image-policy && npm run verify:work-orders'
+  audit_tree_match:
+    status: partial
+    notes:
+      - "The current repo already has verify:contracts, verify:image-policy, verify:network-boundaries, verify:work-orders, and verify:agent-docs."
+      - "The attached audit was partially stale against existing contract verifiers, but several high-risk findings were confirmed in live source."
+      - "The active shell is Node 26/npm 11, outside the project engine range. npm ci succeeded with EBADENGINE warnings."
+      - "npm audit --omit=dev --audit-level=moderate fails on a moderate js-yaml advisory."
+      - "Final grep still finds production prompt()/confirm() calls; those are recorded as residual confirmed work."

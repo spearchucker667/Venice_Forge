@@ -478,6 +478,40 @@ describe("registerIpcHandlers", () => {
       expect(result.error).toMatch(/family safe mode/i);
     });
 
+    it("drops unsafe renderer-supplied Jina headers and keeps only allowlisted forwarding headers", async () => {
+      const { getRuntimeLocalFamilySafeModeEnabled } = await import("../services/runtimeSafetySettings");
+      vi.mocked(getRuntimeLocalFamilySafeModeEnabled).mockReturnValue(false);
+      globalThis.fetch = vi.fn(async () =>
+        new Response("ok", { status: 200, headers: { "content-type": "text/plain" } }),
+      ) as unknown as typeof globalThis.fetch;
+
+      const handler = capturedHandlers.get("jina:request");
+      const result = await handler!(
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        {
+          url: "https://r.jina.ai/https://example.com",
+          headers: {
+            Authorization: "Bearer renderer-secret",
+            "x-jina-api-key": "renderer-secret",
+            Cookie: "sid=1",
+            Host: "internal",
+            Referer: "https://evil.example",
+            "X-Forwarded-For": "127.0.0.1",
+            Accept: "text/plain",
+            "X-Return-Format": "markdown",
+          },
+          timeoutMs: 5000,
+        },
+      );
+
+      expect(result).toMatchObject({ ok: true, status: 200 });
+      const [, init] = vi.mocked(globalThis.fetch).mock.calls[0] as [string, RequestInit];
+      expect(init.headers).toEqual({
+        accept: "text/plain",
+        "x-return-format": "markdown",
+      });
+    });
+
     it("does NOT return the raw blocked body to the renderer", async () => {
       globalThis.fetch = vi.fn(async () =>
         new Response(
