@@ -1,3 +1,11 @@
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/branding/venice-logo-lockup-white.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="assets/branding/venice-logo-lockup-black.svg" />
+    <img src="assets/branding/venice-logo-lockup-black.svg" alt="Venice Forge" width="420" />
+  </picture>
+</div>
+
 # Venice Forge
 
 <p align="center">

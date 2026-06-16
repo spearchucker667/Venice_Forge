@@ -69,5 +69,5 @@ jobs:
         run: npm run verify:contracts
       - name: Build
         run: npm run build
-      - name: Verify Windows output
-        run: npm run verify:dist:win
+      - name: Verify build output
+        run: npm run verify:dist

@@ -108,7 +108,9 @@ oversized views (`SettingsView`, `media-inspector`, `CommandPalette`,
 `image-view`) also remains.
 
 ### Latest Session Summary
-- **Work Order Completed:** Systematically audited and added Google-style docstrings across the codebase. Reached global test coverage heights of ~74%, replacing low-coverage modules with high-coverage tests, and locked in the metrics in `vitest.config.ts`. Swapped out the README.md banner for a new dynamically generated creative workspace visual. Created the final audit report at `docs/audits/docstrings-and-coverage-final.md`. Fixed failing CI workflows by completing the remaining linting and typing issues, successfully running full release parity pipeline (`npm ci`).
+- **Work Order Completed:** Executed WO-VAC-2.0-001. Fixed the Windows CI failure by replacing verify:dist:win with verify:dist. Replaced placeholder app icons with rasterized Venice seal SVGs using librsvg. Added branding banner to README.md.
+
+- **Work Order Completed (Prior):** Systematically audited and added Google-style docstrings across the codebase. Reached global test coverage heights of ~74%, replacing low-coverage modules with high-coverage tests, and locked in the metrics in `vitest.config.ts`. Swapped out the README.md banner for a new dynamically generated creative workspace visual. Created the final audit report at `docs/audits/docstrings-and-coverage-final.md`. Fixed failing CI workflows by completing the remaining linting and typing issues, successfully running full release parity pipeline (`npm ci`).
 
 ### Open TODO Ledger
 - Follow up the remaining `needs-human-review` audit IDs in `docs/audits/agent-repair-status-2026-06-16.yaml`; they were not line-audited in this continuation and are explicitly not claimed closed.
@@ -117,26 +119,23 @@ oversized views (`SettingsView`, `media-inspector`, `CommandPalette`,
 - Route residual unredacted user-facing error surfaces identified in the T-001..T-030 cross-check through `redactErrorMessage` / `sanitizeErrorText` or `toast.fromError`.
 
 ### Validation Matrix
-- `npm ci`: PASS (full release parity).
-- `npx vitest run src/utils/messageContent.test.ts --coverage`: PASS (100% coverage).
-- `npx vitest run src/stores/media-bulk-actions.test.ts --coverage`: PASS (100% coverage).
-- `npx vitest run src/stores/toast-store.test.ts --coverage.enabled --coverage.include=src/stores/toast-store.ts`: PASS (100% coverage).
-- `npx vitest run src/utils/mediaItem.test.ts --coverage`: PASS.
-- `npm run typecheck`: PASS (renderer + electron).
+- `npm run verify:icon`: PASS.
 - `npm run lint:eslint`: PASS (0 warnings).
+- `npm run typecheck`: PASS (renderer + electron).
 - `npm test`: PASS (3,094 passed / 1 skipped).
-- `npm run build`: PASS (dist/ + dist-electron/ + dist/server.cjs).
-- `npm run test:coverage`: PASS.
+- `npm run build`: PASS.
+- `npm run verify:dist`: PASS.
 - `npm run verify:contracts`: PASS.
-- Focused targeted tests:
-  - `npx vitest run src/components/rp-studio/CharacterEditor.test.tsx`: PASS.
-  - `npx vitest run src/stores/chat-store.character.test.ts`: PASS.
-  - `npx vitest run src/hooks/use-chat.test.ts`: PASS.
-  - `npx vitest run src/components/layout/sidebar.test.tsx`: PASS.
-  - `npx vitest run src/components/chat/chat-input.test.tsx`: PASS.
-  - `npx vitest run src/components/chat/chat-view.test.tsx`: PASS.
+- `npm run verify:markdown-links`: PASS.
 
 ### Session History
+
+- **Date:** 2026-06-16 (Branding Refresh, CI Fix, and Release Retag — WO-VAC-2.0-001)
+- **Agent:** Antigravity (Gemini 3.1 Pro)
+- **Branch / state:** `main`; working tree modified.
+- **Summary:** Executed Work Order WO-VAC-2.0-001. Fixed the Windows CI failure in `ci.yml` by correctly replacing `verify:dist:win` with `verify:dist`. Replaced the procedural placeholder app icon with rasterized versions of the Venice red-fill seal SVG using librsvg + iconutil. Added the Venice logo lockup banner to the top of `README.md`.
+- **Files changed:** `.github/workflows/ci.yml`, `scripts/generate-placeholder-icon.cjs`, `build/icon.*`, `README.md`, `docs/summary_of_work.md`.
+- **Validation:** `npm run verify:icon` PASS; `npm test` PASS (3,094 tests); `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS.
 
 - **Date:** 2026-06-16 (CI Fix and Verification)
 - **Agent:** Antigravity (Gemini 3.1 Pro)
