@@ -12,6 +12,8 @@ import { Spinner } from "../ui/spinner";
 import { avatarDataUri, formatRelativeTime, truncate } from "./_shared";
 import type { CharacterCardV1 } from "../../types/rp";
 import { generateId } from "../../services/rp/characterCardService";
+import { startNormalChatForCharacter } from "../../services/rpHelpers";
+import { toast } from "../../stores/toast-store";
 
 const STANDARD_FILTER = [
   { value: "standard", label: "Standard" },
@@ -75,14 +77,19 @@ export function CharacterLibrary({ onEdit }: Props) {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-border">
-        <input
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search characters…"
-          aria-label="Search characters"
-          className="flex-1 min-w-[12rem] bg-surface border border-border rounded-lg px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
-        />
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
+        <div className="flex-1 min-w-[12rem]">
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search characters…"
+            aria-label="Search characters"
+            className="w-full bg-surface border border-border rounded-lg px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
+          />
+          <p className="mt-1 text-[10.5px] text-text-muted">
+            Local characters are stored in Venice Forge only. They are not hosted on Venice.ai.
+          </p>
+        </div>
         <PillGroup
           options={adultFilterOptions.map((o) => ({ value: o.value, label: o.label }))}
           value={adultFilter}
@@ -203,6 +210,20 @@ function CardTile({
       </div>
 
       <div className="flex items-center gap-1.5 mt-auto pt-1">
+        <button
+          type="button"
+          onClick={async () => {
+            const convId = await startNormalChatForCharacter(card.id);
+            if (convId) {
+              toast.success("Chat started", `Opening "${card.name}" in Chat.`);
+            } else {
+              toast.error("Could not start chat", "Please try again.");
+            }
+          }}
+          className="flex-1 text-[12px] py-1.5 rounded-md border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
+        >
+          Chat
+        </button>
         <button
           type="button"
           onClick={onEdit}

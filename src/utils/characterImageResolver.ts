@@ -180,6 +180,8 @@ export function resolveCharacterImageUrl(
 ): string | null {
   if (!character || typeof character !== "object") return null;
   const c = character as Record<string, unknown>;
+  // Local RP characters never resolve through Venice.ai image endpoints.
+  if (c.localCharacterId) return null;
 
   const tryString = (raw: unknown): string | null => {
     if (typeof raw !== "string" || raw.length === 0) return null;

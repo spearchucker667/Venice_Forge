@@ -8,7 +8,8 @@ export type ConversationSource =
   | "cli"
   | "import"
   | "migration"
-  | "character";
+  | "character"
+  | "localCharacter";
 
 export type ConversationRole =
   | "system"
@@ -22,7 +23,10 @@ export type ConversationRole =
  *  chat request. The slug alone is sufficient to re-fetch the canonical
  *  record. */
 export interface ConversationCharacterMeta {
-  slug: string;
+  /** Venice.ai-hosted character slug. Required for hosted characters;
+   *  omitted for local RP characters. */
+  slug?: string;
+  /** Venice.ai character id (hosted) or local character card id. */
   id?: string;
   name: string;
   description?: string;
@@ -31,6 +35,12 @@ export interface ConversationCharacterMeta {
   modelId?: string;
   adult?: boolean;
   webEnabled?: boolean;
+  /** Set when this conversation was started from a local RP character card
+   *  so the app never tries to resolve it through Venice.ai. */
+  localCharacterId?: string;
+  /** Local character system prompt / personality text injected as the
+   *  first system message. */
+  systemPrompt?: string;
 }
 
 export interface ConversationMessage {

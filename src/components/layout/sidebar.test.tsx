@@ -100,6 +100,39 @@ describe('Sidebar controls', () => {
     expect(screen.queryByRole('menu', { name: 'Chat options' })).not.toBeInTheDocument()
   })
 
+  it('collapses and expands the Chat History section with accessible semantics', async () => {
+    useChatStore.setState({
+      conversations: [{
+        id: 'chat-1',
+        title: 'History chat',
+        model: 'test-model',
+        messages: [],
+        createdAt: 1,
+        updatedAt: 1,
+        metadata: { tags: [], pinned: false, archived: false, source: 'chat', messageCount: 0 },
+      }],
+      activeConversationId: null,
+      _hasLoadedHistory: true,
+    })
+
+    render(<Sidebar />)
+    const historyToggle = screen.getByRole('button', { name: 'Collapse History' })
+    expect(historyToggle).toHaveAttribute('aria-expanded', 'true')
+    expect(historyToggle).toHaveAttribute('aria-controls', 'chat-history-list')
+    expect(screen.getByRole('textbox', { name: 'Search conversations' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'History chat' })).toBeInTheDocument()
+
+    await userEvent.click(historyToggle)
+    expect(historyToggle).toHaveAttribute('aria-expanded', 'false')
+    expect(historyToggle).toHaveAttribute('aria-label', 'Expand History')
+    expect(screen.queryByRole('textbox', { name: 'Search conversations' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'History chat' })).not.toBeInTheDocument()
+
+    await userEvent.click(historyToggle)
+    expect(historyToggle).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: 'History chat' })).toBeInTheDocument()
+  })
+
   it('requires confirmation before deleting the active chat from Chat options', async () => {
     useChatStore.getState().createConversation('test-model')
     render(

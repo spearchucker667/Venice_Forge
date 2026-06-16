@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { cn } from '../../lib/utils'
 import { isSupportedImageFile, readImageAttachment } from '../../services/attachmentService'
 import { toast } from '../../stores/toast-store'
+import type { ChatMemoryStatus } from '../../hooks/use-chat'
 
 interface ChatInputProps {
   onSend: (message: string, images?: string[]) => void
@@ -9,9 +10,10 @@ interface ChatInputProps {
   isStreaming: boolean
   disabled?: boolean
   disableImageAttach?: boolean
+  memoryStatus?: ChatMemoryStatus
 }
 
-export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageAttach }: ChatInputProps) {
+export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageAttach, memoryStatus = 'idle' }: ChatInputProps) {
   const [value, setValue] = useState('')
   const [images, setImages] = useState<string[]>([])
   const [dragOver, setDragOver] = useState(false)
@@ -128,7 +130,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
             disabled={disabled}
           />
           <div className="flex items-center justify-between px-3 pb-2.5">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" multiple className="hidden" onChange={(e) => handleImageUpload(e.target.files)} />
               <button
                 onClick={() => fileRef.current?.click()}
@@ -141,6 +143,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
                   <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
                 </svg>
               </button>
+              <MemoryStatusIndicator status={memoryStatus} />
             </div>
             {isStreaming ? (
               <button
@@ -171,6 +174,40 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function MemoryStatusIndicator({ status }: { status: ChatMemoryStatus }) {
+  if (status === 'idle') return null
+  const config: Record<ChatMemoryStatus, { label: string; dot: string; title: string }> = {
+    disabled: {
+      label: 'Memory off',
+      dot: 'bg-text-muted/40',
+      title: 'Memory retrieval is disabled in Settings.',
+    },
+    idle: { label: '', dot: '', title: '' },
+    loading: {
+      label: 'Memory…',
+      dot: 'bg-accent animate-pulse',
+      title: 'Retrieving relevant memory for this message.',
+    },
+    injected: {
+      label: 'Memory active',
+      dot: 'bg-emerald-400',
+      title: 'Relevant memory context will be included with this message.',
+    },
+    failed: {
+      label: 'Memory failed',
+      dot: 'bg-amber-400',
+      title: 'Memory retrieval failed. Your message was sent without memory context.',
+    },
+  }
+  const { label, dot, title } = config[status]
+  return (
+    <div className="flex items-center gap-1.5 text-[11px] text-text-muted" title={title}>
+      <span className={cn('w-1.5 h-1.5 rounded-full', dot)} />
+      <span>{label}</span>
     </div>
   )
 }

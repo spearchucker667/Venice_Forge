@@ -78,7 +78,7 @@ export function RpChatList({ onOpen }: Props) {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-border">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
         <PillGroup
           options={[{ value: "all", label: "All" }, { value: "standard", label: "Standard" }]}
           value={adultFilter}
@@ -312,7 +312,7 @@ export function NewChatDialog({
       className="absolute inset-0 z-30 flex items-center justify-center bg-bg/70 backdrop-blur-sm"
     >
       <div className="w-full max-w-2xl max-h-[85%] flex flex-col bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
-        <div className="flex items-center gap-2 px-5 py-3 border-b border-border">
+        <div className="flex items-center gap-2 px-5 py-3 soft-separator-y mesh-header mesh-surface">
           <h2 className="text-[15px] font-semibold text-text-primary">New RP chat</h2>
           <div className="ml-auto flex items-center gap-2">
             <GhostButton onClick={onClose} disabled={saving}>Cancel</GhostButton>

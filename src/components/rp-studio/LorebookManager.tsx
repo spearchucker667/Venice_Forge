@@ -76,7 +76,7 @@ export function LorebookManager({ disabled = false }: { disabled?: boolean } = {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-border">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
         <input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -214,7 +214,7 @@ export function LorebookEditor({ lorebookId, onClose, disabled = false }: { lore
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+      <div className="flex items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
         <button
           type="button"
           onClick={onClose}

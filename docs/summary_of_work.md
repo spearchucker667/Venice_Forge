@@ -108,52 +108,43 @@ oversized views (`SettingsView`, `media-inspector`, `CommandPalette`,
 `image-view`) also remains.
 
 ### Latest Session Summary
-- **ZIP cross-check P0 repair continuation:** Read the supplied 2026-06-16 ZIP cross-check work order and updated `docs/audits/agent-repair-status-2026-06-16.yaml` for the P0 items repaired in this continuation.
-- **Web credential custody:** Added loopback-only `/api/session-jina-key` GET/POST/DELETE state in `server.ts`; moved web Jina custody to the server process; removed renderer-side Jina `Authorization` injection; and made web Venice `desktopApiKey.isConfigured()` query `/api/session-key`.
-- **Native dialog removal:** Added the shared `ModalRequestHost` plus `askText` / `askDecision`, mounted it in `App`, and replaced all production native browser text/decision dialog flows under `src/`. The exact `rg -n "\bprompt\(|\bconfirm\(" src` check now returns no matches.
-- **Boundary hardening:** Hardened `app:saveRoutedImage` to accept only validated PNG/JPEG/WebP bytes matching the data URL MIME and chosen extension; moved config-template export to a main-process save dialog; and made `use-chat` memory retrieval failure non-blocking.
-- **Audit blocker resolved:** Added an npm override for `js-yaml@4.2.0` and refreshed `package-lock.json`; `npm audit --omit=dev --audit-level=moderate` now passes.
-- **Validation:** `npm run typecheck`, `npm run lint:eslint`, `npm audit --omit=dev --audit-level=moderate`, `node scripts/verify-image-policy.cjs`, focused P0 regressions (160 tests), and the exact native-dialog grep pass. Validation was run under Node `v26.3.0` / npm `11.16.0`, outside the repo's Node 22/npm 10 engine contract; full release parity was not rerun in this continuation.
+- **RP Studio + Chat UI repair work order:** Implemented all six requested fixes:
+  1. **Save button sizing** — `PrimaryButton` `size="sm"` now matches adjacent `GhostButton` height/padding (`px-3 py-1.5 min-w-[72px]`) so the RP Studio editor footer is aligned.
+  2. **Created characters are fully local** — Existing `CharacterCardV1` persistence via `character-card-store` + `characterCardService` is verified and UI copy now clearly labels local characters as stored in Venice Forge, not hosted on Venice.ai. `useCharacterImage` / `resolveCharacterImageUrl` short-circuit for `localCharacterId` to prevent accidental upstream fetches.
+  3. **Chat with local characters** — Added `createLocalCharacterConversation` in `chat-store`, `startNormalChatForCharacter` in `src/services/rpHelpers.ts`, and a "Chat" action in `CharacterEditor` / `CharacterLibrary`. Local character system prompts are injected as conversation-scoped system messages; no `character_slug` is sent to Venice.
+  4. **Sidebar History collapse/expand** — Added independent `historyExpanded` state with accessible toggle (`aria-expanded`, `aria-controls`, `aria-label`) and conditional conversation-list rendering.
+  5. **Smooth mesh overlay** — Replaced hard `border-b border-border` / `border-l border-border` toolbar/panel seams in RP Studio, Chat, Prompt Library, and Media Studio with `soft-separator-y`, `soft-separator-x`, `mesh-surface`, `mesh-header`.
+  6. **Memory UX** — `useChat` now exposes `memoryStatus` (`disabled` | `idle` | `loading` | `injected` | `failed`); retrieval failures continue sending and surface a non-blocking toast plus an inline indicator in `ChatInput`.
+- **Follow-up:** Fixed the global "Enable memory retrieval" toggle so its state is reflected immediately in the chat input indicator (`ChatView` computes an `effectiveMemoryStatus` from the setting + hook status), instead of only updating on the next message send.
 
 ### Open TODO Ledger
-- Rerun full release parity under the required Node 22/npm 10 toolchain after this ZIP cross-check continuation: `npm ci`, `npm run test:coverage`, `npm run verify:contracts`, `npm run build`, and `npm run verify:dist`.
+- Rerun full release parity under the required Node 22/npm 10 toolchain: `npm ci`, `npm run test:coverage`, `npm run verify:contracts`, `npm run build`, and `npm run verify:dist`.
 - Follow up the remaining `needs-human-review` audit IDs in `docs/audits/agent-repair-status-2026-06-16.yaml`; they were not line-audited in this continuation and are explicitly not claimed closed.
 - `docs/audits/combined-todo.yml` findings AUDIT-001..AUDIT-014 are closed and all required verification gates pass. The artifact remains `scan_status: partial_fix` because the full path-order line audit was not completed in this session; update it to `completed` only after the remaining line audit is finished.
 - Add visual snapshots or Playwright screenshots for Characters, Settings, Research, Chat.
 - Route residual unredacted user-facing error surfaces identified in the T-001..T-030 cross-check through `redactErrorMessage` / `sanitizeErrorText` or `toast.fromError`.
 
 ### Validation Matrix
-- Runtime this session: Node `v26.3.0`, npm `11.16.0` (outside project engines; `npm ci` emitted EBADENGINE).
-- `rg -n "\bprompt\(|\bconfirm\(" src`: PASS (no matches).
-- `npm audit --omit=dev --audit-level=moderate`: PASS (`found 0 vulnerabilities`).
-- `npm run test -- src/services/desktopBridge.test.ts server.test.ts electron/ipc/handlers.test.ts src/hooks/use-chat.test.ts src/components/layout/sidebar.test.tsx src/components/command-palette/CommandPalette.test.tsx`: PASS (7 files, 160 tests).
-- `npm run typecheck`: PASS.
-- `npm run lint:eslint`: PASS.
-- `node scripts/verify-image-policy.cjs`: PASS.
-- `npm ci`: PASS with EBADENGINE and allow-scripts warnings.
-- `npm run lint:eslint`: PASS.
-- `npm run typecheck`: PASS.
-- `npm run test -- electron/services/secureStore.test.ts src/services/characterService.test.ts electron/ipc/handlers.test.ts electron/services/mediaService.test.ts electron/services/characterImageCache.test.ts`: PASS (5 files, 94 tests).
-- `npm run test:coverage`: PASS (237 files passed, 1 skipped; 2604 tests passed, 1 skipped; statements 65.52 / branches 57.32 / functions 61.37 / lines 68.91).
-- `npm run verify:contracts`: PASS.
-- `npm run build`: PASS.
-- `npm run verify:dist`: PASS.
-- `node scripts/verify-image-policy.cjs`: PASS.
-- `node scripts/verify-network-boundaries.cjs`: PASS.
-- `node scripts/verify-ci-contract.cjs`: PASS.
-- `node scripts/verify-work-orders.cjs`: PASS after status YAML skip-list update.
-- `node scripts/verify-agent-docs.cjs`: PASS.
-- `node scripts/verify-storage-policy.cjs`: PASS.
-- `node scripts/verify-theme-tokens.cjs`: PASS.
-- Runtime: Node `v22.22.3`, npm `10.9.8` (matches project engines `>=22.13.0 <23`).
-- `npm run lint:eslint`: PASS (zero warnings, `--max-warnings=0`).
-- `npm run typecheck`: PASS (renderer + Electron main).
-- `npm test`: PASS (237 test files passed, 1 skipped; 2596 tests passed, 1 skipped).
-- `npm run verify:contracts`: PASS (all parity gates including `verify:work-orders` after the combined-todo.yml skip was added).
-- `npm run build`: PASS (`dist/`, `dist/server.cjs`, `dist-electron/`).
-- `npm run verify:markdown-links`: PASS (55 Markdown files checked).
-- `npm run verify:agent-docs`: PASS.
-- `npx vitest run scripts/verify-agent-docs.test.ts scripts/verify-safety-guard.test.ts scripts/verify-markdown-links.test.ts`: PASS (36/36).
+- `npm run typecheck`: PASS (renderer + electron).
+- `npm run lint:eslint`: PASS (0 warnings).
+- `npm test`: PASS (2,624 passed / 1 skipped).
+- `npm run build`: PASS (dist/ + dist-electron/ + dist/server.cjs).
+- Focused targeted tests:
+  - `npx vitest run src/components/rp-studio/CharacterEditor.test.tsx`: PASS.
+  - `npx vitest run src/stores/chat-store.character.test.ts`: PASS.
+  - `npx vitest run src/hooks/use-chat.test.ts`: PASS.
+  - `npx vitest run src/components/layout/sidebar.test.tsx`: PASS.
+  - `npx vitest run src/components/chat/chat-input.test.tsx`: PASS.
+  - `npx vitest run src/components/chat/chat-view.test.tsx`: PASS.
+
+### Session History
+
+- **Date:** 2026-06-16 (CI test repairs)
+- **Agent:** Antigravity (Gemini 3.1 Pro)
+- **Branch / state:** `main`; working tree modified.
+- **Summary:** Fixed failing CI workflows caused by incomplete mocking of `askDecision` in `src/components/chat/chat-view.test.tsx` and `src/components/gallery/gallery-view.test.tsx` after the codebase migrated away from native browser dialogs. Tests now correctly mock `askDecision` instead of `window.confirm`.
+- **Files changed:** `src/components/chat/chat-view.test.tsx`, `src/components/gallery/gallery-view.test.tsx`, `docs/summary_of_work.md`.
+- **Validation:** `npm run typecheck` PASS; focused Vitest runs PASS.
 
 - **Date:** 2026-06-16 (ZIP cross-check P0 continuation)
 - **Agent:** Codex
@@ -5876,3 +5867,19 @@ Result:
 | `npm run verify:markdown-links` | PASS | 55 Markdown files checked; no broken links and no retired `src/modules` names outside historical context |
 | `npx eslint scripts/verify-markdown-links.cjs scripts/verify-markdown-links.test.ts --max-warnings=0` | PASS | 0 warnings |
 | `npm run verify:contracts` | FAIL (unrelated pre-existing) | `verify:work-orders` reports schema violations in `docs/audits/combined-todo.yml` (missing `report` object, `items` must be an array). All other contract gates pass, including `verify:markdown-links` and `verify:agent-docs`. The AUDIT-011 / unused-variable blockers noted by the previous combined session are resolved. |
+
+
+- **Date:** 2026-06-16 (RP Studio + Chat UI repair work order)
+- **Agent:** Kimi Code
+- **Branch / state:** `main`; working tree modified.
+- **Summary:** Implemented the six requested RP Studio + Chat UI repairs: (1) aligned RP Studio Save button sizing with adjacent GhostButton; (2) verified and clarified that created characters are fully local (CharacterCardV1 persisted in Venice Forge, not hosted on Venice.ai) and hardened image resolution to avoid accidental upstream fetches; (3) added "Chat" action for local characters that starts a normal chat seeded with the local character system prompt and never sends a `character_slug` to Venice; (4) made the sidebar Chat History section independently collapsible with accessible semantics; (5) replaced hard toolbar/panel border seams across RP Studio, Chat, Prompt Library, and Media Studio with the theme-aware mesh overlay utilities (`soft-separator-y`, `soft-separator-x`, `mesh-surface`, `mesh-header`); (6) reworked chat memory UX to expose `memoryStatus` and continue sending on retrieval failure with a non-blocking toast and inline input indicator.
+- **Files changed (representative):** `src/components/ui/shared.tsx`, `src/components/rp-studio/CharacterEditor.tsx`, `src/components/rp-studio/CharacterLibrary.tsx`, `src/services/rpHelpers.ts`, `src/stores/chat-store.ts`, `src/types/conversationVault.ts`, `src/hooks/use-chat.ts`, `src/hooks/useCharacterImage.ts`, `src/utils/characterImageResolver.ts`, `src/components/chat/chat-view.tsx`, `src/components/chat/chat-input.tsx`, `src/components/layout/sidebar.tsx`, `src/styles/components.css`, `src/components/rp-studio/RpStudioView.tsx`, `src/components/rp-studio/CharacterEditor.tsx`, `src/components/chat/chat-view.tsx`, `src/components/prompts/PromptLibraryView.tsx`, `src/components/gallery/media-inspector.tsx`, `src/components/gallery/gallery-view.tsx`, `src/components/gallery/media-toolbar.tsx`, `src/components/gallery/media-detail-dialog.tsx`, `docs/summary_of_work.md`.
+- **Validation:** `npm run typecheck` PASS; `npm run lint:eslint` PASS (0 warnings); `npm test` PASS (2,565 passed / 1 skipped); `npm run build` PASS; focused targeted tests PASS (`CharacterEditor`, `chat-store.character`, `use-chat`, `sidebar`, `chat-input`).
+
+
+- **Date:** 2026-06-16 (Memory retrieval toggle follow-up)
+- **Agent:** Kimi Code
+- **Branch / state:** `main`; working tree modified.
+- **Summary:** Fixed the global "Enable memory retrieval" toggle so that disabling memory is immediately reflected in the chat input indicator. `ChatView` now computes an `effectiveMemoryStatus` from `useSettingsStore.enableMemoryRetrieval` and the `useChat` hook's `memoryStatus`, passing the combined status to `ChatInput`. This prevents the indicator from appearing stuck or out of sync with the Memory panel toggle. Added a regression test in `src/components/chat/chat-view.test.tsx` asserting that the "Memory off" indicator renders immediately when retrieval is disabled.
+- **Files changed:** `src/components/chat/chat-view.tsx`, `src/components/chat/chat-view.test.tsx`, `docs/summary_of_work.md`.
+- **Validation:** `npm run typecheck` PASS; `npm run lint:eslint` PASS (0 warnings); `npx vitest run src/components/chat/chat-view.test.tsx src/hooks/use-chat.test.ts` PASS; `npm test` PASS (2,624 passed / 1 skipped); `npm run build` PASS.

@@ -29,6 +29,12 @@ import { useMediaStore } from '../../stores/media-store'
 import { GalleryView } from './gallery-view'
 import { useImageWorkspaceStore } from '../../stores/image-workspace-store'
 import { useSettingsStore } from '../../stores/settings-store'
+import { askDecision } from '../ui/modal-requests'
+
+vi.mock('../ui/modal-requests', () => ({
+  askDecision: vi.fn(),
+  askText: vi.fn(),
+}))
 
 const sampleRecord = {
   id: 'image-1',
@@ -105,7 +111,7 @@ describe('MediaStudioView (GalleryView)', () => {
   })
 
   it('deletes an image via deleteMedia and removes it from the visible library', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    vi.mocked(askDecision).mockResolvedValueOnce(true)
     render(<GalleryView />)
     await screen.findByText('Copper city at dusk')
 
@@ -113,7 +119,6 @@ describe('MediaStudioView (GalleryView)', () => {
 
     await waitFor(() => expect(StorageService.deleteMedia).toHaveBeenCalledWith('image-1'))
     await waitFor(() => expect(screen.queryByText('Copper city at dusk')).not.toBeInTheDocument())
-    confirmSpy.mockRestore()
   })
 
   it('does NOT expose window.__veniceMediaDev when DEV mode is off (production)', async () => {

@@ -46,7 +46,11 @@ export function PrimaryButton({ onClick, disabled, loading, children, ariaLabel,
   ariaLabel?: string
   size?: 'sm' | 'md' | 'lg'
 }) {
-  const sizing = size === 'sm' ? 'py-1.5 text-[13px]' : size === 'lg' ? 'py-2.5 text-[15px]' : 'py-2 text-[14px]'
+  const sizing = size === 'sm'
+    ? 'px-3 py-1.5 text-[13px] min-w-[72px]'
+    : size === 'lg'
+    ? 'px-5 py-2.5 text-[15px] min-w-[96px]'
+    : 'px-4 py-2 text-[14px] min-w-[80px]'
   return (
     <button
       type="button"

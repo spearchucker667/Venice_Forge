@@ -1,8 +1,9 @@
-import { useCallback, useRef, useEffect } from 'react'
+import { useCallback, useRef, useEffect, useState } from 'react'
 import { veniceStreamChat } from '../services/veniceClient'
 import { useChatStore } from '../stores/chat-store'
 import { useSettingsStore } from '../stores/settings-store'
 import { useCharacterStore } from '../stores/character-store'
+import { toast } from '../stores/toast-store'
 import { desktopConversations } from '../services/desktopBridge'
 import type { ChatMessage, ContentPart, VeniceParameters } from '../types/venice'
 import type { Conversation } from '../types/conversation'
@@ -36,10 +37,16 @@ async function pullMemoryContextForSend(userMessage: string) {
  *     (used only when starting a brand-new conversation that has not yet
  *     been saved with character metadata).
  *
+ *  Local RP character conversations (see `metadata.character.localCharacterId`)
+ *  never resolve a Venice.ai slug and never fall back to the global selection,
+ *  so the app does not try to fetch a locally created character from Venice.
+ *
  *  This means a character chat always stays bound to the slug it was
  *  started with, even if the user later switches the global selection. */
 function resolveCharacterSlug(conv: Conversation | undefined): string | null {
-  const persisted = conv?.metadata?.character?.slug?.trim();
+  const character = conv?.metadata?.character;
+  if (character?.localCharacterId) return null;
+  const persisted = character?.slug?.trim();
   if (persisted) return persisted;
   const globalSlug = useCharacterStore.getState().selectedCharacterSlug;
   if (globalSlug) return globalSlug.trim();
@@ -71,9 +78,12 @@ function prependInjectedContext(
   )
 }
 
+export type ChatMemoryStatus = 'disabled' | 'idle' | 'loading' | 'injected' | 'failed'
+
 export function useChat() {
   const abortRef = useRef<AbortController | null>(null)
   const sceneAbortRef = useRef<AbortController | null>(null)
+  const [memoryStatus, setMemoryStatus] = useState<ChatMemoryStatus>('idle')
   const addMessage = useChatStore((s) => s.addMessage)
   const appendToLastAssistant = useChatStore((s) => s.appendToLastAssistant)
   const appendReasoningToLastAssistant = useChatStore(
@@ -105,8 +115,11 @@ export function useChat() {
             : m.content;
           return { role: m.role, content };
         })
-      if (systemPrompt.trim()) {
-        requestMessages.unshift({ role: 'system', content: systemPrompt.trim() })
+      // Conversation-scoped system prompt wins (e.g., local RP characters),
+      // falling back to the global chat system prompt.
+      const effectiveSystemPrompt = (conv.systemPrompt ?? systemPrompt).trim();
+      if (effectiveSystemPrompt) {
+        requestMessages.unshift({ role: 'system', content: effectiveSystemPrompt })
       }
 
       // Character slug is conversation-scoped: the persisted character
@@ -254,24 +267,40 @@ export function useChat() {
 
       let contextToInject = "";
 
-      if (enableMemoryRetrieval) {
-        if (pendingContext && pendingContext.message === userMessage) {
-          contextToInject = pendingContext.injectedText;
-          setPendingContext(null);
-        } else if (showPulledContextBeforeSending) {
-          const res = await pullMemoryContextForSend(userMessage);
-          if (res.ok && res.context && res.context.injectedText) {
-            setPendingContext({
-              ...res.context,
-              message: userMessage,
-            });
-            return;
-          }
+      if (!enableMemoryRetrieval) {
+        setMemoryStatus('disabled')
+      } else if (pendingContext && pendingContext.message === userMessage) {
+        contextToInject = pendingContext.injectedText;
+        setPendingContext(null);
+        setMemoryStatus('injected')
+      } else if (showPulledContextBeforeSending) {
+        setMemoryStatus('loading')
+        const res = await pullMemoryContextForSend(userMessage);
+        if (res.ok && res.context && res.context.injectedText) {
+          setPendingContext({
+            ...res.context,
+            message: userMessage,
+          });
+          setMemoryStatus('injected')
+          return;
+        }
+        if (!res.ok) {
+          setMemoryStatus('failed')
         } else {
-          const res = await pullMemoryContextForSend(userMessage);
-          if (res.ok && res.context && res.context.injectedText) {
-            contextToInject = res.context.injectedText;
-          }
+          setMemoryStatus('idle')
+        }
+      } else {
+        setMemoryStatus('loading')
+        const res = await pullMemoryContextForSend(userMessage);
+        if (res.ok && res.context && res.context.injectedText) {
+          contextToInject = res.context.injectedText;
+          setMemoryStatus('injected')
+        } else if (!res.ok) {
+          setMemoryStatus('failed')
+          // Non-destructive warning: memory failed but the user message still sends.
+          toast.warn('Memory retrieval unavailable', 'Sending your message without memory context.')
+        } else {
+          setMemoryStatus('idle')
         }
       }
 
@@ -375,5 +404,5 @@ export function useChat() {
     }
   }, [])
 
-  return { send, stop, regenerate, isStreaming, createScene }
+  return { send, stop, regenerate, isStreaming, createScene, memoryStatus }
 }

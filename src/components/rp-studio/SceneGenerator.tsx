@@ -179,7 +179,7 @@ export function SceneGenerator({ filterChatId, onViewAsset, disabled = false }: 
           Generate scene
         </PrimaryButton>
       </div>
-      <div className="w-72 shrink-0 border-l border-border overflow-y-auto p-3 space-y-2">
+      <div className="w-72 shrink-0 soft-separator-x mesh-surface overflow-y-auto p-3 space-y-2">
         <div className="text-[11px] uppercase tracking-[0.08em] text-text-muted font-semibold">
           Recent scenes{filterChatId ? "" : " (this chat)"}
         </div>

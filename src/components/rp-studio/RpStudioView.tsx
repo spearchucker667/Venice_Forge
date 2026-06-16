@@ -56,7 +56,7 @@ export function RpStudioView() {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex items-center gap-1 px-3 py-2 border-b border-border bg-surface/40 overflow-x-auto">
+      <div className="flex items-center gap-1 px-3 py-2 soft-separator-y mesh-header mesh-surface overflow-x-auto">
         <div className="text-[11px] uppercase tracking-[0.08em] text-text-muted font-semibold mr-2 shrink-0">RP Studio</div>
         {SUB_TABS.map((t) => (
           <button
@@ -75,7 +75,7 @@ export function RpStudioView() {
         <div
           role="status"
           aria-live="polite"
-          className="px-3 py-2 border-b border-amber-500/30 bg-amber-500/10 text-amber-100 text-[12.5px] flex items-center gap-2"
+          className="px-3 py-2 border-b border-amber-500/20 bg-amber-500/10 text-amber-100 text-[12.5px] flex items-center gap-2"
         >
           <span aria-hidden="true">⏳</span>
           <span>
@@ -87,7 +87,7 @@ export function RpStudioView() {
       )}
 
       {sub === "scenes" && (
-        <div className="px-3 py-1.5 border-b border-border">
+        <div className="px-3 py-1.5 soft-separator-y mesh-surface">
           <PillGroup
             options={[{ value: "generate", label: "Generate" }, { value: "gallery", label: "Gallery" }]}
             value={sceneView}

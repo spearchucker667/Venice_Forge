@@ -52,8 +52,8 @@ export function PromptDebugDrawer({ assembly, onClose }: Props) {
       className="absolute inset-0 z-30 flex bg-bg/70 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="ml-auto h-full w-full max-w-xl bg-surface border-l border-border flex flex-col">
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+      <div className="ml-auto h-full w-full max-w-xl mesh-surface soft-separator-x flex flex-col">
+        <div className="flex items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
           <h2 className="text-[14px] font-semibold text-text-primary">Prompt trace</h2>
           <span className="text-[11px] text-text-muted">
             {totalIncludedChars.toLocaleString()} chars · {assembly.budgetExceeded ? "budget exceeded" : "within budget"}
@@ -62,7 +62,7 @@ export function PromptDebugDrawer({ assembly, onClose }: Props) {
             <GhostButton onClick={onClose}>Close</GhostButton>
           </div>
         </div>
-        <div className="px-4 py-2 border-b border-border">
+        <div className="px-4 py-2 soft-separator-y mesh-surface">
           <PillGroup
             options={[
               { value: "trace", label: "Trace" },

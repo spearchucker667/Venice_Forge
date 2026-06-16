@@ -18,6 +18,7 @@ import { useLorebookStore } from "../stores/lorebook-store";
 import { usePromptLibraryStore } from "../stores/prompt-library-store";
 import { useRpChatStore } from "../stores/rp-chat-store";
 import { useSettingsStore } from "../stores/settings-store";
+import { useChatStore } from "../stores/chat-store";
 import { isPromptSecretLike, redactPromptSecrets } from "../types/prompt-library";
 import type { CharacterCardV1, ScenarioV1, UserPersonaV1, LorebookV1 } from "../types/rp";
 import { CARD_FIELD_MAX, MAX_AVATAR_BYTES, MAX_TAGS } from "../types/rp";
@@ -230,6 +231,27 @@ export async function startChatForCharacter(characterId: string, opts?: { title?
     settings.setActiveTab("rp-studio");
   }
   return chatId;
+}
+
+/** Create a normal (non-RP) chat seeded with the given local character.
+ *  The character's system prompt is persisted as the conversation system
+ *  prompt and the chat is opened in the standard Chat tab. Returns the
+ *  new conversation id or null. */
+export async function startNormalChatForCharacter(characterId: string, opts?: { modelId?: string }): Promise<string | null> {
+  const card = useCharacterCardStore.getState().getById(characterId);
+  if (!card) return null;
+  const settings = useSettingsStore.getState();
+  const fallbackTextId = FALLBACK_MODELS.text[0]?.id ?? "venice-uncensored";
+  const modelId =
+    opts?.modelId ??
+    card.modelId ??
+    settings.selectedModels["chat"] ??
+    fallbackTextId;
+  const convId = useChatStore.getState().createLocalCharacterConversation(card, modelId);
+  if (convId) {
+    settings.setActiveTab("chat");
+  }
+  return convId;
 }
 
 /** Bulk update of multiple characters. Convenience for "Apply tag to

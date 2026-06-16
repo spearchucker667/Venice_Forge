@@ -69,7 +69,7 @@ export function MediaDetailDialog({
       className="mesh-panel fixed inset-0 z-50 flex rounded-none border-0 bg-overlay backdrop-blur-sm"
     >
       <div className="relative flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-border bg-overlay px-5 py-3 text-text-primary">
+        <header className="flex items-center justify-between soft-separator-y mesh-header mesh-surface px-5 py-3 text-text-primary">
           <div className="flex items-center gap-2">
             <Badge tone={isVideo ? "rose" : "slate"}>{isVideo ? "Video" : "Image"}</Badge>
             <Badge tone="slate">{item.operation}</Badge>
@@ -174,7 +174,7 @@ export function MediaDetailDialog({
         </div>
       </div>
 
-      <aside className="hidden w-72 shrink-0 border-l border-border bg-overlay p-4 text-text-primary lg:flex lg:flex-col">
+      <aside className="hidden w-72 shrink-0 soft-separator-x mesh-surface p-4 text-text-primary lg:flex lg:flex-col">
         <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">Filmstrip</h3>
         <div className="grid grid-cols-3 gap-2 overflow-y-auto pr-1">
           {allItems.map((candidate) => {

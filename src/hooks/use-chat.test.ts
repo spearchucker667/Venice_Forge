@@ -8,6 +8,7 @@ import { useCharacterStore } from "../stores/character-store";
 import { useSettingsStore } from "../stores/settings-store";
 import { veniceStreamChat } from "../services/veniceClient";
 import { desktopConversations } from "../services/desktopBridge";
+import type { CharacterCardV1 } from "../types/rp";
 
 vi.mock("../services/veniceClient", () => ({
   veniceStreamChat: vi.fn(),
@@ -28,6 +29,20 @@ const CHARACTER = {
   slug: "alan-watts",
   name: "Alan Watts",
   modelId: "venice-uncensored-1-2",
+};
+
+const LOCAL_CARD: CharacterCardV1 = {
+  schema: "CharacterCardV1",
+  id: "local-card-1",
+  name: "Local Test",
+  description: "Local RP character",
+  systemPrompt: "You are a local test character.",
+  tags: [],
+  adult: false,
+  exampleDialogues: [],
+  modelId: "llama-3.3-70b",
+  createdAt: 1_700_000_000_000,
+  updatedAt: 1_700_000_000_000,
 };
 
 function resetStores() {
@@ -169,6 +184,62 @@ describe("use-chat character_slug threading", () => {
     expect(veniceParams.strip_thinking_response).toBe(true);
   });
 
+  it("does NOT include character_slug for a local character conversation", async () => {
+    useChatStore.getState().createLocalCharacterConversation(LOCAL_CARD, "llama-3.3-70b");
+    // Simulate a global Venice character selection — the local conversation
+    // must ignore it.
+    useCharacterStore.getState().selectCharacter({
+      id: "char-9",
+      slug: "somebody-else",
+      name: "Somebody Else",
+    });
+
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("Hello, local.", "llama-3.3-70b");
+    });
+
+    const body = extractPayloadFromCall();
+    expect(body).not.toBeNull();
+    const veniceParams = body!.venice_parameters as Record<string, unknown>;
+    expect(veniceParams.character_slug).toBeUndefined();
+  });
+
+  it("prepends the local character system prompt as a system message", async () => {
+    useChatStore.getState().createLocalCharacterConversation(LOCAL_CARD, "llama-3.3-70b");
+
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("Hello, local.", "llama-3.3-70b");
+    });
+
+    const body = extractPayloadFromCall();
+    expect(body).not.toBeNull();
+    const messages = body!.messages as Array<{ role: string; content: string }>;
+    expect(messages[0]).toEqual({
+      role: "system",
+      content: "You are a local test character.",
+    });
+  });
+
+  it("exposes memoryStatus 'disabled' when memory retrieval is disabled", async () => {
+    useSettingsStore.setState({
+      enableMemoryRetrieval: false,
+      showPulledContextBeforeSending: false,
+    });
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("No memory", "llama-3.3-70b");
+    });
+
+    expect(result.current.memoryStatus).toBe("disabled");
+    expect(mockedPullContext).not.toHaveBeenCalled();
+  });
+
   it("continues sending when direct memory retrieval fails", async () => {
     useSettingsStore.setState({
       enableMemoryRetrieval: true,
@@ -186,6 +257,29 @@ describe("use-chat character_slug threading", () => {
     expect(mockedVeniceStreamChat).toHaveBeenCalled();
     const conv = useChatStore.getState().conversations[0];
     expect(conv.messages.some((m) => m.role === "user" && m.content === "Send anyway")).toBe(true);
+  });
+
+  it("exposes memoryStatus 'injected' when memory context is retrieved", async () => {
+    useSettingsStore.setState({
+      enableMemoryRetrieval: true,
+      showPulledContextBeforeSending: false,
+    });
+    mockedPullContext.mockResolvedValueOnce({
+      ok: true,
+      context: { injectedText: "Previously you discussed testing.", facts: [], summaries: [], tokenEstimate: 12 },
+    });
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("Hello again", "llama-3.3-70b");
+    });
+
+    expect(result.current.memoryStatus).toBe("injected");
+    const body = extractPayloadFromCall();
+    const messages = body!.messages as Array<{ role: string; content: string }>;
+    const userMsg = messages.find((m) => m.role === "user");
+    expect(userMsg?.content).toContain("Previously you discussed testing.");
   });
 
   it("continues sending when memory preview retrieval fails", async () => {

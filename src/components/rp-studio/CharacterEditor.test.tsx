@@ -87,6 +87,7 @@ const mocks = vi.hoisted(() => ({
   removeMock: vi.fn(),
   saveToLibMock: vi.fn(),
   startChatMock: vi.fn(),
+  startNormalChatMock: vi.fn(),
   attachSceneMock: vi.fn(),
   attachPromptMock: vi.fn(),
   setActiveTabMock: vi.fn(),
@@ -148,6 +149,7 @@ vi.mock("../../stores/scenario-store", () => ({
 vi.mock("../../services/rpHelpers", () => ({
   saveCharacterPromptToLibrary: mocks.saveToLibMock,
   startChatForCharacter: mocks.startChatMock,
+  startNormalChatForCharacter: mocks.startNormalChatMock,
   attachSceneToCharacter: mocks.attachSceneMock,
   attachPromptToCharacter: mocks.attachPromptMock,
 }));
@@ -166,6 +168,7 @@ function resetMocks(): void {
   mocks.removeMock.mockReset();
   mocks.saveToLibMock.mockReset();
   mocks.startChatMock.mockReset();
+  mocks.startNormalChatMock.mockReset();
   mocks.attachSceneMock.mockReset();
   mocks.attachPromptMock.mockReset();
   mocks.setActiveTabMock.mockReset();
@@ -178,6 +181,7 @@ function resetMocks(): void {
   mocks.upsertMock.mockResolvedValue(sampleCard);
   mocks.saveToLibMock.mockResolvedValue("prompt_new");
   mocks.startChatMock.mockResolvedValue("chat_new");
+  mocks.startNormalChatMock.mockResolvedValue("conv_new");
   mocks.attachSceneMock.mockResolvedValue({
     ...sampleCard,
     metadata: { attachedSceneId: "scene_001" },
@@ -217,6 +221,17 @@ describe("CharacterEditor — Workflow section", () => {
     expect(screen.getByTestId("character-editor-create-scenario")).toBeInTheDocument();
   });
 
+  it("Save button matches the Delete button's visual weight and has a sane minimum size", () => {
+    render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const saveBtn = screen.getByRole("button", { name: "Save" });
+    const deleteBtn = screen.getByRole("button", { name: "Delete" });
+    expect(saveBtn).toHaveClass("min-w-[72px]");
+    expect(saveBtn).toHaveClass("px-3");
+    expect(saveBtn).toHaveClass("py-1.5");
+    expect(deleteBtn).toHaveClass("px-3");
+    expect(deleteBtn).toHaveClass("py-1.5");
+  });
+
   it("Save to Prompt Library button calls upsert + saveCharacterPromptToLibrary", async () => {
     render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
     fireEvent.click(screen.getByTestId("character-editor-save-to-prompt-library"));
@@ -239,6 +254,19 @@ describe("CharacterEditor — Workflow section", () => {
     });
   });
 
+  it("Chat button calls upsert + startNormalChatForCharacter + onClose", async () => {
+    const onClose = vi.fn();
+    render(<CharacterEditor cardId="card_test_001" onClose={onClose} />);
+    fireEvent.click(screen.getByTestId("character-editor-chat"));
+    await waitFor(() => {
+      expect(mocks.upsertMock).toHaveBeenCalled();
+      expect(mocks.startNormalChatMock).toHaveBeenCalledWith("card_test_001");
+    });
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalled();
+    });
+  });
+
   it("uses generic errors for save, prompt-library, and start-chat failures", async () => {
     const sensitive = new Error("Authorization: Bearer secret /Users/private/card.json");
     mocks.upsertMock.mockRejectedValue(sensitive);
@@ -251,7 +279,7 @@ describe("CharacterEditor — Workflow section", () => {
     await waitFor(() => expect(mocks.toastErrorMock).toHaveBeenCalledWith("Could not save to Prompt Library", "Please try again."));
 
     fireEvent.click(screen.getByTestId("character-editor-start-chat"));
-    await waitFor(() => expect(mocks.toastErrorMock).toHaveBeenCalledWith("Could not start chat", "Please try again."));
+    await waitFor(() => expect(mocks.toastErrorMock).toHaveBeenCalledWith("Could not start RP chat", "Please try again."));
     expect(JSON.stringify(mocks.toastErrorMock.mock.calls)).not.toContain("Bearer secret");
     expect(JSON.stringify(mocks.toastErrorMock.mock.calls)).not.toContain("/Users/private");
   });

@@ -600,7 +600,7 @@ export function MediaStudioView() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-surface">
-      <header className="flex items-center justify-between border-b border-border px-5 py-4">
+      <header className="flex items-center justify-between soft-separator-y mesh-header mesh-surface px-5 py-4">
         <div>
           <h2 className="text-[17px] font-semibold text-text-primary">Media Studio</h2>
           <p className="mt-0.5 text-[12.5px] text-text-muted">
@@ -646,7 +646,7 @@ export function MediaStudioView() {
       />
 
       {lastError && (
-        <div className="border-b border-border bg-danger/10 px-5 py-2 text-[12px] text-danger">
+        <div className="border-b border-danger/20 bg-danger/10 px-5 py-2 text-[12px] text-danger">
           {lastError}
         </div>
       )}

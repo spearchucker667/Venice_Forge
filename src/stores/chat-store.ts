@@ -5,6 +5,7 @@ import type { Conversation, ConversationMessage } from '../types/conversation'
 import { contentToSearchText } from '../utils/messageContent'
 import type { ConversationCharacterMeta } from '../types/conversationVault'
 import type { VeniceCharacter } from '../types/characters'
+import type { CharacterCardV1 } from '../types/rp'
 import { generateId } from '../lib/utils'
 import { createSafeStorage } from '../lib/safe-storage'
 import type { PulledMemoryContext } from '../types/conversationVault'
@@ -38,6 +39,15 @@ interface ChatState {
    */
   createCharacterConversation: (
     character: VeniceCharacter,
+    fallbackModel: string,
+  ) => string
+  /**
+   * Creates a new conversation bound to a local RP character card.
+   * The character is never resolved through Venice.ai; its system prompt
+   * and model preferences are persisted on the conversation.
+   */
+  createLocalCharacterConversation: (
+    card: CharacterCardV1,
     fallbackModel: string,
   ) => string
   setActiveConversation: (id: string | null) => void
@@ -169,6 +179,52 @@ export const useChatStore = create<ChatState>()(
           },
           memory: {
             summary: `Chat with ${character.name}`,
+            topics: [],
+            entities: [],
+            userFacts: [],
+            projectRefs: activeProj ? [activeProj] : [],
+          },
+        }
+        set((s) => ({
+          conversations: [conv, ...s.conversations],
+          activeConversationId: id,
+          _hasLoadedHistory: true,
+        }))
+        return id
+      },
+
+      createLocalCharacterConversation: (card, fallbackModel) => {
+        const id = generateId()
+        const now = Date.now()
+        const preferredModel =
+          (card.modelId && card.modelId.trim()) || fallbackModel || 'llama-3.3-70b'
+        const activeProj = useSettingsStore.getState().activeProjectId
+        const characterMeta: ConversationCharacterMeta = {
+          id: card.id,
+          name: card.name,
+          localCharacterId: card.id,
+          systemPrompt: card.systemPrompt,
+          modelId: card.modelId,
+          adult: card.adult,
+        }
+        const conv: Conversation = {
+          id,
+          title: `Chat with ${card.name || 'local character'}`,
+          model: preferredModel,
+          systemPrompt: card.systemPrompt,
+          messages: [],
+          createdAt: now,
+          updatedAt: now,
+          metadata: {
+            tags: [],
+            pinned: false,
+            archived: false,
+            source: 'localCharacter',
+            messageCount: 0,
+            character: characterMeta,
+          },
+          memory: {
+            summary: `Chat with ${card.name || 'local character'}`,
             topics: [],
             entities: [],
             userFacts: [],

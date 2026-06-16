@@ -10,6 +10,7 @@ import { desktopCharacterImage } from "../services/desktopBridge";
 import { tryResolveCharacterImageFromPublicPage } from "../services/characterImageFallback";
 import { recordCharacterImageResolution } from "../services/characterImageDiagnostics";
 import type { VeniceCharacter } from "../types/characters";
+import type { ConversationCharacterMeta } from "../types/conversationVault";
 
 export interface UseCharacterImageResult {
   /** Local file:// URL (desktop) or trusted HTTPS URL (web), or undefined. */
@@ -37,8 +38,12 @@ export interface UseCharacterImageResult {
  *  not resolve, an optional public-page fallback (gated by env flag) can
  *  scrape `venice.ai/characters/{slug}` for Open Graph / JSON-LD data.
  */
+type CharacterImageInput =
+  | (Pick<VeniceCharacter, "slug" | "name" | "photoUrl"> & { id?: string })
+  | (Pick<ConversationCharacterMeta, "name" | "modelId" | "localCharacterId"> & { slug?: string; photoUrl?: string; id?: string });
+
 export function useCharacterImage(
-  character: (Pick<VeniceCharacter, "slug" | "name" | "photoUrl"> & { id?: string }) | undefined | null,
+  character: CharacterImageInput | undefined | null,
 ): UseCharacterImageResult {
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
@@ -65,6 +70,7 @@ export function useCharacterImage(
     }
 
     const char = character;
+    const diagnosticSlug = char.slug || char.id || "unknown";
     const requestId = ++latestRequestRef.current;
     let cancelled = false;
 
@@ -75,13 +81,13 @@ export function useCharacterImage(
         if (result.ok && result.url) {
           setImageUrl(result.url);
           setError(undefined);
-          recordCharacterImageResolution({ slug: char.slug, source, ok: true, cached: !result.url.startsWith("http") });
+          recordCharacterImageResolution({ slug: diagnosticSlug, source, ok: true, cached: !result.url.startsWith("http") });
           return true;
         } else {
           setImageUrl(undefined);
           setError(result.error ?? "Failed to load character image.");
           recordCharacterImageResolution({
-            slug: char.slug,
+            slug: diagnosticSlug,
             source,
             ok: false,
             cached: false,
@@ -95,7 +101,7 @@ export function useCharacterImage(
         const message = err instanceof Error ? err.message : String(err);
         setError(message);
         recordCharacterImageResolution({
-          slug: char.slug,
+          slug: diagnosticSlug,
           source,
           ok: false,
           cached: false,
@@ -112,6 +118,13 @@ export function useCharacterImage(
     async function load() {
       setLoading(true);
       setError(undefined);
+
+      // Local RP characters never resolve through Venice.ai image endpoints.
+      if ("localCharacterId" in char && char.localCharacterId) {
+        setImageUrl(undefined);
+        setLoading(false);
+        return;
+      }
 
       let primaryFailed = false;
 
@@ -131,7 +144,7 @@ export function useCharacterImage(
         }
       }
 
-      const fallbackUrl = await tryResolveCharacterImageFromPublicPage(char.slug);
+      const fallbackUrl = char.slug ? await tryResolveCharacterImageFromPublicPage(char.slug) : null;
       if (cancelled || requestId !== latestRequestRef.current) return;
 
       if (fallbackUrl) {
@@ -139,7 +152,7 @@ export function useCharacterImage(
       } else if (!sourceUrl) {
         setImageUrl(undefined);
         recordCharacterImageResolution({
-          slug: char.slug,
+          slug: diagnosticSlug,
           source: "none",
           ok: false,
           cached: false,

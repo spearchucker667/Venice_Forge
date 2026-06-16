@@ -136,10 +136,10 @@ export function PromptLibraryView() {
   return (
     <div className="flex h-full w-full min-h-0 text-text-primary">
       <aside
-        className="w-[340px] shrink-0 border-r border-border flex flex-col min-h-0"
+        className="w-[340px] shrink-0 soft-separator-x mesh-surface flex flex-col min-h-0"
         data-testid="prompt-library-list-pane"
       >
-        <div className="px-3 py-2 border-b border-border space-y-2">
+        <div className="px-3 py-2 soft-separator-y mesh-header mesh-surface space-y-2">
           <div className="flex items-center gap-2">
             <h2 className="text-[14px] font-semibold">Prompt Library</h2>
             <button
@@ -433,7 +433,7 @@ function PromptDetail(props: PromptDetailProps) {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col" data-testid="prompt-library-detail">
-      <header className="px-4 py-3 border-b border-border space-y-2">
+      <header className="px-4 py-3 soft-separator-y mesh-header mesh-surface space-y-2">
         <div className="flex items-center gap-2">
           <input
             value={title}

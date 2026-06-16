@@ -272,7 +272,7 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
 
   return (
     <div className="flex flex-col h-full min-h-0 relative">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+      <div className="flex items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
         <button
           type="button"
           onClick={onBack}

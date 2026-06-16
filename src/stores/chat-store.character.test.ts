@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useChatStore } from "./chat-store";
 import { useCharacterStore } from "./character-store";
 import type { VeniceCharacter } from "../types/characters";
+import type { CharacterCardV1 } from "../types/rp";
 import { useSettingsStore } from "./settings-store";
 
 /** Resets both stores between tests. */
@@ -52,6 +53,20 @@ const CHARACTER_FIXTURE: VeniceCharacter = {
   webEnabled: true,
   modelId: "venice-uncensored-1-2",
   stats: { averageRating: 4.6 },
+};
+
+const LOCAL_CARD_FIXTURE: CharacterCardV1 = {
+  schema: "CharacterCardV1",
+  id: "local-card-1",
+  name: "Local Test",
+  description: "A local RP character",
+  systemPrompt: "You are a helpful local test character.",
+  tags: ["local"],
+  adult: false,
+  exampleDialogues: [],
+  modelId: "llama-3.3-70b",
+  createdAt: 1_700_000_000_000,
+  updatedAt: 1_700_000_000_000,
 };
 
 describe("chat-store character integration", () => {
@@ -168,5 +183,40 @@ describe("chat-store character integration", () => {
     expect(record.metadata.source).toBe("character");
     expect(record.metadata.character?.slug).toBe("alan-watts");
     expect(record.metadata.character?.modelId).toBe("venice-uncensored-1-2");
+  });
+
+  it("createLocalCharacterConversation tags metadata.source as 'localCharacter'", () => {
+    const id = useChatStore.getState().createLocalCharacterConversation(LOCAL_CARD_FIXTURE, "llama-3.3-70b");
+    const conv = useChatStore.getState().conversations.find((c) => c.id === id);
+    expect(conv?.metadata?.source).toBe("localCharacter");
+  });
+
+  it("persists local character id, name, system prompt, and model on the conversation", () => {
+    const id = useChatStore.getState().createLocalCharacterConversation(LOCAL_CARD_FIXTURE, "fallback-model");
+    const conv = useChatStore.getState().conversations.find((c) => c.id === id)!;
+    expect(conv.systemPrompt).toBe("You are a helpful local test character.");
+    expect(conv.model).toBe("llama-3.3-70b");
+    expect(conv.metadata?.character).toMatchObject({
+      id: "local-card-1",
+      localCharacterId: "local-card-1",
+      name: "Local Test",
+      systemPrompt: "You are a helpful local test character.",
+      modelId: "llama-3.3-70b",
+      adult: false,
+    });
+    expect(conv.metadata?.character?.slug).toBeUndefined();
+  });
+
+  it("falls back to the supplied model when the local card has no modelId", () => {
+    const noModel: CharacterCardV1 = { ...LOCAL_CARD_FIXTURE, id: "local-card-2", name: "No Model", modelId: undefined };
+    const id = useChatStore.getState().createLocalCharacterConversation(noModel, "llama-3.3-70b");
+    const conv = useChatStore.getState().conversations.find((c) => c.id === id)!;
+    expect(conv.model).toBe("llama-3.3-70b");
+  });
+
+  it("uses the local character name in the conversation title", () => {
+    const id = useChatStore.getState().createLocalCharacterConversation(LOCAL_CARD_FIXTURE, "llama-3.3-70b");
+    const conv = useChatStore.getState().conversations.find((c) => c.id === id)!;
+    expect(conv.title).toBe("Chat with Local Test");
   });
 });

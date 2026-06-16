@@ -9,6 +9,11 @@ import { useSettingsStore } from "../../stores/settings-store";
 import { useAuthStore } from "../../stores/auth-store";
 import { toast } from "../../stores/toast-store";
 import { desktopConversations } from "../../services/desktopBridge";
+import { askDecision } from "../ui/modal-requests";
+
+vi.mock("../ui/modal-requests", () => ({
+  askDecision: vi.fn(),
+}));
 
 vi.mock("../../services/desktopBridge", async () => {
   const actual = await vi.importActual<typeof import("../../services/desktopBridge")>(
@@ -51,6 +56,8 @@ vi.mock("../../hooks/use-chat", () => ({
     stop: vi.fn(),
     regenerate: vi.fn(),
     isStreaming: false,
+    memoryStatus: "idle",
+    createScene: vi.fn(),
   }),
 }));
 
@@ -142,7 +149,7 @@ describe("ChatView", () => {
   it("surfaces a toast when forgetting a fact fails", async () => {
     vi.mocked(desktopConversations.list).mockRejectedValue(new Error("storage offline"));
     const errorSpy = vi.spyOn(toast, "error");
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.mocked(askDecision).mockResolvedValueOnce(true);
 
     useChatStore.setState({
       pendingContext: {
@@ -172,7 +179,15 @@ describe("ChatView", () => {
         expect.stringContaining("storage offline"),
       ),
     );
+  });
 
-    confirmSpy.mockRestore();
+  it("reflects the global memory retrieval toggle immediately in the input indicator", () => {
+    useSettingsStore.setState({ enableMemoryRetrieval: false });
+    render(<ChatView />);
+
+    // The indicator should show "Memory off" as soon as the toggle is off,
+    // without waiting for a message to be sent. This is the regression guard
+    // for the "disable memory for this chat toggle doesn't work" bug.
+    expect(screen.getByTitle("Memory retrieval is disabled in Settings.")).toBeInTheDocument();
   });
 });

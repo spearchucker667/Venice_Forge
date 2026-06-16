@@ -18,7 +18,7 @@ import { GhostButton, Label, PrimaryButton, TextArea, ErrorText } from "../ui/sh
 import { Spinner } from "../ui/spinner";
 import { FALLBACK_MODELS } from "../../constants/venice";
 import { avatarDataUri } from "./_shared";
-import { saveCharacterPromptToLibrary, startChatForCharacter } from "../../services/rpHelpers";
+import { saveCharacterPromptToLibrary, startChatForCharacter, startNormalChatForCharacter } from "../../services/rpHelpers";
 import { toast } from "../../stores/toast-store";
 import type { Tab } from "../../stores/settings-store";
 import { isSupportedImageFile, readImageAttachment } from "../../services/attachmentService";
@@ -211,7 +211,23 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
       if (!saved) return;
       const chatId = await startChatForCharacter(saved.id);
       if (chatId) {
-        toast.success("Chat started", `Opening "${saved.name}" in RP Studio.`);
+        toast.success("RP chat started", `Opening "${saved.name}" in RP Studio.`);
+        onClose();
+      } else {
+        toast.error("Could not start RP chat", "Storage rejected the request.");
+      }
+    } catch {
+      toast.error("Could not start RP chat", "Please try again.");
+    }
+  };
+
+  const handleChat = async () => {
+    try {
+      const saved = await upsert(draft);
+      if (!saved) return;
+      const convId = await startNormalChatForCharacter(saved.id);
+      if (convId) {
+        toast.success("Chat started", `Opening "${saved.name}" in Chat.`);
         onClose();
       } else {
         toast.error("Could not start chat", "Storage rejected the request.");
@@ -263,7 +279,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+      <div className="flex items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
         <button
           type="button"
           onClick={onClose}
@@ -274,7 +290,12 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <h2 className="text-[15px] font-semibold text-text-primary truncate">{draft.name || "Untitled"}</h2>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[15px] font-semibold text-text-primary truncate">{draft.name || "Untitled"}</h2>
+          <p className="text-[10.5px] text-text-muted truncate">
+            Local character — stored in Venice Forge, not hosted on Venice.ai
+          </p>
+        </div>
         <div className="ml-auto flex items-center gap-2">
           <GhostButton onClick={handleDelete}>Delete</GhostButton>
           <PrimaryButton
@@ -566,12 +587,21 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
             </select>
             <button
               type="button"
+              onClick={() => void handleChat()}
+              disabled={disabled}
+              data-testid="character-editor-chat"
+              className="text-[12px] px-2.5 py-1.5 rounded-md border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Chat
+            </button>
+            <button
+              type="button"
               onClick={() => void handleStartChat()}
               disabled={disabled}
               data-testid="character-editor-start-chat"
-              className="text-[12px] px-2.5 py-1.5 rounded-md border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-[12px] px-2.5 py-1.5 rounded-md border border-accent/30 text-accent hover:bg-accent/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Start chat
+              Start RP chat
             </button>
             <button
               type="button"

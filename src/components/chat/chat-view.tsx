@@ -37,7 +37,13 @@ export function ChatView() {
     model,
     liveVisionSupports === null ? null : { supportsVision: liveVisionSupports },
   )
-  const { send, stop, regenerate, isStreaming, createScene } = useChat()
+  const { send, stop, regenerate, isStreaming, createScene, memoryStatus } = useChat()
+  const enableMemoryRetrieval = useSettingsStore((s) => s.enableMemoryRetrieval)
+  // The global Memory panel toggle must be reflected immediately in the chat
+  // input indicator, not just on the next send. When retrieval is disabled we
+  // force the displayed status to 'disabled' regardless of any in-flight or
+  // stale memory state.
+  const effectiveMemoryStatus = enableMemoryRetrieval ? memoryStatus : 'disabled'
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const handleSend = (message: string, images?: string[]) => {
@@ -194,7 +200,7 @@ export function ChatView() {
         ) : (
           <>
             {conversation?.metadata?.character && (
-              <div className="border-b border-border bg-surface-elevated/40">
+              <div className="soft-separator-y mesh-surface bg-surface-elevated/40">
                 <div className="max-w-[960px] mx-auto px-4 sm:px-5 py-2 flex items-center gap-3">
                   <ActiveCharacterPill
                     character={conversation.metadata.character}
@@ -228,7 +234,7 @@ export function ChatView() {
                 </div>
               </div>
             )}
-            <div className="border-b border-border">
+            <div className="soft-separator-y mesh-surface">
               <VeniceParams />
             </div>
             <div className="w-full max-w-[960px] mx-auto py-5 px-4 sm:px-5 flex flex-col gap-5">
@@ -369,7 +375,7 @@ export function ChatView() {
         </div>
       )}
 
-      <ChatInput onSend={handleSend} onStop={stop} isStreaming={isStreaming} disabled={!hasVeniceKey} disableImageAttach={!visionSupported} />
+      <ChatInput onSend={handleSend} onStop={stop} isStreaming={isStreaming} disabled={!hasVeniceKey} disableImageAttach={!visionSupported} memoryStatus={effectiveMemoryStatus} />
     </div>
   )
 }
@@ -414,7 +420,7 @@ function ActiveCharacterPill({
           Chatting as <span data-testid="active-character-name">{character.name}</span>
         </span>
         <span className="text-text-muted text-[11px] font-mono">
-          /{character.slug}
+          {character.localCharacterId ? "Local character" : `/${character.slug}`}
           {character.modelId ? ` · ${character.modelId}` : ""}
         </span>
       </div>

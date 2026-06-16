@@ -334,7 +334,7 @@ export function MediaInspector({
 
   return (
     <aside
-      className="flex h-full w-full flex-col gap-4 overflow-y-auto border-l border-border bg-surface px-4 py-4"
+      className="flex h-full w-full flex-col gap-4 overflow-y-auto soft-separator-x mesh-surface px-4 py-4"
       aria-label="Media inspector"
     >
       <div className="flex items-start justify-between gap-2">

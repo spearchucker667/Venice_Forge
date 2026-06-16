@@ -103,7 +103,7 @@ export default function HistoryView() {
 
   return (
     <div className="flex flex-col h-full bg-surface">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface shrink-0">
+      <div className="flex items-center justify-between px-6 py-4 soft-separator-y mesh-header mesh-surface shrink-0">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-accent/10 rounded-lg text-accent">
             <Clock size={20} />
