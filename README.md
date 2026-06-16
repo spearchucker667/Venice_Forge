@@ -9,10 +9,6 @@
 # Venice Forge
 
 <p align="center">
-  <img src="./assets/preview.jpg" alt="Venice Forge — unofficial Venice API desktop client" width="800" />
-</p>
-
-<p align="center">
   <strong>Unofficial local-first desktop workspace for the Venice API.</strong><br>
   <em>Chat, image generation, media workflows, research, characters, prompts, projects, and local creative asset management.</em>
 </p>
