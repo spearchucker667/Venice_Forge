@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { useMediaStore, filterMedia, sortMedia, searchMedia } from './media-store'
+import { useMediaStore, filterMedia, sortMedia, searchMedia, selectById, selectChildren, selectParent } from './media-store'
 import { useSettingsStore } from './settings-store'
 import { toast, useToastStore } from './toast-store'
 import { MEDIA_ITEM_VERSION, type MediaItem } from '../types/media'
@@ -150,6 +150,30 @@ describe('mediaStore', () => {
     expect(items.map((i) => i.id)).toEqual(['new', 'old'])
   })
 
+  it('upsert() updates existing item and does not increment totalCount', async () => {
+    const old = makeItem({ id: 'existing', timestamp: 1 })
+    mockService.__seed(old)
+    await useMediaStore.getState().refresh()
+
+    const updated = makeItem({ id: 'existing', timestamp: 99, note: 'updated' })
+    await useMediaStore.getState().upsert(updated)
+    const items = useMediaStore.getState().items
+    expect(items).toHaveLength(1)
+    expect(items[0].note).toBe('updated')
+    expect(useMediaStore.getState().totalCount).toBe(1)
+  })
+
+  it('loadMore() ignores call if already loading or has no more', async () => {
+    vi.mocked(StorageService.getItemsPageWithMeta).mockClear()
+    useMediaStore.setState({ loading: true, hasMore: true })
+    await useMediaStore.getState().loadMore()
+    expect(StorageService.getItemsPageWithMeta).not.toHaveBeenCalled()
+
+    useMediaStore.setState({ loading: false, loadingMore: true, hasMore: true })
+    await useMediaStore.getState().loadMore()
+    expect(StorageService.getItemsPageWithMeta).not.toHaveBeenCalled()
+  })
+
   // VERIFY-042: project attachment is explicit and limited to generated media.
   it('attaches the active project only when generated media opts in', async () => {
     useSettingsStore.setState({ activeProjectId: 'project-a' } as never)
@@ -220,6 +244,13 @@ describe('mediaStore', () => {
     ).rejects.toThrow('write failed')
     expect(mockService.__all().some((item) => item.id === 'child')).toBe(false)
     expect(useMediaStore.getState().byId('child')).toBeUndefined()
+  })
+
+  it('upsertDerivative() throws if parent is not found', async () => {
+    vi.mocked(StorageService.getItem).mockResolvedValueOnce(null)
+    await expect(
+      useMediaStore.getState().upsertDerivative(makeItem({ id: 'child' }), 'missing'),
+    ).rejects.toThrow('Parent media item not found: missing')
   })
 
   // T-190 regression guard: load and rollback errors must not expose raw
@@ -427,6 +458,93 @@ describe('mediaStore', () => {
     expect(useMediaStore.getState().parentOf('child')?.id).toEqual('root')
     expect(useMediaStore.getState().parentOf('root')).toBeUndefined()
   })
+
+  it('patchMany() updates multiple records', async () => {
+    const a = makeItem({ id: 'a', favorite: false })
+    const b = makeItem({ id: 'b', favorite: false })
+    mockService.__seed(a)
+    mockService.__seed(b)
+    await useMediaStore.getState().refresh()
+
+    const count = await useMediaStore.getState().patchMany(['a', 'b'], { favorite: true })
+    expect(count).toBe(2)
+    const items = useMediaStore.getState().items
+    expect(items.find((i) => i.id === 'a')?.favorite).toBe(true)
+    expect(items.find((i) => i.id === 'b')?.favorite).toBe(true)
+  })
+
+  it('patchMany() does not update state if no records matched', async () => {
+    await useMediaStore.getState().refresh()
+    const count = await useMediaStore.getState().patchMany(['missing'], { favorite: true })
+    expect(count).toBe(0)
+  })
+
+  it('setFavoriteMany() updates favorite on multiple records', async () => {
+    const a = makeItem({ id: 'a', favorite: false })
+    const b = makeItem({ id: 'b', favorite: false })
+    mockService.__seed(a)
+    mockService.__seed(b)
+    await useMediaStore.getState().refresh()
+
+    await useMediaStore.getState().setFavoriteMany(['a', 'b'], true)
+    const items = useMediaStore.getState().items
+    expect(items.find((i) => i.id === 'a')?.favorite).toBe(true)
+    expect(items.find((i) => i.id === 'b')?.favorite).toBe(true)
+  })
+
+  it('remove() removes a single record', async () => {
+    const a = makeItem({ id: 'a' })
+    const b = makeItem({ id: 'b' })
+    mockService.__seed(a)
+    mockService.__seed(b)
+    await useMediaStore.getState().refresh()
+
+    const ok = await useMediaStore.getState().remove('a')
+    expect(ok).toBe(true)
+    expect(useMediaStore.getState().items.map((i) => i.id)).toEqual(['b'])
+    expect(useMediaStore.getState().totalCount).toBe(1)
+  })
+
+  it('remove() does not update state if delete fails', async () => {
+    const a = makeItem({ id: 'a' })
+    mockService.__seed(a)
+    await useMediaStore.getState().refresh()
+    vi.mocked(StorageService.deleteMedia).mockResolvedValueOnce(false)
+    
+    const ok = await useMediaStore.getState().remove('a')
+    expect(ok).toBe(false)
+    expect(useMediaStore.getState().items.map((i) => i.id)).toEqual(['a'])
+  })
+
+  it('removeMany() does not update state if no records removed', async () => {
+    await useMediaStore.getState().refresh()
+    const count = await useMediaStore.getState().removeMany(['missing'])
+    expect(count).toBe(0)
+  })
+
+  it('addTagsMany surfaces error on partial failure', async () => {
+    const a = makeItem({ id: 'a', tags: [] })
+    mockService.__seed(a)
+    await useMediaStore.getState().refresh()
+    vi.mocked(StorageService.patchMedia).mockRejectedValueOnce(new Error('write failed'))
+    
+    await useMediaStore.getState().addTagsMany(['a'], ['tag'])
+    
+    expect(useMediaStore.getState().lastError).toContain('addTagsMany failed for a')
+    expect(toast.error).toHaveBeenCalledWith('Tag update partially failed', expect.any(String))
+  })
+
+  it('removeTagMany surfaces error on partial failure', async () => {
+    const a = makeItem({ id: 'a', tags: ['tag'] })
+    mockService.__seed(a)
+    await useMediaStore.getState().refresh()
+    vi.mocked(StorageService.patchMedia).mockRejectedValueOnce(new Error('write failed'))
+    
+    await useMediaStore.getState().removeTagMany(['a'], 'tag')
+    
+    expect(useMediaStore.getState().lastError).toContain('removeTagMany failed for a')
+    expect(toast.error).toHaveBeenCalledWith('Tag removal partially failed', expect.any(String))
+  })
 })
 
 describe('media filter / sort / search', () => {
@@ -437,8 +555,16 @@ describe('media filter / sort / search', () => {
     makeItem({ id: '4', mediaType: 'image', operation: 'edit', favorite: true, tags: ['hero', 'portrait'] }),
   ]
 
+  it('filter by all', () => {
+    expect(filterMedia(items, 'all')).toEqual(items)
+  })
+
   it('filter by favorites', () => {
     expect(filterMedia(items, 'favorites').map((i) => i.id)).toEqual(['1', '4'])
+  })
+
+  it('filter fallback to default', () => {
+    expect(filterMedia(items, 'unknown' as any)).toEqual(items)
   })
 
   it('filter by media type', () => {
@@ -492,9 +618,41 @@ describe('media filter / sort / search', () => {
     expect(sortMedia(set, 'has-seed').map((i) => i.id)).toEqual(['a', 'b', 'c'])
   })
 
+  it('sort by oldest', () => {
+    const a: MediaItem = makeItem({ id: 'a', timestamp: 10 })
+    const b: MediaItem = makeItem({ id: 'b', timestamp: 5 })
+    const c: MediaItem = makeItem({ id: 'c', timestamp: 15 })
+    const out = sortMedia([a, b, c], 'oldest')
+    expect(out.map((i) => i.id)).toEqual(['b', 'a', 'c'])
+  })
+
+  it('sort by newest', () => {
+    const a: MediaItem = makeItem({ id: 'a', timestamp: 10 })
+    const b: MediaItem = makeItem({ id: 'b', timestamp: 5 })
+    const c: MediaItem = makeItem({ id: 'c', timestamp: 15 })
+    const out = sortMedia([a, b, c], 'newest')
+    expect(out.map((i) => i.id)).toEqual(['c', 'a', 'b'])
+  })
+
   it('sort by model name', () => {
     const out = sortMedia(items, 'model')
     expect(out.map((i) => i.id)).toEqual(['1', '2', '3', '4'])
+  })
+
+  it('sort by size (video vs image)', () => {
+    const a: MediaItem = makeItem({ id: 'a', mediaType: 'image', image: '123' }) // size 3
+    const b: MediaItem = makeItem({ id: 'b', mediaType: 'video', image: '12' }) // size 2 * 4 = 8
+    const c: MediaItem = makeItem({ id: 'c', mediaType: 'image', image: '1234' }) // size 4
+    const set = [a, b, c]
+    // desc order: b (8), c (4), a (3)
+    expect(sortMedia(set, 'size').map((i) => i.id)).toEqual(['b', 'c', 'a'])
+  })
+
+  it('sort fallback to default', () => {
+    const a: MediaItem = makeItem({ id: 'a', timestamp: 1 })
+    const b: MediaItem = makeItem({ id: 'b', timestamp: 2 })
+    const set = [a, b]
+    expect(sortMedia(set, 'unknown' as any).map((i) => i.id)).toEqual(['b', 'a'])
   })
 
   it('search matches across prompt, model, note, tags', () => {
@@ -577,5 +735,51 @@ describe('media store — BUG-008 loadById', () => {
     // `parentOf` works.
     const parentOfChild = useMediaStore.getState().parentOf('c')
     expect(parentOfChild?.id).toBe('p')
+  })
+
+  it('returns null if storage throws', async () => {
+    vi.mocked(StorageService.getItem).mockRejectedValueOnce(new Error('fail'))
+    const result = await useMediaStore.getState().loadById('error-id')
+    expect(result).toBeNull()
+  })
+
+  it('avoids duplicate insertion if state changed during fetch', async () => {
+    const remote = makeItem({ id: 'race', parentId: null })
+    mockService.__seed(remote)
+    
+    // Intercept getItem to mutate state before it resolves
+    vi.mocked(StorageService.getItem).mockImplementationOnce(async () => {
+      // simulate the cache being populated while we are fetching
+      useMediaStore.setState({ items: [remote] })
+      return remote as unknown
+    })
+    
+    const result = await useMediaStore.getState().loadById('race')
+    expect(result?.id).toBe('race')
+    expect(useMediaStore.getState().items).toHaveLength(1)
+  })
+})
+
+describe('media store pure selectors', () => {
+  const items = [
+    makeItem({ id: 'root', parentId: null }),
+    makeItem({ id: 'child', parentId: 'root' })
+  ]
+  const state = { items } as any
+
+  it('selectById', () => {
+    expect(selectById(state, 'root')?.id).toBe('root')
+    expect(selectById(state, 'missing')).toBeUndefined()
+  })
+
+  it('selectChildren', () => {
+    expect(selectChildren(state, 'root').map((i) => i.id)).toEqual(['child'])
+    expect(selectChildren(state, 'missing')).toEqual([])
+  })
+
+  it('selectParent', () => {
+    expect(selectParent(state, 'child')?.id).toBe('root')
+    expect(selectParent(state, 'root')).toBeUndefined()
+    expect(selectParent(state, 'missing')).toBeUndefined()
   })
 })

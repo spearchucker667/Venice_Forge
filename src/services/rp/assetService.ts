@@ -20,7 +20,12 @@ const STORE = "rp_assets" as const;
 const ID_RE = isValidRpId;
 const MAX_LIST_ASSETS = 5_000;
 
-/** Returns true when the value is a valid RpAssetV1. */
+/**
+ * Validates whether a given value conforms to the `RpAssetV1` schema.
+ *
+ * @param value - The value to check.
+ * @returns `true` if the value is a valid `RpAssetV1` object, `false` otherwise.
+ */
 export function isValidAsset(value: unknown): value is RpAssetV1 {
   if (!value || typeof value !== "object") return false;
   const a = value as Record<string, unknown>;
@@ -35,13 +40,24 @@ export function isValidAsset(value: unknown): value is RpAssetV1 {
   return true;
 }
 
-/** Normalizes a raw input to a valid RpAssetV1. Returns null on failure. */
+/**
+ * Normalizes a raw input object into a valid `RpAssetV1`.
+ *
+ * @param input - The raw data to normalize.
+ * @returns The normalized `RpAssetV1` object, or `null` if the input is invalid.
+ */
 export function normalizeAsset(input: unknown): RpAssetV1 | null {
   if (!isValidAsset(input)) return null;
   return input as RpAssetV1;
 }
 
-/** Lists assets, optionally filtered by chatId. */
+/**
+ * Retrieves a list of all assets, optionally filtered by `chatId`.
+ *
+ * @param filter - Optional filter object. If `chatId` is provided, only assets belonging to that chat are returned.
+ * @returns A promise resolving to an array of normalized `RpAssetV1` objects.
+ * @throws {Error} If the underlying storage layer fails to list the assets.
+ */
 export async function listAssets(filter?: { chatId?: string }): Promise<RpAssetV1[]> {
   if (isElectron()) {
     const res = await desktopRpAssets.list(filter?.chatId);
@@ -60,7 +76,12 @@ export async function listAssets(filter?: { chatId?: string }): Promise<RpAssetV
   return out;
 }
 
-/** Reads a single asset by id, or returns null. */
+/**
+ * Retrieves a single asset by its ID.
+ *
+ * @param id - The ID of the asset to retrieve.
+ * @returns A promise resolving to the `RpAssetV1` if found, or `null` if not found or invalid.
+ */
 export async function readAsset(id: string): Promise<RpAssetV1 | null> {
   if (!ID_RE(id)) return null;
   if (isElectron()) {
@@ -72,7 +93,13 @@ export async function readAsset(id: string): Promise<RpAssetV1 | null> {
   return record ? normalizeAsset(record) : null;
 }
 
-/** Saves an asset atomically. Generates an id if missing. */
+/**
+ * Saves an asset atomically. Generates a new ID if one is missing.
+ *
+ * @param asset - The `RpAssetV1` object to save.
+ * @returns A promise resolving to the saved and normalized `RpAssetV1` object.
+ * @throws {Error} If the asset is invalid.
+ */
 export async function saveAsset(asset: RpAssetV1): Promise<RpAssetV1> {
   const now = Date.now();
   const id = asset.id && ID_RE(asset.id) ? asset.id : generateId();
@@ -93,7 +120,12 @@ export async function saveAsset(asset: RpAssetV1): Promise<RpAssetV1> {
   return normalized;
 }
 
-/** Deletes an asset by id. Returns true when removed. */
+/**
+ * Deletes an asset by its ID.
+ *
+ * @param id - The ID of the asset to delete.
+ * @returns A promise resolving to `true` if the asset was successfully deleted, `false` otherwise.
+ */
 export async function deleteAsset(id: string): Promise<boolean> {
   if (!ID_RE(id)) return false;
   if (isElectron()) {
@@ -103,7 +135,11 @@ export async function deleteAsset(id: string): Promise<boolean> {
   return StorageService.deleteItem(STORE, id);
 }
 
-/** Generates a new id that satisfies `VALID_ID_RE`. */
+/**
+ * Generates a unique, URL-safe ID for an asset.
+ *
+ * @returns A randomly generated string ID.
+ */
 export function generateId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();

@@ -21,7 +21,12 @@ const MAX_LIST_BOOKS = 1_000;
 
 export { entryMatches, selectTriggeredEntries, normalizeLorebook, validateLorebook } from "./lorebookService";
 
-/** Lists all lorebooks (capped). */
+/**
+ * Retrieves a list of all lorebooks, capped at the maximum allowed list size.
+ *
+ * @returns A promise resolving to an array of normalized `LorebookV1` objects.
+ * @throws {Error} If the underlying storage layer fails to list the lorebooks.
+ */
 export async function listLorebooks(): Promise<LorebookV1[]> {
   if (isElectron()) {
     const res = await desktopLorebooks.list();
@@ -38,7 +43,12 @@ export async function listLorebooks(): Promise<LorebookV1[]> {
     .slice(0, MAX_LIST_BOOKS);
 }
 
-/** Reads a single lorebook by id, or returns null. */
+/**
+ * Retrieves a single lorebook by its ID.
+ *
+ * @param id - The ID of the lorebook to retrieve.
+ * @returns A promise resolving to the `LorebookV1` if found, or `null` if not found or invalid.
+ */
 export async function readLorebook(id: string): Promise<LorebookV1 | null> {
   if (!ID_RE(id)) return null;
   if (isElectron()) {
@@ -50,7 +60,13 @@ export async function readLorebook(id: string): Promise<LorebookV1 | null> {
   return record ? normalizeLorebook(record) : null;
 }
 
-/** Saves a lorebook atomically. Generates an id if missing. */
+/**
+ * Saves a lorebook atomically. Generates a new ID if one is missing.
+ *
+ * @param book - The `LorebookV1` object to save.
+ * @returns A promise resolving to the saved and normalized `LorebookV1` object.
+ * @throws {Error} If the lorebook is invalid or exceeds the entry limit.
+ */
 export async function saveLorebook(book: LorebookV1): Promise<LorebookV1> {
   const now = Date.now();
   const id = book.id && ID_RE(book.id) ? book.id : generateId();
@@ -77,7 +93,12 @@ export async function saveLorebook(book: LorebookV1): Promise<LorebookV1> {
   return normalized;
 }
 
-/** Deletes a lorebook by id. Returns true when removed. */
+/**
+ * Deletes a lorebook by its ID.
+ *
+ * @param id - The ID of the lorebook to delete.
+ * @returns A promise resolving to `true` if the lorebook was successfully deleted, `false` otherwise.
+ */
 export async function deleteLorebook(id: string): Promise<boolean> {
   if (!ID_RE(id)) return false;
   if (isElectron()) {
@@ -87,7 +108,11 @@ export async function deleteLorebook(id: string): Promise<boolean> {
   return StorageService.deleteItem(STORE, id);
 }
 
-/** Generates a new id that satisfies `VALID_ID_RE`. */
+/**
+ * Generates a unique, URL-safe ID for a lorebook.
+ *
+ * @returns A randomly generated string ID.
+ */
 export function generateId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();

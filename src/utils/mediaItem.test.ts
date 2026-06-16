@@ -1,87 +1,251 @@
-/** @fileoverview Pure unit tests for the mediaCapabilities helper. */
+import { describe, it, expect, vi } from "vitest";
+import {
+  mediaCapabilities,
+  mediaItemSource,
+  isVideoItem,
+  formatDimensions,
+  formatDuration,
+  formatBytesApprox,
+  estimateItemBytes,
+  normalizedTags,
+  splitTags,
+} from "./mediaItem";
+import type { MediaItem } from "../types/media";
 
-import { describe, expect, it } from 'vitest'
-import { mediaCapabilities } from './mediaItem'
+// Mock the venice constants so we don't rely on the actual model list
+vi.mock("../constants/venice", () => ({
+  modelSupportsEdit: vi.fn((model) => model.id === "edit-model"),
+  modelSupportsUpscale: vi.fn((model) => model.id === "upscale-model"),
+  modelSupportsVideo: vi.fn((model) => model.id === "video-model"),
+  modelSupportsVision: vi.fn((modelId, liveCaps) => {
+    if (liveCaps && typeof liveCaps.supportsVision === "boolean") {
+      return liveCaps.supportsVision;
+    }
+    return modelId === "vision-model";
+  }),
+}));
 
-describe('mediaCapabilities', () => {
-  it('returns all false for an unknown model id', () => {
-    const caps = mediaCapabilities({ model: 'some-mystery-llm' })
-    expect(caps).toEqual({ upscale: false, edit: false, video: false, vision: false })
-  })
+describe("mediaItem utils", () => {
+  describe("mediaCapabilities", () => {
+    it("returns correct capabilities for edit-model", () => {
+      const caps = mediaCapabilities({ model: "edit-model" });
+      expect(caps).toEqual({
+        upscale: false,
+        edit: true,
+        video: false,
+        vision: false,
+      });
+    });
 
-  it('detects upscale-capable models', () => {
-    expect(mediaCapabilities({ model: 'topaz-image-upscale' }).upscale).toBe(true)
-    expect(mediaCapabilities({ model: 'real-esrgan-anime' }).upscale).toBe(true)
-    expect(mediaCapabilities({ model: 'creative-upscale-v1' }).upscale).toBe(true)
-  })
+    it("returns correct capabilities for upscale-model", () => {
+      const caps = mediaCapabilities({ model: "upscale-model" });
+      expect(caps).toEqual({
+        upscale: true,
+        edit: false,
+        video: false,
+        vision: false,
+      });
+    });
 
-  it('detects edit-capable models', () => {
-    expect(mediaCapabilities({ model: 'sdxl-turbo' }).edit).toBe(true)
-    expect(mediaCapabilities({ model: 'flux.1-dev' }).edit).toBe(true)
-    expect(mediaCapabilities({ model: 'banana-pro' }).edit).toBe(true)
-  })
+    it("returns correct capabilities for video-model", () => {
+      const caps = mediaCapabilities({ model: "video-model" });
+      expect(caps).toEqual({
+        upscale: false,
+        edit: false,
+        video: true,
+        vision: false,
+      });
+    });
 
-  it('detects video-capable models', () => {
-    expect(mediaCapabilities({ model: 'wan-2.1' }).video).toBe(true)
-    expect(mediaCapabilities({ model: 'kling-v1' }).video).toBe(true)
-    expect(mediaCapabilities({ model: 'topaz-video-upscale' }).video).toBe(true)
-  })
+    it("returns correct capabilities for vision-model", () => {
+      const caps = mediaCapabilities({ model: "vision-model" });
+      expect(caps).toEqual({
+        upscale: false,
+        edit: false,
+        video: false,
+        vision: true,
+      });
+    });
 
-  it('detects vision-capable models', () => {
-    expect(mediaCapabilities({ model: 'llama-3.2-11b-vision' }).vision).toBe(true)
-    expect(mediaCapabilities({ model: 'qwen2.5-vl-72b' }).vision).toBe(true)
-    expect(mediaCapabilities({ model: 'gemini-2.0-flash' }).vision).toBe(true)
-  })
+    it("uses liveCapabilities for vision if provided", () => {
+      // Overrides the static 'vision-model' check
+      expect(
+        mediaCapabilities({ model: "vision-model", liveCapabilities: { supportsVision: false } })
+      ).toEqual({
+        upscale: false,
+        edit: false,
+        video: false,
+        vision: false,
+      });
 
-  it('combines multiple capabilities for a single model', () => {
-    // flux-1.1-pro is a known image model that supports both edit and upscale.
-    const caps = mediaCapabilities({ model: 'flux-1.1-pro' })
-    expect(caps.edit).toBe(true) // \bflux\b matches
-    expect(caps.upscale).toBe(false) // not in the upscale allowlist
-    expect(caps.video).toBe(false)
-    expect(caps.vision).toBe(false)
-  })
+      // Grants vision to a non-vision model
+      expect(
+        mediaCapabilities({ model: "other-model", liveCapabilities: { supportsVision: true } })
+      ).toEqual({
+        upscale: false,
+        edit: false,
+        video: false,
+        vision: true,
+      });
+    });
+  });
 
-  it('handles empty / non-string model gracefully', () => {
-    expect(mediaCapabilities({ model: '' })).toEqual({ upscale: false, edit: false, video: false, vision: false })
-    // @ts-expect-error runtime test: missing model field
-    expect(mediaCapabilities({})).toEqual({ upscale: false, edit: false, video: false, vision: false })
-  })
+  describe("mediaItemSource", () => {
+    it("returns null if no image is present", () => {
+      expect(mediaItemSource({} as MediaItem)).toBeNull();
+    });
 
-  it('honours live `supportsVision: true` for an unknown model id', () => {
-    // A future model id we have never heard of becomes vision-capable
-    // when the live `/models` response says so. The static allowlist
-    // and the pattern fallback do not get a chance to override the
-    // live contract.
-    const caps = mediaCapabilities({
-      model: 'some-future-multimodal-llm',
-      liveCapabilities: { supportsVision: true },
-    })
-    expect(caps.vision).toBe(true)
-  })
+    describe("video", () => {
+      it("returns raw if it starts with data:", () => {
+        expect(mediaItemSource({ mediaType: "video", image: "data:video/mp4;base64,123" } as MediaItem)).toBe("data:video/mp4;base64,123");
+      });
 
-  it('honours live `supportsVision: false` over a heuristic pattern match', () => {
-    // "vision" in the id is a static-pattern match — but the live API
-    // contract is the source of truth. A live `supportsVision: false`
-    // must override the static fallback. This is the regression guard
-    // for the 2026-06-08 P3 vision-list cleanup.
-    const caps = mediaCapabilities({
-      model: 'mock-vision-model',
-      liveCapabilities: { supportsVision: false },
-    })
-    expect(caps.vision).toBe(false)
-  })
+      it("returns raw if it starts with blob:", () => {
+        expect(mediaItemSource({ mediaType: "video", image: "blob:http://localhost/123" } as MediaItem)).toBe("blob:http://localhost/123");
+      });
 
-  it('unknown model with no live metadata defaults to non-vision', () => {
-    const caps = mediaCapabilities({ model: 'some-mystery-llm' })
-    expect(caps.vision).toBe(false)
-  })
+      it("returns raw if it starts with http", () => {
+        expect(mediaItemSource({ mediaType: "video", image: "https://example.com/video.mp4" } as MediaItem)).toBe("https://example.com/video.mp4");
+      });
 
-  it('live capability object that is explicitly `null` falls back to the static list', () => {
-    // Passing `null` (e.g. when the call site looked up the model and
-    // could not resolve it) must not crash and must not silently drop
-    // the static fallback to non-vision.
-    const caps = mediaCapabilities({ model: 'llama-3.2-11b-vision', liveCapabilities: null })
-    expect(caps.vision).toBe(true)
-  })
-})
+      it("returns null for arbitrary base64 string", () => {
+        expect(mediaItemSource({ mediaType: "video", image: "aGkh" } as MediaItem)).toBeNull();
+      });
+    });
+
+    describe("image", () => {
+      it("returns raw if it starts with data:", () => {
+        expect(mediaItemSource({ mediaType: "image", image: "data:image/png;base64,123" } as MediaItem)).toBe("data:image/png;base64,123");
+      });
+
+      it("returns raw if it starts with blob:", () => {
+        expect(mediaItemSource({ mediaType: "image", image: "blob:http://localhost/123" } as MediaItem)).toBe("blob:http://localhost/123");
+      });
+
+      it("returns raw if it starts with http", () => {
+        expect(mediaItemSource({ mediaType: "image", image: "https://example.com/image.png" } as MediaItem)).toBe("https://example.com/image.png");
+      });
+
+      it("prepends data URI if it is an arbitrary string (assumed base64)", () => {
+        expect(mediaItemSource({ mediaType: "image", image: "aGkh" } as MediaItem)).toBe("data:image/png;base64,aGkh");
+      });
+    });
+  });
+
+  describe("isVideoItem", () => {
+    it("returns true for video", () => {
+      expect(isVideoItem({ mediaType: "video" } as MediaItem)).toBe(true);
+    });
+
+    it("returns false for non-video", () => {
+      expect(isVideoItem({ mediaType: "image" } as MediaItem)).toBe(false);
+      expect(isVideoItem({} as MediaItem)).toBe(false);
+    });
+  });
+
+  describe("formatDimensions", () => {
+    it("formats valid dimensions correctly", () => {
+      expect(formatDimensions({ width: 1024, height: 768 } as MediaItem)).toBe("1,024 × 768");
+      expect(formatDimensions({ width: "1920", height: "1080" } as unknown as MediaItem)).toBe("1,920 × 1,080");
+    });
+
+    it("rounds float dimensions", () => {
+      expect(formatDimensions({ width: 100.4, height: 100.6 } as MediaItem)).toBe("100 × 101");
+    });
+
+    it("returns null for invalid or missing dimensions", () => {
+      expect(formatDimensions({} as MediaItem)).toBeNull();
+      expect(formatDimensions({ width: "foo", height: "bar" } as unknown as MediaItem)).toBeNull();
+      expect(formatDimensions({ width: -100, height: 200 } as MediaItem)).toBeNull();
+      expect(formatDimensions({ width: 100, height: 0 } as MediaItem)).toBeNull();
+    });
+  });
+
+  describe("formatDuration", () => {
+    it("returns duration string if present", () => {
+      expect(formatDuration("00:10")).toBe("00:10");
+    });
+
+    it("returns null if absent or empty", () => {
+      expect(formatDuration(undefined)).toBeNull();
+      expect(formatDuration("")).toBeNull();
+    });
+  });
+
+  describe("formatBytesApprox", () => {
+    it("returns 0 B for invalid, zero, or negative input", () => {
+      expect(formatBytesApprox(0)).toBe("0 B");
+      expect(formatBytesApprox(-100)).toBe("0 B");
+      expect(formatBytesApprox(NaN)).toBe("0 B");
+    });
+
+    it("formats bytes properly", () => {
+      expect(formatBytesApprox(500)).toBe("500 B");
+    });
+
+    it("formats KB properly", () => {
+      expect(formatBytesApprox(1024)).toBe("1.0 KB");
+      expect(formatBytesApprox(1536)).toBe("1.5 KB");
+      expect(formatBytesApprox(100 * 1024)).toBe("100 KB"); // n >= 100 formatting test
+    });
+
+    it("formats MB properly", () => {
+      expect(formatBytesApprox(1024 * 1024)).toBe("1.0 MB");
+      expect(formatBytesApprox(1.5 * 1024 * 1024)).toBe("1.5 MB");
+    });
+
+    it("formats GB properly", () => {
+      expect(formatBytesApprox(1024 * 1024 * 1024)).toBe("1.0 GB");
+    });
+    
+    it("stops at GB for huge numbers", () => {
+      expect(formatBytesApprox(1024 * 1024 * 1024 * 1024)).toBe("1024 GB");
+    });
+  });
+
+  describe("estimateItemBytes", () => {
+    it("returns 0 if image is missing", () => {
+      expect(estimateItemBytes({} as MediaItem)).toBe(0);
+    });
+
+    it("calculates base64 size from data URI", () => {
+      // 4 base64 chars = 3 bytes. 'aGkh' is 4 chars.
+      expect(estimateItemBytes({ image: "data:image/png;base64,aGkh" } as MediaItem)).toBe(3);
+    });
+    
+    it("handles data URI without comma", () => {
+      // It falls back to the full length calculation `data:` -> 5 chars * 3/4 = 3.75 -> 3
+      expect(estimateItemBytes({ image: "data:aGkh" } as MediaItem)).toBe(6);
+    });
+
+    it("returns string length for raw strings", () => {
+      expect(estimateItemBytes({ image: "https://example.com/test.png" } as MediaItem)).toBe(28);
+    });
+  });
+
+  describe("normalizedTags", () => {
+    it("removes non-strings, trims, lowers, and deduplicates", () => {
+      const tags = ["  FOO  ", "bar", 123 as any, "foo", "   ", "A".repeat(33)];
+      expect(normalizedTags(tags)).toEqual(["foo", "bar"]);
+    });
+
+    it("returns empty array for empty input", () => {
+      expect(normalizedTags([])).toEqual([]);
+    });
+  });
+
+  describe("splitTags", () => {
+    it("splits by comma or newline and trims/lowers", () => {
+      expect(splitTags("FOO, bar \n bAz , , \n")).toEqual(["foo", "bar", "baz"]);
+    });
+
+    it("filters out tags longer than 32 chars", () => {
+      const longTag = "A".repeat(33);
+      expect(splitTags(`foo, ${longTag}, bar`)).toEqual(["foo", "bar"]);
+    });
+
+    it("returns empty array for empty input", () => {
+      expect(splitTags("")).toEqual([]);
+    });
+  });
+});

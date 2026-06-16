@@ -29,7 +29,12 @@ import { getEffectiveRendererLocalFamilySafeModeEnabled } from "../../safetyHydr
 const STORE = "rpScenarios" as const;
 const ID_RE = isValidRpId;
 
-/** Lists all scenarios (sorted by updatedAt desc, capped). */
+/**
+ * Retrieves a list of all RP scenarios, capped at the maximum allowed list size.
+ *
+ * @returns A promise resolving to an array of normalized `ScenarioV1` objects.
+ * @throws {Error} If the underlying storage layer fails to list the scenarios.
+ */
 export async function listScenarios(): Promise<ScenarioV1[]> {
   if (isElectron()) {
     const res = await desktopScenarios.list();
@@ -46,7 +51,12 @@ export async function listScenarios(): Promise<ScenarioV1[]> {
     .slice(0, MAX_LIST_SCENARIOS);
 }
 
-/** Reads a single scenario by id, or returns null. */
+/**
+ * Retrieves a single scenario by its ID.
+ *
+ * @param id - The ID of the scenario to retrieve.
+ * @returns A promise resolving to the `ScenarioV1` if found, or `null` if not found or invalid.
+ */
 export async function readScenario(id: string): Promise<ScenarioV1 | null> {
   if (!ID_RE(id)) return null;
   if (isElectron()) {
@@ -58,7 +68,15 @@ export async function readScenario(id: string): Promise<ScenarioV1 | null> {
   return record ? normalizeScenario(record) : null;
 }
 
-/** Saves a scenario atomically. Generates an id if missing. */
+/**
+ * Saves a scenario atomically. Generates a new ID if one is missing.
+ * Runs `assessScenario` so persisted content is gated by the safety guard.
+ *
+ * @param scenario - The `ScenarioV1` object to save.
+ * @returns A promise resolving to the saved and normalized `ScenarioV1` object.
+ * @throws {Error} If the scenario is invalid.
+ * @throws {SafetyGuardBlockedError} If the content fails the safety check.
+ */
 export async function saveScenario(scenario: ScenarioV1): Promise<ScenarioV1> {
   const now = Date.now();
   const id = scenario.id && ID_RE(scenario.id) ? scenario.id : generateId();
@@ -85,7 +103,12 @@ export async function saveScenario(scenario: ScenarioV1): Promise<ScenarioV1> {
   return normalized;
 }
 
-/** Deletes a scenario by id. Returns true when removed. */
+/**
+ * Deletes a scenario by its ID.
+ *
+ * @param id - The ID of the scenario to delete.
+ * @returns A promise resolving to `true` if the scenario was successfully deleted, `false` otherwise.
+ */
 export async function deleteScenario(id: string): Promise<boolean> {
   if (!ID_RE(id)) return false;
   if (isElectron()) {
@@ -95,7 +118,11 @@ export async function deleteScenario(id: string): Promise<boolean> {
   return StorageService.deleteItem(STORE, id);
 }
 
-/** Generates a new id that satisfies `VALID_ID_RE`. */
+/**
+ * Generates a unique, URL-safe ID for a scenario.
+ *
+ * @returns A randomly generated string ID.
+ */
 export function generateId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();

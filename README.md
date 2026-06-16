@@ -1,7 +1,7 @@
 # Venice Forge
 
 <p align="center">
-  <img src="./assets/branding/venice-logo-lockup-red.svg" alt="Venice Forge — unofficial Venice API desktop client" width="320" />
+  <img src="./assets/preview.jpg" alt="Venice Forge — unofficial Venice API desktop client" width="800" />
 </p>
 
 <p align="center">
@@ -37,7 +37,7 @@
 </p>
 
 <p align="center">
-  <img width="1774" height="998" alt="Venice Forge application preview" src="./assets/preview.png" />
+  <img width="1774" height="998" alt="Venice Forge application preview" src="./assets/preview.jpg" />
 </p>
 
 ---

@@ -25,7 +25,13 @@ const STORE = "personas" as const;
 const ID_RE = isValidRpId;
 const MAX_LIST_PERSONAS = 1_000;
 
-/** Coerces an unknown value into a valid UserPersonaV1, or returns null. */
+/**
+ * Coerces an unknown value into a valid `UserPersonaV1`.
+ * Validates fields against length caps, regex constraints, and required fields.
+ *
+ * @param input - The raw data to normalize.
+ * @returns The normalized `UserPersonaV1` object, or `null` if the input is invalid.
+ */
 export function normalizePersona(input: unknown): UserPersonaV1 | null {
   if (!input || typeof input !== "object") return null;
   const r = input as Record<string, unknown>;
@@ -62,7 +68,12 @@ export function normalizePersona(input: unknown): UserPersonaV1 | null {
   return out;
 }
 
-/** Lists all personas (sorted by updatedAt desc, capped). */
+/**
+ * Retrieves a list of all user personas, capped at the maximum allowed list size.
+ *
+ * @returns A promise resolving to an array of normalized `UserPersonaV1` objects.
+ * @throws {Error} If the underlying storage layer fails to list the personas.
+ */
 export async function listPersonas(): Promise<UserPersonaV1[]> {
   if (isElectron()) {
     const res = await desktopPersonas.list();
@@ -79,7 +90,12 @@ export async function listPersonas(): Promise<UserPersonaV1[]> {
     .slice(0, MAX_LIST_PERSONAS);
 }
 
-/** Reads a single persona by id, or returns null. */
+/**
+ * Retrieves a single user persona by its ID.
+ *
+ * @param id - The ID of the persona to retrieve.
+ * @returns A promise resolving to the `UserPersonaV1` if found, or `null` if not found or invalid.
+ */
 export async function readPersona(id: string): Promise<UserPersonaV1 | null> {
   if (!ID_RE(id)) return null;
   if (isElectron()) {
@@ -91,7 +107,15 @@ export async function readPersona(id: string): Promise<UserPersonaV1 | null> {
   return record ? normalizePersona(record) : null;
 }
 
-/** Saves a persona atomically. Generates an id if missing. */
+/**
+ * Saves a persona atomically. Generates a new ID if one is missing.
+ * Runs `assessPersonaImport` so persisted content is gated by the safety guard.
+ *
+ * @param persona - The `UserPersonaV1` object to save.
+ * @returns A promise resolving to the saved and normalized `UserPersonaV1` object.
+ * @throws {Error} If the persona is invalid.
+ * @throws {SafetyGuardBlockedError} If the content fails the safety check.
+ */
 export async function savePersona(persona: UserPersonaV1): Promise<UserPersonaV1> {
   const now = Date.now();
   const id = persona.id && ID_RE(persona.id) ? persona.id : generateId();
@@ -118,7 +142,12 @@ export async function savePersona(persona: UserPersonaV1): Promise<UserPersonaV1
   return normalized;
 }
 
-/** Deletes a persona by id. Returns true when removed. */
+/**
+ * Deletes a persona by its ID.
+ *
+ * @param id - The ID of the persona to delete.
+ * @returns A promise resolving to `true` if the persona was successfully deleted, `false` otherwise.
+ */
 export async function deletePersona(id: string): Promise<boolean> {
   if (!ID_RE(id)) return false;
   if (isElectron()) {
@@ -128,7 +157,11 @@ export async function deletePersona(id: string): Promise<boolean> {
   return StorageService.deleteItem(STORE, id);
 }
 
-/** Generates a new id that satisfies `VALID_ID_RE`. */
+/**
+ * Generates a unique, URL-safe ID for a persona.
+ *
+ * @returns A randomly generated string ID.
+ */
 export function generateId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();

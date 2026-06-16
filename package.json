@@ -84,7 +84,7 @@
     "dist:linux": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --linux --publish never && npm run checksum:release",
     "dist:mac:arm64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --arm64 --publish never && npm run checksum:release",
     "dist:mac:x64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --x64 --publish never && npm run checksum:release",
-    "ci": "npm run lint:eslint && npm run typecheck && npm test && npm audit --omit=dev --audit-level=moderate && npm run verify:safety-guard && npm run verify:markdown-links && npm run verify:contracts && npm run build && npm run verify:dist",
+    "ci": "npm run lint:eslint && npm run typecheck && npm test && npm run test:coverage && npm audit --omit=dev --audit-level=moderate && npm run verify:safety-guard && npm run verify:markdown-links && npm run verify:contracts && npm run build && npm run verify:dist",
     "config:init": "tsx scripts/init-config.ts",
     "config:validate": "tsx scripts/validate-config.ts",
     "config:print": "tsx scripts/print-config.ts"

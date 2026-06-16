@@ -12,6 +12,8 @@ import {
 import type { PromptLibraryItem } from "../types/prompt-library";
 import { redactErrorMessage } from "../shared/redaction";
 import StorageService from "../services/storageService";
+import { useSettingsStore } from "./settings-store";
+import { useProjectStore } from "./project-store";
 
 /** Type-safe mocked handles for the StorageService singleton. */
 const mockStorage = StorageService as unknown as {
@@ -408,6 +410,145 @@ describe("prompt-library-store (VERIFY-046)", () => {
       expect(item.id).toMatch(
         /^plib-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
       );
+    });
+  });
+
+  describe("Missing prompt early exits", () => {
+    it("updatePrompt does nothing if prompt not found", async () => {
+      await usePromptLibraryStore.getState().updatePrompt("missing", { title: "x" });
+      expect(usePromptLibraryStore.getState().prompts).toHaveLength(0);
+    });
+    it("setCurrentVersion does nothing if prompt not found, or version not found, or already current", async () => {
+      const p = await usePromptLibraryStore.getState().createPrompt({ title: "t", kind: "general", content: "c", scope: "global" });
+      await usePromptLibraryStore.getState().setCurrentVersion("missing", "v");
+      await usePromptLibraryStore.getState().setCurrentVersion(p.id, "missing-v");
+      await usePromptLibraryStore.getState().setCurrentVersion(p.id, p.versions[0]!.id);
+      expect(usePromptLibraryStore.getState().prompts[0]!.currentVersionId).toBe(p.versions[0]!.id);
+    });
+    it("archivePrompt does nothing if prompt not found", async () => {
+      await usePromptLibraryStore.getState().archivePrompt("missing");
+      expect(usePromptLibraryStore.getState().prompts).toHaveLength(0);
+    });
+    it("unarchivePrompt does nothing if prompt not found", async () => {
+      await usePromptLibraryStore.getState().unarchivePrompt("missing");
+      expect(usePromptLibraryStore.getState().prompts).toHaveLength(0);
+    });
+    it("deletePrompt does nothing if prompt not found", async () => {
+      await usePromptLibraryStore.getState().deletePrompt("missing");
+      expect(usePromptLibraryStore.getState().prompts).toHaveLength(0);
+    });
+    it("toggleFavorite does nothing if prompt not found", async () => {
+      await usePromptLibraryStore.getState().toggleFavorite("missing");
+      expect(usePromptLibraryStore.getState().prompts).toHaveLength(0);
+    });
+  });
+
+  describe("ensureLoaded / reloadFromStorage", () => {
+    it("ensureLoaded early exits if already hydrated or loading", async () => {
+      usePromptLibraryStore.setState({ hydrated: true });
+      await usePromptLibraryStore.getState().ensureLoaded();
+      expect(mockStorage.getItems).not.toHaveBeenCalled();
+
+      usePromptLibraryStore.setState({ hydrated: false, loading: true });
+      await usePromptLibraryStore.getState().ensureLoaded();
+      expect(mockStorage.getItems).not.toHaveBeenCalled();
+    });
+
+    it("reloadFromStorage sets hydrated to false and calls ensureLoaded", async () => {
+      usePromptLibraryStore.setState({ hydrated: true });
+      await usePromptLibraryStore.getState().reloadFromStorage();
+      expect(usePromptLibraryStore.getState().hydrated).toBe(true);
+      expect(mockStorage.getItems).toHaveBeenCalled();
+    });
+  });
+
+  describe("getters", () => {
+    it("getPrompt returns prompt or null", async () => {
+      const p = await usePromptLibraryStore.getState().createPrompt({ title: "t", kind: "general", content: "c", scope: "global" });
+      expect(usePromptLibraryStore.getState().getPrompt(p.id)?.id).toBe(p.id);
+      expect(usePromptLibraryStore.getState().getPrompt("missing")).toBeNull();
+    });
+    it("getCurrentVersion returns version or null", async () => {
+      const p = await usePromptLibraryStore.getState().createPrompt({ title: "t", kind: "general", content: "c", scope: "global" });
+      expect(usePromptLibraryStore.getState().getCurrentVersion(p.id)?.id).toBe(p.versions[0]!.id);
+      expect(usePromptLibraryStore.getState().getCurrentVersion("missing")).toBeNull();
+    });
+  });
+
+  describe("persistence failure for other mutators", () => {
+    it("setCurrentVersion reverts and redacts on error", async () => {
+      const p = await usePromptLibraryStore.getState().createPrompt({ title: "t", kind: "general", content: "c", scope: "global" });
+      const v2 = await usePromptLibraryStore.getState().addPromptVersion(p.id, { content: "c2" });
+      const raw = new Error("update failed: token=vn-cccc");
+      mockStorage.saveItem.mockRejectedValueOnce(raw);
+      await expect(usePromptLibraryStore.getState().setCurrentVersion(p.id, p.versions[0]!.id)).rejects.toThrow();
+      expect(usePromptLibraryStore.getState().prompts[0]!.currentVersionId).toBe(v2.id); // Reverted to v2
+      expect(usePromptLibraryStore.getState().loadError).toContain("[REDACTED]");
+    });
+    it("archivePrompt reverts and redacts on error", async () => {
+      const p = await usePromptLibraryStore.getState().createPrompt({ title: "t", kind: "general", content: "c", scope: "global" });
+      const raw = new Error("archive failed: token=vn-cccc");
+      mockStorage.saveItem.mockRejectedValueOnce(raw);
+      await expect(usePromptLibraryStore.getState().archivePrompt(p.id)).rejects.toThrow();
+      expect(usePromptLibraryStore.getState().prompts[0]!.archivedAt).toBeNull();
+    });
+    it("unarchivePrompt reverts and redacts on error", async () => {
+      const p = await usePromptLibraryStore.getState().createPrompt({ title: "t", kind: "general", content: "c", scope: "global" });
+      await usePromptLibraryStore.getState().archivePrompt(p.id);
+      const raw = new Error("unarchive failed: token=vn-cccc");
+      mockStorage.saveItem.mockRejectedValueOnce(raw);
+      await expect(usePromptLibraryStore.getState().unarchivePrompt(p.id)).rejects.toThrow();
+      expect(usePromptLibraryStore.getState().prompts[0]!.archivedAt).not.toBeNull();
+    });
+    it("toggleFavorite reverts and redacts on error", async () => {
+      const p = await usePromptLibraryStore.getState().createPrompt({ title: "t", kind: "general", content: "c", scope: "global" });
+      const raw = new Error("fav failed: token=vn-cccc");
+      mockStorage.saveItem.mockRejectedValueOnce(raw);
+      await expect(usePromptLibraryStore.getState().toggleFavorite(p.id)).rejects.toThrow();
+      expect(usePromptLibraryStore.getState().prompts[0]!.favorite).toBe(false);
+    });
+    it("addPromptVersion reverts and redacts on error", async () => {
+      const p = await usePromptLibraryStore.getState().createPrompt({ title: "t", kind: "general", content: "c", scope: "global" });
+      const raw = new Error("add version failed: token=vn-cccc");
+      mockStorage.saveItem.mockRejectedValueOnce(raw);
+      await expect(usePromptLibraryStore.getState().addPromptVersion(p.id, { content: "c2" })).rejects.toThrow();
+      expect(usePromptLibraryStore.getState().prompts[0]!.versions).toHaveLength(1);
+    });
+  });
+
+  describe("resolvePromptProjectId", () => {
+    it("falls back to settings and project store correctly", () => {
+      useSettingsStore.setState({ activeProjectId: "p-settings" });
+      expect(resolvePromptProjectId(undefined)).toBe("p-settings");
+      
+      useSettingsStore.setState({ activeProjectId: null });
+      useProjectStore.setState({ projects: [{ id: "p-project", name: "test", basePath: "", createdAt: "", updatedAt: "", archivedAt: null }] } as any);
+      expect(resolvePromptProjectId(undefined)).toBe("p-project");
+      
+      useProjectStore.setState({ projects: [] });
+      expect(resolvePromptProjectId(undefined)).toBeNull();
+    });
+  });
+
+  describe("ensureLoaded sorting and setActivePrompt", () => {
+    it("sorts favorites first, then by updatedAt", async () => {
+      const now = Date.now();
+      mockStorage.getItems.mockResolvedValueOnce([
+        { id: "p1", title: "1", kind: "general", content: "c", scope: "global", favorite: false, updatedAt: new Date(now - 1000).toISOString(), versions: [{ id: "v1", version: 1, content: "c", createdAt: new Date(now - 1000).toISOString() }], currentVersionId: "v1", createdAt: new Date(now - 1000).toISOString(), tags: [], archivedAt: null },
+        { id: "p2", title: "2", kind: "general", content: "c", scope: "global", favorite: true, updatedAt: new Date(now - 2000).toISOString(), versions: [{ id: "v2", version: 1, content: "c", createdAt: new Date(now - 2000).toISOString() }], currentVersionId: "v2", createdAt: new Date(now - 2000).toISOString(), tags: [], archivedAt: null },
+        { id: "p3", title: "3", kind: "general", content: "c", scope: "global", favorite: true, updatedAt: new Date(now).toISOString(), versions: [{ id: "v3", version: 1, content: "c", createdAt: new Date(now).toISOString() }], currentVersionId: "v3", createdAt: new Date(now).toISOString(), tags: [], archivedAt: null },
+        { id: "p4", title: "4", kind: "general", content: "c", scope: "global", favorite: false, updatedAt: new Date(now).toISOString(), versions: [{ id: "v4", version: 1, content: "c", createdAt: new Date(now).toISOString() }], currentVersionId: "v4", createdAt: new Date(now).toISOString(), tags: [], archivedAt: null },
+      ]);
+      await usePromptLibraryStore.getState().ensureLoaded();
+      const prompts = usePromptLibraryStore.getState().prompts;
+      expect(prompts.map(p => p.id)).toEqual(["p3", "p2", "p4", "p1"]);
+    });
+
+    it("setActivePrompt sets activePromptId", () => {
+      usePromptLibraryStore.getState().setActivePrompt("my-id");
+      expect(usePromptLibraryStore.getState().activePromptId).toBe("my-id");
+      usePromptLibraryStore.getState().setActivePrompt(null);
+      expect(usePromptLibraryStore.getState().activePromptId).toBeNull();
     });
   });
 });

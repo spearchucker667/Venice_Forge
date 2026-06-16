@@ -47,6 +47,7 @@ import {
   bulkRemoveTag,
   bulkSetFavorite,
   listAssignableProjects,
+  bulkFailureCount,
 } from "./media-bulk-actions";
 import { MEDIA_ITEM_VERSION, type MediaItem } from "../types/media";
 import type { Project } from "../types/project";
@@ -144,6 +145,22 @@ describe("media-bulk-actions (VERIFY-044)", () => {
     expect(r.succeeded).toEqual([])
   })
 
+  it("bulkAddTags: ignores non-array tags input", async () => {
+    await seed([makeItem({ id: "a" })])
+    const r = await bulkAddTags(["a"], null as unknown as string[])
+    expect(r.requested).toBe(0)
+    expect(r.succeeded).toEqual([])
+  })
+
+  it("bulkAddTags: missing ids are reported as failed", async () => {
+    await seed([makeItem({ id: "a" })])
+    const r = await bulkAddTags(["a", "missing"], ["hero"])
+    expect(r.succeeded).toEqual(["a"])
+    expect(r.failed).toHaveLength(1)
+    expect(r.failed[0].id).toBe("missing")
+    expect(r.failed[0].reason).toMatch(/not in current view/i)
+  })
+
   it("bulkRemoveTag: drops the lowercased tag only", async () => {
     await seed([makeItem({ id: "a", tags: ["hero", "landscape"] })])
     const r = await bulkRemoveTag(["a"], "  HERO  ")
@@ -158,6 +175,22 @@ describe("media-bulk-actions (VERIFY-044)", () => {
     expect(useMediaStore.getState().items.find((i) => i.id === "a")?.tags).toEqual(["hero"])
   })
 
+  it("bulkRemoveTag: ignores non-string tags", async () => {
+    await seed([makeItem({ id: "a", tags: ["hero"] })])
+    const r = await bulkRemoveTag(["a"], null as unknown as string)
+    expect(r.requested).toBe(0)
+    expect(r.succeeded).toEqual([])
+  })
+
+  it("bulkRemoveTag: missing ids are reported as failed", async () => {
+    await seed([makeItem({ id: "a", tags: ["hero"] })])
+    const r = await bulkRemoveTag(["a", "missing"], "hero")
+    expect(r.succeeded).toEqual(["a"])
+    expect(r.failed).toHaveLength(1)
+    expect(r.failed[0].id).toBe("missing")
+    expect(r.failed[0].reason).toMatch(/not in current view/i)
+  })
+
   it("bulkAssignProject: assigns valid non-archived project to all ids", async () => {
     await seed([makeItem({ id: "a" }), makeItem({ id: "b" })])
     useProjectStore.setState({ projects: [makeProject({ id: "p1", name: "P1" })] })
@@ -166,12 +199,26 @@ describe("media-bulk-actions (VERIFY-044)", () => {
     expect(useMediaStore.getState().items.find((i) => i.id === "a")?.projectId).toBe("p1")
   })
 
+  it("bulkAssignProject: no-op on empty input", async () => {
+    const r = await bulkAssignProject([], "p1")
+    expect(r.requested).toBe(0)
+    expect(r.succeeded).toEqual([])
+  })
+
   it("bulkAssignProject: rejects unknown project for every id (partial failure)", async () => {
     await seed([makeItem({ id: "a" })])
     useProjectStore.setState({ projects: [] })
     const r = await bulkAssignProject(["a"], "missing")
     expect(r.succeeded).toEqual([])
     expect(r.failed[0].reason).toMatch(/not found/i)
+  })
+
+  it("bulkAssignProject: rejects empty project id per id", async () => {
+    await seed([makeItem({ id: "a" })])
+    useProjectStore.setState({ projects: [] })
+    const r = await bulkAssignProject(["a"], "")
+    expect(r.succeeded).toEqual([])
+    expect(r.failed[0].reason).toMatch(/is empty/i)
   })
 
   it("bulkAssignProject: rejects archived project per id", async () => {
@@ -202,6 +249,16 @@ describe("media-bulk-actions (VERIFY-044)", () => {
     expect(r.succeeded).toEqual(["a"])
   })
 
+  it("bulkAssignProject: patch returning false yields a per-id failure", async () => {
+    await seed([makeItem({ id: "a" })])
+    useProjectStore.setState({ projects: [makeProject({ id: "p1", name: "P1" })] })
+    vi.spyOn(useMediaStore.getState(), "patch").mockResolvedValueOnce(false)
+    const r = await bulkAssignProject(["a"], "p1")
+    expect(r.succeeded).toEqual([])
+    expect(r.failed).toHaveLength(1)
+    expect(r.failed[0].reason).toMatch(/not in current view/i)
+  })
+
   it("bulkDelete: refuses to run without confirm:true", async () => {
     await seed([makeItem({ id: "a" })])
     const r = await bulkDelete(["a"], { confirm: false })
@@ -225,6 +282,16 @@ describe("media-bulk-actions (VERIFY-044)", () => {
     expect(r.succeeded).toEqual([])
   })
 
+  it("bulkDelete: reports missing ids as failed", async () => {
+    await seed([makeItem({ id: "a" })])
+    const r = await bulkDelete(["a", "missing"], { confirm: true })
+    expect(r.requested).toBe(2)
+    expect(r.succeeded).toEqual(["a"])
+    expect(r.failed).toHaveLength(1)
+    expect(r.failed[0].id).toBe("missing")
+    expect(r.failed[0].reason).toMatch(/not in current view/i)
+  })
+
   it("bulkHasFailure: false on full success", () => {
     expect(bulkHasFailure({ action: "favorite", requested: 1, succeeded: ["a"], failed: [] })).toBe(false)
   })
@@ -234,6 +301,18 @@ describe("media-bulk-actions (VERIFY-044)", () => {
       action: "favorite", requested: 2, succeeded: ["a"],
       failed: [{ id: "b", reason: "x" }],
     })).toBe(true)
+  })
+
+  it("bulkFailureCount: returns number of failures", () => {
+    expect(bulkFailureCount({
+      action: "favorite", requested: 2, succeeded: ["a"],
+      failed: [{ id: "b", reason: "x" }, { id: "c", reason: "y" }],
+    })).toBe(2)
+    
+    expect(bulkFailureCount({
+      action: "favorite", requested: 1, succeeded: ["a"],
+      failed: [],
+    })).toBe(0)
   })
 
   it("listAssignableProjects: filters out archived projects", () => {

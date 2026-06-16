@@ -10,7 +10,8 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import "fake-indexeddb/auto";
-import { useCharacterCardStore } from "./character-card-store";
+import { renderHook, act } from "@testing-library/react";
+import { useCharacterCardStore, useFilteredCharacterCards } from "./character-card-store";
 import { useToastStore } from "./toast-store";
 import * as characterCardService from "../services/rp/characterCardService";
 import type { CharacterCardV1 } from "../types/rp";
@@ -158,6 +159,59 @@ describe("character-card-store", () => {
     expect(saved!.metadata).toEqual({ ok: "string", n: 42, b: true, n2: null });
   });
 
+  it("load fetches cards and sorts them by updatedAt", async () => {
+    const cards = [baseCard({ id: "c_1", updatedAt: 1 }), baseCard({ id: "c_2", updatedAt: 2 })];
+    vi.spyOn(characterCardService, "listCharacterCards").mockResolvedValue(cards);
+    await useCharacterCardStore.getState().load();
+    const state = useCharacterCardStore.getState();
+    expect(state.isLoading).toBe(false);
+    expect(state.hasLoaded).toBe(true);
+    expect(state.cards).toHaveLength(2);
+    expect(state.cards[0]!.id).toBe("c_2"); // descending order
+  });
+
+  it("refresh sets hasLoaded to false and calls load", async () => {
+    vi.spyOn(characterCardService, "listCharacterCards").mockResolvedValue([]);
+    useCharacterCardStore.setState({ hasLoaded: true });
+    await useCharacterCardStore.getState().refresh();
+    const state = useCharacterCardStore.getState();
+    expect(state.hasLoaded).toBe(true);
+  });
+
+  it("setEditing mutates the editingId", () => {
+    useCharacterCardStore.getState().setEditing("c_1");
+    expect(useCharacterCardStore.getState().editingId).toBe("c_1");
+  });
+
+  it("load does not fetch if already isLoading", async () => {
+    useCharacterCardStore.setState({ isLoading: true });
+    const spy = vi.spyOn(characterCardService, "listCharacterCards");
+    await useCharacterCardStore.getState().load();
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("remove returns false and toasts if storage rejects the request", async () => {
+    vi.spyOn(characterCardService, "deleteCharacterCard").mockResolvedValue(false);
+    const ok = await useCharacterCardStore.getState().remove("c_1");
+    expect(ok).toBe(false);
+    const toasts = useToastStore.getState().toasts;
+    expect(toasts).toHaveLength(1);
+    expect(toasts[0]!.description).toBe("Storage rejected the request.");
+  });
+
+  it("upsert updates an existing card in place and sorts", async () => {
+    const card1 = baseCard({ id: "c_1", updatedAt: 10 });
+    const card2 = baseCard({ id: "c_2", updatedAt: 20 });
+    useCharacterCardStore.setState({ cards: [card2, card1] });
+    
+    const updatedCard1 = { ...card1, updatedAt: 30 };
+    const saved = await useCharacterCardStore.getState().upsert(updatedCard1);
+    
+    const cards = useCharacterCardStore.getState().cards;
+    expect(cards).toHaveLength(2);
+    expect(cards[0]!.id).toBe("c_1"); // now c_1 is newer
+  });
+
   // T-185 regression guard: persistence failures must never expose raw
   // exception text (paths, driver internals, secrets) in store state or toasts.
   describe("safe persistence error handling (T-185)", () => {
@@ -225,3 +279,54 @@ describe("character-card-store", () => {
     });
   });
 });
+
+describe("useFilteredCharacterCards", () => {
+  beforeEach(() => {
+    reset();
+  });
+
+  it("filters adult cards out by default", () => {
+    const c1 = baseCard({ id: "c_1", adult: false });
+    const c2 = baseCard({ id: "c_2", adult: true });
+    useCharacterCardStore.setState({ cards: [c1, c2], includeAdult: false });
+    const { result } = renderHook(() => useFilteredCharacterCards());
+    expect(result.current).toHaveLength(1);
+    expect(result.current[0]!.id).toBe("c_1");
+  });
+
+  it("includes adult cards if includeAdult is true", () => {
+    const c1 = baseCard({ id: "c_1", adult: false });
+    const c2 = baseCard({ id: "c_2", adult: true });
+    useCharacterCardStore.setState({ cards: [c1, c2], includeAdult: true });
+    const { result } = renderHook(() => useFilteredCharacterCards());
+    expect(result.current).toHaveLength(2);
+  });
+
+  it("filters by name/description/tags", () => {
+    const c1 = baseCard({ id: "c_1", name: "Alpha", description: "Hello", tags: ["a"] });
+    const c2 = baseCard({ id: "c_2", name: "Beta", description: "World", tags: ["b"] });
+    useCharacterCardStore.setState({ cards: [c1, c2], includeAdult: false });
+    
+    act(() => {
+      useCharacterCardStore.getState().setSearchQuery("world");
+    });
+    const { result: r1 } = renderHook(() => useFilteredCharacterCards());
+    expect(r1.current).toHaveLength(1);
+    expect(r1.current[0]!.id).toBe("c_2");
+
+    act(() => {
+      useCharacterCardStore.getState().setSearchQuery("alpha");
+    });
+    const { result: r2 } = renderHook(() => useFilteredCharacterCards());
+    expect(r2.current).toHaveLength(1);
+    expect(r2.current[0]!.id).toBe("c_1");
+  });
+  
+  it("limits to PAGE_SIZE", () => {
+    const cards = Array.from({ length: 100 }).map((_, i) => baseCard({ id: `c_${i}` }));
+    useCharacterCardStore.setState({ cards, includeAdult: false });
+    const { result } = renderHook(() => useFilteredCharacterCards());
+    expect(result.current).toHaveLength(60);
+  });
+});
+

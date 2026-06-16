@@ -1,0 +1,5 @@
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.7 [39m[90m/Users/super_user/Projects/Windows-Venice-API-connector[39m
+      [2mCoverage enabled with [22m[33mv8[39m
+
+ [32m✓[39m src/stores/media-store.test.ts [2m([22m[2m34 tests[22m[2m)[22m[32m 28[2mms[22m[39m

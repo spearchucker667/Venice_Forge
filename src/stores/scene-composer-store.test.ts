@@ -50,6 +50,18 @@ describe("scene-composer-store", () => {
     expect(item.projectId).toBe("p-1");
   });
 
+  it("createScene falls back to useSettingsStore for projectId", async () => {
+    const { useSettingsStore } = await import("./settings-store");
+    useSettingsStore.setState({ activeProjectId: "p-settings" });
+    const item = await useSceneComposerStore.getState().createScene({
+      title: "Project-scoped settings fallback",
+      scope: "project",
+    });
+    expect(item.scope).toBe("project");
+    expect(item.projectId).toBe("p-settings");
+    useSettingsStore.setState({ activeProjectId: null });
+  });
+
   it("createScene drops projectId when scope is global", async () => {
     const item = await useSceneComposerStore.getState().createScene({
       title: "Global",
@@ -371,6 +383,189 @@ describe("scene-composer-store", () => {
       expect(result.skipped[0]!.reason).toContain("batch write failed");
       expect(result.skipped[0]!.reason).not.toContain("cccccccccccccccc");
       expect(result.skipped[0]!.reason).toContain("[REDACTED]");
+    });
+  });
+
+  describe("Edge cases and rollbacks", () => {
+    beforeEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("ensureLoaded does nothing if already hydrated", async () => {
+      useSceneComposerStore.setState({ hydrated: true, loading: false });
+      const spy = vi.spyOn(StorageService, "getItems");
+      await useSceneComposerStore.getState().ensureLoaded();
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it("reloadFromStorage unsets hydrated and calls ensureLoaded", async () => {
+      useSceneComposerStore.setState({ hydrated: true, loading: false });
+      const spy = vi.spyOn(StorageService, "getItems").mockResolvedValue([]);
+      await useSceneComposerStore.getState().reloadFromStorage();
+      expect(spy).toHaveBeenCalled();
+      expect(useSceneComposerStore.getState().hydrated).toBe(true);
+    });
+
+    it("setActiveScene updates activeSceneId", () => {
+      useSceneComposerStore.getState().setActiveScene("scene-foo");
+      expect(useSceneComposerStore.getState().activeSceneId).toBe("scene-foo");
+    });
+
+    it("getScene and getCurrentVersion return null for missing scenes", () => {
+      expect(useSceneComposerStore.getState().getScene("missing")).toBeNull();
+      expect(useSceneComposerStore.getState().getCurrentVersion("missing")).toBeNull();
+    });
+
+    it("getScene and getCurrentVersion return correct objects", async () => {
+      const scene = await useSceneComposerStore.getState().createScene({ title: "T" });
+      expect(useSceneComposerStore.getState().getScene(scene.id)?.id).toBe(scene.id);
+      expect(useSceneComposerStore.getState().getCurrentVersion(scene.id)?.id).toBe(scene.versions[0]!.id);
+    });
+
+    it("mutators are no-ops for unknown scenes", async () => {
+      await expect(useSceneComposerStore.getState().updateScene("missing", { title: "x" })).resolves.toBeUndefined();
+      await expect(useSceneComposerStore.getState().setCurrentVersion("missing", "v-1")).resolves.toBeUndefined();
+      await expect(useSceneComposerStore.getState().addOutputMedia("missing", "media-1")).resolves.toBeUndefined();
+      await expect(useSceneComposerStore.getState().removeOutputMedia("missing", "media-1")).resolves.toBeUndefined();
+      await expect(useSceneComposerStore.getState().archiveScene("missing")).resolves.toBeUndefined();
+      await expect(useSceneComposerStore.getState().unarchiveScene("missing")).resolves.toBeUndefined();
+      await expect(useSceneComposerStore.getState().deleteScene("missing")).resolves.toBeUndefined();
+      await expect(useSceneComposerStore.getState().toggleFavorite("missing")).resolves.toBeUndefined();
+    });
+
+    it("setCurrentVersion is no-op if version unknown or already current", async () => {
+      const scene = await useSceneComposerStore.getState().createScene({ title: "T" });
+      // Unknown version
+      await useSceneComposerStore.getState().setCurrentVersion(scene.id, "missing-v");
+      expect(useSceneComposerStore.getState().scenes[0]!.currentVersionId).toBe(scene.versions[0]!.id);
+      
+      // Already current
+      const spy = vi.spyOn(StorageService, "saveItem");
+      await useSceneComposerStore.getState().setCurrentVersion(scene.id, scene.versions[0]!.id);
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it("ensureLoaded sorts by favorite then updatedAt", async () => {
+      const s1 = await useSceneComposerStore.getState().createScene({ title: "A" });
+      const s2 = await useSceneComposerStore.getState().createScene({ title: "B" });
+      const s3 = await useSceneComposerStore.getState().createScene({ title: "C" });
+      
+      useSceneComposerStore.setState({ hydrated: false, loading: false, scenes: [] });
+      const now = Date.now();
+      
+      // Mutate them to be returned from mock
+      const mockScenes = [
+        { ...s1, favorite: false, updatedAt: new Date(now - 1000).toISOString() },
+        { ...s2, favorite: true, updatedAt: new Date(now - 2000).toISOString() },
+        { ...s3, favorite: false, updatedAt: new Date(now).toISOString() },
+      ];
+      vi.spyOn(StorageService, "getItems").mockResolvedValue(mockScenes as any);
+      await useSceneComposerStore.getState().ensureLoaded();
+      const ids = useSceneComposerStore.getState().scenes.map(s => s.id);
+      // s2 is favorite (comes first), then s3 (newer), then s1 (older)
+      expect(ids).toEqual([s2.id, s3.id, s1.id]);
+    });
+
+    it("ensureLoaded skips invalid items", async () => {
+      useSceneComposerStore.setState({ hydrated: false, loading: false });
+      const mockScenes = [
+        { id: "s1", title: "A", versions: [{ id: "v1", version: 1, components: [] }] },
+        { invalid: "item" }, // Will fail sanitize
+      ];
+      vi.spyOn(StorageService, "getItems").mockResolvedValue(mockScenes as any);
+      await useSceneComposerStore.getState().ensureLoaded();
+      expect(useSceneComposerStore.getState().scenes).toHaveLength(1);
+      expect(useSceneComposerStore.getState().scenes[0]!.id).toBe("s1");
+    });
+
+    it("addOutputMedia is no-op if already present", async () => {
+      const scene = await useSceneComposerStore.getState().createScene({ title: "T" });
+      await useSceneComposerStore.getState().addOutputMedia(scene.id, "media-1");
+      const spy = vi.spyOn(StorageService, "saveItem");
+      await useSceneComposerStore.getState().addOutputMedia(scene.id, "media-1");
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it("resolveSceneProjectId handles fallback correctly", async () => {
+      // Import project/settings stores here to manipulate their state just for this test
+      const { useProjectStore } = await import("./project-store");
+      const { useSettingsStore } = await import("./settings-store");
+      
+      useProjectStore.setState({ projects: [] });
+      useSettingsStore.setState({ activeProjectId: null });
+      
+      expect(resolveSceneProjectId(null)).toBeNull();
+      
+      useSettingsStore.setState({ activeProjectId: "p-settings" });
+      expect(resolveSceneProjectId(null)).toBe("p-settings");
+      
+      useSettingsStore.setState({ activeProjectId: null });
+      useProjectStore.setState({ projects: [{ id: "p-first", archivedAt: null }] as any });
+      expect(resolveSceneProjectId(null)).toBe("p-first");
+    });
+
+    it("mutators rollback state on persist error", async () => {
+      const scene = await useSceneComposerStore.getState().createScene({ title: "T" });
+      vi.spyOn(StorageService, "saveItem").mockRejectedValue(new Error("Disk full"));
+      
+      // updateScene
+      await expect(useSceneComposerStore.getState().updateScene(scene.id, { title: "New" })).rejects.toThrow("Disk full");
+      expect(useSceneComposerStore.getState().scenes[0]!.title).toBe("T");
+      
+      // addSceneVersion
+      await expect(useSceneComposerStore.getState().addSceneVersion(scene.id, { components: [] })).rejects.toThrow("Disk full");
+      expect(useSceneComposerStore.getState().scenes[0]!.versions).toHaveLength(1);
+      
+      // archiveScene
+      await expect(useSceneComposerStore.getState().archiveScene(scene.id)).rejects.toThrow("Disk full");
+      expect(useSceneComposerStore.getState().scenes[0]!.archivedAt).toBeNull();
+      
+      // unarchiveScene
+      // first manually archive without persisting
+      vi.restoreAllMocks();
+      await useSceneComposerStore.getState().archiveScene(scene.id);
+      vi.spyOn(StorageService, "saveItem").mockRejectedValue(new Error("Disk full"));
+      await expect(useSceneComposerStore.getState().unarchiveScene(scene.id)).rejects.toThrow("Disk full");
+      expect(useSceneComposerStore.getState().scenes[0]!.archivedAt).not.toBeNull();
+      
+      // toggleFavorite
+      await expect(useSceneComposerStore.getState().toggleFavorite(scene.id)).rejects.toThrow("Disk full");
+      expect(useSceneComposerStore.getState().scenes[0]!.favorite).toBe(false);
+
+      // addOutputMedia
+      await expect(useSceneComposerStore.getState().addOutputMedia(scene.id, "media-1")).rejects.toThrow("Disk full");
+      expect(useSceneComposerStore.getState().scenes[0]!.outputMediaIds).toEqual([]);
+
+      // removeOutputMedia
+      vi.restoreAllMocks();
+      await useSceneComposerStore.getState().addOutputMedia(scene.id, "media-1");
+      vi.spyOn(StorageService, "saveItem").mockRejectedValue(new Error("Disk full"));
+      await expect(useSceneComposerStore.getState().removeOutputMedia(scene.id, "media-1")).rejects.toThrow("Disk full");
+      expect(useSceneComposerStore.getState().scenes[0]!.outputMediaIds).toEqual(["media-1"]);
+      
+      // setCurrentVersion
+      vi.restoreAllMocks();
+      const v2 = await useSceneComposerStore.getState().addSceneVersion(scene.id, { components: [{kind: "subject", content: "x"}] });
+      await useSceneComposerStore.getState().setCurrentVersion(scene.id, scene.versions[0]!.id);
+      vi.spyOn(StorageService, "saveItem").mockRejectedValue(new Error("Disk full"));
+      await expect(useSceneComposerStore.getState().setCurrentVersion(scene.id, v2.id)).rejects.toThrow("Disk full");
+      expect(useSceneComposerStore.getState().scenes[0]!.currentVersionId).toBe(scene.versions[0]!.id);
+    });
+
+    it("deleteScene rolls back state on persist error", async () => {
+      const scene = await useSceneComposerStore.getState().createScene({ title: "T" });
+      useSceneComposerStore.getState().setActiveScene(scene.id);
+      vi.spyOn(StorageService, "deleteItem").mockRejectedValue(new Error("Cannot delete"));
+      
+      await expect(useSceneComposerStore.getState().deleteScene(scene.id)).rejects.toThrow("Cannot delete");
+      expect(useSceneComposerStore.getState().scenes).toHaveLength(1);
+      
+      // Also test deleteScene when scene is NOT the active scene, to cover branch activeSceneId === sceneId ? null : activeSceneId
+      const scene2 = await useSceneComposerStore.getState().createScene({ title: "T2" });
+      useSceneComposerStore.getState().setActiveScene(scene.id); // keep scene 1 active
+      vi.spyOn(StorageService, "deleteItem").mockResolvedValue();
+      await useSceneComposerStore.getState().deleteScene(scene2.id);
+      expect(useSceneComposerStore.getState().activeSceneId).toBe(scene.id);
     });
   });
 });

@@ -39,7 +39,12 @@ function isValidRole(r: unknown): r is RpRole {
   return r === "system" || r === "user" || r === "character" || r === "narrator" || r === "tool";
 }
 
-/** Returns true when the value is a valid RpChatV1. */
+/**
+ * Validates whether a given value conforms to the `RpChatV1` schema.
+ *
+ * @param value - The value to check.
+ * @returns `true` if the value is a valid `RpChatV1` object, `false` otherwise.
+ */
 export function isValidChat(value: unknown): value is RpChatV1 {
   if (!value || typeof value !== "object") return false;
   const c = value as Record<string, unknown>;
@@ -61,13 +66,23 @@ export function isValidChat(value: unknown): value is RpChatV1 {
   return true;
 }
 
-/** Normalizes a raw input to a valid RpChatV1. Returns null on failure. */
+/**
+ * Normalizes a raw input object into a valid `RpChatV1`.
+ *
+ * @param input - The raw data to normalize.
+ * @returns The normalized `RpChatV1` object, or `null` if the input is invalid.
+ */
 export function normalizeChat(input: unknown): RpChatV1 | null {
   if (!isValidChat(input)) return null;
   return input as RpChatV1;
 }
 
-/** Lists all RP chats (capped). */
+/**
+ * Retrieves a list of all saved RP chats, capped at the maximum allowed list size.
+ *
+ * @returns A promise resolving to an array of normalized `RpChatV1` objects.
+ * @throws {Error} If the underlying storage layer fails to list the chats.
+ */
 export async function listRpChats(): Promise<RpChatV1[]> {
   if (isElectron()) {
     const res = await desktopRpChats.list();
@@ -84,7 +99,12 @@ export async function listRpChats(): Promise<RpChatV1[]> {
     .slice(0, MAX_LIST_CHATS);
 }
 
-/** Reads a single RP chat by id, or returns null. */
+/**
+ * Retrieves a single RP chat by its ID.
+ *
+ * @param id - The ID of the chat to retrieve.
+ * @returns A promise resolving to the `RpChatV1` if found, or `null` if not found or invalid.
+ */
 export async function readRpChat(id: string): Promise<RpChatV1 | null> {
   if (!ID_RE(id)) return null;
   if (isElectron()) {
@@ -96,12 +116,19 @@ export async function readRpChat(id: string): Promise<RpChatV1 | null> {
   return record ? normalizeChat(record) : null;
 }
 
-/** Saves a chat atomically. Generates an id if missing.
- *  Runs `assessRpContext` so persisted content is gated by the safety guard.
- *  Both `saveRpChat` and `appendMessage` call `assessRpContext` against the
- *  full chat content + the latest user turn — every public write path runs
- *  the guard. `_unsafeWriteChat` is the unguarded internal helper used only
- *  after one of the public functions has already gated the payload. */
+/**
+ * Saves a chat atomically. Generates a new ID if one is missing.
+ * Runs `assessRpContext` so persisted content is gated by the safety guard.
+ *
+ * Both `saveRpChat` and `appendMessage` call `assessRpContext` against the
+ * full chat content + the latest user turn — every public write path runs
+ * the guard.
+ *
+ * @param chat - The `RpChatV1` object to save.
+ * @returns A promise resolving to the saved and normalized `RpChatV1` object.
+ * @throws {Error} If the chat is invalid or exceeds character limits.
+ * @throws {SafetyGuardBlockedError} If the content fails the safety check.
+ */
 export async function saveRpChat(chat: RpChatV1): Promise<RpChatV1> {
   const now = Date.now();
   const id = chat.id && ID_RE(chat.id) ? chat.id : generateId();
@@ -145,7 +172,12 @@ async function _unsafeWriteChat(chat: RpChatV1): Promise<RpChatV1> {
   return chat;
 }
 
-/** Deletes a chat by id. Returns true when removed. */
+/**
+ * Deletes a chat by its ID.
+ *
+ * @param id - The ID of the chat to delete.
+ * @returns A promise resolving to `true` if the chat was successfully deleted, `false` otherwise.
+ */
 export async function deleteRpChat(id: string): Promise<boolean> {
   if (!ID_RE(id)) return false;
   if (isElectron()) {
@@ -155,10 +187,17 @@ export async function deleteRpChat(id: string): Promise<boolean> {
   return StorageService.deleteItem(STORE, id);
 }
 
-/** Appends a message to a chat, returns the updated chat.
- *  Re-runs `assessRpContext` against the new tail of the conversation so a
- *  blocked turn never reaches storage. The first save is also guarded (see
- *  `saveRpChat`); this call re-validates on every append. */
+/**
+ * Appends a message to a chat and returns the updated chat.
+ * Re-runs `assessRpContext` against the new tail of the conversation so a
+ * blocked turn never reaches storage.
+ *
+ * @param chat - The existing `RpChatV1` object to append to.
+ * @param message - The `RpMessageV1` message to append.
+ * @returns A promise resolving to the updated `RpChatV1` object.
+ * @throws {Error} If the message is invalid or missing required fields.
+ * @throws {SafetyGuardBlockedError} If the appended content fails the safety check.
+ */
 export async function appendMessage(chat: RpChatV1, message: RpMessageV1): Promise<RpChatV1> {
   if (!message || !isValidRole(message.role)) {
     throw new Error("Invalid message role.");
@@ -191,7 +230,11 @@ export async function appendMessage(chat: RpChatV1, message: RpMessageV1): Promi
   return _unsafeWriteChat(normalized);
 }
 
-/** Generates a new id that satisfies `VALID_ID_RE`. */
+/**
+ * Generates a unique, URL-safe ID for an RP chat.
+ *
+ * @returns A randomly generated string ID.
+ */
 export function generateId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();

@@ -248,6 +248,7 @@ export async function bulkDelete(
   }
   const norm = normaliseIds(ids);
   if (norm.length === 0) return emptyResult(action);
+  const before = useMediaStore.getState().items;
   try {
     const removed = await useMediaStore.getState().removeMany(norm);
     const failed: Array<{ id: string; reason: string }> = [];
@@ -255,7 +256,6 @@ export async function bulkDelete(
       // Any ids not counted as removed are reported as missing so the
       // UI can surface a partial-failure toast.
       const removedSet = new Set<string>();
-      const before = useMediaStore.getState().items;
       const beforeIds = new Set(before.map((i) => i.id));
       for (const id of norm) {
         if (beforeIds.has(id)) removedSet.add(id);

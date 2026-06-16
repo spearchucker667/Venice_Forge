@@ -25,6 +25,7 @@ import { useSettingsStore } from "./settings-store";
 import { useChatStore } from "./chat-store";
 import { useMediaSelectionStore } from "./media-selection-store";
 import { MEDIA_ITEM_VERSION, type MediaItem } from "../types/media";
+import * as tabsModule from "../config/tabs";
 
 function makeItem(over: Partial<MediaItem> = {}): MediaItem {
   return {
@@ -135,9 +136,57 @@ describe("media-send-to (VERIFY-044)", () => {
       expect(await copySeed(makeItem({ seed: undefined }))).toBe(false)
       expect(await copySeed(makeItem({ seed: 1.5 as unknown as number }))).toBe(false)
     })
+    it("copyText handles undefined document gracefully", async () => {
+      const originalDoc = global.document;
+      // @ts-ignore
+      delete global.document;
+      const ok = await copyText("hello world")
+      expect(ok).toBe(false)
+      global.document = originalDoc;
+    })
+
+    it("copyText returns false when document.execCommand fails", async () => {
+      const exec = vi.fn(() => false)
+      ;(document as unknown as { execCommand: (cmd: string) => boolean }).execCommand = exec
+      const ok = await copyText("fail")
+      expect(ok).toBe(false)
+    })
+
+    it("copyText catches navigator.clipboard.writeText errors and falls back", async () => {
+      const originalNav = global.navigator;
+      global.navigator = { clipboard: { writeText: vi.fn().mockRejectedValue(new Error("fail")) } } as any;
+      const exec = vi.fn(() => true)
+      ;(document as unknown as { execCommand: (cmd: string) => boolean }).execCommand = exec
+      const ok = await copyText("hello world")
+      expect(ok).toBe(true)
+      expect(exec).toHaveBeenCalledWith("copy")
+      global.navigator = originalNav;
+    })
+
+    it("copyText uses navigator.clipboard.writeText if available", async () => {
+      const originalNav = global.navigator;
+      global.navigator = { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } } as any;
+      const ok = await copyText("hello world")
+      expect(ok).toBe(true)
+      global.navigator = originalNav;
+    })
+
+    it("copyText returns false if document.createElement throws", async () => {
+      const originalCreateElement = document.createElement;
+      document.createElement = vi.fn().mockImplementation(() => { throw new Error("fail") })
+      const ok = await copyText("fail")
+      expect(ok).toBe(false)
+      document.createElement = originalCreateElement;
+    })
   })
 
   describe("sendToImageStudio", () => {
+    it("rejects when item is missing", () => {
+      const r = sendToImageStudio(null as any)
+      expect(r.ok).toBe(false)
+      expect(r.reason).toMatch(/no item/i)
+    })
+
     it("routes to image tab and enqueues a generate handoff", () => {
       const r = sendToImageStudio(makeItem())
       expect(r.ok).toBe(true)
@@ -162,6 +211,25 @@ describe("media-send-to (VERIFY-044)", () => {
   })
 
   describe("sendToImageTools", () => {
+    it("rejects when item is missing", () => {
+      const r = sendToImageTools(null as any, "edit")
+      expect(r.ok).toBe(false)
+      expect(r.reason).toMatch(/no item/i)
+    })
+
+    it("uses default edit tool if not provided", () => {
+       const r = sendToImageTools(makeItem())
+       expect(r.ok).toBe(true)
+       const pending = useImageWorkspaceStore.getState().pending
+       if (pending?.target === "tools") expect(pending.tool).toBe("edit")
+    })
+
+    it("falls back to empty string when item.prompt is undefined", () => {
+      sendToImageTools(makeItem({ prompt: undefined }), "edit")
+      const pending = useImageWorkspaceStore.getState().pending
+      if (pending?.target === "tools") expect(pending.prompt).toBe("")
+    })
+
     it("routes to image tab and enqueues an edit handoff", () => {
       const r = sendToImageTools(makeItem(), "edit")
       expect(r.ok).toBe(true)
@@ -182,6 +250,12 @@ describe("media-send-to (VERIFY-044)", () => {
   })
 
   describe("sendToChat", () => {
+    it("rejects when item is missing", () => {
+      const r = sendToChat(null as any)
+      expect(r.ok).toBe(false)
+      expect(r.reason).toMatch(/no item/i)
+    })
+
     it("creates a new conversation, activates it, and routes to chat", () => {
       const r = sendToChat(makeItem())
       expect(r.ok).toBe(true)
@@ -203,13 +277,46 @@ describe("media-send-to (VERIFY-044)", () => {
       const created = useChatStore.getState().conversations[0]
       expect(created?.model).toBe("venice-uncensored-1-2")
     })
+
+    it("falls back to item model or default if chat model not set in settings", () => {
+      useSettingsStore.setState({ selectedModels: { chat: "" } } as any)
+      sendToChat(makeItem({ model: "custom-model" }))
+      let convs = useChatStore.getState().conversations
+      expect(convs[0]?.model).toBe("custom-model")
+      
+      sendToChat(makeItem({ model: undefined }))
+      convs = useChatStore.getState().conversations
+      expect(convs[0]?.model).toBe("venice-uncensored-1-2")
+    })
   })
 
   describe("sendToVideo", () => {
+    it("rejects when item is missing", () => {
+      const r = sendToVideo(null as any)
+      expect(r.ok).toBe(false)
+      expect(r.reason).toMatch(/no item/i)
+    })
+
+    it("does not copy text if prompt is missing", () => {
+      const exec = vi.fn(() => true)
+      ;(document as unknown as { execCommand: (cmd: string) => boolean }).execCommand = exec
+      const r = sendToVideo(makeItem({ prompt: undefined }))
+      expect(r.ok).toBe(true)
+      expect(exec).not.toHaveBeenCalled()
+    })
+
     it("routes to video tab", () => {
       const r = sendToVideo(makeItem())
       expect(r.ok).toBe(true)
       expect(useSettingsStore.getState().activeTab).toBe("video")
+    })
+
+    it("does not set tab if tab ID is invalid", () => {
+      const spy = vi.spyOn(tabsModule, "isTabId").mockReturnValue(false)
+      const prev = useSettingsStore.getState().activeTab
+      sendToVideo(makeItem())
+      expect(useSettingsStore.getState().activeTab).toBe(prev)
+      spy.mockRestore()
     })
   })
 

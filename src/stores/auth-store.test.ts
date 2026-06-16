@@ -22,6 +22,7 @@ vi.mock("../services/desktopBridge", () => ({
   },
 }));
 
+import { desktopApiKey, desktopJinaApiKey } from "../services/desktopBridge";
 import { selectHasVeniceKey, useAuthStore } from "./auth-store";
 
 describe("configured Venice key gating", () => {
@@ -85,5 +86,35 @@ describe("configured Venice key gating", () => {
     bridgeMocks.setJinaApiKey.mockResolvedValueOnce({ ok: false, error: "Bearer secret" });
     await expect(useAuthStore.getState().setJinaApiKey("jina_secret_fixture")).rejects.toThrow("Failed to save Jina API key.");
     expect(useAuthStore.getState()).toMatchObject({ jinaApiKey: null, jinaIsConfigured: false });
+  });
+  it("checkConfiguration fetches and updates isConfigured for both Venice and Jina", async () => {
+    vi.mocked(desktopApiKey.isConfigured).mockResolvedValueOnce(true);
+    vi.mocked(desktopJinaApiKey.isConfigured).mockResolvedValueOnce(false);
+
+    await useAuthStore.getState().checkConfiguration();
+
+    expect(desktopApiKey.isConfigured).toHaveBeenCalled();
+    expect(desktopJinaApiKey.isConfigured).toHaveBeenCalled();
+    expect(useAuthStore.getState()).toMatchObject({ isConfigured: true, jinaIsConfigured: false });
+  });
+
+  it("clearApiKey calls delete on desktopBridge and updates state", async () => {
+    vi.mocked(desktopApiKey.delete).mockResolvedValueOnce({ ok: true } as any);
+    useAuthStore.setState({ isConfigured: true, apiKey: "some-key" });
+
+    await useAuthStore.getState().clearApiKey();
+
+    expect(desktopApiKey.delete).toHaveBeenCalled();
+    expect(useAuthStore.getState()).toMatchObject({ isConfigured: false, apiKey: null });
+  });
+
+  it("clearJinaApiKey calls delete on desktopBridge and updates state", async () => {
+    vi.mocked(desktopJinaApiKey.delete).mockResolvedValueOnce({ ok: true } as any);
+    useAuthStore.setState({ jinaIsConfigured: true, jinaApiKey: "some-key" });
+
+    await useAuthStore.getState().clearJinaApiKey();
+
+    expect(desktopJinaApiKey.delete).toHaveBeenCalled();
+    expect(useAuthStore.getState()).toMatchObject({ jinaIsConfigured: false, jinaApiKey: null });
   });
 });

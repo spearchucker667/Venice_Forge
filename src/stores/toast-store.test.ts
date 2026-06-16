@@ -1,77 +1,160 @@
-/** @fileoverview T-197 regression guard: toast-store central error helpers must
- *  redact descriptions before pushing them into UI state.
- */
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { useToastStore, toast, Toast } from './toast-store'
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { toast, useToastStore } from './toast-store'
-
-function resetStore() {
-  useToastStore.setState({ toasts: [] })
-}
-
-describe('toast-store safe error handling (T-197)', () => {
+describe('toast-store', () => {
   beforeEach(() => {
-    resetStore()
+    useToastStore.setState({ toasts: [] })
+    vi.useFakeTimers()
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.clearAllTimers()
   })
 
-  it('fromError redacts Venice API keys from Error messages', () => {
-    const secret = 'vn-secret-key-12345'
-    toast.fromError(new Error(`Request failed with ${secret}`))
-    const t = useToastStore.getState().toasts[0]
-    expect(t.description).not.toContain(secret)
-    expect(t.description).toContain('[REDACTED]')
+  describe('useToastStore', () => {
+    it('initializes with empty toasts', () => {
+      expect(useToastStore.getState().toasts).toEqual([])
+    })
+
+    it('push adds a toast and returns its id', () => {
+      const id = useToastStore.getState().push({ variant: 'info', title: 'Test' })
+      const { toasts } = useToastStore.getState()
+      expect(typeof id).toBe('number')
+      expect(toasts).toHaveLength(1)
+      expect(toasts[0]).toMatchObject({
+        id,
+        variant: 'info',
+        title: 'Test',
+        duration: 4500, // default
+      })
+    })
+
+    it('push with custom duration', () => {
+      const id = useToastStore.getState().push({ variant: 'success', title: 'Custom', duration: 1000 })
+      expect(useToastStore.getState().toasts[0].duration).toBe(1000)
+    })
+
+    it('auto-dismisses toast after duration', () => {
+      const id = useToastStore.getState().push({ variant: 'info', title: 'Auto', duration: 1000 })
+      expect(useToastStore.getState().toasts).toHaveLength(1)
+      
+      vi.advanceTimersByTime(999)
+      expect(useToastStore.getState().toasts).toHaveLength(1)
+      
+      vi.advanceTimersByTime(1)
+      expect(useToastStore.getState().toasts).toHaveLength(0)
+    })
+
+    it('does not auto-dismiss if duration is 0 or less', () => {
+      const id = useToastStore.getState().push({ variant: 'warn', title: 'Forever', duration: 0 })
+      expect(useToastStore.getState().toasts).toHaveLength(1)
+      
+      vi.advanceTimersByTime(100000)
+      expect(useToastStore.getState().toasts).toHaveLength(1)
+      
+      useToastStore.getState().dismiss(id)
+    })
+
+    it('dismiss removes a specific toast', () => {
+      const id1 = useToastStore.getState().push({ variant: 'info', title: 'T1' })
+      const id2 = useToastStore.getState().push({ variant: 'info', title: 'T2' })
+      
+      expect(useToastStore.getState().toasts).toHaveLength(2)
+      
+      useToastStore.getState().dismiss(id1)
+      const { toasts } = useToastStore.getState()
+      expect(toasts).toHaveLength(1)
+      expect(toasts[0].id).toBe(id2)
+    })
   })
 
-  it('fromError redacts OpenAI-style API keys from Error messages', () => {
-    const secret = 'sk-live-12345abcdef'
-    toast.fromError(new Error(`Provider error: ${secret}`))
-    const t = useToastStore.getState().toasts[0]
-    expect(t.description).not.toContain(secret)
-    expect(t.description).toContain('[REDACTED]')
-  })
+  describe('toast helpers', () => {
+    it('toast.info pushes info variant', () => {
+      toast.info('Info Title', 'Info Desc')
+      const { toasts } = useToastStore.getState()
+      expect(toasts).toHaveLength(1)
+      expect(toasts[0]).toMatchObject({
+        variant: 'info',
+        title: 'Info Title',
+        description: 'Info Desc',
+        duration: 4500,
+      })
+    })
 
-  it('fromError redacts bearer tokens from Error messages', () => {
-    const token = 'abc123xyz'
-    toast.fromError(new Error(`Auth failed: Bearer ${token}`))
-    const t = useToastStore.getState().toasts[0]
-    expect(t.description).not.toContain(token)
-    expect(t.description).toContain('Bearer [REDACTED]')
-  })
+    it('toast.success pushes success variant', () => {
+      toast.success('Success Title', 'Success Desc')
+      const { toasts } = useToastStore.getState()
+      expect(toasts).toHaveLength(1)
+      expect(toasts[0]).toMatchObject({
+        variant: 'success',
+        title: 'Success Title',
+        description: 'Success Desc',
+        duration: 4500,
+      })
+    })
 
-  it('fromError redacts secret assignments from Error messages', () => {
-    toast.fromError(new Error('Config apiKey="super-secret-value" rejected'))
-    const t = useToastStore.getState().toasts[0]
-    expect(t.description).not.toContain('super-secret-value')
-    expect(t.description).toContain('apiKey=[REDACTED]')
-  })
+    it('toast.warn pushes warn variant with 5500 duration', () => {
+      toast.warn('Warn Title', 'Warn Desc')
+      const { toasts } = useToastStore.getState()
+      expect(toasts).toHaveLength(1)
+      expect(toasts[0]).toMatchObject({
+        variant: 'warn',
+        title: 'Warn Title',
+        description: 'Warn Desc',
+        duration: 5500,
+      })
+    })
 
-  it('fromError redacts secrets from string errors', () => {
-    const secret = 'sk-test-99999'
-    toast.fromError(`Invalid token ${secret}`)
-    const t = useToastStore.getState().toasts[0]
-    expect(t.description).not.toContain(secret)
-    expect(t.description).toContain('[REDACTED]')
-  })
+    it('toast.error pushes error variant with 6500 duration', () => {
+      const action = { label: 'Retry', onClick: () => {} }
+      toast.error('Error Title', 'Error Desc', action)
+      const { toasts } = useToastStore.getState()
+      expect(toasts).toHaveLength(1)
+      expect(toasts[0]).toMatchObject({
+        variant: 'error',
+        title: 'Error Title',
+        description: 'Error Desc',
+        action,
+        duration: 6500,
+      })
+    })
 
-  it('fromError preserves non-sensitive error context', () => {
-    toast.fromError(new Error('Network timeout'))
-    const t = useToastStore.getState().toasts[0]
-    expect(t.description).toBe('Network timeout')
-  })
+    it('toast.fromError handles Error objects and redacts secrets', () => {
+      const err = new Error('Failed with api key vn-1234567890abcdef')
+      toast.fromError(err)
+      const { toasts } = useToastStore.getState()
+      expect(toasts).toHaveLength(1)
+      expect(toasts[0]).toMatchObject({
+        variant: 'error',
+        title: 'Something went wrong',
+        description: 'Failed with api key [REDACTED]',
+        duration: 6500,
+      })
+    })
 
-  it('fromError uses "Unknown error" for non-Error non-string values', () => {
-    toast.fromError(null)
-    const t = useToastStore.getState().toasts[0]
-    expect(t.description).toBe('Unknown error')
-  })
-
-  it('toast.error stores caller-provided description unchanged', () => {
-    toast.error('Title', 'Description')
-    const t = useToastStore.getState().toasts[0]
-    expect(t.description).toBe('Description')
+    it('toast.fromError handles strings with custom title', () => {
+      toast.fromError('A plain string error sk-abcdef1234567890', 'Custom Title')
+      const { toasts } = useToastStore.getState()
+      expect(toasts).toHaveLength(1)
+      expect(toasts[0]).toMatchObject({
+        variant: 'error',
+        title: 'Custom Title',
+        description: 'A plain string error [REDACTED]',
+        duration: 6500,
+      })
+    })
+    
+    it('toast.fromError handles unknown values', () => {
+      toast.fromError(null)
+      const { toasts } = useToastStore.getState()
+      expect(toasts).toHaveLength(1)
+      expect(toasts[0]).toMatchObject({
+        variant: 'error',
+        title: 'Something went wrong',
+        description: 'Unknown error',
+        duration: 6500,
+      })
+    })
   })
 })

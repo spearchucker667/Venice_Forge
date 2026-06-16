@@ -13,6 +13,7 @@ function reset() {
     selectedMediaIds: [],
     focusedMediaId: null,
     lastSelectedMediaId: null,
+    visibleMediaIds: [],
   });
 }
 
@@ -164,5 +165,104 @@ describe("media-selection-store (VERIFY-044)", () => {
     useMediaSelectionStore.getState().setVisibleMediaIds(["a", "b"]);
     useMediaSelectionStore.getState().reconcileWithVisible();
     expect(useMediaSelectionStore.getState().selectedMediaIds).toEqual(["a", "b"]);
+  });
+
+  // Edge cases and pure selectors coverage
+  it("selectMedia does nothing if id is falsy", () => {
+    useMediaSelectionStore.getState().selectMedia("");
+    expect(useMediaSelectionStore.getState().selectedMediaIds).toEqual([]);
+  });
+
+  it("selectRange does nothing if inputs are invalid", () => {
+    const s = useMediaSelectionStore.getState();
+    s.selectRange("", "b", ["a", "b"]);
+    s.selectRange("a", "", ["a", "b"]);
+    s.selectRange("a", "b", []);
+    s.selectRange("a", "b", null as any);
+    expect(s.selectedMediaIds).toEqual([]);
+  });
+
+  it("selectRange does nothing if fromIdx or toIdx is negative", () => {
+    const s = useMediaSelectionStore.getState();
+    s.selectRange("missing", "b", ["a", "b"]);
+    s.selectRange("a", "missing", ["a", "b"]);
+    expect(s.selectedMediaIds).toEqual([]);
+  });
+
+  it("selectAllVisible does nothing if source is not an array", () => {
+    useMediaSelectionStore.getState().selectAllVisible(null as any);
+    expect(useMediaSelectionStore.getState().selectedMediaIds).toEqual([]);
+  });
+
+  it("selectAllVisible preserves focused/lastSelected if they remain in visible set", () => {
+    useMediaSelectionStore.getState().setFocusedMedia("b");
+    useMediaSelectionStore.getState().selectAllVisible(["a", "b", "c"]);
+    const s = useMediaSelectionStore.getState();
+    expect(s.focusedMediaId).toBe("b");
+    expect(s.lastSelectedMediaId).toBe("b");
+  });
+
+  it("selectAllVisible clears focused/lastSelected if they are not in visible set", () => {
+    useMediaSelectionStore.getState().setFocusedMedia("x");
+    useMediaSelectionStore.getState().selectAllVisible(["a", "b", "c"]);
+    const s = useMediaSelectionStore.getState();
+    expect(s.focusedMediaId).toBe(null);
+    expect(s.lastSelectedMediaId).toBe(null);
+  });
+
+  it("setFocusedMedia sets focused and lastSelected", () => {
+    useMediaSelectionStore.getState().setFocusedMedia("a");
+    const s = useMediaSelectionStore.getState();
+    expect(s.focusedMediaId).toBe("a");
+    expect(s.lastSelectedMediaId).toBe("a");
+
+    useMediaSelectionStore.getState().setFocusedMedia(null);
+    const s2 = useMediaSelectionStore.getState();
+    expect(s2.focusedMediaId).toBe(null);
+    expect(s2.lastSelectedMediaId).toBe(null);
+  });
+
+  it("setVisibleMediaIds does nothing if not an array", () => {
+    useMediaSelectionStore.getState().setVisibleMediaIds(["a", "b"]);
+    useMediaSelectionStore.getState().setVisibleMediaIds(null as any);
+    expect(useMediaSelectionStore.getState().visibleMediaIds).toEqual(["a", "b"]);
+  });
+});
+
+import {
+  selectSelectionCount,
+  selectIsSelectionEmpty,
+  selectCompareReady,
+  selectHasSelection
+} from "./media-selection-store";
+
+describe("Pure selectors for media-selection-store", () => {
+  const createState = (ids: string[]) => ({
+    selectedMediaIds: ids,
+    focusedMediaId: null,
+    lastSelectedMediaId: null,
+    visibleMediaIds: []
+  });
+
+  it("selectSelectionCount returns the correct length", () => {
+    expect(selectSelectionCount(createState([]))).toBe(0);
+    expect(selectSelectionCount(createState(["a", "b"]))).toBe(2);
+  });
+
+  it("selectIsSelectionEmpty returns true if empty", () => {
+    expect(selectIsSelectionEmpty(createState([]))).toBe(true);
+    expect(selectIsSelectionEmpty(createState(["a"]))).toBe(false);
+  });
+
+  it("selectCompareReady returns true for 2..MAX items", () => {
+    expect(selectCompareReady(createState([]))).toBe(false);
+    expect(selectCompareReady(createState(["a"]))).toBe(false);
+    expect(selectCompareReady(createState(["a", "b"]))).toBe(true);
+    expect(selectCompareReady(createState(["a", "b", "c", "d", "e"]))).toBe(false);
+  });
+
+  it("selectHasSelection returns true if not empty", () => {
+    expect(selectHasSelection(createState([]))).toBe(false);
+    expect(selectHasSelection(createState(["a"]))).toBe(true);
   });
 });

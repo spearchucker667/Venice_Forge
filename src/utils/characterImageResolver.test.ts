@@ -57,6 +57,10 @@ describe("isTrustedVeniceImageUrl", () => {
     expect(isTrustedVeniceImageUrl("https://google.com/avatar.png")).toBe(false);
   });
 
+  it("rejects malformed URLs that start with https://", () => {
+    expect(isTrustedVeniceImageUrl("https://:invalid-port")).toBe(false);
+  });
+
   it("rejects localhost and private IPs", () => {
     expect(isTrustedVeniceImageUrl("https://localhost/x.png")).toBe(false);
     expect(isTrustedVeniceImageUrl("https://127.0.0.1/x.png")).toBe(false);
@@ -122,6 +126,15 @@ describe("resolveCharacterImageUrl", () => {
   it("resolves a relative Venice API path safely", () => {
     const result = resolveCharacterImageUrl({ image_url: "/static/avatar.png" });
     expect(result).toBe("https://api.venice.ai/static/avatar.png");
+  });
+
+  it("resolves a relative Venice API path safely from a nested object", () => {
+    const result = resolveCharacterImageUrl({ image: { url: "/static/avatar.png" } });
+    expect(result).toBe("https://api.venice.ai/static/avatar.png");
+  });
+
+  it("returns null when the apiBaseUrl is malformed", () => {
+    expect(resolveCharacterImageUrl({ image_url: "/static/avatar.png" }, "not-a-url")).toBeNull();
   });
 
   it("rejects http://outerface.venice.ai", () => {
@@ -319,5 +332,50 @@ describe("extractCharacterImageFromPage", () => {
 
   it("returns null when no image is present", () => {
     expect(extractCharacterImageFromPage("abc", "<html></html>")).toBeNull();
+  });
+
+  it("ignores meta tags without content", () => {
+    const html = `<meta property="og:image">`;
+    expect(extractCharacterImageFromPage("abc", html)).toBeNull();
+  });
+
+  it("ignores meta tags without property or name", () => {
+    const html = `<meta content="${trustedImage}">`;
+    expect(extractCharacterImageFromPage("abc", html)).toBeNull();
+  });
+
+  it("extracts a JSON-LD image URL from an array", () => {
+    const html = `<script type="application/ld+json">{"image":["https://evil.example/img.png","${trustedImage}"],"name":"ABC"}</script>`;
+    expect(extractCharacterImageFromPage("abc", html)).toBe(trustedImage);
+  });
+
+  it("ignores malformed JSON-LD", () => {
+    const html = `<script type="application/ld+json">invalid json</script>`;
+    expect(extractCharacterImageFromPage("abc", html)).toBeNull();
+  });
+
+  it("ignores JSON-LD that parses to non-object", () => {
+    const html = `<script type="application/ld+json">42</script>`;
+    expect(extractCharacterImageFromPage("abc", html)).toBeNull();
+  });
+
+  it("ignores JSON-LD image arrays with non-strings", () => {
+    const html = `<script type="application/ld+json">{"image":[42,null]}</script>`;
+    expect(extractCharacterImageFromPage("abc", html)).toBeNull();
+  });
+
+  it("extracts a Next.js __NEXT_DATA__ image field from an array", () => {
+    const html = `<script id="__NEXT_DATA__" type="application/json">[{"props":{"pageProps":{"character":{"photoUrl":"${trustedImage}"}}}}, {}]</script>`;
+    expect(extractCharacterImageFromPage("abc", html)).toBe(trustedImage);
+  });
+
+  it("ignores malformed Next.js data", () => {
+    const html = `<script id="__NEXT_DATA__" type="application/json">invalid json</script>`;
+    expect(extractCharacterImageFromPage("abc", html)).toBeNull();
+  });
+
+  it("ignores Next.js object keys that are not strings", () => {
+    const html = `<script id="__NEXT_DATA__" type="application/json">{"photoUrl": 42}</script>`;
+    expect(extractCharacterImageFromPage("abc", html)).toBeNull();
   });
 });

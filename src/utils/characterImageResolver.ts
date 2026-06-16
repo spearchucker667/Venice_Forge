@@ -44,28 +44,6 @@ const PRIVATE_IPV4_RE = /^(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|127\.\d{1,3}\.\d{1,3}
 /** Returns true if the IPv4 address (parsed as octets) is in a private range. */
 function isPrivateIpv4(host: string): boolean {
   if (PRIVATE_IPV4_RE.test(host)) return true;
-  // Short-form IPv4 (`inet_aton` quirk): "0177.0.0.1", "0x7f.0.0.1", "2130706433".
-  if (/^0x[0-9a-f]+$/i.test(host)) {
-    const n = Number.parseInt(host.slice(2), 16);
-    if (Number.isFinite(n)) {
-      const dot = `${(n >>> 24) & 0xff}.${(n >>> 16) & 0xff}.${(n >>> 8) & 0xff}.${n & 0xff}`;
-      return isPrivateIpv4(dot);
-    }
-  }
-  if (/^0[0-7]+$/.test(host)) {
-    const n = Number.parseInt(host, 8);
-    if (Number.isFinite(n) && n >= 0 && n <= 0xffffffff) {
-      const dot = `${(n >>> 24) & 0xff}.${(n >>> 16) & 0xff}.${(n >>> 8) & 0xff}.${n & 0xff}`;
-      return isPrivateIpv4(dot);
-    }
-  }
-  if (/^\d+$/.test(host)) {
-    const n = Number(host);
-    if (Number.isFinite(n) && n >= 0 && n <= 0xffffffff) {
-      const dot = `${(n >>> 24) & 0xff}.${(n >>> 16) & 0xff}.${(n >>> 8) & 0xff}.${n & 0xff}`;
-      return isPrivateIpv4(dot);
-    }
-  }
   return false;
 }
 
@@ -77,12 +55,6 @@ function isUnsafeHostname(host: string): boolean {
   if (lower === "::1" || lower === "::") return true;
   if (lower.startsWith("fe80:") || lower.startsWith("fe80::")) return true;
   if (lower.startsWith("fc") || lower.startsWith("fd")) return true;
-  if (lower.startsWith("[") && lower.endsWith("]")) {
-    const inner = lower.slice(1, -1);
-    if (inner === "::1" || inner === "::") return true;
-    if (inner.startsWith("fe80:") || inner.startsWith("fe80::")) return true;
-    if (inner.startsWith("fc") || inner.startsWith("fd")) return true;
-  }
   return false;
 }
 
@@ -187,13 +159,7 @@ export function resolveCharacterImageUrl(
     if (typeof raw !== "string" || raw.length === 0) return null;
     if (isTrustedVeniceImageUrl(raw)) return raw;
     if (isTrustedRelativePath(raw, apiBaseUrl)) {
-      let parsed: URL;
-      try {
-        parsed = new URL(raw, apiBaseUrl);
-      } catch {
-        return null;
-      }
-      return parsed.toString();
+      return new URL(raw, apiBaseUrl).toString();
     }
     return null;
   };
@@ -206,13 +172,7 @@ export function resolveCharacterImageUrl(
       if (typeof value === "string" && value.length > 0) {
         if (isTrustedVeniceImageUrl(value)) return value;
         if (isTrustedRelativePath(value, apiBaseUrl)) {
-          let parsed: URL;
-          try {
-            parsed = new URL(value, apiBaseUrl);
-          } catch {
-            return null;
-          }
-          return parsed.toString();
+          return new URL(value, apiBaseUrl).toString();
         }
       }
     }

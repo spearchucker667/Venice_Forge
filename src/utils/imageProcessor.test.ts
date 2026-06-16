@@ -1,175 +1,328 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from 'vitest';
 import {
-  detectMimeType,
-  stripImageMetadata,
-  routeAsset,
-  processBase64Image,
   base64ToUint8Array,
   uint8ArrayToBase64,
-} from "./imageProcessor";
+  detectMimeType,
+  stripImageMetadata,
+  processBase64Image,
+  routeAsset,
+  DEFAULT_ASSET_ROUTE_RULES,
+} from './imageProcessor';
 
-describe("Image Processor - Metadata Stripping", () => {
-  it("does not label unknown binary data as PNG", () => {
-    const bytes = new Uint8Array([1, 2, 3, 4, 5]);
-    expect(detectMimeType(bytes)).toBeNull();
-    const { data, report } = stripImageMetadata(bytes);
-    expect(data).toEqual(bytes);
-    expect(report.mimeType).toBe("application/octet-stream");
-    expect(report.extension).toBe("bin");
-    expect(report.warnings).toContain("Unsupported image format");
-  });
-  it("detects JPEG MIME type and strips APP1 segments", () => {
-    // SOI (2 bytes) + APP1 marker with length (8 bytes) + APP0 (JFIF) with length (6 bytes) + EOI (2 bytes)
-    const dummyJpeg = new Uint8Array([
-      0xFF, 0xD8, // SOI
-      0xFF, 0xE1, 0x00, 0x06, 0x45, 0x78, 0x69, 0x66, // APP1 with Exif
-      0xFF, 0xE0, 0x00, 0x04, 0xAA, 0xBB, // APP0
-      0xFF, 0xD9, // EOI
-    ]);
+describe('imageProcessor', () => {
+  describe('base64ToUint8Array', () => {
+    it('converts base64 to Uint8Array', () => {
+      const base64 = 'SGVsbG8gV29ybGQ='; // "Hello World"
+      const result = base64ToUint8Array(base64);
+      expect(Buffer.from(result).toString()).toBe('Hello World');
+    });
 
-    const { mimeType } = detectMimeType(dummyJpeg)!;
-    expect(mimeType).toBe("image/jpeg");
-
-    const { data, report } = stripImageMetadata(dummyJpeg);
-    expect(report.metadataRemoved).toBe(true);
-    expect(report.warnings.length).toBe(0);
-
-    // Should keep SOI, APP0, and EOI, but remove APP1
-    const expected = new Uint8Array([
-      0xFF, 0xD8, // SOI
-      0xFF, 0xE0, 0x00, 0x04, 0xAA, 0xBB, // APP0
-      0xFF, 0xD9, // EOI
-    ]);
-    expect(data).toEqual(expected);
+    it('handles data URI prefixes', () => {
+      const base64 = 'data:image/jpeg;base64,SGVsbG8gV29ybGQ=';
+      const result = base64ToUint8Array(base64);
+      expect(Buffer.from(result).toString()).toBe('Hello World');
+    });
   });
 
-  it("detects PNG MIME type and strips textual chunks", () => {
-    const pngHeader = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
-    // IHDR (13 bytes payload + 12 bytes envelope) + tEXt (5 bytes payload + 12 bytes envelope) + IEND (0 bytes payload + 12 bytes envelope)
-    const dummyPng = new Uint8Array([
-      ...pngHeader,
-      // IHDR
-      0x00, 0x00, 0x00, 0x0D, // length: 13
-      0x49, 0x48, 0x44, 0x52, // type: IHDR
-      0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x08, 0x02, 0x00, 0x00, 0x00, // data
-      0x11, 0x22, 0x33, 0x44, // CRC
-      // tEXt
-      0x00, 0x00, 0x00, 0x05, // length: 5
-      0x74, 0x45, 0x58, 0x74, // type: tEXt
-      0x61, 0x62, 0x63, 0x64, 0x65, // data: abcde
-      0x55, 0x66, 0x77, 0x88, // CRC
-      // IEND
-      0x00, 0x00, 0x00, 0x00, // length: 0
-      0x49, 0x45, 0x4E, 0x44, // type: IEND
-      0xAE, 0x42, 0x60, 0x82, // CRC
-    ]);
-
-    const { mimeType } = detectMimeType(dummyPng)!;
-    expect(mimeType).toBe("image/png");
-
-    const { data, report } = stripImageMetadata(dummyPng);
-    expect(report.metadataRemoved).toBe(true);
-
-    // Reconstructed PNG should omit tEXt chunk
-    const expected = new Uint8Array([
-      ...pngHeader,
-      // IHDR
-      0x00, 0x00, 0x00, 0x0D,
-      0x49, 0x48, 0x44, 0x52,
-      0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x08, 0x02, 0x00, 0x00, 0x00,
-      0x11, 0x22, 0x33, 0x44,
-      // IEND
-      0x00, 0x00, 0x00, 0x00,
-      0x49, 0x45, 0x4E, 0x44,
-      0xAE, 0x42, 0x60, 0x82,
-    ]);
-    expect(data).toEqual(expected);
+  describe('uint8ArrayToBase64', () => {
+    it('converts Uint8Array to base64 data URI', () => {
+      const bytes = new Uint8Array([72, 101, 108, 108, 111]); // "Hello"
+      const result = uint8ArrayToBase64(bytes, 'image/jpeg');
+      expect(result).toBe('data:image/jpeg;base64,SGVsbG8=');
+    });
   });
 
-  it("detects WebP container and strips EXIF chunks", () => {
-    // RIFF (4) + Size (4) + WEBP (4) + VP8X (10) + EXIF (8 + 4 data + 4 pad)
-    const header = new Uint8Array([
-      0x52, 0x49, 0x46, 0x46, // "RIFF"
-      0x2C, 0x00, 0x00, 0x00, // Size: 44 bytes (to be updated)
-      0x57, 0x45, 0x42, 0x50, // "WEBP"
-    ]);
+  describe('detectMimeType', () => {
+    it('detects PNG', () => {
+      const pngSig = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+      expect(detectMimeType(pngSig)).toEqual({ mimeType: 'image/png', extension: 'png' });
+    });
 
-    const vp8xChunk = new Uint8Array([
-      0x56, 0x50, 0x48, 0x58, // "VPHX" (custom representation of critical chunk)
-      0x0A, 0x00, 0x00, 0x00, // size: 10
-      0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, // data
-    ]);
+    it('detects JPEG', () => {
+      const jpegSig = new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0]);
+      expect(detectMimeType(jpegSig)).toEqual({ mimeType: 'image/jpeg', extension: 'jpg' });
+    });
 
-    const exifChunk = new Uint8Array([
-      0x45, 0x58, 0x49, 0x46, // "EXIF"
-      0x04, 0x00, 0x00, 0x00, // size: 4
-      0xA1, 0xB2, 0xC3, 0xD4, // data
-    ]);
+    it('detects WebP', () => {
+      const webpSig = new Uint8Array([
+        0x52, 0x49, 0x46, 0x46, // RIFF
+        0x00, 0x00, 0x00, 0x00, // size
+        0x57, 0x45, 0x42, 0x50, // WEBP
+      ]);
+      expect(detectMimeType(webpSig)).toEqual({ mimeType: 'image/webp', extension: 'webp' });
+    });
 
-    const dummyWebp = new Uint8Array([...header, ...vp8xChunk, ...exifChunk]);
-
-    const { mimeType } = detectMimeType(dummyWebp)!;
-    expect(mimeType).toBe("image/webp");
-
-    const { data, report } = stripImageMetadata(dummyWebp);
-    expect(report.metadataRemoved).toBe(true);
-
-    // Verify EXIF chunk was omitted and RIFF container size updated correctly
-    const expectedBody = new Uint8Array([...vp8xChunk]);
-    const expected = new Uint8Array([
-      0x52, 0x49, 0x46, 0x46,
-      0x16, 0x00, 0x00, 0x00, // size updated to 12 + 18 - 8 = 22 (0x16)
-      0x57, 0x45, 0x42, 0x50,
-      ...expectedBody,
-    ]);
-    expect(data).toEqual(expected);
-  });
-});
-
-describe("Image Processor - Asset Routing", () => {
-  it("routes based on keywords and priorities", () => {
-    expect(routeAsset("an anime girl drawing with colored pencils")).toBe("anime");
-    expect(routeAsset("shot on 35mm film bokeh background cinematic landscape")).toBe("cinematic");
-    expect(routeAsset("close up headshot portrait of an actor with blue eyes")).toBe("portraits");
-    expect(routeAsset("golden hour sunset view of mountain ranges")).toBe("landscapes");
-    expect(routeAsset("perfume bottle studio display setup for advertising photography")).toBe("product");
-  });
-
-  it("falls back to uncategorized if no match", () => {
-    expect(routeAsset("a simple plain red box")).toBe("uncategorized");
-  });
-
-  it("handles negative keywords", () => {
-    // Portrait rule matches "woman", but if it contains "anime", anime has higher priority or negative check
-    // Wait, let's verify if "anime landscape" doesn't route to landscapes because of priorities
-    expect(routeAsset("cinematic portrait of a landscape")).toBe("cinematic"); // cinematic (9) > portraits (8) > landscapes (7)
-  });
-});
-
-describe("Image Processor - Base64 operations", () => {
-  it("converts to/from base64 strings and processes base64 directly", () => {
-    const originalText = "VeniceForgeBinaryDataTest";
-    const encoder = new TextEncoder();
-    const bytes = encoder.encode(originalText);
-    const base64Str = uint8ArrayToBase64(bytes, "image/png");
+    it('returns null for unknown', () => {
+      expect(detectMimeType(new Uint8Array([0, 0, 0, 0]))).toBeNull();
+    });
     
-    expect(base64Str.startsWith("data:image/png;base64,")).toBe(true);
-    
-    const parsedBytes = base64ToUint8Array(base64Str);
-    const decoder = new TextDecoder();
-    expect(decoder.decode(parsedBytes)).toBe(originalText);
+    it('returns null for short arrays', () => {
+      expect(detectMimeType(new Uint8Array([0xFF, 0xD8]))).toBeNull(); 
+    });
+  });
 
-    // Test processBase64Image
-    const pngHeader = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
-    const dummyPng = new Uint8Array([
-      ...pngHeader,
-      0x00, 0x00, 0x00, 0x00,
-      0x49, 0x45, 0x4E, 0x44,
-      0xAE, 0x42, 0x60, 0x82,
-    ]);
-    const b64 = uint8ArrayToBase64(dummyPng, "image/png");
-    const processed = processBase64Image(b64);
-    expect(processed.base64).toBeDefined();
-    expect(processed.report.mimeType).toBe("image/png");
+  describe('stripImageMetadata - JPEG', () => {
+    it('strips APP1 (EXIF) from JPEG', () => {
+      const data = new Uint8Array([
+        0xFF, 0xD8, // SOI
+        0xFF, 0xE1, 0x00, 0x04, 0x00, 0x00, // APP1 marker (EXIF) - length 4
+        0xFF, 0xDB, 0x00, 0x04, 0x00, 0x00, // DQT marker
+        0xFF, 0xD9  // EOI
+      ]);
+      const { data: result, report } = stripImageMetadata(data);
+      expect(report.metadataRemoved).toBe(true);
+      expect(result).toEqual(new Uint8Array([
+        0xFF, 0xD8,
+        0xFF, 0xDB, 0x00, 0x04, 0x00, 0x00,
+        0xFF, 0xD9
+      ]));
+    });
+
+    it('handles short JPEG', () => {
+      // It is unreachable to hit "Invalid JPEG signature" from stripImageMetadata
+      // because detectMimeType requires length >= 4 and matches FF D8.
+      // So we just skip testing that specific warning and rely on other coverage.
+      const data = new Uint8Array([0xFF, 0xD8, 0x00, 0x00]);
+      const { data: result } = stripImageMetadata(data);
+      expect(result.length).toBeGreaterThan(0);
+    });
+
+    it('handles standalone markers and padding', () => {
+      const data = new Uint8Array([
+        0xFF, 0xD8, // SOI
+        0xFF, 0x00, // Standalone
+        0xFF, 0xD0, // Standalone RST0
+        0xFF, 0xD9  // EOI
+      ]);
+      const { data: result } = stripImageMetadata(data);
+      expect(result).toEqual(data); // nothing stripped
+    });
+
+    it('handles malformed chunk (length exceeds bounds)', () => {
+      const data = new Uint8Array([
+        0xFF, 0xD8, // SOI
+        0xFF, 0xE1, 0xFF, 0xFF // Length is too big
+      ]);
+      const { data: result } = stripImageMetadata(data);
+      expect(result).toEqual(data); // Keeps everything since it breaks loop
+    });
+    
+    it('handles early termination and non-marker FF', () => {
+      const data2 = new Uint8Array([
+        0xFF, 0xD8, // SOI
+        0x55, 0xDB, 0x00, 0x04, 0x00, 0x00
+      ]);
+      const { data: result2 } = stripImageMetadata(data2);
+      expect(result2).toEqual(data2);
+    });
+    
+    it('handles missing data after FF', () => {
+      const data = new Uint8Array([0xFF, 0xD8, 0xFF]);
+      const { data: result } = stripImageMetadata(data);
+      expect(result).toEqual(data);
+    });
+    
+    it('handles missing length bytes', () => {
+      const data = new Uint8Array([0xFF, 0xD8, 0xFF, 0xE1, 0x00]);
+      const { data: result } = stripImageMetadata(data);
+      expect(result).toEqual(data);
+    });
+  });
+
+  describe('stripImageMetadata - PNG', () => {
+    const pngSig = [137, 80, 78, 71, 13, 10, 26, 10];
+    
+    it('strips metadata chunks from PNG', () => {
+      const ihdrChunk = [0,0,0,0, ...Array.from(Buffer.from('IHDR')), 0,0,0,0];
+      const textChunk = [0,0,0,4, ...Array.from(Buffer.from('tEXt')), 1,2,3,4, 0,0,0,0];
+      const data = new Uint8Array([...pngSig, ...ihdrChunk, ...textChunk]);
+      
+      const { data: result, report } = stripImageMetadata(data);
+      expect(report.metadataRemoved).toBe(true);
+      expect(result).toEqual(new Uint8Array([...pngSig, ...ihdrChunk]));
+    });
+
+    it('handles invalid PNG signature', () => {
+      const data = new Uint8Array([...pngSig.slice(0, 7), 0]);
+      // Actually we need to force mime type to PNG manually to hit the signature check.
+      // But detectMimeType will say unknown.
+      // If we use processBase64Image? No, it uses detectMimeType.
+      // Wait! detectMimeType checks first 4 bytes of PNG!
+      // So if first 4 bytes match, but next 4 don't, stripImageMetadata will run PNG stripper!
+      const pseudoPng = new Uint8Array([137, 80, 78, 71, 0, 0, 0, 0]);
+      const { data: result, report } = stripImageMetadata(pseudoPng);
+      expect(report.warnings).toContain('Invalid PNG signature');
+      expect(result).toEqual(pseudoPng);
+    });
+
+    it('handles short PNG', () => {
+      const data = new Uint8Array([137, 80, 78, 71, 0, 0]);
+      const { data: result, report } = stripImageMetadata(data);
+      expect(report.warnings).toContain('Invalid PNG signature');
+      expect(result).toEqual(data);
+    });
+    
+    it('handles truncated chunk header in PNG', () => {
+      const data = new Uint8Array([...pngSig, 0, 0, 0]); // 3 bytes left
+      const { data: result } = stripImageMetadata(data);
+      expect(result).toEqual(data);
+    });
+    
+    it('handles truncated chunk', () => {
+      const ihdrChunk = [0,0,0,0, ...Array.from(Buffer.from('IHDR')), 0]; // Missing crc
+      const data = new Uint8Array([...pngSig, ...ihdrChunk]);
+      const { data: result } = stripImageMetadata(data);
+      expect(result).toEqual(data);
+    });
+    
+    it('handles malformed chunk length', () => {
+      const data = new Uint8Array([
+        ...pngSig,
+        0xFF, 0xFF, 0xFF, 0xFF, // huge length
+        ...Array.from(Buffer.from('IHDR'))
+      ]);
+      const { data: result } = stripImageMetadata(data);
+      expect(result).toEqual(data);
+    });
+  });
+
+  describe('stripImageMetadata - WebP', () => {
+    it('strips EXIF from WebP', () => {
+      const sig = [
+        0x52, 0x49, 0x46, 0x46, // RIFF
+        32, 0x00, 0x00, 0x00,   // size = 32 (little endian)
+        0x57, 0x45, 0x42, 0x50  // WEBP
+      ];
+      const vp8xChunk = [...Array.from(Buffer.from('VP8X')), 10,0,0,0, ...new Array(10).fill(0)];
+      const exifChunk = [...Array.from(Buffer.from('EXIF')), 4,0,0,0, 1,2,3,4];
+      const data = new Uint8Array([...sig, ...vp8xChunk, ...exifChunk]);
+      
+      const { data: result, report } = stripImageMetadata(data);
+      expect(report.metadataRemoved).toBe(true);
+      
+      expect(result.length).toBe(30);
+      expect(result.subarray(12)).toEqual(new Uint8Array(vp8xChunk));
+    });
+
+    it('handles invalid WebP container size', () => {
+      // detectMimeType needs offset 8 to be WEBP
+      const data = new Uint8Array([
+        0x52, 0x49, 0x46, 0x46, 0,0,0,0, 0x57, 0x45, 0x42 // 11 bytes. Actually if it's 11 bytes detectMimeType returns null!
+      ]);
+      const { data: result, report } = stripImageMetadata(data);
+      expect(report.warnings).toContain('Unsupported image format');
+    });
+
+    it('handles valid detectMimeType but invalid stripWebp', () => {
+      const data = new Uint8Array([
+        0x52, 0x49, 0x46, 0x46, 0,0,0,0, 0x57, 0x45, 0x42, 0x50
+      ]);
+      const { data: result, report } = stripImageMetadata(data);
+      expect(report.metadataRemoved).toBe(false);
+      // Size will be fixed to 4 in result (12 - 8)
+      expect(result[4]).toBe(4);
+    });
+
+    it('handles malformed chunk', () => {
+      const sig = [
+        0x52, 0x49, 0x46, 0x46,
+        100, 0x00, 0x00, 0x00,
+        0x57, 0x45, 0x42, 0x50
+      ];
+      const invalidChunk = [...Array.from(Buffer.from('VP8X')), 255, 255, 255, 255]; // Huge size
+      const data = new Uint8Array([...sig, ...invalidChunk]);
+      const { data: result } = stripImageMetadata(data);
+      expect(result.length).toBe(12 + invalidChunk.length);
+    });
+    
+    it('handles truncated chunk type', () => {
+      const sig = [
+        0x52, 0x49, 0x46, 0x46,
+        100, 0x00, 0x00, 0x00,
+        0x57, 0x45, 0x42, 0x50
+      ];
+      const data = new Uint8Array([...sig, 86, 80, 56]); // 'VP8'
+      const { data: result } = stripImageMetadata(data);
+      expect(result.length).toBe(15);
+    });
+  });
+
+  describe('processBase64Image', () => {
+    it('processes base64 end to end', () => {
+      const data = new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0, 0, 1, 2, 3, 0xFF, 0xD9]);
+      const base64 = `data:image/jpeg;base64,${Buffer.from(data).toString('base64')}`;
+      const { base64: result, report } = processBase64Image(base64);
+      expect(report.mimeType).toBe('image/jpeg');
+      expect(result.startsWith('data:image/jpeg;base64,')).toBe(true);
+    });
+  });
+
+  describe('routeAsset', () => {
+    it('routes anime keywords', () => {
+      expect(routeAsset('a beautiful anime girl')).toBe('anime');
+      expect(routeAsset('detailed manga art')).toBe('anime');
+    });
+
+    it('routes cinematic keywords', () => {
+      expect(routeAsset('cinematic movie shot')).toBe('cinematic');
+    });
+
+    it('routes by regex', () => {
+      expect(routeAsset('shot on 35mm film')).toBe('cinematic');
+      expect(routeAsset('a scenic view')).toBe('landscapes');
+    });
+
+    it('ignores negative keywords', () => {
+      const rules = [
+        {
+          id: 'test',
+          label: 'Test',
+          directoryName: 'test_dir',
+          priority: 10,
+          match: {
+            keywords: ['test'],
+            negativeKeywords: ['ignore']
+          }
+        }
+      ];
+      expect(routeAsset('a test image', rules)).toBe('test_dir');
+      expect(routeAsset('a test image but ignore this', rules)).toBe('uncategorized');
+    });
+
+    it('returns uncategorized when no match', () => {
+      expect(routeAsset('something random')).toBe('uncategorized');
+    });
+
+    it('prioritizes correctly', () => {
+      expect(routeAsset('anime portrait')).toBe('anime'); // anime(10) > portrait(8)
+    });
+  });
+
+  describe('Buffer fallbacks', () => {
+    let originalBuffer: any;
+
+    beforeAll(() => {
+      originalBuffer = global.Buffer;
+    });
+
+    afterAll(() => {
+      global.Buffer = originalBuffer;
+    });
+
+    it('base64ToUint8Array without Buffer', () => {
+      // @ts-ignore
+      global.Buffer = undefined;
+      const base64 = 'SGVsbG8gV29ybGQ='; // "Hello World"
+      const result = base64ToUint8Array(base64);
+      expect(String.fromCharCode(...result)).toBe('Hello World');
+    });
+
+    it('uint8ArrayToBase64 without Buffer', () => {
+      // @ts-ignore
+      global.Buffer = undefined;
+      const bytes = new Uint8Array([72, 101, 108, 108, 111]); // "Hello"
+      const result = uint8ArrayToBase64(bytes, 'image/jpeg');
+      expect(result).toBe('data:image/jpeg;base64,SGVsbG8=');
+    });
   });
 });

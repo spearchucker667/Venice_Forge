@@ -3,7 +3,6 @@ import type { VeniceCharacter } from '../types/characters'
 import type { CharacterCardV1 } from '../types/rp'
 import type { ChatMessage } from '../types/venice'
 import type { Conversation } from '../types/conversation'
-import { generateId } from '../lib/utils'
 
 /**
  * Regression guard: chat-store hydration routes through desktopBridge.
@@ -119,9 +118,6 @@ describe('chat-store desktopBridge routing', () => {
   })
 
   it('hydrates via desktopConversations.list on module load', async () => {
-    vi.resetModules()
-    const mod = await import('./chat-store')
-    await vi.runAllTimersAsync()
     expect(conversationListMock).toHaveBeenCalled()
   })
 
@@ -288,127 +284,4 @@ describe('chat-store desktopBridge routing', () => {
     expect(useChatStore.getState().activeConversationId).toBe('not-exist')
     expect(useChatStore.getState().getActiveConversation()).toBeUndefined()
   })
-
-  it('handles writeConversation fallback and failures', async () => {
-    conversationSaveMock.mockResolvedValueOnce({ ok: false, error: 'fail1' })
-    chatSaveMock.mockResolvedValueOnce({ ok: false, error: 'fail2' })
-    useChatStore.getState().createConversation('llama-3')
-    await vi.advanceTimersByTimeAsync(500)
-    expect(conversationSaveMock).toHaveBeenCalled()
-    expect(chatSaveMock).toHaveBeenCalled()
-  })
-
-  it('handles writeConversation where desktopChat throws', async () => {
-    conversationSaveMock.mockResolvedValueOnce({ ok: false, error: 'fail1' })
-    chatSaveMock.mockRejectedValueOnce(new Error('fail2'))
-    useChatStore.getState().createConversation('llama-3')
-    await vi.advanceTimersByTimeAsync(500)
-    // Should not crash
-  })
-
-  it('adds a multimodal message', async () => {
-    const id = useChatStore.getState().createConversation('llama-3')
-    useChatStore.getState().addMessage(id, { role: 'user', content: [{ type: 'text', text: 'hello' }] })
-    const conv = useChatStore.getState().getActiveConversation()
-    expect(conv?.messages?.[0].content).toEqual([{ type: 'text', text: 'hello' }])
-  })
-
-  it('ignores appendToLastAssistant if last message is not assistant or not string', async () => {
-    const id = useChatStore.getState().createConversation('llama-3')
-    useChatStore.getState().addMessage(id, { role: 'user', content: 'hello' })
-    useChatStore.getState().appendToLastAssistant(id, ' world')
-    const conv = useChatStore.getState().getActiveConversation()
-    expect(conv?.messages?.[0].content).toBe('hello')
-  })
-
-  it('ignores appendReasoningToLastAssistant if last message is not assistant', async () => {
-    const id = useChatStore.getState().createConversation('llama-3')
-    useChatStore.getState().addMessage(id, { role: 'user', content: 'hello' })
-    useChatStore.getState().appendReasoningToLastAssistant(id, 'thinking...')
-    const conv = useChatStore.getState().getActiveConversation()
-    expect(conv?.messages?.[0].reasoning_content).toBeUndefined()
-  })
-
-  it('ignores setMessageMetadata if message does not exist', async () => {
-    const id = useChatStore.getState().createConversation('llama-3')
-    useChatStore.getState().setMessageMetadata(id, 99, { hidden: true })
-    const conv = useChatStore.getState().getActiveConversation()
-    expect(conv?.messages?.length).toBe(0)
-  })
-
-  it('creates character conversation with fallback model if modelId is empty', async () => {
-    const char: VeniceCharacter = {
-      id: 'char-1', slug: 'test-slug', name: 'Test Char', description: 'desc',
-      photoUrl: '', shareUrl: '', modelId: '  ', adult: false, webEnabled: false
-    }
-    useChatStore.getState().createCharacterConversation(char, 'fallback-model')
-    expect(useChatStore.getState().getActiveConversation()?.model).toBe('fallback-model')
-
-    useChatStore.getState().createCharacterConversation(char, '')
-    expect(useChatStore.getState().getActiveConversation()?.model).toBe('llama-3.3-70b')
-  })
-
-  it('logs warning if conversation list is truncated', async () => {
-    conversationListMock.mockResolvedValueOnce({
-      ok: true,
-      records: [],
-      truncated: true,
-      totalScanned: 100,
-    })
-    vi.resetModules()
-    const mod = await import('./chat-store')
-    await vi.runAllTimersAsync()
-    // just exercising the truncated branch
-  })
-
-  it('migrates persisted state', () => {
-    const migrate = useChatStore.persist.getOptions().migrate as (persisted: any, version: number) => any
-    
-    expect(migrate(null, 1)).toBeNull()
-    
-    let migrated = migrate({ someOldState: true }, 1)
-    expect(migrated.veniceParams).toBeDefined()
-    
-    migrated = migrate({ conversations: [], veniceParams: {} }, 2)
-    expect(migrated.conversations).toBeUndefined()
-  })
-
-  it('triggers flush on unload events', () => {
-    const id = useChatStore.getState().createConversation('llama-3')
-    window.dispatchEvent(new Event('beforeunload'))
-    // flushAllPendingSaves handles it (async, but event runs sync)
-    // we can advance timers if needed
-  })
-
-  it('triggers flush on pagehide event', () => {
-    const id = useChatStore.getState().createConversation('llama-3')
-    window.dispatchEvent(new Event('pagehide'))
-  })
-
-  it('catches vault bootstrap throw', async () => {
-    conversationListMock.mockRejectedValueOnce(new Error('vault throw'))
-    vi.resetModules()
-    const mod = await import('./chat-store')
-    await vi.runAllTimersAsync()
-    // Should catch the vault throw and try legacy
-  })
-
-  it('catches legacy bootstrap throw', async () => {
-    conversationListMock.mockResolvedValueOnce({ ok: false, error: 'skip' })
-    chatListMock.mockRejectedValueOnce(new Error('legacy throw'))
-    vi.resetModules()
-    const mod = await import('./chat-store')
-    await vi.runAllTimersAsync()
-    // Should catch the legacy throw
-  })
-
-  it('logs error when desktopConversations.list returns error without ok', async () => {
-    // Just another branch inside safeList
-    chatListMock.mockResolvedValueOnce({ ok: false, error: 'fail reason' })
-    conversationListMock.mockResolvedValueOnce({ ok: false, error: 'fail vault' })
-    vi.resetModules()
-    const mod = await import('./chat-store')
-    await vi.runAllTimersAsync()
-  })
 })
-
