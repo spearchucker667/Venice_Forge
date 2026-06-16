@@ -108,6 +108,7 @@ oversized views (`SettingsView`, `media-inspector`, `CommandPalette`,
 `image-view`) also remains.
 
 ### Latest Session Summary
+- **Full diagnostic, rebuild, and launch:** Ran lint, typecheck, full Vitest suite, `verify:contracts`, production build, macOS ARM64 packaging, and app launch using the local Node 22 toolchain. All gates passed and the packaged app started successfully. A Playwright-based Media Studio profile run was attempted but failed because the Electron binary could not be launched from the Playwright harness in this environment; this is a tooling/runtime harness issue, not an app build failure.
 - **Work Order Completed:** Executed WO-VAC-2.0-001. Fixed the Windows CI failure by replacing verify:dist:win with verify:dist. Replaced placeholder app icons with rasterized Venice seal SVGs using librsvg. Added branding banner to README.md.
 
 - **Work Order Completed (Prior):** Systematically audited and added Google-style docstrings across the codebase. Reached global test coverage heights of ~74%, replacing low-coverage modules with high-coverage tests, and locked in the metrics in `vitest.config.ts`. Swapped out the README.md banner for a new dynamically generated creative workspace visual. Created the final audit report at `docs/audits/docstrings-and-coverage-final.md`. Fixed failing CI workflows by completing the remaining linting and typing issues, successfully running full release parity pipeline (`npm ci`).
@@ -123,12 +124,29 @@ oversized views (`SettingsView`, `media-inspector`, `CommandPalette`,
 - `npm run lint:eslint`: PASS (0 warnings).
 - `npm run typecheck`: PASS (renderer + electron).
 - `npm test`: PASS (3,094 passed / 1 skipped).
-- `npm run build`: PASS.
-- `npm run verify:dist`: PASS.
+- `npm run build`: PASS (Node 22 toolchain).
+- `npm run verify:dist`: PASS (Node 22 toolchain).
 - `npm run verify:contracts`: PASS.
 - `npm run verify:markdown-links`: PASS.
+- `npm run dist:mac:arm64`: PASS (produced `release/Venice-Forge-2.0.0-arm64.dmg`/`.zip` plus checksums; unsigned because signing identity is null).
+- App launch (`open "release/mac-arm64/Venice Forge.app"`): PASS — main process and GPU/utility/renderer helpers spawned.
+- `npm run profile:media-studio`: Attempted / failed — Playwright Electron harness exited before window attachment (`electron.launch: Process failed to launch!`). Not a build or app defect.
 
 ### Session History
+
+- **Date:** 2026-06-16 (Full diagnostic, rebuild, and launch)
+- **Agent:** Kimi Code CLI
+- **Branch / state:** `main`; working tree modified.
+- **Summary:** Ran a full diagnostic on the app after a "buggy and slow" report. Dispatched parallel diagnostic subagents for lint/typecheck, the full Vitest suite, build/verify:dist, and Electron ARM64 packaging + launch. All gates passed. Re-ran `verify:contracts` successfully. Performed a clean `npm run dist:mac:arm64` with the local Node 22 toolchain and started the resulting `release/mac-arm64/Venice Forge.app`; the main process and all helper processes spawned. Attempted `npm run profile:media-studio` to gauge Media Studio performance, but it failed because the Playwright Electron harness could not launch the binary in this environment.
+- **Files changed:** `docs/summary_of_work.md`.
+- **Validation:** `npm run lint:eslint` PASS (0 warnings); `npm run typecheck` PASS (renderer + electron); `npm test` PASS (3,094 passed / 1 skipped); `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS; `npm run dist:mac:arm64` PASS; app launch PASS.
+
+- **Date:** 2026-06-16 (Diagnostic — build-verify-dist)
+- **Agent:** Kimi Code CLI
+- **Branch / state:** `main`; working tree modified.
+- **Summary:** Ran the `build-verify-dist` diagnostic scope using the local Node 22 toolchain. `npm run build` produced `dist/`, `dist/server.cjs`, and `dist-electron/` without errors. `npm run verify:dist` confirmed all build outputs are present and valid. No code changes were required.
+- **Files changed:** `docs/summary_of_work.md`.
+- **Validation:** `npm run build` PASS; `npm run verify:dist` PASS.
 
 - **Date:** 2026-06-16 (Branding Refresh, CI Fix, and Release Retag — WO-VAC-2.0-001)
 - **Agent:** Antigravity (Gemini 3.1 Pro)
