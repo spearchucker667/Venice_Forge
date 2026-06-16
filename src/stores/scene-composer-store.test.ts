@@ -563,7 +563,7 @@ describe("scene-composer-store", () => {
       // Also test deleteScene when scene is NOT the active scene, to cover branch activeSceneId === sceneId ? null : activeSceneId
       const scene2 = await useSceneComposerStore.getState().createScene({ title: "T2" });
       useSceneComposerStore.getState().setActiveScene(scene.id); // keep scene 1 active
-      vi.spyOn(StorageService, "deleteItem").mockResolvedValue();
+      vi.spyOn(StorageService, "deleteItem").mockResolvedValue(true);
       await useSceneComposerStore.getState().deleteScene(scene2.id);
       expect(useSceneComposerStore.getState().activeSceneId).toBe(scene.id);
     });

@@ -138,7 +138,7 @@ describe("storage-privacy-store", () => {
   });
 
   it("runMaintenanceAction handles partial failure", async () => {
-    vi.mocked(applyMaintenanceAction).mockResolvedValueOnce({ succeeded: [], failed: [{ actionId: "test-action", reason: "Access denied" }] });
+    vi.mocked(applyMaintenanceAction).mockResolvedValueOnce({ actionId: "test-action", requested: 1, succeeded: [], failed: [{ id: "test-action", reason: "Access denied" }] } as any);
     
     await useStoragePrivacyStore.getState().runMaintenanceAction("test-action");
     expect(toast.error).toHaveBeenCalledWith("Maintenance action partially failed: Access denied");

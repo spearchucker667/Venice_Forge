@@ -146,12 +146,12 @@ describe('Research Workspace Store', () => {
       app: 'Venice Forge',
       sessions: [{ id: 'mock', title: 'Imported' }]
     };
-    const cryptoSpy = vi.spyOn(crypto, 'randomUUID').mockReturnValue('new-uuid');
+    const cryptoSpy = vi.spyOn(crypto, 'randomUUID').mockReturnValue('12345678-1234-1234-1234-1234567890ab');
     const result = await useResearchStore.getState().importResearch(payload);
     expect(result.imported).toHaveLength(1);
     expect(result.skipped).toHaveLength(0);
     expect(useResearchStore.getState().sessions[0].title).toBe('Imported');
-    expect(useResearchStore.getState().sessions[0].id).toBe('new-uuid');
+    expect(useResearchStore.getState().sessions[0].id).toBe('12345678-1234-1234-1234-1234567890ab');
     cryptoSpy.mockRestore();
   });
 

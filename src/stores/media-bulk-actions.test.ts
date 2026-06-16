@@ -252,7 +252,7 @@ describe("media-bulk-actions (VERIFY-044)", () => {
   it("bulkAssignProject: patch returning false yields a per-id failure", async () => {
     await seed([makeItem({ id: "a" })])
     useProjectStore.setState({ projects: [makeProject({ id: "p1", name: "P1" })] })
-    vi.spyOn(useMediaStore.getState(), "patch").mockResolvedValueOnce(false)
+    vi.spyOn(useMediaStore.getState(), "patch").mockResolvedValueOnce(null)
     const r = await bulkAssignProject(["a"], "p1")
     expect(r.succeeded).toEqual([])
     expect(r.failed).toHaveLength(1)

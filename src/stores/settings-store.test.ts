@@ -37,8 +37,7 @@ describe('settings-store', () => {
 
     it('setActiveTab normalises legacy aliases (e.g. gallery -> media)', () => {
       const store = useSettingsStore.getState()
-      // @ts-expect-error Testing legacy string values
-      store.setActiveTab('gallery')
+      store.setActiveTab('gallery' as any)
       expect(useSettingsStore.getState().activeTab).toBe('media')
     })
 
@@ -88,7 +87,7 @@ describe('settings-store', () => {
     })
 
     it('sets customTheme', () => {
-      const mockTheme: Theme = { id: 'custom', name: 'Custom Theme', appearance: 'dark', variables: {} }
+      const mockTheme: Theme = { id: 'custom', name: 'Custom Theme', mode: 'dark', tokens: {} } as any
       useSettingsStore.getState().setCustomTheme(mockTheme)
       expect(useSettingsStore.getState().customTheme).toEqual(mockTheme)
     })

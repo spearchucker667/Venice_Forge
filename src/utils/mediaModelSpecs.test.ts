@@ -98,7 +98,7 @@ describe("normalizeMediaModelSpec", () => {
       const model: ModelInfo = {
         id: "some-model",
         type: "video",
-        capabilities: { image_to_video: true, video_to_video: true }
+        capabilities: { image_to_video: true, video_to_video: true } as any
       };
       
       const result = normalizeMediaModelSpec(model);

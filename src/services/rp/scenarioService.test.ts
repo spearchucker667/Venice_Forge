@@ -42,7 +42,7 @@ const baseScenario = (): ScenarioV1 => ({
   tags: ["test"],
   createdAt: 1700000000000,
   updatedAt: 1700000000000,
-  scope: "global",
+  scope: "global", favorite: false,
 });
 
 describe("scenarioService", () => {
@@ -50,12 +50,10 @@ describe("scenarioService", () => {
     vi.clearAllMocks();
     vi.mocked(desktopBridge.isElectron).mockReturnValue(false);
     vi.mocked(safetyHydration.getEffectiveRendererLocalFamilySafeModeEnabled).mockReturnValue(false);
-    vi.mocked(safetyImport.assessScenario).mockReturnValue({
+    vi.mocked(safetyImport.assessScenario).mockReturnValue({ 
       allow: true,
-      action: "skipped",
-      reason: "ADULT_MODE_ACTIVE",
-      layer: "local-family-safe-mode",
-    });
+      action: "skipped" as any,
+    } as any);
   });
 
   describe("generateId", () => {
@@ -71,7 +69,7 @@ describe("scenarioService", () => {
       vi.mocked(desktopBridge.isElectron).mockReturnValue(false);
       vi.spyOn(StorageService, "getItems").mockResolvedValue([baseScenario()]);
       vi.spyOn(StorageService, "getItem").mockResolvedValue(baseScenario());
-      vi.spyOn(StorageService, "saveItem").mockResolvedValue();
+      vi.spyOn(StorageService, "saveItem").mockResolvedValue(undefined as any);
       vi.spyOn(StorageService, "deleteItem").mockResolvedValue(true);
     });
 
@@ -137,12 +135,10 @@ describe("scenarioService", () => {
 
   describe("Safety Enforcement", () => {
     it("saveScenario throws SafetyGuardBlockedError when blocked", async () => {
-      vi.mocked(safetyImport.assessScenario).mockReturnValue({
+      vi.mocked(safetyImport.assessScenario).mockReturnValue({ 
         allow: false,
         action: "block",
-        reason: "ADULT_CONTENT",
-        layer: "local-family-safe-mode",
-      });
+      } as any);
       await expect(saveScenario(baseScenario())).rejects.toThrow(SafetyGuardBlockedError);
     });
   });

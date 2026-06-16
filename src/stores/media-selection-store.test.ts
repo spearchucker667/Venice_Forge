@@ -242,7 +242,7 @@ describe("Pure selectors for media-selection-store", () => {
     focusedMediaId: null,
     lastSelectedMediaId: null,
     visibleMediaIds: []
-  });
+  }) as any;
 
   it("selectSelectionCount returns the correct length", () => {
     expect(selectSelectionCount(createState([]))).toBe(0);

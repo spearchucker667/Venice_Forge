@@ -23,7 +23,7 @@ vi.mock("../desktopBridge", () => ({
 }));
 
 const baseLorebook = (): LorebookV1 => ({
-  schema: "LorebookV1",
+  schema: "LorebookV1", description: "", tags: [],
   id: "l_test_01",
   name: "Test Lorebook",
   entries: [],
@@ -51,7 +51,7 @@ describe("lorebookRendererService", () => {
       vi.mocked(desktopBridge.isElectron).mockReturnValue(false);
       vi.spyOn(StorageService, "getItems").mockResolvedValue([baseLorebook()]);
       vi.spyOn(StorageService, "getItem").mockResolvedValue(baseLorebook());
-      vi.spyOn(StorageService, "saveItem").mockResolvedValue();
+      vi.spyOn(StorageService, "saveItem").mockResolvedValue(undefined as any);
       vi.spyOn(StorageService, "deleteItem").mockResolvedValue(true);
     });
 

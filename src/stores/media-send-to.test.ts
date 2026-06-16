@@ -138,7 +138,7 @@ describe("media-send-to (VERIFY-044)", () => {
     })
     it("copyText handles undefined document gracefully", async () => {
       const originalDoc = global.document;
-      // @ts-ignore
+      // @ts-expect-error fixing test
       delete global.document;
       const ok = await copyText("hello world")
       expect(ok).toBe(false)

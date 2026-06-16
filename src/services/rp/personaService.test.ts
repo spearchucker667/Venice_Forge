@@ -50,12 +50,10 @@ describe("personaService", () => {
     vi.clearAllMocks();
     vi.mocked(desktopBridge.isElectron).mockReturnValue(false);
     vi.mocked(safetyHydration.getEffectiveRendererLocalFamilySafeModeEnabled).mockReturnValue(false);
-    vi.mocked(safetyImport.assessPersonaImport).mockReturnValue({
+    vi.mocked(safetyImport.assessPersonaImport).mockReturnValue({ 
       allow: true,
-      action: "skipped",
-      reason: "ADULT_MODE_ACTIVE",
-      layer: "local-family-safe-mode",
-    });
+      action: "skipped" as any,
+    } as any);
   });
 
   describe("normalizePersona", () => {
@@ -98,7 +96,7 @@ describe("personaService", () => {
       vi.mocked(desktopBridge.isElectron).mockReturnValue(false);
       vi.spyOn(StorageService, "getItems").mockResolvedValue([basePersona()]);
       vi.spyOn(StorageService, "getItem").mockResolvedValue(basePersona());
-      vi.spyOn(StorageService, "saveItem").mockResolvedValue();
+      vi.spyOn(StorageService, "saveItem").mockResolvedValue(undefined as any);
       vi.spyOn(StorageService, "deleteItem").mockResolvedValue(true);
     });
 
@@ -164,12 +162,10 @@ describe("personaService", () => {
 
   describe("Safety Enforcement", () => {
     it("savePersona throws SafetyGuardBlockedError when blocked", async () => {
-      vi.mocked(safetyImport.assessPersonaImport).mockReturnValue({
+      vi.mocked(safetyImport.assessPersonaImport).mockReturnValue({ 
         allow: false,
         action: "block",
-        reason: "ADULT_CONTENT",
-        layer: "local-family-safe-mode",
-      });
+      } as any);
       await expect(savePersona(basePersona())).rejects.toThrow(SafetyGuardBlockedError);
     });
   });
