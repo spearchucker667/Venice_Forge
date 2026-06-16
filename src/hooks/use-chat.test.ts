@@ -7,13 +7,21 @@ import { useChatStore } from "../stores/chat-store";
 import { useCharacterStore } from "../stores/character-store";
 import { useSettingsStore } from "../stores/settings-store";
 import { veniceStreamChat } from "../services/veniceClient";
+import { desktopConversations } from "../services/desktopBridge";
 
 vi.mock("../services/veniceClient", () => ({
   veniceStreamChat: vi.fn(),
   veniceFetch: vi.fn(),
 }));
 
+vi.mock("../services/desktopBridge", () => ({
+  desktopConversations: {
+    pullContext: vi.fn(),
+  },
+}));
+
 const mockedVeniceStreamChat = vi.mocked(veniceStreamChat);
+const mockedPullContext = vi.mocked(desktopConversations.pullContext);
 
 const CHARACTER = {
   id: "char-1",
@@ -60,6 +68,10 @@ describe("use-chat character_slug threading", () => {
   beforeEach(() => {
     resetStores();
     vi.clearAllMocks();
+    mockedPullContext.mockResolvedValue({
+      ok: false,
+      context: { injectedText: "", facts: [], summaries: [], tokenEstimate: 0 },
+    });
   });
 
   afterEach(() => {
@@ -155,6 +167,44 @@ describe("use-chat character_slug threading", () => {
     expect(veniceParams.enable_web_search).toBe("auto");
     expect(veniceParams.enable_web_citations).toBe(true);
     expect(veniceParams.strip_thinking_response).toBe(true);
+  });
+
+  it("continues sending when direct memory retrieval fails", async () => {
+    useSettingsStore.setState({
+      enableMemoryRetrieval: true,
+      showPulledContextBeforeSending: false,
+    });
+    mockedPullContext.mockRejectedValueOnce(new Error("memory index unavailable at /Users/super_user/private"));
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("Send anyway", "llama-3.3-70b");
+    });
+
+    expect(mockedPullContext).toHaveBeenCalledWith({ message: "Send anyway" });
+    expect(mockedVeniceStreamChat).toHaveBeenCalled();
+    const conv = useChatStore.getState().conversations[0];
+    expect(conv.messages.some((m) => m.role === "user" && m.content === "Send anyway")).toBe(true);
+  });
+
+  it("continues sending when memory preview retrieval fails", async () => {
+    useSettingsStore.setState({
+      enableMemoryRetrieval: true,
+      showPulledContextBeforeSending: true,
+    });
+    mockedPullContext.mockRejectedValueOnce(new Error("memory pull failed"));
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("No preview available", "llama-3.3-70b");
+    });
+
+    expect(useChatStore.getState().pendingContext).toBeNull();
+    expect(mockedVeniceStreamChat).toHaveBeenCalled();
+    const conv = useChatStore.getState().conversations[0];
+    expect(conv.messages.some((m) => m.role === "user" && m.content === "No preview available")).toBe(true);
   });
 
   it("aborts the in-flight stream when the hook unmounts", async () => {

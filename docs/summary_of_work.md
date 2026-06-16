@@ -94,34 +94,43 @@ Studio action, image-payload, and semantic theme-token audit findings
 are resolved.
 
 **Current open items.** The 2026-06-16 consolidated audit cross-check
-repaired confirmed high-risk findings in dev API routing, secure-store
-plaintext reads, character share URL rendering, Electron Jina header
-forwarding, Media Studio export validation, and character image cache
-byte validation. The repo is not fully release-gate-passable yet:
-`npm audit --omit=dev --audit-level=moderate` fails on a moderate
-`js-yaml` advisory, and production `prompt()` / `confirm()` call sites
-remain in `src/`. The component-extraction roadmap for oversized views
-(`SettingsView`, `media-inspector`, `CommandPalette`, `image-view`)
-also remains.
+and ZIP cross-check P0 repair pass resolved the confirmed high-risk
+findings in dev API routing, secure-store plaintext reads, web Venice /
+Jina session-key custody, character share URL rendering, Electron Jina
+header forwarding, Media Studio export / routed-image validation,
+config-template export path custody, memory retrieval send fallback,
+native browser dialog usage in `src/`, and the production `js-yaml`
+audit advisory. The repo is still not claimed fully release-closed in
+this ledger because the final continuation validation ran under Node
+26/npm 11 instead of the required Node 22/npm 10 toolchain and did not
+rerun the full release gate. The component-extraction roadmap for
+oversized views (`SettingsView`, `media-inspector`, `CommandPalette`,
+`image-view`) also remains.
 
 ### Latest Session Summary
-- **Consolidated audit cross-check:** Read the supplied 2026-06-16 repair work order, established a live baseline on `main` at `b6337fc239fd2929564b0582c967ab37a3ebe8c3`, and created `docs/audits/current-audit-cross-check-status.md`, `docs/audits/current-audit-cross-check-status.yaml`, and `docs/audits/agent-repair-status-2026-06-16.yaml`.
-- **Confirmed repairs:** Added a Vite `/api` dev proxy and corrected dev-mode docs; gated plaintext secure-store reads behind `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true`; sanitized hosted-character `shareUrl`; aligned Electron Jina header forwarding with the web proxy allowlist/blocklist; validated Media Studio image exports by strict base64, data URL MIME, magic bytes, extension, and decoded size; validated character image cache bytes against declared PNG/JPEG/WebP/AVIF content type.
-- **Verifier compatibility:** Added the two new audit status YAMLs to `scripts/verify-work-orders.cjs`'s non-work-order skip list so the strict work-order schema gate still passes.
-- **Residual blockers:** Final status is intentionally `pass: false`: `npm audit --omit=dev --audit-level=moderate` fails on `js-yaml`, and `rg -n "prompt\\(|confirm\\(" src` still finds production native prompt/confirm call sites.
-- **Validation:** Focused repaired-surface tests pass (94/94); `npm run lint:eslint`, `npm run typecheck`, `npm run test:coverage` (2604 passed / 1 skipped), `npm run verify:contracts`, `npm run build`, `npm run verify:dist`, `verify:image-policy`, `verify:network-boundaries`, `verify:ci-contract`, `verify:work-orders`, `verify:agent-docs`, `verify:storage-policy`, and `verify:theme-tokens` pass. `npm ci` succeeds with EBADENGINE warnings because this shell is Node 26/npm 11 while the project requires Node 22/npm 10.
+- **ZIP cross-check P0 repair continuation:** Read the supplied 2026-06-16 ZIP cross-check work order and updated `docs/audits/agent-repair-status-2026-06-16.yaml` for the P0 items repaired in this continuation.
+- **Web credential custody:** Added loopback-only `/api/session-jina-key` GET/POST/DELETE state in `server.ts`; moved web Jina custody to the server process; removed renderer-side Jina `Authorization` injection; and made web Venice `desktopApiKey.isConfigured()` query `/api/session-key`.
+- **Native dialog removal:** Added the shared `ModalRequestHost` plus `askText` / `askDecision`, mounted it in `App`, and replaced all production native browser text/decision dialog flows under `src/`. The exact `rg -n "\bprompt\(|\bconfirm\(" src` check now returns no matches.
+- **Boundary hardening:** Hardened `app:saveRoutedImage` to accept only validated PNG/JPEG/WebP bytes matching the data URL MIME and chosen extension; moved config-template export to a main-process save dialog; and made `use-chat` memory retrieval failure non-blocking.
+- **Audit blocker resolved:** Added an npm override for `js-yaml@4.2.0` and refreshed `package-lock.json`; `npm audit --omit=dev --audit-level=moderate` now passes.
+- **Validation:** `npm run typecheck`, `npm run lint:eslint`, `npm audit --omit=dev --audit-level=moderate`, `node scripts/verify-image-policy.cjs`, focused P0 regressions (160 tests), and the exact native-dialog grep pass. Validation was run under Node `v26.3.0` / npm `11.16.0`, outside the repo's Node 22/npm 10 engine contract; full release parity was not rerun in this continuation.
 
 ### Open TODO Ledger
-- Resolve the 2026-06-16 residual release blockers recorded in `docs/audits/agent-repair-status-2026-06-16.yaml`: update/remediate the moderate `js-yaml` audit advisory and replace production native `prompt()` / `confirm()` call sites with controlled app modals.
-- Follow up the `needs-human-review` audit IDs in `docs/audits/agent-repair-status-2026-06-16.yaml`; many were not re-audited line-by-line in this pass and are explicitly not claimed closed.
+- Rerun full release parity under the required Node 22/npm 10 toolchain after this ZIP cross-check continuation: `npm ci`, `npm run test:coverage`, `npm run verify:contracts`, `npm run build`, and `npm run verify:dist`.
+- Follow up the remaining `needs-human-review` audit IDs in `docs/audits/agent-repair-status-2026-06-16.yaml`; they were not line-audited in this continuation and are explicitly not claimed closed.
 - `docs/audits/combined-todo.yml` findings AUDIT-001..AUDIT-014 are closed and all required verification gates pass. The artifact remains `scan_status: partial_fix` because the full path-order line audit was not completed in this session; update it to `completed` only after the remaining line audit is finished.
 - Add visual snapshots or Playwright screenshots for Characters, Settings, Research, Chat.
 - Route residual unredacted user-facing error surfaces identified in the T-001..T-030 cross-check through `redactErrorMessage` / `sanitizeErrorText` or `toast.fromError`.
 
 ### Validation Matrix
 - Runtime this session: Node `v26.3.0`, npm `11.16.0` (outside project engines; `npm ci` emitted EBADENGINE).
+- `rg -n "\bprompt\(|\bconfirm\(" src`: PASS (no matches).
+- `npm audit --omit=dev --audit-level=moderate`: PASS (`found 0 vulnerabilities`).
+- `npm run test -- src/services/desktopBridge.test.ts server.test.ts electron/ipc/handlers.test.ts src/hooks/use-chat.test.ts src/components/layout/sidebar.test.tsx src/components/command-palette/CommandPalette.test.tsx`: PASS (7 files, 160 tests).
+- `npm run typecheck`: PASS.
+- `npm run lint:eslint`: PASS.
+- `node scripts/verify-image-policy.cjs`: PASS.
 - `npm ci`: PASS with EBADENGINE and allow-scripts warnings.
-- `npm audit --omit=dev --audit-level=moderate`: FAIL (`js-yaml <=4.1.1`, GHSA-h67p-54hq-rp68).
 - `npm run lint:eslint`: PASS.
 - `npm run typecheck`: PASS.
 - `npm run test -- electron/services/secureStore.test.ts src/services/characterService.test.ts electron/ipc/handlers.test.ts electron/services/mediaService.test.ts electron/services/characterImageCache.test.ts`: PASS (5 files, 94 tests).
@@ -145,6 +154,15 @@ also remains.
 - `npm run verify:markdown-links`: PASS (55 Markdown files checked).
 - `npm run verify:agent-docs`: PASS.
 - `npx vitest run scripts/verify-agent-docs.test.ts scripts/verify-safety-guard.test.ts scripts/verify-markdown-links.test.ts`: PASS (36/36).
+
+- **Date:** 2026-06-16 (ZIP cross-check P0 continuation)
+- **Agent:** Codex
+- **Branch / state:** `main` at `b6337fc239fd2929564b0582c967ab37a3ebe8c3`; working tree modified.
+- **Closed / repaired findings:** P0-001 through P0-007 from the ZIP cross-check work order, reflected in `docs/audits/agent-repair-status-2026-06-16.yaml` as AUDIT-002, AUDIT-003, AUDIT-007, AUDIT-032, AUDIT-033, AUDIT-041, AUDIT-068, and AUDIT-069 updates.
+- **Summary:** Added server-side web Jina session-key custody; made web Venice configured-state server-authoritative; replaced production native browser dialogs with a shared app modal host; hardened routed-image IPC saves; moved config-template export path selection into the main process; made chat memory retrieval failures non-blocking; and resolved the production `js-yaml` audit advisory through an npm override and lockfile refresh.
+- **Files changed (representative):** `server.ts`, `server.test.ts`, `src/services/desktopBridge.ts`, `src/services/desktopBridge.test.ts`, `src/components/ui/modal-requests.tsx`, `src/App.tsx`, `src/components/layout/sidebar.tsx`, `src/components/command-palette/CommandPalette.tsx`, `src/components/gallery/gallery-view.tsx`, `electron/ipc/handlers.ts`, `electron/ipc/handlers.test.ts`, `electron/preload.ts`, `src/types/desktop.ts`, `src/hooks/use-chat.ts`, `src/hooks/use-chat.test.ts`, `package.json`, `package-lock.json`, `scripts/verify-image-policy.cjs`, `docs/audits/agent-repair-status-2026-06-16.yaml`, `docs/summary_of_work.md`.
+- **Validation:** `rg -n "\bprompt\(|\bconfirm\(" src` PASS with no matches; `npm run typecheck` PASS; `npm run lint:eslint` PASS; `npm audit --omit=dev --audit-level=moderate` PASS; `node scripts/verify-image-policy.cjs` PASS; focused P0 regression command PASS (7 files, 160 tests).
+- **Residual risk:** Continuation validation ran under Node `v26.3.0` / npm `11.16.0`, not the repo-required Node 22/npm 10 toolchain, and did not rerun the full release parity suite. Remaining `needs-human-review` audit IDs in the YAML were not line-audited.
 
 - **Date:** 2026-06-16 (Consolidated audit cross-check partial repair)
 - **Agent:** Codex

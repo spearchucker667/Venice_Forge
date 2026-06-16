@@ -51,11 +51,7 @@ import { CompareView } from "./compare-view";
 import { LineageViewer } from "./lineage-viewer";
 import type { MediaItem, MediaItemPatch } from "../../types/media";
 import { cn } from "../../lib/utils";
-
-function confirmAction(message: string): boolean {
-  if (typeof window === "undefined") return true;
-  return window.confirm(message);
-}
+import { askDecision, askText } from "../ui/modal-requests";
 
 export function MediaStudioView() {
   const items = useMediaStore((state) => state.items);
@@ -161,11 +157,16 @@ export function MediaStudioView() {
         if (bulkHasFailure(r)) toast.error(`Favorited ${r.succeeded.length} of ${r.requested}`);
         else toast.success(`Favorited ${r.succeeded.length} item${r.succeeded.length === 1 ? "" : "s"}`);
       },
-      onAddTag: (ids) => {
+      onAddTag: async (ids) => {
         setBulkTagInput("");
-        const tag = prompt("Add tag to selected media:")?.trim().toLowerCase();
+        const tag = (await askText({
+          title: "Add tag",
+          detail: "Apply a tag to the selected media.",
+          actionLabel: "Add tag",
+          validate: (value) => value.trim() ? null : "Enter a tag.",
+        }))?.trim().toLowerCase();
         if (!tag) return;
-        runBulkAddTag(ids, [tag]);
+        await runBulkAddTag(ids, [tag]);
       },
       onSendToImage: (ids) => {
         const first = useMediaStore.getState().items.find((it) => it.id === ids[0]);
@@ -313,7 +314,13 @@ export function MediaStudioView() {
   }, [patchRecord]);
 
   const handleDelete = useCallback(async (item: MediaItem) => {
-    if (!confirmAction(`Delete this ${item.mediaType === "video" ? "video" : "image"}? This cannot be undone.`)) return;
+    const shouldDelete = await askDecision({
+      title: `Delete this ${item.mediaType === "video" ? "video" : "image"}?`,
+      detail: "This cannot be undone.",
+      actionLabel: "Delete",
+      danger: true,
+    });
+    if (!shouldDelete) return;
     try {
       const ok = await remove(item.id);
       if (ok) {
@@ -334,7 +341,13 @@ export function MediaStudioView() {
 
   const handleBatchDelete = useCallback(async () => {
     if (selectedMediaIds.length === 0) return;
-    if (!confirmAction(`Delete ${selectedMediaIds.length} item${selectedMediaIds.length === 1 ? "" : "s"}? This cannot be undone.`)) return;
+    const shouldDelete = await askDecision({
+      title: `Delete ${selectedMediaIds.length} item${selectedMediaIds.length === 1 ? "" : "s"}?`,
+      detail: "This cannot be undone.",
+      actionLabel: "Delete",
+      danger: true,
+    });
+    if (!shouldDelete) return;
     try {
       const r = await bulkDelete(selectedMediaIds, { confirm: true });
       if (bulkHasFailure(r)) {
@@ -800,9 +813,7 @@ export function MediaStudioView() {
         </div>
       )}
 
-      {/* Phase 2B: Bulk tag input row (only visible in multi-select mode
-          when items are selected). Surfaces an inline tag entry so the
-          user does not have to use the prompt()-based flow. */}
+      {/* Phase 2B: Bulk tag input row, visible in multi-select mode when items are selected. */}
       {multiSelectMode && selectedMediaIds.length > 0 && (
         <div className="border-t border-border bg-surface px-5 py-2 flex items-center gap-2 text-[11.5px]">
           <label className="text-text-muted">Quick tag:</label>

@@ -12,10 +12,23 @@ import { parseCharacterSceneRequest } from '../services/characterSceneRequestPar
 import { CharacterSceneRateLimiter } from '../services/characterSceneRateLimiter'
 import type { CharacterSceneGenerationResult } from '../types/characterSceneGeneration'
 import * as logger from '../shared/logger'
+import { redactErrorMessage } from '../shared/redaction'
 
 /** Safe, non-disclosing error text appended to assistant messages when a
  *  chat stream fails. Never include raw exception text, paths, or secrets. */
 const SAFE_STREAM_ERROR_MESSAGE = 'Sorry, something went wrong. Please try again.'
+async function pullMemoryContextForSend(userMessage: string) {
+  try {
+    return await desktopConversations.pullContext({ message: userMessage });
+  } catch (err) {
+    logger.warn('useChat memory retrieval skipped', redactErrorMessage(err));
+    return {
+      ok: false as const,
+      context: { injectedText: '', facts: [], summaries: [], tokenEstimate: 0 },
+      error: 'Memory retrieval unavailable.',
+    };
+  }
+}
 
 /** Resolves the character slug for a conversation, in priority order:
  *  1. The conversation's persisted character metadata (authoritative).
@@ -246,7 +259,7 @@ export function useChat() {
           contextToInject = pendingContext.injectedText;
           setPendingContext(null);
         } else if (showPulledContextBeforeSending) {
-          const res = await desktopConversations.pullContext({ message: userMessage });
+          const res = await pullMemoryContextForSend(userMessage);
           if (res.ok && res.context && res.context.injectedText) {
             setPendingContext({
               ...res.context,
@@ -255,7 +268,7 @@ export function useChat() {
             return;
           }
         } else {
-          const res = await desktopConversations.pullContext({ message: userMessage });
+          const res = await pullMemoryContextForSend(userMessage);
           if (res.ok && res.context && res.context.injectedText) {
             contextToInject = res.context.injectedText;
           }

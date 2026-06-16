@@ -6,6 +6,7 @@ import {
   type StorageStoreInventoryItem,
   type StorageReferenceIssue,
 } from "../../types/storage-privacy";
+import { askDecision } from "../ui/modal-requests";
 
 const SEVERITY_COLOR: Record<StoragePrivacySeverity, string> = {
   ok: "text-success",
@@ -195,8 +196,16 @@ export function StoragePrivacyDashboard() {
                             <p className="text-[12px] text-text-muted">{action.description}</p>
                         </div>
                         <button
-                            onClick={() => {
-                                if (action.destructive && !confirm(`Are you sure you want to run: ${action.label}?`)) return;
+                            onClick={async () => {
+                                if (action.destructive) {
+                                    const shouldRun = await askDecision({
+                                        title: "Run destructive action?",
+                                        detail: action.label,
+                                        actionLabel: "Run action",
+                                        danger: true,
+                                    });
+                                    if (!shouldRun) return;
+                                }
                                 void runMaintenanceAction(action.id);
                             }}
                             disabled={refreshing || action.dryRunOnly}

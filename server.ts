@@ -138,6 +138,7 @@ export function applyVeniceProxyHeaders(
 export function createServerApp() {
   const app = express();
   let devSessionVeniceApiKey = "";
+  let devSessionJinaApiKey = "";
   app.disable("x-powered-by");
 
   // Structured request logging (no bodies, no secrets) in development/test only.
@@ -196,6 +197,38 @@ export function createServerApp() {
         return;
       }
       devSessionVeniceApiKey = key;
+      res.status(200).json({ ok: true });
+      return;
+    }
+    res.status(405).json({ error: "Method not allowed" });
+  });
+
+  app.all("/api/session-jina-key", express.json({ limit: "2kb" }), (req, res) => {
+    if (AppConfig.NODE_ENV === "production") {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    if (!isLoopbackClient(req)) {
+      res.status(403).json({ error: "Local development access only." });
+      return;
+    }
+
+    if (req.method === "GET") {
+      res.status(200).json({ configured: devSessionJinaApiKey.length > 0 || Boolean(AppConfig.JINA_API_KEY) });
+      return;
+    }
+    if (req.method === "DELETE") {
+      devSessionJinaApiKey = "";
+      res.status(200).json({ ok: true });
+      return;
+    }
+    if (req.method === "POST") {
+      const key = typeof req.body?.key === "string" ? req.body.key.trim() : "";
+      if (!key || key.length > 512) {
+        res.status(400).json({ error: "A valid Jina API key is required." });
+        return;
+      }
+      devSessionJinaApiKey = key;
       res.status(200).json({ ok: true });
       return;
     }
@@ -569,8 +602,9 @@ export function createServerApp() {
         }
       }
 
-      if (AppConfig.JINA_API_KEY) {
-        headers["Authorization"] = `Bearer ${AppConfig.JINA_API_KEY}`;
+      const serverJinaKey = AppConfig.JINA_API_KEY || devSessionJinaApiKey;
+      if (serverJinaKey) {
+        headers["Authorization"] = `Bearer ${serverJinaKey}`;
       }
 
       const controller = new AbortController();

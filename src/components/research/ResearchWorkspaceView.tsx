@@ -22,6 +22,7 @@ import { sanitizeResearchUrl } from '../../types/research';
 import { usePromptLibraryStore } from '../../stores/prompt-library-store';
 import { useWorkflowTemplateStore } from '../../stores/workflow-template-store';
 import { toast } from '../../stores/toast-store';
+import { askDecision, askText } from '../ui/modal-requests';
 
 // Icons (mocking for now, will use existing if available)
 const SearchIcon = () => <span>🔍</span>;
@@ -85,10 +86,23 @@ export const ResearchWorkspaceView: React.FC = () => {
   }, [sessions, activeProjectId]);
 
   const handleCreateSession = async () => {
-    const title = prompt('Research Title', 'New Research');
-    if (title) {
-      await createSession({ title });
-    }
+    const title = (await askText({
+      title: 'Research title',
+      initialValue: 'New Research',
+      actionLabel: 'Create',
+      validate: (value) => value.trim() ? null : 'Enter a title.',
+    }))?.trim();
+    if (title) await createSession({ title });
+  };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    const shouldDelete = await askDecision({
+      title: 'Delete session?',
+      detail: 'This removes the research session.',
+      actionLabel: 'Delete',
+      danger: true,
+    });
+    if (shouldDelete) void deleteSession(sessionId);
   };
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -269,7 +283,7 @@ export const ResearchWorkspaceView: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { if(confirm('Delete session?')) deleteSession(activeSession.id); }}
+                  onClick={() => void handleDeleteSession(activeSession.id)}
                   className="p-2 hover:bg-danger/15 rounded text-text-secondary hover:text-danger transition-colors"
                   aria-label="Delete session"
                 >

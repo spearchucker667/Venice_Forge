@@ -122,7 +122,14 @@ export const desktopApiKey = {
    */
   async isConfigured(): Promise<boolean> {
     if (isElectron()) return window.veniceForge!.apiKey.isConfigured();
-    return webSessionVeniceApiKey.length > 0;
+    try {
+      const response = await fetch("/api/session-key");
+      if (!response.ok) return webSessionVeniceApiKey.length > 0;
+      const payload = await response.json().catch(() => null) as { configured?: unknown } | null;
+      return payload?.configured === true;
+    } catch {
+      return webSessionVeniceApiKey.length > 0;
+    }
   },
 
   /**
@@ -687,32 +694,36 @@ export const desktopScenarios = {
   },
 };
 
-/** Ephemeral web-session Jina key. It is intentionally never persisted. */
-let webSessionJinaApiKey = "";
-
-/** Manages the Jina API key across desktop secure storage and web-session memory. */
+/** Manages the Jina API key across desktop secure storage and server-side web session state. */
 export const desktopJinaApiKey = {
   async isConfigured(): Promise<boolean> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.isConfigured();
-    return webSessionJinaApiKey.length > 0;
+    try {
+      const response = await fetch("/api/session-jina-key");
+      if (!response.ok) return false;
+      const payload = await response.json().catch(() => null) as { configured?: unknown } | null;
+      return payload?.configured === true;
+    } catch {
+      return false;
+    }
   },
   async set(key: string): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.set(key);
-    webSessionJinaApiKey = key;
-    return { ok: true };
+    const response = await fetch("/api/session-jina-key", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key }),
+    });
+    return { ok: response.ok };
   },
   async delete(): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.delete();
-    webSessionJinaApiKey = "";
-    return { ok: true };
+    const response = await fetch("/api/session-jina-key", { method: "DELETE" });
+    return { ok: response.ok };
   },
   async test(): Promise<{ ok: boolean; status?: number; message: string }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.test();
     try {
-      const headers: Record<string, string> = {};
-      if (webSessionJinaApiKey) {
-        headers["Authorization"] = `Bearer ${webSessionJinaApiKey}`;
-      }
       const resp = await fetch("/api/proxy-jina", {
         method: "POST",
         headers: {
@@ -721,7 +732,7 @@ export const desktopJinaApiKey = {
         },
         body: JSON.stringify({
           url: "https://r.jina.ai/https://example.com",
-          headers,
+          headers: {},
         })
       });
       if (resp.ok) {
@@ -824,9 +835,6 @@ export const desktopJina = {
 
     try {
       const headers = { ...input.headers };
-      if (webSessionJinaApiKey && !headers["Authorization"] && !headers["authorization"]) {
-        headers["Authorization"] = `Bearer ${webSessionJinaApiKey}`;
-      }
 
       const response = await fetch("/api/proxy-jina", {
         method: "POST",
@@ -889,10 +897,10 @@ export const desktopConfig = {
     if (!isElectron()) return { ok: false, error: "Local config is only available in desktop mode." };
     return window.veniceForge!.config.writeSanitized(patch);
   },
-  /** Exports a sanitized config template to the given path. */
-  async exportTemplate(targetPath: string): Promise<{ ok: boolean; error?: string }> {
+  /** Exports a sanitized config template through a trusted desktop save dialog. */
+  async exportTemplate(): Promise<{ ok: boolean; canceled?: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Local config is only available in desktop mode." };
-    return window.veniceForge!.config.exportTemplate(targetPath);
+    return window.veniceForge!.config.exportTemplate();
   },
   /** Loads the merged themes file (built-in + local). */
   async loadMergedThemes(): Promise<{ ok: boolean; themes?: Record<string, unknown>; warnings?: unknown[]; error?: string }> {

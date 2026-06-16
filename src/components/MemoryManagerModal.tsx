@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Memory, searchMemory, saveMemory, deleteMemory, upsertMemory } from "../services/memoryService";
 import { XIcon, SearchIcon, PlusIcon, EditIcon, TrashIcon } from "./icons";
+import { askDecision } from "./ui/modal-requests";
 
 interface MemoryManagerModalProps {
   open: boolean;
@@ -90,7 +91,13 @@ export function MemoryManagerModal({ open, onClose }: MemoryManagerModalProps) {
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm("Are you sure you want to delete this memory?")) return;
+    const shouldDelete = await askDecision({
+      title: "Delete memory?",
+      detail: "This removes the saved memory permanently.",
+      actionLabel: "Delete",
+      danger: true,
+    });
+    if (!shouldDelete) return;
     setLoading(true);
     try {
       await deleteMemory(id);

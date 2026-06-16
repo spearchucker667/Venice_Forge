@@ -422,20 +422,70 @@ describe("registerIpcHandlers", () => {
       expect(result.error).toMatch(/not in the allowed list/i);
     });
 
-    it("allows all safe media extensions", async () => {
+    it("allows only validated image extensions with matching bytes", async () => {
       const handler = capturedHandlers.get("app:saveRoutedImage");
       const dummyBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
-      for (const ext of [".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".webm"]) {
+      const result = await handler!(
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        dummyBase64,
+        "safe.png",
+        "anime"
+      );
+      expect(result.ok).toBe(true);
+      expect(result.filePath).toBeDefined();
+    });
+
+    it("rejects video, GIF, arbitrary bytes, and MIME/extension mismatches", async () => {
+      const handler = capturedHandlers.get("app:saveRoutedImage");
+      const pngBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+      for (const ext of [".gif", ".mp4", ".webm"]) {
         const result = await handler!(
           { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
-          dummyBase64,
-          `safe${ext}`,
+          pngBase64,
+          `unsafe${ext}`,
           "anime"
         );
-        expect(result.ok).toBe(true);
-        expect(result.filePath).toBeDefined();
+        expect(result.ok).toBe(false);
+        expect(result.error).toMatch(/allowed list/i);
       }
+
+      const arbitrary = await handler!(
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        Buffer.from("not an image").toString("base64"),
+        "spoof.png",
+        "anime"
+      );
+      expect(arbitrary).toMatchObject({ ok: false });
+      expect(arbitrary.error).toMatch(/supported image/i);
+
+      const mismatch = await handler!(
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        pngBase64,
+        "wrong.webp",
+        "anime"
+      );
+      expect(mismatch).toMatchObject({ ok: false });
+      expect(mismatch.error).toMatch(/extension/i);
+    });
+  });
+
+  describe("config:exportTemplate", () => {
+    it("uses the main-process save dialog instead of a renderer-supplied path", async () => {
+      const { dialog } = await import("electron");
+      const { exportConfigTemplate } = await import("../services/configService");
+      vi.mocked(dialog.showSaveDialog).mockResolvedValueOnce({ canceled: false, filePath: "/tmp/template.yaml" });
+
+      const handler = capturedHandlers.get("config:exportTemplate");
+      const result = await handler!(
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        "/renderer/ignored.yaml",
+      );
+
+      expect(dialog.showSaveDialog).toHaveBeenCalled();
+      expect(exportConfigTemplate).toHaveBeenCalledWith("/tmp/template.yaml");
+      expect(result).toEqual({ ok: true });
     });
   });
 

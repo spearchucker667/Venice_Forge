@@ -588,11 +588,66 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  /** Safe media extensions for the saveRoutedImage IPC handler.
-   *  Executable, script, archive, and document extensions are rejected.
+  const ROUTED_IMAGE_EXTENSIONS_BY_MIME: Record<string, readonly string[]> = {
+    "image/png": [".png"],
+    "image/jpeg": [".jpg", ".jpeg"],
+    "image/webp": [".webp"],
+  };
+  function parseRoutedImageDataUrl(value: string): { mime: string | null; rawBase64: string } | null {
+    const match = /^data:([^;,]+);base64,([A-Za-z0-9+/=\r\n]+)$/i.exec(value.trim());
+    if (!match) return { mime: null, rawBase64: value };
+    const mime = match[1].toLowerCase();
+    if (!Object.hasOwn(ROUTED_IMAGE_EXTENSIONS_BY_MIME, mime)) return null;
+    return { mime, rawBase64: match[2] };
+  }
+  function decodeStrictRoutedBase64(value: string): Buffer | null {
+    const compact = value.replace(/\s+/g, "");
+    if (!compact || compact.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(compact)) return null;
+    const buffer = Buffer.from(compact, "base64");
+    if (buffer.length === 0 || buffer.toString("base64") !== compact) return null;
+    return buffer;
+  }
+  function sniffRoutedImageContentType(buffer: Buffer): string | null {
+    if (
+      buffer.length >= 8 &&
+      buffer[0] === 0x89 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x4e &&
+      buffer[3] === 0x47 &&
+      buffer[4] === 0x0d &&
+      buffer[5] === 0x0a &&
+      buffer[6] === 0x1a &&
+      buffer[7] === 0x0a
+    ) return "image/png";
+    if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return "image/jpeg";
+    if (
+      buffer.length >= 12 &&
+      buffer.toString("ascii", 0, 4) === "RIFF" &&
+      buffer.toString("ascii", 8, 12) === "WEBP"
+    ) return "image/webp";
+    return null;
+  }
+  function validateRoutedImageData(base64Data: string, ext: string): { ok: true; buffer: Buffer } | { ok: false; error: string } {
+    const parsed = parseRoutedImageDataUrl(base64Data);
+    if (!parsed) return { ok: false, error: "Image data URL MIME type is not supported." };
+    const buffer = decodeStrictRoutedBase64(parsed.rawBase64);
+    if (!buffer) return { ok: false, error: "Image data is not valid base64." };
+    const contentType = sniffRoutedImageContentType(buffer);
+    if (!contentType) return { ok: false, error: "Decoded payload is not a supported image." };
+    if (parsed.mime && parsed.mime !== contentType) {
+      return { ok: false, error: "Image data URL MIME type does not match decoded bytes." };
+    }
+    if (!ROUTED_IMAGE_EXTENSIONS_BY_MIME[contentType]?.includes(ext)) {
+      return { ok: false, error: "Filename extension does not match decoded image type." };
+    }
+    return { ok: true, buffer };
+  }
+
+  /** Safe image extensions for the saveRoutedImage IPC handler.
+   *  Executable, script, archive, document, and video extensions are rejected.
    */
   const SAVE_ROUTED_IMAGE_ALLOWED_EXTS = new Set([
-    ".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".webm",
+    ".png", ".jpg", ".jpeg", ".webp",
   ]);
   const SAVE_ROUTED_IMAGE_BLOCKED_EXTS = new Set([
     ".exe", ".bat", ".cmd", ".ps1", ".sh", ".js", ".mjs", ".cjs",
@@ -635,11 +690,11 @@ export function registerIpcHandlers(): void {
         throw new Error("Path traversal detected.");
       }
 
-      const rawData = base64Data.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, "");
-      const buffer = Buffer.from(rawData, "base64");
+      const validated = validateRoutedImageData(base64Data, ext);
+      if (!validated.ok) throw new Error(validated.error);
 
       await fs.mkdir(targetDir, { recursive: true });
-      await fs.writeFile(targetPath, buffer);
+      await fs.writeFile(targetPath, validated.buffer);
 
       return { ok: true, filePath: targetPath };
     } catch (err) {
@@ -1234,12 +1289,16 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("config:exportTemplate", async (_event, targetPath: unknown) => {
+  ipcMain.handle("config:exportTemplate", async () => {
     try {
-      if (typeof targetPath !== "string" || targetPath.length === 0) {
-        return { ok: false, error: "Export target path is required." };
-      }
-      return await exportConfigTemplate(targetPath);
+      const result = await dialog.showSaveDialog({
+        title: "Export Venice Forge config template",
+        defaultPath: "venice-forge.config.example.yaml",
+        filters: [{ name: "YAML", extensions: ["yaml", "yml"] }],
+        properties: ["showOverwriteConfirmation", "createDirectory"],
+      });
+      if (result.canceled || !result.filePath) return { ok: false, canceled: true };
+      return await exportConfigTemplate(result.filePath);
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }

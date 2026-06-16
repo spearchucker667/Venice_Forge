@@ -10,6 +10,7 @@ import { ThemeMaker } from "./ThemeMaker";
 import { MemoryPanel } from "./layout/memory-panel";
 import { ConfirmModal } from "./ConfirmModal";
 import { toast } from "../stores/toast-store";
+import { askDecision } from "./ui/modal-requests";
 import { PillGroup } from "./ui/shared";
 import { isElectron, desktopApiKey, desktopJinaApiKey, desktopFiles, desktopUpdates, desktopConfig } from "../services/desktopBridge";
 import { APP_NAME, OFFICIAL_LINKS, FIRST_RUN_ACK_KEY } from "../shared/legal";
@@ -939,7 +940,13 @@ function ConfigPanel(): React.ReactElement {
         </p>
         <button
           onClick={async () => {
-            if (!window.confirm("Remove all stored API keys from the secure store? This cannot be undone.")) return;
+            const shouldReset = await askDecision({
+              title: "Clear secure store keys?",
+              detail: "This removes all stored API keys from the secure store. This cannot be undone.",
+              actionLabel: "Clear keys",
+              danger: true,
+            });
+            if (!shouldReset) return;
             setWorking(true);
             try {
               const res = await desktopConfig.resetSecureStoreKeys();

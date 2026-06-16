@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { TAB_REGISTRY } from '../../config/tabs'
 import { useProjectStore } from '../../stores/project-store'
 import { useSettingsStore } from '../../stores/settings-store'
+import { ModalRequestHost } from '../ui/modal-requests'
 import { CommandPalette } from './CommandPalette'
 
 function PaletteHarness() {
@@ -51,14 +52,22 @@ describe('CommandPalette', () => {
 
   it('creates and activates a project through the project-store contract', async () => {
     const project = { id: 'project-new', name: 'New Project', createdAt: 1, updatedAt: 1, archivedAt: null }
-    vi.spyOn(window, 'prompt').mockReturnValue('New Project')
     const createProject = vi.spyOn(useProjectStore.getState(), 'createProject').mockResolvedValue(project)
     const setActiveProject = vi.spyOn(useProjectStore.getState(), 'setActiveProject')
-    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    render(
+      <>
+        <CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />
+        <ModalRequestHost />
+      </>,
+    )
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'New Project' }))
     })
+    fireEvent.change(screen.getByRole('textbox', { name: 'New project name' }), {
+      target: { value: 'New Project' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }))
     await vi.waitFor(() => expect(createProject).toHaveBeenCalledWith('New Project'))
     expect(setActiveProject).toHaveBeenCalledWith('project-new')
   })

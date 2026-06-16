@@ -1,5 +1,5 @@
 repair_status:
-  generated_at: "2026-06-16T05:02:00-07:00"
+  generated_at: "2026-06-16T05:46:00-07:00"
   branch: main
   head_before: b6337fc239fd2929564b0582c967ab37a3ebe8c3
   head_after: b6337fc239fd2929564b0582c967ab37a3ebe8c3
@@ -26,24 +26,29 @@ repair_status:
         verification_result: pass
       residual_risk: "Did not run live npm run dev plus curl smoke in this turn."
     - id: AUDIT-002
-      source_status: needs-human-review
+      source_status: resolved
       severity: medium
       category: web-key-state
       files_checked: [src/services/desktopBridge.ts, src/services/desktopBridge.test.ts]
-      files_changed: []
-      proof: { evidence_before: ["Not re-audited line-by-line in this pass."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
-      residual_risk: "Needs focused web reload/key-state verification."
+      files_changed: [src/services/desktopBridge.ts, src/services/desktopBridge.test.ts]
+      proof:
+        evidence_before: ["Web Venice configured-state checks previously trusted renderer-local process memory."]
+        implementation_notes: ["desktopApiKey.isConfigured() now queries the loopback /api/session-key endpoint and only falls back to local process state on request failure."]
+        tests_added_or_updated: ["desktopBridge web session-key configured-state regression."]
+        verification_commands: ["npm run test -- src/services/desktopBridge.test.ts"]
+        verification_result: pass
+      residual_risk: "No live browser reload smoke was run."
     - id: AUDIT-003
       source_status: resolved
       severity: high
       category: jina-web-credentials
-      files_checked: [server.ts, src/services/desktopBridge.ts, README.md]
-      files_changed: []
+      files_checked: [server.ts, server.test.ts, src/services/desktopBridge.ts, src/services/desktopBridge.test.ts]
+      files_changed: [server.ts, server.test.ts, src/services/desktopBridge.ts, src/services/desktopBridge.test.ts]
       proof:
-        evidence_before: ["server.ts drops renderer Authorization/x-jina-api-key and attaches Jina key server-side."]
-        implementation_notes: ["Existing implementation matched the server-side credential model."]
-        tests_added_or_updated: []
-        verification_commands: ["npm run verify:network-boundaries", "npm run verify:contracts"]
+        evidence_before: ["Web-mode Jina key state still lived in renderer process memory and proxy requests could carry renderer-supplied credential headers."]
+        implementation_notes: ["Added loopback-only /api/session-jina-key GET/POST/DELETE, moved web Jina key custody server-side, and removed renderer Authorization injection from desktopJina.request/test."]
+        tests_added_or_updated: ["server-side Jina session key storage/clear regression.", "web proxy ignores renderer credentials and uses the server-side Jina session key.", "desktopBridge Jina proxy body contains no renderer Authorization."]
+        verification_commands: ["npm run test -- src/services/desktopBridge.test.ts server.test.ts"]
         verification_result: pass
       residual_risk: "No live Jina credential smoke was run."
     - id: AUDIT-004
@@ -76,13 +81,18 @@ repair_status:
       proof: { evidence_before: ["Not re-audited."], implementation_notes: [], tests_added_or_updated: [], verification_commands: [], verification_result: not-run }
       residual_risk: "Shortcut/editable-target behavior needs focused UI tests."
     - id: AUDIT-007
-      source_status: confirmed
+      source_status: resolved
       severity: high
       category: native-prompts
-      files_checked: [src/components/layout/sidebar.tsx, src/components/command-palette/CommandPalette.tsx]
-      files_changed: []
-      proof: { evidence_before: ["Final grep found prompt()/confirm() in production src files."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["rg -n \"prompt\\\\(|confirm\\\\(\" src"], verification_result: fail }
-      residual_risk: "Blocking production UI cleanup remains."
+      files_checked: [src/App.tsx, src/components/ui/modal-requests.tsx, src/components/layout/sidebar.tsx, src/components/command-palette/CommandPalette.tsx, src/components/gallery/gallery-view.tsx]
+      files_changed: [src/App.tsx, src/components/ui/modal-requests.tsx, src/components/layout/sidebar.tsx, src/components/layout/sidebar.test.tsx, src/components/command-palette/CommandPalette.tsx, src/components/command-palette/CommandPalette.test.tsx, src/components/gallery/gallery-view.tsx, src/stores/media-command-handlers.ts]
+      proof:
+        evidence_before: ["Native browser text/decision dialogs remained in production src paths."]
+        implementation_notes: ["Added a shared ModalRequestHost with askText/askDecision helpers and mounted it at the app root; replaced project, chat, and Media Studio native dialog flows."]
+        tests_added_or_updated: ["Command Palette project creation now drives the shared text modal.", "Sidebar delete-active-chat cancellation now drives the shared decision modal."]
+        verification_commands: ["rg -n \"\\\\bprompt\\\\(|\\\\bconfirm\\\\(\" src", "npm run test -- src/components/layout/sidebar.test.tsx src/components/command-palette/CommandPalette.test.tsx"]
+        verification_result: pass
+      residual_risk: "No browser screenshot pass was run for the new shared modal."
     - id: AUDIT-008
       source_status: needs-human-review
       severity: medium
@@ -284,22 +294,22 @@ repair_status:
       source_status: confirmed
       severity: high
       category: media-write-validation
-      files_checked: [electron/services/mediaService.ts, electron/services/mediaService.test.ts, scripts/verify-image-policy.cjs]
-      files_changed: [electron/services/mediaService.ts, electron/services/mediaService.test.ts]
+      files_checked: [electron/services/mediaService.ts, electron/services/mediaService.test.ts, electron/ipc/handlers.ts, electron/ipc/handlers.test.ts, scripts/verify-image-policy.cjs]
+      files_changed: [electron/services/mediaService.ts, electron/services/mediaService.test.ts, electron/ipc/handlers.ts, electron/ipc/handlers.test.ts, scripts/verify-image-policy.cjs]
       proof:
-        evidence_before: ["exportMedia stripped data URL prefix and wrote Buffer.from(raw, base64) without magic/extension agreement."]
-        implementation_notes: ["Added strict base64, data URL MIME, magic-byte, extension, and decoded-size validation."]
-        tests_added_or_updated: ["Reject arbitrary bytes renamed .png; reject MIME/extension mismatches; reject video data URL."]
-        verification_commands: ["npm run test -- electron/services/mediaService.test.ts", "npm run verify:image-policy"]
+        evidence_before: ["exportMedia and app:saveRoutedImage accepted arbitrary base64/media payloads without complete MIME, magic-byte, and extension agreement."]
+        implementation_notes: ["Added strict image validation for Media Studio export and routed-image saves; app:saveRoutedImage now only permits PNG/JPEG/WebP bytes matching the chosen extension."]
+        tests_added_or_updated: ["Reject arbitrary bytes renamed .png; reject MIME/extension mismatches; reject video/GIF routed-image payloads."]
+        verification_commands: ["npm run test -- electron/ipc/handlers.test.ts", "node scripts/verify-image-policy.cjs"]
         verification_result: pass
       residual_risk: "Verifier script was not extended to inspect every IPC write boundary."
     - id: AUDIT-033
       source_status: confirmed
       severity: high
       category: media-write-validation
-      files_checked: [electron/services/mediaService.ts]
-      files_changed: [electron/services/mediaService.ts, electron/services/mediaService.test.ts]
-      proof: { evidence_before: ["Image export accepted arbitrary base64."], implementation_notes: ["Now image-only validated; video data URLs rejected."], tests_added_or_updated: ["mediaService export rejection tests"], verification_commands: ["npm run test -- electron/services/mediaService.test.ts"], verification_result: pass }
+      files_checked: [electron/services/mediaService.ts, electron/ipc/handlers.ts]
+      files_changed: [electron/services/mediaService.ts, electron/services/mediaService.test.ts, electron/ipc/handlers.ts, electron/ipc/handlers.test.ts]
+      proof: { evidence_before: ["Image export and routed-image save paths accepted arbitrary base64 or broad media extensions."], implementation_notes: ["Now image-only validated; video/GIF routed-image inputs are rejected."], tests_added_or_updated: ["mediaService export rejection tests", "app:saveRoutedImage byte/MIME/extension rejection tests"], verification_commands: ["npm run test -- electron/ipc/handlers.test.ts", "node scripts/verify-image-policy.cjs"], verification_result: pass }
       residual_risk: "No separately named video export path was added."
     - id: AUDIT-034
       source_status: needs-human-review
@@ -367,9 +377,9 @@ repair_status:
       severity: high
       category: renderer-file-write
       files_checked: [electron/ipc/handlers.ts, electron/services/configService.ts]
-      files_changed: []
-      proof: { evidence_before: ["Existing tests/mock show dialog.showSaveDialog path for config template export."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run test -- electron/ipc/handlers.test.ts"], verification_result: pass }
-      residual_risk: "configService test was not run separately in this pass."
+      files_changed: [electron/ipc/handlers.ts, electron/ipc/handlers.test.ts, electron/preload.ts, src/types/desktop.ts, src/services/desktopBridge.ts]
+      proof: { evidence_before: ["config:exportTemplate accepted a renderer-supplied target path."], implementation_notes: ["IPC now opens the main-process save dialog and passes only the selected filePath to exportConfigTemplate; preload/renderer API no longer accepts a target path."], tests_added_or_updated: ["config:exportTemplate ignores renderer arguments and uses dialog.showSaveDialog."], verification_commands: ["npm run test -- electron/ipc/handlers.test.ts"], verification_result: pass }
+      residual_risk: "Manual Electron save-dialog smoke was not run."
     - id: AUDIT-042
       source_status: resolved
       severity: medium
@@ -588,17 +598,17 @@ repair_status:
       severity: high
       category: memory-chat-send
       files_checked: [src/hooks/use-chat.ts]
-      files_changed: []
-      proof: { evidence_before: ["Coverage suite includes use-chat tests and passed; hook code was not changed in this pass."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["npm run test:coverage"], verification_result: pass }
-      residual_risk: "Focused use-chat test command was not run separately."
+      files_changed: [src/hooks/use-chat.ts, src/hooks/use-chat.test.ts]
+      proof: { evidence_before: ["Memory retrieval exceptions could block chat send flows."], implementation_notes: ["Wrapped desktopConversations.pullContext in a redacted-warning fallback that returns empty memory context on failure."], tests_added_or_updated: ["direct memory retrieval failure still sends chat", "memory preview retrieval failure still sends chat"], verification_commands: ["npm run test -- src/hooks/use-chat.test.ts"], verification_result: pass }
+      residual_risk: "No manual memory-preview UI smoke was run."
     - id: AUDIT-069
-      source_status: confirmed
+      source_status: resolved
       severity: high
       category: native-prompts
-      files_checked: [src/components/layout/sidebar.tsx, src/components/command-palette/CommandPalette.tsx]
-      files_changed: []
-      proof: { evidence_before: ["Final grep found native prompt()/confirm() production calls."], implementation_notes: [], tests_added_or_updated: [], verification_commands: ["rg -n \"prompt\\\\(|confirm\\\\(\" src"], verification_result: fail }
-      residual_risk: "Blocking modal replacement work remains."
+      files_checked: [src/components/MemoryManagerModal.tsx, src/components/SettingsView.tsx, src/components/research/ResearchWorkspaceView.tsx, src/components/chat/chat-view.tsx, src/components/layout/memory-panel.tsx, src/components/rp-studio/CharacterEditor.tsx, src/components/privacy/StoragePrivacyDashboard.tsx, src/components/workflows/WorkflowTemplatesView.tsx, src/components/playground/playground-view.tsx, src/components/gallery/gallery-view.tsx]
+      files_changed: [src/components/MemoryManagerModal.tsx, src/components/SettingsView.tsx, src/components/research/ResearchWorkspaceView.tsx, src/components/chat/chat-view.tsx, src/components/layout/memory-panel.tsx, src/components/rp-studio/CharacterEditor.tsx, src/components/privacy/StoragePrivacyDashboard.tsx, src/components/workflows/WorkflowTemplatesView.tsx, src/components/playground/playground-view.tsx, src/components/gallery/gallery-view.tsx, src/components/ui/modal-requests.tsx]
+      proof: { evidence_before: ["Final grep found native browser dialog calls across production src components."], implementation_notes: ["All identified flows now use askText/askDecision."], tests_added_or_updated: ["sidebar and command-palette modal interaction regressions"], verification_commands: ["rg -n \"\\\\bprompt\\\\(|\\\\bconfirm\\\\(\" src"], verification_result: pass }
+      residual_risk: "Modal visual styling was not screenshot-verified."
     - id: AUDIT-070
       source_status: needs-human-review
       severity: medium
@@ -631,9 +641,11 @@ repair_status:
     pass: false
     commands_run:
       - "npm ci: pass with EBADENGINE warning under Node v26.3.0/npm 11.16.0"
-      - "npm audit --omit=dev --audit-level=moderate: fail, js-yaml moderate advisory"
+      - "npm audit --omit=dev --audit-level=moderate: pass, found 0 vulnerabilities"
       - "npm run lint:eslint: pass"
       - "npm run typecheck: pass"
+      - "rg -n \"\\bprompt\\(|\\bconfirm\\(\" src: pass, no matches"
+      - "npm run test -- src/services/desktopBridge.test.ts server.test.ts electron/ipc/handlers.test.ts src/hooks/use-chat.test.ts src/components/layout/sidebar.test.tsx src/components/command-palette/CommandPalette.test.tsx: pass, 160 passed"
       - "npm run test:coverage: pass, 2604 passed / 1 skipped"
       - "npm run build: pass"
       - "npm run verify:contracts: pass"
@@ -647,5 +659,4 @@ repair_status:
       - "node scripts/verify-theme-tokens.cjs: pass"
       - "npm run test -- electron/services/secureStore.test.ts src/services/characterService.test.ts electron/ipc/handlers.test.ts electron/services/mediaService.test.ts electron/services/characterImageCache.test.ts: pass, 94 passed"
     failures:
-      - "npm audit --omit=dev --audit-level=moderate fails on GHSA-h67p-54hq-rp68 in js-yaml <=4.1.1."
-      - "rg -n \"prompt\\(|confirm\\(\" src still finds production native prompt/confirm call sites."
+      - "Full release gate was not rerun in this continuation under the repo-required Node 22/npm 10 toolchain; current shell is Node v26.3.0/npm 11.16.0."

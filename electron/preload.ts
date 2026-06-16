@@ -363,8 +363,8 @@ const veniceForge = {
     writeSanitized(patch: unknown): Promise<{ ok: boolean; error?: string; redactedFields?: string[] }> {
       return ipcRenderer.invoke("config:writeSanitized", patch);
     },
-    exportTemplate(targetPath: string): Promise<{ ok: boolean; error?: string }> {
-      return ipcRenderer.invoke("config:exportTemplate", targetPath);
+    exportTemplate(): Promise<{ ok: boolean; canceled?: boolean; error?: string }> {
+      return ipcRenderer.invoke("config:exportTemplate");
     },
     loadMergedThemes(): Promise<{ ok: boolean; themes?: Record<string, unknown>; warnings?: unknown[]; error?: string }> {
       return ipcRenderer.invoke("config:loadMergedThemes");

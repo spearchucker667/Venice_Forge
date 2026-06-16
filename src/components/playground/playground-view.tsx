@@ -10,6 +10,7 @@ import { AgentModelPicker } from './agent-model-picker'
 import { cn } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
 import { DEFAULT_AGENT_MODEL } from '../../lib/playground-agent'
+import { askDecision } from '../ui/modal-requests'
 
 export function PlaygroundView() {
   const draft = usePlaygroundStore((s) => s.draft)
@@ -122,8 +123,14 @@ export function PlaygroundView() {
     unlinkWorkflow()
   }
 
-  const handleReset = () => {
-    if (!confirm('Clear the current conversation and canvas?')) return
+  const handleReset = async () => {
+    const shouldClear = await askDecision({
+      title: 'Clear playground?',
+      detail: 'This clears the current conversation and canvas.',
+      actionLabel: 'Clear',
+      danger: true,
+    })
+    if (!shouldClear) return
     clearConversation()
   }
 

@@ -3,6 +3,7 @@ import { useWorkflowTemplateStore } from "../../stores/workflow-template-store";
 import { useSettingsStore, type Tab } from "../../stores/settings-store";
 import { compileWorkflowTemplate } from "../../services/workflowCompiler";
 import { createWorkflowRunPlan } from "../../services/workflowRunner";
+import { askDecision } from "../ui/modal-requests";
 
 export function WorkflowTemplatesView() {
   const { workflows, activeWorkflowId, setActiveWorkflow, createWorkflow, updateWorkflow, deleteWorkflow, archiveWorkflow, addStep, removeStep } = useWorkflowTemplateStore();
@@ -147,10 +148,14 @@ export function WorkflowTemplatesView() {
               Archive
             </button>
             <button
-              onClick={() => {
-                if (confirm("Delete this workflow permanently?")) {
-                  deleteWorkflow(activeWorkflow.id);
-                }
+              onClick={async () => {
+                const shouldDelete = await askDecision({
+                  title: "Delete workflow?",
+                  detail: "This permanently deletes the workflow.",
+                  actionLabel: "Delete",
+                  danger: true,
+                });
+                if (shouldDelete) deleteWorkflow(activeWorkflow.id);
               }}
               className="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-1.5 rounded"
               data-testid="delete-workflow-btn"

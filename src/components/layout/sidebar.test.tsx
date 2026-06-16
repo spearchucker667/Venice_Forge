@@ -15,6 +15,7 @@ import { buildConversationSearchText, Sidebar } from './sidebar'
 import { useChatStore } from '../../stores/chat-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useProjectStore } from '../../stores/project-store'
+import { ModalRequestHost } from '../ui/modal-requests'
 
 describe('Sidebar controls', () => {
   beforeEach(() => {
@@ -101,11 +102,16 @@ describe('Sidebar controls', () => {
 
   it('requires confirmation before deleting the active chat from Chat options', async () => {
     useChatStore.getState().createConversation('test-model')
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
-    render(<Sidebar />)
+    render(
+      <>
+        <Sidebar />
+        <ModalRequestHost />
+      </>,
+    )
     await userEvent.click(screen.getByRole('button', { name: 'Chat options' }))
     await userEvent.click(screen.getByRole('menuitem', { name: 'Delete active chat' }))
-    expect(confirmSpy).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('dialog', { name: 'Delete chat?' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(useChatStore.getState().conversations).toHaveLength(1)
   })
 

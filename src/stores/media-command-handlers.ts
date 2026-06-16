@@ -39,7 +39,7 @@ export interface MediaCommandHandlers {
   onCompare?: (ids: string[]) => void;
   onExport?: (ids: string[]) => void;
   onFavorite?: (ids: string[]) => void;
-  onAddTag?: (ids: string[]) => void;
+  onAddTag?: (ids: string[]) => void | Promise<void>;
   onSendToImage?: (ids: string[]) => void;
   onCopyRecipe?: (ids: string[]) => void;
 }

@@ -32,6 +32,7 @@ import { useStoragePrivacyStore } from '../../stores/storage-privacy-store'
 import { useResearchStore } from '../../stores/research-store'
 import { startChatForCharacter } from '../../services/rpHelpers'
 import { readBoundedJsonFile } from '../../utils/file-reader'
+import { askText } from '../ui/modal-requests'
 
 interface CommandPaletteProps {
   open: boolean
@@ -118,7 +119,12 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
   }
 
   const handleNewProject = async () => {
-    const name = prompt('New project name')?.trim() || 'Untitled Project'
+    const name = (await askText({
+      title: 'New project name',
+      initialValue: 'Untitled Project',
+      actionLabel: 'Create',
+      validate: (value) => value.trim() ? null : 'Enter a project name.',
+    }))?.trim() || 'Untitled Project'
     const p = await useProjectStore.getState().createProject(name)
     useProjectStore.getState().setActiveProject(p.id)
     toast.success(`Created project "${p.name}"`)

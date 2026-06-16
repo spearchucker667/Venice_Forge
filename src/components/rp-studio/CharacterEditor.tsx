@@ -22,6 +22,7 @@ import { saveCharacterPromptToLibrary, startChatForCharacter } from "../../servi
 import { toast } from "../../stores/toast-store";
 import type { Tab } from "../../stores/settings-store";
 import { isSupportedImageFile, readImageAttachment } from "../../services/attachmentService";
+import { askDecision } from "../ui/modal-requests";
 
 /** Module-scoped WeakMap mapping each example object (by identity) to a stable
  *  client-side React key. Lives outside the component so keys survive remounts
@@ -157,7 +158,13 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
   };
 
   const handleDelete = async () => {
-    if (typeof window !== "undefined" && !window.confirm(`Delete "${draft.name}"?`)) return;
+    const shouldDelete = await askDecision({
+      title: "Delete character?",
+      detail: draft.name,
+      actionLabel: "Delete",
+      danger: true,
+    });
+    if (!shouldDelete) return;
     await remove(draft.id);
     onClose();
   };

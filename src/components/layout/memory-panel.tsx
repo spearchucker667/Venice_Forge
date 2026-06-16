@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useSettingsStore } from "../../stores/settings-store";
 import { toast } from "../../stores/toast-store";
 import { desktopConversations } from "../../services/desktopBridge";
+import { askDecision } from "../ui/modal-requests";
 import type { ConversationRecordV1, MemoryFact } from "../../types/conversationVault";
 
 export function MemoryPanel() {
@@ -108,7 +109,13 @@ export function MemoryPanel() {
 
   async function handleForgetFact(factId: string, record: ConversationRecordV1) {
     
-    if (!window.confirm("Are you sure you want the assistant to forget this fact?")) return;
+    const shouldForget = await askDecision({
+      title: "Forget this fact?",
+      detail: "This hides the fact from future memory retrieval.",
+      actionLabel: "Forget",
+      danger: true,
+    });
+    if (!shouldForget) return;
 
     try {
       const updatedFacts = record.memory.userFacts.map((f) => {

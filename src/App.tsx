@@ -20,6 +20,7 @@ import { EmbeddingsView } from './components/embeddings/embeddings-view'
 import { StatusView } from './components/StatusView'
 import { CharactersView } from './components/CharactersView'
 import { ErrorBoundary } from './components/ui/error-boundary'
+import { ModalRequestHost } from './components/ui/modal-requests'
 import { Toaster } from './components/ui/toaster'
 import { FIRST_RUN_ACK_KEY } from './shared/legal'
 import { applyTheme, resolveInitialTheme } from './theme'
@@ -229,6 +230,7 @@ export function App() {
         onDismiss={() => { /* cannot dismiss the age gate; user must acknowledge */ }}
       />
       <Toaster />
+      <ModalRequestHost />
       <CommandPalette
         open={cmdPaletteOpen}
         onClose={() => setCmdPaletteOpen(false)}

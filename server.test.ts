@@ -93,6 +93,42 @@ describe("server.ts development session key", () => {
     expect((await request(app).post("/api/session-key").send({ key: "" })).status).toBe(400);
     expect((await request(app).post("/api/session-key").send({ key: "x".repeat(513) })).status).toBe(400);
   });
+
+  it("stores and clears a Jina key only in the server process", async () => {
+    const app = createServerApp();
+    const save = await request(app).post("/api/session-jina-key").send({ key: "jina-session-fixture" });
+    expect(save.status).toBe(200);
+    expect(save.body).toEqual({ ok: true });
+    expect(JSON.stringify(save.body)).not.toContain("jina-session-fixture");
+    expect((await request(app).get("/api/session-jina-key")).body).toEqual({ configured: true });
+    expect((await request(app).delete("/api/session-jina-key")).body).toEqual({ ok: true });
+    expect((await request(app).get("/api/session-jina-key")).body).toEqual({ configured: false });
+  });
+
+  it("uses the server-side Jina session key and ignores renderer credentials", async () => {
+    const app = createServerApp();
+    await request(app).post("/api/session-jina-key").send({ key: "jina-session-fixture" });
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn(async () => new Response("ok", {
+      status: 200,
+      headers: { "content-type": "text/plain" },
+    })) as unknown as typeof globalThis.fetch;
+    globalThis.fetch = fetchMock;
+    try {
+      await request(app)
+        .post("/api/proxy-jina")
+        .set("X-Venice-Forge-Family-Safe-Mode", "false")
+        .send({
+          url: "https://r.jina.ai/https://example.com",
+          headers: { Authorization: "Bearer renderer-secret" },
+        });
+      const init = (fetchMock as unknown as { mock: { calls: Array<[string, RequestInit | undefined]> } })
+        .mock.calls[0]?.[1];
+      expect(init?.headers).toMatchObject({ Authorization: "Bearer jina-session-fixture" });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
 
 describe("server.ts proxy validation", () => {

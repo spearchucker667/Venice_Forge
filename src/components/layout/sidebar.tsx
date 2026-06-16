@@ -5,6 +5,7 @@ import { useChatStore } from '../../stores/chat-store'
 import { useProjectStore } from '../../stores/project-store'
 import { toast } from '../../stores/toast-store'
 import { VeniceLogo, VeniceWordmark } from '../ui/logo'
+import { askDecision, askText } from '../ui/modal-requests'
 import type { Conversation } from '../../types/conversation'
 import { desktopConfig, isElectron } from '../../services/desktopBridge'
 import { reloadConfig } from '../../stores/config-store'
@@ -305,7 +306,11 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
             <span>Project</span>
             <button
               onClick={async () => {
-                const name = prompt('New project name')?.trim()
+                const name = (await askText({
+                  title: 'New project name',
+                  actionLabel: 'Create',
+                  validate: (value) => value.trim() ? null : 'Enter a project name.',
+                }))?.trim()
                 if (!name) return
                 try {
                   const p = await useProjectStore.getState().createProject(name)
@@ -354,7 +359,12 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                 onClick={async () => {
                   const current = projects.find((p) => p.id === activeProjectId)
                   if (!current) return
-                  const name = prompt('Rename project', current.name)?.trim()
+                  const name = (await askText({
+                    title: 'Rename project',
+                    initialValue: current.name,
+                    actionLabel: 'Rename',
+                    validate: (value) => value.trim() ? null : 'Enter a project name.',
+                  }))?.trim()
                   if (!name || name === current.name) return
                   await useProjectStore.getState().renameProject(activeProjectId, name)
                   toast.success('Project renamed')
@@ -366,7 +376,12 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
               <button
                 onClick={async () => {
                   if (!activeProjectId) return
-                  if (!confirm('Archive this project? Its media and conversation references will be preserved.')) return
+                  const shouldArchive = await askDecision({
+                    title: 'Archive project?',
+                    detail: 'Media and conversation references will be preserved.',
+                    actionLabel: 'Archive',
+                  })
+                  if (!shouldArchive) return
                   await useProjectStore.getState().archiveProject(activeProjectId)
                   toast.success('Project archived')
                 }}
@@ -377,7 +392,13 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
               <button
                 onClick={async () => {
                   if (!activeProjectId) return
-                  if (!confirm('Permanently delete this project? Projects referenced by media or conversations must be archived instead.')) return
+                  const shouldDelete = await askDecision({
+                    title: 'Delete project?',
+                    detail: 'Projects referenced by media or conversations must be archived instead.',
+                    actionLabel: 'Delete',
+                    danger: true,
+                  })
+                  if (!shouldDelete) return
                   const ok = await useProjectStore.getState().deleteProject(activeProjectId)
                   if (ok) toast.success('Project deleted')
                   else toast.error('Project cannot be deleted while media or conversations reference it. Archive it instead.')
@@ -452,8 +473,16 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                   <button role="menuitem" className="menu-action" onClick={startNewChat}>New chat</button>
                   <button role="menuitem" className="menu-action" onClick={() => { setChatOptionsOpen(false); searchInputRef.current?.focus() }}>Search chats</button>
                   <button role="menuitem" className="menu-action" disabled={!activeConversation} onClick={() => { if (activeConversation) exportConversation(activeConversation); setChatOptionsOpen(false) }}>Export active chat</button>
-                  <button role="menuitem" className="menu-action text-danger" disabled={!activeConversation} onClick={() => {
-                    if (activeConversation && confirm(`Delete "${activeConversation.title || 'Untitled'}"?`)) void handleDelete(activeConversation)
+                  <button role="menuitem" className="menu-action text-danger" disabled={!activeConversation} onClick={async () => {
+                    if (activeConversation) {
+                      const shouldDelete = await askDecision({
+                        title: 'Delete chat?',
+                        detail: activeConversation.title || 'Untitled',
+                        actionLabel: 'Delete',
+                        danger: true,
+                      })
+                      if (shouldDelete) void handleDelete(activeConversation)
+                    }
                     setChatOptionsOpen(false)
                   }}>Delete active chat</button>
                   <button role="menuitem" className="menu-action" disabled={!activeConversationId} onClick={() => { setActiveConversation(null); setChatOptionsOpen(false) }}>Clear active chat selection</button>

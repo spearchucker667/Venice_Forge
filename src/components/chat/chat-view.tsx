@@ -15,6 +15,7 @@ import { RefreshCw } from 'lucide-react'
 import { desktopConversations } from '../../services/desktopBridge'
 import * as logger from '../../shared/logger'
 import { getBalancedPromptStarters } from '../../services/promptStarterService'
+import { askDecision } from '../ui/modal-requests'
 import type { PromptStarter } from '../../data/promptStarters'
 import type { MemoryFact, ConversationRecordV1 } from '../../types/conversationVault'
 import type { Conversation } from '../../types/conversation'
@@ -92,7 +93,13 @@ export function ChatView() {
   }
 
   const handleForgetFact = async (factId: string, factText: string) => {
-    if (!window.confirm(`Are you sure you want the assistant to permanently forget this fact?\n\n"${factText}"`)) return
+    const shouldForget = await askDecision({
+      title: 'Forget this fact?',
+      detail: factText,
+      actionLabel: 'Forget',
+      danger: true,
+    })
+    if (!shouldForget) return
     try {
       
       const res = await desktopConversations.list()

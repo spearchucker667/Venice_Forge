@@ -244,7 +244,7 @@ export interface VeniceForgeConfig {
   getStatus(): Promise<{ ok: boolean; status?: VeniceForgeConfigPayload["status"]; paths?: { configPath: string; themesPath: string; source: string }; error?: string }>;
   openFolder(): Promise<{ ok: boolean; path: string; error?: string }>;
   writeSanitized(patch: unknown): Promise<{ ok: boolean; error?: string; redactedFields?: string[] }>;
-  exportTemplate(targetPath: string): Promise<{ ok: boolean; error?: string }>;
+  exportTemplate(): Promise<{ ok: boolean; canceled?: boolean; error?: string }>;
   loadMergedThemes(): Promise<{ ok: boolean; themes?: Record<string, unknown>; warnings?: unknown[]; error?: string }>;
   resetSecureStoreKeys(): Promise<{ ok: boolean; removed?: { venice: boolean; jina: boolean }; error?: string }>;
 }
