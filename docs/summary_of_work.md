@@ -6696,3 +6696,8 @@ Result:
 ### Antigravity Session Summary (Final Roadmap Sweep)
 - **Phase 2K wrap-up:** Confirmed that the remaining un-checked roadmap items (P0-002 Release Artifacts, P1-002 Security Automation, and P1-003 Dependency Hygiene) were actually already completed and documented by prior agents in previous sessions but left unchecked in `repository-todo-roadmap-current.md`.
 - **Roadmap Verification:** Marked all remaining P0 and P1 items as `[x]`. The roadmap is now 100% complete and verified. No further open tasks remain.
+- **Agent Guide Documentation & Verification:**
+  - Updated `AGENTS.md` to reference the newly extracted `electron/ipc/configHandlers.ts` module and several new verification scripts in the Key File Locations.
+  - Added `npm run verify:contracts` to the main validation sequences of both `AGENTS.md` and `.github/copilot-instructions.md`.
+  - Confirmed synchronization parity between the two files using `npm run verify:agent-docs`.
+  - Ran a full CI pipeline validation pass using `npm run ci`, verifying that the updated commands and documentation compile and run clean.
