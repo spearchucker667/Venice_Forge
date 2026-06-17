@@ -581,7 +581,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 - `.env.example` with all configurable environment variables documented.
 
 [Unreleased]: #unreleased
-[1.0.5]: https://github.com/spearchucker667/Venice-API-connector/compare/86262cac...HEAD
+[1.0.5]: https://github.com/spearchucker667/Venice_Forge/compare/86262cac...HEAD
 [1.0.4]: #104--2026-06-05
 [1.0.3]: #103--2026-06-04
 [1.0.2]: #102--2026-05-29

@@ -150,7 +150,12 @@ export function ImageView() {
   }, [caps, dimOptions, hasAspectRatios, aspectOptions, resolutionOptions, defaultSteps, steps]);
 
   const downloadImage = async (b64: string, index?: number) => {
-    const filename = `venice-image${index !== undefined ? `-${index + 1}` : ''}.png`;
+    let ext = "png";
+    if (b64.startsWith("data:image/jpeg")) ext = "jpg";
+    else if (b64.startsWith("data:image/webp")) ext = "webp";
+    else if (b64.startsWith("data:image/gif")) ext = "gif";
+    
+    const filename = `venice-image${index !== undefined ? `-${index + 1}` : ''}.${ext}`;
     const routedFolder = routeAsset(prompt);
     if (isElectron()) {
       try {

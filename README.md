@@ -231,7 +231,7 @@ Read:
 | npm | `10+` |
 | Windows | Windows 10/11 |
 | macOS | macOS 13+ |
-| Linux | Development supported; release packaging handled by CI |
+| Linux | Experimental; release packaging handled by CI |
 | Venice API key | Required for live API usage |
 | Jina API key | Optional, used for Jina-backed research/search flows |
 
@@ -439,7 +439,7 @@ AppImage
 .rpm
 ```
 
-Local cross-building from Windows/macOS is not maintained. Build on a Linux runner for reliable Linux packages.
+Linux support is strictly experimental and community-supported. Local cross-building from Windows/macOS is not maintained. Build on a Linux runner for reliable Linux packages.
 
 ---
 

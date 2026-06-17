@@ -18,6 +18,7 @@ import { extractGenerationRecipe, type GenerationRecipe } from "../../types/proj
 import { RecipeCompatibilityCard } from "./recipe-compatibility-card";
 import { usePromptLibraryStore, resolvePromptProjectId } from "../../stores/prompt-library-store";
 import { toast } from "../../stores/toast-store";
+import { copyText } from "../../stores/media-send-to";
 
 interface MediaInspectorProps {
   item: MediaItem;
@@ -156,15 +157,15 @@ export function MediaInspector({
   const generationRecipe = useMemo(() => extractGenerationRecipe(item), [item]);
 
   const handleCopyPrompt = useCallback(() => {
-    void navigator.clipboard.writeText(item.prompt || "");
+    void copyText(item.prompt || "");
   }, [item.prompt]);
 
   const handleCopyNegative = useCallback(() => {
-    void navigator.clipboard.writeText(item.negative || "");
+    void copyText(item.negative || "");
   }, [item.negative]);
 
   const handleCopySeed = useCallback(() => {
-    if (hasSeed) void navigator.clipboard.writeText(String(item.seed));
+    if (hasSeed) void copyText(String(item.seed));
   }, [hasSeed, item.seed]);
 
   const handleCopyMetadata = useCallback(() => {
@@ -179,11 +180,11 @@ export function MediaInspector({
     if (item.negative) meta.negative = item.negative;
     if (item.aspectRatio) meta.aspectRatio = item.aspectRatio;
     if (item.resolution) meta.resolution = item.resolution;
-    void navigator.clipboard.writeText(JSON.stringify(meta, null, 2));
+    void copyText(JSON.stringify(meta, null, 2));
   }, [item]);
 
   const handleCopyRecipe = useCallback(() => {
-    if (generationRecipe) void navigator.clipboard.writeText(JSON.stringify(generationRecipe, null, 2));
+    if (generationRecipe) void copyText(JSON.stringify(generationRecipe, null, 2));
   }, [generationRecipe]);
 
   const handleSaveRecipeToLibrary = useCallback(async () => {

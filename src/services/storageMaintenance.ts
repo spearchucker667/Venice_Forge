@@ -28,22 +28,6 @@ export function createStorageMaintenancePlan(inventory: StorageInventoryResult):
       requiresConfirmation: false,
       affectedCategories: ["unknown"],
     },
-    {
-      id: "copy-privacy-summary",
-      label: "Copy Privacy Summary",
-      description: "Copy a safe JSON summary of your storage and privacy status.",
-      destructive: false,
-      requiresConfirmation: false,
-      affectedCategories: ["unknown"],
-    },
-    {
-      id: "export-privacy-summary",
-      label: "Export Privacy Summary",
-      description: "Download a safe JSON summary of your storage and privacy status.",
-      destructive: false,
-      requiresConfirmation: false,
-      affectedCategories: ["unknown"],
-    },
   ];
 
   // Add cache clearing if relevant

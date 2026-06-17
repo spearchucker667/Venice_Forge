@@ -127,3 +127,27 @@ jobs:
         run: npx vitest run tests/smoke/electron-smoke.test.ts
         env:
           RUN_ELECTRON_SMOKE: 'true'
+
+  # Packaged Electron smoke test on Windows
+  electron-smoke-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+      - name: Use Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Package Windows portable app
+        run: npm run dist:portable
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - name: Verify Windows portable artifact
+        run: npm run verify:dist:portable
+      - name: Run packaged Electron smoke test
+        run: npx vitest run tests/smoke/electron-smoke.test.ts
+        env:
+          RUN_ELECTRON_SMOKE: 'true'

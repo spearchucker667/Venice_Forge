@@ -222,7 +222,7 @@ Recommended new/updated files:
 
 ### P1 - Production Readiness
 
-- [ ] **P1 - CI/CD: Add Windows packaged Electron smoke coverage**
+- [x] **P1 - CI/CD: Add Windows packaged Electron smoke coverage**
   - **Evidence:** `.github/workflows/ci.yml` only has `electron-smoke-macos`;
     `tests/smoke/electron-smoke.test.ts` supports Windows portable lookup;
     local `npm run smoke:electron` skipped because `RUN_ELECTRON_SMOKE` was not
@@ -236,7 +236,7 @@ Recommended new/updated files:
     `windows-latest` after packaging.
   - **Risk if ignored:** Windows startup/package regressions can ship.
 
-- [ ] **P1 - GitHub Hygiene: Resolve canonical repository URL and metadata drift**
+- [x] **P1 - GitHub Hygiene: Resolve canonical repository URL and metadata drift**
   - **Evidence:** Older prompt/workspace naming uses
     `Windows-Venice-API-connector`; actual remote and package metadata point to
     `spearchucker667/Venice_Forge`.
@@ -263,7 +263,7 @@ Recommended new/updated files:
   - **Validate:** GitHub checks show CodeQL on PRs or scheduled runs.
   - **Risk if ignored:** Security regressions may not be scanned before merge.
 
-- [ ] **P1 - Testing: Clean or classify full-suite jsdom canvas warnings**
+- [x] **P1 - Testing: Clean or classify full-suite jsdom canvas warnings**
   - **Evidence:** `npm test -- --run` and `npm run test:coverage` passed but
     emitted repeated `HTMLCanvasElement.getContext()` not implemented warnings.
   - **Why:** Noisy test output hides real warnings.
@@ -359,7 +359,7 @@ Recommended new/updated files:
   - **Risk if ignored:** Important paths can regress while global coverage
     remains green.
 
-- [ ] **P2 - Performance: Add bundle budgets and reduce initial renderer chunk size**
+- [x] **P2 - Performance: Add bundle budgets and reduce initial renderer chunk size**
   - **Evidence:** `npm run build` emits `dist/assets/index-ijmoMU_S.js` at
     919.43 kB and PDF worker at 1,375.84 kB; `vite.config.ts` only sets
     `chunkSizeWarningLimit: 1000`.
@@ -371,7 +371,7 @@ Recommended new/updated files:
   - **Validate:** `npm run build`; recommended new bundle-budget script.
   - **Risk if ignored:** Startup and package size regressions go unnoticed.
 
-- [ ] **P2 - Documentation: Keep one canonical current roadmap**
+- [x] **P2 - Documentation: Keep one canonical current roadmap**
   - **Evidence:** The old `docs/audits/Repository TODO Roadmap — Venice Forge.md`
     and `docs/audits/roadmap-verification-2026-06-16.yaml` duplicated and
     partially contradicted this file.
@@ -386,7 +386,7 @@ Recommended new/updated files:
 
 ### P3 - Future Enhancements
 
-- [ ] **P3 - Packaging: Decide Linux support wording and maintainer metadata**
+- [x] **P3 - Packaging: Decide Linux support wording and maintainer metadata**
   - **Evidence:** `electron-builder.config.cjs` has Linux x64 AppImage/deb/rpm
     targets and placeholder maintainer `venice-forge@localhost.invalid`;
     `docs/DEVELOPMENT/platform-support.md` says Linux is not officially
@@ -402,7 +402,7 @@ Recommended new/updated files:
   - **Risk if ignored:** Linux users may assume unsupported artifacts are
     production-supported.
 
-- [ ] **P3 - Image Studio: Derive downloaded image extension from MIME type**
+- [x] **P3 - Image Studio: Derive downloaded image extension from MIME type**
   - **Evidence:** `image-view.tsx` saves generated images as
     `venice-image*.png` regardless of actual returned media type.
   - **Why:** Incorrect extensions can confuse users and external tools.
@@ -413,7 +413,7 @@ Recommended new/updated files:
   - **Validate:** Targeted image-view test and manual generation/download.
   - **Risk if ignored:** Saved files can have misleading extensions.
 
-- [ ] **P3 - Randomness: Use Web Crypto for image random seed generation**
+- [x] **P3 - Randomness: Use Web Crypto for image random seed generation**
   - **Evidence:** `src/utils/payloadBuilders.ts` uses `Math.random()` in
     `randomSeed()`.
   - **Why:** Not security-critical, but deterministic quality and fairness are

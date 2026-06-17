@@ -154,10 +154,7 @@ A clean audit at the `moderate` level or higher (`npm audit --audit-level=modera
 
 ## Static Analysis (CodeQL)
 
-GitHub CodeQL default setup is enabled for this repository. The tracked
-`.github/workflows/codeql.yml` workflow is kept for reviewable advanced
-configuration, but it is manual-only while default setup remains active because
-GitHub rejects advanced CodeQL uploads when default setup is enabled. Findings appear in
+The tracked `.github/workflows/codeql.yml` workflow automatically runs CodeQL analysis on pull requests, pushes to main, and on a schedule. You can opt-out by setting the repository variable `VENICE_FORGE_DISABLE_CODEQL=true`. Findings appear in
 [Security → Code Scanning](https://github.com/spearchucker667/Venice_Forge/security/code-scanning).
 
 ### Current open alerts: **0**

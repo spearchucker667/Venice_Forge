@@ -15,10 +15,9 @@ production release but are configured in GitHub settings rather than source.
 ## Security
 
 - Enable GitHub private vulnerability reporting.
-- Enable CodeQL code scanning. Default setup is the active automatic scanner
-  unless default setup is disabled and the tracked advanced workflow
-  `.github/workflows/codeql.yml` is enabled with
-  `VENICE_FORGE_ENABLE_ADVANCED_CODEQL=true`.
+- Enable CodeQL code scanning. The tracked advanced workflow
+  `.github/workflows/codeql.yml` runs automatically unless disabled
+  with `VENICE_FORGE_DISABLE_CODEQL=true`.
 - Enable Dependabot alerts and security updates.
 - Keep dependency review enabled for pull requests through `.github/workflows/dependency-review.yml`.
 - Treat repository secrets for signing/notarization as production credentials.

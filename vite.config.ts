@@ -36,6 +36,20 @@ export default defineConfig(() => {
     build: {
       target: "es2022",
       chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('/pdfjs-dist/')) return 'vendor-pdfjs';
+              if (id.includes('/lucide-react/')) return 'vendor-lucide';
+              if (id.includes('@xyflow') || id.includes('reactflow')) return 'vendor-xyflow';
+              if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/react-router/') || id.includes('/zustand/')) return 'vendor-react';
+              if (id.includes('/framer-motion/')) return 'vendor-framer';
+              return 'vendor'; // generic fallback for other node_modules
+            }
+          }
+        }
+      }
     },
     server: {
       hmr: !disableHmr,

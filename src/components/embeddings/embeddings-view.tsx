@@ -7,6 +7,7 @@ import { Label, TextArea, PrimaryButton, ErrorText, EmptyState, ExamplePrompts }
 import { GenerationView } from '../ui/generation-view'
 import { getPromptStartersForCategory } from '../../services/promptStarterService'
 import { redactErrorMessage } from '../../shared/redaction'
+import { copyText } from '../../stores/media-send-to'
 
 const PREVIEW_COUNT = 100
 
@@ -28,7 +29,7 @@ export function EmbeddingsView() {
   const displayValues = expanded ? embedding : embedding?.slice(0, PREVIEW_COUNT)
 
   const handleCopyVector = () => {
-    if (embedding) navigator.clipboard.writeText(JSON.stringify(embedding))
+    if (embedding) void copyText(JSON.stringify(embedding))
   }
 
   const controls = (

@@ -75,7 +75,9 @@ Triggers:
 - Manual `workflow_dispatch`
 - Version tags matching `v*`
 
-The workflow runs separate Windows, macOS, and Linux packaging jobs, executes `npm ci`, typecheck, tests, build, packaging commands (`dist:win`, `dist:mac`, or `dist:linux`), checksum generation, and verification scripts (`verify:dist:*`), then uploads verified bundles as draft release assets. If signing/notarization secrets are absent, the tag workflow emits warnings and produces unsigned draft artifacts. Set the repository variable `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true` to fail closed before packaging when any required signing secret is missing.
+The workflow runs separate Windows, macOS, and Linux packaging jobs, executes `npm ci`, typecheck, tests, build, packaging commands (`dist:win`, `dist:mac`, or `dist:linux`), checksum generation, and verification scripts (`verify:dist:*`), then uploads verified bundles as draft release assets. If signing/notarization secrets are absent, the workflow emits warnings and produces unsigned draft artifacts.
+
+**Mandatory for Production Tags**: You must set the repository variable `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true` to ensure production tag releases fail closed before packaging when any required signing secret is missing. This distinguishes production signed/notarized tag releases from local unsigned builds and workflow-dispatch unsigned drafts. See [SIGNED_ARTIFACT_EVIDENCE.md](SIGNED_ARTIFACT_EVIDENCE.md) for verification evidence.
 
 ## Architecture-Specific macOS Builds
 
@@ -225,7 +227,7 @@ The same exclusion list is enforced by `verify-archive-clean.cjs` and `verify-di
 | macOS (x64) | `npm run dist:mac:x64` | `release/Venice-Forge-<version>-x64.{dmg,zip}` |
 | Linux (AppImage, deb, rpm) | `npm run dist:linux` | `release/Venice-Forge-<version>-x64.{AppImage,deb,rpm}` |
 
-Linux arm64 packages are not currently produced in CI because the release runner is x64 and cross-compiling native Electron dependencies requires `qemu/binfmt`. Add a native arm64 runner or install the cross-compilation toolchain before re-enabling arm64 targets.
+Linux support is experimental. Linux arm64 packages are not currently produced in CI because the release runner is x64 and cross-compiling native Electron dependencies requires `qemu/binfmt`. Add a native arm64 runner or install the cross-compilation toolchain before re-enabling arm64 targets.
 
 Every `dist:*` script automatically runs `verify:icon && build && electron-builder && checksum:release`. The `verify:dist:*` scripts validate the resulting artifacts and their `.sha256` sidecars.
 

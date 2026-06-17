@@ -12,13 +12,7 @@ import { ChatView } from './components/chat/chat-view'
 import { CommandPalette } from './components/command-palette/CommandPalette'
 import { AppMeshOverlay } from './components/layout/AppMeshOverlay'
 import { DiagnosticsDrawer } from './components/status/DiagnosticsDrawer'
-import { ImagePage } from './components/image/image-page'
-import { AudioView } from './components/audio/audio-view'
-import { MusicView } from './components/music/music-view'
-import { VideoView } from './components/video/video-view'
-import { EmbeddingsView } from './components/embeddings/embeddings-view'
-import { StatusView } from './components/StatusView'
-import { CharactersView } from './components/CharactersView'
+// Lazy loaded views below
 import { ErrorBoundary } from './components/ui/error-boundary'
 import { ModalRequestHost } from './components/ui/modal-requests'
 import { Toaster } from './components/ui/toaster'
@@ -59,6 +53,41 @@ function RpStudioViewLazy() {
 const LazyHistoryView = lazy(() => import('./components/chat/HistoryView'))
 function HistoryView() {
   return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading history…</div>}><LazyHistoryView /></Suspense>
+}
+
+const LazyImagePage = lazy(() => import('./components/image/image-page').then(m => ({ default: m.ImagePage })))
+function ImagePage() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading Image Studio…</div>}><LazyImagePage /></Suspense>
+}
+
+const LazyAudioView = lazy(() => import('./components/audio/audio-view').then(m => ({ default: m.AudioView })))
+function AudioView() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading Audio…</div>}><LazyAudioView /></Suspense>
+}
+
+const LazyMusicView = lazy(() => import('./components/music/music-view').then(m => ({ default: m.MusicView })))
+function MusicView() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading Music…</div>}><LazyMusicView /></Suspense>
+}
+
+const LazyVideoView = lazy(() => import('./components/video/video-view').then(m => ({ default: m.VideoView })))
+function VideoView() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading Video…</div>}><LazyVideoView /></Suspense>
+}
+
+const LazyEmbeddingsView = lazy(() => import('./components/embeddings/embeddings-view').then(m => ({ default: m.EmbeddingsView })))
+function EmbeddingsView() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading Embeddings…</div>}><LazyEmbeddingsView /></Suspense>
+}
+
+const LazyStatusView = lazy(() => import('./components/StatusView').then(m => ({ default: m.StatusView })))
+function StatusView() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading Status…</div>}><LazyStatusView /></Suspense>
+}
+
+const LazyCharactersView = lazy(() => import('./components/CharactersView').then(m => ({ default: m.CharactersView })))
+function CharactersView() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading Characters…</div>}><LazyCharactersView /></Suspense>
 }
 
 const LazySettingsView = lazy(() => import('./components/SettingsView').then((m) => ({ default: m.SettingsView })))

@@ -181,8 +181,13 @@ export function clampSeed(value: unknown): number | null {
  *  always a valid integer the API will accept. */
 export function randomSeed(): number {
   const span = VENICE_SEED_MAX - VENICE_SEED_MIN + 1;
-  // Math.random() is in [0,1); shift to [0,span) then offset by MIN.
-  return VENICE_SEED_MIN + Math.floor(Math.random() * span);
+  let rand = Math.random();
+  if (typeof globalThis.crypto !== "undefined" && typeof globalThis.crypto.getRandomValues === "function") {
+    const array = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(array);
+    rand = array[0] / 4294967296; // Divide by 0xffffffff + 1
+  }
+  return VENICE_SEED_MIN + Math.floor(rand * span);
 }
 
 /**

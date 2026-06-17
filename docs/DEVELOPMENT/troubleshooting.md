@@ -90,3 +90,15 @@ Solution:
 3. A forbidden archive contaminant is tracked in git. See "Archive Hygiene Failures" above.
 4. `.gitignore` is missing a token. Re-add the missing token (the audit prints the exact missing token).
 5. The GitHub workflow was edited without re-pinning `node-version: 22`. Re-pin to 22.
+
+## Deprecated Transitive Dependencies
+
+During `npm install` or `npm ci`, several deprecation warnings may be emitted. These originate from third-party tools (primarily `electron-builder` and `electron-updater`) whose upstream repositories pin older versions of transitives. Upgrading them directly is unsafe because it alters packaging stack behavior. They are documented here as known holdouts:
+
+| Deprecated package | Current parent path | Action | Rationale |
+|---|---|---|---|
+| `inflight@1.0.6` | `electron-builder -> app-builder-lib -> @electron/asar -> glob@7` | Documented upstream holdout | No safe direct dependency change available without changing packaging stack behavior. |
+| `rimraf@2.6.3` | `electron-builder -> app-builder-lib -> electron-builder-squirrel-windows -> electron-winstaller -> temp` | Documented upstream holdout | Required by Windows installer creation toolchain. |
+| `lodash.isequal@4.5.0` | `electron-updater` | Documented upstream holdout | Bound to the current supported auto-updater major version. |
+| `glob@7.2.3` | `electron-builder -> app-builder-lib -> @electron/asar` | Documented upstream holdout | Pinned by upstream archival tooling. |
+| `boolean@3.2.0` | `electron-builder -> app-builder-lib -> @electron/get -> global-agent` | Documented upstream holdout | Network transport utility for electron-builder. |

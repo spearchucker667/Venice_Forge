@@ -143,5 +143,20 @@ if (!/actions\/dependency-review-action@[0-9a-f]{40}/.test(dependencyReviewYaml)
 }
 console.log("✓ tracked dependency-review workflow exists");
 
+// 5. Verify Windows smoke job
+if (!ciYaml.includes('electron-smoke-windows:')) {
+  console.error("❌ ci.yml is missing 'electron-smoke-windows' job");
+  process.exit(1);
+}
+if (!ciYaml.includes('npm run dist:portable')) {
+  console.error("❌ ci.yml 'electron-smoke-windows' must package using dist:portable");
+  process.exit(1);
+}
+if (!ciYaml.includes('RUN_ELECTRON_SMOKE: \'true\'')) {
+  console.error("❌ ci.yml 'electron-smoke-windows' must run with RUN_ELECTRON_SMOKE: 'true'");
+  process.exit(1);
+}
+console.log("✓ Windows packaged smoke job exists");
+
 console.log("CI contract check: PASS");
 process.exit(0);

@@ -1,6 +1,12 @@
 name: CodeQL
 
 on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: "37 8 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -12,7 +18,7 @@ jobs:
     name: Analyze JavaScript and TypeScript
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: vars.VENICE_FORGE_ENABLE_ADVANCED_CODEQL == 'true'
+    if: vars.VENICE_FORGE_DISABLE_CODEQL != 'true'
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2

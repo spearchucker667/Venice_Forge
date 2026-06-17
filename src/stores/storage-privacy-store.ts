@@ -37,6 +37,7 @@ export interface StoragePrivacyState {
   maintenancePlan: StorageMaintenancePlan | null;
   hydrated: boolean;
   refreshing: boolean;
+  error: string | null;
   lastRefreshedAt: string | null;
 
   refreshInventory(): Promise<void>;
@@ -51,10 +52,11 @@ export const useStoragePrivacyStore = create<StoragePrivacyState>((set, get) => 
   maintenancePlan: null,
   hydrated: false,
   refreshing: false,
+  error: null,
   lastRefreshedAt: null,
 
   refreshInventory: async () => {
-    set({ refreshing: true });
+    set({ refreshing: true, error: null });
     try {
       // Ensure other stores are loaded if needed
       await Promise.all([
@@ -114,10 +116,11 @@ export const useStoragePrivacyStore = create<StoragePrivacyState>((set, get) => 
         maintenancePlan,
         hydrated: true,
         refreshing: false,
+        error: null,
         lastRefreshedAt: new Date().toISOString(),
       });
     } catch (err) {
-      set({ refreshing: false });
+      set({ refreshing: false, error: err instanceof Error ? err.message : String(err) });
       toast.error("Failed to refresh storage inventory");
       logger.error(err);
     }

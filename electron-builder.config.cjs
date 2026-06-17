@@ -108,7 +108,7 @@ const config = {
   },
 
   linux: {
-    // Expanded Linux support per exhaustive review (P1 packaging gap).
+    // Linux support is strictly EXPERIMENTAL and community-supported.
     // Includes arm64 for Apple Silicon / ARM servers + deb/rpm for broader distro compatibility.
     // AppImage remains for portable "just run" experience.
     target: [
@@ -123,8 +123,7 @@ const config = {
     category: "Utility",
     // Maintainer is required for .deb/.rpm packages because the
     // package.json `author` field is a string, not an object with email.
-    // Without this, electron-builder aborts on the FpmTarget step.
-    maintainer: "Venice Forge contributors <venice-forge@localhost.invalid>",
+    maintainer: "Venice Forge contributors <venice-forge-contributors@users.noreply.github.com>",
     vendor: "Venice Forge contributors",
     // artifactName helps with consistent naming across arches.
     artifactName: "Venice-Forge-${version}-${arch}.${ext}",
