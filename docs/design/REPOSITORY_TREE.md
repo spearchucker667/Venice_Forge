@@ -9,16 +9,11 @@ Express/Vite web development mode.
 > removed in favor of the layout-grouped `src/components/` tree. The Media
 > Studio implementation lives under `src/components/gallery/` (canonical id
 > `media`); the legacy `gallery` id is preserved as a tab-registry alias for
-> back-compat. All paths in this document are derived from `git ls-files` at
-> HEAD `fca45fa6` (632 tracked files). The previous regeneration at
-> `0ac69be1` recorded 628 files; the +4 delta across commits
-> `6033253a`, `849dc27f`, `fca45fa6` is 1 doc report
-> (`docs/reports/CI_FAILURE_AND_BUG_HUNT_2026_06_09.md`) and 3 source
-> files: `electron/services/veniceClient.sseParser.test.ts` (CI fix),
-> `src/hooks/use-data-storage-actions.{ts,test.ts}` (extracted from
-> `SettingsView.tsx`, -191 net lines). The 2026-06-09 "remaining issues"
-> pass also upgraded `concurrently` to 10.0.3 (transitive
-> `shell-quote@1.8.4`; clears the 2 critical dev-only audit findings).
+> back-compat. This map is intentionally structural rather than a complete
+> tracked-file manifest; use `git ls-files` for the exact current file list.
+> The current TODO source of truth is
+> `docs/audits/repository-todo-roadmap-current.md`; historical reports under
+> `docs/reports/historical/` are evidence snapshots only.
 >
 > **Clean audit ZIP policy:** The `scripts/clean-repo-zip.sh` archive includes
 > tracked source, required static packaging assets (`build/icon.*`), and
@@ -47,6 +42,8 @@ Express/Vite web development mode.
 │   ├── copilot-instructions.md        # Cross-link surface for the AGENTS.md rules
 │   └── workflows/
 │       ├── ci.yml                      # Main CI pipeline (lint, typecheck, test, safety guard, build)
+│       ├── codeql.yml                  # Manual/variable-gated CodeQL scan workflow
+│       ├── dependency-review.yml       # PR dependency review gate
 │       └── release.yml                 # Combined Windows/macOS/Linux packaging, checksums, GitHub Release publish
 ├── assets/
 │   └── branding/                       # Venice AI brand assets (SVGs for logos, wordmarks, seals, keys)
@@ -63,7 +60,7 @@ Express/Vite web development mode.
 │       ├── light.yaml
 │       ├── rosepine.yaml
 │       └── venice.yaml
-├── docs/                               # Public project documentation (see docs/summary_of_work.md for ledger)
+├── docs/                               # Public project documentation (see docs/DOCS_INDEX.md and docs/summary_of_work.md)
 ├── electron/                           # Electron main process source
 │   ├── ipc/                            # IPC handlers and validation
 │   │   ├── handlers.ts

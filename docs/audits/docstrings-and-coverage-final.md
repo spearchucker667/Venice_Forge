@@ -1,5 +1,11 @@
 # Docstrings and Test Coverage Final Audit Report
 
+> [!NOTE]
+> Historical coverage-improvement evidence. Do not treat this report as a
+> current TODO list or as current coverage output. The current enforced
+> thresholds live in `vitest.config.ts`, and the current TODO roadmap is
+> `docs/audits/repository-todo-roadmap-current.md`.
+
 **Date:** 2026-06-16
 **Agent:** Antigravity (Gemini 3.1 Pro)
 **Objective:** Add complete, high-quality Google-style documentation comments/docstrings across the codebase and raise test coverage to at least 90% without gaming metrics.

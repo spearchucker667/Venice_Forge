@@ -51,8 +51,19 @@ Required updates:
 4. Update `Open TODO Ledger` with any new, completed, or reprioritized
    tasks.
 5. Update `Validation Matrix` only for commands actually run.
-6. Record failures and skipped validation honestly.
-7. Do not include secrets, API keys, private machine paths, or raw
+6. Keep `docs/DOCS_INDEX.md` current whenever a session adds, removes,
+   archives, renames, or changes the authority/status of documentation,
+   audit reports, TODO files, release notes, or historical evidence.
+7. Keep one canonical TODO roadmap:
+   `docs/audits/repository-todo-roadmap-current.md`. Treat this as a
+   priority documentation rule. Do not create new standalone TODO,
+   roadmap, audit-status, or cross-check documents for current work when
+   the canonical roadmap or this ledger can be updated instead. If a
+   temporary evidence file is unavoidable, clearly mark it as temporary or
+   historical, link it from `docs/DOCS_INDEX.md`, and fold durable tasks
+   back into the canonical roadmap before ending the session.
+8. Record failures and skipped validation honestly.
+9. Do not include secrets, API keys, private machine paths, or raw
    unsafe prompt payloads.
 
 A session is not complete until `docs/summary_of_work.md` has been

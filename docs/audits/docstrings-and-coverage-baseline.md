@@ -1,5 +1,11 @@
 # Docstrings and Coverage Baseline
 
+> [!NOTE]
+> Historical baseline evidence. Do not treat the targets or baseline metrics
+> below as current CI policy. The current enforced coverage thresholds live in
+> `vitest.config.ts`, and the current TODO roadmap is
+> `docs/audits/repository-todo-roadmap-current.md`.
+
 ## System Environment
 - **Stack**: React 19 + TypeScript, Electron 42, Express 4, Node 22.13+, npm 10+
 - **Test Runner**: Vitest 4

@@ -112,6 +112,24 @@ remains. The current canonical roadmap is
 backlog files were removed.
 
 ### Latest Session Summary
+- **Agent documentation governance tightened:** Updated `AGENTS.md` and the
+  Copilot mirror so every agent run must keep `docs/DOCS_INDEX.md` current
+  when documentation authority changes, and must maintain a single canonical
+  TODO roadmap at `docs/audits/repository-todo-roadmap-current.md` instead of
+  creating new current TODO/status documents.
+- **Docs index updated for agent governance:** Added `AGENTS.md` to
+  `docs/DOCS_INDEX.md` as the current source of truth for agent instructions.
+- **Roadmap/doc hygiene completed:** Refreshed
+  `docs/audits/repository-todo-roadmap-current.md` from the live 2026-06-17
+  audit, added `docs/DOCS_INDEX.md`, and made the current roadmap plus this
+  ledger the explicit current source of truth.
+- **Retired stale duplicate artifacts:** Deleted the duplicate old roadmap,
+  its verification addendum, and the superseded current-audit cross-check
+  Markdown/YAML snapshots; retained bug/evidence reports that still map closed
+  v2.1.0 fixes to tests.
+- **Historical report banners normalized:** Updated retained historical report
+  banners and coverage audit reports so former bug/audit documents point
+  readers back to the current ledger and roadmap before being used as evidence.
 - **Release-blocking P0/P1 fix pass completed:** Resolved the remaining
   release-blocking bugs identified in the 2026-06-17 consolidated audit and
   cut the `v2.1.0` release tag.
@@ -149,6 +167,14 @@ backlog files were removed.
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
+- Agent governance source-of-truth update (2026-06-17): `AGENTS.md` now makes
+  `docs/DOCS_INDEX.md` maintenance and single-canonical-TODO discipline a
+  priority rule for future agent sessions; `.github/copilot-instructions.md`
+  mirrors the rule.
+- Documentation hygiene source-of-truth update (2026-06-17):
+  `docs/DOCS_INDEX.md` now separates current docs from historical reports;
+  deleted duplicate/superseded roadmap and cross-check snapshots are listed in
+  the current roadmap's Historical Hygiene Decisions section.
 - Root-config-workflows findings (2026-06-17) — P2 items RCW-001/002 closed in this session:
   - **~~RCW-001 (P2)~~ CLOSED:** Synced `AGENTS.md:8` version string to `2.1.0`.
   - **~~RCW-002 (P2)~~ CLOSED:** Updated `AGENTS.md:86` and `docs/summary_of_work.md`
@@ -249,6 +275,13 @@ backlog files were removed.
 
 ### Validation Matrix (this session)
 - Node version: `v22.22.3` / npm `10.9.8`.
+- Current docs hygiene validation (2026-06-17):
+  `npm run verify:markdown-links` PASS (61 Markdown files checked);
+  `npm run verify:agent-docs` PASS; `npm run verify:work-orders` PASS;
+  `npm run verify:archive-clean` PASS; `git diff --check` PASS.
+- Agent-governance validation (2026-06-17):
+  `npm run verify:markdown-links` PASS (61 Markdown files checked);
+  `npm run verify:agent-docs` PASS; `git diff --check` PASS.
 - `npm run ci`: PASS (full chain: lint, typecheck, serial tests, safety guard,
   Markdown links, all phase verifiers, build, `verify:dist`).
 - Full serial Vitest suite: PASS; 248 files passed, 1 skipped; 3131 tests
@@ -272,6 +305,51 @@ backlog files were removed.
   Linux, and macOS draft artifacts.
 
 ### Session History
+
+- **Date:** 2026-06-17 (agent docs-index and canonical-TODO governance)
+- **Agent:** Codex GPT-5
+- **Branch / state:** `main` at `757efbe`; working tree modified with
+  documentation-only hygiene.
+- **Diagnosis:** The previous hygiene pass created `docs/DOCS_INDEX.md` and
+  consolidated the canonical TODO roadmap, but `AGENTS.md` did not yet require
+  future agents to keep the index current or prevent creation of new current
+  TODO/status documents.
+- **Summary:** Added mandatory handoff rules to `AGENTS.md` and
+  `.github/copilot-instructions.md`: future sessions must keep
+  `docs/DOCS_INDEX.md` current when documentation authority changes, and must
+  maintain `docs/audits/repository-todo-roadmap-current.md` as the single
+  canonical TODO roadmap. Added `AGENTS.md` to `docs/DOCS_INDEX.md` as the
+  current agent-instructions source.
+- **Files changed:** `AGENTS.md`, `.github/copilot-instructions.md`,
+  `docs/DOCS_INDEX.md`, `docs/summary_of_work.md`.
+- **Validation:** Node `v22.22.3` / npm `10.9.8`;
+  `npm run verify:markdown-links` PASS (61 files);
+  `npm run verify:agent-docs` PASS; `git diff --check` PASS.
+
+- **Date:** 2026-06-17 (TODO roadmap save and historical-doc hygiene)
+- **Agent:** Codex GPT-5
+- **Branch / state:** `main` at `757efbe`; working tree modified with
+  documentation-only hygiene.
+- **Diagnosis:** The live audit found the canonical roadmap stale and
+  duplicate, with older roadmap/cross-check files still present as apparent
+  current TODO/status sources. Historical reports mostly had banners, but
+  several pointed vaguely to "latest session + CI output," and coverage audit
+  reports had no current-state warning.
+- **Summary:** Replaced `docs/audits/repository-todo-roadmap-current.md` with
+  the current live-audit TODO roadmap, added `docs/DOCS_INDEX.md`, updated
+  README and repository tree references, deleted duplicate/superseded roadmap
+  and cross-check snapshots, normalized historical report banners, and marked
+  docstrings/coverage audit reports as historical evidence.
+- **Files changed:** `docs/audits/repository-todo-roadmap-current.md`,
+  `docs/DOCS_INDEX.md`, `README.md`, `docs/design/REPOSITORY_TREE.md`,
+  `docs/audits/docstrings-and-coverage-baseline.md`,
+  `docs/audits/docstrings-and-coverage-final.md`, historical report banners
+  under `docs/reports/historical/`, and deleted duplicate/superseded audit
+  files.
+- **Validation:** Node `v22.22.3` / npm `10.9.8`;
+  `npm run verify:markdown-links` PASS (61 files);
+  `npm run verify:agent-docs` PASS; `npm run verify:work-orders` PASS;
+  `npm run verify:archive-clean` PASS; `git diff --check` PASS.
 
 - **Date:** 2026-06-17 (v2.1.0 release-blocking fix pass, P2/P3 hygiene, tag, and macOS packaging)
 - **Agent:** Kimi Code

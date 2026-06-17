@@ -523,6 +523,8 @@ Venice Forge uses named regression guards to prevent accidental weakening of sec
 Canonical audit and guard documentation lives in:
 
 - [docs/summary_of_work.md](docs/summary_of_work.md)
+- [docs/DOCS_INDEX.md](docs/DOCS_INDEX.md)
+- [docs/audits/repository-todo-roadmap-current.md](docs/audits/repository-todo-roadmap-current.md)
 - [docs/reports/historical/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md](docs/reports/historical/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md)
 - [docs/reports/historical/DOCS_CANONICALIZATION_AND_STALE_PRUNE.md](docs/reports/historical/DOCS_CANONICALIZATION_AND_STALE_PRUNE.md)
 - [docs/reports/historical/AUDIT_FOLLOWUP_2026_06_05.md](docs/reports/historical/AUDIT_FOLLOWUP_2026_06_05.md)

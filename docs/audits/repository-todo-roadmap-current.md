@@ -1,241 +1,642 @@
 # Repository TODO Roadmap
 
-> Current canonical TODO list saved on 2026-06-16 after cross-referencing
-> `docs/audits/Repository TODO Roadmap — Venice Forge.md` against the live
-> repository and Node 22 validation results. Historical audit snapshots were
-> cleaned up in this pass; use this file plus `docs/summary_of_work.md` as the
-> current roadmap.
+> Current canonical TODO roadmap saved on 2026-06-17 after a live checkout
+> audit on `main` at `757efbe`, using the repo-supported Node 22 toolchain.
+> Historical audit reports are evidence snapshots only; do not treat their
+> unchecked items, line numbers, or pass/fail claims as current without
+> rerunning validation.
 
-## 1. Audit Scope
+## 1. Current-State Summary
 
-- Repository: `/Users/super_user/Projects/Windows-Venice-API-connector`
-- Branch: `main`
-- Baseline HEAD: `1de7d42`
-- Toolchain: Node `v22.22.3`, npm `10.9.8`
-- Tracked files at audit time: `739`
-- Status: local gates pass; production release must start from a clean tree. Tag-release workflows warn and create unsigned draft artifacts without signing/notarization secrets unless `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true` is set.
+### What this repo appears to do
 
-## 2. Validation Summary
+Venice Forge is a local-first Electron + Vite + React + TypeScript app for
+Venice API workflows: chat, image/audio/video generation, media management,
+character/RP workflows, prompt/scene/workflow tools, research via Venice/Jina,
+storage/privacy diagnostics, and desktop packaging.
 
-| Command | Result | Notes |
-|---|---:|---|
-| `npm ci` | PASS | 0 vulnerabilities; transitive deprecation warnings remain. |
-| `npm run lint` | PASS | ESLint plus typecheck. |
-| `npm run typecheck` | PASS | Renderer and Electron TypeScript clean. |
-| `npm test -- --run` | PASS | 248 files passed, 1 skipped; 3,116 tests passed, 1 skipped. |
-| `npm run test:coverage` | PASS | Statements 70.69%, branches 61.93%, functions 68.28%, lines 73.75%. |
-| `npm run build` | PASS | Web, server, and Electron outputs built. |
-| `npm audit --audit-level=moderate` | PASS | 0 vulnerabilities. |
-| `npm run verify:dist` | PASS | Build outputs verified. |
+### Tech stack
 
-## 3. P0 Release Blockers
+Electron 42, React 19, Vite 6, TypeScript 5.8 strict, Zustand 5, Express 4
+proxy, Vitest 4, electron-builder 26, GitHub Actions, Node 22/npm 10.
 
-### TODO P0-001
-- Priority: P0
-- Area: Release governance
-- Problem: Production tags must be cut only from a clean, reviewed tree.
-- Evidence: The audit began with a large dirty tree spanning source, docs, workflows, package metadata, scripts, and untracked audit files.
-- Expected fix: Land intentional changes in reviewed commits, remove obsolete local artifacts, and tag only after `git status --short` is clean.
-- Suggested files: repository-wide
-- Validation: `git status --short` returns empty immediately before tagging.
-- Risk if ignored: A release can ship accidental or unreviewed local state.
-- Dependencies: maintainer release decision.
-- Estimated effort: M
-- Status: Closed for the 2.1.0 tag prep; the release tag is cut only after the working tree is clean.
+### Maturity assessment
 
-### TODO P0-002
-- Priority: P0
-- Area: Signing/notarization proof
-- Problem: macOS and Windows signing are conditionally configured, but credential-backed release artifacts still need external proof.
-- Evidence: `release.yml` warns when signing secrets are absent; `electron-builder.config.cjs` enables macOS notarization only when signing and Apple credentials are present.
-- Expected fix: Run a tagged release with signing secrets configured and record `codesign`, `spctl`, `notarytool`, Windows signature, and SmartScreen/portable behavior evidence.
-- Suggested files: `.github/workflows/release.yml`, `docs/RELEASE/signing-and-notarization.md`, `docs/summary_of_work.md`
-- Validation: Downloaded release artifacts verify as signed/notarized where expected.
-- Risk if ignored: Users can receive unsigned or Gatekeeper/SmartScreen-blocked production artifacts.
-- Dependencies: Apple Developer and Windows code-signing credentials.
-- Estimated effort: M/L
-- Status: External verification required; unsigned draft artifacts are allowed when secrets are absent, and `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true` enables fail-closed signed-only releases.
+High active-development maturity. The repo has strong validation gates,
+extensive tests, Electron boundary hardening, release scripts, docs,
+legal/privacy files, dependency automation, and tracked verifier scripts. It is
+not fully production-release complete because signed/notarized artifact
+evidence and non-macOS packaged smoke coverage remain incomplete.
 
-## 4. P1 High-Priority TODOs
+### Biggest strengths
 
-### TODO P1-001
-- Priority: P1
-- Area: Release workflow
-- Problem: Tagged releases need an explicit policy knob for unsigned draft releases versus signed-only production releases.
-- Evidence: `release.yml` contains missing-secret warning steps before packaging.
-- Expected fix: Warn and draft unsigned artifacts by default, and fail closed for production tags when an explicit signed-only repository variable is set.
-- Suggested files: `.github/workflows/release.yml`
-- Validation: A tag release without required secrets emits warnings and creates draft unsigned artifacts; setting `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true` fails before upload.
-- Risk if ignored: Unsigned artifacts may be mistaken for production releases.
-- Dependencies: release policy.
-- Estimated effort: S/M
-- Status: Closed for source policy; production tag releases now support unsigned draft output by default and fail closed when `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true`.
+- Clean source validation on repo-supported Node `v22.22.3` / npm `10.9.8`.
+- Strong Electron defaults: `contextIsolation: true`, `sandbox: true`,
+  `nodeIntegration: false`, CSP, URL/navigation guards.
+- Centralized Venice/Jina network boundaries and safety verifiers.
+- Extensive regression suite: 250 test files, 3,146 tests, current coverage
+  thresholds pass.
+- Release workflow produces Windows/macOS/Linux artifacts with checksum and
+  artifact verification.
+- Security/legal docs exist: `SECURITY.md`, `PRIVACY.md`, `LEGAL.md`,
+  `LICENSE`, `CODE_OF_CONDUCT.md`.
 
-### TODO P1-002
-- Priority: P1
-- Area: Packaged smoke coverage
-- Problem: Packaged Electron smoke coverage is present for macOS but not Windows/Linux.
-- Evidence: `ci.yml` has `electron-smoke-macos`; equivalent packaged Windows/Linux smoke jobs are not present.
-- Expected fix: Add minimal Windows and Linux packaged-launch smoke jobs or document why they are intentionally excluded.
-- Suggested files: `.github/workflows/ci.yml`, `tests/smoke/electron-smoke.test.ts`
-- Validation: Packaged smoke jobs run on PR, scheduled CI, or release CI for all supported platforms.
-- Risk if ignored: Platform-specific packaging regressions can escape.
-- Dependencies: runner/display constraints.
-- Estimated effort: M
-- Status: Closed; tracked CodeQL and dependency-review workflows are present and guarded by `verify:ci-contract`.
+### Biggest weaknesses
 
-### TODO P1-003
-- Priority: P1
-- Area: Test hygiene
-- Problem: Full test and coverage runs pass but emit repeated jsdom canvas warnings.
-- Evidence: `HTMLCanvasElement.getContext()` warnings appeared during `npm test -- --run` and `npm run test:coverage`.
-- Expected fix: Add a focused canvas mock/setup file or route canvas-dependent tests to an environment with the required implementation.
-- Suggested files: `vitest.config.ts`, test setup files, canvas-dependent component tests
-- Validation: Full test and coverage stderr are warning-clean or warnings are explicitly classified.
-- Risk if ignored: Real warnings become easier to miss.
-- Dependencies: mock/package choice.
-- Estimated effort: S/M
-- Status: Closed for the current scope; renderer bootstrap `innerHTML` fallbacks were replaced and markdown sanitizer tests cover unsafe HTML/event/code-block escape attempts. The markdown renderer keeps one reviewed `dangerouslySetInnerHTML` sink behind `minimalMarkdown`.
+- Production signing/notarization evidence is still external/open.
+- Packaged smoke testing exists only for macOS CI; local smoke test skips unless
+  `RUN_ELECTRON_SMOKE=true`.
+- CodeQL exists but is manual and gated behind
+  `VENICE_FORGE_ENABLE_ADVANCED_CODEQL`.
+- Several large modules remain hard to review safely.
+- Some UI/privacy maintenance actions are visible/planned but not implemented
+  behind the action dispatcher.
+- Package metadata and older prompt/workspace naming disagree.
 
-### TODO P1-004
-- Priority: P1
-- Area: Security automation
-- Problem: CodeQL is documented as GitHub default setup, but no tracked CodeQL or dependency-review workflow exists.
-- Evidence: `git ls-files .github/workflows` returns `ci.yml` and `release.yml` only.
-- Expected fix: Add tracked CodeQL/dependency-review workflows or document repository settings as external required controls.
-- Suggested files: `.github/workflows/codeql.yml`, `.github/workflows/dependency-review.yml`, `SECURITY.md`
-- Validation: PRs show code scanning and dependency-review checks.
-- Risk if ignored: Security controls can drift outside source review.
-- Dependencies: GitHub repository settings.
-- Estimated effort: S/M
-- Status: Open.
+### Immediate risks
 
-### TODO P1-005
-- Priority: P1
-- Area: Dependency hygiene
-- Problem: Vulnerability audit is clean, but install still reports deprecated transitive packages.
-- Evidence: `npm ci` warns for transitive `inflight`, `rimraf@2`, `lodash.isequal`, `glob@7`, and `boolean`.
-- Expected fix: Trace dependency paths, upgrade/remove upstream packages where practical, and document unavoidable holdouts.
-- Suggested files: `package.json`, `package-lock.json`
-- Validation: `npm ci` warning count is reduced or justified.
-- Risk if ignored: stale transitive packages can become future install/security blockers.
-- Dependencies: upstream releases.
-- Estimated effort: M
-- Status: Open.
+No source-level P0 build/test failure was found. Immediate release risks are
+process/artifact risks: unsigned Windows/macOS production artifacts, missing
+Windows packaged smoke proof, and repository identity drift between the local
+checkout path / older prompt name and active `Venice_Forge` metadata.
 
-### TODO P1-006
-- Priority: P1
-- Area: DOM/CSP hardening
-- Problem: Security-sensitive DOM sinks remain and should be explicitly justified or removed.
-- Evidence: `src/utils/markdown.tsx` uses `dangerouslySetInnerHTML`; `src/main.tsx` uses `innerHTML` in fallback paths.
-- Expected fix: Replace fallback `innerHTML` with DOM construction and add sanitizer tests/allowlist evidence around markdown rendering.
-- Suggested files: `src/main.tsx`, `src/utils/markdown.tsx`, markdown tests
-- Validation: Static sink audit passes with only documented, tested exceptions.
-- Risk if ignored: future markdown or fallback changes could introduce XSS.
-- Dependencies: markdown rendering requirements.
-- Estimated effort: M
-- Status: Open.
+### Runnable/buildable/testable/maintainable assessment
 
-## 5. P2 Medium-Priority TODOs
+Runnable/buildable/testable: yes, verified. Maintainable: improving, but large
+UI/IPC files and stale historical audit artifacts will slow outside
+contributors unless the current roadmap and ledger stay authoritative.
 
-### TODO P2-001
-- Priority: P2
-- Area: Maintainability
-- Problem: Several files are too large for comfortable review.
-- Evidence: `electron/ipc/handlers.ts` 1,408 lines, `SettingsView.tsx` 1,007, `gallery-view.tsx` 948, `media-inspector.tsx` 912, `CommandPalette.tsx` 816.
-- Expected fix: Extract cohesive submodules without behavior changes.
-- Suggested files: listed large files
-- Validation: Existing tests plus focused extracted-module tests pass.
-- Risk if ignored: future changes become harder to audit safely.
-- Dependencies: none.
-- Estimated effort: L
-- Status: Open.
+---
 
-### TODO P2-002
-- Priority: P2
-- Area: Coverage quality
-- Problem: Overall coverage passes while low-coverage modules remain.
-- Evidence: Coverage report shows weak/zero coverage in several UI/runtime files, including `ModelSelect.tsx`, `StatusView.tsx`, music views/hooks, `desktopBridge.ts`, and RP/UI modules.
-- Expected fix: Add targeted tests for high-risk low-coverage modules before raising thresholds.
-- Suggested files: low-coverage files from the current coverage report
-- Validation: Branch/function coverage improves without lowering thresholds.
-- Risk if ignored: thresholds pass while important paths stay weak.
-- Dependencies: browser/Electron mock cleanup.
-- Estimated effort: L
-- Status: Open.
+## 2. Repository Evidence Map
 
-### TODO P2-003
-- Priority: P2
-- Area: Bundle performance
-- Problem: Production build still emits large renderer/worker assets.
-- Evidence: build output includes a 915.73 kB main renderer chunk and a 1,375.84 kB PDF worker asset.
-- Expected fix: Add bundle budget checks and lazy-load heavy routes/workers where practical.
-- Suggested files: `vite.config.ts`, route/component imports
-- Validation: build reports budget regressions and initial chunk size is reduced.
-- Risk if ignored: slower startup and larger release artifacts.
-- Dependencies: UX decision on lazy boundaries.
-- Estimated effort: M
-- Status: Open.
+### Verified entry points
 
-## 6. P3 Backlog
+- Electron main: `electron/main.ts`; package main:
+  `dist-electron/electron/main.js`.
+- Electron preload: `electron/preload.ts`; exposes `window.veniceForge` via
+  `contextBridge`.
+- Renderer: `src/main.tsx`, `src/App.tsx`, root `index.html`.
+- Vite config: `vite.config.ts`.
+- Local/dev server and API proxy: `server.ts`.
+- Packaged desktop app: `electron-builder.config.cjs`,
+  `scripts/build-electron.cjs`, `scripts/start-production.cjs`.
 
-### TODO P3-001
-- Priority: P3
-- Area: Repository metadata
-- Problem: Community templates remain minimal.
-- Evidence: PR template and issue-template config exist; richer bug/feature forms and repository-settings documentation are not present.
-- Expected fix: Add structured bug/feature templates and a repository settings checklist.
-- Suggested files: `.github/ISSUE_TEMPLATE/*`, `docs/RELEASE/repository-settings.md`
-- Validation: GitHub issue flow exposes the intended templates.
-- Risk if ignored: incoming reports stay lower quality.
-- Dependencies: maintainer preferences.
-- Estimated effort: S
-- Status: Closed; bug/feature issue templates exist and `docs/RELEASE/repository-settings.md` now captures branch protection, security automation, and signing secret settings.
+### Verified source directories
 
-### TODO P3-002
-- Priority: P3
-- Area: Platform roadmap
-- Problem: Linux arm64 remains intentionally out of scope.
-- Evidence: `electron-builder.config.cjs` documents x64-only Linux targets until native arm64 or cross-compilation support exists.
-- Expected fix: Either continue documenting x64-only Linux support or add a real arm64 runner/toolchain.
-- Suggested files: `electron-builder.config.cjs`, `docs/DEVELOPMENT/platform-support.md`
-- Validation: docs and release artifacts agree.
-- Risk if ignored: users may expect unsupported artifacts.
-- Dependencies: CI runner/toolchain availability.
-- Estimated effort: M/L
-- Status: Backlog.
+`src/components`, `src/services`, `src/stores`, `src/hooks`, `src/utils`,
+`src/config`, `src/types`, `src/shared`, `src/theme`, `src/research`,
+`electron/ipc`, `electron/services`, `electron/utils`, `tests`, `scripts`.
 
-## 7. Closed Roadmap Items
+### Verified build/config files
 
-- Native browser dialog regression: closed by shared modal flow and `verify:no-native-dialogs`.
-- Prior-chat context leakage: closed by bounded/redacted opt-in context selection.
-- Repository slug/updater metadata drift: closed for active metadata/docs.
-- Jina rate-limit flake: closed in focused Node 22 reruns.
-- Electron output shipping renderer source: closed by bundled Electron build and `verify:dist`.
-- Dependency vulnerabilities: closed; `npm audit --audit-level=moderate` reports 0 vulnerabilities.
-- Storage Privacy API-key status: closed.
-- Node 22 alignment: closed with `.nvmrc`, engines, and workflow pins.
-- Media cache and chat dirty-map bounds: closed.
-- Server dependency on Electron utility path: closed by shared URL-security module.
+`package.json`, `package-lock.json`, `.nvmrc`, `vite.config.ts`,
+`vitest.config.ts`, `eslint.config.mjs`, `tsconfig.json`,
+`tsconfig.electron.json`, `tsconfig.electron.test.json`,
+`electron-builder.config.cjs`, `.env.example`, `.config/config.example.yaml`.
 
-## 8. Recommended Execution Order
+### Verified test files
 
-1. Finish this hygiene commit and push `main`.
-2. Push the `v2.1.0` release tag from a clean checkout.
-3. Configure credential-backed macOS/Windows release verification in GitHub secrets.
-4. Clean test stderr warnings.
-5. Run focused coverage and file-size reduction campaigns in small PRs.
+251 tracked test paths from `git ls-files '*.test.ts' '*.test.tsx' 'tests/**'`.
+Key areas include `server.test.ts`, `electron/**/*.test.ts`,
+`src/**/*.test.ts(x)`, `tests/safety`, `tests/storage`,
+`tests/smoke/electron-smoke.test.ts`, and
+`tests/electron/productionStartupInvariant.test.ts`.
 
-## 9. Production Readiness Verdict
+### Verified CI/CD workflows
 
-Local source health is strong: install, lint, typecheck, full tests, coverage,
-build, audit, and dist verification pass under Node 22. A production release
-should wait for a clean release checkout and signed/notarized artifact evidence.
-The `v2.1.0` tag intentionally triggers the release workflow. Without signing
-secrets it creates unsigned draft artifacts unless
-`VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true` is configured.
+`.github/workflows/ci.yml`, `release.yml`, `codeql.yml`,
+`dependency-review.yml`.
 
-## 10. Cleaned Historical TODO Artifacts
+### Verified documentation files
 
-- Removed `docs/audits/todo.md`: historical 2026-06-07 snapshot superseded by this current roadmap and `docs/summary_of_work.md`.
-- Removed `docs/audits/combined-todo.yml`: partial static-audit backlog whose findings were already marked closed or superseded in the session ledger.
+`README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `SECURITY.md`, `PRIVACY.md`,
+`LEGAL.md`, `LICENSE`, `docs/ABOUT.md`, `docs/DEVELOPMENT/*`,
+`docs/RELEASE/*`, `docs/legal/*`, `docs/design/*`, `docs/audits/*`,
+`docs/summary_of_work.md`.
+
+### Verified release/package files
+
+`electron-builder.config.cjs`, `build/icon.ico`, `build/icon.icns`,
+`build/icon.png`, `scripts/checksum-release.cjs`, `scripts/verify-dist.cjs`,
+`scripts/verify-release-packaging-hardening.cjs`, `scripts/clean-repo-zip.sh`,
+`.github/workflows/release.yml`.
+
+### Verified security-sensitive files
+
+`electron/main.ts`, `electron/preload.ts`, `electron/ipc/handlers.ts`,
+`electron/services/secureStore.ts`, `electron/services/guardPipeline.ts`,
+`electron/services/bridgeServer.ts`, `server.ts`,
+`src/services/desktopBridge.ts`, `src/services/diagnosticsService.ts`,
+`src/shared/redaction.ts`, `src/shared/urlSecurity.ts`, `src/shared/safety/*`.
+
+### Missing or recommended standard repo files
+
+No major standard community files are missing. Present: `CODEOWNERS`, issue
+templates, PR template, Dependabot, CodeQL, dependency review, security policy,
+support docs, code of conduct, and license.
+
+Recommended new/updated files:
+
+- `docs/RELEASE/SIGNED_ARTIFACT_EVIDENCE.md` (new)
+- `.github/workflows/packaged-smoke.yml` or added jobs in `ci.yml`
+  (new/modified)
+- `docs/DOCS_INDEX.md` (new)
+
+---
+
+## 3. Critical Findings
+
+- **Evidence:** `docs/summary_of_work.md` says P0-002 remains external:
+  credential-backed macOS notarization and Windows signing evidence.
+  `electron-builder.config.cjs` enables notarization only when signing/Apple
+  credentials exist. `release.yml` warns and creates unsigned draft artifacts
+  unless `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true`.
+  **Impact:** A public production release can still ship unsigned/not-notarized
+  draft artifacts if maintainers publish without checking.
+  **Priority:** P0.
+  **Affected files:** `.github/workflows/release.yml`,
+  `electron-builder.config.cjs`, `docs/RELEASE/signing-and-notarization.md`,
+  `docs/summary_of_work.md`.
+  **Recommended fix:** Require signed release mode for production tags, record
+  downloaded artifact signature/notarization verification, and document unsigned
+  draft policy.
+  **Validation:** `codesign --verify --deep --strict`, `spctl -a -vv`,
+  `xcrun notarytool log`, Windows `Get-AuthenticodeSignature`,
+  `npm run verify:dist:release`.
+
+- **Evidence:** `ci.yml` has `electron-smoke-macos`;
+  `tests/smoke/electron-smoke.test.ts` supports Windows portable and macOS app
+  lookup, but local `npm run smoke:electron` skipped because
+  `RUN_ELECTRON_SMOKE` was unset. No Windows packaged smoke CI job was found.
+  **Impact:** Windows packaging/startup regressions can escape despite Windows
+  being a primary target.
+  **Priority:** P1.
+  **Affected files:** `.github/workflows/ci.yml`,
+  `tests/smoke/electron-smoke.test.ts`.
+  **Recommended fix:** Add Windows packaged portable smoke job with
+  `RUN_ELECTRON_SMOKE=true`; document Linux smoke status separately.
+  **Validation:** CI run on `windows-latest` packages `npm run dist:portable`
+  or `npm run dist:win`, then runs
+  `RUN_ELECTRON_SMOKE=true npm run smoke:electron`.
+
+- **Evidence:** Older task prompts and local checkout path use
+  `Windows-Venice-API-connector`, but `git remote -v`, `package.json`,
+  `README.md`, and `electron-builder.config.cjs` point to
+  `spearchucker667/Venice_Forge`.
+  **Impact:** Contributors and release consumers can land in the wrong
+  repo/issues/releases if the old name keeps circulating.
+  **Priority:** P1.
+  **Affected files:** `package.json`, `README.md`, `electron-builder.config.cjs`,
+  `.github/ISSUE_TEMPLATE/config.yml`, release docs.
+  **Recommended fix:** Decide canonical public repository slug and align all
+  metadata, badges, release publish config, docs, and user-facing links.
+  **Validation:** `rg -n "Windows-Venice-API-connector|Venice_Forge|github.com/spearchucker667" package.json README.md docs .github electron-builder.config.cjs`.
+
+---
+
+## 4. TODO Roadmap
+
+### P0 - Critical Blockers
+
+- [ ] **P0 - Release: Capture signed and notarized artifact proof before production publish**
+  - **Evidence:** `docs/summary_of_work.md` records P0-002 as external;
+    `release.yml` only warns when signing secrets are absent unless
+    `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true`; `electron-builder.config.cjs`
+    uses signing/notarization only when credentials exist.
+  - **Why:** Windows/macOS users need trustworthy desktop artifacts; unsigned
+    production builds trigger Gatekeeper/SmartScreen and weaken supply-chain
+    trust.
+  - **Action:** Configure signing secrets, set
+    `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true` for production tags, run a tagged
+    release, download artifacts, and record macOS/Windows signature evidence.
+  - **Files likely affected:** `.github/workflows/release.yml`,
+    `docs/RELEASE/signing-and-notarization.md`,
+    `docs/RELEASE/SIGNED_ARTIFACT_EVIDENCE.md` (new),
+    `docs/summary_of_work.md`.
+  - **Validate:** `npm run verify:dist:release`;
+    `codesign --verify --deep --strict`; `spctl -a -vv`;
+    `xcrun notarytool log`; Windows `Get-AuthenticodeSignature`.
+  - **Risk if ignored:** A public release may ship unsigned or unverifiable
+    installers.
+
+### P1 - Production Readiness
+
+- [ ] **P1 - CI/CD: Add Windows packaged Electron smoke coverage**
+  - **Evidence:** `.github/workflows/ci.yml` only has `electron-smoke-macos`;
+    `tests/smoke/electron-smoke.test.ts` supports Windows portable lookup;
+    local `npm run smoke:electron` skipped because `RUN_ELECTRON_SMOKE` was not
+    set.
+  - **Why:** Windows is a primary supported platform.
+  - **Action:** Add a Windows CI job that packages portable or installer output
+    and runs smoke with `RUN_ELECTRON_SMOKE=true`.
+  - **Files likely affected:** `.github/workflows/ci.yml`,
+    `tests/smoke/electron-smoke.test.ts`.
+  - **Validate:** `RUN_ELECTRON_SMOKE=true npm run smoke:electron` on
+    `windows-latest` after packaging.
+  - **Risk if ignored:** Windows startup/package regressions can ship.
+
+- [ ] **P1 - GitHub Hygiene: Resolve canonical repository URL and metadata drift**
+  - **Evidence:** Older prompt/workspace naming uses
+    `Windows-Venice-API-connector`; actual remote and package metadata point to
+    `spearchucker667/Venice_Forge`.
+  - **Why:** Public users and outside contributors need one canonical
+    issue/release/security location.
+  - **Action:** Confirm canonical slug, then align package metadata, badges,
+    release publish repo, issue-template links, README clone commands, and
+    release docs.
+  - **Files likely affected:** `package.json`, `README.md`,
+    `electron-builder.config.cjs`, `.github/ISSUE_TEMPLATE/config.yml`,
+    `docs/RELEASE/*`.
+  - **Validate:** `rg -n "Windows-Venice-API-connector|Venice_Forge|github.com/spearchucker667" package.json README.md docs .github electron-builder.config.cjs`.
+  - **Risk if ignored:** Users may file bugs, fetch releases, or audit source
+    from the wrong repository.
+
+- [ ] **P1 - Security Automation: Make CodeQL run on PR/push or scheduled scans**
+  - **Evidence:** `.github/workflows/codeql.yml` exists but only has
+    `workflow_dispatch` and `if: vars.VENICE_FORGE_ENABLE_ADVANCED_CODEQL == 'true'`.
+  - **Why:** Manual, variable-gated code scanning is easy to forget.
+  - **Action:** Add `pull_request`, `push`, or scheduled triggers, or document a
+    repository-level default setup requirement that is externally enforced.
+  - **Files likely affected:** `.github/workflows/codeql.yml`, `SECURITY.md`,
+    `docs/RELEASE/repository-settings.md`.
+  - **Validate:** GitHub checks show CodeQL on PRs or scheduled runs.
+  - **Risk if ignored:** Security regressions may not be scanned before merge.
+
+- [ ] **P1 - Testing: Clean or classify full-suite jsdom canvas warnings**
+  - **Evidence:** `npm test -- --run` and `npm run test:coverage` passed but
+    emitted repeated `HTMLCanvasElement.getContext()` not implemented warnings.
+  - **Why:** Noisy test output hides real warnings.
+  - **Action:** Add a Vitest setup mock for canvas paths or isolate
+    canvas-dependent tests.
+  - **Files likely affected:** `vitest.config.ts`, `tests/setup.ts` (new),
+    canvas/image component tests.
+  - **Validate:** `npm test -- --run` and `npm run test:coverage` pass without
+    unclassified warnings.
+  - **Risk if ignored:** Real regressions become easier to miss in CI logs.
+
+- [ ] **P1 - Dependency Hygiene: Reduce or document deprecated transitive packages**
+  - **Evidence:** `npm ci` passes but warns for `inflight`, `rimraf@2`,
+    `lodash.isequal`, `glob@7`, and `boolean`.
+  - **Why:** Deprecated transitives can become future vulnerability or install
+    blockers.
+  - **Action:** Run dependency-path analysis, upgrade direct dependencies where
+    feasible, and document unavoidable upstream holdouts.
+  - **Files likely affected:** `package.json`, `package-lock.json`,
+    `docs/DEVELOPMENT/troubleshooting.md`.
+  - **Validate:** `npm ci`; `npm ls inflight rimraf lodash.isequal glob boolean`.
+  - **Risk if ignored:** Future npm/node changes can break installs or audits.
+
+### P2 - Quality, DX, and Maintainability
+
+- [ ] **P2 - Architecture: Extract oversized modules into smaller reviewable units**
+  - **Evidence:** `wc -l` shows `electron/ipc/handlers.ts` 1,408 lines,
+    `SettingsView.tsx` 1,007, `gallery-view.tsx` 962,
+    `media-inspector.tsx` 912, `CommandPalette.tsx` 816,
+    `desktopBridge.ts` 944, `server.ts` 936.
+  - **Why:** Large files make security review and regression isolation harder.
+  - **Action:** Extract IPC channel groups, Settings sections, gallery inspector
+    actions, command registry sections, and desktop bridge domains without
+    behavior changes.
+  - **Files likely affected:** Listed files plus new sibling modules.
+  - **Validate:** `npm run lint:eslint`; `npm run typecheck`; focused tests for
+    extracted modules; `npm run verify:contracts`.
+  - **Risk if ignored:** Future changes will be slower and riskier to audit.
+
+- [ ] **P2 - Storage/Privacy UX: Remove or wire unimplemented maintenance-plan actions**
+  - **Evidence:** `src/services/storageMaintenance.ts` creates
+    `copy-privacy-summary` and `export-privacy-summary` actions, but
+    `applyMaintenanceAction()` default returns "Action not implemented or
+    supported"; the dashboard also has separate top-level Copy/Export buttons.
+  - **Why:** Users can see actions that fail when run.
+  - **Action:** Either remove those actions from the maintenance plan or route
+    them to the store's `copySafeSummary` / `exportSafeSummary`.
+  - **Files likely affected:** `src/services/storageMaintenance.ts`,
+    `src/components/privacy/StoragePrivacyDashboard.tsx`,
+    `src/services/storageMaintenance.test.ts`.
+  - **Validate:** `npm run verify:storage-privacy`.
+  - **Risk if ignored:** Privacy dashboard presents broken controls.
+
+- [ ] **P2 - Storage/Privacy UX: Add first-load error/retry state**
+  - **Evidence:** `StoragePrivacyDashboard.tsx` renders only a loading state
+    while `inventory` is null; `storage-privacy-store.ts` catches refresh
+    errors, clears `refreshing`, and toasts, but does not persist an error
+    state.
+  - **Why:** A failed first inventory leaves the dashboard ambiguous.
+  - **Action:** Add `error` state and retry UI.
+  - **Files likely affected:** `src/stores/storage-privacy-store.ts`,
+    `src/components/privacy/StoragePrivacyDashboard.tsx`, tests.
+  - **Validate:** `npm run verify:storage-privacy`; targeted dashboard failure
+    test.
+  - **Risk if ignored:** Users cannot recover clearly from storage inventory
+    failures.
+
+- [ ] **P2 - Media UX: Use canonical clipboard helper in gallery and embeddings**
+  - **Evidence:** `media-inspector.tsx` calls `navigator.clipboard.writeText`
+    directly at prompt/negative/seed/metadata/recipe copy sites;
+    `embeddings-view.tsx` does the same for vectors.
+  - **Why:** Direct clipboard calls may fail in restricted contexts and bypass
+    fallback/error handling.
+  - **Action:** Route these through the existing `copyText` helper pattern from
+    `src/stores/media-send-to.ts` or a shared clipboard utility.
+  - **Files likely affected:** `src/components/gallery/media-inspector.tsx`,
+    `src/components/embeddings/embeddings-view.tsx`, clipboard tests.
+  - **Validate:** `npm test -- --run src/components/gallery/media-inspector.test.tsx src/components/embeddings/embeddings-view.test.tsx`.
+  - **Risk if ignored:** Copy actions fail silently in some browser/Electron
+    contexts.
+
+- [ ] **P2 - Coverage: Target high-risk low-coverage modules before raising thresholds**
+  - **Evidence:** Coverage passes globally but reports low coverage for
+    `electron/ipc/rpHandlers.ts`, `src/services/desktopBridge.ts`,
+    `src/components/SettingsView.tsx`, `StatusView.tsx`, music views/hooks, and
+    other UI paths.
+  - **Why:** Global thresholds can hide weak coverage on user-facing or
+    boundary modules.
+  - **Action:** Add targeted tests for low-coverage, high-risk modules; then
+    raise thresholds incrementally.
+  - **Files likely affected:** Low-coverage files and corresponding tests.
+  - **Validate:** `npm run test:coverage`.
+  - **Risk if ignored:** Important paths can regress while global coverage
+    remains green.
+
+- [ ] **P2 - Performance: Add bundle budgets and reduce initial renderer chunk size**
+  - **Evidence:** `npm run build` emits `dist/assets/index-ijmoMU_S.js` at
+    919.43 kB and PDF worker at 1,375.84 kB; `vite.config.ts` only sets
+    `chunkSizeWarningLimit: 1000`.
+  - **Why:** Large initial assets slow startup and updates.
+  - **Action:** Add budget checks and lazy-load heavy routes/workers where
+    practical.
+  - **Files likely affected:** `vite.config.ts`, route imports in `src/App.tsx`,
+    feature component lazy boundaries.
+  - **Validate:** `npm run build`; recommended new bundle-budget script.
+  - **Risk if ignored:** Startup and package size regressions go unnoticed.
+
+- [ ] **P2 - Documentation: Keep one canonical current roadmap**
+  - **Evidence:** The old `docs/audits/Repository TODO Roadmap — Venice Forge.md`
+    and `docs/audits/roadmap-verification-2026-06-16.yaml` duplicated and
+    partially contradicted this file.
+  - **Why:** Outside contributors and agents need one current TODO source.
+  - **Action:** Keep this file plus `docs/summary_of_work.md` authoritative;
+    delete or archive duplicate roadmap/status snapshots when they become
+    former-bug evidence.
+  - **Files likely affected:** `docs/audits/repository-todo-roadmap-current.md`,
+    `docs/DOCS_INDEX.md`, `docs/summary_of_work.md`.
+  - **Validate:** `npm run verify:markdown-links`; `npm run verify:agent-docs`.
+  - **Risk if ignored:** Duplicate or already-closed issues waste review time.
+
+### P3 - Future Enhancements
+
+- [ ] **P3 - Packaging: Decide Linux support wording and maintainer metadata**
+  - **Evidence:** `electron-builder.config.cjs` has Linux x64 AppImage/deb/rpm
+    targets and placeholder maintainer `venice-forge@localhost.invalid`;
+    `docs/DEVELOPMENT/platform-support.md` says Linux is not officially
+    packaged but CI builds Linux artifacts.
+  - **Why:** Users need clear support boundaries.
+  - **Action:** Either make Linux experimental with precise wording or remove
+    release prominence; replace placeholder maintainer email if distributing
+    `.deb`/`.rpm`.
+  - **Files likely affected:** `electron-builder.config.cjs`, `README.md`,
+    `docs/DEVELOPMENT/platform-support.md`, `docs/RELEASE/release.md`.
+  - **Validate:** `npm run verify:release-packaging-hardening`;
+    `npm run verify:dist:linux` in Linux CI.
+  - **Risk if ignored:** Linux users may assume unsupported artifacts are
+    production-supported.
+
+- [ ] **P3 - Image Studio: Derive downloaded image extension from MIME type**
+  - **Evidence:** `image-view.tsx` saves generated images as
+    `venice-image*.png` regardless of actual returned media type.
+  - **Why:** Incorrect extensions can confuse users and external tools.
+  - **Action:** Parse/track returned MIME and choose `.png`, `.jpg`, `.webp`,
+    etc.
+  - **Files likely affected:** `src/components/image/image-view.tsx`, image
+    tests.
+  - **Validate:** Targeted image-view test and manual generation/download.
+  - **Risk if ignored:** Saved files can have misleading extensions.
+
+- [ ] **P3 - Randomness: Use Web Crypto for image random seed generation**
+  - **Evidence:** `src/utils/payloadBuilders.ts` uses `Math.random()` in
+    `randomSeed()`.
+  - **Why:** Not security-critical, but deterministic quality and fairness are
+    better with `crypto.getRandomValues`.
+  - **Action:** Replace with Web Crypto fallback where available.
+  - **Files likely affected:** `src/utils/payloadBuilders.ts`,
+    `src/utils/payloadBuilders.test.ts`.
+  - **Validate:** `npm test -- --run src/utils/payloadBuilders.test.ts`.
+  - **Risk if ignored:** Low; seed randomness remains non-cryptographic.
+
+---
+
+## 5. Category Coverage Matrix
+
+| Category | Status | Evidence inspected | Notes |
+|---|---:|---|---|
+| Build/runtime | Covered | `package.json`, `vite.config.ts`, `electron/main.ts`, validation commands | Build passes. |
+| Architecture | Covered | `src/*`, `electron/*`, file-size counts | Large modules remain. |
+| Security | Covered | IPC, preload, proxy, redaction, safety, workflows | No direct source P0 found; signing evidence open. |
+| Testing | Covered | 251 test paths, Vitest output, coverage | Tests pass; warning cleanup remains. |
+| CI/CD | Covered | `.github/workflows/*` | Strong, but CodeQL manual/gated and Windows smoke gap. |
+| Documentation | Covered | README, docs, audits, summary ledger | Current roadmap refreshed in this file. |
+| Developer experience | Covered | scripts, `.nvmrc`, docs, config examples | Good; repo identity naming decision remains. |
+| Dependencies | Covered | `npm ci`, `npm audit`, `package-lock.json`, Dependabot | Audit clean; deprecated transitives. |
+| Packaging/release | Covered | electron-builder, release workflow, verify-dist | Signing/notarization proof open. |
+| Config/env | Covered | `.env.example`, `.config/config.example.yaml`, config docs | Good secret guidance. |
+| Logging/diagnostics | Covered | `diagnosticsService.ts`, logger/redaction, `app:getDiagnostics` | Safe by design; live connectivity is explicit. |
+| Performance/reliability | Covered | build output, cache/storage docs, timeout guards | Bundle budget TODO remains. |
+| UX/app behavior/accessibility | Covered | privacy dashboard, media inspector, smoke tests | Broken maintenance action UX, clipboard helper gaps. |
+| GitHub hygiene | Covered | CODEOWNERS, templates, Dependabot, workflows | Repo identity drift. |
+| Legal/licensing/privacy | Covered | LICENSE, LEGAL, PRIVACY, SECURITY, NOTICE docs | Present and reasonably mature. |
+| Roadmap | Covered | this file, `docs/summary_of_work.md` | Duplicate old roadmap artifacts removed in this pass. |
+
+---
+
+## 6. Suggested GitHub Issues
+
+### P0 Issues
+
+1. `[P0] Capture and require signed/notarized Windows and macOS release artifact evidence`
+
+### P1 Issues
+
+1. `[P1] Add Windows packaged Electron smoke coverage`
+2. `[P1] Resolve canonical repository URL and metadata drift`
+3. `[P1] Run CodeQL automatically on PR/push or scheduled scans`
+4. `[P1] Clean or classify full-suite jsdom canvas warnings`
+5. `[P1] Reduce or document deprecated transitive dependencies`
+
+### P2 Issues
+
+1. `[P2] Extract oversized IPC/UI/bridge modules`
+2. `[P2] Wire or remove unimplemented Storage Privacy maintenance actions`
+3. `[P2] Add Storage Privacy first-load error and retry state`
+4. `[P2] Route gallery and embeddings copy actions through clipboard helper`
+5. `[P2] Add targeted coverage for high-risk low-coverage modules`
+6. `[P2] Add bundle budgets and reduce initial renderer chunk size`
+7. `[P2] Keep one canonical current roadmap`
+
+### P3 Issues
+
+1. `[P3] Clarify Linux support status and maintainer metadata`
+2. `[P3] Derive image download extension from MIME type`
+3. `[P3] Use Web Crypto for random image seeds`
+
+---
+
+## 7. Suggested Milestones
+
+### `0.1.0 - Repo Stabilization`
+
+- Resolve canonical repository URL and metadata drift.
+- Keep one canonical current roadmap.
+- Clean or classify test warnings.
+
+### `0.2.0 - Test and CI Foundation`
+
+- Add Windows packaged Electron smoke coverage.
+- Make CodeQL automatic.
+- Add targeted tests for high-risk low-coverage modules.
+
+### `0.3.0 - Security, Privacy, and Config Hardening`
+
+- Wire/remove Storage Privacy maintenance actions.
+- Add Storage Privacy error/retry state.
+- Continue secret-redaction regression coverage.
+
+### `0.4.0 - Windows/macOS Packaging and Release Pipeline`
+
+- Capture signed/notarized artifact proof.
+- Enforce signed production release policy.
+- Clarify Linux support boundaries.
+
+### `0.5.0 - UX, Accessibility, and Diagnostics Hardening`
+
+- Clipboard helper migration.
+- Media/Image Studio polish.
+- Bundle budget and startup performance work.
+
+### `1.0.0 - Production-Ready Desktop Release`
+
+- Signed Windows installer and verified macOS notarized artifacts.
+- Windows/macOS packaged smoke evidence.
+- Current docs and release checklist green.
+
+### `2.0.0 - Advanced Venice Forge Platform Roadmap`
+
+- Advanced workflow automation.
+- More robust cross-platform update channels.
+- Optional Linux support if storage/signing/smoke requirements are solved.
+
+---
+
+## 8. Recommended First 10 Actions
+
+1. **Order:** 1
+   **Command:** `git remote -v && rg -n "Windows-Venice-API-connector|Venice_Forge|github.com/spearchucker667" package.json README.md docs .github electron-builder.config.cjs`
+   **Files:** repo metadata/docs
+   **Expected outcome:** Canonical slug decision.
+   **Validation:** All active links agree.
+
+2. **Order:** 2
+   **Command:** none
+   **Files:** `.github/workflows/release.yml`,
+   `docs/RELEASE/SIGNED_ARTIFACT_EVIDENCE.md`
+   **Expected outcome:** Production signing evidence plan.
+   **Validation:** Artifact signature commands pass.
+
+3. **Order:** 3
+   **Command:** `RUN_ELECTRON_SMOKE=true npm run smoke:electron` in Windows CI
+   after packaging
+   **Files:** `.github/workflows/ci.yml`
+   **Expected outcome:** Windows packaged smoke proof.
+   **Validation:** CI job passes.
+
+4. **Order:** 4
+   **Command:** none
+   **Files:** `.github/workflows/codeql.yml`
+   **Expected outcome:** CodeQL runs automatically.
+   **Validation:** PR check appears.
+
+5. **Order:** 5
+   **Command:** `npm test -- --run`
+   **Files:** `vitest.config.ts`, test setup
+   **Expected outcome:** No unclassified canvas warnings.
+   **Validation:** Warning-clean test output.
+
+6. **Order:** 6
+   **Command:** `npm ls inflight rimraf lodash.isequal glob boolean`
+   **Files:** `package.json`, `package-lock.json`
+   **Expected outcome:** Deprecated transitive plan.
+   **Validation:** Reduced warnings or documented blockers.
+
+7. **Order:** 7
+   **Command:** `npm run verify:storage-privacy`
+   **Files:** `src/services/storageMaintenance.ts`,
+   `StoragePrivacyDashboard.tsx`
+   **Expected outcome:** No broken maintenance actions.
+   **Validation:** Tests pass.
+
+8. **Order:** 8
+   **Command:** `npm run test:coverage`
+   **Files:** low-coverage modules
+   **Expected outcome:** Focused coverage gains.
+   **Validation:** Coverage improves without lowering thresholds.
+
+9. **Order:** 9
+   **Command:** `npm run build`
+   **Files:** `vite.config.ts`, lazy imports
+   **Expected outcome:** Bundle budgets and smaller initial chunks.
+   **Validation:** Build budget passes.
+
+10. **Order:** 10
+    **Command:** `npm run verify:markdown-links && npm run verify:agent-docs`
+    **Files:** `docs/audits/repository-todo-roadmap-current.md`,
+    `docs/DOCS_INDEX.md`
+    **Expected outcome:** Current docs stop contradicting live source.
+    **Validation:** Docs verifiers pass.
+
+---
+
+## 9. Validation Command Matrix
+
+| Area | Command | Expected result | Notes |
+|---|---|---:|---|
+| Install | `PATH="$PWD/.node22/bin:$PATH" npm ci` | Pass | Passed; deprecation warnings. |
+| Lint | `PATH="$PWD/.node22/bin:$PATH" npm run lint` | Pass | Passed; includes typecheck. |
+| Typecheck | `PATH="$PWD/.node22/bin:$PATH" npm run typecheck` | Pass | Passed. |
+| Unit tests | `PATH="$PWD/.node22/bin:$PATH" npm test -- --run` | Pass | Passed: 249 files, 3,145 tests; 1 skipped. |
+| Coverage | `PATH="$PWD/.node22/bin:$PATH" npm run test:coverage` | Pass | Passed: 71 / 62.33 / 68.49 / 74.09. |
+| Build | `PATH="$PWD/.node22/bin:$PATH" npm run build` | Pass | Passed. |
+| Audit | `PATH="$PWD/.node22/bin:$PATH" npm audit --audit-level=moderate` | Pass | 0 vulnerabilities. |
+| Prod audit | `PATH="$PWD/.node22/bin:$PATH" npm audit --omit=dev --audit-level=moderate` | Pass | 0 vulnerabilities. |
+| Dist verify | `PATH="$PWD/.node22/bin:$PATH" npm run verify:dist` | Pass | Passed. |
+| Contracts | `PATH="$PWD/.node22/bin:$PATH" npm run verify:contracts` | Pass | Passed all aggregate gates. |
+| Smoke | `PATH="$PWD/.node22/bin:$PATH" npm run smoke:electron` | Skipped locally | Requires `RUN_ELECTRON_SMOKE=true` and packaged app. |
+| Package | `npm run dist:win`, `npm run dist:mac` | Not run locally | Heavy/signing-sensitive; workflows inspected. |
+
+---
+
+## 10. Remaining Unknowns
+
+- Whether production signing/notarization secrets are configured in GitHub.
+- Whether a current tagged release produces signed Windows and notarized macOS
+  artifacts.
+- Whether Windows packaged smoke passes with `RUN_ELECTRON_SMOKE=true`.
+- Whether the intended canonical public repo is the active `Venice_Forge` slug
+  or a future rename.
+- Whether CodeQL is enabled as GitHub default setup outside the tracked
+  workflow.
+- Whether Linux artifacts are intended as public/experimental/support-only.
+
+---
+
+## 11. Historical Hygiene Decisions
+
+- Deleted duplicate old roadmap: `docs/audits/Repository TODO Roadmap — Venice Forge.md`.
+- Deleted old roadmap verification addendum:
+  `docs/audits/roadmap-verification-2026-06-16.yaml`.
+- Deleted superseded cross-check snapshots:
+  `docs/audits/current-audit-cross-check-status.md` and
+  `docs/audits/current-audit-cross-check-status.yaml`.
+- Kept release-bug cross-reference and evidence YAMLs because they map closed
+  v2.1.0 defects to regression tests and remain useful historical evidence.
+- Kept `docs/reports/historical/*` because those reports already carry
+  historical/superseded banners and are referenced as audit trail evidence.
