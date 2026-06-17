@@ -13,7 +13,7 @@
 - Baseline HEAD: `1de7d42`
 - Toolchain: Node `v22.22.3`, npm `10.9.8`
 - Tracked files at audit time: `739`
-- Status: local gates pass; production release must start from a clean tree and tag-release workflows now fail closed without signing/notarization secrets.
+- Status: local gates pass; production release must start from a clean tree. Tag-release workflows warn and create unsigned draft artifacts without signing/notarization secrets unless `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true` is set.
 
 ## 2. Validation Summary
 
@@ -54,22 +54,22 @@
 - Risk if ignored: Users can receive unsigned or Gatekeeper/SmartScreen-blocked production artifacts.
 - Dependencies: Apple Developer and Windows code-signing credentials.
 - Estimated effort: M/L
-- Status: External verification required; tag workflows now fail closed if required signing/notarization secrets are missing.
+- Status: External verification required; unsigned draft artifacts are allowed when secrets are absent, and `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true` enables fail-closed signed-only releases.
 
 ## 4. P1 High-Priority TODOs
 
 ### TODO P1-001
 - Priority: P1
 - Area: Release workflow
-- Problem: Tagged releases currently warn, rather than fail, when signing credentials are missing.
+- Problem: Tagged releases need an explicit policy knob for unsigned draft releases versus signed-only production releases.
 - Evidence: `release.yml` contains missing-secret warning steps before packaging.
-- Expected fix: Fail closed for production tags unless an explicit unsigned prerelease/manual override is chosen.
+- Expected fix: Warn and draft unsigned artifacts by default, and fail closed for production tags when an explicit signed-only repository variable is set.
 - Suggested files: `.github/workflows/release.yml`
-- Validation: A tag release without required secrets fails before upload; manual unsigned development packaging remains available.
+- Validation: A tag release without required secrets emits warnings and creates draft unsigned artifacts; setting `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true` fails before upload.
 - Risk if ignored: Unsigned artifacts may be mistaken for production releases.
 - Dependencies: release policy.
 - Estimated effort: S/M
-- Status: Closed for source policy; production tag releases now fail closed when macOS or Windows signing/notarization secrets are absent.
+- Status: Closed for source policy; production tag releases now support unsigned draft output by default and fail closed when `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true`.
 
 ### TODO P1-002
 - Priority: P1
@@ -231,8 +231,9 @@
 Local source health is strong: install, lint, typecheck, full tests, coverage,
 build, audit, and dist verification pass under Node 22. A production release
 should wait for a clean release checkout and signed/notarized artifact evidence.
-The `v2.1.0` tag intentionally triggers the release workflow, which will fail
-closed until required signing/notarization secrets are configured.
+The `v2.1.0` tag intentionally triggers the release workflow. Without signing
+secrets it creates unsigned draft artifacts unless
+`VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true` is configured.
 
 ## 10. Cleaned Historical TODO Artifacts
 

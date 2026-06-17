@@ -22,7 +22,7 @@ const ENV_ASSIGNMENT_PATTERN =
 
 /** Pattern matching local source URLs and absolute file paths that can leak machine/user info. */
 const LOCAL_PATH_PATTERN =
-  /(?:https?:\/\/|file:\/\/)[^\s"')]+|\/(?:Users|home|root|private)\/[^\s"')]+|[A-Za-z]:\\[^\s"')]+/gi;
+  /(?:https?:\/\/|file:\/\/)[^\s"')]+|\/(?:Users|home|root|private)\/[^\s"')]+|[A-Za-z]:[\\/][^\s"')]+/gi;
 
 /**
  * Redacts sensitive patterns from a single string.

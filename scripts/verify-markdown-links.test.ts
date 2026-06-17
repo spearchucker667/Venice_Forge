@@ -39,6 +39,10 @@ function fixture(files: Record<string, string>) {
   return { root, files: Object.keys(files).map((name) => path.join(root, name)) };
 }
 
+function toPosixPath(filePath: string): string {
+  return filePath.replace(/\\/g, "/");
+}
+
 afterEach(() => {
   for (const dir of tempDirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
 });
@@ -137,7 +141,7 @@ describe("verifyMarkdownLinks", () => {
       "SECURITY.md": "The guard wraps `ChatModule`, `ImageModule`, `BatchModule`, and `SearchScrapeModule`.\n",
     });
     const errors = verifyRetiredModuleReferences(files);
-    expect(errors).toEqual([
+    expect(errors.map((error) => ({ ...error, sourcePath: toPosixPath(error.sourcePath) }))).toEqual([
       expect.objectContaining({ sourcePath: expect.stringContaining("docs/RESEARCH_PROVIDERS.md"), line: 1, name: "SearchScrapeModule" }),
       expect.objectContaining({ sourcePath: expect.stringContaining("SECURITY.md"), line: 1, name: "ChatModule" }),
       expect.objectContaining({ sourcePath: expect.stringContaining("SECURITY.md"), line: 1, name: "ImageModule" }),

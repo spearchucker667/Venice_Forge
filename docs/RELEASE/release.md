@@ -75,7 +75,7 @@ Triggers:
 - Manual `workflow_dispatch`
 - Version tags matching `v*`
 
-The workflow runs separate Windows, macOS, and Linux packaging jobs, executes `npm ci`, typecheck, tests, build, packaging commands (`dist:win`, `dist:mac`, or `dist:linux`), checksum generation, and verification scripts (`verify:dist:*`), then uploads verified bundles as release assets. Production tag releases fail closed if the required macOS or Windows signing/notarization secrets are absent; use workflow-dispatch development builds for unsigned local verification.
+The workflow runs separate Windows, macOS, and Linux packaging jobs, executes `npm ci`, typecheck, tests, build, packaging commands (`dist:win`, `dist:mac`, or `dist:linux`), checksum generation, and verification scripts (`verify:dist:*`), then uploads verified bundles as draft release assets. If signing/notarization secrets are absent, the tag workflow emits warnings and produces unsigned draft artifacts. Set the repository variable `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true` to fail closed before packaging when any required signing secret is missing.
 
 ## Architecture-Specific macOS Builds
 

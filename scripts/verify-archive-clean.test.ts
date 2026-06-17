@@ -14,6 +14,19 @@ function shellQuote(s: string): string {
   return `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
+function commandExists(command: string): boolean {
+  try {
+    const probe = process.platform === "win32" ? `where ${command}` : `command -v ${command}`;
+    execSync(probe, { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const archiveToolingAvailable = commandExists("zip") && commandExists("unzip");
+const archiveIt = archiveToolingAvailable ? it : it.skip;
+
 function findZip(outDir: string): string | null {
   try {
     const entries = readdirSync(outDir);
@@ -112,7 +125,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     }
   });
 
-  it("clean-repo-zip.sh redacts raw secret-like values in POSSIBLE_SECRET_WARNINGS.tsv", () => {
+  archiveIt("clean-repo-zip.sh redacts raw secret-like values in POSSIBLE_SECRET_WARNINGS.tsv", () => {
     const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-repo-"));
     const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-out-"));
     const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-extract-"));
@@ -180,7 +193,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     expect(script).toContain('echo "ZIP:     $(basename "$ZIP_PATH") (output path omitted)"');
   });
 
-  it("clean-repo-zip.sh records script provenance metadata", () => {
+  archiveIt("clean-repo-zip.sh records script provenance metadata", () => {
     const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-prov-repo-"));
     const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-prov-out-"));
     const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-prov-extract-"));
@@ -223,7 +236,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
   // extract does not leak the absolute filesystem path of the build machine.
   // script_name (basename) is safe to share and is sufficient to identify
   // the producing script.
-  it("clean-repo-zip.sh omits script_path by default but still emits script_name (P1-003)", () => {
+  archiveIt("clean-repo-zip.sh omits script_path by default but still emits script_name (P1-003)", () => {
     const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-p1-003-repo-"));
     const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-p1-003-out-"));
     const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-p1-003-extract-"));
@@ -263,7 +276,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     }
   });
 
-  it("clean-repo-zip.sh emits script_path when INCLUDE_PRIVATE_AUDIT_METADATA=1 (P1-003 opt-in)", () => {
+  archiveIt("clean-repo-zip.sh emits script_path when INCLUDE_PRIVATE_AUDIT_METADATA=1 (P1-003 opt-in)", () => {
     const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-p1-003-optin-repo-"));
     const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-p1-003-optin-out-"));
     const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-p1-003-optin-extract-"));
@@ -302,7 +315,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     }
   });
 
-  it("clean-repo-zip.sh fails on dirty repo by default but succeeds and tags filename when ALLOW_DIRTY_REPO_EXTRACT=1", () => {
+  archiveIt("clean-repo-zip.sh fails on dirty repo by default but succeeds and tags filename when ALLOW_DIRTY_REPO_EXTRACT=1", () => {
     const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-dirty-repo-"));
     const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-dirty-out-"));
     const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-dirty-extract-"));
@@ -364,7 +377,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     }
   });
 
-  it("clean-repo-zip.sh records script_source=repo when run from repo root", () => {
+  archiveIt("clean-repo-zip.sh records script_source=repo when run from repo root", () => {
     const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-source-repo-"));
     const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-source-out-"));
     const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-source-extract-"));
@@ -474,7 +487,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     }
   });
 
-  it("tar fallback works when rsync is unavailable", () => {
+  archiveIt("tar fallback works when rsync is unavailable", () => {
     const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-tar-repo-"));
     const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-tar-out-"));
     const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-tar-extract-"));

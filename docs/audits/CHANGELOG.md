@@ -11,11 +11,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 ## [2.1.0] — 2026-06-17
 
 ### Added
-- Tracked CodeQL and dependency-review workflows, with `verify:ci-contract` coverage so the security automation remains reviewable in source.
+- Tracked advanced CodeQL and dependency-review workflows, with `verify:ci-contract` coverage so the security automation remains reviewable in source. The CodeQL workflow is manual-only while GitHub default setup is active.
 - `docs/RELEASE/repository-settings.md` for branch protection, security automation, and release secret configuration.
 
 ### Changed
-- Production tag releases now fail closed when macOS notarization/signing secrets or Windows signing secrets are absent.
+- Production tag releases now warn and create unsigned draft artifacts when signing secrets are absent, with `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true` available as the fail-closed switch for signed-only releases.
 - Version metadata and public release badge updated for `2.1.0`.
 
 ### Fixed

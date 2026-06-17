@@ -63,6 +63,10 @@ function isSourceFile(entry) {
   );
 }
 
+function toPosixPath(filePath) {
+  return filePath.split(path.sep).join("/");
+}
+
 function collectScanFiles(root, scanRoots) {
   const files = new Set();
   for (const target of scanRoots) {
@@ -70,7 +74,7 @@ function collectScanFiles(root, scanRoots) {
     if (!fs.existsSync(abs)) continue;
     const stat = fs.statSync(abs);
     if (stat.isFile()) {
-      files.add(path.relative(root, abs));
+      files.add(toPosixPath(path.relative(root, abs)));
       continue;
     }
     function walk(dir) {
@@ -80,7 +84,7 @@ function collectScanFiles(root, scanRoots) {
         if (s.isDirectory()) {
           walk(full);
         } else if (s.isFile() && isSourceFile(entry)) {
-          files.add(path.relative(root, full));
+          files.add(toPosixPath(path.relative(root, full)));
         }
       }
     }
@@ -153,6 +157,7 @@ module.exports = {
   collectScanFiles,
   isSourceFile,
   scanFile,
+  toPosixPath,
   verifyThemeTokens,
 };
 

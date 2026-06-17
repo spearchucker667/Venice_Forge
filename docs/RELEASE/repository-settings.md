@@ -15,15 +15,19 @@ production release but are configured in GitHub settings rather than source.
 ## Security
 
 - Enable GitHub private vulnerability reporting.
-- Enable CodeQL code scanning. The tracked workflow is `.github/workflows/codeql.yml`.
+- Enable CodeQL code scanning. Default setup is the active automatic scanner
+  unless default setup is disabled and the tracked advanced workflow
+  `.github/workflows/codeql.yml` is enabled with
+  `VENICE_FORGE_ENABLE_ADVANCED_CODEQL=true`.
 - Enable Dependabot alerts and security updates.
 - Keep dependency review enabled for pull requests through `.github/workflows/dependency-review.yml`.
 - Treat repository secrets for signing/notarization as production credentials.
 
 ## Release Secrets
 
-Production tag releases fail closed unless the required signing secrets are
-available:
+Production tag releases warn and create unsigned draft artifacts when signing
+secrets are absent. Set `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true` to fail
+closed unless the required signing secrets are available:
 
 - macOS: `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`
 - Windows: `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`

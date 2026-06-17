@@ -154,8 +154,10 @@ A clean audit at the `moderate` level or higher (`npm audit --audit-level=modera
 
 ## Static Analysis (CodeQL)
 
-GitHub CodeQL is enabled for this repository through the tracked
-`.github/workflows/codeql.yml` workflow. Findings appear in
+GitHub CodeQL default setup is enabled for this repository. The tracked
+`.github/workflows/codeql.yml` workflow is kept for reviewable advanced
+configuration, but it is manual-only while default setup remains active because
+GitHub rejects advanced CodeQL uploads when default setup is enabled. Findings appear in
 [Security → Code Scanning](https://github.com/spearchucker667/Venice_Forge/security/code-scanning).
 
 ### Current open alerts: **0**

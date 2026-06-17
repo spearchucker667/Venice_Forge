@@ -295,15 +295,15 @@ if (pkg) {
     } else {
       pass(".github/workflows/release.yml runs typecheck, test, and build");
     }
-    if (!release.includes("Require macOS signing credentials for tag releases") || !release.includes("macOS signing/notarization credentials are required for production tag releases")) {
-      fail(".github/workflows/release.yml must fail closed when macOS signing/notarization credentials are absent on tag releases");
+    if (!release.includes("Check macOS signing credentials for tag releases") || !release.includes("VENICE_FORGE_REQUIRE_SIGNED_RELEASE") || !release.includes("creating unsigned draft artifacts")) {
+      fail(".github/workflows/release.yml must check macOS signing/notarization credentials and support the signed-release fail-closed repository variable");
     } else {
-      pass(".github/workflows/release.yml fails closed for missing macOS signing/notarization credentials");
+      pass(".github/workflows/release.yml checks macOS signing/notarization credentials with optional fail-closed mode");
     }
-    if (!release.includes("Require Windows signing credentials for tag releases") || !release.includes("Windows signing credentials are required for production tag releases")) {
-      fail(".github/workflows/release.yml must fail closed when Windows signing credentials are absent on tag releases");
+    if (!release.includes("Check Windows signing credentials for tag releases") || !release.includes("VENICE_FORGE_REQUIRE_SIGNED_RELEASE") || !release.includes("creating unsigned draft artifacts")) {
+      fail(".github/workflows/release.yml must check Windows signing credentials and support the signed-release fail-closed repository variable");
     } else {
-      pass(".github/workflows/release.yml fails closed for missing Windows signing credentials");
+      pass(".github/workflows/release.yml checks Windows signing credentials with optional fail-closed mode");
     }
     // Linux job must not run Windows packaging scripts
     if (release.includes("dist:win || true")) {
