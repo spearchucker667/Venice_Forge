@@ -74,7 +74,7 @@ export function resolveCharacterShareUrl(value: unknown): string | undefined {
   }
   const host = parsed.hostname.toLowerCase();
   if (parsed.protocol !== "https:" || !VENICE_CHARACTER_SHARE_HOSTS.has(host)) return undefined;
-  if (!/^\/characters(?:\/|$)/i.test(parsed.pathname)) return undefined;
+  if (!/^(?:\/characters(?:\/|$)|\/c\/[A-Za-z0-9_-]+\/?$)/i.test(parsed.pathname)) return undefined;
   parsed.hash = "";
   return parsed.toString();
 }
@@ -106,6 +106,7 @@ export function normalizeCharacter(raw: unknown): VeniceCharacter | null {
     if (typeof s.userRating === "number" && Number.isFinite(s.userRating)) out.userRating = s.userRating;
     return Object.keys(out).length > 0 ? out : undefined;
   })();
+  const modelId = typeof r.modelId === "string" && r.modelId.trim() ? r.modelId.trim() : undefined;
   return {
     id,
     slug,
@@ -118,7 +119,7 @@ export function normalizeCharacter(raw: unknown): VeniceCharacter | null {
     photoUrl: resolveCharacterImageUrl(raw) ?? undefined,
     tags,
     webEnabled: r.webEnabled === true,
-    modelId: typeof r.modelId === "string" ? r.modelId : undefined,
+    modelId,
     createdAt: typeof r.createdAt === "string" ? r.createdAt : undefined,
     updatedAt: typeof r.updatedAt === "string" ? r.updatedAt : undefined,
     stats,

@@ -178,7 +178,7 @@ The same matrix is encoded in `npm run ci`. The release workflow also runs `veri
 The archive-hygiene gate exists to make sure that **no local config, secrets, dist output, or generated artifacts** end up in a ZIP you share with a third-party (including a GPT context drop, a contractor handoff, or a public mirror). Before zipping, run:
 
 ```bash
-cd /Users/super_user/Projects/Venice_Forge
+cd /path/to/your/projects
 node scripts/verify-archive-clean.cjs
 ```
 

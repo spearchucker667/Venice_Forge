@@ -1167,7 +1167,7 @@ export function registerIpcHandlers(): void {
       if (rec.version !== 1 || typeof rec.id !== "string") {
         return { ok: false, error: "Invalid record structure" };
       }
-      if (rec.id.length > 128 || rec.id.includes("\0")) {
+      if (rec.id.length > 128 || rec.id.includes("\0") || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(rec.id)) {
         return { ok: false, error: "Invalid record id" };
       }
       const { saveConversation } = await import("../services/conversationVault");
@@ -1179,7 +1179,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle("conversations:delete", async (_event, id: unknown) => {
     try {
-      if (typeof id !== "string" || id.length > 128 || id.includes("\0")) {
+      if (typeof id !== "string" || id.length > 128 || id.includes("\0") || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(id)) {
         return { ok: false, error: "Invalid conversation id" };
       }
       const { deleteConversation } = await import("../services/conversationVault");
@@ -1191,7 +1191,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle("conversations:archive", async (_event, id: unknown) => {
     try {
-      if (typeof id !== "string" || id.length > 128 || id.includes("\0")) {
+      if (typeof id !== "string" || id.length > 128 || id.includes("\0") || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(id)) {
         return { ok: false, error: "Invalid conversation id" };
       }
       const { archiveConversation } = await import("../services/conversationVault");

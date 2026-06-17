@@ -60,7 +60,7 @@ export const DIAG_HEADER_NAMES = [
   "x-venice-is-adult-model-content-violation"
 ];
 
-/** Default system prompt applied to new chat conversations. */
+/** Legacy fallback label only. New chat conversations do not inject this unless explicitly configured. */
 export const DEFAULT_SYSTEM_PROMPT = "You are a precise, useful AI assistant inside Venice Forge.";
 
 /** IndexedDB object store names used by the application. */

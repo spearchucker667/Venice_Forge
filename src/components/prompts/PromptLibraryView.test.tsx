@@ -45,6 +45,15 @@ describe("PromptLibraryView (VERIFY-046)", () => {
     expect(usePromptLibraryStore.getState().activePromptId).toBeTruthy();
   });
 
+  it("seeds new prompts with non-empty content so they survive load-time sanitization (PROMPT-001 regression)", async () => {
+    render(<PromptLibraryView />);
+    fireEvent.click(screen.getByTestId("prompt-library-new"));
+    await flush();
+    const item = usePromptLibraryStore.getState().prompts[0]!;
+    expect(item.versions).toHaveLength(1);
+    expect(item.versions[0]!.content.trim().length).toBeGreaterThan(0);
+  });
+
   it("filters by kind", async () => {
     render(<PromptLibraryView />);
     fireEvent.click(screen.getByTestId("prompt-library-new")); // v1 = general

@@ -1,3 +1,6 @@
+# Source: https://api.venice.ai/doc/api/swagger.yaml
+# Retrieved: 2026-06-17
+# Diff summary: Refreshed from current Venice OpenAPI YAML; canonical path retained.
 externalDocs:
   description: Venice.ai API documentation
   url: https://docs.venice.ai
@@ -5,7 +8,7 @@ info:
   description: The Venice.ai API.
   termsOfService: https://venice.ai/legal/tos
   title: Venice.ai API
-  version: "20260610.174719"
+  version: "20260617.063120"
   x-guidance: >-
     Venice.ai is an OpenAI-compatible inference API supporting text, image,
     audio, and video generation.
@@ -26,9 +29,9 @@ info:
     2. Choose one of the returned Base or Solana payment options and sign a USDC
     payment using the x402 SDK
 
-    3. POST /x402/top-up with X-402-Payment header to add credits
+    3. POST /x402/top-up with PAYMENT-SIGNATURE header to add credits
 
-    4. Call any inference endpoint with X-Sign-In-With-X header
+    4. Call any inference endpoint with SIGN-IN-WITH-X header
 
 
     **Pricing:** Prepaid credits consumed per request. Check /models for
@@ -67,7 +70,7 @@ tags:
 
       **How it works:**
 
-      1. **Authenticate** — Send an `X-Sign-In-With-X` header (base64-encoded
+      1. **Authenticate** — Send a `SIGN-IN-WITH-X` header (base64-encoded
       signed SIWX payload) with any request. EVM wallets sign an EIP-4361 SIWE
       message; Solana wallets sign the Solana SIWX message with Ed25519. See the
       `siwx` security scheme for the exact format.
@@ -75,7 +78,8 @@ tags:
       2. **Top up** — `POST /x402/top-up` without a payment header returns an
       `accepts` array with Base and Solana USDC payment options. Choose one
       entry, sign it using the x402 SDK (`npm install x402`), and re-submit with
-      the `X-402-Payment` header.
+      the `PAYMENT-SIGNATURE` header (the legacy `X-402-Payment` and `X-PAYMENT`
+      names are also accepted).
 
       3. **Use any endpoint** — All inference endpoints (chat, image, audio,
       video, embeddings) accept `siwx` as an alternative to `BearerAuth`.
@@ -140,9 +144,9 @@ components:
 
         **EVM SIWE message fields:**
 
-        - `domain`: `outerface.venice.ai`
+        - `domain`: `api.venice.ai`
 
-        - `uri`: `https://outerface.venice.ai`
+        - `uri`: `https://api.venice.ai`
 
         - `version`: `"1"`
 
@@ -167,9 +171,9 @@ components:
 
         const wallet = new Wallet(PRIVATE_KEY)
 
-        const msg = new SiweMessage({ domain: 'outerface.venice.ai', address:
+        const msg = new SiweMessage({ domain: 'api.venice.ai', address:
         wallet.address, statement: 'Sign in to Venice API', uri:
-        'https://outerface.venice.ai', version: '1', chainId: 8453, nonce:
+        'https://api.venice.ai', version: '1', chainId: 8453, nonce:
         crypto.randomUUID().replace(/-/g, '').slice(0, 16), issuedAt: new
         Date().toISOString(), expirationTime: new Date(Date.now() +
         600000).toISOString() })
@@ -180,7 +184,7 @@ components:
         msg.prepareMessage(), signature, timestamp: Date.now(), chainId: 8453
         }))
 
-        // Set header: X-Sign-In-With-X: <header>
+        // Set header: SIGN-IN-WITH-X: <header>
 
         ```
 
@@ -201,7 +205,7 @@ components:
         via `POST /x402/top-up`. When balance is insufficient, endpoints return
         `402` with structured top-up instructions.
       in: header
-      name: X-Sign-In-With-X
+      name: SIGN-IN-WITH-X
       type: apiKey
   schemas:
     StandardError:
@@ -376,6 +380,12 @@ components:
                 additionalProperties: false
               description: Protocol payment requirements. Clients should choose one entry,
                 such as Base or Solana, and sign exactly that requirement.
+            extensions:
+              type: object
+              properties: {}
+              description: Protocol extensions. Inference 402 responses include
+                `sign-in-with-x` with a SIWX challenge for wallet-credit
+                authentication.
             authOptions:
               type: object
               properties:
@@ -405,6 +415,10 @@ components:
                     header:
                       type: string
                       description: Header used for Sign-In-With-X wallet authentication.
+                      example: SIGN-IN-WITH-X
+                    legacyHeader:
+                      type: string
+                      description: Legacy Sign-In-With-X header accepted during migration.
                       example: X-Sign-In-With-X
                     topUp:
                       type: string
@@ -416,6 +430,7 @@ components:
                       example: https://docs.venice.ai/api-reference/endpoint/x402/top-up
                   required:
                     - header
+                    - legacyHeader
                     - topUp
                     - docs
                   additionalProperties: false
@@ -504,7 +519,7 @@ components:
                 step3:
                   type: string
                   description: "Third step: submit the payment."
-                  example: POST /api/v1/x402/top-up with the signed X-402-Payment header
+                  example: POST /api/v1/x402/top-up with the signed PAYMENT-SIGNATURE header
                 receiverWallet:
                   type: string
                   description: Legacy Base receiver wallet address. Prefer the selected accepts
@@ -3718,7 +3733,10 @@ components:
             - 3:2
             - 3:4
             - 4:3
+            - 4:5
+            - 5:4
             - 9:16
+            - 9:21
             - 16:9
             - 21:9
           description: The aspect ratio of the video. Available options vary by model.
@@ -3893,7 +3911,10 @@ components:
             - 3:2
             - 3:4
             - 4:3
+            - 4:5
+            - 5:4
             - 9:16
+            - 9:21
             - 16:9
             - 21:9
           description: The aspect ratio. Required for some models with megapixel-rate
@@ -4685,7 +4706,7 @@ components:
         id:
           type: string
           description: Model ID
-          example: zai-org-glm-5-1
+          example: zai-org-glm-5-2
         model_spec:
           type: object
           properties:
@@ -4693,7 +4714,7 @@ components:
               type: number
               description: The context length supported by the model. Only applicable for text
                 models.
-              example: 200000
+              example: 1000000
             maxCompletionTokens:
               type: number
               description: The maximum number of completion tokens the model can generate. Use
@@ -5195,11 +5216,11 @@ components:
             name:
               type: string
               description: The name of the model.
-              example: GLM 5.1
+              example: GLM 5.2
             modelSource:
               type: string
               description: The source of the model, such as a URL to the model repository.
-              example: https://huggingface.co/zai-org/GLM-5.1
+              example: https://huggingface.co/zai-org/GLM-5.2
             offline:
               type: boolean
               default: false
@@ -6113,10 +6134,11 @@ paths:
         API by setting stream=true in your request.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: createChatCompletion
       parameters:
         - description: Supported compression encodings (gzip, br). Only applied when
@@ -6404,6 +6426,24 @@ paths:
                     type: integer
                     description: The time at which the request was created.
                     example: 1677858240
+                  cost:
+                    type: object
+                    properties:
+                      diem:
+                        type: number
+                        minimum: 0
+                        description: The DIEM-denominated portion of the request cost.
+                        example: 0
+                      usd:
+                        type: number
+                        minimum: 0
+                        description: The USD-denominated portion of the request cost. Bundled credits
+                          are included as USD-equivalent cost.
+                        example: 0.00042
+                    required:
+                      - diem
+                      - usd
+                    description: The request cost split by billing currency.
                   id:
                     type: string
                     description: The ID of the request.
@@ -6645,6 +6685,9 @@ paths:
                         tool_calls: []
                       stop_reason: null
                   created: 1739928524
+                  cost:
+                    diem: 0
+                    usd: 0.00042
                   id: chatcmpl-a81fbc2d81a7a083bb83ccf9f44c6e5e
                   model: zai-org-glm-5-1
                   object: chat.completion
@@ -6693,8 +6736,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -6794,10 +6838,11 @@ paths:
         true` is set.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: createResponse
       security:
         - BearerAuth: []
@@ -7059,8 +7104,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -7109,10 +7155,11 @@ paths:
         Generate an image based on input parameters
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: generateImage
       parameters:
         - description: Supported compression encodings (gzip, br). Only applied when
@@ -7279,8 +7326,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -7344,10 +7392,11 @@ paths:
         OpenAI endpoint.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: simpleGenerateImage
       parameters:
         - description: Supported compression encodings (gzip, br).
@@ -7490,8 +7539,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -7602,10 +7652,11 @@ paths:
         base64-encoded string in a JSON request.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: upscaleImage
       requestBody:
         content:
@@ -7669,8 +7720,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -7737,10 +7789,11 @@ paths:
         Use output_format to request jpeg, jpg, png, or webp output.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: editImage
       requestBody:
         content:
@@ -7895,8 +7948,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -7978,10 +8032,11 @@ paths:
 
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: multiEditImage
       requestBody:
         content:
@@ -8126,8 +8181,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -8191,10 +8247,11 @@ paths:
         transparent background.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: backgroundRemoveImage
       requestBody:
         content:
@@ -8258,8 +8315,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -10510,10 +10568,11 @@ paths:
         Create embeddings for the supplied input.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: createEmbedding
       parameters:
         - description: Supported compression encodings (gzip, br)
@@ -10654,8 +10713,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -10724,10 +10784,11 @@ paths:
         /models?type=tts.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: createSpeech
       requestBody:
         content:
@@ -10811,8 +10872,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -10879,10 +10941,11 @@ paths:
         Transcribes audio into the input language.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: createTranscription
       requestBody:
         content:
@@ -11008,8 +11071,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -11115,10 +11179,11 @@ paths:
         HTTP 400 before any upload.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: createClonedVoice
       requestBody:
         content:
@@ -11199,8 +11264,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -11277,10 +11343,11 @@ paths:
         calling the retrieve API.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: completeVideo
       security:
         - BearerAuth: []
@@ -11349,8 +11416,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -11393,10 +11461,11 @@ paths:
         Queue a new video generation request.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: queueVideo
       security:
         - BearerAuth: []
@@ -11478,8 +11547,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -11638,10 +11708,11 @@ paths:
         or a status if the request is still processing.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: retrieveVideo
       security:
         - BearerAuth: []
@@ -11729,8 +11800,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -11801,10 +11873,11 @@ paths:
         Transcribes video audio from a public URL.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: createVideoTranscription
       requestBody:
         content:
@@ -11880,8 +11953,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -11942,10 +12016,11 @@ paths:
         immediately discarded — no content is stored or logged.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: createTextParser
       requestBody:
         content:
@@ -12038,8 +12113,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -12097,10 +12173,11 @@ paths:
         request.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: completeAudio
       security:
         - BearerAuth: []
@@ -12170,8 +12247,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -12214,10 +12292,11 @@ paths:
         Queue a new audio generation request.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: queueAudio
       security:
         - BearerAuth: []
@@ -12300,8 +12379,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -12403,10 +12483,11 @@ paths:
         time. If complete, returns the audio data.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: retrieveAudio
       security:
         - BearerAuth: []
@@ -12501,8 +12582,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -13312,10 +13394,11 @@ paths:
         returns 400 to prevent silent corruption.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: cryptoRpcProxy
       parameters:
         - description: Venice-side network slug. Call `GET /api/v1/crypto/rpc/networks`
@@ -13620,9 +13703,10 @@ paths:
       operationId: getX402Balance
       parameters:
         - description: base64-encoded JSON SIWX payload proving EVM or Solana wallet
-            ownership
+            ownership. The legacy `X-Sign-In-With-X` header is also accepted
+            during migration.
           in: header
-          name: X-Sign-In-With-X
+          name: SIGN-IN-WITH-X
           required: true
           schema:
             example: siwx_example_token
@@ -13724,8 +13808,10 @@ paths:
   /x402/top-up:
     post:
       description: >-
-        Top up your Venice credit balance using an `X-402-Payment` header. If
-        the header is missing, the endpoint returns payment requirements.
+        Top up your Venice credit balance using a `PAYMENT-SIGNATURE` header
+        (the legacy `X-402-Payment` and `X-PAYMENT` header names are also
+        accepted). If the header is missing, the endpoint returns payment
+        requirements.
 
 
         This is the primary x402 payment endpoint. It currently returns Base and
@@ -13734,10 +13820,14 @@ paths:
         you establish here.
       operationId: topUpX402Balance
       parameters:
-        - description: Signed x402 payment payload used to top up the wallet balance on a
-            supported rail such as Base or Solana.
+        - description: Signed x402 v2 payment payload (base64-encoded `PaymentPayload`)
+            used to top up the wallet balance on a supported rail such as Base
+            or Solana. The canonical header is `PAYMENT-SIGNATURE`; the
+            `X-402-Payment` and `X-PAYMENT` names are also accepted for
+            backwards compatibility. If no payment header is present, the
+            endpoint returns the 402 payment requirements.
           in: header
-          name: X-402-Payment
+          name: PAYMENT-SIGNATURE
           required: false
           schema:
             example: eyJ4NDAyVmVyc2lvbiI6MiwicGF5bG9hZCI6Ii4uLiJ9
@@ -13766,6 +13856,12 @@ paths:
       responses:
         "200":
           description: Top-up completed successfully.
+          headers:
+            PAYMENT-RESPONSE:
+              description: Base64-encoded x402 v2 settlement result (`{ success, network,
+                payer, transaction }`).
+              schema:
+                type: string
           content:
             application/json:
               schema:
@@ -13845,32 +13941,34 @@ paths:
                     items:
                       type: object
                       properties:
-                        protocol:
+                        scheme:
                           type: string
                           enum:
-                            - x402
-                          description: Payment protocol identifier.
-                        version:
-                          type: number
-                          description: Protocol version.
-                          example: 2
+                            - exact
+                          description: x402 payment scheme.
+                          example: exact
                         network:
                           type: string
-                          description: Payment network. Base uses CAIP-2 EIP-155 format; Solana uses the
-                            x402 Solana network alias.
-                          example: solana
-                        asset:
-                          type: string
-                          description: USDC token address or mint for the selected network.
-                          example: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+                          description: Payment network in CAIP-2 form (e.g. `eip155:8453` for Base,
+                            `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp` for Solana
+                            mainnet).
+                          example: solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp
                         amount:
                           type: string
                           description: Minimum payment amount in base units (USDC has 6 decimals).
                           example: "5000000"
+                        asset:
+                          type: string
+                          description: USDC token address or mint for the selected network.
+                          example: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
                         payTo:
                           type: string
                           description: Receiver wallet address.
                           example: 8qUL23aSj7mDWdoLMXGHFvnVCT9wd7jXcysiekroADEL
+                        maxTimeoutSeconds:
+                          type: number
+                          description: Maximum time allowed for payment settlement, in seconds.
+                          example: 300
                         extra:
                           type: object
                           properties: {}
@@ -13880,12 +13978,12 @@ paths:
                             version: "2"
                             feePayer: BFK9TLC3edb13K6v4YyH3DwPb5DSUpkWvb7XnqCL9b4F
                       required:
-                        - protocol
-                        - version
+                        - scheme
                         - network
-                        - asset
                         - amount
+                        - asset
                         - payTo
+                        - maxTimeoutSeconds
                       additionalProperties: false
                     description: Array of accepted payment options.
                 required:
@@ -13931,9 +14029,10 @@ paths:
       operationId: getX402Transactions
       parameters:
         - description: base64-encoded JSON SIWX payload proving EVM or Solana wallet
-            ownership
+            ownership. The legacy `X-Sign-In-With-X` header is also accepted
+            during migration.
           in: header
-          name: X-Sign-In-With-X
+          name: SIGN-IN-WITH-X
           required: true
           schema:
             example: siwx_example_token
@@ -14104,10 +14203,11 @@ paths:
         automated access are rejected immediately.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: webScrape
       security:
         - BearerAuth: []
@@ -14167,8 +14267,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**
@@ -14235,10 +14336,11 @@ paths:
         search queries.
 
 
-        **Authentication:** This endpoint accepts either a Bearer API key or an
-        `X-Sign-In-With-X` header for x402 wallet-based authentication. When
-        using x402, a `402 Payment Required` response indicates insufficient
-        balance and includes top-up instructions.
+        **Authentication:** This endpoint accepts either a Bearer API key or a
+        `SIGN-IN-WITH-X` header for x402 wallet-based authentication. The legacy
+        `X-Sign-In-With-X` header is also accepted during migration. When using
+        x402, a `402 Payment Required` response indicates insufficient balance
+        and includes top-up instructions.
       operationId: webSearch
       security:
         - BearerAuth: []
@@ -14298,8 +14400,9 @@ paths:
 
 
             **Unauthenticated x402 discovery:** Structured x402 response with
-            `x402Version`, `resource`, `accepts`, and `authOptions`. The
-            `accepts` array advertises Base and Solana payment requirements.
+            `x402Version`, `resource`, `accepts`, and
+            `extensions["sign-in-with-x"]`. The `accepts` array advertises Base
+            and Solana payment requirements.
 
 
             **Authenticated x402 wallet users with insufficient credit:**

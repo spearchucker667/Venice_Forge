@@ -20,6 +20,7 @@ export interface ConversationMessage {
     tokenEstimate?: number;
     attachments?: string[];
     injectedContext?: string;
+    injectedContextSource?: "memory" | "prior_context" | "approved_context" | "mixed";
   };
 }
 
@@ -54,6 +55,7 @@ export interface Conversation {
      *  selected character changes later, the conversation always uses
      *  the slug that was active when the chat began. */
     character?: ConversationCharacterMeta;
+    memoryRetrievalDisabled?: boolean;
   };
   memory?: {
     summary: string;

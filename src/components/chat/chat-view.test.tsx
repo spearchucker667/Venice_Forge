@@ -225,7 +225,13 @@ describe("ChatView", () => {
     await userEvent.type(screen.getByLabelText("Message input"), "Hello");
     await userEvent.keyboard("{Enter}");
 
-    expect(chatHookMocks.send).toHaveBeenCalledWith("Hello", "llama-3.3-70b", undefined, "");
+    expect(chatHookMocks.send).toHaveBeenCalledWith(
+      "Hello",
+      "llama-3.3-70b",
+      undefined,
+      "",
+      { mode: "auto", source: "global" },
+    );
   });
 
   it("injects only selected prior conversation context when enabled", async () => {
@@ -267,5 +273,55 @@ describe("ChatView", () => {
     expect(explicitContext).toContain("selected prior detail");
     expect(explicitContext).not.toContain("Prior Beta");
     expect(explicitContext).not.toContain("unselected prior detail");
+  });
+
+  it("passes approved preview context explicitly on Confirm & Send", async () => {
+    useChatStore.setState({
+      pendingContext: {
+        injectedText: "[Local Memory Context]\nAPPROVED",
+        facts: [],
+        summaries: ["Summary A"],
+        tokenEstimate: 10,
+        message: "Use memory",
+      },
+    });
+
+    render(<ChatView />);
+    await userEvent.click(screen.getByRole("button", { name: "Confirm & Send" }));
+
+    expect(chatHookMocks.send).toHaveBeenCalledWith(
+      "Use memory",
+      "llama-3.3-70b",
+      undefined,
+      "",
+      {
+        mode: "approved_context",
+        approvedContext: "[Local Memory Context]\nAPPROVED",
+        source: "preview",
+      },
+    );
+  });
+
+  it("passes disabled_for_message explicitly from the memory preview", async () => {
+    useChatStore.setState({
+      pendingContext: {
+        injectedText: "[Local Memory Context]\nSHOULD_NOT_SEND",
+        facts: [],
+        summaries: [],
+        tokenEstimate: 10,
+        message: "No memory",
+      },
+    });
+
+    render(<ChatView />);
+    await userEvent.click(screen.getByRole("button", { name: "Disable Memory for This Message" }));
+
+    expect(chatHookMocks.send).toHaveBeenCalledWith(
+      "No memory",
+      "llama-3.3-70b",
+      undefined,
+      "",
+      { mode: "disabled_for_message", source: "preview" },
+    );
   });
 });

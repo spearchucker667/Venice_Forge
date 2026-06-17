@@ -26,6 +26,20 @@ let cachedVaultKey: Buffer | null = null;
 let keyId: string = "default-key-id";
 const writeQueue = new ConversationWriteQueue();
 
+const VALID_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/;
+
+export function isValidConversationId(id: unknown): id is string {
+  return typeof id === "string" && VALID_ID_RE.test(id);
+}
+
+/** Ensures a resolved record path stays inside the conversations directory. */
+function assertWithinConversationsDir(resolvedPath: string): void {
+  const relative = path.relative(CONVERSATIONS_DIR, resolvedPath);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new Error("Resolved path escapes conversations directory");
+  }
+}
+
 // In-memory manifest cache
 export interface ManifestConversationV1 {
   id: string;
@@ -380,11 +394,14 @@ export async function listConversations(filter?: {
  * Gets a single conversation by ID.
  */
 export async function getConversation(id: string): Promise<ConversationRecordV1 | null> {
+  if (!isValidConversationId(id)) return null;
+
   const manifest = await getOrLoadManifest();
   const c = manifest.conversations.find((item) => item.id === id);
   if (!c) return null;
 
   const recordPath = getRecordPath(id, c.createdAt);
+  assertWithinConversationsDir(recordPath);
   const decrypted = await readEncryptedFile(recordPath, "conversation-record", id);
   if (!decrypted) return null;
 
@@ -403,10 +420,14 @@ export async function saveConversation(record: ConversationRecordV1): Promise<{ 
   if (!record || typeof record !== "object" || record.version !== 1 || !record.id) {
     return { ok: false, id: record?.id, error: "Invalid conversation record" };
   }
+  if (!isValidConversationId(record.id)) {
+    return { ok: false, id: record.id, error: "Invalid conversation id" };
+  }
 
   return writeQueue.enqueue(record.id, async () => {
     try {
       const recordPath = getRecordPath(record.id, record.createdAt);
+      assertWithinConversationsDir(recordPath);
       await writeEncryptedFile(
         recordPath,
         JSON.stringify(record, null, 2),
@@ -465,6 +486,10 @@ export async function saveConversation(record: ConversationRecordV1): Promise<{ 
  * Deletes a conversation record and its attachments.
  */
 export async function deleteConversation(id: string): Promise<{ ok: boolean; error?: string }> {
+  if (!isValidConversationId(id)) {
+    return { ok: false, error: "Invalid conversation id" };
+  }
+
   const manifest = await getOrLoadManifest();
   const c = manifest.conversations.find((item) => item.id === id);
   if (!c) return { ok: false, error: "Conversation not found" };
@@ -472,6 +497,7 @@ export async function deleteConversation(id: string): Promise<{ ok: boolean; err
   return writeQueue.enqueue(id, async () => {
     try {
       const recordPath = getRecordPath(id, c.createdAt);
+      assertWithinConversationsDir(recordPath);
       await fs.unlink(recordPath).catch(() => {});
 
       // Delete attachments folder

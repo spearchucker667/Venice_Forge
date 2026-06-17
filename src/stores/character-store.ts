@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { listCharacters, getCharacter } from "../services/characterService";
 import { redactErrorMessage } from "../shared/redaction";
+import * as logger from "../shared/logger";
 import type {
   CharacterSortBy,
   CharacterSortOrder,
@@ -125,7 +126,7 @@ export const useCharacterStore = create<CharacterState>((set, get) => ({
         hasMore: list.length >= DEFAULT_PAGE_SIZE,
       });
     } catch (err) {
-      console.error("[character-store] Failed to load characters", err);
+      logger.error("[character-store] Failed to load characters", err);
       set({ isLoading: false, error: redactErrorMessage(err) });
     }
   },
@@ -152,7 +153,7 @@ export const useCharacterStore = create<CharacterState>((set, get) => ({
         hasMore: list.length >= DEFAULT_PAGE_SIZE,
       }));
     } catch (err) {
-      console.error("[character-store] Failed to load more characters", err);
+      logger.error("[character-store] Failed to load more characters", err);
       set({ isLoading: false, error: redactErrorMessage(err) });
     }
   },
@@ -174,7 +175,7 @@ export const useCharacterStore = create<CharacterState>((set, get) => ({
       set({ selectedCharacter: character, selectedCharacterSlug: character.slug });
       return character;
     } catch (err) {
-      console.error("[character-store] Failed to fetch character", err);
+      logger.error("[character-store] Failed to fetch character", err);
       set({ error: redactErrorMessage(err) });
       return null;
     }

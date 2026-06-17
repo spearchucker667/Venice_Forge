@@ -148,7 +148,7 @@ export function PromptLibraryView() {
                 const created = await createPrompt({
                   title: "Untitled prompt",
                   kind: "general",
-                  content: "",
+                  content: "(empty draft — replace with your prompt)",
                   scope: "global",
                 });
                 setActivePrompt(created.id);

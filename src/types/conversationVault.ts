@@ -41,6 +41,14 @@ export interface ConversationCharacterMeta {
   /** Local character system prompt / personality text injected as the
    *  first system message. */
   systemPrompt?: string;
+  tags?: string[];
+  stats?: {
+    averageRating?: number;
+    imports?: number;
+    ratingCount?: number;
+    ratingSum?: number;
+    userRating?: number;
+  };
 }
 
 export interface ConversationMessage {
@@ -55,6 +63,7 @@ export interface ConversationMessage {
     tokenEstimate?: number;
     attachments?: string[];
     injectedContext?: string;
+    injectedContextSource?: "memory" | "prior_context" | "approved_context" | "mixed";
   };
 }
 
@@ -92,6 +101,7 @@ export interface ConversationRecordV1 {
       migratedAt: number;
     };
     character?: ConversationCharacterMeta;
+    memoryRetrievalDisabled?: boolean;
   };
   memory: {
     summary: string;

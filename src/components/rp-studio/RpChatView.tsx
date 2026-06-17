@@ -196,7 +196,11 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
     try {
       const messages = [
         ...systemMessages.map((m) => ({ role: "system" as const, content: m.content })),
-        ...recentMessages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+        ...recentMessages.map((m) => {
+          const role: "user" | "assistant" = m.role === "user" ? "user" : "assistant";
+          const prefix = m.role === "character" || m.role === "narrator" ? `[${m.role}] ` : "";
+          return { role, content: `${prefix}${m.content}` };
+        }),
         { role: "user" as const, content: userMessage.content },
       ];
       await veniceStreamChat(

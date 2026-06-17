@@ -1058,7 +1058,10 @@ export async function veniceStreamChat(
         }),
       });
       if (!response.ok) {
-        throw new Error(normalizeError(response.status, readDesktopErrorBody(response.body)));
+        const errorMsg = normalizeError(response.status, readDesktopErrorBody(response.body));
+        const error: VeniceApiError = new Error(errorMsg);
+        error.status = response.status;
+        throw error;
       }
       useInspectorStore.getState().updateLog(
         logId,
@@ -1156,7 +1159,9 @@ export async function veniceStreamChat(
       });
 
       if (!response.ok) {
-        throw new Error(streamError);
+        const error: VeniceApiError = new Error(streamError);
+        error.status = response.status;
+        throw error;
       }
 
       if (!response.body || typeof response.body.getReader !== "function")
@@ -1325,6 +1330,24 @@ function readVeniceErrorBody(body: unknown): string {
   return String(record.detail || "");
 }
 
+/** Runs the renderer-side Family Safe Mode guard for the legacy web surface.
+ *  Throws `SafetyGuardBlockedError` when the payload is blocked. GET requests
+ *  and undefined bodies are skipped (they carry no user content). */
+function enforceLegacyWebGuard(
+  endpoint: string,
+  method: string,
+  body: unknown,
+): void {
+  if (method !== "POST" || body === undefined || isElectron()) return;
+  const decision = maybeRunLocalFamilyGuard(
+    { endpoint, method, payload: body, source: "venice-client" },
+    useSettingsStore.getState().localFamilySafeModeEnabled,
+  );
+  if (!decision.allowed) {
+    throw new SafetyGuardBlockedError({ ...decision.guardDecision, userMessage: decision.userMessage });
+  }
+}
+
 /** Web-mode fallback used by the legacy surface: fetch through the Express
  *  proxy with the same error-body extraction and abort-signal forwarding as
  *  the desktop path. */
@@ -1394,6 +1417,7 @@ export async function venice<T>(
   }
 
   if (!isElectron()) {
+    enforceLegacyWebGuard(path, method, parsedBody);
     const response = await webVeniceFetch(path, { method, body: parsedBody, signal: options.signal });
     if (options.signal && options.signal.aborted) throw new Error("Aborted");
     if (!response.ok) {
@@ -1430,7 +1454,7 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
   if (init.signal?.aborted) throw new Error("Aborted");
 
   if (!isElectron()) {
-
+    enforceLegacyWebGuard(path, "POST", body);
     const url = `${PROXY_BASE_PATH}${path.replace("/api/v1", "")}`;
     const fetchResponse = await fetch(url, {
       method: "POST",
@@ -1480,6 +1504,7 @@ export async function veniceFormData<T>(path: string, formData: FormData, init: 
   if (init.signal?.aborted) throw new Error("Aborted");
 
   if (!isElectron()) {
+    enforceLegacyWebGuard(path, "POST", formData);
     const url = `${PROXY_BASE_PATH}${path.replace("/api/v1", "")}`;
     const response = await fetch(url, {
       method: "POST",

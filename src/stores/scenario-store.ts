@@ -18,6 +18,7 @@ import {
 } from "../types/rp";
 import { sanitizeErrorText } from "../shared/redaction";
 import { toast } from "./toast-store";
+import * as logger from "../shared/logger";
 
 export interface ScenarioState {
   scenarios: ScenarioV1[];
@@ -98,7 +99,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       const sorted = items.slice().sort((a, b) => b.updatedAt - a.updatedAt);
       set({ scenarios: sorted, isLoading: false, hasLoaded: true });
     } catch (e) {
-      console.error("[scenario-store] Failed to load scenarios", e);
+      logger.error("[scenario-store] Failed to load scenarios", e);
       set({
         isLoading: false,
         error: sanitizeErrorText(e instanceof Error ? e.message : String(e)),
@@ -161,7 +162,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       });
       return saved;
     } catch (e) {
-      console.error("[scenario-store] Failed to save scenario", e);
+      logger.error("[scenario-store] Failed to save scenario", e);
       set({ error: sanitizeErrorText(e instanceof Error ? e.message : String(e)) });
       toast.error("Could not save scenario", "Please try again.");
       return null;
@@ -181,7 +182,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       }));
       return true;
     } catch (e) {
-      console.error("[scenario-store] Failed to delete scenario", e);
+      logger.error("[scenario-store] Failed to delete scenario", e);
       set({ error: sanitizeErrorText(e instanceof Error ? e.message : String(e)) });
       toast.error("Could not delete scenario", "Please try again.");
       return false;

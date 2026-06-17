@@ -12,6 +12,7 @@ import type { PulledMemoryContext } from '../types/conversationVault'
 import { toConversationRecord } from './chat-store-helpers'
 import { useSettingsStore } from './settings-store' // for defaulting projectRefs to active project on create (polished Phase 1)
 import { desktopChat, desktopConversations } from '../services/desktopBridge'
+import { redactErrorMessage } from '../shared/redaction'
 import * as logger from '../shared/logger'
 
 
@@ -68,6 +69,7 @@ interface ChatState {
   appendReasoningToLastAssistant: (conversationId: string, token: string) => void
   deleteMessage: (conversationId: string, index: number) => void
   setMessageMetadata: (conversationId: string, messageIndex: number, metadataPatch: Record<string, unknown>) => void
+  setConversationMemoryDisabled: (conversationId: string, disabled: boolean) => void
   setStreaming: (streaming: boolean) => void
   setVeniceParams: (params: Partial<VeniceParameters>) => void
   setSystemPrompt: (prompt: string) => void
@@ -103,7 +105,7 @@ export const useChatStore = create<ChatState>()(
       activeConversationId: null,
       isStreaming: false,
       veniceParams: {
-        include_venice_system_prompt: false,
+        include_venice_system_prompt: true,
         enable_web_search: 'off',
       },
       systemPrompt: '',
@@ -163,6 +165,8 @@ export const useChatStore = create<ChatState>()(
           modelId: character.modelId,
           adult: character.adult,
           webEnabled: character.webEnabled,
+          tags: character.tags,
+          stats: character.stats,
         }
         const preferredModel =
           (character.modelId && character.modelId.trim()) || fallbackModel || 'llama-3.3-70b'
@@ -181,6 +185,7 @@ export const useChatStore = create<ChatState>()(
             source: 'character',
             messageCount: 0,
             character: characterMeta,
+            memoryRetrievalDisabled: true,
           },
           memory: {
             summary: `Chat with ${character.name}`,
@@ -227,6 +232,7 @@ export const useChatStore = create<ChatState>()(
             source: 'localCharacter',
             messageCount: 0,
             character: characterMeta,
+            memoryRetrievalDisabled: true,
           },
           memory: {
             summary: `Chat with ${card.name || 'local character'}`,
@@ -273,13 +279,13 @@ export const useChatStore = create<ChatState>()(
               deleted.push(id)
               continue
             }
-            const error = chatRes.error || convRes.error || 'Delete failed'
+            const error = redactErrorMessage(chatRes.error || convRes.error || 'Delete failed')
             failed.push({ id, error })
             logger.error('[chat] deleteConversation IPC failed', error)
           } catch (err) {
-            const error = err instanceof Error ? err.message : 'Delete failed'
+            const error = redactErrorMessage(err instanceof Error ? err.message : 'Delete failed')
             failed.push({ id, error })
-            logger.error('[chat] deleteConversation IPC failed', err)
+            logger.error('[chat] deleteConversation IPC failed', error)
           }
         }
 
@@ -395,6 +401,25 @@ export const useChatStore = create<ChatState>()(
           }),
         })),
 
+      setConversationMemoryDisabled: (conversationId, disabled) =>
+        set((s) => ({
+          conversations: s.conversations.map((c) => {
+            if (c.id !== conversationId) return c
+            return touchConversation({
+              ...c,
+              metadata: {
+                tags: c.metadata?.tags ?? [],
+                pinned: c.metadata?.pinned ?? false,
+                archived: c.metadata?.archived ?? false,
+                source: c.metadata?.source ?? 'chat',
+                messageCount: c.metadata?.messageCount ?? (c.messages?.length ?? 0),
+                ...c.metadata,
+                memoryRetrievalDisabled: disabled,
+              },
+            })
+          }),
+        })),
+
       setStreaming: (streaming) => set({ isStreaming: streaming }),
 
       setVeniceParams: (params) =>
@@ -418,7 +443,7 @@ export const useChatStore = create<ChatState>()(
         if (!persisted || typeof persisted !== 'object') return persisted as ChatState
         const s = persisted as Partial<ChatState>
         if (!s.veniceParams || typeof s.veniceParams !== 'object') {
-          s.veniceParams = { include_venice_system_prompt: false, enable_web_search: 'off' }
+          s.veniceParams = { include_venice_system_prompt: true, enable_web_search: 'off' }
         }
         if (version < 3) {
           // Remove conversations from local storage on version 3 upgrade
@@ -493,22 +518,24 @@ async function writeConversation(conv: Conversation): Promise<void> {
   const record = toConversationRecord(conv)
   try {
     const convRes = await desktopConversations.save(record)
-    if (!convRes.ok) {
-      const chatRes = await desktopChat.save(conv)
-      if (!chatRes.ok) {
-        logger.error('[chat] conversations.save failed', chatRes.error)
-      }
-    }
+    if (convRes.ok) return
+    const chatRes = await desktopChat.save(conv)
+    if (chatRes.ok) return
+    const error = redactErrorMessage(chatRes.error || 'Fallback chat save failed')
+    logger.error('[chat] conversations.save failed', error)
+    throw new Error(error)
   } catch (err) {
-    logger.error('[chat] conversations.save failed', err)
+    const error = redactErrorMessage(err instanceof Error ? err.message : 'Conversation save failed')
+    logger.error('[chat] conversations.save failed', error)
+    throw new Error(error)
   }
 }
 
 async function flushConversationSave(id: string): Promise<void> {
   const conv = dirtyConversations.get(id)
   if (!conv) return
-  dirtyConversations.delete(id)
   await writeConversation(conv)
+  dirtyConversations.delete(id)
 }
 
 /**
@@ -520,9 +547,9 @@ async function flushConversationSave(id: string): Promise<void> {
  *   - Tests (via `flushAllPendingSavesForTests`).
  *
  * Returns a promise that resolves once every pending write has been
- * dispatched. Errors from individual writes are logged but do NOT
- * reject the aggregate promise — one bad write should not stop the
- * rest from landing.
+ * attempted. Errors from individual writes are logged and the failing
+ * conversation is left in the dirty map so the next flush can retry —
+ * one bad write should not stop the rest from landing.
  */
 export async function flushAllPendingSaves(): Promise<void> {
   if (saveTimer !== null) {
@@ -530,8 +557,14 @@ export async function flushAllPendingSaves(): Promise<void> {
     saveTimer = null
   }
   const pending = Array.from(dirtyConversations.entries())
-  dirtyConversations.clear()
-  await Promise.all(pending.map(([, conv]) => writeConversation(conv)))
+  for (const [id, conv] of pending) {
+    try {
+      await writeConversation(conv)
+      dirtyConversations.delete(id)
+    } catch (err) {
+      logger.error('[chat] flush conversation save failed', redactErrorMessage(err))
+    }
+  }
 }
 
 /** Test-only: synchronously inspect the dirty map. */

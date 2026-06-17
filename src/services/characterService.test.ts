@@ -122,6 +122,9 @@ describe("characterService", () => {
       expect(resolveCharacterShareUrl(" https://venice.ai/characters/alan-watts#frag ")).toBe(
         "https://venice.ai/characters/alan-watts",
       );
+      expect(resolveCharacterShareUrl("https://venice.ai/c/alan-watts#frag")).toBe(
+        "https://venice.ai/c/alan-watts",
+      );
       expect(normalizeCharacter({
         id: "id-1",
         slug: "alan-watts",

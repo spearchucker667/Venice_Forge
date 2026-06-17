@@ -173,6 +173,9 @@ jobs:
       - name: Verify release artifacts
         run: npm run verify:dist:win
 
+      - name: Verify portable artifact
+        run: npm run verify:dist:portable
+
       - name: Verify archive hygiene (no tracked contaminants)
         run: node scripts/verify-archive-clean.cjs
 

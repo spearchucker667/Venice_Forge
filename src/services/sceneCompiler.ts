@@ -27,6 +27,7 @@ import {
   type ScenePromptRef,
 } from "../types/scene";
 import type { GenerationRecipe } from "../types/project";
+import { redactSecrets } from "../shared/redaction";
 
 const MAX_PROMPT_CHARS = 32_000;
 const MAX_NEGATIVE_CHARS = 8_000;
@@ -82,7 +83,7 @@ export interface SceneCompileResult {
 
 function componentText(c: SceneComponent): string {
   if (!c.enabled) return "";
-  const text = c.content.trim();
+  const text = redactSecrets(c.content.trim());
   if (!text) return "";
   return text;
 }
@@ -124,9 +125,11 @@ export function compileSceneToRecipe(
     for (const ref of promptRefs) {
       const resolved = resolvePrompt(ref);
       if (resolved) {
-        resolvedPrompts.push(resolved);
-        if (resolved.content) {
-          promptParts.push(resolved.content.trim());
+        const content = resolved.content ? redactSecrets(resolved.content.trim()) : "";
+        const negativeContent = resolved.negativeContent ? redactSecrets(resolved.negativeContent.trim()) : "";
+        resolvedPrompts.push({ ...resolved, content, negativeContent });
+        if (content) {
+          promptParts.push(content);
         }
       } else {
         unresolvedPrompts.push(ref);

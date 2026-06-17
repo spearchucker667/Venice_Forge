@@ -343,4 +343,38 @@ describe('MediaStudioView (GalleryView)', () => {
       expect(StorageService.patchMedia).toHaveBeenCalledWith('image-orphan-1', { childrenIds: [] }),
     )
   })
+
+  it('exports a reusable recipe as a JSON download (AUDIT-IMG-001 regression)', async () => {
+    const createObjectURL = vi.fn().mockReturnValue('blob:recipe')
+    URL.createObjectURL = createObjectURL
+    const clickSpy = vi.fn()
+    const originalCreateElement = document.createElement
+    vi.spyOn(document, 'createElement').mockImplementation((tag) => {
+      const el = originalCreateElement.call(document, tag)
+      if (tag.toLowerCase() === 'a') el.click = clickSpy
+      return el
+    })
+
+    const record = {
+      ...sampleRecord,
+      recipe: {
+        prompt: sampleRecord.prompt,
+        model: sampleRecord.model,
+      },
+    }
+    vi.mocked(StorageService.getItemsPageWithMeta).mockResolvedValue({
+      items: [record], decryptFailures: 0, total: 1, offset: 0, limit: 60, hasMore: false,
+    })
+    render(<GalleryView />)
+    await screen.findByText('Copper city at dusk')
+    fireEvent.doubleClick(screen.getByRole('button', { name: /open image: copper city at dusk/i }))
+    fireEvent.click(await screen.findByTestId('inspector-export-recipe'))
+
+    await waitFor(() => {
+      expect(createObjectURL).toHaveBeenCalled()
+      expect(clickSpy).toHaveBeenCalled()
+    })
+    const blob = createObjectURL.mock.calls[0][0] as Blob
+    expect(blob.type).toBe('application/json')
+  })
 })

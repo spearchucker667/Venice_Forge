@@ -99,6 +99,12 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+function sanitizeForPersist(item: SceneComposerItem): SceneComposerItem {
+  const sanitized = sanitizeSceneComposerItem(item, { now: nowIso() });
+  if (!sanitized) throw new Error("Scene sanitization failed");
+  return sanitized;
+}
+
 function dedupeTags(tags: string[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -174,18 +180,19 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
       },
       now,
     );
-    set((s) => ({ scenes: [item, ...s.scenes], activeSceneId: item.id }));
+    const sanitized = sanitizeForPersist(item);
+    set((s) => ({ scenes: [sanitized, ...s.scenes], activeSceneId: sanitized.id }));
     try {
-      await persistOne(item);
+      await persistOne(sanitized);
     } catch (err) {
       set((s) => ({
-        scenes: s.scenes.filter((p) => p.id !== item.id),
-        activeSceneId: s.activeSceneId === item.id ? null : s.activeSceneId,
+        scenes: s.scenes.filter((p) => p.id !== sanitized.id),
+        activeSceneId: s.activeSceneId === sanitized.id ? null : s.activeSceneId,
         loadError: redactErrorMessage(err),
       }));
       throw err;
     }
-    return item;
+    return sanitized;
   },
 
   updateScene: async (sceneId, patch) => {
@@ -205,11 +212,12 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
       defaultAspectRatio: patch.defaultAspectRatio ?? current.defaultAspectRatio,
       updatedAt: nowIso(),
     };
+    const sanitized = sanitizeForPersist(next);
     set((s) => ({
-      scenes: s.scenes.map((p) => (p.id === sceneId ? next : p)),
+      scenes: s.scenes.map((p) => (p.id === sceneId ? sanitized : p)),
     }));
     try {
-      await persistOne(next);
+      await persistOne(sanitized);
     } catch (err) {
       set((s) => ({
         scenes: s.scenes.map((p) => (p.id === sceneId ? current : p)),
@@ -249,11 +257,12 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
       versions: [...current.versions, version],
       updatedAt: now,
     };
+    const sanitized = sanitizeForPersist(next);
     set((s) => ({
-      scenes: s.scenes.map((p) => (p.id === sceneId ? next : p)),
+      scenes: s.scenes.map((p) => (p.id === sceneId ? sanitized : p)),
     }));
     try {
-      await persistOne(next);
+      await persistOne(sanitized);
     } catch (err) {
       set((s) => ({
         scenes: s.scenes.map((p) => (p.id === sceneId ? current : p)),
@@ -274,11 +283,12 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
       currentVersionId: versionId,
       updatedAt: nowIso(),
     };
+    const sanitized = sanitizeForPersist(next);
     set((s) => ({
-      scenes: s.scenes.map((p) => (p.id === sceneId ? next : p)),
+      scenes: s.scenes.map((p) => (p.id === sceneId ? sanitized : p)),
     }));
     try {
-      await persistOne(next);
+      await persistOne(sanitized);
     } catch (err) {
       set((s) => ({
         scenes: s.scenes.map((p) => (p.id === sceneId ? current : p)),
@@ -299,11 +309,12 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
       outputMediaIds: [...current.outputMediaIds, mediaId].slice(0, 512),
       updatedAt: nowIso(),
     };
+    const sanitized = sanitizeForPersist(next);
     set((s) => ({
-      scenes: s.scenes.map((p) => (p.id === sceneId ? next : p)),
+      scenes: s.scenes.map((p) => (p.id === sceneId ? sanitized : p)),
     }));
     try {
-      await persistOne(next);
+      await persistOne(sanitized);
     } catch (err) {
       set((s) => ({
         scenes: s.scenes.map((p) => (p.id === sceneId ? current : p)),
@@ -322,11 +333,12 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
       outputMediaIds: current.outputMediaIds.filter((id) => id !== mediaId),
       updatedAt: nowIso(),
     };
+    const sanitized = sanitizeForPersist(next);
     set((s) => ({
-      scenes: s.scenes.map((p) => (p.id === sceneId ? next : p)),
+      scenes: s.scenes.map((p) => (p.id === sceneId ? sanitized : p)),
     }));
     try {
-      await persistOne(next);
+      await persistOne(sanitized);
     } catch (err) {
       set((s) => ({
         scenes: s.scenes.map((p) => (p.id === sceneId ? current : p)),
@@ -345,11 +357,12 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
       archivedAt: now,
       updatedAt: now,
     };
+    const sanitized = sanitizeForPersist(next);
     set((s) => ({
-      scenes: s.scenes.map((p) => (p.id === sceneId ? next : p)),
+      scenes: s.scenes.map((p) => (p.id === sceneId ? sanitized : p)),
     }));
     try {
-      await persistOne(next);
+      await persistOne(sanitized);
     } catch (err) {
       set((s) => ({
         scenes: s.scenes.map((p) => (p.id === sceneId ? current : p)),
@@ -367,11 +380,12 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
       archivedAt: null,
       updatedAt: nowIso(),
     };
+    const sanitized = sanitizeForPersist(next);
     set((s) => ({
-      scenes: s.scenes.map((p) => (p.id === sceneId ? next : p)),
+      scenes: s.scenes.map((p) => (p.id === sceneId ? sanitized : p)),
     }));
     try {
-      await persistOne(next);
+      await persistOne(sanitized);
     } catch (err) {
       set((s) => ({
         scenes: s.scenes.map((p) => (p.id === sceneId ? current : p)),
@@ -407,11 +421,12 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
       favorite: !current.favorite,
       updatedAt: nowIso(),
     };
+    const sanitized = sanitizeForPersist(next);
     set((s) => ({
-      scenes: s.scenes.map((p) => (p.id === sceneId ? next : p)),
+      scenes: s.scenes.map((p) => (p.id === sceneId ? sanitized : p)),
     }));
     try {
-      await persistOne(next);
+      await persistOne(sanitized);
     } catch (err) {
       set((s) => ({
         scenes: s.scenes.map((p) => (p.id === sceneId ? current : p)),

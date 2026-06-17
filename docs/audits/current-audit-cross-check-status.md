@@ -1,3 +1,6 @@
+> **SUPERSEDED — 2026-06-17**
+> This snapshot is historical. Findings here have been superseded by the v2.1.0 release-hygiene pass and the current ledger in `docs/summary_of_work.md`. Do not treat line numbers or statuses as current ground truth.
+>
 # Current Audit Cross-Check Status
 
 Generated: 2026-06-16

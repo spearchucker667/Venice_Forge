@@ -88,6 +88,7 @@ export interface ChatMessage {
   reasoning_content?: string
   metadata?: {
     injectedContext?: string
+    injectedContextSource?: "memory" | "prior_context" | "approved_context" | "mixed"
     [key: string]: unknown
   }
 }
@@ -98,9 +99,12 @@ export interface VeniceParameters {
   strip_thinking_response?: boolean
   disable_thinking?: boolean
   enable_web_search?: 'off' | 'on' | 'auto'
+  enable_web_scraping?: boolean
+  enable_x_search?: boolean
   enable_web_citations?: boolean
   include_search_results_in_stream?: boolean
   return_search_results_as_documents?: boolean
+  prompt_cache_key?: string
 }
 
 export interface ChatCompletionRequest {

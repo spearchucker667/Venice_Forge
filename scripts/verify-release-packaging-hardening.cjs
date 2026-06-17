@@ -231,12 +231,37 @@ if (pkg) {
   // The release workflow calls `npm run dist:<platform>`. If a future refactor
   // drops one of these scripts, the release job will fail with a confusing
   // "Missing script: dist:linux" error. The verifier must catch that here.
-  const expectedDistScripts = ["dist:mac", "dist:win", "dist:linux"];
+  //
+  // Single-arch macOS scripts and the Windows portable script are also
+  // required so local/CI platform-specific builds have a single source of truth.
+  const expectedDistScripts = [
+    "dist:mac",
+    "dist:mac:arm64",
+    "dist:mac:x64",
+    "dist:win",
+    "dist:portable",
+    "dist:linux",
+  ];
   for (const s of expectedDistScripts) {
     if (typeof pkg.scripts?.[s] !== "string" || pkg.scripts[s].length === 0) {
-      fail(`package.json is missing the canonical "${s}" packaging script (P2-002)`);
+      fail(`package.json is missing the canonical "${s}" packaging script (P2-002 / REL-003)`);
     } else {
       pass(`package.json has canonical "${s}" packaging script`);
+    }
+  }
+
+  // 4c. Canonical platform verifier scripts (REL-003 / REL-004).
+  const expectedVerifyScripts = [
+    "verify:dist:win",
+    "verify:dist:portable",
+    "verify:dist:mac",
+    "verify:dist:linux",
+  ];
+  for (const s of expectedVerifyScripts) {
+    if (typeof pkg.scripts?.[s] !== "string" || pkg.scripts[s].length === 0) {
+      fail(`package.json is missing the canonical "${s}" verification script (REL-004)`);
+    } else {
+      pass(`package.json has canonical "${s}" verification script`);
     }
   }
 }
@@ -293,6 +318,12 @@ if (pkg) {
       fail(".github/workflows/release.yml is missing checksum:release");
     } else {
       pass(".github/workflows/release.yml runs checksum:release");
+    }
+    // The Windows job must explicitly verify the portable artifact (REL-004).
+    if (!release.includes("verify:dist:portable")) {
+      fail(".github/workflows/release.yml is missing verify:dist:portable in the Windows job (REL-004)");
+    } else {
+      pass(".github/workflows/release.yml runs verify:dist:portable");
     }
     // The release workflow must call typecheck / tests / build before packaging
     if (!release.includes("npm run typecheck") || !release.includes("npm test") || !release.includes("npm run build")) {

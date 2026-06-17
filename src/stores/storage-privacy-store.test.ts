@@ -32,6 +32,20 @@ vi.mock("./project-store", () => ({
   useProjectStore: { getState: () => ({ projects: [] }) },
   ensureProjectsLoaded: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock("./chat-store", () => ({
+  useChatStore: {
+    getState: () => ({
+      conversations: [
+        {
+          id: "conv-1",
+          title: "Redacted Test Conversation",
+          projectId: "project-a",
+          archivedAt: null,
+        },
+      ],
+    }),
+  },
+}));
 vi.mock("./prompt-library-store", () => ({
   usePromptLibraryStore: { getState: () => ({ prompts: [], ensureLoaded: vi.fn().mockResolvedValue(undefined) }) },
 }));
@@ -93,6 +107,19 @@ describe("storage-privacy-store", () => {
           storage: "web-environment",
           lastValidationStatus: "configured-not-validated",
         }),
+      }),
+    );
+  });
+
+  it("passes loaded conversations into the privacy inventory", async () => {
+    await useStoragePrivacyStore.getState().refreshInventory();
+    expect(buildStorageInventory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversations: [
+          expect.objectContaining({
+            id: "conv-1",
+          }),
+        ],
       }),
     );
   });

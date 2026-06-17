@@ -53,6 +53,16 @@ export function VeniceParams() {
           onClick={() => setVeniceParams({ enable_web_citations: !veniceParams.enable_web_citations })}
         />
         <Pill
+          label="Scrape"
+          active={veniceParams.enable_web_scraping === true}
+          onClick={() => setVeniceParams({ enable_web_scraping: !veniceParams.enable_web_scraping })}
+        />
+        <Pill
+          label="X search"
+          active={veniceParams.enable_x_search === true}
+          onClick={() => setVeniceParams({ enable_x_search: !veniceParams.enable_x_search })}
+        />
+        <Pill
           label="Search in stream"
           active={veniceParams.include_search_results_in_stream === true}
           onClick={() => setVeniceParams({ include_search_results_in_stream: !veniceParams.include_search_results_in_stream })}
@@ -86,11 +96,11 @@ export function VeniceParams() {
       {showSettings && (
         <div className="mt-2.5 pb-1 flex flex-col gap-2.5">
           <div>
-            <label className="text-[13px] text-text-muted/40 font-medium mb-1 block uppercase tracking-[0.08em]">System Prompt</label>
+            <label className="text-[13px] text-text-muted/40 font-medium mb-1 block uppercase tracking-[0.08em]">App System Prompt</label>
             <textarea
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
-              placeholder="You are a helpful assistant..."
+              placeholder="Optional. Leave empty to avoid adding an app-authored system message."
               rows={2}
               className="w-full bg-surface-muted border border-border rounded-lg px-3 py-2 text-[15px] text-text-secondary outline-none resize-none placeholder:text-text-muted/30 focus:border-border-strong transition-colors"
             />
@@ -102,7 +112,7 @@ export function VeniceParams() {
           </div>
 
           <div className="flex flex-wrap gap-2.5">
-            <Toggle label="Venice system prompt" active={veniceParams.include_venice_system_prompt !== false} onChange={(v) => setVeniceParams({ include_venice_system_prompt: v })} />
+            <Toggle label="Venice default prompt" active={veniceParams.include_venice_system_prompt !== false} onChange={(v) => setVeniceParams({ include_venice_system_prompt: v })} />
             <Toggle label="Disable thinking" active={veniceParams.disable_thinking === true} onChange={(v) => setVeniceParams({ disable_thinking: v })} />
             <Toggle label="Strip thinking" active={veniceParams.strip_thinking_response === true} onChange={(v) => setVeniceParams({ strip_thinking_response: v })} />
           </div>

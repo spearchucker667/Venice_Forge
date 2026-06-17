@@ -1,3 +1,7 @@
+# SUPERSEDED — 2026-06-17
+# This snapshot is historical. Findings here have been superseded by the v2.1.0
+# release-hygiene pass and the current ledger in docs/summary_of_work.md. Do not
+# treat line numbers or statuses as current ground truth.
 batch_report:
   batch_id: kimi_batch_cross_check_2026_06_16
   status: complete

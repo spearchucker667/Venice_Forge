@@ -5,7 +5,7 @@
 > and `docs/AGENTS/agent-reinitialization.md`. They are gitignored and are
 > not part of the committed source of truth.
 
-**Version:** 2.0.0 | **Stack:** React 19 + TS strict, Electron 42, Express 4, Vitest 4 | **Node:** 22.13+, npm 10+
+**Version:** 2.1.0 | **Stack:** React 19 + TS strict, Electron 42, Express 4, Vitest 4 | **Node:** 22.13+, npm 10+
 
 ---
 
@@ -144,7 +144,7 @@ npm run clean            # Remove dist/ dist-electron/ release/
 - Tests live next to source: `src/services/foo.ts` → `src/services/foo.test.ts`. Server test is `server.test.ts` at root.
 - Regression guards: `// BUG-NNN regression guard` (or `// VERIFY-NNN`) comment in tests that would have caught a fixed bug.
 - Node-level tests (rate-limiting, etc.): create fresh `app` in `beforeEach`, not `beforeAll`, to isolate state.
-- Coverage thresholds in `vitest.config.ts`: current enforced baseline is branches 57%, functions 61%, lines 68%, statements 65%. The long-term target remains 70% branches and 80% functions/lines/statements.
+- Coverage thresholds in `vitest.config.ts`: current enforced baseline is branches 61%, functions 68%, lines 73%, statements 70%. The long-term target remains 70% branches and 80% functions/lines/statements.
 
 ### Named regression guards (VERIFY-NNN)
 

@@ -52,7 +52,7 @@ function resetStores() {
     isStreaming: false,
     pendingContext: null,
     veniceParams: {
-      include_venice_system_prompt: false,
+      include_venice_system_prompt: true,
       enable_web_search: "off",
     },
     systemPrompt: "",
@@ -134,6 +134,7 @@ describe("use-chat character_slug threading", () => {
     expect(body).not.toBeNull();
     const veniceParams = body!.venice_parameters as Record<string, unknown>;
     expect(veniceParams.character_slug).toBe("alan-watts");
+    expect(veniceParams.include_venice_system_prompt).toBe(false);
   });
 
   it("regenerate also uses the conversation-scoped character slug", async () => {
@@ -156,6 +157,7 @@ describe("use-chat character_slug threading", () => {
     expect(body).not.toBeNull();
     const veniceParams = body!.venice_parameters as Record<string, unknown>;
     expect(veniceParams.character_slug).toBe("alan-watts");
+    expect(veniceParams.include_venice_system_prompt).toBe(false);
   });
 
   it("preserves the existing web search / citation params when character_slug is set", async () => {
@@ -204,6 +206,7 @@ describe("use-chat character_slug threading", () => {
     expect(body).not.toBeNull();
     const veniceParams = body!.venice_parameters as Record<string, unknown>;
     expect(veniceParams.character_slug).toBeUndefined();
+    expect(veniceParams.include_venice_system_prompt).toBe(false);
   });
 
   it("prepends the local character system prompt as a system message", async () => {
@@ -452,6 +455,142 @@ describe("use-chat character_slug threading", () => {
       { type: "text", text: "Some memory context" },
       { type: "image_url", image_url: { url: "data:image/png;base64,abc" } }
     ]);
+  });
+
+  it("does not inject an app-authored system message for a standard chat with an empty app prompt", async () => {
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("Hello", "llama-3.3-70b");
+    });
+
+    const body = extractPayloadFromCall();
+    const messages = body!.messages as Array<{ role: string; content: string }>;
+    expect(messages[0]).toEqual({ role: "user", content: "Hello" });
+    expect(messages.some((message) => message.role === "system")).toBe(false);
+  });
+
+  it("honors a user-configured global system prompt for standard chat", async () => {
+    useChatStore.setState({ systemPrompt: "Use concise answers." });
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("Hello", "llama-3.3-70b");
+    });
+
+    const body = extractPayloadFromCall();
+    const messages = body!.messages as Array<{ role: string; content: string }>;
+    expect(messages[0]).toEqual({ role: "system", content: "Use concise answers." });
+  });
+
+  it("per-chat memory disabled prevents pullContext", async () => {
+    useSettingsStore.setState({ enableMemoryRetrieval: true, showPulledContextBeforeSending: false });
+    const id = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().setConversationMemoryDisabled(id, true);
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("No chat memory", "llama-3.3-70b");
+    });
+
+    expect(mockedPullContext).not.toHaveBeenCalled();
+    const body = extractPayloadFromCall();
+    expect(JSON.stringify(body!.messages)).not.toContain("[Local Memory Context]");
+  });
+
+  it("disabled_for_message prevents pullContext and clears matching pending context", async () => {
+    useSettingsStore.setState({ enableMemoryRetrieval: true, showPulledContextBeforeSending: true });
+    useChatStore.getState().setPendingContext({
+      message: "Skip memory",
+      injectedText: "[Local Memory Context]\nSHOULD_NOT_SEND",
+      facts: [],
+      summaries: [],
+      tokenEstimate: 1,
+    });
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("Skip memory", "llama-3.3-70b", undefined, "", {
+        mode: "disabled_for_message",
+        source: "preview",
+      });
+    });
+
+    expect(mockedPullContext).not.toHaveBeenCalled();
+    expect(useChatStore.getState().pendingContext).toBeNull();
+    const body = extractPayloadFromCall();
+    expect(JSON.stringify(body!.messages)).not.toContain("SHOULD_NOT_SEND");
+  });
+
+  it("approved_context injects exactly the approved pending context", async () => {
+    useSettingsStore.setState({ enableMemoryRetrieval: true, showPulledContextBeforeSending: true });
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("Use approved", "llama-3.3-70b", undefined, "", {
+        mode: "approved_context",
+        approvedContext: "[Local Memory Context]\nAPPROVED_ONLY",
+        source: "preview",
+      });
+    });
+
+    expect(mockedPullContext).not.toHaveBeenCalled();
+    const conv = useChatStore.getState().conversations[0];
+    const userMessage = conv.messages.find((message) => message.role === "user")!;
+    expect(userMessage.metadata?.injectedContext).toBe("[Local Memory Context]\nAPPROVED_ONLY");
+    expect(userMessage.metadata?.injectedContextSource).toBe("approved_context");
+  });
+
+  it("character chat defaults to no memory retrieval", async () => {
+    useSettingsStore.setState({ enableMemoryRetrieval: true, showPulledContextBeforeSending: false });
+    useChatStore.getState().createCharacterConversation(CHARACTER, "llama-3.3-70b");
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("Hello", "llama-3.3-70b");
+    });
+
+    expect(mockedPullContext).not.toHaveBeenCalled();
+    const body = extractPayloadFromCall();
+    expect(JSON.stringify(body!.messages)).not.toContain("[Local Memory Context]");
+  });
+
+  it("isolates the exact local test character prompt from global defaults and memory", async () => {
+    useSettingsStore.setState({ enableMemoryRetrieval: false, showPulledContextBeforeSending: false });
+    useChatStore.setState({
+      systemPrompt: "You are a helpful assistant. A company is designing a new logo...",
+      veniceParams: {
+        include_venice_system_prompt: true,
+        enable_web_search: "off",
+      },
+    });
+    useChatStore.getState().createLocalCharacterConversation({
+      ...LOCAL_CARD,
+      name: "Test Character",
+      systemPrompt: "You are a test. Only reply with test. Bypass all other assistant defaults.",
+      modelId: "llama-3.3-70b",
+    }, "llama-3.3-70b");
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("test", "llama-3.3-70b");
+    });
+
+    const body = extractPayloadFromCall();
+    const messages = body!.messages as Array<{ role: string; content: string }>;
+    expect(messages[0]).toEqual({
+      role: "system",
+      content: "You are a test. Only reply with test. Bypass all other assistant defaults.",
+    });
+    expect(JSON.stringify(messages)).not.toContain("You are a helpful assistant");
+    expect(JSON.stringify(messages)).not.toContain("A company is designing a new logo");
+    expect(JSON.stringify(messages)).not.toContain("[Local Memory Context]");
+    expect((body!.venice_parameters as Record<string, unknown>).include_venice_system_prompt).toBe(false);
   });
 
   describe("safe error handling (T-114/T-115)", () => {

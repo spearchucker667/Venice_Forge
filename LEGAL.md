@@ -1,0 +1,102 @@
+# Legal and Public Release Notes
+
+This document is informational, not legal advice. It records the legal and policy assumptions used for the public Venice Forge repository and release materials.
+
+Family Safe Mode is an optional local application filter, not a guarantee that generated content is safe or lawful. Adult Mode bypasses only Venice Forge's local filter; provider policies and Venice API Safe Mode remain independent. Users remain responsible for lawful use and must satisfy the application's 18+ requirement.
+
+## Project Status
+
+Venice Forge is an **independent, unofficial, third-party** MIT-licensed desktop client for the Venice API. It is **not endorsed by, sponsored by, or affiliated with** Venice.ai, Inc. "Venice", "Venice.ai", the Venice keys mark, the Venice seal, the Venice wordmark, and the Venice lockup are trademarks and/or trade dress of Venice.ai, Inc. or its affiliates. All rights reserved. Use of these marks is for identification and compatibility purposes only and does not imply any official relationship.
+
+The Venice brand assets used in this project are sourced from the public [Venice Brand Kit](https://venice.ai/brand) and are used in accordance with the Venice Brand Guidelines (July 2025) to the extent applicable to third-party reference implementations. Any deviation from the brand guidelines (e.g., app-icon derivation, empty-state watermarks) is noted below and should be reviewed for formal approval.
+
+## Venice.ai Trademark & Brand Attribution
+
+Venice Forge uses the following Venice.ai brand assets:
+
+| Asset | File | Usage in app |
+|---|---|---|
+| Venice Keys (red) | `assets/branding/venice-keys-red.svg` | App header mark, sidebar collapsed mark |
+| Venice Keys (white) | `assets/branding/venice-keys-white.svg` | Dark-theme header/sidebar variant |
+| Venice Keys (black) | `assets/branding/venice-keys-black.svg` | Light-theme header/sidebar variant |
+| Venice Lockup (red) | `assets/branding/venice-logo-lockup-red.svg` | Sidebar expanded, Settings → About panel |
+| Venice Lockup (white) | `assets/branding/venice-logo-lockup-white.svg` | Dark-theme lockup variant |
+| Venice Lockup (black) | `assets/branding/venice-logo-lockup-black.svg` | Light-theme lockup variant |
+| Venice Seal (red fill) | `assets/branding/venice-seal-red-fill.svg` | Settings → About panel (authority emblem) |
+
+### Brand-Compliance Notes
+
+1. **App icon derivation** — The desktop app icon (`.icns`, `.ico`, `.png`) is derived from the Venice Keys mark, centered on a square canvas without distortion. The Venice Brand Guidelines do **not** explicitly address third-party app-icon usage. This is treated as a compatibility/reference identifier, but it should be reviewed with Venice.ai for formal approval before wide distribution.
+2. **Empty-state watermark** — The brand guidelines state: *"Don't change the opacity of the icon or the logo."* Empty states in Venice Forge use the keys mark at small size with reduced CSS `opacity` (≈ 0.08–0.15) as a subtle watermark. **This is a known deviation** from the brand guidelines and should be replaced with a non-branded decorative element or approved by Venice.ai.
+3. **Color compliance** — All logo assets are rendered only in approved colors: black (`#000000`), white (`#ffffff`), or Venetian Red (`#DD3300`). No recoloring or gradient overlays are applied to the mark vectors themselves.
+4. **Clear space** — The mark is given adequate padding in the app header (≥ 8 px on all sides) and sidebar (≥ 12 px) to satisfy the exclusion-zone principle shown in the brand guidelines.
+5. **No modification of vectors** — SVG anchor points and curves are preserved exactly as provided in the brand kit.
+
+## Unofficial Status
+
+Venice Forge is an **unofficial, third-party** desktop client for the Venice API. It is **not affiliated with, endorsed by, sponsored by, approved by, maintained by, or certified by** Venice.ai, Inc.
+
+## Trademark Notice
+
+"Venice", "Venice.ai", the Venice wordmark, the Venice seal, the Venice keys mark, the Venice lockup, and related marks are trademarks or trade dress of Venice.ai, Inc. Use of these names and marks in Venice Forge is solely for nominative identification of API compatibility and provider integration.
+
+## Brand Asset Notice
+
+Official Venice brand assets displayed in this app remain the property of Venice.ai, Inc. They are not owned by this project and are not covered by this project's open-source license except where Venice.ai, Inc. expressly permits such use.
+
+## User Responsibility
+
+**Age Requirement:** Users must be at least 18 years of age to use this application. This software interfaces with generative AI APIs that have the capacity to produce unfiltered, explicit, or offensive material, including the inherent and severe legal risk of generating AI imagery that may inappropriately represent minors (CSAM). 
+
+The app does not ship with an API key. Users provide their own Venice API key and are strictly responsible for their own Venice account, usage, billing, content, and compliance obligations. Under no circumstances is the maintainer of Venice Forge liable for the content generated by users through the Venice API.
+
+Before using the app with the Venice API, users should review the current official Venice materials:
+
+- [Venice Terms of Service](https://venice.ai/legal/tos)
+- [Venice privacy information](https://venice.ai/privacy)
+- [Venice API documentation](https://docs.venice.ai/)
+- [Venice API quickstart](https://docs.venice.ai/overview/getting-started)
+
+Repository documentation should link to Venice's current public terms instead of copying them. Venice can update its terms, privacy statements, product behavior, models, pricing, and API requirements independently of this project.
+
+## API Key Handling
+
+Venice's API documentation states that API keys are secrets and should not be exposed in client-side code. Venice Forge follows that boundary:
+
+- Electron mode stores the key in the main process through Electron `safeStorage`.
+- Web development mode reads `VENICE_API_KEY` from `.env` on the local Express server.
+- The renderer never receives the raw API key.
+- Exports, imports, diagnostics, and logs redact API-key-like values.
+
+## Privacy and Data Limits
+
+Venice Forge stores chats, settings, and gallery records locally in IndexedDB. These records are encrypted by the app before storage using a browser-managed AES-GCM key stored in same-origin IndexedDB. This reduces casual local inspection risk but is not equivalent to OS credential storage. API requests still leave the device and are processed by Venice and any applicable upstream provider or privacy mode selected by Venice.
+
+A rigorous content safety guard screens all outgoing Venice API requests before the payload is forwarded to block known child exploitation terminology. This guard implements advanced cross-sentence context detection and `negative_prompt` extraction, failing closed via a 500 error if any boundary check encounters an exception. Raw prompt text is strictly never logged by the safety system. Only a coarse, non-identifying hash is retained for audit counters.
+
+## Reporting Procedures
+
+If you encounter a safety guard bypass or AI-generated material that constitutes child exploitation (CSAM), you must report it to the appropriate authorities:
+1. **NCMEC:** File a report with the [National Center for Missing & Exploited Children (NCMEC) CyberTipline](https://report.cybertip.org/).
+2. **Venice.ai:** Report the incident to the official Venice Trust & Safety team at [venice.ai/support](https://venice.ai/support).
+3. **Venice Forge Maintainers:** Report any bypass of the application's safety guard using the GitHub private vulnerability reporting feature on this repository. Do not share explicit material directly with maintainers.
+
+Venice's own privacy material describes multiple privacy modes with different protections and trade-offs. Users should consult Venice's current privacy pages before sending sensitive content.
+
+## Release Disclaimers
+
+- Local builds are unsigned unless the maintainer configures code-signing certificates.
+- Unsigned Windows installers may trigger SmartScreen or antivirus warnings.
+- The MIT license provides the software "as is" without warranty.
+- This app is not a compliance, legal, medical, financial, or safety-critical system.
+- Malware or a debugger running as the same OS user is outside the app's threat model.
+
+## Maintainer Checklist
+
+Before a public release:
+
+- Confirm README, [SECURITY.md](../SECURITY.md), [RELEASE.md](RELEASE/release.md), and this document match the shipped version.
+- Confirm no API keys, tokens, certificates, or generated `.env` files are committed.
+- Run the full release verification in [RELEASE.md](RELEASE/release.md).
+- State whether Windows artifacts are signed or unsigned in release notes.
+- Include SHA-256 checksums for all `.exe` artifacts.

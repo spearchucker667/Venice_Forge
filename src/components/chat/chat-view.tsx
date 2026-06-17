@@ -19,6 +19,7 @@ import { askDecision } from '../ui/modal-requests'
 import type { PromptStarter } from '../../data/promptStarters'
 import type { MemoryFact, ConversationRecordV1 } from '../../types/conversationVault'
 import type { Conversation } from '../../types/conversation'
+import type { ChatMemoryDecision } from '../../hooks/use-chat'
 import { buildChatPayloadContext, buildPriorConversationContextText } from '../../utils/chatPayloadContext'
 import { redactErrorMessage } from '../../shared/redaction'
 
@@ -80,7 +81,7 @@ export function ChatView() {
     const priorContextText = includePriorContext
       ? buildPriorConversationContextText(selectedConversations)
       : ''
-    send(message, model, images, priorContextText)
+    send(message, model, images, priorContextText, { mode: 'auto', source: 'global' })
   }
 
   const pendingContext = useChatStore((s) => s.pendingContext)
@@ -245,6 +246,7 @@ export function ChatView() {
                                       ...c.metadata,
                                       source: "chat",
                                       character: undefined,
+                                      memoryRetrievalDisabled: false,
                                     }
                                   : c.metadata,
                               }
@@ -291,7 +293,14 @@ export function ChatView() {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => send(pendingContext.message || "", model)}
+                onClick={() => {
+                  const decision: ChatMemoryDecision = {
+                    mode: 'approved_context',
+                    approvedContext: pendingContext.injectedText,
+                    source: 'preview',
+                  }
+                  send(pendingContext.message || "", model, undefined, "", decision)
+                }}
                 className="px-2.5 py-1 text-[11px] font-semibold rounded bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
               >
                 Confirm & Send
@@ -304,8 +313,10 @@ export function ChatView() {
               </button>
               <button
                 onClick={() => {
-                  setPendingContext(null)
-                  send(pendingContext.message || "", model)
+                  send(pendingContext.message || "", model, undefined, "", {
+                    mode: 'disabled_for_message',
+                    source: 'preview',
+                  })
                 }}
                 className="px-2.5 py-1 text-[11px] font-medium rounded border border-transparent bg-danger/10 hover:bg-danger/20 text-danger transition-colors cursor-pointer"
               >
@@ -407,6 +418,7 @@ export function ChatView() {
         conversations={availablePriorConversations}
         selectedIds={selectedPriorConversationIds}
         onSelectedIdsChange={setSelectedPriorConversationIds}
+        activeConversation={conversation}
       />
       <ChatInput onSend={handleSend} onStop={stop} isStreaming={isStreaming} disabled={!hasVeniceKey} disableImageAttach={!visionSupported} memoryStatus={effectiveMemoryStatus} />
     </div>
@@ -419,13 +431,17 @@ function PriorConversationContextSelector({
   conversations,
   selectedIds,
   onSelectedIdsChange,
+  activeConversation,
 }: {
   includePriorContext: boolean;
   onIncludeChange: (value: boolean) => void;
   conversations: Conversation[];
   selectedIds: string[];
   onSelectedIdsChange: (ids: string[]) => void;
+  activeConversation?: Conversation;
 }) {
+  const setConversationMemoryDisabled = useChatStore((s) => s.setConversationMemoryDisabled)
+  const memoryDisabled = activeConversation?.metadata?.memoryRetrievalDisabled === true
   const toggleId = (id: string) => {
     onSelectedIdsChange(selectedIds.includes(id)
       ? selectedIds.filter((value) => value !== id)
@@ -435,6 +451,17 @@ function PriorConversationContextSelector({
   return (
     <div className="border-t border-border bg-surface px-4 sm:px-6 py-2">
       <div className="w-full max-w-[860px] mx-auto rounded-lg border border-border bg-surface-elevated px-3 py-2">
+        {activeConversation && (
+          <label className="mb-2 flex items-center justify-between gap-3 text-[13px] text-text-primary">
+            <span>Disable memory retrieval for this chat</span>
+            <input
+              type="checkbox"
+              checked={memoryDisabled}
+              onChange={(event) => setConversationMemoryDisabled(activeConversation.id, event.target.checked)}
+              className="h-4 w-4 accent-accent"
+            />
+          </label>
+        )}
         <label className="flex items-center justify-between gap-3 text-[13px] text-text-primary">
           <span>Include prior conversation context</span>
           <input

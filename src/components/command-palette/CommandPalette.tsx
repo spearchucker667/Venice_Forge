@@ -381,7 +381,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               const created = await usePromptLibraryStore.getState().createPrompt({
                 title: 'Untitled prompt',
                 kind: 'general',
-                content: '',
+                content: '(empty draft — replace with your prompt)',
                 scope: 'global',
               });
               setActiveTab('prompts');

@@ -83,6 +83,11 @@ function joinInjectedContexts(...contexts: Array<string | undefined>): string {
 }
 
 export type ChatMemoryStatus = 'disabled' | 'idle' | 'loading' | 'injected' | 'failed'
+export type ChatMemoryDecision =
+  | { mode: 'auto'; source?: 'global' | 'chat_toggle' | 'preview' | 'prior_context' }
+  | { mode: 'disabled_for_message'; source?: 'global' | 'chat_toggle' | 'preview' | 'prior_context' }
+  | { mode: 'approved_context'; approvedContext?: string; source?: 'global' | 'chat_toggle' | 'preview' | 'prior_context' }
+type InjectedContextSource = NonNullable<ChatMessage['metadata']>['injectedContextSource']
 
 export function useChat() {
   const abortRef = useRef<AbortController | null>(null)
@@ -119,9 +124,12 @@ export function useChat() {
             : m.content;
           return { role: m.role, content };
         })
-      // Conversation-scoped system prompt wins (e.g., local RP characters),
-      // falling back to the global chat system prompt.
-      const effectiveSystemPrompt = (conv.systemPrompt ?? systemPrompt).trim();
+      // Conversation-scoped character prompts are authoritative. Character
+      // conversations never fall back to the global app system prompt.
+      const characterSystemPrompt = conv.metadata?.character?.systemPrompt;
+      const effectiveSystemPrompt = conv.metadata?.character
+        ? (conv.systemPrompt ?? characterSystemPrompt ?? '').trim()
+        : (conv.systemPrompt ?? systemPrompt).trim();
       if (effectiveSystemPrompt) {
         requestMessages.unshift({ role: 'system', content: effectiveSystemPrompt })
       }
@@ -137,6 +145,13 @@ export function useChat() {
         veniceParamsForRequest.character_slug = characterSlug;
       } else {
         delete veniceParamsForRequest.character_slug;
+      }
+      const isCharacterConversation = !!conv.metadata?.character;
+      if (isCharacterConversation) {
+        veniceParamsForRequest.include_venice_system_prompt = false;
+        if (conv.metadata?.character?.webEnabled && veniceParamsForRequest.enable_web_search === 'off') {
+          veniceParamsForRequest.enable_web_search = 'auto';
+        }
       }
 
       // Build the base body then route the Venice API Safe Mode flag
@@ -260,7 +275,13 @@ export function useChat() {
   )
 
   const send = useCallback(
-    async (userMessage: string, model: string, imageAttachments?: string[], explicitContext?: string) => {
+    async (
+      userMessage: string,
+      model: string,
+      imageAttachments?: string[],
+      explicitContext?: string,
+      memoryDecision: ChatMemoryDecision = { mode: 'auto', source: 'global' },
+    ) => {
       let convId = useChatStore.getState().activeConversationId
       if (!convId) {
         convId = createConversation(model)
@@ -268,13 +289,28 @@ export function useChat() {
 
       const { pendingContext, setPendingContext } = useChatStore.getState()
       const { enableMemoryRetrieval, showPulledContextBeforeSending } = useSettingsStore.getState()
+      const conv = useChatStore.getState().conversations.find((c) => c.id === convId)
+      const chatMemoryDisabled = conv?.metadata?.memoryRetrievalDisabled === true
+      const isCharacterConversation = !!conv?.metadata?.character
+      const streamModel = isCharacterConversation && conv?.model ? conv.model : model
 
       let contextToInject = "";
+      let contextSource: InjectedContextSource | undefined;
 
-      if (!enableMemoryRetrieval) {
+      if (memoryDecision.mode === 'approved_context') {
+        contextToInject = memoryDecision.approvedContext?.trim() ?? ''
+        contextSource = 'approved_context'
+        setPendingContext(null)
+        setMemoryStatus(contextToInject ? 'injected' : 'idle')
+      } else if (memoryDecision.mode === 'disabled_for_message') {
+        setPendingContext(null)
+        setMemoryStatus('disabled')
+      } else if (!enableMemoryRetrieval || chatMemoryDisabled || isCharacterConversation) {
+        if (pendingContext?.message === userMessage) setPendingContext(null)
         setMemoryStatus('disabled')
       } else if (pendingContext && pendingContext.message === userMessage) {
         contextToInject = pendingContext.injectedText;
+        contextSource = 'memory'
         setPendingContext(null);
         setMemoryStatus('injected')
       } else if (showPulledContextBeforeSending) {
@@ -298,6 +334,7 @@ export function useChat() {
         const res = await pullMemoryContextForSend(userMessage);
         if (res.ok && res.context && res.context.injectedText) {
           contextToInject = res.context.injectedText;
+          contextSource = 'memory'
           setMemoryStatus('injected')
         } else if (!res.ok) {
           setMemoryStatus('failed')
@@ -308,7 +345,15 @@ export function useChat() {
         }
       }
 
+      if (explicitContext?.trim() && contextToInject.trim()) {
+        contextSource = 'mixed'
+      } else if (explicitContext?.trim() && !contextSource) {
+        contextSource = 'prior_context'
+      }
       contextToInject = joinInjectedContexts(explicitContext, contextToInject)
+      const metadata = contextToInject
+        ? { injectedContext: contextToInject, injectedContextSource: contextSource || 'mixed' }
+        : undefined
 
       // Build user message — plain text or multimodal with images
       let userMsg: ChatMessage
@@ -320,13 +365,13 @@ export function useChat() {
         userMsg = {
           role: 'user',
           content: parts,
-          metadata: contextToInject ? { injectedContext: contextToInject } : undefined
+          metadata,
         }
       } else {
         userMsg = {
           role: 'user',
           content: userMessage,
-          metadata: contextToInject ? { injectedContext: contextToInject } : undefined
+          metadata,
         }
       }
 
@@ -338,10 +383,7 @@ export function useChat() {
       abortRef.current = abortController
 
       try {
-        await streamResponse(convId, model, abortController)
-        if (!abortController.signal.aborted) {
-          await maybeAutoGenerateScene(convId)
-        }
+        await streamResponse(convId, streamModel, abortController)
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
         // T-114/T-115: do not persist raw exception text (paths, secrets,
@@ -351,6 +393,14 @@ export function useChat() {
       } finally {
         setStreaming(false)
         abortRef.current = null
+      }
+
+      if (!abortController.signal.aborted) {
+        try {
+          await maybeAutoGenerateScene(convId)
+        } catch (sceneErr) {
+          logger.error('useChat auto scene generation failed', sceneErr)
+        }
       }
     },
     [addMessage, appendToLastAssistant, createConversation, setStreaming, streamResponse, maybeAutoGenerateScene],
@@ -376,9 +426,6 @@ export function useChat() {
 
       try {
         await streamResponse(convId, model, abortController)
-        if (!abortController.signal.aborted) {
-          await maybeAutoGenerateScene(convId)
-        }
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
         // T-114/T-115: do not persist raw exception text (paths, secrets,
@@ -388,6 +435,14 @@ export function useChat() {
       } finally {
         setStreaming(false)
         abortRef.current = null
+      }
+
+      if (!abortController.signal.aborted) {
+        try {
+          await maybeAutoGenerateScene(convId)
+        } catch (sceneErr) {
+          logger.error('useChat auto scene generation failed', sceneErr)
+        }
       }
     },
     [addMessage, appendToLastAssistant, deleteMessage, setStreaming, streamResponse, maybeAutoGenerateScene],

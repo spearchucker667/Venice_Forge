@@ -227,4 +227,49 @@ describe("RpChatView — T-076 stream error handling", () => {
       );
     });
   });
+
+  it("normalizes character/narrator roles to assistant for the API (RP-01 regression)", async () => {
+    mocks.buildRpPromptMock.mockReturnValue({
+      systemMessages: [{ role: "system" as const, content: "You are a test character." }],
+      recentMessages: [
+        { role: "user" as const, content: "Hello" },
+        { role: "character" as const, content: "Greetings.", characterId: fixtures.character.id },
+        { role: "narrator" as const, content: "The door creaks." },
+      ],
+      userMessage: { role: "user" as const, content: "How are you?" },
+      trace: [],
+      totalSystemChars: 28,
+      budgetExceeded: false,
+    });
+    mocks.veniceStreamChatMock.mockImplementation(async (_payload, { onDelta }) => {
+      onDelta({ content: "Fine, thanks.", reasoning: "" });
+      return undefined;
+    });
+
+    render(
+      <RpChatView
+        chatId={fixtures.chat.id}
+        onBack={() => {}}
+        onOpenScene={() => {}}
+        onOpenDebug={() => {}}
+      />,
+    );
+
+    const textarea = screen.getByLabelText("RP message");
+    fireEvent.change(textarea, { target: { value: "How are you?" } });
+    fireEvent.click(screen.getByRole("button", { name: /send/i }));
+
+    await waitFor(() => {
+      expect(mocks.veniceStreamChatMock).toHaveBeenCalled();
+    });
+
+    const payload = mocks.veniceStreamChatMock.mock.calls[0][0] as {
+      messages?: Array<{ role: string; content: string }>;
+    };
+    const messages = payload.messages ?? [];
+    expect(messages.some((m) => m.role === "character" || m.role === "narrator")).toBe(false);
+    const assistantMessages = messages.filter((m) => m.role === "assistant");
+    expect(assistantMessages.some((m) => m.content.includes("[character]"))).toBe(true);
+    expect(assistantMessages.some((m) => m.content.includes("[narrator]"))).toBe(true);
+  });
 });

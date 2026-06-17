@@ -243,7 +243,7 @@ function renderDefaultConfigYaml(): string {
     "  temperature: 0.7",
     "  top_p: 1",
     "  max_tokens: 4096",
-    "  include_venice_system_prompt: false",
+    "  include_venice_system_prompt: true",
     '  enable_web_search: "off"',
     "  enable_web_scraping: false",
     "  enable_web_citations: false",

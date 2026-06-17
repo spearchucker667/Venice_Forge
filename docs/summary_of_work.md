@@ -112,43 +112,320 @@ remains. The current canonical roadmap is
 backlog files were removed.
 
 ### Latest Session Summary
-- **v2.1.0 Windows executable release produced:** Verified GitHub Actions run
-  `27672747741` completed successfully across `build-windows`, `build-macos`,
-  `build-linux`, and `publish` for tag `v2.1.0`.
-- **Windows artifacts verified:** The draft `v2.1.0` GitHub release now
-  contains `Venice-Forge-2.1.0-x64-Setup.exe`,
-  `Venice-Forge-2.1.0-x64-Portable.exe`, setup blockmap, `latest.yml`, and
-  SHA-256 sidecars. The Windows assets were downloaded through the GitHub
-  release asset API and verified against the published digests and sidecar
-  checksum files.
-- **Release state:** The release remains a draft because the workflow reported
-  Windows signing credentials were absent and produced unsigned draft
-  artifacts. Release notes were updated to label the unsigned/draft state and
-  list the Windows `.exe` assets.
+- **Root config / workflows audit completed:** Conducted a focused proof-driven
+  audit of the `root-config-workflows` section for the v2.1.0 release-blocking
+  audit. Reviewed `package.json`, `package-lock.json`, all `tsconfig*.json`,
+  `vite.config.ts`, `vitest.config.ts`, `eslint.config.mjs`,
+  `electron-builder.config.cjs`, `index.html`, `.gitattributes`, `.gitignore`,
+  `.env.example`, `.cursorrules`, `.windsurfrules`, `CLAUDE.md`, `GEMINI.md`,
+  `AGENTS.md`, `.github/workflows/*.yml`, `.github/dependabot.yml`,
+  `.github/CODEOWNERS`, `.github/copilot-instructions.md`, the PR template,
+  and issue templates line-by-line.
+- **Top finding:** The local `ci` script (`package.json:91`) runs
+  `npm audit --omit=dev --audit-level=moderate`, while the tracked
+  `.github/workflows/ci.yml` and `.github/workflows/release.yml` jobs run
+  `npm audit --audit-level=moderate` without `--omit=dev`. A dev-dependency
+  advisory can therefore pass locally but fail in CI/release.
+- **Other confirmed issues:** `AGENTS.md:8` still lists version 2.0.0 while
+  `package.json:8` is 2.1.0; `AGENTS.md:86` and `docs/summary_of_work.md`
+  state outdated coverage thresholds (57/61/68/65) while `vitest.config.ts`
+  enforces 61/68/73/70; `tsconfig.electron.json` uses CRLF line endings
+  despite `.gitattributes:1` requiring LF; the `ci` script double-runs the
+  serial test suite via `npm test && npm run test:coverage`; and
+  `AGENTS.md:120` understates the current Zustand store surface.
+- **Validation:** `npm ci`, `npm run lint:eslint`, `npm run typecheck`,
+  `npm run build`, `npm run verify:dist`, `node scripts/verify-archive-clean.cjs`,
+  and all 22 requested `verify:*` scripts passed. No source files were
+  modified. Full report written to
+  `/tmp/venice-audit-root-config-workflows.md`.
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
+- New audit findings (root-config-workflows, 2026-06-17):
+  - **RCW-001 (P2):** Sync `AGENTS.md:8` version string with `package.json:8` (currently 2.0.0 vs. 2.1.0).
+  - **RCW-002 (P2):** Update `AGENTS.md:86` and `docs/summary_of_work.md` coverage-threshold text to match the enforced `vitest.config.ts:30-35` thresholds (61/68/73/70).
+  - **RCW-003 (P2):** Align `npm audit` scope between `package.json:91` and `.github/workflows/ci.yml:26` / `.github/workflows/release.yml:34,120,204` (add or remove `--omit=dev` consistently).
+  - **RCW-004 (P3):** Normalize `tsconfig.electron.json` to LF line endings per `.gitattributes:1`.
+  - **RCW-005 (P3):** Remove redundant `npm test` from `package.json:91` `ci` script; rely on `npm run test:coverage`.
+  - **RCW-006 (P3):** Expand `AGENTS.md:120` state-store summary to reflect the full Zustand store surface.
 - P0 release-blocking audit repair is complete; all seven original P0 items (P0-001..P0-007) are closed and verified.
 - P0-001 is closed for the `2.1.0` release prep: the tag is cut only after a
   clean tree. P0-002 remains external: capture credential-backed macOS
   notarization and Windows signing evidence from the release workflow.
+- Closed API/character/memory work-order findings: Venice docs/spec drift,
+  incomplete Venice chat parameter typing for `enable_web_scraping`,
+  `enable_x_search`, and `prompt_cache_key`; hosted `/c/{slug}` share URL
+  normalization; character-bound prompt isolation; deterministic per-message
+  memory preview decisions; per-chat memory disable; stale tracked
+  `src/stores/chat-store.test.ts.new`; and privacy-summary conversation count
+  omission.
 - Closed current P1 items: signed-release policy switch, tracked/manual
   advanced CodeQL plus dependency-review automation, reviewed DOM/CSP sink
   hardening, and repository settings documentation.
+- New audit findings (release-packaging, 2026-06-17):
+  - **REL-001 (P1):** Clean stale `release/Venice-Forge-2.0.0-*` artifacts
+    before running local platform verification or tagging.
+  - **REL-002 (P2):** Create root `LEGAL.md` or fix the broken link in
+    `docs/RELEASE/release.md`.
+  - **REL-003 (P2):** Extend `verify-release-packaging-hardening.cjs` to assert
+    `dist:portable`, `dist:mac:arm64`, `dist:mac:x64`, and
+    `verify:dist:portable` exist.
+  - **REL-004 (P2):** Add `npm run verify:dist:portable` to the Windows release
+    workflow job.
+  - **REL-005 (P3):** Replace placeholder `localhost.invalid` maintainer email
+    in `electron-builder.config.cjs` for Linux packages.
+  - **REL-006 (P3):** Fix numbered-list formatting typo in
+    `docs/DEVELOPMENT/CONFIG.md:198`.
+- New audit findings (storage-privacy-dashboard, 2026-06-17):
+  - **SP-001 (P1):** Map `Conversation[]` to `StorageInventoryRecord[]` using
+    `memory.projectRefs` and `metadata.archived` before building the privacy
+    inventory (`src/stores/storage-privacy-store.ts:68`).
+  - **SP-002 (P1):** Load character-card, lorebook, persona, and scenario
+    stores before reading them in the privacy inventory
+    (`src/stores/storage-privacy-store.ts:48-76`).
+  - **SP-003 (P2):** Remove or correctly wire the `copy-privacy-summary` /
+    `export-privacy-summary` maintenance-plan actions
+    (`src/services/storageMaintenance.ts:32-46`, `95-130`).
+  - **SP-004 (P2):** Fix the invisible loading spinner by using a contrasting
+    top border color (`src/components/privacy/StoragePrivacyDashboard.tsx:46`).
+  - **SP-005 (P2):** Add an error/retry state to the dashboard when the first
+    inventory refresh fails
+    (`src/components/privacy/StoragePrivacyDashboard.tsx:42-51`,
+    `src/stores/storage-privacy-store.ts:96-100`).
+  - **SP-006 (P2):** Replace blanket `as unknown as StorageInventoryRecord[]`
+    casts with per-store mapper functions
+    (`src/stores/storage-privacy-store.ts:67-76`).
+  - **SP-007 (P3):** Map `StoragePrivacyCategory` values to canonical tab ids
+    for the issue "Review" button
+    (`src/components/privacy/StoragePrivacyDashboard.tsx:173`).
+  - **SP-008 (P3):** Replace `as any` casts in storage-privacy tests with
+    typed mocks
+    (`src/components/privacy/StoragePrivacyDashboard.test.tsx:28,54,66`;
+    `src/stores/storage-privacy-store.test.ts:161,191`).
+- New audit findings (image-media-gallery, 2026-06-17):
+  - **IMG-001 (P2):** Implement or wire the Media Inspector **Export recipe**
+    action in `src/components/gallery/gallery-view.tsx:499-502`; current
+    handler is a no-op.
+  - **IMG-002 (P2):** Replace raw `navigator.clipboard.writeText` calls in
+    `src/components/gallery/media-inspector.tsx:159,163,167,182,186` with the
+    canonical `copyText` helper from `src/stores/media-send-to.ts`.
+  - **IMG-003 (P2):** Replace raw `navigator.clipboard.writeText` in
+    `src/components/embeddings/embeddings-view.tsx:31` with the canonical
+    `copyText` helper.
+  - **IMG-004 (P1):** Fix global `npm run lint:eslint` crash caused by missing
+    temp file `src/services/veniceStreamChat-status.temp.test.ts`.
+  - **IMG-005 (P3):** Replace inline `var(--color-accent)` CSS variable classes
+    in image/gallery/video/audio/music components with semantic Tailwind
+    tokens (`text-accent`, `bg-accent`, `outline-accent`, etc.).
+  - **IMG-006 (P3):** Use `crypto.getRandomValues` instead of `Math.random()`
+    for `randomSeed()` in `src/utils/payloadBuilders.ts:182-186`.
+  - **IMG-007 (P3):** Pass plain objects to `venice()` in
+    `src/hooks/use-video.ts:76`, `src/hooks/use-music.ts:66`, and
+    `src/hooks/use-embeddings.ts:10` instead of pre-stringifying the body.
+  - **IMG-008 (P3):** Remove the unsafe `as unknown as MediaItem` cast in
+    `src/components/image/image-view.tsx:423` by constructing a typed
+    `MediaItem` directly.
+  - **IMG-009 (P3):** Derive the download extension from the processed image
+    MIME type in `src/components/image/image-view.tsx:153`.
+  - **IMG-010 (P3):** Replace raw failed-ID messages in
+    `src/stores/media-store.ts:330,366` with safe generic user-facing text.
+  - **IMG-011 (P3):** Stabilize media command-handler registration in
+    `src/components/gallery/gallery-view.tsx:143-192` to avoid re-registration
+    on every filter change.
 - Remaining P1 items: packaged smoke coverage for Windows/Linux, strict
-  test-warning cleanup, and transitive dependency deprecation cleanup.
+  test-warning cleanup, transitive dependency deprecation cleanup, the two
+  storage-privacy P1 inventory-shape/freshness fixes above, and IMG-004 above.
 - Remaining P2/P3 items: oversized component extraction, low-coverage module
-  campaign, bundle budgets/lazy-loading, and future Linux arm64 support decision.
+  campaign, bundle budgets/lazy-loading, future Linux arm64 support decision,
+  the storage-privacy P2/P3 fixes above, and IMG-001..IMG-003 / IMG-005..IMG-011
+  above.
 
 ### Validation Matrix (this session)
-- `gh run view 27672747741 --repo spearchucker667/Venice_Forge --json ...`: PASS; `build-windows`, `build-macos`, `build-linux`, and `publish` all succeeded for tag `v2.1.0`.
-- `gh run view 27672747741 --job 81840690819 --log`: PASS evidence; Windows job ran `npm run dist:win`, generated `Setup.exe`, `Portable.exe`, blockmap, checksums, and passed `npm run verify:dist:win`.
-- `gh release view v2.1.0 --repo spearchucker667/Venice_Forge --json ...`: PASS; draft release contains 36 assets including the Windows `.exe` files, blockmap, `latest.yml`, and checksum sidecars.
-- GitHub release asset API downloads for Windows files: PASS; downloaded assets matched API-reported sizes and SHA-256 digests.
-- Local SHA-256 sidecar verification in `/tmp/venice-forge-v2.1.0-windows`: PASS for `Venice-Forge-2.1.0-x64-Portable.exe`, `Venice-Forge-2.1.0-x64-Setup.exe`, `Venice-Forge-2.1.0-x64-Setup.exe.blockmap`, and `latest.yml`.
-- Known warning: jsdom still emits `HTMLCanvasElement.getContext()` warnings during full test/coverage runs.
+- Node version: `v22.22.3` / npm `10.9.8`.
+- Root-config-workflows audit commands (all PASS):
+  - `npm ci`: PASS (0 vulnerabilities).
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run typecheck`: PASS (renderer + electron main).
+  - `npm run build`: PASS (`dist/`, `dist/server.cjs`, `dist-electron/` produced).
+  - `npm run verify:dist`: PASS.
+  - `node scripts/verify-archive-clean.cjs`: PASS.
+  - `verify:safety-guard`, `verify:markdown-links`, `verify:workspace-contracts`,
+    `verify:model-aware-recipes`, `verify:media-studio-power-tools`,
+    `verify:status-diagnostics`, `verify:prompt-library`, `verify:scene-composer`,
+    `verify:rp-studio-polish`, `verify:workflow-templates`, `verify:storage-privacy`,
+    `verify:storage-policy`, `verify:research-workspace`,
+    `verify:release-packaging-hardening`, `verify:ci-contract`, `verify:agent-docs`,
+    `verify:image-policy`, `verify:work-orders`, `verify:no-native-dialogs`,
+    `verify:network-boundaries`, `verify:venice-api-docs`, `verify:theme-tokens`: PASS.
+- No source files modified; audit report at `/tmp/venice-audit-root-config-workflows.md`.
+- Targeted image-media-gallery tests: PASS; 23 files / 433 tests.
+  - Components: `src/components/image/*.test.tsx`,
+    `src/components/gallery/*.test.tsx`, `src/components/video/*.test.tsx`,
+    `src/components/audio/*.test.tsx`, `src/components/embeddings/*.test.tsx`.
+  - Stores: `src/stores/media-store.test.ts`,
+    `src/stores/media-selection-store.test.ts`,
+    `src/stores/media-bulk-actions.test.ts`,
+    `src/stores/media-send-to.test.ts`,
+    `src/stores/media-export-bundle.test.ts`.
+  - Utils: `src/utils/image.test.ts`, `src/utils/imageProcessor.test.ts`,
+    `src/utils/mediaItem.test.ts`, `src/utils/mediaModelSpecs.test.ts`,
+    `src/utils/payloadBuilders.test.ts`,
+    `src/utils/payloadBuilders.modelAware.test.ts`.
+- `npm run verify:media-studio-power-tools`: PASS.
+- `npm run verify:model-aware-recipes`: PASS.
+- `tests/theme/inlineColorInvariant.test.ts`: PASS (VERIFY-010 baseline).
+- Full serial Vitest suite: PASS; 248 files passed, 1 skipped; 3131 tests
+  passed, 1 skipped (skipped smoke test requires `RUN_ELECTRON_SMOKE=true`).
+- `npm run typecheck`: PASS (renderer + electron main).
+- `npm run build`: PASS (`dist/`, `dist/server.cjs`, `dist-electron/` produced).
+- `npm run verify:dist`: PASS.
+- `npx eslint <image-media-gallery scope files> --max-warnings=0`: PASS.
+- `npm run lint:eslint`: **FAIL** — ENOENT on missing temp file
+  `src/services/veniceStreamChat-status.temp.test.ts` (cross-cutting; targeted
+  scoped lint passes).
+- No source files modified by this audit; full report written to
+  `/tmp/venice-audit-image-media-gallery.md`.
 
 ### Session History
+
+- **Date:** 2026-06-17 (root-config-workflows proof-driven audit)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` at `bda8fb7`; working tree unmodified (audit only).
+- **Diagnosis:** Reviewed the root configuration, build tooling, CI/CD
+  workflows, and agent-facing rule files for the v2.1.0 release-blocking
+  audit. All scope files were read line-by-line; the global validation
+  matrix and every requested `verify:*` script were executed.
+- **Summary:** Confirmed zero P0/P1 blockers. Identified two P2 issues
+  (`AGENTS.md` version/coverage-threshold drift; CI/local `npm audit`
+  scope mismatch) and three P3 issues (`tsconfig.electron.json` CRLF line
+  endings; `ci` script double-runs the serial test suite; `AGENTS.md`
+  understates the Zustand store surface). No source files were modified.
+  Wrote the complete audit report to
+  `/tmp/venice-audit-root-config-workflows.md`.
+- **Files reviewed:** `package.json`, `package-lock.json`, `tsconfig*.json`,
+  `vite.config.ts`, `vitest.config.ts`, `eslint.config.mjs`,
+  `electron-builder.config.cjs`, `index.html`, `.gitattributes`, `.gitignore`,
+  `.env.example`, `.cursorrules`, `.windsurfrules`, `CLAUDE.md`, `GEMINI.md`,
+  `AGENTS.md`, `.github/workflows/*.yml`, `.github/dependabot.yml`,
+  `.github/CODEOWNERS`, `.github/copilot-instructions.md`,
+  `.github/pull_request_template.md`, `.github/ISSUE_TEMPLATE/*`,
+  `package-scripts.test.ts`.
+- **Validation:** `npm ci` PASS (0 vulnerabilities); `npm run lint:eslint`
+  PASS; `npm run typecheck` PASS; `npm run build` PASS; `npm run verify:dist`
+  PASS; `node scripts/verify-archive-clean.cjs` PASS; all 22 requested
+  `verify:*` scripts PASS. No source modifications; only
+  `docs/summary_of_work.md` was updated.
+
+- **Date:** 2026-06-17 (image-media-gallery proof-driven audit)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` at `bda8fb7`; working tree unmodified (audit only).
+- **Diagnosis:** Reviewed the image-media-gallery surface for the v2.1.0
+  release-blocking audit. All image, gallery, video, audio, music, and
+  embeddings components, related hooks, services, media stores, and utility
+  modules were read line-by-line. Targeted tests, verifier gates, lint,
+  typecheck, build, and `verify:dist` were executed.
+- **Summary:** Confirmed one P1 issue (global lint crash due to missing temp
+  file `src/services/veniceStreamChat-status.temp.test.ts`), three P2 issues
+  (no-op Media Inspector **Export recipe** handler; Media Inspector copy
+  buttons use raw clipboard without fallback; EmbeddingsView copy uses raw
+  clipboard without fallback), and seven P3 issues (inline `var(--color-accent)`
+  CSS variables; `Math.random()` in `randomSeed()`; pre-stringified request
+  bodies in video/music/embeddings hooks; unsafe `as unknown as MediaItem` cast
+  in image-view; `.png` extension for all downloaded images; raw IDs in
+  media-store tag error messages; unstable command-handler registration in
+  gallery-view). No P0 blockers. Wrote the complete audit report to
+  `/tmp/venice-audit-image-media-gallery.md`.
+- **Files reviewed:** `src/components/image/*`, `src/components/gallery/*`,
+  `src/components/video/*`, `src/components/audio/*`,
+  `src/components/music/*`, `src/components/embeddings/*`,
+  `src/hooks/use-image.ts`, `src/hooks/use-image-tools.ts`,
+  `src/hooks/use-video.ts`, `src/hooks/use-audio.ts`,
+  `src/hooks/use-music.ts`, `src/hooks/use-embeddings.ts`,
+  `src/services/imageWorkflowService.ts`, `src/services/mediaMigration.ts`,
+  `src/stores/media-store.ts`, `src/stores/media-selection-store.ts`,
+  `src/stores/media-bulk-actions.ts`, `src/stores/media-send-to.ts`,
+  `src/stores/media-export-bundle.ts`, `src/stores/media-command-handlers.ts`,
+  `src/utils/payloadBuilders.ts`, `src/utils/image.ts`,
+  `src/utils/imageProcessor.ts`, `src/utils/mediaItem.ts`,
+  `src/utils/mediaModelSpecs.ts`, plus related tests and verifier scripts.
+- **Validation:** Targeted image-media-gallery tests PASS (23 files / 433
+  tests); `verify:media-studio-power-tools` PASS; `verify:model-aware-recipes`
+  PASS; full serial Vitest PASS (248 files / 3131 tests, 1 skipped smoke
+  test); `npm run typecheck` PASS; `npm run build` PASS; `npm run verify:dist`
+  PASS; scoped ESLint PASS; global `npm run lint:eslint` FAIL on missing
+  temp file.
+
+- **Date:** 2026-06-17 (storage-privacy-dashboard proof-driven audit)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` at `bda8fb7`; working tree unmodified (audit only).
+- **Diagnosis:** Reviewed the Phase 2H Storage / Privacy Dashboard surface for
+  the v2.1.0 release-blocking audit. All scope files, related store/type
+  contracts, and verifier wiring were read line-by-line. Targeted tests,
+  `verify:storage-privacy`, lint, typecheck, build, and `verify:storage-policy`
+  were executed.
+- **Summary:** Confirmed two P1 issues (conversation inventory shape mismatch
+  caused by casting `Conversation[]` to `StorageInventoryRecord[]`; RP Studio
+  stores not loaded before inventory read), three P2 issues (non-executable
+  copy/export maintenance-plan actions; invisible loading spinner; infinite
+  loading state on first-refresh failure), and three P3 issues (blanket unsafe
+  casts to `StorageInventoryRecord`; poor Review-button tab routing; test-only
+  `as any` casts). No P0 blockers. Wrote the complete audit report to
+  `/tmp/venice-audit-storage-privacy-dashboard.md`.
+- **Files reviewed:** `src/types/storage-privacy.ts`,
+  `src/services/storagePrivacyService.ts`, `src/services/storageMaintenance.ts`,
+  `src/stores/storage-privacy-store.ts`,
+  `src/components/privacy/StoragePrivacyDashboard.tsx`, related tests,
+  `scripts/verify-storage-privacy.cjs`, `scripts/verify-storage-privacy.test.ts`,
+  and cross-referenced store/type contracts (`src/types/conversation.ts`,
+  `src/types/media.ts`, `src/types/rp.ts`, `src/stores/chat-store.ts`, etc.).
+- **Validation:** Targeted storage-privacy tests PASS (6 files / 34 tests);
+  `npm run verify:storage-privacy` PASS; `npm run verify:storage-policy` PASS;
+  `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm run build` PASS.
+
+- **Date:** 2026-06-17 (release-packaging proof-driven audit)
+- **Agent:** Kimi Code
+- **Branch / state:** `main` at `bda8fb7`; working tree unmodified (audit only).
+- **Diagnosis:** Reviewed the release-packaging surface for the v2.1.0
+  release-blocking audit. All packaging/verification scripts, the
+  electron-builder config, GitHub workflows, and release/development docs were
+  read line-by-line. Targeted tests and verify gates were executed.
+- **Summary:** Confirmed one P1 checkout-hygiene issue (stale v2.0.0 artifacts
+  in `release/`), three P2 issues (missing root `LEGAL.md` link, hardening
+  verifier gap for portable/single-arch scripts, CI omission of portable-only
+  verification), and two P3 issues (placeholder Linux maintainer email, doc
+  formatting typo). No source-code P0 blockers. Wrote the complete audit
+  report to `/tmp/venice-audit-release-packaging.md`.
+- **Files reviewed:** `scripts/verify-dist.cjs`,
+  `scripts/verify-dist.test.ts`, `scripts/verify-archive-clean.cjs`,
+  `scripts/verify-archive-clean.test.ts`, `scripts/checksum-release.cjs`,
+  `scripts/checksum-release.test.ts`, `scripts/start-production.cjs`,
+  `scripts/create-cjs-package.cjs`, `scripts/generate-placeholder-icon.cjs`,
+  `scripts/verify-icon.cjs`, `scripts/verify-release-packaging-hardening.cjs`,
+  `scripts/verify-release-packaging-hardening.test.ts`,
+  `scripts/clean-repo-zip.sh`, `scripts/build-electron.cjs`,
+  `electron-builder.config.cjs`, `package.json`,
+  `.github/workflows/release.yml`, `.github/workflows/ci.yml`,
+  `docs/RELEASE/release.md`, `docs/RELEASE/signing-and-notarization.md`,
+  `docs/RELEASE/repository-settings.md`, `docs/DEVELOPMENT/building.md`,
+  `docs/DEVELOPMENT/platform-support.md`, `docs/DEVELOPMENT/troubleshooting.md`,
+  `docs/DEVELOPMENT/CONFIG.md`, `docs/DEVELOPMENT/BRIDGE.md`,
+  `docs/DEVELOPMENT/storage-policy.md`, `docs/DEVELOPMENT/macos.md`,
+  `docs/DEVELOPMENT/JINA_PROVIDER.md`, `docs/audits/CHANGELOG.md`,
+  `.gitignore`.
+- **Validation:** Targeted release-packaging tests PASS (39/39);
+  `verify:release-packaging-hardening` PASS; `verify:archive-clean` PASS;
+  `verify:dist` PASS; `verify:icon` PASS; `checksum:release` PASS;
+  `verify:markdown-links` PASS; `lint:eslint` PASS; `typecheck` PASS.
+  `verify:dist:mac` and `verify:dist:release` FAIL due to stale local
+  artifacts, which is expected until `npm run clean` is run.
+
+- **Date:** 2026-06-17 (Venice API / character / memory repair pass)
+- **Agent:** Codex GPT-5
+- **Branch / state:** `main` at `bda8fb7`; working tree modified.
+- **Diagnosis:** The work-order findings were valid in the live tree: the canonical Venice docs were stale, `VeniceParameters` omitted current fields, character-bound chat could inherit global app/system and Venice default prompts, memory preview actions relied on `pendingContext` side effects, hosted character `/c/{slug}` share URLs were rejected, the privacy summary omitted loaded conversations, and `src/stores/chat-store.test.ts.new` was a tracked stale test artifact.
+- **Summary:** Refreshed the canonical Venice LLM info and Swagger docs from current upstream sources, added `verify:venice-api-docs`, extended Venice chat parameter typing/serialization, isolated character conversations from global/default prompts, preserved hosted character tags/stats/web/model metadata, added deterministic memory decisions and per-chat memory disable, kept memory context as user-provided context, fixed `/c/{slug}` share URL normalization, wired loaded conversations into privacy inventory, and removed the stale `.new` test file.
+- **Files changed:** `docs/reference/Venice_api_LLM_info.md`, `docs/reference/Venice_swagger_api.yaml`, `docs/DEVELOPMENT/CONFIG.md`, `electron/services/configService.ts`, `package.json`, `scripts/verify-venice-api-docs.cjs`, `src/components/SettingsView.tsx`, `src/components/chat/chat-view.tsx`, `src/components/chat/venice-params.tsx`, `src/config/configSchema.ts`, `src/constants/venice.ts`, `src/hooks/use-chat.ts`, `src/services/characterService.ts`, `src/stores/chat-store.ts`, `src/stores/storage-privacy-store.ts`, related tests, and `src/stores/chat-store.test.ts.new` deleted.
+- **Validation:** Node `v22.22.3` / npm `10.9.8`; `npm ci` PASS; `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npx vitest run --fileParallelism=false` PASS (3,131 passed / 1 skipped); targeted regression suite PASS (130 tests); `npm run verify:contracts` PASS; all required individual verifier scripts PASS; `npm run build` PASS; `npm run verify:dist` PASS; `git diff --check` PASS. Known jsdom canvas warnings remain.
 
 - **Date:** 2026-06-17 (v2.1.0 Windows executable release production)
 - **Agent:** Codex GPT-5
@@ -160,7 +437,7 @@ backlog files were removed.
 
 - **Date:** 2026-06-17 (v2.0.0 Windows release artifact audit)
 - **Agent:** Codex GPT-5
-- **Branch / state:** `main` at `9c0d09c`; release source checked in detached worktree `/Users/super_user/Projects/Venice_Forge-v2.0.0-build` at `v2.0.0` / `8626b0c`.
+- **Branch / state:** `main` at `9c0d09c`; release source checked in detached worktree `/path/to/your/projects/Venice_Forge-v2.0.0-build` at `v2.0.0` / `8626b0c`.
 - **Diagnosis:** Existing release `v2.0.0` contains the published macOS assets and no Windows `.exe` assets. The exact `v2.0.0` tag can pass the local Node 22 validation stack on macOS, but the existing GitHub Actions release run `27639095143` fails in the `build-windows` job during `npm test` before Windows packaging.
 - **Summary:** Confirmed package version `2.0.0`, tag `v2.0.0`, release state, Windows build script/config (`dist:win` with NSIS and portable x64 targets), and exact-tag local validation. No Windows artifacts were uploaded because the Windows CI validation gate is failing and one required fix is app-source redaction behavior that landed after `v2.0.0`; completing this under the non-retag rule requires a patch release or explicit maintainer authorization to retag/backport.
 - **Files changed:** `docs/summary_of_work.md`.
@@ -1377,18 +1654,71 @@ backlog files were removed.
 
 ## Latest Session Summary
 
-- **Date:** 2026-06-15
-- **Agent:** Kimi Code (coder subagent)
-- **Branch / state:** `main` (working tree modified)
-- **Scope:** RESEARCH_PROVIDERS_DOC finding group from `docs/audits/combined-todo.yml` (AUDIT-011)
-- **Closed:**
-  - AUDIT-011: Rewrote `docs/audits/RESEARCH_PROVIDERS.md` to reference current research UI components (`src/components/search/SearchScrapeView.tsx`, `src/components/research/ResearchWorkspaceView.tsx`), research stores (`src/stores/research-store.ts`), services (`src/services/researchService.ts`, `src/services/researchSummaries.ts`), and type definitions (`src/types/research.ts`) instead of the retired `SearchScrapeModule`.
-  - Extended `scripts/verify-markdown-links.cjs` with `verifyRetiredModuleReferences()` to catch retired `src/modules` names (`SearchScrapeModule`, `ChatModule`, `ImageModule`, `BatchModule`) outside historical context.
-  - Added regression tests in `scripts/verify-markdown-links.test.ts` for active-doc detection and historical-context exemptions.
-- **Files changed:** `docs/audits/RESEARCH_PROVIDERS.md`, `scripts/verify-markdown-links.cjs`, `scripts/verify-markdown-links.test.ts`, `docs/summary_of_work.md`.
-- **Status:** AUDIT-011 closed. No secrets or private paths recorded.
+- **Date:** 2026-06-17
+- **Agent:** Kimi Code (root agent + 16 parallel section subagents)
+- **Branch / state:** `main` at `bda8fb761f86ddbcd6ad8aa191c36a07be08328e`; working tree had ~24 pre-existing modified/untracked files from in-flight 2.1.0 work plus audit fixes.
+- **Scope:** Final massive release-blocking audit of the entire repository. Covered root config/workflows, Electron, server/proxy/client, safety guard, app shell/layout, stores/storage/migrations, chat/memory, image/media/gallery/video/audio/music/embeddings, prompt library, scene composer, RP studio, workflow templates, storage/privacy dashboard, research subsystem, release/packaging, and docs/phase-chain.
+- **Deliverable:** `docs/REPORTS/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md` plus 16 section reports in `/tmp/venice-audit-*.md`.
+- **Fixed P0/P1 bugs in this session:**
+  - **WF-001 (P0):** Mounted `WorkflowTemplatesView` for the canonical `workflows` tab in `src/App.tsx`.
+  - **SP-001 (P0):** Added renderer-side Family Safe Mode guard to legacy `venice()`/`veniceBlob()`/`veniceFormData()` web branches in `src/services/veniceClient.ts`.
+  - **BUG-E1 (P1):** Added `VALID_ID_RE` validation and directory containment assertion to `electron/services/conversationVault.ts`; tightened `electron/ipc/handlers.ts` id checks.
+  - **RP-01 (P1):** Normalized RP chat roles to `user`/`assistant` before sending to `/chat/completions` in `src/components/rp-studio/RpChatView.tsx`.
+  - **APP-001 (P1):** Added input-element guard to global `Cmd/Ctrl+N` and `Cmd/Ctrl+1..N` shortcuts in `src/App.tsx`.
+  - **PROMPT-001 (P1):** Seeded placeholder content for new prompts so empty versions are not sanitized away on reload.
+  - **AUDIT-IMG-001 (P1):** Implemented the no-op "Export recipe" handler in `src/components/gallery/gallery-view.tsx`.
+- **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm test` PASS (3131 passed, 1 skipped); `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS; `node scripts/verify-archive-clean.cjs` PASS; clean source archive dry run PASS.
+- **Status:** PARTIAL — P0 blockers fixed and all gates pass, but additional confirmed P1 issues remain open (see report). No new feature phase started; no secrets or private machine paths recorded.
 
 ## Session History
+
+### 2026-06-17 - final massive release-blocking bug hunt
+
+- **Agent:** Kimi Code (root agent + 16 parallel section subagents).
+- **Branch / state:** `main` at `bda8fb761f86ddbcd6ad8aa191c36a07be08328e`; working tree had pre-existing in-flight 2.1.0 changes plus audit fixes.
+- **Scope:** Exhaustive proof-driven audit of the entire Venice Forge repository across all major subsystems.
+- **Deliverable:** `docs/REPORTS/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md` and 16 section reports in `/tmp/venice-audit-*.md`.
+- **Fixed in this session:**
+  - `src/App.tsx`: mounted `WorkflowTemplatesView` for the `workflows` tab (WF-001 P0).
+  - `src/services/veniceClient.ts`: added renderer guard to legacy web client surface (SP-001 P0).
+  - `electron/services/conversationVault.ts` + `electron/ipc/handlers.ts`: validated conversation ids and asserted path containment (BUG-E1 P1).
+  - `src/components/rp-studio/RpChatView.tsx`: normalized non-standard RP roles before sending to `/chat/completions` (RP-01 P1).
+  - `src/App.tsx`: ignored global shortcuts when typing in input/textarea/contenteditable (APP-001 P1).
+  - `src/components/prompts/PromptLibraryView.tsx` + `src/components/command-palette/CommandPalette.tsx`: seeded placeholder content for new prompts (PROMPT-001 P1).
+  - `src/components/gallery/gallery-view.tsx`: implemented "Export recipe" download handler (AUDIT-IMG-001 P1).
+- **Validation:**
+  - `npm run lint:eslint` — PASS (0 warnings).
+  - `npm run typecheck` — PASS (renderer + Electron main).
+  - `npx vitest run --fileParallelism=false` — PASS (248 files, 3131 tests passed, 1 skipped).
+  - `npm run build` — PASS.
+  - `npm run verify:dist` — PASS.
+  - `npm run verify:contracts` — PASS (all chained gates).
+  - `node scripts/verify-archive-clean.cjs` — PASS.
+  - Clean source archive dry run — PASS (ARCHIVE CLEAN).
+- **Files changed:** `docs/REPORTS/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md`, `docs/summary_of_work.md`, `src/App.tsx`, `src/services/veniceClient.ts`, `electron/services/conversationVault.ts`, `electron/ipc/handlers.ts`, `src/components/rp-studio/RpChatView.tsx`, `src/components/prompts/PromptLibraryView.tsx`, `src/components/command-palette/CommandPalette.tsx`, `src/components/gallery/gallery-view.tsx`.
+- **Status:** Audit complete. P0 release blockers fixed; remaining P1 issues documented in the report for follow-up. No new feature phase started; no secrets or private machine paths recorded.
+
+### 2026-06-17 - workflow-templates final release-blocking audit
+
+- Agent: Kimi Code (audit subagent).
+- Branch / state: `main` at `bda8fb761f86ddbcd6ad8aa191c36a07be08328e`; clean working tree before this session.
+- Scope: workflow-templates section of the massive final release-blocking audit.
+- Reviewed all files under `src/types/workflow.ts`, `src/stores/workflow-template-store.ts`, `src/services/workflowCompiler.ts`, `src/services/workflowRunner.ts`, `src/lib/workflow-*.ts`, `src/components/workflows/*`, and `scripts/verify-workflow-templates.cjs`; also checked integration points (`src/App.tsx`, `src/config/tabs.ts`, storage registrations).
+- Confirmed bugs (all recorded with file:line proof in `/tmp/venice-audit-workflow-templates.md`):
+  - **P0:** `WorkflowTemplatesView` is not mounted in `App.tsx`; the `workflows` tab renders `WorkflowsView` (visual graph builder). VERIFY-049 contract violation.
+  - **P1:** `workflow-template-store.ts` `reorderSteps` mutates step objects in the rollback snapshot.
+  - **P1:** `workflow-template-store.ts` `deleteWorkflow` rollback restores the wrong `activeWorkflowId`.
+  - **P2:** `scripts/verify-workflow-templates.cjs` omits visual workflow-engine tests (T-134/T-135).
+  - **P2:** `workflowCompiler.ts` never resolves prompt/scene refs into `resolvedInput`.
+  - **P2/P3:** UI quality gaps in `WorkflowTemplatesView` (per-keystroke persistence, only first action runnable, missing hydrate, missing versions/import/export/favorite/tag controls).
+- Validation:
+  - `node scripts/verify-workflow-templates.cjs` — PASS (79/79 tests; typecheck PASS).
+  - `npm run verify:workflow-templates` — PASS.
+  - `npx vitest run src/lib/workflow-engine.test.ts src/lib/workflow-validator.test.ts src/lib/workflow-schema.test.ts src/lib/workflow-mutations.test.ts src/components/workflows/workflow-node.test.tsx --fileParallelism=false` — PASS (29/29 tests).
+  - `npm run lint:eslint` — PASS (0 warnings).
+  - `npm run typecheck` — PASS (via verify script; renderer + Electron main).
+- Files changed: `docs/summary_of_work.md`, `/tmp/venice-audit-workflow-templates.md`.
+- No production code modified; no secrets or private paths recorded.
 
 ### 2026-06-15 - RESEARCH_PROVIDERS_DOC audit-fix closure
 
@@ -5433,6 +5763,29 @@ Result:
 
 ## Open TODO Ledger
 
+### Open Follow-Up from 2026-06-17 workflow-templates Audit
+
+- ~~**P0:** Mount `WorkflowTemplatesView` in `App.tsx` for the canonical `workflows` tab (or merge it into the `WorkflowsView` route); update lazy import and routing tests. VERIFY-049 currently violated.~~ **FIXED 2026-06-17** — `App.tsx` now lazy-loads and mounts `WorkflowTemplatesView` for the `workflows` tab.
+- **P1:** Fix `workflow-template-store.ts` `reorderSteps` so it does not mutate step objects in the rollback snapshot; use immutable updates.
+- **P1:** Fix `workflow-template-store.ts` `deleteWorkflow` rollback to restore the pre-delete `activeWorkflowId` instead of forcing `current.id`.
+- **P2:** Extend `scripts/verify-workflow-templates.cjs` to run `workflow-engine.test.ts`, `workflow-validator.test.ts`, `workflow-schema.test.ts`, `workflow-mutations.test.ts`, and `workflow-node.test.tsx`.
+- **P2:** Implement ref resolution in `workflowCompiler.ts` so prompt/scene/character refs are injected into `resolvedInput`, or remove/disable the ref UI until implemented.
+- **P2/P3:** Harden `WorkflowTemplatesView` UI: debounce title edits, render run buttons for all actions, call `ensureWorkflowTemplatesLoaded` on mount, and add missing versions/import/export/favorite/tag controls.
+- **P3:** Remove `// @ts-nocheck` from `src/stores/workflow-template-store.test.ts` and replace `as any`/`as unknown` casts with typed fixtures.
+
+### Open Follow-Up from 2026-06-17 Final Massive Bug Hunt
+
+- **P1:** Fix `veniceStreamChat` inspector status reporting (SP-002) — preserve upstream HTTP status on non-OK streaming responses instead of defaulting to 500.
+- **P1:** Redact `chat-store.ts` `deleteConversations` errors before returning them to the UI (STO-001).
+- **P1:** Replace direct `console.error` in `character-store.ts` (STO-002) and `scenario-store.ts` (STO-003) with the shared logger + redaction.
+- **P1:** Chat-memory fixes: reset `memoryRetrievalDisabled` on character unbind (CM-001); isolate scene-generation errors from successful streams (CM-002); retain dirty-map entries on persistence failure (CM-003).
+- **P1:** Scene-composer fixes: run write-time sanitization on all fields (SC-01); resolve Prompt Library refs before sending to Image Studio (SC-02); call `redactSecrets` in `sceneCompiler.ts` (SC-03).
+- **P1:** Storage-privacy inventory fixes: map `Conversation[]` to `StorageInventoryRecord[]` correctly (SP-01); load RP Studio stores before reading them (SP-02).
+- **P1:** Run `npm run clean` to clear stale `release/` v2.0.0 artifacts before packaging (REL-001).
+- **P2:** Research subsystem: fix `scripts/verify-research-workspace.cjs` to use project-local vitest (R-01); block `.localhost` in generic HTTP scrape provider (R-02).
+- **P2:** Release/packaging: add root `LEGAL.md` or fix `docs/RELEASE/release.md` link (REL-002); extend hardening verifier for portable/single-arch scripts (REL-003); add `verify:dist:portable` to release workflow (REL-004).
+- **P2/P3:** Docs hygiene: bump `AGENTS.md` version to 2.1.0; sync coverage threshold text; redact private machine paths in `docs/summary_of_work.md` and `docs/RELEASE/release.md`; mark stale audit snapshots superseded.
+
 ### Completed 2026-06-15 ZIP Audit Cross-Check Blockers
 
 - Restored the green full gate by updating stale tests and removing unused catch bindings introduced by generic-error handling.
@@ -6153,3 +6506,27 @@ Result:
 - **Summary:** Achieved >90% test coverage for `src/stores/media-send-to.ts`. Added comprehensive tests for clipboard shims (writeText resolves/rejects, execCommand fallback), destination error boundaries (missing items/prompts), model defaults fallback for chat handoffs, and tab routing invariant (`isTabId`).
 - **Files changed:** `src/stores/media-send-to.test.ts`, `docs/summary_of_work.md`.
 - **Validation:** `npx vitest run src/stores/media-send-to.test.ts --coverage` PASS (37 tests passed); >90% coverage for target file.
+
+## Validation Matrix (2026-06-17 workflow-templates audit append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `node scripts/verify-workflow-templates.cjs` | PASS | `npm run typecheck` PASS; 79/79 tests passed across 5 test files |
+| `npm run verify:workflow-templates` | PASS | Same script invoked via `package.json`; 79/79 tests passed |
+| `npx vitest run src/lib/workflow-engine.test.ts src/lib/workflow-validator.test.ts src/lib/workflow-schema.test.ts src/lib/workflow-mutations.test.ts src/components/workflows/workflow-node.test.tsx --fileParallelism=false` | PASS | 29/29 tests passed (files not exercised by the section verify script) |
+| `npm run lint:eslint` | PASS | Zero warnings (`--max-warnings=0`) |
+| `npm run typecheck` | PASS | Renderer (`tsconfig.json`) + Electron main (`tsconfig.electron.json`) both clean |
+
+## Validation Matrix (2026-06-17 final massive bug hunt append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npm run lint:eslint` | PASS | 0 warnings |
+| `npm run typecheck` | PASS | `tsc --noEmit` + `tsc --noEmit --project tsconfig.electron.json` both clean |
+| `npx vitest run --fileParallelism=false` | PASS | 248 files passed, 1 skipped; 3131 tests passed, 1 skipped |
+| `npm run build` | PASS | `dist/`, `dist/server.cjs`, `dist-electron/` produced |
+| `npm run verify:dist` | PASS | build outputs verified for version 2.1.0 |
+| `node scripts/verify-archive-clean.cjs` | PASS | 756 tracked paths clean |
+| `npm run verify:contracts` | PASS | all chained gates passed |
+| Clean source archive dry run | PASS | `ARCHIVE CLEAN` per requested exclusions |
+| Targeted regression tests for fixed files | PASS | `conversationVault.test.ts`, `RpChatView.test.tsx`, `WorkflowTemplatesView.test.tsx`, `gallery-view.test.tsx`, `prompt-library-store.test.ts` all passed |

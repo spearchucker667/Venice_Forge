@@ -21,6 +21,7 @@ import type { SceneMediaRef, ScenePromptRef } from "../../types/scene";
 import { useSettingsStore } from "../../stores/settings-store";
 import { useProjectStore } from "../../stores/project-store";
 import { useImageWorkspaceStore } from "../../stores/image-workspace-store";
+import { usePromptLibraryStore } from "../../stores/prompt-library-store";
 import { toast } from "../../stores/toast-store";
 import { compileSceneToRecipe } from "../../services/sceneCompiler";
 
@@ -323,6 +324,26 @@ function SceneDetail(props: SceneDetailProps) {
     item.versions.find((v) => v.id === item.currentVersionId) ??
     item.versions[0]!;
 
+  const ensurePromptsLoaded = usePromptLibraryStore((s) => s.ensureLoaded);
+  const getPrompt = usePromptLibraryStore((s) => s.getPrompt);
+  const getCurrentVersion = usePromptLibraryStore((s) => s.getCurrentVersion);
+
+  const resolvePromptRef = (ref: ScenePromptRef) => {
+    const prompt = getPrompt(ref.promptId);
+    if (!prompt) return null;
+    const version = ref.versionId
+      ? prompt.versions.find((v) => v.id === ref.versionId)
+      : getCurrentVersion(ref.promptId);
+    if (!version) return null;
+    return {
+      promptId: ref.promptId,
+      versionId: version.id,
+      title: prompt.title,
+      content: version.content,
+      negativeContent: version.negativeContent,
+    };
+  };
+
   const [title, setTitle] = useState(item.title);
   const [description, setDescription] = useState(item.description ?? "");
   const [tagsInput, setTagsInput] = useState(item.tags.join(", "));
@@ -426,8 +447,9 @@ function SceneDetail(props: SceneDetailProps) {
     setComponents((prev) => prev.filter((c) => c.key !== key));
   };
 
-  const handleSendToImageStudio = () => {
-    const result = compileSceneToRecipe(item, currentVersion);
+  const handleSendToImageStudio = async () => {
+    await ensurePromptsLoaded();
+    const result = compileSceneToRecipe(item, currentVersion, { resolvePrompt: resolvePromptRef });
     if (!result.recipe.prompt) {
       toast.error("Scene has no prompt content");
       return;
@@ -451,8 +473,9 @@ function SceneDetail(props: SceneDetailProps) {
     toast.success("Sent to Image Studio");
   };
 
-  const handleCopyRecipe = () => {
-    const result = compileSceneToRecipe(item, currentVersion);
+  const handleCopyRecipe = async () => {
+    await ensurePromptsLoaded();
+    const result = compileSceneToRecipe(item, currentVersion, { resolvePrompt: resolvePromptRef });
     const text = JSON.stringify(result.recipe, null, 2);
     void navigator.clipboard.writeText(text);
     toast.success("Recipe copied to clipboard");

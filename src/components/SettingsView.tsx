@@ -506,7 +506,7 @@ export function SettingsView() {
                   <textarea
                     value={systemPrompt}
                     onChange={(e) => setSystemPrompt(e.target.value)}
-                    placeholder="You are a helpful assistant..."
+                    placeholder="Optional. Leave empty to avoid adding an app-authored system message."
                     rows={4}
                     className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50 resize-none"
                   />

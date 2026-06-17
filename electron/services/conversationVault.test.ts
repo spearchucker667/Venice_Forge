@@ -47,6 +47,9 @@ import {
   listConversations,
   getConversation,
   saveConversation,
+  deleteConversation,
+  isValidConversationId,
+  getRecordPath,
   _resetVaultCache_TEST_ONLY,
 } from "./conversationVault";
 
@@ -576,6 +579,29 @@ describe("ConversationVault core and services", () => {
       const context = await pullContext({ message: "Search fact" });
       expect(context.injectedText).toContain("Match this active fact");
       expect(context.injectedText).not.toContain("Match this forgotten fact");
+    });
+
+    it("27. rejects path-traversal conversation ids (BUG-E1 regression)", async () => {
+      expect(isValidConversationId("../../../tmp/evil")).toBe(false);
+      const res = await getConversation("../../../tmp/evil");
+      expect(res).toBeNull();
+      const saveRes = await saveConversation({ ...makeRecord(), id: "../../../tmp/evil" });
+      expect(saveRes.ok).toBe(false);
+      const deleteRes = await deleteConversation("../../../tmp/evil");
+      expect(deleteRes.ok).toBe(false);
+    });
+
+    it("28. resolves valid ids inside the conversations directory only (BUG-E1 regression)", async () => {
+      const validId = "valid-conversation-id_1.2-3";
+      expect(isValidConversationId(validId)).toBe(true);
+      const record = { ...makeRecord(), id: validId };
+      const saveRes = await saveConversation(record);
+      expect(saveRes.ok).toBe(true);
+      const read = await getConversation(validId);
+      expect(read).not.toBeNull();
+      expect(read?.id).toBe(validId);
+      const resolvedPath = getRecordPath(validId, record.createdAt);
+      expect(await fs.stat(resolvedPath)).toBeDefined();
     });
   });
 });

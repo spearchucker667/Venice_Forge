@@ -496,9 +496,23 @@ export function MediaStudioView() {
     [handoffToImageStudio],
   );
 
-  const handleExportRecipe = useCallback((_item: MediaItem) => {
-    // The inspector already wrote the recipe JSON via Blob+download.
-    void _item;
+  const handleExportRecipe = useCallback((item: MediaItem) => {
+    const recipe = extractGenerationRecipe(item);
+    if (!recipe) {
+      toast.error("This media item has no reusable recipe");
+      return;
+    }
+    if (typeof document === "undefined") return;
+    const json = JSON.stringify(recipe, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `recipe-${item.id.slice(0, 8)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }, []);
 
   const handleRegenerate = useCallback(

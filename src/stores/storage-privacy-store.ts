@@ -16,8 +16,21 @@ import { usePersonaStore } from "./persona-store";
 import * as logger from "../shared/logger";
 import { useLorebookStore } from "./lorebook-store";
 import { useAuthStore } from "./auth-store";
+import { useChatStore } from "./chat-store";
 import { toast } from "./toast-store";
 import { desktopCharacterImage, isElectron } from "../services/desktopBridge";
+
+function toStorageRecord(
+  item: { id: string; title?: string; name?: string; projectId?: string | null; archivedAt?: string | number | null },
+): StorageInventoryRecord {
+  return {
+    id: item.id,
+    title: item.title,
+    name: item.name,
+    projectId: item.projectId ?? null,
+    archivedAt: item.archivedAt ?? null,
+  };
+}
 
 export interface StoragePrivacyState {
   inventory: StorageInventoryResult | null;
@@ -50,6 +63,10 @@ export const useStoragePrivacyStore = create<StoragePrivacyState>((set, get) => 
         useSceneComposerStore.getState().ensureLoaded?.() || Promise.resolve(),
         useMediaStore.getState().refresh(),
         useWorkflowTemplateStore.getState().ensureWorkflowTemplatesLoaded(),
+        useCharacterCardStore.getState().load?.() || Promise.resolve(),
+        useLorebookStore.getState().load?.() || Promise.resolve(),
+        usePersonaStore.getState().load?.() || Promise.resolve(),
+        useScenarioStore.getState().load?.() || Promise.resolve(),
       ]);
 
       const [cacheInventory] = await Promise.all([
@@ -62,16 +79,24 @@ export const useStoragePrivacyStore = create<StoragePrivacyState>((set, get) => 
       await useAuthStore.getState().checkConfiguration();
       const veniceConfigured = useAuthStore.getState().isConfigured;
 
+      const conversations = useChatStore.getState().conversations.map((c) => ({
+        id: c.id,
+        title: c.title,
+        projectId: c.memory?.projectRefs?.[0] ?? null,
+        archivedAt: c.metadata?.archived ? 1 : null,
+      }));
+
       const inventory = buildStorageInventory({
-        projects: useProjectStore.getState().projects as unknown as StorageInventoryRecord[],
-        prompts: usePromptLibraryStore.getState().prompts as unknown as StorageInventoryRecord[],
-        scenes: useSceneComposerStore.getState().scenes as unknown as StorageInventoryRecord[],
-        media: useMediaStore.getState().items as unknown as StorageInventoryRecord[],
-        workflows: useWorkflowTemplateStore.getState().workflows as unknown as StorageInventoryRecord[],
-        characters: useCharacterCardStore.getState().cards as unknown as StorageInventoryRecord[],
-        lorebooks: useLorebookStore.getState().lorebooks as unknown as StorageInventoryRecord[],
-        personas: usePersonaStore.getState().personas as unknown as StorageInventoryRecord[],
-        scenarios: useScenarioStore.getState().scenarios as unknown as StorageInventoryRecord[],
+        projects: useProjectStore.getState().projects.map(toStorageRecord),
+        conversations,
+        prompts: usePromptLibraryStore.getState().prompts.map(toStorageRecord),
+        scenes: useSceneComposerStore.getState().scenes.map(toStorageRecord),
+        media: useMediaStore.getState().items.map((m) => toStorageRecord(m as { id: string; title?: string; name?: string; projectId?: string | null; archivedAt?: string | number | null })),
+        workflows: useWorkflowTemplateStore.getState().workflows.map((w) => toStorageRecord(w as { id: string; title?: string; name?: string })),
+        characters: useCharacterCardStore.getState().cards.map((c) => toStorageRecord(c as { id: string; name?: string })),
+        lorebooks: useLorebookStore.getState().lorebooks.map((l) => toStorageRecord(l as { id: string; name?: string })),
+        personas: usePersonaStore.getState().personas.map((p) => toStorageRecord(p as { id: string; name?: string })),
+        scenarios: useScenarioStore.getState().scenarios.map((s) => toStorageRecord(s as { id: string; name?: string; projectId?: string | null; archivedAt?: string | number | null })),
         apiKey: {
           configured: veniceConfigured,
           storage: isElectron() ? "secure-storage" : "web-environment",

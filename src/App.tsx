@@ -27,6 +27,13 @@ import { applyTheme, resolveInitialTheme } from './theme'
 import { CANONICAL_TAB_ORDER, normaliseTab, type TabId } from './config/tabs'
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion'
 
+/** Exported for regression testing: identifies whether a keyboard event target
+ *  is an editable element where global shortcuts should be ignored. */
+export function isShortcutTargetEditable(event: KeyboardEvent): boolean {
+  const target = event.target as HTMLElement | null
+  return !!(target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable))
+}
+
 // Heavyweight views are dynamically imported so the initial renderer bundle
 // does not pay for Settings (956 lines), Media Studio (936 lines), Search &
 // Scrape (789 lines), Scene Composer (768), Prompt Library (686), or the
@@ -34,9 +41,9 @@ import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion'
 // them. Each lazy wrapper preserves the existing React.lazy / Suspense
 // fallback contract used by Workflows / Playground / RP Studio (P2-008).
 
-const LazyWorkflowsView = lazy(() => import('./components/workflows/workflows-view').then((m) => ({ default: m.WorkflowsView })))
-function WorkflowsView() {
-  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading workflows…</div>}><LazyWorkflowsView /></Suspense>
+const LazyWorkflowTemplatesView = lazy(() => import('./components/workflows/WorkflowTemplatesView').then((m) => ({ default: m.WorkflowTemplatesView })))
+function WorkflowTemplatesViewLazy() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading workflows…</div>}><LazyWorkflowTemplatesView /></Suspense>
 }
 
 const LazyPlaygroundView = lazy(() => import('./components/playground/playground-view').then((m) => ({ default: m.PlaygroundView })))
@@ -100,7 +107,7 @@ const views: Record<TabId, React.ComponentType> = {
   music: MusicView,
   video: VideoView,
   embeddings: EmbeddingsView,
-  workflows: WorkflowsView,
+  workflows: WorkflowTemplatesViewLazy,
   privacy: StoragePrivacyDashboard,
   playground: PlaygroundView,
   status: StatusView,
@@ -173,6 +180,8 @@ export function App() {
     const handler = (e: KeyboardEvent) => {
       const isMeta = e.metaKey || e.ctrlKey
       if (!isMeta) return
+
+      if (isShortcutTargetEditable(e)) return
 
       if (e.key === 'n') {
         e.preventDefault()

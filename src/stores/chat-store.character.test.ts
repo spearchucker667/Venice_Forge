@@ -101,7 +101,7 @@ describe("chat-store character integration", () => {
       .toEqual([]);
   });
 
-  it("persists slug, name, photoUrl, shareUrl, and modelId on the conversation", () => {
+  it("persists slug, name, photoUrl, shareUrl, modelId, webEnabled, tags, and stats on the conversation", () => {
     const id = useChatStore.getState().createCharacterConversation(CHARACTER_FIXTURE, "llama-3.3-70b");
     const conv = useChatStore.getState().conversations.find((c) => c.id === id)!;
     expect(conv.metadata?.character).toMatchObject({
@@ -113,7 +113,10 @@ describe("chat-store character integration", () => {
       modelId: "venice-uncensored-1-2",
       adult: false,
       webEnabled: true,
+      tags: ["philosophy", "religion"],
+      stats: { averageRating: 4.6 },
     });
+    expect(conv.metadata?.memoryRetrievalDisabled).toBe(true);
   });
 
   it("prefers the character.modelId over the fallback model", () => {

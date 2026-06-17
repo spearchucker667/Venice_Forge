@@ -79,7 +79,7 @@ chat:
   temperature: 0.7                # clamped to [0, 2]
   top_p: 1                        # clamped to [0, 1]
   max_tokens: 4096                # clamped to [1, 200000]
-  include_venice_system_prompt: false
+  include_venice_system_prompt: true
   enable_web_search: "off"        # "off" | "on" | "auto"
   enable_web_scraping: false
   enable_web_citations: false

@@ -75,8 +75,15 @@ function createMinimalValidRepo(prefix: string, opts: { releaseYml?: string } = 
       typecheck: "tsc --noEmit && tsc --noEmit --project tsconfig.electron.json",
       ci: "npm run verify:release-packaging-hardening && npm run verify:research-workspace && npm test && npm run build && npm run lint:eslint && npm run typecheck",
       "dist:mac": "electron-builder --mac",
+      "dist:mac:arm64": "electron-builder --mac --arm64",
+      "dist:mac:x64": "electron-builder --mac --x64",
       "dist:win": "electron-builder --win",
+      "dist:portable": "electron-builder --win portable",
       "dist:linux": "electron-builder --linux",
+      "verify:dist:win": "node scripts/verify-dist.cjs --win",
+      "verify:dist:portable": "node scripts/verify-dist.cjs --win --portable",
+      "verify:dist:mac": "node scripts/verify-dist.cjs --mac",
+      "verify:dist:linux": "node scripts/verify-dist.cjs --linux",
     },
     engines: { node: ">=22.0.0" },
   };
@@ -117,6 +124,8 @@ function createMinimalValidRepo(prefix: string, opts: { releaseYml?: string } = 
       "  build-linux:",
       "    steps:",
       "      - run: npm run dist:linux",
+      "verify:dist:win",
+      "verify:dist:portable",
       "verify:dist:linux",
     ].join("\n");
   writeFileSync(join(root, ".github/workflows/release.yml"), releaseYml);

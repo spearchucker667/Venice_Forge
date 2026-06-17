@@ -53,12 +53,14 @@ Object.defineProperty(window, 'veniceForge', {
 
 let useChatStore: typeof import('./chat-store').useChatStore
 let _debugGetDirtyConversationIds: typeof import('./chat-store')._debugGetDirtyConversationIds
+let flushAllPendingSaves: typeof import('./chat-store').flushAllPendingSaves
 
 beforeAll(async () => {
   vi.useFakeTimers()
   const mod = await import('./chat-store')
   useChatStore = mod.useChatStore
   _debugGetDirtyConversationIds = mod._debugGetDirtyConversationIds
+  flushAllPendingSaves = mod.flushAllPendingSaves
   await vi.runAllTimersAsync()
 })
 
@@ -76,7 +78,7 @@ describe('chat-store subscription performance (P1-006 regression)', () => {
     } as never)
   })
 
-  it('uses O(n) lookups when scanning for mutated conversations', () => {
+  it('uses O(n) lookups when scanning for mutated conversations', async () => {
     // Create 100 conversations. Each creation mutates state, but the timer
     // is fake so the debounced flush will not run until we advance it.
     const ids: string[] = []
@@ -98,7 +100,7 @@ describe('chat-store subscription performance (P1-006 regression)', () => {
     // We do this by forcing a flush, which clears the map.
     // NOTE: setActiveConversation itself may have marked dirty if identity
     // changed; flush it out.
-    vi.runAllTimers()
+    await vi.runAllTimersAsync()
 
     // Spy on Array.prototype.find specifically during the mutation we care
     // about. The subscription itself must not rely on .find to locate the
@@ -135,17 +137,21 @@ describe('chat-store subscription performance (P1-006 regression)', () => {
     findSpy.mockRestore()
   })
 
-  it('scales linearly: mutating one conversation in a 100-item list marks only that id dirty', () => {
+  it('scales linearly: mutating one conversation in a 100-item list marks only that id dirty', async () => {
     const ids: string[] = []
     for (let i = 0; i < 100; i++) {
       const id = useChatStore.getState().createConversation('llama-3.3-70b')
       ids.push(id)
     }
 
+    // Drain any flushes triggered by creation so the dirty map only reflects
+    // the subsequent targeted mutation.
+    await flushAllPendingSaves()
+    await vi.runAllTimersAsync()
+
     const target = ids[42]
     const active = ids[99]
     useChatStore.getState().setActiveConversation(active)
-    vi.runAllTimers()
 
     useChatStore.getState().addMessage(target, { role: 'user', content: 'pong' })
 
