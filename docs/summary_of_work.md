@@ -112,20 +112,19 @@ remains. The current canonical roadmap is
 backlog files were removed.
 
 ### Latest Session Summary
-- **v2.0.0 Windows release audit:** Verified the existing GitHub release
-  `v2.0.0` still contains macOS assets and no Windows `.exe` assets. The live
-  `main` tree is now `2.1.0`, so the release audit used an isolated detached
-  worktree at the exact `v2.0.0` tag (`8626b0c`).
-- **Exact-tag validation:** Under the repo-local Node 22 toolchain, the
-  detached `v2.0.0` tree passed `npm ci`, production `npm audit`,
-  `lint:eslint`, `typecheck`, full `npm test`, `test:coverage`,
-  `verify:contracts`, `build`, and `verify:dist`.
-- **Release blocker:** The existing `v2.0.0` GitHub Actions release run failed
-  on `windows-latest` during `npm test` before packaging. The failures are
-  Windows path/tooling/redaction issues, including an app-source redaction fix
-  that landed later on `main`. Under the no-retag rule, no Windows artifacts
-  were uploaded to `v2.0.0`; publish a new patch release or explicitly
-  authorize a `v2.0.0` retag/backport before completing Windows assets.
+- **v2.1.0 Windows executable release produced:** Verified GitHub Actions run
+  `27672747741` completed successfully across `build-windows`, `build-macos`,
+  `build-linux`, and `publish` for tag `v2.1.0`.
+- **Windows artifacts verified:** The draft `v2.1.0` GitHub release now
+  contains `Venice-Forge-2.1.0-x64-Setup.exe`,
+  `Venice-Forge-2.1.0-x64-Portable.exe`, setup blockmap, `latest.yml`, and
+  SHA-256 sidecars. The Windows assets were downloaded through the GitHub
+  release asset API and verified against the published digests and sidecar
+  checksum files.
+- **Release state:** The release remains a draft because the workflow reported
+  Windows signing credentials were absent and produced unsigned draft
+  artifacts. Release notes were updated to label the unsigned/draft state and
+  list the Windows `.exe` assets.
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
@@ -142,20 +141,22 @@ backlog files were removed.
   campaign, bundle budgets/lazy-loading, and future Linux arm64 support decision.
 
 ### Validation Matrix (this session)
-- `/Users/super_user/Projects/Windows-Venice-API-connector/.node22/bin/node --version`: PASS (`v22.22.3`) in detached `v2.0.0` worktree.
-- `npm ci`: PASS in detached `v2.0.0` worktree.
-- `npm audit --omit=dev --audit-level=moderate`: PASS (0 production vulnerabilities) in detached `v2.0.0` worktree.
-- `npm run lint:eslint`: PASS in detached `v2.0.0` worktree.
-- `npm run typecheck`: PASS in detached `v2.0.0` worktree.
-- `npm test`: PASS in detached `v2.0.0` worktree (247 files passed / 1 skipped; 3,094 tests passed / 1 skipped).
-- `npm run test:coverage`: PASS in detached `v2.0.0` worktree (statements 70.64%, branches 61.84%, functions 68.11%, lines 73.69%).
-- `npm run verify:contracts`: PASS in detached `v2.0.0` worktree.
-- `npm run build`: PASS in detached `v2.0.0` worktree.
-- `npm run verify:dist`: PASS in detached `v2.0.0` worktree.
-- `gh run view 27639095143 --job build-windows --log-failed`: FAIL for the existing `v2.0.0` release workflow on `windows-latest`; `npm test` failed before packaging.
+- `gh run view 27672747741 --repo spearchucker667/Venice_Forge --json ...`: PASS; `build-windows`, `build-macos`, `build-linux`, and `publish` all succeeded for tag `v2.1.0`.
+- `gh run view 27672747741 --job 81840690819 --log`: PASS evidence; Windows job ran `npm run dist:win`, generated `Setup.exe`, `Portable.exe`, blockmap, checksums, and passed `npm run verify:dist:win`.
+- `gh release view v2.1.0 --repo spearchucker667/Venice_Forge --json ...`: PASS; draft release contains 36 assets including the Windows `.exe` files, blockmap, `latest.yml`, and checksum sidecars.
+- GitHub release asset API downloads for Windows files: PASS; downloaded assets matched API-reported sizes and SHA-256 digests.
+- Local SHA-256 sidecar verification in `/tmp/venice-forge-v2.1.0-windows`: PASS for `Venice-Forge-2.1.0-x64-Portable.exe`, `Venice-Forge-2.1.0-x64-Setup.exe`, `Venice-Forge-2.1.0-x64-Setup.exe.blockmap`, and `latest.yml`.
 - Known warning: jsdom still emits `HTMLCanvasElement.getContext()` warnings during full test/coverage runs.
 
 ### Session History
+
+- **Date:** 2026-06-17 (v2.1.0 Windows executable release production)
+- **Agent:** Codex GPT-5
+- **Branch / state:** `main` at `09128f3`; release tag `v2.1.0` at `9c0d09c`.
+- **Diagnosis:** The exact `v2.0.0` Windows release remained blocked by Windows CI test failures, but the fixed `v2.1.0` release workflow had already completed successfully and produced Windows executable assets.
+- **Summary:** Verified the `v2.1.0` draft release assets and workflow run. Downloaded Windows release assets via the GitHub release asset API, checked expected file sizes and SHA-256 digests, verified the published `.sha256` sidecars against the downloaded `.exe`, blockmap, and `latest.yml`, and updated the draft release notes to label the unsigned Windows artifact state.
+- **Files changed:** `docs/summary_of_work.md`; GitHub draft release notes for `v2.1.0` were updated out-of-repo.
+- **Validation:** `gh run view 27672747741` PASS; `build-windows` / `build-macos` / `build-linux` / `publish` all succeeded. Windows artifact verification PASS: setup `.exe` `ed48361efd33b62ac22a7389fef100374bffdcaffca5209b9cdd7344a3a4db08`, portable `.exe` `c8427a098c69c720af206bbfc0a97f87020a1f0da4a8cdb78c19889001fcd2f2`, setup blockmap `f37a63483e40484ee37af94d20cfc8e653ab6d0b0c8106ad224880943ffc8b15`, `latest.yml` `23ed2c603766edddf6347a2bf63f97cb0ed6596e9b177c21f111268d9a3e7d69`. Release remains draft because signing credentials are absent.
 
 - **Date:** 2026-06-17 (v2.0.0 Windows release artifact audit)
 - **Agent:** Codex GPT-5
