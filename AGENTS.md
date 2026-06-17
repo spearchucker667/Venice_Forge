@@ -67,8 +67,9 @@ npm run typecheck            # Renderer (tsconfig.json) + Electron main (tsconfi
 npm test                     # Vitest, serial (--fileParallelism=false)
 npm run verify:safety-guard  # Mandatory CI gate; see Security below
 npm run verify:markdown-links # Local Markdown files + heading fragments
+npm run verify:contracts     # Comprehensive suite of all 22+ sub-verifiers/contracts
 npm run build                # dist/ + dist-electron/ + dist/server.cjs
-npm run ci                   # Full parity including safety + Markdown guards
+npm run ci                   # Full parity including safety, markdown, contracts, and dist verification
 ```
 
 ### Single test, single file
@@ -283,6 +284,7 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `electron/preload.ts` | contextBridge API surface (only place to expose IPC to renderer) |
 | `electron/main.ts` | BrowserWindow + CSP + navigation guards; `requestSingleInstanceLock` |
 | `electron/ipc/handlers.ts` | IPC channel handlers (incl. `venice:request`, `venice:streamChat`, `chat:*`, `app:*`) |
+| `electron/ipc/configHandlers.ts` | Registers config-related IPC channels (extracted from handlers.ts to resolve size warnings) |
 | `electron/services/bridgeServer.ts` | Headless Express loopback bridge server (`127.0.0.1`) enforcing bearer token auth & child exploitation safety guard |
 | `src/types/rp.ts` | Local-first Character RP Studio types: `CharacterCardV1`, `UserPersonaV1`, `RpChatV1` / `RpMessageV1`, `LorebookV1`, `RpMemoryV1`, `RpAssetV1`, `PromptAssemblyTraceEntry`, `VALID_ID_RE` |
 | `src/services/rp/promptBuilderService.ts` | Pure deterministic prompt assembly (safety -> model -> persona -> characters -> scenario -> lorebook -> memory -> recent -> active turn) with trace + LIFO budget enforcement |
@@ -303,6 +305,10 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 | `scripts/verify-safety-guard.cjs` | CI gate — see Security section |
 | `scripts/verify-dist.cjs` | Build-output verification by default (`verify:dist` / `verify:build-output`); explicit platform modes verify packaged release artifacts (`verify:dist:win`, `verify:dist:mac`, `verify:dist:linux`, `verify:dist:portable`, `verify:dist:release`) |
 | `scripts/verify-markdown-links.cjs` | CI documentation-link verifier for local files and heading fragments (`verify:markdown-links`) |
+| `scripts/verify-venice-api-docs.cjs` | Verifies Swagger spec and reference document synchronization (CWE-020 URL check) |
+| `scripts/verify-no-native-dialogs.cjs` | Confirms dialog hooks and components don't bypass CSS theme bounds (VERIFY-056) |
+| `scripts/verify-ci-contract.cjs` | Matches CI/CD release configs against local schemas |
+| `scripts/verify-agent-docs.cjs` | Assures documentation sync and handoff parity |
 | `scripts/profile-media-studio.mjs` | Opt-in Playwright Electron profile for encrypted Media Studio pagination, heap/DOM metrics, console health, and temporary screenshots |
 | `src/shared/safety/childExploitationGuard.ts` | Public safety-guard API + decision orchestration (T15 split: matchTables + normalization extracted) |
 | `src/shared/safety/localFamilySafeGuard.ts` | Conditional Family Safe Mode pipeline; returns a skipped decision without invoking rules in Adult Mode |

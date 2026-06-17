@@ -20,6 +20,7 @@ npm run typecheck            # Renderer (tsconfig.json) + Electron main (tsconfi
 npm test                     # Vitest, serial (--fileParallelism=false)
 npm run verify:safety-guard  # Mandatory CI gate; see Security below
 npm run verify:markdown-links # Local Markdown files + heading fragments
+npm run verify:contracts     # Comprehensive suite of all 22+ sub-verifiers/contracts
 npm run build                # dist/ + dist-electron/ + dist/server.cjs
 npm run build:web       # Renderer build only
 npm run build:server    # Express server bundle only
