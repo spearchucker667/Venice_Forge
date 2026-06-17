@@ -20,15 +20,20 @@ function getTargets(platform, args) {
   const checkLinux = explicitLinux || explicitAll || (!hasExplicitPlatform && platform === "linux" && verifyRelease);
 
   let targetArches = ["x64", "arm64"];
+  // Linux builds are x64-only in CI until a native arm64 runner or
+  // cross-compilation toolchain is added.
+  let linuxArches = ["x64"];
   const archIdx = args.indexOf("--arch");
   if (archIdx !== -1 && archIdx + 1 < args.length) {
     targetArches = [args[archIdx + 1]];
+    linuxArches = [args[archIdx + 1]];
   } else if (explicitAll) {
     targetArches = ["x64", "arm64"];
+    linuxArches = ["x64"];
   } else if (!hasExplicitPlatform && platform === "win32") {
     targetArches = ["x64"];
   }
-  return { checkWin, checkMac, checkLinux, targetArches };
+  return { checkWin, checkMac, checkLinux, targetArches, linuxArches };
 }
 
 // Forbidden patterns inside the build outputs. Phase 2J hygiene guard.
@@ -45,6 +50,9 @@ const FORBIDDEN_DIST_PATTERNS = [
   // Dev-tool scratch
   /(^|\/)\.design-captures\//,
   /(^|\/)chat-history\//,
+  // Renderer source must never be shipped inside the Electron main bundle.
+  // Main/preload are bundled so shared code is inlined; src/ should not exist.
+  /^src\//,
   // Test fixture-only paths (Vitest excludes, but assert defensively)
   /(?:^|\/)\.integration-src\//,
 ];
@@ -64,8 +72,15 @@ const SECRET_PATTERNS = [
   /\b[A-Z][A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD)\s*=\s*["']?[^"'\s,;}]{8,}/g,
 ];
 
+const FORBIDDEN_ELECTRON_TEXT_PATTERNS = [
+  {
+    re: /(?:require\(["']|from\s+["'])(?:\.\.\/)+src\//,
+    label: "generated Electron output imports renderer/source modules via ../src",
+  },
+];
+
 if (require.main !== module) {
-  module.exports = { getTargets, FORBIDDEN_DIST_PATTERNS, SECRET_PATTERNS };
+  module.exports = { getTargets, FORBIDDEN_DIST_PATTERNS, SECRET_PATTERNS, FORBIDDEN_ELECTRON_TEXT_PATTERNS };
 } else {
 
 const { checkWin, checkMac, checkLinux, targetArches } = getTargets(process.platform, args);
@@ -183,6 +198,36 @@ function assertNoSecretsInDist(distDir) {
   }
 }
 
+function assertNoForbiddenElectronText(distDir) {
+  const files = [];
+  walk(distDir, files);
+  const hits = [];
+  for (const f of files) {
+    if (path.extname(f).toLowerCase() !== ".js") continue;
+    const rel = path.relative(distDir, f).split(path.sep).join("/");
+    let content;
+    try {
+      content = fs.readFileSync(f, "utf8");
+    } catch {
+      continue;
+    }
+    for (const { re, label } of FORBIDDEN_ELECTRON_TEXT_PATTERNS) {
+      re.lastIndex = 0;
+      if (re.test(content)) {
+        hits.push({ rel, label });
+        break;
+      }
+    }
+  }
+  if (hits.length > 0) {
+    const display = hits.slice(0, 20).map((h) => `  ${h.rel} (${h.label})`);
+    fail(
+      `Forbidden Electron runtime imports found in ${path.relative(root, distDir)}:\n${display.join("\n")}\n` +
+        "Electron main/preload must be bundled; generated runtime files must not import ../../src/*."
+    );
+  }
+}
+
 console.log(`[verify:dist] Starting verification for version ${version}`);
 
 function verifyLinuxArtifacts(releaseDir, verified) {
@@ -242,6 +287,7 @@ assertNoForbiddenInDist(path.join(root, "dist"));
 assertNoForbiddenInDist(path.join(root, "dist-electron"));
 assertNoSecretsInDist(path.join(root, "dist"));
 assertNoSecretsInDist(path.join(root, "dist-electron"));
+assertNoForbiddenElectronText(path.join(root, "dist-electron"));
 assertBrandingNoticesInSync();
 
 if (!verifyRelease) {

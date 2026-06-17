@@ -11,13 +11,14 @@ import type {
   ScenarioV1,
   UserPersonaV1,
 } from "./rp";
+import type { ApiConnectivityStatus } from "./api-connectivity";
 
 /** Manages the Venice API key in secure OS-level storage. */
 export interface VeniceForgeApiKey {
   isConfigured(): Promise<boolean>;
   set(key: string): Promise<{ ok: boolean }>;
   delete(): Promise<{ ok: boolean }>;
-  test(): Promise<{ ok: boolean; status?: number; message: string }>;
+  test(): Promise<{ ok: boolean; status?: number; message: string; connectivity?: ApiConnectivityStatus }>;
 }
 
 /** Makes Jina API requests from the main process with the stored key attached. */

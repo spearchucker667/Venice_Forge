@@ -323,14 +323,24 @@ describe("server.ts rate limiting", () => {
 
   it("should rate-limit /api/proxy-jina after 3 requests", async () => {
     const url = "https://r.jina.ai/https://example.com";
-    for (let i = 0; i < 3; i++) {
+    const fetchMock = vi.fn(async () => new Response("ok", {
+      status: 200,
+      headers: { "content-type": "text/plain" },
+    })) as unknown as typeof globalThis.fetch;
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = fetchMock;
+    try {
+      for (let i = 0; i < 3; i++) {
+        const res = await request(app).post("/api/proxy-jina").send({ url });
+        // 451 from safety guard is expected for test payload, not 429
+        expect(res.status).not.toBe(429);
+      }
       const res = await request(app).post("/api/proxy-jina").send({ url });
-      // 451 from safety guard is expected for test payload, not 429
-      expect(res.status).not.toBe(429);
+      expect(res.status).toBe(429);
+      expect(res.body.error).toMatch(/too many requests/i);
+    } finally {
+      globalThis.fetch = originalFetch;
     }
-    const res = await request(app).post("/api/proxy-jina").send({ url });
-    expect(res.status).toBe(429);
-    expect(res.body.error).toMatch(/too many requests/i);
   });
 
   it("should rate-limit /api/proxy-scrape after 3 requests", async () => {

@@ -6,12 +6,12 @@
 
 1. Update `version` in `package.json`.
 2. Run `npm install` so `package-lock.json` stays in sync.
-3. Update `CHANGELOG.md` with the new version section.
+3. Update `docs/audits/CHANGELOG.md` with the new version section.
 4. Confirm `README.md`, `AGENTS.md`, [LEGAL.md](../LEGAL.md), [SECURITY.md](../../SECURITY.md), `SUPPORT.md`, `PRIVACY.md`, and this checklist match the release.
    - Validate Family Safe Mode and Adult Mode independently, including proof that Adult Mode does not invoke the local rule engine and that Venice API Safe Mode changes only the provider request parameter.
    - **Trigger:** Update this checklist and the linked docs whenever artifact filenames, signing steps, verification commands, or the release workflow changes.
    - **Trigger:** Update `SECURITY.md` whenever allowed Venice endpoints, safety guard boundaries, or the supported version policy changes.
-5. Confirm public-facing badges and GitHub templates still point at `spearchucker667/Venice-API-connector`.
+5. Confirm public-facing badges and GitHub templates still point at `spearchucker667/Venice_Forge`.
 
 ## Local Windows Build
 
@@ -62,8 +62,10 @@ Expected artifacts:
 ### Windows
 Signing is optional for local development. Configure electron-builder-compatible signing with `CSC_LINK`/`CSC_KEY_PASSWORD` or `WIN_CSC_LINK`/`WIN_CSC_KEY_PASSWORD` for distribution. Unsigned builds may trigger SmartScreen.
 
+The NSIS installer is signed when Windows signing credentials are supplied. The portable `.exe` target is **not signed by default** even when the installer is signed; distributing the portable build will still trigger SmartScreen on most systems. Either sign the portable executable separately or treat the NSIS installer as the primary signed distribution channel.
+
 ### macOS
-Local macOS builds are unsigned unless valid signing credentials are supplied. Unsigned local builds will trigger Gatekeeper warnings and are not notarized.
+Local macOS builds are unsigned unless valid signing credentials are supplied. Unsigned local builds will trigger Gatekeeper warnings and are not notarized. The `electron-builder.config.cjs` `mac.notarize` block is enabled only when `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID` are all present.
 
 ## GitHub Actions
 
@@ -106,15 +108,16 @@ For local single-architecture builds, use:
 ## Publish
 
 1. Create a tag: `git tag v<version> && git push origin v<version>`.
-2. Download artifacts from the workflow or use local `release/`.
-3. Smoke test on clean Windows and macOS environments:
+2. The `release.yml` workflow will build all platforms, verify artifacts with `verify:dist:release`, and create a **draft** GitHub Release. A maintainer must review the draft before it goes public.
+3. Download artifacts from the workflow or use local `release/`.
+4. Smoke test on clean Windows and macOS environments:
    - Verify chat, image generation, batch, research, and model browsing.
    - Test memory save, search, and injection in chat.
    - Test file, URL, and image attachments (vision models only).
    - Verify export/import and settings persistence.
-4. Upload artifacts and checksums to the release.
-5. Note whether artifacts are signed or unsigned.
-6. Update the GitHub Release notes from `CHANGELOG.md`.
+5. Review the draft release on GitHub, then click **Publish release**.
+6. Note whether artifacts are signed or unsigned.
+7. Update the GitHub Release notes from `docs/audits/CHANGELOG.md`.
 
 ---
 
@@ -130,8 +133,8 @@ The release pipeline is protected by a single-source-of-truth audit at `scripts/
 | `ci` chain | Includes `verify:release-packaging-hardening` and every prior phase gate |
 | Node version | `engines.node` pins Node 22 (>=22.13.0 <23); both `.github/workflows/{ci,release}.yml` pin `node-version: 22` |
 | CI workflow | Runs `verify:dist` + `npm run typecheck` + `npm test` + `npm run build` before packaging |
-| Release workflow | Runs `verify:dist:*` + `checksum:release` + archive hygiene after every platform packaging job |
-| Electron builder | `electron-builder.config.cjs` declares `appId`, `directories`, `asar: true`, and excludes `.map` source maps |
+| Release workflow | Runs `verify:dist:*` + `checksum:release` + archive hygiene after every platform packaging job; the publish job runs `verify:dist:release` and creates a draft release for maintainer review |
+| Electron builder | `electron-builder.config.cjs` declares `appId`, `directories`, `asar: true`, excludes `.map` source maps, and enables `mac.notarize` only when Apple signing credentials are present |
 | Docs present | `docs/RELEASE/release.md`, `docs/RELEASE/signing-and-notarization.md`, `docs/DEVELOPMENT/building.md`, `docs/DEVELOPMENT/platform-support.md`, `docs/DEVELOPMENT/troubleshooting.md` |
 | `.gitignore` | Excludes `node_modules/`, `.node22/`, `/dist/`, `/dist-electron/`, `/release/`, `/coverage/`, `.env*` (allowlisting `.env.example`), `.config/*.yaml` (allowlisting `.config/*.example.yaml`) |
 | Archive hygiene | `git ls-files` contains no `node_modules/`, `.node22/`, `dist/`, `dist-electron/`, `release/`, `coverage/`, `.env*` (non-example), `.config/*.local.yaml`, `*.db`, `*.log`, `chat-history/`, `docs/AGENTS/`, etc. (delegates to `scripts/verify-archive-clean.cjs` `BAD_PATTERNS`) |
@@ -174,16 +177,16 @@ The same matrix is encoded in `npm run ci`. The release workflow also runs `veri
 The archive-hygiene gate exists to make sure that **no local config, secrets, dist output, or generated artifacts** end up in a ZIP you share with a third-party (including a GPT context drop, a contractor handoff, or a public mirror). Before zipping, run:
 
 ```bash
-cd /Users/super_user/Projects/Windows-Venice-API-connector
+cd /Users/super_user/Projects/Venice_Forge
 node scripts/verify-archive-clean.cjs
 ```
 
 Then create the archive with the canonical exclusions baked in. From the parent `Projects/` directory:
 
 ```bash
-cd /Users/super_user/Projects
+cd /path/to/your/projects
 
-zip -r Windows-Venice-API-connector-CLEAN-for-GPT.zip Windows-Venice-API-connector \
+zip -r Venice-Forge-CLEAN-for-GPT.zip Venice-Forge \
   -x "*/.git/*" \
   -x "*/node_modules/*" \
   -x "*/dist/*" \
@@ -219,7 +222,9 @@ The same exclusion list is enforced by `verify-archive-clean.cjs` and `verify-di
 | macOS (x64 + arm64) | `npm run dist:mac` | `release/Venice-Forge-<version>-{x64,arm64}.{dmg,zip}`, `.sha256` |
 | macOS (arm64) | `npm run dist:mac:arm64` | `release/Venice-Forge-<version>-arm64.{dmg,zip}` |
 | macOS (x64) | `npm run dist:mac:x64` | `release/Venice-Forge-<version>-x64.{dmg,zip}` |
-| Linux (AppImage, deb, rpm) | `npm run dist:linux` | `release/Venice-Forge-<version>-{x64,arm64}.{AppImage,deb,rpm}` |
+| Linux (AppImage, deb, rpm) | `npm run dist:linux` | `release/Venice-Forge-<version>-x64.{AppImage,deb,rpm}` |
+
+Linux arm64 packages are not currently produced in CI because the release runner is x64 and cross-compiling native Electron dependencies requires `qemu/binfmt`. Add a native arm64 runner or install the cross-compilation toolchain before re-enabling arm64 targets.
 
 Every `dist:*` script automatically runs `verify:icon && build && electron-builder && checksum:release`. The `verify:dist:*` scripts validate the resulting artifacts and their `.sha256` sidecars.
 

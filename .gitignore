@@ -15,6 +15,8 @@ docs/audits/*
 !docs/audits/*.md
 !docs/audits/*.yaml
 !docs/audits/*.yml
+!docs/audits/visual-snapshots/
+!docs/audits/visual-snapshots/*.png
 
 # Dev-tool generated design capture output (must live under .design-captures/ only).
 scripts/dev-tools/venice-styles.json

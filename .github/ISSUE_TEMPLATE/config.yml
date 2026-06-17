@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security reports
-    url: https://github.com/spearchucker667/Venice-API-connector/security
+    url: https://github.com/spearchucker667/Venice_Forge/security
     about: Use private vulnerability reporting if it is enabled, or follow SECURITY.md.
   - name: Venice API documentation
     url: https://docs.venice.ai/

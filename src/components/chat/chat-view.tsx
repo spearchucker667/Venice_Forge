@@ -19,6 +19,8 @@ import { askDecision } from '../ui/modal-requests'
 import type { PromptStarter } from '../../data/promptStarters'
 import type { MemoryFact, ConversationRecordV1 } from '../../types/conversationVault'
 import type { Conversation } from '../../types/conversation'
+import { buildChatPayloadContext, buildPriorConversationContextText } from '../../utils/chatPayloadContext'
+import { redactErrorMessage } from '../../shared/redaction'
 
 export function ChatView() {
   const deleteMessage = useChatStore((s) => s.deleteMessage)
@@ -26,8 +28,10 @@ export function ChatView() {
     const id = s.activeConversationId
     return id ? s.conversations.find((c) => c.id === id) : undefined
   })
+  const conversations = useChatStore((s) => s.conversations)
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const selectedModel = useSettingsStore((s) => s.selectedModels.chat)
+  const currentProjectId = useSettingsStore((s) => s.activeProjectId)
   const { data: models } = useModels('text')
   const model = selectedModel || models?.[0]?.id || 'llama-3.3-70b'
   const liveModelRecord = models?.find((m) => m.id === model)
@@ -46,6 +50,10 @@ export function ChatView() {
   const effectiveMemoryStatus = enableMemoryRetrieval ? memoryStatus : 'disabled'
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  const [includePriorContext, setIncludePriorContext] = useState(false)
+  const [selectedPriorConversationIds, setSelectedPriorConversationIds] = useState<string[]>([])
+  const availablePriorConversations = conversations.filter((item) => item.id !== conversation?.id)
+
   const handleSend = (message: string, images?: string[]) => {
     if (images && images.length > 0 && !visionSupported) {
       toast.warn(
@@ -54,7 +62,25 @@ export function ChatView() {
       )
       return
     }
-    send(message, model, images)
+    const payloadContext = buildChatPayloadContext({
+      includePriorConversationContext: includePriorContext,
+      selectedConversationIds: selectedPriorConversationIds,
+      availableConversations: availablePriorConversations.map((item) => ({
+        id: item.id,
+        title: item.title,
+        projectId: item.memory?.projectRefs?.[0] ?? null,
+        archivedAt: item.metadata?.archived ? item.updatedAt : null,
+      })),
+      currentProjectId,
+    })
+    for (const warning of payloadContext.warnings) toast.warn('Prior context skipped', warning)
+    const selectedConversations = availablePriorConversations.filter((item) =>
+      payloadContext.includedConversationIds.includes(item.id),
+    )
+    const priorContextText = includePriorContext
+      ? buildPriorConversationContextText(selectedConversations)
+      : ''
+    send(message, model, images, priorContextText)
   }
 
   const pendingContext = useChatStore((s) => s.pendingContext)
@@ -130,7 +156,7 @@ export function ChatView() {
       }
     } catch (err) {
       logger.error("Forget fact error", err)
-      toast.error("Failed to forget fact", err instanceof Error ? err.message : "Could not update conversation storage.")
+      toast.error("Failed to forget fact", redactErrorMessage(err))
     }
   }
 
@@ -240,7 +266,7 @@ export function ChatView() {
             <div className="w-full max-w-[960px] mx-auto py-5 px-4 sm:px-5 flex flex-col gap-5">
               {conversation.messages.map((msg, i) => (
                 <MessageBubble
-                  key={i}
+                  key={msg.id}
                   message={msg}
                   index={i}
                   onCopy={() => {}}
@@ -375,7 +401,78 @@ export function ChatView() {
         </div>
       )}
 
+      <PriorConversationContextSelector
+        includePriorContext={includePriorContext}
+        onIncludeChange={setIncludePriorContext}
+        conversations={availablePriorConversations}
+        selectedIds={selectedPriorConversationIds}
+        onSelectedIdsChange={setSelectedPriorConversationIds}
+      />
       <ChatInput onSend={handleSend} onStop={stop} isStreaming={isStreaming} disabled={!hasVeniceKey} disableImageAttach={!visionSupported} memoryStatus={effectiveMemoryStatus} />
+    </div>
+  )
+}
+
+function PriorConversationContextSelector({
+  includePriorContext,
+  onIncludeChange,
+  conversations,
+  selectedIds,
+  onSelectedIdsChange,
+}: {
+  includePriorContext: boolean;
+  onIncludeChange: (value: boolean) => void;
+  conversations: Conversation[];
+  selectedIds: string[];
+  onSelectedIdsChange: (ids: string[]) => void;
+}) {
+  const toggleId = (id: string) => {
+    onSelectedIdsChange(selectedIds.includes(id)
+      ? selectedIds.filter((value) => value !== id)
+      : [...selectedIds, id])
+  }
+
+  return (
+    <div className="border-t border-border bg-surface px-4 sm:px-6 py-2">
+      <div className="w-full max-w-[860px] mx-auto rounded-lg border border-border bg-surface-elevated px-3 py-2">
+        <label className="flex items-center justify-between gap-3 text-[13px] text-text-primary">
+          <span>Include prior conversation context</span>
+          <input
+            type="checkbox"
+            checked={includePriorContext}
+            onChange={(event) => onIncludeChange(event.target.checked)}
+            className="h-4 w-4 accent-accent"
+          />
+        </label>
+        {includePriorContext && (
+          <div className="mt-2 space-y-2">
+            <p className="text-[11.5px] leading-snug text-text-muted">
+              Only selected local conversations are included in the next model request and sent to the Venice API.
+              API keys, bearer tokens, and local file paths are redacted; long content is truncated to stay within bounds.
+              Conversation history is never included in diagnostics or safe exports.
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {conversations.slice(0, 12).map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={selectedIds.includes(item.id)}
+                  onClick={() => toggleId(item.id)}
+                  className={`rounded-md border px-2 py-1 text-[11.5px] transition-colors ${
+                    selectedIds.includes(item.id)
+                      ? 'border-accent bg-accent/10 text-accent'
+                      : 'border-border text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  {selectedIds.includes(item.id) ? 'Remove ' : 'Add '}
+                  {item.title || 'Untitled'}
+                </button>
+              ))}
+            </div>
+            <div className="text-[11px] text-text-muted">{selectedIds.length} selected</div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

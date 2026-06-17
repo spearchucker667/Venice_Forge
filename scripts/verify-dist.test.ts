@@ -1,7 +1,7 @@
 /** @fileoverview Unit tests for release verification platform selection. */
 import { describe, it, expect } from "vitest";
 // @ts-expect-error - CJS import in TS file
-import { getTargets, FORBIDDEN_DIST_PATTERNS, SECRET_PATTERNS } from "./verify-dist.cjs";
+import { getTargets, FORBIDDEN_DIST_PATTERNS, SECRET_PATTERNS, FORBIDDEN_ELECTRON_TEXT_PATTERNS } from "./verify-dist.cjs";
 
 describe("verify-dist platform selection", () => {
   it("selects Windows x64 when running on win32 with no args", () => {
@@ -120,6 +120,27 @@ describe("verify-dist Phase 2J hygiene guards", () => {
         re.lastIndex = 0;
         return re.test(s);
       });
+      expect(hit).toBe(false);
+    }
+  });
+
+  it("FORBIDDEN_ELECTRON_TEXT_PATTERNS rejects generated imports back into src/", () => {
+    const bad = [
+      'const redaction = require("../../src/shared/redaction");',
+      'import { limits } from "../src/shared/limits";',
+    ];
+    for (const s of bad) {
+      const hit = FORBIDDEN_ELECTRON_TEXT_PATTERNS.some(({ re }: { re: RegExp }) => re.test(s));
+      expect(hit).toBe(true);
+    }
+
+    const ok = [
+      'const electron = require("electron");',
+      'const local = require("./services/secureStore");',
+      'import path from "node:path";',
+    ];
+    for (const s of ok) {
+      const hit = FORBIDDEN_ELECTRON_TEXT_PATTERNS.some(({ re }: { re: RegExp }) => re.test(s));
       expect(hit).toBe(false);
     }
   });

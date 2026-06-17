@@ -3,6 +3,7 @@
 // Code Owner: fayeblade (@spearchucker667)
 import "../types/desktop";
 import type { VeniceForgeDiagnostics, VeniceForgeRequest, VeniceForgeResponse } from "../types/desktop";
+import type { ApiConnectivityStatus } from "../types/api-connectivity";
 import type { Conversation } from "../types/conversation";
 import type {
   CharacterCardV1,
@@ -165,13 +166,41 @@ export const desktopApiKey = {
    * Tests the configured API key by listing models.
    * @returns A promise resolving to the test result, status, and message.
    */
-  async test(): Promise<{ ok: boolean; status?: number; message: string }> {
+  async test(): Promise<{ ok: boolean; status?: number; message: string; connectivity?: ApiConnectivityStatus }> {
     if (isElectron()) return window.veniceForge!.apiKey.test();
     try {
       const { response } = await veniceFetch("/models", { retry: false });
-      return { ok: response.ok, status: response.status, message: response.statusText };
+      const checkedAt = new Date().toISOString();
+      const connectivity: ApiConnectivityStatus = response.ok
+        ? { ok: true, kind: "verified", checkedAt, statusCode: response.status, endpoint: "models" }
+        : {
+            ok: false,
+            kind: response.status === 401 || response.status === 403 ? "invalid-api-key" : "catalog-failure",
+            checkedAt,
+            statusCode: response.status,
+            safeMessage: response.status === 401 || response.status === 403
+              ? "API key was found, but Venice rejected it. Re-enter the key in Config."
+              : "Model catalog failed to load from Venice. Chat may still work if a model is already selected.",
+            retryable: [408, 429, 500, 502, 503, 504].includes(response.status),
+          };
+      return { ok: response.ok, status: response.status, message: response.statusText, connectivity };
     } catch (err) {
-      return { ok: false, status: err && typeof err === "object" && "status" in err ? (err as { status: number }).status : undefined, message: err instanceof Error ? err.message : "Request failed" };
+      const status = err && typeof err === "object" && "status" in err ? (err as { status: number }).status : undefined;
+      return {
+        ok: false,
+        status,
+        message: err instanceof Error ? err.message : "Request failed",
+        connectivity: {
+          ok: false,
+          kind: status === 404 || status === 502 ? "proxy-failure" : "network-failure",
+          checkedAt: new Date().toISOString(),
+          statusCode: status,
+          safeMessage: status === 404 || status === 502
+            ? "Local web proxy failed before Venice could respond. Check the dev server."
+            : "Network request failed before Venice responded. Check connection, proxy, VPN, or firewall.",
+          retryable: true,
+        },
+      };
     }
   },
 };

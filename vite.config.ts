@@ -19,6 +19,7 @@ function stripCrossorigin(): Plugin {
 export default defineConfig(() => {
   const disableHmr = process.env.DISABLE_HMR === "true";
   const isElectronBuild = process.env.ELECTRON_BUILD === "true";
+  const apiProxyTarget = process.env.VITE_API_PROXY_TARGET || "http://127.0.0.1:3000";
   return {
     plugins: [
       react(),
@@ -33,6 +34,7 @@ export default defineConfig(() => {
     // Electron's loadFile requires relative asset paths
     base: isElectronBuild ? "./" : "/",
     build: {
+      target: "es2022",
       chunkSizeWarningLimit: 1000,
     },
     server: {
@@ -40,9 +42,9 @@ export default defineConfig(() => {
       watch: disableHmr ? null : {},
       proxy: {
         "/api": {
-          target: process.env.VITE_API_PROXY_TARGET || "http://127.0.0.1:3000",
+          target: apiProxyTarget,
           changeOrigin: false,
-          secure: true,
+          secure: apiProxyTarget.startsWith("https:"),
         },
       },
     },

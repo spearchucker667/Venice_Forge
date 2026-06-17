@@ -21,7 +21,7 @@ Current public readiness status:
 
 - **18+ Age Restriction.** Use of the application is strictly restricted to adults aged 18 and older, acknowledging the inherent risks of unfiltered AI image generation (including CSAM).
 - **Privacy by default.** The Venice API is privacy-preserving by design. Venice Forge keeps API keys out of the renderer process, never persists keys in plaintext, and never exports them.
-- **Offline-first storage.** Images, chat history, and settings live in browser IndexedDB — no cloud sync, no telemetry.
+- **Offline-first storage.** Images and settings live in browser IndexedDB. Desktop chat history is stored as local plaintext JSON under the app data directory, while web-mode conversations use IndexedDB. There is no cloud sync or telemetry.
 - **Unified Creative Suite.** Provide a seamless, visual interface for the full spectrum of Venice multimodal capabilities.
 - **Reproducible builds.** TypeScript strict mode, Node 22 CI, and `npm ci` ensure every build starts from a known state.
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Memory, searchMemory, saveMemory, deleteMemory, upsertMemory } from "../services/memoryService";
 import { XIcon, SearchIcon, PlusIcon, EditIcon, TrashIcon } from "./icons";
 import { askDecision } from "./ui/modal-requests";
+import { redactErrorMessage } from "../shared/redaction";
 
 interface MemoryManagerModalProps {
   open: boolean;
@@ -31,7 +32,7 @@ export function MemoryManagerModal({ open, onClose }: MemoryManagerModalProps) {
       const results = await searchMemory(searchQuery, tagFilter);
       setMemories(results);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load memories");
+      setError(redactErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -84,7 +85,7 @@ export function MemoryManagerModal({ open, onClose }: MemoryManagerModalProps) {
       cancelEdit();
       await loadMemories();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save memory");
+      setError(redactErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -103,7 +104,7 @@ export function MemoryManagerModal({ open, onClose }: MemoryManagerModalProps) {
       await deleteMemory(id);
       await loadMemories();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete memory");
+      setError(redactErrorMessage(err));
     } finally {
       setLoading(false);
     }

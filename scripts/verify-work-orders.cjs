@@ -17,9 +17,10 @@ const ROOT = path.resolve(__dirname, "..");
 const SCAN_DIRS = ["docs/audits", "docs/reports/historical"];
 const SKIP_FILES = new Set([
   "Venice_swagger_api.yaml",
-  "combined-todo.yml",
   "current-audit-cross-check-status.yaml",
   "agent-repair-status-2026-06-16.yaml",
+  "kimi-batch-evidence-2026-06-16.yaml",
+  "roadmap-verification-2026-06-16.yaml",
 ]);
 const violations = [];
 

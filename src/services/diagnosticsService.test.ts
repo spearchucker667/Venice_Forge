@@ -93,11 +93,13 @@ describe("computeAppStatusSnapshot (VERIFY-045)", () => {
     expect(s.apiKey.severity).toBe("error");
   });
 
-  it("configured API key surfaces as ok for api and apiKey (no key material in payload)", () => {
+  it("configured API key separates stored key from live connectivity (no key material in payload)", () => {
     useAuthStore.setState({ isConfigured: true, apiKey: "VENICE-SECRET-KEY-XYZ" } as never);
     const s = computeAppStatusSnapshot();
-    expect(s.api.severity).toBe("ok");
+    expect(s.api.severity).toBe("warn");
+    expect(s.api.summary).toMatch(/not been verified/i);
     expect(s.apiKey.severity).toBe("ok");
+    expect(s.apiKey.summary).toMatch(/raw key is hidden/i);
     // The secret MUST NOT appear in any status field.
     const dump = JSON.stringify(s);
     expect(dump).not.toContain("VENICE-SECRET-KEY-XYZ")
@@ -185,6 +187,20 @@ describe("computeSafeDiagnosticsSnapshot (VERIFY-045)", () => {
     const snap = computeSafeDiagnosticsSnapshot();
     const text = JSON.stringify(snap);
     expect(() => JSON.parse(text)).not.toThrow();
+  });
+
+  it("includes redacted API-key metadata but no raw key", () => {
+    useAuthStore.setState({ isConfigured: true, apiKey: "VENICE-SECRET-KEY-XYZ" } as never);
+    const snap = computeSafeDiagnosticsSnapshot();
+    expect(snap.stores.apiKey).toMatchObject({
+      configured: true,
+      exported: false,
+      redacted: true,
+      lastValidationStatus: "configured-not-validated",
+    });
+    const text = serialiseSafeDiagnosticsSnapshot(snap);
+    expect(text).not.toContain("VENICE-SECRET-KEY-XYZ");
+    expect(text).not.toMatch(/Bearer\s+/i);
   });
 
   it("includes status severities, project count, media count, conversation count", () => {

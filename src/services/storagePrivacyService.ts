@@ -5,6 +5,12 @@ import {
   type SafePrivacySummary,
   type StoragePrivacyCategory,
 } from "../types/storage-privacy";
+import {
+  buildSafeApiKeyMetadata,
+  type ApiKeyValidationStatus,
+  type SafeApiKeyMetadata,
+  type SafeApiKeyStorage,
+} from "../types/api-connectivity";
 
 export interface StorageInventoryRecord {
   id: string;
@@ -34,6 +40,12 @@ export interface BuildStorageInventoryInput {
   scenarios?: StorageInventoryRecord[];
   workflows?: StorageInventoryRecord[];
   settings?: { veniceApiKey?: string };
+  apiKey?: {
+    configured: boolean;
+    storage: SafeApiKeyStorage;
+    lastValidationStatus?: ApiKeyValidationStatus;
+    lastValidationAt?: string | null;
+  };
   characterImageCache?: { count: number; totalBytes: number };
 }
 
@@ -115,7 +127,13 @@ export function buildStorageInventory(input: BuildStorageInventoryInput): Storag
   });
 
   // Settings & API Keys
-  const hasVeniceKey = !!input.settings?.veniceApiKey;
+  const apiKeyMetadata: SafeApiKeyMetadata = buildSafeApiKeyMetadata(
+    input.apiKey ?? {
+      configured: !!input.settings?.veniceApiKey,
+      storage: input.settings?.veniceApiKey ? "secure-storage" : "unavailable",
+    },
+  );
+  const hasVeniceKey = apiKeyMetadata.configured;
   stores.push({
     id: "api_keys",
     label: "API Keys",
@@ -125,7 +143,10 @@ export function buildStorageInventory(input: BuildStorageInventoryInput): Storag
     containsUserContent: false,
     exportableInSafeSummary: false,
     severity: hasVeniceKey ? "ok" : "info",
-    summary: hasVeniceKey ? "Venice API key present" : "No Venice API key configured",
+    summary: hasVeniceKey
+      ? `Venice API key configured (${apiKeyMetadata.storage}); raw key hidden`
+      : "No Venice API key configured",
+    metadata: { apiKey: apiKeyMetadata },
   });
 
   // Character Image Cache (transient, non-encrypted, no user content)
@@ -209,5 +230,12 @@ export function buildSafePrivacySummary(inventory: StorageInventoryResult): Safe
     counts,
     issues: inventory.issues.map(sanitizeIssueForSafeSummary),
     exclusions,
+    apiKey: (() => {
+      const apiStore = inventory.stores.find((s) => s.id === "api_keys");
+      const metadata = apiStore?.metadata && typeof apiStore.metadata === "object"
+        ? (apiStore.metadata as { apiKey?: SafeApiKeyMetadata }).apiKey
+        : undefined;
+      return metadata ?? buildSafeApiKeyMetadata({ configured: false, storage: "unavailable" });
+    })(),
   };
 }

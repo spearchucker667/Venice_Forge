@@ -40,7 +40,10 @@ import { usePersonaStore } from "../stores/persona-store";
 import { useScenarioStore } from "../stores/scenario-store";
 import { useResearchStore } from "../stores/research-store";
 import { useStoragePrivacyStore } from "../stores/storage-privacy-store";
-import { getAuditSnapshot } from "../shared/safety";
+import {
+  buildSafeApiKeyMetadata,
+  type SafeApiKeyStorage,
+} from "../types/api-connectivity";
 
 /* ------------------------------------------------------------------ *
  * Small pure helpers
@@ -91,16 +94,32 @@ function buildApiStatus(): AppStatusItem {
       },
     );
   }
-  return makeItem("api", "API", "ok", "Venice API key present. Connectivity is checked on demand.");
+  return makeItem(
+    "api",
+    "API",
+    "warn",
+    "API key is configured, but live Venice connectivity has not been verified yet.",
+    { detail: "Use the API-key test action to verify /models connectivity." },
+  );
 }
 
 function buildApiKeyStatus(): AppStatusItem {
   const auth = useAuthStore.getState();
   if (auth.isConfigured) {
-    return makeItem("apiKey", "API Key", "ok", "Venice API key is configured (secure storage).");
+    return makeItem(
+      "apiKey",
+      "API Key",
+      "ok",
+      "Venice API key is configured in secure storage. Raw key is hidden.",
+    );
   }
   if (auth.apiKey) {
-    return makeItem("apiKey", "API Key", "warn", "Key present in memory only — connect it to persist securely.");
+    return makeItem(
+      "apiKey",
+      "API Key",
+      "warn",
+      "Key present in memory only. Raw key is hidden and excluded from diagnostics and exports.",
+    );
   }
   return makeItem(
     "apiKey",
@@ -113,6 +132,12 @@ function buildApiKeyStatus(): AppStatusItem {
       actionTargetTabId: "settings",
     },
   );
+}
+
+function getApiKeyStorage(auth: ReturnType<typeof useAuthStore.getState>): SafeApiKeyStorage {
+  if (auth.isConfigured) return isElectron() ? "secure-storage" : "web-environment";
+  if (auth.apiKey) return "memory";
+  return "unavailable";
 }
 
 function buildModelStatus(): AppStatusItem {
@@ -326,7 +351,6 @@ export function computeSafeDiagnosticsSnapshot(): SafeDiagnosticsSnapshot {
   const projects = useProjectStore.getState().projects;
   const media = useMediaStore.getState().items;
   const conversations = useChatStore.getState().conversations;
-  const audit = getAuditSnapshot();
 
   const checks: AppDiagnosticCheck[] = Object.values(statuses).map((item) => ({
     id: item.id,
@@ -378,6 +402,10 @@ export function computeSafeDiagnosticsSnapshot(): SafeDiagnosticsSnapshot {
       conversations: {
         count: Array.isArray(conversations) ? conversations.length : 0,
       },
+      apiKey: buildSafeApiKeyMetadata({
+        configured: selectHasVeniceKey(useAuthStore.getState()),
+        storage: getApiKeyStorage(useAuthStore.getState()),
+      }),
       research: {
         count: useResearchStore.getState().sessions.length,
       },
@@ -398,7 +426,6 @@ export function computeSafeDiagnosticsSnapshot(): SafeDiagnosticsSnapshot {
     // audit counters are exposed via the diagnostics statuses; we keep
     // them out of the JSON-serialisable snapshot so the format is
     // stable. Callers that want the audit can read getAuditSnapshot().
-    ...(audit ? {} : {}),
   };
 }
 

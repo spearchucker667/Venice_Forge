@@ -22,6 +22,7 @@ import { useSettingsStore } from '../../stores/settings-store'
 import { useProjectStore } from '../../stores/project-store'
 import { TAB_REGISTRY, type TabId } from '../../config/tabs'
 import { toast } from '../../stores/toast-store'
+import { redactErrorMessage } from '../../shared/redaction'
 import { useMediaSelectionStore, MEDIA_SELECTION_MAX } from '../../stores/media-selection-store'
 import { getMediaCommandHandlers, hasMediaCommandHandlers, subscribeMediaCommandHandlers } from '../../stores/media-command-handlers'
 import { usePromptLibraryStore } from '../../stores/prompt-library-store'
@@ -474,7 +475,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
                       (result.skipped.length > 0 ? ` (skipped ${result.skipped.length})` : ''),
                   );
                 } catch (err) {
-                  toast.error(`Could not import: ${err instanceof Error ? err.message : String(err)}`);
+                  toast.error('Could not import', redactErrorMessage(err));
                 }
               };
               input.click();
@@ -551,7 +552,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
                       (result.skipped.length > 0 ? ` (skipped ${result.skipped.length})` : ''),
                   );
                 } catch (err) {
-                  toast.error(`Could not import: ${err instanceof Error ? err.message : String(err)}`);
+                  toast.error('Could not import', redactErrorMessage(err));
                 }
               };
               input.click();
@@ -729,7 +730,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
                       (result.skipped.length > 0 ? ` (skipped ${result.skipped.length})` : ''),
                   );
                 } catch (err) {
-                  toast.error(`Could not import: ${err instanceof Error ? err.message : String(err)}`);
+                  toast.error('Could not import', redactErrorMessage(err));
                 }
               };
               input.click();

@@ -63,6 +63,17 @@ export interface MediaUpsertOptions {
 
 export const MEDIA_PAGE_SIZE = 60
 
+/** Hard upper bound for the in-memory media cache. IDB remains the source of
+ *  truth; the cache is only a performance layer. Keeping the most recent N
+ *  items caps renderer memory for very large galleries. */
+export const MEDIA_IN_MEMORY_CACHE_MAX = 1000
+
+/** Trim the cache to the most recent items when it exceeds the bound. */
+function enforceCacheBound(items: MediaItem[]): MediaItem[] {
+  if (items.length <= MEDIA_IN_MEMORY_CACHE_MAX) return items
+  return items.slice().sort((a, b) => b.timestamp - a.timestamp).slice(0, MEDIA_IN_MEMORY_CACHE_MAX)
+}
+
 /** Safe user-facing messages for Media Store load/rollback failures (T-190). */
 const SAFE_REFRESH_ERROR = 'Media Studio failed to load. Please try again.'
 const SAFE_LOAD_MORE_ERROR = 'Media Studio failed to load more. Please try again.'
@@ -92,6 +103,16 @@ function reconcileList(current: MediaItem[], next: MediaItem[]): MediaItem[] {
   return merged
 }
 
+function estimateMediaByteSize(image: string | undefined): number {
+  if (!image) return 0
+  const commaIndex = image.indexOf(',')
+  const payload = image.startsWith('data:') && commaIndex !== -1 ? image.slice(commaIndex + 1) : image
+  const clean = payload.replace(/\s/g, '')
+  if (!clean) return 0
+  const padding = clean.endsWith('==') ? 2 : clean.endsWith('=') ? 1 : 0
+  return Math.max(0, Math.floor((clean.length * 3) / 4) - padding)
+}
+
 export const useMediaStore = create<MediaState>((set, get) => ({
   items: [],
   loading: false,
@@ -108,7 +129,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       const page = await StorageService.getItemsPageWithMeta<unknown>('images', { offset: 0, limit: MEDIA_PAGE_SIZE })
       const items = migrateAll(page.items).filter(isMediaItemLike)
       set({
-        items,
+        items: enforceCacheBound(items),
         loading: false,
         loaded: true,
         totalCount: page.total,
@@ -135,7 +156,9 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       set((current) => {
         const byId = new Map(current.items.map((item) => [item.id, item]))
         for (const item of incoming) byId.set(item.id, item)
-        const items = Array.from(byId.values()).sort((a, b) => b.timestamp - a.timestamp)
+        const items = enforceCacheBound(
+          Array.from(byId.values()).sort((a, b) => b.timestamp - a.timestamp),
+        )
         return {
           items,
           loadingMore: false,
@@ -161,8 +184,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
     const saved = await StorageService.putMedia<MediaItem>(migrated)
     set((state) => {
       const without = state.items.filter((existing) => existing.id !== saved.id)
-      const next = [saved, ...without]
-      next.sort((a, b) => b.timestamp - a.timestamp)
+      const next = enforceCacheBound([saved, ...without].sort((a, b) => b.timestamp - a.timestamp))
       return {
         items: next,
         totalCount: alreadyLoaded ? state.totalCount : state.totalCount + 1,
@@ -186,8 +208,9 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       const updatedParent = await StorageService.patchMedia<MediaItem>(parentId, { childrenIds })
       set((state) => {
         const withoutChild = state.items.filter((existing) => existing.id !== saved.id)
-        const items = reconcileList([saved, ...withoutChild], [updatedParent])
-        items.sort((a, b) => b.timestamp - a.timestamp)
+        const items = enforceCacheBound(
+          reconcileList([saved, ...withoutChild], [updatedParent]).sort((a, b) => b.timestamp - a.timestamp),
+        )
         return { items, totalCount: state.totalCount + (state.items.some((existing) => existing.id === saved.id) ? 0 : 1) }
       })
       return saved
@@ -203,8 +226,9 @@ export const useMediaStore = create<MediaState>((set, get) => ({
         // Keep the child in the in-memory cache so it matches IDB reality.
         set((state) => {
           const withoutChild = state.items.filter((existing) => existing.id !== saved.id)
-          const items = reconcileList([saved, ...withoutChild], [])
-          items.sort((a, b) => b.timestamp - a.timestamp)
+          const items = enforceCacheBound(
+            reconcileList([saved, ...withoutChild], []).sort((a, b) => b.timestamp - a.timestamp),
+          )
           return { items, totalCount: state.totalCount + 1, lastError: SAFE_DERIVATIVE_ROLLBACK_ERROR }
         })
       }
@@ -220,7 +244,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
     const existing = get().items.find((item) => item.id === id)
     if (!existing) return null
     const updated = await StorageService.patchMedia<MediaItem>(id, patch)
-    set((state) => ({ items: reconcileList(state.items, [updated]) }))
+    set((state) => ({ items: enforceCacheBound(reconcileList(state.items, [updated])) }))
     return updated
   },
 
@@ -372,7 +396,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
           return state
         }
         return {
-          items: [migrated, ...state.items].sort((a, b) => b.timestamp - a.timestamp),
+          items: enforceCacheBound([migrated, ...state.items].sort((a, b) => b.timestamp - a.timestamp)),
         }
       })
       return migrated
@@ -492,11 +516,7 @@ export function sortMedia(items: MediaItem[], sort: MediaSort): MediaItem[] {
       break
     case "size": {
       out.sort((a, b) => {
-        const aLen = typeof a.image === "string" ? a.image.length : 0
-        const bLen = typeof b.image === "string" ? b.image.length : 0
-        const aSize = a.mediaType === "video" ? aLen * 4 : aLen
-        const bSize = b.mediaType === "video" ? bLen * 4 : bLen
-        return bSize - aSize
+        return estimateMediaByteSize(b.image) - estimateMediaByteSize(a.image)
       })
       break
     }

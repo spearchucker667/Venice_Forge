@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useStoragePrivacyStore } from "./storage-privacy-store";
 import { applyMaintenanceAction } from "../services/storageMaintenance";
+import { buildStorageInventory } from "../services/storagePrivacyService";
 import { toast } from "./toast-store";
 
 // Mock services
@@ -23,6 +24,7 @@ vi.mock("../services/desktopBridge", () => ({
   desktopCharacterImage: {
     getInventory: vi.fn().mockResolvedValue({ ok: true, count: 1, totalBytes: 1024 }),
   },
+  isElectron: vi.fn().mockReturnValue(false),
 }));
 
 // Mock stores
@@ -57,6 +59,14 @@ vi.mock("./lorebook-store", () => ({
 vi.mock("./settings-store", () => ({
   useSettingsStore: { getState: () => ({}) },
 }));
+vi.mock("./auth-store", () => ({
+  useAuthStore: {
+    getState: () => ({
+      isConfigured: true,
+      checkConfiguration: vi.fn().mockResolvedValue(undefined),
+    }),
+  },
+}));
 vi.mock("./toast-store", () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
@@ -72,6 +82,19 @@ describe("storage-privacy-store", () => {
     await store.refreshInventory();
     expect(useStoragePrivacyStore.getState().hydrated).toBe(true);
     expect(useStoragePrivacyStore.getState().inventory).not.toBeNull();
+  });
+
+  it("reports actual Venice API-key configured status in the inventory", async () => {
+    await useStoragePrivacyStore.getState().refreshInventory();
+    expect(buildStorageInventory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiKey: expect.objectContaining({
+          configured: true,
+          storage: "web-environment",
+          lastValidationStatus: "configured-not-validated",
+        }),
+      }),
+    );
   });
 
   it("refreshInventory handles errors gracefully", async () => {

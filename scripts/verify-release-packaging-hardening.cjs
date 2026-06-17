@@ -25,6 +25,15 @@ const { existsSync, readFileSync, statSync, readdirSync } = require("node:fs");
 const { execFileSync } = require("node:child_process");
 const path = require("node:path");
 
+// Canonical GitHub owner/repo used across package metadata, docs, and
+// electron-builder publish config (P0-003).
+const CANONICAL_OWNER = "spearchucker667";
+const CANONICAL_REPO = "Venice_Forge";
+const FORBIDDEN_ACTIVE_REPO_SLUGS = [
+  "spearchucker667/Venice-API-connector",
+  "Venice-API-connector",
+];
+
 // Resolve the root from process.cwd() so the script can run in a
 // fresh clone (CI) or in a temporary directory (tests).
 const root = process.cwd();
@@ -193,6 +202,29 @@ if (pkg) {
     pass(`package.json engines.node pins Node 22 (${nodeRange})`);
   }
 
+  // 5b. Repository slug consistency (P0-003 — auto-updater/metadata integrity).
+  // The package metadata, docs, and electron-builder publish config must all
+  // reference the same canonical GitHub owner/repo so that auto-updater, npm,
+  // and public links resolve correctly.
+  const repoUrl = pkg.repository?.url || "";
+  const homepage = pkg.homepage || "";
+  const bugsUrl = pkg.bugs?.url || "";
+  if (!repoUrl.includes(`${CANONICAL_OWNER}/${CANONICAL_REPO}`)) {
+    fail(`package.json repository.url does not point to ${CANONICAL_OWNER}/${CANONICAL_REPO}: "${repoUrl}"`);
+  } else {
+    pass(`package.json repository.url references canonical repo ${CANONICAL_OWNER}/${CANONICAL_REPO}`);
+  }
+  if (!homepage.includes(`${CANONICAL_OWNER}/${CANONICAL_REPO}`)) {
+    fail(`package.json homepage does not point to ${CANONICAL_OWNER}/${CANONICAL_REPO}: "${homepage}"`);
+  } else {
+    pass(`package.json homepage references canonical repo ${CANONICAL_OWNER}/${CANONICAL_REPO}`);
+  }
+  if (!bugsUrl.includes(`${CANONICAL_OWNER}/${CANONICAL_REPO}`)) {
+    fail(`package.json bugs.url does not point to ${CANONICAL_OWNER}/${CANONICAL_REPO}: "${bugsUrl}"`);
+  } else {
+    pass(`package.json bugs.url references canonical repo ${CANONICAL_OWNER}/${CANONICAL_REPO}`);
+  }
+
   // 4b. Canonical dist:<platform> scripts (P2-002 — release hygiene).
   //
   // The release workflow calls `npm run dist:<platform>`. If a future refactor
@@ -337,6 +369,16 @@ if (pkg) {
     checkIncludes(eb, "appId", "electron-builder.config.cjs declares appId");
     checkIncludes(eb, "directories", "electron-builder.config.cjs declares directories");
     checkIncludes(eb, "asar: true", "electron-builder.config.cjs enables asar");
+    if (!eb.includes(`repo: "${CANONICAL_REPO}"`)) {
+      fail(`electron-builder.config.cjs publish.repo does not reference canonical repo "${CANONICAL_REPO}"`);
+    } else {
+      pass(`electron-builder.config.cjs publish.repo references canonical repo "${CANONICAL_REPO}"`);
+    }
+    if (!eb.includes(`owner: "${CANONICAL_OWNER}"`)) {
+      fail(`electron-builder.config.cjs publish.owner does not reference canonical owner "${CANONICAL_OWNER}"`);
+    } else {
+      pass(`electron-builder.config.cjs publish.owner references canonical owner "${CANONICAL_OWNER}"`);
+    }
     if (!eb.includes("!dist/**/*.map") && !eb.includes("!**/*.map")) {
       fail("electron-builder.config.cjs does not exclude .map files from the packaged app");
     } else {
@@ -444,6 +486,38 @@ if (isGitWorktree) {
       fail("README.md does not reference any Phase 2J / release-readiness surface");
     } else {
       pass("README.md references release-readiness / verify:dist / verify:release-packaging-hardening");
+    }
+  }
+}
+
+// 12b. Active release/setup metadata must not point at the retired repo slug
+// (P0-003). Historical audit files are intentionally out of scope here; this
+// guard covers user-facing docs/config that can affect clone, support, release,
+// or updater behavior.
+{
+  const activeRepoMetadataFiles = [
+    "package.json",
+    "electron-builder.config.cjs",
+    "README.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    ".github/ISSUE_TEMPLATE/config.yml",
+    ".github/workflows/ci.yml",
+    ".github/workflows/release.yml",
+    "docs/RELEASE/release.md",
+    "docs/RELEASE/signing-and-notarization.md",
+  ];
+
+  for (const rel of activeRepoMetadataFiles) {
+    const filePath = path.join(root, rel);
+    if (!existsSync(filePath)) continue;
+
+    const text = readFileSync(filePath, "utf8");
+    const forbidden = FORBIDDEN_ACTIVE_REPO_SLUGS.filter((slug) => text.includes(slug));
+    if (forbidden.length > 0) {
+      fail(`${rel} contains retired active repo slug(s): ${forbidden.join(", ")}`);
+    } else {
+      pass(`${rel} contains no retired active repo slug`);
     }
   }
 }

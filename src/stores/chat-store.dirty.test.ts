@@ -149,6 +149,29 @@ describe('chat-store dirty tracking for non-active saves (BUG-CHAT-DIRTY regress
     expect(savedIds).toContain(a)
     expect(savedIds).toContain(b)
   })
+
+  it('flushes immediately when the dirty map exceeds MAX_DIRTY_CONVERSATIONS', async () => {
+    useChatStore.setState({
+      conversations: [],
+      activeConversationId: null,
+    } as never)
+
+    const ids: string[] = []
+    for (let i = 0; i < 1002; i++) {
+      ids.push(useChatStore.getState().createConversation('model'))
+    }
+
+    // Wait for any pending eager flush + the final cleanup to settle.
+    await flushAllPendingSaves()
+    await vi.runAllTimersAsync()
+
+    // The dirty map must be bounded and fully flushed.
+    expect(_debugGetDirtyConversationIds()).toEqual([])
+    const savedIds = new Set(saveMock.mock.calls.map((c) => c[0].id))
+    expect(savedIds.size).toBeGreaterThanOrEqual(1000)
+    // The final conversation created must also have been saved at some point.
+    expect(savedIds).toContain(ids[ids.length - 1])
+  })
 })
 
 describe('chat-store metadata invariants (BUG-CHAT-META regression)', () => {

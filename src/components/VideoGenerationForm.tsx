@@ -8,6 +8,7 @@ import { StatusBlock } from "./StatusBlock";
 import { CollapsibleSection } from "./CollapsibleSection";
 import type { ModuleProps, VideoDraft } from "../types/app";
 import { normalizeMediaModelSpec, MediaDirection } from "../utils/mediaModelSpecs";
+import { toast } from "../stores/toast-store";
 
 interface VideoGenerationFormProps extends ModuleProps {
   draft: VideoDraft;
@@ -175,7 +176,7 @@ export function VideoGenerationForm({
                   const file = e.dataTransfer.files?.[0];
                   if (!file) return;
                   if (!file.type.startsWith("image/")) {
-                    alert("Please drop an image file.");
+                    toast.warn("Please drop an image file.");
                     return;
                   }
                   
@@ -184,8 +185,7 @@ export function VideoGenerationForm({
                     const attachment = await processFileAttachment(file);
                     patch({ imageUrl: attachment.content });
                   } catch (err: unknown) {
-                    const msg = err instanceof Error ? err.message : "Failed to process image";
-                    alert(msg);
+                    toast.fromError(err, "Failed to process image");
                   }
                 }}
               >
@@ -207,8 +207,7 @@ export function VideoGenerationForm({
                         const attachment = await processFileAttachment(file);
                         patch({ imageUrl: attachment.content });
                       } catch (err: unknown) {
-                        const msg = err instanceof Error ? err.message : "Failed to process image";
-                        alert(msg);
+                        toast.fromError(err, "Failed to process image");
                       }
                       e.target.value = ""; // reset input
                     }}

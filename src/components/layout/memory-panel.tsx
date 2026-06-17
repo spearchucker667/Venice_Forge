@@ -3,6 +3,7 @@ import { useSettingsStore } from "../../stores/settings-store";
 import { toast } from "../../stores/toast-store";
 import { desktopConversations } from "../../services/desktopBridge";
 import { askDecision } from "../ui/modal-requests";
+import { redactErrorMessage } from "../../shared/redaction";
 import type { ConversationRecordV1, MemoryFact } from "../../types/conversationVault";
 
 export function MemoryPanel() {
@@ -71,7 +72,7 @@ export function MemoryPanel() {
         toast.error(`Rebuild failed: ${res.error}`);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Index rebuild failed");
+      toast.error("Index rebuild failed", redactErrorMessage(err));
     } finally {
       setIndexing(false);
     }
@@ -101,7 +102,7 @@ export function MemoryPanel() {
         toast.error(`Migration failed: ${res.error}`);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Migration failed");
+      toast.error("Migration failed", redactErrorMessage(err));
     } finally {
       setMigrating(false);
     }

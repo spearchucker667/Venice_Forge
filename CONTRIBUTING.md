@@ -26,8 +26,8 @@ Please read and follow our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 ### Development Setup
 
 ```bash
-git clone https://github.com/spearchucker667/Venice-API-connector.git
-cd Venice-API-connector
+git clone https://github.com/spearchucker667/Venice_Forge.git
+cd Venice_Forge
 npm install
 ```
 
@@ -115,7 +115,7 @@ See [SECURITY.md](SECURITY.md) for the full security model.
 - [ ] Platform-specific packaging checks (`npm run verify:dist:win`, `npm run verify:dist:mac`, and `npm run verify:dist:portable`) pass
 - [ ] New code includes tests where applicable
 - [ ] Documentation updated (README, AGENTS.md, docs/FAQ.md, etc.)
-- [ ] CHANGELOG.md updated under `[Unreleased]`
+- [ ] `docs/audits/CHANGELOG.md` updated under `[Unreleased]`
 - [ ] Legal/TOS notes reviewed if Venice API behavior, privacy, or release claims changed
 - [ ] Markdown links checked when docs changed
 

@@ -2,6 +2,7 @@
 
 const { existsSync, readFileSync } = require("node:fs");
 const { spawnSync } = require("node:child_process");
+const path = require("node:path");
 
 const requiredFiles = [
   "src/types/rp.ts",
@@ -79,9 +80,16 @@ const tests = [
 ];
 
 console.log("[verify:rp-studio-polish] Running targeted tests...");
+const vitestBin = path.join(
+  "node_modules",
+  ".bin",
+  process.platform === "win32" ? "vitest.cmd" : "vitest",
+);
 const result = spawnSync(
-  "npx",
-  ["vitest", "run", ...tests, "--fileParallelism=false"],
+  existsSync(vitestBin) ? vitestBin : "npm",
+  existsSync(vitestBin)
+    ? ["run", ...tests, "--fileParallelism=false"]
+    : ["exec", "--no", "--", "vitest", "run", ...tests, "--fileParallelism=false"],
   {
     stdio: "inherit",
     shell: process.platform === "win32",

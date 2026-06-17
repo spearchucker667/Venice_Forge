@@ -8,16 +8,17 @@
   "version": "2.0.0",
   "type": "module",
   "main": "dist-electron/electron/main.js",
-  "homepage": "https://github.com/spearchucker667/Venice-API-connector#readme",
+  "homepage": "https://github.com/spearchucker667/Venice_Forge#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/spearchucker667/Venice-API-connector.git"
+    "url": "git+https://github.com/spearchucker667/Venice_Forge.git"
   },
   "bugs": {
-    "url": "https://github.com/spearchucker667/Venice-API-connector/issues"
+    "url": "https://github.com/spearchucker667/Venice_Forge/issues"
   },
   "overrides": {
-    "js-yaml": "4.2.0"
+    "js-yaml": "4.2.0",
+    "esbuild": "^0.28.1"
   },
   "engines": {
     "node": ">=22.13.0 <23",
@@ -34,7 +35,7 @@
     "build:web": "cross-env ELECTRON_BUILD=true vite build",
     "build:server": "esbuild server.ts --bundle --platform=node --format=cjs --packages=external --log-override:empty-import-meta=silent --outfile=dist/server.cjs",
     "build:server:debug": "esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --log-override:empty-import-meta=silent --outfile=dist/server.cjs",
-    "build:electron": "tsc --project tsconfig.electron.json && node scripts/create-cjs-package.cjs",
+    "build:electron": "node scripts/build-electron.cjs && node scripts/create-cjs-package.cjs",
     "start": "node scripts/start-production.cjs",
     "preview": "vite preview",
     "clean": "rimraf dist dist-electron release",
@@ -67,23 +68,25 @@
     "verify:agent-docs": "node scripts/verify-agent-docs.cjs",
     "verify:image-policy": "node scripts/verify-image-policy.cjs",
     "verify:work-orders": "node scripts/verify-work-orders.cjs",
-    "verify:contracts": "npm run verify:safety-guard && npm run verify:markdown-links && npm run verify:theme-tokens && npm run verify:model-aware-recipes && npm run verify:media-studio-power-tools && npm run verify:status-diagnostics && npm run verify:prompt-library && npm run verify:scene-composer && npm run verify:rp-studio-polish && npm run verify:workflow-templates && npm run verify:storage-privacy && npm run verify:storage-policy && npm run verify:research-workspace && npm run verify:network-boundaries && npm run verify:release-packaging-hardening && npm run verify:ci-contract && npm run verify:agent-docs && npm run verify:image-policy && npm run verify:work-orders",
+    "verify:no-native-dialogs": "node scripts/verify-no-native-dialogs.cjs",
+    "verify:contracts": "npm run verify:safety-guard && npm run verify:markdown-links && npm run verify:theme-tokens && npm run verify:model-aware-recipes && npm run verify:media-studio-power-tools && npm run verify:status-diagnostics && npm run verify:prompt-library && npm run verify:scene-composer && npm run verify:rp-studio-polish && npm run verify:workflow-templates && npm run verify:storage-privacy && npm run verify:storage-policy && npm run verify:research-workspace && npm run verify:network-boundaries && npm run verify:release-packaging-hardening && npm run verify:ci-contract && npm run verify:agent-docs && npm run verify:image-policy && npm run verify:work-orders && npm run verify:no-native-dialogs",
     "checksum:release": "node scripts/checksum-release.cjs",
     "lint": "npm run lint:eslint && npm run typecheck",
     "lint:eslint": "eslint src electron server.ts scripts --max-warnings=0",
     "test:coverage": "vitest run --coverage",
     "smoke:electron": "vitest run tests/smoke/electron-smoke.test.ts",
     "profile:media-studio": "node scripts/profile-media-studio.mjs",
+    "capture:release-qa-snapshots": "node scripts/capture-release-qa-snapshots.mjs",
     "typecheck": "tsc --noEmit && tsc --noEmit --project tsconfig.electron.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dist": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --publish never && npm run checksum:release",
-    "dist:win": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --win --publish never && npm run checksum:release",
-    "dist:portable": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --win portable --publish never && npm run checksum:release",
-    "dist:mac": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --publish never && npm run checksum:release",
-    "dist:linux": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --linux --publish never && npm run checksum:release",
-    "dist:mac:arm64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --arm64 --publish never && npm run checksum:release",
-    "dist:mac:x64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --x64 --publish never && npm run checksum:release",
+    "dist": "npm run clean && npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --publish never && npm run checksum:release",
+    "dist:win": "npm run clean && npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --win --publish never && npm run checksum:release",
+    "dist:portable": "npm run clean && npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --win portable --publish never && npm run checksum:release",
+    "dist:mac": "npm run clean && npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --publish never && npm run checksum:release",
+    "dist:linux": "npm run clean && npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --linux --publish never && npm run checksum:release",
+    "dist:mac:arm64": "npm run clean && npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --arm64 --publish never && npm run checksum:release",
+    "dist:mac:x64": "npm run clean && npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --x64 --publish never && npm run checksum:release",
     "ci": "npm run lint:eslint && npm run typecheck && npm test && npm run test:coverage && npm audit --omit=dev --audit-level=moderate && npm run verify:safety-guard && npm run verify:markdown-links && npm run verify:contracts && npm run build && npm run verify:dist",
     "config:init": "tsx scripts/init-config.ts",
     "config:validate": "tsx scripts/validate-config.ts",
@@ -123,12 +126,11 @@
     "cross-env": "^10.1.0",
     "electron": "^42.3.0",
     "electron-builder": "^26.8.1",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.28.1",
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^6.0.0",
     "fake-indexeddb": "^6.2.5",
     "globals": "^16.0.0",
-    "immer": "^11.1.8",
     "jsdom": "^29.1.1",
     "playwright": "^1.60.0",
     "react": "^19.0.1",
@@ -139,7 +141,7 @@
     "tsx": "^4.22.3",
     "typescript": "~5.8.2",
     "typescript-eslint": "^8.60.0",
-    "vite": "^6.2.3",
+    "vite": "^6.4.3",
     "vitest": "^4.1.6",
     "wait-on": "^9.0.10"
   }

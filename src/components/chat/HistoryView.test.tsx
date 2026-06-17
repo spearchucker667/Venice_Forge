@@ -7,6 +7,11 @@ import HistoryView from "./HistoryView";
 import { useChatStore } from "../../stores/chat-store";
 import { useSettingsStore } from "../../stores/settings-store";
 import type { Conversation } from "../../types/conversation";
+import { askDecision } from "../ui/modal-requests";
+
+vi.mock("../ui/modal-requests", () => ({
+  askDecision: vi.fn(),
+}));
 
 // Polyfill localStorage for Node 26+ / jsdom environments where it may be missing
 const localStorageStore: Record<string, string> = {};
@@ -225,5 +230,64 @@ describe("HistoryView Component", () => {
     }
     expect(restoreSpy).toHaveBeenCalledWith(conv);
     expect(mockToastSuccess).toHaveBeenCalledWith("Conversation restored");
+  });
+
+  it("batch delete asks through the app modal and does not call window.confirm", async () => {
+    vi.mocked(askDecision).mockResolvedValueOnce(true);
+    const deleteConversationsSpy = vi.fn().mockResolvedValue({ deleted: ["c1", "c2"], failed: [] });
+
+    const conversations = [
+      createMockConversation("c1", "Chat One", "hello"),
+      createMockConversation("c2", "Chat Two", "hello"),
+    ];
+    useChatStore.setState({
+      conversations,
+      deleteConversations: deleteConversationsSpy,
+    });
+
+    render(<HistoryView />);
+
+    const selectButtons = screen.getAllByTitle(/Select conversation|Deselect conversation/);
+    fireEvent.click(selectButtons[0]);
+    fireEvent.click(selectButtons[1]);
+
+    const batchDeleteButton = screen.getByRole("button", { name: /Delete selected/i });
+    fireEvent.click(batchDeleteButton);
+
+    await waitFor(() => {
+      expect(askDecision).toHaveBeenCalledWith({
+        title: "Delete 2 conversations?",
+        detail: "This permanently removes the selected local conversation records from this device. This cannot be undone.",
+        actionLabel: "Delete",
+        cancelLabel: "Cancel",
+        danger: true,
+      });
+    });
+    expect(deleteConversationsSpy).toHaveBeenCalledWith(["c1", "c2"]);
+    expect(mockToastSuccess).toHaveBeenCalledWith("Conversations deleted", "2 selected conversations removed.");
+  });
+
+  it("batch delete cancels when the modal is dismissed", async () => {
+    vi.mocked(askDecision).mockResolvedValueOnce(false);
+    const deleteConversationsSpy = vi.fn().mockResolvedValue({ deleted: [], failed: [] });
+
+    const conversations = [createMockConversation("c1", "Chat One", "hello")];
+    useChatStore.setState({
+      conversations,
+      deleteConversations: deleteConversationsSpy,
+    });
+
+    render(<HistoryView />);
+
+    const selectButton = screen.getByTitle(/Select conversation/);
+    fireEvent.click(selectButton);
+
+    const batchDeleteButton = screen.getByRole("button", { name: /Delete selected/i });
+    fireEvent.click(batchDeleteButton);
+
+    await waitFor(() => {
+      expect(askDecision).toHaveBeenCalled();
+    });
+    expect(deleteConversationsSpy).not.toHaveBeenCalled();
   });
 });

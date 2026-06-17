@@ -21,6 +21,7 @@ import { useProjectStore } from "../../stores/project-store";
 import { useMediaSelectionStore, MEDIA_SELECTION_MAX } from "../../stores/media-selection-store";
 import { registerMediaCommandHandlers } from "../../stores/media-command-handlers";
 import { toast } from "../../stores/toast-store";
+import { redactErrorMessage } from "../../shared/redaction";
 import {
   bulkAddTags,
   bulkAssignProject,
@@ -309,7 +310,7 @@ export function MediaStudioView() {
     try {
       await patchRecord(id, patch);
     } catch (err) {
-      toast.error("Failed to update media item", err instanceof Error ? err.message : String(err));
+      toast.error("Failed to update media item", redactErrorMessage(err));
     }
   }, [patchRecord]);
 
@@ -335,7 +336,7 @@ export function MediaStudioView() {
         if (activeId === item.id) setActiveId(null);
       }
     } catch (err) {
-      toast.error("Failed to delete", err instanceof Error ? err.message : String(err));
+      toast.error("Failed to delete", redactErrorMessage(err));
     }
   }, [remove, detailId, inspectorId, activeId]);
 
@@ -356,7 +357,7 @@ export function MediaStudioView() {
         toast.success(`Removed ${r.succeeded.length} item${r.succeeded.length === 1 ? "" : "s"}`);
       }
     } catch (err) {
-      toast.error("Batch delete failed", err instanceof Error ? err.message : String(err));
+      toast.error("Batch delete failed", redactErrorMessage(err));
     }
   }, [selectedMediaIds]);
 

@@ -13,6 +13,7 @@ import {
 import type { UserPersonaV1 } from "../types/rp";
 import { toast } from "./toast-store";
 import { getActivePersonaId, setActivePersonaId } from "../services/rp/personaPreferenceService";
+import { redactErrorMessage } from "../shared/redaction";
 
 export interface PersonaState {
   personas: UserPersonaV1[];
@@ -49,7 +50,7 @@ export const usePersonaStore = create<PersonaState>((set, get) => ({
       const activePersonaId = persistedId && sorted.some((p) => p.id === persistedId) ? persistedId : null;
       set({ personas: sorted, isLoading: false, hasLoaded: true, activePersonaId });
     } catch (e) {
-      set({ isLoading: false, error: e instanceof Error ? e.message : String(e) });
+      set({ isLoading: false, error: redactErrorMessage(e) });
     }
   },
 
@@ -94,7 +95,7 @@ export const usePersonaStore = create<PersonaState>((set, get) => ({
       });
       return saved;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = redactErrorMessage(e);
       set({ error: msg });
       toast.error("Could not save persona", msg);
       return null;
@@ -114,7 +115,7 @@ export const usePersonaStore = create<PersonaState>((set, get) => ({
       }));
       return true;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = redactErrorMessage(e);
       set({ error: msg });
       toast.error("Could not delete persona", msg);
       return false;

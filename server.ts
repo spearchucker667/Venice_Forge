@@ -23,7 +23,7 @@ import { warn, error } from "./src/shared/logger";
 import { maybeRunLocalFamilyGuard, recordDecision, screenResponseBody } from "./src/shared/safety";
 import type { SafetyGuardDecision } from "./src/shared/safety";
 import { pathToFileURL, fileURLToPath } from "node:url";
-import { isPrivateHostname } from "./electron/utils/urlSecurity";
+import { isPrivateHostname } from "./src/shared/urlSecurity";
 import { JINA_MAX_RESPONSE_BYTES } from "./src/shared/limits";
 import { FetchBodyTooLargeError, parseJsonOrNull, readBoundedFetchBody } from "./src/shared/readBoundedFetchBody";
 

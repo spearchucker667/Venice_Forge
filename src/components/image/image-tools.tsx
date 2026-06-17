@@ -6,6 +6,7 @@ import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, ErrorText, EmptyState } from '../ui/shared'
 import { cn, generateId } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
+import { redactErrorMessage } from '../../shared/redaction'
 import { useMediaStore } from '../../stores/media-store'
 import { blobToDataUrl } from '../../utils/image'
 import type { MediaOperation } from '../../types/media'
@@ -260,7 +261,7 @@ export function ImageTools() {
         >
           {tool === 'edit' ? 'Edit Image' : tool === 'upscale' ? 'Upscale Image' : 'Remove Background'}
         </PrimaryButton>
-        {error && <ErrorText>{error.message}</ErrorText>}
+        {error && <ErrorText>{redactErrorMessage(error)}</ErrorText>}
       </div>
 
       <div className="flex-1 p-6 overflow-y-auto flex flex-col min-w-0">

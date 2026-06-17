@@ -16,6 +16,8 @@
  * gestures (Command Palette, header refresh button).
  */
 
+import type { SafeApiKeyMetadata } from "./api-connectivity";
+
 /** Severity of a single status item. */
 export type StatusSeverity = "ok" | "warn" | "error" | "unknown";
 
@@ -68,7 +70,6 @@ export interface AppDiagnosticCheck {
   summary: string;
 }
 
-/** Top-level safe snapshot. JSON-serialisable; safe to copy to clipboard. */
 export interface SafeDiagnosticsSnapshot {
   version: number;
   generatedAt: string;
@@ -95,6 +96,7 @@ export interface SafeDiagnosticsSnapshot {
     conversations: {
       count: number;
     };
+    apiKey: SafeApiKeyMetadata;
     research?: {
       count: number;
     };

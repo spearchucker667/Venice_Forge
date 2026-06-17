@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: release-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-macos:
@@ -30,9 +30,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Audit dependencies (prod-only, release gate)
-        run: npm audit --omit=dev --audit-level=moderate
-        # Moderate+ vulnerabilities fail the build (per AGENTS.md "npm audit --omit=dev --audit-level=moderate is a release gate").
+      - name: Audit dependencies (release gate)
+        run: npm audit --audit-level=moderate
+        # Moderate+ vulnerabilities fail the build for production and build-time dependencies.
         # High-only would be too permissive for a security-sensitive third-party client.
 
       - name: Verify generated icon
@@ -111,9 +111,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Audit dependencies (prod-only, release gate)
-        run: npm audit --omit=dev --audit-level=moderate
-        # Moderate+ vulnerabilities fail the build (per AGENTS.md "npm audit --omit=dev --audit-level=moderate is a release gate").
+      - name: Audit dependencies (release gate)
+        run: npm audit --audit-level=moderate
+        # Moderate+ vulnerabilities fail the build for production and build-time dependencies.
         # High-only would be too permissive for a security-sensitive third-party client.
 
       - name: Verify generated icon
@@ -191,8 +191,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Audit dependencies (prod-only, release gate)
-        run: npm audit --omit=dev --audit-level=moderate
+      - name: Audit dependencies (release gate)
+        run: npm audit --audit-level=moderate
 
       - name: Verify generated icon
         run: npm run verify:icon
@@ -261,9 +261,15 @@ jobs:
           name: venice-forge-linux-${{ github.ref_name }}
           path: release/
 
+      - name: Verify all platform artifacts before publishing
+        run: npm run verify:dist:release
+
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           files: release/*
-          draft: false
+          # P1 hardening: create a draft release so a maintainer can review
+          # artifacts, checksums, and signing/notarization status before
+          # clicking "Publish release".
+          draft: true
           prerelease: false

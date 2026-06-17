@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { cn } from '../../lib/utils'
 import { isSupportedImageFile, readImageAttachment } from '../../services/attachmentService'
 import { toast } from '../../stores/toast-store'
+import { redactErrorMessage } from '../../shared/redaction'
 import type { ChatMemoryStatus } from '../../hooks/use-chat'
 
 interface ChatInputProps {
@@ -52,10 +53,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
         const attachment = await readImageAttachment(file)
         setImages((prev) => [...prev, attachment.content])
       } catch (err) {
-        toast.error(
-          'Image attachment failed',
-          err instanceof Error ? err.message : `Could not read "${file.name}".`,
-        )
+        toast.error('Image attachment failed', redactErrorMessage(err))
       }
     }
   }

@@ -1,0 +1,136 @@
+roadmap_verification:
+  source:
+    path: "docs/audits/Repository TODO Roadmap — Venice Forge.md"
+    verified_at: "2026-06-16"
+    repo_path: "/Users/super_user/Projects/Windows-Venice-API-connector"
+    branch: "main"
+    head: "1de7d42"
+    node: "v22.22.3"
+    npm: "10.9.8"
+  summary:
+    p0_total: 7
+    p0_closed: 7
+    p1_total: 12
+    p1_closed: 11
+    p1_partial: 1
+    p2_fixed_in_this_pass: 12
+    future_or_broad_backlog_remaining: true
+  p0:
+    - id: P0-001
+      title: "Replace native History delete dialog"
+      status: closed
+      evidence: "HistoryView uses askDecision; verify:no-native-dialogs passed."
+    - id: P0-002
+      title: "Redact and bound prior conversation context"
+      status: closed
+      evidence: "chatPayloadContext bounds/redacts selected context; targeted chat tests passed."
+    - id: P0-003
+      title: "Canonicalize repository slug"
+      status: closed
+      evidence: "Active metadata/docs use Venice_Forge; release hardening verifier passed."
+    - id: P0-004
+      title: "Fix Jina rate-limit flake"
+      status: closed
+      evidence: "Focused rate-limit run and five consecutive reruns passed under Node 22."
+    - id: P0-005
+      title: "Stop shipping renderer source in Electron output"
+      status: closed
+      evidence: "dist-electron/src absent; generated Electron output has no src imports; verify:dist passed."
+    - id: P0-006
+      title: "Resolve dependency vulnerabilities"
+      status: closed
+      evidence: "npm audit moderate and production audit both reported 0 vulnerabilities."
+    - id: P0-007
+      title: "Add explicit macOS notarization config"
+      status: closed_with_external_verification_remaining
+      evidence: "electron-builder enables mac.notarize when signing and Apple credentials are present."
+      residual: "End-to-end notarization requires a signed CI release run with Apple credentials."
+  p1:
+    - id: P1-001
+      title: "Storage Privacy API-key status"
+      status: closed
+      evidence: "verify:storage-privacy passed."
+    - id: P1-002
+      title: "Windows portable signing/documentation"
+      status: closed_by_documentation
+      evidence: "Release docs document unsigned portable and SmartScreen behavior."
+    - id: P1-003
+      title: "Linux arm64 cross-compilation"
+      status: closed_by_scope_reduction
+      evidence: "Linux targets are x64-only and docs note arm64 is not produced."
+    - id: P1-004
+      title: "Draft/verification release gate"
+      status: closed
+      evidence: "release.yml runs verify:dist:release before draft release creation."
+    - id: P1-005
+      title: "macOS PR CI runner"
+      status: closed
+      evidence: "ci.yml includes macos-sensitive-tests."
+    - id: P1-006
+      title: "Packaged Electron smoke in CI"
+      status: closed
+      evidence: "ci.yml includes electron-smoke-macos with RUN_ELECTRON_SMOKE=true."
+    - id: P1-007
+      title: "Clean noisy test warnings/mock leaks"
+      status: partially_closed
+      evidence: "Known localStorage and PromptLibrary act warnings were repaired."
+      residual: "A full npm test stderr classification was not rerun in this pass."
+    - id: P1-008
+      title: "Node engine alignment"
+      status: closed
+      evidence: ".nvmrc exists; workflows and package engines pin Node 22; verification used Node 22."
+    - id: P1-009
+      title: "Bound media-store cache"
+      status: closed
+      evidence: "MEDIA_IN_MEMORY_CACHE_MAX exists; media-store tests passed."
+    - id: P1-010
+      title: "Bound chat dirty map"
+      status: closed
+      evidence: "MAX_DIRTY_CONVERSATIONS exists; chat dirty tests passed."
+    - id: P1-011
+      title: "Remove server dependency on Electron utility path"
+      status: closed
+      evidence: "server.ts imports from src/shared/urlSecurity and not electron/**."
+    - id: P1-012
+      title: "Release cancel-in-progress"
+      status: closed
+      evidence: "release.yml sets cancel-in-progress: true."
+  p2_fixed:
+    - "Corrected web-mode Jina key storage documentation."
+    - "Clarified desktop chat history plaintext JSON storage."
+    - "Refreshed stale SECURITY.md server.ts line references."
+    - "Removed unrelated image from CODE_OF_CONDUCT.md."
+    - "Standardized release/contribution CHANGELOG references to docs/audits/CHANGELOG.md."
+    - "Removed dead diagnostics audit spread and unused audit read."
+    - "Changed chat message list keys from index to msg.id."
+    - "Changed Electron image-save failures from console.error to redacted toasts."
+    - "Changed media size sort to decoded byte estimates."
+    - "Split Dependabot npm groups."
+    - "Made Vite proxy secure conditional on HTTPS targets."
+    - "Prepended npm run clean to dist scripts and removed root immer devDependency."
+  remaining_open:
+    - "Full npm test stderr warning classification for strict P1-007 closure."
+    - "Oversized component extraction."
+    - "Low-coverage module campaign."
+    - "P3 future platform/docs/diagnostics enhancements."
+    - "Credential-backed release verification for macOS notarization and Windows portable signing behavior."
+  validation:
+    passed:
+      - "PATH=\"$PWD/.node22/bin:$PATH\" npm run lint:eslint"
+      - "PATH=\"$PWD/.node22/bin:$PATH\" npm run typecheck"
+      - "PATH=\"$PWD/.node22/bin:$PATH\" npm run build"
+      - "test ! -d dist-electron/src"
+      - "rg generated Electron output for src imports: no matches"
+      - "PATH=\"$PWD/.node22/bin:$PATH\" npm run verify:dist"
+      - "PATH=\"$PWD/.node22/bin:$PATH\" npm run verify:markdown-links"
+      - "PATH=\"$PWD/.node22/bin:$PATH\" npm run verify:release-packaging-hardening"
+      - "PATH=\"$PWD/.node22/bin:$PATH\" npm run verify:storage-privacy"
+      - "PATH=\"$PWD/.node22/bin:$PATH\" npm run verify:no-native-dialogs"
+      - "PATH=\"$PWD/.node22/bin:$PATH\" npm audit --audit-level=moderate"
+      - "PATH=\"$PWD/.node22/bin:$PATH\" npm audit --omit=dev --audit-level=moderate"
+      - "PATH=\"$PWD/.node22/bin:$PATH\" npx vitest run src/stores/media-store.test.ts src/components/chat/chat-view.test.tsx src/components/image/image-view.test.tsx src/services/diagnosticsService.test.ts src/stores/chat-store.dirty.test.ts src/stores/chat-store.test.ts"
+    skipped:
+      - "Full npm test"
+      - "npm run test:coverage"
+      - "npm run verify:contracts"
+      - "Packaged app smoke on final release artifacts"

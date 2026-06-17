@@ -208,6 +208,32 @@ describe('chat-store desktopBridge routing', () => {
     expect(chatDeleteMock).toHaveBeenCalledWith(id)
   })
 
+  it('batch deletes selected conversations and clears active id when deleted', async () => {
+    const first = useChatStore.getState().createConversation('llama-3')
+    const second = useChatStore.getState().createConversation('llama-3')
+    useChatStore.getState().setActiveConversation(first)
+
+    const result = await useChatStore.getState().deleteConversations([first, second, second])
+
+    expect(result.deleted.sort()).toEqual([first, second].sort())
+    expect(result.failed).toEqual([])
+    expect(result.activeConversationDeleted).toBe(true)
+    expect(useChatStore.getState().activeConversationId).toBeNull()
+    expect(useChatStore.getState().conversations).toHaveLength(0)
+  })
+
+  it('keeps conversations visible when batch persistence deletion fails', async () => {
+    conversationDeleteMock.mockResolvedValueOnce({ ok: false, error: 'vault failed' })
+    chatDeleteMock.mockResolvedValueOnce({ ok: false, error: 'legacy failed' })
+    const id = useChatStore.getState().createConversation('llama-3')
+
+    const result = await useChatStore.getState().deleteConversations([id])
+
+    expect(result.deleted).toEqual([])
+    expect(result.failed).toEqual([{ id, error: 'legacy failed' }])
+    expect(useChatStore.getState().conversations.some((conversation) => conversation.id === id)).toBe(true)
+  })
+
   it('restores conversation', async () => {
     const id = useChatStore.getState().createConversation('llama-3')
     const conv = useChatStore.getState().conversations[0]
@@ -413,4 +439,3 @@ describe('chat-store desktopBridge routing', () => {
     await vi.runAllTimersAsync()
   })
 })
-

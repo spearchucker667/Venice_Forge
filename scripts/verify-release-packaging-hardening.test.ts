@@ -60,6 +60,9 @@ function createMinimalValidRepo(prefix: string, opts: { releaseYml?: string } = 
 
   const pkg = {
     name: "fake",
+    homepage: "https://github.com/spearchucker667/Venice_Forge#readme",
+    repository: { type: "git", url: "git+https://github.com/spearchucker667/Venice_Forge.git" },
+    bugs: { url: "https://github.com/spearchucker667/Venice_Forge/issues" },
     scripts: {
       "verify:release-packaging-hardening": "node scripts/verify-release-packaging-hardening.cjs",
       "verify:archive-clean": "node scripts/verify-archive-clean.cjs",
@@ -115,7 +118,7 @@ function createMinimalValidRepo(prefix: string, opts: { releaseYml?: string } = 
 
   writeFileSync(
     join(root, "electron-builder.config.cjs"),
-    "module.exports = { appId: 'x', directories: {}, asar: true, files: ['!**/*.map'] };\n",
+    "module.exports = { appId: 'x', directories: {}, asar: true, publish: { provider: 'github', owner: 'spearchucker667', repo: 'Venice_Forge' }, files: ['!**/*.map'] };\n",
   );
 
   for (const ic of ["icon.ico", "icon.icns", "icon.png"]) {
@@ -318,6 +321,29 @@ describe("verify-release-packaging-hardening (VERIFY-052)", () => {
       expect(combined).toMatch(/CSC_LINK/);
       expect(combined).toMatch(/CSC_KEY_PASSWORD/);
       expect(combined).toMatch(/WIN_CSC_LINK/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects retired repo slugs in active setup docs (P0-003)", () => {
+    const root = createMinimalValidRepo("venice-relpkg-oldslug-");
+    try {
+      writeFileSync(
+        join(root, "README.md"),
+        [
+          "verify:release-packaging-hardening",
+          "git clone https://github.com/spearchucker667/Venice_Forge.git",
+          "cd Venice-API-connector",
+        ].join("\n"),
+      );
+
+      const out = spawnSync("node", [scriptPath], { cwd: root, encoding: "utf8" });
+      expect(out.status, `expected non-zero exit; got ${out.status}\nstdout: ${out.stdout}\nstderr: ${out.stderr}`).not.toBe(0);
+      const combined = (out.stderr || "") + (out.stdout || "");
+      expect(combined).toMatch(/retired active repo slug/);
+      expect(combined).toMatch(/README\.md/);
+      expect(combined).toMatch(/Venice-API-connector/);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

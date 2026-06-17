@@ -15,9 +15,9 @@ import { useCharacterCardStore } from "./character-card-store";
 import { usePersonaStore } from "./persona-store";
 import * as logger from "../shared/logger";
 import { useLorebookStore } from "./lorebook-store";
-import { useSettingsStore } from "./settings-store";
+import { useAuthStore } from "./auth-store";
 import { toast } from "./toast-store";
-import { desktopCharacterImage } from "../services/desktopBridge";
+import { desktopCharacterImage, isElectron } from "../services/desktopBridge";
 
 export interface StoragePrivacyState {
   inventory: StorageInventoryResult | null;
@@ -56,6 +56,12 @@ export const useStoragePrivacyStore = create<StoragePrivacyState>((set, get) => 
         desktopCharacterImage.getInventory(),
       ]);
 
+      // Refresh the canonical API-key configured state from the secure bridge
+      // (desktop safeStorage or web server-side session) rather than trusting
+      // a non-existent settings field.
+      await useAuthStore.getState().checkConfiguration();
+      const veniceConfigured = useAuthStore.getState().isConfigured;
+
       const inventory = buildStorageInventory({
         projects: useProjectStore.getState().projects as unknown as StorageInventoryRecord[],
         prompts: usePromptLibraryStore.getState().prompts as unknown as StorageInventoryRecord[],
@@ -66,7 +72,11 @@ export const useStoragePrivacyStore = create<StoragePrivacyState>((set, get) => 
         lorebooks: useLorebookStore.getState().lorebooks as unknown as StorageInventoryRecord[],
         personas: usePersonaStore.getState().personas as unknown as StorageInventoryRecord[],
         scenarios: useScenarioStore.getState().scenarios as unknown as StorageInventoryRecord[],
-        settings: useSettingsStore.getState() as unknown as { veniceApiKey?: string },
+        apiKey: {
+          configured: veniceConfigured,
+          storage: isElectron() ? "secure-storage" : "web-environment",
+          lastValidationStatus: veniceConfigured ? "configured-not-validated" : "not-configured",
+        },
         characterImageCache: cacheInventory.ok
           ? { count: cacheInventory.count ?? 0, totalBytes: cacheInventory.totalBytes ?? 0 }
           : undefined,

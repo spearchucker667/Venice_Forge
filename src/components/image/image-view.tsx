@@ -12,6 +12,7 @@ import type { ImageConstraints } from '../../types/venice'
 import { useMediaStore } from '../../stores/media-store'
 import { usePromptLibraryStore, resolvePromptProjectId } from '../../stores/prompt-library-store'
 import { toast } from '../../stores/toast-store'
+import { redactErrorMessage } from '../../shared/redaction'
 import type { MediaItem } from '../../types/media'
 import { generateId } from '../../lib/utils'
 import { getPromptStartersForCategory } from '../../services/promptStarterService'
@@ -155,10 +156,10 @@ export function ImageView() {
       try {
         const result = await desktopMedia.saveRoutedImage(b64, filename, routedFolder);
         if (!result.ok) {
-          console.error(`Save failed: ${result.error}`);
+          toast.error('Image save failed', redactErrorMessage(result.error));
         }
       } catch (err) {
-        console.error(err);
+        toast.error('Image save failed', redactErrorMessage(err));
       }
     } else {
       const a = document.createElement('a')
@@ -693,7 +694,7 @@ export function ImageView() {
       <PrimaryButton onClick={handleGenerate} disabled={!prompt.trim() || !hasVeniceKey} loading={mutation.isPending} size="lg">
         {mutation.isPending ? 'Generating…' : 'Generate'}
       </PrimaryButton>
-      {mutation.error && <ErrorText>{mutation.error.message}</ErrorText>}
+      {mutation.error && <ErrorText>{redactErrorMessage(mutation.error)}</ErrorText>}
     </>
   )
 

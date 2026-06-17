@@ -14,6 +14,7 @@ import { askDecision } from "./ui/modal-requests";
 import { PillGroup } from "./ui/shared";
 import { isElectron, desktopApiKey, desktopJinaApiKey, desktopFiles, desktopUpdates, desktopConfig } from "../services/desktopBridge";
 import { APP_NAME, OFFICIAL_LINKS, FIRST_RUN_ACK_KEY } from "../shared/legal";
+import { redactErrorMessage } from "../shared/redaction";
 import type { UpdateInfo, ProgressInfo } from "electron-updater";
 
 type PendingConfirm = { message: string; detail?: string; onConfirm: () => Promise<void> | void };
@@ -177,7 +178,7 @@ export function SettingsView() {
         setUpdateStatus("Update check completed.");
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Unknown update error";
+      const message = redactErrorMessage(err);
       setUpdateStatus(`Update check failed: ${message}`);
     } finally {
       setIsUpdateChecking(false);
@@ -188,7 +189,7 @@ export function SettingsView() {
     try {
       await desktopUpdates.installUpdate();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Unknown install error";
+      const message = redactErrorMessage(err);
       setUpdateStatus(`Install failed: ${message}`);
     }
   }
@@ -201,7 +202,7 @@ export function SettingsView() {
       setApiKeyInput("");
       toast.success(isElectron() ? "Venice API key saved securely." : "Venice API key saved for this development session.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save API key.");
+      toast.error("Failed to save API key.", redactErrorMessage(err));
     }
   }
 
@@ -216,7 +217,7 @@ export function SettingsView() {
           await clearApiKey();
           toast.success("Venice API key deleted.");
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : "Failed to delete API key.");
+          toast.error("Failed to delete API key.", redactErrorMessage(err));
         }
       }
     });
@@ -232,7 +233,7 @@ export function SettingsView() {
         toast.error(`Connection failed: ${result.message}`);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Test connection failed.");
+      toast.error("Test connection failed.", redactErrorMessage(err));
     } finally {
       setApiKeyTesting(false);
     }
@@ -246,7 +247,7 @@ export function SettingsView() {
       setJinaKeyConfigured(true);
       toast.success(isElectron() ? "Jina API key saved securely." : "Jina API key saved for this browser session.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save Jina API key.");
+      toast.error("Failed to save Jina API key.", redactErrorMessage(err));
     }
   }
 
@@ -262,7 +263,7 @@ export function SettingsView() {
           setJinaKeyConfigured(false);
           toast.success("Jina API key deleted.");
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : "Failed to delete Jina API key.");
+          toast.error("Failed to delete Jina API key.", redactErrorMessage(err));
         }
       }
     });
@@ -278,7 +279,7 @@ export function SettingsView() {
         toast.error(`Jina connection failed: ${result.message}`);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Jina test connection failed.");
+      toast.error("Jina test connection failed.", redactErrorMessage(err));
     } finally {
       setJinaKeyTesting(false);
     }
@@ -807,7 +808,7 @@ function ConfigPanel(): React.ReactElement {
       await reloadConfig();
       toast.success("Local config reloaded.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error("Failed to reload config.", redactErrorMessage(err));
     } finally {
       setWorking(false);
     }
@@ -819,7 +820,7 @@ function ConfigPanel(): React.ReactElement {
       const res = await desktopConfig.openFolder();
       if (!res.ok) toast.error(res.error || "Failed to open config folder.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error("Failed to open config folder.", redactErrorMessage(err));
     } finally {
       setWorking(false);
     }
@@ -836,7 +837,7 @@ function ConfigPanel(): React.ReactElement {
       if (ok) toast.success("Template exported.");
       else toast.info("Export cancelled.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error("Failed to export config template.", redactErrorMessage(err));
     } finally {
       setWorking(false);
     }

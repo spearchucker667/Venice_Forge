@@ -45,7 +45,7 @@ const config = {
   publish: {
     provider: "github",
     owner: "spearchucker667",
-    repo: "Venice-API-connector",
+    repo: "Venice_Forge",
   },
 
   win: {
@@ -84,9 +84,10 @@ const config = {
     artifactName: "Venice-Forge-${version}-${arch}.${ext}",
     // Hardened runtime requires a signing identity; ad-hoc/unsigned builds omit it.
     // identity: null explicitly disables code signing when no cert is available.
+    // Notarization is enabled only in CI releases where Apple credentials are present.
     ...(isCIRelease
-      ? { hardenedRuntime: true }
-      : { identity: null }),
+      ? { hardenedRuntime: true, notarize: { teamId: process.env.APPLE_TEAM_ID } }
+      : { identity: null, notarize: false }),
   },
 
   dmg: {
@@ -111,9 +112,12 @@ const config = {
     // Includes arm64 for Apple Silicon / ARM servers + deb/rpm for broader distro compatibility.
     // AppImage remains for portable "just run" experience.
     target: [
-      { target: "AppImage", arch: ["x64", "arm64"] },
-      { target: "deb", arch: ["x64", "arm64"] },
-      { target: "rpm", arch: ["x64", "arm64"] },
+      // Linux arm64 cross-compilation from an x64 runner requires qemu/binfmt
+      // and is not exercised in CI. Build x64 only until a native arm64 runner
+      // or cross-compilation toolchain is added.
+      { target: "AppImage", arch: ["x64"] },
+      { target: "deb", arch: ["x64"] },
+      { target: "rpm", arch: ["x64"] },
     ],
     icon: "build/icon.png",
     category: "Utility",

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { useMediaStore, filterMedia, sortMedia, searchMedia, selectById, selectChildren, selectParent } from './media-store'
+import { useMediaStore, filterMedia, sortMedia, searchMedia, selectById, selectChildren, selectParent, MEDIA_IN_MEMORY_CACHE_MAX } from './media-store'
 import { useSettingsStore } from './settings-store'
 import { toast, useToastStore } from './toast-store'
 import { MEDIA_ITEM_VERSION, type MediaItem } from '../types/media'
@@ -639,12 +639,12 @@ describe('media filter / sort / search', () => {
     expect(out.map((i) => i.id)).toEqual(['1', '2', '3', '4'])
   })
 
-  it('sort by size (video vs image)', () => {
-    const a: MediaItem = makeItem({ id: 'a', mediaType: 'image', image: '123' }) // size 3
-    const b: MediaItem = makeItem({ id: 'b', mediaType: 'video', image: '12' }) // size 2 * 4 = 8
-    const c: MediaItem = makeItem({ id: 'c', mediaType: 'image', image: '1234' }) // size 4
+  it('sort by decoded media byte size', () => {
+    const a: MediaItem = makeItem({ id: 'a', mediaType: 'image', image: 'data:image/png;base64,AA==' }) // 1 byte
+    const b: MediaItem = makeItem({ id: 'b', mediaType: 'video', image: 'data:video/mp4;base64,AAAA' }) // 3 bytes
+    const c: MediaItem = makeItem({ id: 'c', mediaType: 'image', image: 'AAA=' }) // 2 bytes
     const set = [a, b, c]
-    // desc order: b (8), c (4), a (3)
+    // desc order: b (3), c (2), a (1)
     expect(sortMedia(set, 'size').map((i) => i.id)).toEqual(['b', 'c', 'a'])
   })
 
@@ -757,6 +757,65 @@ describe('media store — BUG-008 loadById', () => {
     const result = await useMediaStore.getState().loadById('race')
     expect(result?.id).toBe('race')
     expect(useMediaStore.getState().items).toHaveLength(1)
+  })
+})
+
+describe('media store in-memory cache bound', () => {
+  it('caps refresh() results at MEDIA_IN_MEMORY_CACHE_MAX, keeping the most recent', async () => {
+    const overage = 10
+    const seeded: MediaItem[] = []
+    for (let i = 0; i < MEDIA_IN_MEMORY_CACHE_MAX + overage; i++) {
+      const item = makeItem({ id: `seed-${i}`, timestamp: 1000 + i })
+      seeded.push(item)
+      mockService.__seed(item)
+    }
+    // Force a single oversized page so the cache bound is exercised.
+    vi.mocked(StorageService.getItemsPageWithMeta).mockResolvedValueOnce({
+      items: seeded as unknown[],
+      decryptFailures: 0,
+      total: seeded.length,
+      offset: 0,
+      limit: seeded.length,
+      hasMore: false,
+    })
+    await useMediaStore.getState().refresh()
+    expect(useMediaStore.getState().items).toHaveLength(MEDIA_IN_MEMORY_CACHE_MAX)
+    // Most recent timestamp should win.
+    expect(useMediaStore.getState().items[0].timestamp).toBe(1000 + MEDIA_IN_MEMORY_CACHE_MAX + overage - 1)
+  })
+
+  it('caps loadMore() results at MEDIA_IN_MEMORY_CACHE_MAX', async () => {
+    const total = MEDIA_IN_MEMORY_CACHE_MAX + 50
+    for (let i = 0; i < total; i++) {
+      mockService.__seed(makeItem({ id: `page-${i}`, timestamp: 2000 + i }))
+    }
+    await useMediaStore.getState().refresh()
+    // Refresh loaded the first page (60 by default), so loadMore keeps going.
+    await useMediaStore.getState().loadMore()
+    await useMediaStore.getState().loadMore()
+    await useMediaStore.getState().loadMore()
+    await useMediaStore.getState().loadMore()
+    await useMediaStore.getState().loadMore()
+    expect(useMediaStore.getState().items.length).toBeLessThanOrEqual(MEDIA_IN_MEMORY_CACHE_MAX)
+  })
+
+  it('caps upsert() results at MEDIA_IN_MEMORY_CACHE_MAX', async () => {
+    for (let i = 0; i < MEDIA_IN_MEMORY_CACHE_MAX + 5; i++) {
+      await useMediaStore.getState().upsert(makeItem({ id: `upsert-${i}`, timestamp: 3000 + i }))
+    }
+    expect(useMediaStore.getState().items).toHaveLength(MEDIA_IN_MEMORY_CACHE_MAX)
+  })
+
+  it('caps loadById() results at MEDIA_IN_MEMORY_CACHE_MAX', async () => {
+    useMediaStore.setState({
+      items: Array.from({ length: MEDIA_IN_MEMORY_CACHE_MAX }, (_, i) =>
+        makeItem({ id: `loaded-${i}`, timestamp: 4000 + i }),
+      ),
+    })
+    mockService.__seed(makeItem({ id: 'fetched', timestamp: 9999 }))
+    await useMediaStore.getState().loadById('fetched')
+    expect(useMediaStore.getState().items).toHaveLength(MEDIA_IN_MEMORY_CACHE_MAX)
+    expect(useMediaStore.getState().byId('fetched')).toBeTruthy()
   })
 })
 

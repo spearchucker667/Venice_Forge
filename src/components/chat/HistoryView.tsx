@@ -5,6 +5,7 @@ import { Search, Trash2, MessageSquare, Plus, ArrowRight, BookOpen, Clock, Zap }
 import { toast } from '../../stores/toast-store'
 import type { Conversation } from '../../types/conversation'
 import { contentToSearchText } from '../../utils/messageContent'
+import { askDecision } from '../ui/modal-requests'
 
 function formatRelativeTime(date: number): string {
   const now = Date.now()
@@ -23,12 +24,14 @@ function formatRelativeTime(date: number): string {
 export default function HistoryView() {
   const conversations = useChatStore(state => state.conversations)
   const deleteConversation = useChatStore(state => state.deleteConversation)
+  const deleteConversations = useChatStore(state => state.deleteConversations)
   const setActiveConversation = useChatStore(state => state.setActiveConversation)
   const setPendingContext = useChatStore(state => state.setPendingContext)
   const restoreConversation = useChatStore(state => state.restoreConversation)
 
   const setActiveTab = useSettingsStore(state => state.setActiveTab)
   const [search, setSearch] = useState('')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim()
@@ -58,6 +61,36 @@ export default function HistoryView() {
         }
       },
     })
+  }
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((ids) => ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id])
+  }
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.length === 0) return
+    const confirmed = await askDecision({
+      title: `Delete ${selectedIds.length} conversation${selectedIds.length === 1 ? '' : 's'}?`,
+      detail: 'This permanently removes the selected local conversation records from this device. This cannot be undone.',
+      actionLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      danger: true,
+    })
+    if (!confirmed) return
+    const result = await deleteConversations(selectedIds)
+    setSelectedIds((ids) => ids.filter((id) => !result.deleted.includes(id)))
+    if (result.deleted.length > 0) {
+      toast.success(
+        'Conversations deleted',
+        `${result.deleted.length} selected conversation${result.deleted.length === 1 ? '' : 's'} removed.`,
+      )
+    }
+    if (result.failed.length > 0) {
+      toast.error(
+        'Some conversations were not deleted',
+        `${result.failed.length} selected conversation${result.failed.length === 1 ? '' : 's'} remain because storage deletion failed.`,
+      )
+    }
   }
 
   const handleStartNew = () => {
@@ -135,12 +168,41 @@ export default function HistoryView() {
             />
           </div>
 
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface-elevated px-3 py-2">
+            <span className="text-[13px] text-text-secondary">
+              {selectedIds.length} selected
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedIds([])}
+                disabled={selectedIds.length === 0}
+                className="px-3 py-1.5 text-[12px] rounded-md border border-border text-text-secondary disabled:opacity-40 hover:bg-surface transition-colors"
+              >
+                Clear selection
+              </button>
+              <button
+                type="button"
+                onClick={handleBatchDelete}
+                disabled={selectedIds.length === 0}
+                className="px-3 py-1.5 text-[12px] rounded-md border border-danger/40 text-danger disabled:opacity-40 hover:bg-danger/10 transition-colors"
+              >
+                Delete selected
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-12">
             {filtered.map((conv) => (
               <div
                 key={conv.id}
                 onClick={() => handleSelect(conv.id)}
-                className="group relative flex flex-col p-5 bg-surface-elevated border border-border rounded-xl hover:border-accent hover:shadow-md cursor-pointer transition-all duration-200"
+                aria-selected={selectedIds.includes(conv.id)}
+                className={`group relative flex flex-col p-5 bg-surface-elevated border rounded-xl hover:border-accent hover:shadow-md cursor-pointer transition-all duration-200 ${
+                  selectedIds.includes(conv.id)
+                    ? 'border-accent ring-2 ring-accent/30'
+                    : 'border-border'
+                }`}
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-2 px-2 py-0.5 bg-accent/5 rounded-md text-accent">
@@ -150,6 +212,17 @@ export default function HistoryView() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggleSelection(conv.id)
+                      }}
+                      aria-pressed={selectedIds.includes(conv.id)}
+                      className="px-2 py-1.5 text-[11px] text-text-muted hover:text-accent hover:bg-accent/10 rounded-md transition-all cursor-pointer"
+                      title={selectedIds.includes(conv.id) ? 'Deselect conversation' : 'Select conversation'}
+                    >
+                      {selectedIds.includes(conv.id) ? 'Selected' : 'Select'}
+                    </button>
                     <button
                       onClick={(e) => handleAddContext(conv, e)}
                       className="p-1.5 text-text-muted hover:text-accent hover:bg-accent/10 rounded-md transition-all cursor-pointer"

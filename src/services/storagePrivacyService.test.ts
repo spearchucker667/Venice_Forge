@@ -36,13 +36,25 @@ describe("storagePrivacyService", () => {
 
   it("safe summary excludes secrets", () => {
     const inventory = buildStorageInventory({
-      settings: { veniceApiKey: "sk-secret" },
+      apiKey: {
+        configured: true,
+        storage: "secure-storage",
+        lastValidationStatus: "configured-not-validated",
+      },
     });
 
     const summary = buildSafePrivacySummary(inventory);
     const apiKeysStore = summary.stores.find((s) => s.id === "api_keys");
     expect(apiKeysStore).toBeUndefined();
     expect(summary.exclusions).toContain("API Keys");
+    expect(summary.apiKey).toMatchObject({
+      configured: true,
+      storage: "secure-storage",
+      exported: false,
+      redacted: true,
+      lastValidationStatus: "configured-not-validated",
+    });
+    expect(JSON.stringify(summary)).not.toContain("sk-secret");
   });
 
   it("T-168 / VERIFY-168: safe summary redacts user titles and names from issue messages", () => {

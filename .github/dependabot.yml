@@ -5,7 +5,30 @@ updates:
     schedule:
       interval: weekly
     groups:
-      npm-dependencies:
+      security-critical:
+        patterns:
+          - "vite"
+          - "esbuild"
+          - "electron"
+          - "electron-builder"
+          - "electron-updater"
+          - "http-proxy-middleware"
+          - "express"
+          - "tar"
+          - "form-data"
+          - "js-yaml"
+          - "yaml"
+      production:
+        dependency-type: production
+        patterns:
+          - "*"
+      development:
+        dependency-type: development
+        patterns:
+          - "*"
+      major-updates:
+        update-types:
+          - "version-update:semver-major"
         patterns:
           - "*"
 

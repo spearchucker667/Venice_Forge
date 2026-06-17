@@ -29,6 +29,7 @@ import { ThemePreview } from "./ThemePreview";
 import { desktopFiles } from "../services/desktopBridge";
 import { useSettingsStore } from "../stores/settings-store";
 import { toast } from "../stores/toast-store";
+import { redactErrorMessage } from "../shared/redaction";
 
 const TOKEN_LABELS: Record<keyof ThemeTokens, string> = {
   background: "Background",
@@ -283,7 +284,7 @@ export function ThemeMaker() {
       const yaml = await themeToYaml(draft);
       await desktopFiles.exportYaml(yaml, "theme.yaml");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to export theme");
+      toast.error("Failed to export theme", redactErrorMessage(err));
     }
   }
 
@@ -296,7 +297,7 @@ export function ThemeMaker() {
       applyTheme(importedTheme);
       toast.info("Theme imported, make sure to save it.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to import theme");
+      toast.error("Failed to import theme", redactErrorMessage(err));
     }
   }
 

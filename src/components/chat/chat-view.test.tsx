@@ -11,6 +11,13 @@ import { toast } from "../../stores/toast-store";
 import { desktopConversations } from "../../services/desktopBridge";
 import { askDecision } from "../ui/modal-requests";
 
+const chatHookMocks = vi.hoisted(() => ({
+  send: vi.fn(),
+  stop: vi.fn(),
+  regenerate: vi.fn(),
+  createScene: vi.fn(),
+}));
+
 vi.mock("../ui/modal-requests", () => ({
   askDecision: vi.fn(),
 }));
@@ -52,12 +59,12 @@ vi.mock("../../hooks/use-models", () => ({
 
 vi.mock("../../hooks/use-chat", () => ({
   useChat: () => ({
-    send: vi.fn(),
-    stop: vi.fn(),
-    regenerate: vi.fn(),
+    send: chatHookMocks.send,
+    stop: chatHookMocks.stop,
+    regenerate: chatHookMocks.regenerate,
     isStreaming: false,
     memoryStatus: "idle",
-    createScene: vi.fn(),
+    createScene: chatHookMocks.createScene,
   }),
 }));
 
@@ -96,11 +103,16 @@ describe("ChatView", () => {
     (globalThis as any).Image = MockImage as any;
 
     Object.assign(globalThis, { FileReader: MockFileReader });
+    chatHookMocks.send.mockReset();
+    chatHookMocks.stop.mockReset();
+    chatHookMocks.regenerate.mockReset();
+    chatHookMocks.createScene.mockReset();
     vi.mocked(desktopConversations.list).mockReset();
 
     useAuthStore.setState({ isConfigured: true, apiKey: null });
     useSettingsStore.setState({
       selectedModels: { chat: "llama-3.3-70b" },
+      activeProjectId: null,
       localFamilySafeModeEnabled: true,
       veniceApiSafeMode: true,
     });
@@ -189,5 +201,71 @@ describe("ChatView", () => {
     // without waiting for a message to be sent. This is the regression guard
     // for the "disable memory for this chat toggle doesn't work" bug.
     expect(screen.getByTitle("Memory retrieval is disabled in Settings.")).toBeInTheDocument();
+  });
+
+  it("keeps prior conversation context off by default when sending", async () => {
+    useChatStore.setState({
+      conversations: [
+        {
+          id: "prior-1",
+          title: "Prior Alpha",
+          model: "llama-3.3-70b",
+          createdAt: 1,
+          updatedAt: 1,
+          messages: [{ role: "user", content: "do not include by default" }],
+          memory: { summary: "", topics: [], entities: [], userFacts: [], projectRefs: [] },
+        } as never,
+      ],
+      activeConversationId: null,
+    });
+
+    render(<ChatView />);
+    expect(screen.getByLabelText("Include prior conversation context")).not.toBeChecked();
+
+    await userEvent.type(screen.getByLabelText("Message input"), "Hello");
+    await userEvent.keyboard("{Enter}");
+
+    expect(chatHookMocks.send).toHaveBeenCalledWith("Hello", "llama-3.3-70b", undefined, "");
+  });
+
+  it("injects only selected prior conversation context when enabled", async () => {
+    useSettingsStore.setState({ activeProjectId: "project-a" } as never);
+    useChatStore.setState({
+      conversations: [
+        {
+          id: "prior-1",
+          title: "Prior Alpha",
+          model: "llama-3.3-70b",
+          createdAt: 1,
+          updatedAt: 1,
+          messages: [{ role: "user", content: "selected prior detail" }],
+          memory: { summary: "", topics: [], entities: [], userFacts: [], projectRefs: ["project-a"] },
+        },
+        {
+          id: "prior-2",
+          title: "Prior Beta",
+          model: "llama-3.3-70b",
+          createdAt: 1,
+          updatedAt: 1,
+          messages: [{ role: "user", content: "unselected prior detail" }],
+          memory: { summary: "", topics: [], entities: [], userFacts: [], projectRefs: ["project-a"] },
+        },
+      ] as never,
+      activeConversationId: null,
+    });
+
+    render(<ChatView />);
+
+    await userEvent.click(screen.getByLabelText("Include prior conversation context"));
+    await userEvent.click(screen.getByRole("button", { name: /add prior alpha/i }));
+    await userEvent.type(screen.getByLabelText("Message input"), "Use context");
+    await userEvent.keyboard("{Enter}");
+
+    expect(chatHookMocks.send).toHaveBeenCalledTimes(1);
+    const explicitContext = chatHookMocks.send.mock.calls[0][3] as string;
+    expect(explicitContext).toContain("Prior Alpha");
+    expect(explicitContext).toContain("selected prior detail");
+    expect(explicitContext).not.toContain("Prior Beta");
+    expect(explicitContext).not.toContain("unselected prior detail");
   });
 });

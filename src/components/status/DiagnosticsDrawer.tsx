@@ -26,6 +26,7 @@ import { useModels } from "../../hooks/use-models";
 import { toast } from "../../stores/toast-store";
 import { isTabId, type TabId } from "../../config/tabs";
 import { isElectron } from "../../services/desktopBridge";
+import { redactErrorMessage } from "../../shared/redaction";
 import {
   computeSafeDiagnosticsSnapshot,
   serialiseSafeDiagnosticsSnapshot,
@@ -175,7 +176,7 @@ export function DiagnosticsDrawer() {
   // user can pull-to-refresh via the dedicated "Refresh Models"
   // button below. The hook's existing error state is surfaced via
   // the Models state.
-  const modelsError = models.error instanceof Error ? models.error.message : null
+  const modelsError = models.error ? redactErrorMessage(models.error) : null
 
   // Build a unique ordered list of (id, label, item) for the
   // sections we actually want to render. The SECTION_ORDER has

@@ -52,6 +52,11 @@ interface ChatState {
   ) => string
   setActiveConversation: (id: string | null) => void
   deleteConversation: (id: string) => Promise<void>
+  deleteConversations: (ids: string[]) => Promise<{
+    deleted: string[]
+    failed: Array<{ id: string; error: string }>
+    activeConversationDeleted: boolean
+  }>
   /**
    * Restore a previously-deleted conversation at the top of the list.
    * Used by the Sidebar "Undo" toast.
@@ -242,27 +247,62 @@ export const useChatStore = create<ChatState>()(
       setActiveConversation: (id) => set({ activeConversationId: id }),
 
       deleteConversation: async (id) => {
-        // Mark the conversation dirty first so a pending save flush on
-        // unload will NOT resurrect a conversation the user has just
-        // deleted. We do this by removing the entry from the dirty map
-        // via the module-level helper exported below.
-        forgetDirtyConversation(id)
-        set((s) => ({
-          conversations: s.conversations.filter((c) => c.id !== id),
-          activeConversationId:
-            s.activeConversationId === id ? null : s.activeConversationId,
-        }))
-        try {
-          const convRes = await desktopConversations.delete(id)
-          if (!convRes.ok) {
-            const chatRes = await desktopChat.delete(id)
-            if (!chatRes.ok) {
-              logger.error('[chat] deleteConversation IPC failed', chatRes.error)
+        await get().deleteConversations([id])
+      },
+
+      deleteConversations: async (ids) => {
+        const uniqueIds = [...new Set(ids)].filter(Boolean)
+        if (uniqueIds.length === 0) {
+          return { deleted: [], failed: [], activeConversationDeleted: false }
+        }
+
+        const existing = new Set(get().conversations.map((c) => c.id))
+        const targetIds = uniqueIds.filter((id) => existing.has(id))
+        const failed: Array<{ id: string; error: string }> = []
+        const deleted: string[] = []
+
+        for (const id of targetIds) {
+          try {
+            const convRes = await desktopConversations.delete(id)
+            if (convRes.ok) {
+              deleted.push(id)
+              continue
             }
+            const chatRes = await desktopChat.delete(id)
+            if (chatRes.ok) {
+              deleted.push(id)
+              continue
+            }
+            const error = chatRes.error || convRes.error || 'Delete failed'
+            failed.push({ id, error })
+            logger.error('[chat] deleteConversation IPC failed', error)
+          } catch (err) {
+            const error = err instanceof Error ? err.message : 'Delete failed'
+            failed.push({ id, error })
+            logger.error('[chat] deleteConversation IPC failed', err)
+          }
+        }
+
+        const deletedSet = new Set(deleted)
+        for (const id of deleted) {
+          // Prevent pending debounce/unload saves from resurrecting a
+          // conversation after the backing store confirmed deletion.
+          forgetDirtyConversation(id)
+        }
+        const activeConversationDeleted = deletedSet.has(get().activeConversationId || '')
+        try {
+          if (deleted.length > 0) {
+            set((s) => ({
+              conversations: s.conversations.filter((c) => !deletedSet.has(c.id)),
+              activeConversationId: deletedSet.has(s.activeConversationId || '')
+                ? null
+                : s.activeConversationId,
+            }))
           }
         } catch (err) {
-          logger.error('[chat] deleteConversation IPC failed', err)
+          logger.error('[chat] deleteConversation state update failed', err)
         }
+        return { deleted, failed, activeConversationDeleted }
       },
 
       restoreConversation: async (conv) => {
@@ -419,10 +459,22 @@ export const useChatStore = create<ChatState>()(
 const dirtyConversations: Map<string, Conversation> = new Map()
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 const DEBOUNCE_MS = 500
+/** Prevent the dirty map from growing without bound if a huge number of
+ *  conversations mutate in a short window. Crossing the limit flushes
+ *  immediately rather than waiting for the debounce. */
+const MAX_DIRTY_CONVERSATIONS = 1000
 
 function markDirtyConversation(id: string, conv: Conversation): void {
   dirtyConversations.set(id, conv)
-  scheduleFlush()
+  if (dirtyConversations.size > MAX_DIRTY_CONVERSATIONS) {
+    if (saveTimer !== null) {
+      clearTimeout(saveTimer)
+      saveTimer = null
+    }
+    void flushAllPendingSaves()
+  } else {
+    scheduleFlush()
+  }
 }
 
 function forgetDirtyConversation(id: string): void {

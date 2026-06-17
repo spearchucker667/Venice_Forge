@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { type StorageStoreInventoryItem, type SafePrivacySummary, type StorageMaintenancePlan } from "./storage-privacy";
+import { buildSafeApiKeyMetadata } from "./api-connectivity";
 
 describe("Storage / Privacy Types", () => {
   it("can create a safe inventory item", () => {
@@ -43,6 +44,7 @@ describe("Storage / Privacy Types", () => {
       counts: { projects: 5 },
       issues: [],
       exclusions: ["API Keys", "Raw Prompts"],
+      apiKey: buildSafeApiKeyMetadata({ configured: false, storage: "unavailable" }),
     };
     expect(summary.version).toBe(1);
     expect(summary.app).toBe("Venice Forge");

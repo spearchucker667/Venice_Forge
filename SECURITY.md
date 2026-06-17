@@ -9,7 +9,7 @@ Do not include exploit details, API keys, tokens, or private user data in a publ
 Use one of these routes:
 
 - **GitHub private vulnerability reporting** — If enabled, use the
-  [Security → Report a Vulnerability](https://github.com/spearchucker667/Venice-API-connector/security/advisories/new) workflow
+  [Security → Report a Vulnerability](https://github.com/spearchucker667/Venice_Forge/security/advisories/new) workflow
   on the repository. This keeps the report private until a fix is coordinated
   and is the preferred channel.
 - **Issue label routing** — If private reporting is not available, open a
@@ -156,7 +156,7 @@ A clean audit at the `moderate` level or higher (`npm audit --audit-level=modera
 
 GitHub CodeQL is enabled for this repository through GitHub's default setup
 (not a tracked workflow file). Findings appear in
-[Security → Code Scanning](https://github.com/spearchucker667/Venice-API-connector/security/code-scanning).
+[Security → Code Scanning](https://github.com/spearchucker667/Venice_Forge/security/code-scanning).
 
 ### Current open alerts: **0**
 
@@ -165,13 +165,13 @@ fixed or dismissed with justification. The two defended false positives are
 annotated at the call site with `// nosec:js/<rule-id>` plus an inline
 justification:
 
-- `server.ts:387` — `js/resource-exhaustion`: `setTimeout` duration is
+- `server.ts:299-305` — `js/resource-exhaustion`: `setTimeout` duration is
   `Math.min(timeoutMs, 180000) || 30000` (3-minute max). CodeQL does not see
   the clamp because it lives inside a conditional expression.
-- `server.ts:393` — `js/request-forgery`: The `parsed` URL is validated
-  against an allowlist of `["r.jina.ai", "s.jina.ai"]` and required to use
-  the `https:` protocol (server.ts:362-365). SSRF to internal services is
-  impossible by construction.
+- `server.ts:684-717` — `js/request-forgery`: The scrape URL is parsed,
+  restricted to `http:` / `https:`, rejected for private hostnames, resolved
+  with DNS, and every returned A/AAAA record is checked for private IP ranges
+  before the upstream request is made.
 
 If a future CodeQL update flags these sites again, the suppressions and
 allowlist check should be re-verified, not removed.

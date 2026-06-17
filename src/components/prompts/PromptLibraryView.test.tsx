@@ -53,9 +53,11 @@ describe("PromptLibraryView (VERIFY-046)", () => {
     await flush();
     const ids = usePromptLibraryStore.getState().prompts.map((p) => p.id);
     // Mark each so we have a known mix: image, chat, general.
-    await usePromptLibraryStore.getState().updatePrompt(ids[0]!, { kind: "image" });
-    await usePromptLibraryStore.getState().updatePrompt(ids[1]!, { kind: "chat" });
-    await usePromptLibraryStore.getState().updatePrompt(ids[2]!, { kind: "general" });
+    await act(async () => {
+      await usePromptLibraryStore.getState().updatePrompt(ids[0]!, { kind: "image" });
+      await usePromptLibraryStore.getState().updatePrompt(ids[1]!, { kind: "chat" });
+      await usePromptLibraryStore.getState().updatePrompt(ids[2]!, { kind: "general" });
+    });
     fireEvent.change(screen.getByTestId("prompt-library-kind-filter"), { target: { value: "chat" } });
     const list = screen.getByTestId("prompt-library-list");
     const items = within(list).getAllByRole("button");

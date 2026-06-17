@@ -14,16 +14,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/spearchucker667/Venice-API-connector/actions/workflows/ci.yml">
-    <img alt="CI" src="https://github.com/spearchucker667/Venice-API-connector/actions/workflows/ci.yml/badge.svg" />
+  <a href="https://github.com/spearchucker667/Venice_Forge/actions/workflows/ci.yml">
+    <img alt="CI" src="https://github.com/spearchucker667/Venice_Forge/actions/workflows/ci.yml/badge.svg" />
   </a>
-  <a href="https://github.com/spearchucker667/Venice-API-connector/releases">
+  <a href="https://github.com/spearchucker667/Venice_Forge/releases">
     <img alt="Release" src="https://img.shields.io/badge/release-v2.0.0-blue.svg" />
   </a>
-  <a href="https://github.com/spearchucker667/Venice-API-connector/releases">
+  <a href="https://github.com/spearchucker667/Venice_Forge/releases">
     <img alt="Windows" src="https://img.shields.io/badge/platform-Windows-0078d4?logo=windows11" />
   </a>
-  <a href="https://github.com/spearchucker667/Venice-API-connector/releases">
+  <a href="https://github.com/spearchucker667/Venice_Forge/releases">
     <img alt="macOS" src="https://img.shields.io/badge/platform-macOS-000000?logo=apple" />
   </a>
   <a href="LICENSE">
@@ -64,7 +64,7 @@
 
 ## Quick Start
 
-1. Download a build from [GitHub Releases](https://github.com/spearchucker667/Venice-API-connector/releases).
+1. Download a build from [GitHub Releases](https://github.com/spearchucker667/Venice_Forge/releases).
 
    Windows:
 
@@ -242,8 +242,8 @@ Read:
 Clone and install:
 
 ```bash
-git clone https://github.com/spearchucker667/Venice-API-connector.git
-cd Venice-API-connector
+git clone https://github.com/spearchucker667/Venice_Forge.git
+cd Venice_Forge
 
 npm ci
 npm run dev:electron
@@ -670,7 +670,7 @@ Read:
 
 Use:
 
-- [GitHub Issues](https://github.com/spearchucker667/Venice-API-connector/issues) for bugs and feature requests
+- [GitHub Issues](https://github.com/spearchucker667/Venice_Forge/issues) for bugs and feature requests
 - GitHub private vulnerability reporting for security issues
 - [docs/SUPPORT.md](docs/SUPPORT.md) for support routing
 
@@ -748,9 +748,9 @@ The MIT License does not grant rights to Venice.ai trademarks, logos, brand asse
 
 ## Quick Links
 
-- [GitHub Releases](https://github.com/spearchucker667/Venice-API-connector/releases)
-- [GitHub Issues](https://github.com/spearchucker667/Venice-API-connector/issues)
-- [GitHub Actions](https://github.com/spearchucker667/Venice-API-connector/actions)
+- [GitHub Releases](https://github.com/spearchucker667/Venice_Forge/releases)
+- [GitHub Issues](https://github.com/spearchucker667/Venice_Forge/issues)
+- [GitHub Actions](https://github.com/spearchucker667/Venice_Forge/actions)
 - [Venice.ai](https://venice.ai)
 - [Venice API Docs](https://docs.venice.ai)
 - [Venice API](https://api.venice.ai)

@@ -78,6 +78,10 @@ function prependInjectedContext(
   )
 }
 
+function joinInjectedContexts(...contexts: Array<string | undefined>): string {
+  return contexts.map((context) => context?.trim()).filter(Boolean).join('\n\n')
+}
+
 export type ChatMemoryStatus = 'disabled' | 'idle' | 'loading' | 'injected' | 'failed'
 
 export function useChat() {
@@ -256,7 +260,7 @@ export function useChat() {
   )
 
   const send = useCallback(
-    async (userMessage: string, model: string, imageAttachments?: string[]) => {
+    async (userMessage: string, model: string, imageAttachments?: string[], explicitContext?: string) => {
       let convId = useChatStore.getState().activeConversationId
       if (!convId) {
         convId = createConversation(model)
@@ -303,6 +307,8 @@ export function useChat() {
           setMemoryStatus('idle')
         }
       }
+
+      contextToInject = joinInjectedContexts(explicitContext, contextToInject)
 
       // Build user message — plain text or multimodal with images
       let userMsg: ChatMessage

@@ -1,0 +1,109 @@
+report:
+  date: "2026-06-16"
+  agent: "kimi"
+  summary: >
+    Validation was executed on the host Node v26.3.0 toolchain, which emits
+    the repo-required Node 22 engine warning. No code-level failures were
+    observed.
+items:
+  - id: P0-001
+    title: Replace native window.confirm in History batch delete
+    status: closed
+    files_changed:
+      - src/components/chat/HistoryView.tsx
+      - src/components/chat/HistoryView.test.tsx
+      - scripts/verify-no-native-dialogs.cjs
+      - package.json
+    evidence:
+      - "HistoryView batch delete now awaits askDecision() from src/components/ui/modal-requests.tsx instead of window.confirm()."
+      - "Added verify:no-native-dialogs contract gate to the verify:contracts chain."
+    residual_risk: None identified.
+    required_followup: None.
+
+  - id: P0-002
+    title: Redact and bound prior conversation context
+    status: closed
+    files_changed:
+      - src/utils/chatPayloadContext.ts
+      - src/utils/chatPayloadContext.test.ts
+      - src/components/chat/chat-view.tsx
+      - src/components/chat/chat-view.test.tsx
+    evidence:
+      - "buildPriorConversationContextText now redacts secrets/paths via sanitizeErrorText and enforces configurable caps."
+      - "Chat disclosure now states that selected history is sent to the Venice API."
+    residual_risk: None identified.
+    required_followup: None.
+
+  - id: P0-003
+    title: Canonicalize repo slug across metadata
+    status: closed
+    files_changed:
+      - package.json
+      - electron-builder.config.cjs
+      - README.md
+      - CONTRIBUTING.md
+      - SECURITY.md
+      - .github/ISSUE_TEMPLATE/config.yml
+      - docs/RELEASE/release.md
+      - scripts/verify-release-packaging-hardening.cjs
+      - scripts/verify-release-packaging-hardening.test.ts
+    evidence:
+      - "All repository/homepage/bugs URLs and electron-builder publish.owner/repo now reference spearchucker667/Venice_Forge."
+      - "verify-release-packaging-hardening now asserts the canonical slug."
+    residual_risk: None identified.
+    required_followup: None.
+
+  - id: P0-004
+    title: Fix flaky server.test.ts Jina rate-limit test
+    status: closed
+    files_changed:
+      - server.test.ts
+    evidence:
+      - "The Jina rate-limit test now mocks globalThis.fetch instead of making real network calls."
+      - "Test passes consistently in ~50 ms."
+    residual_risk: None identified.
+    required_followup: None.
+
+  - id: P0-005
+    title: Stop shipping renderer source in Electron main bundle
+    status: closed
+    files_changed:
+      - scripts/build-electron.cjs
+      - package.json
+      - tsconfig.electron.json
+      - scripts/verify-dist.cjs
+    evidence:
+      - "build:electron now bundles electron/main.ts and electron/preload.ts with esbuild into dist-electron/electron/main.js and preload.js."
+      - "dist-electron/src/ is no longer emitted; stale output is removed by the build script."
+      - "verify-dist.cjs now forbids a ^src/ directory inside dist-electron."
+    residual_risk: None identified.
+    required_followup: None.
+
+  - id: P0-006
+    title: Resolve build-time dependency vulnerabilities
+    status: closed
+    files_changed:
+      - package.json
+      - package-lock.json
+      - vite.config.ts
+    evidence:
+      - "Added npm overrides for esbuild: ^0.28.1."
+      - "Updated vite to ^6.4.3."
+      - "Ran npm audit fix for form-data/tar."
+      - "Set build.target: 'es2022' in vite.config.ts so esbuild 0.28 no longer fails on destructuring transforms."
+    residual_risk: None identified.
+    required_followup: None.
+
+  - id: P0-007
+    title: Add explicit macOS notarization config
+    status: closed
+    files_changed:
+      - electron-builder.config.cjs
+      - docs/RELEASE/signing-and-notarization.md
+      - docs/RELEASE/release.md
+    evidence:
+      - "electron-builder.config.cjs now sets mac.notarize: { teamId: process.env.APPLE_TEAM_ID } only when CI signing credentials are present."
+      - "Non-CI builds explicitly set notarize: false and identity: null."
+      - "Release docs updated to describe the env-guarded notarize block."
+    residual_risk: Actual notarization can only be verified during a signed CI release build with valid Apple credentials.
+    required_followup: Verify notarization in a real signed CI release.

@@ -100,39 +100,111 @@ Jina session-key custody, character share URL rendering, Electron Jina
 header forwarding, Media Studio export / routed-image validation,
 config-template export path custody, memory retrieval send fallback,
 native browser dialog usage in `src/`, and the production `js-yaml`
-audit advisory. The repo is still not claimed fully release-closed in
-this ledger because the final continuation validation ran under Node
-26/npm 11 instead of the required Node 22/npm 10 toolchain and did not
-rerun the full release gate. The component-extraction roadmap for
-oversized views (`SettingsView`, `media-inspector`, `CommandPalette`,
-`image-view`) also remains.
+audit advisory. The latest repair pass also made API-key storage status
+distinct from live Venice connectivity, added safe redacted API-key
+metadata to diagnostics/privacy summaries, added explicit prior-chat
+context inclusion UX, and added non-destructive conversation batch
+delete behavior. The component-extraction roadmap for oversized views
+(`SettingsView`, `media-inspector`, `CommandPalette`, `image-view`)
+remains. The current canonical roadmap is
+`docs/audits/repository-todo-roadmap-current.md`; the old historical
+`docs/audits/todo.md` and partial `docs/audits/combined-todo.yml`
+backlog files were removed.
 
 ### Latest Session Summary
-- **Full diagnostic, rebuild, and launch:** Ran lint, typecheck, full Vitest suite, `verify:contracts`, production build, macOS ARM64 packaging, and app launch using the local Node 22 toolchain. All gates passed and the packaged app started successfully. A Playwright-based Media Studio profile run was attempted but failed because the Electron binary could not be launched from the Playwright harness in this environment; this is a tooling/runtime harness issue, not an app build failure.
-- **Work Order Completed:** Executed WO-VAC-2.0-001. Fixed the Windows CI failure by replacing verify:dist:win with verify:dist. Replaced placeholder app icons with rasterized Venice seal SVGs using librsvg. Added branding banner to README.md.
-
-- **Work Order Completed (Prior):** Systematically audited and added Google-style docstrings across the codebase. Reached global test coverage heights of ~74%, replacing low-coverage modules with high-coverage tests, and locked in the metrics in `vitest.config.ts`. Swapped out the README.md banner for a new dynamically generated creative workspace visual. Created the final audit report at `docs/audits/docstrings-and-coverage-final.md`. Fixed failing CI workflows by completing the remaining linting and typing issues, successfully running full release parity pipeline (`npm ci`).
+- **Roadmap saved and TODO cleanup:** Added `docs/audits/repository-todo-roadmap-current.md` as the canonical current TODO roadmap, removed obsolete `docs/audits/todo.md` and `docs/audits/combined-todo.yml`, and kept the older roadmap/verification files as historical evidence.
+- **Repository hygiene:** Fixed `verify:work-orders` skip handling for non-work-order audit YAMLs, removed a trailing-whitespace issue, and validated the dirty-tree repair batch under the repo-local Node 22 toolchain.
+- **Push readiness:** Full tests and coverage passed inside `npm run ci`; the first CI run failed only at `verify:work-orders` after all prior gates passed. After the verifier fix, `verify:work-orders`, `verify:contracts`, `build`, `verify:dist`, and `npm audit --audit-level=moderate` passed.
 
 ### Open TODO Ledger
-- Follow up the remaining `needs-human-review` audit IDs in `docs/audits/agent-repair-status-2026-06-16.yaml`; they were not line-audited in this continuation and are explicitly not claimed closed.
-- `docs/audits/combined-todo.yml` findings AUDIT-001..AUDIT-014 are closed and all required verification gates pass. The artifact remains `scan_status: partial_fix` because the full path-order line audit was not completed in this session; update it to `completed` only after the remaining line audit is finished.
-- Add visual snapshots or Playwright screenshots for Characters, Settings, Research, Chat.
-- Route residual unredacted user-facing error surfaces identified in the T-001..T-030 cross-check through `redactErrorMessage` / `sanitizeErrorText` or `toast.fromError`.
+- Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
+- P0 release-blocking audit repair is complete; all seven original P0 items (P0-001..P0-007) are closed and verified.
+- Remaining current P0 release blockers are procedural/external: release from a clean checkout and capture credential-backed macOS notarization / Windows signing evidence.
+- Remaining P1 items: fail-closed production signing policy, packaged smoke coverage for Windows/Linux, strict test-warning cleanup, tracked security automation/settings documentation, transitive dependency deprecation cleanup, and DOM/CSP sink hardening.
+- Remaining P2/P3 items: oversized component extraction, low-coverage module campaign, bundle budgets/lazy-loading, richer issue/repository metadata, and future Linux arm64 support decision.
 
-### Validation Matrix
-- `npm run verify:icon`: PASS.
-- `npm run lint:eslint`: PASS (0 warnings).
-- `npm run typecheck`: PASS (renderer + electron).
-- `npm test`: PASS (3,094 passed / 1 skipped).
-- `npm run build`: PASS (Node 22 toolchain).
-- `npm run verify:dist`: PASS (Node 22 toolchain).
-- `npm run verify:contracts`: PASS.
-- `npm run verify:markdown-links`: PASS.
-- `npm run dist:mac:arm64`: PASS (produced `release/Venice-Forge-2.0.0-arm64.dmg`/`.zip` plus checksums; unsigned because signing identity is null).
-- App launch (`open "release/mac-arm64/Venice Forge.app"`): PASS — main process and GPU/utility/renderer helpers spawned.
-- `npm run profile:media-studio`: Attempted / failed — Playwright Electron harness exited before window attachment (`electron.launch: Process failed to launch!`). Not a build or app defect.
+### Validation Matrix (this session)
+- `git diff --check`: PASS.
+- `PATH="$PWD/.node22/bin:$PATH" npm run ci`: FAIL after full tests, coverage, audit, and most contract gates passed; failed only at `verify:work-orders` because new audit YAMLs were not work-order records.
+- `PATH="$PWD/.node22/bin:$PATH" npm test` inside `npm run ci`: PASS (248 files / 3,116 tests passed / 1 skipped).
+- `PATH="$PWD/.node22/bin:$PATH" npm run test:coverage` inside `npm run ci`: PASS (70.69 statements / 61.93 branches / 68.28 functions / 73.75 lines).
+- `PATH="$PWD/.node22/bin:$PATH" npm run verify:work-orders`: PASS after skip-list repair.
+- `PATH="$PWD/.node22/bin:$PATH" npm run verify:contracts`: PASS.
+- `PATH="$PWD/.node22/bin:$PATH" npm run build`: PASS.
+- `PATH="$PWD/.node22/bin:$PATH" npm run verify:dist`: PASS.
+- `PATH="$PWD/.node22/bin:$PATH" npm audit --audit-level=moderate`: PASS (0 vulnerabilities).
+- Known warning: jsdom still emits `HTMLCanvasElement.getContext()` warnings during full test/coverage runs.
 
 ### Session History
+
+- **Date:** 2026-06-16 (Roadmap save, audit TODO cleanup, and push hygiene)
+- **Agent:** Codex GPT-5
+- **Branch / state:** `main`; working tree modified before commit.
+- **Summary:** Saved the current TODO roadmap as `docs/audits/repository-todo-roadmap-current.md`, removed obsolete historical TODO artifacts `docs/audits/todo.md` and `docs/audits/combined-todo.yml`, repaired `verify:work-orders` so non-work-order audit/evidence YAMLs are skipped, fixed trailing whitespace, and ran the repo hygiene gates under Node 22 before commit/push.
+- **Files changed:** `docs/audits/repository-todo-roadmap-current.md`, `docs/audits/todo.md`, `docs/audits/combined-todo.yml`, `scripts/verify-work-orders.cjs`, `tsconfig.electron.json`, `docs/summary_of_work.md`, plus the previously accumulated roadmap/P0/P1/P2 repair batch already present in the working tree.
+- **Validation:** `git diff --check` PASS; `npm run ci` ran lint, typecheck, full tests, coverage, prod audit, and most contract gates but failed at `verify:work-orders` before build/dist; `npm test` PASS (248 files / 3,116 tests passed / 1 skipped); `npm run test:coverage` PASS (70.69 / 61.93 / 68.28 / 73.75); `npm run verify:work-orders` PASS after repair; `npm run verify:contracts` PASS; `npm run build` PASS; `npm run verify:dist` PASS; `npm audit --audit-level=moderate` PASS (0 vulnerabilities). Known jsdom canvas warnings remain.
+
+- **Date:** 2026-06-16 (Roadmap verification and residual P2 repair)
+- **Agent:** Codex GPT-5
+- **Branch / state:** `main` at `1de7d42`; working tree already dirty before this pass and remains dirty.
+- **Closed findings:** Verified all P0 roadmap findings closed; verified P1 findings closed except strict noisy-test stderr audit remains partial; closed multiple low-risk P2 documentation/code hygiene findings.
+- **Summary:** Audited `docs/audits/Repository TODO Roadmap — Venice Forge.md` against current source and repair evidence, added a verification addendum to the roadmap, and added `docs/audits/roadmap-verification-2026-06-16.yaml`. Applied residual fixes for stale privacy/release/security docs, Code of Conduct image, diagnostics dead code, chat message keys, image-save error toasts, decoded-byte media size sort, Dependabot grouping, Vite proxy `secure`, stale release cleanup behavior, and unused root `immer`.
+- **Files changed:** `docs/audits/Repository TODO Roadmap — Venice Forge.md`, `docs/audits/roadmap-verification-2026-06-16.yaml`, `docs/summary_of_work.md`, `docs/DEVELOPMENT/platform-support.md`, `docs/ABOUT.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `docs/RELEASE/release.md`, `.github/dependabot.yml`, `package.json`, `package-lock.json`, `src/services/diagnosticsService.ts`, `src/components/chat/chat-view.tsx`, `src/components/image/image-view.tsx`, `src/stores/media-store.ts`, `src/stores/media-store.test.ts`, `vite.config.ts`.
+- **Validation:** Node 22.22.3 / npm 10.9.8 via `.node22/bin`; lint PASS; typecheck PASS; build PASS; `verify:dist` PASS; markdown links PASS; release hardening PASS; storage privacy PASS; no-native-dialogs PASS; moderate npm audits PASS; focused roadmap-related Vitest run PASS (6 files / 125 tests). Full `npm test`, coverage, `verify:contracts`, and final packaged release smoke were skipped.
+
+- **Date:** 2026-06-16 (Kimi batch cross-check repair)
+- **Agent:** Codex GPT-5
+- **Branch / state:** `main` at `1de7d42`; working tree already dirty before this pass and remains dirty.
+- **Closed findings:** Residual active-doc repo slug drift under P0-003; stale generated Electron `../../src` imports under P0-005.
+- **Summary:** Read the attached Kimi batch plan, classified the live dirty tree, and verified the current P0/P1 surfaces under the repo-local Node 22 runtime. Tightened `verify:release-packaging-hardening` to reject retired active repo slugs in active metadata/docs and fixed the remaining README/release-doc drift. Tightened `build:electron` / `verify:dist` so stale compiled Electron service files cannot preserve runtime imports back into `src/` after bundling.
+- **Files changed:** `README.md`, `docs/RELEASE/release.md`, `scripts/build-electron.cjs`, `scripts/verify-dist.cjs`, `scripts/verify-dist.test.ts`, `scripts/verify-release-packaging-hardening.cjs`, `scripts/verify-release-packaging-hardening.test.ts`, `docs/audits/kimi-batch-evidence-2026-06-16.yaml`, `docs/summary_of_work.md`.
+- **Validation:** Node 22.22.3 / npm 10.9.8 via `.node22/bin`; release hardening verifier PASS; native dialog verifier PASS; markdown links PASS; release/dist verifier tests PASS; prior-context targeted tests PASS; Jina rate-limit focused test plus five-run loop PASS; moderate audits PASS; lint PASS; typecheck PASS; build PASS; `dist-electron/src` absent; generated Electron `src/` import grep no matches; `verify:dist` PASS. Full test suite, coverage, `verify:contracts`, and packaged app smoke were skipped.
+
+- **Date:** 2026-06-16 (Residual user-facing error-surface redaction)
+- **Agent:** Kimi Code CLI
+- **Branch / state:** `main`; working tree modified.
+- **Closed findings:** T-001..T-030 cross-check residual "Raw error pattern sweep" surfaces.
+- **Summary:** Audited the residual user-facing raw error surfaces listed in `docs/audits/cross-check-T001-T030-2026-06-15.yaml` and routed every catch-block error displayed in UI through `redactErrorMessage` / `sanitizeErrorText`. Replaced raw `err.message` in `toast.error`, `setError`, `loadError`, and `ErrorText` calls across 13 files. No functional behavior changed for safe messages; secret/path redaction now applies consistently. Full lint, typecheck, and Vitest suites pass.
+- **Files changed:** `src/components/MemoryManagerModal.tsx`, `src/components/ThemeMaker.tsx`, `src/components/SettingsView.tsx`, `src/components/gallery/gallery-view.tsx`, `src/components/chat/chat-input.tsx`, `src/components/command-palette/CommandPalette.tsx`, `src/components/chat/chat-view.tsx`, `src/components/layout/memory-panel.tsx`, `src/components/image/image-tools.tsx`, `src/components/image/image-view.tsx`, `src/components/status/DiagnosticsDrawer.tsx`, `src/stores/persona-store.ts`, `src/stores/workflow-template-store.ts`, `docs/summary_of_work.md`.
+- **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm test` PASS (248 files / 3,114 tests passed, 1 skipped); targeted redaction-surface test runs PASS; `npm run build` PASS; `npm run verify:dist` PASS; `npm audit --audit-level=moderate` PASS.
+
+- **Date:** 2026-06-16 (P1 production-readiness batch — completion)
+- **Agent:** Kimi Code CLI
+- **Branch / state:** `main`; working tree modified.
+- **Closed findings:** P1-009, P1-010, P1-011, P1-012 (remaining P1 production-readiness items from the 2026-06-16 roadmap).
+- **Summary:** Closed the four remaining P1 items. Bounded the media-store in-memory cache at 1000 items with `enforceCacheBound()` applied on every insertion path. Bounded the chat-store dirty-conversation map at 1000 entries with an eager flush when the limit is crossed. Added a packaged Electron smoke-test job to CI that builds the macOS arm64 app and runs `tests/smoke/electron-smoke.test.ts`. Cleaned up the two most common local test warnings: wrapped `PromptLibraryView` async state updates in `act(...)` and conditionally added `--localstorage-file` to `NODE_OPTIONS` under Node 26+. Re-ran all global validation gates; all passed.
+- **Files changed:** `src/stores/media-store.ts`, `src/stores/media-store.test.ts`, `src/stores/chat-store.ts`, `src/stores/chat-store.dirty.test.ts`, `.github/workflows/ci.yml`, `src/components/prompts/PromptLibraryView.test.tsx`, `vitest.config.ts`, `docs/summary_of_work.md`.
+- **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm test` PASS (248 files / 3,108 tests passed, 1 skipped); `npm audit --audit-level=moderate` PASS (0 vulnerabilities); `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS; targeted media/chat/PromptLibraryView test runs PASS.
+
+- **Date:** 2026-06-16 (P1 production-readiness batch — first pass)
+- **Agent:** Kimi Code CLI
+- **Branch / state:** `main`; working tree modified.
+- **Closed findings:** P1-001..P1-008 (first P1 production-readiness batch from the 2026-06-16 roadmap).
+- **Summary:** Closed eight P1 production-readiness and CI-hardening items. Fixed Storage Privacy Dashboard API-key reporting by reading from `useAuthStore`. Added `.nvmrc` at Node 22.13.0. Enabled release-workflow cancel-in-progress and a draft release + artifact verification gate. Decoupled `server.ts` from `electron/` utilities via `src/shared/urlSecurity.ts`. Documented Windows portable signing limitation and removed Linux arm64 packaging targets. Added a macOS runner job to `ci.yml`. Fixed lint findings in `storage-privacy-store.ts` and `scripts/verify-dist.cjs`, and repaired the P0 closure-evidence YAML to satisfy `verify:work-orders`. Re-ran all global validation gates; all passed.
+- **Files changed:** `src/stores/storage-privacy-store.ts`, `scripts/verify-dist.cjs`, `.nvmrc`, `.github/workflows/release.yml`, `.github/workflows/ci.yml`, `electron-builder.config.cjs`, `docs/RELEASE/release.md`, `server.ts`, `src/shared/urlSecurity.ts`, `docs/audits/p0-closure-evidence-2026-06-16.yaml`, `docs/summary_of_work.md`.
+- **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm test` PASS (248 files / 3,108 tests passed, 1 skipped); `npm audit --audit-level=moderate` PASS (0 vulnerabilities); `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS; `npx vitest run scripts/verify-dist.test.ts` PASS.
+
+- **Date:** 2026-06-16 (P0 release-blocking audit repair completion)
+- **Agent:** Kimi Code CLI
+- **Branch / state:** `main` at `1de7d42`; working tree modified.
+- **Closed findings:** P0-005, P0-006, P0-007 from the 2026-06-16 consolidated audit work order.
+- **Summary:** Closed the remaining release-blocking P0 items. Stopped shipping renderer source code in the Electron main bundle by bundling `electron/main.ts` and `electron/preload.ts` with esbuild (`scripts/build-electron.cjs`) and forbidding `dist-electron/src/` in `scripts/verify-dist.cjs`. Resolved build-time dependency vulnerabilities by overriding `esbuild` to `^0.28.1`, updating `vite` to `^6.4.3`, running `npm audit fix`, and setting Vite's `build.target` to `"es2022"`. Added an explicit, env-guarded `mac.notarize` block to `electron-builder.config.cjs` and updated the release docs. Re-ran lint, typecheck, full Vitest suite, `npm audit`, build, `verify:dist`, and the full `verify:contracts` chain; all passed.
+- **Files changed:** `package.json`, `package-lock.json`, `vite.config.ts`, `tsconfig.electron.json`, `electron-builder.config.cjs`, `scripts/build-electron.cjs`, `scripts/verify-dist.cjs`, `docs/RELEASE/release.md`, `docs/RELEASE/signing-and-notarization.md`, `docs/summary_of_work.md`.
+- **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm test` PASS (248 files / 3,108 tests passed, 1 skipped); `npm audit --audit-level=moderate` PASS (0 vulnerabilities); `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS; `npx vitest run scripts/verify-dist.test.ts` PASS.
+
+- **Date:** 2026-06-16 (Release QA follow-up: verifier, prior-context UI tests, snapshots)
+- **Agent:** Codex GPT-5
+- **Branch / state:** `main`; working tree modified.
+- **Summary:** Patched `scripts/verify-rp-studio-polish.cjs` to run the local `node_modules/.bin/vitest` binary when present and fall back to `npm exec --no -- vitest`, preventing nested verifier runs from depending on a transient `npx` install. Added Chat UI tests for the prior-conversation selector's default-off send behavior and selected-only context injection. Added `scripts/capture-release-qa-snapshots.mjs` plus the `capture:release-qa-snapshots` package script to capture release QA layout PNGs for Chat, History, and Image Studio.
+- **Files changed:** `.gitignore`, `scripts/verify-rp-studio-polish.cjs`, `scripts/capture-release-qa-snapshots.mjs`, `package.json`, `src/components/chat/chat-view.test.tsx`, `docs/audits/visual-snapshots/chat.png`, `docs/audits/visual-snapshots/history.png`, `docs/audits/visual-snapshots/image-studio.png`, `docs/summary_of_work.md`.
+- **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm test -- --run src/components/chat/chat-view.test.tsx src/utils/chatPayloadContext.test.ts` PASS (9 tests); `node scripts/verify-rp-studio-polish.cjs` PASS (116 tests); `npm run capture:release-qa-snapshots` PASS.
+
+- **Date:** 2026-06-16 (Proof-driven API, privacy, chat-context, and batch-delete repair)
+- **Agent:** Codex GPT-5
+- **Branch / state:** `main`; working tree modified.
+- **Summary:** Implemented a focused repair pass from the attached work order. Added `ApiConnectivityStatus` and safe API-key metadata contracts, mapped API-key test results into missing/invalid/network/proxy/catalog/verified states, and updated diagnostics so configured key storage is separate from live connectivity. Safe diagnostics and Storage/Privacy summaries now include redacted API-key metadata and exclude raw key material. Added a store-level `deleteConversations()` action with structured deleted/failed results and non-destructive failure handling, plus History UI selection controls and confirmed batch deletion. Added explicit Chat prior-conversation context UX that defaults off, filters selected conversations by availability/project scope, and injects only selected context into the next request. Existing character image cache, media-selection, sidebar history collapse, and Image Studio layout protections were validated through existing tests/verifiers.
+- **Files changed:** `electron/ipc/handlers.ts`, `src/types/api-connectivity.ts`, `src/types/desktop.ts`, `src/types/status.ts`, `src/types/storage-privacy.ts`, `src/services/desktopBridge.ts`, `src/services/diagnosticsService.ts`, `src/services/storagePrivacyService.ts`, `src/stores/chat-store.ts`, `src/hooks/use-chat.ts`, `src/components/chat/HistoryView.tsx`, `src/components/chat/chat-view.tsx`, `src/utils/chatPayloadContext.ts`, related tests, `docs/summary_of_work.md`.
+- **Validation:** `npm ci` PASS with existing audit warnings (4 vulnerabilities); `npm run lint:eslint` PASS; `npm run typecheck` PASS; targeted Vitest suites PASS; `npm test -- --run` PASS (3,101 passed / 1 skipped); `npm run test:coverage` PASS (70.57 / 61.62 / 68.03 / 73.63); `npm run build` PASS; `npm run verify:status-diagnostics` PASS; `npm run verify:storage-privacy` PASS; `npm run verify:storage-policy` PASS; `npm run verify:media-studio-power-tools` PASS; `npm run verify:workspace-contracts` PASS; `npm run verify:network-boundaries` PASS; `npm run verify:contracts` PASS when rerun with repo-local `node_modules/.bin` first in `PATH`. Plain `verify:contracts` initially failed only because nested `npx vitest` fetched a temp Vitest without jsdom.
 
 - **Date:** 2026-06-16 (Full diagnostic, rebuild, and launch)
 - **Agent:** Kimi Code CLI

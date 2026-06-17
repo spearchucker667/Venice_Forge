@@ -1,3 +1,5 @@
+import type { SafeApiKeyMetadata } from "./api-connectivity";
+
 export type StoragePrivacySeverity = "ok" | "info" | "warn" | "error";
 
 export type StoragePrivacyCategory =
@@ -30,6 +32,7 @@ export interface StorageStoreInventoryItem {
   severity: StoragePrivacySeverity;
   summary: string;
   detail?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface StorageReferenceIssue {
@@ -79,4 +82,5 @@ export interface SafePrivacySummary {
   counts: Record<string, number>;
   issues: StorageReferenceIssue[];
   exclusions: string[];
+  apiKey: SafeApiKeyMetadata;
 }

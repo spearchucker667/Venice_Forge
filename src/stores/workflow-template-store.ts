@@ -14,6 +14,7 @@ import {
   exportWorkflowTemplateItems,
 } from "../types/workflow";
 import { useSettingsStore } from "./settings-store";
+import { redactErrorMessage } from "../shared/redaction";
 
 export interface WorkflowTemplateState {
   workflows: WorkflowTemplateItem[];
@@ -93,7 +94,7 @@ export const useWorkflowTemplateStore = create<WorkflowTemplateState>((set, get)
       }
     } catch (err) {
       logger.warn("[workflow-template-store] Failed to load workflows", err);
-      set({ workflows: [], hydrated: true, loadError: err instanceof Error ? err.message : String(err) });
+      set({ workflows: [], hydrated: true, loadError: redactErrorMessage(err) });
     }
   },
 
@@ -129,7 +130,7 @@ export const useWorkflowTemplateStore = create<WorkflowTemplateState>((set, get)
       set((s) => ({
         workflows: s.workflows.filter((w) => w.id !== newItem.id),
         activeWorkflowId: s.activeWorkflowId === newItem.id ? null : s.activeWorkflowId,
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -149,7 +150,7 @@ export const useWorkflowTemplateStore = create<WorkflowTemplateState>((set, get)
     } catch (err) {
       set((s) => ({
         workflows: s.workflows.map((w) => (w.id === workflowId ? current : w)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -184,7 +185,7 @@ export const useWorkflowTemplateStore = create<WorkflowTemplateState>((set, get)
     } catch (err) {
       set((s) => ({
         workflows: s.workflows.map((w) => (w.id === workflowId ? current : w)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -211,7 +212,7 @@ export const useWorkflowTemplateStore = create<WorkflowTemplateState>((set, get)
     } catch (err) {
       set((s) => ({
         workflows: s.workflows.map((w) => (w.id === workflowId ? current : w)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -249,7 +250,7 @@ export const useWorkflowTemplateStore = create<WorkflowTemplateState>((set, get)
     } catch (err) {
       set((s) => ({
         workflows: s.workflows.map((w) => (w.id === workflowId ? current : w)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -286,7 +287,7 @@ export const useWorkflowTemplateStore = create<WorkflowTemplateState>((set, get)
     } catch (err) {
       set((s) => ({
         workflows: s.workflows.map((w) => (w.id === workflowId ? current : w)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -318,7 +319,7 @@ export const useWorkflowTemplateStore = create<WorkflowTemplateState>((set, get)
     } catch (err) {
       set((s) => ({
         workflows: s.workflows.map((w) => (w.id === workflowId ? current : w)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -357,7 +358,7 @@ export const useWorkflowTemplateStore = create<WorkflowTemplateState>((set, get)
     } catch (err) {
       set((s) => ({
         workflows: s.workflows.map((w) => (w.id === workflowId ? current : w)),
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -387,7 +388,7 @@ export const useWorkflowTemplateStore = create<WorkflowTemplateState>((set, get)
       set((s) => ({
         workflows: [...s.workflows, current],
         activeWorkflowId: current.id,
-        loadError: err instanceof Error ? err.message : String(err),
+        loadError: redactErrorMessage(err),
       }));
       throw err;
     }
@@ -419,7 +420,7 @@ export const useWorkflowTemplateStore = create<WorkflowTemplateState>((set, get)
         await persistOne(fresh);
       } catch (err) {
         result.skipped.push({
-          reason: `Persistence failed: ${err instanceof Error ? err.message : String(err)}`,
+          reason: `Persistence failed: ${redactErrorMessage(err)}`,
           title: fresh.title,
         });
         // Remove from imported list since it failed to persist

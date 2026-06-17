@@ -67,6 +67,7 @@ import {
   resetSecureStoreKeys,
   writeSanitizedConfig,
 } from "../services/configService";
+import type { ApiConnectivityFailureKind, ApiConnectivityStatus } from "../../src/types/api-connectivity";
 
 /** Maximum size in bytes for JSON import and export files. */
 const MAX_JSON_FILE_BYTES = VENICE_MAX_BODY_BYTES;
@@ -119,22 +120,94 @@ function safeSendToRenderer(sender: WebContents, channel: string, payload: unkno
 /** Tests connectivity to the Venice API using the stored API key.
  *  @returns A result object indicating success or failure with a message.
  */
-async function testVeniceConnection(): Promise<{ ok: boolean; status?: number; message: string }> {
+function connectivityFailure(
+  kind: ApiConnectivityFailureKind,
+  safeMessage: string,
+  options: { statusCode?: number; retryable?: boolean } = {},
+): ApiConnectivityStatus {
+  return {
+    ok: false,
+    kind,
+    checkedAt: new Date().toISOString(),
+    statusCode: options.statusCode,
+    safeMessage,
+    retryable: options.retryable ?? false,
+  };
+}
+
+function classifyConnectivityFailure(status: number, message: string): ApiConnectivityStatus {
+  if (status === 401 || status === 403) {
+    return connectivityFailure(
+      "invalid-api-key",
+      "API key was found, but Venice rejected it. Re-enter the key in Config.",
+      { statusCode: status },
+    );
+  }
+  if ([408, 429, 500, 502, 503, 504].includes(status)) {
+    return connectivityFailure(
+      "venice-error",
+      "Venice returned an error response. Try again or check provider status.",
+      { statusCode: status, retryable: true },
+    );
+  }
+  return connectivityFailure(
+    "catalog-failure",
+    message || "Model catalog failed to load from Venice. Chat may still work if a model is already selected.",
+    { statusCode: status, retryable: status >= 500 },
+  );
+}
+
+async function testVeniceConnection(): Promise<{ ok: boolean; status?: number; message: string; connectivity: ApiConnectivityStatus }> {
   if (!isApiKeyConfigured()) {
-    return { ok: false, message: "No API key configured." };
+    return {
+      ok: false,
+      message: "No API key configured.",
+      connectivity: connectivityFailure(
+        "missing-api-key",
+        "API key is missing. Open Config and add a Venice API key.",
+      ),
+    };
   }
   try {
     const guarded = await performGuardedVeniceRequest({ endpoint: "/models", method: "GET" });
     const response = guarded.kind === "blocked"
       ? { ok: false, status: 451, statusText: "Blocked by Family Safe Mode", headers: {}, body: { error: guarded.block.body.error }, contentType: "application/json" }
       : guarded.response;
+    if (response.ok) {
+      return {
+        ok: true,
+        status: response.status,
+        message: "Connection successful",
+        connectivity: {
+          ok: true,
+          kind: "verified",
+          checkedAt: new Date().toISOString(),
+          statusCode: response.status,
+          endpoint: "models",
+        },
+      };
+    }
+    const message = readResponseError(response);
     return {
-      ok: response.ok,
+      ok: false,
       status: response.status,
-      message: response.ok ? "Connection successful" : readResponseError(response),
+      message,
+      connectivity: classifyConnectivityFailure(response.status, message),
     };
   } catch (err) {
-    return { ok: false, status: 0, message: redactErrorMessage(err) };
+    const message = redactErrorMessage(err);
+    return {
+      ok: false,
+      status: 0,
+      message,
+      connectivity: connectivityFailure(
+        /ipc|bridge|preload/i.test(message) ? "bridge-unavailable" : "network-failure",
+        /ipc|bridge|preload/i.test(message)
+          ? "Desktop bridge is unavailable. Restart the app or use web dev mode."
+          : "Network request failed before Venice responded. Check connection, proxy, VPN, or firewall.",
+        { statusCode: 0, retryable: true },
+      ),
+    };
   }
 }
 

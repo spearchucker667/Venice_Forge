@@ -18,6 +18,6 @@ Apple requires both application signing and automated Notarization.
 - `CSC_LINK` / `CSC_KEY_PASSWORD`: P12 certificate and password.
 - Apple App Store Connect credentials (configured via `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID`).
 
-`hardenedRuntime: true` is enabled in `electron-builder.config.cjs` only when signing credentials are configured (CI release or local builds with env vars set). Unsigned local binaries will still successfully build; the hardened runtime flag primarily affects notarization requirements for public releases. 
+`hardenedRuntime: true` and an explicit `notarize: { teamId: process.env.APPLE_TEAM_ID }` block are enabled in `electron-builder.config.cjs` only when signing credentials are configured (CI release or local builds with env vars set). Unsigned local binaries will still successfully build; the hardened runtime flag primarily affects notarization requirements for public releases.
 
 **Never commit code signing certificates or passwords to the repository.**
