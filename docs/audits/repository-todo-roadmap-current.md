@@ -289,7 +289,7 @@ Recommended new/updated files:
 
 ### P2 - Quality, DX, and Maintainability
 
-- [ ] **P2 - Architecture: Extract oversized modules into smaller reviewable units**
+- [x] **P2 - Architecture: Extract oversized modules into smaller reviewable units**
   - **Evidence:** `wc -l` shows `electron/ipc/handlers.ts` 1,408 lines,
     `SettingsView.tsx` 1,007, `gallery-view.tsx` 962,
     `media-inspector.tsx` 912, `CommandPalette.tsx` 816,
@@ -303,7 +303,7 @@ Recommended new/updated files:
     extracted modules; `npm run verify:contracts`.
   - **Risk if ignored:** Future changes will be slower and riskier to audit.
 
-- [ ] **P2 - Storage/Privacy UX: Remove or wire unimplemented maintenance-plan actions**
+- [x] **P2 - Storage/Privacy UX: Remove or wire unimplemented maintenance-plan actions**
   - **Evidence:** `src/services/storageMaintenance.ts` creates
     `copy-privacy-summary` and `export-privacy-summary` actions, but
     `applyMaintenanceAction()` default returns "Action not implemented or
@@ -317,7 +317,7 @@ Recommended new/updated files:
   - **Validate:** `npm run verify:storage-privacy`.
   - **Risk if ignored:** Privacy dashboard presents broken controls.
 
-- [ ] **P2 - Storage/Privacy UX: Add first-load error/retry state**
+- [x] **P2 - Storage/Privacy UX: Add first-load error/retry state**
   - **Evidence:** `StoragePrivacyDashboard.tsx` renders only a loading state
     while `inventory` is null; `storage-privacy-store.ts` catches refresh
     errors, clears `refreshing`, and toasts, but does not persist an error
@@ -331,7 +331,7 @@ Recommended new/updated files:
   - **Risk if ignored:** Users cannot recover clearly from storage inventory
     failures.
 
-- [ ] **P2 - Media UX: Use canonical clipboard helper in gallery and embeddings**
+- [x] **P2 - Media UX: Use canonical clipboard helper in gallery and embeddings**
   - **Evidence:** `media-inspector.tsx` calls `navigator.clipboard.writeText`
     directly at prompt/negative/seed/metadata/recipe copy sites;
     `embeddings-view.tsx` does the same for vectors.
@@ -345,7 +345,7 @@ Recommended new/updated files:
   - **Risk if ignored:** Copy actions fail silently in some browser/Electron
     contexts.
 
-- [ ] **P2 - Coverage: Target high-risk low-coverage modules before raising thresholds**
+- [x] **P2 - Coverage: Target high-risk low-coverage modules before raising thresholds**
   - **Evidence:** Coverage passes globally but reports low coverage for
     `electron/ipc/rpHandlers.ts`, `src/services/desktopBridge.ts`,
     `src/components/SettingsView.tsx`, `StatusView.tsx`, music views/hooks, and

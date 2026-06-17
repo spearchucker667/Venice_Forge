@@ -185,6 +185,7 @@ backlog files were removed.
   - **Packaging:** Replaced placeholder Linux maintainer email in `electron-builder.config.cjs` with `venice-forge-contributors@users.noreply.github.com` and explicitly marked Linux support as "Experimental" across `README.md`, `docs/DEVELOPMENT/platform-support.md`, and `docs/RELEASE/release.md`.
   - **Image Studio:** Updated `downloadImage` in `src/components/image/image-view.tsx` to dynamically derive the saved image extension (`.png`, `.jpg`, `.webp`, `.gif`) from the generated Base64 MIME type.
   - **Randomness:** Swapped `Math.random()` for a Web Crypto fallback (`globalThis.crypto.getRandomValues`) when generating the image seed in `src/utils/payloadBuilders.ts`.
+- **Phase 2K Architecture & UI Polish:** Extracted `config` IPC handlers out of `electron/ipc/handlers.ts` into a separate `configHandlers.ts` file to begin resolving oversized module warnings. Added `VERIFY-056` to AGENTS.md.
 - **Next steps:** Address chunk size bundle budgets (Task 2.6) and canonical repo URLs (Task 1.2).
 
 ### Open TODO Ledger
