@@ -142,9 +142,10 @@ backlog files were removed.
 - **Release:** Committed all changes, created annotated-style lightweight tag
   `v2.1.0` at `dc2e24c`, and built unsigned macOS DMG/ZIP artifacts for both
   x64 and arm64 (signing credentials not present locally). Pushed `main`
-  (`9d1c427`) and force-pushed the updated `v2.1.0` tag to origin, triggering
-  GitHub Actions release run `27703225713` to produce Windows, Linux, and
-  macOS artifacts; the run is currently in progress.
+  and force-pushed the updated `v2.1.0` tag to origin, triggering
+  GitHub Actions release run `27703225713`. The workflow completed
+  successfully, producing unsigned Windows, Linux, and macOS draft
+  artifacts (signing/notarization credentials are absent in CI).
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
@@ -267,7 +268,8 @@ backlog files were removed.
   plus `.blockmap` and SHA-256 sidecars.
 - `npm run verify:dist:mac`: PASS (all expected macOS artifacts verified).
 - Git push: `main` and `v2.1.0` tag pushed to origin; GitHub Actions release
-  run `27703225713` in progress for Windows, Linux, and macOS artifacts.
+  run `27703225713` completed successfully and produced unsigned Windows,
+  Linux, and macOS draft artifacts.
 
 ### Session History
 
@@ -295,8 +297,9 @@ backlog files were removed.
   the Windows release job, redacted private paths, and marked stale audit
   snapshots superseded. Committed, tagged `v2.1.0`, and built unsigned macOS
   DMG/ZIP artifacts for x64 and arm64. Pushed `main` and force-pushed the
-  updated `v2.1.0` tag to origin, triggering GitHub Actions release run
-  `27703225713` for Windows/Linux/macOS artifacts (currently in progress).
+  updated `v2.1.0` tag to origin; the GitHub Actions release run
+  `27703225713` completed successfully and published unsigned Windows,
+  Linux, and macOS draft artifacts.
 - **Files changed:** `src/services/veniceClient.ts`, `src/stores/chat-store.ts`,
   `src/stores/character-store.ts`, `src/stores/scenario-store.ts`,
   `src/components/chat/chat-view.tsx`, `src/hooks/use-chat.ts`,
