@@ -112,9 +112,20 @@ remains. The current canonical roadmap is
 backlog files were removed.
 
 ### Latest Session Summary
-- **2.1 release CI unblock:** Investigated the failed `v2.1.0` GitHub Actions runs. Root causes were Windows-only test path/tooling assumptions, advanced tracked CodeQL conflicting with repository default setup, unsigned-release credential gates, and publish-job artifact verification assumptions.
-- **Publish verifier correction:** Added an explicit `--release-artifacts-only` mode to `scripts/verify-dist.cjs` and changed the release `publish` job to verify downloaded `release/*` artifacts with `node scripts/verify-dist.cjs --all --release-artifacts-only`. Platform jobs still run the stricter build-output hygiene checks before uploading artifacts.
-- **Validation:** Targeted failed-area tests, release/CI verifiers, markdown links, typecheck, ESLint, `git diff --check`, and full `npm test` all passed under the repo-local Node 22 toolchain. Known jsdom `HTMLCanvasElement.getContext()` warnings remain during full test runs.
+- **v2.0.0 Windows release audit:** Verified the existing GitHub release
+  `v2.0.0` still contains macOS assets and no Windows `.exe` assets. The live
+  `main` tree is now `2.1.0`, so the release audit used an isolated detached
+  worktree at the exact `v2.0.0` tag (`8626b0c`).
+- **Exact-tag validation:** Under the repo-local Node 22 toolchain, the
+  detached `v2.0.0` tree passed `npm ci`, production `npm audit`,
+  `lint:eslint`, `typecheck`, full `npm test`, `test:coverage`,
+  `verify:contracts`, `build`, and `verify:dist`.
+- **Release blocker:** The existing `v2.0.0` GitHub Actions release run failed
+  on `windows-latest` during `npm test` before packaging. The failures are
+  Windows path/tooling/redaction issues, including an app-source redaction fix
+  that landed later on `main`. Under the no-retag rule, no Windows artifacts
+  were uploaded to `v2.0.0`; publish a new patch release or explicitly
+  authorize a `v2.0.0` retag/backport before completing Windows assets.
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
@@ -131,19 +142,28 @@ backlog files were removed.
   campaign, bundle budgets/lazy-loading, and future Linux arm64 support decision.
 
 ### Validation Matrix (this session)
-- `PATH="$PWD/.node22/bin:$PATH" npx vitest run src/utils/markdown.test.ts scripts/verify-ci-contract.test.ts scripts/verify-release-packaging-hardening.test.ts`: PASS (3 files / 25 tests).
-- `PATH="$PWD/.node22/bin:$PATH" npm run typecheck`: PASS.
-- `PATH="$PWD/.node22/bin:$PATH" npm run verify:ci-contract`: PASS.
-- `PATH="$PWD/.node22/bin:$PATH" npm run verify:release-packaging-hardening`: PASS (93 checks).
-- `PATH="$PWD/.node22/bin:$PATH" npx vitest run scripts/verify-theme-tokens.test.ts scripts/verify-markdown-links.test.ts scripts/verify-archive-clean.test.ts scripts/verify-release-packaging-hardening.test.ts scripts/verify-ci-contract.test.ts src/components/ui/error-boundary.test.tsx`: PASS (6 files / 46 tests).
-- `PATH="$PWD/.node22/bin:$PATH" npm run verify:markdown-links`: PASS.
-- `PATH="$PWD/.node22/bin:$PATH" npm run lint:eslint`: PASS.
-- `PATH="$PWD/.node22/bin:$PATH" npm test`: PASS (248 files passed / 1 skipped; 3,119 tests passed / 1 skipped).
-- `PATH="$PWD/.node22/bin:$PATH" npm audit --audit-level=moderate`: PASS (0 vulnerabilities).
-- `git diff --check`: PASS.
+- `/Users/super_user/Projects/Windows-Venice-API-connector/.node22/bin/node --version`: PASS (`v22.22.3`) in detached `v2.0.0` worktree.
+- `npm ci`: PASS in detached `v2.0.0` worktree.
+- `npm audit --omit=dev --audit-level=moderate`: PASS (0 production vulnerabilities) in detached `v2.0.0` worktree.
+- `npm run lint:eslint`: PASS in detached `v2.0.0` worktree.
+- `npm run typecheck`: PASS in detached `v2.0.0` worktree.
+- `npm test`: PASS in detached `v2.0.0` worktree (247 files passed / 1 skipped; 3,094 tests passed / 1 skipped).
+- `npm run test:coverage`: PASS in detached `v2.0.0` worktree (statements 70.64%, branches 61.84%, functions 68.11%, lines 73.69%).
+- `npm run verify:contracts`: PASS in detached `v2.0.0` worktree.
+- `npm run build`: PASS in detached `v2.0.0` worktree.
+- `npm run verify:dist`: PASS in detached `v2.0.0` worktree.
+- `gh run view 27639095143 --job build-windows --log-failed`: FAIL for the existing `v2.0.0` release workflow on `windows-latest`; `npm test` failed before packaging.
 - Known warning: jsdom still emits `HTMLCanvasElement.getContext()` warnings during full test/coverage runs.
 
 ### Session History
+
+- **Date:** 2026-06-17 (v2.0.0 Windows release artifact audit)
+- **Agent:** Codex GPT-5
+- **Branch / state:** `main` at `9c0d09c`; release source checked in detached worktree `/Users/super_user/Projects/Venice_Forge-v2.0.0-build` at `v2.0.0` / `8626b0c`.
+- **Diagnosis:** Existing release `v2.0.0` contains the published macOS assets and no Windows `.exe` assets. The exact `v2.0.0` tag can pass the local Node 22 validation stack on macOS, but the existing GitHub Actions release run `27639095143` fails in the `build-windows` job during `npm test` before Windows packaging.
+- **Summary:** Confirmed package version `2.0.0`, tag `v2.0.0`, release state, Windows build script/config (`dist:win` with NSIS and portable x64 targets), and exact-tag local validation. No Windows artifacts were uploaded because the Windows CI validation gate is failing and one required fix is app-source redaction behavior that landed after `v2.0.0`; completing this under the non-retag rule requires a patch release or explicit maintainer authorization to retag/backport.
+- **Files changed:** `docs/summary_of_work.md`.
+- **Validation:** Detached `v2.0.0` worktree Node 22 validation passed: `npm ci`, production audit, ESLint, typecheck, full tests, coverage, contracts, build, and `verify:dist`. Existing GitHub Actions `v2.0.0` Windows job failed at `npm test`; Windows package/upload skipped.
 
 - **Date:** 2026-06-17 (2.1 release publish artifact-only verifier)
 - **Agent:** Codex GPT-5
