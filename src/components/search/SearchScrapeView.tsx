@@ -11,7 +11,6 @@ import { createJinaProvider } from "../../research/providers/jinaResearchProvide
 import { runResearchJob, type ResearchBudget } from "../../research/agent/researchRunner";
 import { synthesizeResearch } from "../../research/agent/researchSynthesis";
 import { runSocialDiscovery, type SocialProfileCandidate } from "../../research/agent/socialDiscovery";
-import { isElectron, desktopApp } from "../../services/desktopBridge";
 import { useAuthStore } from "../../stores/auth-store";
 import type { DiagnosticsEntry } from "../../types/venice";
 
@@ -46,7 +45,7 @@ export function SearchScrapeView() {
   const [parserOutput, setParserOutput] = useState("");
   const [loading, setLoading] = useState("");
   const [error, setError] = useState("");
-  const [diagnostics, setDiagnostics] = useState<DiagnosticsEntry | null>(null);
+  const [diagnostics, setDiagnostics] = useState<Partial<DiagnosticsEntry> | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
@@ -66,22 +65,11 @@ export function SearchScrapeView() {
   const [authorized, setAuthorized] = useState(false);
   const [profileCandidates, setProfileCandidates] = useState<SocialProfileCandidate[]>([]);
 
-  const refreshDiagnostics = useCallback(async () => {
-    if (!isElectron()) return;
-    try {
-      const result = await desktopApp.getDiagnostics();
-      setDiagnostics(result as unknown as DiagnosticsEntry);
-    } catch {
-      // Ignore diagnostics failure on non-Electron platforms
-    }
-  }, []);
-
   useEffect(() => {
-    refreshDiagnostics();
     return () => {
       abortRef.current?.abort();
     };
-  }, [refreshDiagnostics]);
+  }, []);
 
   const beginRun = useCallback(() => {
     abortRef.current?.abort();
@@ -116,7 +104,7 @@ export function SearchScrapeView() {
         validator: isValidSearchResponse,
       });
       if (runIdRef.current !== runId) return;
-      if (d) setDiagnostics(d as DiagnosticsEntry);
+      if (d) setDiagnostics(d as Partial<DiagnosticsEntry>);
       const results =
         data?.results ||
         data?.data ||
@@ -146,7 +134,7 @@ export function SearchScrapeView() {
         signal,
       });
       if (runIdRef.current !== runId) return;
-      if (d) setDiagnostics(d as DiagnosticsEntry);
+      if (d) setDiagnostics(d as Partial<DiagnosticsEntry>);
       const scrapeData = data as Record<string, unknown>;
       setScrapeOutput(
         String(scrapeData.markdown || scrapeData.content || scrapeData.text || JSON.stringify(scrapeData, null, 2))
@@ -182,7 +170,7 @@ export function SearchScrapeView() {
         isFormData: true,
       });
       if (runIdRef.current !== runId) return;
-      if (d) setDiagnostics(d as DiagnosticsEntry);
+      if (d) setDiagnostics(d as Partial<DiagnosticsEntry>);
       const parserData = data as Record<string, unknown>;
       setParserOutput(String(parserData.text || JSON.stringify(parserData, null, 2)));
     } catch (err: unknown) {

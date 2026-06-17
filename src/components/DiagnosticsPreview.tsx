@@ -2,7 +2,7 @@ import React from 'react';
 import { Chip } from './Chip';
 import { DiagnosticsEntry } from '../types/venice';
 
-export function DiagPreview({ diagnostics }: { diagnostics: DiagnosticsEntry | null }) {
+export function DiagPreview({ diagnostics }: { diagnostics: Partial<DiagnosticsEntry> | null }) {
   if (!diagnostics) return <Chip>no requests yet</Chip>;
   return (
     <div className="flex flex-wrap items-center gap-2">

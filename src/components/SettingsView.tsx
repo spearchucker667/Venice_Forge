@@ -123,6 +123,8 @@ export function SettingsView() {
     let mounted = true;
     desktopJinaApiKey.isConfigured().then((v) => {
       if (mounted) setJinaKeyConfigured(v);
+    }).catch(() => {
+      if (mounted) setJinaKeyConfigured(false);
     });
     return () => {
       mounted = false;

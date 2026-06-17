@@ -269,6 +269,8 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               } else {
                 useProjectStore.getState().createProject('Quick Project').then(p => {
                   useProjectStore.getState().setActiveProject(p.id)
+                }).catch(() => {
+                  toast.error('Failed to create project');
                 })
               }
               onClose()
