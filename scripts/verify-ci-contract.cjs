@@ -11,6 +11,8 @@ const path = require('path');
 const root = process.cwd();
 const pkgPath = path.join(root, 'package.json');
 const ciYamlPath = path.join(root, '.github/workflows/ci.yml');
+const codeqlYamlPath = path.join(root, '.github/workflows/codeql.yml');
+const dependencyReviewYamlPath = path.join(root, '.github/workflows/dependency-review.yml');
 
 if (!fs.existsSync(pkgPath) || !fs.existsSync(ciYamlPath)) {
   console.error("Error: Missing package.json or ci.yml");
@@ -19,6 +21,8 @@ if (!fs.existsSync(pkgPath) || !fs.existsSync(ciYamlPath)) {
 
 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
 const ciYaml = fs.readFileSync(ciYamlPath, 'utf8');
+const codeqlYaml = fs.existsSync(codeqlYamlPath) ? fs.readFileSync(codeqlYamlPath, 'utf8') : '';
+const dependencyReviewYaml = fs.existsSync(dependencyReviewYamlPath) ? fs.readFileSync(dependencyReviewYamlPath, 'utf8') : '';
 
 // The required verification gates that must be run in CI
 const requiredGates = [
@@ -115,6 +119,29 @@ if (fs.existsSync(vitestConfigPath)) {
   }
   console.log("✓ vitest.config.ts coverage schema is valid");
 }
+
+// 4. Verify tracked security automation exists. SECURITY.md documents CodeQL
+// as a repository control; keep a tracked workflow present so the control is
+// reviewable with the source tree.
+if (!codeqlYaml) {
+  console.error("❌ Missing .github/workflows/codeql.yml");
+  process.exit(1);
+}
+if (!/github\/codeql-action\/init@[0-9a-f]{40}/.test(codeqlYaml) || !/github\/codeql-action\/analyze@[0-9a-f]{40}/.test(codeqlYaml)) {
+  console.error("❌ codeql.yml must run pinned github/codeql-action init/analyze actions");
+  process.exit(1);
+}
+console.log("✓ tracked CodeQL workflow exists");
+
+if (!dependencyReviewYaml) {
+  console.error("❌ Missing .github/workflows/dependency-review.yml");
+  process.exit(1);
+}
+if (!/actions\/dependency-review-action@[0-9a-f]{40}/.test(dependencyReviewYaml) || !/fail-on-severity:\s*moderate/.test(dependencyReviewYaml)) {
+  console.error("❌ dependency-review.yml must run a pinned dependency-review-action at moderate severity");
+  process.exit(1);
+}
+console.log("✓ tracked dependency-review workflow exists");
 
 console.log("CI contract check: PASS");
 process.exit(0);

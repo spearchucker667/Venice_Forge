@@ -101,6 +101,10 @@ function createMinimalValidRepo(prefix: string, opts: { releaseYml?: string } = 
       "npm run typecheck",
       "npm test",
       "npm run build",
+      "Require macOS signing credentials for tag releases",
+      "macOS signing/notarization credentials are required for production tag releases",
+      "Require Windows signing credentials for tag releases",
+      "Windows signing credentials are required for production tag releases",
       "  build-windows:",
       "    steps:",
       "      - name: Package Windows artifacts (Release)",
@@ -128,6 +132,7 @@ function createMinimalValidRepo(prefix: string, opts: { releaseYml?: string } = 
   for (const doc of [
     "docs/RELEASE/release.md",
     "docs/RELEASE/signing-and-notarization.md",
+    "docs/RELEASE/repository-settings.md",
     "docs/DEVELOPMENT/building.md",
     "docs/DEVELOPMENT/platform-support.md",
     "docs/DEVELOPMENT/troubleshooting.md",

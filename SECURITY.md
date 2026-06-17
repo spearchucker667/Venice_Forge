@@ -154,8 +154,8 @@ A clean audit at the `moderate` level or higher (`npm audit --audit-level=modera
 
 ## Static Analysis (CodeQL)
 
-GitHub CodeQL is enabled for this repository through GitHub's default setup
-(not a tracked workflow file). Findings appear in
+GitHub CodeQL is enabled for this repository through the tracked
+`.github/workflows/codeql.yml` workflow. Findings appear in
 [Security → Code Scanning](https://github.com/spearchucker667/Venice_Forge/security/code-scanning).
 
 ### Current open alerts: **0**
@@ -187,6 +187,8 @@ appended after the SHA for maintainer reference:
 - `actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02` (v4.6.2)
 - `actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093` (v4.3.0)
 - `softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda` (v3.0.0)
+- `github/codeql-action/*@dd903d2e4f5405488e5ef1422510ee31c8b32357` (v3)
+- `actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48` (v4.9.0)
 
 When bumping any pinned action, look up the new SHA via
 `gh api repos/<owner>/<repo>/git/refs/tags/<tag>` and update both the SHA

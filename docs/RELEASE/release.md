@@ -7,7 +7,7 @@
 1. Update `version` in `package.json`.
 2. Run `npm install` so `package-lock.json` stays in sync.
 3. Update `docs/audits/CHANGELOG.md` with the new version section.
-4. Confirm `README.md`, `AGENTS.md`, [LEGAL.md](../LEGAL.md), [SECURITY.md](../../SECURITY.md), `SUPPORT.md`, `PRIVACY.md`, and this checklist match the release.
+4. Confirm `README.md`, `AGENTS.md`, [LEGAL.md](../LEGAL.md), [SECURITY.md](../../SECURITY.md), `SUPPORT.md`, `PRIVACY.md`, [repository-settings.md](repository-settings.md), and this checklist match the release.
    - Validate Family Safe Mode and Adult Mode independently, including proof that Adult Mode does not invoke the local rule engine and that Venice API Safe Mode changes only the provider request parameter.
    - **Trigger:** Update this checklist and the linked docs whenever artifact filenames, signing steps, verification commands, or the release workflow changes.
    - **Trigger:** Update `SECURITY.md` whenever allowed Venice endpoints, safety guard boundaries, or the supported version policy changes.
@@ -69,13 +69,13 @@ Local macOS builds are unsigned unless valid signing credentials are supplied. U
 
 ## GitHub Actions
 
-Use `.github/workflows/release.yml` for both Windows and macOS builds.
+Use `.github/workflows/release.yml` for Windows, macOS, and Linux builds.
 
 Triggers:
 - Manual `workflow_dispatch`
 - Version tags matching `v*`
 
-The workflow runs separate Windows and macOS packaging jobs, executes `npm ci`, typecheck, tests, build, packaging commands (`dist:win` or `dist:mac`), checksum generation, and verification scripts (`verify:dist:*`), then uploads the signed or unsigned bundles as release assets.
+The workflow runs separate Windows, macOS, and Linux packaging jobs, executes `npm ci`, typecheck, tests, build, packaging commands (`dist:win`, `dist:mac`, or `dist:linux`), checksum generation, and verification scripts (`verify:dist:*`), then uploads verified bundles as release assets. Production tag releases fail closed if the required macOS or Windows signing/notarization secrets are absent; use workflow-dispatch development builds for unsigned local verification.
 
 ## Architecture-Specific macOS Builds
 
@@ -107,7 +107,7 @@ For local single-architecture builds, use:
 
 ## Publish
 
-1. Create a tag: `git tag v<version> && git push origin v<version>`.
+1. Create a tag from a clean `main` checkout: `git tag v<version> && git push origin v<version>`.
 2. The `release.yml` workflow will build all platforms, verify artifacts with `verify:dist:release`, and create a **draft** GitHub Release. A maintainer must review the draft before it goes public.
 3. Download artifacts from the workflow or use local `release/`.
 4. Smoke test on clean Windows and macOS environments:
@@ -136,6 +136,7 @@ The release pipeline is protected by a single-source-of-truth audit at `scripts/
 | Release workflow | Runs `verify:dist:*` + `checksum:release` + archive hygiene after every platform packaging job; the publish job runs `verify:dist:release` and creates a draft release for maintainer review |
 | Electron builder | `electron-builder.config.cjs` declares `appId`, `directories`, `asar: true`, excludes `.map` source maps, and enables `mac.notarize` only when Apple signing credentials are present |
 | Docs present | `docs/RELEASE/release.md`, `docs/RELEASE/signing-and-notarization.md`, `docs/DEVELOPMENT/building.md`, `docs/DEVELOPMENT/platform-support.md`, `docs/DEVELOPMENT/troubleshooting.md` |
+| Repository settings | `docs/RELEASE/repository-settings.md` documents branch protection, security automation, and signing secret requirements |
 | `.gitignore` | Excludes `node_modules/`, `.node22/`, `/dist/`, `/dist-electron/`, `/release/`, `/coverage/`, `.env*` (allowlisting `.env.example`), `.config/*.yaml` (allowlisting `.config/*.example.yaml`) |
 | Archive hygiene | `git ls-files` contains no `node_modules/`, `.node22/`, `dist/`, `dist-electron/`, `release/`, `coverage/`, `.env*` (non-example), `.config/*.local.yaml`, `*.db`, `*.log`, `chat-history/`, `docs/AGENTS/`, etc. (delegates to `scripts/verify-archive-clean.cjs` `BAD_PATTERNS`) |
 | Icon assets | `build/icon.{ico,icns,png}` are tracked |

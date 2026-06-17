@@ -50,12 +50,28 @@ describe("minimalMarkdown", () => {
     expect(output).toContain("&lt;script&gt;");
   });
 
+  /** Verifies that HTML event attributes are escaped rather than preserved. */
+  it("escapes event-handler attributes instead of preserving them", () => {
+    const output = minimalMarkdown("<img src=x onerror=alert(1)>");
+    expect(output).not.toContain("<img src=x onerror=");
+    expect(output).toContain("onerror=alert(1)");
+    expect(output).toContain("&lt;img");
+  });
+
   /** Verifies that fenced code blocks preserve content without executing it. */
   it("preserves fenced code blocks without executing their content", () => {
     const output = minimalMarkdown("```\n<b>not bold</b>\n```");
     expect(output).toContain("<pre><code>");
     expect(output).not.toContain("<b>not bold</b>");
     expect(output).toContain("&lt;b&gt;not bold&lt;/b&gt;");
+  });
+
+  /** Verifies that unsafe code-block text cannot escape the generated code element. */
+  it("escapes code-block text before reinserting generated copy markup", () => {
+    const output = minimalMarkdown("```\n</code><img src=x onerror=alert(1)>\n```");
+    expect(output).not.toContain("<img");
+    expect(output).not.toContain("</code><img");
+    expect(output).toContain("&lt;/code&gt;&lt;img");
   });
 
   /** Verifies that heading markdown renders as h1, h2, and h3 tags. */

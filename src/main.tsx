@@ -33,9 +33,52 @@ window.addEventListener("error", (event) => {
 });
 console.warn("[venice-forge] crypto.subtle available:", typeof crypto !== "undefined" && !!crypto.subtle);
 
+function appendFatalText(target: HTMLElement, title: string, message: string, details?: string): void {
+  const container = document.createElement("div");
+  container.style.padding = "2rem";
+  container.style.fontFamily = "system-ui, sans-serif";
+  container.style.color = "#ff4a4a";
+  container.style.background = "#1a1a1a";
+  container.style.minHeight = "100vh";
+
+  const h1 = document.createElement("h1");
+  h1.style.marginTop = "0";
+  h1.textContent = title;
+
+  const p = document.createElement("p");
+  p.textContent = message;
+
+  container.appendChild(h1);
+  container.appendChild(p);
+
+  if (details) {
+    const pre = document.createElement("pre");
+    pre.style.whiteSpace = "pre-wrap";
+    pre.style.wordBreak = "break-all";
+    pre.style.background = "#000";
+    pre.style.padding = "1rem";
+    pre.style.borderRadius = "0.5rem";
+    pre.style.overflowX = "auto";
+    pre.textContent = details;
+    container.appendChild(pre);
+  }
+
+  target.appendChild(container);
+}
+
+function clearElement(target: HTMLElement): void {
+  while (target.firstChild) {
+    target.removeChild(target.firstChild);
+  }
+}
+
 const rootEl = document.getElementById("root");
 if (!rootEl) {
-  document.body.innerHTML = "<h1>Application failed to load</h1><p>The root element is missing. Please check the build or reinstall the application.</p>";
+  appendFatalText(
+    document.body,
+    "Application failed to load",
+    "The root element is missing. Please check the build or reinstall the application.",
+  );
 } else {
   // Bring up the desktop bridge and load the local config BEFORE the
   // React tree mounts. This guarantees that safety-relevant defaults
@@ -74,21 +117,13 @@ if (!rootEl) {
         ? redactErrorDetails(err)
         : { message: sanitizeErrorText(String(err)) };
       console.error("Failed to mount React root", safeError);
-      rootEl.innerHTML = "";
-      const container = document.createElement("div");
-      container.style.cssText = "padding: 2rem; font-family: system-ui, sans-serif; color: #ff4a4a; background: #1a1a1a; min-height: 100vh;";
-      const h1 = document.createElement("h1");
-      h1.style.marginTop = "0";
-      h1.textContent = "Fatal Application Error";
-      const p = document.createElement("p");
-      p.textContent = "The application failed to initialize. Please check the console or reinstall the application.";
-      const pre = document.createElement("pre");
-      pre.style.cssText = "white-space: pre-wrap; word-break: break-all; background: #000; padding: 1rem; border-radius: 0.5rem; overflow-x: auto;";
-      pre.textContent = safeError.message;
-      container.appendChild(h1);
-      container.appendChild(p);
-      container.appendChild(pre);
-      rootEl.appendChild(container);
+      clearElement(rootEl);
+      appendFatalText(
+        rootEl,
+        "Fatal Application Error",
+        "The application failed to initialize. Please check the console or reinstall the application.",
+        safeError.message,
+      );
     }
   });
 }

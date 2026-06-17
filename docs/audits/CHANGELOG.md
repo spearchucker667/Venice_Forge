@@ -8,6 +8,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 
 ## [Unreleased]
 
+## [2.1.0] — 2026-06-17
+
+### Added
+- Tracked CodeQL and dependency-review workflows, with `verify:ci-contract` coverage so the security automation remains reviewable in source.
+- `docs/RELEASE/repository-settings.md` for branch protection, security automation, and release secret configuration.
+
+### Changed
+- Production tag releases now fail closed when macOS notarization/signing secrets or Windows signing secrets are absent.
+- Version metadata and public release badge updated for `2.1.0`.
+
+### Fixed
+- Removed `innerHTML` fallback rendering from the renderer bootstrap and added extra markdown sanitizer regression coverage for unsafe event attributes and code-block escape attempts.
+
 ### Fixed
 - **Archive stale design reference (2026-06-15):** Moved `docs/design/VENICE_UI_PARITY_REFERENCE.md` to `docs/reports/historical/VENICE_UI_PARITY_REFERENCE.md` and added a historical banner. The document's implementation map cited removed `src/modules/*` and `src/components/VeniceShell.tsx` / `src/components/VeniceSidebar.tsx` paths; it is now explicitly marked as historical and points readers to the current component directories and `src/config/tabs.ts`.
 

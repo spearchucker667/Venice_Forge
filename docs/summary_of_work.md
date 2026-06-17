@@ -112,30 +112,55 @@ remains. The current canonical roadmap is
 backlog files were removed.
 
 ### Latest Session Summary
-- **Roadmap saved and TODO cleanup:** Added `docs/audits/repository-todo-roadmap-current.md` as the canonical current TODO roadmap, removed obsolete `docs/audits/todo.md` and `docs/audits/combined-todo.yml`, and kept the older roadmap/verification files as historical evidence.
-- **Repository hygiene:** Fixed `verify:work-orders` skip handling for non-work-order audit YAMLs, removed a trailing-whitespace issue, and validated the dirty-tree repair batch under the repo-local Node 22 toolchain.
-- **Push readiness:** Full tests and coverage passed inside `npm run ci`; the first CI run failed only at `verify:work-orders` after all prior gates passed. After the verifier fix, `verify:work-orders`, `verify:contracts`, `build`, `verify:dist`, and `npm audit --audit-level=moderate` passed.
+- **2.1 release prep:** Advanced the current roadmap by closing the source-side
+  signing-policy, tracked security-automation, DOM/CSP sink-hardening, and
+  repository-settings items. Bumped the app version to `2.1.0` and updated the
+  release/changelog/security docs for the `v2.1.0` tag.
+- **Release fail-closed policy:** Production tag releases now fail closed when
+  macOS signing/notarization credentials or Windows signing credentials are not
+  configured. The remaining production artifact proof is credential-backed and
+  external to local source validation.
+- **Validation:** Full `npm run ci` passed under the repo-local Node 22 toolchain,
+  including full tests, coverage, contracts, build, and dist verification. `npm
+  audit --audit-level=moderate` passed with zero vulnerabilities. Known jsdom
+  `HTMLCanvasElement.getContext()` warnings remain during full test/coverage runs.
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
 - P0 release-blocking audit repair is complete; all seven original P0 items (P0-001..P0-007) are closed and verified.
-- Remaining current P0 release blockers are procedural/external: release from a clean checkout and capture credential-backed macOS notarization / Windows signing evidence.
-- Remaining P1 items: fail-closed production signing policy, packaged smoke coverage for Windows/Linux, strict test-warning cleanup, tracked security automation/settings documentation, transitive dependency deprecation cleanup, and DOM/CSP sink hardening.
-- Remaining P2/P3 items: oversized component extraction, low-coverage module campaign, bundle budgets/lazy-loading, richer issue/repository metadata, and future Linux arm64 support decision.
+- P0-001 is closed for the `2.1.0` release prep: the tag is cut only after a
+  clean tree. P0-002 remains external: capture credential-backed macOS
+  notarization and Windows signing evidence from the release workflow.
+- Closed current P1 items: fail-closed production signing policy, tracked
+  CodeQL/dependency-review automation, reviewed DOM/CSP sink hardening, and
+  repository settings documentation.
+- Remaining P1 items: packaged smoke coverage for Windows/Linux, strict
+  test-warning cleanup, and transitive dependency deprecation cleanup.
+- Remaining P2/P3 items: oversized component extraction, low-coverage module
+  campaign, bundle budgets/lazy-loading, and future Linux arm64 support decision.
 
 ### Validation Matrix (this session)
-- `git diff --check`: PASS.
-- `PATH="$PWD/.node22/bin:$PATH" npm run ci`: FAIL after full tests, coverage, audit, and most contract gates passed; failed only at `verify:work-orders` because new audit YAMLs were not work-order records.
-- `PATH="$PWD/.node22/bin:$PATH" npm test` inside `npm run ci`: PASS (248 files / 3,116 tests passed / 1 skipped).
+- `PATH="$PWD/.node22/bin:$PATH" npx vitest run src/utils/markdown.test.ts scripts/verify-ci-contract.test.ts scripts/verify-release-packaging-hardening.test.ts`: PASS (3 files / 25 tests).
+- `PATH="$PWD/.node22/bin:$PATH" npm run typecheck`: PASS.
+- `PATH="$PWD/.node22/bin:$PATH" npm run verify:ci-contract`: PASS.
+- `PATH="$PWD/.node22/bin:$PATH" npm run verify:release-packaging-hardening`: PASS (93 checks).
+- `PATH="$PWD/.node22/bin:$PATH" npm run ci`: PASS.
+- `PATH="$PWD/.node22/bin:$PATH" npm test` inside `npm run ci`: PASS (248 files passed / 1 skipped; 3,119 tests passed / 1 skipped).
 - `PATH="$PWD/.node22/bin:$PATH" npm run test:coverage` inside `npm run ci`: PASS (70.69 statements / 61.93 branches / 68.28 functions / 73.75 lines).
-- `PATH="$PWD/.node22/bin:$PATH" npm run verify:work-orders`: PASS after skip-list repair.
-- `PATH="$PWD/.node22/bin:$PATH" npm run verify:contracts`: PASS.
-- `PATH="$PWD/.node22/bin:$PATH" npm run build`: PASS.
-- `PATH="$PWD/.node22/bin:$PATH" npm run verify:dist`: PASS.
+- `PATH="$PWD/.node22/bin:$PATH" npm run build` inside `npm run ci`: PASS.
+- `PATH="$PWD/.node22/bin:$PATH" npm run verify:dist` inside `npm run ci`: PASS.
 - `PATH="$PWD/.node22/bin:$PATH" npm audit --audit-level=moderate`: PASS (0 vulnerabilities).
 - Known warning: jsdom still emits `HTMLCanvasElement.getContext()` warnings during full test/coverage runs.
 
 ### Session History
+
+- **Date:** 2026-06-17 (2.1 release prep, source hardening, and tag readiness)
+- **Agent:** Codex GPT-5
+- **Branch / state:** `main`; working tree modified before commit.
+- **Closed findings:** P1-001 fail-closed production signing policy; P1-004 tracked security automation; P1-006 scoped DOM/CSP sink hardening; P3-001 repository settings documentation. P0-001 is closed for the clean `2.1.0` tag prep. P0-002 remains external credential-backed artifact verification.
+- **Summary:** Bumped the project to `2.1.0`, added tracked CodeQL and dependency-review workflows with pinned actions, extended the CI contract verifier to require those security workflows, changed production tag releases to fail closed when signing/notarization secrets are absent, replaced renderer bootstrap `innerHTML` / `cssText` fallback paths with DOM APIs, added markdown sanitizer regression coverage, documented repository settings and release-secret requirements, updated the changelog/security/release docs, and reconciled the current roadmap for the `v2.1.0` release tag.
+- **Files changed:** `.github/workflows/release.yml`, `.github/workflows/codeql.yml`, `.github/workflows/dependency-review.yml`, `README.md`, `SECURITY.md`, `docs/DEVELOPMENT/CONFIG.md`, `docs/RELEASE/release.md`, `docs/RELEASE/repository-settings.md`, `docs/audits/CHANGELOG.md`, `docs/audits/repository-todo-roadmap-current.md`, `package.json`, `package-lock.json`, `scripts/verify-ci-contract.cjs`, `scripts/verify-ci-contract.test.ts`, `scripts/verify-release-packaging-hardening.cjs`, `scripts/verify-release-packaging-hardening.test.ts`, `src/main.tsx`, `src/utils/markdown.test.ts`, `docs/summary_of_work.md`.
+- **Validation:** Targeted Vitest PASS (3 files / 25 tests); `npm run typecheck` PASS; `npm run verify:ci-contract` PASS; `npm run verify:release-packaging-hardening` PASS (93 checks); full `npm run ci` PASS with full tests, coverage, contracts, build, and dist verification; `npm audit --audit-level=moderate` PASS (0 vulnerabilities). Known jsdom canvas warnings remain. Signed/notarized artifact evidence was not produced locally and depends on configured release credentials.
 
 - **Date:** 2026-06-16 (Roadmap save, audit TODO cleanup, and push hygiene)
 - **Agent:** Codex GPT-5

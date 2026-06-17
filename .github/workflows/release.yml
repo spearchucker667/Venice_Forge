@@ -55,11 +55,12 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Warn if macOS signing credentials are absent
+      - name: Require macOS signing credentials for tag releases
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           if [[ -z "${{ secrets.CSC_LINK }}" || -z "${{ secrets.CSC_KEY_PASSWORD }}" || -z "${{ secrets.APPLE_ID }}" || -z "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" || -z "${{ secrets.APPLE_TEAM_ID }}" ]]; then
-            echo "::warning::macOS signing/notarization credentials not configured — release will be unsigned."
+            echo "::error::macOS signing/notarization credentials are required for production tag releases."
+            exit 1
           fi
 
       - name: Package macOS artifacts (Development)
@@ -136,12 +137,13 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Warn if Windows signing credentials are absent
+      - name: Require Windows signing credentials for tag releases
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: |
           if [[ -z "${{ secrets.WIN_CSC_LINK }}" || -z "${{ secrets.WIN_CSC_KEY_PASSWORD }}" ]]; then
-            echo "::warning::Windows signing credentials not configured — release will be unsigned."
+            echo "::error::Windows signing credentials are required for production tag releases."
+            exit 1
           fi
 
       - name: Package Windows artifacts (Development)

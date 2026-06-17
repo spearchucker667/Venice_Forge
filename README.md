@@ -18,7 +18,7 @@
     <img alt="CI" src="https://github.com/spearchucker667/Venice_Forge/actions/workflows/ci.yml/badge.svg" />
   </a>
   <a href="https://github.com/spearchucker667/Venice_Forge/releases">
-    <img alt="Release" src="https://img.shields.io/badge/release-v2.0.0-blue.svg" />
+    <img alt="Release" src="https://img.shields.io/badge/release-v2.1.0-blue.svg" />
   </a>
   <a href="https://github.com/spearchucker667/Venice_Forge/releases">
     <img alt="Windows" src="https://img.shields.io/badge/platform-Windows-0078d4?logo=windows11" />

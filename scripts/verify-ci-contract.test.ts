@@ -19,4 +19,12 @@ describe("verify:ci-contract required gate coverage", () => {
     const source = fs.readFileSync(path.resolve(__dirname, "verify-ci-contract.cjs"), "utf8");
     expect(source).toContain("Coverage thresholds must not be nested under 'global'");
   });
+
+  it("requires tracked CodeQL and dependency-review workflows", () => {
+    const source = fs.readFileSync(path.resolve(__dirname, "verify-ci-contract.cjs"), "utf8");
+    expect(source).toContain(".github/workflows/codeql.yml");
+    expect(source).toContain(".github/workflows/dependency-review.yml");
+    expect(source).toContain("github/codeql-action");
+    expect(source).toContain("dependency-review-action");
+  });
 });

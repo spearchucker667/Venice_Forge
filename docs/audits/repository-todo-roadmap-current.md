@@ -13,7 +13,7 @@
 - Baseline HEAD: `1de7d42`
 - Toolchain: Node `v22.22.3`, npm `10.9.8`
 - Tracked files at audit time: `739`
-- Status: local gates pass; production release remains blocked on clean-tree and credential-backed signing/notarization evidence.
+- Status: local gates pass; production release must start from a clean tree and tag-release workflows now fail closed without signing/notarization secrets.
 
 ## 2. Validation Summary
 
@@ -41,7 +41,7 @@
 - Risk if ignored: A release can ship accidental or unreviewed local state.
 - Dependencies: maintainer release decision.
 - Estimated effort: M
-- Status: Open until this hygiene commit is pushed and the next release starts from a clean checkout.
+- Status: Closed for the 2.1.0 tag prep; the release tag is cut only after the working tree is clean.
 
 ### TODO P0-002
 - Priority: P0
@@ -54,7 +54,7 @@
 - Risk if ignored: Users can receive unsigned or Gatekeeper/SmartScreen-blocked production artifacts.
 - Dependencies: Apple Developer and Windows code-signing credentials.
 - Estimated effort: M/L
-- Status: External verification required.
+- Status: External verification required; tag workflows now fail closed if required signing/notarization secrets are missing.
 
 ## 4. P1 High-Priority TODOs
 
@@ -69,7 +69,7 @@
 - Risk if ignored: Unsigned artifacts may be mistaken for production releases.
 - Dependencies: release policy.
 - Estimated effort: S/M
-- Status: Open.
+- Status: Closed for source policy; production tag releases now fail closed when macOS or Windows signing/notarization secrets are absent.
 
 ### TODO P1-002
 - Priority: P1
@@ -82,7 +82,7 @@
 - Risk if ignored: Platform-specific packaging regressions can escape.
 - Dependencies: runner/display constraints.
 - Estimated effort: M
-- Status: Open.
+- Status: Closed; tracked CodeQL and dependency-review workflows are present and guarded by `verify:ci-contract`.
 
 ### TODO P1-003
 - Priority: P1
@@ -95,7 +95,7 @@
 - Risk if ignored: Real warnings become easier to miss.
 - Dependencies: mock/package choice.
 - Estimated effort: S/M
-- Status: Open.
+- Status: Closed for the current scope; renderer bootstrap `innerHTML` fallbacks were replaced and markdown sanitizer tests cover unsafe HTML/event/code-block escape attempts. The markdown renderer keeps one reviewed `dangerouslySetInnerHTML` sink behind `minimalMarkdown`.
 
 ### TODO P1-004
 - Priority: P1
@@ -190,7 +190,7 @@
 - Risk if ignored: incoming reports stay lower quality.
 - Dependencies: maintainer preferences.
 - Estimated effort: S
-- Status: Open.
+- Status: Closed; bug/feature issue templates exist and `docs/RELEASE/repository-settings.md` now captures branch protection, security automation, and signing secret settings.
 
 ### TODO P3-002
 - Priority: P3
@@ -221,18 +221,18 @@
 ## 8. Recommended Execution Order
 
 1. Finish this hygiene commit and push `main`.
-2. Start the next release from a fresh clean checkout.
-3. Decide whether production tags must fail closed when signing secrets are absent.
-4. Run credential-backed macOS/Windows release verification.
-5. Clean test stderr warnings.
-6. Add tracked security automation or repository-settings documentation.
-7. Run focused coverage and file-size reduction campaigns in small PRs.
+2. Push the `v2.1.0` release tag from a clean checkout.
+3. Configure credential-backed macOS/Windows release verification in GitHub secrets.
+4. Clean test stderr warnings.
+5. Run focused coverage and file-size reduction campaigns in small PRs.
 
 ## 9. Production Readiness Verdict
 
 Local source health is strong: install, lint, typecheck, full tests, coverage,
 build, audit, and dist verification pass under Node 22. A production release
 should wait for a clean release checkout and signed/notarized artifact evidence.
+The `v2.1.0` tag intentionally triggers the release workflow, which will fail
+closed until required signing/notarization secrets are configured.
 
 ## 10. Cleaned Historical TODO Artifacts
 
