@@ -112,9 +112,9 @@ remains. The current canonical roadmap is
 backlog files were removed.
 
 ### Latest Session Summary
-- **CI Publish Job Fix:** Investigated the failed GitHub Actions publish job recorded in `docs/reports/error_log.txt`. Root cause was the `npm run verify:dist:release` script failing due to a missing `node_modules` and missing `dist` artifacts after `actions/checkout`.
-- **Workflow update:** Added `npm ci` and `npm run build` steps to the `publish` job in `release.yml` before running `verify:dist:release` to ensure dependencies and build output are present for the verifier script.
-- **Cleanup:** Deleted the obsolete `error_log.txt` from `docs/reports/` and pushed to main.
+- **2.1 release CI unblock:** Investigated the failed `v2.1.0` GitHub Actions runs. Root causes were Windows-only test path/tooling assumptions, advanced tracked CodeQL conflicting with repository default setup, unsigned-release credential gates, and publish-job artifact verification assumptions.
+- **Publish verifier correction:** Added an explicit `--release-artifacts-only` mode to `scripts/verify-dist.cjs` and changed the release `publish` job to verify downloaded `release/*` artifacts with `node scripts/verify-dist.cjs --all --release-artifacts-only`. Platform jobs still run the stricter build-output hygiene checks before uploading artifacts.
+- **Validation:** Targeted failed-area tests, release/CI verifiers, markdown links, typecheck, ESLint, `git diff --check`, and full `npm test` all passed under the repo-local Node 22 toolchain. Known jsdom `HTMLCanvasElement.getContext()` warnings remain during full test runs.
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
@@ -144,6 +144,14 @@ backlog files were removed.
 - Known warning: jsdom still emits `HTMLCanvasElement.getContext()` warnings during full test/coverage runs.
 
 ### Session History
+
+- **Date:** 2026-06-17 (2.1 release publish artifact-only verifier)
+- **Agent:** Codex GPT-5
+- **Branch / state:** `main`; working tree modified before commit.
+- **Diagnosis:** Retagged `v2.1.0` release run `27671927640` cleared all platform jobs and artifact downloads, but failed in `publish` because the aggregate job ran `npm run verify:dist:release`; that verifier requires local build outputs (`dist/`, `dist-electron/`, `dist/server.cjs`) that are intentionally produced inside the platform jobs, not in the publish aggregation workspace.
+- **Summary:** Added `--release-artifacts-only` support to `scripts/verify-dist.cjs`, kept the default/local and per-platform release verifier modes strict, changed the `publish` job to verify downloaded artifacts with `node scripts/verify-dist.cjs --all --release-artifacts-only`, and extended the release hardening verifier/tests so the publish job cannot regress back to requiring local build outputs.
+- **Files changed:** `.github/workflows/release.yml`, `scripts/verify-dist.cjs`, `scripts/verify-dist.test.ts`, `scripts/verify-release-packaging-hardening.cjs`, `scripts/verify-release-packaging-hardening.test.ts`, `docs/summary_of_work.md`.
+- **Validation:** `npx vitest run scripts/verify-dist.test.ts scripts/verify-release-packaging-hardening.test.ts --fileParallelism=false` PASS (2 files / 19 tests); `npm run verify:release-packaging-hardening` PASS (94 checks).
 
 - **Date:** 2026-06-17 (CI publish job fix and error log cleanup)
 - **Agent:** Antigravity (Gemini 3.1 Pro)
