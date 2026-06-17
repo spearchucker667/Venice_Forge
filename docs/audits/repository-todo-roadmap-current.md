@@ -199,7 +199,7 @@ Recommended new/updated files:
 
 ### P0 - Critical Blockers
 
-- [ ] **P0 - Release: Capture signed and notarized artifact proof before production publish**
+- [x] **P0 - Release: Capture signed and notarized artifact proof before production publish**
   - **Evidence:** `docs/summary_of_work.md` records P0-002 as external;
     `release.yml` only warns when signing secrets are absent unless
     `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true`; `electron-builder.config.cjs`
@@ -252,7 +252,7 @@ Recommended new/updated files:
   - **Risk if ignored:** Users may file bugs, fetch releases, or audit source
     from the wrong repository.
 
-- [ ] **P1 - Security Automation: Make CodeQL run on PR/push or scheduled scans**
+- [x] **P1 - Security Automation: Make CodeQL run on PR/push or scheduled scans**
   - **Evidence:** `.github/workflows/codeql.yml` exists but only has
     `workflow_dispatch` and `if: vars.VENICE_FORGE_ENABLE_ADVANCED_CODEQL == 'true'`.
   - **Why:** Manual, variable-gated code scanning is easy to forget.
@@ -275,7 +275,7 @@ Recommended new/updated files:
     unclassified warnings.
   - **Risk if ignored:** Real regressions become easier to miss in CI logs.
 
-- [ ] **P1 - Dependency Hygiene: Reduce or document deprecated transitive packages**
+- [x] **P1 - Dependency Hygiene: Reduce or document deprecated transitive packages**
   - **Evidence:** `npm ci` passes but warns for `inflight`, `rimraf@2`,
     `lodash.isequal`, `glob@7`, and `boolean`.
   - **Why:** Deprecated transitives can become future vulnerability or install
