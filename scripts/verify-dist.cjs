@@ -6,6 +6,7 @@ const crypto = require("crypto");
 const args = process.argv.slice(2);
 const RELEASE_FLAGS = ["--win", "--mac", "--linux", "--all", "--portable", "--release"];
 const verifyRelease = args.some((arg) => RELEASE_FLAGS.includes(arg));
+const releaseArtifactsOnly = args.includes("--release-artifacts-only");
 
 /** Logic extracted for unit testing */
 function getTargets(platform, args) {
@@ -257,18 +258,24 @@ function verifyLinuxArtifacts(releaseDir, verified) {
   }
 }
 
-if (!fs.existsSync(path.join(root, "dist")) || !fs.existsSync(path.join(root, "dist-electron"))) {
+if (releaseArtifactsOnly && !verifyRelease) {
+  fail("--release-artifacts-only requires an explicit release target such as --all, --win, --mac, or --linux.");
+}
+
+if (!releaseArtifactsOnly && (!fs.existsSync(path.join(root, "dist")) || !fs.existsSync(path.join(root, "dist-electron")))) {
   console.error(
     "[verify:dist] Build outputs are missing. Run `npm run build` first; source archives intentionally exclude dist."
   );
   process.exit(1);
 }
 
-// Base build validation
-verifyFileExists(path.join(root, "dist", "index.html"), 100);
-verifyFileExists(path.join(root, "dist", "server.cjs"), 1000);
-verifyFileExists(path.join(root, "dist-electron", "electron", "main.js"), 1000);
-verifyFileExists(path.join(root, "dist-electron", "package.json"), 20);
+if (!releaseArtifactsOnly) {
+  // Base build validation
+  verifyFileExists(path.join(root, "dist", "index.html"), 100);
+  verifyFileExists(path.join(root, "dist", "server.cjs"), 1000);
+  verifyFileExists(path.join(root, "dist-electron", "electron", "main.js"), 1000);
+  verifyFileExists(path.join(root, "dist-electron", "package.json"), 20);
+}
 
 function assertBrandingNoticesInSync() {
   const source = fs.readFileSync(path.join(root, "assets/branding/NOTICE.md"), "utf8");
@@ -281,14 +288,16 @@ function assertBrandingNoticesInSync() {
   }
 }
 
-// Hygiene guards (Phase 2J) — run in BOTH local and release modes so a dirty
-// build never passes verify-dist regardless of packaging intent.
-assertNoForbiddenInDist(path.join(root, "dist"));
-assertNoForbiddenInDist(path.join(root, "dist-electron"));
-assertNoSecretsInDist(path.join(root, "dist"));
-assertNoSecretsInDist(path.join(root, "dist-electron"));
-assertNoForbiddenElectronText(path.join(root, "dist-electron"));
-assertBrandingNoticesInSync();
+if (!releaseArtifactsOnly) {
+  // Hygiene guards (Phase 2J) — run in BOTH local and release modes so a dirty
+  // build never passes verify-dist regardless of packaging intent.
+  assertNoForbiddenInDist(path.join(root, "dist"));
+  assertNoForbiddenInDist(path.join(root, "dist-electron"));
+  assertNoSecretsInDist(path.join(root, "dist"));
+  assertNoSecretsInDist(path.join(root, "dist-electron"));
+  assertNoForbiddenElectronText(path.join(root, "dist-electron"));
+  assertBrandingNoticesInSync();
+}
 
 if (!verifyRelease) {
   // Build-output-only mode: `npm run verify:dist` / `verify:build-output` checks

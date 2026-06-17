@@ -97,6 +97,7 @@ function createMinimalValidRepo(prefix: string, opts: { releaseYml?: string } = 
     [
       "node-version: 22",
       "verify:dist",
+      "node scripts/verify-dist.cjs --all --release-artifacts-only",
       "checksum:release",
       "npm run typecheck",
       "npm test",
@@ -245,6 +246,7 @@ describe("verify-release-packaging-hardening (VERIFY-052)", () => {
       releaseYml: [
         "node-version: 22",
         "verify:dist",
+        "node scripts/verify-dist.cjs --all --release-artifacts-only",
         "checksum:release",
         "npm run typecheck",
         "npm test",
@@ -298,6 +300,7 @@ describe("verify-release-packaging-hardening (VERIFY-052)", () => {
       releaseYml: [
         "node-version: 22",
         "verify:dist",
+        "node scripts/verify-dist.cjs --all --release-artifacts-only",
         "checksum:release",
         "npm run typecheck",
         "npm test",

@@ -283,6 +283,11 @@ if (pkg) {
     } else {
       pass(".github/workflows/release.yml runs verify:dist");
     }
+    if (!release.includes("node scripts/verify-dist.cjs --all --release-artifacts-only")) {
+      fail(".github/workflows/release.yml publish job must verify downloaded artifacts with scripts/verify-dist.cjs --all --release-artifacts-only");
+    } else {
+      pass(".github/workflows/release.yml publish job verifies downloaded artifacts without requiring local build outputs");
+    }
     // The release workflow should also include checksum generation
     if (!release.includes("checksum:release")) {
       fail(".github/workflows/release.yml is missing checksum:release");

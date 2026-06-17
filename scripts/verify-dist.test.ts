@@ -57,6 +57,13 @@ describe("verify-dist platform selection", () => {
     expect(targets.checkWin).toBe(true);
     expect(targets.targetArches).toEqual(["x64", "arm64"]);
   });
+
+  it("does not treat --release-artifacts-only as a platform selector", () => {
+    const targets = getTargets("linux", ["--release-artifacts-only"]);
+    expect(targets.checkLinux).toBe(false);
+    expect(targets.checkMac).toBe(false);
+    expect(targets.checkWin).toBe(false);
+  });
 });
 
 describe("verify-dist Phase 2J hygiene guards", () => {
