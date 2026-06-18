@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useShallow } from 'zustand/shallow'
 import { useChatStore } from '../../stores/chat-store'
+import { usePromptLibraryStore } from '../../stores/prompt-library-store'
 import { cn } from '../../lib/utils'
 
 export function VeniceParams() {
+  const customPrompts = usePromptLibraryStore(s => s.prompts.filter(p => !p.archivedAt && (p.kind === 'system' || p.kind === 'chat' || p.kind === 'general')))
   const { 
     veniceParams, 
     setVeniceParams, 
@@ -96,7 +98,33 @@ export function VeniceParams() {
       {showSettings && (
         <div className="mt-2.5 pb-1 flex flex-col gap-2.5">
           <div>
-            <label className="text-[13px] text-text-muted/40 font-medium mb-1 block uppercase tracking-[0.08em]">App System Prompt</label>
+            
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-[13px] text-text-muted/40 font-medium block uppercase tracking-[0.08em]">App System Prompt</label>
+              {customPrompts.length > 0 && (
+                <select
+                  className="bg-surface-elevated border border-border rounded px-2 py-0.5 text-[11px] text-text-muted outline-none hover:text-text-secondary transition-colors max-w-[200px] cursor-pointer"
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    if (id) {
+                      const store = usePromptLibraryStore.getState();
+                      const version = store.getCurrentVersion(id);
+                      if (version && version.content) {
+                        setSystemPrompt(version.content);
+                      }
+                    }
+                    // Reset selection immediately to allow re-selection
+                    e.target.value = "";
+                  }}
+                  defaultValue=""
+                >
+                  <option value="" disabled>Load from library...</option>
+                  {customPrompts.map(p => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                </select>
+              )}
+            </div>
             <textarea
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}

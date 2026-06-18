@@ -112,6 +112,13 @@ remains. The current canonical roadmap is
 backlog files were removed.
 
 ### Latest Session Summary
+- **2026-06-18 chat system prompt selection (current session):**
+  - Investigated user report: "custom prompts are not saved and accessible through standard chat when clicking the options tab".
+  - Identified that the "App System Prompt" input in `venice-params.tsx` lacked integration with the Prompt Library.
+  - Added a dropdown selector within the chat options that lists custom prompts of kinds `system`, `chat`, and `general` from `usePromptLibraryStore`.
+  - When a user selects a prompt from the dropdown, its latest version's content is securely hydrated into the system prompt textarea, allowing them to modify or use it immediately.
+  - Verified compilation and test matrix stability.
+
 - **2026-06-18 visual workflow editor restoration (current session):**
   - Investigated user report: "workflow tab only allows for add step... when using playground and selecting open in workflow, workflow is not transferred over".
   - Identified that a recent commit accidentally remapped the `workflows` tab in `App.tsx` to the new `WorkflowTemplatesViewLazy` (a linear prompt chain editor) instead of the intended `WorkflowsViewLazy` (the ReactFlow visual nodes editor used by the Playground).
