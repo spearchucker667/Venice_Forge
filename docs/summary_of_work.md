@@ -112,16 +112,10 @@ remains. The current canonical roadmap is
 backlog files were removed.
 
 ### Latest Session Summary
-- **2026-06-18 Repository hygiene — closed all dependabot PRs and branches, added overhaul warning to README:**
-  - Closed PR #25 (dependabot npm dependencies major-version bump: Express 5, TypeScript 6, Vite 8, ESLint 10, etc.) — **too risky to merge during active overhaul**.
-  - Closed PR #24 (dependabot `actions/dependency-review-action` 4.9.0 → 5.0.0 major bump).
-  - Closed PR #23 (dependabot `github/codeql-action` 3.36.2 → 4.36.2 major bump).
-  - All three PRs were closed without merge; their branches were automatically deleted by GitHub.
-  - Only branch remaining: `main` (protected).
-  - Updated `README.md` with a new `[!CAUTION]` banner warning that a major dependency and architecture overhaul is underway (Express 5, TypeScript 6, Vite 8, and related toolchain migrations), advising users not to open new PRs and to use stable releases instead.
-  - Pushed the README update directly to `main`.
-  - No source code changes, no validation commands run, no new feature phase started.
-  - Verdict: repository is in a **transitional / unstable state** until the overhaul lands.
+- **2026-06-18 CI Blockers fix (audit + CodeQL):**
+  - Updated `http-proxy-middleware` to `^4.1.1` to resolve a deterministic `npm audit` failure blocking CI.
+  - Replaced `.github/workflows/codeql.yml` configuration to set `build-mode: none` for javascript-typescript, fixing the CodeQL custom workflow failures.
+  - Ran local validation gates including `verify:ci-contract` and `npm audit --audit-level=moderate`.
 
 ### Previous Session Summary (2025-08-19 Final Massive Bug Hunt & Fix Pass)
 - **Agent documentation governance tightened:** Updated `AGENTS.md` and the
@@ -340,6 +334,17 @@ backlog files were removed.
   Linux, and macOS draft artifacts.
 
 ### Session History
+
+- **Date:** 2026-06-18 (CI Blockers fix: audit + CodeQL)
+- **Agent:** Antigravity (Gemini 3.1 Pro)
+- **Branch / state:** `fix/ci-audit-codeql`
+- **Scope:** CI pipeline blocking issues.
+- **Summary:**
+  - Fixed `npm audit` failure by updating `http-proxy-middleware` to `^4.1.1`.
+  - Reconfigured `.github/workflows/codeql.yml` to set `build-mode: none` for `javascript-typescript` per GitHub's recommendations for interpreted languages, resolving the custom workflow failures.
+- **Files changed:** `package.json`, `package-lock.json`, `.github/workflows/codeql.yml`, `docs/summary_of_work.md`.
+- **Validation:** `npm ci`, `npm audit --audit-level=moderate`, `npm run lint:eslint`, `npm run typecheck`, `npm run verify:contracts`, `npm run build`, `npm run verify:dist`, `npm run verify:ci-contract` PASS.
+- **Status:** COMPLETE — CI blockers resolved.
 
 - **Date:** 2026-06-18 (Repository hygiene — close all PRs/branches, README overhaul warning)
 - **Agent:** Kimi Code (GitHub MCP operations)
