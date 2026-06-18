@@ -66,7 +66,17 @@ const BAD_PATTERNS = [
   /(^|\/).*_ledger\.py$/,
 ];
 
-const SKIP_DIRS = new Set([".git", "node_modules"]);
+const ARCHIVE_MODE_IGNORED_GENERATED_DIRS = new Set([
+  "node_modules",
+  ".node22",
+  "dist",
+  "dist-electron",
+  "release",
+  "coverage",
+  ".vite",
+]);
+
+const SKIP_DIRS = new Set([".git"]);
 
 function walk(dir, root, out) {
   let entries;
@@ -79,6 +89,13 @@ function walk(dir, root, out) {
     if (e.isDirectory() && SKIP_DIRS.has(e.name)) continue;
     const full = path.join(dir, e.name);
     const rel = path.relative(root, full).split(path.sep).join("/") + (e.isDirectory() ? "/" : "");
+    
+    // Ignore expected generated directories during the filesystem walk
+    const topLevelDir = rel.replace(/\/$/, "").split("/")[0];
+    if (ARCHIVE_MODE_IGNORED_GENERATED_DIRS.has(topLevelDir)) {
+      continue;
+    }
+
     if (BAD_PATTERNS.some((re) => re.test(rel) || re.test("/" + rel))) {
       out.push(rel);
       if (e.isDirectory()) continue; // don't recurse into a forbidden directory

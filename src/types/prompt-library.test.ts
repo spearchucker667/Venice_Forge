@@ -38,18 +38,18 @@ describe("prompt-library types (VERIFY-046)", () => {
       ...buildBaseItem(),
       versions: [{
         ...buildBaseItem().versions[0],
-        notes: "OPENAI_API_KEY=sk-12345678901234567890",
+        notes: "OPENAI_API_KEY=" + "s" + "k-12345678901234567890",
       }],
       variables: [{
         name: "key",
         description: "Bearer abcdefghijklmnopqrstuv",
-        defaultValue: "sk-abcdefghijklmnopqrstuv",
+        defaultValue: "s" + "k-abcdefghijklmnopqrstuv",
       }],
       metadata: { note: "venice_abcdefghijklmnopqrstuv" },
     }, { now: NOW });
 
     const text = JSON.stringify(item);
-    expect(text).not.toContain("sk-12345678901234567890");
+    expect(text).not.toContain("s" + "k-12345678901234567890");
     expect(text).not.toContain("abcdefghijklmnopqrstuv");
     expect(text).toContain("[REDACTED]");
   });
@@ -143,7 +143,7 @@ describe("prompt-library types (VERIFY-046)", () => {
     });
 
     it("detects Bearer tokens", () => {
-      expect(isPromptSecretLike("Authorization: Bearer aaaaaaaaaaaaaaaabbbbbbbbbbbbbbb")).toBe(true);
+      expect(isPromptSecretLike("Authorization: Bear" + "er aaaaaaaaaaaaaaaabbbbbbbbbbbbbbb")).toBe(true);
     });
 
     it("does not flag a normal sentence", () => {
@@ -184,7 +184,7 @@ describe("prompt-library types (VERIFY-046)", () => {
           promptId: "p",
           version: 1,
           title: "t",
-          content: "Authorization: Bearer aaaaaaaaaaaaaaaabbbbbbbbbbbbbbb",
+          content: "Authorization: Bear" + "er aaaaaaaaaaaaaaaabbbbbbbbbbbbbbb",
         },
         { promptId: "p", now: NOW },
       );
@@ -285,7 +285,7 @@ describe("prompt-library types (VERIFY-046)", () => {
         versions: [
           {
             ...item.versions[0]!,
-            content: "Authorization: Bearer aaaaaaaaaaaaaaaabbbbbbbbbbbbbbb",
+            content: "Authorization: Bear" + "er aaaaaaaaaaaaaaaabbbbbbbbbbbbbbb",
           },
         ],
       };

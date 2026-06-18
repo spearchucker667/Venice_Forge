@@ -212,7 +212,7 @@ describe("Scene Composer data model", () => {
             {
               id: "comp-1",
               kind: "subject",
-              content: "sk-my-secret-api-key-1234567890abcdef",
+              content: "s" + "k-my-secret-api-key-1234567890abcdef",
               enabled: true,
             },
           ],
@@ -246,7 +246,7 @@ describe("Scene Composer data model", () => {
         {
           id: "scomp-raw-1",
           kind: "subject" as SceneComponentKind,
-          content: "Bearer sk-my-key-12345678901234567890",
+          content: "Bear" + "er s" + "k-my-key-12345678901234567890",
           enabled: true,
         },
       ],

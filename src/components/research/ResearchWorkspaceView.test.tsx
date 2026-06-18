@@ -30,6 +30,10 @@ vi.mock('../../stores/workflow-template-store', () => ({
   useWorkflowTemplateStore: () => ({ createWorkflow: vi.fn() }),
 }));
 
+vi.mock('./ResearchBrowserView', () => ({
+  ResearchBrowserView: () => <div data-testid="mock-research-browser-view" />
+}));
+
 function mockSessionWithSources(
   sources: Array<{ title: string; url?: string }>,
 ): ResearchSession {

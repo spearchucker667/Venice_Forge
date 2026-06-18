@@ -12,7 +12,11 @@ vi.mock('../../services/desktopBridge', () => ({
     delete: () => Promise.resolve({ ok: false, error: 'mock' }),
     pullContext: () => Promise.resolve({ ok: false, context: { injectedText: '', facts: [], summaries: [], tokenEstimate: 0 }, error: 'mock' }),
   },
-  desktopChat: { list: () => Promise.resolve({ ok: false, conversations: [], truncated: false, totalScanned: 0, error: 'mock' }) },
+  desktopChat: {
+    list: () => Promise.resolve({ ok: false, conversations: [], truncated: false, totalScanned: 0, error: 'mock' }),
+    save: () => Promise.resolve({ ok: false, id: 'mock', error: 'mock' }),
+    delete: () => Promise.resolve({ ok: false, error: 'mock' })
+  },
 }))
 vi.mock('../../stores/config-store', () => ({ reloadConfig: vi.fn() }))
 

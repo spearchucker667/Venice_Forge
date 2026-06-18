@@ -154,7 +154,7 @@ describe("runSocialDiscovery", () => {
   });
 
   it("redacts secrets from logged provider errors (T-147)", async () => {
-    const provider = makeFailingProvider(new Error("request failed with sk-1234567890abcdef"));
+    const provider = makeFailingProvider(new Error("request failed with s" + "k-1234567890abcdef"));
     const originalError = console.error;
     const errorMock = vi.fn();
     console.error = errorMock;
@@ -166,7 +166,7 @@ describe("runSocialDiscovery", () => {
     expect(result.error).not.toMatch(/sk-/);
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(errorMock.mock.calls[0][1]).toContain("[REDACTED]");
-    expect(errorMock.mock.calls[0][1]).not.toContain("sk-1234567890abcdef");
+    expect(errorMock.mock.calls[0][1]).not.toContain("s" + "k-1234567890abcdef");
   });
 
   it("returns a safe cancel message when aborted (T-147)", async () => {

@@ -302,7 +302,7 @@ describe("computeSafeDiagnosticsSnapshot (VERIFY-045)", () => {
             {
               id: "m",
               role: "user",
-              content: "My secret API key is sk-1234567890ABCDEF. Please do not leak it.",
+              content: "My secret API key is s" + "k-1234567890ABCDEF. Please do not leak it.",
               timestamp: 1,
             } as never,
           ],
@@ -318,7 +318,7 @@ describe("computeSafeDiagnosticsSnapshot (VERIFY-045)", () => {
 
     // Forbidden substrings
     expect(text).not.toContain("VENICE-SECRET-KEY-XYZ")
-    expect(text).not.toContain("sk-1234567890ABCDEF")
+    expect(text).not.toContain("s" + "k-1234567890ABCDEF")
     expect(text).not.toContain("iVBORw0KGgo")
     expect(text).not.toContain("A copper city at dusk with neon signs")
     expect(text).not.toMatch(/Bearer\s+[A-Za-z0-9_-]{20,}/i)

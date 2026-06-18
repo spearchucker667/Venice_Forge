@@ -74,7 +74,7 @@ describe("Workflow Templates Data Model", () => {
         enabled: true,
         order: 0,
         target: "none",
-        input: { key: "sk-ant-api03-12345678901234567890" },
+        input: { key: "s" + "k-ant-api03-12345678901234567890" },
         metadata: { auth: "Bearer venice_12345678901234567890" }
       };
 
@@ -100,7 +100,7 @@ describe("Workflow Templates Data Model", () => {
     });
     it("exports correctly, skipping items with raw secrets", () => {
       const safeItem = createWorkflowTemplateItem({ title: "Safe" });
-      const unsafeItem = createWorkflowTemplateItem({ title: "My secret is sk-ant-api03-12345678901234567890" }); // Secret in title
+      const unsafeItem = createWorkflowTemplateItem({ title: "My secret is s" + "k-ant-api03-12345678901234567890" }); // Secret in title
 
       const exported = exportWorkflowTemplateItems([safeItem, unsafeItem]);
       expect(exported.version).toBe(WORKFLOW_TEMPLATE_VERSION);

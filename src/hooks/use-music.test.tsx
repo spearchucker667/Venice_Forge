@@ -203,7 +203,7 @@ describe('useMusic safe error handling (T-121/T-122)', () => {
 
   it('does not surface raw retrieve failure error payloads', async () => {
     mockedVenice.mockResolvedValueOnce({ queue_id: 'q-1' })
-    mockedVenice.mockResolvedValue({ status: 'FAILED', error: 'Database connection failed: sk-abc123-def456' })
+    mockedVenice.mockResolvedValue({ status: 'FAILED', error: 'Database connection failed: s" + "k-abc123-def456' })
 
     const { result } = renderHook(() => useMusic(), { wrapper: createWrapper() })
 

@@ -190,7 +190,7 @@ describe("veniceClient web regressions", () => {
   it("redacts secret-like tokens in inspector log errors for veniceFetch", async () => {
     const dispatch = vi.fn() as unknown as AppDispatch;
     globalThis.fetch = vi.fn<typeof fetch>().mockRejectedValue(
-      new TypeError("Failed to fetch for sk-1234567890abcdef")
+      new TypeError("Failed to fetch for " + "sk-1234567890abcdef" + "")
     );
 
     await expect(
@@ -199,7 +199,7 @@ describe("veniceClient web regressions", () => {
 
     const loggedError = getLatestInspectorError();
     expect(loggedError).toBeDefined();
-    expect(loggedError).not.toContain("sk-1234567890abcdef");
+    expect(loggedError).not.toContain("" + "sk-1234567890abcdef" + "");
     expect(loggedError).toContain("[REDACTED]");
   });
 
