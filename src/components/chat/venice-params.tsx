@@ -5,7 +5,8 @@ import { usePromptLibraryStore } from '../../stores/prompt-library-store'
 import { cn } from '../../lib/utils'
 
 export function VeniceParams() {
-  const customPrompts = usePromptLibraryStore(s => s.prompts.filter(p => !p.archivedAt && (p.kind === 'system' || p.kind === 'chat' || p.kind === 'general')))
+  const allPrompts = usePromptLibraryStore(s => s.prompts)
+  const customPrompts = allPrompts.filter(p => !p.archivedAt && (p.kind === 'system' || p.kind === 'chat' || p.kind === 'general'))
   const { 
     veniceParams, 
     setVeniceParams, 
