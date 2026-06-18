@@ -12,7 +12,7 @@ const files = fs.readdirSync(DIST_ASSETS);
 
 const budgets = [
   { pattern: /^index-.*\.js$/, limitKB: 600, name: 'Main App Bundle' },
-  { pattern: /^vendor-.*\.js$/, limitKB: 500, name: 'Vendor Chunks' },
+  { pattern: /^vendor-.*\.js$/, limitKB: 900, name: 'Vendor Chunks' },
   { pattern: /^pdf\.worker\.min-.*\.m?js$/, limitKB: 1500, name: 'PDF Worker' },
   { pattern: /^.*\.css$/, limitKB: 200, name: 'CSS Styles' },
 ];

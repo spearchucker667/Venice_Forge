@@ -22,6 +22,15 @@ import { ProfileDiscoveryTab } from "./ProfileDiscoveryTab";
 import { ResearchWorkspacePanel } from "./ResearchWorkspacePanel";
 import type { SubTab, SearchResultItem } from "./searchScrapeTypes";
 
+import { ResearchProviderStatus } from "./ResearchProviderStatus";
+import { ResearchBrowserView } from "../research/ResearchBrowserView";
+import { useResearchStore } from "../../stores/research-store";
+import { toast } from "../../stores/toast-store";
+import { runResearchScrape } from "../../services/researchService";
+import { researchBrowserBridge } from "../../services/researchBrowserBridge";
+import { isElectron } from "../../services/desktopBridge";
+import { isTrustedExternalUrl } from "../../shared/urlSecurity";
+
 export function SearchScrapeView() {
   const [subTab, setSubTab] = useState<SubTab>("workspace");
   const selectedModel = useSettingsStore((s) => s.selectedModels.chat) || "llama-3.3-70b";
@@ -54,6 +63,17 @@ export function SearchScrapeView() {
   const [researchOutput, setResearchOutput] = useState("");
   const [researchCitations, setResearchCitations] = useState("");
   const [researchProviderId, setResearchProviderId] = useState<"venice" | "jina">("venice");
+  const [researchSearchProvider, setResearchSearchProvider] = useState<"brave" | "google" | "auto">("auto");
+  const [researchScrapeProvider, setResearchScrapeProvider] = useState<"venice" | "jina" | "generic-http" | "auto">("auto");
+  const [researchRunMode, setResearchRunMode] = useState<"retrieve-only" | "retrieve-and-synthesize">("retrieve-and-synthesize");
+  const [researchBudget, setResearchBudget] = useState<ResearchBudget>({
+    maxQueries: 4,
+    maxResultsPerQuery: 5,
+    maxPages: 3,
+    maxCharsPerPage: 4000,
+    perRequestTimeoutMs: 15000,
+    totalJobTimeoutMs: 120000,
+  });
 
   const [targetName, setTargetName] = useState("");
   const [knownUsername, setKnownUsername] = useState("");
@@ -185,9 +205,7 @@ export function SearchScrapeView() {
 
   async function runAiResearch() {
     if (!researchQuestion.trim()) return;
-    if (researchProviderId !== "jina") {
-      if (!requireVeniceApiKey("running AI research")) return;
-    }
+    if (researchRunMode === "retrieve-and-synthesize" && !requireVeniceApiKey("running AI research synthesis")) return;
     setError("");
     const researchGuard = maybeRunLocalFamilyGuard({
       text: researchQuestion.trim(),
@@ -204,23 +222,25 @@ export function SearchScrapeView() {
     setResearchCitations("");
     const { runId, signal } = beginRun();
 
-    const budget: ResearchBudget = {
-      maxQueries: 4,
-      maxResultsPerQuery: 5,
-      maxPages: 3,
-      maxCharsPerPage: 4000,
-      perRequestTimeoutMs: 15000,
-      totalJobTimeoutMs: 120000,
-    };
-
     try {
-      const provider = researchProviderId === "jina" 
-        ? createJinaProvider()
-        : veniceResearchProvider;
+      // Resolve search provider
+      let searchProvider = researchProviderId === "jina" ? createJinaProvider() : veniceResearchProvider;
+      if (researchProviderId === "venice" && researchSearchProvider !== "auto") {
+        searchProvider = {
+          ...veniceResearchProvider,
+          search: veniceResearchProvider.search
+            ? (input) => veniceResearchProvider.search!({ ...input, options: { ...input.options, provider: researchSearchProvider } })
+            : undefined,
+        };
+      }
+      if (researchProviderId === "jina" && researchSearchProvider !== "auto") {
+        // Jina search is just jina search, no sub-provider variant
+      }
+
       const job = await runResearchJob({
         question: researchQuestion.trim(),
-        provider,
-        budget,
+        provider: searchProvider,
+        budget: researchBudget,
         signal,
       });
 
@@ -232,6 +252,18 @@ export function SearchScrapeView() {
 
       const citations = Array.isArray(job.evidence?.citations) ? job.evidence.citations : [];
       setResearchCitations(citations.join("\n"));
+
+      if (researchRunMode === "retrieve-only") {
+        setResearchOutput(
+          `## Retrieved Evidence\n\n` +
+          `**Queries used:** ${job.queriesUsed.join(", ")}\n\n` +
+          `**Sources found:** ${job.evidence.searchResults.length}\n\n` +
+          `**Pages scraped:** ${job.evidence.scrapes.length}\n\n` +
+          `---\n\n` +
+          job.evidence.searchResults.map((r, i) => `${i + 1}. [${r.title}](${r.url})\n   > ${r.snippet || ""}`).join("\n\n")
+        );
+        return;
+      }
 
       let full = "";
       await synthesizeResearch({
@@ -346,16 +378,22 @@ export function SearchScrapeView() {
           <div>
             <h2 className="text-[17px] font-semibold text-text-primary">Research</h2>
             <p className="text-[12.5px] text-text-muted mt-0.5">
-              Search the web, scrape articles, and analyze social profiles.
+              Search, scrape, browse, collect evidence, and synthesize findings.
             </p>
           </div>
           <DiagPreview diagnostics={diagnostics} />
         </div>
-        <div className="flex gap-2 mt-4">
-          {tabBtn("workspace", "Workspace")}
-          {tabBtn("search", "Search / Scrape")}
-          {tabBtn("ai-research", "AI Research")}
-          {tabBtn("profile-discovery", "Profile Discovery")}
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between mt-4">
+          <div className="flex gap-2 flex-wrap">
+            {tabBtn("workspace", "Workspace")}
+            {tabBtn("search", "Search / Scrape")}
+            {tabBtn("ai-research", "AI Research")}
+            {tabBtn("browser", "Browser")}
+            {tabBtn("profile-discovery", "Profile Discovery")}
+          </div>
+          <div className="shrink-0">
+            <ResearchProviderStatus onOpenApiKeyDialog={() => setError("Open the API Key dialog (lock icon in the header) to add your Venice key.")} />
+          </div>
         </div>
       </div>
 
@@ -379,6 +417,51 @@ export function SearchScrapeView() {
                 loading={loading}
                 runSearch={runSearch}
                 searchResults={searchResults}
+                onOpenInBrowser={async (url) => {
+                  await researchBrowserBridge.navigate({ urlOrQuery: url });
+                  setSubTab("browser");
+                }}
+                onScrapeWithVenice={async (url) => {
+                  setUrl(url);
+                  await runScrape();
+                }}
+                onReadWithJina={async (url) => {
+                  setUrl(url);
+                  setScrapeOutput("Reading with Jina...");
+                  try {
+                    const result = await runResearchScrape({ url, provider: "jina" });
+                    if (result.sources[0]?.excerpt) {
+                      setScrapeOutput(String(result.sources[0].excerpt));
+                    }
+                  } catch (err) {
+                    setScrapeOutput(String(err));
+                  }
+                }}
+                onSaveToSession={async (item) => {
+                  const store = useResearchStore.getState();
+                  if (!store.activeSessionId) {
+                    setError("No active research session. Open the Workspace tab and create a session first.");
+                    return;
+                  }
+                  await store.addSource(store.activeSessionId, {
+                    kind: "search_result",
+                    provider: "venice",
+                    title: item.title || "Untitled",
+                    url: item.url || item.link,
+                    excerpt: item.snippet || item.content || item.description,
+                    retrievedAt: new Date().toISOString(),
+                    citations: [],
+                    tags: [],
+                  });
+                  toast.success("Saved to active research session");
+                }}
+                onOpenExternal={async (url) => {
+                  if (isElectron()) {
+                    await researchBrowserBridge.openExternal(url);
+                  } else if (isTrustedExternalUrl(url)) {
+                    window.open(url, "_blank", "noopener,noreferrer");
+                  }
+                }}
               />
               <ScrapeTab
                 url={url}
@@ -406,12 +489,40 @@ export function SearchScrapeView() {
             setResearchQuestion={setResearchQuestion}
             researchProviderId={researchProviderId}
             setResearchProviderId={setResearchProviderId}
+            researchSearchProvider={researchSearchProvider}
+            setResearchSearchProvider={setResearchSearchProvider}
+            researchScrapeProvider={researchScrapeProvider}
+            setResearchScrapeProvider={setResearchScrapeProvider}
+            researchRunMode={researchRunMode}
+            setResearchRunMode={setResearchRunMode}
+            researchBudget={researchBudget}
+            setResearchBudget={setResearchBudget}
             loading={loading}
             runAiResearch={runAiResearch}
             researchOutput={researchOutput}
             setResearchOutput={setResearchOutput}
             researchCitations={researchCitations}
           />
+        )}
+
+        {subTab === "browser" && (
+          <div className="h-[calc(100vh-220px)] min-h-[400px]">
+            <ResearchBrowserView
+              onCaptureWithJina={async (url) => {
+                setUrl(url);
+                setScrapeOutput("Reading with Jina...");
+                try {
+                  const result = await runResearchScrape({ url, provider: "jina" });
+                  if (result.sources[0]?.excerpt) {
+                    setScrapeOutput(String(result.sources[0].excerpt));
+                    setSubTab("search");
+                  }
+                } catch (err) {
+                  setScrapeOutput(String(err));
+                }
+              }}
+            />
+          </div>
         )}
 
         {subTab === "profile-discovery" && (

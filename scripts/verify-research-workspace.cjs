@@ -57,8 +57,8 @@ for (const token of ["Research Workspace", "New Research Session", "Export Resea
 }
 console.log("✅ Command Palette integration verified.");
 
-const searchView = readFileSync("src/components/SearchScrapeView.tsx", "utf8");
-for (const token of ["Workspace", "Search / Scrape", "AI Research", "Profile Discovery", "Text Parser"]) {
+const searchView = readFileSync("src/components/search/SearchScrapeView.tsx", "utf8");
+for (const token of ["Workspace", "Search / Scrape", "AI Research", "Profile Discovery", "ResearchProviderStatus", "browser", "ResearchBrowserView"]) {
   if (!searchView.includes(token)) {
     console.error(`[verify:research-workspace] SearchScrapeView compatibility token missing: ${token}`);
     process.exit(1);

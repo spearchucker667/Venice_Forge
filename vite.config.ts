@@ -45,6 +45,15 @@ export default defineConfig(() => {
               if (id.includes('@xyflow') || id.includes('reactflow')) return 'vendor-xyflow';
               if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/react-router/') || id.includes('/zustand/')) return 'vendor-react';
               if (id.includes('/framer-motion/')) return 'vendor-framer';
+              if (id.includes('/react-markdown/') || id.includes('/remark/') || id.includes('/rehype/') || id.includes('/markdown/')) return 'vendor-markdown';
+              if (id.includes('/katex/') || id.includes('/mathjax/')) return 'vendor-math';
+              if (id.includes('/monaco-editor/') || id.includes('/@monaco/')) return 'vendor-monaco';
+              if (id.includes('/d3/') || id.includes('/d3-')) return 'vendor-d3';
+              if (id.includes('/recharts/') || id.includes('/victory/')) return 'vendor-charts';
+              if (id.includes('/lodash/') || id.includes('/lodash-es/')) return 'vendor-lodash';
+              if (id.includes('/mermaid/')) return 'vendor-mermaid';
+              if (id.includes('/prismjs/') || id.includes('/highlight.js/')) return 'vendor-syntax';
+              if (id.includes('/i18next/') || id.includes('/react-i18next/')) return 'vendor-i18n';
               return 'vendor'; // generic fallback for other node_modules
             }
           }

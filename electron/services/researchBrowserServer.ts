@@ -1,4 +1,4 @@
-import { BrowserWindow, WebContentsView, ipcMain, session } from "electron";
+import { BrowserWindow, WebContentsView, ipcMain, session, shell } from "electron";
 import type { 
   ResearchBrowserState, 
   ResearchBrowserBoundsInput, 
@@ -11,6 +11,8 @@ let researchView: WebContentsView | null = null;
 let mainWindowRef: BrowserWindow | null = null;
 let currentBounds: ResearchBrowserBoundsInput | null = null;
 
+let lastBlockedError: string | null = null;
+
 function getViewState(): ResearchBrowserState {
   if (!researchView) {
     return {
@@ -20,18 +22,19 @@ function getViewState(): ResearchBrowserState {
       canGoBack: false,
       canGoForward: false,
       loading: false,
-      error: null,
+      error: lastBlockedError,
       securityLabel: "internal",
     };
   }
-  
+
   const wc = researchView.webContents;
   const url = wc.getURL();
-  
+
   let securityLabel: ResearchBrowserState["securityLabel"] = "secure";
-  if (url.startsWith("http://")) securityLabel = "insecure";
+  if (lastBlockedError) securityLabel = "blocked";
+  else if (url.startsWith("http://")) securityLabel = "insecure";
   else if (!url.startsWith("http")) securityLabel = "internal";
-  
+
   return {
     visible: currentBounds?.visible ?? false,
     url: url || null,
@@ -39,9 +42,18 @@ function getViewState(): ResearchBrowserState {
     canGoBack: wc.canGoBack(),
     canGoForward: wc.canGoForward(),
     loading: wc.isLoading(),
-    error: null,
+    error: lastBlockedError,
     securityLabel,
   };
+}
+
+function clearBlockedState() {
+  lastBlockedError = null;
+}
+
+function setBlockedState(reason: string) {
+  lastBlockedError = reason;
+  broadcastState();
 }
 
 function broadcastState() {
@@ -49,7 +61,10 @@ function broadcastState() {
   mainWindowRef.webContents.send("researchBrowser:onStateChanged", getViewState());
 }
 
-import { isAllowedResearchBrowserUrl } from "../utils/urlSecurity";
+import { isAllowedResearchBrowserUrl, isTrustedExternalUrl } from "../utils/urlSecurity";
+
+import { screenResponseBody } from "../../src/shared/safety";
+import { getRuntimeLocalFamilySafeModeEnabled } from "./runtimeSafetySettings";
 
 function assertSafeUrl(url: string): boolean {
   return isAllowedResearchBrowserUrl(url);
@@ -61,11 +76,26 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
   ipcMain.handle("researchBrowser:create", async () => {
     if (researchView) return { ok: true };
 
-    const researchSession = session.fromPartition("persist:research");
+    const researchSession = session.fromPartition("persist:venice-forge-research-browser");
 
-    // Strict Permissions: Block all unneeded permissions
-    researchSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    // Block all permission requests (camera, microphone, geolocation, notifications, etc.)
+    researchSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
       callback(false);
+    });
+
+    // Block permission check requests (required for some APIs)
+    researchSession.setPermissionCheckHandler((_webContents, _permission) => {
+      return false;
+    });
+
+    // Block navigation to disallowed URLs before the network request is made
+    researchSession.webRequest.onBeforeRequest({ urls: ["*://*/*"] }, (details, callback) => {
+      if (!assertSafeUrl(details.url)) {
+        callback({ cancel: true });
+        setBlockedState(`Blocked navigation to disallowed URL: ${details.url}`);
+        return;
+      }
+      callback({ cancel: false });
     });
 
     researchView = new WebContentsView({
@@ -84,21 +114,44 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
 
     const wc = researchView.webContents;
 
-    wc.on("did-start-loading", () => broadcastState());
+    wc.on("did-start-loading", () => {
+      clearBlockedState();
+      broadcastState();
+    });
     wc.on("did-stop-loading", () => broadcastState());
     wc.on("page-title-updated", () => broadcastState());
     wc.on("did-navigate", () => broadcastState());
     wc.on("did-navigate-in-page", () => broadcastState());
 
+    // Block main-frame navigation to unsafe URLs
     wc.on("will-navigate", (details) => {
       if (!assertSafeUrl(details.url)) {
         details.preventDefault();
+        setBlockedState(`Navigation blocked: ${details.url}`);
+      }
+    });
+
+    // Block sub-frame navigation to unsafe URLs
+    wc.on("will-frame-navigate", (details) => {
+      if (!assertSafeUrl(details.url)) {
+        details.preventDefault();
+        setBlockedState(`Frame navigation blocked: ${details.url}`);
+      }
+    });
+
+    // Block redirects to unsafe URLs
+    wc.on("will-redirect", (details) => {
+      if (!assertSafeUrl(details.url)) {
+        details.preventDefault();
+        setBlockedState(`Redirect blocked: ${details.url}`);
       }
     });
 
     wc.setWindowOpenHandler((details) => {
       if (assertSafeUrl(details.url)) {
         wc.loadURL(details.url);
+      } else {
+        setBlockedState(`Popup blocked: ${details.url}`);
       }
       return { action: "deny" };
     });
@@ -114,11 +167,13 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     researchView.webContents.close();
     researchView = null;
     currentBounds = null;
+    lastBlockedError = null;
     broadcastState();
     return { ok: true };
   });
 
   ipcMain.handle("researchBrowser:setVisible", async (_event, visible: boolean) => {
+    if (typeof visible !== "boolean") return { ok: false, error: "Invalid boolean" };
     if (!researchView || !mainWindowRef || mainWindowRef.isDestroyed()) {
       return { ok: false, error: "Not initialized" };
     }
@@ -141,13 +196,26 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
   });
 
   ipcMain.handle("researchBrowser:setBounds", async (_event, input: ResearchBrowserBoundsInput) => {
+    if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
+    if (typeof input.x !== "number" || !Number.isFinite(input.x) ||
+        typeof input.y !== "number" || !Number.isFinite(input.y) ||
+        typeof input.width !== "number" || !Number.isFinite(input.width) ||
+        typeof input.height !== "number" || !Number.isFinite(input.height) ||
+        typeof input.visible !== "boolean") {
+      return { ok: false, error: "Invalid bounds parameters" };
+    }
+    input.x = Math.max(0, input.x);
+    input.y = Math.max(0, input.y);
+    input.width = Math.max(0, input.width);
+    input.height = Math.max(0, input.height);
+
     if (!researchView || !mainWindowRef || mainWindowRef.isDestroyed()) {
       return { ok: false, error: "Not initialized" };
     }
-    
+
     const wasVisible = currentBounds?.visible ?? false;
     currentBounds = input;
-    
+
     if (input.visible && !wasVisible) {
       mainWindowRef.contentView.addChildView(researchView);
     } else if (!input.visible && wasVisible) {
@@ -162,30 +230,41 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
         height: input.height,
       });
     }
-    
+
     broadcastState();
     return { ok: true };
   });
 
   ipcMain.handle("researchBrowser:navigate", async (_event, input: ResearchBrowserNavigateInput) => {
+    if (!input || typeof input.urlOrQuery !== "string") return { ok: false, error: "Invalid input" };
     if (!researchView) return { ok: false, error: "Not initialized" };
-    let finalUrl = input.urlOrQuery;
-    
+    let finalUrl = input.urlOrQuery.trim();
+
     if (!finalUrl.startsWith("http://") && !finalUrl.startsWith("https://")) {
       try {
         new URL(finalUrl);
-        finalUrl = `https://${finalUrl}`;
       } catch {
-        // It's a query
+        if (!finalUrl.includes(" ") && finalUrl.includes(".")) {
+          try {
+            new URL(`https://${finalUrl}`);
+            finalUrl = `https://${finalUrl}`;
+          } catch {
+            // ignore
+          }
+        }
+      }
+      
+      if (!finalUrl.startsWith("http://") && !finalUrl.startsWith("https://")) {
         if (input.searchProvider === "brave") {
-          finalUrl = `https://search.brave.com/search?q=${encodeURIComponent(finalUrl)}`;
+          finalUrl = `https://search.brave.com/search?q=${encodeURIComponent(input.urlOrQuery)}`;
         } else {
-          finalUrl = `https://www.google.com/search?q=${encodeURIComponent(finalUrl)}`;
+          finalUrl = `https://www.google.com/search?q=${encodeURIComponent(input.urlOrQuery)}`;
         }
       }
     }
 
     if (!assertSafeUrl(finalUrl)) {
+      setBlockedState(`Blocked insecure or private URL: ${finalUrl}`);
       return { ok: false, error: "Blocked insecure protocol" };
     }
 
@@ -230,6 +309,19 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     return { ok: true, state: getViewState() };
   });
 
+  ipcMain.handle("researchBrowser:openExternal", async (_event, url: string) => {
+    if (typeof url !== "string") return { ok: false, error: "Invalid url type" };
+    if (!isTrustedExternalUrl(url)) {
+      return { ok: false, error: "Blocked URL" };
+    }
+    try {
+      await shell.openExternal(url);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : "Failed to open URL" };
+    }
+  });
+
   ipcMain.handle("researchBrowser:scrapeCurrent", async (): Promise<{ ok: boolean; source?: ResearchBrowserScrapeResult; error?: string }> => {
     if (!researchView) return { ok: false, error: "Not initialized" };
     try {
@@ -262,22 +354,35 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
         })();
       `);
 
+      const source = {
+        provider: "browser" as const,
+        url: result.url,
+        title: result.title,
+        text: result.text,
+        markdown: result.text,
+        retrievedAt: new Date().toISOString(),
+        metadata: {
+          canonicalUrl: result.canonicalUrl,
+          description: result.description,
+          wordCount: result.wordCount,
+          extractionMethod: "DOM execution",
+        }
+      };
+
+      const serialized = JSON.stringify(source);
+      const screenResult = screenResponseBody(
+        serialized,
+        { endpoint: result.url, method: "GET", source: "ipc" },
+        getRuntimeLocalFamilySafeModeEnabled(),
+      );
+
+      if (!screenResult.allowed) {
+        return { ok: false, error: screenResult.userMessage };
+      }
+
       return {
         ok: true,
-        source: {
-          provider: "browser",
-          url: result.url,
-          title: result.title,
-          text: result.text,
-          markdown: result.text, // Fallback to raw text
-          retrievedAt: new Date().toISOString(),
-          metadata: {
-            canonicalUrl: result.canonicalUrl,
-            description: result.description,
-            wordCount: result.wordCount,
-            extractionMethod: "DOM execution",
-          }
-        }
+        source
       };
     } catch {
       return { ok: false, error: "Failed to scrape page DOM" };
@@ -299,14 +404,27 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
         })();
       `);
 
+      const metadata = {
+        url: result.url,
+        title: result.title,
+        canonicalUrl: result.canonicalUrl,
+        description: result.description
+      };
+
+      const serialized = JSON.stringify(metadata);
+      const screenResult = screenResponseBody(
+        serialized,
+        { endpoint: result.url, method: "GET", source: "ipc" },
+        getRuntimeLocalFamilySafeModeEnabled(),
+      );
+
+      if (!screenResult.allowed) {
+        return { ok: false, error: screenResult.userMessage };
+      }
+
       return {
         ok: true,
-        metadata: {
-          url: result.url,
-          title: result.title,
-          canonicalUrl: result.canonicalUrl,
-          description: result.description
-        }
+        metadata
       };
     } catch {
       return { ok: false, error: "Failed to capture metadata" };

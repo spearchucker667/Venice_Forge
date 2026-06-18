@@ -481,6 +481,7 @@ const veniceForge = {
     reload() { return ipcRenderer.invoke("researchBrowser:reload"); },
     stop() { return ipcRenderer.invoke("researchBrowser:stop"); },
     getState() { return ipcRenderer.invoke("researchBrowser:getState"); },
+    openExternal(url: string) { return ipcRenderer.invoke("researchBrowser:openExternal", url); },
     scrapeCurrent() { return ipcRenderer.invoke("researchBrowser:scrapeCurrent"); },
     captureMetadata() { return ipcRenderer.invoke("researchBrowser:captureMetadata"); },
     onStateChanged(callback: (state: ResearchBrowserState) => void) {

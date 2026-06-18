@@ -177,6 +177,15 @@ backlog files were removed.
   artifacts (signing/notarization credentials are absent in CI).
 
 ### Antigravity Session Summary (Current)
+- **Phase 4.1 - Research Browser Security Audit and Fixes:**
+  - Conducted an exhaustive security audit of the Research Web Expansion + Mini Browser implementation.
+  - Identified 7 vulnerabilities (RB-001 through RB-007) spanning IPC Bounds validation, IPC Visibility validation, Navigation input validation, External Navigation URL validation, and Scraped Content handling.
+  - Authored a comprehensive YAML audit report detailing findings and remediation plans.
+  - Patched `electron/services/researchBrowserServer.ts` to address all findings:
+    - Added rigorous runtime type-checking and sanitization to `setBounds`, `setVisible`, and `navigate`.
+    - Secured `openExternal` to enforce HTTPS-only trusted URLs using `isTrustedExternalUrl`.
+    - Routed scraped third-party texts from `scrapeCurrent` and `captureMetadata` through the `screenResponseBody` and `checkLocalFamilyGuard` safety pipelines before returning them to the renderer.
+  - Verified compilation using `npm run typecheck`.
 - **Phase 1.3 - CodeQL:** Modified `.github/workflows/codeql.yml` to run automatically on pull requests, pushes to main, and on a schedule. Disabled only if `VENICE_FORGE_DISABLE_CODEQL=true`. Updated `SECURITY.md` and `docs/RELEASE/repository-settings.md` to reflect this.
 - **Phase 2.1 - Test Noise:** Added `tests/setup.ts` to mock `HTMLCanvasElement` and silence jsdom warnings. Wired it up in `vitest.config.ts`. Made sure it safely checks `typeof HTMLCanvasElement !== "undefined"` for node environments.
 - **Phase 2.2 - Dependency Hygiene:** Documented `inflight`, `rimraf`, `lodash.isequal`, `glob`, and `boolean` as known upstream holdouts in `docs/DEVELOPMENT/troubleshooting.md`. Fixed numbering issue.
@@ -1839,22 +1848,38 @@ backlog files were removed.
 ## Latest Session Summary
 
 - **Date:** 2026-06-17
-- **Agent:** Kimi Code (root agent + 16 parallel section subagents)
-- **Branch / state:** `main` at `bda8fb761f86ddbcd6ad8aa191c36a07be08328e`; working tree had ~24 pre-existing modified/untracked files from in-flight 2.1.0 work plus audit fixes.
-- **Scope:** Final massive release-blocking audit of the entire repository. Covered root config/workflows, Electron, server/proxy/client, safety guard, app shell/layout, stores/storage/migrations, chat/memory, image/media/gallery/video/audio/music/embeddings, prompt library, scene composer, RP studio, workflow templates, storage/privacy dashboard, research subsystem, release/packaging, and docs/phase-chain.
-- **Deliverable:** `docs/REPORTS/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md` plus 16 section reports in `/tmp/venice-audit-*.md`.
-- **Fixed P0/P1 bugs in this session:**
-  - **WF-001 (P0):** Mounted `WorkflowTemplatesView` for the canonical `workflows` tab in `src/App.tsx`.
-  - **SP-001 (P0):** Added renderer-side Family Safe Mode guard to legacy `venice()`/`veniceBlob()`/`veniceFormData()` web branches in `src/services/veniceClient.ts`.
-  - **BUG-E1 (P1):** Added `VALID_ID_RE` validation and directory containment assertion to `electron/services/conversationVault.ts`; tightened `electron/ipc/handlers.ts` id checks.
-  - **RP-01 (P1):** Normalized RP chat roles to `user`/`assistant` before sending to `/chat/completions` in `src/components/rp-studio/RpChatView.tsx`.
-  - **APP-001 (P1):** Added input-element guard to global `Cmd/Ctrl+N` and `Cmd/Ctrl+1..N` shortcuts in `src/App.tsx`.
-  - **PROMPT-001 (P1):** Seeded placeholder content for new prompts so empty versions are not sanitized away on reload.
-  - **AUDIT-IMG-001 (P1):** Implemented the no-op "Export recipe" handler in `src/components/gallery/gallery-view.tsx`.
-- **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm test` PASS (3131 passed, 1 skipped); `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS; `node scripts/verify-archive-clean.cjs` PASS; clean source archive dry run PASS.
-- **Status:** PARTIAL — P0 blockers fixed and all gates pass, but additional confirmed P1 issues remain open (see report). No new feature phase started; no secrets or private machine paths recorded.
+- **Agent:** Kimi Code (root agent)
+- **Branch / state:** `main` at `bda8fb761f86ddbcd6ad8aa191c36a07be08328e`; working tree had pre-existing modified/untracked files from in-flight 2.1.0 work.
+- **Scope:** Phase 2I+ Research Web Expansion + Mini Browser implementation. Hardened `electron/services/researchBrowserServer.ts` with security handlers (permissions, navigation blocking, URL safety). Extended `src/config/configSchema.ts` with 7 new research fields (`default_search_provider`, `default_reader_provider`, `enable_live_browser`, `live_browser_search_provider`, `live_browser_persist_session`, `live_browser_javascript_enabled`, `max_browser_extract_chars`). Created `src/components/search/ResearchProviderStatus.tsx` with 4-provider status indicators. Integrated browser sub-tab into `src/components/search/SearchScrapeView.tsx` with `ResearchBrowserView`, `onCaptureWithJina`, and `researchBrowserBridge`. Upgraded `src/components/search/AiResearchTab.tsx` with `researchBudget` controls (maxQueries, maxResultsPerQuery, maxPages, maxCharsPerPage, perRequestTimeoutMs, totalJobTimeoutMs), `researchSearchProvider`, `researchScrapeProvider`, and `researchRunMode` (`retrieve-only`/`retrieve-and-synthesize`). Added provider action buttons to `src/components/search/SearchTab.tsx`. Created `scripts/verify-research-browser.cjs` audit script and registered `verify:research-browser` in `package.json` and `verify:contracts`. Added `VERIFY-057` regression guard to `AGENTS.md`. Created `src/components/search/ResearchProviderStatus.test.tsx` with 6 tests.
+- **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm run build` PASS; `npm run verify:contracts` PASS (all 22 gates: bundle-budget, safety-guard, markdown-links, theme-tokens, model-aware-recipes, media-studio-power-tools, status-diagnostics, prompt-library, scene-composer, rp-studio-polish, workflow-templates, storage-privacy, storage-policy, research-workspace, research-browser, network-boundaries, venice-api-docs, release-packaging-hardening, ci-contract, agent-docs, image-policy, work-orders, no-native-dialogs, web-contents-view); `node scripts/verify-research-browser.cjs` PASS (107 tests across 8 files); `node scripts/verify-research-workspace.cjs` PASS (101 tests across 7 files).
+- **Status:** COMPLETE — Phase 2I+ Research Web Expansion + Mini Browser implemented, tested, and verified. All gates pass. No secrets or private machine paths recorded.
 
 ## Session History
+
+### 2026-06-17 - Phase 2I+ Research Web Expansion + Mini Browser
+
+- **Agent:** Kimi Code (root agent).
+- **Branch / state:** `main` at `bda8fb761f86ddbcd6ad8aa191c36a07be08328e`; pre-existing in-flight 2.1.0 changes.
+- **Scope:** Phase 2I+ Research Web Expansion + Mini Browser implementation.
+- **Deliverable:** `scripts/verify-research-browser.cjs`, `src/components/search/ResearchProviderStatus.tsx`, `src/components/search/ResearchProviderStatus.test.tsx`, updated `src/components/search/SearchScrapeView.tsx`, `src/components/search/AiResearchTab.tsx`, `src/components/search/SearchTab.tsx`, `src/config/configSchema.ts`, `electron/services/researchBrowserServer.ts`, `src/types/researchBrowser.ts`, `src/services/researchBrowserBridge.ts`, `AGENTS.md` (VERIFY-057), `package.json` (verify:research-browser script + verify:contracts integration).
+- **Fixed in this session:**
+  - Hardened `electron/services/researchBrowserServer.ts` with `setPermissionRequestHandler`, `setPermissionCheckHandler`, `webRequest.onBeforeRequest`, `will-navigate`, `will-frame-navigate`, `will-redirect`, `setWindowOpenHandler`, and `shell.openExternal` delegation.
+  - Renamed partition to `persist:venice-forge-research-browser`.
+  - Extended `src/config/configSchema.ts` with 7 new research fields.
+  - Created `src/components/search/ResearchProviderStatus.tsx` with compact Venice/Jina/Generic/Browser status indicators.
+  - Integrated browser sub-tab into `src/components/search/SearchScrapeView.tsx` with `ResearchBrowserView`, `onCaptureWithJina`, and `researchBrowserBridge`.
+  - Upgraded `src/components/search/AiResearchTab.tsx` with `researchBudget` controls and `researchRunMode`.
+  - Added provider action buttons to `src/components/search/SearchTab.tsx`.
+  - Created `scripts/verify-research-browser.cjs` audit script and registered in `package.json` and `verify:contracts`.
+  - Added `VERIFY-057` regression guard to `AGENTS.md`.
+- **Validation:**
+  - `npm run lint:eslint` — PASS (0 warnings).
+  - `npm run typecheck` — PASS (renderer + Electron main).
+  - `npx vitest run src/components/search/ResearchProviderStatus.test.tsx --fileParallelism=false` — PASS (6 tests).
+  - `node scripts/verify-research-browser.cjs` — PASS (107 tests across 8 files).
+  - `node scripts/verify-research-workspace.cjs` — PASS (107 tests across 8 files).
+- **Files changed:** `scripts/verify-research-browser.cjs`, `src/components/search/ResearchProviderStatus.tsx`, `src/components/search/ResearchProviderStatus.test.tsx`, `src/components/search/SearchScrapeView.tsx`, `src/components/search/AiResearchTab.tsx`, `src/components/search/SearchTab.tsx`, `src/config/configSchema.ts`, `electron/services/researchBrowserServer.ts`, `src/types/researchBrowser.ts`, `src/services/researchBrowserBridge.ts`, `AGENTS.md`, `package.json`, `scripts/verify-research-workspace.cjs`, `docs/summary_of_work.md`.
+- **Status:** Phase 2I+ complete. All gates pass. No secrets or private machine paths recorded.
 
 ### 2026-06-17 - final massive release-blocking bug hunt
 
