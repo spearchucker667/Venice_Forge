@@ -5,42 +5,73 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { ChatInput } from "./chat-input";
 
-vi.mock("../../services/attachmentService", () => ({
-  isSupportedImageFile: vi.fn((file: File) => file.type === "image/png" || file.type === "image/jpeg" || file.type === "image/webp"),
-  readImageAttachment: vi.fn(async (file: File) => ({
-    id: "mock-id",
-    type: "image" as const,
-    name: file.name,
-    content: `data:${file.type};base64,mock`,
-    size: 1,
-  })),
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const mockImageAttachment = (name = "test.png", mimeType = "image/png") => ({
+  id: "mock-id",
+  kind: "image" as const,
+  name,
+  extension: name.split(".").pop() ?? "png",
+  mimeType,
+  sizeBytes: 1,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  dataUrl: `data:${mimeType};base64,mock`,
+  image: {
+    width: 1,
+    height: 1,
+    animated: false,
+    originalMimeType: mimeType,
+  },
+  extraction: {
+    route: "browser-image-decode" as const,
+    local: true,
+    truncated: false,
+    warnings: [],
+    errors: [],
+  },
+  modelRequirements: {
+    requiresVision: true,
+    canFallbackToText: false,
+  },
+  security: {
+    untrusted: true as const,
+    macrosExecuted: false as const,
+    scriptsExecuted: false as const,
+    htmlSanitized: true as const,
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Mocks
+// ---------------------------------------------------------------------------
+
+vi.mock("../../services/ingestion/attachmentAssembler", () => ({
+  processFileAttachment: vi.fn(async (file: File) => mockImageAttachment(file.name, file.type)),
 }));
 
 vi.mock("../../stores/toast-store", () => ({
   toast: { warn: vi.fn(), error: vi.fn(), success: vi.fn(), info: vi.fn() },
 }));
 
-import { isSupportedImageFile, readImageAttachment } from "../../services/attachmentService";
+import { processFileAttachment } from "../../services/ingestion/attachmentAssembler";
 import { toast } from "../../stores/toast-store";
 
-const mockIsSupportedImageFile = vi.mocked(isSupportedImageFile);
-const mockReadImageAttachment = vi.mocked(readImageAttachment);
-const mockToastWarn = vi.mocked(toast.warn);
+const mockProcessFileAttachment = vi.mocked(processFileAttachment);
+const _mockToastWarn = vi.mocked(toast.warn);
 const mockToastError = vi.mocked(toast.error);
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
 
 describe("ChatInput", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockIsSupportedImageFile.mockImplementation(
-      (file: File) => file.type === "image/png" || file.type === "image/jpeg" || file.type === "image/webp",
+    mockProcessFileAttachment.mockImplementation(async (file: File) =>
+      mockImageAttachment(file.name, file.type),
     );
-    mockReadImageAttachment.mockImplementation(async (file: File) => ({
-      id: "mock-id",
-      type: "image" as const,
-      name: file.name,
-      content: `data:${file.type};base64,mock`,
-      size: 1,
-    }));
   });
 
   it("renders a disabled textarea and send button when disabled", () => {
@@ -84,7 +115,7 @@ describe("ChatInput", () => {
     expect(onSend).not.toHaveBeenCalled();
   });
 
-  it("disables image attach when disableImageAttach is true", () => {
+  it("disables file attach button when disableImageAttach is true", () => {
     render(
       <ChatInput
         onSend={vi.fn()}
@@ -94,7 +125,7 @@ describe("ChatInput", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Attach image" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Attach file" })).toBeDisabled();
   });
 
   it("calls onStop while streaming", () => {
@@ -115,13 +146,16 @@ describe("ChatInput", () => {
     await userEvent.upload(fileInput, file);
 
     await waitFor(() => expect(screen.getByAltText("Attachment 1")).toBeInTheDocument());
-    expect(mockReadImageAttachment).toHaveBeenCalledWith(file);
+    expect(mockProcessFileAttachment).toHaveBeenCalledWith(file);
 
     const input = screen.getByLabelText("Message input");
     await userEvent.type(input, "Look at this");
     await userEvent.keyboard("{Enter}");
 
-    expect(onSend).toHaveBeenCalledWith("Look at this", ["data:image/png;base64,mock"]);
+    expect(onSend).toHaveBeenCalledWith(
+      "Look at this",
+      [expect.objectContaining({ kind: "image", name: "test.png" })],
+    );
   });
 
   it("enables the send button when only an image is attached (no text)", async () => {
@@ -153,7 +187,10 @@ describe("ChatInput", () => {
     await userEvent.click(input);
     await userEvent.keyboard("{Enter}");
 
-    expect(onSend).toHaveBeenCalledWith("", ["data:image/png;base64,mock"]);
+    expect(onSend).toHaveBeenCalledWith(
+      "",
+      [expect.objectContaining({ kind: "image", name: "test.png" })],
+    );
     expect(input).toHaveValue("");
   });
 
@@ -169,7 +206,10 @@ describe("ChatInput", () => {
     await userEvent.click(screen.getByRole("button", { name: "Send message" }));
 
     await waitFor(() => expect(screen.queryByAltText("Attachment 1")).not.toBeInTheDocument());
-    expect(onSend).toHaveBeenCalledWith("", ["data:image/png;base64,mock"]);
+    expect(onSend).toHaveBeenCalledWith(
+      "",
+      [expect.objectContaining({ kind: "image", name: "test.png" })],
+    );
   });
 
   it("does not submit when no text and no images are present (regression guard)", async () => {
@@ -183,7 +223,7 @@ describe("ChatInput", () => {
     expect(onSend).not.toHaveBeenCalled();
   });
 
-  it("routes image uploads through attachmentService.readImageAttachment (P1-002)", async () => {
+  it("routes image uploads through processFileAttachment (P1-002)", async () => {
     const onSend = vi.fn();
     render(<ChatInput onSend={onSend} onStop={vi.fn()} isStreaming={false} />);
 
@@ -193,31 +233,12 @@ describe("ChatInput", () => {
     await userEvent.upload(fileInput, file);
 
     await waitFor(() => expect(screen.getByAltText("Attachment 1")).toBeInTheDocument());
-    expect(mockIsSupportedImageFile).toHaveBeenCalledWith(file);
-    expect(mockReadImageAttachment).toHaveBeenCalledWith(file);
+    expect(mockProcessFileAttachment).toHaveBeenCalledWith(file);
   });
 
-  it("warns and skips an unsupported image MIME type instead of crashing", async () => {
+  it("surfaces a toast error when processFileAttachment throws", async () => {
     const onSend = vi.fn();
-    mockIsSupportedImageFile.mockReturnValue(false);
-    render(<ChatInput onSend={onSend} onStop={vi.fn()} isStreaming={false} />);
-
-    const file = new File(["dummy"], "photo.bmp", { type: "image/bmp" });
-    const fileInput = screen.getByLabelText("Message input").parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
-
-    fireEvent.change(fileInput, { target: { files: [file] } });
-
-    await waitFor(() => expect(mockToastWarn).toHaveBeenCalledWith(
-      "Unsupported image",
-      expect.stringContaining("photo.bmp"),
-    ));
-    expect(mockReadImageAttachment).not.toHaveBeenCalled();
-    expect(screen.queryByAltText("Attachment 1")).not.toBeInTheDocument();
-  });
-
-  it("surfaces a toast error when readImageAttachment throws", async () => {
-    const onSend = vi.fn();
-    mockReadImageAttachment.mockRejectedValueOnce(new Error("decode failure"));
+    mockProcessFileAttachment.mockRejectedValueOnce(new Error("decode failure"));
     render(<ChatInput onSend={onSend} onStop={vi.fn()} isStreaming={false} />);
 
     const file = new File(["dummy"], "broken.png", { type: "image/png" });
@@ -225,21 +246,23 @@ describe("ChatInput", () => {
 
     await userEvent.upload(fileInput, file);
 
-    await waitFor(() => expect(mockToastError).toHaveBeenCalledWith(
-      "Image attachment failed",
-      expect.stringContaining("decode failure"),
-    ));
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith(
+        "Attachment failed",
+        expect.stringContaining("decode failure"),
+      ),
+    );
     expect(screen.queryByAltText("Attachment 1")).not.toBeInTheDocument();
   });
 
-  it("uses the attachmentService pipeline for pasted images, not the raw FileReader", async () => {
+  it("uses the processFileAttachment pipeline for pasted files, not raw FileReader", async () => {
     const onSend = vi.fn();
     render(<ChatInput onSend={onSend} onStop={vi.fn()} isStreaming={false} />);
 
     const file = new File(["pasted"], "paste.png", { type: "image/png" });
     const clipboardData = {
       items: [
-        { type: "image/png", getAsFile: () => file },
+        { kind: "file", type: "image/png", getAsFile: () => file },
       ],
     };
 
@@ -247,7 +270,7 @@ describe("ChatInput", () => {
     fireEvent.paste(input, { clipboardData });
 
     await waitFor(() => expect(screen.getByAltText("Attachment 1")).toBeInTheDocument());
-    expect(mockReadImageAttachment).toHaveBeenCalledWith(file);
+    expect(mockProcessFileAttachment).toHaveBeenCalledWith(file);
   });
 
   it("does not use hardcoded white/black theme classes (light-theme regression guard)", () => {
@@ -280,5 +303,26 @@ describe("ChatInput", () => {
     const stopButton = screen.getByRole("button", { name: "Stop generating" });
     expect(stopButton.className).toContain("bg-surface-elevated");
     expect(stopButton.className).toContain("text-text-primary");
+  });
+
+  // Warn spy for unsupported attachment type (processFileAttachment rejects with UnsupportedFileTypeError)
+  it("surfaces a toast error when an unsupported file type is attached", async () => {
+    const onSend = vi.fn();
+    const { UnsupportedFileTypeError } = await import("../../services/ingestion/ingestionErrors");
+    mockProcessFileAttachment.mockRejectedValueOnce(new UnsupportedFileTypeError("photo.bmp"));
+    render(<ChatInput onSend={onSend} onStop={vi.fn()} isStreaming={false} />);
+
+    const file = new File(["dummy"], "photo.bmp", { type: "image/bmp" });
+    const fileInput = screen.getByLabelText("Message input").parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
+
+    await userEvent.upload(fileInput, file);
+
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith(
+        "Attachment failed",
+        expect.stringContaining("photo.bmp"),
+      ),
+    );
+    expect(screen.queryByAltText("Attachment 1")).not.toBeInTheDocument();
   });
 });

@@ -60,8 +60,8 @@ export function ChatView() {
     const requiresVision = attachments?.some(att => att.modelRequirements.requiresVision) ?? false;
     if (requiresVision && !visionSupported) {
       toast.warn(
-        'Model does not support vision',
-        `“${model}” cannot process visual attachments like images or scanned PDFs. Pick a vision-capable model in the header before sending.`,
+        'Model does not support images',
+        `"${model}" is not vision-capable. Pick a vision-capable model before sending images or scanned PDFs.`,
       )
       return
     }

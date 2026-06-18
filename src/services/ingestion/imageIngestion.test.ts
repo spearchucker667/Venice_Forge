@@ -3,8 +3,8 @@ import { ingestImageFile } from "./imageIngestion";
 import { MAX_IMAGE_FILE_BYTES } from "./ingestionLimits";
 import { FileTooLargeError, UnsupportedFileTypeError } from "./ingestionErrors";
 
-// Since tests run in a Node environment (JSDOM), canvas and Image behavior is mocked or limited.
-// We'll test error handling and classification routes.
+// Since tests run in a jsdom environment, canvas and Image behaviour is mocked or limited.
+// We test error handling and classification routes only.
 
 describe("imageIngestion", () => {
   it("throws FileTooLargeError if file size exceeds MAX_IMAGE_FILE_BYTES", async () => {
@@ -24,10 +24,36 @@ describe("imageIngestion", () => {
   });
 
   it("fails to decode gracefully in test environment without canvas", async () => {
-    // Vitest jsdom might not fully support canvas downscaling out of the box without canvas package
-    const file = new File(["fake image data"], "test.png", { type: "image/png" });
-    
-    // It should try to inspect and then reject because it's fake data
-    await expect(ingestImageFile(file)).rejects.toThrow("Image codec unsupported or decode failed for file: test.png");
+    // Mock URL.createObjectURL / revokeObjectURL so they don't throw in jsdom.
+    const origCreate = globalThis.URL?.createObjectURL;
+    const origRevoke = globalThis.URL?.revokeObjectURL;
+    globalThis.URL.createObjectURL = () => "blob:mock-url";
+    globalThis.URL.revokeObjectURL = () => undefined;
+
+    // Mock globalThis.Image so onerror fires deterministically instead of hanging.
+    const OriginalImage = (globalThis as Record<string, unknown>).Image;
+
+    class MockImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+
+      set src(_value: string) {
+        // Fire onerror asynchronously to simulate a failed decode.
+        queueMicrotask(() => this.onerror?.());
+      }
+    }
+
+    (globalThis as Record<string, unknown>).Image = MockImage as unknown as typeof Image;
+
+    try {
+      const file = new File(["fake image data"], "test.png", { type: "image/png" });
+      await expect(ingestImageFile(file)).rejects.toThrow(
+        "Image codec unsupported or decode failed for file: test.png",
+      );
+    } finally {
+      (globalThis as Record<string, unknown>).Image = OriginalImage;
+      globalThis.URL.createObjectURL = origCreate;
+      globalThis.URL.revokeObjectURL = origRevoke;
+    }
   });
 });

@@ -112,10 +112,12 @@ remains. The current canonical roadmap is
 backlog files were removed.
 
 ### Latest Session Summary
-- **2026-06-18 CI Blockers fix (audit + CodeQL):**
-  - Updated `http-proxy-middleware` to `^4.1.1` to resolve a deterministic `npm audit` failure blocking CI.
-  - Replaced `.github/workflows/codeql.yml` configuration to set `build-mode: none` for javascript-typescript, fixing the CodeQL custom workflow failures.
-  - Ran local validation gates including `verify:ci-contract` and `npm audit --audit-level=moderate`.
+- **2026-06-18 CI repair — build ordering, attachment tests, imageIngestion timeout:**
+  - Fixed `verify:contracts` running before `npm run build` in the `build-and-test` CI job (`ci.yml` lines 31-34). Windows and macOS sensitive-test jobs already had the correct order.
+  - Updated `chat-view.tsx` toast title from `'Model does not support vision'` to `'Model does not support images'` with clearer user-facing copy.
+  - Rewrote `chat-input.test.tsx` to the new `processFileAttachment` / `IngestedAttachment` contract (mock target changed from `../../services/attachmentService` to `../../services/ingestion/attachmentAssembler`; `onSend` assertions updated from `string[]` to `IngestedAttachment[]`; button aria-label updated to `"Attach file"`; toast title updated to `"Attachment failed"`).
+  - Fixed `imageIngestion.test.ts` hanging test by mocking `globalThis.Image` with `queueMicrotask(() => this.onerror?.())` and mocking `URL.createObjectURL/revokeObjectURL`, so the decode-failure path resolves deterministically without a timeout.
+  - CodeQL blocker (default setup enabled) requires a manual step in GitHub Settings: Repo → Settings → Advanced Security → CodeQL analysis → Switch to advanced.
 
 ### Previous Session Summary (2025-08-19 Final Massive Bug Hunt & Fix Pass)
 - **Agent documentation governance tightened:** Updated `AGENTS.md` and the
@@ -334,6 +336,19 @@ backlog files were removed.
   Linux, and macOS draft artifacts.
 
 ### Session History
+
+- **Date:** 2026-06-18 (CI repair — build ordering, attachment tests, imageIngestion timeout)
+- **Agent:** Antigravity (Claude Sonnet 4.6 Thinking)
+- **Branch / state:** `main`
+- **Scope:** CI pipeline repair — three separate blockers.
+- **Summary:**
+  - Fixed `verify:contracts` / `build` ordering in `build-and-test` CI job.
+  - Updated `chat-view.tsx` vision-unsupported toast copy to match test expectation.
+  - Rewrote `chat-input.test.tsx` to the `processFileAttachment` / `IngestedAttachment` contract.
+  - Fixed `imageIngestion.test.ts` hanging test with deterministic `globalThis.Image` mock.
+- **Files changed:** `.github/workflows/ci.yml`, `src/components/chat/chat-view.tsx`, `src/components/chat/chat-input.test.tsx`, `src/services/ingestion/imageIngestion.test.ts`, `docs/summary_of_work.md`.
+- **Validation:** `npm ci`, `npm audit`, `lint:eslint`, `typecheck`, targeted Vitest, `test:coverage`, `build`, `verify:contracts`, `verify:dist`, `verify:ci-contract` PASS.
+- **Status:** COMPLETE — all three code-level CI blockers resolved. CodeQL default-setup conflict requires manual GitHub Settings action.
 
 - **Date:** 2026-06-18 (CI Blockers fix: audit + CodeQL)
 - **Agent:** Antigravity (Gemini 3.1 Pro)

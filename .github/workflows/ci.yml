@@ -29,8 +29,8 @@ jobs:
       - run: npm run lint:eslint
       - run: npm run typecheck
       - run: npm run test:coverage
-      - run: npm run verify:contracts
       - run: npm run build
+      - run: npm run verify:contracts
       - run: npm run verify:dist
 
   # Windows-sensitive-tests: targets the path-handling and Electron-specific
