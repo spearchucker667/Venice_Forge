@@ -16,6 +16,7 @@ import { isTrustedExternalUrl } from "./utils/urlSecurity";
 import { startBridgeServer, stopBridgeServer } from "./services/bridgeServer";
 import { isValidBridgeHost } from "./utils/bridgeHost";
 import { getCharacterImageCacheDir, ALLOWED_CONTENT_TYPES } from "./services/characterImageCache";
+import { setupResearchBrowserIpc } from "./services/researchBrowserServer";
 
 export { isValidBridgeHost };
 
@@ -206,6 +207,7 @@ function createWindow(): BrowserWindow {
   }
 
   win.once("ready-to-show", () => win.show());
+  setupResearchBrowserIpc(win);
   return win;
 }
 

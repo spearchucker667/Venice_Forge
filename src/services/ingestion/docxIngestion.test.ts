@@ -1,0 +1,111 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { ingestDocxFile, ingestDocFile } from "./docxIngestion";
+import { MAX_DOCX_FILE_BYTES, MAX_DOC_FILE_BYTES, MAX_EXTRACTED_TEXT_CHARS } from "./ingestionLimits";
+import { FileTooLargeError, DocxExtractionError, UnsupportedFileTypeError } from "./ingestionErrors";
+
+// Mammoth needs to be mocked nicely since it's dynamically imported
+vi.mock("mammoth", () => ({
+  extractRawText: vi.fn(),
+}));
+
+describe("docxIngestion", () => {
+  const createDocxFile = (sizeBytes: number = 100) => {
+    return {
+      name: "test.docx",
+      size: sizeBytes,
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      arrayBuffer: async () => new ArrayBuffer(0),
+    } as unknown as File;
+  };
+
+  const createDocFile = (sizeBytes: number = 100) => {
+    return {
+      name: "legacy.doc",
+      size: sizeBytes,
+      type: "application/msword",
+      arrayBuffer: async () => new ArrayBuffer(0),
+    } as unknown as File;
+  };
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  describe("ingestDocxFile", () => {
+    it("ingests a valid DOCX file using mammoth and wraps content", async () => {
+      const mammoth = await import("mammoth");
+      vi.mocked(mammoth.extractRawText).mockResolvedValueOnce({
+        value: "DOCX Content here",
+        messages: [{ type: "warning", message: "Some warning" }]
+      } as any);
+
+      const file = createDocxFile();
+      const result = await ingestDocxFile(file);
+
+      expect(result.kind).toBe("docx");
+      expect(result.text).toContain("DOCX Content here");
+      expect(result.text).toContain("<attached_file name=\"test.docx\" kind=\"docx\">");
+      expect(result.extraction.route).toBe("local-docx");
+      expect(result.extraction.truncated).toBe(false);
+      expect(result.extraction.warnings).toContain("Some warning");
+    });
+
+    it("truncates if text exceeds MAX_EXTRACTED_TEXT_CHARS", async () => {
+      const mammoth = await import("mammoth");
+      const longText = "A".repeat(MAX_EXTRACTED_TEXT_CHARS + 10);
+      vi.mocked(mammoth.extractRawText).mockResolvedValueOnce({
+        value: longText,
+        messages: []
+      } as any);
+
+      const file = createDocxFile();
+      const result = await ingestDocxFile(file);
+
+      expect(result.extraction.truncated).toBe(true);
+      expect(result.extraction.warnings.some(w => w.includes("truncated"))).toBe(true);
+      
+      const wrappedContentCount = (result.text?.match(/A/g) || []).length;
+      expect(wrappedContentCount).toBe(MAX_EXTRACTED_TEXT_CHARS);
+    });
+
+    it("throws FileTooLargeError if file size exceeds MAX_DOCX_FILE_BYTES", async () => {
+      const file = createDocxFile(MAX_DOCX_FILE_BYTES + 1);
+      await expect(ingestDocxFile(file)).rejects.toThrow(FileTooLargeError);
+    });
+
+    it("throws UnsupportedFileTypeError for non-docx files", async () => {
+      const file = new File(["binary"], "test.exe", { type: "application/x-msdownload" });
+      await expect(ingestDocxFile(file)).rejects.toThrow(UnsupportedFileTypeError);
+    });
+
+    it("wraps mammoth errors in DocxExtractionError", async () => {
+      const mammoth = await import("mammoth");
+      vi.mocked(mammoth.extractRawText).mockRejectedValueOnce(new Error("Corrupt DOCX"));
+
+      const file = createDocxFile();
+      await expect(ingestDocxFile(file)).rejects.toThrow(DocxExtractionError);
+    });
+  });
+
+  describe("ingestDocFile", () => {
+    it("handles legacy .doc without local parser but with correct fallback notice", async () => {
+      const file = createDocFile();
+      const result = await ingestDocFile(file);
+
+      expect(result.kind).toBe("doc");
+      expect(result.extraction.route).toBe("unsupported");
+      expect(result.extraction.local).toBe(false);
+      expect(result.extraction.warnings[0]).toContain("requires the Venice text parser");
+    });
+
+    it("throws FileTooLargeError if file size exceeds MAX_DOC_FILE_BYTES", async () => {
+      const file = createDocFile(MAX_DOC_FILE_BYTES + 1);
+      await expect(ingestDocFile(file)).rejects.toThrow(FileTooLargeError);
+    });
+
+    it("throws UnsupportedFileTypeError for non-doc files", async () => {
+      const file = new File(["binary"], "test.exe", { type: "application/x-msdownload" });
+      await expect(ingestDocFile(file)).rejects.toThrow(UnsupportedFileTypeError);
+    });
+  });
+});

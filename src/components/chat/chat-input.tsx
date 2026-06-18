@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '../../lib/utils'
-import { isSupportedImageFile, readImageAttachment } from '../../services/attachmentService'
 import { toast } from '../../stores/toast-store'
 import { redactErrorMessage } from '../../shared/redaction'
+import { IngestedAttachment } from '../../types/ingestion'
+import { processFileAttachment } from '../../services/ingestion/attachmentAssembler'
 import type { ChatMemoryStatus } from '../../hooks/use-chat'
 
 interface ChatInputProps {
-  onSend: (message: string, images?: string[]) => void
+  onSend: (message: string, attachments?: IngestedAttachment[]) => void
   onStop: () => void
   isStreaming: boolean
   disabled?: boolean
@@ -16,7 +17,7 @@ interface ChatInputProps {
 
 export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageAttach, memoryStatus = 'idle' }: ChatInputProps) {
   const [value, setValue] = useState('')
-  const [images, setImages] = useState<string[]>([])
+  const [attachments, setAttachments] = useState<IngestedAttachment[]>([])
   const [dragOver, setDragOver] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -26,34 +27,30 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
   const handleSubmit = () => {
     const trimmed = value.trim()
     if (disabled) return
-    if (!trimmed && images.length === 0) return
-    onSend(trimmed, images.length > 0 ? images : undefined)
+    if (!trimmed && attachments.length === 0) return
+    onSend(trimmed, attachments.length > 0 ? attachments : undefined)
     setValue('')
-    setImages([])
+    setAttachments([])
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
   }
 
   const attachDisabled = disabled || disableImageAttach
   const attachTitle = disableImageAttach
-    ? 'Selected model does not support image attachments'
-    : 'Attach image (or drag/paste)'
+    ? 'Selected model does not support file attachments'
+    : 'Attach file (or drag/paste)'
 
-  const handleImageUpload = async (files: FileList | File[] | null) => {
+  const handleFileUpload = async (files: FileList | File[] | null) => {
     if (!files) return
     const list = Array.from(files)
     for (const file of list) {
-      if (!isSupportedImageFile(file)) {
-        toast.warn(
-          'Unsupported image',
-          `"${file.name}" is not a supported image. Use PNG, JPEG, or WEBP.`,
-        )
-        continue
-      }
       try {
-        const attachment = await readImageAttachment(file)
-        setImages((prev) => [...prev, attachment.content])
+        const attachment = await processFileAttachment(file)
+        setAttachments((prev) => [...prev, attachment])
+        if (attachment.extraction.warnings.length > 0) {
+           attachment.extraction.warnings.forEach(w => toast.warn('Attachment note', w));
+        }
       } catch (err) {
-        toast.error('Image attachment failed', redactErrorMessage(err))
+        toast.error('Attachment failed', redactErrorMessage(err))
       }
     }
   }
@@ -61,26 +58,42 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
   return (
     <div className="px-4 sm:px-6 pb-5 pt-2">
       <div className="w-full max-w-[860px] mx-auto">
-        {images.length > 0 && (
+        {attachments.length > 0 && (
           <div className="flex gap-2 mb-2 overflow-x-auto pb-1">
-            {images.map((img, i) => {
-              // Sanitize base64/blob URL to satisfy CodeQL "js/xss-through-dom" guard
-              // by explicitly stripping meta-characters and enforcing strict prefix matching,
-              // even though React escapes props inherently.
-              const isSafe = ["data:image/png;base64,", "data:image/jpeg;base64,", "data:image/webp;base64,", "blob:"].some(prefix => img.startsWith(prefix));
-              const safeImg = isSafe ? img.replace(/[<>"']/g, "") : "";
+            {attachments.map((att, i) => {
+              if (att.kind === 'image' && att.dataUrl) {
+                const isSafe = ["data:image/png;base64,", "data:image/jpeg;base64,", "data:image/webp;base64,", "blob:"].some(prefix => att.dataUrl!.startsWith(prefix));
+                const safeImg = isSafe ? att.dataUrl!.replace(/[<>"']/g, "") : "";
+                return (
+                  <div key={att.id} className="relative group shrink-0" title={att.name}>
+                    <img src={safeImg} alt={`Attachment ${i + 1}`} className="h-16 w-16 object-cover rounded-lg border border-border" />
+                    <button
+                      onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
+                      aria-label={`Remove attachment ${att.name}`}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-danger hover:bg-danger/90 text-danger-fg border border-danger rounded-full flex items-center justify-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                    >
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    </button>
+                  </div>
+                );
+              }
+              // Document/text attachment card
               return (
-              <div key={i} className="relative group shrink-0">
-                <img src={safeImg} alt={`Attachment ${i + 1}`} className="h-16 w-16 object-cover rounded-lg border border-border" />
-                <button
-                  onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
-                  aria-label={`Remove attachment ${i + 1}`}
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-danger hover:bg-danger/90 text-danger-fg border border-danger rounded-full flex items-center justify-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-                >
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                </button>
-              </div>
-            )})}
+                <div key={att.id} className="relative group shrink-0 flex items-center gap-2 h-16 px-3 bg-surface border border-border rounded-lg max-w-[200px]" title={att.name}>
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <span className="text-[13px] font-medium text-text-primary truncate">{att.name}</span>
+                    <span className="text-[11px] text-text-muted uppercase tracking-wider">{att.kind}</span>
+                  </div>
+                  <button
+                    onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
+                    aria-label={`Remove attachment ${att.name}`}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-danger hover:bg-danger/90 text-danger-fg border border-danger rounded-full flex items-center justify-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                  >
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -96,7 +109,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
             e.preventDefault()
             e.stopPropagation()
             setDragOver(false)
-            if (!disableImageAttach) handleImageUpload(e.dataTransfer.files)
+            if (!disableImageAttach) handleFileUpload(e.dataTransfer.files)
           }}
         >
           <textarea
@@ -112,16 +125,16 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
               if (!items) return
               const files: File[] = []
               for (const item of items) {
-                if (item.type.startsWith('image/')) {
+                if (item.kind === 'file') {
                   const file = item.getAsFile()
                   if (file) files.push(file)
                 }
               }
               if (files.length > 0) {
-                void handleImageUpload(files)
+                void handleFileUpload(files)
               }
             }}
-            placeholder={disabled ? 'Connect an API key to start…' : dragOver ? 'Drop image to attach' : 'Ask anything — Enter to send, Shift+Enter for newline. Attach an image to send without text.'}
+            placeholder={disabled ? 'Connect an API key to start…' : dragOver ? 'Drop file to attach' : 'Ask anything — Enter to send, Shift+Enter for newline. Attach a file to send without text.'}
             rows={1}
             aria-label="Message input"
             className="w-full bg-transparent px-5 pt-4 pb-1 text-[16px] text-text-primary outline-none resize-none max-h-48 placeholder:text-text-muted leading-relaxed"
@@ -129,11 +142,12 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
           />
           <div className="flex items-center justify-between px-3 pb-2.5">
             <div className="flex items-center gap-2">
-              <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" multiple className="hidden" onChange={(e) => handleImageUpload(e.target.files)} />
+              {/* Note: In a full app, accept might be broader, but keeping generic multiple upload open */}
+              <input ref={fileRef} type="file" multiple className="hidden" onChange={(e) => handleFileUpload(e.target.files)} />
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={attachDisabled}
-                aria-label="Attach image"
+                aria-label="Attach file"
                 className="flex items-center gap-1.5 px-2 py-1.5 text-text-muted hover:text-text-primary text-[13px] transition-colors rounded-lg hover:bg-surface-elevated disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
                 title={attachTitle}
               >
@@ -155,11 +169,11 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
             ) : (
               <button
                 onClick={handleSubmit}
-                disabled={(!value.trim() && images.length === 0) || disabled}
+                disabled={(!value.trim() && attachments.length === 0) || disabled}
                 aria-label="Send message"
                 className={cn(
                   'w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2',
-                  (value.trim() || images.length > 0) && !disabled
+                  (value.trim() || attachments.length > 0) && !disabled
                     ? 'bg-accent text-accent-fg hover:bg-accent-hover active:scale-95 shadow-sm'
                     : 'bg-surface-elevated text-text-muted border border-border',
                 )}

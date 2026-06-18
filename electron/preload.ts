@@ -5,6 +5,11 @@ import { contextBridge, ipcRenderer } from "electron";
 import type { Conversation } from "../src/types/conversation";
 import type { ConversationRecordV1, SearchResult, PulledMemoryContext } from "../src/types/conversationVault";
 import type { CharacterCardV1, UserPersonaV1, LorebookV1, RpChatV1, RpAssetV1, ScenarioV1 } from "../src/types/rp";
+import type { 
+  ResearchBrowserState, 
+  ResearchBrowserNavigateInput, 
+  ResearchBrowserBoundsInput 
+} from "../src/types/researchBrowser";
 
 /** Represents a Venice API request sent from the renderer to the main process. */
 type VeniceRequest = {
@@ -462,6 +467,28 @@ const veniceForge = {
     },
     delete(id: string): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("scenarios:delete", id);
+    },
+  },
+
+  researchBrowser: {
+    create() { return ipcRenderer.invoke("researchBrowser:create"); },
+    destroy() { return ipcRenderer.invoke("researchBrowser:destroy"); },
+    setVisible(visible: boolean) { return ipcRenderer.invoke("researchBrowser:setVisible", visible); },
+    setBounds(input: ResearchBrowserBoundsInput) { return ipcRenderer.invoke("researchBrowser:setBounds", input); },
+    navigate(input: ResearchBrowserNavigateInput) { return ipcRenderer.invoke("researchBrowser:navigate", input); },
+    back() { return ipcRenderer.invoke("researchBrowser:back"); },
+    forward() { return ipcRenderer.invoke("researchBrowser:forward"); },
+    reload() { return ipcRenderer.invoke("researchBrowser:reload"); },
+    stop() { return ipcRenderer.invoke("researchBrowser:stop"); },
+    getState() { return ipcRenderer.invoke("researchBrowser:getState"); },
+    scrapeCurrent() { return ipcRenderer.invoke("researchBrowser:scrapeCurrent"); },
+    captureMetadata() { return ipcRenderer.invoke("researchBrowser:captureMetadata"); },
+    onStateChanged(callback: (state: ResearchBrowserState) => void) {
+      const listener = (_event: Electron.IpcRendererEvent, state: ResearchBrowserState) => callback(state);
+      ipcRenderer.on("researchBrowser:onStateChanged", listener);
+      return () => {
+        ipcRenderer.removeListener("researchBrowser:onStateChanged", listener);
+      };
     },
   },
 };

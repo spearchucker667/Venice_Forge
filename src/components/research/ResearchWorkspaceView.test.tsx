@@ -268,8 +268,6 @@ describe('ResearchWorkspaceView', () => {
 
     const safeHttps = screen.getByRole('link', { name: 'Safe HTTPS' });
     expect(safeHttps).toHaveAttribute('href', 'https://example.com/');
-    expect(safeHttps).toHaveAttribute('target', '_blank');
-    expect(safeHttps).toHaveAttribute('rel', 'noreferrer');
 
     const safeHttp = screen.getByRole('link', { name: 'Safe HTTP' });
     expect(safeHttp).toHaveAttribute('href', 'http://example.com/');

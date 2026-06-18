@@ -86,8 +86,7 @@ export const veniceResearchProvider: ResearchProvider = {
 
   async search(input: SearchInput): Promise<SearchResult[]> {
     const { query, maxResults, timeoutMs, signal, options } = input;
-    const provider =
-      typeof options?.provider === "string" ? options.provider : "brave";
+    const provider = options?.provider ?? "brave";
 
     const { data } = await veniceFetch("/augment/search", {
       method: "POST",

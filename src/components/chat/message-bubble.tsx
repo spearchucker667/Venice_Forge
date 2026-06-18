@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect, type ComponentPropsWithoutRef } from 'react'
 import ReactMarkdown, { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import rehypeSanitize from 'rehype-sanitize'
 import type { ChatMessage, ContentPart } from '../../types/venice'
 import { cn } from '../../lib/utils'
 import { useSettingsStore } from '../../stores/settings-store'
@@ -86,6 +89,12 @@ interface MessageBubbleProps {
 }
 
 export function MessageBubble({ message, onCopy, onDelete, onRegenerate, onGenerateScene, isCharacterBound }: MessageBubbleProps) {
+  useEffect(() => {
+    // Dynamically load KaTeX CSS only when rendering messages to save bundle weight
+    // @ts-expect-error - TS doesn't know about CSS imports without ambient declarations
+    import('katex/dist/katex.min.css')
+  }, [])
+
   const [hovering, setHovering] = useState(false)
   const [copied, setCopied] = useState(false)
   const [reasoningOpen, setReasoningOpen] = useState(false)
@@ -269,7 +278,8 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate, onGener
           ) : (
             <div className="prose-venice text-[15.5px] leading-relaxed text-text-primary">
               <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex, rehypeSanitize]}
                 urlTransform={safeUrlTransform}
                 components={{
                   code: CodeBlock,

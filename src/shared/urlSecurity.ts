@@ -140,3 +140,32 @@ export function isTrustedExternalUrl(url: string): boolean {
     return false;
   }
 }
+
+/** Determines whether a URL is permitted to load in the Research Mini Browser.
+ *  @param url The URL to evaluate.
+ *  @returns True if allowed.
+ */
+export function isAllowedResearchBrowserUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    
+    // Only allow HTTP and HTTPS
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return false;
+    }
+
+    // Reject embedded credentials
+    if (parsed.username || parsed.password) {
+      return false;
+    }
+
+    // Reject private network destinations
+    if (isPrivateHostname(parsed.hostname)) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}

@@ -6723,3 +6723,29 @@ Result:
   - Added `npm run verify:contracts` to the main validation sequences of both `AGENTS.md` and `.github/copilot-instructions.md`.
   - Confirmed synchronization parity between the two files using `npm run verify:agent-docs`.
   - Ran a full CI pipeline validation pass using `npm run ci`, verifying that the updated commands and documentation compile and run clean.
+
+- **Date:** 2026-06-18 (Research Web Expansion & Jina Unification)
+  - **Agent:** Antigravity (Gemini 3.1 Pro)
+  - **Branch / state:** `main`; working tree modified.
+  - **Summary:** Implemented a CodeRunner-style mini live browser expansion inside the Research tab. Completed the unification of web scraping and research provider pipelines for Venice Search and Jina Reader/Search adapters. Key additions include:
+    - Expanded `ResearchProviderId` and updated `resolveProvider` in `researchService.ts` to seamlessly route queries/options to respective Venice/Jina adapters.
+    - Hardened network and WebContents boundaries via an isolated `persist:research` session, preventing Node integration, enforcing context isolation, strict sandbox parameters, CSP, and restrictive header allowlists. Verified by the new `verify-web-contents-view.cjs` script.
+    - Added a `ResearchBrowserView` component using `mesh-panel` primitives to serve as a resizable live-browser within the `ResearchWorkspaceView`.
+    - Automatically routed citation link clicks to the embedded mini-browser, bypassing the external OS browser.
+    - Implemented a "Capture with Jina" action, allowing live pages to be scraped directly into the research session findings via the Jina Reader API.
+    - Addressed CSP invariant failures by ensuring the resizable UI utilizes ref-based CSS variable injections over inline React style attributes. 
+  - **Files changed:** `src/research/providerTypes.ts`, `src/services/researchService.ts`, `electron/ipc/handlers.ts`, `server.ts`, `src/types/researchBrowser.ts`, `src/services/researchBrowserBridge.ts`, `src/types/desktop.ts`, `electron/preload.ts`, `electron/main.ts`, `electron/services/researchBrowserServer.ts`, `src/components/research/ResearchBrowserView.tsx`, `src/components/research/ResearchWorkspaceView.tsx`, `src/components/research/ResearchWorkspaceView.test.tsx`, `scripts/verify-web-contents-view.cjs`, `package.json`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run verify:web-contents-view` PASS; `npm run ci` PASS (includes `lint:eslint`, `typecheck`, `test`, `verify:contracts`, `build`); local renderer tests passed.
+
+- **Date:** 2026-06-18 (Universal Document/Image/Code Ingestion)
+  - **Agent:** Antigravity (Gemini 3.1 Pro)
+  - **Branch / state:** `main`; working tree modified.
+  - **Summary:** Built a unified ingestion pipeline for secure document parsing and vision gating. Added support for code files, Markdown, generic text, images (WebP/JPEG/PNG/GIF), PDFs via `pdf.js`, and DOCX via `mammoth`. Introduced a fallback path calling Venice's `/augment/text-parser` endpoint for unparseable local documents (like .doc or image-based PDFs). Re-engineered the `ChatInput` workflow with a universal attachment dropzone. Extracted model capability constraints so that non-vision models enforce strict file upload requirements. Hardened Chat rendering by injecting `remark-math`, `rehype-katex`, and `rehype-sanitize` for secure markdown mathematical rendering. Added the ingestion capabilities into the Research tab (`ResearchWorkspaceView.tsx`), mapping uploaded files to `manual_note` research sources to extend the local research context. Fixed various TypeScript errors, unused variables, and duplicate module exports.
+  - **Files changed:** `src/services/ingestion/attachmentAssembler.ts`, `src/services/ingestion/codeIngestion.ts`, `src/services/ingestion/docxIngestion.ts`, `src/services/ingestion/imageIngestion.ts`, `src/services/ingestion/pdfIngestion.ts`, `src/services/ingestion/textIngestion.ts`, `src/services/ingestion/veniceTextParserIngestion.ts`, `src/services/ingestion/ingestionErrors.ts`, `src/services/ingestion/ingestionLimits.ts`, `src/components/chat/chat-view.tsx`, `src/components/chat/chat-input.tsx`, `src/components/chat/message-bubble.tsx`, `src/components/research/ResearchWorkspaceView.tsx`, `src/hooks/use-chat.ts`, `package.json`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run typecheck` PASS; `npm run lint:eslint` PASS (0 warnings).
+
+- **Date:** 2026-06-18 (Research Web Expansion & Jina Unification Bug Fixes)
+  - **Agent:** Antigravity (Gemini 3.1 Pro)
+  - **Branch / state:** `main`; working tree modified.
+  - **Summary:** Verified and fixed bugs in the Research Web Expansion implementation. Restored `isAllowedResearchBrowserUrl` usage in `electron/services/researchBrowserServer.ts` instead of duplicating URL verification logic. Fixed missing `text` variable reference in `scrapeCurrent` Javascript execution. Reverted custom verification scripts back to the expected `persist:research` session partition. Fixed `verify:image-policy` failing due to the newly added universal document ingestion changing the `chat-input` accept list.
+  - **Validation:** `npm run typecheck` PASS; `npm run lint:eslint` PASS; `npm run verify:contracts` PASS. All CI tests are green.

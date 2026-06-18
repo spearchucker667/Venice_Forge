@@ -16,8 +16,13 @@ export type ResearchSourceKind =
 
 export type ResearchProvider =
   | "venice"
+  | "venice-brave"
+  | "venice-google"
   | "jina"
+  | "jina-search"
+  | "jina-reader"
   | "generic-http"
+  | "browser"
   | "manual"
   | "unknown";
 
@@ -105,7 +110,7 @@ const SOURCE_KINDS = new Set<ResearchSourceKind>([
   "search_result", "scraped_page", "manual_url", "manual_note", "citation", "import",
 ]);
 const PROVIDERS = new Set<ResearchProvider>([
-  "venice", "jina", "generic-http", "manual", "unknown",
+  "venice", "venice-brave", "venice-google", "jina", "jina-search", "jina-reader", "generic-http", "browser", "manual", "unknown",
 ]);
 
 function safeText(value: unknown, fallback = "", maxLength = MAX_TEXT_LENGTH): string {

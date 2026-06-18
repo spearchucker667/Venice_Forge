@@ -66,7 +66,6 @@ function main() {
   ], "unsafe routed image policy");
 
   // 5. Component Accept Lists
-  mustContain("src/components/chat/chat-input.tsx", [`accept="${ACCEPT_LIST}"`], "chat-input accept list");
   mustContain("src/components/image/image-tools.tsx", [`accept="${ACCEPT_LIST}"`], "image-tools accept list");
   mustContain("src/components/video/video-view.tsx", [`accept="${ACCEPT_LIST}"`], "video-view accept list");
 

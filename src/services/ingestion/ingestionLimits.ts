@@ -1,0 +1,14 @@
+export const MAX_ATTACHMENTS_PER_MESSAGE = 8;
+export const MAX_TEXT_FILE_BYTES = 1 * 1024 * 1024;
+export const MAX_CODE_FILE_BYTES = 1 * 1024 * 1024;
+export const MAX_MARKDOWN_FILE_BYTES = 1 * 1024 * 1024;
+export const MAX_PDF_FILE_BYTES = 25 * 1024 * 1024;
+export const MAX_DOCX_FILE_BYTES = 25 * 1024 * 1024;
+export const MAX_DOC_FILE_BYTES = 25 * 1024 * 1024;
+export const MAX_IMAGE_FILE_BYTES = 20 * 1024 * 1024;
+export const MAX_TOTAL_CONTEXT_BYTES = 1 * 1024 * 1024;
+export const MAX_EXTRACTED_TEXT_CHARS = 100_000;
+export const MAX_CODE_CHARS_PER_FILE = 120_000;
+export const MAX_IMAGE_DIMENSION = 2048;
+export const MAX_IMAGE_MEGAPIXELS = 16;
+

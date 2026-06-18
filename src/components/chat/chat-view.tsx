@@ -9,6 +9,7 @@ import { useCharacterImage } from '../../hooks/useCharacterImage'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { MessageBubble } from './message-bubble'
 import { ChatInput } from './chat-input'
+import { IngestedAttachment } from '../../types/ingestion'
 import { VeniceParams } from './venice-params'
 import { VeniceLogo } from '../ui/logo'
 import { RefreshCw } from 'lucide-react'
@@ -55,11 +56,12 @@ export function ChatView() {
   const [selectedPriorConversationIds, setSelectedPriorConversationIds] = useState<string[]>([])
   const availablePriorConversations = conversations.filter((item) => item.id !== conversation?.id)
 
-  const handleSend = (message: string, images?: string[]) => {
-    if (images && images.length > 0 && !visionSupported) {
+  const handleSend = (message: string, attachments?: IngestedAttachment[]) => {
+    const requiresVision = attachments?.some(att => att.modelRequirements.requiresVision) ?? false;
+    if (requiresVision && !visionSupported) {
       toast.warn(
-        'Model does not support images',
-        `“${model}” cannot process image attachments. Pick a vision-capable model in the header before sending.`,
+        'Model does not support vision',
+        `“${model}” cannot process visual attachments like images or scanned PDFs. Pick a vision-capable model in the header before sending.`,
       )
       return
     }
@@ -81,7 +83,7 @@ export function ChatView() {
     const priorContextText = includePriorContext
       ? buildPriorConversationContextText(selectedConversations)
       : ''
-    send(message, model, images, priorContextText, { mode: 'auto', source: 'global' })
+    send(message, model, attachments, priorContextText, { mode: 'auto', source: 'global' })
   }
 
   const pendingContext = useChatStore((s) => s.pendingContext)

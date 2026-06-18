@@ -12,6 +12,7 @@ import { generateCharacterScene } from '../services/characterSceneGenerationServ
 import { parseCharacterSceneRequest } from '../services/characterSceneRequestParser'
 import { CharacterSceneRateLimiter } from '../services/characterSceneRateLimiter'
 import type { CharacterSceneGenerationResult } from '../types/characterSceneGeneration'
+import type { IngestedAttachment } from '../types/ingestion'
 import * as logger from '../shared/logger'
 import { redactErrorMessage } from '../shared/redaction'
 
@@ -278,7 +279,7 @@ export function useChat() {
     async (
       userMessage: string,
       model: string,
-      imageAttachments?: string[],
+      attachments?: IngestedAttachment[],
       explicitContext?: string,
       memoryDecision: ChatMemoryDecision = { mode: 'auto', source: 'global' },
     ) => {
@@ -355,12 +356,24 @@ export function useChat() {
         ? { injectedContext: contextToInject, injectedContextSource: contextSource || 'mixed' }
         : undefined
 
-      // Build user message — plain text or multimodal with images
+      let combinedMessage = userMessage;
+      const imageParts: ContentPart[] = [];
+
+      if (attachments && attachments.length > 0) {
+        for (const att of attachments) {
+          if (att.kind === 'image' && att.dataUrl) {
+            imageParts.push({ type: 'image_url', image_url: { url: att.dataUrl } });
+          } else if (att.text) {
+            combinedMessage += `\n\n${att.text}`;
+          }
+        }
+      }
+
       let userMsg: ChatMessage
-      if (imageAttachments && imageAttachments.length > 0) {
+      if (imageParts.length > 0) {
         const parts: ContentPart[] = [
-          { type: 'text', text: userMessage },
-          ...imageAttachments.map((url) => ({ type: 'image_url' as const, image_url: { url } })),
+          { type: 'text', text: combinedMessage },
+          ...imageParts,
         ]
         userMsg = {
           role: 'user',
@@ -370,7 +383,7 @@ export function useChat() {
       } else {
         userMsg = {
           role: 'user',
-          content: userMessage,
+          content: combinedMessage,
           metadata,
         }
       }

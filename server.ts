@@ -560,6 +560,11 @@ export function createServerApp() {
         "x-target-selector",
         "x-wait-for-selector",
         "x-timeout",
+        "x-no-cache",
+        "x-retain-images",
+        "x-with-links-summary",
+        "x-with-images-summary",
+        "x-token-budget",
       ]);
 
       const JINA_BLOCKED_FORWARD_HEADER_PATTERNS = [

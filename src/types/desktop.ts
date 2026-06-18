@@ -290,6 +290,7 @@ export interface VeniceForge {
   rpChats: VeniceForgeRpChats;
   rpAssets: VeniceForgeRpAssets;
   scenarios: VeniceForgeScenarios;
+  researchBrowser?: import('./researchBrowser').ResearchBrowserPreloadApi;
 }
 
 declare global {

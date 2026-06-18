@@ -5,14 +5,34 @@
  * The renderer never sees provider API keys; keys are managed by the main process.
  */
 
-export type ResearchProviderId = "venice" | "jina" | "generic-http";
+export type ResearchProviderId =
+  | "venice"
+  | "venice-brave"
+  | "venice-google"
+  | "jina"
+  | "jina-search"
+  | "jina-reader"
+  | "generic-http"
+  | "browser";
 
+export type VeniceSearchProvider = "brave" | "google";
+
+export type ResearchProviderVariant =
+  | { kind: "venice-search"; provider: VeniceSearchProvider }
+  | { kind: "venice-scrape" }
+  | { kind: "jina-search" }
+  | { kind: "jina-reader" }
+  | { kind: "generic-http-scrape" }
+  | { kind: "browser-scrape" };
 export interface SearchInput {
   query: string;
   maxResults?: number;
   timeoutMs?: number;
   signal?: AbortSignal;
-  options?: Record<string, unknown>;
+  options?: {
+    provider?: VeniceSearchProvider;
+    [key: string]: unknown;
+  };
 }
 
 export interface ScrapeInput {

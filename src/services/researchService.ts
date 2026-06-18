@@ -25,12 +25,14 @@ export interface ResearchSearchRequest {
   provider?: ResearchProvider;
   maxResults?: number;
   projectId?: string | null;
+  jinaOptions?: Record<string, unknown>;
 }
 
 export interface ResearchScrapeRequest {
   url: string;
   provider?: ResearchProvider;
   projectId?: string | null;
+  jinaOptions?: Record<string, unknown>;
 }
 
 export interface ResearchServiceResult {
@@ -42,16 +44,38 @@ export interface ResearchServiceResult {
   }>;
 }
 
-function resolveProvider(provider: ResearchProvider | undefined): ProviderAdapter {
+function resolveProvider(provider: ResearchProvider | undefined, jinaOptions?: Record<string, unknown>): ProviderAdapter {
   switch (provider) {
     case 'jina':
-      return createJinaProvider();
+    case 'jina-search':
+    case 'jina-reader': {
+      const baseJina = createJinaProvider();
+      if (!jinaOptions) return baseJina;
+      return {
+        ...baseJina,
+        scrape: baseJina.scrape ? (input) => baseJina.scrape!({ ...input, options: { ...input.options, ...jinaOptions } }) : undefined,
+      };
+    }
     case 'generic-http':
       return createGenericHttpProvider({ enabled: true });
+    case 'venice-brave':
+      return {
+        ...veniceResearchProvider,
+        search: veniceResearchProvider.search ? (input) => veniceResearchProvider.search!({ ...input, options: { ...input.options, provider: 'brave' } }) : undefined,
+      };
+    case 'venice-google':
+      return {
+        ...veniceResearchProvider,
+        search: veniceResearchProvider.search ? (input) => veniceResearchProvider.search!({ ...input, options: { ...input.options, provider: 'google' } }) : undefined,
+      };
     case 'venice':
     case undefined:
       return veniceResearchProvider;
     default:
+      // Browser and manual aren't executed via this path
+      if (provider === 'browser' || provider === 'manual') {
+        throw new Error(`Provider ${provider} must be handled explicitly, not via network requests`);
+      }
       throw new Error(`Research provider ${provider} is not available for network requests`);
   }
 }
@@ -71,7 +95,7 @@ export async function runResearchSearch(
 
   const input: ResearchJobInput = {
     question: request.query,
-    provider: resolveProvider(request.provider),
+    provider: resolveProvider(request.provider, request.jinaOptions),
     budget: {
       maxQueries: 1,
       maxResultsPerQuery: Math.min(25, Math.max(1, request.maxResults ?? 5)),
@@ -137,7 +161,7 @@ export async function runResearchScrape(
   }
 
   try {
-    const provider = resolveProvider(request.provider);
+    const provider = resolveProvider(request.provider, request.jinaOptions);
     if (!provider.supports.scrape || !provider.scrape) {
       return {
         sources: [],

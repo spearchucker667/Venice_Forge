@@ -4,7 +4,7 @@
  * running searches, scraping URLs, building findings, and generating summaries.
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   useResearchStore 
 } from '../../stores/research-store';
@@ -23,6 +23,10 @@ import { usePromptLibraryStore } from '../../stores/prompt-library-store';
 import { useWorkflowTemplateStore } from '../../stores/workflow-template-store';
 import { toast } from '../../stores/toast-store';
 import { askDecision, askText } from '../ui/modal-requests';
+import { ResearchBrowserView } from './ResearchBrowserView';
+import { researchBrowserBridge } from '../../services/researchBrowserBridge';
+import { processFileAttachment } from '../../services/ingestion/attachmentAssembler';
+import { redactErrorMessage } from '../../shared/redaction';
 
 // Icons (mocking for now, will use existing if available)
 const SearchIcon = () => <span>🔍</span>;
@@ -31,14 +35,32 @@ const PlusIcon = () => <span>+</span>;
 const TrashIcon = () => <span>🗑️</span>;
 const ArchiveIcon = () => <span>📦</span>;
 const StarIcon = ({ filled }: { filled: boolean }) => <span>{filled ? '⭐' : '☆'}</span>;
+const UploadIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="17 8 12 3 7 8" />
+    <line x1="12" y1="3" x2="12" y2="15" />
+  </svg>
+);
 
-function SourceLink({ title, url }: { title: string; url?: string }) {
+function SourceLink({ title, url, onClick }: { title: string; url?: string; onClick?: (url: string) => void }) {
   const safeUrl = sanitizeResearchUrl(url);
   if (!safeUrl) {
     return <span>{title}</span>;
   }
   return (
-    <a href={safeUrl} target="_blank" rel="noreferrer" className="hover:underline">
+    <a 
+      href={safeUrl} 
+      onClick={(e) => {
+        if (onClick) {
+          e.preventDefault();
+          onClick(safeUrl);
+        }
+      }}
+      target={onClick ? undefined : "_blank"} 
+      rel={onClick ? undefined : "noreferrer"} 
+      className="hover:underline cursor-pointer"
+    >
       {title}
     </a>
   );
@@ -69,12 +91,56 @@ export const ResearchWorkspaceView: React.FC = () => {
   const [scrapeUrl, setScrapeUrl] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isScraping, setIsScraping] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [findingTitle, setFindingTitle] = useState('');
   const [findingContent, setFindingContent] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Browser layout state
+  const [browserWidth, setBrowserWidth] = useState(400);
+  const [isDragging, setIsDragging] = useState(false);
+  const leftColRef = useRef<HTMLDivElement>(null);
+  const resizerRef = useRef<HTMLDivElement>(null);
+  const browserColRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (leftColRef.current) leftColRef.current.style.width = `calc(100% - ${browserWidth}px)`;
+    if (browserColRef.current) browserColRef.current.style.width = `${browserWidth}px`;
+  }, [browserWidth]);
+
+  useEffect(() => {
+    if (resizerRef.current) {
+      resizerRef.current.style.backgroundColor = isDragging ? 'var(--accent)' : 'var(--border)';
+    }
+  }, [isDragging]);
 
   useEffect(() => {
     ensureResearchLoaded();
   }, [ensureResearchLoaded]);
+
+  const handleOpenInBrowser = async (url: string) => {
+    await researchBrowserBridge.navigate({ urlOrQuery: url });
+  };
+
+  const handleCaptureWithJina = async (url: string) => {
+    if (!activeSession) return;
+    setIsScraping(true);
+    try {
+      const result = await runResearchScrape({
+        url,
+        provider: 'jina',
+        jinaOptions: { 'x-return-format': 'markdown' },
+      });
+      for (const source of result.sources) {
+        await addSource(activeSession.id, source);
+      }
+      toast.success('Captured page with Jina Reader');
+    } catch {
+      toast.error('Jina capture failed');
+    } finally {
+      setIsScraping(false);
+    }
+  };
 
   const activeSession = useMemo(() => 
     sessions.find(s => s.id === activeSessionId) || null
@@ -155,6 +221,39 @@ export const ResearchWorkspaceView: React.FC = () => {
       toast.error('Scrape failed');
     } finally {
       setIsScraping(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!activeSession || !e.target.files?.length) return;
+    
+    setIsUploading(true);
+    try {
+      const files = Array.from(e.target.files);
+      for (const file of files) {
+        const attachment = await processFileAttachment(file);
+        const textContent = attachment.text || '';
+        await addSource(activeSession.id, {
+          kind: 'manual_note',
+          title: attachment.name,
+          url: `local-file://${attachment.name}`,
+          summary: textContent,
+          excerpt: textContent.substring(0, 200) + (textContent.length > 200 ? '...' : ''),
+          provider: 'manual',
+          retrievedAt: new Date().toISOString(),
+          citations: [],
+          tags: []
+        });
+        if (attachment.extraction.warnings.length > 0) {
+          attachment.extraction.warnings.forEach(w => toast.warn('Attachment note', w));
+        }
+      }
+      toast.success('File(s) added to research sources');
+    } catch (err) {
+      toast.error('File upload failed', redactErrorMessage(err));
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -292,9 +391,22 @@ export const ResearchWorkspaceView: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex-1 flex overflow-hidden">
-              {/* Left Column - Search & Sources */}
-              <div className="flex-1 flex flex-col border-r border-border overflow-hidden">
+            <div 
+              className="flex-1 flex overflow-hidden relative"
+              onMouseMove={isDragging ? (e) => {
+                const newWidth = document.body.clientWidth - e.clientX;
+                setBrowserWidth(Math.max(300, Math.min(newWidth, 800)));
+              } : undefined}
+              onMouseUp={() => setIsDragging(false)}
+              onMouseLeave={() => setIsDragging(false)}
+            >
+              <div 
+                ref={leftColRef}
+                className={`flex-1 flex flex-col overflow-hidden ${isDragging ? 'pointer-events-none select-none' : ''}`}
+              >
+                <div className="flex-1 flex overflow-hidden">
+                  {/* Left Column - Search & Sources */}
+                  <div className="flex-1 flex flex-col border-r border-border overflow-hidden">
                 <div className="p-4 space-y-4 border-b border-border">
                   <form onSubmit={handleSearch} className="flex gap-2">
                     <label htmlFor="research-search-query" className="sr-only">Search query</label>
@@ -332,6 +444,25 @@ export const ResearchWorkspaceView: React.FC = () => {
                       {isScraping ? '...' : <ScrapeIcon />}
                     </button>
                   </form>
+                  
+                  <div className="flex justify-start">
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleFileUpload} 
+                      className="hidden" 
+                      multiple 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-surface-elevated border border-border hover:bg-surface-muted text-text-primary rounded text-xs disabled:opacity-50 transition-colors"
+                    >
+                      <UploadIcon />
+                      {isUploading ? 'Processing...' : 'Upload Document'}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -347,7 +478,7 @@ export const ResearchWorkspaceView: React.FC = () => {
                         <span aria-hidden="true"><TrashIcon /></span>
                       </button>
                       <h4 className="font-bold text-accent truncate pr-6">
-                        <SourceLink title={src.title} url={src.url} />
+                        <SourceLink title={src.title} url={src.url} onClick={handleOpenInBrowser} />
                       </h4>
                       <p className="text-xs text-text-muted truncate mb-2">{src.url}</p>
                       <div className="text-sm text-text-secondary line-clamp-3">
@@ -416,6 +547,26 @@ export const ResearchWorkspaceView: React.FC = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          </div>
+
+              {/* Resizer */}
+              <div 
+                ref={resizerRef}
+                className="w-1 cursor-col-resize hover:bg-accent transition-colors shrink-0"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+              />
+
+              {/* Research Browser Column */}
+              <div 
+                ref={browserColRef}
+                className={`flex flex-col h-full bg-surface-sunken shrink-0 ${isDragging ? 'pointer-events-none select-none' : ''}`}
+              >
+                <ResearchBrowserView onCaptureWithJina={handleCaptureWithJina} />
               </div>
             </div>
           </>
