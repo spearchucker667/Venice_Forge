@@ -291,7 +291,7 @@ export function useChat() {
       const { pendingContext, setPendingContext } = useChatStore.getState()
       const { enableMemoryRetrieval, showPulledContextBeforeSending } = useSettingsStore.getState()
       const conv = useChatStore.getState().conversations.find((c) => c.id === convId)
-      const chatMemoryDisabled = conv?.metadata?.memoryRetrievalDisabled === true
+      const chatMemoryEnabled = conv?.metadata?.memoryRetrievalEnabled === true
       const isCharacterConversation = !!conv?.metadata?.character
       const streamModel = isCharacterConversation && conv?.model ? conv.model : model
 
@@ -306,7 +306,7 @@ export function useChat() {
       } else if (memoryDecision.mode === 'disabled_for_message') {
         setPendingContext(null)
         setMemoryStatus('disabled')
-      } else if (!enableMemoryRetrieval || chatMemoryDisabled || isCharacterConversation) {
+      } else if (!enableMemoryRetrieval || !chatMemoryEnabled || isCharacterConversation) {
         if (pendingContext?.message === userMessage) setPendingContext(null)
         setMemoryStatus('disabled')
       } else if (pendingContext && pendingContext.message === userMessage) {

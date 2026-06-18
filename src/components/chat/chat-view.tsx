@@ -248,7 +248,7 @@ export function ChatView() {
                                       ...c.metadata,
                                       source: "chat",
                                       character: undefined,
-                                      memoryRetrievalDisabled: false,
+                                      memoryRetrievalEnabled: false,
                                     }
                                   : c.metadata,
                               }
@@ -450,8 +450,8 @@ function PriorConversationContextSelector({
   onSelectedIdsChange: (ids: string[]) => void;
   activeConversation?: Conversation;
 }) {
-  const setConversationMemoryDisabled = useChatStore((s) => s.setConversationMemoryDisabled)
-  const memoryDisabled = activeConversation?.metadata?.memoryRetrievalDisabled === true
+  const setConversationMemoryEnabled = useChatStore((s) => s.setConversationMemoryEnabled)
+  const memoryEnabled = activeConversation?.metadata?.memoryRetrievalEnabled === true
   const toggleId = (id: string) => {
     onSelectedIdsChange(selectedIds.includes(id)
       ? selectedIds.filter((value) => value !== id)
@@ -463,11 +463,11 @@ function PriorConversationContextSelector({
       <div className="w-full max-w-[860px] mx-auto rounded-lg border border-border bg-surface-elevated px-3 py-2">
         {activeConversation && (
           <label className="mb-2 flex items-center justify-between gap-3 text-[13px] text-text-primary">
-            <span>Disable memory retrieval for this chat</span>
+            <span>Include memory retrieval for this chat</span>
             <input
               type="checkbox"
-              checked={memoryDisabled}
-              onChange={(event) => setConversationMemoryDisabled(activeConversation.id, event.target.checked)}
+              checked={memoryEnabled}
+              onChange={(event) => setConversationMemoryEnabled(activeConversation.id, event.target.checked)}
               className="h-4 w-4 accent-accent"
             />
           </label>

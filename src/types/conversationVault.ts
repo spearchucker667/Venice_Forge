@@ -101,7 +101,7 @@ export interface ConversationRecordV1 {
       migratedAt: number;
     };
     character?: ConversationCharacterMeta;
-    memoryRetrievalDisabled?: boolean;
+    memoryRetrievalEnabled?: boolean;
   };
   memory: {
     summary: string;

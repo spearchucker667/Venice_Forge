@@ -251,6 +251,10 @@ describe("use-chat character_slug threading", () => {
     mockedPullContext.mockRejectedValueOnce(new Error("memory index unavailable at /Users/super_user/private"));
     mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
 
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().setConversationMemoryEnabled(convId, true);
+    useChatStore.setState({ activeConversationId: convId });
+
     const { result } = renderHook(() => useChat());
     await act(async () => {
       await result.current.send("Send anyway", "llama-3.3-70b");
@@ -273,6 +277,10 @@ describe("use-chat character_slug threading", () => {
     });
     mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
 
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().setConversationMemoryEnabled(convId, true);
+    useChatStore.setState({ activeConversationId: convId });
+
     const { result } = renderHook(() => useChat());
     await act(async () => {
       await result.current.send("Hello again", "llama-3.3-70b");
@@ -292,6 +300,10 @@ describe("use-chat character_slug threading", () => {
     });
     mockedPullContext.mockRejectedValueOnce(new Error("memory pull failed"));
     mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().setConversationMemoryEnabled(convId, true);
+    useChatStore.setState({ activeConversationId: convId });
 
     const { result } = renderHook(() => useChat());
     await act(async () => {
@@ -485,8 +497,8 @@ describe("use-chat character_slug threading", () => {
 
   it("per-chat memory disabled prevents pullContext", async () => {
     useSettingsStore.setState({ enableMemoryRetrieval: true, showPulledContextBeforeSending: false });
-    const id = useChatStore.getState().createConversation("llama-3.3-70b");
-    useChatStore.getState().setConversationMemoryDisabled(id, true);
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().setConversationMemoryEnabled(convId, false);
     mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
 
     const { result } = renderHook(() => useChat());

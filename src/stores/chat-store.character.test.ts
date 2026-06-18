@@ -116,7 +116,7 @@ describe("chat-store character integration", () => {
       tags: ["philosophy", "religion"],
       stats: { averageRating: 4.6 },
     });
-    expect(conv.metadata?.memoryRetrievalDisabled).toBe(true);
+    expect(conv.metadata?.memoryRetrievalEnabled).toBe(false);
   });
 
   it("prefers the character.modelId over the fallback model", () => {

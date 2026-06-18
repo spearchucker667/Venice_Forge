@@ -69,7 +69,7 @@ interface ChatState {
   appendReasoningToLastAssistant: (conversationId: string, token: string) => void
   deleteMessage: (conversationId: string, index: number) => void
   setMessageMetadata: (conversationId: string, messageIndex: number, metadataPatch: Record<string, unknown>) => void
-  setConversationMemoryDisabled: (conversationId: string, disabled: boolean) => void
+  setConversationMemoryEnabled: (conversationId: string, enabled: boolean) => void
   setStreaming: (streaming: boolean) => void
   setVeniceParams: (params: Partial<VeniceParameters>) => void
   setSystemPrompt: (prompt: string) => void
@@ -185,7 +185,7 @@ export const useChatStore = create<ChatState>()(
             source: 'character',
             messageCount: 0,
             character: characterMeta,
-            memoryRetrievalDisabled: true,
+            memoryRetrievalEnabled: false,
           },
           memory: {
             summary: `Chat with ${character.name}`,
@@ -232,7 +232,7 @@ export const useChatStore = create<ChatState>()(
             source: 'localCharacter',
             messageCount: 0,
             character: characterMeta,
-            memoryRetrievalDisabled: true,
+            memoryRetrievalEnabled: false,
           },
           memory: {
             summary: `Chat with ${card.name || 'local character'}`,
@@ -401,7 +401,7 @@ export const useChatStore = create<ChatState>()(
           }),
         })),
 
-      setConversationMemoryDisabled: (conversationId, disabled) =>
+      setConversationMemoryEnabled: (conversationId, enabled) =>
         set((s) => ({
           conversations: s.conversations.map((c) => {
             if (c.id !== conversationId) return c
@@ -414,7 +414,7 @@ export const useChatStore = create<ChatState>()(
                 source: c.metadata?.source ?? 'chat',
                 messageCount: c.metadata?.messageCount ?? (c.messages?.length ?? 0),
                 ...c.metadata,
-                memoryRetrievalDisabled: disabled,
+                memoryRetrievalEnabled: enabled,
               },
             })
           }),

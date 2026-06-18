@@ -55,7 +55,7 @@ export interface Conversation {
      *  selected character changes later, the conversation always uses
      *  the slug that was active when the chat began. */
     character?: ConversationCharacterMeta;
-    memoryRetrievalDisabled?: boolean;
+    memoryRetrievalEnabled?: boolean;
   };
   memory?: {
     summary: string;

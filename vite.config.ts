@@ -54,7 +54,8 @@ export default defineConfig(() => {
               if (id.includes('/mermaid/')) return 'vendor-mermaid';
               if (id.includes('/prismjs/') || id.includes('/highlight.js/')) return 'vendor-syntax';
               if (id.includes('/i18next/') || id.includes('/react-i18next/')) return 'vendor-i18n';
-              return 'vendor'; // generic fallback for other node_modules
+              // Removed generic fallback to allow Rollup to naturally chunk remaining modules
+              // and prevent circular dependencies between forced chunks.
             }
           }
         }
