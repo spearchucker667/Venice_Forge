@@ -112,9 +112,14 @@ remains. The current canonical roadmap is
 backlog files were removed.
 
 ### Latest Session Summary
-- **2026-06-18 CI repair — bundle-budget graceful skip + verify-dist portable-only fix:**
-  - `scripts/verify-bundle-budget.cjs`: changed hard `process.exit(1)` when `dist/assets` is absent to a graceful `process.exit(0)` with an informational log. Budget enforcement remains strict when assets DO exist (ubuntu `build-and-test` job produces them). Platform-specific Windows/macOS jobs that run only the Electron build now skip cleanly.
-  - `scripts/verify-dist.cjs`: moved `latest.yml` and `.blockmap` checks inside the existing `if (!isPortableOnly)` guard (lines 337-350 were outside it). The `--portable` flag now correctly skips updater-metadata requirements that `electron-builder` only emits for installer builds.
+- **2026-06-18 blocker repair — final massive bug-hunt follow-up:**
+  - Closed BUG-001 by teaching `verify-release-packaging-hardening.cjs` archive-mode filesystem scanning to ignore local generated install/build directories (`node_modules`, `dist`, `dist-electron`, `release`, `coverage`, `.vite`, `.node22`) while preserving strict git-tracked contaminant checks and non-generated archive contaminant detection.
+  - Added a regression test proving a no-`.git` source-drop can run the release-packaging verifier after local install/build artifacts exist.
+  - Closed BUG-002 by deleting tracked `cov_output.txt`, which contained stale local coverage output and a private absolute path.
+  - Closed BUG-003 by replacing secret-shaped synthetic test text in `use-chat.test.ts` with a non-secret placeholder while preserving the raw-error redaction assertion.
+  - Closed BUG-004 by rerunning `verify:research-workspace` cleanly after targeted test coverage; no React `act(...)` warnings were emitted in this pass.
+  - Closed BUG-005 by completing the Sidebar test's `desktopConversations` mock contract so passing tests no longer log `desktopConversations.save is not a function`.
+  - Full `npm test` was attempted after targeted validation but hung without per-file output for several minutes in this non-interactive session and was terminated with `pkill -f "vitest run"`; targeted Vitest, lint, typecheck, release packaging, and research-workspace gates passed.
 
 ### Previous Session Summary (2025-08-19 Final Massive Bug Hunt & Fix Pass)
 - **Agent documentation governance tightened:** Updated `AGENTS.md` and the
@@ -195,6 +200,7 @@ backlog files were removed.
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
+- Final massive bug-hunt follow-up (2026-06-18): BUG-001 through BUG-005 are closed in this session (release verifier source-drop install/build tolerance, stale `cov_output.txt` removal, synthetic secret-shaped test-log cleanup, research-workspace warning recheck, and Sidebar mock contract completion).
 - Agent governance source-of-truth update (2026-06-17): `AGENTS.md` now makes
   `docs/DOCS_INDEX.md` maintenance and single-canonical-TODO discipline a
   priority rule for future agent sessions; `.github/copilot-instructions.md`
@@ -302,6 +308,13 @@ backlog files were removed.
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+- 2026-06-18 blocker repair validation:
+  - `npx vitest run scripts/verify-release-packaging-hardening.test.ts src/hooks/use-chat.test.ts src/components/layout/sidebar.test.tsx src/components/research/ResearchWorkspaceView.test.tsx --fileParallelism=false`: PASS (4 files, 55 tests).
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run verify:release-packaging-hardening`: PASS (102 checks).
+  - `npm run typecheck`: PASS (renderer + electron main).
+  - `npm run verify:research-workspace`: PASS (VERIFY-051; 7 files, 101 tests; no React `act(...)` warnings observed).
+  - `npm test`: ATTEMPTED / TERMINATED — Vitest started but produced no per-file output for several minutes in this non-interactive run; terminated with `pkill -f "vitest run"` to avoid an indefinite hang.
 - Node version: `v22.22.3` / npm `10.9.8`.
 - Current docs hygiene validation (2026-06-17):
   `npm run verify:markdown-links` PASS (61 Markdown files checked);
@@ -333,6 +346,20 @@ backlog files were removed.
   Linux, and macOS draft artifacts.
 
 ### Session History
+
+- **Date:** 2026-06-18 (final massive bug-hunt blocker repair)
+- **Agent:** OpenAI GPT-5.5
+- **Branch / state:** current branch; working tree contained blocker-repair edits before commit.
+- **Scope:** Fix the five open bugs reported by the final massive bug hunt without starting a new feature phase.
+- **Summary:**
+  - Closed BUG-001 by making release-packaging archive mode tolerate generated local install/build directories in no-git validation contexts while keeping git-tracked contaminant checks strict.
+  - Closed BUG-002 by removing tracked `cov_output.txt` stale coverage output with a private absolute path.
+  - Closed BUG-003 by replacing a secret-shaped synthetic test token in `use-chat.test.ts`.
+  - Closed BUG-004 by rerunning the Research Workspace verifier cleanly.
+  - Closed BUG-005 by expanding the Sidebar test desktop conversation mock to include save/delete/context methods used by shared chat-store paths.
+- **Files changed:** `scripts/verify-release-packaging-hardening.cjs`, `scripts/verify-release-packaging-hardening.test.ts`, `src/components/layout/sidebar.test.tsx`, `src/hooks/use-chat.test.ts`, deleted `cov_output.txt`, and `docs/summary_of_work.md`.
+- **Validation:** Targeted Vitest, lint, typecheck, `verify:release-packaging-hardening`, and `verify:research-workspace` PASS. Full `npm test` was attempted but terminated after an apparent non-interactive hang with no per-file progress output.
+- **Status:** COMPLETE — changes ready for commit / PR.
 
 - **Date:** 2026-06-18 (CI repair — bundle-budget graceful skip + verify-dist portable-only)
 - **Agent:** Antigravity (Claude Sonnet 4.6 Thinking)

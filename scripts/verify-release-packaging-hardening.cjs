@@ -416,12 +416,12 @@ if (pkg) {
     checkIncludes(eb, "appId", "electron-builder.config.cjs declares appId");
     checkIncludes(eb, "directories", "electron-builder.config.cjs declares directories");
     checkIncludes(eb, "asar: true", "electron-builder.config.cjs enables asar");
-    if (!eb.includes(`repo: "${CANONICAL_REPO}"`)) {
+    if (!new RegExp(`\\brepo\\s*:\\s*["']${CANONICAL_REPO}["']`).test(eb)) {
       fail(`electron-builder.config.cjs publish.repo does not reference canonical repo "${CANONICAL_REPO}"`);
     } else {
       pass(`electron-builder.config.cjs publish.repo references canonical repo "${CANONICAL_REPO}"`);
     }
-    if (!eb.includes(`owner: "${CANONICAL_OWNER}"`)) {
+    if (!new RegExp(`\\bowner\\s*:\\s*["']${CANONICAL_OWNER}["']`).test(eb)) {
       fail(`electron-builder.config.cjs publish.owner does not reference canonical owner "${CANONICAL_OWNER}"`);
     } else {
       pass(`electron-builder.config.cjs publish.owner references canonical owner "${CANONICAL_OWNER}"`);
@@ -466,6 +466,21 @@ if (pkg) {
 //     filesystem walk in archive mode)
 const archiveClean = require(path.join(__dirname, "verify-archive-clean.cjs"));
 
+const ARCHIVE_MODE_IGNORED_GENERATED_DIRS = new Set([
+  "node_modules",
+  ".node22",
+  "dist",
+  "dist-electron",
+  "release",
+  "coverage",
+  ".vite",
+]);
+
+function isIgnoredGeneratedArchiveModePath(rel) {
+  const first = rel.replace(/\/$/, "").split("/")[0];
+  return ARCHIVE_MODE_IGNORED_GENERATED_DIRS.has(first);
+}
+
 function walkForBadPaths(dir, out) {
   let entries;
   try {
@@ -476,11 +491,14 @@ function walkForBadPaths(dir, out) {
   for (const e of entries) {
     const full = path.join(dir, e.name);
     const rel = path.relative(root, full).split(path.sep).join("/") + (e.isDirectory() ? "/" : "");
+    if (isIgnoredGeneratedArchiveModePath(rel)) {
+      continue;
+    }
     if (archiveClean.BAD_PATTERNS.some((re) => re.test(rel) || re.test("/" + rel))) {
       out.push(rel);
       if (e.isDirectory()) continue;
     }
-    if (e.isDirectory() && e.name !== ".git" && e.name !== "node_modules") {
+    if (e.isDirectory() && e.name !== ".git") {
       walkForBadPaths(full, out);
     }
   }

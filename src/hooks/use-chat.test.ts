@@ -618,7 +618,7 @@ describe("use-chat character_slug threading", () => {
       useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
       useChatStore.getState().addMessage(convId, { role: "assistant", content: "Hi." });
 
-      const sensitive = "Provider failed: Bearer sk-1234567890abcdef";
+      const sensitive = "Provider failed: Bearer redacted-test-token";
       mockedVeniceStreamChat.mockRejectedValueOnce(new Error(sensitive));
 
       const { result } = renderHook(() => useChat());
@@ -632,7 +632,7 @@ describe("use-chat character_slug threading", () => {
       expect(lastAssistant?.content).toContain("Sorry, something went wrong");
       expect(lastAssistant?.content).not.toContain(sensitive);
       expect(lastAssistant?.content).not.toContain("Bearer");
-      expect(lastAssistant?.content).not.toContain("sk-1234567890abcdef");
+      expect(lastAssistant?.content).not.toContain("redacted-test-token");
     });
   });
 });

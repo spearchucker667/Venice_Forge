@@ -178,7 +178,7 @@ describe("verify-release-packaging-hardening (VERIFY-052)", () => {
         cwd: repoRoot,
         encoding: "utf8",
       });
-      expect(out.status).toBe(0);
+      expect(out.status, (out.stderr || "") + (out.stdout || "")).toBe(0);
       return;
     }
     const out = spawnSync("node", [scriptPath], {
@@ -224,6 +224,27 @@ describe("verify-release-packaging-hardening (VERIFY-052)", () => {
       // Must fall back to filesystem walk and report the contaminant.
       expect(combined).toMatch(/archive mode/);
       expect(combined).toMatch(/.DS_Store/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+
+  it("archive mode ignores generated install/build directories after local validation", () => {
+    const root = createMinimalValidRepo("venice-relpkg-generated-allow-");
+    try {
+      mkdirSync(join(root, "node_modules", "pkg"), { recursive: true });
+      writeFileSync(join(root, "node_modules", "pkg", "index.js"), "module.exports = {};\n");
+      mkdirSync(join(root, "dist", "assets"), { recursive: true });
+      writeFileSync(join(root, "dist", "assets", "app.js"), "console.log('built');\n");
+
+      const out = spawnSync("node", [join(root, "scripts/verify-release-packaging-hardening.cjs")], {
+        cwd: root,
+        encoding: "utf8",
+      });
+
+      expect(out.status, (out.stderr || "") + (out.stdout || "")).toBe(0);
+      expect((out.stderr || "") + (out.stdout || "")).toMatch(/archive mode: no forbidden archive contaminants/);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
