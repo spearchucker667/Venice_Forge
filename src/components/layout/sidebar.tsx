@@ -201,7 +201,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
   )
   const searchResult = useMemo(() => {
     const query = deferredSearch.trim().toLowerCase()
-    if (!query) return { conversations, totalMatches: conversations.length }
+    if (!query) return { conversations: conversations.slice(0, MAX_CONVERSATION_SEARCH_RESULTS), totalMatches: conversations.length }
 
     const matches: Conversation[] = []
     let totalMatches = 0
