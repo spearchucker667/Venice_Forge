@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { cn } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
 import { redactErrorMessage } from '../../shared/redaction'
@@ -12,17 +12,100 @@ interface ChatInputProps {
   isStreaming: boolean
   disabled?: boolean
   disableImageAttach?: boolean
+  visionUnsupportedModelId?: string
   memoryStatus?: ChatMemoryStatus
 }
 
-export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageAttach, memoryStatus = 'idle' }: ChatInputProps) {
+const SUPPORTED_ATTACHMENT_ACCEPT = [
+  '.pdf',
+  '.docx',
+  '.doc',
+  '.md',
+  '.markdown',
+  '.txt',
+  '.json',
+  '.jsonl',
+  '.yaml',
+  '.yml',
+  '.csv',
+  '.xml',
+  '.html',
+  '.htm',
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+  '.py',
+  '.go',
+  '.rs',
+  '.rb',
+  '.php',
+  '.cs',
+  '.c',
+  '.cpp',
+  '.cc',
+  '.cxx',
+  '.h',
+  '.hpp',
+  '.java',
+  '.kt',
+  '.kts',
+  '.swift',
+  '.scala',
+  '.sh',
+  '.bash',
+  '.zsh',
+  '.fish',
+  '.ps1',
+  '.bat',
+  '.cmd',
+  '.sql',
+  '.toml',
+  '.ini',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.webp',
+  '.gif',
+  '.avif',
+  '.bmp',
+  '.svg',
+  '.tif',
+  '.tiff',
+  '.heic',
+  '.heif',
+  'text/plain',
+  'application/pdf',
+  'application/json',
+  'image/*',
+].join(',')
+
+export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageAttach, visionUnsupportedModelId = 'Selected model', memoryStatus = 'idle' }: ChatInputProps) {
   const [value, setValue] = useState('')
   const [attachments, setAttachments] = useState<IngestedAttachment[]>([])
   const [dragOver, setDragOver] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const previousDisableImageAttach = useRef(disableImageAttach)
 
   useEffect(() => { textareaRef.current?.focus() }, [])
+
+  const warnVisionUnsupported = useCallback(() => {
+    toast.warn(
+      'AI is not vision capable',
+      `“${visionUnsupportedModelId}” cannot read image attachments. Select a vision-capable model or convert the image/PDF to text first.`,
+    )
+  }, [visionUnsupportedModelId])
+
+  useEffect(() => {
+    const switchedToNonVision = !previousDisableImageAttach.current && disableImageAttach
+    previousDisableImageAttach.current = disableImageAttach
+    if (switchedToNonVision && attachments.some((att) => att.modelRequirements.requiresVision)) {
+      warnVisionUnsupported()
+    }
+  }, [attachments, disableImageAttach, warnVisionUnsupported])
 
   const handleSubmit = () => {
     const trimmed = value.trim()
@@ -34,10 +117,8 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
   }
 
-  const attachDisabled = disabled || disableImageAttach
-  const attachTitle = disableImageAttach
-    ? 'Selected model does not support file attachments'
-    : 'Attach file (or drag/paste)'
+  const attachDisabled = disabled
+  const attachTitle = 'Attach file (or drag/paste)'
 
   const handleFileUpload = async (files: FileList | File[] | null) => {
     if (!files) return
@@ -45,6 +126,9 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
     for (const file of list) {
       try {
         const attachment = await processFileAttachment(file)
+        if (disableImageAttach && attachment.modelRequirements.requiresVision) {
+          warnVisionUnsupported()
+        }
         setAttachments((prev) => [...prev, attachment])
         if (attachment.extraction.warnings.length > 0) {
            attachment.extraction.warnings.forEach(w => toast.warn('Attachment note', w));
@@ -103,13 +187,13 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
             'focus-within:border-accent focus-within:shadow-xl',
             dragOver ? 'border-accent bg-accent/10' : 'border-border',
           )}
-          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); if (!disableImageAttach) setDragOver(true) }}
+          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); if (!disabled) setDragOver(true) }}
           onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false) }}
           onDrop={(e) => {
             e.preventDefault()
             e.stopPropagation()
             setDragOver(false)
-            if (!disableImageAttach) handleFileUpload(e.dataTransfer.files)
+            if (!disabled) void handleFileUpload(e.dataTransfer.files)
           }}
         >
           <textarea
@@ -120,7 +204,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
               if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit() }
             }}
             onPaste={(e) => {
-              if (disableImageAttach) return
+              if (disabled) return
               const items = e.clipboardData?.items
               if (!items) return
               const files: File[] = []
@@ -142,8 +226,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
           />
           <div className="flex items-center justify-between px-3 pb-2.5">
             <div className="flex items-center gap-2">
-              {/* Note: In a full app, accept might be broader, but keeping generic multiple upload open */}
-              <input ref={fileRef} type="file" multiple className="hidden" onChange={(e) => handleFileUpload(e.target.files)} />
+              <input ref={fileRef} type="file" multiple accept={SUPPORTED_ATTACHMENT_ACCEPT} className="hidden" onChange={(e) => handleFileUpload(e.target.files)} />
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={attachDisabled}

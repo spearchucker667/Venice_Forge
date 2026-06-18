@@ -59,7 +59,7 @@ const CODE_EXTS = new Set([
   "toml",
   "ini",
 ]);
-const CODE_FILES = new Set(["dockerfile", ".gitignore", ".gitattributes", ".editorconfig", ".env"]);
+const CODE_FILES = new Set(["dockerfile", ".dockerfile", ".gitignore", ".gitattributes", ".editorconfig", ".env"]);
 
 function getExtension(name: string): string {
   const parts = name.split(".");

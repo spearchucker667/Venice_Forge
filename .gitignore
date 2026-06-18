@@ -11,6 +11,13 @@ docs/design/*
 
 # Local-only audit / cross-ref scratchpads (canonical record lives in docs/summary_of_work.md).
 todo.md
+records.json
+records*.json
+work done*.md
+*work*done*.md
+*session*.json
+*session*.md
+chat-history/
 docs/audits/*
 !docs/audits/*.md
 !docs/audits/*.yaml

@@ -178,10 +178,10 @@ if (pkg) {
   } else {
     pass("`ci` script includes verify:research-workspace");
   }
-  if (!ci.includes("npm test")) {
-    fail("`ci` script is missing `npm test`");
+  if (!ci.includes("npm test") && !ci.includes("npm run test:coverage") && !ci.includes("vitest run")) {
+    fail("`ci` script is missing `npm test` or a test execution command");
   } else {
-    pass("`ci` script includes npm test");
+    pass("`ci` script includes test execution");
   }
   if (!ci.includes("npm run build")) {
     fail("`ci` script is missing `npm run build`");

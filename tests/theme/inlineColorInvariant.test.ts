@@ -55,7 +55,7 @@ const TEXT_WHITE_BASELINE = new Map([
   ['src/components/workflows/workflows-view.tsx', 20],
 ])
 
-const SCAN_DIRS = ['src/components', 'src/layouts', 'src/views', 'src/pages']
+const SCAN_DIRS = ['src']
 const SCAN_EXTS = new Set(['.tsx', '.jsx'])
 const IGNORE_PATH_PREFIXES = [
   'src/components/ToastHost.test.tsx',

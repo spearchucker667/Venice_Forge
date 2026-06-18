@@ -67,6 +67,10 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       "scratch.tmp",
       "target_inventory.txt",
       "docs/AGENTS/AGENTS.md",
+      "records.json",
+      "records-20260618.json",
+      "work done 2026-06-18.md",
+      "agent_session.md",
     ];
     for (const s of sample) {
       const hit = BAD_PATTERNS.some((re: RegExp) => re.test(s) || re.test("/" + s) || re.test(s + "/"));
@@ -125,10 +129,9 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     }
   });
 
-  archiveIt("clean-repo-zip.sh redacts raw secret-like values in POSSIBLE_SECRET_WARNINGS.tsv", () => {
+  archiveIt("clean-repo-zip.sh fails on high-risk source secret-like values without emitting raw values", () => {
     const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-repo-"));
     const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-out-"));
-    const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-extract-"));
     const rawToken = ["sk", "abc12345678901234567890xyz"].join("-");
     try {
       // Create a minimal fake repo that passes the root sanity check.
@@ -137,6 +140,72 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       mkdirSync(join(repo, "src"), { recursive: true });
       writeFileSync(join(repo, "src", "secret-like.ts"), `export const key = "${rawToken}";\n`);
 
+      let failed = false;
+      let output = "";
+      try {
+        execSync(`bash ${shellQuote(join(__dirname, "clean-repo-zip.sh"))} ${shellQuote(repo)} ${shellQuote(outDir)}`, {
+          encoding: "utf8",
+          stdio: "pipe",
+        });
+      } catch (e: any) {
+        failed = e.status !== 0;
+        output = String(e.stderr || "") + String(e.stdout || "");
+      }
+      expect(failed).toBe(true);
+      expect(output).toMatch(/high-risk source secret-like strings found \(1\)/);
+      expect(output).toMatch(/POSSIBLE_SECRET_WARNINGS\.tsv/);
+      expect(output).not.toContain(rawToken);
+      expect(output).not.toMatch(/sk-abc123/);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  });
+
+  it("verify-archive-clean rejects transcript artifacts and high-risk secret scan metadata", () => {
+    const root = mkdtempSync(join(tmpdir(), "venice-archive-transcript-"));
+    const metaDir = join(root, "_REPO_EXTRACT_METADATA");
+    try {
+      mkdirSync(metaDir, { recursive: true });
+      writeFileSync(join(root, "records.json"), "{}\n");
+      writeFileSync(join(metaDir, "SECRET_SCAN_SUMMARY.txt"), [
+        "high_risk_hits=2",
+        "example_hits=0",
+        "raw_line_content_emitted=false",
+        "",
+      ].join("\n"));
+
+      let output = "";
+      let failed = false;
+      try {
+        execSync(`node ${shellQuote(join(__dirname, "verify-archive-clean.cjs"))} --root ${shellQuote(root)}`, {
+          encoding: "utf8",
+          stdio: "pipe",
+        });
+      } catch (e: any) {
+        failed = e.status !== 0;
+        output = String(e.stderr || "") + String(e.stdout || "");
+      }
+
+      expect(failed).toBe(true);
+      expect(output).toMatch(/records\.json/);
+      expect(output).toMatch(/high_risk_hits=2/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  archiveIt("clean-repo-zip.sh reports test secret fixtures without blocking archives", () => {
+    const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-test-fixture-repo-"));
+    const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-test-fixture-out-"));
+    const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-test-fixture-extract-"));
+    const rawToken = ["v", "n-test-fixture-12345678"].join("");
+    try {
+      writeFileSync(join(repo, "package.json"), JSON.stringify({ name: "fake-repo" }));
+      writeFileSync(join(repo, "README.md"), "# fake");
+      mkdirSync(join(repo, "src"), { recursive: true });
+      writeFileSync(join(repo, "src", "redaction.test.ts"), `expect("${rawToken}").toContain("vn-");\n`);
+
       execSync(`bash ${shellQuote(join(__dirname, "clean-repo-zip.sh"))} ${shellQuote(repo)} ${shellQuote(outDir)}`, {
         encoding: "utf8",
         stdio: "pipe",
@@ -144,40 +213,19 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
 
       const zipPath = findZip(outDir);
       expect(zipPath).not.toBeNull();
-
       execSync(`unzip -q ${shellQuote(zipPath!)} -d ${shellQuote(extractDir)}`, { stdio: "pipe" });
 
       const extractedName = readdirSync(extractDir)[0];
       const metaDir = join(extractDir, extractedName, "_REPO_EXTRACT_METADATA");
-      const warningsPath = join(metaDir, "POSSIBLE_SECRET_WARNINGS.tsv");
-      const summaryPath = join(metaDir, "SECRET_SCAN_SUMMARY.txt");
+      const warnings = readFileSync(join(metaDir, "POSSIBLE_SECRET_WARNINGS.tsv"), "utf8");
+      const summary = readFileSync(join(metaDir, "SECRET_SCAN_SUMMARY.txt"), "utf8");
 
-      expect(existsSync(warningsPath)).toBe(true);
-      expect(existsSync(summaryPath)).toBe(true);
-
-      const warnings = readFileSync(warningsPath, "utf8");
-      const summary = readFileSync(summaryPath, "utf8");
-
-      // The TSV header must declare its columns.
-      expect(warnings).toMatch(/^path\tline\tpattern\tcategory/m);
-      // The pattern name must be present in the data.
-      expect(warnings).toMatch(/sk-token/);
-      // The raw secret-like value must NEVER appear in the report.
-      expect(warnings).not.toMatch(new RegExp(rawToken));
-      expect(warnings).not.toMatch(/sk-abc123/);
-      // Each data row must be a 4-column tab-separated record (path, line, pattern, category).
-      const dataRows = warnings
-        .split("\n")
-        .filter((line) => line.trim().length > 0 && !line.startsWith("=") && !line.startsWith("This") && !line.startsWith("Real") && !line.startsWith("Only") && !line.startsWith("Possible") && !line.startsWith("path\tline"));
-      for (const row of dataRows) {
-        const cols = row.split("\t");
-        expect(cols.length).toBe(4);
-        expect(cols[2]).toBe("sk-token");
-        expect(cols[3]).toBe("high-risk-source");
-      }
-      // The summary file must record non-zero high_risk_hits and zero raw line content.
-      expect(summary).toMatch(/high_risk_hits=[1-9][0-9]*/);
+      expect(warnings).toMatch(/src\/redaction\.test\.ts\t1\tvenice-vn-token\ttest-fixture/);
+      expect(warnings).not.toContain(rawToken);
+      expect(summary).toMatch(/high_risk_hits=0/);
       expect(summary).toMatch(/raw_line_content_emitted=false/);
+      expect(summary.split("\n").filter((line) => line === "0")).toHaveLength(0);
+      expect(summary).toMatch(/^high_risk_hits=0\nexample_hits=0\nraw_line_content_emitted=false\n?$/);
     } finally {
       rmSync(repo, { recursive: true, force: true });
       rmSync(outDir, { recursive: true, force: true });

@@ -25,6 +25,9 @@ const requiredFiles = [
   "src/components/search/searchScrapeTypes.ts",
   "src/services/researchBrowserBridge.ts",
   "electron/services/researchBrowserServer.ts",
+  "electron/services/researchBrowserServer.test.ts",
+  "electron/security/researchBrowserNetworkPolicy.ts",
+  "electron/security/researchBrowserNetworkPolicy.test.ts",
   "src/types/researchBrowser.ts",
 ];
 
@@ -96,6 +99,8 @@ for (const token of ["onOpenInBrowser", "onOpenExternal", "isTrustedExternalUrl"
 console.log("✅ SearchTab browser integration verified.");
 
 const tests = [
+  "electron/security/researchBrowserNetworkPolicy.test.ts",
+  "electron/services/researchBrowserServer.test.ts",
   "src/types/research.test.ts",
   "src/stores/research-store.test.ts",
   "src/services/researchService.test.ts",

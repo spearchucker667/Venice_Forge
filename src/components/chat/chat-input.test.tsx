@@ -59,7 +59,7 @@ import { processFileAttachment } from "../../services/ingestion/attachmentAssemb
 import { toast } from "../../stores/toast-store";
 
 const mockProcessFileAttachment = vi.mocked(processFileAttachment);
-const _mockToastWarn = vi.mocked(toast.warn);
+const mockToastWarn = vi.mocked(toast.warn);
 const mockToastError = vi.mocked(toast.error);
 
 // ---------------------------------------------------------------------------
@@ -115,7 +115,7 @@ describe("ChatInput", () => {
     expect(onSend).not.toHaveBeenCalled();
   });
 
-  it("disables file attach button when disableImageAttach is true", () => {
+  it("keeps file attach button enabled when disableImageAttach is true", () => {
     render(
       <ChatInput
         onSend={vi.fn()}
@@ -125,7 +125,67 @@ describe("ChatInput", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Attach file" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Attach file" })).toBeEnabled();
+  });
+
+  it("warns and preserves image attachments when the selected model is not vision capable", async () => {
+    render(
+      <ChatInput
+        onSend={vi.fn()}
+        onStop={vi.fn()}
+        isStreaming={false}
+        disableImageAttach
+        visionUnsupportedModelId="llama-3.3-70b"
+      />,
+    );
+
+    const file = new File(["dummy"], "test.png", { type: "image/png" });
+    const fileInput = screen.getByLabelText("Message input").parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
+
+    await userEvent.upload(fileInput, file);
+
+    await waitFor(() =>
+      expect(mockToastWarn).toHaveBeenCalledWith(
+        "AI is not vision capable",
+        "“llama-3.3-70b” cannot read image attachments. Select a vision-capable model or convert the image/PDF to text first.",
+      ),
+    );
+    expect(screen.getByAltText("Attachment 1")).toBeInTheDocument();
+  });
+
+  it("warns when a model switch invalidates queued image attachments", async () => {
+    const { rerender } = render(
+      <ChatInput
+        onSend={vi.fn()}
+        onStop={vi.fn()}
+        isStreaming={false}
+        disableImageAttach={false}
+        visionUnsupportedModelId="qwen-vl"
+      />,
+    );
+
+    const file = new File(["dummy"], "test.png", { type: "image/png" });
+    const fileInput = screen.getByLabelText("Message input").parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
+    await userEvent.upload(fileInput, file);
+    await waitFor(() => expect(screen.getByAltText("Attachment 1")).toBeInTheDocument());
+    expect(mockToastWarn).not.toHaveBeenCalledWith("AI is not vision capable", expect.any(String));
+
+    rerender(
+      <ChatInput
+        onSend={vi.fn()}
+        onStop={vi.fn()}
+        isStreaming={false}
+        disableImageAttach
+        visionUnsupportedModelId="llama-3.3-70b"
+      />,
+    );
+
+    await waitFor(() =>
+      expect(mockToastWarn).toHaveBeenCalledWith(
+        "AI is not vision capable",
+        "“llama-3.3-70b” cannot read image attachments. Select a vision-capable model or convert the image/PDF to text first.",
+      ),
+    );
   });
 
   it("calls onStop while streaming", () => {

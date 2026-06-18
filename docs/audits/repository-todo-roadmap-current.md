@@ -199,6 +199,24 @@ Recommended new/updated files:
 
 ### P0 - Critical Blockers
 
+- [x] **P0 - Archive Hygiene: Block local transcript/work-report artifacts from source drops**
+  - **Evidence:** The 2026-06-18 snapshot audit found tracked root
+    `records.json` and `work done 2026-06-18_09-58-49.md` files in the source
+    snapshot. `scripts/verify-archive-clean.cjs` and `scripts/clean-repo-zip.sh`
+    did not previously deny those root artifacts.
+  - **Why:** Local chat transcripts and work reports can contain private paths,
+    branch/workflow details, stale release claims, and secret-shaped fixtures.
+  - **Action:** Delete tracked root transcript/work-report files; add root
+    transcript/session denylist patterns to `.gitignore`,
+    `verify-archive-clean.cjs`, and `clean-repo-zip.sh`; enforce
+    `SECRET_SCAN_SUMMARY.txt` when present.
+  - **Files affected:** `.gitignore`, `scripts/verify-archive-clean.cjs`,
+    `scripts/clean-repo-zip.sh`, `scripts/verify-archive-clean.test.ts`.
+  - **Validate:** `npm test -- scripts/verify-archive-clean.test.ts --fileParallelism=false`;
+    `node scripts/verify-archive-clean.cjs --check-config`.
+  - **Risk if ignored:** Clean source archives can ship local/private
+    transcript artifacts while verifiers still pass.
+
 - [x] **P0 - Release: Capture signed and notarized artifact proof before production publish**
   - **Evidence:** `docs/summary_of_work.md` records P0-002 as external;
     `release.yml` only warns when signing secrets are absent unless
@@ -221,6 +239,29 @@ Recommended new/updated files:
     installers.
 
 ### P1 - Production Readiness
+
+- [x] **P1 - Research Browser: Add DNS-resolution parity for private-network blocking**
+  - **Evidence:** The 2026-06-18 snapshot audit found that
+    `src/shared/urlSecurity.ts` validates research-browser URLs by scheme,
+    credentials, and hostname/IP string parsing, while proxy scrape code also
+    resolves DNS and blocks private resolved addresses before connecting.
+  - **Why:** A public-looking hostname can resolve to loopback, RFC1918, link
+    local, or metadata-service addresses after passing string-only validation.
+  - **Action:** Added `electron/security/researchBrowserNetworkPolicy.ts` for
+    async DNS resolution, private/reserved resolved-address blocking, DNS error
+    fail-closed behavior, and short-lived host verdict caching. Wired it into
+    top-level mini-browser navigation and `webRequest.onBeforeRequest` for
+    redirects/subresources. Popups are denied by default, and browser bounds are
+    clamped to the host content area.
+  - **Files affected:** `electron/security/researchBrowserNetworkPolicy.ts`,
+    `electron/security/researchBrowserNetworkPolicy.test.ts`,
+    `electron/services/researchBrowserServer.ts`,
+    `scripts/verify-research-browser.cjs`.
+  - **Validate:** `npx vitest run electron/security/researchBrowserNetworkPolicy.test.ts --fileParallelism=false`;
+    `npm run typecheck`; `npm run verify:research-browser`;
+    `npm run verify:network-boundaries`; `npm run lint:eslint`.
+  - **Risk if ignored:** The embedded mini-browser can potentially reach
+    private/internal resources through DNS rebinding or private redirects.
 
 - [x] **P1 - CI/CD: Add Windows packaged Electron smoke coverage**
   - **Evidence:** `.github/workflows/ci.yml` only has `electron-smoke-macos`;
@@ -288,6 +329,26 @@ Recommended new/updated files:
   - **Risk if ignored:** Future npm/node changes can break installs or audits.
 
 ### P2 - Quality, DX, and Maintainability
+
+- [x] **P2 - Research Browser: Replace token-presence verifier coverage with behavioral tests**
+  - **Evidence:** The 2026-06-18 snapshot audit found that
+    `verify-web-contents-view.cjs` and parts of `verify-research-browser.cjs`
+    primarily check source tokens rather than exercising permission denial,
+    navigation/redirect cancellation, subresource policy, bounds clamping,
+    destroy cleanup, or scrape sanitization behavior.
+  - **Why:** String-token verifiers can pass while meaningful browser security
+    behavior regresses.
+  - **Action:** Keep token checks as smoke coverage, but add mock Electron /
+    factored-policy tests for navigation, frame navigation, redirects,
+    `window.open`, trusted external URLs, permission APIs, bounds, cleanup,
+    scrape size/redaction, and metadata capture.
+  - **Files likely affected:** `electron/services/researchBrowserServer.ts`,
+    `electron/services/researchBrowserServer.test.ts`,
+    `scripts/verify-research-browser.cjs`,
+    `scripts/verify-web-contents-view.cjs`.
+  - **Validate:** `npm test -- electron/services/researchBrowserServer.test.ts src/shared/urlSecurity.test.ts`;
+    `npm run verify:research-browser`.
+  - **Risk if ignored:** Research-browser CI can overstate security readiness.
 
 - [x] **P2 - Architecture: Extract oversized modules into smaller reviewable units**
   - **Evidence:** `wc -l` shows `electron/ipc/handlers.ts` 1,408 lines,

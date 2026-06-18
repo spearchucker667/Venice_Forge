@@ -140,8 +140,9 @@ export function SearchScrapeView() {
     }
   }
 
-  async function runScrape() {
-    if (!url.trim()) return;
+  async function runScrape(explicitUrl?: string) {
+    const targetUrl = (explicitUrl ?? url).trim();
+    if (!targetUrl) return;
     if (!requireVeniceApiKey("scraping a URL")) return;
     setError("");
     setLoading("scrape");
@@ -150,7 +151,7 @@ export function SearchScrapeView() {
     try {
       const { data, diagnostics: d } = await veniceFetch<Record<string, unknown>>("/augment/scrape", {
         method: "POST",
-        body: { url: url.trim() },
+        body: { url: targetUrl },
         signal,
       });
       if (runIdRef.current !== runId) return;
@@ -423,7 +424,7 @@ export function SearchScrapeView() {
                 }}
                 onScrapeWithVenice={async (url) => {
                   setUrl(url);
-                  await runScrape();
+                  await runScrape(url);
                 }}
                 onReadWithJina={async (url) => {
                   setUrl(url);

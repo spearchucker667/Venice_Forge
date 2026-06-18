@@ -64,22 +64,27 @@ if (require.main === module) {
   }
 
   (async () => {
-    for (const artifact of artifacts) {
-      const filePath = path.join(releaseDir, artifact);
-      const sidecarPath = `${filePath}.sha256`;
+    try {
+      for (const artifact of artifacts) {
+        const filePath = path.join(releaseDir, artifact);
+        const sidecarPath = `${filePath}.sha256`;
 
-      const hashSum = crypto.createHash("sha256");
-      await new Promise((resolve, reject) => {
-        const stream = fs.createReadStream(filePath);
-        stream.on("data", (chunk) => hashSum.update(chunk));
-        stream.on("end", resolve);
-        stream.on("error", reject);
-      });
-      const hex = hashSum.digest("hex");
+        const hashSum = crypto.createHash("sha256");
+        await new Promise((resolve, reject) => {
+          const stream = fs.createReadStream(filePath);
+          stream.on("data", (chunk) => hashSum.update(chunk));
+          stream.on("end", resolve);
+          stream.on("error", reject);
+        });
+        const hex = hashSum.digest("hex");
 
-      const content = `${hex}  ${artifact}\n`;
-      fs.writeFileSync(sidecarPath, content, "ascii");
-      console.log(`[checksum:release] Wrote ${artifact}.sha256`);
+        const content = `${hex}  ${artifact}\n`;
+        fs.writeFileSync(sidecarPath, content, "ascii");
+        console.log(`[checksum:release] Wrote ${artifact}.sha256`);
+      }
+    } catch (err) {
+      console.error("[checksum:release] ERROR:", err);
+      process.exit(1);
     }
   })();
 }

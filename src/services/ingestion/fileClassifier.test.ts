@@ -23,30 +23,74 @@ describe("fileClassifier", () => {
 
   it("classifies text/json/yaml files", () => {
     expect(classifyFile(mockFile("data.json")).kind).toBe("text");
+    expect(classifyFile(mockFile("events.jsonl")).kind).toBe("text");
     expect(classifyFile(mockFile("config.yaml")).kind).toBe("text");
+    expect(classifyFile(mockFile("config.yml")).kind).toBe("text");
     expect(classifyFile(mockFile("notes.txt")).kind).toBe("text");
   });
 
   it("classifies image files", () => {
-    expect(classifyFile(mockFile("image.png")).kind).toBe("image");
-    expect(classifyFile(mockFile("photo.jpeg")).kind).toBe("image");
-    expect(classifyFile(mockFile("graphic.svg")).kind).toBe("image");
-    expect(classifyFile(mockFile("test.heic")).kind).toBe("image");
+    for (const ext of ["png", "jpg", "jpeg", "webp", "gif", "avif", "bmp", "svg", "tif", "tiff", "heic", "heif"]) {
+      expect(classifyFile(mockFile(`image.${ext}`)).kind).toBe("image");
+    }
   });
 
   it("classifies code files by extension", () => {
-    expect(classifyFile(mockFile("app.tsx")).kind).toBe("code");
-    expect(classifyFile(mockFile("main.rs")).kind).toBe("code");
-    expect(classifyFile(mockFile("script.sh")).kind).toBe("code");
+    for (const ext of [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "mjs",
+      "cjs",
+      "py",
+      "go",
+      "rs",
+      "rb",
+      "php",
+      "cs",
+      "c",
+      "cpp",
+      "cc",
+      "cxx",
+      "h",
+      "hpp",
+      "java",
+      "kt",
+      "kts",
+      "swift",
+      "scala",
+      "sh",
+      "bash",
+      "zsh",
+      "fish",
+      "ps1",
+      "bat",
+      "cmd",
+      "sql",
+      "toml",
+      "ini",
+    ]) {
+      expect(classifyFile(mockFile(`source.${ext}`)).kind).toBe("code");
+    }
     expect(classifyFile(mockFile("test.c#")).kind).toBe("code");
     expect(classifyFile(mockFile("test.c#")).extension).toBe("cs");
   });
 
   it("classifies code files by exact name", () => {
     expect(classifyFile(mockFile("Dockerfile")).kind).toBe("code");
+    expect(classifyFile(mockFile(".dockerfile")).kind).toBe("code");
     expect(classifyFile(mockFile(".env")).kind).toBe("code");
     expect(classifyFile(mockFile(".env.local")).kind).toBe("code");
     expect(classifyFile(mockFile(".gitignore")).kind).toBe("code");
+  });
+
+  it("classifies broad document extensions without falling through to unknown", () => {
+    expect(classifyFile(mockFile("scan.rtf")).kind).toBe("text");
+    expect(classifyFile(mockFile("table.csv")).kind).toBe("spreadsheet");
+    expect(classifyFile(mockFile("feed.xml")).kind).toBe("text");
+    expect(classifyFile(mockFile("page.html")).kind).toBe("text");
+    expect(classifyFile(mockFile("page.htm")).kind).toBe("text");
   });
 
   it("handles unknown binaries", () => {

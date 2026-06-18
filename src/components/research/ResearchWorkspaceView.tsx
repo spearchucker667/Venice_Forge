@@ -236,13 +236,20 @@ export const ResearchWorkspaceView: React.FC = () => {
         await addSource(activeSession.id, {
           kind: 'manual_note',
           title: attachment.name,
-          url: `local-file://${attachment.name}`,
           summary: textContent,
           excerpt: textContent.substring(0, 200) + (textContent.length > 200 ? '...' : ''),
           provider: 'manual',
           retrievedAt: new Date().toISOString(),
           citations: [],
-          tags: []
+          tags: [],
+          metadata: {
+            filename: attachment.name,
+            extension: attachment.extension,
+            mimeType: attachment.mimeType,
+            sizeBytes: attachment.sizeBytes,
+            extractionRoute: attachment.extraction.route,
+            localFile: true,
+          },
         });
         if (attachment.extraction.warnings.length > 0) {
           attachment.extraction.warnings.forEach(w => toast.warn('Attachment note', w));

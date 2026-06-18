@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest'
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ResearchWorkspaceView } from './ResearchWorkspaceView';
 import { useResearchStore } from '../../stores/research-store';
 import type { ResearchState } from '../../stores/research-store';
@@ -30,9 +30,15 @@ vi.mock('../../stores/workflow-template-store', () => ({
   useWorkflowTemplateStore: () => ({ createWorkflow: vi.fn() }),
 }));
 
+vi.mock('../../services/ingestion/attachmentAssembler', () => ({
+  processFileAttachment: vi.fn(),
+}));
+
 vi.mock('./ResearchBrowserView', () => ({
   ResearchBrowserView: () => <div data-testid="mock-research-browser-view" />
 }));
+
+import { processFileAttachment } from '../../services/ingestion/attachmentAssembler';
 
 function mockSessionWithSources(
   sources: Array<{ title: string; url?: string }>,
@@ -289,5 +295,72 @@ describe('ResearchWorkspaceView', () => {
     expect(screen.getByText('Unsafe JS')).toBeInTheDocument();
     expect(screen.getByText('Unsafe File')).toBeInTheDocument();
     expect(screen.getByText('Unsafe Data')).toBeInTheDocument();
+  });
+
+  it('stores uploaded local files as metadata without a fake local-file URL', async () => {
+    const mockSession = sanitizeResearchSession({
+      id: 's1',
+      title: 'Active Research',
+      sources: [],
+      findings: [],
+      scope: 'global',
+      tags: [],
+    });
+    const addSource = vi.fn();
+    vi.mocked(processFileAttachment).mockResolvedValueOnce({
+      id: 'att-1',
+      kind: 'markdown',
+      name: 'notes.md',
+      extension: 'md',
+      mimeType: 'text/markdown',
+      sizeBytes: 42,
+      createdAt: '2026-06-18T00:00:00.000Z',
+      text: 'Research notes',
+      extraction: {
+        route: 'local-text',
+        local: true,
+        truncated: false,
+        warnings: [],
+        errors: [],
+      },
+      modelRequirements: {
+        requiresVision: false,
+        canFallbackToText: true,
+      },
+      security: {
+        untrusted: true,
+        macrosExecuted: false,
+        scriptsExecuted: false,
+        htmlSanitized: true,
+      },
+    });
+    vi.mocked(useResearchStore).mockReturnValue(researchState({
+      sessions: [mockSession],
+      activeSessionId: 's1',
+      addSource,
+    }));
+
+    const { container } = render(<ResearchWorkspaceView />);
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['Research notes'], 'notes.md', { type: 'text/markdown' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => expect(addSource).toHaveBeenCalled());
+    const savedSource = addSource.mock.calls[0][1] as { url?: string };
+    expect(savedSource).not.toHaveProperty('url');
+    expect(addSource).toHaveBeenCalledWith(
+      's1',
+      expect.objectContaining({
+        title: 'notes.md',
+        metadata: expect.objectContaining({
+          filename: 'notes.md',
+          extension: 'md',
+          mimeType: 'text/markdown',
+          sizeBytes: 42,
+          extractionRoute: 'local-text',
+          localFile: true,
+        }),
+      }),
+    );
   });
 });

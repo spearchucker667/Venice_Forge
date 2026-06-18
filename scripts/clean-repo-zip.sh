@@ -241,6 +241,13 @@ RSYNC_EXCLUDES=(
   "--exclude=docs/AGENTS/"
   "--exclude=docs/HQE_AUDIT_REPORT.md"
   "--exclude=todo.md"
+  "--exclude=records.json"
+  "--exclude=records*.json"
+  "--exclude=work done*.md"
+  "--exclude=*work*done*.md"
+  "--exclude=*session*.json"
+  "--exclude=*session*.md"
+  "--exclude=chat-history/"
   "--exclude=kimi-export-session_*.md"
   "--exclude=*_ledger.py"
   "--exclude=scripts/dev-tools/venice-styles.json"
@@ -443,7 +450,7 @@ echo "==> Creating file inventory..."
   {
     echo "Largest files in clean extract"
     echo "=============================="
-    find . -type f -not -path "./_REPO_EXTRACT_METADATA/*" -exec du -h {} + | sort -hr | head -100
+    find . -type f -not -path "./_REPO_EXTRACT_METADATA/*" -exec du -h {} + | sort -hr | head -100 || true
   } > "$META_DIR/largest-files.txt"
 
   {
@@ -528,6 +535,12 @@ SECRET_SCAN_SUMMARY="$META_DIR/SECRET_SCAN_SUMMARY.txt"
               local rest="${matchline#*:}"
               local lineno="${rest%%:*}"
               case "$filepath" in
+                *.test.ts|*.test.tsx|*.test.js|*.test.jsx|*.spec.ts|*.spec.tsx|*.spec.js|*.spec.jsx)
+                  # Intentional redaction/security fixtures. They are still
+                  # reported for review, but they do not block source archive
+                  # creation as high-risk runtime/source hits.
+                  printf '%s\t%s\t%s\t%s\n' "$filepath" "$lineno" "$name" "test-fixture"
+                  ;;
                 ./docs/*|./CHANGELOG.md|./README.md|./.config/*.example.yaml|./.config/*.example.yml|./.env.example)
                   # Excluded: docs/examples don't count as high-risk.
                   ;;
@@ -553,8 +566,8 @@ SECRET_SCAN_SUMMARY="$META_DIR/SECRET_SCAN_SUMMARY.txt"
 # Derive summary counters from the TSV itself so they always reflect what
 # actually got written (the previous subshell-counter approach lost updates
 # because `while read` runs in a subshell).
-high_risk_hits="$(grep -c $'\t''high-risk-source' "$SECRET_WARNINGS_TSV" 2>/dev/null || echo 0)"
-example_hits="$(grep -c $'\t''example-or-docs' "$SECRET_WARNINGS_TSV" 2>/dev/null || echo 0)"
+high_risk_hits="$(awk -F '\t' '$4 == "high-risk-source" { count++ } END { print count + 0 }' "$SECRET_WARNINGS_TSV")"
+example_hits="$(awk -F '\t' '$4 == "example-or-docs" { count++ } END { print count + 0 }' "$SECRET_WARNINGS_TSV")"
 {
   echo "high_risk_hits=${high_risk_hits}"
   echo "example_hits=${example_hits}"
@@ -565,6 +578,12 @@ if [[ "$(wc -l < "$SECRET_WARNINGS_TSV" | tr -d ' ')" -gt 10 ]]; then
   echo "WARNING: possible secret-like strings found."
   echo "Review this file inside the ZIP:"
   echo "  _REPO_EXTRACT_METADATA/POSSIBLE_SECRET_WARNINGS.tsv"
+fi
+
+if [[ "$high_risk_hits" -gt 0 ]]; then
+  echo "ERROR: high-risk source secret-like strings found (${high_risk_hits})." >&2
+  echo "Review _REPO_EXTRACT_METADATA/POSSIBLE_SECRET_WARNINGS.tsv in the staging directory and remove or dynamically construct test fixtures before creating a source archive." >&2
+  exit 1
 fi
 
 echo "==> Writing checksums..."

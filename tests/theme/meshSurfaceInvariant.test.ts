@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const ROOT = join(__dirname, '..', '..')
+const ROOT = join(import.meta.dirname, '..', '..')
 
 const SCAN_FILES = [
   'src/App.tsx',

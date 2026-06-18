@@ -57,6 +57,11 @@ const BAD_PATTERNS = [
   /(^|\/)[^/]+\.tmp$/i,
   /(^|\/)chat-history\//,
   /(^|\/)target_inventory\.txt$/,
+  // Local agent/chat transcripts and handoff scratch files.
+  /^records(?:[-_.].*)?\.json$/i,
+  /^work done.*\.md$/i,
+  /^[^/]*work[^/]*done[^/]*\.md$/i,
+  /^[^/]*session[^/]*\.(json|md)$/i,
   // Local-only config (designer/operator secrets). Examples are explicit allowlist.
   /(^|\/)\.config\/(?!.*\.example\.(yaml|yml)).*\.(yaml|yml)$/,
   /(^|\/)\.config\/.*\.local\.(yaml|yml)$/,
@@ -142,6 +147,13 @@ function checkGitignore(root, violations) {
     { pattern: "__MACOSX/", label: "__MACOSX/" },
     { pattern: ".AppleDouble/", label: ".AppleDouble/" },
     { pattern: "._*", label: "._*" },
+    { pattern: "records.json", label: "records.json" },
+    { pattern: "records*.json", label: "records*.json" },
+    { pattern: "work done*.md", label: "work done*.md" },
+    { pattern: "*work*done*.md", label: "*work*done*.md" },
+    { pattern: "*session*.json", label: "*session*.json" },
+    { pattern: "*session*.md", label: "*session*.md" },
+    { pattern: "chat-history/", label: "chat-history/" },
   ];
   for (const r of required) {
     if (!gitignore.includes(r.pattern)) {
@@ -181,6 +193,13 @@ function checkCleanScript(root, violations) {
     { pattern: "--exclude=._*", label: "._*" },
     { pattern: "--exclude=.env", label: ".env" },
     { pattern: "--include=.env.example", label: "include .env.example" },
+    { pattern: "--exclude=records.json", label: "records.json" },
+    { pattern: "--exclude=records*.json", label: "records*.json" },
+    { pattern: "--exclude=work done*.md", label: "work done*.md" },
+    { pattern: "--exclude=*work*done*.md", label: "*work*done*.md" },
+    { pattern: "--exclude=*session*.json", label: "*session*.json" },
+    { pattern: "--exclude=*session*.md", label: "*session*.md" },
+    { pattern: "--exclude=chat-history/", label: "chat-history/" },
   ];
   for (const r of required) {
     if (!script.includes(r.pattern)) {
@@ -192,6 +211,22 @@ function checkCleanScript(root, violations) {
 function checkMetadata(root, violations) {
   const metadataDir = path.join(root, "_REPO_EXTRACT_METADATA");
   const extractInfoPath = path.join(metadataDir, "EXTRACT_INFO.txt");
+  const secretSummaryPath = path.join(metadataDir, "SECRET_SCAN_SUMMARY.txt");
+  if (fs.existsSync(secretSummaryPath)) {
+    const summaryText = fs.readFileSync(secretSummaryPath, "utf8");
+    const highRiskMatch = summaryText.match(/^high_risk_hits=(\d+)/m);
+    const rawLineMatch = summaryText.match(/^raw_line_content_emitted=(.+)$/m);
+    if (!highRiskMatch) {
+      violations.push("Metadata secret scan summary is missing high_risk_hits");
+    } else if (Number(highRiskMatch[1]) > 0) {
+      violations.push(`Metadata secret scan summary reports high_risk_hits=${highRiskMatch[1]}`);
+    }
+    if (!rawLineMatch) {
+      violations.push("Metadata secret scan summary is missing raw_line_content_emitted");
+    } else if (rawLineMatch[1].trim() !== "false") {
+      violations.push(`Metadata secret scan summary reports raw_line_content_emitted=${rawLineMatch[1].trim()}`);
+    }
+  }
   if (!fs.existsSync(extractInfoPath)) return;
 
   const infoText = fs.readFileSync(extractInfoPath, "utf8");

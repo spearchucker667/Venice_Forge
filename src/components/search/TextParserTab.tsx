@@ -1,5 +1,71 @@
 import React from "react";
 
+const SUPPORTED_DOCUMENT_ACCEPT = [
+  ".pdf",
+  ".docx",
+  ".doc",
+  ".md",
+  ".markdown",
+  ".txt",
+  ".json",
+  ".jsonl",
+  ".yaml",
+  ".yml",
+  ".csv",
+  ".xml",
+  ".html",
+  ".htm",
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+  ".py",
+  ".go",
+  ".rs",
+  ".rb",
+  ".php",
+  ".cs",
+  ".c",
+  ".cpp",
+  ".cc",
+  ".cxx",
+  ".h",
+  ".hpp",
+  ".java",
+  ".kt",
+  ".kts",
+  ".swift",
+  ".scala",
+  ".sh",
+  ".bash",
+  ".zsh",
+  ".fish",
+  ".ps1",
+  ".bat",
+  ".cmd",
+  ".sql",
+  ".toml",
+  ".ini",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+  ".gif",
+  ".avif",
+  ".bmp",
+  ".svg",
+  ".tif",
+  ".tiff",
+  ".heic",
+  ".heif",
+  "text/plain",
+  "application/pdf",
+  "application/json",
+  "image/*",
+].join(",");
+
 export function TextParserTab({
   file,
   setFile,
@@ -25,7 +91,7 @@ export function TextParserTab({
           </p>
           <input
             type="file"
-            accept=".pdf,.docx,.xlsx,.txt,text/plain,application/pdf"
+            accept={SUPPORTED_DOCUMENT_ACCEPT}
             onChange={(e) => setFile(e.target.files?.[0] || null)}
             className="block w-full text-[13px] text-text-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[12.5px] file:font-semibold file:bg-surface-elevated file:text-text-primary file:cursor-pointer"
           />

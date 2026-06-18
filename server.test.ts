@@ -13,9 +13,16 @@ vi.mock("http-proxy-middleware", () => ({
   },
 }));
 
-import { applyVeniceProxyHeaders, createServerApp } from "./server";
+import { applyVeniceProxyHeaders, createServerApp as originalCreateServerApp } from "./server";
 import * as safetyModule from "./src/shared/safety";
 import * as localFamilyGuardRules from "./src/shared/safety/localFamilyGuardRules";
+
+let activeApps: any[] = [];
+function createServerApp() {
+  const app = originalCreateServerApp();
+  activeApps.push(app);
+  return app;
+}
 
 beforeEach(() => {
   vi.spyOn(dns as any, "lookup").mockImplementation(async (hostname: any, _options?: any) => {
@@ -28,6 +35,12 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  for (const appInstance of activeApps) {
+    if (typeof appInstance.cleanupIntervals === "function") {
+      appInstance.cleanupIntervals();
+    }
+  }
+  activeApps = [];
 });
 
 describe("server.ts Jina response limits", () => {

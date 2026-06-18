@@ -152,8 +152,8 @@ describe("ChatView", () => {
 
     await waitFor(() =>
       expect(warnSpy).toHaveBeenCalledWith(
-        "Model does not support images",
-        expect.stringContaining("llama-3.3-70b"),
+        "AI is not vision capable",
+        "“llama-3.3-70b” cannot read image attachments. Select a vision-capable model or convert the image/PDF to text first.",
       ),
     );
   });

@@ -60,8 +60,8 @@ export function ChatView() {
     const requiresVision = attachments?.some(att => att.modelRequirements.requiresVision) ?? false;
     if (requiresVision && !visionSupported) {
       toast.warn(
-        'Model does not support images',
-        `"${model}" is not vision-capable. Pick a vision-capable model before sending images or scanned PDFs.`,
+        'AI is not vision capable',
+        `“${model}” cannot read image attachments. Select a vision-capable model or convert the image/PDF to text first.`,
       )
       return
     }
@@ -422,7 +422,15 @@ export function ChatView() {
         onSelectedIdsChange={setSelectedPriorConversationIds}
         activeConversation={conversation}
       />
-      <ChatInput onSend={handleSend} onStop={stop} isStreaming={isStreaming} disabled={!hasVeniceKey} disableImageAttach={!visionSupported} memoryStatus={effectiveMemoryStatus} />
+      <ChatInput
+        onSend={handleSend}
+        onStop={stop}
+        isStreaming={isStreaming}
+        disabled={!hasVeniceKey}
+        disableImageAttach={!visionSupported}
+        visionUnsupportedModelId={model}
+        memoryStatus={effectiveMemoryStatus}
+      />
     </div>
   )
 }

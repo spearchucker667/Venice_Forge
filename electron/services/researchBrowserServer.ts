@@ -65,9 +65,20 @@ import { isAllowedResearchBrowserUrl, isTrustedExternalUrl } from "../utils/urlS
 
 import { screenResponseBody } from "../../src/shared/safety";
 import { getRuntimeLocalFamilySafeModeEnabled } from "./runtimeSafetySettings";
+import { validateResearchBrowserNetworkUrl } from "../security/researchBrowserNetworkPolicy";
 
 function assertSafeUrl(url: string): boolean {
   return isAllowedResearchBrowserUrl(url);
+}
+
+function clampResearchBrowserBounds(input: ResearchBrowserBoundsInput, host: { width: number; height: number }): ResearchBrowserBoundsInput {
+  const maxWidth = Math.max(0, Math.floor(host.width));
+  const maxHeight = Math.max(0, Math.floor(host.height));
+  const width = Math.min(Math.max(1, Math.floor(input.width)), maxWidth);
+  const height = Math.min(Math.max(1, Math.floor(input.height)), maxHeight);
+  const x = Math.min(Math.max(0, Math.floor(input.x)), Math.max(0, maxWidth - width));
+  const y = Math.min(Math.max(0, Math.floor(input.y)), Math.max(0, maxHeight - height));
+  return { x, y, width, height, visible: input.visible };
 }
 
 export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
@@ -90,12 +101,17 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
 
     // Block navigation to disallowed URLs before the network request is made
     researchSession.webRequest.onBeforeRequest({ urls: ["*://*/*"] }, (details, callback) => {
-      if (!assertSafeUrl(details.url)) {
+      void validateResearchBrowserNetworkUrl(details.url).then((decision) => {
+        if (!decision.allowed) {
+          callback({ cancel: true });
+          setBlockedState(`Blocked navigation: ${decision.reason ?? details.url}`);
+          return;
+        }
+        callback({ cancel: false });
+      }).catch(() => {
         callback({ cancel: true });
-        setBlockedState(`Blocked navigation to disallowed URL: ${details.url}`);
-        return;
-      }
-      callback({ cancel: false });
+        setBlockedState("Blocked navigation: DNS safety check failed.");
+      });
     });
 
     researchView = new WebContentsView({
@@ -127,7 +143,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     wc.on("will-navigate", (details) => {
       if (!assertSafeUrl(details.url)) {
         details.preventDefault();
-        setBlockedState(`Navigation blocked: ${details.url}`);
+        setBlockedState("Navigation blocked by the Research Browser URL policy.");
       }
     });
 
@@ -135,7 +151,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     wc.on("will-frame-navigate", (details) => {
       if (!assertSafeUrl(details.url)) {
         details.preventDefault();
-        setBlockedState(`Frame navigation blocked: ${details.url}`);
+        setBlockedState("Frame navigation blocked by the Research Browser URL policy.");
       }
     });
 
@@ -143,16 +159,12 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     wc.on("will-redirect", (details) => {
       if (!assertSafeUrl(details.url)) {
         details.preventDefault();
-        setBlockedState(`Redirect blocked: ${details.url}`);
+        setBlockedState("Redirect blocked by the Research Browser URL policy.");
       }
     });
 
-    wc.setWindowOpenHandler((details) => {
-      if (assertSafeUrl(details.url)) {
-        wc.loadURL(details.url);
-      } else {
-        setBlockedState(`Popup blocked: ${details.url}`);
-      }
+    wc.setWindowOpenHandler(() => {
+      setBlockedState("Popup blocked. Use Open externally or paste the URL manually if you trust it.");
       return { action: "deny" };
     });
 
@@ -204,30 +216,30 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
         typeof input.visible !== "boolean") {
       return { ok: false, error: "Invalid bounds parameters" };
     }
-    input.x = Math.max(0, input.x);
-    input.y = Math.max(0, input.y);
-    input.width = Math.max(0, input.width);
-    input.height = Math.max(0, input.height);
-
     if (!researchView || !mainWindowRef || mainWindowRef.isDestroyed()) {
       return { ok: false, error: "Not initialized" };
     }
 
+    const contentBounds = mainWindowRef.getContentBounds();
+    const safeBounds = clampResearchBrowserBounds(input, {
+      width: contentBounds.width,
+      height: contentBounds.height,
+    });
     const wasVisible = currentBounds?.visible ?? false;
-    currentBounds = input;
+    currentBounds = safeBounds;
 
-    if (input.visible && !wasVisible) {
+    if (safeBounds.visible && !wasVisible) {
       mainWindowRef.contentView.addChildView(researchView);
-    } else if (!input.visible && wasVisible) {
+    } else if (!safeBounds.visible && wasVisible) {
       mainWindowRef.contentView.removeChildView(researchView);
     }
 
-    if (input.visible) {
+    if (safeBounds.visible) {
       researchView.setBounds({
-        x: input.x,
-        y: input.y,
-        width: input.width,
-        height: input.height,
+        x: safeBounds.x,
+        y: safeBounds.y,
+        width: safeBounds.width,
+        height: safeBounds.height,
       });
     }
 
@@ -263,9 +275,10 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
       }
     }
 
-    if (!assertSafeUrl(finalUrl)) {
-      setBlockedState(`Blocked insecure or private URL: ${finalUrl}`);
-      return { ok: false, error: "Blocked insecure protocol" };
+    const decision = await validateResearchBrowserNetworkUrl(finalUrl);
+    if (!decision.allowed) {
+      setBlockedState(`Blocked unsafe URL: ${decision.reason ?? finalUrl}`);
+      return { ok: false, error: decision.reason ?? "Blocked unsafe URL" };
     }
 
     try {

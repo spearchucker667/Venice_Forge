@@ -112,6 +112,16 @@ remains. The current canonical roadmap is
 backlog files were removed.
 
 ### Latest Session Summary
+- **2026-06-18 completion of remaining P2 tasks (current session):**
+  - Confirmed remaining P1 tasks were already complete (including automatic CodeQL schedule/triggers).
+  - Addressed the only remaining open P2 task from the `docs/audits/repository-todo-roadmap-current.md` roadmap: `Replace token-presence verifier coverage with behavioral tests` for the Research Browser.
+  - Added full behavioral test coverage in `electron/services/researchBrowserServer.test.ts` to cover IPC handler security policies, URL validation, and scraping constraints.
+  - Successfully ran `npm run verify:research-browser` and verified passing conditions.
+  - Checked off the Research Browser P2 task in the roadmap file.
+  - Fixed an ESLint warning for `mockWebContentsView` being unused in the newly created tests file.
+  - Ran full `npm run ci` suite to ensure passing condition for the entire project. All checks (lint, typecheck, coverage, audit, build, contracts, and dist verification) pass smoothly.
+  - **Verdict:** All tasks across P0, P1, P2, and P3 on the repository roadmap have now been completed or checked off as completed by prior sessions.
+
 - **2026-06-18 final massive bug-hunt audit (current session):**
   - Established baseline repo state: Node v22.22.3, npm 10.9.8, main @ `118b0e50`.
   - Ran full validation matrix: lint PASS, typecheck PASS, 3,232 tests PASS (260 files, 1 skipped), 22+ verify scripts PASS, build PASS, dist-verify PASS, archive-clean PASS.
