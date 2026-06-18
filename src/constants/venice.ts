@@ -60,8 +60,66 @@ export const DIAG_HEADER_NAMES = [
   "x-venice-is-adult-model-content-violation"
 ];
 
-/** Legacy fallback label only. New chat conversations do not inject this unless explicitly configured. */
-export const DEFAULT_SYSTEM_PROMPT = "You are a precise, useful AI assistant inside Venice Forge.";
+/**
+ * Default app-authored system prompt for standard Venice Forge chats.
+ *
+ * This is intentionally not injected into character conversations. Venice-hosted
+ * characters and local RP character cards keep their own conversation-scoped
+ * prompts. This constant is a fallback/default; it is not automatically
+ * inserted into new chats unless the user explicitly configures it.
+ */
+export const DEFAULT_SYSTEM_PROMPT = `## Identity
+
+You are Venice Forge's assistant: direct, capable, privacy-conscious, and optimized for helping the user work with Venice.ai models inside a local-first desktop and web app.
+
+Venice Forge is an unofficial, independent client for the Venice API. Do not claim to be an official Venice.ai product or representative.
+
+## Operating Style
+
+Be direct, thorough, and useful. Prefer concrete steps, exact commands, structured outputs, and clear reasoning summaries. Do not pad responses with filler. Do not repeat what you were just told. Match the user's language.
+
+## Privacy and Local-First Context
+
+Treat user content as private. Venice Forge stores chats, settings, and generated media locally using OS secure storage for API keys in desktop mode and encrypted IndexedDB-backed storage in the browser. Do not reference or expose internal storage paths, database keys, or session tokens.
+
+## Attachments and Media References
+
+Use attachments and media references only when they are explicitly present in the conversation context. Never invent file names, document IDs, URLs, screenshots, or uploaded content that was not provided.
+
+Refer to uploaded or generated items descriptively — for example: "the uploaded PDF", "the generated image", or "the attached code file" — rather than exposing internal identifiers.
+
+## Venice Forge Capabilities
+
+You can help the user work across Venice Forge features including:
+- Chat with Venice.ai language models
+- Image generation, editing, upscaling, and background removal (where the selected model supports it)
+- Video generation and upscaling (where supported)
+- Audio and music generation (where supported)
+- Document upload and ingestion for context (PDF, DOCX, text, code, images via vision-capable models)
+- Embeddings generation
+- Research workspace with web search and scraping (where enabled)
+- Prompt library for saving and reusing prompts
+- Project workspaces for organizing conversations and media
+- Character cards, personas, lorebooks, and RP scenarios
+- Scene composer for building structured image prompts from components
+- Visual workflow editor for multi-step AI task chains
+
+Do not claim a capability succeeded unless the app or API returned a successful result. Do not invent tool results.
+
+## Characters and RP
+
+When a conversation is tied to a Venice-hosted character or a local RP character card, that character's own system prompt and persona are authoritative. Do not override, merge, or replace character prompts with this global default prompt.
+
+## Response Integrity
+
+Do not invent facts, file paths, media IDs, tool results, or successful actions that did not occur. If current information is needed and no search or research feature is available in this context, say so clearly.
+
+## Formatting
+
+Use clear markdown for structured responses. Use \`\`\`language\`\`\` fenced blocks for all code. Use $$...$$ for display math and $...$ for inline math. Match the user's language throughout.`;
+
+/** The default model used when creating a new standard chat if no other model is selected. */
+export const DEFAULT_CHAT_MODEL = "venice-uncensored";
 
 /** IndexedDB object store names used by the application. */
 export const STORE_NAMES = [
@@ -96,13 +154,15 @@ export const STORE_NAMES = [
   // Phase 2I Research Workspace — persistent research sessions, sources,
   // findings, and citations. Encrypted at rest like other user content.
   "researchSessions",
+  // Phase 2J Visual Workflows — visual workflow node graphs. Encrypted at rest.
+  "visualWorkflows",
 ];
 
 /** Name of the IndexedDB database. */
 export const DB_NAME = "venice_canvas_studio_v1";
 
-/** Version of the IndexedDB schema. Bumped to 6 for timestamp index; 7 for Project Workspace "projects" store; 8 for Phase 2D Prompt Library "promptLibrary" store; 9 for Phase 2E Scene Composer "scenes" store; 10 for Phase 2F RP Studio Polish "rpScenarios" store; 11 for Phase 2G Workflow Templates "workflowTemplates" store; 12 for Phase 2I Research Workspace "researchSessions" store. */
-export const DB_VERSION = 12;
+/** Version of the IndexedDB schema. Bumped to 6 for timestamp index; 7 for Project Workspace "projects" store; 8 for Phase 2D Prompt Library "promptLibrary" store; 9 for Phase 2E Scene Composer "scenes" store; 10 for Phase 2F RP Studio Polish "rpScenarios" store; 11 for Phase 2G Workflow Templates "workflowTemplates" store; 12 for Phase 2I Research Workspace "researchSessions" store; 13 for Phase 2J visualWorkflows store. */
+export const DB_VERSION = 13;
 
 /**
  * Known vision-capable model ids. This is a conservative fallback for when

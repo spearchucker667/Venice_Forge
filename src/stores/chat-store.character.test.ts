@@ -14,6 +14,7 @@ import { useCharacterStore } from "./character-store";
 import type { VeniceCharacter } from "../types/characters";
 import type { CharacterCardV1 } from "../types/rp";
 import { useSettingsStore } from "./settings-store";
+import { DEFAULT_CHAT_MODEL } from "../constants/venice";
 
 /** Resets both stores between tests. */
 function resetStores() {
@@ -221,5 +222,57 @@ describe("chat-store character integration", () => {
     const id = useChatStore.getState().createLocalCharacterConversation(LOCAL_CARD_FIXTURE, "llama-3.3-70b");
     const conv = useChatStore.getState().conversations.find((c) => c.id === id)!;
     expect(conv.title).toBe("Chat with Local Test");
+  });
+
+  // DEFAULT_CHAT_MODEL fallback priority tests
+  it("hosted character: prefers character.modelId over DEFAULT_CHAT_MODEL", () => {
+    // CHARACTER_FIXTURE has modelId = "venice-uncensored-1-2" which beats DEFAULT_CHAT_MODEL
+    const id = useChatStore.getState().createCharacterConversation(CHARACTER_FIXTURE, "");
+    const conv = useChatStore.getState().conversations.find((c) => c.id === id)!;
+    expect(conv.model).toBe("venice-uncensored-1-2");
+    expect(conv.model).not.toBe(DEFAULT_CHAT_MODEL);
+  });
+
+  it("hosted character: uses supplied fallbackModel before DEFAULT_CHAT_MODEL when character has no modelId", () => {
+    const noModel: VeniceCharacter = { ...CHARACTER_FIXTURE, slug: "no-model-2", id: "char-3", name: "No Model 2", modelId: undefined };
+    const id = useChatStore.getState().createCharacterConversation(noModel, "explicit-fallback-model");
+    const conv = useChatStore.getState().conversations.find((c) => c.id === id)!;
+    expect(conv.model).toBe("explicit-fallback-model");
+  });
+
+  it("hosted character: falls back to DEFAULT_CHAT_MODEL when character has no modelId and no fallbackModel is supplied", () => {
+    const noModel: VeniceCharacter = { ...CHARACTER_FIXTURE, slug: "no-model-3", id: "char-4", name: "No Model 3", modelId: undefined };
+    const id = useChatStore.getState().createCharacterConversation(noModel, "");
+    const conv = useChatStore.getState().conversations.find((c) => c.id === id)!;
+    expect(conv.model).toBe(DEFAULT_CHAT_MODEL);
+  });
+
+  it("local character: prefers card.modelId over DEFAULT_CHAT_MODEL", () => {
+    // LOCAL_CARD_FIXTURE has modelId = "llama-3.3-70b" which beats DEFAULT_CHAT_MODEL
+    const id = useChatStore.getState().createLocalCharacterConversation(LOCAL_CARD_FIXTURE, "");
+    const conv = useChatStore.getState().conversations.find((c) => c.id === id)!;
+    expect(conv.model).toBe("llama-3.3-70b");
+    expect(conv.model).not.toBe(DEFAULT_CHAT_MODEL);
+  });
+
+  it("local character: uses supplied fallbackModel before DEFAULT_CHAT_MODEL when card has no modelId", () => {
+    const noModel: CharacterCardV1 = { ...LOCAL_CARD_FIXTURE, id: "local-card-3", name: "No Model Local", modelId: undefined };
+    const id = useChatStore.getState().createLocalCharacterConversation(noModel, "explicit-local-fallback");
+    const conv = useChatStore.getState().conversations.find((c) => c.id === id)!;
+    expect(conv.model).toBe("explicit-local-fallback");
+  });
+
+  it("local character: falls back to DEFAULT_CHAT_MODEL when card has no modelId and no fallbackModel is supplied", () => {
+    const noModel: CharacterCardV1 = { ...LOCAL_CARD_FIXTURE, id: "local-card-4", name: "No Model Local 2", modelId: undefined };
+    const id = useChatStore.getState().createLocalCharacterConversation(noModel, "");
+    const conv = useChatStore.getState().conversations.find((c) => c.id === id)!;
+    expect(conv.model).toBe(DEFAULT_CHAT_MODEL);
+  });
+
+  it("local character: persists card.systemPrompt unchanged on the conversation", () => {
+    const id = useChatStore.getState().createLocalCharacterConversation(LOCAL_CARD_FIXTURE, "llama-3.3-70b");
+    const conv = useChatStore.getState().conversations.find((c) => c.id === id)!;
+    expect(conv.systemPrompt).toBe(LOCAL_CARD_FIXTURE.systemPrompt);
+    expect(conv.metadata?.character?.systemPrompt).toBe(LOCAL_CARD_FIXTURE.systemPrompt);
   });
 });

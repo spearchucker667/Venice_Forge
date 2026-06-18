@@ -31,6 +31,7 @@ Venice Forge uses the following Venice.ai brand assets:
 3. **Color compliance** — All logo assets are rendered only in approved colors: black (`#000000`), white (`#ffffff`), or Venetian Red (`#DD3300`). No recoloring or gradient overlays are applied to the mark vectors themselves.
 4. **Clear space** — The mark is given adequate padding in the app header (≥ 8 px on all sides) and sidebar (≥ 12 px) to satisfy the exclusion-zone principle shown in the brand guidelines.
 5. **No modification of vectors** — SVG anchor points and curves are preserved exactly as provided in the brand kit.
+6. **Packaging icons** — `build/icon.ico`, `build/icon.icns`, and `build/icon.png` are identical derivations of the Venice Keys mark used solely for desktop OS application packaging. Their dimensions and formats are generated using standard Electron builder tooling, and they follow the same clear space and unmodified-vector requirements as the primary app icon.
 
 ## Unofficial Status
 

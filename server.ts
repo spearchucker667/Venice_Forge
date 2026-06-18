@@ -155,13 +155,21 @@ export function createServerApp() {
 
   // Health check endpoint (does not proxy to Venice)
   const appVersion = (() => {
-    try {
-      const moduleDir = getModuleDir();
-      const pkgPath = path.join(moduleDir, "package.json");
-      return JSON.parse(fs.readFileSync(pkgPath, "utf-8")).version;
-    } catch {
-      return "unknown";
+    const moduleDir = getModuleDir();
+    const paths = [
+      path.join(moduleDir, "package.json"),
+      path.join(moduleDir, "..", "package.json")
+    ];
+    for (const p of paths) {
+      try {
+        if (fs.existsSync(p)) {
+          return JSON.parse(fs.readFileSync(p, "utf-8")).version;
+        }
+      } catch {
+        // ignore and try next
+      }
     }
+    return "unknown";
   })();
 
   app.get("/health", (_req, res) => {
@@ -648,7 +656,12 @@ export function createServerApp() {
           return res.status(451).json({ error: screen.userMessage });
         }
 
-        return res.status(response.status).json(body);
+        if (contentType.includes("application/json")) {
+          return res.status(response.status).json(body);
+        } else {
+          res.setHeader("Content-Type", contentType || "text/plain");
+          return res.status(response.status).send(body);
+        }
       } finally {
         clearTimeout(timeout);
       }

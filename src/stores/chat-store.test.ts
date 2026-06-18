@@ -7,6 +7,9 @@ import type { CharacterCardV1 } from '../types/rp'
 import type { ChatMessage } from '../types/venice'
 import type { Conversation } from '../types/conversation'
 import { generateId } from '../lib/utils'
+import { desktopConversations, desktopChat } from '../services/desktopBridge'
+import { toConversationRecord } from './chat-store-helpers'
+import { DEFAULT_CHAT_MODEL } from '../constants/venice'
 
 /**
  * Regression guard: chat-store hydration routes through desktopBridge.
@@ -373,7 +376,7 @@ describe('chat-store desktopBridge routing', () => {
     expect(useChatStore.getState().getActiveConversation()?.model).toBe('fallback-model')
 
     useChatStore.getState().createCharacterConversation(char, '')
-    expect(useChatStore.getState().getActiveConversation()?.model).toBe('llama-3.3-70b')
+    expect(useChatStore.getState().getActiveConversation()?.model).toBe(DEFAULT_CHAT_MODEL)
   })
 
   it('logs warning if conversation list is truncated', async () => {

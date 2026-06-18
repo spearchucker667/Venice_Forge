@@ -36,6 +36,7 @@ const ENCRYPTED_STORES: StoreName[] = [
   "rpScenarios",
   "workflowTemplates",
   "researchSessions",
+  "visualWorkflows",
 ];
 
 export interface GetItemsResult<T = unknown> {

@@ -9,6 +9,7 @@ import { useSettingsStore } from "../stores/settings-store";
 import { veniceStreamChat } from "../services/veniceClient";
 import { desktopConversations } from "../services/desktopBridge";
 import type { CharacterCardV1 } from "../types/rp";
+import { DEFAULT_SYSTEM_PROMPT } from "../constants/venice";
 
 vi.mock("../services/veniceClient", () => ({
   veniceStreamChat: vi.fn(),
@@ -225,6 +226,8 @@ describe("use-chat character_slug threading", () => {
       role: "system",
       content: "You are a local test character.",
     });
+    // The global DEFAULT_SYSTEM_PROMPT must never contaminate a local character chat
+    expect(JSON.stringify(messages)).not.toContain("Venice Forge's assistant");
   });
 
   it("exposes memoryStatus 'disabled' when memory retrieval is disabled", async () => {
@@ -602,7 +605,41 @@ describe("use-chat character_slug threading", () => {
     expect(JSON.stringify(messages)).not.toContain("You are a helpful assistant");
     expect(JSON.stringify(messages)).not.toContain("A company is designing a new logo");
     expect(JSON.stringify(messages)).not.toContain("[Local Memory Context]");
+    // The global DEFAULT_SYSTEM_PROMPT distinctive phrase must not appear
+    expect(JSON.stringify(messages)).not.toContain("Venice Forge's assistant");
     expect((body!.venice_parameters as Record<string, unknown>).include_venice_system_prompt).toBe(false);
+  });
+
+  it("Venice-hosted character chat does not include DEFAULT_SYSTEM_PROMPT text", async () => {
+    useChatStore.getState().createCharacterConversation(CHARACTER, "llama-3.3-70b");
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("Hello, Alan.", "llama-3.3-70b");
+    });
+
+    const body = extractPayloadFromCall();
+    const messages = body!.messages as Array<{ role: string; content: string }>;
+    // Hosted character chats have no system message (the slug drives the persona server-side)
+    const systemMessages = messages.filter((m) => m.role === "system");
+    expect(systemMessages).toHaveLength(0);
+    expect(JSON.stringify(messages)).not.toContain("Venice Forge's assistant");
+    expect(JSON.stringify(messages)).not.toContain(DEFAULT_SYSTEM_PROMPT.slice(0, 40));
+  });
+
+  it("standard chat with empty systemPrompt does not inject DEFAULT_SYSTEM_PROMPT", async () => {
+    // systemPrompt is "" — nothing should be auto-injected
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("plain message", "llama-3.3-70b");
+    });
+
+    const body = extractPayloadFromCall();
+    const messages = body!.messages as Array<{ role: string; content: string }>;
+    expect(messages.some((m) => m.role === "system")).toBe(false);
+    expect(JSON.stringify(messages)).not.toContain("Venice Forge's assistant");
   });
 
   describe("safe error handling (T-114/T-115)", () => {

@@ -14,6 +14,7 @@ import { useSettingsStore } from './settings-store' // for defaulting projectRef
 import { desktopChat, desktopConversations } from '../services/desktopBridge'
 import { redactErrorMessage } from '../shared/redaction'
 import * as logger from '../shared/logger'
+import { DEFAULT_CHAT_MODEL } from '../constants/venice'
 
 
 
@@ -169,7 +170,7 @@ export const useChatStore = create<ChatState>()(
           stats: character.stats,
         }
         const preferredModel =
-          (character.modelId && character.modelId.trim()) || fallbackModel || 'llama-3.3-70b'
+          (character.modelId && character.modelId.trim()) || fallbackModel || DEFAULT_CHAT_MODEL
         const activeProj = useSettingsStore.getState().activeProjectId
         const conv: Conversation = {
           id,
@@ -207,7 +208,7 @@ export const useChatStore = create<ChatState>()(
         const id = generateId()
         const now = Date.now()
         const preferredModel =
-          (card.modelId && card.modelId.trim()) || fallbackModel || 'llama-3.3-70b'
+          (card.modelId && card.modelId.trim()) || fallbackModel || DEFAULT_CHAT_MODEL
         const activeProj = useSettingsStore.getState().activeProjectId
         const characterMeta: ConversationCharacterMeta = {
           id: card.id,

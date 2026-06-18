@@ -168,6 +168,15 @@ export const MIGRATIONS: MigrationStep[] = [
       }
     },
   },
+  {
+    toVersion: 13,
+    description: "Add visualWorkflows store for visual workflow persistence",
+    up(db) {
+      if (!db.objectStoreNames.contains("visualWorkflows")) {
+        db.createObjectStore("visualWorkflows", { keyPath: "id" });
+      }
+    },
+  },
 ];
 
 /**

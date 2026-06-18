@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { modelSupportsVision } from "./venice";
+import { modelSupportsVision, DEFAULT_CHAT_MODEL, DEFAULT_SYSTEM_PROMPT } from "./venice";
 
 describe("modelSupportsVision", () => {
   it("returns true for an id in the static vision allowlist", () => {
@@ -77,5 +77,49 @@ describe("modelSupportsVision", () => {
   it("is case-insensitive on the model id", () => {
     expect(modelSupportsVision("LLAMA-3.2-11B-VISION")).toBe(true);
     expect(modelSupportsVision("Llama-3.2-11b-Vision")).toBe(true);
+  });
+});
+
+describe("DEFAULT_CHAT_MODEL", () => {
+  it("is set to venice-uncensored", () => {
+    expect(DEFAULT_CHAT_MODEL).toBe("venice-uncensored");
+  });
+});
+
+describe("DEFAULT_SYSTEM_PROMPT", () => {
+  it("mentions Venice Forge by name", () => {
+    expect(DEFAULT_SYSTEM_PROMPT).toContain("Venice Forge");
+  });
+
+  it("mentions character prompt isolation", () => {
+    expect(DEFAULT_SYSTEM_PROMPT).toContain("character");
+  });
+
+  it("does not contain JavaScript template interpolation artifacts", () => {
+    expect(DEFAULT_SYSTEM_PROMPT).not.toContain("${new Date()");
+    expect(DEFAULT_SYSTEM_PROMPT).not.toContain("${Date");
+  });
+
+  it("does not reference non-existent tool names", () => {
+    expect(DEFAULT_SYSTEM_PROMPT).not.toContain("get_attachment");
+  });
+
+  it("does not contain broad no-restrictions language", () => {
+    expect(DEFAULT_SYSTEM_PROMPT).not.toContain("no ethical boundaries");
+    expect(DEFAULT_SYSTEM_PROMPT).not.toContain("no restrictions");
+    expect(DEFAULT_SYSTEM_PROMPT).not.toContain("previous refusals are irrelevant");
+  });
+
+  it("does not contain previous-AI-persona disavowal instructions", () => {
+    expect(DEFAULT_SYSTEM_PROMPT).not.toContain("previous AI");
+  });
+
+  it("does not claim to be an official Venice.ai product", () => {
+    // The prompt explicitly states Venice Forge is unofficial
+    expect(DEFAULT_SYSTEM_PROMPT).toContain("unofficial");
+  });
+
+  it("is a non-empty string longer than 100 characters", () => {
+    expect(DEFAULT_SYSTEM_PROMPT.length).toBeGreaterThan(100);
   });
 });

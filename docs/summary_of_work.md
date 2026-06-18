@@ -112,6 +112,16 @@ remains. The current canonical roadmap is
 backlog files were removed.
 
 ### Latest Session Summary
+- **2026-06-18 visual workflow editor integration cleanup and codebase audit fixes (current session):**
+  - Addressed AUDIT-003 by implementing lazy search index building in `src/components/layout/sidebar.tsx`, bounding mapping to only execute when `historyExpanded` is true and the search query is non-empty.
+  - Addressed AUDIT-004, AUDIT-005, and AUDIT-006 by deleting the obsolete `WorkflowTemplatesView.tsx` and its test, confirming visual workflows are the canonical mechanism and removing stale test references.
+  - Addressed AUDIT-008 by removing unused root-level patch scripts (`patch_app.cjs`, `patch_venice_params.cjs`, etc.).
+  - Addressed AUDIT-009 by deleting the duplicate `.github/workflows/CodeQL Advanced.yml` since `codeql.yml` has the correct setup.
+  - Addressed AUDIT-010 by making the Jina proxy fallback to `res.send(body)` for non-JSON responses in `server.ts`.
+  - Addressed AUDIT-011 by removing the hardcoded `'qwen3-next-80b'` fallback in Sidebar and instead using a centralized `DEFAULT_CHAT_MODEL` exported from `src/constants/venice.ts`.
+  - Addressed AUDIT-012 by updating the `appVersion` fallback in `server.ts` to look for `package.json` in both the module directory and its parent directory to gracefully handle built `/dist` layouts.
+  - Addressed AUDIT-013 by adding an explicit entry to `LEGAL.md` under brand-compliance notes for the identical provenance and requirements of the packaging icons (`build/icon.ico`, `build/icon.icns`, `build/icon.png`).
+
 - **2026-06-18 chat system prompt selection (current session):**
   - Investigated user report: "custom prompts are not saved and accessible through standard chat when clicking the options tab".
   - Identified that the "App System Prompt" input in `venice-params.tsx` lacked integration with the Prompt Library.
@@ -561,6 +571,24 @@ backlog files were removed.
   Linux, and macOS draft artifacts.
 
 ### Session History
+
+- **Date:** 2026-06-18 (visual workflow editor integration cleanup and codebase audit fixes)
+- **Agent:** OpenAI GPT-5
+- **Branch / state:** `main`
+- **Scope:** Complete remaining audit fixes across the codebase.
+- **Summary:**
+  - Deferred sidebar search index generation to prevent freezes on rapid menu switches with an empty query (AUDIT-003).
+  - Deleted stale `WorkflowTemplatesView.tsx` and tests to remove ambiguity; visual workflows are canonical (AUDIT-004, AUDIT-005, AUDIT-006).
+  - Cleaned up obsolete root-level patch scripts (AUDIT-008).
+  - Removed duplicate CodeQL Advanced workflow (AUDIT-009).
+  - Fixed Jina web proxy to not serialize text responses into JSON string structures (AUDIT-010).
+  - Standardized sidebar default chat model using `DEFAULT_CHAT_MODEL` (AUDIT-011).
+  - Fixed `/health` appVersion resolution falling back to "unknown" in built environments (AUDIT-012).
+  - Recorded asset provenance for packaging icons in `LEGAL.md` (AUDIT-013).
+- **Files changed:** `src/components/layout/sidebar.tsx`, `src/constants/venice.ts`, `server.ts`, `LEGAL.md`, deleted `WorkflowTemplatesView.tsx`, deleted `.github/workflows/CodeQL Advanced.yml`.
+- **Validation:** Tests passed successfully (3242 tests passing), linting clean.
+- **Status:** COMPLETE.
+
 
 - **Date:** 2026-06-18 (master expansion audit follow-up)
 - **Agent:** OpenAI GPT-5
@@ -7264,3 +7292,14 @@ Result:
 | `npm run verify:bundle-budget` | PASS | All 14 chunks within budget (vendor 802 KB, PDF worker 1,344 KB) |
 | `npx vitest run package-scripts.test.ts` | PASS | 5/5 tests passed; `dev:web` invariant `vite` confirmed |
 | Clean source archive dry run | PASS | `ARCHIVE CLEAN` — no `dist/`, `dist-electron/`, `release/`, `coverage/`, `node_modules/`, `.env`, `.config/*.local.yaml`, `.DS_Store`, or `Thumbs.db` in ZIP output |
+
+- **Date:** 2026-06-18 (Replace Default System Prompt and Chat Model)
+  - **Agent:** Antigravity (Gemini 3.1 Pro)
+  - **Branch / state:** `main`; working tree modified.
+  - **Summary:** Executed surgical update of configuration defaults (AUDIT-014).
+    - Replaced the placeholder `DEFAULT_SYSTEM_PROMPT` in `src/constants/venice.ts` with a robust, Venice Forge-specific prompt emphasizing local-first privacy, markdown formatting, and capability alignment (derived from the canonical Venice prompt but tailored for Forge).
+    - Updated `DEFAULT_CHAT_MODEL` to `venice-uncensored` across `venice.ts` and `chat-store.ts` fallbacks.
+    - Verified and enforced strict character chat isolation: the global `DEFAULT_SYSTEM_PROMPT` is never injected into Venice-hosted or local character conversations.
+    - Added extensive negative test assertions ensuring the default prompt distinctive phrases do not contaminate character chat payloads.
+  - **Files changed:** `src/constants/venice.ts`, `src/constants/venice.test.ts`, `src/stores/chat-store.ts`, `src/stores/chat-store.test.ts`, `src/stores/chat-store.character.test.ts`, `src/components/layout/sidebar.test.tsx`, `src/hooks/use-chat.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run typecheck` PASS; `npm run lint:eslint` PASS (0 warnings); `npm test` PASS (3,262 tests passed, 1 skipped).

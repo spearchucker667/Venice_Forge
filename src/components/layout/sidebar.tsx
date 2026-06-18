@@ -11,6 +11,7 @@ import { desktopConfig, isElectron } from '../../services/desktopBridge'
 import { reloadConfig } from '../../stores/config-store'
 import { TAB_REGISTRY, TAB_GROUP_LABELS, type TabGroup, type TabId } from '../../config/tabs'
 import { contentToSearchText, contentToMarkdownText } from '../../utils/messageContent'
+import { DEFAULT_CHAT_MODEL } from '../../constants/venice'
 
 function ChatIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>)
@@ -195,10 +196,10 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
   }
 
   const deferredSearch = useDeferredValue(search)
-  const searchIndex = useMemo(
-    () => conversations.map((conversation) => ({ conversation, text: buildConversationSearchText(conversation) })),
-    [conversations],
-  )
+  const searchIndex = useMemo(() => {
+    if (!historyExpanded || !deferredSearch.trim()) return []
+    return conversations.map((conversation) => ({ conversation, text: buildConversationSearchText(conversation) }))
+  }, [conversations, deferredSearch, historyExpanded])
   const searchResult = useMemo(() => {
     const query = deferredSearch.trim().toLowerCase()
     if (!query) return { conversations: conversations.slice(0, MAX_CONVERSATION_SEARCH_RESULTS), totalMatches: conversations.length }
@@ -249,7 +250,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
   }
 
   const startNewChat = () => {
-    createConversation(selectedModel || 'qwen3-next-80b')
+    createConversation(selectedModel || DEFAULT_CHAT_MODEL)
     setActiveTab('chat')
     setChatOptionsOpen(false)
     onMobileClose?.()

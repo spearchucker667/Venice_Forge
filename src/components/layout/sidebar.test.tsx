@@ -25,6 +25,7 @@ import { useChatStore } from '../../stores/chat-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useProjectStore } from '../../stores/project-store'
 import { ModalRequestHost } from '../ui/modal-requests'
+import { DEFAULT_CHAT_MODEL } from '../../constants/venice'
 
 describe('Sidebar controls', () => {
   beforeEach(() => {
@@ -93,6 +94,16 @@ describe('Sidebar controls', () => {
     expect(state.activeConversationId).not.toBeNull()
     expect(state.conversations[0].memory?.projectRefs).toEqual(['project-a'])
     expect(useSettingsStore.getState().activeTab).toBe('chat')
+  })
+
+  it('uses DEFAULT_CHAT_MODEL when no model is selected and New chat is clicked', async () => {
+    // Clear selected model to force the DEFAULT_CHAT_MODEL fallback path
+    useSettingsStore.setState({ selectedModels: { chat: '' } } as never)
+    render(<Sidebar />)
+    await userEvent.click(screen.getByRole('button', { name: '+ New chat' }))
+    const state = useChatStore.getState()
+    expect(state.activeConversationId).not.toBeNull()
+    expect(state.conversations[0].model).toBe(DEFAULT_CHAT_MODEL)
   })
 
   it('provides an accessible Chat options menu that closes on Escape', async () => {

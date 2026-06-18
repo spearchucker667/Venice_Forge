@@ -3,7 +3,33 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import type { Node, Edge } from '@xyflow/react'
 import { generateId } from '../lib/utils'
 import { applyPatches, type WorkflowPatch, type PatchResult } from '../lib/workflow-mutations'
-import { createSafeStorage } from '../lib/safe-storage'
+import StorageService from '../services/storageService'
+import type { StateStorage } from 'zustand/middleware'
+
+const asyncStorageAdapter: StateStorage = {
+  getItem: async (name) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const legacy = window.localStorage.getItem(name);
+        if (legacy) {
+          await StorageService.saveItem('visualWorkflows', { id: name, value: legacy });
+          window.localStorage.removeItem(name);
+          return legacy;
+        }
+      }
+    } catch (e) {
+      console.warn('[workflow-store] Migration from localStorage failed', e);
+    }
+    const item = await StorageService.getItem<{ id: string; value: string }>('visualWorkflows', name);
+    return item?.value || null;
+  },
+  setItem: async (name, value) => {
+    await StorageService.saveItem('visualWorkflows', { id: name, value });
+  },
+  removeItem: async (name) => {
+    await StorageService.deleteItem('visualWorkflows', name);
+  }
+}
 
 export type VeniceNodeType = 'chat' | 'imageGen' | 'tts' | 'music' | 'video' | 'textInput' | 'output'
 
@@ -136,7 +162,7 @@ export const useWorkflowStore = create<WorkflowState>()(
     {
       name: 'venice-workflows',
       version: 1,
-      storage: createJSONStorage(() => createSafeStorage()),
+      storage: createJSONStorage(() => asyncStorageAdapter),
       partialize: (state) => ({
         workflows: state.workflows.slice(0, 20),
         activeWorkflowId: state.activeWorkflowId,
