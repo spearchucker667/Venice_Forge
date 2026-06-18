@@ -334,20 +334,22 @@ if (checkWin) {
     verified.push(`Venice-Forge-${version}-${arch}-Portable.exe`);
   }
 
-  const latestYml = path.join(releaseDir, "latest.yml");
-  verifyFileExists(latestYml, 50);
-  verifyChecksum(latestYml);
-  verified.push("latest.yml");
+  if (!isPortableOnly) {
+    const latestYml = path.join(releaseDir, "latest.yml");
+    verifyFileExists(latestYml, 50);
+    verifyChecksum(latestYml);
+    verified.push("latest.yml");
 
-  const blockmapFiles = fs.readdirSync(releaseDir).filter((f) => f.endsWith(".blockmap"));
-  if (blockmapFiles.length === 0) {
-    fail("Missing .blockmap file(s) for Windows updater metadata.");
+    const blockmapFiles = fs.readdirSync(releaseDir).filter((f) => f.endsWith(".blockmap"));
+    if (blockmapFiles.length === 0) {
+      fail("Missing .blockmap file(s) for Windows updater metadata.");
+    }
+    blockmapFiles.forEach((f) => {
+      verifyFileExists(path.join(releaseDir, f), 50);
+      verifyChecksum(path.join(releaseDir, f));
+      verified.push(f);
+    });
   }
-  blockmapFiles.forEach((f) => {
-    verifyFileExists(path.join(releaseDir, f), 50);
-    verifyChecksum(path.join(releaseDir, f));
-    verified.push(f);
-  });
 }
 
 if (checkMac) {
