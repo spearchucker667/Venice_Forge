@@ -35,9 +35,9 @@ export function isShortcutTargetEditable(event: KeyboardEvent): boolean {
 // them. Each lazy wrapper preserves the existing React.lazy / Suspense
 // fallback contract used by Workflows / Playground / RP Studio (P2-008).
 
-const LazyWorkflowTemplatesView = lazy(() => import('./components/workflows/WorkflowTemplatesView').then((m) => ({ default: m.WorkflowTemplatesView })))
-function WorkflowTemplatesViewLazy() {
-  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading workflows…</div>}><LazyWorkflowTemplatesView /></Suspense>
+const LazyWorkflowsView = lazy(() => import('./components/workflows/workflows-view').then((m) => ({ default: m.WorkflowsView })))
+function WorkflowsViewLazy() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading workflows…</div>}><LazyWorkflowsView /></Suspense>
 }
 
 const LazyPlaygroundView = lazy(() => import('./components/playground/playground-view').then((m) => ({ default: m.PlaygroundView })))
@@ -136,7 +136,7 @@ const views: Record<TabId, React.ComponentType> = {
   music: MusicView,
   video: VideoView,
   embeddings: EmbeddingsView,
-  workflows: WorkflowTemplatesViewLazy,
+  workflows: WorkflowsViewLazy,
   privacy: StoragePrivacyDashboard,
   playground: PlaygroundView,
   status: StatusView,

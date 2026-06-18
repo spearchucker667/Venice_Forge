@@ -112,6 +112,12 @@ remains. The current canonical roadmap is
 backlog files were removed.
 
 ### Latest Session Summary
+- **2026-06-18 visual workflow editor restoration (current session):**
+  - Investigated user report: "workflow tab only allows for add step... when using playground and selecting open in workflow, workflow is not transferred over".
+  - Identified that a recent commit accidentally remapped the `workflows` tab in `App.tsx` to the new `WorkflowTemplatesViewLazy` (a linear prompt chain editor) instead of the intended `WorkflowsViewLazy` (the ReactFlow visual nodes editor used by the Playground).
+  - Restored the `workflows` tab mapping to `WorkflowsView` in `App.tsx`, resolving the missing visual editor and restoring the Playground "Open in Workflow" handoff.
+  - Verified stability via the test matrix.
+
 - **2026-06-18 performance stress test repair (current session):**
   - Investigated user report: "app froze when selecting different menues for a speed stress test".
   - Identified massive DOM reconciliation overhead in `src/components/layout/sidebar.tsx` during rapid tab switches, caused by rendering all conversation history nodes when the search input was empty.
