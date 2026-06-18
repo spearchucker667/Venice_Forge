@@ -112,12 +112,9 @@ remains. The current canonical roadmap is
 backlog files were removed.
 
 ### Latest Session Summary
-- **2026-06-18 CI repair — build ordering, attachment tests, imageIngestion timeout:**
-  - Fixed `verify:contracts` running before `npm run build` in the `build-and-test` CI job (`ci.yml` lines 31-34). Windows and macOS sensitive-test jobs already had the correct order.
-  - Updated `chat-view.tsx` toast title from `'Model does not support vision'` to `'Model does not support images'` with clearer user-facing copy.
-  - Rewrote `chat-input.test.tsx` to the new `processFileAttachment` / `IngestedAttachment` contract (mock target changed from `../../services/attachmentService` to `../../services/ingestion/attachmentAssembler`; `onSend` assertions updated from `string[]` to `IngestedAttachment[]`; button aria-label updated to `"Attach file"`; toast title updated to `"Attachment failed"`).
-  - Fixed `imageIngestion.test.ts` hanging test by mocking `globalThis.Image` with `queueMicrotask(() => this.onerror?.())` and mocking `URL.createObjectURL/revokeObjectURL`, so the decode-failure path resolves deterministically without a timeout.
-  - CodeQL blocker (default setup enabled) requires a manual step in GitHub Settings: Repo → Settings → Advanced Security → CodeQL analysis → Switch to advanced.
+- **2026-06-18 CI repair — bundle-budget graceful skip + verify-dist portable-only fix:**
+  - `scripts/verify-bundle-budget.cjs`: changed hard `process.exit(1)` when `dist/assets` is absent to a graceful `process.exit(0)` with an informational log. Budget enforcement remains strict when assets DO exist (ubuntu `build-and-test` job produces them). Platform-specific Windows/macOS jobs that run only the Electron build now skip cleanly.
+  - `scripts/verify-dist.cjs`: moved `latest.yml` and `.blockmap` checks inside the existing `if (!isPortableOnly)` guard (lines 337-350 were outside it). The `--portable` flag now correctly skips updater-metadata requirements that `electron-builder` only emits for installer builds.
 
 ### Previous Session Summary (2025-08-19 Final Massive Bug Hunt & Fix Pass)
 - **Agent documentation governance tightened:** Updated `AGENTS.md` and the
@@ -336,6 +333,17 @@ backlog files were removed.
   Linux, and macOS draft artifacts.
 
 ### Session History
+
+- **Date:** 2026-06-18 (CI repair — bundle-budget graceful skip + verify-dist portable-only)
+- **Agent:** Antigravity (Claude Sonnet 4.6 Thinking)
+- **Branch / state:** `main`
+- **Scope:** Two Windows/macOS CI job failures caused by script over-strictness.
+- **Summary:**
+  - `verify-bundle-budget.cjs`: graceful `exit(0)` when `dist/assets` absent (Electron-only build jobs).
+  - `verify-dist.cjs`: `latest.yml` + `.blockmap` checks now gated under `!isPortableOnly` so `--portable` flag doesn't require installer updater metadata.
+- **Files changed:** `scripts/verify-bundle-budget.cjs`, `scripts/verify-dist.cjs`, `docs/summary_of_work.md`.
+- **Validation:** lint, typecheck, 12 verify-dist tests, full 102-check verify:contracts, verify:dist, verify:ci-contract — all PASS.
+- **Status:** COMPLETE — pushed to main.
 
 - **Date:** 2026-06-18 (CI repair — build ordering, attachment tests, imageIngestion timeout)
 - **Agent:** Antigravity (Claude Sonnet 4.6 Thinking)
