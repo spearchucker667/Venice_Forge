@@ -26,6 +26,7 @@ const dependencyReviewYaml = fs.existsSync(dependencyReviewYamlPath) ? fs.readFi
 
 // The required verification gates that must be run in CI
 const requiredGates = [
+  'verify:bundle-budget',
   'verify:safety-guard',
   'verify:markdown-links',
   'verify:theme-tokens',
@@ -38,11 +39,18 @@ const requiredGates = [
   'verify:workflow-templates',
   'verify:storage-privacy',
   'verify:storage-policy',
+  'verify:document-ingestion',
   'verify:research-workspace',
+  'verify:research-browser',
   'verify:network-boundaries',
+  'verify:venice-api-docs',
   'verify:release-packaging-hardening',
   'verify:ci-contract',
-  'verify:agent-docs'
+  'verify:agent-docs',
+  'verify:image-policy',
+  'verify:work-orders',
+  'verify:no-native-dialogs',
+  'verify:web-contents-view'
 ];
 
 console.log("Checking CI contract...");
