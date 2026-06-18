@@ -112,17 +112,18 @@ remains. The current canonical roadmap is
 backlog files were removed.
 
 ### Latest Session Summary
-- **2025-08-19 Final Massive Bug Hunt & Fix Pass:** Exhaustive line-by-line audit of the entire
-  repository. 6,105 files inventoried. All 22+ validation gates PASS (lint, typecheck, 3150 tests,
-  all verify scripts, build, verify:dist, archive-clean). One P1 bug confirmed and fixed:
-  `SearchScrapeView.tsx` incorrectly cast `VeniceForgeDiagnostics` to `DiagnosticsEntry`, causing
-  `DiagPreview` to render incorrect UI. Three P2 issues fixed: missing `.catch()` on promise chains
-  in `CommandPalette.tsx` and `SettingsView.tsx`, and `Partial<DiagnosticsEntry>` type mismatch.
-  All fixes verified: lint PASS, typecheck PASS, tests PASS (3150 tests, 1 skipped). Build and
-  verify:dist PASS. Report written to `docs/REPORTS/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md`.
-  Zero security findings. No new feature phase started. Landability verdict: **LANDABLE**.
+- **2026-06-18 Repository hygiene — closed all dependabot PRs and branches, added overhaul warning to README:**
+  - Closed PR #25 (dependabot npm dependencies major-version bump: Express 5, TypeScript 6, Vite 8, ESLint 10, etc.) — **too risky to merge during active overhaul**.
+  - Closed PR #24 (dependabot `actions/dependency-review-action` 4.9.0 → 5.0.0 major bump).
+  - Closed PR #23 (dependabot `github/codeql-action` 3.36.2 → 4.36.2 major bump).
+  - All three PRs were closed without merge; their branches were automatically deleted by GitHub.
+  - Only branch remaining: `main` (protected).
+  - Updated `README.md` with a new `[!CAUTION]` banner warning that a major dependency and architecture overhaul is underway (Express 5, TypeScript 6, Vite 8, and related toolchain migrations), advising users not to open new PRs and to use stable releases instead.
+  - Pushed the README update directly to `main`.
+  - No source code changes, no validation commands run, no new feature phase started.
+  - Verdict: repository is in a **transitional / unstable state** until the overhaul lands.
 
-### Previous Session Summary (2026-06-17 — agent docs/governance)
+### Previous Session Summary (2025-08-19 Final Massive Bug Hunt & Fix Pass)
 - **Agent documentation governance tightened:** Updated `AGENTS.md` and the
   Copilot mirror so every agent run must keep `docs/DOCS_INDEX.md` current
   when documentation authority changes, and must maintain a single canonical
@@ -339,6 +340,21 @@ backlog files were removed.
   Linux, and macOS draft artifacts.
 
 ### Session History
+
+- **Date:** 2026-06-18 (Repository hygiene — close all PRs/branches, README overhaul warning)
+- **Agent:** Kimi Code (GitHub MCP operations)
+- **Branch / state:** `main` at `aff798232bb88182d6fb6176b568beea54346989`; working tree clean (no uncommitted tracked changes)
+- **Scope:** GitHub repository hygiene — close all open dependabot PRs, delete branches, update README with transitional-state warning.
+- **Summary:**
+  - Closed PR #25 (dependabot npm_and_yarn major bump: Express 5, TypeScript 6, Vite 8, ESLint 10, pdfjs-dist 6, etc.) without merge — root cause: 27 bundled major-version bumps break CI (`typecheck`, `lint`, `test`, `build`). Risk: too high to merge during active overhaul.
+  - Closed PR #24 (dependabot `actions/dependency-review-action` 4.9.0 → 5.0.0) without merge.
+  - Closed PR #23 (dependabot `github/codeql-action` 3.36.2 → 4.36.2) without merge.
+  - All three PR branches were automatically deleted by GitHub upon closure; only `main` (protected) remains.
+  - Updated `README.md` with a new `[!CAUTION]` block (lines 65–74) warning that the repository is in a transitional state while a large-scale dependency/architecture upgrade is underway. Advises against opening new PRs, points users to stable GitHub Releases, and states contributions will reopen once CI is green again.
+  - Pushed README update directly to `main` via `create_or_update_file`.
+- **Files changed:** `README.md` (caution banner insertion), `docs/summary_of_work.md` (this entry).
+- **Validation:** No build/test commands executed in this session (no source code changes). README Markdown syntax verified by visual inspection.
+- **Status:** COMPLETE — all open PRs closed, all branches cleaned, README warning live.
 
 - **Date:** 2025-08-19 (Final massive bug hunt & fix pass)
 - **Agent:** Orchestrator (exhaustive audit)
