@@ -10,6 +10,8 @@ import { desktopConfig, isElectron } from "../services/desktopBridge";
 import { redactErrorMessage } from "../shared/redaction";
 import { useSettingsStore } from "./settings-store";
 import type { YamlInternalPromptEnhancer } from "../config/configSchema";
+import type { Theme } from "../theme";
+import { yamlThemeToTheme } from "../theme/yamlTheme";
 
 export interface ConfigStatusSnapshot {
   configPath: string;
@@ -97,6 +99,7 @@ export interface SanitizedConfigSnapshot {
 interface ConfigState {
   config: SanitizedConfigSnapshot | null;
   status: ConfigStatusSnapshot | null;
+  yamlThemes: Record<string, Theme>;
   loading: boolean;
   hydrated: boolean;
   error: string | null;
@@ -105,12 +108,14 @@ interface ConfigState {
   setStatus: (status: ConfigStatusSnapshot) => void;
   setError: (error: string) => void;
   setLoading: (loading: boolean) => void;
+  setYamlThemes: (themes: Record<string, Theme>) => void;
   reset: () => void;
 }
 
 export const useConfigStore = create<ConfigState>((set) => ({
   config: null,
   status: null,
+  yamlThemes: {},
   loading: false,
   hydrated: false,
   error: null,
@@ -120,8 +125,33 @@ export const useConfigStore = create<ConfigState>((set) => ({
   setStatus: (status) => set({ status, lastLoadedAt: Date.now() }),
   setError: (error) => set({ error, loading: false }),
   setLoading: (loading) => set({ loading }),
-  reset: () => set({ config: null, status: null, error: null, hydrated: false, lastLoadedAt: 0 }),
+  setYamlThemes: (yamlThemes) => set({ yamlThemes }),
+  reset: () => set({ config: null, status: null, yamlThemes: {}, error: null, hydrated: false, lastLoadedAt: 0 }),
 }));
+
+/** Loads merged themes from the main process and converts them to Theme objects. */
+export async function loadYamlThemes(): Promise<Record<string, Theme>> {
+  if (!isElectron()) return {};
+  try {
+    const res = await desktopConfig.loadMergedThemes();
+    if (!res.ok || !res.themes) return {};
+    const themes: Record<string, Theme> = {};
+    for (const [id, raw] of Object.entries(res.themes as Record<string, unknown>)) {
+      const rec = raw as Record<string, unknown>;
+      if (typeof rec.display_name !== 'string' || !rec.display_name) continue;
+      if (rec.mode !== 'dark' && rec.mode !== 'light') continue;
+      if (!rec.tokens || typeof rec.tokens !== 'object') continue;
+      try {
+        themes[id] = yamlThemeToTheme(id, rec.display_name, rec.mode, rec.tokens as Record<string, string>);
+      } catch {
+        // Skip malformed themes defensively
+      }
+    }
+    return themes;
+  } catch {
+    return {};
+  }
+}
 
 /** Loads the config payload from the desktop bridge and updates the store. */
 export async function refreshConfig(): Promise<void> {
@@ -134,6 +164,9 @@ export async function refreshConfig(): Promise<void> {
       useConfigStore.getState().setPayload(config, status);
       useSettingsStore.getState().setLocalFamilySafeModeEnabled(config.safety.local_family_safe_mode_enabled);
       useSettingsStore.getState().setVeniceApiSafeMode(config.safety.venice_api_safe_mode);
+      // Load merged YAML themes so the theme picker and resolver can use them.
+      const yamlThemes = await loadYamlThemes();
+      useConfigStore.getState().setYamlThemes(yamlThemes);
     } else {
       useConfigStore.getState().setError(res.error || "Failed to load config.");
     }
@@ -155,6 +188,9 @@ export async function reloadConfig(): Promise<void> {
         useConfigStore.getState().setPayload(config, status);
         useSettingsStore.getState().setLocalFamilySafeModeEnabled(config.safety.local_family_safe_mode_enabled);
         useSettingsStore.getState().setVeniceApiSafeMode(config.safety.venice_api_safe_mode);
+        // Refresh merged YAML themes after reload.
+        const yamlThemes = await loadYamlThemes();
+        useConfigStore.getState().setYamlThemes(yamlThemes);
       }
     } else {
       useConfigStore.getState().setError(reloadRes.error || "Failed to reload config.");

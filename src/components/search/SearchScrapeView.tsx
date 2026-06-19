@@ -31,9 +31,11 @@ import { researchBrowserBridge } from "../../services/researchBrowserBridge";
 import { isElectron } from "../../services/desktopBridge";
 import { isTrustedExternalUrl } from "../../shared/urlSecurity";
 
+import { DEFAULT_CHAT_MODEL } from "../../constants/venice";
+
 export function SearchScrapeView() {
   const [subTab, setSubTab] = useState<SubTab>("workspace");
-  const selectedModel = useSettingsStore((s) => s.selectedModels.chat) || "llama-3.3-70b";
+  const selectedModel = useSettingsStore((s) => s.selectedModels.chat) || DEFAULT_CHAT_MODEL;
   const localFamilySafeModeEnabled = useSettingsStore((s) => s.localFamilySafeModeEnabled);
   const veniceKeyConfigured = useAuthStore((s) => s.isConfigured);
 
@@ -374,7 +376,7 @@ export function SearchScrapeView() {
 
   return (
     <div className="flex flex-col h-full bg-surface">
-      <div className="flex-none p-5 border-b border-border bg-surface">
+      <div className="flex-none p-5 border-b border-border/50 bg-surface">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-[17px] font-semibold text-text-primary">Research</h2>

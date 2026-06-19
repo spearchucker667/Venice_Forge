@@ -1,3 +1,4 @@
+// VERIFY-056 regression guard
 /** @fileoverview Unit tests for chat and image payload builders. */
 
 import { describe, expect, it } from "vitest";

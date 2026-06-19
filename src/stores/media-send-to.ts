@@ -40,6 +40,7 @@ import { getImageModelCapabilities } from "../config/image-model-capabilities";
 import { useImageWorkspaceStore } from "./image-workspace-store";
 import { useSettingsStore } from "./settings-store";
 import { useChatStore } from "./chat-store";
+import { DEFAULT_CHAT_MODEL } from "../constants/venice";
 import type { TabId } from "../config/tabs";
 import { isTabId } from "../config/tabs";
 
@@ -182,7 +183,7 @@ export function sendToChat(item: MediaItem): SendToResult {
   if (!item.prompt || item.prompt.length === 0) {
     return { destination: "chat", ok: false, reason: "Item has no prompt" };
   }
-  const modelId = useSettingsStore.getState().selectedModels?.chat || item.model || "venice-uncensored-1-2";
+  const modelId = useSettingsStore.getState().selectedModels?.chat || item.model || DEFAULT_CHAT_MODEL;
   const chatId = useChatStore.getState().createConversation(modelId);
   setActiveTabSafe("chat");
   // Best-effort: copy the prompt so the user can paste it into the

@@ -177,6 +177,15 @@ export const MIGRATIONS: MigrationStep[] = [
       }
     },
   },
+  {
+    toVersion: 14,
+    description: "Add playground store for Phase 2 Playgrounds",
+    up(db) {
+      if (!db.objectStoreNames.contains("playground")) {
+        db.createObjectStore("playground", { keyPath: "id" });
+      }
+    },
+  },
 ];
 
 /**

@@ -1,3 +1,4 @@
+// VERIFY-031 regression guard
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { venice, veniceStreamChat, veniceBlob, veniceFormData, VeniceAPIError } from './venice-client'
 import { desktopVenice } from '../services/desktopBridge'

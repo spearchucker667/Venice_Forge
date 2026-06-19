@@ -121,6 +121,12 @@ Use clear markdown for structured responses. Use \`\`\`language\`\`\` fenced blo
 /** The default model used when creating a new standard chat if no other model is selected. */
 export const DEFAULT_CHAT_MODEL = "venice-uncensored";
 
+/** The default model used for workflows, web search, and data processing tasks. */
+export const DEFAULT_WORKFLOW_MODEL = "llama-3.3-70b";
+
+/** The default model used for the prompt enhancer feature. */
+export const DEFAULT_PROMPT_ENHANCER_MODEL = "venice-uncensored-1-2";
+
 /** IndexedDB object store names used by the application. */
 export const STORE_NAMES = [
   "images",
@@ -156,13 +162,15 @@ export const STORE_NAMES = [
   "researchSessions",
   // Phase 2J Visual Workflows — visual workflow node graphs. Encrypted at rest.
   "visualWorkflows",
+  // Phase 2K Playground — user scratchpad conversations and workflow drafts. Encrypted at rest.
+  "playground",
 ];
 
 /** Name of the IndexedDB database. */
 export const DB_NAME = "venice_canvas_studio_v1";
 
-/** Version of the IndexedDB schema. Bumped to 6 for timestamp index; 7 for Project Workspace "projects" store; 8 for Phase 2D Prompt Library "promptLibrary" store; 9 for Phase 2E Scene Composer "scenes" store; 10 for Phase 2F RP Studio Polish "rpScenarios" store; 11 for Phase 2G Workflow Templates "workflowTemplates" store; 12 for Phase 2I Research Workspace "researchSessions" store; 13 for Phase 2J visualWorkflows store. */
-export const DB_VERSION = 13;
+/** Version of the IndexedDB schema. Bumped to 6 for timestamp index; 7 for Project Workspace "projects" store; 8 for Phase 2D Prompt Library "promptLibrary" store; 9 for Phase 2E Scene Composer "scenes" store; 10 for Phase 2F RP Studio Polish "rpScenarios" store; 11 for Phase 2G Workflow Templates "workflowTemplates" store; 12 for Phase 2I Research Workspace "researchSessions" store; 13 for Phase 2J visualWorkflows store; 14 for Phase 2K playground store. */
+export const DB_VERSION = 14;
 
 /**
  * Known vision-capable model ids. This is a conservative fallback for when

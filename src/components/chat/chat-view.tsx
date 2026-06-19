@@ -4,7 +4,7 @@ import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useChat } from '../../hooks/use-chat'
 import { toast } from '../../stores/toast-store'
-import { modelSupportsVision } from '../../constants/venice'
+import { DEFAULT_CHAT_MODEL, modelSupportsVision } from '../../constants/venice'
 import { useCharacterImage } from '../../hooks/useCharacterImage'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { MessageBubble } from './message-bubble'
@@ -35,7 +35,7 @@ export function ChatView() {
   const selectedModel = useSettingsStore((s) => s.selectedModels.chat)
   const currentProjectId = useSettingsStore((s) => s.activeProjectId)
   const { data: models } = useModels('text')
-  const model = selectedModel || models?.[0]?.id || 'llama-3.3-70b'
+  const model = selectedModel || models?.[0]?.id || DEFAULT_CHAT_MODEL
   const liveModelRecord = models?.find((m) => m.id === model)
   const liveVisionSupports: boolean | null =
     liveModelRecord?.model_spec?.capabilities?.supportsVision ?? null
@@ -287,7 +287,7 @@ export function ChatView() {
       </div>
       
       {pendingContext && (
-        <div aria-live="polite" className="border-t border-border bg-surface-elevated p-4 flex flex-col gap-3 max-w-[960px] mx-auto w-full rounded-t-xl shadow-lg transition-all duration-200">
+        <div aria-live="polite" className="border-t border-border/50 bg-surface-elevated p-4 flex flex-col gap-3 max-w-[960px] mx-auto w-full rounded-t-xl shadow-lg transition-all duration-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-[12px] font-semibold text-accent uppercase tracking-wider">Matched Local Memory Context</span>
@@ -459,7 +459,7 @@ function PriorConversationContextSelector({
   }
 
   return (
-    <div className="border-t border-border bg-surface px-4 sm:px-6 py-2">
+    <div className="border-t border-border/50 bg-surface px-4 sm:px-6 py-2">
       <div className="w-full max-w-[860px] mx-auto rounded-lg border border-border bg-surface-elevated px-3 py-2">
         {activeConversation && (
           <label className="mb-2 flex items-center justify-between gap-3 text-[13px] text-text-primary">

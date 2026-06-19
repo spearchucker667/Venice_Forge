@@ -106,7 +106,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
       )}
 
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50">
         <span className="text-text-muted"><config.Icon /></span>
         <span className="text-[14px] font-medium text-text-secondary">{config.label}</span>
         {result?.status === 'running' && <span className="text-[12px] text-text-muted ml-auto mr-1">Running...</span>}

@@ -3,7 +3,46 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import type { Node, Edge } from '@xyflow/react'
 import type { VeniceNodeData, NodeResult } from './workflow-store'
 import { applyPatches, type WorkflowPatch, type PatchResult } from '../lib/workflow-mutations'
-import { createSafeStorage } from '../lib/safe-storage'
+import StorageService from '../services/storageService'
+import type { StateStorage } from 'zustand/middleware'
+
+const asyncStorageAdapter: StateStorage = {
+  getItem: async (name) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage /* localStorage-allowed: one-time playground migration into encrypted IndexedDB */) {
+        const legacy = window.localStorage.getItem(name); /* localStorage-allowed: one-time playground migration into encrypted IndexedDB */
+        if (legacy) {
+          await StorageService.saveItem('playground', { id: name, value: legacy });
+          window.localStorage.removeItem(name); /* localStorage-allowed: remove migrated legacy playground copy */
+          return legacy;
+        }
+      }
+    } catch (e) {
+      console.warn('[playground-store] Migration from localStorage failed', e); /* localStorage-allowed: legacy migration diagnostic only */
+    }
+    try {
+      const item = await StorageService.getItem<{ id: string; value: string }>('playground', name);
+      return item?.value || null;
+    } catch (e) {
+      console.warn('[playground-store] getItem failed', e);
+      return null;
+    }
+  },
+  setItem: async (name, value) => {
+    try {
+      await StorageService.saveItem('playground', { id: name, value });
+    } catch (e) {
+      console.warn('[playground-store] setItem failed', e);
+    }
+  },
+  removeItem: async (name) => {
+    try {
+      await StorageService.deleteItem('playground', name);
+    } catch (e) {
+      console.warn('[playground-store] removeItem failed', e);
+    }
+  }
+}
 
 export interface PlaygroundActivity {
   tool: string
@@ -86,7 +125,7 @@ export const usePlaygroundStore = create<PlaygroundState>()(
     {
       name: 'venice-playground',
       version: 1,
-      storage: createJSONStorage(() => createSafeStorage()),
+      storage: createJSONStorage(() => asyncStorageAdapter),
       partialize: (s) => ({ messages: s.messages.slice(-40), draft: s.draft, linkedWorkflowId: s.linkedWorkflowId }),
     },
   ),

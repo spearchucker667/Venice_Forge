@@ -20,14 +20,27 @@ const asyncStorageAdapter: StateStorage = {
     } catch (e) {
       console.warn('[workflow-store] Migration from localStorage failed', e); /* localStorage-allowed: legacy migration diagnostic only */
     }
-    const item = await StorageService.getItem<{ id: string; value: string }>('visualWorkflows', name);
-    return item?.value || null;
+    try {
+      const item = await StorageService.getItem<{ id: string; value: string }>('visualWorkflows', name);
+      return item?.value || null;
+    } catch (e) {
+      console.warn('[workflow-store] getItem failed', e);
+      return null;
+    }
   },
   setItem: async (name, value) => {
-    await StorageService.saveItem('visualWorkflows', { id: name, value });
+    try {
+      await StorageService.saveItem('visualWorkflows', { id: name, value });
+    } catch (e) {
+      console.warn('[workflow-store] setItem failed', e);
+    }
   },
   removeItem: async (name) => {
-    await StorageService.deleteItem('visualWorkflows', name);
+    try {
+      await StorageService.deleteItem('visualWorkflows', name);
+    } catch (e) {
+      console.warn('[workflow-store] removeItem failed', e);
+    }
   }
 }
 

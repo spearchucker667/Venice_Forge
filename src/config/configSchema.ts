@@ -14,6 +14,7 @@
  *   - All numeric inputs are clamped; unknown enum strings fall back with a
  *     warning so the UI can surface parse problems.
  */
+import { DEFAULT_PROMPT_ENHANCER_MODEL } from "../constants/venice";
 import { isValidColorValue } from "../theme/validateColor";
 
 /** Current schema version. Bumping this is a breaking change. */
@@ -394,6 +395,17 @@ function validateThemeBlock(name: string, raw: unknown): { theme: YamlTheme | nu
     }
     tokens[normalizedKey] = v;
   }
+  
+  if (allValid) {
+    for (const req of REQUIRED_THEME_TOKEN_KEYS) {
+      if (!(req in tokens)) {
+        warnings.push({ field: `themes.${name}.tokens.${req}`, message: `Missing required theme token: ${req}; theme skipped.`, severity: "error" });
+        allValid = false;
+        break;
+      }
+    }
+  }
+
   if (!allValid) return { theme: null, warnings };
   return {
     theme: {
@@ -522,7 +534,7 @@ export function validateConfig(raw: unknown): ConfigValidationResult {
     : {};
   const internal_prompt_enhancer: YamlInternalPromptEnhancer = {
     enabled: clampBool(enhancerRaw.enabled, true),
-    model: clampString(enhancerRaw.model, 256, "venice-uncensored-1-2"),
+    model: clampString(enhancerRaw.model, 256, DEFAULT_PROMPT_ENHANCER_MODEL),
     temperature: clampNumber(enhancerRaw.temperature, 0, 2, 0.4),
     maxTokens: clampInteger(enhancerRaw.maxTokens, 1, 4000, 350),
     systemPrompt: clampString(enhancerRaw.systemPrompt, ENHANCER_PROMPT_MAX_LENGTH, DEFAULT_ENHANCE_SYSTEM_PROMPT),
@@ -633,7 +645,7 @@ export function emptyConfig(): YamlConfig {
     developer: { verbose_config_logging: false, allow_config_key_import: true, force_import_keys: false, force_apply_config: false },
     internal_prompt_enhancer: {
       enabled: true,
-      model: "venice-uncensored-1-2",
+      model: DEFAULT_PROMPT_ENHANCER_MODEL,
       temperature: 0.4,
       maxTokens: 350,
       systemPrompt: DEFAULT_ENHANCE_SYSTEM_PROMPT,

@@ -38,6 +38,7 @@ const ENCRYPTED_STORES: StoreName[] = [
   "workflowTemplates",
   "researchSessions",
   "visualWorkflows",
+  "playground",
 ];
 
 export interface GetItemsResult<T = unknown> {
@@ -100,6 +101,9 @@ const StorageService = {
   openDB(): Promise<IDBDatabase> {
     if (this.db) return Promise.resolve(this.db);
     return new Promise((resolve, reject) => {
+      if (typeof indexedDB === "undefined") {
+        return reject(new Error("indexedDB is not defined"));
+      }
       const request = indexedDB.open(DB_NAME, DB_VERSION);
       request.onupgradeneeded = (event) => {
         const db = request.result;

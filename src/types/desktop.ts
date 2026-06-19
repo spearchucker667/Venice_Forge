@@ -240,6 +240,7 @@ export interface VeniceForgeConfigPayload {
 
 /** Exposes the local master YAML config (sanitized; no raw secrets). */
 export interface VeniceForgeConfig {
+  initialize(): Promise<{ ok: boolean; status?: VeniceForgeConfigPayload["status"]; error?: string }>;
   get(): Promise<{ ok: boolean; payload?: VeniceForgeConfigPayload; error?: string }>;
   reload(): Promise<{ ok: boolean; status?: VeniceForgeConfigPayload["status"]; error?: string }>;
   getStatus(): Promise<{ ok: boolean; status?: VeniceForgeConfigPayload["status"]; paths?: { configPath: string; themesPath: string; source: string }; error?: string }>;

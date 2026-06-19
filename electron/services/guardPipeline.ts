@@ -98,14 +98,14 @@ export async function performGuardedVeniceRequest(
   const req = (rawRequest ?? {}) as { endpoint?: unknown; method?: unknown; body?: unknown };
   const endpoint = typeof req.endpoint === "string" ? req.endpoint : "";
   const method = typeof req.method === "string" ? req.method : "";
-  const block = checkLocalFamilyGuard({
-    endpoint,
-    method,
-    payload: req.body,
-    source: "ipc",
-  });
-  if (block) return { kind: "blocked", block };
   try {
+    const block = checkLocalFamilyGuard({
+      endpoint,
+      method,
+      payload: req.body,
+      source: "ipc",
+    });
+    if (block) return { kind: "blocked", block };
     const response = await performVeniceRequest(rawRequest, options);
     return { kind: "response", response };
   } catch (err) {

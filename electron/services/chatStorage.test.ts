@@ -28,6 +28,7 @@ import {
   saveConversation,
   deleteConversation,
 } from "./chatStorage";
+import { isValidId } from "../../src/utils/idValidation";
 import type { Conversation } from "../../src/types/conversation";
 
 function makeConv(overrides: Partial<Conversation> = {}): Conversation {
@@ -125,6 +126,20 @@ describe("chatStorage", () => {
     const result = await saveConversation(conv);
     expect(result.ok).toBe(false);
     expect(result.error).toBe("Invalid conversation schema");
+  });
+
+  // VF-AUDIT-001 regression guard: Windows reserved device names must be rejected
+  it("rejects Windows reserved device names as conversation IDs", async () => {
+    const reservedNames = ["CON", "PRN", "AUX", "NUL", "COM1", "COM9", "LPT1", "LPT9"];
+    for (const name of reservedNames) {
+      expect(isValidId(name)).toBe(false);
+      expect(isValidId(name.toLowerCase())).toBe(false);
+      // With extension suffix — still rejected because the basename is reserved
+      expect(isValidId(`${name}.json`)).toBe(false);
+    }
+    // Normal IDs should still pass
+    expect(isValidId("hello-world")).toBe(true);
+    expect(isValidId("chat-123")).toBe(true);
   });
 
   it("uses bounded directory iteration instead of eager readdir when listing conversations", async () => {

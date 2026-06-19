@@ -166,7 +166,7 @@ export function ImageTools() {
 
   return (
     <div className="flex h-full">
-      <div className="w-96 border-r border-border p-6 flex flex-col gap-4 overflow-y-auto shrink-0">
+      <div className="w-96 border-r border-border/50 p-6 flex flex-col gap-4 overflow-y-auto shrink-0">
         {/* Tool selector */}
         <div className="flex gap-px bg-surface-elevated rounded-lg p-0.5 border border-border">
           {([['edit', 'Edit'], ['upscale', 'Upscale'], ['remove-bg', 'Remove BG']] as const).map(([id, label]) => (

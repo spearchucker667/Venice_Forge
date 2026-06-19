@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import { useSettingsStore, type Tab } from './stores/settings-store'
 import { useChatStore } from './stores/chat-store'
 import { useAuthStore } from './stores/auth-store'
+import { useConfigStore } from './stores/config-store'
 import { ensureProjectsLoaded } from './stores/project-store'
 import { Sidebar } from './components/layout/sidebar'
 import { Header } from './components/layout/header'
@@ -178,9 +179,10 @@ export function App() {
   const selectedThemeId = useSettingsStore((s) => s.selectedThemeId)
   const customTheme = useSettingsStore((s) => s.customTheme)
   const appearanceMode = useSettingsStore((s) => s.appearanceMode)
+  const yamlThemes = useConfigStore((s) => s.yamlThemes)
 
   useEffect(() => {
-    const theme = resolveInitialTheme({ selectedThemeId, appearanceMode, customTheme })
+    const theme = resolveInitialTheme({ selectedThemeId, appearanceMode, customTheme }, yamlThemes)
     applyTheme(theme)
 
     try {
@@ -188,7 +190,7 @@ export function App() {
     } catch {
       // ignore write failures (e.g. disabled local storage)
     }
-  }, [selectedThemeId, customTheme, appearanceMode]);
+  }, [selectedThemeId, customTheme, appearanceMode, yamlThemes]);
 
   // Centralized project ensure (with safe default) at app root. Idempotent via _hydrated guard.
   // This avoids duplicate effects from sidebar (which could contribute to update depth in test trees with frequent mounts).

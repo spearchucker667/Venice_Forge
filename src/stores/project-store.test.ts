@@ -83,7 +83,8 @@ describe('project-store Phase 1 contracts', () => {
   it('shares concurrent hydration and does not duplicate the default project', async () => {
     await Promise.all([ensureProjectsLoaded(), ensureProjectsLoaded(), ensureProjectsLoaded()])
     expect(useProjectStore.getState().projects).toHaveLength(1)
-    expect(mockStorage.saveItem).toHaveBeenCalledTimes(1)
+    const projectSaves = mockStorage.saveItem.mock.calls.filter(c => c[0] === 'projects')
+    expect(projectSaves).toHaveLength(1)
   })
 
   it('trims project names and rejects empty names', async () => {

@@ -324,8 +324,8 @@ export const ResearchWorkspaceView: React.FC = () => {
   return (
     <div className="flex h-full bg-bg text-text-primary overflow-hidden">
       {/* Sidebar - Session List */}
-      <div className="w-64 flex-shrink-0 border-r border-border flex flex-col bg-surface">
-        <div className="p-4 border-b border-border flex justify-between items-center">
+      <div className="w-64 flex-shrink-0 border-r border-border/50 flex flex-col bg-surface">
+        <div className="p-4 border-b border-border/50 flex justify-between items-center">
           <h2 className="font-bold text-text-primary">Research</h2>
           <button
             type="button"
@@ -341,7 +341,7 @@ export const ResearchWorkspaceView: React.FC = () => {
             <div 
               key={s.id}
               onClick={() => setActiveSession(s.id)}
-              className={`p-3 cursor-pointer border-b border-border transition-colors hover:bg-surface-elevated ${activeSessionId === s.id ? 'bg-surface-elevated border-l-4 border-l-accent' : ''}`}
+              className={`p-3 cursor-pointer border-b border-border/50 transition-colors hover:bg-surface-elevated ${activeSessionId === s.id ? 'bg-surface-elevated border-l-4 border-l-accent' : ''}`}
             >
               <div className="flex justify-between items-center">
                 <span className="truncate font-medium text-text-primary">{s.title}</span>
@@ -367,7 +367,7 @@ export const ResearchWorkspaceView: React.FC = () => {
         {activeSession ? (
           <>
             {/* Header */}
-            <div className="p-4 border-b border-border flex justify-between items-center bg-surface-elevated">
+            <div className="p-4 border-b border-border/50 flex justify-between items-center bg-surface-elevated">
               <div>
                 <h1 className="text-xl font-bold text-text-primary">{activeSession.title}</h1>
                 <p className="text-xs text-text-muted">{activeSession.scope} research</p>
@@ -413,8 +413,8 @@ export const ResearchWorkspaceView: React.FC = () => {
               >
                 <div className="flex-1 flex overflow-hidden">
                   {/* Left Column - Search & Sources */}
-                  <div className="flex-1 flex flex-col border-r border-border overflow-hidden">
-                <div className="p-4 space-y-4 border-b border-border">
+                  <div className="flex-1 flex flex-col border-r border-border/50 overflow-hidden">
+                <div className="p-4 space-y-4 border-b border-border/50">
                   <form onSubmit={handleSearch} className="flex gap-2">
                     <label htmlFor="research-search-query" className="sr-only">Search query</label>
                     <input 
@@ -498,7 +498,7 @@ export const ResearchWorkspaceView: React.FC = () => {
 
               {/* Right Column - Findings */}
               <div className="w-96 flex flex-col bg-surface overflow-hidden">
-                <div className="p-4 border-b border-border">
+                <div className="p-4 border-b border-border/50">
                   <h3 className="font-bold text-sm uppercase text-text-muted mb-4">Add Finding</h3>
                   <div className="space-y-3">
                     <div className="space-y-1">

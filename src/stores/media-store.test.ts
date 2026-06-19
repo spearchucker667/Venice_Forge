@@ -1,3 +1,4 @@
+// VERIFY-032 regression guard
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useMediaStore, filterMedia, sortMedia, searchMedia, selectById, selectChildren, selectParent, MEDIA_IN_MEMORY_CACHE_MAX } from './media-store'

@@ -150,7 +150,7 @@ export function MediaDetailDialog({
           </button>
         </div>
 
-        <div className="border-t border-border bg-overlay px-4 py-2">
+        <div className="border-t border-border/50 bg-overlay px-4 py-2">
           <p className="line-clamp-2 text-[12.5px] text-text-primary" title={item.prompt}>
             {item.prompt || "Untitled"}
           </p>

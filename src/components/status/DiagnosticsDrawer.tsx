@@ -215,7 +215,7 @@ export function DiagnosticsDrawer() {
         className="flex-1 bg-overlay backdrop-blur-sm"
       />
       <aside
-        className="w-[420px] max-w-[92vw] h-full bg-surface border-l border-border overflow-y-auto p-3 space-y-3 animate-slide-in-right"
+        className="w-[420px] max-w-[92vw] h-full bg-surface border-l border-border/50 overflow-y-auto p-3 space-y-3 animate-slide-in-right"
         data-testid="diagnostics-drawer-panel"
       >
         <header className="flex items-center justify-between gap-2">

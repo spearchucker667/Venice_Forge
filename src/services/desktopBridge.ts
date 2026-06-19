@@ -937,6 +937,11 @@ export const desktopConfig = {
     if (!isElectron()) return { ok: false, error: "Local config is only available in desktop mode." };
     return window.veniceForge!.config.get();
   },
+  /** Initializes the local master YAML config with defaults if absent. */
+  async initialize(): Promise<{ ok: boolean; status?: unknown; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Local config is only available in desktop mode." };
+    return window.veniceForge!.config.initialize();
+  },
   /** Reloads the config from disk. */
   async reload(): Promise<{ ok: boolean; status?: unknown; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Local config is only available in desktop mode." };

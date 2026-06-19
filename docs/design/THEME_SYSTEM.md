@@ -12,7 +12,7 @@
 1. [Overview](#overview)
 2. [Architecture](#architecture)
 3. [Token Reference](#token-reference)
-4. [Built-in Themes](#built-in-themes)
+4. [Theme Catalog](#theme-catalog)
 5. [ThemeMaker UI](#thememaker-ui)
 6. [Persistence & Lifecycle](#persistence--lifecycle)
 7. [Accessibility](#accessibility)
@@ -27,6 +27,7 @@
 Venice Forge uses a **semantic token-based theme system** built on Tailwind CSS v4 CSS variables. Core surfaces, text, status, form, button, link, focus, and selection colors derive from 29 canonical semantic roles mapped to CSS custom properties. This enables:
 
 - **Built-in themes:** Venice Parity Dark (default), Forge Graphite (dark), Forge Daylight (light), Forge Copper (dark), Forge Dracula (dark), GruvBox Dark (dark), Rosepine (dark), Forge Nord (dark), Forge Tokyo (dark), Forge Catppuccin (dark), Forge Solarized Dark (dark), Forge Solarized Light (light), Forge One Dark (dark), Forge Monokai (dark), Forge GitHub Light (light).
+- **YAML-backed themes:** 15 additional themes loaded from `.config/themes.local.yaml` (dev) or `themes.yaml` (userData) at runtime: Aurora Boreal, Sakura Terminal, Basalt Noir, Solar Ash, Cyber Orchid, Arctic Glass, Desert Copperfield, Toxic Limewire, Midnight Velvet, Porcelain Daybreak, Synthwave Harbor, Moss Circuit, Ember Monastery, Glacial Ink, Ultraviolet Rain. These themes are validated by the same schema as built-in themes and appear in the ThemeMaker selector without code changes.
 - **Custom themes:** Users can define every token via the in-app ThemeMaker and import/export configurations in YAML format. The starter configurations for all built-in themes are provided in the `config/themes/` directory as `.yaml` files.
 - **Live preview:** Changes apply immediately without reload.
 - **Persistent storage:** Canonical settings live in encrypted IndexedDB; a lightweight `localStorage` bootstrap cache prevents FOUC on startup.
@@ -38,15 +39,15 @@ Venice Forge uses a **semantic token-based theme system** built on Tailwind CSS 
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Theme State (React reducer)                                │
+│  Theme State (Zustand stores)                               │
 │  ├─ selectedThemeId: string                                 │
 │  ├─ appearanceMode: "dark" | "light"                        │
 │  └─ customTheme: Theme | null                               │
 │                          │                                  │
 │                          ▼                                  │
 │  ┌──────────────────────────────────────────────┐          │
-│  │  resolveInitialTheme(bootstrapCache?)         │          │
-│  │  → picks builtin / custom / prefers-color     │          │
+│  │  resolveInitialTheme(bootstrap, yamlThemes?)  │          │
+│  │  → custom → YAML theme → built-in → fallback  │          │
 │  └──────────────────────────────────────────────┘          │
 │                          │                                  │
 │                          ▼                                  │
@@ -58,12 +59,48 @@ Venice Forge uses a **semantic token-based theme system** built on Tailwind CSS 
 │                          │                                  │
 │                          ▼                                  │
 │  ┌──────────────────────────────────────────────┐          │
-│  │  Tailwind v4 @theme                          │          │
-│  │  → maps CSS vars to utility classes          │          │
-│  │    (bg-bg, text-text-primary, border-border) │          │
+│  │  Tailwind v4 @theme                            │          │
+│  │  → maps CSS vars to utility classes            │          │
+│  └──────────────────────────────────────────────┘          │
+└─────────────────────────────────────────────────────────────┘
+
+YAML Theme Loading (desktop only):
+┌─────────────────────────────────────────────────────────────┐
+│  .config/themes.local.yaml  (dev)                             │
+│  or userData/.config/themes.yaml (packaged)                   │
+│                          │                                  │
+│                          ▼                                  │
+│  ┌──────────────────────────────────────────────┐          │
+│  │  configService.loadMergedThemes()             │          │
+│  │  → yaml.parse → validateThemesFile()          │          │
+│  │  → snake_case → camelCase normalization       │          │
+│  └──────────────────────────────────────────────┘          │
+│                          │                                  │
+│                          ▼                                  │
+│  ┌──────────────────────────────────────────────┐          │
+│  │  config-store.ts                               │          │
+│  │  → yamlThemeToTheme() → Theme objects         │          │
+│  │  → cached in useConfigStore.yamlThemes        │          │
+│  └──────────────────────────────────────────────┘          │
+│                          │                                  │
+│                          ▼                                  │
+│  ┌──────────────────────────────────────────────┐          │
+│  │  ThemeMaker.tsx                                │          │
+│  │  → merged into theme selector buttons         │          │
+│  │  App.tsx / useThemeLifecycle                   │          │
+│  │  → resolve by id from yamlThemes cache        │          │
 │  └──────────────────────────────────────────────┘          │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+### YAML Theme Resolution Order
+
+When a user selects a theme by id:
+
+1. **Custom theme:** If `selectedThemeId === 'custom'` and a `customTheme` object is stored, use it.
+2. **YAML theme:** If `useConfigStore.yamlThemes[id]` exists, use it. This lets YAML themes override built-in themes by matching id.
+3. **Built-in theme:** Look up `findBuiltinTheme(id)` in the hardcoded `BUILTIN_THEMES` registry.
+4. **Fallback:** Use `BUILTIN_VENICE` (or `BUILTIN_LIGHT` if the system prefers light mode).
 
 ### Two-Layer Persistence
 
@@ -73,6 +110,20 @@ Venice Forge uses a **semantic token-based theme system** built on Tailwind CSS 
 | **Bootstrap** | `localStorage['vf.theme.bootstrap']` | Color tokens + metadata only (no secrets) | FOUC prevention; read by inline `<script>` in `index.html` before React mounts |
 
 After IndexedDB hydrates, `App.tsx` reconciles the canonical settings against the bootstrap cache. If they differ, the canonical theme is re-applied and the cache is refreshed.
+
+### YAML Theme Discovery
+
+On desktop startup, `main.tsx` calls `refreshConfig()` before the React tree mounts. This:
+
+1. Loads the sanitized config payload via `desktopConfig.get()`.
+2. Calls `desktopConfig.loadMergedThemes()` to parse the active `themes.yaml`.
+3. Validates each entry with `validateThemesFile()` (schema version 1, all 29 required tokens, safe color values).
+4. Converts valid entries to `Theme` objects via `yamlThemeToTheme()` (snake_case → camelCase normalization).
+5. Stores them in `useConfigStore.yamlThemes` so the UI and theme resolver can access them without re-parsing.
+
+On `config:reload`, the same flow re-runs and updates the cache.
+
+Invalid YAML entries are skipped with a `ConfigWarning` (surfaced in Settings → Local Config). Malformed parse errors do not crash the app; the theme picker falls back to built-in themes only.
 
 ---
 
@@ -127,65 +178,57 @@ No external font requests (e.g., Google Fonts) are made, which is enforced by th
 
 ---
 
-## Built-in Themes
+## Theme Catalog
 
-All built-in themes are configured as YAML templates under the `config/themes/` directory at the root:
-- `config/themes/venice.yaml`
-- `config/themes/dark.yaml`
-- `config/themes/light.yaml`
-- `config/themes/dracula.yaml`
-- `config/themes/gruvbox_dark.yaml`
-- `config/themes/rosepine.yaml`
-- `config/themes/nord.yaml`
-- `config/themes/tokyo_night.yaml`
-- `config/themes/catppuccin.yaml`
-- `config/themes/solarized_dark.yaml`
-- `config/themes/solarized_light.yaml`
-- `config/themes/one_dark.yaml`
-- `config/themes/monokai.yaml`
-- `config/themes/github_light.yaml`
+Venice Forge supports three categories of themes:
 
-### Venice Parity Dark — `builtin-venice`
-The default theme, matching the official Venice dark aesthetic. Deep blue-black background (`#050a0f`) with a light-blue accent.
+1. **Built-in themes** — hardcoded in `src/theme/themes.ts`, always available.
+2. **YAML-backed themes** — loaded at runtime from `.config/themes.local.yaml` (dev) or `userData/.config/themes.yaml` (packaged), discovered on startup and cached in `config-store`.
+3. **Custom themes** — created by the user in the ThemeMaker UI, persisted as full `Theme` objects in IndexedDB.
 
-### Forge Graphite (dark) — `builtin-dark`
-Classic dark theme. Graphite base (`#0d1117`) with a solid blue accent.
+### Built-in Themes (Hardcoded)
 
-### Forge Daylight (light) — `builtin-light`
-Light theme companion with clean light-gray background (`#f6f8fa`) and blue accent.
+The following themes are compiled into the renderer bundle and available even when no YAML config is present:
 
-### Forge Copper (dark) — `builtin-copper`
-Dark graphite base with a copper accent (`#a65c20`) for warm contrast.
+- `builtin-venice` — Default Venice dark aesthetic
+- `builtin-dark` — Classic graphite dark
+- `builtin-light` — Clean light-gray light
+- `builtin-copper` — Warm copper-accent dark
+- `builtin-dracula` — Dracula-inspired dark purple
+- `builtin-gruvbox-dark` — Retro warm-yellow dark
+- `builtin-rosepine` — Rose-gold accent dark
+- `builtin-nord` — Arctic frost-blue dark
+- `builtin-tokyo-night` — Deep purple periwinkle dark
+- `builtin-catppuccin` — Soft pastel pink dark
+- `builtin-solarized-dark` — Low-contrast muted yellow dark
+- `builtin-solarized-light` — Beige orange light
+- `builtin-one-dark` — Calm blue code-editor dark
+- `builtin-monokai` — Bright lime dark
+- `builtin-github-light` — Clean light (if present in bundle)
 
-### Forge Dracula — `builtin-dracula`
-Dracula-inspired dark theme with dark purple background (`#282a36`) and lavender accent.
+### YAML-Backed Themes (Runtime-Loaded)
 
-### GruvBox Dark — `builtin-gruvbox-dark`
-Retro-style dark theme with retro-gray background (`#282828`) and warm yellow accent (`#fabd2f`).
+The following 15 themes are shipped as YAML config entries and loaded dynamically:
 
-### Rosepine — `builtin-rosepine`
-Sleek dark theme with dark pink-ish purple background (`#191724`) and rose-gold accent.
+| ID | Name | Mode | Accent Color | Description |
+|----|------|------|--------------|-------------|
+| `aurora-boreal` | Aurora Boreal | dark | `#4ff0b6` | Deep space black with vibrant mint-green aurora accent |
+| `sakura-terminal` | Sakura Terminal | light | `#ff7eb3` | Warm cream with soft pink cherry-blossom accent |
+| `basalt-noir` | Basalt Noir | dark | `#ff4d6d` | Charcoal-black basalt with bold rose-red accent |
+| `solar-ash` | Solar Ash | light | `#ff9f43` | Warm desert sand with burnt-orange sunburst accent |
+| `cyber-orchid` | Cyber Orchid | dark | `#d946ef` | Midnight electric-blue with vivid magenta orchid accent |
+| `arctic-glass` | Arctic Glass | light | `#0ea5e9` | Crisp ice-blue glass with cool cyan accent |
+| `desert-copperfield` | Desert Copperfield | dark | `#e67e22` | Warm terracotta with rich copper-orange accent |
+| `toxic-limewire` | Toxic LimeWire | dark | `#39ff14` | Pitch black with neon-lime toxic accent (high contrast) |
+| `midnight-velvet` | Midnight Velvet | dark | `#a78bfa` | Deep midnight blue with soft lavender velvet accent |
+| `porcelain-daybreak` | Porcelain Daybreak | light | `#f59e0b` | Clean porcelain white with warm amber daybreak accent |
+| `synthwave-harbor` | Synthwave Harbor | dark | `#ff2a6d` | Dark neon harbor with hot-pink synthwave accent |
+| `moss-circuit` | Moss Circuit | dark | `#84cc16` | Deep forest green with bright lime-green circuit accent |
+| `ember-monastery` | Ember Monastery | dark | `#f97316` | Dark stone with warm burnt-orange ember accent |
+| `glacial-ink` | Glacial Ink | dark | `#22d3ee` | Near-black with sharp cyan glacial accent (high contrast) |
+| `ultraviolet-rain` | Ultraviolet Rain | dark | `#8b5cf6` | Dark violet with electric purple ultraviolet accent |
 
-### Forge Nord — `builtin-nord`
-Arctic dark theme with a polar-night background (`#2E3440`) and a frost-blue accent (`#88C0D0`).
-
-### Forge Tokyo — `builtin-tokyo-night`
-Deep purple/blue dark theme (`#1a1b26`) with a calm periwinkle accent (`#7aa2f7`).
-
-### Forge Catppuccin — `builtin-catppuccin`
-Soft pastel dark theme (`#1e1e2e`) with a warm pink accent (`#f38ba8`).
-
-### Forge Solarized Dark — `builtin-solarized-dark`
-Classic low-contrast dark theme (`#002b36`) with a muted yellow accent (`#b58900`).
-
-### Forge Solarized Light — `builtin-solarized-light`
-Light beige companion (`#fdf6e3`) with an orange accent (`#cb4b16`).
-
-### Forge One Dark — `builtin-one-dark`
-Popular code-editor dark theme (`#282c34`) with a calm blue accent (`#61afef`).
-
-### Forge Monokai — `builtin-monokai`
-Classic Monokai dark theme (`#272822`) with a bright lime accent (`#a6e22e`).
+YAML themes are stored in `.config/themes.local.yaml` (dev) or `userData/.config/themes.yaml` (packaged). On startup, `configService.loadMergedThemes()` parses the file, validates each entry (schema version 1, all 29 required tokens, safe color values), converts snake_case keys to camelCase via `yamlThemeToTheme()`, and caches the resulting `Theme` objects in `useConfigStore.yamlThemes`. They appear in the ThemeMaker selector alongside built-in themes and can be selected just like built-in themes.
 
 ### Forge GitHub Light — `builtin-github-light`
 Clean light theme (`#ffffff`) with a blue accent (`#0969da`) that mirrors GitHub's default light UI.
@@ -290,6 +333,27 @@ StorageService.saveItem("settings", {
 
 Users create custom themes via the ThemeMaker UI. No code changes required.
 
+### Option C: YAML-Backed Theme (Recommended for Distribution)
+
+1. Open `.config/themes.local.yaml` (dev) or `userData/.config/themes.yaml` (packaged).
+2. Add a new entry under `themes:`:
+   ```yaml
+   themes:
+     ocean-breeze:
+       display_name: "Ocean Breeze"
+       mode: dark
+       tokens:
+         bg: "#0a1628"
+         bg_surface: "#112240"
+         # ... all 29 required tokens
+   ```
+3. Save the file.
+4. In the app, go to **Settings → Local Config → Reload** (or restart the app).
+5. The theme appears automatically in the ThemeMaker selector under the YAML Themes section.
+6. No code changes, no rebuild, no re-release required.
+
+> **Note:** YAML theme IDs must be unique. If a YAML theme ID matches a built-in theme ID, the YAML version takes precedence at runtime. Invalid entries are skipped with a warning in Settings → Local Config.
+
 ---
 
 ## File Inventory
@@ -304,8 +368,12 @@ Users create custom themes via the ThemeMaker UI. No code changes required.
 | `src/theme/contrast.ts` | WCAG luminance and contrast ratio utilities |
 | `src/theme/fallbacks.ts` | Shared fallback constant (`#000000`) for validation |
 | `src/theme/index.ts` | Barrel export |
-| `src/components/ThemeMaker.tsx` | Theme editor UI |
+| `src/theme/yamlTheme.ts` | Converts validated YAML theme entries to `Theme` objects (snake_case → camelCase normalization) |
+| `src/stores/config-store.ts` | Zustand store holding `yamlThemes` cache; loads themes on startup via `desktopConfig.loadMergedThemes()` |
+| `src/components/ThemeMaker.tsx` | Theme editor UI (now includes YAML theme selector) |
 | `src/components/ThemePreview.tsx` | Mini preview card |
+| `.config/themes.local.yaml` | Dev environment YAML theme definitions (15 themes) |
+| `.config/themes.example.yaml` | Tracked example YAML theme file (shipped with repo) |
 
 ### Modified Files (Theming Impact)
 

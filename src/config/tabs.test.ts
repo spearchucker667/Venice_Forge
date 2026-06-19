@@ -1,3 +1,4 @@
+// VERIFY-022 regression guard
 import { describe, it, expect } from 'vitest'
 import { CANONICAL_TAB_ORDER, TAB_REGISTRY, isTabId, normaliseTab, resolveTab, type TabId } from './tabs'
 

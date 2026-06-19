@@ -1,3 +1,4 @@
+// VERIFY-056 regression guard
 /** @fileoverview Tests for the MediaInspector new gallery actions. */
 
 import "@testing-library/jest-dom/vitest";

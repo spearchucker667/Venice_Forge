@@ -136,8 +136,8 @@ export function PlaygroundView() {
 
   return (
     <div className="flex h-full">
-      <div className="w-[420px] shrink-0 border-r border-border flex flex-col">
-        <div className="flex items-center justify-between gap-2 px-3 h-11 border-b border-border bg-surface shrink-0">
+      <div className="w-[420px] shrink-0 border-r border-border/50 flex flex-col">
+        <div className="flex items-center justify-between gap-2 px-3 h-11 border-b border-border/50 bg-surface shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-[14px] font-medium text-text-secondary shrink-0">Playground</span>
             <span className="text-[11px] px-1.5 py-0.5 rounded bg-surface-elevated text-text-muted uppercase tracking-wider shrink-0">Agent</span>
@@ -159,7 +159,7 @@ export function PlaygroundView() {
       </div>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center gap-2 px-3 h-11 border-b border-border bg-surface shrink-0">
+        <div className="flex items-center gap-2 px-3 h-11 border-b border-border/50 bg-surface shrink-0">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             {linkedWorkflow ? (
               <div className="flex items-center gap-1 min-w-0 px-2 py-0.5 rounded bg-surface-elevated border border-border">

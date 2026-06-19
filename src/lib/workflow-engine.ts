@@ -1,3 +1,4 @@
+import { DEFAULT_WORKFLOW_MODEL } from '../constants/venice'
 import type { Node, Edge } from '@xyflow/react'
 import type { VeniceNodeData, NodeResult } from '../stores/workflow-store'
 import { NODE_SCHEMAS, type IOKind } from './workflow-schema'
@@ -136,7 +137,7 @@ async function executeNode(
       const resp = await venice<ChatCompletionResponse>('/chat/completions', {
         method: 'POST',
         body: JSON.stringify({
-          model: data.model || 'llama-3.3-70b',
+          model: data.model || DEFAULT_WORKFLOW_MODEL,
           messages: [{ role: 'user', content: prompt }],
           temperature: data.temperature ?? 0.7,
           max_tokens: data.maxTokens ?? 4096,

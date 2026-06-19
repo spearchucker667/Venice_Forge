@@ -1,3 +1,4 @@
+// VERIFY-034 regression guard
 // @vitest-environment node
 
 import fs from "node:fs";

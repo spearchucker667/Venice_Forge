@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
+import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware'
 import type { ChatMessage, VeniceParameters } from '../types/venice'
 import type { Conversation, ConversationMessage } from '../types/conversation'
 import { contentToSearchText } from '../utils/messageContent'
@@ -7,7 +7,6 @@ import type { ConversationCharacterMeta } from '../types/conversationVault'
 import type { VeniceCharacter } from '../types/characters'
 import type { CharacterCardV1 } from '../types/rp'
 import { generateId } from '../lib/utils'
-import { createSafeStorage } from '../lib/safe-storage'
 import type { PulledMemoryContext } from '../types/conversationVault'
 import { toConversationRecord } from './chat-store-helpers'
 import { useSettingsStore } from './settings-store' // for defaulting projectRefs to active project on create (polished Phase 1)
@@ -16,6 +15,45 @@ import { redactErrorMessage } from '../shared/redaction'
 import * as logger from '../shared/logger'
 import { DEFAULT_CHAT_MODEL } from '../constants/venice'
 import { assertValidId } from '../utils/idValidation'
+import StorageService from '../services/storageService'
+
+const asyncStorageAdapter: StateStorage = {
+  getItem: async (name) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage /* localStorage-allowed: one-time migration */) {
+        const legacy = window.localStorage.getItem(name); /* localStorage-allowed: one-time migration */
+        if (legacy) {
+          await StorageService.saveItem('chats', { id: name, value: legacy });
+          window.localStorage.removeItem(name); /* localStorage-allowed: remove migrated legacy copy */
+          return legacy;
+        }
+      }
+    } catch (e) {
+      logger.warn('[chat-store] Migration from localStorage failed', e); /* localStorage-allowed: diagnostic only */
+    }
+    try {
+      const item = await StorageService.getItem<{ id: string; value: string }>('chats', name);
+      return item?.value || null;
+    } catch (e) {
+      logger.warn('[chat-store] getItem failed', e);
+      return null;
+    }
+  },
+  setItem: async (name, value) => {
+    try {
+      await StorageService.saveItem('chats', { id: name, value });
+    } catch (e) {
+      logger.warn('[chat-store] setItem failed', e);
+    }
+  },
+  removeItem: async (name) => {
+    try {
+      await StorageService.deleteItem('chats', name);
+    } catch (e) {
+      logger.warn('[chat-store] removeItem failed', e);
+    }
+  }
+}
 
 
 
@@ -440,7 +478,7 @@ export const useChatStore = create<ChatState>()(
     {
       name: 'venice-chat',
       version: 3,
-      storage: createJSONStorage(() => createSafeStorage()),
+      storage: createJSONStorage(() => asyncStorageAdapter),
       migrate: (persisted, version) => {
         if (!persisted || typeof persisted !== 'object') return persisted as ChatState
         const s = persisted as Partial<ChatState>

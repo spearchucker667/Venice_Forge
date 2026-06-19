@@ -196,9 +196,18 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
   }
 
   const deferredSearch = useDeferredValue(search)
+  const searchIndexCache = useRef(new Map<string, { updatedAt: number, text: string }>())
   const searchIndex = useMemo(() => {
     if (!historyExpanded || !deferredSearch.trim()) return []
-    return conversations.map((conversation) => ({ conversation, text: buildConversationSearchText(conversation) }))
+    const cache = searchIndexCache.current
+    return conversations.map((conversation) => {
+      let entry = cache.get(conversation.id)
+      if (!entry || entry.updatedAt !== conversation.updatedAt) {
+        entry = { updatedAt: conversation.updatedAt, text: buildConversationSearchText(conversation) }
+        cache.set(conversation.id, entry)
+      }
+      return { conversation, text: entry.text }
+    })
   }, [conversations, deferredSearch, historyExpanded])
   const searchResult = useMemo(() => {
     const query = deferredSearch.trim().toLowerCase()

@@ -9,6 +9,7 @@
  *  default system prompts do not claim to do so.
  */
 
+import { DEFAULT_PROMPT_ENHANCER_MODEL } from "../constants/venice";
 import { venice } from "../lib/venice-client";
 import type { YamlInternalPromptEnhancer } from "../config/configSchema";
 
@@ -39,7 +40,7 @@ export type PromptEnhancerConfig = Pick<
 /** Default model id used when no config is provided. Must match
  *  the canonical Venice model id as advertised by /models (verified
  *  via the live registry). */
-export const DEFAULT_ENHANCER_MODEL = "venice-uncensored-1-2";
+export const DEFAULT_ENHANCER_MODEL = DEFAULT_PROMPT_ENHANCER_MODEL;
 
 /** Default enhance system prompt. The Venice Forge safety guard and
  *  the upstream provider controls remain authoritative. This prompt

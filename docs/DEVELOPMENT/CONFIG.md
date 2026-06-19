@@ -118,6 +118,32 @@ developer:
 
 ## Themes Overlay (`themes.yaml`)
 
+Venice Forge ships with 15 YAML-backed themes that are discovered at runtime and appear in the ThemeMaker selector without any code changes. On desktop startup, `configService.loadMergedThemes()` parses the active `themes.yaml`, validates each entry, converts snake_case tokens to camelCase via `yamlThemeToTheme()`, and caches the resulting `Theme` objects in `useConfigStore.yamlThemes`.
+
+### Shipped YAML Themes (15)
+
+| ID | Name | Mode | Accent | Description |
+|----|------|------|--------|-------------|
+| `aurora-boreal` | Aurora Boreal | dark | `#4ff0b6` | Deep space black with vibrant mint-green aurora accent |
+| `sakura-terminal` | Sakura Terminal | light | `#ff7eb3` | Warm cream with soft pink cherry-blossom accent |
+| `basalt-noir` | Basalt Noir | dark | `#ff4d6d` | Charcoal-black basalt with bold rose-red accent |
+| `solar-ash` | Solar Ash | light | `#ff9f43` | Warm desert sand with burnt-orange sunburst accent |
+| `cyber-orchid` | Cyber Orchid | dark | `#d946ef` | Midnight electric-blue with vivid magenta orchid accent |
+| `arctic-glass` | Arctic Glass | light | `#0ea5e9` | Crisp ice-blue glass with cool cyan accent |
+| `desert-copperfield` | Desert Copperfield | dark | `#e67e22` | Warm terracotta with rich copper-orange accent |
+| `toxic-limewire` | Toxic LimeWire | dark | `#39ff14` | Pitch black with neon-lime toxic accent (high contrast) |
+| `midnight-velvet` | Midnight Velvet | dark | `#a78bfa` | Deep midnight blue with soft lavender velvet accent |
+| `porcelain-daybreak` | Porcelain Daybreak | light | `#f59e0b` | Clean porcelain white with warm amber daybreak accent |
+| `synthwave-harbor` | Synthwave Harbor | dark | `#ff2a6d` | Dark neon harbor with hot-pink synthwave accent |
+| `moss-circuit` | Moss Circuit | dark | `#84cc16` | Deep forest green with bright lime-green circuit accent |
+| `ember-monastery` | Ember Monastery | dark | `#f97316` | Dark stone with warm burnt-orange ember accent |
+| `glacial-ink` | Glacial Ink | dark | `#22d3ee` | Near-black with sharp cyan glacial accent (high contrast) |
+| `ultraviolet-rain` | Ultraviolet Rain | dark | `#8b5cf6` | Dark violet with electric purple ultraviolet accent |
+
+YAML themes are stored in `.config/themes.local.yaml` (dev) or `userData/.config/themes.yaml` (packaged). They override built-in themes by matching ID. The ThemeMaker selector shows them in a dedicated "YAML Themes" section.
+
+### Example Overlay Format
+
 ```yaml
 version: 1
 

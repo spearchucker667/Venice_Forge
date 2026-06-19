@@ -345,7 +345,13 @@ export function createServerApp() {
     (createRateLimiter as unknown as Record<string, unknown>)[`_${label}Cleanup`] = cleanupInterval;
 
     return (req, res, next) => {
-      const ip = req.ip || "unknown";
+      // When TRUST_PROXY is enabled, include the socket address in the key to
+      // prevent X-Forwarded-For spoofing from bypassing rate limits. Behind a
+      // legitimate proxy this produces keys like "proxyIP|clientIP".
+      const forwarded = req.headers["x-forwarded-for"];
+      const ip = forwarded && AppConfig.TRUST_PROXY
+        ? `${req.socket?.remoteAddress || "unknown"}|${req.ip || "unknown"}`
+        : (req.ip || req.socket?.remoteAddress || "unknown");
       const now = Date.now();
       const record = reqCounts.get(ip) || { count: 0, resetTime: now + rateLimitWindowMs, lastSeen: now };
 
@@ -403,13 +409,19 @@ export function createServerApp() {
   const CIRCUIT_RESET_TIMEOUT_MS = 30000;
 
   app.use("/api/venice", (req, res, next) => {
-    if (Date.now() < circuitOpenUntil) {
-      return res.status(503).json({ error: "Service Unavailable: Circuit breaker open due to upstream failures." });
-    }
-    // Enter half-open state if timeout has expired
-    if (circuitOpenUntil > 0 && Date.now() >= circuitOpenUntil) {
-      circuitHalfOpen = true;
-      circuitOpenUntil = 0;
+    const now = Date.now();
+    if (circuitOpenUntil > 0) {
+      if (now < circuitOpenUntil) {
+        return res.status(503).json({ error: "Service Unavailable: Circuit breaker open due to upstream failures." });
+      } else {
+        // Cooldown has expired. Transition to half-open and let this single request act as a probe.
+        circuitHalfOpen = true;
+        circuitOpenUntil = 0;
+        circuitFailures = 0; // Reset failure counter for fresh probe evaluation
+      }
+    } else if (circuitHalfOpen) {
+      // If we are already half-open, a probe request is currently in flight. Reject concurrent requests.
+      return res.status(503).json({ error: "Service Unavailable: Circuit breaker half-open, probe request in flight." });
     }
     next();
   });
@@ -505,7 +517,12 @@ export function createServerApp() {
           },
         };
         recordDecision(syntheticDecision);
-        res.status(500).json({ error: "Internal server error during safety verification." });
+        res.status(451).json({
+          error: syntheticDecision.userMessage,
+          reasonCode: syntheticDecision.reasonCode,
+          category: syntheticDecision.category,
+          severity: syntheticDecision.severity,
+        });
         return;
       }
 
@@ -568,7 +585,7 @@ export function createServerApp() {
     })
   );
 
-  app.post("/api/proxy-jina", express.json(), async (req, res) => {
+  app.post("/api/proxy-jina", express.json({ limit: MAX_PROXY_BODY_BYTES }), async (req, res) => {
     try {
       const { url: requestUrl, headers: requestHeaders, timeoutMs } = req.body;
       if (typeof requestUrl !== "string") {
@@ -586,7 +603,12 @@ export function createServerApp() {
         isLocalFamilySafeModeEnabled(req),
       );
       if (!decision.allowed) {
-        return res.status(451).json({ error: decision.userMessage });
+        return res.status(451).json({
+          error: decision.userMessage,
+          reasonCode: decision.guardDecision.reasonCode,
+          category: decision.guardDecision.category,
+          severity: decision.guardDecision.severity,
+        });
       }
 
       const JINA_ALLOWED_FORWARD_HEADERS = new Set([
@@ -707,7 +729,7 @@ export function createServerApp() {
   });
 
   // Generic scrape proxy with SSRF protection (DNS resolution)
-  app.post("/api/proxy-scrape", express.json(), async (req, res) => {
+  app.post("/api/proxy-scrape", express.json({ limit: MAX_PROXY_BODY_BYTES }), async (req, res) => {
     try {
       const url = req.body?.url;
       if (typeof url !== "string") {
@@ -725,7 +747,12 @@ export function createServerApp() {
         isLocalFamilySafeModeEnabled(req),
       );
       if (!decision.allowed) {
-        return res.status(451).json({ error: decision.userMessage });
+        return res.status(451).json({
+          error: decision.userMessage,
+          reasonCode: decision.guardDecision.reasonCode,
+          category: decision.guardDecision.category,
+          severity: decision.guardDecision.severity,
+        });
       }
 
       let parsed: URL;
@@ -786,8 +813,16 @@ export function createServerApp() {
               Accept: "text/html, text/plain, application/xhtml+xml, application/json",
               Host: parsed.host,
             },
-            lookup: (_hostname, _options, callback) => {
-              callback(null, lookupResult.address, lookupResult.family);
+            lookup: (hostname, options, callback) => {
+              if (typeof options === "function") {
+                callback = options;
+                options = {};
+              }
+              if (options.all) {
+                callback(null, [lookupResult]);
+              } else {
+                callback(null, lookupResult.address, lookupResult.family);
+              }
             },
           },
           (response) => {
@@ -845,12 +880,19 @@ export function createServerApp() {
         return res.status(451).json({ error: screen.userMessage });
       }
 
-      res.status(scrapeResult.status).json({
-        url,
-        finalUrl: scrapeResult.finalUrl,
-        contentType: scrapeResult.contentType,
-        body: scrapeResult.body,
-      });
+      if (req.query.raw === "true") {
+        if (scrapeResult.contentType) {
+          res.setHeader("Content-Type", scrapeResult.contentType);
+        }
+        res.status(scrapeResult.status).send(scrapeResult.body);
+      } else {
+        res.status(scrapeResult.status).json({
+          url,
+          finalUrl: scrapeResult.finalUrl,
+          contentType: scrapeResult.contentType,
+          body: scrapeResult.body,
+        });
+      }
 
     } catch (err) {
       if (err instanceof Error && err.message === "Request timed out") {
@@ -915,7 +957,12 @@ export async function startServer() {
       }
     }, Math.max(10000, staticWindowMs)).unref();
     const staticRateLimiter: express.RequestHandler = (req, res, next) => {
-      const ip = req.ip || "unknown";
+      // When TRUST_PROXY is enabled, include the socket address in the key to
+      // prevent X-Forwarded-For spoofing from bypassing rate limits.
+      const forwarded = req.headers["x-forwarded-for"];
+      const ip = forwarded && AppConfig.TRUST_PROXY
+        ? `${req.socket?.remoteAddress || "unknown"}|${req.ip || "unknown"}`
+        : (req.ip || req.socket?.remoteAddress || "unknown");
       const now = Date.now();
       const record = staticRequestCounts.get(ip) || { count: 0, resetTime: now + staticWindowMs, lastSeen: now };
 

@@ -1,3 +1,4 @@
+// VERIFY-056 regression guard
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useStoragePrivacyStore } from "./storage-privacy-store";
 import { applyMaintenanceAction } from "../services/storageMaintenance";

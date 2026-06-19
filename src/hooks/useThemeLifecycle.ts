@@ -1,12 +1,12 @@
 import { useEffect } from "react";
-import { applyTheme, BUILTIN_DARK, findBuiltinTheme, type Theme } from "../theme";
+import { applyTheme, BUILTIN_DARK, findBuiltinTheme, findMergedTheme, type Theme } from "../theme";
 import type { AppSettings } from "../types/app";
 
-function getActiveTheme(settings: AppSettings): Theme {
+function getActiveTheme(settings: AppSettings, yamlThemes?: Record<string, Theme>): Theme {
   if (settings.selectedThemeId === "custom" && settings.customTheme) {
     return settings.customTheme;
   }
-  return findBuiltinTheme(settings.selectedThemeId) ?? BUILTIN_DARK;
+  return findMergedTheme(settings.selectedThemeId, yamlThemes ?? {}) ?? findBuiltinTheme(settings.selectedThemeId) ?? BUILTIN_DARK;
 }
 
 /**
@@ -15,13 +15,14 @@ function getActiveTheme(settings: AppSettings): Theme {
  */
 export function useThemeLifecycle(
   settings: AppSettings,
-  settingsHydrated: boolean
+  settingsHydrated: boolean,
+  yamlThemes?: Record<string, Theme>
 ): void {
   useEffect(() => {
     if (!settingsHydrated) return;
-    const theme = getActiveTheme(settings);
+    const theme = getActiveTheme(settings, yamlThemes);
     applyTheme(theme);
-  }, [settingsHydrated, settings.selectedThemeId, settings.appearanceMode, settings.customTheme]);
+  }, [settingsHydrated, settings.selectedThemeId, settings.appearanceMode, settings.customTheme, yamlThemes]);
 
   useEffect(() => {
     if (!settingsHydrated) return;

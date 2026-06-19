@@ -65,7 +65,7 @@ function PreviewNodeComponent({ id, data }: NodeProps<PreviewNode>) {
     <div className={cn('rounded-xl border-2 bg-surface-elevated shadow-xl min-w-[240px] max-w-[280px]', border, statusRing)}>
       {hasInput && <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-surface-elevated !border-2 !border-[var(--color-surface-elevated)]" />}
 
-      <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-border">
+      <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-border/50">
         <span className="text-[13.5px] font-medium text-text-secondary">{schema?.label ?? data.nodeType}</span>
         {result?.status === 'running' && <span className="ml-auto text-[11px] text-text-muted">Running…</span>}
         {result?.status === 'done' && <span className="ml-auto text-[11px] text-green-400/50">Done</span>}

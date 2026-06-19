@@ -28,6 +28,7 @@ import { isValidColorValue } from "../theme/validateColor";
 import { ThemePreview } from "./ThemePreview";
 import { desktopFiles } from "../services/desktopBridge";
 import { useSettingsStore } from "../stores/settings-store";
+import { useConfigStore } from "../stores/config-store";
 import { toast } from "../stores/toast-store";
 import { redactErrorMessage } from "../shared/redaction";
 
@@ -197,6 +198,7 @@ export function ThemeMaker() {
   const setSelectedThemeId = useSettingsStore((s) => s.setSelectedThemeId);
   const setCustomTheme = useSettingsStore((s) => s.setCustomTheme);
   const setAppearanceMode = useSettingsStore((s) => s.setAppearanceMode);
+  const yamlThemes = useConfigStore((s) => s.yamlThemes);
 
   const [draft, setDraft] = useState<Theme>(() => cloneTheme(customTheme || defaultCustomTheme()));
   const [selector, setSelector] = useState<string>(selectedThemeId || "builtin-venice");
@@ -229,10 +231,34 @@ export function ThemeMaker() {
     []
   );
 
+  const allThemesMap = useMemo(() => ({ ...builtInMap, ...yamlThemes }), [builtInMap, yamlThemes]);
+
+  const themeOptions = useMemo(() => {
+    const builtInOptions = [
+      { id: "builtin-venice", label: "Venice Parity Dark" },
+      { id: "builtin-dark", label: "Forge Graphite" },
+      { id: "builtin-light", label: "Forge Daylight" },
+      { id: "builtin-copper", label: "Forge Copper" },
+      { id: "builtin-dracula", label: "Forge Dracula" },
+      { id: "builtin-gruvbox-dark", label: "GruvBox Dark" },
+      { id: "builtin-rosepine", label: "Rosepine" },
+      { id: "builtin-nord", label: "Forge Nord" },
+      { id: "builtin-tokyo-night", label: "Forge Tokyo" },
+      { id: "builtin-catppuccin", label: "Forge Catppuccin" },
+      { id: "builtin-solarized-dark", label: "Forge Solarized Dark" },
+      { id: "builtin-solarized-light", label: "Forge Solarized Light" },
+      { id: "builtin-one-dark", label: "Forge One Dark" },
+      { id: "builtin-monokai", label: "Forge Monokai" },
+      { id: "builtin-github-light", label: "Forge GitHub Light" },
+    ];
+    const yamlOptions = Object.entries(yamlThemes).map(([id, theme]) => ({ id, label: theme.name }));
+    return [...builtInOptions, ...yamlOptions, { id: "custom", label: "Custom" }];
+  }, [yamlThemes]);
+
   function handleSelect(id: string) {
     setSelector(id);
     if (id !== "custom") {
-      const theme = builtInMap[id] || BUILTIN_VENICE;
+      const theme = allThemesMap[id] || BUILTIN_VENICE;
       applyTheme(theme);
       setSelectedThemeId(id);
       setAppearanceMode(theme.mode);
@@ -309,24 +335,7 @@ export function ThemeMaker() {
       <div className="space-y-2">
         <label className="text-sm font-medium text-text-secondary">Theme</label>
         <div className="flex flex-wrap gap-2">
-          {[
-            { id: "builtin-venice", label: "Venice Parity Dark" },
-            { id: "builtin-dark", label: "Forge Graphite" },
-            { id: "builtin-light", label: "Forge Daylight" },
-            { id: "builtin-copper", label: "Forge Copper" },
-            { id: "builtin-dracula", label: "Forge Dracula" },
-            { id: "builtin-gruvbox-dark", label: "GruvBox Dark" },
-            { id: "builtin-rosepine", label: "Rosepine" },
-            { id: "builtin-nord", label: "Forge Nord" },
-            { id: "builtin-tokyo-night", label: "Forge Tokyo" },
-            { id: "builtin-catppuccin", label: "Forge Catppuccin" },
-            { id: "builtin-solarized-dark", label: "Forge Solarized Dark" },
-            { id: "builtin-solarized-light", label: "Forge Solarized Light" },
-            { id: "builtin-one-dark", label: "Forge One Dark" },
-            { id: "builtin-monokai", label: "Forge Monokai" },
-            { id: "builtin-github-light", label: "Forge GitHub Light" },
-            { id: "custom", label: "Custom" },
-          ].map((opt) => (
+          {themeOptions.map((opt) => (
             <button
               key={opt.id}
               onClick={() => handleSelect(opt.id)}
@@ -403,7 +412,7 @@ export function ThemeMaker() {
 
       <div className="space-y-2">
         <div className="text-sm font-medium text-text-secondary">Preview</div>
-        <ThemePreview theme={selector === "custom" ? draft : builtInMap[selector] || BUILTIN_DARK} />
+        <ThemePreview theme={selector === "custom" ? draft : allThemesMap[selector] || BUILTIN_DARK} />
       </div>
     </div>
   );

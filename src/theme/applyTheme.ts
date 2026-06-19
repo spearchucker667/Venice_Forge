@@ -84,21 +84,27 @@ export function findBuiltinTheme(id: string | null | undefined): Theme | null {
  * Resolve the initial theme from persisted bootstrap state. The order is:
  *   1. Custom theme (if `selectedThemeId === 'custom'` and a `customTheme`
  *      object is present)
- *   2. Built-in theme by id (`findBuiltinTheme`)
- *   3. Fallback to `BUILTIN_VENICE` (or `BUILTIN_LIGHT` if user prefers light
+ *   2. YAML theme by id (`findMergedTheme`)
+ *   3. Built-in theme by id (`findBuiltinTheme`)
+ *   4. Fallback to `BUILTIN_VENICE` (or `BUILTIN_LIGHT` if user prefers light
  *      and the system is in light mode)
  *
  * Unknown / null / unrecognised ids always resolve to a real `Theme`, so
  * the caller can blindly `applyTheme()` the result.
  */
-export function resolveInitialTheme(bootstrap?: Partial<{
-  selectedThemeId: string;
-  appearanceMode: 'dark' | 'light';
-  customTheme: Theme | null;
-}>): Theme {
+export function resolveInitialTheme(
+  bootstrap?: Partial<{
+    selectedThemeId: string;
+    appearanceMode: 'dark' | 'light';
+    customTheme: Theme | null;
+  }>,
+  yamlThemes?: Record<string, Theme>
+): Theme {
   if (bootstrap?.selectedThemeId === 'custom' && isValidPersistedTheme(bootstrap.customTheme)) {
     return bootstrap.customTheme;
   }
+  const yamlTheme = yamlThemes?.[bootstrap?.selectedThemeId || ''];
+  if (yamlTheme) return yamlTheme;
   const builtin = findBuiltinTheme(bootstrap?.selectedThemeId);
   if (builtin) return builtin;
   if (typeof window !== 'undefined') {

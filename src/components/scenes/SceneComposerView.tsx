@@ -113,10 +113,10 @@ export function SceneComposerView() {
   return (
     <div className="flex h-full w-full min-h-0 text-text-primary">
       <aside
-        className="w-[340px] shrink-0 border-r border-border flex flex-col min-h-0"
+        className="w-[340px] shrink-0 border-r border-border/50 flex flex-col min-h-0"
         data-testid="scene-composer-list-pane"
       >
-        <div className="px-3 py-2 border-b border-border space-y-2">
+        <div className="px-3 py-2 border-b border-border/50 space-y-2">
           <div className="flex items-center gap-2">
             <h2 className="text-[14px] font-semibold">Scene Composer</h2>
             <button
@@ -484,7 +484,7 @@ function SceneDetail(props: SceneDetailProps) {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col" data-testid="scene-composer-detail">
-      <header className="px-4 py-3 border-b border-border space-y-2">
+      <header className="px-4 py-3 border-b border-border/50 space-y-2">
         <div className="flex items-center gap-2">
           <input
             value={title}

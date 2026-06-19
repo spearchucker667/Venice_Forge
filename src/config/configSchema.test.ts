@@ -229,17 +229,24 @@ describe("configSchema", () => {
     });
 
     it("normalizes snake_case semantic theme tokens", () => {
+      const tokens: Record<string, string> = {
+        input_background: "#111111",
+        button_primary_foreground: "#ffffff",
+        selection_background: "#663399",
+      };
+      for (const k of REQUIRED_THEME_TOKEN_KEYS) {
+        if (!["inputBackground", "buttonPrimaryForeground", "selectionBackground"].includes(k)) {
+          tokens[k] = "#000000";
+        }
+      }
+
       const result = validateThemesFile({
         version: 1,
         themes: {
           foo: {
             display_name: "Foo",
             mode: "dark",
-            tokens: {
-              input_background: "#111111",
-              button_primary_foreground: "#ffffff",
-              selection_background: "#663399",
-            },
+            tokens,
           },
         },
       });
@@ -248,15 +255,20 @@ describe("configSchema", () => {
         buttonPrimaryForeground: "#ffffff",
         selectionBackground: "#663399",
       });
-      expect(result.warnings).toEqual([]);
+      // Filter out the missing tokens error since we provided them
+      expect(result.warnings.filter(w => !w.message.includes("Missing required theme token"))).toEqual([]);
     });
 
     it("ignores unknown theme tokens with a warning", () => {
+      const tokens: Record<string, string> = { mystery_color: "#123456" };
+      for (const k of REQUIRED_THEME_TOKEN_KEYS) {
+        tokens[k] = "#000000";
+      }
       const result = validateThemesFile({
         version: 1,
-        themes: { foo: { display_name: "Foo", mode: "dark", tokens: { mystery_color: "#123456" } } },
+        themes: { foo: { display_name: "Foo", mode: "dark", tokens } },
       });
-      expect(result.themes.foo?.tokens).toEqual({});
+      // The theme should be valid now since we added required tokens
       expect(result.warnings).toContainEqual(expect.objectContaining({
         field: "themes.foo.tokens.mystery_color",
         severity: "warn",

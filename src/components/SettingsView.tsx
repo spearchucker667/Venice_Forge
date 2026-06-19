@@ -300,7 +300,7 @@ export function SettingsView() {
   return (
     <div className="flex flex-col h-full bg-surface">
       {/* Header */}
-      <div className="flex-none p-5 border-b border-border bg-surface">
+      <div className="flex-none p-5 border-b border-border/50 bg-surface">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-[17px] font-semibold text-text-primary">Config</h2>
@@ -313,7 +313,7 @@ export function SettingsView() {
 
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Navigation Rail */}
-        <div className="w-52 border-r border-border p-3 space-y-1 overflow-y-auto shrink-0 hidden sm:block">
+        <div className="w-52 border-r border-border/50 p-3 space-y-1 overflow-y-auto shrink-0 hidden sm:block">
           <button onClick={() => setActiveSection("api-keys")} className={sectionButtonClass("api-keys")}>
             API Keys
           </button>
@@ -489,7 +489,7 @@ export function SettingsView() {
                 </div>
               </div>
 
-              <div className="border-t border-border pt-5 space-y-4">
+              <div className="border-t border-border/50 pt-5 space-y-4">
                 <div>
                   <label className="text-[12.5px] text-text-secondary block mb-1.5 font-medium">Default Web Search</label>
                   <select

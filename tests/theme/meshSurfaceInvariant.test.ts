@@ -1,17 +1,36 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
+import { join, resolve, relative } from 'node:path'
 
 const ROOT = join(import.meta.dirname, '..', '..')
 
-const SCAN_FILES = [
-  'src/App.tsx',
-  'src/components/layout/sidebar.tsx',
-  'src/components/layout/header.tsx',
-  'src/components/layout/inspector-pane.tsx',
-  'src/components/CharactersView.tsx',
-  'src/components/status/HeaderStatusCluster.tsx',
-]
+function collectScanFiles(root: string, scanRoots: string[]): string[] {
+  const files: string[] = []
+  for (const target of scanRoots) {
+    const abs = resolve(root, target)
+    if (!existsSync(abs)) continue
+    const stat = statSync(abs)
+    if (stat.isFile()) {
+      files.push(relative(root, abs))
+      continue
+    }
+    function walk(dir: string) {
+      for (const entry of readdirSync(dir)) {
+        const full = join(dir, entry)
+        const s = statSync(full)
+        if (s.isDirectory()) {
+          walk(full)
+        } else if (s.isFile() && (entry.endsWith('.tsx') || entry.endsWith('.ts'))) {
+          files.push(relative(root, full))
+        }
+      }
+    }
+    walk(abs)
+  }
+  return files
+}
+
+const SCAN_FILES = collectScanFiles(ROOT, ['src/App.tsx', 'src/components'])
 
 function countMatches(patterns: RegExp[], paths: string[]): Array<{ file: string; matches: number }> {
   const counts: Array<{ file: string; matches: number }> = []

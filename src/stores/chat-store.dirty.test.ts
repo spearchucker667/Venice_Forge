@@ -1,3 +1,4 @@
+// VERIFY-021 regression guard
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest'
 
 /**

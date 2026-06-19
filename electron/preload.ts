@@ -356,6 +356,9 @@ const veniceForge = {
     get(): Promise<{ ok: boolean; payload?: unknown; error?: string }> {
       return ipcRenderer.invoke("config:get");
     },
+    initialize(): Promise<{ ok: boolean; status?: unknown; error?: string }> {
+      return ipcRenderer.invoke("config:initialize");
+    },
     reload(): Promise<{ ok: boolean; status?: unknown; error?: string }> {
       return ipcRenderer.invoke("config:reload");
     },

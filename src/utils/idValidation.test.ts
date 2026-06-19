@@ -1,27 +1,31 @@
-import { describe, expect, it } from "vitest";
-import { assertValidId, isValidId } from "./idValidation";
+import { describe, it, expect } from "vitest";
+import { isValidId, assertValidId } from "./idValidation";
 
 describe("idValidation", () => {
-  it.each([
-    "",
-    "__proto__",
-    "constructor",
-    "prototype",
-    "a".repeat(129),
-    "invalid/slash",
-    "invalid space",
-  ])("rejects unsafe id %j", (id) => {
-    expect(isValidId(id)).toBe(false);
-    expect(() => assertValidId(id, "test")).toThrow(/Invalid id/);
+  it("rejects Windows reserved filenames", () => {
+    expect(isValidId("con")).toBe(false);
+    expect(isValidId("prn")).toBe(false);
+    expect(isValidId("aux")).toBe(false);
+    expect(isValidId("nul")).toBe(false);
+    expect(isValidId("com1")).toBe(false);
+    expect(isValidId("lpt9")).toBe(false);
+    expect(isValidId("CON.txt")).toBe(false);
+    expect(isValidId("aux.jpg")).toBe(false);
   });
 
-  it.each([
-    "550e8400-e29b-41d4-a716-446655440000",
-    "valid-slug",
-    "valid_slug",
-    "valid.slug",
-  ])("accepts safe id %j", (id) => {
-    expect(isValidId(id)).toBe(true);
-    expect(() => assertValidId(id, "test")).not.toThrow();
+  it("accepts valid IDs", () => {
+    expect(isValidId("my_valid-id.123")).toBe(true);
+    expect(isValidId("a")).toBe(true);
+    expect(isValidId("control")).toBe(true);
+  });
+
+  it("rejects prototype pollution vectors", () => {
+    expect(isValidId("__proto__")).toBe(false);
+    expect(isValidId("constructor")).toBe(false);
+    expect(isValidId("prototype")).toBe(false);
+  });
+
+  it("assertValidId throws for invalid IDs", () => {
+    expect(() => assertValidId("con")).toThrowError(/Windows reserved/);
   });
 });

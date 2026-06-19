@@ -836,7 +836,7 @@ export function MediaStudioView() {
 
       {/* Phase 2B: Bulk tag input row, visible in multi-select mode when items are selected. */}
       {multiSelectMode && selectedMediaIds.length > 0 && (
-        <div className="border-t border-border bg-surface px-5 py-2 flex items-center gap-2 text-[11.5px]">
+        <div className="border-t border-border/50 bg-surface px-5 py-2 flex items-center gap-2 text-[11.5px]">
           <label className="text-text-muted">Quick tag:</label>
           <input
             type="text"
@@ -869,7 +869,7 @@ export function MediaStudioView() {
           recipe actions. This panel is a top-level launcher for the
           new Compare + Lineage modals and a send-to menu. */}
       {inspectorItem && (
-        <div className="border-t border-border bg-surface px-5 py-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+        <div className="border-t border-border/50 bg-surface px-5 py-2 flex flex-wrap items-center gap-1.5 text-[11px]">
           <button
             type="button"
             onClick={() => setCompareOpen(true)}

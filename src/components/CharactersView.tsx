@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useCharacterStore } from "../stores/character-store";
 import { useChatStore } from "../stores/chat-store";
 import { useSettingsStore } from "../stores/settings-store";
+import { DEFAULT_CHAT_MODEL } from "../constants/venice";
 import { useCharacterImage } from "../hooks/useCharacterImage";
 import type {
   CharacterSortBy,
@@ -185,7 +186,7 @@ export function CharactersView() {
 
   const createCharacterConversation = useChatStore((s) => s.createCharacterConversation);
   const setActiveTab = useSettingsStore((s) => s.setActiveTab);
-  const fallbackModel = useSettingsStore((s) => s.selectedModels.chat) || "llama-3.3-70b";
+  const fallbackModel = useSettingsStore((s) => s.selectedModels.chat) || DEFAULT_CHAT_MODEL;
 
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
   const debounceRef = useRef<number | null>(null);

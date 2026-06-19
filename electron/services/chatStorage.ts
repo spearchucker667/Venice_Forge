@@ -9,18 +9,13 @@ import path from "path";
 import type { Conversation, ConversationFile } from "../../src/types/conversation";
 import { logError, logInfo, logWarn } from "./logger";
 import { redactErrorMessage } from "../../src/shared/redaction";
+import { isValidId } from "../../src/utils/idValidation";
 
 /** Sub-directory inside userData where conversation files live. */
 const CHAT_DIR = "chat-history";
 
 /** Current on-disk schema version. */
 const FILE_VERSION = 1;
-
-/** Valid conversation ID pattern: UUID v4 or URL-safe base64-ish strings.
- *  Must start with an alphanumeric character (rejects "." and "..").
- *  Path traversal is therefore impossible regardless of which path is
- *  constructed from the id. */
-const VALID_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/;
 
 /** Maximum number of conversations to load into memory at once.
  *  Prevents unbounded memory growth if the chat-history directory
@@ -45,11 +40,6 @@ async function ensureDir(): Promise<void> {
  */
 function conversationPath(id: string): string {
   return path.join(getChatHistoryDir(), `${id}.json`);
-}
-
-/** Validates that an id is safe to use as a filename (no path traversal). */
-function isValidId(id: unknown): id is string {
-  return typeof id === "string" && VALID_ID_RE.test(id);
 }
 
 /** Reads and validates a conversation file from disk.
@@ -121,7 +111,7 @@ function isValidConversationFile(value: unknown): value is ConversationFile {
 function isValidConversation(value: unknown): value is Conversation {
   if (typeof value !== "object" || value === null) return false;
   const c = value as Record<string, unknown>;
-  if (!isValidId(c.id)) return false;
+  if (typeof c.id !== "string" || !isValidId(c.id)) return false;
   if (typeof c.title !== "string") return false;
   if (typeof c.createdAt !== "number") return false;
   if (typeof c.updatedAt !== "number") return false;
@@ -151,7 +141,7 @@ function isValidMessagePart(value: unknown): boolean {
 function isValidMessage(value: unknown): boolean {
   if (typeof value !== "object" || value === null) return false;
   const m = value as Record<string, unknown>;
-  if (!isValidId(m.id)) return false;
+  if (typeof m.id !== "string" || !isValidId(m.id)) return false;
   if (typeof m.role !== "string" || !["system", "user", "assistant", "tool"].includes(m.role))
     return false;
 

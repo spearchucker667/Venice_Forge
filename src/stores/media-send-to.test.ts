@@ -286,7 +286,7 @@ describe("media-send-to (VERIFY-044)", () => {
       
       sendToChat(makeItem({ model: undefined }))
       convs = useChatStore.getState().conversations
-      expect(convs[0]?.model).toBe("venice-uncensored-1-2")
+      expect(convs[0]?.model).toBe("venice-uncensored")
     })
   })
 

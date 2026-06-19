@@ -77,7 +77,7 @@ export function StoragePrivacyDashboard() {
 
   return (
     <div className="flex flex-col h-full bg-surface overflow-hidden" data-testid="storage-privacy-dashboard">
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <header className="flex items-center justify-between px-6 py-4 border-b border-border/50">
         <div>
           <h1 className="text-lg font-semibold text-text-primary">Storage & Privacy</h1>
           <p className="text-sm text-text-secondary">Inspect and manage local data boundaries.</p>

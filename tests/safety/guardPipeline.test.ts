@@ -203,6 +203,45 @@ describe("VERIFY-015 guard pipeline — performGuardedVeniceRequest", () => {
     expect(result.block.status).toBe(451);
     expect(result.block.body.reasonCode).toBe("CSAM_BLOCKED");
   });
+
+  it("wraps a SafetyGuardBlockedError thrown by checkLocalFamilyGuard into a 451 block result", async () => {
+    // Tests that if the guard payload analysis throws a SafetyGuardBlockedError 
+    // (the "synthetic exception"), it is correctly caught and converted to a 451 block.
+    const { SafetyGuardBlockedError } = await import("../../src/shared/safety");
+    const decision = {
+      allow: false,
+      action: "block" as const,
+      severity: "high" as const,
+      category: "none" as const,
+      reasonCode: "SYNTHETIC_BLOCK",
+      userMessage: "synthetic block",
+      developerMessage: "synthetic block",
+      normalizedChanged: false,
+      signals: [],
+      audit: { decisionId: "d2", createdAt: "0", promptHash: "h", promptLength: 0, matchedFieldPaths: [] },
+    };
+    
+    // We can spy on maybeRunLocalFamilyGuard so it throws.
+    const safetyModule = await import("../../src/shared/safety");
+    const spy = vi.spyOn(safetyModule, "maybeRunLocalFamilyGuard").mockImplementation(() => {
+      throw new SafetyGuardBlockedError(decision);
+    });
+
+    try {
+      const result = await performGuardedVeniceRequest({
+        endpoint: "/chat/completions",
+        method: "POST",
+        body: { model: "m", messages: [] },
+      });
+      expect(result.kind).toBe("blocked");
+      if (result.kind === "blocked") {
+        expect(result.block.status).toBe(451);
+        expect(result.block.body.reasonCode).toBe("SYNTHETIC_BLOCK");
+      }
+    } finally {
+      spy.mockRestore();
+    }
+  });
 });
 
 describe("VERIFY-015 guard pipeline — screenResponseBody (web-proxy/scrape return content)", () => {

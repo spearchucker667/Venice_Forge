@@ -332,7 +332,7 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
         </div>
       )}
 
-      <div className="border-t border-border px-4 py-3 space-y-2">
+      <div className="border-t border-border/50 px-4 py-3 space-y-2">
         {roster.length > 1 && (
           <div className="flex items-center gap-2">
             <Label>Speaker:</Label>

@@ -123,7 +123,7 @@ export function MemoryManagerModal({ open, onClose }: MemoryManagerModalProps) {
       <div className="bg-bg border border-border rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
         
         {/* Header */}
-        <div className="flex-none flex items-center justify-between p-4 border-b border-border bg-surface">
+        <div className="flex-none flex items-center justify-between p-4 border-b border-border/50 bg-surface">
           <h2 className="text-xl font-display font-semibold text-text-primary">Search AI Memory</h2>
           <button
             onClick={onClose}
@@ -138,7 +138,7 @@ export function MemoryManagerModal({ open, onClose }: MemoryManagerModalProps) {
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
           
           {/* Sidebar (Search & Filters) */}
-          <div className="w-full md:w-64 flex-none border-b md:border-b-0 md:border-r border-border p-4 bg-surface-elevated/30 flex flex-col gap-4">
+          <div className="w-full md:w-64 flex-none border-b md:border-b-0 md:border-r border-border/50 p-4 bg-surface-elevated/30 flex flex-col gap-4">
             <button className="btn" onClick={startAdd} disabled={loading}>
               <PlusIcon size={14} className="mr-2" /> Add Memory
             </button>

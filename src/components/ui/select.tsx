@@ -142,7 +142,7 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
           className="mesh-panel absolute z-50 w-full mt-0.5 rounded-lg animate-scale-in overflow-hidden"
         >
           {searchable && (
-            <div className="p-1 border-b border-border">
+            <div className="p-1 border-b border-border/50">
               <input
                 ref={inputRef}
                 value={search}

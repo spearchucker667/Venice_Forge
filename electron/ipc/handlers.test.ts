@@ -1,3 +1,4 @@
+// VERIFY-056 regression guard
 // @vitest-environment node
 /** @fileoverview Unit tests for Electron IPC handler registration and safety guard enforcement. */
 

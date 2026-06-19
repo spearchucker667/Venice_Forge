@@ -1,3 +1,4 @@
+import { DEFAULT_WORKFLOW_MODEL } from '../constants/venice'
 import type { VeniceNodeType } from '../stores/workflow-store'
 
 export type IOKind = 'text' | 'image' | 'audio' | 'video' | 'none'
@@ -56,7 +57,7 @@ export const NODE_SCHEMAS: Record<VeniceNodeType, NodeSchema> = {
     input: 'text',
     output: 'text',
     params: [
-      { name: 'model', type: 'string', description: 'Venice chat model id.', required: true, default: 'llama-3.3-70b' },
+      { name: 'model', type: 'string', description: 'Venice chat model id.', required: true, default: DEFAULT_WORKFLOW_MODEL },
       { name: 'prompt', type: 'text', description: 'Instruction. Use {{input}} to position upstream text, or leave empty to append.', required: true, default: '' },
       { name: 'temperature', type: 'number', description: 'Sampling temperature.', default: 0.7, min: 0, max: 2 },
       { name: 'maxTokens', type: 'number', description: 'Max output tokens.', default: 4096, min: 64, max: 32768 },

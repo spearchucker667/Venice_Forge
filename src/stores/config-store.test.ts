@@ -8,6 +8,7 @@ const setVeniceApiSafeModeMock = vi.fn();
 
 const desktopConfigGetMock = vi.fn();
 const desktopConfigReloadMock = vi.fn();
+const desktopConfigLoadMergedThemesMock = vi.fn();
 
 vi.mock("../services/desktopBridge", async () => {
   const actual = await vi.importActual<typeof import("../services/desktopBridge")>("../services/desktopBridge");
@@ -17,6 +18,7 @@ vi.mock("../services/desktopBridge", async () => {
     desktopConfig: {
       get: (...args: unknown[]) => desktopConfigGetMock(...args),
       reload: (...args: unknown[]) => desktopConfigReloadMock(...args),
+      loadMergedThemes: (...args: unknown[]) => desktopConfigLoadMergedThemesMock(...args),
     },
   };
 });
@@ -176,6 +178,53 @@ describe("refreshConfig", () => {
     };
 
     desktopConfigGetMock.mockResolvedValue({ ok: true, payload: { config, status } });
+    desktopConfigLoadMergedThemesMock.mockResolvedValue({
+      ok: true,
+      themes: {
+        "aurora-boreal": {
+          display_name: "Aurora Boreal",
+          mode: "dark",
+          tokens: {
+            background: "#021015",
+            surface: "#0a1f1a",
+            surface_elevated: "#122e28",
+            border: "#1a3530",
+            text_primary: "#e0f7fa",
+            text_secondary: "#a3d5d0",
+            text_muted: "#5a8a82",
+            accent: "#4dffb4",
+            accent_hover: "#7fffd4",
+            accent_foreground: "#021015",
+            success: "#2ecc71",
+            success_foreground: "#021015",
+            warning: "#f39c12",
+            warning_foreground: "#021015",
+            danger: "#e74c3c",
+            danger_foreground: "#021015",
+            info: "#3498db",
+            focus_ring: "#4dffb4",
+            overlay: "rgba(2,16,21,0.7)",
+            glow: "rgba(77,255,180,0.25)",
+            surface_muted: "#051812",
+            border_strong: "#2a5048",
+            foreground: "#e0f7fa",
+            foreground_muted: "#a3d5d0",
+            foreground_subtle: "#5a8a82",
+            input_background: "#122e28",
+            input_foreground: "#e0f7fa",
+            placeholder: "#5a8a82",
+            disabled_foreground: "#5a8a82",
+            button_primary_background: "#4dffb4",
+            button_primary_foreground: "#021015",
+            button_secondary_background: "#122e28",
+            button_secondary_foreground: "#e0f7fa",
+            link: "#3498db",
+            selection_background: "#4dffb4",
+            selection_foreground: "#021015",
+          },
+        },
+      },
+    });
 
     await refreshConfig();
 
@@ -184,6 +233,8 @@ describe("refreshConfig", () => {
     expect(useConfigStore.getState().status).toEqual(status);
     expect(setLocalFamilySafeModeEnabledMock).toHaveBeenCalledWith(false);
     expect(setVeniceApiSafeModeMock).toHaveBeenCalledWith(false);
+    expect(useConfigStore.getState().yamlThemes["aurora-boreal"]).toBeDefined();
+    expect(useConfigStore.getState().yamlThemes["aurora-boreal"].name).toBe("Aurora Boreal");
   });
 
   it("records an error when desktopConfig.get fails", async () => {
@@ -272,12 +323,61 @@ describe("reloadConfig", () => {
 
     desktopConfigReloadMock.mockResolvedValue({ ok: true });
     desktopConfigGetMock.mockResolvedValue({ ok: true, payload: { config, status } });
+    desktopConfigLoadMergedThemesMock.mockResolvedValue({
+      ok: true,
+      themes: {
+        "sakura-terminal": {
+          display_name: "Sakura Terminal",
+          mode: "dark",
+          tokens: {
+            background: "#1a1218",
+            surface: "#2a2028",
+            surface_elevated: "#3a3038",
+            border: "#4a3a48",
+            text_primary: "#ffe4ec",
+            text_secondary: "#d4b0c0",
+            text_muted: "#9a7a8a",
+            accent: "#ff8fa3",
+            accent_hover: "#ffb3c1",
+            accent_foreground: "#1a1218",
+            success: "#a8e6cf",
+            success_foreground: "#1a1218",
+            warning: "#ffd3b6",
+            warning_foreground: "#1a1218",
+            danger: "#ff8b94",
+            danger_foreground: "#1a1218",
+            info: "#c7ceea",
+            focus_ring: "#ff8fa3",
+            overlay: "rgba(26,18,24,0.7)",
+            glow: "rgba(255,143,163,0.25)",
+            surface_muted: "#221a20",
+            border_strong: "#6a5a68",
+            foreground: "#ffe4ec",
+            foreground_muted: "#d4b0c0",
+            foreground_subtle: "#9a7a8a",
+            input_background: "#3a3038",
+            input_foreground: "#ffe4ec",
+            placeholder: "#9a7a8a",
+            disabled_foreground: "#9a7a8a",
+            button_primary_background: "#ff8fa3",
+            button_primary_foreground: "#1a1218",
+            button_secondary_background: "#3a3038",
+            button_secondary_foreground: "#ffe4ec",
+            link: "#c7ceea",
+            selection_background: "#ff8fa3",
+            selection_foreground: "#1a1218",
+          },
+        },
+      },
+    });
 
     await reloadConfig();
 
     expect(desktopConfigReloadMock).toHaveBeenCalled();
     expect(desktopConfigGetMock).toHaveBeenCalled();
     expect(useConfigStore.getState().config).toEqual(config);
+    expect(useConfigStore.getState().yamlThemes["sakura-terminal"]).toBeDefined();
+    expect(useConfigStore.getState().yamlThemes["sakura-terminal"].name).toBe("Sakura Terminal");
   });
 
   it("records an error when desktopConfig.reload fails", async () => {

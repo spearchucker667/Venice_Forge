@@ -533,7 +533,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
           )}
         </section>
 
-        <section className="space-y-2 pt-3 border-t border-border" data-testid="character-editor-workflow">
+        <section className="space-y-2 pt-3 border-t border-border/50" data-testid="character-editor-workflow">
           <Label>Workflow</Label>
           <div className="flex flex-wrap gap-2">
             <button

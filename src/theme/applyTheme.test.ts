@@ -91,4 +91,22 @@ describe("resolveInitialTheme", () => {
     window.matchMedia = vi.fn().mockReturnValue({ matches: true });
     expect(resolveInitialTheme()).toBe(BUILTIN_VENICE);
   });
+
+  it("returns a YAML theme when the id matches a merged theme", () => {
+    const yamlTheme = { ...BUILTIN_DARK, id: "aurora-boreal", name: "Aurora Boreal" };
+    const result = resolveInitialTheme({ selectedThemeId: "aurora-boreal" }, { "aurora-boreal": yamlTheme });
+    expect(result.id).toBe("aurora-boreal");
+    expect(result.name).toBe("Aurora Boreal");
+  });
+
+  it("prefers YAML themes over built-in themes when id collides", () => {
+    const yamlTheme = { ...BUILTIN_DARK, id: "builtin-dark", name: "YAML Override" };
+    const result = resolveInitialTheme({ selectedThemeId: "builtin-dark" }, { "builtin-dark": yamlTheme });
+    expect(result.name).toBe("YAML Override");
+  });
+
+  it("falls back to built-in when YAML theme is not found", () => {
+    const result = resolveInitialTheme({ selectedThemeId: "builtin-dark" }, {});
+    expect(result).toBe(BUILTIN_DARK);
+  });
 });

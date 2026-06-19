@@ -270,7 +270,7 @@ export function PlaygroundChat() {
         )}
       </div>
 
-      <div className="shrink-0 border-t border-border p-3">
+      <div className="shrink-0 border-t border-border/50 p-3">
         {error && <div className="mb-2 text-[13px] text-red-300/95">{error}</div>}
         <div className="flex items-end gap-2">
           <textarea

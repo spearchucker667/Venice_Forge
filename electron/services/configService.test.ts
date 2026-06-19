@@ -539,6 +539,34 @@ describe("configService loadMergedThemes", () => {
     const result = await loadMergedThemes();
     expect(result.themes).toEqual({});
   });
+
+  it("loads the 15 unique themes from the repository canonical themes.example.yaml", async () => {
+    const exampleThemesContent = await fs.readFile(
+      path.join(process.cwd(), ".config", "themes.example.yaml"),
+      "utf-8"
+    );
+    const envConfig = path.join(tmpRoot, "config.yaml");
+    const envThemes = path.join(tmpRoot, "themes.yaml");
+    await writeYaml(envConfig, "version: 1\n");
+    await writeYaml(envThemes, exampleThemesContent);
+    process.env.VENICE_FORGE_CONFIG_FILE = envConfig;
+    process.env.VENICE_FORGE_THEMES_FILE = envThemes;
+
+    const result = await loadMergedThemes();
+    expect(result.warnings.filter(w => w.severity === "error")).toEqual([]); // Should be zero errors
+    expect(Object.keys(result.themes).length).toBeGreaterThanOrEqual(15);
+    
+    // Check that some of the specific 15 themes are injected
+    const loadedThemeIds = Object.keys(result.themes);
+    expect(loadedThemeIds).toContain("aurora-boreal");
+    expect(loadedThemeIds).toContain("sakura-terminal");
+    expect(loadedThemeIds).toContain("synthwave-harbor");
+    expect(loadedThemeIds).toContain("ultraviolet-rain");
+
+    const aurora = result.themes["aurora-boreal"];
+    expect(aurora?.display_name).toBe("Aurora Boreal");
+    expect(aurora?.tokens.accent).toBe("#4dffb4");
+  });
 });
 
 describe("configService resetSecureStoreKeys", () => {
