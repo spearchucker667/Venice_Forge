@@ -37,6 +37,7 @@ evidence. If a historical report conflicts with live source, package scripts, or
 | P0 closure evidence | [audits/p0-closure-evidence-2026-06-16.yaml](audits/p0-closure-evidence-2026-06-16.yaml) |
 | Work-order records | [audits/work-orders-2026-06-15.yaml](audits/work-orders-2026-06-15.yaml) |
 | Release safety gate | [audits/release_safety_gate_2026-06-19.md](audits/release_safety_gate_2026-06-19.md) |
+| Security / quality static audit | [audits/security-quality-static-audit-2026-06-19.md](audits/security-quality-static-audit-2026-06-19.md) |
 | Audit changelog | [audits/CHANGELOG.md](audits/CHANGELOG.md) |
 | Historical coverage baseline | [audits/docstrings-and-coverage-baseline.md](audits/docstrings-and-coverage-baseline.md) |
 | Historical coverage final report | [audits/docstrings-and-coverage-final.md](audits/docstrings-and-coverage-final.md) |
