@@ -222,7 +222,7 @@ Read:
 | Security policy | `SECURITY.md` |
 | Privacy documentation | `docs/legal/PRIVACY.md` |
 | Current audit ledger | `docs/summary_of_work.md` |
-| Historical audit logs | `docs/audits/summary_of_work.md` |
+| Historical audit reports | `docs/reports/historical/` |
 
 ---
 
@@ -354,8 +354,11 @@ Notes:
 | `npm run verify:media-studio-power-tools` | Verify Media Studio bulk/compare/lineage/export/handoff contracts |
 | `npm run verify:prompt-library` | Verify Prompt Library data/UI/import/export contracts |
 | `npm run verify:storage-privacy` | Verify storage/privacy dashboard contracts |
+| `npm run verify:contracts` | Run the aggregate contract verifier suite |
 | `npm run verify:release-packaging-hardening` | Verify release, CI, packaging, artifact, and dist hygiene invariants |
 | `npm run verify:archive-clean` | Fail on tracked archive/build/secret contaminants |
+| `npm run verify:dist` | Verify build outputs after `npm run build` |
+| `npm run ci` | Run the full local CI parity chain |
 | `npm run profile:media-studio` | Profile encrypted Media Studio storage behavior |
 
 For the complete command list:
@@ -376,16 +379,11 @@ npm ci
 npm run lint:eslint
 npm run typecheck
 npm test
-npm run verify:safety-guard
-npm run verify:markdown-links
-npm run verify:workspace-contracts
-npm run verify:model-aware-recipes
-npm run verify:media-studio-power-tools
-npm run verify:prompt-library
-npm run verify:storage-privacy
-npm run verify:release-packaging-hardening
+npm run verify:contracts
 npm run verify:archive-clean
 npm run build
+npm run verify:dist
+npm run ci
 ```
 
 If any command fails, treat the failure as release-blocking until the root cause is understood.
@@ -540,12 +538,8 @@ npm run typecheck
 npm test
 npm run verify:safety-guard
 npm run verify:markdown-links
-npm run verify:workspace-contracts
-npm run verify:model-aware-recipes
-npm run verify:media-studio-power-tools
-npm run verify:prompt-library
-npm run verify:storage-privacy
 npm run verify:release-packaging-hardening
+npm run verify:contracts
 ```
 
 ---
@@ -664,6 +658,7 @@ Before opening a pull request:
 npm run typecheck
 npm test
 npm run verify:markdown-links
+npm run verify:contracts
 npm run verify:archive-clean
 ```
 
@@ -686,6 +681,7 @@ Use:
 Active work is tracked in:
 
 - [docs/summary_of_work.md](docs/summary_of_work.md)
+- [docs/audits/repository-todo-roadmap-current.md](docs/audits/repository-todo-roadmap-current.md)
 
 Current priorities:
 

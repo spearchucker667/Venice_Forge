@@ -28,7 +28,7 @@ Please read and follow our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 ```bash
 git clone https://github.com/spearchucker667/Venice_Forge.git
 cd Venice_Forge
-npm install
+npm ci
 ```
 
 Copy `.env.example` to `.env` and set your `VENICE_API_KEY` for web-mode development.
@@ -40,6 +40,9 @@ Copy `.env.example` to `.env` and set your `VENICE_API_KEY` for web-mode develop
 npm run dev:electron
 
 # Web mode (Vite + Express proxy)
+npm run dev
+
+# Vite renderer only
 npm run dev:web
 ```
 
@@ -63,9 +66,11 @@ npm run typecheck
 npm test
 npm run verify:safety-guard
 npm run verify:markdown-links
+npm run verify:contracts
 
 # Build all targets
 npm run build
+npm run verify:dist
 
 # Validate icons and dist builds
 npm run verify:icon
@@ -112,7 +117,9 @@ See [SECURITY.md](SECURITY.md) for the full security model.
 - [ ] `npm run lint:eslint` passes
 - [ ] `npm run typecheck` passes
 - [ ] `npm test` passes
+- [ ] `npm run verify:contracts` passes
 - [ ] `npm run build` passes
+- [ ] `npm run verify:dist` passes after `npm run build`
 - [ ] Platform-specific packaging checks pass for the target OS (`npm run verify:dist:win` and `npm run verify:dist:portable` on Windows; `npm run verify:dist:mac` on macOS)
 - [ ] New code includes tests where applicable
 - [ ] Documentation updated (README, AGENTS.md, docs/FAQ.md, etc.)

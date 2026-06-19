@@ -112,6 +112,20 @@ remains. The current canonical roadmap is
 backlog files were removed.
 
 ### Latest Session Summary
+- **2026-06-19 docs/readme freshness verification:**
+  - Audited current source-of-truth docs against live package scripts,
+    workflow runners, Node engine constraints, and the docs index after the
+    prior safe-push commits.
+  - Fixed README drift: replaced the deleted `docs/audits/summary_of_work.md`
+    historical-log reference with `docs/reports/historical/`, added the current
+    aggregate `verify:contracts`, `verify:dist`, and `npm run ci` gates to the
+    command/validation sections, and linked the canonical current roadmap from
+    the Roadmap section.
+  - Fixed CONTRIBUTING drift: clarified that `npm run dev` is the full
+    web-mode server+Vite command while `npm run dev:web` is Vite-only, and added
+    `verify:contracts` / `verify:dist` to pre-commit and PR checklist guidance.
+    The setup path now uses `npm ci`, matching the lockfile-based CI workflow.
+
 - **2026-06-19 security / quality static audit follow-up:**
   - Read the attached senior security/software-quality audit prompt and treated
     it as a read-only audit-output request over the already pushed safe-push
@@ -388,6 +402,9 @@ backlog files were removed.
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
+- 2026-06-19 docs/readme freshness verification: current README and
+  CONTRIBUTING drift found in this pass was corrected. No additional current
+  source-of-truth doc drift is open from this verification pass.
 - 2026-06-19 security / quality static audit follow-up: no new pushed-source
   blocker was confirmed. Full deterministic line-by-line re-audit remains
   continuation work if requested; the follow-up report is indexed at
@@ -668,6 +685,24 @@ backlog files were removed.
   Linux, and macOS draft artifacts.
 
 ### Session History
+
+- **Date:** 2026-06-19 (docs/readme freshness verification)
+- **Agent:** OpenAI GPT-5
+- **Branch / state:** `main`; HEAD `1cde996` before this documentation
+  verification pass.
+- **Scope:** Verify that README, current docs, and agent-facing sections are
+  up to date against live scripts, workflows, and documentation authority.
+- **Summary:**
+  - Compared current source-of-truth docs against `package.json` scripts,
+    Node engine constraints, `.nvmrc`, pinned CI runners, and
+    `docs/DOCS_INDEX.md`.
+  - Fixed stale README historical-log and validation-gate references.
+  - Fixed CONTRIBUTING web-mode command and PR checklist drift.
+- **Validation:** `verify:markdown-links` PASS (67 Markdown files checked);
+  `verify:agent-docs` PASS; `verify:release-packaging-hardening` PASS (102
+  checks); `git diff --check` PASS.
+- **Status:** COMPLETE. README, CONTRIBUTING, agent-doc parity, markdown links,
+  and release-packaging documentation contracts are current after this pass.
 
 - **Date:** 2026-06-19 (security / quality static audit follow-up)
 - **Agent:** OpenAI GPT-5
