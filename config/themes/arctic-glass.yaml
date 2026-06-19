@@ -1,0 +1,41 @@
+themes:
+  arctic-glass:
+    display_name: Arctic Glass
+    mode: light
+    tokens:
+      accent: "#38bdf8"
+      background: "#eef5f9"
+      surface: "#e0eaef"
+      surface_elevated: "#d0dbe3"
+      surface_muted: "#e8f0f5"
+      border: "#c8d5dd"
+      border_strong: "#a8b8c4"
+      text_primary: "#1e293b"
+      text_secondary: "#475569"
+      text_muted: "#7a8fa8"
+      foreground: "#1e293b"
+      foreground_muted: "#475569"
+      foreground_subtle: "#7a8fa8"
+      accent_hover: "#0ea5e9"
+      accent_foreground: "#ffffff"
+      success: "#22c55e"
+      success_foreground: "#ffffff"
+      warning: "#f59e0b"
+      warning_foreground: "#1e293b"
+      danger: "#ef4444"
+      danger_foreground: "#ffffff"
+      info: "#3b82f6"
+      input_background: "#d0dbe3"
+      input_foreground: "#1e293b"
+      placeholder: "#7a8fa8"
+      disabled_foreground: "#7a8fa8"
+      button_primary_background: "#38bdf8"
+      button_primary_foreground: "#ffffff"
+      button_secondary_background: "#d0dbe3"
+      button_secondary_foreground: "#1e293b"
+      link: "#3b82f6"
+      focus_ring: "#38bdf8"
+      selection_background: "#38bdf8"
+      selection_foreground: "#ffffff"
+      overlay: rgba(30, 41, 59, 0.25)
+      glow: rgba(56, 189, 248, 0.18)

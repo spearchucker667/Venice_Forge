@@ -1,0 +1,41 @@
+themes:
+  toxic-limewire:
+    display_name: Toxic Limewire
+    mode: dark
+    tokens:
+      accent: "#c6ff00"
+      background: "#0f1410"
+      surface: "#1c2319"
+      surface_elevated: "#2a3225"
+      surface_muted: "#151c12"
+      border: "#3a4532"
+      border_strong: "#5a6552"
+      text_primary: "#e8f5e9"
+      text_secondary: "#b8d0b0"
+      text_muted: "#789070"
+      foreground: "#e8f5e9"
+      foreground_muted: "#b8d0b0"
+      foreground_subtle: "#789070"
+      accent_hover: "#d8ff40"
+      accent_foreground: "#0f1410"
+      success: "#76ff03"
+      success_foreground: "#0f1410"
+      warning: "#ffea00"
+      warning_foreground: "#0f1410"
+      danger: "#ff1744"
+      danger_foreground: "#0f1410"
+      info: "#00e5ff"
+      input_background: "#2a3225"
+      input_foreground: "#e8f5e9"
+      placeholder: "#789070"
+      disabled_foreground: "#789070"
+      button_primary_background: "#c6ff00"
+      button_primary_foreground: "#0f1410"
+      button_secondary_background: "#2a3225"
+      button_secondary_foreground: "#e8f5e9"
+      link: "#00e5ff"
+      focus_ring: "#c6ff00"
+      selection_background: "#c6ff00"
+      selection_foreground: "#0f1410"
+      overlay: rgba(15, 20, 16, 0.7)
+      glow: rgba(198, 255, 0, 0.25)

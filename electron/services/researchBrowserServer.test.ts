@@ -114,7 +114,7 @@ import {
   BrowserWindow,
   shell
 } from "electron";
-import { setupResearchBrowserIpc } from "./researchBrowserServer";
+import { setupResearchBrowserIpc, resetResearchBrowserIpcForTesting } from "./researchBrowserServer";
 
 describe("Research Browser Server Main Process Integration", () => {
   let mockWindow: any;
@@ -122,6 +122,7 @@ describe("Research Browser Server Main Process Integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     ipcHandlers.clear();
+    resetResearchBrowserIpcForTesting();
     mockWindow = new (BrowserWindow as any)();
     setupResearchBrowserIpc(mockWindow);
   });

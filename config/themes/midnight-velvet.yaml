@@ -1,0 +1,41 @@
+themes:
+  midnight-velvet:
+    display_name: Midnight Velvet
+    mode: dark
+    tokens:
+      accent: "#d8b4e2"
+      background: "#0a0e1a"
+      surface: "#14182e"
+      surface_elevated: "#1e2240"
+      surface_muted: "#101428"
+      border: "#2e3250"
+      border_strong: "#4e5270"
+      text_primary: "#f5e6e8"
+      text_secondary: "#d0b8c0"
+      text_muted: "#908090"
+      foreground: "#f5e6e8"
+      foreground_muted: "#d0b8c0"
+      foreground_subtle: "#908090"
+      accent_hover: "#e8c8f2"
+      accent_foreground: "#0a0e1a"
+      success: "#a5d6a7"
+      success_foreground: "#0a0e1a"
+      warning: "#ffcc80"
+      warning_foreground: "#0a0e1a"
+      danger: "#ef9a9a"
+      danger_foreground: "#0a0e1a"
+      info: "#90caf9"
+      input_background: "#1e2240"
+      input_foreground: "#f5e6e8"
+      placeholder: "#908090"
+      disabled_foreground: "#908090"
+      button_primary_background: "#d8b4e2"
+      button_primary_foreground: "#0a0e1a"
+      button_secondary_background: "#1e2240"
+      button_secondary_foreground: "#f5e6e8"
+      link: "#90caf9"
+      focus_ring: "#d8b4e2"
+      selection_background: "#d8b4e2"
+      selection_foreground: "#0a0e1a"
+      overlay: rgba(10, 14, 26, 0.7)
+      glow: rgba(216, 180, 226, 0.25)

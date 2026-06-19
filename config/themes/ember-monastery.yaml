@@ -1,0 +1,41 @@
+themes:
+  ember-monastery:
+    display_name: Ember Monastery
+    mode: dark
+    tokens:
+      accent: "#ff6e40"
+      background: "#1a120e"
+      surface: "#2a1e18"
+      surface_elevated: "#3a2e28"
+      surface_muted: "#221a14"
+      border: "#4a3e38"
+      border_strong: "#6a5e58"
+      text_primary: "#f5e6d3"
+      text_secondary: "#d4c0a8"
+      text_muted: "#9a8878"
+      foreground: "#f5e6d3"
+      foreground_muted: "#d4c0a8"
+      foreground_subtle: "#9a8878"
+      accent_hover: "#ff8c5a"
+      accent_foreground: "#1a120e"
+      success: "#81c784"
+      success_foreground: "#1a120e"
+      warning: "#ffb74d"
+      warning_foreground: "#1a120e"
+      danger: "#e57373"
+      danger_foreground: "#1a120e"
+      info: "#64b5f6"
+      input_background: "#3a2e28"
+      input_foreground: "#f5e6d3"
+      placeholder: "#9a8878"
+      disabled_foreground: "#9a8878"
+      button_primary_background: "#ff6e40"
+      button_primary_foreground: "#1a120e"
+      button_secondary_background: "#3a2e28"
+      button_secondary_foreground: "#f5e6d3"
+      link: "#64b5f6"
+      focus_ring: "#ff6e40"
+      selection_background: "#ff6e40"
+      selection_foreground: "#1a120e"
+      overlay: rgba(26, 18, 14, 0.7)
+      glow: rgba(255, 110, 64, 0.25)

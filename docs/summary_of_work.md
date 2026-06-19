@@ -7683,3 +7683,17 @@ Result:
     - Updated `docs/reports/BUG_HUNT_SUMMARY.md` with findings `VF-AUDIT-012`, `VF-AUDIT-013`, and `VF-AUDIT-014` as new release blockers.
   - **Files changed:** `docs/reports/BUG_HUNT_SUMMARY.md`, `docs/summary_of_work.md`.
   - **Validation:** Found and documented defects according to prompt constraints; no source files were modified, and existing invariants/safeguards remain untouched.
+
+- **Date:** 2026-06-19 (Fix "all added themes are not being shown" in packaged app)
+  - **Agent:** Antigravity (Gemini 3.1 Pro)
+  - **Branch / state:** `main`; working tree modified.
+  - **Summary:** Investigated user report that themes added during a previous session were missing when building/starting the `.app/.dmg`. The previous agent generated 15 themes into `.config/themes.local.yaml` which is a user-specific, non-bundled file used only during dev. To resolve this, these 15 themes were extracted and converted into proper `BUILTIN_` theme definitions in `src/theme/themes.ts`. `ThemeMaker.tsx` was updated to import these themes and include them in its `builtInOptions` list, ensuring they are permanently bundled into the production package for all users. `ThemeMaker.ui.test.tsx` was updated to prevent a naming collision on the mock data now that Aurora Boreal is built-in. Created standalone `.yaml` files in `config/themes/` for the 15 new themes.
+  - **Files changed:** `src/theme/themes.ts`, `src/components/ThemeMaker.tsx`, `src/components/ThemeMaker.ui.test.tsx`, `config/themes/*.yaml`.
+  - **Validation:** `npm run typecheck` PASS; `npm run verify:theme-tokens` PASS; `npm test` PASS.
+
+- **Date:** 2026-06-19 (Fix double IPC registration bug)
+  - **Agent:** Antigravity (Gemini 3.1 Pro)
+  - **Branch / state:** `main`; working tree modified.
+  - **Summary:** Fixed a crash where the `researchBrowser:create` IPC handler threw an "Attempted to register a second handler" error. The `setupResearchBrowserIpc` function was being executed multiple times (e.g. during macOS app reactivation window creation). Implemented a module-scoped boolean guard to ensure IPC handlers are registered strictly once, while still permitting `mainWindowRef` to update. Exported `resetResearchBrowserIpcForTesting` to allow isolated unit testing.
+  - **Files changed:** `electron/services/researchBrowserServer.ts`, `electron/services/researchBrowserServer.test.ts`.
+  - **Validation:** `npm run verify:contracts` PASS; `npm test` PASS.

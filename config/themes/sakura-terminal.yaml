@@ -1,0 +1,41 @@
+themes:
+  sakura-terminal:
+    display_name: Sakura Terminal
+    mode: dark
+    tokens:
+      accent: "#ff8fa3"
+      background: "#1a1218"
+      surface: "#2a2028"
+      surface_elevated: "#3a3038"
+      surface_muted: "#221a20"
+      border: "#4a3a48"
+      border_strong: "#6a5a68"
+      text_primary: "#ffe4ec"
+      text_secondary: "#d4b0c0"
+      text_muted: "#9a7a8a"
+      foreground: "#ffe4ec"
+      foreground_muted: "#d4b0c0"
+      foreground_subtle: "#9a7a8a"
+      accent_hover: "#ffb3c1"
+      accent_foreground: "#1a1218"
+      success: "#a8e6cf"
+      success_foreground: "#1a1218"
+      warning: "#ffd3b6"
+      warning_foreground: "#1a1218"
+      danger: "#ff8b94"
+      danger_foreground: "#1a1218"
+      info: "#c7ceea"
+      input_background: "#3a3038"
+      input_foreground: "#ffe4ec"
+      placeholder: "#9a7a8a"
+      disabled_foreground: "#9a7a8a"
+      button_primary_background: "#ff8fa3"
+      button_primary_foreground: "#1a1218"
+      button_secondary_background: "#3a3038"
+      button_secondary_foreground: "#ffe4ec"
+      link: "#c7ceea"
+      focus_ring: "#ff8fa3"
+      selection_background: "#ff8fa3"
+      selection_foreground: "#1a1218"
+      overlay: rgba(26, 18, 24, 0.7)
+      glow: rgba(255, 143, 163, 0.25)

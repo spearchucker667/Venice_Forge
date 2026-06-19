@@ -1,0 +1,41 @@
+themes:
+  aurora-boreal:
+    display_name: Aurora Boreal
+    mode: dark
+    tokens:
+      accent: "#4dffb4"
+      background: "#021015"
+      surface: "#0a1f1a"
+      surface_elevated: "#122e28"
+      surface_muted: "#051812"
+      border: "#1a3530"
+      border_strong: "#2a5048"
+      text_primary: "#e0f7fa"
+      text_secondary: "#a3d5d0"
+      text_muted: "#5a8a82"
+      foreground: "#e0f7fa"
+      foreground_muted: "#a3d5d0"
+      foreground_subtle: "#5a8a82"
+      accent_hover: "#7fffd4"
+      accent_foreground: "#021015"
+      success: "#2ecc71"
+      success_foreground: "#021015"
+      warning: "#f39c12"
+      warning_foreground: "#021015"
+      danger: "#e74c3c"
+      danger_foreground: "#021015"
+      info: "#3498db"
+      input_background: "#122e28"
+      input_foreground: "#e0f7fa"
+      placeholder: "#5a8a82"
+      disabled_foreground: "#5a8a82"
+      button_primary_background: "#4dffb4"
+      button_primary_foreground: "#021015"
+      button_secondary_background: "#122e28"
+      button_secondary_foreground: "#e0f7fa"
+      link: "#3498db"
+      focus_ring: "#4dffb4"
+      selection_background: "#4dffb4"
+      selection_foreground: "#021015"
+      overlay: rgba(2, 16, 21, 0.7)
+      glow: rgba(77, 255, 180, 0.25)

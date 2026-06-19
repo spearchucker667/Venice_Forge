@@ -1,0 +1,41 @@
+themes:
+  moss-circuit:
+    display_name: Moss Circuit
+    mode: dark
+    tokens:
+      accent: "#7cb342"
+      background: "#0d140f"
+      surface: "#1a231d"
+      surface_elevated: "#27322a"
+      surface_muted: "#131c15"
+      border: "#374238"
+      border_strong: "#576258"
+      text_primary: "#e8f5e9"
+      text_secondary: "#b8d0b0"
+      text_muted: "#789070"
+      foreground: "#e8f5e9"
+      foreground_muted: "#b8d0b0"
+      foreground_subtle: "#789070"
+      accent_hover: "#8bc34a"
+      accent_foreground: "#0d140f"
+      success: "#66bb6a"
+      success_foreground: "#0d140f"
+      warning: "#ffca28"
+      warning_foreground: "#0d140f"
+      danger: "#ef5350"
+      danger_foreground: "#0d140f"
+      info: "#29b6f6"
+      input_background: "#27322a"
+      input_foreground: "#e8f5e9"
+      placeholder: "#789070"
+      disabled_foreground: "#789070"
+      button_primary_background: "#7cb342"
+      button_primary_foreground: "#0d140f"
+      button_secondary_background: "#27322a"
+      button_secondary_foreground: "#e8f5e9"
+      link: "#29b6f6"
+      focus_ring: "#7cb342"
+      selection_background: "#7cb342"
+      selection_foreground: "#0d140f"
+      overlay: rgba(13, 20, 15, 0.7)
+      glow: rgba(124, 179, 66, 0.25)

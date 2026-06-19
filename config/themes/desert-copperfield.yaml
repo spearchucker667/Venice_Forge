@@ -1,0 +1,41 @@
+themes:
+  desert-copperfield:
+    display_name: Desert Copperfield
+    mode: light
+    tokens:
+      accent: "#b87333"
+      background: "#fdf8f5"
+      surface: "#f5ebe4"
+      surface_elevated: "#ece0d6"
+      surface_muted: "#faf4ef"
+      border: "#dccfc4"
+      border_strong: "#bcafa4"
+      text_primary: "#3d2914"
+      text_secondary: "#6b5640"
+      text_muted: "#9a8a78"
+      foreground: "#3d2914"
+      foreground_muted: "#6b5640"
+      foreground_subtle: "#9a8a78"
+      accent_hover: "#9c5f2a"
+      accent_foreground: "#ffffff"
+      success: "#6b8e23"
+      success_foreground: "#ffffff"
+      warning: "#d2691e"
+      warning_foreground: "#ffffff"
+      danger: "#b22222"
+      danger_foreground: "#ffffff"
+      info: "#4682b4"
+      input_background: "#ece0d6"
+      input_foreground: "#3d2914"
+      placeholder: "#9a8a78"
+      disabled_foreground: "#9a8a78"
+      button_primary_background: "#b87333"
+      button_primary_foreground: "#ffffff"
+      button_secondary_background: "#ece0d6"
+      button_secondary_foreground: "#3d2914"
+      link: "#4682b4"
+      focus_ring: "#b87333"
+      selection_background: "#b87333"
+      selection_foreground: "#ffffff"
+      overlay: rgba(61, 41, 20, 0.25)
+      glow: rgba(184, 115, 51, 0.18)

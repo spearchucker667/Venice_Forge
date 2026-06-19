@@ -1,0 +1,41 @@
+themes:
+  ultraviolet-rain:
+    display_name: Ultraviolet Rain
+    mode: dark
+    tokens:
+      accent: "#7c4dff"
+      background: "#121018"
+      surface: "#1e1a2e"
+      surface_elevated: "#2c2840"
+      surface_muted: "#181430"
+      border: "#3e3858"
+      border_strong: "#5e5880"
+      text_primary: "#ede7f6"
+      text_secondary: "#c4b8e0"
+      text_muted: "#8a80a8"
+      foreground: "#ede7f6"
+      foreground_muted: "#c4b8e0"
+      foreground_subtle: "#8a80a8"
+      accent_hover: "#9e7dff"
+      accent_foreground: "#121018"
+      success: "#b9f6ca"
+      success_foreground: "#121018"
+      warning: "#ffe57f"
+      warning_foreground: "#121018"
+      danger: "#ff8a80"
+      danger_foreground: "#121018"
+      info: "#80d8ff"
+      input_background: "#2c2840"
+      input_foreground: "#ede7f6"
+      placeholder: "#8a80a8"
+      disabled_foreground: "#8a80a8"
+      button_primary_background: "#7c4dff"
+      button_primary_foreground: "#121018"
+      button_secondary_background: "#2c2840"
+      button_secondary_foreground: "#ede7f6"
+      link: "#80d8ff"
+      focus_ring: "#7c4dff"
+      selection_background: "#7c4dff"
+      selection_foreground: "#121018"
+      overlay: rgba(18, 16, 24, 0.7)
+      glow: rgba(124, 77, 255, 0.25)

@@ -1,0 +1,41 @@
+themes:
+  glacial-ink:
+    display_name: Glacial Ink
+    mode: dark
+    tokens:
+      accent: "#00e5ff"
+      background: "#0d1b2a"
+      surface: "#1b2838"
+      surface_elevated: "#2a3848"
+      surface_muted: "#142232"
+      border: "#3a4858"
+      border_strong: "#5a6878"
+      text_primary: "#e0f7fa"
+      text_secondary: "#a0d0e0"
+      text_muted: "#6088a0"
+      foreground: "#e0f7fa"
+      foreground_muted: "#a0d0e0"
+      foreground_subtle: "#6088a0"
+      accent_hover: "#33ebff"
+      accent_foreground: "#0d1b2a"
+      success: "#69f0ae"
+      success_foreground: "#0d1b2a"
+      warning: "#ffd740"
+      warning_foreground: "#0d1b2a"
+      danger: "#ff5252"
+      danger_foreground: "#0d1b2a"
+      info: "#40c4ff"
+      input_background: "#2a3848"
+      input_foreground: "#e0f7fa"
+      placeholder: "#6088a0"
+      disabled_foreground: "#6088a0"
+      button_primary_background: "#00e5ff"
+      button_primary_foreground: "#0d1b2a"
+      button_secondary_background: "#2a3848"
+      button_secondary_foreground: "#e0f7fa"
+      link: "#40c4ff"
+      focus_ring: "#00e5ff"
+      selection_background: "#00e5ff"
+      selection_foreground: "#0d1b2a"
+      overlay: rgba(13, 27, 42, 0.7)
+      glow: rgba(0, 229, 255, 0.25)

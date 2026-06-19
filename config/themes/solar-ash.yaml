@@ -1,0 +1,41 @@
+themes:
+  solar-ash:
+    display_name: Solar Ash
+    mode: light
+    tokens:
+      accent: "#c9a227"
+      background: "#f5f0eb"
+      surface: "#e8e4df"
+      surface_elevated: "#dbd7d2"
+      surface_muted: "#eeeae5"
+      border: "#d0ccc7"
+      border_strong: "#b0aca7"
+      text_primary: "#2c2825"
+      text_secondary: "#5a5653"
+      text_muted: "#8a8682"
+      foreground: "#2c2825"
+      foreground_muted: "#5a5653"
+      foreground_subtle: "#8a8682"
+      accent_hover: "#a88a20"
+      accent_foreground: "#ffffff"
+      success: "#558b2f"
+      success_foreground: "#ffffff"
+      warning: "#f9a825"
+      warning_foreground: "#2c2825"
+      danger: "#c62828"
+      danger_foreground: "#ffffff"
+      info: "#1565c0"
+      input_background: "#dbd7d2"
+      input_foreground: "#2c2825"
+      placeholder: "#8a8682"
+      disabled_foreground: "#8a8682"
+      button_primary_background: "#c9a227"
+      button_primary_foreground: "#ffffff"
+      button_secondary_background: "#dbd7d2"
+      button_secondary_foreground: "#2c2825"
+      link: "#1565c0"
+      focus_ring: "#c9a227"
+      selection_background: "#c9a227"
+      selection_foreground: "#ffffff"
+      overlay: rgba(44, 40, 37, 0.25)
+      glow: rgba(201, 162, 39, 0.18)

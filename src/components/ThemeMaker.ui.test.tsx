@@ -58,7 +58,7 @@ describe("ThemeMaker built-in theme selection", () => {
   });
 });
 
-describe("ThemeMaker YAML theme selection", () => {
+  describe("ThemeMaker YAML theme selection", () => {
   beforeEach(() => {
     useSettingsStore.setState({
       selectedThemeId: "builtin-venice",
@@ -67,9 +67,9 @@ describe("ThemeMaker YAML theme selection", () => {
     });
     useConfigStore.setState({
       yamlThemes: {
-        "aurora-boreal": {
-          id: "aurora-boreal",
-          name: "Aurora Boreal",
+        "mock-custom-theme": {
+          id: "mock-custom-theme",
+          name: "Mock Custom Theme",
           mode: "dark",
           tokens: {
             background: "#021015",
@@ -116,14 +116,14 @@ describe("ThemeMaker YAML theme selection", () => {
 
   it("lists YAML themes alongside built-in themes", () => {
     render(<ThemeMaker />);
-    expect(screen.getByRole("button", { name: "Aurora Boreal" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mock Custom Theme" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Forge Nord" })).toBeInTheDocument();
   });
 
   it("selects a YAML theme when its button is clicked", () => {
     render(<ThemeMaker />);
-    fireEvent.click(screen.getByRole("button", { name: "Aurora Boreal" }));
-    expect(useSettingsStore.getState().selectedThemeId).toBe("aurora-boreal");
+    fireEvent.click(screen.getByRole("button", { name: "Mock Custom Theme" }));
+    expect(useSettingsStore.getState().selectedThemeId).toBe("mock-custom-theme");
     expect(useSettingsStore.getState().appearanceMode).toBe("dark");
   });
 });

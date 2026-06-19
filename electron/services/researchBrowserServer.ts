@@ -83,8 +83,19 @@ function clampResearchBrowserBounds(input: ResearchBrowserBoundsInput, host: { w
   return { x, y, width, height, visible: input.visible };
 }
 
+let ipcHandlersRegistered = false;
+
+export function resetResearchBrowserIpcForTesting(): void {
+  ipcHandlersRegistered = false;
+}
+
 export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
   mainWindowRef = mainWindow;
+
+  if (ipcHandlersRegistered) {
+    return;
+  }
+  ipcHandlersRegistered = true;
 
   const handleIpc = (channel: string, handler: Parameters<typeof ipcMain.handle>[1]) => {
     ipcMain.handle(channel, rateLimitIpcHandler(channel, handler));

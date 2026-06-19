@@ -1,0 +1,41 @@
+themes:
+  synthwave-harbor:
+    display_name: Synthwave Harbor
+    mode: dark
+    tokens:
+      accent: "#ff61a6"
+      background: "#0a0f1e"
+      surface: "#131a2e"
+      surface_elevated: "#1c2440"
+      surface_muted: "#0e1528"
+      border: "#2c3450"
+      border_strong: "#4c5470"
+      text_primary: "#e0f7fa"
+      text_secondary: "#a8c8d8"
+      text_muted: "#6888a0"
+      foreground: "#e0f7fa"
+      foreground_muted: "#a8c8d8"
+      foreground_subtle: "#6888a0"
+      accent_hover: "#ff80b8"
+      accent_foreground: "#0a0f1e"
+      success: "#00e676"
+      success_foreground: "#0a0f1e"
+      warning: "#ffea00"
+      warning_foreground: "#0a0f1e"
+      danger: "#ff5252"
+      danger_foreground: "#0a0f1e"
+      info: "#00b0ff"
+      input_background: "#1c2440"
+      input_foreground: "#e0f7fa"
+      placeholder: "#6888a0"
+      disabled_foreground: "#6888a0"
+      button_primary_background: "#ff61a6"
+      button_primary_foreground: "#0a0f1e"
+      button_secondary_background: "#1c2440"
+      button_secondary_foreground: "#e0f7fa"
+      link: "#00b0ff"
+      focus_ring: "#ff61a6"
+      selection_background: "#ff61a6"
+      selection_foreground: "#0a0f1e"
+      overlay: rgba(10, 15, 30, 0.7)
+      glow: rgba(255, 97, 166, 0.25)

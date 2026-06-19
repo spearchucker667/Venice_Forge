@@ -1,0 +1,41 @@
+themes:
+  cyber-orchid:
+    display_name: Cyber Orchid
+    mode: dark
+    tokens:
+      accent: "#c084fc"
+      background: "#0d0612"
+      surface: "#1a1125"
+      surface_elevated: "#271c35"
+      surface_muted: "#140e1c"
+      border: "#3a2d48"
+      border_strong: "#5a4d68"
+      text_primary: "#f3e8ff"
+      text_secondary: "#d4c4e8"
+      text_muted: "#9a8ab0"
+      foreground: "#f3e8ff"
+      foreground_muted: "#d4c4e8"
+      foreground_subtle: "#9a8ab0"
+      accent_hover: "#d8a8ff"
+      accent_foreground: "#0d0612"
+      success: "#86efac"
+      success_foreground: "#0d0612"
+      warning: "#fde047"
+      warning_foreground: "#0d0612"
+      danger: "#f87171"
+      danger_foreground: "#0d0612"
+      info: "#93c5fd"
+      input_background: "#271c35"
+      input_foreground: "#f3e8ff"
+      placeholder: "#9a8ab0"
+      disabled_foreground: "#9a8ab0"
+      button_primary_background: "#c084fc"
+      button_primary_foreground: "#0d0612"
+      button_secondary_background: "#271c35"
+      button_secondary_foreground: "#f3e8ff"
+      link: "#93c5fd"
+      focus_ring: "#c084fc"
+      selection_background: "#c084fc"
+      selection_foreground: "#0d0612"
+      overlay: rgba(13, 6, 18, 0.7)
+      glow: rgba(192, 132, 252, 0.25)

@@ -1,0 +1,41 @@
+themes:
+  porcelain-daybreak:
+    display_name: Porcelain Daybreak
+    mode: light
+    tokens:
+      accent: "#ffab91"
+      background: "#fafafa"
+      surface: "#f0f0f0"
+      surface_elevated: "#e6e6e6"
+      surface_muted: "#f5f5f5"
+      border: "#dcdcdc"
+      border_strong: "#bcbcbc"
+      text_primary: "#37474f"
+      text_secondary: "#5a6a72"
+      text_muted: "#8a9aa2"
+      foreground: "#37474f"
+      foreground_muted: "#5a6a72"
+      foreground_subtle: "#8a9aa2"
+      accent_hover: "#f59580"
+      accent_foreground: "#ffffff"
+      success: "#66bb6a"
+      success_foreground: "#ffffff"
+      warning: "#ffb74d"
+      warning_foreground: "#37474f"
+      danger: "#e57373"
+      danger_foreground: "#ffffff"
+      info: "#64b5f6"
+      input_background: "#e6e6e6"
+      input_foreground: "#37474f"
+      placeholder: "#8a9aa2"
+      disabled_foreground: "#8a9aa2"
+      button_primary_background: "#ffab91"
+      button_primary_foreground: "#ffffff"
+      button_secondary_background: "#e6e6e6"
+      button_secondary_foreground: "#37474f"
+      link: "#64b5f6"
+      focus_ring: "#ffab91"
+      selection_background: "#ffab91"
+      selection_foreground: "#ffffff"
+      overlay: rgba(55, 71, 79, 0.25)
+      glow: rgba(255, 171, 145, 0.18)

@@ -1,0 +1,41 @@
+themes:
+  basalt-noir:
+    display_name: Basalt Noir
+    mode: dark
+    tokens:
+      accent: "#ff6b35"
+      background: "#141414"
+      surface: "#1e1e1e"
+      surface_elevated: "#282828"
+      surface_muted: "#181818"
+      border: "#383838"
+      border_strong: "#585858"
+      text_primary: "#f0ebe5"
+      text_secondary: "#c8c0b8"
+      text_muted: "#888078"
+      foreground: "#f0ebe5"
+      foreground_muted: "#c8c0b8"
+      foreground_subtle: "#888078"
+      accent_hover: "#ff8c5a"
+      accent_foreground: "#141414"
+      success: "#7cb342"
+      success_foreground: "#141414"
+      warning: "#ffa726"
+      warning_foreground: "#141414"
+      danger: "#ef5350"
+      danger_foreground: "#141414"
+      info: "#42a5f5"
+      input_background: "#282828"
+      input_foreground: "#f0ebe5"
+      placeholder: "#888078"
+      disabled_foreground: "#888078"
+      button_primary_background: "#ff6b35"
+      button_primary_foreground: "#141414"
+      button_secondary_background: "#282828"
+      button_secondary_foreground: "#f0ebe5"
+      link: "#42a5f5"
+      focus_ring: "#ff6b35"
+      selection_background: "#ff6b35"
+      selection_foreground: "#141414"
+      overlay: rgba(20, 20, 20, 0.7)
+      glow: rgba(255, 107, 53, 0.25)
