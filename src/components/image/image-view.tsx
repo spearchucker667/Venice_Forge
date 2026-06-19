@@ -365,7 +365,7 @@ export function ImageView() {
             processedImages.push(processedImg);
 
             const id = generateId();
-            const mediaItem: Record<string, unknown> = {
+            const mediaItem: MediaItem = {
               id,
               image: processedImg,
               prompt: currentPrompt,
@@ -425,11 +425,10 @@ export function ImageView() {
               };
             }
 
-            const typedItem = mediaItem as unknown as MediaItem;
             if (activeGenerationContext?.parentId) {
-              await useMediaStore.getState().upsertDerivative(typedItem, activeGenerationContext.parentId);
+              await useMediaStore.getState().upsertDerivative(mediaItem, activeGenerationContext.parentId);
             } else {
-              await useMediaStore.getState().upsert(typedItem, {
+              await useMediaStore.getState().upsert(mediaItem, {
                 attachActiveProject: true,
                 source: 'generated',
               });

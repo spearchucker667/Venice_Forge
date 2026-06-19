@@ -21,6 +21,7 @@
  */
 import { app, shell } from "electron";
 import { promises as fs, constants as fsConstants } from "fs";
+import os from "os";
 import path from "path";
 import yaml from "yaml";
 import {
@@ -126,6 +127,30 @@ function getUserDataConfigDir(): string {
   return path.join(app.getPath("userData"), USERDATA_CONFIG_DIRNAME);
 }
 
+/** Validates that a resolved path is within one of the allowed directories
+ *  (userData, home directory, or repo directory). Prevents path traversal
+ *  and arbitrary file overwrite via env variables (AUDIT-019).
+ */
+function assertPathContained(rawPath: string, label: string): string {
+  const resolved = path.resolve(rawPath);
+  const userData = app.getPath("userData");
+  const homeDir = os.homedir();
+  const repoDir = getRepoLocalConfigDir();
+  const allowedRoots = [userData, homeDir, repoDir].filter((r): r is string => Boolean(r));
+  const contained = allowedRoots.some((root) => {
+    const relative = path.relative(root, resolved);
+    return relative && !relative.startsWith("..") && !path.isAbsolute(relative);
+  });
+  if (!contained) {
+    throw new Error(
+      `${label} path "${resolved}" is outside the allowed directories. ` +
+        `Allowed roots: ${allowedRoots.join(", ")}. ` +
+        `Rejecting to prevent arbitrary file overwrite.`
+    );
+  }
+  return resolved;
+}
+
 /** Resolves the active config paths, honoring env overrides. */
 function resolvePaths(): ResolvedPaths {
   const envConfig = process.env.VENICE_FORGE_CONFIG_FILE?.trim();
@@ -135,11 +160,12 @@ function resolvePaths(): ResolvedPaths {
     if (isUrl(envConfig)) {
       logError("VENICE_FORGE_CONFIG_FILE looks like a URL; ignoring.");
     } else {
-      return {
-        configPath: envConfig,
-        themesPath: envThemes && !isUrl(envThemes) ? envThemes : deriveSiblingThemesPath(envConfig),
-        source: "env-override",
-      };
+      const configPath = assertPathContained(envConfig, "VENICE_FORGE_CONFIG_FILE");
+      const themesPath =
+        envThemes && !isUrl(envThemes)
+          ? assertPathContained(envThemes, "VENICE_FORGE_THEMES_FILE")
+          : deriveSiblingThemesPath(configPath);
+      return { configPath, themesPath, source: "env-override" };
     }
   }
 
@@ -148,7 +174,7 @@ function resolvePaths(): ResolvedPaths {
     const localConfig = path.join(repoDir, "config.local.yaml");
     return {
       configPath: localConfig,
-      themesPath: envThemes && !isUrl(envThemes) ? envThemes : path.join(repoDir, "themes.local.yaml"),
+      themesPath: envThemes && !isUrl(envThemes) ? assertPathContained(envThemes, "VENICE_FORGE_THEMES_FILE") : path.join(repoDir, "themes.local.yaml"),
       source: "repo-local",
     };
   }
@@ -156,7 +182,7 @@ function resolvePaths(): ResolvedPaths {
   const userDataDir = getUserDataConfigDir();
   return {
     configPath: path.join(userDataDir, DEFAULT_CONFIG_FILENAME),
-    themesPath: envThemes && !isUrl(envThemes) ? envThemes : path.join(userDataDir, DEFAULT_THEMES_FILENAME),
+    themesPath: envThemes && !isUrl(envThemes) ? assertPathContained(envThemes, "VENICE_FORGE_THEMES_FILE") : path.join(userDataDir, DEFAULT_THEMES_FILENAME),
     source: "userdata",
   };
 }

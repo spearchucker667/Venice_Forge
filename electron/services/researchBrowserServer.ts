@@ -1,4 +1,4 @@
-import { BrowserWindow, WebContentsView, ipcMain, session, shell } from "electron";
+import { BrowserWindow, WebContentsView, ipcMain, session } from "electron";
 import type { 
   ResearchBrowserState, 
   ResearchBrowserBoundsInput, 
@@ -62,10 +62,12 @@ function broadcastState() {
 }
 
 import { isAllowedResearchBrowserUrl, isTrustedExternalUrl } from "../utils/urlSecurity";
+import { promptExternalLink } from "../utils/externalLinks";
 
 import { screenResponseBody } from "../../src/shared/safety";
 import { getRuntimeLocalFamilySafeModeEnabled } from "./runtimeSafetySettings";
 import { validateResearchBrowserNetworkUrl } from "../security/researchBrowserNetworkPolicy";
+import { rateLimitIpcHandler } from "../utils/rateLimit";
 
 function assertSafeUrl(url: string): boolean {
   return isAllowedResearchBrowserUrl(url);
@@ -84,10 +86,14 @@ function clampResearchBrowserBounds(input: ResearchBrowserBoundsInput, host: { w
 export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
   mainWindowRef = mainWindow;
 
-  ipcMain.handle("researchBrowser:create", async () => {
+  const handleIpc = (channel: string, handler: Parameters<typeof ipcMain.handle>[1]) => {
+    ipcMain.handle(channel, rateLimitIpcHandler(channel, handler));
+  };
+
+  handleIpc("researchBrowser:create", async () => {
     if (researchView) return { ok: true };
 
-    const researchSession = session.fromPartition("persist:venice-forge-research-browser");
+    const researchSession = session.fromPartition("venice-forge-research-browser");
 
     // Block all permission requests (camera, microphone, geolocation, notifications, etc.)
     researchSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
@@ -171,7 +177,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     return { ok: true };
   });
 
-  ipcMain.handle("researchBrowser:destroy", async () => {
+  handleIpc("researchBrowser:destroy", async () => {
     if (!researchView) return { ok: true };
     if (mainWindowRef && !mainWindowRef.isDestroyed() && currentBounds?.visible) {
       mainWindowRef.contentView.removeChildView(researchView);
@@ -184,7 +190,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     return { ok: true };
   });
 
-  ipcMain.handle("researchBrowser:setVisible", async (_event, visible: boolean) => {
+  handleIpc("researchBrowser:setVisible", async (_event, visible: boolean) => {
     if (typeof visible !== "boolean") return { ok: false, error: "Invalid boolean" };
     if (!researchView || !mainWindowRef || mainWindowRef.isDestroyed()) {
       return { ok: false, error: "Not initialized" };
@@ -207,7 +213,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     return { ok: true };
   });
 
-  ipcMain.handle("researchBrowser:setBounds", async (_event, input: ResearchBrowserBoundsInput) => {
+  handleIpc("researchBrowser:setBounds", async (_event, input: ResearchBrowserBoundsInput) => {
     if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
     if (typeof input.x !== "number" || !Number.isFinite(input.x) ||
         typeof input.y !== "number" || !Number.isFinite(input.y) ||
@@ -247,7 +253,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     return { ok: true };
   });
 
-  ipcMain.handle("researchBrowser:navigate", async (_event, input: ResearchBrowserNavigateInput) => {
+  handleIpc("researchBrowser:navigate", async (_event, input: ResearchBrowserNavigateInput) => {
     if (!input || typeof input.urlOrQuery !== "string") return { ok: false, error: "Invalid input" };
     if (!researchView) return { ok: false, error: "Not initialized" };
     let finalUrl = input.urlOrQuery.trim();
@@ -290,7 +296,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     }
   });
 
-  ipcMain.handle("researchBrowser:back", async () => {
+  handleIpc("researchBrowser:back", async () => {
     if (!researchView) return { ok: false, error: "Not initialized" };
     if (researchView.webContents.canGoBack()) {
       researchView.webContents.goBack();
@@ -298,7 +304,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     return { ok: true, state: getViewState() };
   });
 
-  ipcMain.handle("researchBrowser:forward", async () => {
+  handleIpc("researchBrowser:forward", async () => {
     if (!researchView) return { ok: false, error: "Not initialized" };
     if (researchView.webContents.canGoForward()) {
       researchView.webContents.goForward();
@@ -306,36 +312,35 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     return { ok: true, state: getViewState() };
   });
 
-  ipcMain.handle("researchBrowser:reload", async () => {
+  handleIpc("researchBrowser:reload", async () => {
     if (!researchView) return { ok: false, error: "Not initialized" };
     researchView.webContents.reload();
     return { ok: true, state: getViewState() };
   });
 
-  ipcMain.handle("researchBrowser:stop", async () => {
+  handleIpc("researchBrowser:stop", async () => {
     if (!researchView) return { ok: false, error: "Not initialized" };
     researchView.webContents.stop();
     return { ok: true, state: getViewState() };
   });
 
-  ipcMain.handle("researchBrowser:getState", async () => {
+  handleIpc("researchBrowser:getState", async () => {
     return { ok: true, state: getViewState() };
   });
 
-  ipcMain.handle("researchBrowser:openExternal", async (_event, url: string) => {
+  handleIpc("researchBrowser:openExternal", async (_event, url: string) => {
     if (typeof url !== "string") return { ok: false, error: "Invalid url type" };
+    if (!mainWindowRef || mainWindowRef.isDestroyed()) return { ok: false, error: "Window unavailable" };
     if (!isTrustedExternalUrl(url)) {
       return { ok: false, error: "Blocked URL" };
     }
-    try {
-      await shell.openExternal(url);
-      return { ok: true };
-    } catch (err) {
-      return { ok: false, error: err instanceof Error ? err.message : "Failed to open URL" };
-    }
+    const result = await promptExternalLink(mainWindowRef, url);
+    if (result.error) return { ok: false, error: result.error };
+    if (result.canceled) return { ok: false, error: "Canceled" };
+    return { ok: result.opened };
   });
 
-  ipcMain.handle("researchBrowser:scrapeCurrent", async (): Promise<{ ok: boolean; source?: ResearchBrowserScrapeResult; error?: string }> => {
+  handleIpc("researchBrowser:scrapeCurrent", async (): Promise<{ ok: boolean; source?: ResearchBrowserScrapeResult; error?: string }> => {
     if (!researchView) return { ok: false, error: "Not initialized" };
     try {
       const result = await researchView.webContents.executeJavaScript(`
@@ -402,7 +407,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     }
   });
 
-  ipcMain.handle("researchBrowser:captureMetadata", async (): Promise<{ ok: boolean; metadata?: ResearchBrowserPageMetadata; error?: string }> => {
+  handleIpc("researchBrowser:captureMetadata", async (): Promise<{ ok: boolean; metadata?: ResearchBrowserPageMetadata; error?: string }> => {
     if (!researchView) return { ok: false, error: "Not initialized" };
     try {
       const result = await researchView.webContents.executeJavaScript(`

@@ -8,6 +8,7 @@ import {
   desktopApp,
   desktopJinaApiKey,
   desktopVenice,
+  fetchWithTimeout,
   isElectron,
 } from "./desktopBridge";
 
@@ -127,7 +128,7 @@ describe("desktopBridge web fallback", () => {
     await expect(desktopApiKey.set("vn-test-key")).resolves.toEqual({ ok: true });
     // Simulate a renderer reload by clearing only the module-local optimization.
     await expect(desktopApiKey.isConfigured()).resolves.toBe(true);
-    expect(fetch).toHaveBeenCalledWith("/api/session-key");
+    expect(fetch).toHaveBeenCalledWith("/api/session-key", expect.objectContaining({ signal: expect.any(AbortSignal) }));
   });
 
   // VERIFY-038: browser-mode Jina overrides are session-memory only.
@@ -167,5 +168,22 @@ describe("desktopBridge web fallback", () => {
     const body = JSON.parse(String(proxyCalls[0][1]?.body));
     expect(body.headers).toEqual({});
     expect(JSON.stringify(body)).not.toContain("jina-secret");
+  });
+
+  it("aborts hung web bridge fetches", async () => {
+    vi.useFakeTimers();
+    const abortAwareFetch = vi.fn((_input: RequestInfo | URL, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
+      })
+    );
+    vi.stubGlobal("fetch", abortAwareFetch);
+
+    const pending = fetchWithTimeout("/api/session-key", {}, 25);
+    const expectation = expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    await vi.advanceTimersByTimeAsync(25);
+    await expectation;
+
+    vi.useRealTimers();
   });
 });

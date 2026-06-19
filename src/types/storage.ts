@@ -62,4 +62,14 @@ export interface GalleryImage {
   originalPrompt?: string | null;
   /** Remix instruction prompt (from remix action). */
   remixPrompt?: string | null;
+  /** Whether metadata was stripped from the image during processing. */
+  metadataRemoved?: boolean;
+  /** Original byte size before processing. */
+  originalBytes?: number;
+  /** Byte size after processing. */
+  processedBytes?: number;
+  /** MIME type of the image. */
+  mimeType?: string;
+  /** Asset category for routed storage. */
+  assetCategory?: string;
 }

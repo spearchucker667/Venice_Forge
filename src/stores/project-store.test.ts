@@ -131,6 +131,11 @@ describe('project-store Phase 1 contracts', () => {
     expect(useProjectStore.getState().getActiveProjectId()).toBeNull()
   })
 
+  it('rejects invalid project ids at the delete boundary', async () => {
+    await expect(useProjectStore.getState().deleteProject('__proto__')).rejects.toThrow(/Invalid id.*deleteProject/)
+    expect(mockStorage.deleteItem).not.toHaveBeenCalled()
+  })
+
   it('blocks hard delete when media references the project and archive preserves the reference', async () => {
     const project = await useProjectStore.getState().createProject('Referenced')
     const media = mediaReference(project.id)

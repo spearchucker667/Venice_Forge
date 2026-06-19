@@ -48,6 +48,13 @@ vi.mock("electron-updater", () => ({
   },
 }));
 
+vi.mock("node:dns/promises", () => ({
+  default: {
+    lookup: vi.fn(async () => [{ address: "93.184.216.34", family: 4 }]),
+  },
+  lookup: vi.fn(async () => [{ address: "93.184.216.34", family: 4 }]),
+}));
+
 vi.mock("../services/secureStore", () => ({
   deleteApiKey: vi.fn(),
   deleteJinaApiKey: vi.fn(),
@@ -103,7 +110,18 @@ vi.mock("../services/chatStorage", () => ({
   saveConversation: vi.fn(async () => ({ ok: true })),
 }));
 
+vi.mock("../services/memoryPuller", () => ({
+  pullContext: vi.fn(async (input: unknown) => ({
+    injectedText: "",
+    facts: [],
+    summaries: [],
+    tokenEstimate: 0,
+    input,
+  })),
+}));
+
 import { registerIpcHandlers } from "./handlers";
+import { resetIpcRateLimitForTests } from "../utils/rateLimit";
 
 describe("registerIpcHandlers", () => {
   beforeAll(() => {
@@ -113,6 +131,7 @@ describe("registerIpcHandlers", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetIpcRateLimitForTests();
   });
 
   describe("venice:request", () => {
@@ -247,6 +266,67 @@ describe("registerIpcHandlers", () => {
       const snap = getAuditSnapshot();
       // Exactly one blocked decision was recorded by the IPC handler.
       expect(snap.blocked).toBe(1);
+    });
+  });
+
+  describe("IPC rate limiting", () => {
+    it("throttles repeated strict-channel calls per sender", async () => {
+      const handler = capturedHandlers.get("venice:request");
+      expect(handler).toBeDefined();
+      const event = { sender: { id: 7, isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents };
+
+      for (let i = 0; i < 30; i += 1) {
+        await handler!(event, { endpoint: "/models", method: "GET" });
+      }
+      const throttled = await handler!(event, { endpoint: "/models", method: "GET" });
+
+      expect(throttled).toMatchObject({ ok: false, status: 429, error: "Rate limit exceeded" });
+    });
+  });
+
+  describe("app:proxyScrape", () => {
+    it("rejects malformed URLs", async () => {
+      const handler = capturedHandlers.get("app:proxyScrape");
+      expect(handler).toBeDefined();
+
+      const result = await handler!(null, "not a url");
+
+      expect(result).toMatchObject({ ok: false, error: "Invalid URL format" });
+    });
+
+    it("rejects http scrape targets by default", async () => {
+      const handler = capturedHandlers.get("app:proxyScrape");
+      expect(handler).toBeDefined();
+
+      const result = await handler!(null, "http://example.com");
+
+      expect(result).toMatchObject({ ok: false, error: "Only https URLs are allowed" });
+    });
+
+    it("rejects private http scrape targets before DNS or network access", async () => {
+      const handler = capturedHandlers.get("app:proxyScrape");
+      expect(handler).toBeDefined();
+
+      const result = await handler!(null, "http://127.0.0.1/private");
+
+      expect(result).toMatchObject({ ok: false, error: "Only https URLs are allowed" });
+    });
+  });
+
+  describe("conversations:pullContext", () => {
+    it("clamps memory pull bounds before calling the memory puller", async () => {
+      const { pullContext } = await import("../services/memoryPuller");
+      const handler = capturedHandlers.get("conversations:pullContext");
+      expect(handler).toBeDefined();
+
+      await handler!(null, { message: "hello", maxItems: 1e9, maxTokens: 1e9 });
+      expect(pullContext).toHaveBeenLastCalledWith({ message: "hello", maxItems: 50, maxTokens: 8192 });
+
+      await handler!(null, { message: "hello", maxItems: -10, maxTokens: -10 });
+      expect(pullContext).toHaveBeenLastCalledWith({ message: "hello", maxItems: 1, maxTokens: 1 });
+
+      await handler!(null, { message: "hello", maxItems: "many", maxTokens: "huge" });
+      expect(pullContext).toHaveBeenLastCalledWith({ message: "hello", maxItems: 5, maxTokens: 1200 });
     });
   });
 

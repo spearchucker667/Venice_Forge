@@ -146,13 +146,15 @@ if (migrations) {
 }
 
 if (constants) {
+  const dbVersionMatch = constants.match(/DB_VERSION\s*=\s*(\d+)/);
+  const dbVersion = dbVersionMatch ? Number(dbVersionMatch[1]) : 0;
   check(
     "src/constants/venice.ts adds `promptLibrary` to STORE_NAMES",
     /STORE_NAMES\s*=\s*\[[\s\S]+["']promptLibrary["']/m.test(constants),
   );
   check(
     "src/constants/venice.ts bumps DB_VERSION to at least 8",
-    /DB_VERSION\s*=\s*(8|9|10|11|12)/.test(constants),
+    dbVersion >= 8,
   );
 }
 

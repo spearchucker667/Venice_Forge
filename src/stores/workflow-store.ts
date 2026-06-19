@@ -9,16 +9,16 @@ import type { StateStorage } from 'zustand/middleware'
 const asyncStorageAdapter: StateStorage = {
   getItem: async (name) => {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const legacy = window.localStorage.getItem(name);
+      if (typeof window !== 'undefined' && window.localStorage /* localStorage-allowed: one-time visual workflow migration into encrypted IndexedDB */) {
+        const legacy = window.localStorage.getItem(name); /* localStorage-allowed: one-time visual workflow migration into encrypted IndexedDB */
         if (legacy) {
           await StorageService.saveItem('visualWorkflows', { id: name, value: legacy });
-          window.localStorage.removeItem(name);
+          window.localStorage.removeItem(name); /* localStorage-allowed: remove migrated legacy visual workflow copy */
           return legacy;
         }
       }
     } catch (e) {
-      console.warn('[workflow-store] Migration from localStorage failed', e);
+      console.warn('[workflow-store] Migration from localStorage failed', e); /* localStorage-allowed: legacy migration diagnostic only */
     }
     const item = await StorageService.getItem<{ id: string; value: string }>('visualWorkflows', name);
     return item?.value || null;

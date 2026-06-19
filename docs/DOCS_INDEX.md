@@ -9,6 +9,9 @@ evidence. If a historical report conflicts with live source, package scripts, or
 | Area | Document |
 |---|---|
 | Project overview | [README.md](../README.md) |
+| Product overview | [ABOUT.md](ABOUT.md) |
+| User FAQ | [FAQ.md](FAQ.md) |
+| Support | [SUPPORT.md](SUPPORT.md) |
 | Agent instructions | [../AGENTS.md](../AGENTS.md) |
 | Agent/session handoff ledger | [summary_of_work.md](summary_of_work.md) |
 | Current TODO roadmap | [audits/repository-todo-roadmap-current.md](audits/repository-todo-roadmap-current.md) |
@@ -17,6 +20,7 @@ evidence. If a historical report conflicts with live source, package scripts, or
 | Privacy policy | [../PRIVACY.md](../PRIVACY.md) |
 | Legal notices | [../LEGAL.md](../LEGAL.md), [legal/NOTICE.md](legal/NOTICE.md), [legal/THIRD_PARTY_NOTICES.md](legal/THIRD_PARTY_NOTICES.md) |
 | Release process | [RELEASE/release.md](RELEASE/release.md) |
+| Signed artifact evidence | [RELEASE/SIGNED_ARTIFACT_EVIDENCE.md](RELEASE/SIGNED_ARTIFACT_EVIDENCE.md) |
 | Signing/notarization | [RELEASE/signing-and-notarization.md](RELEASE/signing-and-notarization.md) |
 | Repository settings | [RELEASE/repository-settings.md](RELEASE/repository-settings.md) |
 | Platform support | [DEVELOPMENT/platform-support.md](DEVELOPMENT/platform-support.md) |
@@ -32,6 +36,7 @@ evidence. If a historical report conflicts with live source, package scripts, or
 | v2.1.0 repair evidence | [audits/agent-repair-status-2026-06-16.yaml](audits/agent-repair-status-2026-06-16.yaml) |
 | P0 closure evidence | [audits/p0-closure-evidence-2026-06-16.yaml](audits/p0-closure-evidence-2026-06-16.yaml) |
 | Work-order records | [audits/work-orders-2026-06-15.yaml](audits/work-orders-2026-06-15.yaml) |
+| Release safety gate | [audits/release_safety_gate_2026-06-19.md](audits/release_safety_gate_2026-06-19.md) |
 | Audit changelog | [audits/CHANGELOG.md](audits/CHANGELOG.md) |
 | Historical coverage baseline | [audits/docstrings-and-coverage-baseline.md](audits/docstrings-and-coverage-baseline.md) |
 | Historical coverage final report | [audits/docstrings-and-coverage-final.md](audits/docstrings-and-coverage-final.md) |

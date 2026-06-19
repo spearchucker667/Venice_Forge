@@ -140,9 +140,15 @@ export function MediaStudioView() {
   // Phase 2B: register media command handlers with the Command Palette.
   // The registry is module-level; the unsubscribe ensures handlers do
   // not leak when the user navigates away from Media Studio.
+  // AUDIT-018: Use a ref to avoid re-registration on every filter change.
+  const filteredRef = useRef(filtered);
+  useEffect(() => {
+    filteredRef.current = filtered;
+  }, [filtered]);
+
   useEffect(() => {
     const cleanup = registerMediaCommandHandlers({
-      visibleIds: () => filtered.map((i) => i.id),
+      visibleIds: () => filteredRef.current.map((i) => i.id),
       resolveItems: (ids) => useMediaStore.getState().items.filter((it) => ids.includes(it.id)),
       isMediaActive: () => useSettingsStore.getState().activeTab === "media",
       onSelectAllVisible: () => useMediaSelectionStore.getState().selectAllVisible(),
@@ -188,8 +194,8 @@ export function MediaStudioView() {
         else toast.error("Could not copy to clipboard.");
       },
     });
-    return cleanup
-  }, [filtered]);
+    return cleanup;
+  }, []);
 
   // Active project list for the bulk project picker.
   const projects = useProjectStore((s) => s.projects);

@@ -30,10 +30,11 @@ vi.mock('../services/storageService', () => {
         store.set(next.id, next)
         return next
       }),
-      patchMedia: vi.fn(async (id: string, patch: Partial<MediaItem>) => {
+      patchMedia: vi.fn(async (id: string, patch: Partial<MediaItem> | ((existing: MediaItem) => Partial<MediaItem>)) => {
         const existing = store.get(id)
         if (!existing) throw new Error('not found')
-        const next = { ...existing, ...patch, id, timestamp: existing.timestamp }
+        const patchRecord = typeof patch === 'function' ? patch(existing) : patch
+        const next = { ...existing, ...patchRecord, id, timestamp: existing.timestamp }
         store.set(id, next)
         return next
       }),

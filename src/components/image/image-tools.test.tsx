@@ -71,7 +71,8 @@ describe('ImageTools → Media Studio wiring (P3 regression guard)', () => {
     vi.mocked(StorageService.patchMedia).mockImplementation(async (id, patch) => {
       const existing = useMediaStore.getState().items.find((item) => item.id === id)
       if (!existing) throw new Error('not found')
-      return { ...existing, ...patch, id } as MediaItem
+      const patchRecord = typeof patch === 'function' ? (patch as (existing: MediaItem) => Partial<MediaItem>)(existing) : patch
+      return { ...existing, ...patchRecord, id } as MediaItem
     })
     mockIsSupportedImageFile.mockImplementation(
       (file: File) => file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/webp',

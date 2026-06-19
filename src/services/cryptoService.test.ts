@@ -3,7 +3,7 @@
 import { describe, expect, it, beforeEach } from "vitest";
 // @ts-expect-error — fake-indexeddb ESM exports lack proper typings
 import FDBFactory from "fake-indexeddb/lib/FDBFactory";
-import { encryptData, decryptData } from "./cryptoService";
+import { encryptData, decryptData, decryptDataResult } from "./cryptoService";
 
 /** Resets the IndexedDB instance before each test. */
 beforeEach(() => {
@@ -43,6 +43,17 @@ describe("cryptoService", () => {
     const corrupted = { _encrypted: true, iv: [0, 1, 2], data: [3, 4, 5] };
     const result = await decryptData(corrupted);
     expect(result).toBeNull();
+  });
+
+  it("classifies corrupted encrypted payload failures", async () => {
+    const corrupted = { _encrypted: true, iv: [0, 1, 2], data: [3, 4, 5] };
+    const result = await decryptDataResult(corrupted);
+    expect(result).toMatchObject({ ok: false, reason: "corrupt" });
+  });
+
+  it("classifies invalid encrypted envelopes", async () => {
+    const result = await decryptDataResult({ _encrypted: true, iv: "bad", data: [] } as any);
+    expect(result).toMatchObject({ ok: false, reason: "invalid-payload" });
   });
 
   /** Verifies null return for null input to decryptData. */

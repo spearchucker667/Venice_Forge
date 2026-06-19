@@ -62,16 +62,8 @@
 >
 > Do not use this project to create, request, store, distribute, or facilitate child sexual exploitation material, non-consensual sexual content, harassment, doxxing, illegal instructions, or other unlawful abuse.
 
-> [!CAUTION]
-> **Major overhaul in progress — the app is currently unstable.**
-> A large-scale dependency and architecture upgrade is underway (Express 5, TypeScript 6, Vite 8, and related toolchain migrations). Until this work is completed and all regression guards pass, the repository is in a transitional state.
->
-> - **Do not open new PRs** against `main` during this window.
-> - **All existing branches and PRs have been closed/deleted** to prevent conflicts with the incoming changes.
-> - **Builds, tests, and packaging may be broken** on non-main branches.
-> - If you need a stable build, use the latest [GitHub Release](https://github.com/spearchucker667/Venice_Forge/releases) rather than building from source.
->
-> The maintainers will reopen contributions once the overhaul is complete and the CI validation gate is green again.
+> [!NOTE]
+> Venice Forge is maintained against the Node 22 validation matrix documented below. Before publishing release artifacts, run the full CI gate and the platform-specific packaging verifier for the target OS.
 
 ## Quick Start
 

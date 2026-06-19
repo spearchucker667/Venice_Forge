@@ -181,7 +181,7 @@ Status and Inspector surfaces are fed by the inspector store + telemetry (see `s
 
 ### Tab / View structure (current)
 
-Canonical registry in `src/config/tabs.ts` (`TAB_IDS`, `TAB_REGISTRY`, `CANONICAL_TAB_ORDER`). 14 top-level tabs (Chat, Image Studio, Media Studio, Audio, Music, Video, Embeddings, Research, Characters, RP Studio, Workflows, Playground, Config, Status). Add tabs only via the registry. Legacy aliases (e.g. `gallery` → `media`) are supported only for persisted state migration. See `AGENTS.md` "Canonical tab registry" and `src/config/tabs.test.ts` (VERIFY-022).
+Canonical registry in `src/config/tabs.ts` (`TAB_IDS`, `TAB_REGISTRY`, `CANONICAL_TAB_ORDER`). 18 top-level tabs (Chat, History, Image Studio, Media Studio, Prompts, Scene Composer, Audio Studio, Music Studio, Video Studio, Embeddings, Research, Characters, RP Studio, Workflows, Privacy, Playground, Config, Status). Add tabs only via the registry. Legacy aliases (e.g. `gallery` → `media`) are supported only for persisted state migration. See `AGENTS.md` "Canonical tab registry" and `src/config/tabs.test.ts` (VERIFY-022).
 
 ### Electron build pipeline
 

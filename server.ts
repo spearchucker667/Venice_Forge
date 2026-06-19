@@ -135,10 +135,39 @@ export function applyVeniceProxyHeaders(
   }
 }
 
+const DEV_SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+interface DevSessionKey {
+  key: string;
+  expiresAt: number;
+}
+
+function createDevSessionKey(key: string): DevSessionKey {
+  return { key, expiresAt: Date.now() + DEV_SESSION_TTL_MS };
+}
+
+function getDevSessionKey(session: DevSessionKey | null): string {
+  if (!session || Date.now() > session.expiresAt) return "";
+  return session.key;
+}
+
+function isDevSessionConfigured(session: DevSessionKey | null): boolean {
+  return getDevSessionKey(session).length > 0;
+}
+
 export function createServerApp() {
   const app = express();
-  let devSessionVeniceApiKey = "";
-  let devSessionJinaApiKey = "";
+  let devSessionVeniceApiKey: DevSessionKey | null = null;
+  let devSessionJinaApiKey: DevSessionKey | null = null;
+
+  // Zero session keys on server shutdown to avoid leaving them in memory.
+  const cleanupDevSessionKeys = () => {
+    devSessionVeniceApiKey = null;
+    devSessionJinaApiKey = null;
+  };
+  process.on("exit", cleanupDevSessionKeys);
+  process.on("SIGINT", cleanupDevSessionKeys);
+  process.on("SIGTERM", cleanupDevSessionKeys);
   app.disable("x-powered-by");
 
   // Structured request logging (no bodies, no secrets) in development/test only.
@@ -190,11 +219,11 @@ export function createServerApp() {
     }
 
     if (req.method === "GET") {
-      res.status(200).json({ configured: devSessionVeniceApiKey.length > 0 });
+      res.status(200).json({ configured: isDevSessionConfigured(devSessionVeniceApiKey) });
       return;
     }
     if (req.method === "DELETE") {
-      devSessionVeniceApiKey = "";
+      devSessionVeniceApiKey = null;
       res.status(200).json({ ok: true });
       return;
     }
@@ -204,7 +233,7 @@ export function createServerApp() {
         res.status(400).json({ error: "A valid API key is required." });
         return;
       }
-      devSessionVeniceApiKey = key;
+      devSessionVeniceApiKey = createDevSessionKey(key);
       res.status(200).json({ ok: true });
       return;
     }
@@ -222,11 +251,11 @@ export function createServerApp() {
     }
 
     if (req.method === "GET") {
-      res.status(200).json({ configured: devSessionJinaApiKey.length > 0 || Boolean(AppConfig.JINA_API_KEY) });
+      res.status(200).json({ configured: isDevSessionConfigured(devSessionJinaApiKey) || Boolean(AppConfig.JINA_API_KEY) });
       return;
     }
     if (req.method === "DELETE") {
-      devSessionJinaApiKey = "";
+      devSessionJinaApiKey = null;
       res.status(200).json({ ok: true });
       return;
     }
@@ -236,7 +265,7 @@ export function createServerApp() {
         res.status(400).json({ error: "A valid Jina API key is required." });
         return;
       }
-      devSessionJinaApiKey = key;
+      devSessionJinaApiKey = createDevSessionKey(key);
       res.status(200).json({ ok: true });
       return;
     }
@@ -354,7 +383,7 @@ export function createServerApp() {
   const proxyRateLimiter = createRateLimiter("proxy");
 
   app.use("/api/venice", veniceRateLimiter, (req, res, next) => {
-    if (!AppConfig.VENICE_API_KEY && !devSessionVeniceApiKey && AppConfig.NODE_ENV !== "test") {
+    if (!AppConfig.VENICE_API_KEY && !isDevSessionConfigured(devSessionVeniceApiKey) && AppConfig.NODE_ENV !== "test") {
       return res.status(500).json({ error: "VENICE_API_KEY is not configured on the server." });
     }
     next();
@@ -501,7 +530,7 @@ export function createServerApp() {
       },
       on: {
         proxyReq: (proxyReq: VeniceProxyOutboundRequest, req: express.Request, _res: express.Response) => {
-          applyVeniceProxyHeaders(proxyReq, req, devSessionVeniceApiKey || AppConfig.VENICE_API_KEY);
+          applyVeniceProxyHeaders(proxyReq, req, getDevSessionKey(devSessionVeniceApiKey) || AppConfig.VENICE_API_KEY);
         },
         proxyRes: (proxyRes: http.IncomingMessage, req: express.Request, res: express.Response) => {
           // Forward rate-limit headers so the client can respect them.
@@ -615,7 +644,7 @@ export function createServerApp() {
         }
       }
 
-      const serverJinaKey = AppConfig.JINA_API_KEY || devSessionJinaApiKey;
+      const serverJinaKey = AppConfig.JINA_API_KEY || getDevSessionKey(devSessionJinaApiKey);
       if (serverJinaKey) {
         headers["Authorization"] = `Bearer ${serverJinaKey}`;
       }

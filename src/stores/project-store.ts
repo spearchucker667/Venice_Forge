@@ -20,6 +20,7 @@ import { useChatStore } from './chat-store'
 import { useMediaStore } from './media-store'
 import type { Conversation } from '../types/conversation'
 import type { MediaItem } from '../types/media'
+import { assertValidId } from '../utils/idValidation'
 
 export type ProjectId = string
 export type ActiveProjectId = ProjectId | null
@@ -120,6 +121,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   },
 
   async deleteProject(projectId: string) {
+    assertValidId(projectId, 'deleteProject')
     const existing = get().projects.find((project) => project.id === projectId)
     if (!existing) return false
     if (!useChatStore.getState()._hasLoadedHistory) {

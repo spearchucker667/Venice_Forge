@@ -215,22 +215,37 @@ async function fetchImage(
   url: string,
   signal: AbortSignal,
 ): Promise<{ buffer: Buffer; contentType: string }> {
-  const attempt = async (withAuth: boolean): Promise<Response> => {
+  const attempt = async (requestUrl: string, withAuth: boolean): Promise<Response> => {
     const headers: Record<string, string> = {};
     if (withAuth) {
       const key = getApiKey();
       if (key) headers["Authorization"] = `Bearer ${key}`;
     }
-    return fetch(url, {
+    return fetch(requestUrl, {
       method: "GET",
       headers,
       signal,
+      redirect: "manual",
     });
   };
 
-  let response = await attempt(false);
+  let fetchUrl = url;
+  let response = await attempt(fetchUrl, false);
+  if ([301, 302, 303, 307, 308].includes(response.status)) {
+    const location = response.headers.get("location");
+    if (!location) throw new Error("Image redirect is missing a Location header.");
+    const redirected = new URL(location, fetchUrl).toString();
+    if (!isTrustedVeniceImageUrl(redirected)) {
+      throw new Error("Image redirect target is not on the Venice allowlist.");
+    }
+    fetchUrl = redirected;
+    response = await attempt(fetchUrl, false);
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      throw new Error("Image redirect chain exceeds one hop.");
+    }
+  }
   if ((response.status === 401 || response.status === 403) && getApiKey()) {
-    response = await attempt(true);
+    response = await attempt(fetchUrl, true);
   }
 
   if (!response.ok) {

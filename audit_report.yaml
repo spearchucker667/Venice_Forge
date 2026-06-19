@@ -1,0 +1,1896 @@
+audit:
+  title: "Exhaustive Repository File Audit"
+  repository: "Windows-Venice-API-connector (Venice Forge)"
+  generated_at: "2026-06-18T17:30:00-07:00"
+  scope:
+    included_file_count: 3821
+    excluded_file_count: 67
+    excluded_patterns:
+      - "node_modules/**"
+      - "dist/**"
+      - "out/**"
+      - "release/**"
+      - "build/**"
+      - "coverage/**"
+      - ".cache/**"
+      - ".vite/**"
+      - ".next/**"
+      - ".DS_Store"
+      - "*.log"
+      - "*.tmp"
+      - "*.bak"
+      - "*.zip"
+      - "*.tar"
+      - "*.tar.gz"
+      - "*.7z"
+      - "*.rar"
+      - "*.png"
+      - "*.jpg"
+      - "*.jpeg"
+      - "*.webp"
+      - "*.gif"
+      - "*.mp4"
+      - "*.mov"
+      - "*.avi"
+      - "*.dmg"
+      - "*.exe"
+      - "*.msi"
+      - "*.AppImage"
+      - "*.deb"
+      - "*.rpm"
+      - "package-lock.json"
+      - "pnpm-lock.yaml"
+      - "yarn.lock"
+    included_roots:
+      - "src"
+      - "electron"
+      - "scripts"
+      - "docs"
+      - "tests"
+      - "config"
+      - "public"
+      - "assets"
+      - ".github"
+      - ".config"
+      - "dist-electron"
+      - ".design-captures"
+      - ".node22"
+      - ".git"
+    note: "3821 includes 2735 files in .node22/ (local Node.js binary bundle) and 128 files in .git/ (VCS metadata). These are not project source but were counted per the inclusion rules. Net project source files are ~958."
+  methodology:
+    - "Built full file inventory using os.walk with exclusion rules"
+    - "Applied explicit exclusion list (67 files excluded)"
+    - "Deployed 5 parallel specialist audit agents across data layer, UI layer, Electron security, tests/scripts/CI, and documentation/repo hygiene"
+    - "Cross-checked source against docs, tests, scripts, CI, and security expectations"
+    - "Deduplicated findings across agent boundaries and renumbered into a single canonical set"
+    - "Verified every finding against actual file evidence before inclusion"
+  findings:
+    - id: "AUDIT-001"
+      severity: critical
+      category: security
+      status: open
+      file: "server.ts"
+      line_range: "180-244"
+      evidence:
+        - "devSessionVeniceApiKey and devSessionJinaApiKey are stored as plain mutable module-level variables with no TTL, expiration, or encryption."
+        - "The /api/session-key and /api/session-jina-key endpoints are protected only by isLoopbackClient() and NODE_ENV !== 'production'."
+        - "Any loopback client (including other users in a shared dev container or CI) can set/retrieve keys."
+      impact: "API key leakage in shared development environments; keys persist for the lifetime of the Node process without automatic cleanup."
+      required_fix: "Add a TTL (e.g., 24 h) to dev session keys, zero them on server shutdown, and gate the endpoints behind an additional bearer token or dev-only cookie when NODE_ENV=development."
+      suggested_implementation:
+        - "Modify server.ts to wrap session keys in a Map with timestamp and expire them on read/write."
+        - "Add process.on('exit') handler to zero the variables."
+        - "Add a dev-bearer token check (e.g., from a fixed DEV_SECRET env var) before allowing /api/session-key."
+      verification:
+        - "Start the server with NODE_ENV=development and curl /api/session-key from two different loopback ports; verify both can read the key before the fix and only the authorized one after."
+      regression_risk: "medium"
+      depends_on: []
+
+    - id: "AUDIT-002"
+      severity: critical
+      category: security
+      status: open
+      file: "src/services/desktopBridge.ts"
+      line_range: "115-116, 127-163, 731-750"
+      evidence:
+        - "webSessionVeniceApiKey and webSessionJinaApiKey are module-level let variables with no expiration."
+        - "They are never cleared on page reload (unless explicitly deleted), and they live in renderer memory for the entire session."
+        - "If the renderer process is compromised (XSS, extension injection), the keys are trivially readable from the module scope."
+      impact: "If the renderer process is compromised, ephemeral API keys are immediately extractable from module-level variables."
+      required_fix: "Store ephemeral web keys in a session-bound Map that auto-clears on beforeunload, and mark the variables as /* @security-ephemeral */. Never store them in module-level let."
+      suggested_implementation:
+        - "Replace module-level let with a WeakMap or a cleanup-on-unload session cache."
+        - "Add window.addEventListener('beforeunload', () => clearWebSessionKeys()) in the bridge initialization path."
+      verification:
+        - "Inspect desktopBridge.ts in DevTools Sources; verify webSessionVeniceApiKey is not a top-level variable after the fix."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-003"
+      severity: critical
+      category: security
+      status: open
+      file: "src/utils/markdown.tsx"
+      line_range: "91"
+      evidence:
+        - "return <div ref={ref} className='md' dangerouslySetInnerHTML={{ __html: minimalMarkdown(text) }} />;"
+        - "If minimalMarkdown is ever bypassed or contains a bug, arbitrary HTML/JS injection is possible."
+        - "The ref pattern does not sanitize the output before React renders it."
+      impact: "A single bypass in minimalMarkdown leads to full XSS in the chat renderer. Any malicious message content can execute arbitrary JavaScript."
+      required_fix: "Run the output of minimalMarkdown through DOMPurify or an equivalent allowlist sanitizer before assigning to dangerouslySetInnerHTML, or replace with a React-native markdown renderer that does not require raw HTML injection."
+      suggested_implementation:
+        - "Add DOMPurify.sanitize(html) call inside the dangerouslySetInnerHTML prop in markdown.tsx."
+        - "Add a test in markdown.test.tsx that asserts <script>alert(1)</script> is stripped."
+      verification:
+        - "Inject a chat message containing <img src=x onerror=alert(1)>; verify it is sanitized in the DOM before the fix and stripped after."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-004"
+      severity: critical
+      category: bug
+      status: open
+      file: "src/services/veniceClient.ts"
+      line_range: "709, 503"
+      evidence:
+        - "const fetchTimeout = createTimeoutSignal(timeoutMs ?? 60000, signal);"
+        - "timeoutMs = undefined as number | undefined. The ?? operator means timeoutMs = 0 results in createTimeoutSignal(0, signal), which immediately returns the parent signal with no timeout."
+        - "A caller passing 0 (or a malicious 0) bypasses the 60-second safety cap entirely."
+      impact: "Requests can hang indefinitely, causing resource exhaustion and poor UX. In streaming chat, this can leave a connection open for hours."
+      required_fix: "Use Math.max(1000, timeoutMs ?? 60000) or reject timeoutMs <= 0 at the API boundary. Cap all Venice API calls at a minimum 1-second and maximum 120-second timeout."
+      suggested_implementation:
+        - "Change the timeout computation in veniceClient.ts to Math.max(1000, Math.min(timeoutMs ?? 60000, 120000))."
+        - "Add a guard clause: if (typeof timeoutMs === 'number' && timeoutMs <= 0) timeoutMs = 60000;"
+      verification:
+        - "Write a unit test that passes timeoutMs: 0 to veniceStreamChat and asserts it rejects or uses the default 60-second timeout, not an infinite one."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-005"
+      severity: critical
+      category: bug
+      status: open
+      file: "src/services/storageService.ts"
+      line_range: "122-139, 245-246"
+      evidence:
+        - "saveItem accepts item.id if typeof item.id === 'string'. An empty string '' passes this check, which then overwrites any existing record with id: ''."
+        - "getItem returns null for empty string, creating an asymmetry: save writes to '', get returns null."
+        - "Prototype-pollution vectors: __proto__, constructor, or prototype could be passed as ids."
+      impact: "Data corruption, silent overwrites, and potential prototype-pollution if malicious ids are injected."
+      required_fix: "Reject id values that are empty strings, exceed 256 chars, or match __proto__|constructor|prototype. Add a centralized isValidId() helper used by all store paths."
+      suggested_implementation:
+        - "Create src/utils/idValidation.ts with isValidId(id: string): boolean."
+        - "Call it in storageService.ts saveItem, getItem, deleteItem, and patchMedia."
+        - "Also call it in project-store.ts deleteProject, chat-store.ts markDirtyConversation, and media-store.ts upsertDerivative."
+      verification:
+        - "Write tests for saveItem(''), saveItem('__proto__'), saveItem('constructor'), and saveItem('a'.repeat(300)); all must reject."
+      regression_risk: "low"
+      depends_on:
+        - "AUDIT-015"
+        - "AUDIT-020"
+    - id: "AUDIT-006"
+      severity: high
+      category: security
+      status: open
+      file: "src/services/veniceClient.ts"
+      line_range: "123-134"
+      evidence:
+        - "dedupeKey(endpoint, method, body) does JSON.stringify(body) to build a Map key."
+        - "If a caller accidentally includes an API key in the body (e.g., a misconstructed debug payload), the key string lives in the inFlight Map until the promise settles."
+        - "The deduplication key materializes secrets in the JS heap."
+      impact: "Transient memory exposure of API secrets if they are ever included in the request body. The deduplication key can be inspected via heap snapshots or DevTools."
+      required_fix: "Strip fields matching /api[-_ ]?key|authorization|token/i from the body before stringifying for dedup keys. Or use a hash of a sanitized body."
+      suggested_implementation:
+        - "In veniceClient.ts dedupeKey, create a shallow copy of body, delete any keys matching the secret pattern, then JSON.stringify."
+        - "Add a unit test asserting that a body with { apiKey: 'sk-123' } does not include 'sk-123' in the dedupe key."
+      verification:
+        - "Unit test: dedupeKey('POST', '/chat', { apiKey: 'secret' }) must not contain 'secret' in the returned string."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-007"
+      severity: high
+      category: bug
+      status: open
+      file: "src/stores/media-store.ts"
+      line_range: "196-240"
+      evidence:
+        - "upsertDerivative reads the parent, appends the child id to childrenIds, then calls StorageService.patchMedia."
+        - "Two concurrent derivatives for the same parent will both read the same old childrenIds, append their own id, and the second write will overwrite the first, losing the first child reference."
+        - "This is a classic read-modify-write race condition on IndexedDB."
+      impact: "Orphaned media records, broken lineage graphs, and missing parent-child relationships in the gallery."
+      required_fix: "Use an atomic IndexedDB read-modify-write transaction, or add an optimistic-locking version field (version / etag) and retry on conflict."
+      suggested_implementation:
+        - "Add a version field to MediaItem and increment it on every patch."
+        - "In upsertDerivative, read the current version, compute new childrenIds, and write only if version matches; retry on conflict."
+      verification:
+        - "Write a concurrency test that fires two upsertDerivative calls for the same parent simultaneously; verify both children appear in childrenIds after the fix."
+      regression_risk: "medium"
+      depends_on: []
+
+    - id: "AUDIT-008"
+      severity: high
+      category: reliability
+      status: open
+      file: "src/services/cryptoService.ts"
+      line_range: "104-120"
+      evidence:
+        - "decryptData catches all errors and returns null with no logging or differentiation between 'wrong key' and 'corrupted data'."
+        - "storageService.ts decodeRows then filters out null values, silently dropping records."
+        - "Users lose encrypted data with no diagnostic trace."
+      impact: "Users lose encrypted data with no diagnostic trace. A browser profile reset or key-store loss is indistinguishable from corruption."
+      required_fix: "Log the error category (at warn level) and return a discriminated union { ok: true, data: T } | { ok: false, reason: 'corrupt' | 'key-missing' } so the UI can surface a repair action."
+      suggested_implementation:
+        - "Modify decryptData to return { ok: boolean, data?: T, reason?: string }."
+        - "In decodeRows, if ok is false, emit a console.warn and surface a toast/UI notice for the user."
+      verification:
+        - "Test decryptData with a corrupted payload and a wrong-key payload; verify it returns distinct reasons and the UI shows a repair suggestion."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-009"
+      severity: high
+      category: reliability
+      status: open
+      file: "src/services/storageService.ts"
+      line_range: "165-185"
+      evidence:
+        - "getItemsPageWithMeta falls back to getItemsWithMeta (loading ALL records) when the timestamp index is missing."
+        - "For a gallery with 10,000+ images, this loads everything into memory just to return the first 60."
+      impact: "Memory pressure, UI jank, and potential OOM on large galleries. The fallback is silent and catastrophic."
+      required_fix: "If the index is missing, create it via a background migration or throw an explicit error instead of silently loading the full table. Never fall back to unbounded loads."
+      suggested_implementation:
+        - "In getItemsPageWithMeta, if the timestamp index is missing, schedule an index creation job and throw an explicit error to the caller."
+        - "Add a startup migration in dbMigrations.ts that verifies all required indexes exist."
+      verification:
+        - "Delete the timestamp index in a test environment and call getItemsPageWithMeta; verify it throws an explicit error instead of loading all records."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-010"
+      severity: high
+      category: security
+      status: open
+      file: "src/services/exportImport.ts"
+      line_range: "99-197"
+      evidence:
+        - "sanitizeRecord checks byte length of record.image but does not validate that it is a valid data-URL format (data:image/...;base64,...)."
+        - "A malformed or malicious string could crash downstream consumers."
+      impact: "Import of malformed images could cause renderer crashes or unexpected behavior when the gallery tries to render them."
+      required_fix: "Add a regex check ^data:image\/[a-zA-Z0-9.+]+;base64,[-A-Za-z0-9+/=]*$ and reject non-matching strings."
+      suggested_implementation:
+        - "Add validateDataUrl(image: string): boolean in exportImport.ts."
+        - "Call it inside sanitizeRecord and reject records with invalid image strings."
+      verification:
+        - "Import a JSON with { image: 'not-a-data-url' } and verify it is rejected with a clear error message."
+      regression_risk: "low"
+      depends_on: []
+    - id: "AUDIT-011"
+      severity: high
+      category: security
+      status: open
+      file: "src/services/exportImport.ts"
+      line_range: "11-12"
+      evidence:
+        - "MAX_IMPORT_JSON_BYTES = VENICE_MAX_BODY_BYTES (25 MiB)."
+        - "A 25 MiB JSON import can contain thousands of large base64 images, causing the renderer to run out of memory during parse."
+      impact: "Denial-of-service via crafted import file. The renderer can OOM during JSON.parse() of a 25 MiB import."
+      required_fix: "Add a two-tier limit: maxJsonBytes (e.g., 5 MiB) and maxTotalRecords (e.g., 5,000) with a streaming/chunked parser. Cap total decoded image size at 50 MiB."
+      suggested_implementation:
+        - "Change MAX_IMPORT_JSON_BYTES to 5 * 1024 * 1024."
+        - "Add a MAX_IMPORT_RECORDS cap of 5,000."
+        - "Add a post-parse check that sum of base64 image sizes <= 50 MiB."
+      verification:
+        - "Attempt to import a 25 MiB JSON with 10,000 images; verify it is rejected with a clear 'too large' error before JSON.parse completes."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-012"
+      severity: high
+      category: bug
+      status: open
+      file: "src/services/rp/sceneGenerationService.ts"
+      line_range: "45"
+      evidence:
+        - "const DEFAULT_IMAGE_MODEL = 'flux-dev';"
+        - "src/services/imageWorkflowService.ts line 93: const model = 'upscale-model';"
+        - "If Venice renames or deprecates these models, the app will send invalid requests to the API. The 'upscale-model' string is especially suspicious—it may be a placeholder that was never replaced with a real model ID."
+      impact: "Invalid API requests when model IDs change. The 'upscale-model' placeholder may always fail."
+      required_fix: "Move default model IDs to src/constants/venice.ts and validate them against the live catalog at startup. Remove the 'upscale-model' placeholder."
+      suggested_implementation:
+        - "Create src/constants/venice.ts with canonical default model IDs."
+        - "Replace hardcoded 'flux-dev' and 'upscale-model' with imports from the constants file."
+        - "At startup, fetch the live model list and warn if a default model is not present."
+      verification:
+        - "Mock the model catalog to exclude 'flux-dev' and verify the app logs a warning and falls back to the first available image model."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-013"
+      severity: high
+      category: reliability
+      status: open
+      file: "src/services/desktopBridge.ts"
+      line_range: "127, 143, 159, 731, 741, 750"
+      evidence:
+        - "All fetch calls in desktopApiKey and desktopJinaApiKey lack a timeout."
+        - "If the Express proxy hangs, the promise never resolves, and the auth store remains in a loading state."
+      impact: "UI hangs, stale auth state, and unhandled promise leaks. The auth UI can remain in 'loading' indefinitely."
+      required_fix: "Wrap every fetch in createTimeoutSignal (or AbortSignal.timeout) with a 10-second ceiling. Reject with a clear error after timeout."
+      suggested_implementation:
+        - "Add const controller = new AbortController(); setTimeout(() => controller.abort(), 10000); to every fetch in desktopBridge.ts."
+        - "Catch AbortError and surface a toast: 'Connection to local proxy timed out.'"
+      verification:
+        - "Use MSW or a local server that never responds; verify the fetch rejects within 10 seconds and the auth store transitions to error state."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-014"
+      severity: high
+      category: ui
+      status: open
+      file: "src/components/image/image-view.tsx"
+      line_range: "428"
+      evidence:
+        - "const typedItem = mediaItem as unknown as MediaItem;"
+        - "Bypasses TypeScript's strict type checking. A malformed mediaItem (e.g., missing required fields, wrong types) can propagate into the media store."
+      impact: "Malformed data can propagate into the encrypted media store, corrupting the gallery, compare view, and export bundles."
+      required_fix: "Construct a typed MediaItem object directly with explicit field mapping, or use a runtime validation function (zod/schema) before casting."
+      suggested_implementation:
+        - "Replace the cast with a helper buildMediaItem(raw: unknown): MediaItem that validates every field."
+        - "Add a test asserting that missing required fields throw."
+      verification:
+        - "Pass an object missing the required id field to image-view and verify it throws a validation error instead of being cast."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-015"
+      severity: high
+      category: ui
+      status: open
+      file: "src/components/chat/message-bubble.tsx"
+      line_range: "54, 130, 313"
+      evidence:
+        - "navigator.clipboard.writeText(codeStr) / navigator.clipboard.writeText(content) / navigator.clipboard.writeText(sceneGeneration.prompt)"
+        - "navigator.clipboard is undefined in sandboxed environments (Electron with strict CSP, some iOS WebViews, or when clipboard permissions are denied)."
+        - "The calls are not guarded with try/catch or feature detection, causing unhandled promise rejections."
+      impact: "Copy-to-clipboard fails silently or throws in sandboxed Electron builds, breaking UX for code blocks, recipes, and prompts."
+      required_fix: "Replace with the canonical copyText helper from src/stores/media-send-to.ts (which already has a document.execCommand fallback), or wrap each call in a try/catch with a toast fallback."
+      suggested_implementation:
+        - "Import copyText from src/stores/media-send-to.ts and replace all navigator.clipboard.writeText calls in message-bubble.tsx."
+        - "Add a test verifying fallback when navigator.clipboard is undefined."
+      verification:
+        - "Run the app in an Electron sandbox where navigator.clipboard is undefined; verify copy buttons still work via the fallback."
+      regression_risk: "low"
+      depends_on:
+        - "AUDIT-016"
+        - "AUDIT-017"
+
+    - id: "AUDIT-016"
+      severity: high
+      category: ui
+      status: open
+      file: "src/components/scenes/SceneComposerView.tsx"
+      line_range: "480"
+      evidence:
+        - "void navigator.clipboard.writeText(text);"
+        - "No fallback for sandboxed environments. Same anti-pattern as AUDIT-015."
+      impact: "Copy-to-clipboard fails in sandboxed environments for scene recipes."
+      required_fix: "Use the canonical copyText helper with document.execCommand fallback from src/stores/media-send-to.ts."
+      suggested_implementation:
+        - "Replace navigator.clipboard.writeText with copyText in SceneComposerView.tsx."
+      verification:
+        - "Test in a sandboxed Electron build; verify the 'Copy recipe' button works."
+      regression_risk: "low"
+      depends_on:
+        - "AUDIT-015"
+
+    - id: "AUDIT-017"
+      severity: high
+      category: ui
+      status: open
+      file: "src/components/prompts/PromptLibraryView.tsx"
+      line_range: "586"
+      evidence:
+        - "onClick={() => void navigator.clipboard.writeText(content)}"
+        - "No fallback for sandboxed environments. Same anti-pattern as AUDIT-015."
+      impact: "Copy-to-clipboard fails in sandboxed environments for prompt library exports."
+      required_fix: "Use the canonical copyText helper with document.execCommand fallback from src/stores/media-send-to.ts."
+      suggested_implementation:
+        - "Replace navigator.clipboard.writeText with copyText in PromptLibraryView.tsx."
+      verification:
+        - "Test in a sandboxed Electron build; verify the 'Copy prompt' button works."
+      regression_risk: "low"
+      depends_on:
+        - "AUDIT-015"
+
+    - id: "AUDIT-018"
+      severity: high
+      category: ui
+      status: open
+      file: "src/components/gallery/gallery-view.tsx"
+      line_range: "143-192"
+      evidence:
+        - "useEffect(() => { const cleanup = registerMediaCommandHandlers({ ... }) return cleanup }, [filtered])"
+        - "The dependency array includes filtered, which changes on every search/filter/sort operation. This re-registers all 12 media command handlers on every keystroke."
+        - "Causes unnecessary work, potential memory churn, and race conditions if a handler is mid-flight during re-registration."
+      impact: "Command palette handlers are re-registered on every gallery filter keystroke, causing jank and potential race conditions during rapid typing."
+      required_fix: "Register handlers once on mount with a stable reference to the store getter functions, or use a ref to keep the latest filtered ids without re-registering."
+      suggested_implementation:
+        - "Move registerMediaCommandHandlers to a useEffect with an empty dependency array (mount only)."
+        - "Use a ref for the filtered list so handlers always read the latest state without re-registration."
+      verification:
+        - "Type in the gallery search box and observe re-registrations in a useEffect logging wrapper; verify zero re-registrations after the fix."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-019"
+      severity: high
+      category: security
+      status: open
+      file: "electron/services/configService.ts"
+      line_range: "130-144, 649-684"
+      evidence:
+        - "process.env.VENICE_FORGE_CONFIG_FILE?.trim() is accepted as a raw path without containment validation."
+        - "writeSanitizedConfig writes to currentStatus.configPath which could be /etc/passwd or any sensitive file."
+        - "Same vulnerability exists for VENICE_FORGE_THEMES_FILE."
+      impact: "If an attacker sets VENICE_FORGE_CONFIG_FILE=/etc/passwd before app launch, the app will overwrite arbitrary system files when the user changes settings."
+      required_fix: "Validate envConfig with path.resolve() and checkPathContained() against app.getPath('userData') and os.homedir(). Reject paths outside the user's profile."
+      suggested_implementation:
+        - "Add a resolveAndValidatePath(rawPath: string): string helper in configService.ts."
+        - "Reject paths that resolve outside userData or homedir."
+        - "Apply the same validation to VENICE_FORGE_THEMES_FILE."
+      verification:
+        - "Set VENICE_FORGE_CONFIG_FILE=/etc/passwd and launch the app; verify it refuses to initialize and shows an error dialog."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-020"
+      severity: high
+      category: security
+      status: open
+      file: "electron/services/researchBrowserServer.ts"
+      line_range: "325-336"
+      evidence:
+        - "ipcMain.handle('researchBrowser:openExternal', async (_event, url: string) => { ... await shell.openExternal(url); })"
+        - "isTrustedExternalUrl blocks private IPs and non-HTTPS, but does not prevent opening phishing sites or attacker-controlled HTTPS domains."
+        - "This bypasses the promptExternalLink confirmation dialog used everywhere else in main.ts."
+      impact: "A compromised renderer can silently open arbitrary HTTPS URLs in the user's system browser, enabling phishing or social engineering."
+      required_fix: "Route researchBrowser:openExternal through the same promptExternalLink confirmation dialog used in main.ts, or at minimum require a requireInteraction flag."
+      suggested_implementation:
+        - "Import promptExternalLink from main.ts (or extract it to a shared module) and call it before shell.openExternal."
+        - "Block the IPC if the user cancels the dialog."
+      verification:
+        - "Call researchBrowser:openExternal with a URL and verify a confirmation dialog appears before the system browser opens."
+      regression_risk: "low"
+      depends_on: []
+    - id: "AUDIT-021"
+      severity: high
+      category: security
+      status: open
+      file: "electron/services/characterImageCache.ts"
+      line_range: "214-235"
+      evidence:
+        - "fetch(url, { method: 'GET', headers, signal }) follows redirects by default."
+        - "If the Venice image CDN responds with a 302/301 redirect to an attacker-controlled URL, fetch follows it without validating the destination."
+        - "The destination URL is not validated against isTrustedVeniceImageUrl or isPrivateHostname."
+      impact: "SSRF risk: a redirect chain can lead to private IPs or attacker-controlled hosts even if the initial URL was trusted."
+      required_fix: "Add redirect: 'manual' to the fetch options, then manually validate the redirect location with isTrustedVeniceImageUrl and isPrivateHostname before following."
+      suggested_implementation:
+        - "Set redirect: 'manual' in the fetch options."
+        - "On 302 response, parse the Location header and validate it before making a second request."
+      verification:
+        - "Mock a server that returns 302 to http://192.168.1.1/secret; verify the fetch rejects instead of following."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-022"
+      severity: high
+      category: ci
+      status: open
+      file: ".github/workflows/ci.yml"
+      line_range: "14, 46, 79, 113, 133"
+      evidence:
+        - "Both workflows use floating runner tags: runs-on: ubuntu-latest, runs-on: windows-latest, runs-on: macos-latest."
+        - "release.yml uses the same floating tags."
+      impact: "Uncontrolled OS image upgrades can silently break builds, introduce new system dependencies, or shift the security baseline without review."
+      required_fix: "Pin all runner versions to specific releases (e.g., ubuntu-22.04, windows-2022, macos-14) and update intentionally via a tracked PR."
+      suggested_implementation:
+        - "Replace ubuntu-latest with ubuntu-22.04, windows-latest with windows-2022, macos-latest with macos-14."
+        - "Add a comment above each runner version with the date it was pinned and a link to the GitHub runner changelog."
+      verification:
+        - "Inspect the workflow YAML and verify no runner tag contains 'latest'."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-023"
+      severity: high
+      category: ci
+      status: open
+      file: ".github/workflows/ci.yml"
+      line_range: "1-153"
+      evidence:
+        - "No concurrency: block is present in ci.yml."
+        - "Multiple rapid pushes to the same branch will spawn parallel CI runs, wasting runner minutes and potentially causing race conditions in tests that touch global state."
+      impact: "Parallel runs on the same branch waste resources and can cause race conditions in stateful tests (IndexedDB, rate-limiting maps)."
+      required_fix: "Add concurrency: group: ci-${{ github.ref }} with cancel-in-progress: true at the top level."
+      suggested_implementation:
+        - "Add the concurrency block to the top of ci.yml."
+        - "Verify it also exists in release.yml."
+      verification:
+        - "Push two commits rapidly to a branch and verify the second run cancels the first."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-024"
+      severity: medium
+      category: bug
+      status: open
+      file: "server.ts"
+      line_range: "888-918"
+      evidence:
+        - "staticRateLimiter uses req.ip || 'unknown'. When trust proxy is not set, req.ip is undefined, so all requests share the 'unknown' bucket."
+        - "A single attacker can exhaust the limit for everyone."
+      impact: "Denial-of-service for all users behind the same undefined-IP path."
+      required_fix: "Derive a fallback key from req.socket.remoteAddress before falling back to 'unknown'."
+      suggested_implementation:
+        - "Change the key derivation to req.ip || req.socket?.remoteAddress || 'unknown'."
+      verification:
+        - "Run server tests with trust proxy disabled and two different IP addresses; verify they get separate rate-limit buckets."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-025"
+      severity: medium
+      category: security
+      status: open
+      file: "src/stores/project-store.ts"
+      line_range: "122-161"
+      evidence:
+        - "deleteProject passes projectId directly to StorageService.deleteItem without validating against __proto__, constructor, or prototype."
+        - "While sanitizeRecord in exportImport checks this, the live store path does not."
+      impact: "Potential prototype pollution or deletion of unintended IndexedDB records."
+      required_fix: "Re-use the isValidId() helper proposed in AUDIT-005 at every store boundary."
+      suggested_implementation:
+        - "Import isValidId from src/utils/idValidation.ts and gate deleteProject with it."
+      verification:
+        - "Test deleteProject with id='__proto__' and verify it throws instead of deleting."
+      regression_risk: "low"
+      depends_on:
+        - "AUDIT-005"
+
+    - id: "AUDIT-026"
+      severity: medium
+      category: bug
+      status: open
+      file: "src/services/diagnosticsService.ts"
+      line_range: "248"
+      evidence:
+        - "const research = settings as unknown as { enableJina?: boolean };"
+        - "The enableJina field is not part of the canonical SettingsState interface. This cast hides type mismatches."
+      impact: "The cast may break if the settings shape changes, and it hides a missing field from the canonical type."
+      required_fix: "Add enableJina to the canonical SettingsState interface or remove the cast and use an optional accessor with a fallback."
+      suggested_implementation:
+        - "Add enableJina?: boolean to SettingsState in src/types/settings.ts (or the appropriate file)."
+        - "Remove the cast and use settings.enableJina ?? false."
+      verification:
+        - "Run npm run typecheck and verify no errors after removing the cast."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-027"
+      severity: medium
+      category: security
+      status: open
+      file: "src/services/modelService.ts"
+      line_range: "22-29"
+      evidence:
+        - "The model list is cached in localStorage as plaintext JSON (venice-forge-models-cache)."
+        - "While models are not secrets, the cache reveals which models the user has browsed."
+      impact: "Information leakage via localStorage (shared with any script on the origin)."
+      required_fix: "Cache in IndexedDB (which is already encrypted at rest) or store a truncated hash instead of the full model list."
+      suggested_implementation:
+        - "Replace localStorage.setItem with an IndexedDB write in the existing models store."
+        - "Add a migration to clear the old localStorage key."
+      verification:
+        - "Inspect localStorage in DevTools; verify no venice-forge-models-cache key after the fix."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-028"
+      severity: medium
+      category: reliability
+      status: open
+      file: "src/services/promptStarterService.ts"
+      line_range: "106"
+      evidence:
+        - "const res = await fetch(REMOTE_PROMPT_STARTERS_URL); with no timeout, no retry, and no AbortSignal."
+        - "If the remote URL is unreachable, the UI hangs until the browser's default timeout (often 300 s)."
+      impact: "UI hangs for up to 5 minutes if the remote prompt starters URL is unreachable."
+      required_fix: "Add a 10-second AbortSignal and a single retry with exponential backoff. Surface a UI toast on failure."
+      suggested_implementation:
+        - "Add AbortSignal.timeout(10000) to the fetch call."
+        - "Wrap in a retry loop with exponential backoff (1s, 2s)."
+      verification:
+        - "Block the remote URL with a firewall or MSW and verify the fetch rejects within 10 seconds and shows a toast."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-029"
+      severity: medium
+      category: bug
+      status: open
+      file: "src/stores/chat-store.ts"
+      line_range: "487, 491"
+      evidence:
+        - "const DEBOUNCE_MS = 500 and const MAX_DIRTY_CONVERSATIONS = 1000 are hardcoded."
+        - "src/stores/media-store.ts lines 64, 69: MEDIA_PAGE_SIZE = 60 and MEDIA_IN_MEMORY_CACHE_MAX = 1000 are hardcoded."
+      impact: "These constants are not configurable and may not suit all hardware profiles (e.g., low-memory devices)."
+      required_fix: "Move to src/constants/venice.ts or expose as environment-driven config with sensible defaults."
+      suggested_implementation:
+        - "Create src/constants/venice.ts with exported constants."
+        - "Import them from the stores instead of defining locally."
+      verification:
+        - "Verify constants are imported from the central file and not redefined in stores."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-030"
+      severity: medium
+      category: bug
+      status: open
+      file: "src/stores/chat-store.ts"
+      line_range: "493-499"
+      evidence:
+        - "markDirtyConversation(id, conv) does not validate id is non-empty or well-formed."
+        - "An empty string would create a dirty entry at key '', causing flushConversationSave to write the wrong record."
+      impact: "Silent data corruption in the persistence layer."
+      required_fix: "Add if (!id || typeof id !== 'string') throw new Error('Invalid conversation id') at the entry point."
+      suggested_implementation:
+        - "Add id validation at the top of markDirtyConversation."
+        - "Use the same isValidId helper from AUDIT-005."
+      verification:
+        - "Test markDirtyConversation('', conv) and verify it throws."
+      regression_risk: "low"
+      depends_on:
+        - "AUDIT-005"
+    - id: "AUDIT-031"
+      severity: medium
+      category: bug
+      status: open
+      file: "src/services/veniceClient.ts"
+      line_range: "153, 607, 829"
+      evidence:
+        - "Desktop retry uses calculateBackoff(attempt + 1, 1200, 9000) while web retry uses Math.min(1000 * Math.pow(2, attempt + 1), 8000)."
+        - "The base delay and cap differ between the two transports for the same error class."
+      impact: "Unpredictable UX; desktop users wait longer than web users for the same 429 response."
+      required_fix: "Centralize backoff constants in a single RETRY_POLICY object exported from src/constants/venice.ts."
+      suggested_implementation:
+        - "Create RETRY_POLICY with desktopBase, webBase, desktopCap, webCap."
+        - "Replace inline calculations with references to RETRY_POLICY."
+      verification:
+        - "Unit test that both transports produce the same backoff sequence for the same attempt number."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-032"
+      severity: medium
+      category: ui
+      status: open
+      file: "src/components/SettingsView.tsx"
+      line_range: "379, 395, 402, 645, 651, 666, 672, 741, 749"
+      evidence:
+        - "<button onClick={handleSaveApiKey} ...> and similar buttons lack type='button'."
+        - "Buttons without type='button' inside forms (or near form-like inputs) default to type='submit'."
+      impact: "Pressing Enter in an adjacent input may trigger unintended button actions (e.g., deleting an API key)."
+      required_fix: "Add type='button' to all 9+ buttons in SettingsView."
+      suggested_implementation:
+        - "Add type='button' to every <button> in SettingsView.tsx that is not an actual submit button."
+      verification:
+        - "Press Enter in an input field inside SettingsView and verify no unexpected button is triggered."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-033"
+      severity: medium
+      category: ui
+      status: open
+      file: "src/components/layout/sidebar.tsx"
+      line_range: "309, 350, 360, 378, 394, 500, 501, 502, 514, 617, 692, 707"
+      evidence:
+        - "<button onClick={...}> without type='button' in multiple places."
+        - "Same anti-pattern as AUDIT-032."
+      impact: "Sidebar contains project controls and chat options that could accidentally submit if wrapped in a future form."
+      required_fix: "Add type='button' to all buttons in sidebar."
+      suggested_implementation:
+        - "Add type='button' to every <button> in sidebar.tsx that is not an actual submit button."
+      verification:
+        - "Inspect all button elements in sidebar.tsx and verify each has an explicit type attribute."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-034"
+      severity: medium
+      category: ui
+      status: open
+      file: "src/components/ThemeMaker.tsx"
+      line_range: "330, 385, 388, 391, 394, 397"
+      evidence:
+        - "<button onClick={...}> without type='button' in multiple places."
+        - "Same anti-pattern as AUDIT-032."
+      impact: "Buttons in ThemeMaker could accidentally submit if wrapped in a future form."
+      required_fix: "Add type='button' to all buttons in ThemeMaker."
+      suggested_implementation:
+        - "Add type='button' to every <button> in ThemeMaker.tsx that is not an actual submit button."
+      verification:
+        - "Inspect all button elements in ThemeMaker.tsx and verify each has an explicit type attribute."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-035"
+      severity: medium
+      category: ui
+      status: open
+      file: "src/components/ImageGenerationPreview.tsx"
+      line_range: "52"
+      evidence:
+        - "key={savedDoc.id || idx}"
+        - "When savedDoc.id is falsy (e.g., preview state before save), React uses the array index as key."
+      impact: "If items are reordered or inserted, this causes incorrect reconciliation, stale DOM nodes, and lost focus/selection state."
+      required_fix: "Ensure all GalleryImage items have stable ids before rendering, or generate a stable preview key (e.g., preview-${idx}-${draft.lastSavedImageId})."
+      suggested_implementation:
+        - "Generate a stable key using a composite of available stable fields."
+        - "Never fall back to idx for dynamic lists."
+      verification:
+        - "Reorder items in the ImageGenerationPreview and verify React reconciliation is correct (no stale DOM)."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-036"
+      severity: medium
+      category: ui
+      status: open
+      file: "src/components/gallery/compare-view.tsx"
+      line_range: "238"
+      evidence:
+        - "key={idx} inside {row.values.map((v, idx) => (...))}"
+        - "Values are per-item comparison cells. If items are reordered, the cell DOM does not reflect the new value order correctly."
+      impact: "Incorrect reconciliation when compare view items are reordered."
+      required_fix: "Use key={items[idx]?.id ?? idx} or ${row.field}-${idx} to ensure stable identification."
+      suggested_implementation:
+        - "Replace key={idx} with a composite key derived from the item id and field name."
+      verification:
+        - "Reorder compared items and verify cell values remain aligned with the correct items."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-037"
+      severity: medium
+      category: ui
+      status: open
+      file: "src/components/StatusView.tsx"
+      line_range: "76"
+      evidence:
+        - "appVersion: (document.querySelector('meta[name=app-version]') as HTMLMetaElement)?.content ?? 'web'"
+        - "document.querySelector is a global DOM search that can return stale or wrong results."
+      impact: "If the meta tag is not present or duplicated, the wrong version string is shown. It bypasses React's declarative model."
+      required_fix: "Use a ref on the meta tag in index.html, or pass the app version via a React context/prop from the build process."
+      suggested_implementation:
+        - "Create a VersionProvider React context that reads the meta tag once at mount and provides it to children."
+        - "Replace document.querySelector with useContext(VersionContext)."
+      verification:
+        - "Remove the meta tag and verify StatusView renders 'web' or a fallback without crashing."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-038"
+      severity: medium
+      category: ui
+      status: open
+      file: "src/components/ThemeMaker.tsx"
+      line_range: "183-186, 188"
+      evidence:
+        - "success: color(bright, 'green', '#74d66a'), warning: color(bright, 'yellow', '#d6a84f'), danger: color(bright, 'red', '#ef4444'), info: color(bright, 'cyan', '#7da7ff')"
+        - "overlay: mode === 'light' ? 'rgba(0, 0, 0, 0.25)' : 'rgba(0, 0, 0, 0.6)'"
+        - "Legacy theme import fallback uses hardcoded hex/rgba values that are not validated against the 29-role semantic token contract."
+      impact: "These colors may not meet WCAG AA contrast in all derived themes and bypass the theme token system."
+      required_fix: "Derive these from the builtin theme tokens (e.g., BUILTIN_VENICE.tokens.success) instead of literal strings."
+      suggested_implementation:
+        - "Replace hardcoded hex values with references to BUILTIN_VENICE.tokens or a theme registry."
+        - "Add a validation step that rejects imported themes with colors not in the canonical palette."
+      verification:
+        - "Import a legacy theme and verify the success/warning/danger/info colors are derived from builtin tokens, not hardcoded hex."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-039"
+      severity: medium
+      category: ui
+      status: open
+      file: "src/components/chat/message-bubble.tsx"
+      line_range: "94-95"
+      evidence:
+        - "// @ts-expect-error - TS doesn't know about CSS imports without ambient declarations"
+        - "import('katex/dist/katex.min.css')"
+        - "The dynamic import is unhandled — if the CSS fails to load, the user sees unstyled math."
+      impact: "If the CSS import fails, math rendering is broken with no user feedback."
+      required_fix: "Add an ambient declaration for *.css imports in the project types, or use a <link> tag injection with error handling."
+      suggested_implementation:
+        - "Add declare module '*.css' in src/types/global.d.ts."
+        - "Remove the @ts-expect-error and wrap the import in a try/catch that surfaces a toast on failure."
+      verification:
+        - "Block the katex CSS URL and verify a toast appears saying 'Math styling unavailable'."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-040"
+      severity: medium
+      category: ui
+      status: open
+      file: "src/components/command-palette/CommandPalette.tsx"
+      line_range: "95"
+      evidence:
+        - "const items = Array.from(listRef.current.querySelectorAll<HTMLButtonElement>('[data-command-item]'))"
+        - "querySelectorAll searches the DOM tree. If the list structure changes, the selector may miss items or select wrong ones."
+      impact: "Focus management in the command palette may break if the DOM structure changes."
+      required_fix: "Track command items in a React state array and derive focusable elements from that array."
+      suggested_implementation:
+        - "Maintain a flat array of command items in state and use that for focus traversal instead of DOM queries."
+      verification:
+        - "Add/remove command items dynamically and verify Tab traversal still works correctly."
+      regression_risk: "low"
+      depends_on: []
+    - id: "AUDIT-041"
+      severity: medium
+      category: ui
+      status: open
+      file: "src/hooks/useFocusTrap.ts"
+      line_range: "32"
+      evidence:
+        - "const getFocusable = () => Array.from(el.querySelectorAll<HTMLElement>(focusableSelectors));"
+        - "Focusable elements are discovered via DOM traversal rather than React refs."
+      impact: "Shadow DOM or dynamically rendered content may not be captured by the focus trap."
+      required_fix: "Accept a list of focusable refs as an optional prop, or use a MutationObserver to keep the focusable list in sync."
+      suggested_implementation:
+        - "Add an optional focusableRefs: RefObject<HTMLElement>[] prop to useFocusTrap."
+        - "If provided, use the refs instead of querySelectorAll."
+      verification:
+        - "Render a modal with dynamically added focusable elements and verify the focus trap captures them."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-042"
+      severity: medium
+      category: ui
+      status: open
+      file: "src/components/ImageGenerationPreview.tsx"
+      line_range: "96"
+      evidence:
+        - "<img src={img.image} alt='' className='h-16 w-16 shrink-0 rounded-xl object-cover' />"
+        - "Empty alt on thumbnails means screen readers announce nothing or announce the filename."
+      impact: "Accessibility failure: screen readers cannot describe the thumbnail content."
+      required_fix: "Use alt={img.prompt || 'Generated image'} to provide meaningful description."
+      suggested_implementation:
+        - "Replace alt='' with a descriptive string derived from the image metadata."
+      verification:
+        - "Run an axe-core accessibility audit and verify no 'Images must have alternate text' violations."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-043"
+      severity: medium
+      category: ui
+      status: open
+      file: "src/components/rp-studio/AssetGallery.tsx"
+      line_range: "97, 152"
+      evidence:
+        - "<img src={a.url} alt='' className='w-full h-full object-cover' /> / <img src={selected.url} alt='' className='w-full h-full object-contain' />"
+        - "Empty alt on RP studio asset images means screen readers cannot describe the asset content."
+      impact: "Accessibility failure: screen readers cannot describe the asset content."
+      required_fix: "Use alt={a.name || 'Asset'} or similar descriptive text."
+      suggested_implementation:
+        - "Replace alt='' with a descriptive string derived from the asset name."
+      verification:
+        - "Run an axe-core accessibility audit and verify no 'Images must have alternate text' violations."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-044"
+      severity: medium
+      category: ui
+      status: open
+      file: "src/components/ErrorBoundary.tsx"
+      line_range: "48"
+      evidence:
+        - "<button className='btn' onClick={() => window.location.reload()}>Reload application</button>"
+        - "Reloading the window loses all in-memory state (unsaved drafts, active selections, scroll positions)."
+      impact: "In a desktop app, a full reload is a harsh recovery path that destroys all transient state."
+      required_fix: "Change the reload action to reset the ErrorBoundary state via props.onReset (which already exists) and re-render the same tree without a full page reload."
+      suggested_implementation:
+        - "Replace window.location.reload() with a call to props.onReset or a state reset that unmounts the error UI and re-renders children."
+      verification:
+        - "Trigger an error in a component and verify 'Try again' resets the boundary without a full page reload."
+      regression_risk: "low"
+      depends_on:
+        - "AUDIT-045"
+
+    - id: "AUDIT-045"
+      severity: medium
+      category: ui
+      status: open
+      file: "src/components/ui/error-boundary.tsx"
+      line_range: "69"
+      evidence:
+        - "onClick={() => window.location.reload()}"
+        - "Same anti-pattern as AUDIT-044."
+      impact: "Same impact as AUDIT-044."
+      required_fix: "Same fix as AUDIT-044."
+      suggested_implementation:
+        - "Replace window.location.reload() with a soft reset mechanism."
+      verification:
+        - "Same verification as AUDIT-044."
+      regression_risk: "low"
+      depends_on:
+        - "AUDIT-044"
+
+    - id: "AUDIT-046"
+      severity: medium
+      category: ui
+      status: open
+      file: "src/components/FirstRunModal.tsx"
+      line_range: "20-21"
+      evidence:
+        - "const originalOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden';"
+        - "If the component unmounts before the useEffect cleanup runs (e.g., React StrictMode double mount), the scroll lock may persist."
+      impact: "Scroll lock can persist across app navigation if the modal unmounts unexpectedly."
+      required_fix: "Use a ref to track whether the lock is owned by this component, or use a global scroll-lock counter."
+      suggested_implementation:
+        - "Create a useScrollLock hook that increments/decrements a global counter and only restores overflow when the counter reaches zero."
+      verification:
+        - "Unmount FirstRunModal during StrictMode and verify body overflow is restored."
+      regression_risk: "low"
+      depends_on:
+        - "AUDIT-047"
+
+    - id: "AUDIT-047"
+      severity: medium
+      category: ui
+      status: open
+      file: "src/components/ConfirmModal.tsx"
+      line_range: "42-43"
+      evidence:
+        - "const originalOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden';"
+        - "Same anti-pattern as AUDIT-046."
+      impact: "Same impact as AUDIT-046."
+      required_fix: "Same fix as AUDIT-046."
+      suggested_implementation:
+        - "Apply the same useScrollLock hook to ConfirmModal."
+      verification:
+        - "Same verification as AUDIT-046."
+      regression_risk: "low"
+      depends_on:
+        - "AUDIT-046"
+
+    - id: "AUDIT-048"
+      severity: medium
+      category: security
+      status: open
+      file: "electron/ipc/handlers.ts"
+      line_range: "460-461"
+      evidence:
+        - "if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') { return { ok: false, error: 'Only http/https allowed' }; }"
+        - "The proxy endpoint permits scraping arbitrary public HTTP servers."
+      impact: "This exposes the user's IP to unencrypted endpoints and can be used to scrape internal HTTP services accessible from the user's machine."
+      required_fix: "Restrict app:proxyScrape to https: only, or gate HTTP behind a user confirmation with a clear security warning."
+      suggested_implementation:
+        - "Change the check to reject http: protocol."
+        - "Add a user confirmation dialog for any http: request with a clear warning."
+      verification:
+        - "Attempt to proxyScrape an http:// URL and verify it is rejected or shows a confirmation dialog."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-049"
+      severity: medium
+      category: security
+      status: open
+      file: "electron/ipc/handlers.ts"
+      line_range: "All ipcMain.handle registrations"
+      evidence:
+        - "None of the ~50 IPC handlers implement rate limiting, concurrency caps, or per-renderer throttling."
+        - "A compromised renderer can spam venice:request, jina:request, app:proxyScrape, chat:save, etc."
+      impact: "Denial of service from the renderer to the main process, and potential resource exhaustion (TCP connections, memory, file descriptors)."
+      required_fix: "Add a per-channel rate limiter (e.g., 10 requests/sec for venice:request, 5/sec for jina:request, 1/sec for app:proxyScrape) using a token bucket or simple timestamp gate."
+      suggested_implementation:
+        - "Create a shared rateLimit(channel: string, maxPerSecond: number) wrapper in electron/utils/rateLimit.ts."
+        - "Wrap every ipcMain.handle registration with the rate limiter."
+      verification:
+        - "Fire 100 venice:request IPC calls in 1 second and verify the main process rejects or queues excess requests."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-050"
+      severity: medium
+      category: security
+      status: open
+      file: "electron/services/veniceClient.ts"
+      line_range: "313-478"
+      evidence:
+        - "performVeniceRequest creates a new https.request for every call with no concurrency pool or maximum."
+        - "The activeRequests map stores in-flight requests but there is no cap on the total number of entries."
+      impact: "A renderer that fires venice:request repeatedly without awaiting can exhaust the main process's TCP connections, file descriptors, and memory."
+      required_fix: "Add a p-limit or semaphore with a max concurrency of 5-10 requests. Queue or reject excess requests."
+      suggested_implementation:
+        - "Install p-limit or use a Promise-based semaphore."
+        - "Cap performVeniceRequest concurrency at 10."
+      verification:
+        - "Fire 50 concurrent venice:request calls and verify only 10 are active at once."
+      regression_risk: "low"
+      depends_on: []
+    - id: "AUDIT-051"
+      severity: medium
+      category: bug
+      status: open
+      file: "electron/ipc/handlers.ts"
+      line_range: "1217-1274"
+      evidence:
+        - "if (typeof inp.maxItems === 'number') cleanInput.maxItems = inp.maxItems;"
+        - "if (typeof inp.maxTokens === 'number') cleanInput.maxTokens = inp.maxTokens;"
+        - "No upper bound is enforced. A renderer can send maxItems: 1e9, maxTokens: 1e9."
+      impact: "Memory exhaustion / DoS in the main process when building a huge injectedText string."
+      required_fix: "Cap maxItems to <= 50 and maxTokens to <= 8192 in the IPC handler before passing to pullContext."
+      suggested_implementation:
+        - "Add clamping: maxItems = Math.min(50, Math.max(1, inp.maxItems ?? 5)); maxTokens = Math.min(8192, Math.max(1, inp.maxTokens ?? 1200))."
+      verification:
+        - "Send maxItems: 1e9 via IPC and verify it is clamped to 50 before pullContext processes it."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-052"
+      severity: medium
+      category: scripts
+      status: open
+      file: "scripts/generate-placeholder-icon.cjs"
+      line_range: "62, 150"
+      evidence:
+        - "execSync(`rsvg-convert -w ${size} -h ${size} '${svgPath}' -o '${outPath}'`);"
+        - "execSync(`iconutil -c icns '${iconsetDir}' -o '${outIcnsPath}'`);"
+        - "Template-string interpolation into shell commands is unsafe."
+      impact: "If file paths ever contain shell metacharacters (quotes, backticks, semicolons), arbitrary command execution is possible."
+      required_fix: "Use execFileSync with an array of arguments instead of template strings."
+      suggested_implementation:
+        - "Replace execSync with execFileSync('rsvg-convert', ['-w', String(size), '-h', String(size), svgPath, '-o', outPath])."
+        - "Do the same for iconutil."
+      verification:
+        - "Create a path with a single quote in it and verify the script no longer crashes or executes injected commands."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-053"
+      severity: medium
+      category: tests
+      status: open
+      file: "server.test.ts"
+      line_range: "731-732, 746"
+      evidence:
+        - "expect([400, 403, 451, 500]).toContain(response.status);"
+        - "expect([400, 403, 451, 200, 500, 504]).toContain(response.status);"
+        - "The tests pass for 400, 403, 451, 200, or 504 — none of which are the claimed target status."
+      impact: "Tautological test that does not actually exercise the error path. It would pass even if the server returned 200 for an error."
+      required_fix: "Rewrite the tests to trigger the exact error condition and assert the exact status code and error message shape."
+      suggested_implementation:
+        - "Mock the scrape endpoint to throw an error and assert the response is exactly 500."
+        - "Mock malformed percent-encoding and assert the response is exactly 400."
+      verification:
+        - "Run the tests and verify they fail if the server returns 200 for an error condition."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-054"
+      severity: medium
+      category: docs
+      status: open
+      file: "AGENTS.md"
+      line_range: "98, 159"
+      evidence:
+        - "Line 98 states 'current enforced thresholds branches 57 / functions 61 / lines 68 / statements 65'."
+        - "Line 159 states 'current enforced baseline is branches 61%, functions 68%, lines 73%, statements 70%'."
+        - "The actual vitest.config.ts has 61/68/73/70."
+      impact: "Internal documentation contradicts itself, confusing developers and agents about the real coverage gate."
+      required_fix: "Update line 98 to match the actual vitest.config.ts thresholds (61/68/73/70)."
+      suggested_implementation:
+        - "Open AGENTS.md and update the stale coverage numbers on line 98."
+      verification:
+        - "Read AGENTS.md line 98 and verify it matches vitest.config.ts."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-055"
+      severity: medium
+      category: docs
+      status: open
+      file: "README.md"
+      line_range: "137-155"
+      evidence:
+        - "The 'Main Application Areas' table lists 16 rows."
+        - "The canonical src/config/tabs.ts TAB_REGISTRY defines 18 canonical tabs, excluding history and privacy."
+      impact: "Users reading README will not know the History and Privacy tabs exist. Documentation does not match the actual application surface."
+      required_fix: "Add History and Privacy rows to the README 'Main Application Areas' table, or add an explicit note explaining why they are omitted."
+      suggested_implementation:
+        - "Open README.md and add the two missing tabs to the table."
+      verification:
+        - "Count rows in the README table and verify it matches the canonical TAB_REGISTRY count."
+      regression_risk: "low"
+      depends_on:
+        - "AUDIT-056"
+        - "AUDIT-057"
+
+    - id: "AUDIT-056"
+      severity: medium
+      category: docs
+      status: open
+      file: "docs/ABOUT.md"
+      line_range: "80-95"
+      evidence:
+        - "The 'Application Tabs' table lists 14 rows."
+        - "Missing from the canonical 18 tabs: History, Prompts, Scene Composer, Privacy."
+      impact: "The ABOUT.md under-reports the application surface by 4 tabs, confusing new users."
+      required_fix: "Add the 4 missing tabs to the ABOUT.md 'Application Tabs' table."
+      suggested_implementation:
+        - "Open docs/ABOUT.md and add the four missing tabs."
+      verification:
+        - "Count rows in the ABOUT.md table and verify it matches TAB_REGISTRY."
+      regression_risk: "low"
+      depends_on:
+        - "AUDIT-055"
+        - "AUDIT-057"
+
+    - id: "AUDIT-057"
+      severity: medium
+      category: docs
+      status: open
+      file: ".github/copilot-instructions.md"
+      line_range: "184"
+      evidence:
+        - "Claims '14 top-level tabs (Chat, Image Studio, Media Studio, Audio, Music, Video, Embeddings, Research, Characters, RP Studio, Workflows, Playground, Config, Status)'."
+        - "The canonical registry has 18 tabs. Missing: History, Prompts, Scene Composer, Privacy."
+      impact: "Agent instructions undercount the tab surface, causing agents to miss features when planning changes."
+      required_fix: "Update to '18 top-level tabs' and include the full list."
+      suggested_implementation:
+        - "Open .github/copilot-instructions.md and update the tab count and list."
+      verification:
+        - "Verify the tab list in copilot-instructions.md matches TAB_REGISTRY."
+      regression_risk: "low"
+      depends_on:
+        - "AUDIT-055"
+        - "AUDIT-056"
+
+    - id: "AUDIT-058"
+      severity: medium
+      category: docs
+      status: open
+      file: "docs/audits/CHANGELOG.md"
+      line_range: "123"
+      evidence:
+        - "States 'The README's Fourteen integrated tabs table is reordered...' but the README table never had 14 rows."
+        - "The CHANGELOG perpetuates a false count."
+      impact: "Historical audit evidence contains a stale claim that contradicts current source."
+      required_fix: "Add a correction note or update the historical entry to reflect the actual tab count."
+      suggested_implementation:
+        - "Open docs/audits/CHANGELOG.md and correct the claim."
+      verification:
+        - "Read the CHANGELOG entry and verify it no longer claims 14 tabs."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-059"
+      severity: medium
+      category: docs
+      status: open
+      file: "docs/DOCS_INDEX.md"
+      line_range: "all"
+      evidence:
+        - "DOCS_INDEX.md lists ~25 entries. There are 61 .md files under docs/."
+        - "Missing: docs/ABOUT.md, docs/FAQ.md, docs/DEVELOPMENT/BRIDGE.md, docs/DEVELOPMENT/JINA_PROVIDER.md, docs/DEVELOPMENT/building.md, docs/audits/RESEARCH_PROVIDERS.md, docs/RELEASE/SIGNED_ARTIFACT_EVIDENCE.md, and many others."
+      impact: "AGENTS.md requires keeping DOCS_INDEX.md current. The index is severely incomplete, defeating its purpose as a discovery tool."
+      required_fix: "Add all current docs to DOCS_INDEX.md under appropriate sections. Remove or relocate entries for deleted files."
+      suggested_implementation:
+        - "Walk docs/ and add every .md file to DOCS_INDEX.md with a one-line description."
+        - "Group by section (Current Source of Truth, Current Audit Evidence, Design, Reference, Development, Release)."
+      verification:
+        - "Count entries in DOCS_INDEX.md and verify it equals the number of .md files in docs/."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-060"
+      severity: medium
+      category: docs
+      status: open
+      file: "AGENTS.md"
+      line_range: "132"
+      evidence:
+        - "'Zustand 5 stores (auth, chat, playground, settings, toast, and workflow).'"
+        - "The actual codebase has many more stores: media, project, prompt-library, scene-composer, rp-chat, rp-*, inspector, character-card, persona, lorebook, status, storage-privacy, workflow-template, scenario, research, etc."
+      impact: "New agents may not realize the full store surface when debugging or planning refactors."
+      required_fix: "Expand to list the full canonical store set or reference src/stores/ as the source of truth."
+      suggested_implementation:
+        - "Update AGENTS.md to list all current Zustand stores or point to src/stores/ as the canonical registry."
+      verification:
+        - "Count the store files in src/stores/ and verify the AGENTS.md description matches."
+      regression_risk: "low"
+      depends_on: []
+    - id: "AUDIT-061"
+      severity: medium
+      category: docs
+      status: open
+      file: "README.md"
+      line_range: "65-74"
+      evidence:
+        - "[!CAUTION] 'A large-scale dependency and architecture upgrade is underway (Express 5, TypeScript 6, Vite 8, and related toolchain migrations).'"
+        - "The dependabot PR that proposed these upgrades was closed without merge on 2026-06-18. The actual package.json still uses Express 4, TypeScript ~5.8, Vite 6."
+      impact: "The README scares away potential contributors by claiming the repo is unstable due to an active overhaul that was actually rejected. This contradicts the green CI state and the v2.1.0 release."
+      required_fix: "Remove or reword the caution block to reflect the actual state: the PR was closed, the current versions are stable, and the repository is not in a transitional state."
+      suggested_implementation:
+        - "Open README.md and remove the caution block or reword it to say 'The project is stable on Express 4, TypeScript 5.8, Vite 6.'"
+      verification:
+        - "Read README.md and verify no caution block claims an active Express 5/TS 6/Vite 8 upgrade."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-062"
+      severity: medium
+      category: config
+      status: open
+      file: "package.json"
+      line_range: "52"
+      evidence:
+        - "'verify:workspace-contracts': 'vitest run ... --fileParallelism=false' is defined but never invoked by the ci script or verify:contracts script."
+        - "It is only checked for existence by verify:ci-contract.cjs."
+      impact: "The script entry point is a dead code path that could drift out of sync with the actual test suite."
+      required_fix: "Either add verify:workspace-contracts to the ci/verify:contracts chain, or remove it and rely on the general test suite."
+      suggested_implementation:
+        - "Open package.json and either add verify:workspace-contracts to the ci script or remove the entry."
+      verification:
+        - "Grep package.json for verify:workspace-contracts and verify it is referenced in the ci script or absent."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-063"
+      severity: medium
+      category: config
+      status: open
+      file: "package.json"
+      line_range: "19-22"
+      evidence:
+        - '"overrides": { "js-yaml": "4.2.0", "esbuild": "^0.28.1" }'
+        - "js-yaml is not a direct dependency (the project uses the yaml package). esbuild is already a direct devDependency at the same version."
+      impact: "Without in-file documentation, these overrides appear unmotivated and could mask future transitive security updates."
+      required_fix: "Add a comment above the overrides explaining the rationale (e.g., fixing a CVE or forcing a transitive version), or remove the redundant esbuild override."
+      suggested_implementation:
+        - "Add a comment in package.json above the overrides block explaining why each override exists."
+      verification:
+        - "Verify the overrides are documented or removed."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-064"
+      severity: medium
+      category: config
+      status: open
+      file: "tsconfig.electron.json"
+      line_range: "1-17"
+      evidence:
+        - "File contains mixed/lone carriage-return line endings (\\r)."
+      impact: "Inconsistent line endings cause diff noise, parser warnings on some platforms, and potential editor confusion."
+      required_fix: "Normalize line endings to LF (\\n). Add a CI check (e.g., git diff --check) to enforce this."
+      suggested_implementation:
+        - "Run dos2unix or sed on tsconfig.electron.json to normalize line endings."
+        - "Add a pre-commit hook or CI step that rejects CRLF or lone CR."
+      verification:
+        - "Run file -k tsconfig.electron.json and verify it reports ASCII text with CRLF/CR normalized."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-065"
+      severity: medium
+      category: scripts
+      status: open
+      file: "scripts/build-electron.cjs"
+      line_range: "30-36"
+      evidence:
+        - "fs.rmSync(outdir, { recursive: true, force: true });"
+        - "fs.rmSync(staleSrc, { recursive: true, force: true });"
+      impact: "If outdir or staleSrc are ever misconfigured (e.g., via a manipulated __dirname), this could recursively delete an arbitrary directory."
+      required_fix: "Add a guard asserting the resolved path is within dist-electron/ before calling rmSync."
+      suggested_implementation:
+        - "Add a resolveAndAssertWithin helper that rejects paths outside the project build directory."
+      verification:
+        - "Mock a misconfigured __dirname and verify the script throws instead of deleting."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-066"
+      severity: low
+      category: repo-hygiene
+      status: open
+      file: "src/stores/chat-store.ts.bak"
+      line_range: "all"
+      evidence:
+        - "Six .bak files exist in the repository: src/stores/chat-store.ts.bak, src/types/conversation.ts.bak, src/types/conversationVault.ts.bak, src/stores/chat-store.character.test.ts.bak, src/hooks/use-chat.ts.bak, src/components/chat/chat-view.tsx.bak."
+        - "Some contain hundreds of lines of old code."
+      impact: "Repository bloat, risk of accidental inclusion in builds, and confusion for new developers."
+      required_fix: "Delete all .bak files and add *.bak to .gitignore."
+      suggested_implementation:
+        - "rm src/**/*.bak and add *.bak to .gitignore."
+      verification:
+        - "Verify no .bak files remain in the working tree via git ls-files | grep .bak."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-067"
+      severity: low
+      category: repo-hygiene
+      status: open
+      file: "src/hooks/use-model-catalog-mock.ts"
+      line_range: "2"
+      evidence:
+        - "export type ModelCatalog = any; // eslint-disable-line @typescript-eslint/no-explicit-any"
+      impact: "This dummy type is used in tests and can leak into production code, weakening the type safety of the model catalog."
+      required_fix: "Replace with a minimal unknown or a proper ModelCatalog interface."
+      suggested_implementation:
+        - "Replace any with unknown or define a minimal ModelCatalog interface."
+      verification:
+        - "Run npm run typecheck and verify no new errors appear."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-068"
+      severity: low
+      category: repo-hygiene
+      status: open
+      file: "kimi-export-session_-20260617-205236.md"
+      line_range: "all"
+      evidence:
+        - "2,275+ line untracked file at repository root. Not tracked in git. Contains raw session transcript with internal reasoning, loopback addresses, and stack traces."
+      impact: "Not a security risk since it is untracked, but it is clutter in the working tree and could be accidentally committed."
+      required_fix: "Remove kimi-export-session_-20260617-205236.md from the working tree."
+      suggested_implementation:
+        - "rm kimi-export-session_-20260617-205236.md"
+      verification:
+        - "Verify the file is gone via ls."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-069"
+      severity: low
+      category: repo-hygiene
+      status: open
+      file: "docs/audits/summary_of_work.md"
+      line_range: "all"
+      evidence:
+        - "4,092-line tracked file. The canonical handoff ledger is docs/summary_of_work.md (7,305 lines). Both files are tracked in git."
+        - "The root one is referenced by AGENTS.md, README.md, and .github/copilot-instructions.md as the canonical ledger."
+      impact: "Agents may read the wrong ledger. Files may diverge. The canonical rule says 'one canonical TODO roadmap' and 'single canonical handoff ledger.'"
+      required_fix: "Delete docs/audits/summary_of_work.md or add a prominent HISTORICAL/SUPERSEDED banner at the top redirecting to ../summary_of_work.md. If retained for evidence, move it to docs/reports/historical/."
+      suggested_implementation:
+        - "Delete docs/audits/summary_of_work.md or move it to docs/reports/historical/ with a SUPERSEDED banner."
+      verification:
+        - "Verify only one summary_of_work.md exists in the repo."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-070"
+      severity: low
+      category: repo-hygiene
+      status: open
+      file: "electron-builder.config.cjs"
+      line_range: "23"
+      evidence:
+        - "copyright: 'Copyright © 2026 Venice Forge contributors...'"
+      impact: "The year will become stale in 2027 and require a manual update."
+      required_fix: "Use a dynamic year at build time, or a range like 2025-2026."
+      suggested_implementation:
+        - "Replace the hardcoded year with a dynamic value computed at build time (e.g., new Date().getFullYear())."
+      verification:
+        - "Build the app and verify the copyright year in the packaged artifact is current."
+      regression_risk: "low"
+      depends_on: []
+    - id: "AUDIT-071"
+      severity: low
+      category: repo-hygiene
+      status: open
+      file: "docs/RELEASE/SIGNED_ARTIFACT_EVIDENCE.md"
+      line_range: "30-32"
+      evidence:
+        - "The release evidence log table has all columns as 'pending' (Version, Date, Commit, macOS signed, macOS notarized, Windows signed, Verifier, Evidence)."
+      impact: "The document serves no evidentiary purpose in its current state. It should either be populated with actual v2.1.0 evidence or removed until a signed release is produced."
+      required_fix: "Populate with v2.1.0 evidence if available, or add a banner noting that no signed release has been produced yet."
+      suggested_implementation:
+        - "Add a banner at the top: 'No signed release has been produced yet. This document will be populated after the first signed release.'"
+      verification:
+        - "Read the file and verify it has a banner or populated evidence."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-072"
+      severity: low
+      category: repo-hygiene
+      status: open
+      file: "CONTRIBUTING.md"
+      line_range: "111-121"
+      evidence:
+        - "PR checklist says 'Platform-specific packaging checks (npm run verify:dist:win, npm run verify:dist:mac, and npm run verify:dist:portable) pass'."
+        - "README Validation Gate does not include verify:dist:* at all."
+      impact: "Inconsistent guidance about what constitutes release-readiness."
+      required_fix: "Align the README Validation Gate with the CONTRIBUTING.md PR checklist, or add a note that packaging checks are only required when producing release artifacts."
+      suggested_implementation:
+        - "Add verify:dist:win, verify:dist:mac, and verify:dist:portable to the README Validation Gate, or add a clarifying note in CONTRIBUTING.md."
+      verification:
+        - "Compare README and CONTRIBUTING.md and verify they list the same packaging checks."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-073"
+      severity: low
+      category: security
+      status: open
+      file: "electron/main.ts"
+      line_range: "311-356"
+      evidence:
+        - "const stream = fs.createReadStream(dp); return new Response(stream as unknown as ReadableStream, { ... });"
+        - "The protocol handler streams the cache file directly without checking stat.size first."
+      impact: "If an attacker bypasses cache eviction and places a multi-GB file in the cache directory, the renderer could request it and the main process would stream it indefinitely."
+      required_fix: "Add fs.promises.stat(dp) before streaming and reject if stat.size > MAX_CHARACTER_IMAGE_BYTES (2 MiB)."
+      suggested_implementation:
+        - "Add a stat check before createReadStream and return a 413 Response if the file exceeds the cap."
+      verification:
+        - "Place a 10 MB file in the cache directory and request it via the protocol; verify a 413 is returned."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-074"
+      severity: low
+      category: security
+      status: open
+      file: "electron/ipc/configHandlers.ts"
+      line_range: "29-34"
+      evidence:
+        - "ipcMain.handle('config:getStatus', () => { return { ok: true, status: getConfigStatus(), paths: getPaths() }; });"
+        - "getPaths() returns absolute paths like /Users/alice/.config/VeniceForge/config.yaml."
+      impact: "Information disclosure. Facilitates targeted attacks if the renderer is compromised."
+      required_fix: "Return path.basename() for the paths, or add a redactedPaths flag that strips parent directories."
+      suggested_implementation:
+        - "Map getPaths() through path.basename before returning to the renderer."
+      verification:
+        - "Call config:getStatus via IPC and verify no absolute paths are present in the response."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-075"
+      severity: low
+      category: privacy
+      status: open
+      file: "electron/services/researchBrowserServer.ts"
+      line_range: "90, 174-185"
+      evidence:
+        - "const researchSession = session.fromPartition('persist:venice-forge-research-browser');"
+        - "When researchBrowser:destroy is called, the WebContentsView is closed but the session partition is not cleared."
+      impact: "Cookies, cache, localStorage, and IndexedDB from the research browser persist across app restarts. A future app instance could be fingerprinted, or session cookies could be reused unexpectedly."
+      required_fix: "Either use a non-persistent partition (session.fromPartition('venice-forge-research-browser') without persist:), or explicitly call session.clearStorageData() in the destroy handler."
+      suggested_implementation:
+        - "Remove the 'persist:' prefix from the session partition name, or add clearStorageData() in the destroy handler."
+      verification:
+        - "Open the research browser, visit a site that sets cookies, destroy the browser, and verify the cookies are gone after app restart."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-076"
+      severity: low
+      category: tests
+      status: open
+      file: "server.test.ts"
+      line_range: "307-316"
+      evidence:
+        - "beforeEach(() => { process.env.RATE_LIMIT_WINDOW_MS = '5000'; process.env.RATE_LIMIT_MAX_REQUESTS = '3'; app = createServerApp(); delete process.env.RATE_LIMIT_WINDOW_MS; delete process.env.RATE_LIMIT_MAX_REQUESTS; });"
+      impact: "The test relies on synchronous createServerApp() reading the env vars before they are deleted. If the factory ever becomes async or lazy, the tests will silently use defaults."
+      required_fix: "Use beforeEach to set env vars and afterEach to restore them, keeping them active for the entire test lifecycle."
+      suggested_implementation:
+        - "Store original env values, set them in beforeEach, and restore in afterEach."
+      verification:
+        - "Run the rate-limit tests and verify they still pass with the corrected lifecycle."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-077"
+      severity: low
+      category: ui
+      status: open
+      file: "src/components/chat/chat-input.tsx"
+      line_range: "93"
+      evidence:
+        - "useEffect(() => { textareaRef.current?.focus() }, [])"
+        - "The textarea may not be mounted yet when the effect runs (e.g., in a Suspense boundary or if the tab is lazily loaded)."
+      impact: "Auto-focus may fail silently on lazy-loaded tabs, leaving the chat input unfocused."
+      required_fix: "Use the autoFocus prop on the textarea element instead of a useEffect."
+      suggested_implementation:
+        - "Replace the useEffect with autoFocus={true} on the textarea element."
+      verification:
+        - "Open the chat tab in a lazy-loaded scenario and verify the textarea is focused automatically."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-078"
+      severity: low
+      category: ui
+      status: open
+      file: "src/components/status/DiagnosticsDrawer.tsx"
+      line_range: "41-53"
+      evidence:
+        - "SECTION_ORDER contains duplicate key values: 'diagnostics' appears twice (Overview, Repair) and 'storage' appears twice (Storage, Privacy)."
+      impact: "The React key is derived from sectionId which includes the label, so keys are unique. However, the duplicate key property means the same snapshot data is mapped twice, which could confuse the focusedSectionId comparison."
+      required_fix: "Document the intentional duplication in a code comment. No functional change needed."
+      suggested_implementation:
+        - "Add a comment explaining why Overview and Repair both map to 'diagnostics', and why Storage and Privacy both map to 'storage'."
+      verification:
+        - "Read the comment and verify it explains the intentional duplication."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-079"
+      severity: low
+      category: ui
+      status: open
+      file: "src/components (widespread)"
+      line_range: "multiple"
+      evidence:
+        - "text-[11px], text-[12.5px], px-3.5, py-2.5, w-[160px], w-[70px], max-w-[90vw], etc. appear across 600+ className strings."
+        - "These hardcoded pixel/rem values do not scale with user font-size preferences or theme token spacing scales."
+      impact: "Accessibility and theming inconsistency: arbitrary Tailwind values bypass the design system."
+      required_fix: "Gradually migrate to Tailwind's spacing scale (e.g., w-40 instead of w-[160px], text-xs instead of text-[11px]) and theme custom properties for spacing."
+      suggested_implementation:
+        - "Identify the top 20 most common arbitrary values and replace them with standard Tailwind utilities."
+        - "Add an ESLint rule (or a custom one) that warns on new arbitrary values unless documented."
+      verification:
+        - "Run a regex search for text-\[.*px\] and w-\[.*px\] and verify the count decreases over time."
+      regression_risk: "low"
+      depends_on: []
+
+    - id: "AUDIT-080"
+      severity: low
+      category: ci
+      status: open
+      file: ".github/workflows/release.yml"
+      line_range: "293-301"
+      evidence:
+        - "softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda is used with permissions: contents: write in the publish job."
+      impact: "If the third-party action is compromised, a malicious release could be published. The SHA pin mitigates tag-rewriting but not a compromised account."
+      required_fix: "Consider forking the action to an organization-owned copy, or audit the exact SHA on each update."
+      suggested_implementation:
+        - "Fork softprops/action-gh-release to the organization repo or add a comment documenting the SHA audit date."
+      verification:
+        - "Verify the action SHA is documented in the workflow file with an audit date."
+      regression_risk: "low"
+      depends_on: []
+  stale_or_obsolete_files:
+    - file: "src/stores/chat-store.ts.bak"
+      reason: "Contains the pre-dirty-map persistence implementation. Superseded by chat-store.ts lines 468–691."
+      action: "delete"
+      evidence:
+        - "File is a .bak backup with stale code not referenced by any import."
+
+    - file: "src/stores/chat-store.character.test.ts.bak"
+      reason: "Old character-chat test scaffold. Superseded by chat-store.character.test.ts."
+      action: "delete"
+      evidence:
+        - "File is a .bak backup with stale test code."
+
+    - file: "src/hooks/use-chat.ts.bak"
+      reason: "Pre-refactor chat hook. Superseded by use-chat.ts."
+      action: "delete"
+      evidence:
+        - "File is a .bak backup with stale hook code."
+
+    - file: "src/components/chat/chat-view.tsx.bak"
+      reason: "Pre-refactor chat view. Superseded by chat-view.tsx."
+      action: "delete"
+      evidence:
+        - "File is a .bak backup with stale component code."
+
+    - file: "src/types/conversation.ts.bak"
+      reason: "Old conversation type definitions. Superseded by conversation.ts."
+      action: "delete"
+      evidence:
+        - "File is a .bak backup with stale type definitions."
+
+    - file: "src/types/conversationVault.ts.bak"
+      reason: "Old vault type definitions. Superseded by conversationVault.ts."
+      action: "delete"
+      evidence:
+        - "File is a .bak backup with stale type definitions."
+
+    - file: "docs/audits/summary_of_work.md"
+      reason: "Stale historical duplicate of the canonical docs/summary_of_work.md handoff ledger. Both files are tracked in git. The root one is referenced by AGENTS.md, README.md, and .github/copilot-instructions.md as the canonical ledger."
+      action: "delete or archive to docs/reports/historical/ with SUPERSEDED banner"
+      evidence:
+        - "4092 lines vs 7305 lines for the root canonical ledger, suggesting divergence and missing entries."
+
+    - file: "kimi-export-session_-20260617-205236.md"
+      reason: "Untracked session transcript artifact at repository root. Not part of the committed source. Contains internal reasoning and stack traces. .gitignore already excludes kimi-export-session_*.md."
+      action: "delete"
+      evidence:
+        - "File exists in working tree but git ls-files returns nothing."
+
+    - file: "docs/audits/CHANGELOG.md"
+      reason: "[Unreleased] section is empty since v2.1.0 release (2026-06-17). Post-v2.1.0 changes (CI repairs, CodeQL updates, bundle budgets) are not recorded."
+      action: "keep but populate"
+      evidence:
+        - "Line 9 shows an empty ## [Unreleased] block."
+
+    - file: "docs/RELEASE/SIGNED_ARTIFACT_EVIDENCE.md"
+      reason: "All entries are 'pending'. The document serves as a template but has no evidence."
+      action: "keep but populate or add banner"
+      evidence:
+        - "Lines 30-32 show all columns as pending."
+
+    - file: "README.md"
+      reason: "Caution block (lines 65-74) claims an active 'Express 5, TypeScript 6, Vite 8' overhaul is underway. The dependabot PR that proposed this was closed on 2026-06-18 without merge. The caution block is now misleading."
+      action: "rewrite or remove"
+      evidence:
+        - "README.md lines 65-74 claim a transitional upgrade, but package.json uses Express 4, TypeScript ~5.8, Vite 6."
+
+    - file: "docs/DOCS_INDEX.md"
+      reason: "Severely incomplete. Lists ~25 entries while docs/ contains 61 .md files. Missing key documents like ABOUT.md, DEVELOPMENT/BRIDGE.md, RELEASE/SIGNED_ARTIFACT_EVIDENCE.md, etc."
+      action: "rewrite"
+      evidence:
+        - "DOCS_INDEX.md missing entries vs actual file count in docs/."
+  missing_coverage:
+    - area: "Timeout and AbortSignal propagation"
+      files:
+        - "src/services/desktopBridge.ts"
+        - "src/services/veniceClient.ts"
+        - "src/utils/timeout.ts"
+      required_tests:
+        - "desktopBridge.ts fetch calls must reject within 10 s when the server is unresponsive."
+        - "veniceClient.ts must reject timeoutMs = 0 and treat it as the default 60 s."
+        - "createTimeoutSignal must not leak timers when the parent signal aborts before the timeout fires."
+
+    - area: "ID validation and prototype pollution"
+      files:
+        - "src/services/storageService.ts"
+        - "src/stores/project-store.ts"
+        - "src/stores/chat-store.ts"
+      required_tests:
+        - "saveItem must reject id = '', id = '__proto__', and id = 'constructor'."
+        - "deleteProject must not call deleteItem with a polluted id."
+        - "markDirtyConversation must throw on empty-string ids."
+
+    - area: "Encryption and data loss diagnostics"
+      files:
+        - "src/services/cryptoService.ts"
+        - "src/services/storageService.ts"
+      required_tests:
+        - "decryptData must distinguish between 'corrupt data' and 'missing key' and surface the reason."
+        - "decodeRows must not silently drop more than 10% of records without a visible error."
+
+    - area: "Import safety and memory pressure"
+      files:
+        - "src/services/exportImport.ts"
+      required_tests:
+        - "Import of a 25 MiB JSON with 5,000 base64 images must be rejected or chunked."
+        - "Import of malformed image strings (not data-URLs) must be rejected."
+
+    - area: "Race conditions in media lineage"
+      files:
+        - "src/stores/media-store.ts"
+      required_tests:
+        - "Two concurrent upsertDerivative calls for the same parent must result in both children being present in childrenIds."
+
+    - area: "Rate limiting and circuit breaker"
+      files:
+        - "server.ts"
+      required_tests:
+        - "The static rate limiter must not share a single bucket when req.ip is missing."
+        - "The circuit breaker must enter half-open state and allow a single probe request."
+
+    - area: "Clipboard fallback behavior"
+      files:
+        - "src/components/chat/message-bubble.tsx"
+        - "src/components/scenes/SceneComposerView.tsx"
+        - "src/components/prompts/PromptLibraryView.tsx"
+      required_tests:
+        - "Test that copy actions succeed when navigator.clipboard is available, and that the fallback fires when navigator.clipboard is undefined or throws."
+
+    - area: "ErrorBoundary recovery"
+      files:
+        - "src/components/ErrorBoundary.tsx"
+        - "src/components/ui/error-boundary.tsx"
+      required_tests:
+        - "Test that 'Try again' resets the boundary without window.location.reload(), and that the reload button is removed or replaced with a soft reset."
+
+    - area: "Gallery handler registration stability"
+      files:
+        - "src/components/gallery/gallery-view.tsx"
+      required_tests:
+        - "Test that registerMediaCommandHandlers is called exactly once on mount, and not on every filter change."
+
+    - area: "ThemeMaker hardcoded color validation"
+      files:
+        - "src/components/ThemeMaker.tsx"
+      required_tests:
+        - "Test that imported legacy themes always derive their success/warning/danger/info colors from the builtin token registry rather than literal hex strings."
+
+    - area: "Build and packaging scripts lack unit tests"
+      files:
+        - "scripts/build-electron.cjs"
+        - "scripts/start-production.cjs"
+        - "scripts/create-cjs-package.cjs"
+        - "scripts/generate-placeholder-icon.cjs"
+        - "scripts/capture-release-qa-snapshots.mjs"
+        - "scripts/init-config.ts"
+        - "scripts/print-config.ts"
+        - "scripts/validate-config.ts"
+      required_tests:
+        - "Verify that build scripts produce the expected output files, handle errors gracefully, and do not write to unexpected paths."
+
+    - area: "Verify contract scripts lack unit tests"
+      files:
+        - "scripts/verify-bundle-budget.cjs"
+        - "scripts/verify-image-policy.cjs"
+        - "scripts/verify-no-native-dialogs.cjs"
+        - "scripts/verify-work-orders.cjs"
+        - "scripts/verify-web-contents-view.cjs"
+        - "scripts/verify-venice-api-docs.cjs"
+        - "scripts/verify-network-boundaries.cjs"
+        - "scripts/verify-document-ingestion.cjs"
+        - "scripts/verify-research-workspace.cjs"
+        - "scripts/verify-research-browser.cjs"
+        - "scripts/verify-rp-studio-polish.cjs"
+        - "scripts/verify-scene-composer.cjs"
+        - "scripts/verify-prompt-library.cjs"
+        - "scripts/verify-status-diagnostics.cjs"
+        - "scripts/verify-model-aware-recipes.cjs"
+        - "scripts/verify-media-studio-power-tools.cjs"
+        - "scripts/verify-workflow-templates.cjs"
+      required_tests:
+        - "At minimum, each verifier should have a test that mocks the expected file tree and asserts pass/fail behavior."
+
+    - area: "IPC handler rate limiting and resource exhaustion"
+      files:
+        - "electron/ipc/handlers.ts"
+        - "electron/ipc/rpHandlers.ts"
+        - "electron/ipc/configHandlers.ts"
+      required_tests:
+        - "Test that rapid venice:request calls (>10/sec) are throttled or rejected."
+        - "Test that jina:request concurrent calls are capped."
+        - "Test that app:proxyScrape concurrent calls are capped."
+        - "Test that chat:save rapid-fire calls do not exhaust the filesystem queue."
+
+    - area: "Redirect validation in network clients"
+      files:
+        - "electron/services/characterImageCache.ts"
+        - "electron/services/veniceClient.ts"
+      required_tests:
+        - "Test that fetchImage rejects or manually validates redirect destinations."
+        - "Test that performVeniceRequest with a 302 response does not follow redirects to private IPs."
+
+    - area: "Config path env override security"
+      files:
+        - "electron/services/configService.ts"
+      required_tests:
+        - "Test that VENICE_FORGE_CONFIG_FILE=/etc/passwd is rejected by resolvePaths()."
+        - "Test that writeSanitizedConfig refuses to write outside the userData/home directory tree."
+        - "Test that VENICE_FORGE_THEMES_FILE with path traversal is rejected."
+
+    - area: "Research Browser URL confirmation"
+      files:
+        - "electron/services/researchBrowserServer.ts"
+      required_tests:
+        - "Test that researchBrowser:openExternal requires a confirmation dialog before shell.openExternal."
+        - "Test that javascript:, file:, about: URLs are blocked even when passed through loadURL."
+
+    - area: "Protocol handler size limits"
+      files:
+        - "electron/main.ts"
+      required_tests:
+        - "Test that venice-character-cache:// rejects files larger than MAX_CHARACTER_IMAGE_BYTES."
+
+    - area: "conversations:pullContext parameter bounds"
+      files:
+        - "electron/ipc/handlers.ts"
+      required_tests:
+        - "Test that maxItems > 100 and maxTokens > 10000 are clamped to safe defaults."
+  verification_commands:
+    - "npm ci"
+    - "npm run lint:eslint"
+    - "npm run typecheck"
+    - "npm run test"
+    - "npm run verify:safety-guard"
+    - "npm run verify:contracts"
+    - "npm run verify:markdown-links"
+    - "npm run build"
+    - "npm run ci"
+
+  final_gate:
+    pass: false
+    blockers:
+      - "AUDIT-001: Dev session API keys live in unencrypted memory with no TTL — shared dev container risk."
+      - "AUDIT-002: Web session API keys live in renderer module-level memory forever — XSS risk."
+      - "AUDIT-003: dangerouslySetInnerHTML in markdown renderer without DOMPurify — XSS risk."
+      - "AUDIT-004: timeoutMs = 0 bypasses the 60-second safety cap — infinite hang risk."
+      - "AUDIT-005: Empty-string and prototype-pollution IDs silently corrupt IndexedDB — data integrity risk."
+      - "AUDIT-007: Race condition in upsertDerivative loses children references — lineage corruption."
+      - "AUDIT-014: as unknown as MediaItem cast propagates malformed data into encrypted store."
+      - "AUDIT-015: navigator.clipboard.writeText without fallback breaks sandboxed Electron — UX failure."
+      - "AUDIT-018: Gallery command handlers re-register on every filter keystroke — performance/race risk."
+      - "AUDIT-019: VENICE_FORGE_CONFIG_FILE env override allows arbitrary file overwrite — filesystem integrity."
+      - "AUDIT-022: Floating CI runner tags (ubuntu-latest) can silently break builds — release risk."
+      - "AUDIT-023: Missing CI concurrency block causes parallel run races — resource/test flakiness risk."
+    non_blocking:
+      - "AUDIT-006: Dedupe key materializes secrets in JS heap."
+      - "AUDIT-008: Encryption silent failure drops records with no diagnostics."
+      - "AUDIT-009: Missing IndexedDB index causes unbounded memory load."
+      - "AUDIT-010: Import does not validate data-URL format."
+      - "AUDIT-011: 25 MiB import cap allows renderer OOM."
+      - "AUDIT-012: Hardcoded model IDs (flux-dev, upscale-model placeholder) may break API calls."
+      - "AUDIT-013: No timeout on bridge fetches causes auth UI hang."
+      - "AUDIT-016: SceneComposer clipboard without fallback."
+      - "AUDIT-017: PromptLibrary clipboard without fallback."
+      - "AUDIT-020: researchBrowser:openExternal bypasses confirmation dialog."
+      - "AUDIT-021: characterImageCache follows redirects without validation."
+      - "AUDIT-024: Rate limiter falls back to shared 'unknown' bucket."
+      - "AUDIT-025: project-store deleteProject lacks ID validation."
+      - "AUDIT-026: diagnosticsService casts settings to unknown shape."
+      - "AUDIT-027: Model cache in localStorage leaks browsing history."
+      - "AUDIT-028: promptStarterService fetch has no timeout."
+      - "AUDIT-029: Hardcoded magic numbers in stores."
+      - "AUDIT-030: chat-store markDirtyConversation lacks ID validation."
+      - "AUDIT-031: Inconsistent retry backoff between desktop and web."
+      - "AUDIT-032: Missing button types in SettingsView."
+      - "AUDIT-033: Missing button types in sidebar."
+      - "AUDIT-034: Missing button types in ThemeMaker."
+      - "AUDIT-035: React key anti-pattern in ImageGenerationPreview."
+      - "AUDIT-036: React key anti-pattern in compare-view."
+      - "AUDIT-037: document.querySelector in StatusView."
+      - "AUDIT-038: Hardcoded colors in ThemeMaker."
+      - "AUDIT-039: Unhandled katex CSS import."
+      - "AUDIT-040: querySelectorAll in CommandPalette."
+      - "AUDIT-041: querySelectorAll in useFocusTrap."
+      - "AUDIT-042: Missing alt text in ImageGenerationPreview."
+      - "AUDIT-043: Missing alt text in AssetGallery."
+      - "AUDIT-044: ErrorBoundary uses window.location.reload()."
+      - "AUDIT-045: ui/error-boundary uses window.location.reload()."
+      - "AUDIT-046: FirstRunModal scroll lock without abort guard."
+      - "AUDIT-047: ConfirmModal scroll lock without abort guard."
+      - "AUDIT-048: app:proxyScrape allows HTTP URLs."
+      - "AUDIT-049: No rate limiting on IPC handlers."
+      - "AUDIT-050: No concurrency cap in performVeniceRequest."
+      - "AUDIT-051: pullContext maxItems/maxTokens unbounded."
+      - "AUDIT-052: Shell command injection in generate-placeholder-icon.cjs."
+      - "AUDIT-053: Tautological tests in server.test.ts."
+      - "AUDIT-054: Stale coverage thresholds in AGENTS.md."
+      - "AUDIT-055: README missing History and Privacy tabs."
+      - "AUDIT-056: ABOUT.md missing 4 tabs."
+      - "AUDIT-057: copilot-instructions.md undercounts tabs."
+      - "AUDIT-058: CHANGELOG.md stale claim about 14 tabs."
+      - "AUDIT-059: DOCS_INDEX.md severely incomplete."
+      - "AUDIT-060: AGENTS.md understates Zustand store surface."
+      - "AUDIT-061: README caution block about closed upgrade PR."
+      - "AUDIT-062: Orphaned verify:workspace-contracts script."
+      - "AUDIT-063: Undocumented package.json overrides."
+      - "AUDIT-064: Mixed line endings in tsconfig.electron.json."
+      - "AUDIT-065: build-electron.cjs destructive rm without path guard."
+      - "AUDIT-066: .bak backup files in repository."
+      - "AUDIT-067: use-model-catalog-mock.ts uses any."
+      - "AUDIT-068: Untracked kimi-export-session file in root."
+      - "AUDIT-069: Stale duplicate summary_of_work.md in docs/audits/."
+      - "AUDIT-070: Hardcoded copyright year in electron-builder config."
+      - "AUDIT-071: SIGNED_ARTIFACT_EVIDENCE.md all pending."
+      - "AUDIT-072: CONTRIBUTING.md vs README packaging check mismatch."
+      - "AUDIT-073: venice-character-cache protocol lacks size cap."
+      - "AUDIT-074: config:getStatus exposes absolute paths."
+      - "AUDIT-075: Research browser uses persistent session without clear."
+      - "AUDIT-076: Brittle env var setup in server.test.ts."
+      - "AUDIT-077: chat-input auto-focus race condition."
+      - "AUDIT-078: DiagnosticsDrawer duplicate section keys."
+      - "AUDIT-079: 600+ hardcoded Tailwind arbitrary values."
+      - "AUDIT-080: Third-party release action with write permissions."

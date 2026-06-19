@@ -95,7 +95,7 @@ npm run build:electron   # Only electron main/preload → dist-electron/
 npm run build:web        # Only renderer → dist/ (sets ELECTRON_BUILD=true)
 npm run build:server     # Only proxy → dist/server.cjs
 npm run smoke:electron   # tests/smoke/electron-smoke.test.ts (Playwright; skipped when no display)
-npm run test:coverage    # v8 coverage; current enforced thresholds branches 57 / functions 61 / lines 68 / statements 65 (long-term target 70/80/80/80)
+npm run test:coverage    # v8 coverage; current enforced thresholds branches 61 / functions 68 / lines 73 / statements 70 (long-term target 70/80/80/80)
 npm run profile:media-studio # Isolated Electron profile with 1,000 encrypted media records
 npm run verify:dist      # Build outputs only; does not require release/
 npm run verify:build-output  # Alias of verify:dist (semantically clearer name)

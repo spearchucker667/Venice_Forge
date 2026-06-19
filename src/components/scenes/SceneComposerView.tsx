@@ -23,6 +23,7 @@ import { useProjectStore } from "../../stores/project-store";
 import { useImageWorkspaceStore } from "../../stores/image-workspace-store";
 import { usePromptLibraryStore } from "../../stores/prompt-library-store";
 import { toast } from "../../stores/toast-store";
+import { copyText } from "../../stores/media-send-to";
 import { compileSceneToRecipe } from "../../services/sceneCompiler";
 
 const COMPONENT_KIND_OPTIONS: Array<{ value: SceneComponentKind; label: string }> = [
@@ -477,7 +478,7 @@ function SceneDetail(props: SceneDetailProps) {
     await ensurePromptsLoaded();
     const result = compileSceneToRecipe(item, currentVersion, { resolvePrompt: resolvePromptRef });
     const text = JSON.stringify(result.recipe, null, 2);
-    void navigator.clipboard.writeText(text);
+    await copyText(text);
     toast.success("Recipe copied to clipboard");
   };
 

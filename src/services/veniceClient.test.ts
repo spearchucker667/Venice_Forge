@@ -1,7 +1,7 @@
 /** @fileoverview Unit tests for veniceClient utility functions. */
 
 import { describe, expect, it, vi } from "vitest";
-import { summarizeDiagnostics, normalizeError, readWebErrorBody, extractModelName, dedupeKey, serializeFormData } from "./veniceClient";
+import { summarizeDiagnostics, normalizeError, readWebErrorBody, extractModelName, dedupeKey, serializeFormData, resolveTimeoutMs } from "./veniceClient";
 import { sleep } from "../utils/timeout";
 
 describe("veniceClient utilities", () => {
@@ -38,6 +38,42 @@ describe("veniceClient utilities", () => {
     it("treats undefined body as empty hash", () => {
       const key = dedupeKey("/models", "GET", undefined);
       expect(key).toBe("GET /models ");
+    });
+
+    it("redacts secret-bearing fields before stringifying request bodies", () => {
+      const key = dedupeKey("/chat/completions", "POST", {
+        apiKey: "sk-test-secret",
+        authorization: "Bearer secret",
+        token: "secret-token",
+        prompt: "hello",
+        nested: { "api_key": "venice_nested_secret", keep: "visible" },
+      });
+
+      expect(key).not.toContain("sk-test-secret");
+      expect(key).not.toContain("Bearer secret");
+      expect(key).not.toContain("secret-token");
+      expect(key).not.toContain("venice_nested_secret");
+      expect(key).toContain("hello");
+      expect(key).toContain("visible");
+    });
+  });
+
+  describe("resolveTimeoutMs", () => {
+    it("preserves undefined as no explicit timeout override", () => {
+      expect(resolveTimeoutMs(undefined)).toBeNull();
+    });
+
+    it.each([
+      [null, 60000],
+      [0, 60000],
+      [-1, 60000],
+      [Number.NaN, 60000],
+      [Number.POSITIVE_INFINITY, 60000],
+      [1, 1],
+      [60000, 60000],
+      [120001, 120000],
+    ])("normalizes %s to %s", (input, expected) => {
+      expect(resolveTimeoutMs(input)).toBe(expected);
     });
   });
 

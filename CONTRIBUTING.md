@@ -71,8 +71,9 @@ npm run build
 npm run verify:icon
 npm run dist:mac # or dist:win, depending on your OS
 npm run checksum:release
-npm run verify:dist:mac # or verify:dist:win
-npm run verify:dist:portable # Windows only
+npm run verify:dist:mac # macOS artifacts, on macOS
+npm run verify:dist:win # Windows installer + portable, on Windows
+npm run verify:dist:portable # Windows portable only
 ```
 
 All commands and validations must pass before opening a PR. Note that Windows releases must be validated on Windows, and macOS releases on macOS.
@@ -112,7 +113,7 @@ See [SECURITY.md](SECURITY.md) for the full security model.
 - [ ] `npm run typecheck` passes
 - [ ] `npm test` passes
 - [ ] `npm run build` passes
-- [ ] Platform-specific packaging checks (`npm run verify:dist:win`, `npm run verify:dist:mac`, and `npm run verify:dist:portable`) pass
+- [ ] Platform-specific packaging checks pass for the target OS (`npm run verify:dist:win` and `npm run verify:dist:portable` on Windows; `npm run verify:dist:mac` on macOS)
 - [ ] New code includes tests where applicable
 - [ ] Documentation updated (README, AGENTS.md, docs/FAQ.md, etc.)
 - [ ] `docs/audits/CHANGELOG.md` updated under `[Unreleased]`

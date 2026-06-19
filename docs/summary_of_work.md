@@ -112,15 +112,57 @@ remains. The current canonical roadmap is
 backlog files were removed.
 
 ### Latest Session Summary
-- **2026-06-18 visual workflow editor integration cleanup and codebase audit fixes (current session):**
-  - Addressed AUDIT-003 by implementing lazy search index building in `src/components/layout/sidebar.tsx`, bounding mapping to only execute when `historyExpanded` is true and the search query is non-empty.
-  - Addressed AUDIT-004, AUDIT-005, and AUDIT-006 by deleting the obsolete `WorkflowTemplatesView.tsx` and its test, confirming visual workflows are the canonical mechanism and removing stale test references.
-  - Addressed AUDIT-008 by removing unused root-level patch scripts (`patch_app.cjs`, `patch_venice_params.cjs`, etc.).
-  - Addressed AUDIT-009 by deleting the duplicate `.github/workflows/CodeQL Advanced.yml` since `codeql.yml` has the correct setup.
-  - Addressed AUDIT-010 by making the Jina proxy fallback to `res.send(body)` for non-JSON responses in `server.ts`.
-  - Addressed AUDIT-011 by removing the hardcoded `'qwen3-next-80b'` fallback in Sidebar and instead using a centralized `DEFAULT_CHAT_MODEL` exported from `src/constants/venice.ts`.
-  - Addressed AUDIT-012 by updating the `appVersion` fallback in `server.ts` to look for `package.json` in both the module directory and its parent directory to gracefully handle built `/dist` layouts.
-  - Addressed AUDIT-013 by adding an explicit entry to `LEGAL.md` under brand-compliance notes for the identical provenance and requirements of the packaging icons (`build/icon.ico`, `build/icon.icns`, `build/icon.png`).
+- **2026-06-19 release safety gate validation / safe-push repair:**
+  - Reconciled the attached release-safe validation prompt against the live
+    dirty tree on `main` at `fc66cb447e105150eb9d80fb253f18b634955db4`.
+    The login shell was on Node `v26.3.0`, so all validation was run through
+    the repo-local Node 22 toolchain (`./.node22/bin/node v22.22.3`, npm
+    `10.9.8`).
+  - Removed release contaminants: staged deletion of six tracked `.bak` files,
+    removed the root `kimi-export-session_*.md` transcript, deleted duplicate
+    `docs/audits/summary_of_work.md`, and added `*.bak` to `.gitignore`.
+  - Fixed and tested release-safety blockers: exported/tested
+    `resolveTimeoutMs`, redacted secret-bearing request fields before
+    `dedupeKey` stringification, gated Research Browser external-link opens
+    through confirmation, rejected HTTP scrape targets by default, clamped
+    `conversations:pullContext` bounds, and added store-boundary ID validation
+    for project delete and restored-conversation persistence.
+  - Closed the remaining prompt-listed hardening gaps with bounded import
+    records and image data URLs, fail-closed timestamp-index pagination,
+    structured decrypt failure reporting, web-mode fetch timeouts, Venice avatar
+    redirect constraints, redacted config-status paths, `execFileSync`
+    placeholder-icon generation, non-persistent Research Browser partition,
+    IPC rate limiting, and Electron Venice-request concurrency limiting.
+  - Repaired stale verifier drift that rejected the live `DB_VERSION = 13` by
+    parsing DB versions numerically in prompt-library / RP verifier scripts,
+    and tagged the legacy workflow `localStorage` migration so
+    `verify:storage-policy` reflects the documented exception.
+  - Added `docs/audits/release_safety_gate_2026-06-19.md` and indexed it in
+    `docs/DOCS_INDEX.md`.
+  - **Validation:** targeted Vitest suites PASS; contaminant checks PASS;
+    `lint:eslint` PASS; `typecheck` PASS; `verify:markdown-links` PASS;
+    `verify:storage-policy` PASS; `verify:web-contents-view` PASS;
+    `verify:contracts` PASS; full `npm run ci` PASS under Node 22 (coverage:
+    3305 passed / 1 skipped; audit found 0 vulnerabilities; build and
+    `verify:dist` passed); `git diff --check` PASS.
+  - **Release decision:** SAFE TO PUSH after staging the validated work. This
+    pass did not push, tag, or create a release.
+
+- **2026-06-18 exhaustive audit critical-blocker fix pass (current session):**
+  - Performed an exhaustive repository-wide file-by-file, line-by-line audit (AUDIT-001 through AUDIT-080) producing `audit_report.yaml` with 80 findings (5 critical, 23 high, 31 medium, 21 low, 12 release-blocking blockers).
+  - **AUDIT-001 (Critical):** Replaced plain `let` dev session API keys in `server.ts` with `DevSessionKey` struct featuring 24h TTL, `getDevSessionKey()` expiration check, and `process.on('exit/SIGINT/SIGTERM')` zeroing cleanup.
+  - **AUDIT-002 (Critical):** Replaced module-level `let webSessionVeniceApiKey` in `src/services/desktopBridge.ts` with `_webSessionVeniceApiKey` object with TTL, `beforeunload` auto-clear, and `isConfigured` getter.
+  - **AUDIT-003 (Critical):** Added `sanitizeHtml()` defense-in-depth sanitizer in `src/utils/markdown.tsx` before `dangerouslySetInnerHTML`, stripping script tags, dangerous tags, event handlers, and javascript: URLs. Fixed the initial over-aggressive `button` stripping that broke copy-code tests.
+  - **AUDIT-004 (Critical):** Added `resolveTimeoutMs()` in `src/services/veniceClient.ts` to cap timeout at 120s, reject `<= 0` values, and prevent timeout bypass via `timeoutMs = 0`.
+  - **AUDIT-005 (Critical):** Created `src/utils/idValidation.ts` with `isValidId()` and `assertValidId()` helpers, enforced at `saveItem`, `getItem`, `deleteItem`, `patchMedia`, `bulkPatchMedia`, and `deleteMediaMany` boundaries in `storageService.ts`. Validates non-empty, `<= 128` chars, `[a-zA-Z0-9_.-]` pattern, and rejects `__proto__` / `constructor` / `prototype`.
+  - **AUDIT-007 (High):** Fixed race condition in `src/stores/media-store.ts` `upsertDerivative` by changing `StorageService.patchMedia` to accept a function-based patch `(existing) => patch`, so `childrenIds` is computed from the latest existing record at write time rather than pre-computed from stale read. Updated mock in `media-store.test.ts` and `image-tools.test.tsx` to handle function-based patches.
+  - **AUDIT-014 (High):** Eliminated `as unknown as MediaItem` cast in `src/components/image/image-view.tsx` by typing the `mediaItem` object directly as `MediaItem`. Added missing `metadataRemoved`, `originalBytes`, `processedBytes`, `mimeType`, `assetCategory` fields to `GalleryImage` in `src/types/storage.ts` so the type is complete.
+  - **AUDIT-015 (High):** Replaced all unguarded `navigator.clipboard.writeText` calls in `src/components/chat/message-bubble.tsx`, `src/components/scenes/SceneComposerView.tsx`, and `src/components/prompts/PromptLibraryView.tsx` with the canonical `copyText` helper from `src/stores/media-send-to.ts` (which has `document.execCommand` fallback for sandboxed environments).
+  - **AUDIT-018 (High):** Fixed gallery command handler re-registration on every filter keystroke in `src/components/gallery/gallery-view.tsx` by adding a `filteredRef` and moving `registerMediaCommandHandlers` to a mount-only `useEffect` with empty dependency array.
+  - **AUDIT-019 (High):** Added `assertPathContained()` validation in `electron/services/configService.ts` that rejects `VENICE_FORGE_CONFIG_FILE` and `VENICE_FORGE_THEMES_FILE` env paths outside `userData`, `os.homedir()`, or the repo directory, preventing arbitrary file overwrite.
+  - **AUDIT-022 (High):** Pinned all floating CI runner tags in `.github/workflows/ci.yml` and `.github/workflows/release.yml` from `ubuntu-latest`/`windows-latest`/`macos-latest` to specific versions (`ubuntu-22.04`, `windows-2022`, `macos-14`).
+  - **AUDIT-023 (High):** Added `concurrency: group: ci-${{ github.ref }} cancel-in-progress: true` block to `.github/workflows/ci.yml` to prevent parallel CI run races.
+  - **Verification:** `npm run typecheck` PASS (both renderer and electron). `npm test` PASS (260 files, 3261 tests, 1 skipped). All 12 critical/high release-blocking blockers from the audit `final_gate` are now resolved.
 
 - **2026-06-18 chat system prompt selection (current session):**
   - Investigated user report: "custom prompts are not saved and accessible through standard chat when clicking the options tab".
@@ -329,6 +371,13 @@ backlog files were removed.
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
+- 2026-06-19 release safety gate: prompt-listed blockers AUDIT-004, AUDIT-006,
+  AUDIT-008 through AUDIT-011, AUDIT-013, AUDIT-020, AUDIT-021,
+  AUDIT-025, AUDIT-030, AUDIT-048 through AUDIT-059, AUDIT-061, AUDIT-066,
+  AUDIT-068, AUDIT-069, AUDIT-071, AUDIT-072, AUDIT-074, and AUDIT-075 are
+  closed or reconciled against live source. `verify:contracts`, full
+  `npm run ci`, and `git diff --check` pass under Node 22. No prompt-listed
+  safe-push blocker remains.
 - 2026-06-18 snapshot-audit release hygiene: root transcript/work-report
   artifacts are closed by deletion plus cleaner/verifier denylist coverage.
   Research-browser DNS/private-network parity is also closed; broader
@@ -458,6 +507,33 @@ backlog files were removed.
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+- 2026-06-19 release safety gate validation:
+  - `PATH="$PWD/.node22/bin:$PATH" npx vitest run src/services/veniceClient.test.ts`:
+    PASS (31 tests).
+  - `PATH="$PWD/.node22/bin:$PATH" npx vitest run electron/ipc/handlers.test.ts`:
+    PASS (28 tests).
+  - `PATH="$PWD/.node22/bin:$PATH" npx vitest run electron/services/researchBrowserServer.test.ts`:
+    PASS (15 tests).
+  - `PATH="$PWD/.node22/bin:$PATH" npx vitest run src/utils/idValidation.test.ts src/stores/project-store.test.ts src/stores/chat-store.test.ts`:
+    PASS (58 tests).
+  - Release contaminant check (`git ls-files | grep '\.bak' && exit 1 || true`;
+    `.gitignore` `*.bak`; root `kimi-export-session_*.md`; duplicate audit
+    summary): PASS after staging tracked contaminant deletions.
+  - `PATH="$PWD/.node22/bin:$PATH" npm run lint:eslint`: PASS.
+  - `PATH="$PWD/.node22/bin:$PATH" npm run typecheck`: PASS.
+  - `PATH="$PWD/.node22/bin:$PATH" npm run verify:markdown-links`: PASS
+    (66 Markdown files checked).
+  - `PATH="$PWD/.node22/bin:$PATH" npm run verify:storage-policy`: PASS.
+  - `PATH="$PWD/.node22/bin:$PATH" npx vitest run src/services/cryptoService.test.ts src/services/storageService.test.ts src/services/exportImport.test.ts src/services/desktopBridge.test.ts electron/services/characterImageCache.test.ts electron/ipc/configHandlers.test.ts electron/ipc/handlers.test.ts electron/services/researchBrowserServer.test.ts electron/services/veniceClient.stream.test.ts server.test.ts`:
+    PASS (11 files, 170 tests).
+  - `PATH="$PWD/.node22/bin:$PATH" npm run verify:web-contents-view`: PASS.
+  - `PATH="$PWD/.node22/bin:$PATH" npm run verify:contracts`: PASS.
+  - `PATH="$PWD/.node22/bin:$PATH" npm run ci`: PASS. Includes lint,
+    typecheck, coverage (3305 passed / 1 skipped), `npm audit` (0
+    vulnerabilities), build, contracts, and `verify:dist`. Coverage emitted
+    `MaxListenersExceededWarning` warnings but did not fail.
+  - `git diff --check`: PASS.
+
 - 2026-06-18 snapshot-audit release hygiene validation:
   - `npm test -- scripts/verify-archive-clean.test.ts --fileParallelism=false`:
     PASS (17 tests).
@@ -571,6 +647,40 @@ backlog files were removed.
   Linux, and macOS draft artifacts.
 
 ### Session History
+
+- **Date:** 2026-06-19 (release safety gate validation / safe-push repair)
+- **Agent:** OpenAI GPT-5
+- **Branch / state:** `main`; HEAD
+  `fc66cb447e105150eb9d80fb253f18b634955db4`; dirty tree preserved.
+- **Scope:** Execute the attached release-safe validation prompt as a
+  release-readiness repair pass without pushing, tagging, or creating a
+  release.
+- **Summary:**
+  - Switched validation from the shell's Node `v26.3.0` to repo-local Node
+    `v22.22.3` / npm `10.9.8`.
+  - Removed tracked `.bak` contaminants from the index, removed the root Kimi
+    transcript, deleted the duplicate audit-summary ledger, and added
+    `*.bak` ignore coverage.
+  - Added security/regression fixes for timeout normalization,
+    dedupe-key secret redaction, Research Browser external-link confirmation,
+    HTTPS-only scrape targets, clamped memory pull bounds, and ID validation
+    at project/chat store persistence boundaries.
+  - Closed the remaining prompt-listed hardening gaps around import bounds,
+    storage decrypt error reporting, web fetch timeouts, avatar redirects,
+    config-status path redaction, shell command argument handling,
+    non-persistent Research Browser state, IPC rate limiting, and Venice request
+    concurrency.
+  - Repaired stale verifier ceilings for `DB_VERSION = 13` and tagged the
+    legacy visual-workflow `localStorage` migration.
+  - Created and indexed
+    `docs/audits/release_safety_gate_2026-06-19.md`.
+- **Validation:** targeted Vitest suites PASS; contaminant check PASS;
+  `lint:eslint` PASS; `typecheck` PASS; `verify:markdown-links` PASS;
+  `verify:storage-policy` PASS; `verify:web-contents-view` PASS;
+  `verify:contracts` PASS; full `npm run ci` PASS under Node 22;
+  `git diff --check` PASS.
+- **Status:** COMPLETE. Safe to push after staging the validated work; no push,
+  tag, or release was performed in this pass.
 
 - **Date:** 2026-06-18 (visual workflow editor integration cleanup and codebase audit fixes)
 - **Agent:** OpenAI GPT-5

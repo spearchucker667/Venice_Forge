@@ -112,8 +112,41 @@ export const desktopVenice = {
   },
 };
 
-/** Ephemeral web-session Venice key. It is intentionally never persisted. */
-let webSessionVeniceApiKey = "";
+/** Ephemeral web-session Venice key container with TTL and auto-cleanup (AUDIT-002). */
+const _webSessionVeniceApiKey = {
+  value: "",
+  setAt: 0,
+  /** 24-hour TTL for the ephemeral session key. */
+  TTL_MS: 24 * 60 * 60 * 1000,
+  get isConfigured(): boolean {
+    return this.value.length > 0 && Date.now() - this.setAt < this.TTL_MS;
+  },
+  get key(): string {
+    return this.isConfigured ? this.value : "";
+  },
+  set(key: string) {
+    this.value = key;
+    this.setAt = Date.now();
+  },
+  clear() {
+    this.value = "";
+    this.setAt = 0;
+  },
+};
+
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => _webSessionVeniceApiKey.clear());
+}
+
+export async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 10000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /** Manages the Venice API key across desktop and web storage backends. */
 export const desktopApiKey = {
@@ -124,12 +157,12 @@ export const desktopApiKey = {
   async isConfigured(): Promise<boolean> {
     if (isElectron()) return window.veniceForge!.apiKey.isConfigured();
     try {
-      const response = await fetch("/api/session-key");
-      if (!response.ok) return webSessionVeniceApiKey.length > 0;
+      const response = await fetchWithTimeout("/api/session-key");
+      if (!response.ok) return _webSessionVeniceApiKey.isConfigured;
       const payload = await response.json().catch(() => null) as { configured?: unknown } | null;
       return payload?.configured === true;
     } catch {
-      return webSessionVeniceApiKey.length > 0;
+      return _webSessionVeniceApiKey.isConfigured;
     }
   },
 
@@ -140,13 +173,13 @@ export const desktopApiKey = {
    */
   async set(key: string): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.apiKey.set(key);
-    const response = await fetch("/api/session-key", {
+    const response = await fetchWithTimeout("/api/session-key", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key }),
     });
     if (!response.ok) return { ok: false };
-    webSessionVeniceApiKey = key;
+    _webSessionVeniceApiKey.set(key);
     return { ok: true };
   },
 
@@ -156,9 +189,9 @@ export const desktopApiKey = {
    */
   async delete(): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.apiKey.delete();
-    const response = await fetch("/api/session-key", { method: "DELETE" });
+    const response = await fetchWithTimeout("/api/session-key", { method: "DELETE" });
     if (!response.ok) return { ok: false };
-    webSessionVeniceApiKey = "";
+    _webSessionVeniceApiKey.clear();
     return { ok: true };
   },
 
@@ -728,7 +761,7 @@ export const desktopJinaApiKey = {
   async isConfigured(): Promise<boolean> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.isConfigured();
     try {
-      const response = await fetch("/api/session-jina-key");
+      const response = await fetchWithTimeout("/api/session-jina-key");
       if (!response.ok) return false;
       const payload = await response.json().catch(() => null) as { configured?: unknown } | null;
       return payload?.configured === true;
@@ -738,7 +771,7 @@ export const desktopJinaApiKey = {
   },
   async set(key: string): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.set(key);
-    const response = await fetch("/api/session-jina-key", {
+    const response = await fetchWithTimeout("/api/session-jina-key", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key }),
@@ -747,13 +780,13 @@ export const desktopJinaApiKey = {
   },
   async delete(): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.delete();
-    const response = await fetch("/api/session-jina-key", { method: "DELETE" });
+    const response = await fetchWithTimeout("/api/session-jina-key", { method: "DELETE" });
     return { ok: response.ok };
   },
   async test(): Promise<{ ok: boolean; status?: number; message: string }> {
     if (isElectron()) return window.veniceForge!.jinaApiKey.test();
     try {
-      const resp = await fetch("/api/proxy-jina", {
+      const resp = await fetchWithTimeout("/api/proxy-jina", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -865,7 +898,7 @@ export const desktopJina = {
     try {
       const headers = { ...input.headers };
 
-      const response = await fetch("/api/proxy-jina", {
+      const response = await fetchWithTimeout("/api/proxy-jina", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

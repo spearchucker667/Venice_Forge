@@ -718,32 +718,24 @@ describe("server.ts Local Family Safe Mode decision matrix", () => {
 });
 
 describe("server.ts scrape proxy error handling", () => {
-  it("returns 500 with a generic message for unexpected scrape errors", async () => {
+  it("rejects malformed scrape URLs with exact 400 shape", async () => {
     const response = await request(createServerApp())
       .post("/api/proxy-scrape")
       .set("X-Venice-Forge-Family-Safe-Mode", "false")
-      .send({ url: "https://invalid-protocol-test" });
+      .send({ url: "not a url" });
 
-    // Invalid protocol triggers a 400, not 500. To trigger an unexpected error,
-    // we rely on the catch-all path: malformed URLs that pass initial validation
-    // but fail downstream are rare. Instead assert the generic shape is used
-    // whenever a 500 occurs from an unknown error source.
-    expect([400, 403, 451, 500]).toContain(response.status);
-    if (response.status === 500) {
-      expect(response.body.error).not.toMatch(/TypeError|Cannot read/i);
-    }
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: "Invalid URL format" });
   });
 
-  it("survives malformed percent-encoding in the scrape URL for screening", async () => {
+  it("rejects malformed percent-encoding with exact 400 shape", async () => {
     const response = await request(createServerApp())
       .post("/api/proxy-scrape")
       .set("X-Venice-Forge-Family-Safe-Mode", "false")
       .send({ url: "https://example.com/bad%ZZ" });
 
-    // The malformed URL should not crash decodeURIComponent; the handler
-    // continues validation. The exact downstream status is not the focus
-    // of this regression guard — we only assert it did not throw.
-    expect([400, 403, 451, 200, 500, 504]).toContain(response.status);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: "Malformed percent-encoding in URL" });
   });
 
   it("/api/proxy-scrape rejects malformed percent-encoding before DNS/network", async () => {

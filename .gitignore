@@ -48,6 +48,7 @@ Thumbs.db
 desktop.ini
 *.log
 *.tmp
+*.bak
 .env*
 !.env.example
 .integration-src/

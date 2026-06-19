@@ -16,6 +16,29 @@ const MAX_VENICE_RESPONSE_BYTES = 25 * 1024 * 1024;
 
 /** Tracks active requests so they can be aborted by signal ID. */
 const activeRequests = new Map<string, { destroy: () => void }>();
+export const MAX_CONCURRENT_VENICE_REQUESTS = 10;
+let activeVeniceRequests = 0;
+const veniceQueue: Array<() => void> = [];
+
+async function acquireVeniceSlot(): Promise<() => void> {
+  if (activeVeniceRequests < MAX_CONCURRENT_VENICE_REQUESTS) {
+    activeVeniceRequests += 1;
+    return releaseVeniceSlot;
+  }
+  await new Promise<void>((resolve) => veniceQueue.push(resolve));
+  activeVeniceRequests += 1;
+  return releaseVeniceSlot;
+}
+
+function releaseVeniceSlot(): void {
+  activeVeniceRequests = Math.max(0, activeVeniceRequests - 1);
+  const next = veniceQueue.shift();
+  if (next) next();
+}
+
+export function getVeniceConcurrencyStateForTests(): { active: number; queued: number } {
+  return { active: activeVeniceRequests, queued: veniceQueue.length };
+}
 
 /** Describes a single entry within a serialized FormData payload. */
 interface SerializedFormDataEntry {
@@ -327,6 +350,7 @@ export async function performVeniceRequest(
     };
   }
 
+  const release = await acquireVeniceSlot();
   return new Promise<VeniceIpcResponse>((resolve, reject) => {
     let bodyText: string | Buffer | undefined;
     let contentTypeOverride: string | undefined;
@@ -472,7 +496,7 @@ export async function performVeniceRequest(
 
     if (bodyText !== undefined) req.write(bodyText);
     req.end();
-  }).then((response) => {
+  }).finally(release).then((response) => {
     if (!response.ok) setLastApiError(readResponseError(response));
     return response;
   });

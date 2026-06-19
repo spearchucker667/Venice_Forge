@@ -2,7 +2,8 @@
 
 import { DB_NAME, DB_VERSION, STORE_NAMES } from "../constants/venice";
 import { warn } from "../shared/logger";
-import { encryptData, decryptData } from "./cryptoService";
+import { assertValidId, isValidId } from "../utils/idValidation";
+import { encryptData, decryptDataResult } from "./cryptoService";
 import { applyMigrations } from "./dbMigrations";
 
 type StoreName = (typeof STORE_NAMES)[number];
@@ -58,7 +59,11 @@ async function decodeRows<T>(store: StoreName, rows: Record<string, unknown>[]):
 
   const decrypted = await Promise.all(
     rows.map(async (row) => {
-      if (row._isEncryptedWrapper === true && row.data) return decryptData(row.data);
+      if (row._isEncryptedWrapper === true && row.data) {
+        const result = await decryptDataResult(row.data);
+        if (!result.ok) return null;
+        return result.data;
+      }
       if (row._isEncryptedWrapper === true) return null;
       return row;
     }),
@@ -71,6 +76,13 @@ async function decodeRows<T>(store: StoreName, rows: Record<string, unknown>[]):
     );
   }
   return { items: decrypted.filter(Boolean) as T[], decryptFailures };
+}
+
+export class MissingTimestampIndexError extends Error {
+  constructor(store: StoreName) {
+    super(`IndexedDB store "${store}" is missing required timestamp index.`);
+    this.name = "MissingTimestampIndexError";
+  }
 }
 
 /**
@@ -122,6 +134,7 @@ const StorageService = {
   async saveItem<T extends Record<string, unknown>>(store: StoreName, item: T): Promise<T & { id: string; timestamp: number }> {
     const db = await this.openDB();
     const id = typeof item.id === "string" ? item.id : crypto.randomUUID();
+    assertValidId(id, "saveItem");
     const timestamp = typeof item.timestamp === "number" ? item.timestamp : Date.now();
 
     let payload: Record<string, unknown> = { ...item, id, timestamp };
@@ -173,15 +186,7 @@ const StorageService = {
     const objectStore = tx.objectStore(store);
 
     if (!objectStore.indexNames.contains("timestamp")) {
-      const result = await this.getItemsWithMeta<T>(store);
-      return {
-        ...result,
-        items: result.items.slice(offset, offset + limit),
-        total: result.items.length,
-        offset,
-        limit,
-        hasMore: offset + limit < result.items.length,
-      };
+      throw new MissingTimestampIndexError(store);
     }
 
     return new Promise((resolve, reject) => {
@@ -243,7 +248,7 @@ const StorageService = {
    * @returns A promise resolving to the decrypted record or null.
    */
   async getItem<T = unknown>(store: StoreName, id: string): Promise<T | null> {
-    if (typeof id !== "string" || !id) return null;
+    if (!isValidId(id)) return null;
     const db = await this.openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(store, "readonly");
@@ -259,13 +264,13 @@ const StorageService = {
           return;
         }
         if (row._isEncryptedWrapper && row.data) {
-          const decrypted = await decryptData(row.data);
-          if (decrypted === null) {
+          const result = await decryptDataResult(row.data);
+          if (!result.ok) {
             warn(`[storageService] Record "${id}" in store "${store}" could not be decrypted.`);
             resolve(null);
             return;
           }
-          resolve(decrypted as T);
+          resolve(result.data as T);
           return;
         }
         if (row._isEncryptedWrapper) {
@@ -286,6 +291,7 @@ const StorageService = {
    * @returns A promise resolving to true on success.
    */
   async deleteItem(store: StoreName, id: string): Promise<boolean> {
+    assertValidId(id, "deleteItem");
     const db = await this.openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(store, "readwrite");
@@ -329,12 +335,14 @@ const StorageService = {
   /**
    * Patch a single media record. The patch is shallow-merged into the
    * existing record. Throws if the record does not exist.
+   * Supports a function-based patch for atomic read-modify-write (AUDIT-007).
    */
-  async patchMedia<T extends object>(id: string, patch: Record<string, unknown>): Promise<T> {
-    if (typeof id !== "string" || !id) throw new Error("patchMedia: id is required");
+  async patchMedia<T extends object>(id: string, patch: Record<string, unknown> | ((existing: T) => Record<string, unknown>)): Promise<T> {
+    assertValidId(id, "patchMedia");
     const existing = (await this.getItem("images", id)) as T | null;
     if (!existing) throw new Error(`patchMedia: record not found: ${id}`);
-    const next = { ...(existing as object), ...patch, id, timestamp: (existing as { timestamp?: number }).timestamp ?? Date.now() };
+    const patchRecord = typeof patch === "function" ? patch(existing) : patch;
+    const next = { ...(existing as object), ...patchRecord, id, timestamp: (existing as { timestamp?: number }).timestamp ?? Date.now() };
     await this.saveItem("images", next);
     return next as T;
   },
@@ -347,7 +355,7 @@ const StorageService = {
     if (!Array.isArray(ids) || ids.length === 0) return 0;
     let updated = 0;
     for (const id of ids) {
-      if (typeof id !== "string" || !id) continue;
+      if (!isValidId(id)) continue;
       try {
         const existing = (await this.getItem("images", id)) as Record<string, unknown> | null;
         if (!existing) continue;
@@ -375,7 +383,7 @@ const StorageService = {
     if (!Array.isArray(ids) || ids.length === 0) return 0;
     let removed = 0;
     for (const id of ids) {
-      if (typeof id !== "string" || !id) continue;
+      if (!isValidId(id)) continue;
       try {
         const ok = await this.deleteItem("images", id);
         if (ok) removed += 1;

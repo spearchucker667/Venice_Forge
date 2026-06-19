@@ -1,5 +1,9 @@
 # Signed Artifact Evidence
 
+> **Current status:** no production signed/notarized artifact has been verified
+> in this file yet. Pending rows are placeholders only and must not be treated
+> as release approval.
+
 ## Purpose
 
 This file records verification evidence for production Venice Forge desktop artifacts.
@@ -29,4 +33,4 @@ Get-FileHash ".\Venice-Forge-<version>-x64-Setup.exe" -Algorithm SHA256
 
 | Version | Date    |  Commit | macOS signed | macOS notarized | Windows signed | Verifier | Evidence |
 | ------- | ------- | ------: | -----------: | --------------: | -------------: | -------- | -------- |
-| pending | pending | pending |      pending |         pending |        pending | pending  | pending  |
+| pending | pending | pending | pending | pending | pending | pending | No signed production artifacts verified yet. |

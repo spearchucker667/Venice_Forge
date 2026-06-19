@@ -61,6 +61,9 @@ vi.mock("electron", () => {
     session: {
       fromPartition: vi.fn(() => mockSession),
     },
+    dialog: {
+      showMessageBox: vi.fn(async () => ({ response: 0 })),
+    },
     shell: {
       openExternal: vi.fn(async () => {}),
     },
@@ -152,6 +155,9 @@ describe("Research Browser Server Main Process Integration", () => {
 
       const result = await createHandler();
       expect(result).toEqual({ ok: true });
+
+      const { session } = await import("electron");
+      expect(session.fromPartition).toHaveBeenCalledWith("venice-forge-research-browser");
 
       // Verifies that permission handler blocks camera/microphone/notifications/etc.
       expect(mockSession.setPermissionRequestHandler).toHaveBeenCalled();
@@ -246,7 +252,8 @@ describe("Research Browser Server Main Process Integration", () => {
       );
     });
 
-    it("should restrict external navigation to trusted HTTPS destinations", async () => {
+  it("should restrict external navigation to trusted HTTPS destinations", async () => {
+      const { dialog } = await import("electron");
       const openExternalHandler = ipcHandlers.get("researchBrowser:openExternal");
 
       // Blocked untrusted URL
@@ -255,9 +262,22 @@ describe("Research Browser Server Main Process Integration", () => {
       expect(untrustedResult.error).toBe("Blocked URL");
 
       // Allowed trusted URL
+      vi.mocked(dialog.showMessageBox).mockResolvedValueOnce({ response: 0 } as any);
       const trustedResult = await openExternalHandler(null, "https://trusted.com/home");
       expect(trustedResult.ok).toBe(true);
       expect(shell.openExternal).toHaveBeenCalledWith("https://trusted.com/home");
+    });
+
+    it("should not open trusted external links when confirmation is canceled", async () => {
+      const { dialog, shell } = await import("electron");
+      const openExternalHandler = ipcHandlers.get("researchBrowser:openExternal");
+
+      vi.mocked(dialog.showMessageBox).mockResolvedValueOnce({ response: 1 } as any);
+      const result = await openExternalHandler(null, "https://trusted.com/home");
+
+      expect(result.ok).toBe(false);
+      expect(result.error).toBe("Canceled");
+      expect(shell.openExternal).not.toHaveBeenCalledWith("https://trusted.com/home");
     });
   });
 

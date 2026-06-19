@@ -57,6 +57,7 @@ import { getRuntimeLocalFamilySafeModeEnabled } from "../services/runtimeSafetyS
 import type { Conversation } from "../../src/types/conversation";
 import { registerConfigIpcHandlers } from "./configHandlers";
 import type { ApiConnectivityFailureKind, ApiConnectivityStatus } from "../../src/types/api-connectivity";
+import { rateLimitIpcHandler } from "../utils/rateLimit";
 
 /** Maximum size in bytes for JSON import and export files. */
 const MAX_JSON_FILE_BYTES = VENICE_MAX_BODY_BYTES;
@@ -209,7 +210,11 @@ async function testVeniceConnection(): Promise<{ ok: boolean; status?: number; m
 export function registerIpcHandlers(): void {
   registerUpdateHandlers();
 
-  ipcMain.handle("venice:request", async (_event, input: unknown) => {
+  const handleIpc = (channel: string, handler: Parameters<typeof ipcMain.handle>[1]) => {
+    ipcMain.handle(channel, rateLimitIpcHandler(channel, handler));
+  };
+
+  handleIpc("venice:request", async (_event, input: unknown) => {
     try {
       // Validate first so the guard sees a typed endpoint/method/payload.
       const request = validateVeniceIpcRequest(input);
@@ -245,7 +250,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("venice:streamChat", async (event, input: unknown) => {
+  handleIpc("venice:streamChat", async (event, input: unknown) => {
     try {
       const request = validateVeniceIpcRequest(input);
       if (request.endpoint !== "/chat/completions" || request.method !== "POST") {
@@ -294,14 +299,14 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("venice:abort", (_event, signalId: unknown) => {
+  handleIpc("venice:abort", (_event, signalId: unknown) => {
     if (typeof signalId !== "string" || signalId.length > 128) return { ok: false };
     return abortVeniceRequest(signalId);
   });
 
-  ipcMain.handle("apiKey:isConfigured", () => isApiKeyConfigured());
+  handleIpc("apiKey:isConfigured", () => isApiKeyConfigured());
 
-  ipcMain.handle("apiKey:set", (_event, key: unknown) => {
+  handleIpc("apiKey:set", (_event, key: unknown) => {
     try {
       const trimmed = validateApiKeyInput(key);
       setApiKey(trimmed);
@@ -311,7 +316,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("apiKey:delete", () => {
+  handleIpc("apiKey:delete", () => {
     try {
       deleteApiKey();
       return { ok: true };
@@ -320,11 +325,11 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("apiKey:test", () => testVeniceConnection());
+  handleIpc("apiKey:test", () => testVeniceConnection());
 
-  ipcMain.handle("jinaApiKey:isConfigured", () => isJinaApiKeyConfigured());
+  handleIpc("jinaApiKey:isConfigured", () => isJinaApiKeyConfigured());
 
-  ipcMain.handle("jinaApiKey:set", (_event, key: unknown) => {
+  handleIpc("jinaApiKey:set", (_event, key: unknown) => {
     try {
       const trimmed = typeof key === "string" ? key.trim() : "";
       if (!trimmed) throw new Error("Enter a Jina API key before saving.");
@@ -336,7 +341,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("jinaApiKey:delete", () => {
+  handleIpc("jinaApiKey:delete", () => {
     try {
       deleteJinaApiKey();
       return { ok: true };
@@ -345,7 +350,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("jina:request", async (_event, input: unknown) => {
+  handleIpc("jina:request", async (_event, input: unknown) => {
     try {
       const request = input as { url?: unknown; headers?: unknown; timeoutMs?: unknown };
       if (typeof request.url !== "string") {
@@ -419,7 +424,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("jinaApiKey:test", async () => {
+  handleIpc("jinaApiKey:test", async () => {
     const jinaKey = (() => {
       try {
         return getJinaApiKey();
@@ -439,7 +444,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("app:proxyScrape", async (_event, url: unknown) => {
+  handleIpc("app:proxyScrape", async (_event, url: unknown) => {
     try {
       if (typeof url !== "string") {
         return { ok: false, error: "Missing or invalid URL" };
@@ -457,8 +462,8 @@ export function registerIpcHandlers(): void {
         return { ok: false, error: "Invalid URL format" };
       }
 
-      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        return { ok: false, error: "Only http/https allowed" };
+      if (parsed.protocol !== "https:") {
+        return { ok: false, error: "Only https URLs are allowed" };
       }
 
       if (isPrivateHostname(parsed.hostname)) {
@@ -583,9 +588,9 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("app:getVersion", () => app.getVersion());
-  ipcMain.handle("app:isEncryptionAvailable", () => getSecureStoreStatus().encryptionAvailable);
-  ipcMain.handle("app:getDiagnostics", () => {
+  handleIpc("app:getVersion", () => app.getVersion());
+  handleIpc("app:isEncryptionAvailable", () => getSecureStoreStatus().encryptionAvailable);
+  handleIpc("app:getDiagnostics", () => {
     const secureStore = getSecureStoreStatus();
     return {
       isDesktop: true,
@@ -604,14 +609,14 @@ export function registerIpcHandlers(): void {
       lastApiError: getLastApiError() ? redactErrorMessage(getLastApiError()) : "",
     };
   });
-  ipcMain.handle("app:openLogsFolder", () => openLogsFolder());
-  ipcMain.handle("app:openConversationsFolder", async () => {
+  handleIpc("app:openLogsFolder", () => openLogsFolder());
+  handleIpc("app:openConversationsFolder", async () => {
     const { CONVERSATIONS_DIR } = await import("../services/conversationVault");
     await shell.openPath(CONVERSATIONS_DIR);
     return { ok: true };
   });
 
-  ipcMain.handle("app:saveJsonFile", async (_event, data: unknown, defaultPath: unknown) => {
+  handleIpc("app:saveJsonFile", async (_event, data: unknown, defaultPath: unknown) => {
     try {
       if (typeof data !== "string") throw new Error("Export data must be a string.");
       if (Buffer.byteLength(data, "utf-8") > MAX_JSON_FILE_BYTES) {
@@ -633,7 +638,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("app:saveYamlFile", async (_event, data: unknown, defaultPath: unknown) => {
+  handleIpc("app:saveYamlFile", async (_event, data: unknown, defaultPath: unknown) => {
     try {
       if (typeof data !== "string") throw new Error("Export data must be a string.");
       if (Buffer.byteLength(data, "utf-8") > MAX_JSON_FILE_BYTES) {
@@ -721,7 +726,7 @@ export function registerIpcHandlers(): void {
     ".app", ".dmg", ".zip", ".7z", ".pdf", ".html", ".htm",
   ]);
 
-  ipcMain.handle("app:saveRoutedImage", async (_event, base64Data: unknown, filename: unknown, subfolder: unknown) => {
+  handleIpc("app:saveRoutedImage", async (_event, base64Data: unknown, filename: unknown, subfolder: unknown) => {
     try {
       if (typeof base64Data !== "string") throw new Error("Image data must be a string.");
       if (typeof filename !== "string") throw new Error("Filename must be a string.");
@@ -769,7 +774,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("app:loadYamlFile", async () => {
+  handleIpc("app:loadYamlFile", async () => {
     try {
       const result = await dialog.showOpenDialog({
         title: "Import Venice Forge theme",
@@ -793,7 +798,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("app:loadJsonFile", async () => {
+  handleIpc("app:loadJsonFile", async () => {
     try {
       const result = await dialog.showOpenDialog({
         title: "Import Venice Forge data",
@@ -817,7 +822,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("app:readLocalFile", async () => {
+  handleIpc("app:readLocalFile", async () => {
     try {
       const result = await dialog.showOpenDialog({
         title: "Import text attachment",
@@ -863,7 +868,7 @@ export function registerIpcHandlers(): void {
   // Media Studio: export a base64-encoded image to disk. The destination
   // directory is hard-locked to <Pictures>/Venice Forge/<subfolder>/, with
   // both the subfolder slug and filename sanitized and traversal-checked.
-  ipcMain.handle("app:media:export", async (_event, input: unknown) => {
+  handleIpc("app:media:export", async (_event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") {
         return { ok: false, error: "Export payload must be an object." };
@@ -886,7 +891,7 @@ export function registerIpcHandlers(): void {
   // Documents, Desktop, or Pictures/Venice Forge) and return it as a
   // data URL plus metadata. The renderer uses this to import a previously
   // generated image that was not saved to IDB.
-  ipcMain.handle("app:media:import", async (_event, input: unknown) => {
+  handleIpc("app:media:import", async (_event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") {
         return { ok: false, error: "Import payload must be an object." };
@@ -913,7 +918,7 @@ export function registerIpcHandlers(): void {
   // Media Studio: reveal a file in the OS file manager. The path must be
   // inside one of the reveal-safe base directories (Pictures/Venice Forge,
   // Desktop, Downloads, Documents, or the userData thumb cache).
-  ipcMain.handle("app:media:reveal", async (_event, input: unknown) => {
+  handleIpc("app:media:reveal", async (_event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") {
         return { ok: false, error: "Reveal payload must be an object." };
@@ -932,7 +937,7 @@ export function registerIpcHandlers(): void {
   // Media Studio: filesystem metadata for a reveal-safe path. The renderer
   // uses this to display the on-disk file size / modification time and to
   // confirm the file is still present after an export.
-  ipcMain.handle("app:media:meta", async (_event, input: unknown) => {
+  handleIpc("app:media:meta", async (_event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") {
         return { ok: false, error: "Meta payload must be an object." };
@@ -956,7 +961,7 @@ export function registerIpcHandlers(): void {
 
   // Media Studio: generate (or return cached) thumbnail for a sha256-keyed
   // image. Returns a file:// URL the renderer can drop into an <img> src.
-  ipcMain.handle("app:media:thumb", async (_event, input: unknown) => {
+  handleIpc("app:media:thumb", async (_event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") {
         return { ok: false, error: "Thumb payload must be an object." };
@@ -976,7 +981,7 @@ export function registerIpcHandlers(): void {
 
   // Character avatar image cache: fetch and cache a Venice character photo
   // and return a file:// URL. The renderer never loads remote URLs directly.
-  ipcMain.handle("app:characterImage:get", async (_event, input: unknown) => {
+  handleIpc("app:characterImage:get", async (_event, input: unknown) => {
     try {
       let url = "";
       if (typeof input === "string") {
@@ -996,7 +1001,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("app:characterImage:clearCache", async () => {
+  handleIpc("app:characterImage:clearCache", async () => {
     try {
       const result = await clearCharacterImageCache();
       if (!result.ok) return { ok: false, error: redactErrorMessage(result.error) };
@@ -1006,7 +1011,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("app:characterImage:inventory", async () => {
+  handleIpc("app:characterImage:inventory", async () => {
     try {
       const inventory = await getCharacterImageCacheInventory();
       return { ok: true, ...inventory };
@@ -1015,7 +1020,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("chat:list", async () => {
+  handleIpc("chat:list", async () => {
     try {
       const result = await listConversations();
       // listConversations returns either Conversation[] (back-compat) or
@@ -1038,7 +1043,7 @@ export function registerIpcHandlers(): void {
   // { offset, limit } object and returns the conversation-list envelope
   // directly (no back-compat shim). The renderer should call this when
   // a chat:list result has `truncated: true` to fetch subsequent pages.
-  ipcMain.handle("chat:listPage", async (_event, params: unknown) => {
+  handleIpc("chat:listPage", async (_event, params: unknown) => {
     try {
       const offset = typeof params === "object" && params !== null && "offset" in params
         ? Number((params as { offset: unknown }).offset)
@@ -1065,7 +1070,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("chat:get", async (_event, id: unknown) => {
+  handleIpc("chat:get", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string" || id.length > 128) {
         return { ok: false, error: "Invalid conversation id", conversation: null };
@@ -1079,7 +1084,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("chat:save", async (_event, payload: unknown) => {
+  handleIpc("chat:save", async (_event, payload: unknown) => {
     try {
       if (!payload || typeof payload !== "object") {
         return { ok: false, error: "Invalid payload" };
@@ -1097,7 +1102,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("chat:delete", async (_event, id: unknown) => {
+  handleIpc("chat:delete", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string" || id.length > 128) {
         return { ok: false, error: "Invalid conversation id" };
@@ -1110,7 +1115,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("conversations:list", async (_event, filter: unknown) => {
+  handleIpc("conversations:list", async (_event, filter: unknown) => {
     try {
       const cleanFilter: {
         archived?: boolean;
@@ -1139,7 +1144,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("conversations:get", async (_event, id: unknown) => {
+  handleIpc("conversations:get", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string" || id.length > 128 || id.includes("\0")) {
         return { ok: false, error: "Invalid conversation id" };
@@ -1152,7 +1157,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("conversations:save", async (_event, record: unknown) => {
+  handleIpc("conversations:save", async (_event, record: unknown) => {
     try {
       if (!record || typeof record !== "object") {
         return { ok: false, error: "Invalid record structure" };
@@ -1171,7 +1176,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("conversations:delete", async (_event, id: unknown) => {
+  handleIpc("conversations:delete", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string" || id.length > 128 || id.includes("\0") || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(id)) {
         return { ok: false, error: "Invalid conversation id" };
@@ -1183,7 +1188,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("conversations:archive", async (_event, id: unknown) => {
+  handleIpc("conversations:archive", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string" || id.length > 128 || id.includes("\0") || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(id)) {
         return { ok: false, error: "Invalid conversation id" };
@@ -1195,7 +1200,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("conversations:search", async (_event, query: unknown, options: unknown) => {
+  handleIpc("conversations:search", async (_event, query: unknown, options: unknown) => {
     try {
       if (typeof query !== "string" || query.length > 1024) {
         return { ok: false, error: "Invalid query" };
@@ -1214,7 +1219,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("conversations:pullContext", async (_event, input: unknown) => {
+  handleIpc("conversations:pullContext", async (_event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") {
         return { ok: false, error: "Invalid input" };
@@ -1229,8 +1234,8 @@ export function registerIpcHandlers(): void {
         maxTokens?: number;
         includeArchived?: boolean;
       } = { message: inp.message };
-      if (typeof inp.maxItems === "number") cleanInput.maxItems = inp.maxItems;
-      if (typeof inp.maxTokens === "number") cleanInput.maxTokens = inp.maxTokens;
+      cleanInput.maxItems = Math.min(50, Math.max(1, typeof inp.maxItems === "number" && Number.isFinite(inp.maxItems) ? inp.maxItems : 5));
+      cleanInput.maxTokens = Math.min(8192, Math.max(1, typeof inp.maxTokens === "number" && Number.isFinite(inp.maxTokens) ? inp.maxTokens : 1200));
       if (typeof inp.includeArchived === "boolean") cleanInput.includeArchived = inp.includeArchived;
 
       // SAFETY Stage 1: Screen user prompt message before searching memory
@@ -1273,7 +1278,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("conversations:rebuildIndex", async () => {
+  handleIpc("conversations:rebuildIndex", async () => {
     try {
       const { rebuildIndex } = await import("../services/memoryPuller");
       const itemsIndexed = await rebuildIndex();
@@ -1283,7 +1288,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("conversations:migrateLegacyHistory", async () => {
+  handleIpc("conversations:migrateLegacyHistory", async () => {
     try {
       const { migrateLegacyHistory } = await import("../services/vaultMigration");
       return await migrateLegacyHistory();
@@ -1292,7 +1297,7 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("conversations:detectLegacyHistory", async () => {
+  handleIpc("conversations:detectLegacyHistory", async () => {
     try {
       const { detectLegacyHistory } = await import("../services/vaultMigration");
       return await detectLegacyHistory();

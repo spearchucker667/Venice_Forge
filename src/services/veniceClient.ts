@@ -119,12 +119,34 @@ export { cleanupInFlightUnloadListener };
  * @param body The request body.
  * @returns A string key suitable for deduplicating identical requests.
  */
+const SECRET_KEY_RE = /api[-_ ]?key|authorization|token/i;
+
+function sanitizeDedupeBody(value: unknown, seen = new WeakSet<object>()): unknown {
+  if (value === null || typeof value !== "object") return value;
+  if (seen.has(value)) return "[Circular]";
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.map((entry) => sanitizeDedupeBody(entry, seen));
+  }
+
+  if (value instanceof FormData || value instanceof Blob || value instanceof ArrayBuffer) {
+    return "[BinaryBody]";
+  }
+
+  const clean: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    clean[key] = SECRET_KEY_RE.test(key) ? "[REDACTED_SECRET]" : sanitizeDedupeBody(entry, seen);
+  }
+  return clean;
+}
+
 /** @internal exported for testing */
 export function dedupeKey(endpoint: string, method: string, body: unknown): string {
   let bodyHash = "";
   if (body !== undefined && body !== null) {
     try {
-      bodyHash = JSON.stringify(body);
+      bodyHash = JSON.stringify(sanitizeDedupeBody(body));
     } catch {
       // Circular or otherwise unserialisable body — skip deduplication
       bodyHash = `[unhashable-${Date.now()}-${Math.random()}]`;
@@ -144,12 +166,18 @@ function nowIso() {
 import { sleep, createTimeoutSignal } from "../utils/timeout";
 
 /**
- * Calculates an exponential backoff delay for a given retry attempt.
- * @param attempt The current retry attempt number (0-indexed).
- * @param baseMs The base delay in milliseconds.
- * @param maxMs The maximum delay cap in milliseconds.
- * @returns The computed backoff delay.
+ * Resolves a user-provided timeout into a safe millisecond value.
+ * Undefined means no timeout (null). Zero or negative values are
+ * treated as the default 60 s to prevent infinite hangs (AUDIT-004).
+ * Values above 120 s are capped to prevent excessive resource use.
  */
+export function resolveTimeoutMs(timeoutMs: number | null | undefined): number | null {
+  if (timeoutMs === undefined) return null;
+  if (typeof timeoutMs !== "number" || !Number.isFinite(timeoutMs) || timeoutMs <= 0) return 60000;
+  return Math.min(timeoutMs, 120000);
+}
+
+
 function calculateBackoff(attempt: number, baseMs = 1000, maxMs = 8000): number {
   return Math.min(baseMs * Math.pow(2, attempt), maxMs);
 }
@@ -526,7 +554,8 @@ async function veniceFetchDesktop(
     let response: VeniceForgeResponse | null = null;
     let clearDesktopSignal: (() => void) | undefined;
     try {
-      const timeout = timeoutMs ? createTimeoutSignal(timeoutMs, signal) : null;
+      const timeoutMsResolved = resolveTimeoutMs(timeoutMs);
+      const timeout = timeoutMsResolved != null ? createTimeoutSignal(timeoutMsResolved, signal) : null;
       const desktopSignal = timeout?.signal ?? signal;
       clearDesktopSignal = timeout?.clear;
       if (desktopSignal?.aborted) throw new DOMException("Request aborted", "AbortError");
@@ -706,7 +735,8 @@ async function _veniceFetch(
     let parsed: unknown = null;
     let clearFetchSignal: (() => void) | undefined;
     try {
-      const fetchTimeout = createTimeoutSignal(timeoutMs ?? 60000, signal);
+      const fetchTimeoutMs = resolveTimeoutMs(timeoutMs) ?? 60000;
+      const fetchTimeout = createTimeoutSignal(fetchTimeoutMs, signal);
       clearFetchSignal = fetchTimeout.clear;
       response = await fetch(url, {
         method,

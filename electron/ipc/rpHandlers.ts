@@ -17,6 +17,7 @@
  */
 
 import { ipcMain } from "electron";
+import { rateLimitIpcHandler } from "../utils/rateLimit";
 import {
   listCharacterCards,
   readCharacterCard,
@@ -46,8 +47,12 @@ function chatIdFilter(raw: unknown): string | undefined {
 }
 
 export function registerRpIpcHandlers(): void {
+  const handleIpc = (channel: string, handler: Parameters<typeof ipcMain.handle>[1]) => {
+    ipcMain.handle(channel, rateLimitIpcHandler(channel, handler));
+  };
+
   // ── Character cards ──
-  ipcMain.handle("characterCards:list", async () => {
+  handleIpc("characterCards:list", async () => {
     try {
       const { cards, truncated, totalScanned } = await listCharacterCards();
       return { ok: true, cards, truncated, totalScanned };
@@ -58,7 +63,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("characterCards:get", async (_event, id: unknown) => {
+  handleIpc("characterCards:get", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id", card: null };
       const card = await readCharacterCard(id);
@@ -70,7 +75,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("characterCards:save", async (_event, card: unknown) => {
+  handleIpc("characterCards:save", async (_event, card: unknown) => {
     try {
       const result = await saveCharacterCard(card);
       if (!result.ok) return { ok: false, error: result.error, card: null };
@@ -85,7 +90,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("characterCards:delete", async (_event, id: unknown) => {
+  handleIpc("characterCards:delete", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id" };
       return await deleteCharacterCard(id);
@@ -97,7 +102,7 @@ export function registerRpIpcHandlers(): void {
   });
 
   // ── Personas ──
-  ipcMain.handle("personas:list", async () => {
+  handleIpc("personas:list", async () => {
     try {
       const { items, truncated, totalScanned } = await personaStore.list();
       return { ok: true, personas: items, truncated, totalScanned };
@@ -108,7 +113,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("personas:get", async (_event, id: unknown) => {
+  handleIpc("personas:get", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id", persona: null };
       const persona = await personaStore.read(id);
@@ -120,7 +125,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("personas:save", async (_event, persona: unknown) => {
+  handleIpc("personas:save", async (_event, persona: unknown) => {
     try {
       const result = await personaStore.save(persona);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", persona: null };
@@ -134,7 +139,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("personas:delete", async (_event, id: unknown) => {
+  handleIpc("personas:delete", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id" };
       return await personaStore.remove(id);
@@ -146,7 +151,7 @@ export function registerRpIpcHandlers(): void {
   });
 
   // ── Lorebooks ──
-  ipcMain.handle("lorebooks:list", async () => {
+  handleIpc("lorebooks:list", async () => {
     try {
       const { items, truncated, totalScanned } = await lorebookStore.list();
       return { ok: true, lorebooks: items, truncated, totalScanned };
@@ -157,7 +162,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("lorebooks:get", async (_event, id: unknown) => {
+  handleIpc("lorebooks:get", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id", lorebook: null };
       const lorebook = await lorebookStore.read(id);
@@ -169,7 +174,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("lorebooks:save", async (_event, lorebook: unknown) => {
+  handleIpc("lorebooks:save", async (_event, lorebook: unknown) => {
     try {
       const result = await lorebookStore.save(lorebook);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", lorebook: null };
@@ -183,7 +188,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("lorebooks:delete", async (_event, id: unknown) => {
+  handleIpc("lorebooks:delete", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id" };
       return await lorebookStore.remove(id);
@@ -195,7 +200,7 @@ export function registerRpIpcHandlers(): void {
   });
 
   // ── RP Chats ──
-  ipcMain.handle("rpChats:list", async () => {
+  handleIpc("rpChats:list", async () => {
     try {
       const { chats, truncated, totalScanned } = await listRpChats();
       return { ok: true, chats, truncated, totalScanned };
@@ -206,7 +211,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("rpChats:get", async (_event, id: unknown) => {
+  handleIpc("rpChats:get", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id", chat: null };
       const chat = await readRpChat(id);
@@ -218,7 +223,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("rpChats:save", async (_event, chat: unknown) => {
+  handleIpc("rpChats:save", async (_event, chat: unknown) => {
     try {
       const result = await saveRpChat(chat);
       if (!result.ok) return { ok: false, error: result.error, chat: null };
@@ -232,7 +237,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("rpChats:delete", async (_event, id: unknown) => {
+  handleIpc("rpChats:delete", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id" };
       return await deleteRpChat(id);
@@ -244,7 +249,7 @@ export function registerRpIpcHandlers(): void {
   });
 
   // ── RP Assets ──
-  ipcMain.handle("rpAssets:list", async (_event, chatIdRaw: unknown) => {
+  handleIpc("rpAssets:list", async (_event, chatIdRaw: unknown) => {
     try {
       const { items, truncated, totalScanned } = await rpAssetStore.list();
       const chatId = chatIdFilter(chatIdRaw);
@@ -257,7 +262,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("rpAssets:get", async (_event, id: unknown) => {
+  handleIpc("rpAssets:get", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id", asset: null };
       const asset = await rpAssetStore.read(id);
@@ -269,7 +274,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("rpAssets:save", async (_event, asset: unknown) => {
+  handleIpc("rpAssets:save", async (_event, asset: unknown) => {
     try {
       const result = await rpAssetStore.save(asset);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", asset: null };
@@ -283,7 +288,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("rpAssets:delete", async (_event, id: unknown) => {
+  handleIpc("rpAssets:delete", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id" };
       return await rpAssetStore.remove(id);
@@ -295,7 +300,7 @@ export function registerRpIpcHandlers(): void {
   });
 
   // ── Scenarios (Phase 2F) ──
-  ipcMain.handle("scenarios:list", async () => {
+  handleIpc("scenarios:list", async () => {
     try {
       const { items, truncated, totalScanned } = await scenarioStore.list();
       return { ok: true, scenarios: items, truncated, totalScanned };
@@ -306,7 +311,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("scenarios:get", async (_event, id: unknown) => {
+  handleIpc("scenarios:get", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id", scenario: null };
       const scenario = await scenarioStore.read(id);
@@ -318,7 +323,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("scenarios:save", async (_event, scenario: unknown) => {
+  handleIpc("scenarios:save", async (_event, scenario: unknown) => {
     try {
       const result = await scenarioStore.save(scenario);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", scenario: null };
@@ -332,7 +337,7 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("scenarios:delete", async (_event, id: unknown) => {
+  handleIpc("scenarios:delete", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id" };
       return await scenarioStore.remove(id);

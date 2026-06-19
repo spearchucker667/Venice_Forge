@@ -203,9 +203,12 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       projectId: item.projectId ?? parent.projectId,
     })
     const saved = await StorageService.putMedia<MediaItem>(migrated)
-    const childrenIds = Array.from(new Set([...parent.childrenIds, saved.id]))
+    // AUDIT-007: Use function-based patch so childrenIds is computed from
+    // the latest existing record at write time, reducing the race window.
     try {
-      const updatedParent = await StorageService.patchMedia<MediaItem>(parentId, { childrenIds })
+      const updatedParent = await StorageService.patchMedia<MediaItem>(parentId, (existing) => ({
+        childrenIds: Array.from(new Set([...existing.childrenIds, saved.id])),
+      }))
       set((state) => {
         const withoutChild = state.items.filter((existing) => existing.id !== saved.id)
         const items = enforceCacheBound(

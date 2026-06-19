@@ -249,6 +249,22 @@ describe('chat-store desktopBridge routing', () => {
     expect(conversationSaveMock).toHaveBeenCalled()
   })
 
+  it('rejects invalid ids before marking restored conversations dirty', async () => {
+    const conv: Conversation = {
+      id: '__proto__',
+      title: 'Invalid',
+      model: 'llama-3',
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      metadata: { tags: [], pinned: false, archived: false, source: 'chat', messageCount: 0 },
+      memory: { summary: '', topics: [], entities: [], userFacts: [], projectRefs: [] },
+    }
+
+    await expect(useChatStore.getState().restoreConversation(conv)).rejects.toThrow(/Invalid id.*markDirtyConversation/)
+    expect(conversationSaveMock).not.toHaveBeenCalled()
+  })
+
   it('adds message and sets title on first user message', async () => {
     const id = useChatStore.getState().createConversation('llama-3')
     useChatStore.getState().addMessage(id, { role: 'user', content: 'Hello there world' })

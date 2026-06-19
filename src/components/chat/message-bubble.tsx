@@ -8,6 +8,7 @@ import type { ChatMessage, ContentPart } from '../../types/venice'
 import { cn } from '../../lib/utils'
 import { useSettingsStore } from '../../stores/settings-store'
 import { maybeRunLocalFamilyGuard } from '../../shared/safety'
+import { copyText } from '../../stores/media-send-to'
 import { CharacterSceneCard } from './CharacterSceneCard'
 import type { CharacterSceneGenerationResult } from '../../types/characterSceneGeneration'
 
@@ -51,7 +52,7 @@ function CodeBlock({ children, className, ...props }: ComponentPropsWithoutRef<'
       )}
       <button
         onClick={() => {
-          navigator.clipboard.writeText(codeStr)
+          void copyText(codeStr)
           setCodeCopied(true)
           if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
           copyTimeoutRef.current = setTimeout(() => setCodeCopied(false), 1500)
@@ -127,7 +128,7 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate, onGener
   }, [])
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(content)
+    void copyText(content)
     setCopied(true)
     onCopy()
     if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
@@ -310,7 +311,7 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate, onGener
             onRegenerate={onGenerateScene}
             onCopyPrompt={() => {
               if (sceneGeneration.prompt) {
-                navigator.clipboard.writeText(sceneGeneration.prompt)
+                void copyText(sceneGeneration.prompt)
               }
             }}
           />

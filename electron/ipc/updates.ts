@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import { autoUpdater } from "electron-updater";
 import { logError, logInfo } from "../services/logger";
 import { redactErrorMessage } from "../../src/shared/redaction";
+import { rateLimitIpcHandler } from "../utils/rateLimit";
 
 /** Timeout (ms) for a manual update check before giving up. */
 const UPDATE_CHECK_TIMEOUT_MS = 30_000;
@@ -25,8 +26,12 @@ function broadcast(channel: string, payload?: unknown) {
 
 /** Registers IPC handlers and autoUpdater event listeners. */
 export function registerUpdateHandlers(): void {
+  const handleIpc = (channel: string, handler: Parameters<typeof ipcMain.handle>[1]) => {
+    ipcMain.handle(channel, rateLimitIpcHandler(channel, handler));
+  };
+
   // IPC Handlers
-  ipcMain.handle("app:checkForUpdates", async () => {
+  handleIpc("app:checkForUpdates", async () => {
     // In dev mode the app is not packaged so electron-updater cannot locate
     // the app-update.yml manifest. Return a friendly message instead of a
     // cryptic ENOENT stack trace.
@@ -49,7 +54,7 @@ export function registerUpdateHandlers(): void {
     }
   });
 
-  ipcMain.handle("app:downloadUpdate", async () => {
+  handleIpc("app:downloadUpdate", async () => {
     try {
       logInfo("Triggering update download");
       const timeoutPromise = new Promise<never>((_, reject) =>
@@ -66,7 +71,7 @@ export function registerUpdateHandlers(): void {
 
   let updateDownloaded = false;
 
-  ipcMain.handle("app:installUpdate", () => {
+  handleIpc("app:installUpdate", () => {
     if (!updateDownloaded) {
       logError("Install update called but no update was downloaded");
       return { ok: false, error: "No update downloaded." };

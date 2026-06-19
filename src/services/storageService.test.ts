@@ -4,6 +4,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 // @ts-expect-error — fake-indexeddb ESM exports lack proper typings
 import FDBFactory from "fake-indexeddb/lib/FDBFactory";
 import StorageService from "./storageService";
+import { MissingTimestampIndexError } from "./storageService";
 
 /** Resets the IndexedDB instance and StorageService state before each test. */
 beforeEach(() => {
@@ -65,6 +66,18 @@ describe("storageService", () => {
     expect(first.items.map((item) => item.id)).toEqual(["page-5", "page-4"]);
     expect(second).toMatchObject({ total: 5, offset: 2, limit: 2, hasMore: true, decryptFailures: 0 });
     expect(second.items.map((item) => item.id)).toEqual(["page-3", "page-2"]);
+  });
+
+  it("fails closed instead of loading a full store when the timestamp index is missing", async () => {
+    const db = await StorageService.openDB();
+    const tx = db.transaction("settings", "readwrite");
+    await new Promise<void>((resolve, reject) => {
+      const req = tx.objectStore("settings").put({ id: "app-settings", value: {}, timestamp: 1 });
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+
+    await expect(StorageService.getItemsPageWithMeta("settings")).rejects.toBeInstanceOf(MissingTimestampIndexError);
   });
 
   /** Verifies transparent encryption and decryption for sensitive stores. */

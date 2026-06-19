@@ -4,7 +4,10 @@ import { describe, expect, it } from "vitest";
 import {
   EXPORT_SCHEMA_VERSION,
   MAX_IMPORT_JSON_BYTES,
+  MAX_IMPORT_DECODED_IMAGE_BYTES,
+  MAX_IMPORT_RECORDS,
   createExportPayload,
+  isValidImportImageDataUrl,
   validateImportJson,
 } from "./exportImport";
 
@@ -34,7 +37,7 @@ describe("export/import schema validation", () => {
       exportedAt: new Date().toISOString(),
       appVersion: "1.0.0",
       data: {
-        images: [{ id: "img-1", prompt: "p", image: "img", timestamp: 1, apiKey: "secret" }],
+        images: [{ id: "img-1", prompt: "p", image: "data:image/png;base64,AA==", timestamp: 1, apiKey: "secret" }],
         chats: [{ id: "chat-1", prompt: "p", response: "r", timestamp: 2 }],
         settings: [{ id: "app-settings", value: { webSearch: "off", apiKey: "secret" }, timestamp: 3 }],
       },
@@ -143,8 +146,8 @@ describe("export/import schema validation", () => {
       appVersion: "1.0.0",
       data: {
         images: [
-          { id: "img-valid", prompt: "p", image: "img", timestamp: 1 },
-          { id: "img-nan", prompt: "p", image: "img", timestamp: NaN },
+          { id: "img-valid", prompt: "p", image: "data:image/png;base64,AA==", timestamp: 1 },
+          { id: "img-nan", prompt: "p", image: "data:image/png;base64,AA==", timestamp: NaN },
           { id: "img-bad", image: 123, timestamp: 2 },
         ],
         chats: [
@@ -177,7 +180,7 @@ describe("export/import schema validation", () => {
         exportedAt: new Date().toISOString(),
         appVersion: "1.0.0",
         data: {
-          images: [{ id: badId, prompt: "p", image: "img", timestamp: 1 }],
+          images: [{ id: badId, prompt: "p", image: "data:image/png;base64,AA==", timestamp: 1 }],
         },
       });
 
@@ -185,6 +188,36 @@ describe("export/import schema validation", () => {
       expect(result.summary.imagesFound).toBe(0);
       expect(result.summary.skippedRecords).toBe(1);
     }
+  });
+
+  it("rejects malformed and non-image data URLs", () => {
+    for (const image of ["img", "data:text/plain;base64,AA==", "data:image/png,not-base64", "data:image/png;base64,%%%"]) {
+      const json = JSON.stringify({
+        version: EXPORT_SCHEMA_VERSION,
+        exportedAt: new Date().toISOString(),
+        appVersion: "1.0.0",
+        data: { images: [{ id: "img-bad", prompt: "p", image, timestamp: 1 }] },
+      });
+      const result = validateImportJson(json);
+      expect(result.summary.imagesFound).toBe(0);
+      expect(result.summary.skippedRecords).toBe(1);
+    }
+  });
+
+  it("rejects imports with too many records", () => {
+    const json = JSON.stringify({
+      version: EXPORT_SCHEMA_VERSION,
+      exportedAt: new Date().toISOString(),
+      appVersion: "1.0.0",
+      data: { chats: Array.from({ length: MAX_IMPORT_RECORDS + 1 }, (_, i) => ({ id: `chat-${i}`, prompt: "p", response: "r", timestamp: 1 })) },
+    });
+    expect(() => validateImportJson(json)).toThrow(/too many records/i);
+  });
+
+  it("rejects imports whose decoded image payload exceeds the cap", () => {
+    const image = `data:image/png;base64,${"A".repeat(Math.ceil(((MAX_IMPORT_DECODED_IMAGE_BYTES + 1) * 4) / 3))}`;
+    expect(isValidImportImageDataUrl(image)).toBe(false);
+    expect(isValidImportImageDataUrl("data:image/png;base64,AA==")).toBe(true);
   });
 
   /** Verifies that fork lineage fields round-trip through export and import. */

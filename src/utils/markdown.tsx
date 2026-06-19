@@ -60,6 +60,28 @@ export function minimalMarkdown(text: string) {
   return html;
 }
 
+/**
+ * Defense-in-depth sanitizer for minimalMarkdown output (AUDIT-003).
+ * Strips dangerous tags, event handlers, and javascript: URLs even though
+ * minimalMarkdown already escapes raw input. This acts as a safety net
+ * against future bugs or edge cases in the markdown pipeline.
+ */
+export function sanitizeHtml(html: string): string {
+  // Remove script tags and their contents completely
+  let cleaned = html.replace(/<script[\s\S]*?>\s*[\s\S]*?<\/script>/gi, "");
+  // Remove dangerous tags that can execute code or load external resources
+  cleaned = cleaned.replace(
+    /<(iframe|object|embed|form|input|textarea|select|option|applet|meta|link|style|base)[\s\S]*?>/gi,
+    ""
+  );
+  // Remove event handler attributes (onclick, onerror, onload, etc.)
+  cleaned = cleaned.replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, "");
+  // Remove javascript: and data:text/html URLs
+  cleaned = cleaned.replace(/(href|src|action|background)\s*=\s*(?:"javascript:[^"]*"|'javascript:[^']*'|javascript:[^\s>]*)/gi, '$1=""');
+  cleaned = cleaned.replace(/(href|src|action|background)\s*=\s*(?:"data:text\/html[^"]*"|'data:text\/html[^']*'|data:text\/html[^\s>]*)/gi, '$1=""');
+  return cleaned;
+}
+
 export function Markdown({ text }: { text: string }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -88,5 +110,5 @@ export function Markdown({ text }: { text: string }) {
     return () => el.removeEventListener("click", handleCopy);
   }, [handleCopy]);
 
-  return <div ref={ref} className="md" dangerouslySetInnerHTML={{ __html: minimalMarkdown(text) }} />;
+  return <div ref={ref} className="md" dangerouslySetInnerHTML={{ __html: sanitizeHtml(minimalMarkdown(text)) }} />;
 }

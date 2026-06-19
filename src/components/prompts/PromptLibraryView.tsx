@@ -25,6 +25,7 @@ import type { PromptKind, PromptLibraryItem, PromptScope, PromptVersion } from "
 import { useSettingsStore } from "../../stores/settings-store";
 import { useProjectStore } from "../../stores/project-store";
 import { toast } from "../../stores/toast-store";
+import { copyText } from "../../stores/media-send-to";
 import { useImageWorkspaceStore } from "../../stores/image-workspace-store";
 import { useChatStore } from "../../stores/chat-store";
 
@@ -583,7 +584,7 @@ function PromptDetail(props: PromptDetailProps) {
           </button>
           <button
             type="button"
-            onClick={() => void navigator.clipboard.writeText(content)}
+            onClick={async () => { await copyText(content); }}
             className="rounded-md border border-border px-2 py-1 text-[12px]"
             data-testid="prompt-library-copy"
           >

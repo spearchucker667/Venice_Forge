@@ -164,6 +164,42 @@ describe("characterImageCache", () => {
     expect((secondCall[1]?.headers as Record<string, string>)?.["Authorization"]).toBe("Bearer test-api-key");
   });
 
+  it("follows one validated redirect to a trusted Venice image URL", async () => {
+    const mockedFetch = vi.mocked(globalThis.fetch);
+    mockedFetch
+      .mockResolvedValueOnce(new Response(null, { status: 302, headers: { location: OFFICIAL_URL } }))
+      .mockResolvedValueOnce(makeImageResponse(512));
+
+    const result = await getCachedCharacterImage(OFFICIAL_URL);
+
+    expect(result.ok).toBe(true);
+    expect(mockedFetch).toHaveBeenCalledTimes(2);
+    expect((mockedFetch.mock.calls[0][1] as RequestInit).redirect).toBe("manual");
+  });
+
+  it.each([
+    ["http://192.168.1.1/secret"],
+    ["http://localhost/avatar.png"],
+    ["http://outerface.venice.ai/api/characters/abc/photo"],
+    ["https://evil.example/avatar.png"],
+  ])("rejects unsafe redirect target %s", async (location) => {
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce(new Response(null, { status: 302, headers: { location } }));
+
+    const result = await getCachedCharacterImage(OFFICIAL_URL);
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/redirect target/i);
+  });
+
+  it("rejects redirects without a Location header", async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce(new Response(null, { status: 302 }));
+
+    const result = await getCachedCharacterImage(OFFICIAL_URL);
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/location/i);
+  });
+
   it("returns stale image and refreshes in the background", async () => {
     const mockedFetch = vi.mocked(globalThis.fetch);
     mockedFetch.mockResolvedValueOnce(makeImageResponse(100, "image/png", 200));

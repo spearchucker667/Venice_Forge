@@ -2,14 +2,15 @@
 
 import { STORE_NAMES } from "../constants/venice";
 import { redactSecrets } from "../shared/redaction";
-import { VENICE_MAX_BODY_BYTES } from "../shared/limits";
 import { isValidColorValue } from "../theme/validateColor";
 
 /** Current schema version for export payloads. */
 export const EXPORT_SCHEMA_VERSION = 1;
 
 /** Maximum allowed size for an import JSON string in bytes. */
-export const MAX_IMPORT_JSON_BYTES = VENICE_MAX_BODY_BYTES;
+export const MAX_IMPORT_JSON_BYTES = 5 * 1024 * 1024;
+export const MAX_IMPORT_RECORDS = 5000;
+export const MAX_IMPORT_DECODED_IMAGE_BYTES = 50 * 1024 * 1024;
 
 /** Ordered list of stores eligible for export and import. */
 const EXPORT_STORES = ["images", "chats", "settings", "conversations", "ai_memory"] as const;
@@ -17,7 +18,7 @@ const EXPORT_STORES = ["images", "chats", "settings", "conversations", "ai_memor
 /** Per-field upper bounds to reject obviously malformed imports. */
 const MAX_RECORD_ID_LENGTH = 256;
 const MAX_TEXT_FIELD_CHARS = 100_000;
-const MAX_IMAGE_FIELD_BYTES = 20 * 1024 * 1024;
+const IMAGE_DATA_URL_RE = /^data:image\/[a-zA-Z0-9.+-]+;base64,[-A-Za-z0-9+/=]*$/;
 
 /** Union type of exportable store names. */
 type ExportStore = (typeof EXPORT_STORES)[number];
@@ -90,6 +91,16 @@ function isShortString(value: unknown, maxChars: number): value is string {
   return typeof value === "string" && value.length <= maxChars;
 }
 
+function decodedBase64Bytes(dataUrl: string): number {
+  const base64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
+  const padding = base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0;
+  return Math.floor((base64.length * 3) / 4) - padding;
+}
+
+export function isValidImportImageDataUrl(value: string): boolean {
+  return IMAGE_DATA_URL_RE.test(value) && decodedBase64Bytes(value) <= MAX_IMPORT_DECODED_IMAGE_BYTES;
+}
+
 /**
  * Sanitizes a single record for import, stripping secrets and ensuring required fields.
  * @param store The target store name.
@@ -122,7 +133,7 @@ function sanitizeRecord(store: ExportStore, value: unknown): Record<string, unkn
 
   if (store === "images") {
     if (typeof record.image !== "string") return null;
-    if (byteLength(record.image) > MAX_IMAGE_FIELD_BYTES) return null;
+    if (!isValidImportImageDataUrl(record.image)) return null;
     if (record.prompt !== undefined && !isShortString(record.prompt, MAX_TEXT_FIELD_CHARS)) return null;
     if (record.negative !== undefined && !isShortString(record.negative, MAX_TEXT_FIELD_CHARS)) return null;
   }
@@ -319,6 +330,7 @@ export function validateImportJson(json: string): ValidatedImport {
 
   const payloadData = {} as ExportData;
   let skippedRecords = 0;
+  let totalRecords = 0;
   for (const store of EXPORT_STORES) {
     const rawRecords = (parsed.data as Record<string, unknown>)[store];
     if (rawRecords === undefined) {
@@ -326,6 +338,8 @@ export function validateImportJson(json: string): ValidatedImport {
       continue;
     }
     if (!Array.isArray(rawRecords)) throw new Error(`Import store ${store} must be an array.`);
+    totalRecords += rawRecords.length;
+    if (totalRecords > MAX_IMPORT_RECORDS) throw new Error("Import contains too many records.");
     const { records, skipped } = sanitizeRecords(store, rawRecords);
     payloadData[store] = records;
     skippedRecords += skipped;

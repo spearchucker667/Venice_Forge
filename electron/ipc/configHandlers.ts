@@ -1,5 +1,7 @@
 import { ipcMain, dialog } from "electron";
+import path from "node:path";
 import { redactErrorMessage } from "../../src/shared/redaction";
+import { rateLimitIpcHandler } from "../utils/rateLimit";
 import {
   exportConfigTemplate,
   getPaths,
@@ -13,12 +15,25 @@ import {
   writeSanitizedConfig,
 } from "../services/configService";
 
+export function redactConfigPaths(paths: Record<string, unknown>): Record<string, unknown> {
+  const redacted: Record<string, unknown> = { configDirLabel: "user config directory" };
+  for (const [key, value] of Object.entries(paths)) {
+    if (typeof value === "string") redacted[key] = path.basename(value);
+    else redacted[key] = value;
+  }
+  return redacted;
+}
+
 /**
  * Registers all IPC handlers related to local master YAML config
  * and theming.
  */
 export function registerConfigIpcHandlers() {
-  ipcMain.handle("config:get", () => {
+  const handleIpc = (channel: string, handler: Parameters<typeof ipcMain.handle>[1]) => {
+    ipcMain.handle(channel, rateLimitIpcHandler(channel, handler));
+  };
+
+  handleIpc("config:get", () => {
     try {
       return { ok: true, payload: getSanitizedConfig() };
     } catch (err) {
@@ -26,15 +41,15 @@ export function registerConfigIpcHandlers() {
     }
   });
 
-  ipcMain.handle("config:getStatus", () => {
+  handleIpc("config:getStatus", () => {
     try {
-      return { ok: true, status: getConfigStatus(), paths: getPaths() };
+      return { ok: true, status: getConfigStatus(), paths: redactConfigPaths(getPaths() as unknown as Record<string, unknown>) };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
   });
 
-  ipcMain.handle("config:reload", async () => {
+  handleIpc("config:reload", async () => {
     try {
       const status = await reloadConfig();
       return { ok: true, status };
@@ -43,7 +58,7 @@ export function registerConfigIpcHandlers() {
     }
   });
 
-  ipcMain.handle("config:initialize", async () => {
+  handleIpc("config:initialize", async () => {
     try {
       const status = await initializeConfig();
       return { ok: true, status };
@@ -52,7 +67,7 @@ export function registerConfigIpcHandlers() {
     }
   });
 
-  ipcMain.handle("config:openFolder", async () => {
+  handleIpc("config:openFolder", async () => {
     try {
       return await openConfigFolder();
     } catch (err) {
@@ -60,7 +75,7 @@ export function registerConfigIpcHandlers() {
     }
   });
 
-  ipcMain.handle("config:writeSanitized", async (_event, patch: unknown) => {
+  handleIpc("config:writeSanitized", async (_event, patch: unknown) => {
     try {
       return await writeSanitizedConfig(patch);
     } catch (err) {
@@ -68,7 +83,7 @@ export function registerConfigIpcHandlers() {
     }
   });
 
-  ipcMain.handle("config:exportTemplate", async () => {
+  handleIpc("config:exportTemplate", async () => {
     try {
       const result = await dialog.showSaveDialog({
         title: "Export Venice Forge config template",
@@ -83,7 +98,7 @@ export function registerConfigIpcHandlers() {
     }
   });
 
-  ipcMain.handle("config:loadMergedThemes", async () => {
+  handleIpc("config:loadMergedThemes", async () => {
     try {
       return { ok: true, ...(await loadMergedThemes()) };
     } catch (err) {
@@ -91,7 +106,7 @@ export function registerConfigIpcHandlers() {
     }
   });
 
-  ipcMain.handle("config:resetSecureStoreKeys", () => {
+  handleIpc("config:resetSecureStoreKeys", () => {
     try {
       const removed = resetSecureStoreKeys();
       return { ok: true, removed };

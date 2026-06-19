@@ -22,7 +22,7 @@
  */
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
+const { execFileSync } = require("child_process");
 const zlib = require("zlib");
 
 const ROOT = path.join(__dirname, "..");
@@ -39,7 +39,7 @@ fs.mkdirSync(BUILD_DIR, { recursive: true });
 // ---------------------------------------------------------------------------
 function hasRsvgConvert() {
   try {
-    execSync("rsvg-convert --version", { stdio: "ignore" });
+    execFileSync("rsvg-convert", ["--version"], { stdio: "ignore" });
     return true;
   } catch {
     return false;
@@ -48,7 +48,7 @@ function hasRsvgConvert() {
 
 function hasIconutil() {
   try {
-    execSync("which iconutil", { stdio: "ignore" });
+    execFileSync("which", ["iconutil"], { stdio: "ignore" });
     return true;
   } catch {
     return false;
@@ -59,7 +59,7 @@ function hasIconutil() {
 // SVG-based generation (preferred path)
 // ---------------------------------------------------------------------------
 function rsvgRasterize(svgPath, size, outPath) {
-  execSync(`rsvg-convert -w ${size} -h ${size} "${svgPath}" -o "${outPath}"`);
+  execFileSync("rsvg-convert", ["-w", String(size), "-h", String(size), svgPath, "-o", outPath], { stdio: "ignore" });
 }
 
 function buildIcoFromPngs(pngPaths) {
@@ -147,7 +147,7 @@ function generateFromSvg() {
           path.join(iconsetDir, entry.name)
         );
       }
-      execSync(`iconutil -c icns "${iconsetDir}" -o "${outIcnsPath}"`);
+      execFileSync("iconutil", ["-c", "icns", iconsetDir, "-o", outIcnsPath], { stdio: "inherit" });
       console.log(`[generate:icon] Generated ${outIcnsPath}`);
     } else {
       // Fallback: build ICNS manually (same approach as the old script)

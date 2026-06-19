@@ -17,6 +17,11 @@ export interface EncryptedPayload {
   data: number[];
 }
 
+export type DecryptFailureReason = "corrupt" | "key-missing" | "invalid-payload" | "unknown";
+export type DecryptResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; reason: DecryptFailureReason; error?: string };
+
 /** Promise latch ensuring only one key-generation sequence runs at a time. */
 let keyPromise: Promise<CryptoKey> | null = null;
 
@@ -96,16 +101,15 @@ export async function encryptData<T>(data: T): Promise<EncryptedPayload> {
   };
 }
 
-/**
- * Decrypts an AES-GCM encrypted payload back into its original value.
- * @param encryptedPayload The wrapper object produced by encryptData.
- * @returns A promise resolving to the decrypted value, or null on failure.
- */
-export async function decryptData<T>(encryptedPayload: EncryptedPayload | T): Promise<T | null> {
-  if (!encryptedPayload || !(encryptedPayload as EncryptedPayload)._encrypted) return encryptedPayload as T;
+export async function decryptDataResult<T>(encryptedPayload: EncryptedPayload | T): Promise<DecryptResult<T>> {
+  if (!encryptedPayload) return { ok: false, reason: "invalid-payload", error: "Missing encrypted payload." };
+  if (!(encryptedPayload as EncryptedPayload)._encrypted) return { ok: true, data: encryptedPayload as T };
+  const payload = encryptedPayload as EncryptedPayload;
+  if (!Array.isArray(payload.iv) || !Array.isArray(payload.data)) {
+    return { ok: false, reason: "invalid-payload", error: "Encrypted payload envelope is malformed." };
+  }
   try {
     const key = await getOrCreateKey();
-    const payload = encryptedPayload as EncryptedPayload;
     const iv = new Uint8Array(payload.iv);
     const encrypted = new Uint8Array(payload.data);
     const decrypted = await crypto.subtle.decrypt(
@@ -113,9 +117,25 @@ export async function decryptData<T>(encryptedPayload: EncryptedPayload | T): Pr
       key,
       encrypted
     );
-    return JSON.parse(new TextDecoder().decode(decrypted));
-  } catch {
+    try {
+      return { ok: true, data: JSON.parse(new TextDecoder().decode(decrypted)) };
+    } catch {
+      return { ok: false, reason: "corrupt", error: "Decrypted payload is not valid JSON." };
+    }
+  } catch (err) {
     // Redacted: do not log decryption error details in production.
-    return null;
+    const message = err instanceof Error ? err.message : "Unknown decryption failure.";
+    const reason: DecryptFailureReason = /key/i.test(message) ? "key-missing" : "corrupt";
+    return { ok: false, reason, error: message };
   }
+}
+
+/**
+ * Decrypts an AES-GCM encrypted payload back into its original value.
+ * @param encryptedPayload The wrapper object produced by encryptData.
+ * @returns A promise resolving to the decrypted value, or null on failure.
+ */
+export async function decryptData<T>(encryptedPayload: EncryptedPayload | T): Promise<T | null> {
+  const result = await decryptDataResult<T>(encryptedPayload);
+  return result.ok ? result.data : null;
 }

@@ -15,6 +15,7 @@ import { desktopChat, desktopConversations } from '../services/desktopBridge'
 import { redactErrorMessage } from '../shared/redaction'
 import * as logger from '../shared/logger'
 import { DEFAULT_CHAT_MODEL } from '../constants/venice'
+import { assertValidId } from '../utils/idValidation'
 
 
 
@@ -491,6 +492,7 @@ const DEBOUNCE_MS = 500
 const MAX_DIRTY_CONVERSATIONS = 1000
 
 function markDirtyConversation(id: string, conv: Conversation): void {
+  assertValidId(id, 'markDirtyConversation')
   dirtyConversations.set(id, conv)
   if (dirtyConversations.size > MAX_DIRTY_CONVERSATIONS) {
     if (saveTimer !== null) {

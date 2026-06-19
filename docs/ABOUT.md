@@ -80,8 +80,11 @@ tabs are:
 | Tab | Feature |
 |-----|---------|
 | Chat | Streaming chat with Venice text models, memory injection & management, drag & drop context reordering, Agent vs Classic toggle, and optional character-bound scene generation |
+| History | Browse prior conversations and restore or inspect saved chat state |
 | Image Studio | Generate images, **Edit** (single image inpainting), **Combine** (multi-image referencing), and **Upscale** (separate from video upscaling) |
 | Media Studio | Generated-image and -video library with local persistence, full-size preview, batch favorite/unstar/delete, lineage (parent + children) tracking, and per-model capability hints |
+| Prompts | Versioned prompt library for chat, image, system, recipe, and workflow prompts |
+| Scene Composer | Structured scene components that compile into image-generation recipes |
 | Audio Studio | Text-to-speech with 50+ voices and formats, plus audio transcription via Whisper |
 | Music Studio | AI music generation with text-to-music, optional lyrics, duration control, and instrumental mode |
 | Video Studio | Asynchronously queue text-to-video, image-to-video, video-to-video, reference-to-video, and video upscale jobs. Settings are model-dependent. |
@@ -90,6 +93,7 @@ tabs are:
 | Characters | Browse Venice hosted characters via the official `/characters` API, filter by adult / web-enabled flags, and start character chats using `venice_parameters.character_slug` |
 | RP Studio | Local-first Character RP Studio: character cards, personas, lorebooks, multi-character RP chats, scoped memory, scene image generation. Lazy-loaded. |
 | Workflows | Visual node editor for chaining models (Input → LLM → Image Gen → Output) with parallel branching. Lazy-loaded. |
+| Privacy | Storage inventory, safe privacy summaries, and non-destructive maintenance actions |
 | Playground | Conversational agent that builds and edits workflows on a live canvas using plain language. Lazy-loaded. |
 | Config | API key management, theme selection (built-in + custom export/import), import/export |
 | Status | Diagnostics, rate-limit info, log access (renamed from "Diagnostics") |
