@@ -115,6 +115,13 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-06-20 Push to Main and Workflow Validation (current session):**
+  - Monitored the triggered GitHub Actions CI and Release workflows on the `main` branch after pushing the v2.1.1 tag.
+  - Verified that all jobs for `CI` (`27886689060`) and `v2.1.1 Release` (`27886689375`) completed successfully (`publish` included).
+  - Confirmed the v2.1.1 tag is pushed and workflows are completely green.
+  - **Files changed:** `docs/summary_of_work.md`.
+  - **Validation:** Visual inspection via GitHub CLI (`gh run view 27886689375` and `gh run watch`).
+
 - **2026-06-20 Application Compilation and Launch:**
   - Re-executed the `npm run dist:mac:arm64` script to build the Apple Silicon specific binary for Venice Forge to incorporate the latest fixes.
   - Verified successful compilation resulting in `Venice Forge.app` within the `release/mac-arm64/` directory.
