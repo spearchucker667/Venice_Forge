@@ -115,6 +115,29 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-06-20 Application Compilation and Launch:**
+  - Re-executed the `npm run dist:mac:arm64` script to build the Apple Silicon specific binary for Venice Forge to incorporate the latest fixes.
+  - Verified successful compilation resulting in `Venice Forge.app` within the `release/mac-arm64/` directory.
+  - Launched the successfully built Apple Silicon app bundle via `open`.
+  - **Files changed:** `docs/summary_of_work.md`.
+  - **Validation:** Build passed successfully and app was launched.
+
+- **2026-06-20 Fix AI Research Citations Bug:**
+  - Investigated and resolved a user complaint where the "IA Research" (AI Research) tab was allegedly returning incorrect citations. Discovered two issues:
+    1. The `EvidenceStore` duplicated scraped URLs because `addScrape` bypassed the uniqueness check used in `addSearch`, resulting in naked duplicate URLs without titles at the bottom of the citations list.
+    2. The UI component indiscriminately dumped the raw list of all retrieved search URLs under the heading "Citations & References". This misled users into believing these were the specific sources the AI selected to cite in its answer, creating semantic confusion when the URLs didn't match the AI's inline citations.
+  - Fixed `evidenceStore.ts` to deduplicate URLs inside `citations()` so search results with titles take precedence over title-less scrapes.
+  - Renamed the state variables and UI labels in `AiResearchTab.tsx` and `SearchScrapeView.tsx` from "Citations & References" to "Retrieved Evidence Sources" to accurately reflect the data being presented.
+  - **Files changed:** `src/research/agent/evidenceStore.ts`, `src/components/search/AiResearchTab.tsx`, `src/components/search/SearchScrapeView.tsx`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run typecheck` PASS; `npm run verify:safety-guard` PASS.
+
+- **2026-06-20 Application Compilation and Launch (current session):**
+  - Executed the `npm run dist:mac:arm64` script to build the Apple Silicon specific binary for Venice Forge.
+  - Verified successful compilation resulting in `Venice Forge.app` within the `release/mac-arm64/` directory.
+  - Launched the successfully built Apple Silicon app bundle.
+  - **Files changed:** `docs/summary_of_work.md`.
+  - **Validation:** Build passed successfully.
+
 - **2026-06-19 Safety / Privacy / Legal Documentation Reconciliation (current session):**
   - Reconciled the public docs against the live Family Safe Mode implementation instead of prior audit prose.
   - Updated `README.md`, `SECURITY.md`, `docs/legal/PRIVACY.md`, `docs/LEGAL.md`, `docs/FAQ.md`, `docs/ABOUT.md`, `docs/design/REPOSITORY_TREE.md`, `docs/DEVELOPMENT/building.md`, and `docs/RELEASE/release.md`.
@@ -7772,3 +7795,27 @@ Result:
   - **Summary:** Fixed a crash where the `researchBrowser:create` IPC handler threw an "Attempted to register a second handler" error. The `setupResearchBrowserIpc` function was being executed multiple times (e.g. during macOS app reactivation window creation). Implemented a module-scoped boolean guard to ensure IPC handlers are registered strictly once, while still permitting `mainWindowRef` to update. Exported `resetResearchBrowserIpcForTesting` to allow isolated unit testing.
   - **Files changed:** `electron/services/researchBrowserServer.ts`, `electron/services/researchBrowserServer.test.ts`.
   - **Validation:** `npm run verify:contracts` PASS; `npm test` PASS.
+
+- **Date:** 2026-06-20 (Fix AI Research Citations Bug)
+  - **Agent:** Antigravity (Gemini 3.1 Pro)
+  - **Branch / state:** `main`; working tree modified.
+  - **Summary:** Investigated and resolved a user complaint where the "IA Research" (AI Research) tab was allegedly returning incorrect citations. Discovered two issues:
+    1. The `EvidenceStore` duplicated scraped URLs because `addScrape` bypassed the uniqueness check used in `addSearch`, resulting in naked duplicate URLs without titles at the bottom of the citations list.
+    2. The UI component indiscriminately dumped the raw list of all retrieved search URLs under the heading "Citations & References". This misled users into believing these were the specific sources the AI selected to cite in its answer, creating semantic confusion when the URLs didn't match the AI's inline citations.
+    Fixed `evidenceStore.ts` to deduplicate URLs inside `citations()` so search results with titles take precedence over title-less scrapes. Renamed the state variables and UI labels in `AiResearchTab.tsx` and `SearchScrapeView.tsx` from "Citations & References" to "Retrieved Evidence Sources" to accurately reflect the data being presented.
+  - **Files changed:** `src/research/agent/evidenceStore.ts`, `src/components/search/AiResearchTab.tsx`, `src/components/search/SearchScrapeView.tsx`.
+  - **Validation:** `npm run typecheck` PASS; `npm run verify:safety-guard` PASS.
+
+- **Date:** 2026-06-20 (Application Compilation and Launch)
+  - **Agent:** Antigravity (Gemini 3.1 Pro)
+  - **Branch / state:** `main`; working tree modified.
+  - **Summary:** Re-executed the `npm run dist:mac:arm64` script to build the Apple Silicon specific binary for Venice Forge to incorporate the latest fixes. Verified successful compilation resulting in `Venice Forge.app` within the `release/mac-arm64/` directory. Launched the successfully built Apple Silicon app bundle via `open`.
+  - **Files changed:** `docs/summary_of_work.md`.
+  - **Validation:** Build passed successfully and app was launched.
+
+- **Date:** 2026-06-20 (Fix Diagnostics Warning for Family Safe Mode)
+  - **Agent:** Antigravity (Gemini 3.1 Pro)
+  - **Branch / state:** `main`; working tree modified.
+  - **Summary:** Investigated a bug where the diagnostics inspector showed a warning that Family Safe Mode was disabled, even when the local toggle was on. Discovered that the logic in `diagnosticsService.ts` for evaluating safety severity was combining the status of the local `localFamilySafeModeEnabled` toggle and the remote API's `veniceApiSafeMode` feature using a `pickWorst` approach. Modified `buildSafetyStatus` to determine the severity warning solely based on the local Family Safe Mode toggle, while continuing to report both statuses in the detailed snapshot. The inspector will now correctly report 'ok' when the local guard is active.
+  - **Files changed:** `src/services/diagnosticsService.ts`.
+  - **Validation:** Ran `npm run verify:contracts`, `npm run verify:safety-guard` and `npm test` successfully. Tests correctly assert that severity is tied to the local setting.

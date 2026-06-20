@@ -78,9 +78,15 @@ export function createEvidenceStore(): EvidenceStore {
     },
 
     citations(): string[] {
-      return records
-        .filter((r) => r.url)
-        .map((r) => `${r.title ? r.title + " — " : ""}${r.url}`);
+      const seen = new Set<string>();
+      const result: string[] = [];
+      for (const r of records) {
+        if (!r.url) continue;
+        if (seen.has(r.url)) continue;
+        seen.add(r.url);
+        result.push(`${r.title ? r.title + " — " : ""}${r.url}`);
+      }
+      return result;
     },
 
     clear() {

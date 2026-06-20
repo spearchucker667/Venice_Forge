@@ -21,7 +21,7 @@ export function AiResearchTab({
   runAiResearch,
   researchOutput,
   setResearchOutput,
-  researchCitations,
+  researchEvidenceSources,
 }: {
   researchQuestion: string;
   setResearchQuestion: (val: string) => void;
@@ -39,7 +39,7 @@ export function AiResearchTab({
   runAiResearch: () => void;
   researchOutput: string;
   setResearchOutput: (val: string) => void;
-  researchCitations: string;
+  researchEvidenceSources: string;
 }) {
   const budgetField = (
     label: string,
@@ -159,12 +159,12 @@ export function AiResearchTab({
         <button
           className="px-3.5 py-2 rounded-lg text-[13px] font-medium bg-surface border border-border text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer"
           onClick={() => {
-            copyText(researchCitations);
-            toast.success("Citations copied!");
+            copyText(researchEvidenceSources);
+            toast.success("Evidence sources copied!");
           }}
-          disabled={!researchCitations}
+          disabled={!researchEvidenceSources}
         >
-          Copy Citations
+          Copy Evidence Sources
         </button>
       </div>
 
@@ -175,10 +175,10 @@ export function AiResearchTab({
         className="w-full bg-surface border border-border rounded-lg px-3.5 py-2.5 text-[13px] text-text-secondary outline-none focus:border-accent transition-all min-h-[300px] placeholder:text-text-muted/50"
       />
 
-      {researchCitations && (
+      {researchEvidenceSources && (
         <div className="rounded-lg bg-surface border border-border p-4 space-y-2">
-          <div className="text-[12.5px] font-medium text-text-primary">Citations & References</div>
-          <pre className="text-[11.5px] text-text-muted whitespace-pre-wrap font-mono">{researchCitations}</pre>
+          <div className="text-[12.5px] font-medium text-text-primary">Retrieved Evidence Sources</div>
+          <pre className="text-[11.5px] text-text-muted whitespace-pre-wrap font-mono">{researchEvidenceSources}</pre>
         </div>
       )}
     </div>

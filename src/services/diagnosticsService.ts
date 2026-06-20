@@ -236,7 +236,9 @@ function buildSafetyStatus(): AppStatusItem {
   const providerEnabled = settings.veniceApiSafeMode === true;
   const summary =
     `Local guard: ${localEnabled ? "on" : "off"} · Venice safe_mode: ${providerEnabled ? "on" : "off"}`;
-  const sev = pickWorst([localEnabled ? "ok" : "warn", providerEnabled ? "ok" : "warn"]);
+  // The local guard is the primary safety boundary.
+  // If it is off (Adult Mode), we warn. The upstream Venice safe_mode is supplementary.
+  const sev = localEnabled ? "ok" : "warn";
   return makeItem("safety", "Safety", sev, summary, {
     actionLabel: "Open Config",
     actionTargetTabId: "settings",

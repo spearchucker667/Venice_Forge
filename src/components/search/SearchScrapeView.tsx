@@ -504,7 +504,7 @@ export function SearchScrapeView() {
             runAiResearch={runAiResearch}
             researchOutput={researchOutput}
             setResearchOutput={setResearchOutput}
-            researchCitations={researchCitations}
+            researchEvidenceSources={researchCitations}
           />
         )}
 
