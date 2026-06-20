@@ -20,7 +20,12 @@ import {
 import { VENICE_API_HOST, VENICE_API_BASE_PATH } from "./src/shared/apiConfig";
 import { AppConfig } from "./src/shared/configSchema";
 import { warn, error } from "./src/shared/logger";
-import { maybeRunLocalFamilyGuard, recordDecision, screenResponseBody } from "./src/shared/safety";
+import {
+  maybeRunLocalFamilyGuard,
+  recordDecision,
+  safetyBlockBodyFromResponseScreen,
+  screenResponseBody,
+} from "./src/shared/safety";
 import type { SafetyGuardDecision } from "./src/shared/safety";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import { isPrivateHostname } from "./src/shared/urlSecurity";
@@ -704,7 +709,7 @@ export function createServerApp() {
           isLocalFamilySafeModeEnabled(req),
         );
         if (!screen.allowed) {
-          return res.status(451).json({ error: screen.userMessage });
+          return res.status(451).json(safetyBlockBodyFromResponseScreen(screen));
         }
 
         if (contentType.includes("application/json")) {
@@ -877,7 +882,7 @@ export function createServerApp() {
         isLocalFamilySafeModeEnabled(req),
       );
       if (!screen.allowed) {
-        return res.status(451).json({ error: screen.userMessage });
+        return res.status(451).json(safetyBlockBodyFromResponseScreen(screen));
       }
 
       if (req.query.raw === "true") {

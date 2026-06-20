@@ -29,6 +29,7 @@ const requiredGates = [
   'verify:bundle-budget',
   'verify:safety-guard',
   'verify:markdown-links',
+  'verify:repo-handoff-hygiene',
   'verify:theme-tokens',
   'verify:model-aware-recipes',
   'verify:media-studio-power-tools',

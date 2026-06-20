@@ -1,4 +1,10 @@
-import { DEFAULT_WORKFLOW_MODEL } from '../constants/venice'
+import {
+  DEFAULT_IMAGE_MODEL,
+  DEFAULT_MUSIC_MODEL,
+  DEFAULT_TTS_MODEL,
+  DEFAULT_VIDEO_MODEL,
+  DEFAULT_WORKFLOW_MODEL,
+} from '../constants/venice'
 import type { VeniceNodeType } from '../stores/workflow-store'
 
 export type IOKind = 'text' | 'image' | 'audio' | 'video' | 'none'
@@ -71,7 +77,7 @@ export const NODE_SCHEMAS: Record<VeniceNodeType, NodeSchema> = {
     input: 'text',
     output: 'image',
     params: [
-      { name: 'model', type: 'string', description: 'Venice image model id.', required: true, default: 'z-image-turbo' },
+      { name: 'model', type: 'string', description: 'Venice image model id.', required: true, default: DEFAULT_IMAGE_MODEL },
       { name: 'prompt', type: 'text', description: 'Image prompt. Use {{input}} to position upstream text.', required: true, default: '' },
       { name: 'negativePrompt', type: 'string', description: 'What to avoid.', default: '' },
       { name: 'steps', type: 'number', description: 'Denoising steps.', default: 20, min: 1, max: 50 },
@@ -88,7 +94,7 @@ export const NODE_SCHEMAS: Record<VeniceNodeType, NodeSchema> = {
     input: 'text',
     output: 'audio',
     params: [
-      { name: 'model', type: 'string', description: 'TTS model id.', required: true, default: 'tts-kokoro' },
+      { name: 'model', type: 'string', description: 'TTS model id.', required: true, default: DEFAULT_TTS_MODEL },
       { name: 'prompt', type: 'text', description: 'Text to speak. Use {{input}} to position upstream text.', default: '' },
       { name: 'voice', type: 'string', description: 'Voice id.', default: 'af_sky' },
       { name: 'speed', type: 'number', description: 'Playback speed.', default: 1, min: 0.25, max: 4 },
@@ -102,7 +108,7 @@ export const NODE_SCHEMAS: Record<VeniceNodeType, NodeSchema> = {
     input: 'text',
     output: 'audio',
     params: [
-      { name: 'model', type: 'string', description: 'Music model id.', required: true, default: 'stable-audio' },
+      { name: 'model', type: 'string', description: 'Music model id.', required: true, default: DEFAULT_MUSIC_MODEL },
       { name: 'prompt', type: 'text', description: 'Music prompt.', required: true, default: '' },
       { name: 'duration', type: 'number', description: 'Duration in seconds.', default: 30, min: 5, max: 120 },
       { name: 'instrumental', type: 'boolean', description: 'Force instrumental.', default: false },
@@ -116,7 +122,7 @@ export const NODE_SCHEMAS: Record<VeniceNodeType, NodeSchema> = {
     input: 'text',
     output: 'video',
     params: [
-      { name: 'model', type: 'string', description: 'Video model id.', required: true, default: 'wan-2.1' },
+      { name: 'model', type: 'string', description: 'Video model id.', required: true, default: DEFAULT_VIDEO_MODEL },
       { name: 'prompt', type: 'text', description: 'Video prompt.', required: true, default: '' },
       { name: 'videoAspectRatio', type: 'enum', description: 'Aspect ratio.', default: '16:9', enumValues: VIDEO_ASPECT_VALUES },
       { name: 'videoDuration', type: 'enum', description: 'Clip duration. Empty means model default.', default: '', enumValues: VIDEO_DURATION_VALUES },

@@ -3,7 +3,7 @@
 ## General
 
 ### What is Venice Forge?
-Venice Forge is an independent, open-source desktop client for the [Venice API](https://venice.ai). It provides a unified interface for text generation, image generation, web research, batch automation, and local data management — all without routing user content through any intermediary server beyond Venice itself.
+Venice Forge is an independent, open-source desktop client for the [Venice API](https://venice.ai). It provides a unified interface for text generation, image generation, web research, batch automation, and local data management through local desktop or development-proxy transports.
 
 ### Is Venice Forge an official Venice.ai product?
 No. Venice Forge is an independent MIT-licensed project. It is not endorsed by, sponsored by, or affiliated with Venice.ai, Inc. "Venice", "Venice.ai", and related marks belong to their respective owners.
@@ -37,6 +37,8 @@ npm run lint:eslint    # ESLint for src/, electron/, server.ts, and scripts/ wit
 npm run typecheck      # TypeScript for renderer + Electron
 npm test               # Vitest unit and integration tests
 npm run verify:safety-guard # Security guard enforcement check
+npm run verify:markdown-links
+npm run verify:contracts
 npm run build          # Build dist/ and dist-electron/
 ```
 
@@ -61,10 +63,16 @@ On macOS and Windows, the app **refuses** to store the key if secure storage fai
 Set `VENICE_FORGE_DEBUG_DEVTOOLS=true` in your environment before launching. Only use this for debugging.
 
 ### Is there telemetry?
-No. Venice Forge does not track users, log prompts, or monitor API key usage.
+No first-party telemetry or analytics are shipped. Venice Forge does not track
+users or monitor API key usage. Local chat history and workspace data still
+exist on your machine until you delete them, and provider-bound requests still
+leave the device when you send them.
 
 ### Does Venice Forge have content moderation?
-Yes. Every outgoing Venice API request is screened by an on-device content safety guard before the payload is forwarded. The guard enforces cross-sentence context boundaries and `negative_prompt` extraction. Requests that fail the assessment are blocked at the renderer transport, IPC, proxy, or module boundary and never reach Venice. The proxy uses a "fail-close" design (500 status) if any guard extraction fails. Raw prompt text is **never** logged by the safety system — only a coarse non-identifying hash is kept for local audit counters.
+It has a local Family Safe Mode guard, enabled by default, for a narrow class of child-exploitation and youth-sexualization requests. The guard runs on-device, performs no network moderation calls, screens supported prompt-like request fields before they are sent upstream, and screens Jina/scrape text responses before they are returned to the renderer. Blocked paths return a safe `451` response body. This is a local guardrail, not a complete safety guarantee.
+
+### Does blocked content get uploaded or logged?
+Blocked request text is not sent upstream. Blocked raw Jina/scrape response text is not returned to the renderer. Venice Forge's aggregate safety audit counters do not store raw prompt text, matched snippets, or content hashes.
 
 ### Is there an age restriction for using Venice Forge?
 Yes, **users must be 18 years or older**. Generative AI models can produce explicit or sensitive material, and there is an inherent legal and ethical risk of generating AI imagery that may inappropriately represent minors (CSAM). By using this software, users acknowledge this risk and assume all liability.
@@ -151,8 +159,16 @@ File and URL attachments are assembled into the current prompt context when you 
 
 
 ### Is my data encrypted?
-- **Conversations (desktop):** Stored as JSON on the local filesystem. These are **not encrypted** by Venice Forge — they rely on OS-level filesystem permissions. The Venice API itself is privacy-preserving by design.
+- **Conversations (desktop):** Stored as JSON on the local filesystem. These are **not encrypted** by Venice Forge — they rely on OS-level filesystem permissions.
 - **Images, legacy chats, settings, and conversations (web / IndexedDB):** Encrypted with AES-GCM using a browser-managed key stored in same-origin IndexedDB. This reduces casual local inspection risk but is **not equivalent to OS credential storage**. The `diagnostics` store is not encrypted — it contains only sanitized timing and status metadata.
+
+### How do I test safety changes safely?
+Use the synthetic fixtures in `tests/safety/fixtureBuilders.ts`, then run:
+
+```bash
+npm run verify:safety-guard
+npx vitest run tests/safety/guardPipeline.test.ts tests/safety/enforcementBoundaries.test.ts scripts/verify-safety-guard.test.ts --fileParallelism=false
+```
 
 ### Can I export my data?
 Yes. Use the **Config** tab → **Export**. Exports are versioned JSON with `version`, `exportedAt`, `appVersion`, and `data`. API keys are automatically redacted.

@@ -11,6 +11,7 @@ import { cn } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
 import { getPromptStartersForCategory } from '../../services/promptStarterService'
 import { redactErrorMessage } from '../../shared/redaction'
+import { DEFAULT_TTS_MODEL } from '../../constants/venice'
 
 const VOICES = [
   // American Female
@@ -52,7 +53,7 @@ export function AudioView() {
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const selectedModel = useSettingsStore((s) => s.selectedModels.audio)
   const { data: models } = useModels('tts')
-  const model = selectedModel || models?.[0]?.id || 'tts-kokoro'
+  const model = selectedModel || models?.[0]?.id || DEFAULT_TTS_MODEL
 
   const [tab, setTab] = useState<'tts' | 'transcribe'>('tts')
   const [text, setText] = useState('')

@@ -165,6 +165,12 @@ guard fails CI if a future change weakens the protection. When adding a
 new guard, append it to the list below and reference the ID in the
 test's comment header.
 
+The primary active sequence is `VERIFY-001` through `VERIFY-058`.
+`VERIFY-168` is an intentional legacy bridge for the older T-168 storage
+privacy redaction finding and is allowlisted by `verify:repo-handoff-hygiene`;
+do not add new out-of-sequence IDs without updating that verifier and this
+registry.
+
 | ID | What it locks | Test file |
 |----|----------------|-----------|
 | `VERIFY-001` | Bridge bearer token never logged to console | `electron/services/bridgeServer.test.ts` |

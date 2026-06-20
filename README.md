@@ -195,6 +195,9 @@ Core invariants:
 - Web-mode Venice keys live in server-side `.env`.
 - Venice and Jina requests pass through allowlisted, validated request paths.
 - Local Family Safe Mode is separate from provider-side Venice safe-mode parameters.
+- Family Safe Mode is local and privacy-preserving in scope: it performs no
+  network moderation calls, blocked request text is not sent upstream, and
+  blocked Jina/scrape response text is not returned to the renderer.
 - Secret-like values are stripped from safe exports and diagnostics.
 - Prompt text is not logged.
 - No telemetry or analytics are collected by Venice Forge.
@@ -505,6 +508,16 @@ Import/export behavior:
 
 Venice Forge includes local safety controls, but users remain responsible for their use of the application and provider endpoints.
 
+Current guard contract:
+
+- Family Safe Mode is a local, on-device guardrail. It is enabled by default,
+  but it is **not** a complete protection guarantee.
+- Supported prompt-like request fields are screened before provider dispatch.
+- Jina/scrape text responses are screened locally before the renderer sees
+  them; large bodies are sampled against the first 8 KiB.
+- Aggregate audit counters record counts plus last timestamp/reason metadata
+  only; they do not store raw prompt text or blocked raw response content.
+
 Report abuse or security concerns through the appropriate channel:
 
 1. **Child exploitation / CSAM:** [NCMEC CyberTipline](https://report.cybertip.org/)
@@ -541,6 +554,9 @@ npm run verify:markdown-links
 npm run verify:release-packaging-hardening
 npm run verify:contracts
 ```
+
+For maintainer guidance on adding new endpoints safely, testing safety changes,
+and fixture hygiene, see [SECURITY.md](SECURITY.md).
 
 ---
 
@@ -644,6 +660,10 @@ Read:
 - Linux packaging is CI-oriented; local cross-builds are not supported.
 - Provider behavior, available models, model capabilities, and API limits may change upstream.
 - Family Safe Mode is a local guardrail, not a legal/compliance guarantee.
+- Family Safe Mode coverage is explicit, not automatic. New prompt-carrying
+  endpoints and new scrape/response paths must be wired and tested
+  intentionally.
+- Jina/scrape response-body screening samples only the first 8 KiB of text.
 - Release badges only reflect the configured badge source; static badges must be updated when the release version changes.
 
 ---

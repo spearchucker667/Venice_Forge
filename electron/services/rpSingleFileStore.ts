@@ -1,6 +1,7 @@
 /**
  * @fileoverview Generic single-file-per-record JSON store for small RP collections
- * (personas, lorebooks, rp_assets). All ids MUST pass `VALID_ID_RE`.
+ * (personas, lorebooks, rp_assets). All ids MUST pass the central
+ * Windows-safe validator.
  */
 
 import { app } from "electron";
@@ -9,14 +10,14 @@ import fs from "fs/promises";
 import path from "path";
 import { logError, logInfo } from "./logger";
 import { redactErrorMessage } from "../../src/shared/redaction";
+import { isValidId as isCanonicalValidId } from "../../src/utils/idValidation";
 
 const TMP_SUFFIX = ".tmp";
-const VALID_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/;
 const MAX_SCAN_FILES = 4000;
 const MAX_LOAD_FILES = 2000;
 
 export function isValidId(id: unknown): id is string {
-  return typeof id === "string" && VALID_ID_RE.test(id);
+  return typeof id === "string" && isCanonicalValidId(id);
 }
 
 export interface RpAssetRecord {

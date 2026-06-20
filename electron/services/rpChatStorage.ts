@@ -3,8 +3,7 @@
  *
  * Persists one JSON file per chat under `<userData>/rp-chats/<id>.json`.
  * Writes are atomic (temp + rename), corruption is handled by backing up
- * the bad file. All ids MUST pass the strict id regex (must start alphanumeric;
- * rejects "." and "..").
+ * the bad file. All ids MUST pass the central Windows-safe validator.
  */
 
 import { app } from "electron";
@@ -13,11 +12,11 @@ import fs from "fs/promises";
 import path from "path";
 import type { RpChatV1, RpMessageV1 } from "../../src/types/rp";
 import { MAX_ACTIVE_CHARACTERS } from "../../src/types/rp";
+import { isValidId as isCanonicalValidId } from "../../src/utils/idValidation";
 import { logError, logInfo } from "./logger";
 
 const RP_CHATS_DIR = "rp-chats";
 const TMP_SUFFIX = ".tmp";
-const VALID_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/;
 const MAX_LIST_RP_CHATS = 2000;
 const MAX_SCAN_FILES = MAX_LIST_RP_CHATS * 2;
 
@@ -30,11 +29,11 @@ export function rpChatPath(id: string): string {
 }
 
 export function isValidId(id: unknown): id is string {
-  return typeof id === "string" && VALID_ID_RE.test(id);
+  return typeof id === "string" && isCanonicalValidId(id);
 }
 
 function isStringArrayOfIds(v: unknown): v is string[] {
-  return Array.isArray(v) && v.every((x) => typeof x === "string" && VALID_ID_RE.test(x));
+  return Array.isArray(v) && v.every(isValidId);
 }
 
 function isRpMessage(m: unknown): m is RpMessageV1 {
@@ -44,7 +43,7 @@ function isRpMessage(m: unknown): m is RpMessageV1 {
   if (typeof mm.content !== "string") return false;
   if (typeof mm.createdAt !== "number") return false;
   if (mm.role !== "system" && mm.role !== "user" && mm.role !== "character" && mm.role !== "narrator" && mm.role !== "tool") return false;
-  if (mm.role === "character" && (typeof mm.characterId !== "string" || !VALID_ID_RE.test(mm.characterId))) return false;
+  if (mm.role === "character" && !isValidId(mm.characterId)) return false;
   return true;
 }
 

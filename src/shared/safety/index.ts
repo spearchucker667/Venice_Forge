@@ -30,6 +30,7 @@ export {
   maybeRunLocalFamilyGuard,
   previewLocalFamilyGuard,
   runLocalFamilyGuard,
+  safetyBlockBodyFromResponseScreen,
   screenResponseBody,
 } from "./localFamilySafeGuard";
-export type { LocalGuardDecision, ResponseBodyScreenResult } from "./localFamilySafeGuard";
+export type { LocalGuardDecision, ResponseBodyScreenResult, SafetyBlockBody } from "./localFamilySafeGuard";

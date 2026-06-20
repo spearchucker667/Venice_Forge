@@ -40,7 +40,7 @@ evidence. If a historical report conflicts with live source, package scripts, or
 | Exhaustive bug-hunt audit | [audits/exhaustive-bug-hunt-2026-06-19.md](audits/exhaustive-bug-hunt-2026-06-19.md) |
 | Release safety gate | [audits/release_safety_gate_2026-06-19.md](audits/release_safety_gate_2026-06-19.md) |
 | Security / quality static audit | [audits/security-quality-static-audit-2026-06-19.md](audits/security-quality-static-audit-2026-06-19.md) |
-| Bug-hunt summary (VF-AUDIT-001..011) | [reports/BUG_HUNT_SUMMARY.md](reports/BUG_HUNT_SUMMARY.md) |
+| Historical bug-hunt summary (VF-AUDIT-001..011) | [reports/historical/BUG_HUNT_SUMMARY.md](reports/historical/BUG_HUNT_SUMMARY.md) |
 | Audit changelog | [audits/CHANGELOG.md](audits/CHANGELOG.md) |
 | Historical coverage baseline | [audits/docstrings-and-coverage-baseline.md](audits/docstrings-and-coverage-baseline.md) |
 | Historical coverage final report | [audits/docstrings-and-coverage-final.md](audits/docstrings-and-coverage-final.md) |

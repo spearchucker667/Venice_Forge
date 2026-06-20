@@ -2,7 +2,7 @@
 
 ## What Is Venice Forge?
 
-Venice Forge is a **private AI creation studio** built as a dual-platform Windows and macOS Electron desktop application. It provides a unified interface for the [Venice API](https://venice.ai), covering text generation, image generation, video generation, web research, batch automation, and local data management.
+Venice Forge is a **local-first AI creation studio** built as a dual-platform Windows and macOS Electron desktop application. It provides a unified interface for the [Venice API](https://venice.ai), covering text generation, image generation, video generation, web research, batch automation, and local data management.
 
 Safety controls are independent: **Family Safe Mode** runs Venice Forge's local child/family-safe filter, **Adult Mode** skips that local filter entirely, and **Venice API Safe Mode** controls only the provider-side `safe_mode` parameter.
 
@@ -20,7 +20,7 @@ Current public readiness status:
 ## Goals
 
 - **18+ Age Restriction.** Use of the application is strictly restricted to adults aged 18 and older, acknowledging the inherent risks of unfiltered AI image generation (including CSAM).
-- **Privacy by default.** The Venice API is privacy-preserving by design. Venice Forge keeps API keys out of the renderer process, never persists keys in plaintext, and never exports them.
+- **Privacy-conscious defaults.** Venice Forge keeps API keys out of the renderer process, redacts secret-like values from safe exports and diagnostics, and avoids first-party telemetry. Provider-bound requests still leave the device when you send them.
 - **Offline-first storage.** Images and settings live in browser IndexedDB. Desktop chat history is stored as local plaintext JSON under the app data directory, while web-mode conversations use IndexedDB. There is no cloud sync or telemetry.
 - **Unified Creative Suite.** Provide a seamless, visual interface for the full spectrum of Venice multimodal capabilities.
 - **Reproducible builds.** TypeScript strict mode, Node 22 CI, and `npm ci` ensure every build starts from a known state.
@@ -59,9 +59,9 @@ Web mode (development only):
 | State | Zustand 5 stores | Centralised app state (slice stores; `auth`, `chat`, `playground`, `settings`, `toast`, `workflow`) |
 | Storage | IndexedDB (via `StorageService`) | `images`, `files`, legacy `chats`, `settings`, `conversations`, and `ai_memory` are encrypted at rest with AES-GCM; `diagnostics` is stored unencrypted and should contain only sanitized timing/status metadata |
 | Chat storage | Electron main-process filesystem (`chat-history/*.json`) | Conversation persistence with atomic writes and corruption recovery; filesystem chat JSON is not separately encrypted by Venice Forge |
-| Content safety | `src/shared/safety/childExploitationGuard.ts` | Screens every outgoing Venice request at renderer transport, IPC, proxy, and module boundaries; evaluates `negative_prompt` and cross-sentence context; fails closed (500) on extraction errors; returns `SafetyGuardDecision`; never logs raw prompt text |
+| Content safety | `src/shared/safety/childExploitationGuard.ts` | Local Family Safe Mode screens supported prompt-like request fields and Jina/scrape text responses; evaluates `negative_prompt` and cross-sentence context; returns safe 451 blocks with metadata; keeps audit counters aggregate-only; never logs raw prompt text |
 | Headless Bridge | `electron/services/bridgeServer.ts` | Loopback-only Express API server running on `127.0.0.1` for CLI and mobile integrations; enforces bearer token auth and active safety guards |
-| Traffic Inspector | `src/stores/inspector-store.ts` | Captures and displays raw developer requests, masked headers, and safety audit logs; toggleable side-by-side with active view |
+| Traffic Inspector | `src/stores/inspector-store.ts` | Local developer request/response diagnostics with masked headers and non-mutating safety previews; safe diagnostics export is a separate redacted surface |
 
 | Secure storage | Electron `safeStorage` | Venice and Jina API keys (encrypted) |
 | IPC bridge | Electron preload + `ipcMain` | Renderer ↔ main transport |
@@ -136,7 +136,7 @@ See [`docs/CONFIG.md`](DEVELOPMENT/CONFIG.md) for the full schema, examples, and
 ```
 User input
   └─► React component
-        └─► assessChildExploitationSafety()   ← content safety screen
+        └─► local Family Safe Mode boundary   ← prompt extraction + safety screen when enabled
               ├─ blocked: surface error, do not forward
               └─ allowed:
                     └─► veniceFetch() / desktopBridge IPC

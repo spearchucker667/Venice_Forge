@@ -118,7 +118,7 @@ Express/Vite web development mode.
 │   ├── verify-release-packaging-hardening.cjs # Phase 2J single-source-of-truth audit
 │   ├── verify-research-workspace.cjs         # Phase 2I contract guard
 │   ├── verify-rp-studio-polish.cjs           # Phase 2F contract guard
-│   ├── verify-safety-guard.cjs               # Mandatory CI gate (safety guard at every boundary)
+│   ├── verify-safety-guard.cjs               # Mandatory CI gate (boundary enforcement + no-raw-log policy)
 │   ├── verify-scene-composer.cjs             # Phase 2E contract guard
 │   ├── verify-status-diagnostics.cjs         # Phase 2C contract guard
 │   ├── verify-storage-policy.cjs             # localStorage allowlist enforcement
@@ -159,10 +159,10 @@ Express/Vite web development mode.
 │   │   └── safety/                     # Child exploitation safety guard
 │   │       ├── childExploitationGuard.ts   # Public API + decision orchestration (T15)
 │   │       ├── characterImportSafety.ts    # Thin wrappers routing character/persona/RP/scene inputs
-│   │       ├── guardAudit.ts               # In-memory audit counters
+│   │       ├── guardAudit.ts               # Aggregate-only in-memory audit counters (no raw prompt text)
 │   │       ├── index.ts                    # Public barrel re-export
 │   │       ├── localFamilyGuardRules.ts
-│   │       ├── localFamilySafeGuard.ts     # Conditional Family Safe Mode pipeline
+│   │       ├── localFamilySafeGuard.ts     # Conditional Family Safe Mode pipeline + Jina/scrape response screening
 │   │       ├── matchTables.ts              # Pattern/term dictionaries (T15)
 │   │       ├── normalization.ts            # Text normalization + multi-view output (T15)
 │   │       └── promptPayloadExtractor.ts   # Endpoint-aware prompt field extraction

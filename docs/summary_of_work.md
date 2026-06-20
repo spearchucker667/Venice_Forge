@@ -115,6 +115,27 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-06-19 Safety / Privacy / Legal Documentation Reconciliation (current session):**
+  - Reconciled the public docs against the live Family Safe Mode implementation instead of prior audit prose.
+  - Updated `README.md`, `SECURITY.md`, `docs/legal/PRIVACY.md`, `docs/LEGAL.md`, `docs/FAQ.md`, `docs/ABOUT.md`, `docs/design/REPOSITORY_TREE.md`, `docs/DEVELOPMENT/building.md`, and `docs/RELEASE/release.md`.
+  - Corrected stale claims that the guard "fails closed via 500" or retains a coarse prompt hash in audit counters. The docs now describe the canonical `451` block shape, aggregate-only audit counters, local/no-network guard behavior, Jina/scrape response-body screening, and current limits such as the explicit endpoint matrix and 8 KiB response sampling window.
+  - Added maintainer guidance for wiring new endpoints safely, running guard verification, testing safety changes with synthetic fixtures, and documenting known limitations without overclaiming complete protection.
+  - Clarified diagnostics/logging boundaries: safe diagnostics remain redacted, blocked request text is not sent upstream, blocked Jina/scrape raw text is not returned to the renderer, and inspector previews are non-mutating relative to audit counters.
+  - **Files changed:** `README.md`, `SECURITY.md`, `docs/legal/PRIVACY.md`, `docs/LEGAL.md`, `docs/FAQ.md`, `docs/ABOUT.md`, `docs/design/REPOSITORY_TREE.md`, `docs/DEVELOPMENT/building.md`, `docs/RELEASE/release.md`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run verify:markdown-links` PASS; `npm run verify:safety-guard` PASS; `npx vitest run tests/safety/guardPipeline.test.ts tests/safety/enforcementBoundaries.test.ts scripts/verify-safety-guard.test.ts --fileParallelism=false` PASS; `git diff --check` PASS.
+
+- **2026-06-19 ZIP Audit Remediation and Workflow Revalidation (current session):**
+  - Reviewed `docs/VENICE_FORGE_ZIP_AUDIT_HANDOFF.md` and `docs/VENICE_FORGE_TODO.md`, then closed all eight listed TODOs.
+  - Fixed `TODO-001` / `VF-ZIP-001`: `screenResponseBody` now preserves canonical safety metadata and exports `safetyBlockBodyFromResponseScreen`; web and Electron Jina/scrape response-body blocks now return canonical 451 bodies without echoing blocked upstream content.
+  - Fixed `TODO-002` / `VF-ZIP-002`: RP chat storage, character-card storage, and generic RP single-file storage now delegate ID checks to the central Windows-safe validator, including reserved basenames with extensions and prototype-pollution IDs.
+  - Fixed `TODO-003` / `VF-ZIP-003`: Added canonical modality defaults (`DEFAULT_IMAGE_MODEL`, `DEFAULT_TTS_MODEL`, `DEFAULT_MUSIC_MODEL`, `DEFAULT_VIDEO_MODEL`), removed stale workflow/video `wan-2.1` defaults, and added `stable-audio` to fallback audio models with a music trait.
+  - Fixed `TODO-004` / `VF-ZIP-004`: Split the large JSON proxy test into parser-limit coverage and valid upstream-path coverage for Jina and scrape.
+  - Fixed `TODO-005` through `TODO-007` / `VF-ZIP-005`: Promoted the canonical bug-hunt prompt, added `docs/reports/README.md`, wired `verify:repo-handoff-hygiene`, documented the intentional `VERIFY-168` namespace exception, and reconciled historical report handling.
+  - Fixed `TODO-008`: completed the full Node 22 baseline. `npm audit` initially failed on transitive `undici@6.26.0` under `node-gyp`; `npm audit fix` updated the lockfile and the full `npm run ci` gate then passed.
+  - Adjusted `scripts/verify-work-orders.cjs` so historical report snapshots remain inert evidence and only current `docs/audits/` work-order YAMLs are parsed.
+  - **Files changed:** `src/shared/safety/localFamilySafeGuard.ts`, `src/shared/safety/index.ts`, `server.ts`, `electron/ipc/handlers.ts`, `electron/services/rpChatStorage.ts`, `electron/services/characterCardStorage.ts`, `electron/services/rpSingleFileStore.ts`, `src/constants/venice.ts`, `src/constants/venice.test.ts`, `src/lib/workflow-engine.ts`, `src/lib/workflow-engine.test.ts`, `src/lib/workflow-schema.ts`, `src/components/workflows/workflows-view.tsx`, `src/components/image/image-view.tsx`, `src/components/audio/audio-view.tsx`, `tests/safety/guardPipeline.test.ts`, `server.test.ts`, `electron/ipc/handlers.test.ts`, `electron/services/rpChatStorage.test.ts`, `electron/services/characterCardStorage.test.ts`, `electron/services/rpSingleFileStore.test.ts`, `docs/BUG_HUNTING_AGENT_PROMPT.md`, `docs/reports/README.md`, `docs/VENICE_FORGE_TODO.md`, `docs/DOCS_INDEX.md`, `AGENTS.md`, `package.json`, `package-lock.json`, `scripts/verify-ci-contract.cjs`, `scripts/verify-repo-handoff-hygiene.cjs`, `scripts/verify-work-orders.cjs`, `docs/summary_of_work.md`.
+  - **Validation:** targeted Vitest safety/storage/model/server suites PASS; `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm run verify:safety-guard` PASS; `npm run verify:markdown-links` PASS; `npm run verify:theme-tokens` PASS; `npm run verify:storage-policy` PASS; `npm run verify:network-boundaries` PASS; `npm run verify:venice-api-docs` PASS; `npm run verify:release-packaging-hardening` PASS; `npm run verify:ci-contract` PASS; `npm run verify:repo-handoff-hygiene` PASS; `npm run verify:work-orders` PASS; `npm run verify:contracts` PASS; `npm run build` PASS; `npm run verify:dist` PASS; `npm run ci` PASS under Node 22 after lockfile audit fix. Sandbox `npm run ci` failed only because socket-bound tests hit `listen EPERM`; the same command passed outside the restricted sandbox.
+
 - **2026-06-19 Exhaustive Bug Hunt - Part 2 (current session):**
   - **Continued the massive security and storage-correctness bug hunt:**
     - Verified `VF-AUDIT-001` through `VF-AUDIT-011` were resolved or logged in previous work.
@@ -134,6 +155,27 @@ backlog files were removed.
   - **Validation:** All 14 CI gates pass. Code fully verified for 14 audit items. Release gate: **PASS**.
 
 ### Session History
+- **2026-06-19 Safety / Privacy / Legal Documentation Reconciliation:**
+  - Rewrote the public Family Safe Mode contract in the docs to match the current code and tests instead of older audit wording.
+  - Documented what the guard does and does not do, where it runs, the supported endpoint matrix, local/no-network behavior, logging/diagnostics redaction boundaries, aggregate-only audit counters, maintainer endpoint-wiring steps, verification commands, fixture hygiene, and current limitations/future work.
+  - Corrected stale privacy/network wording around Jina routing, desktop filesystem chat storage, safe diagnostics, and bridge-token logging behavior.
+  - **Validation:** `npm run verify:markdown-links` PASS; `npm run verify:safety-guard` PASS; targeted safety Vitest suites PASS; `git diff --check` PASS.
+
+- **2026-06-19 ZIP Audit Full Closure and Workflow Revalidation:**
+  - Closed all `docs/VENICE_FORGE_TODO.md` entries (`TODO-001` through `TODO-008`) from the ZIP audit handoff.
+  - Normalized response-body safety blocks, unified Electron file-store ID validation, centralized modality defaults, strengthened proxy large-body tests, promoted the canonical audit prompt, added report-hygiene verification, and documented `VERIFY-168` as an intentional legacy bridge ID.
+  - Fixed a real CI audit blocker by updating the lockfile through `npm audit fix` after `undici@6.26.0` was reported under `node-gyp`.
+  - Revalidated the full advertised workflow under Node 22: lint, typecheck, coverage, audit, build, contracts, and dist verification all pass.
+  - **Validation:** targeted Vitest suites PASS; `npm run verify:contracts` PASS; `npm run build` PASS; `npm run verify:dist` PASS; final elevated `npm run ci` PASS.
+
+- **2026-06-19 ZIP Audit Remediation:**
+  - Reviewed the zip audit handoff and TODO artifacts and remediated the first three findings in priority order.
+  - Normalized response-body Family Safe Mode blocks across web and Electron to the canonical 451 metadata shape and added regression assertions that blocked upstream response text is not returned.
+  - Replaced private regex-only Electron file-store validators in RP/character storage with the central Windows-safe ID validator and added reserved-name/prototype-pollution regression tests.
+  - Centralized image/TTS/music/video default model constants, removed stale `wan-2.1` defaults, and verified the defaults are represented in fallback model data.
+  - Updated the docs index for the existing bug-hunt summary relocation into `docs/reports/historical/`.
+  - **Validation:** targeted Vitest safety/storage/model suites PASS; `npm run verify:safety-guard` PASS; `npm run typecheck` PASS; `npm run lint:eslint` PASS; `npm run verify:markdown-links` PASS.
+
 - **2026-06-19 Exhaustive Bug-Hunt, Security, and Release Audit:**
   - Performed a proof-driven, repository-wide audit focused on runtime correctness, security boundaries, storage integrity, API behavior, and release readiness against the v2.1.0 working tree.
   - **Baseline:** All 14 CI gates pass (lint, typecheck, test:coverage, 22+ verify scripts, build, verify:dist). 3,232+ tests pass.
@@ -516,10 +558,22 @@ backlog files were removed.
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
-- 2026-06-19 exhaustive bug-hunt & security audit part 2:
-  - VF-AUDIT-012 (High): Switch `usePlaygroundStore` to use `ENCRYPTED_STORES` to prevent leaking raw messages and node drafts to localStorage.
-  - VF-AUDIT-013 (High): Remove `systemPrompt` from `useChatStore` partialize configuration to prevent leaking custom instructions to localStorage.
-  - VF-AUDIT-014 (High): Memoize `searchIndex` in `sidebar.tsx` by conversation ID to avoid O(N) full-history concatenation on every keystroke.
+- 2026-06-19 safety/privacy/legal/diagnostics doc reconciliation — CLOSED in this session:
+  - Public docs now describe Family Safe Mode as local and non-comprehensive, document the canonical 451 block shape, and state that audit counters are aggregate-only.
+  - Maintainer docs now include the new-endpoint wiring checklist, safety verification commands, and synthetic fixture hygiene guidance.
+- 2026-06-19 ZIP audit TODO handoff — **ALL CLOSED in this session**:
+  - ~~TODO-001 / VF-ZIP-001~~ CLOSED: Response-body Family Safe Mode blocks now use canonical 451 metadata across web and Electron.
+  - ~~TODO-002 / VF-ZIP-002~~ CLOSED: Electron RP/character file stores now delegate to the canonical Windows-safe ID validator.
+  - ~~TODO-003 / VF-ZIP-003~~ CLOSED: Modality default models are centralized and stale `wan-2.1` defaults were removed.
+  - ~~TODO-004 / VF-ZIP-004~~ CLOSED: Proxy large-body tests now separately prove parser limit and valid upstream routing.
+  - ~~TODO-005 / VF-ZIP-005~~ CLOSED: Canonical bug-hunt prompt promoted.
+  - ~~TODO-006 / VF-ZIP-005~~ CLOSED: Root audit artifact hygiene is verifier-gated and historical reports are documented as inert evidence.
+  - ~~TODO-007 / VF-ZIP-005~~ CLOSED: `VERIFY-168` is documented and allowlisted by `verify:repo-handoff-hygiene`.
+  - ~~TODO-008~~ CLOSED: Full Node 22 workflow baseline passes, including final `npm run ci`.
+- 2026-06-19 exhaustive bug-hunt & security audit part 2 — **ALL CLOSED in prior 2026-06-19 remediation**:
+  - ~~VF-AUDIT-012 (High)~~ CLOSED: `usePlaygroundStore` no longer leaks raw messages and node drafts to `localStorage`.
+  - ~~VF-AUDIT-013 (High)~~ CLOSED: `useChatStore` no longer persists `systemPrompt` through the unsafe partialized path.
+  - ~~VF-AUDIT-014 (High)~~ CLOSED: `sidebar.tsx` search indexing is memoized to avoid O(N) full-history concatenation on every keystroke.
 - 2026-06-19 exhaustive bug-hunt & security audit (VF-AUDIT-001..011) — **ALL CLOSED in this session**:
   - ~~VF-AUDIT-001 (Critical)~~ CLOSED: Added `RESERVED_WINDOWS_NAMES` set to `electron/services/chatStorage.ts`; updated `isValidId` to reject reserved names; exported `isValidId` for testing; added regression test.
   - ~~VF-AUDIT-002 (High)~~ CLOSED: Synthetic guard exception in `server.ts` now returns HTTP 451 with canonical `{ error, reasonCode, category, severity }` shape. Updated `server.test.ts` M-002 guard.
@@ -675,6 +729,27 @@ backlog files were removed.
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+- 2026-06-19 safety/privacy/legal/diagnostics documentation reconciliation:
+  - `npm run verify:markdown-links`: PASS.
+  - `npm run verify:safety-guard`: PASS.
+  - `npx vitest run tests/safety/guardPipeline.test.ts tests/safety/enforcementBoundaries.test.ts scripts/verify-safety-guard.test.ts --fileParallelism=false`: PASS.
+  - `git diff --check`: PASS.
+
+- 2026-06-19 ZIP audit full closure and workflow revalidation:
+  - `env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run lint:eslint`: PASS.
+  - `env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run typecheck`: PASS.
+  - `env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npx vitest run ... --fileParallelism=false` targeted safety/storage/model/server suites: PASS.
+  - `env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run test:coverage`: PASS outside the restricted sandbox (3323 passed / 1 skipped; coverage thresholds met: statements 71.6%, branches 62.9%, functions 69.1%, lines 74.76%). The restricted sandbox run failed only with `listen EPERM` on socket-bound tests.
+  - `env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm audit fix`: PASS; updated one transitive package and reduced audit findings to 0 vulnerabilities.
+  - `env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm audit --audit-level=moderate`: PASS outside the restricted sandbox (0 vulnerabilities). The restricted sandbox could not resolve `registry.npmjs.org`.
+  - `env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run build`: PASS.
+  - `env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run verify:contracts`: PASS.
+  - `env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run verify:dist`: PASS.
+  - `env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run ci`: PASS after the audit lockfile fix; includes lint, typecheck, coverage, audit, build, contracts, and `verify:dist`.
+  - `env PATH=/opt/homebrew/opt/node@22/bin:/usr/bin:/bin:/usr/sbin:/sbin npm run verify:markdown-links`: PASS after ledger updates (77 Markdown files checked).
+  - `git diff --check`: PASS.
+  - **Release/workflow gate:** PASS.
+
 - 2026-06-19 YAML Theme Runtime Integration:
   - `npm run lint:eslint`: PASS (0 warnings).
   - `npm run typecheck`: PASS (renderer + electron main).

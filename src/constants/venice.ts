@@ -21,7 +21,8 @@ export const FALLBACK_MODELS = {
     { id: "venice-sd35", type: "image", name: "venice-sd35", traits: ["fallback"], isFallback: true, source: "fallback" }
   ],
   audio: [
-    { id: "tts-kokoro", type: "audio", name: "tts-kokoro", traits: ["fallback"], isFallback: true, source: "fallback" }
+    { id: "tts-kokoro", type: "audio", name: "tts-kokoro", traits: ["fallback", "tts"], isFallback: true, source: "fallback" },
+    { id: "stable-audio", type: "audio", name: "stable-audio", traits: ["fallback", "music"], isFallback: true, source: "fallback" }
   ],
   video: [
     { id: "wan-2.6-text-to-video", type: "video", name: "wan-2.6-text-to-video", traits: ["fallback", "text-to-video"], isFallback: true, source: "fallback" },
@@ -33,6 +34,11 @@ export const FALLBACK_MODELS = {
   ],
   unknown: []
 };
+
+export const DEFAULT_IMAGE_MODEL = "z-image-turbo";
+export const DEFAULT_TTS_MODEL = "tts-kokoro";
+export const DEFAULT_MUSIC_MODEL = "stable-audio";
+export const DEFAULT_VIDEO_MODEL = "wan-2.6-text-to-video";
 
 /** Response header names captured for diagnostics. */
 export const DIAG_HEADER_NAMES = [

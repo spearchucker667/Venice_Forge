@@ -22,9 +22,25 @@ Before submitting a PR, always run the cross-platform baseline validations:
 npm run lint:eslint
 npm run typecheck
 npm test
+npm run verify:safety-guard
+npm run verify:contracts
 npm run build
 npm run verify:icon
 ```
+
+## Safety Regression Checks
+
+When changing safety boundaries, prompt extraction, diagnostics redaction, or
+new prompt-carrying endpoints, also run:
+
+```bash
+npm run verify:safety-guard
+npx vitest run tests/safety/guardPipeline.test.ts tests/safety/enforcementBoundaries.test.ts scripts/verify-safety-guard.test.ts --fileParallelism=false
+```
+
+Use synthetic builders from `tests/safety/fixtureBuilders.ts` for unsafe test
+inputs. Do not paste raw unsafe phrases into new fixtures unless a narrow,
+reviewed exception is unavoidable.
 
 ## Packaging for Windows
 

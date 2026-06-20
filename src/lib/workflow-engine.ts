@@ -1,4 +1,10 @@
-import { DEFAULT_WORKFLOW_MODEL } from '../constants/venice'
+import {
+  DEFAULT_IMAGE_MODEL,
+  DEFAULT_MUSIC_MODEL,
+  DEFAULT_TTS_MODEL,
+  DEFAULT_VIDEO_MODEL,
+  DEFAULT_WORKFLOW_MODEL,
+} from '../constants/venice'
 import type { Node, Edge } from '@xyflow/react'
 import type { VeniceNodeData, NodeResult } from '../stores/workflow-store'
 import { NODE_SCHEMAS, type IOKind } from './workflow-schema'
@@ -151,7 +157,7 @@ async function executeNode(
     case 'imageGen': {
       const prompt = resolvePrompt(data.prompt, input)
       const body: Record<string, unknown> = {
-        model: data.model || 'z-image-turbo',
+        model: data.model || DEFAULT_IMAGE_MODEL,
         prompt,
         negative_prompt: data.negativePrompt || undefined,
         steps: data.steps ?? 20,
@@ -178,7 +184,7 @@ async function executeNode(
     case 'tts': {
       const text = resolvePrompt(data.prompt, input)
       const blob = await veniceBlob('/audio/speech', {
-        model: data.model || 'tts-kokoro',
+        model: data.model || DEFAULT_TTS_MODEL,
         input: text,
         voice: data.voice || 'af_sky',
         speed: data.speed ?? 1,
@@ -190,7 +196,7 @@ async function executeNode(
     case 'music': {
       const prompt = resolvePrompt(data.prompt, input)
       const body: Record<string, unknown> = {
-        model: data.model || 'stable-audio',
+        model: data.model || DEFAULT_MUSIC_MODEL,
         prompt,
         duration_seconds: data.duration ?? 30,
         force_instrumental: data.instrumental ?? false,
@@ -215,7 +221,7 @@ async function executeNode(
     case 'video': {
       const prompt = resolvePrompt(data.prompt, input)
       const body: Record<string, unknown> = {
-        model: data.model || 'wan-2.1',
+        model: data.model || DEFAULT_VIDEO_MODEL,
         prompt,
         aspect_ratio: data.videoAspectRatio || '16:9',
       }

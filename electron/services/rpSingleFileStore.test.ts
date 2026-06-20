@@ -69,6 +69,27 @@ describe("rpSingleFileStore", () => {
     expect(gone).toBeNull();
   });
 
+  it("rejects Windows reserved basenames and prototype pollution ids", () => {
+    const invalidIds = [
+      "con",
+      "CON",
+      "nul",
+      "NUL",
+      "prn",
+      "aux",
+      "com1",
+      "lpt1",
+      "con.txt",
+      "nul.json",
+      "__proto__",
+      "constructor",
+      "prototype",
+    ];
+    for (const id of invalidIds) {
+      expect(isValidId(id)).toBe(false);
+    }
+  });
+
   it("rejects save when validation fails", async () => {
     const r = { id: "demo-y", name: 42, tags: [] }; // name is not string
     const save = await store.save(r);

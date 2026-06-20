@@ -90,7 +90,33 @@ export function previewLocalFamilyGuard(
 
 export type ResponseBodyScreenResult =
   | { allowed: true; skipped: boolean; reason?: string }
-  | { allowed: false; reason: string; ruleId?: string; userMessage: string };
+  | {
+      allowed: false;
+      reason: string;
+      reasonCode: string;
+      category: SafetyGuardDecision["category"];
+      severity: SafetyGuardDecision["severity"];
+      ruleId?: string;
+      userMessage: string;
+    };
+
+export type SafetyBlockBody = {
+  error: string;
+  reasonCode: string;
+  category: SafetyGuardDecision["category"];
+  severity: SafetyGuardDecision["severity"];
+};
+
+export function safetyBlockBodyFromResponseScreen(
+  screen: Extract<ResponseBodyScreenResult, { allowed: false }>,
+): SafetyBlockBody {
+  return {
+    error: screen.userMessage,
+    reasonCode: screen.reasonCode,
+    category: screen.category,
+    severity: screen.severity,
+  };
+}
 
 /**
  * Screens a string returned by a web-proxy or scrape boundary. The guard is
@@ -119,6 +145,9 @@ export function screenResponseBody(
     return {
       allowed: false,
       reason: decision.reason,
+      reasonCode: decision.guardDecision.reasonCode,
+      category: decision.guardDecision.category,
+      severity: decision.guardDecision.severity,
       ruleId: decision.ruleId,
       userMessage: decision.userMessage,
     };

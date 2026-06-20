@@ -3,9 +3,12 @@
  * verify-work-orders.cjs
  *
  * Phase 2J Work Order Schema guard (VERIFY-054).
- * Validates that all work-order closure YAMLs in docs/audits/ and
- * docs/reports/historical/ follow the strict schema:
+ * Validates that current work-order closure YAMLs in docs/audits/ follow the
+ * strict schema:
  * { report: { date, agent, summary }, items: [{ id, status, evidence, residual_risk, required_followup }] }
+ *
+ * Historical reports under docs/reports/historical/ are retained as inert
+ * evidence snapshots and are intentionally not parsed as current work orders.
  */
 "use strict";
 
@@ -14,7 +17,7 @@ const path = require("path");
 const YAML = require("yaml");
 
 const ROOT = path.resolve(__dirname, "..");
-const SCAN_DIRS = ["docs/audits", "docs/reports/historical"];
+const SCAN_DIRS = ["docs/audits"];
 const SKIP_FILES = new Set([
   "Venice_swagger_api.yaml",
   "current-audit-cross-check-status.yaml",

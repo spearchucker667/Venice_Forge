@@ -606,7 +606,13 @@ describe("registerIpcHandlers", () => {
 
       // Body screen blocks → 451 with the canonical userMessage.
       expect(result).toMatchObject({ ok: false, status: 451 });
-      expect(result.error).toMatch(/family safe mode/i);
+      expect(result.body).toMatchObject({
+        reasonCode: "CSAM_EXPLICIT_TERM",
+        category: "csam_request",
+        severity: "critical",
+      });
+      expect(result.body.error).toMatch(/family safe mode/i);
+      expect(JSON.stringify(result.body)).not.toContain("Some content");
     });
 
     it("drops unsafe renderer-supplied Jina headers and keeps only allowlisted forwarding headers", async () => {

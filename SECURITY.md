@@ -1,6 +1,7 @@
 # Security Policy
 
-The full Venice Forge security model is maintained in [SECURITY.md](SECURITY.md).
+This file is the source of truth for Venice Forge's security, local safety,
+logging, diagnostics, and API-key handling model.
 
 ## Reporting a Vulnerability
 
@@ -38,24 +39,82 @@ The application connects to unrestricted AI endpoints that may generate explicit
 
 ## Content Safety
 
-When **Family Safe Mode** is enabled (the default), outgoing requests are screened by Venice Forge's local family-safe guard
-(`src/shared/safety/childExploitationGuard.ts`) before the payload is
-forwarded. The conditional pipeline runs at every enforcement boundary — the renderer transport
-(`src/services/veniceClient.ts`), Electron IPC handlers
-(`electron/ipc/handlers.ts`), the Express web proxy (`server.ts`), research
-and Jina dispatch (`src/components/search/SearchScrapeView.tsx`,
-`src/research/agent/researchRunner.ts`), and RP/scene prompt paths
-(`src/shared/safety/characterImportSafety.ts`,
-`src/services/rp/sceneGenerationService.ts`). The guard implements advanced features such as
-cross-sentence context detection and `negative_prompt` extraction. The proxy
-operates on a "fail-close" design (returning a 500 status) if the guard
-encounters any extraction errors. Raw prompt text is never logged by the safety
-system. When Family Safe Mode is disabled, **Adult Mode** skips the local rule engine entirely. This does not disable or alter Venice's provider-side moderation or the independent Venice API Safe Mode parameter.
+**Family Safe Mode** is an optional local guardrail. It is enabled by default,
+runs entirely on-device, performs no network calls, and is designed to block a
+specific class of child-exploitation and youth-sexualization requests before
+they are sent upstream. It does **not** guarantee that all unsafe, unlawful, or
+policy-violating content will be prevented, and it is not a legal/compliance
+system.
 
-The Jina research provider (`r.jina.ai`/`s.jina.ai`) and generic HTTP scrape
-traffic route through renderer-side safety wrappers in
-`src/components/search/SearchScrapeView.tsx` before any research dispatch,
-ensuring this path is also guarded.
+When Family Safe Mode is enabled, Venice Forge evaluates prompt-like request
+fields with the local guard in `src/shared/safety/childExploitationGuard.ts`
+and `src/shared/safety/localFamilySafeGuard.ts`. The guard is endpoint-aware and
+extracts prompt-like fields such as `messages`, `prompt`, `negative_prompt`,
+`query`, `text`, and `input`. It uses rule-based normalization, cross-sentence
+context detection, and endpoint-aware extraction. When Family Safe Mode is
+disabled, **Adult Mode** skips the local rule engine entirely. Adult Mode does
+not disable Venice's own provider controls, nor the separate Venice API
+`safe_mode` parameter.
+
+### What the guard covers
+
+- Request-side prompt screening for the canonical Venice endpoint matrix locked
+  by `VERIFY-015`: `/chat/completions`, `/image/generate`,
+  `/image/edit`, `/image/multi-edit`, `/augment/search`,
+  `/augment/scrape`, `/augment/text-parser`, `/embeddings`,
+  `/audio/speech`, `/audio/transcriptions`, and `/video/queue`.
+- Research and scrape dispatch paths that originate in the renderer and are
+  routed through guarded transports/providers.
+- Jina and generic scrape **response-body** screening through
+  `screenResponseBody()` for `/api/proxy-jina`, `/api/proxy-scrape`, and the
+  corresponding Electron IPC handlers. Large text responses are sampled against
+  the first 8 KiB window before the app returns them to the renderer.
+
+### Where it runs
+
+- Renderer preflight and module boundaries:
+  `src/services/veniceClient.ts`,
+  `src/components/search/SearchScrapeView.tsx`,
+  `src/research/agent/researchRunner.ts`,
+  `src/research/providers/veniceResearchProvider.ts`,
+  `src/research/providers/jinaResearchProvider.ts`,
+  `src/shared/safety/characterImportSafety.ts`,
+  `src/services/rp/sceneGenerationService.ts`.
+- Electron main-process authoritative enforcement:
+  `electron/services/guardPipeline.ts` via
+  `performGuardedVeniceRequest()` / `checkLocalFamilyGuard()`, used by
+  Venice-touching IPC handlers and the loopback bridge.
+- Web-mode authoritative enforcement:
+  `server.ts`, which applies the local guard to supported request bodies and
+  response-body screening to Jina/scrape text responses.
+
+### Privacy and logging guarantees
+
+- The local guard is privacy-preserving in the narrow sense that it performs no
+  network calls and does not send blocked request text or blocked response text
+  to an external moderation service.
+- Blocked **requests** are not forwarded upstream.
+- Blocked **response bodies** from Jina/scrape are not returned to the
+  renderer; callers get the canonical 451 block body instead.
+- Raw prompt text, matched terms, and raw blocked response text are not written
+  to the safety audit counters, safe diagnostics snapshot, or exported safe
+  diagnostics.
+- Safety audit counters are aggregate-only:
+  `allowed`, `warned`, `blocked`, `bySeverity`, `byCategory`,
+  `lastDecisionAt`, and `lastReasonCode`. They do not persist prompt text,
+  matched snippets, or content hashes.
+
+### What it does not do
+
+- It does not guarantee safe or lawful outputs.
+- It does not replace provider moderation, provider privacy modes, or user
+  judgment.
+- It does not inspect every binary/media payload type semantically.
+- It does not currently screen arbitrary third-party response bodies outside the
+  Jina/scrape text-response paths.
+- It does not fully inspect `/image/upscale` because the current extractor has
+  no prompt-like fields for that endpoint; `VERIFY-015` documents this
+  pass-through intentionally.
 
 > **Web Deployment Warning:** In web mode, the web proxy defaults Local Family Safe Mode to ON. The client-sent `X-Venice-Forge-Family-Safe-Mode` header is ignored unless the server-side environment variable `VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE=true` is explicitly set. The authoritative server override is the environment variable `VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED`. The client header is dev-only compatibility plumbing, not a production safety boundary. Use Electron/local desktop mode for owner-controlled Family Safe Mode behavior. Provider/API restrictions may still apply regardless of Adult Mode.
 
@@ -77,11 +136,68 @@ validation evidence are tracked in `docs/summary_of_work.md`.
 
 > **Maintainer trigger:** Update this document whenever the allowed Venice API endpoint list (`src/shared/validation.ts`) or the safety guard enforcement boundaries change.
 
+### Maintainer checklist for new endpoints
+
+When adding or changing a Venice, Jina, scrape, research, RP, or bridge path
+that can carry user-controlled prompt text or returned text:
+
+1. Update the endpoint allowlist in `src/shared/validation.ts` and any
+   Electron validation mirror if required.
+2. Extend `src/shared/safety/promptPayloadExtractor.ts` so the new request shape
+   exposes prompt-like fields to the guard.
+3. Route the path through the canonical guard boundary:
+   `performGuardedVeniceRequest()` / `checkLocalFamilyGuard()` in Electron main,
+   or `maybeRunLocalFamilyGuard()` / `screenResponseBody()` in renderer or web
+   proxy code as appropriate.
+4. Add or update regression tests. At minimum, revisit
+   `tests/safety/guardPipeline.test.ts` and any path-specific tests such as
+   `server.test.ts`, `electron/ipc/handlers.test.ts`, or RP/research tests.
+5. Run the safety verification commands below and update docs if the endpoint
+   matrix, screening behavior, diagnostics, or limitations changed.
+
+### Verification and test commands
+
+High-signal safety verification:
+
+```bash
+npm run verify:safety-guard
+npx vitest run tests/safety/guardPipeline.test.ts tests/safety/enforcementBoundaries.test.ts scripts/verify-safety-guard.test.ts --fileParallelism=false
+```
+
+Broader regression confirmation:
+
+```bash
+npm run verify:contracts
+npm test -- --fileParallelism=false
+```
+
+### Fixture safety for tests
+
+- Use the synthetic builders in `tests/safety/fixtureBuilders.ts` for unsafe
+  triggers and obfuscated variants.
+- Do not paste raw unsafe phrases into tests unless the existing fixture policy
+  already requires a narrowly scoped exception.
+- Keep assertions focused on `reasonCode`, 451 shape, counter behavior, and
+  transport blocking. Do not snapshot raw unsafe payload text into logs,
+  fixtures, or expected outputs.
+
+### Known limitations and future work
+
+- Response-body screening currently samples only the first 8 KiB of Jina/scrape
+  text responses.
+- The safety verifier is boundary-oriented. It proves routing and no-raw-log
+  policy, not semantic completeness.
+- The endpoint matrix is explicit rather than automatic; new prompt-carrying
+  endpoints must be wired intentionally.
+- Future improvements should stay conservative: expand endpoint coverage,
+  improve extractor support where new prompt-carrying shapes appear, and add
+  more path-specific regression tests without weakening the no-raw-log rule.
+
 ## Headless Bridge Security
 
 When started with `--headless`, the application runs an Express loopback bridge server (`electron/services/bridgeServer.ts`). The following safety measures are strictly enforced:
 - **Loopback-Only Interface:** The bridge server binds strictly to the local loopback interface (`127.0.0.1`). Binding to any public/LAN interface is blocked by default to prevent network-level credential reuse or SSRF attacks.
-- **Token Authorization:** Every request must provide a `Bearer` token in the `Authorization` header. If `VENICE_BRIDGE_TOKEN` is not set in the environment, a cryptographically secure 32-byte hex token is generated at boot and logged to standard output.
+- **Token Authorization:** Every request must provide a `Bearer` token in the `Authorization` header. If `VENICE_BRIDGE_TOKEN` is not set in the environment, a cryptographically secure 32-byte hex token is generated at boot and held in memory. The bridge does not print the token to logs or standard output.
 - **Family Safe Mode:** Prompt-carrying requests are checked in the Main process when Family Safe Mode is enabled. The headless bridge reads `safety.local_family_safe_mode_enabled` from the validated YAML config. Adult Mode skips the local check.
 - **Runtime snapshot is the source of truth:** Every Venice-touching IPC handler routes through `performGuardedVeniceRequest` / `checkLocalFamilyGuard` in `electron/services/guardPipeline.ts`. The renderer-supplied `localFamilySafeModeEnabled` field is no longer trusted; the canonical toggle state lives in `electron/services/runtimeSafetySettings.ts` and is initialised from the validated YAML at boot. All entry points (chat, image, audio, video, embeddings, augment, Jina, scrape, research context) emit the same canonical 451 block shape. See VERIFY-015 in `tests/safety/guardPipeline.test.ts`.
 - **Renderer hydration gate:** Renderer-side preflight guards (`saveCharacterCard`, `savePersona`, `appendRpMessage`, `generateScene`) route the toggle value through `getEffectiveRendererLocalFamilySafeModeEnabled` / `getEffectiveRendererVeniceApiSafeMode` in `src/safetyHydration.ts`. In Electron mode these helpers throw `ConfigNotHydratedError` until the main-process config snapshot has hydrated into the renderer, preventing the renderer from making a preflight decision that disagrees with the canonical main-process state. The RP Studio orchestrator disables safety-sensitive save controls while the hydration is pending and surfaces a banner explaining the wait. See VERIFY-017 in `tests/safety/hydrationGate.test.ts`.
@@ -91,6 +207,7 @@ When started with `--headless`, the application runs an Express loopback bridge 
 
 The Developer Traffic Inspector logs request/response diagnostics to the renderer store (`src/stores/inspector-store.ts`).
 - **Secret Masking:** To prevent exposing keys to local logs, the UI, or export functions, all header lists are sanitized. Header keys matching `Authorization`, `Cookie`, `x-api-key`, or names containing `key` or `token` are automatically replaced with `******`.
+- **Non-mutating safety preview:** Inspector previews use `previewLocalFamilyGuard()` so they do not increment audit counters. Aggregate counters are produced only by the authoritative enforcement path.
 - **Sandbox Red-Team Mode:** The Red-Team Mode switch disables renderer Markdown/HTML formatting to prevent template injection or rendering exploits from unsafe model outputs, and shows the raw text directly alongside local safety audit signals.
 
 
@@ -127,7 +244,9 @@ The optional `config.yaml` and `themes.yaml` files are a **bootstrap mechanism**
 
 - **Jina AI**: Electron sends requests from the main process using the OS-secure Jina key. Web mode sends requests through the Express proxy using only the server-side `JINA_API_KEY`; renderer-supplied Jina credential headers are dropped. Keys are redacted from logs, diagnostics, and exports. A renderer-layer safety guard runs before dispatch (see Content Safety above).
 - **Generic HTTP**: Disabled by default. When enabled, it routes traffic through a backend proxy to perform DNS resolution and enforce strict SSRF blocklists on the resolved IP. Only allows `text/html`, `text/plain`, `application/xhtml+xml`, and `application/json` responses.
-- All research traffic respects the same endpoint allowlist and safety guard as Venice API calls.
+- All research traffic respects the same endpoint allowlist discipline and the
+  same local Family Safe Mode policy where prompt-carrying request text or
+  Jina/scrape response text is involved.
 
 ## Not Protected Against
 

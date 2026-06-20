@@ -83,6 +83,26 @@ describe("characterCardStorage", () => {
       expect(isValidId(undefined)).toBe(false);
       expect(isValidId(42)).toBe(false);
     });
+    it("rejects Windows reserved basenames and prototype pollution ids", () => {
+      const invalidIds = [
+        "con",
+        "CON",
+        "nul",
+        "NUL",
+        "prn",
+        "aux",
+        "com1",
+        "lpt1",
+        "con.txt",
+        "nul.json",
+        "__proto__",
+        "constructor",
+        "prototype",
+      ];
+      for (const id of invalidIds) {
+        expect(isValidId(id)).toBe(false);
+      }
+    });
   });
 
   describe("saveCharacterCard + readCharacterCard", () => {

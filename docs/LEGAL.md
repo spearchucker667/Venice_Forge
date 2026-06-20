@@ -70,9 +70,23 @@ Venice's API documentation states that API keys are secrets and should not be ex
 
 ## Privacy and Data Limits
 
-Venice Forge stores chats, settings, and gallery records locally in IndexedDB. These records are encrypted by the app before storage using a browser-managed AES-GCM key stored in same-origin IndexedDB. This reduces casual local inspection risk but is not equivalent to OS credential storage. API requests still leave the device and are processed by Venice and any applicable upstream provider or privacy mode selected by Venice.
+Venice Forge stores user data locally, but not all local storage surfaces have
+the same guarantees. Desktop conversation history is local plaintext JSON under
+the app-data directory. Many renderer-side stores use app-managed IndexedDB
+encryption, which reduces casual inspection risk but is not equivalent to OS
+credential storage. API requests still leave the device and are processed by
+Venice and any applicable upstream provider or privacy mode selected by Venice.
 
-A rigorous content safety guard screens all outgoing Venice API requests before the payload is forwarded to block known child exploitation terminology. This guard implements advanced cross-sentence context detection and `negative_prompt` extraction, failing closed via a 500 error if any boundary check encounters an exception. Raw prompt text is strictly never logged by the safety system. Only a coarse, non-identifying hash is retained for audit counters.
+Family Safe Mode is a local, on-device filter for a narrow class of
+child-exploitation and youth-sexualization requests. It screens supported
+prompt-like request fields before they are sent upstream and screens Jina/scrape
+text responses before they are returned to the renderer. Blocked requests are
+not sent upstream; blocked raw response text is not returned to the renderer.
+The canonical block response is HTTP `451` with safe metadata
+(`error`, `reasonCode`, `category`, `severity`). Raw prompt text is not stored
+in the safety audit counters; those counters are aggregate-only and retain only
+counts plus last timestamp/reason metadata. This is a local guardrail, not a
+guarantee of lawful or safe output.
 
 ## Reporting Procedures
 

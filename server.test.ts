@@ -596,6 +596,26 @@ describe("server.ts Jina proxy error handling", () => {
 
     expect(response.status).toBe(200);
   });
+
+  it("returns canonical 451 metadata for blocked Jina response bodies", async () => {
+    globalThis.fetch = vi.fn(async () => new Response("upstream body with csam content", {
+      status: 200,
+      headers: { "content-type": "text/plain" },
+    })) as unknown as typeof globalThis.fetch;
+
+    const response = await request(createServerApp())
+      .post("/api/proxy-jina")
+      .send({ url: "https://r.jina.ai/https://example.com" });
+
+    expect(response.status).toBe(451);
+    expect(response.body).toMatchObject({
+      reasonCode: "CSAM_EXPLICIT_TERM",
+      category: "csam_request",
+      severity: "critical",
+    });
+    expect(response.body.error).toMatch(/family safe mode/i);
+    expect(JSON.stringify(response.body)).not.toContain("upstream body");
+  });
 });
 
 describe("server.ts Local Family Safe Mode decision matrix", () => {
@@ -857,13 +877,10 @@ describe("server.ts scrape proxy error handling", () => {
   });
 
   describe("Proxy Request Limits", () => {
-    it("accepts large JSON bodies for jina and scrape proxies", async () => {
+    it("parses large JSON bodies above Express' 100 KB default before route validation", async () => {
       const app = createServerApp();
       // Generate a string that is > 100kb
       const largeString = "a".repeat(200 * 1024); 
-
-      // Mock proxy response
-      proxyMocks.statusCode = 200;
 
       const jinaResponse = await request(app)
         .post("/api/proxy-jina")
@@ -871,7 +888,8 @@ describe("server.ts scrape proxy error handling", () => {
         .set("Content-Type", "application/json")
         .send({ url: "https://example.com", body: largeString });
       
-      expect(jinaResponse.status).not.toBe(413);
+      expect(jinaResponse.status).toBe(403);
+      expect(jinaResponse.body.error).toBe("Only Jina Reader/Search HTTPS endpoints are allowed.");
 
       const scrapeResponse = await request(app)
         .post("/api/proxy-scrape")
@@ -879,7 +897,69 @@ describe("server.ts scrape proxy error handling", () => {
         .set("Content-Type", "application/json")
         .send({ url: "https://example.com", body: largeString });
       
-      expect(scrapeResponse.status).not.toBe(413);
+      expect(scrapeResponse.status).toBe(403);
+      expect(scrapeResponse.body.error).toMatch(/Access to private (hostnames|IPs) blocked/i);
+    });
+
+    it("routes valid large Jina and scrape JSON bodies to mocked upstream handlers", async () => {
+      const app = createServerApp();
+      const largeString = "a".repeat(200 * 1024);
+      const fetchMock = vi.fn(async () =>
+        new Response("Mocked Jina", { status: 200, headers: { "content-type": "text/plain" } }),
+      ) as unknown as typeof globalThis.fetch;
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = fetchMock;
+
+      const nodeHttps = require("node:https");
+      const requestSpy = vi.spyOn(nodeHttps, "request").mockImplementation((_options: any, callback?: any) => {
+        const res = {
+          statusCode: 200,
+          headers: { "content-type": "text/html" },
+          destroy: vi.fn(),
+          on: vi.fn((event, cb) => {
+            if (event === "data") {
+              cb(Buffer.from("<html><body>Mocked Scrape</body></html>"));
+            }
+            if (event === "end") {
+              cb();
+            }
+          }),
+        };
+        if (callback) callback(res);
+        return {
+          on: vi.fn(),
+          end: vi.fn(),
+        } as any;
+      });
+
+      try {
+        const jinaResponse = await request(app)
+          .post("/api/proxy-jina")
+          .set("X-Venice-Forge-Family-Safe-Mode", "false")
+          .set("Content-Type", "application/json")
+          .send({ url: "https://r.jina.ai/https://example.com", body: largeString });
+
+        expect(jinaResponse.status).toBe(200);
+        expect(jinaResponse.text).toBe("Mocked Jina");
+        expect(fetchMock).toHaveBeenCalledOnce();
+
+        const scrapeResponse = await request(app)
+          .post("/api/proxy-scrape")
+          .set("X-Venice-Forge-Family-Safe-Mode", "false")
+          .set("Content-Type", "application/json")
+          .send({ url: "https://public.example.com", body: largeString });
+
+        expect(scrapeResponse.status).toBe(200);
+        expect(scrapeResponse.body).toMatchObject({
+          url: "https://public.example.com",
+          contentType: "text/html",
+          body: "<html><body>Mocked Scrape</body></html>",
+        });
+        expect(requestSpy).toHaveBeenCalledOnce();
+      } finally {
+        globalThis.fetch = originalFetch;
+        requestSpy.mockRestore();
+      }
     });
   });
 

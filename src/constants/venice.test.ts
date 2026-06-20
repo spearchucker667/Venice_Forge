@@ -7,7 +7,16 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { modelSupportsVision, DEFAULT_CHAT_MODEL, DEFAULT_SYSTEM_PROMPT } from "./venice";
+import {
+  DEFAULT_CHAT_MODEL,
+  DEFAULT_IMAGE_MODEL,
+  DEFAULT_MUSIC_MODEL,
+  DEFAULT_SYSTEM_PROMPT,
+  DEFAULT_TTS_MODEL,
+  DEFAULT_VIDEO_MODEL,
+  FALLBACK_MODELS,
+  modelSupportsVision,
+} from "./venice";
 
 describe("modelSupportsVision", () => {
   it("returns true for an id in the static vision allowlist", () => {
@@ -83,6 +92,16 @@ describe("modelSupportsVision", () => {
 describe("DEFAULT_CHAT_MODEL", () => {
   it("is set to venice-uncensored", () => {
     expect(DEFAULT_CHAT_MODEL).toBe("venice-uncensored");
+  });
+});
+
+describe("modality default models", () => {
+  it("keeps app-authored defaults in the fallback registry", () => {
+    expect(FALLBACK_MODELS.image.some((model) => model.id === DEFAULT_IMAGE_MODEL)).toBe(true);
+    expect(FALLBACK_MODELS.audio.some((model) => model.id === DEFAULT_TTS_MODEL)).toBe(true);
+    expect(FALLBACK_MODELS.audio.some((model) => model.id === DEFAULT_MUSIC_MODEL)).toBe(true);
+    expect(FALLBACK_MODELS.video.some((model) => model.id === DEFAULT_VIDEO_MODEL)).toBe(true);
+    expect(DEFAULT_VIDEO_MODEL).toBe("wan-2.6-text-to-video");
   });
 });
 

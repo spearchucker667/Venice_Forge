@@ -3,6 +3,7 @@ import { executeWorkflow, WorkflowExecutionError } from './workflow-engine'
 import { venice } from './venice-client'
 import type { Node, Edge } from '@xyflow/react'
 import type { VeniceNodeData } from '../stores/workflow-store'
+import { DEFAULT_VIDEO_MODEL } from '../constants/venice'
 
 vi.mock('./venice-client', () => ({
   venice: vi.fn(),
@@ -137,7 +138,7 @@ describe('workflow-engine', () => {
 
       const nodes: Node<VeniceNodeData>[] = [
         { id: 'n1', type: 'venice', position: { x: 0, y: 0 }, data: { label: 'In', nodeType: 'textInput', inputText: 'prompt', model: '', prompt: '' } },
-        { id: 'n2', type: 'venice', position: { x: 0, y: 0 }, data: { label: 'Video', nodeType: 'video', model: 'wan-2.1', prompt: '', videoAspectRatio: '16:9' } }
+        { id: 'n2', type: 'venice', position: { x: 0, y: 0 }, data: { label: 'Video', nodeType: 'video', model: DEFAULT_VIDEO_MODEL, prompt: '', videoAspectRatio: '16:9' } }
       ]
       const edges: Edge[] = [{ id: 'e1', source: 'n1', target: 'n2' }]
 

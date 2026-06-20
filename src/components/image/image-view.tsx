@@ -29,6 +29,7 @@ import {
 } from '../../utils/payloadBuilders'
 import { useConfigStore } from '../../stores/config-store'
 import { useImageWorkspaceStore, type ImageGenerateHandoff } from '../../stores/image-workspace-store'
+import { DEFAULT_IMAGE_MODEL } from '../../constants/venice'
 
 
 function toImageSrc(b64: string): string {
@@ -68,7 +69,7 @@ export function ImageView() {
   const veniceApiSafeMode = useSettingsStore((s) => s.veniceApiSafeMode)
   const { data: models } = useModels('image')
   const { data: styles } = useStyles()
-  const model = selectedModel || models?.[0]?.id || 'z-image-turbo'
+  const model = selectedModel || models?.[0]?.id || DEFAULT_IMAGE_MODEL
 
   const modelData = models?.find((m) => m.id === model)
   const constraints = modelData?.model_spec?.constraints as ImageConstraints | undefined

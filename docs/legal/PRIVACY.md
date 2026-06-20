@@ -1,26 +1,84 @@
 # Venice Forge Privacy & Security Model
 
-**Age Requirement**: Use of this application is strictly limited to individuals 18 years of age and older. The privacy terms and data collection boundaries outlined here apply solely to adult users.
+**Age Requirement**: Use of this application is strictly limited to
+individuals 18 years of age and older.
 
-Venice Forge is designed with a strict "privacy-by-default" and "offline-first" architecture. Your data stays on your machine until you explicitly send it to the Venice API.
+Venice Forge is local-first. It stores user data on the local machine and sends
+content upstream only when you explicitly use provider-backed features such as
+chat, generation, research, or scrape flows. It does **not** claim complete
+privacy or complete safety protection.
 
 ## API Key Security
-- **Desktop Mode (Production):** Both the Venice API key and the optional Jina API key are encrypted at rest using OS-level secure storage (DPAPI on Windows, Keychain on macOS). They are **never** exposed to the application renderer, the React frontend, or any third-party tracking scripts.
-- **Web Mode (Development):** Persistent Venice and Jina keys are held in the Node.js Express server (`.env`) and are not exposed to the browser. A Jina key entered through the web UI is held only in memory for the current page session and is never persisted to browser storage.
-- **No Telemetry:** We do not track you, we do not log your prompts, and we do not monitor your API key usage.
-- **Third-Party Research Providers:** When you use the Jina AI research provider, requests are sent directly to `r.jina.ai` and `s.jina.ai`. These connections are encrypted HTTPS and do not pass through any intermediary server. The Generic HTTP provider is disabled by default and only accesses URLs you explicitly provide.
 
-## Data Storage
-- All your chats, generated images, settings, and local galleries are stored **locally** in your browser's IndexedDB.
-- We implement local encryption (AES-GCM) for your images, conversations, settings, and legacy chat databases. The `diagnostics` store is not encrypted — it contains only sanitized timing and status metadata, never raw prompt content.
-- **No Cloud Sync:** Your data is never synced to a remote server. Network connections are direct, encrypted HTTPS requests to `api.venice.ai` for model inference, and optionally to `r.jina.ai` / `s.jina.ai` when using the Jina AI research provider.
+- **Desktop mode:** Venice and optional Jina API keys are stored in OS secure
+  storage (`safeStorage`: DPAPI on Windows, Keychain on macOS). The renderer
+  does not receive the raw keys.
+- **Web development mode:** Persistent keys belong on the local Express server
+  (`.env`). Browser-entered Jina keys are memory-only for the current page
+  session and are not written to browser storage.
+- **No first-party telemetry:** Venice Forge does not ship first-party
+  analytics or telemetry. This does not change what upstream providers may log
+  once you send them a request.
+
+## Local Data Storage
+
+- **Desktop conversations:** stored as local JSON files under the app data
+  directory. They are not additionally encrypted by Venice Forge.
+- **IndexedDB stores:** images, files, settings, conversations, memories,
+  prompts, scenes, workflows, and other local records are stored in renderer
+  IndexedDB. The encrypted stores use app-managed AES-GCM wrapping.
+- **Diagnostics:** the `diagnostics` store is intentionally unencrypted because
+  it contains sanitized timing/status metadata only. Safe diagnostics exclude
+  API keys, bearer tokens, raw prompt content, base64 media, and full local
+  absolute paths.
+- **No cloud sync:** Venice Forge does not sync your local data to a Venice
+  Forge-operated cloud service.
+
+## Local Safety and Privacy Boundaries
+
+- **Family Safe Mode** is a local, on-device guard. It performs no network
+  moderation calls.
+- Prompt-like request fields for supported Venice/research endpoints are
+  screened before they are forwarded upstream.
+- Jina and generic scrape text responses are screened locally before the app
+  returns them to the renderer; large responses are sampled against the first
+  8 KiB.
+- Blocked request text is not sent upstream. Blocked response text is not
+  returned to the renderer.
+- Raw prompt text, matched terms, and blocked raw response text are not stored
+  in the aggregate safety audit counters or safe diagnostics snapshot.
+- Safety audit counters are aggregate-only:
+  `allowed`, `warned`, `blocked`, `bySeverity`, `byCategory`,
+  `lastDecisionAt`, and `lastReasonCode`.
 
 ## Network Architecture
-- Venice Forge restricts all outgoing network requests to a strict allowlist of Venice API endpoints.
-- Path traversal and malicious endpoint injections are structurally prevented by both the Electron main process and the Express proxy layer.
-- **Content safety screening** is applied to every outgoing Venice request before the payload is forwarded. Requests that fail the content assessment are blocked at the IPC or proxy boundary and never leave the app. The safety system employs advanced features like cross-sentence detection and `negative_prompt` extraction, and fails closed via a 500 status if extraction encounters an error. Raw prompt text is never logged or stored by the safety system — only a coarse non-identifying hash is retained for audit counters.
-- **External URL guard** — `shell.openExternal` only allows `https:` URLs with public routable hostnames. RFC 1918 and loopback addresses are blocked.
+
+- Venice requests use allowlisted endpoints validated in shared code used by the
+  proxy and Electron IPC layers.
+- Electron mode sends Venice and Jina traffic from the main process.
+- Web development mode sends Venice and Jina traffic through the local Express
+  proxy.
+- Generic HTTP scraping is disabled by default and guarded by backend DNS/IP
+  checks when enabled.
+- `shell.openExternal` only allows `https:` URLs with public routable
+  hostnames.
+
+## Known Limits
+
+- Local storage encryption is not equivalent to OS credential storage.
+- Same-user malware, browser compromise, injected extensions, or memory access
+  are outside the local threat model.
+- Family Safe Mode is not a guarantee that all unsafe or unlawful content will
+  be blocked.
+- Upstream provider privacy behavior, retention, and safety policies remain
+  independent of Venice Forge.
 
 ## Export and Import
-- You have full control over your data. You can export your entire workspace at any time.
-- API Keys are automatically redacted and stripped during the export process to prevent accidental key leakage.
+
+- You can export your workspace locally at any time.
+- Safe export paths redact API-key-like values and strip plaintext secrets.
+- Imports validate structure, reject unexpected stores where applicable, and
+  avoid blindly trusting secret-like fields.
+
+For the full guard contract, verification commands, and maintainer guidance,
+see [SECURITY.md](../../SECURITY.md).

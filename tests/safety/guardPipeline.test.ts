@@ -25,7 +25,10 @@ import {
   performGuardedVeniceRequest,
 } from "../../electron/services/guardPipeline";
 import { maybeRunLocalFamilyGuard } from "../../src/shared/safety";
-import { screenResponseBody } from "../../src/shared/safety/localFamilySafeGuard";
+import {
+  safetyBlockBodyFromResponseScreen,
+  screenResponseBody,
+} from "../../src/shared/safety/localFamilySafeGuard";
 import { triggerInput, benignInput } from "./fixtureBuilders";
 
 vi.mock("../../electron/services/veniceClient", () => ({
@@ -254,6 +257,15 @@ describe("VERIFY-015 guard pipeline — screenResponseBody (web-proxy/scrape ret
     expect(r.allowed).toBe(false);
     if (r.allowed) throw new Error("expected blocked");
     expect(r.userMessage).toMatch(/Family Safe Mode/i);
+    expect(r.reasonCode).toBe("CSAM_EXPLICIT_TERM");
+    expect(r.category).toBe("csam_request");
+    expect(r.severity).toBe("critical");
+    expect(safetyBlockBodyFromResponseScreen(r)).toEqual({
+      error: r.userMessage,
+      reasonCode: "CSAM_EXPLICIT_TERM",
+      category: "csam_request",
+      severity: "critical",
+    });
   });
 
   it("blocks trigger embedded in scrape response body when Family Safe Mode is ON", () => {
@@ -263,6 +275,12 @@ describe("VERIFY-015 guard pipeline — screenResponseBody (web-proxy/scrape ret
       true,
     );
     expect(r.allowed).toBe(false);
+    if (r.allowed) throw new Error("expected blocked");
+    expect(safetyBlockBodyFromResponseScreen(r)).toMatchObject({
+      reasonCode: "CSAM_GENRE_TERM",
+      category: "csam_request",
+      severity: "critical",
+    });
   });
 
   it("allows benign web-proxy response body", () => {

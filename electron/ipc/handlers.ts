@@ -51,7 +51,11 @@ import {
 } from "../services/characterImageCache";
 import { JINA_MAX_RESPONSE_BYTES, VENICE_MAX_BODY_BYTES } from "../../src/shared/limits";
 import { FetchBodyTooLargeError, parseJsonOrNull, readBoundedFetchBody } from "../../src/shared/readBoundedFetchBody";
-import { SafetyGuardBlockedError, screenResponseBody } from "../../src/shared/safety";
+import {
+  SafetyGuardBlockedError,
+  safetyBlockBodyFromResponseScreen,
+  screenResponseBody,
+} from "../../src/shared/safety";
 import { performGuardedVeniceRequest, checkLocalFamilyGuard } from "../services/guardPipeline";
 import { getRuntimeLocalFamilySafeModeEnabled } from "../services/runtimeSafetySettings";
 import type { Conversation } from "../../src/types/conversation";
@@ -403,7 +407,7 @@ export function registerIpcHandlers(): void {
           getRuntimeLocalFamilySafeModeEnabled(),
         );
         if (!bodyScreen.allowed) {
-          return { ok: false, status: 451, error: bodyScreen.userMessage };
+          return { ok: false, status: 451, body: safetyBlockBodyFromResponseScreen(bodyScreen) };
         }
 
         return {
@@ -567,7 +571,7 @@ export function registerIpcHandlers(): void {
         getRuntimeLocalFamilySafeModeEnabled(),
       );
       if (!bodyScreen.allowed) {
-        return { ok: false, error: bodyScreen.userMessage };
+        return { ok: false, status: 451, body: safetyBlockBodyFromResponseScreen(bodyScreen) };
       }
 
       return {

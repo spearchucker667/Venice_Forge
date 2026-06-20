@@ -3,8 +3,7 @@
  *
  * Persists `CharacterCardV1` to `<userData>/characters/<id>/character.json` plus
  * an optional `avatar.png`. Writes are atomic (temp + rename). All ids MUST
- * pass `VALID_ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/` — same invariant as the
- * existing `chatStorage.ts`.
+ * pass the central Windows-safe validator.
  *
  * The renderer never touches the filesystem directly; it goes through
  * `desktopBridge.characterCards` and the `characterCard:*` IPC channels.
@@ -24,6 +23,7 @@ import {
   MAX_TAGS,
   RP_SCHEMA_VERSION,
 } from "../../src/types/rp";
+import { isValidId as isCanonicalValidId } from "../../src/utils/idValidation";
 import { logError, logInfo } from "./logger";
 
 /** Sub-directory under userData where character cards live. */
@@ -31,10 +31,6 @@ const CHARACTERS_DIR = "characters";
 
 /** Atomic write: temp file then rename. */
 const TMP_SUFFIX = ".tmp";
-
-/** Must start with an alphanumeric character (rejects "." and "..") — matches
- *  the existing `chatStorage.ts` invariant. */
-const VALID_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/;
 
 /** Max files scanned on a single `listCharacterCards` call. */
 const MAX_LIST_CARDS = 2000;
@@ -62,7 +58,7 @@ export function characterAvatarPath(id: string): string {
 
 /** Validates that an id is safe to use as a directory name. */
 export function isValidId(id: unknown): id is string {
-  return typeof id === "string" && VALID_ID_RE.test(id);
+  return typeof id === "string" && isCanonicalValidId(id);
 }
 
 function isValidCard(obj: unknown): obj is CharacterCardV1 {
@@ -305,6 +301,5 @@ async function atomicWrite(target: string, data: Buffer): Promise<void> {
 }
 
 export const _testing = {
-  VALID_ID_RE,
   RP_SCHEMA_VERSION,
 };
