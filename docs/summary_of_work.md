@@ -126,12 +126,14 @@ backlog files were removed.
 
 - **2026-06-21 Segmented test scripts and CI/release workflow updates (current session):**
   - Added six segmented npm scripts in `package.json`: `test:server` (root `server.test.ts`), `test:electron` (Electron main-process tests), `test:ingestion` (`src/services/ingestion`), `test:ui` (`src/components` + `tests/accessibility`), `test:unit` (all remaining tests via catch-all excludes), and `test:ci` (`vitest run --coverage`).
+  - Split `test:ui` further into subdomains (`layout`, `chat`, `media`, `research`, `settings`) to mitigate monolithic timeouts.
+  - Updated `package-scripts.test.ts` to expect the new segmented assertions for `test:ui` and `test:ci` to prevent regression.
   - Updated `.github/workflows/ci.yml` to use `npm run test:ci` in the main `build-and-test` job and `npm run test:electron` / `npm run test:ui` in the Windows/macOS sensitive-test jobs.
   - Updated `.github/workflows/release.yml` to use `npm run test:ci` in the macOS/Windows/Linux build jobs, preserving typecheck/build ordering.
   - Updated `scripts/verify-release-packaging-hardening.cjs` to accept `npm run test:ci` (and `npm run test:coverage`) as valid test execution commands in the `ci` script and release workflow checks.
   - Updated the root `ci` script in `package.json` to use `npm run test:ci` for consistency.
   - **Files changed:** `package.json`, `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `scripts/verify-release-packaging-hardening.cjs`, `package-scripts.test.ts`, `AGENTS.md`, `docs/summary_of_work.md`, `docs/audits/repository-todo-roadmap-current.md`.
-  - **Validation:** `npm run lint:eslint` PASS (0 warnings); `npm run typecheck` PASS (renderer + electron main); `npm run test:ci` PASS (272 test files / 3,393 tests passed / 1 skipped, coverage thresholds met); `npm run verify:document-ingestion` PASS (99 tests); all segmented scripts individually PASS with no overlaps.
+  - **Validation:** `npm run lint:eslint` PASS (0 warnings); `npm run typecheck` PASS (renderer + electron main); `npm run test:ci` PASS; `npm run verify:document-ingestion` PASS; all segmented scripts individually PASS with no overlaps.
 
 - **2026-06-21 Document ingestion verifier split (current session):**
   - Refactored `scripts/verify-document-ingestion.cjs` so ingestion service tests and UI component tests run in separate Vitest invocations.
@@ -8526,3 +8528,12 @@ Result:
 | `npm run verify:theme-tokens` | PASS | 100 themeable UI files scanned with no forbidden hardcoded color classes |
 | `npm test -- --run` | PASS | 270 files passed, 1 skipped; 3376 tests passed, 1 skipped; duration 155.03s |
 | `npm run test:coverage` | PASS | 270 files passed, 1 skipped; 3376 tests passed, 1 skipped; coverage thresholds met |
+- **2026-06-21 Test hygiene and dependency review (current session):**
+  - Closed P2 "Test hygiene: Silence expected stderr noise in passing tests":
+    - Added global mock overrides for `console.warn` and `console.error` at the module level in `tests/setup.ts` to suppress expected error output from store hydration and components during test execution.
+    - Updated `server.test.ts` to apply identical `console.warn` and `console.error` mocks in its `beforeEach` block since it runs under a separate `@vitest-environment node` configuration that isn't covered by the jsdom setup.
+  - Closed P2 "Dependencies: Track/upgrade deprecated transitive packages":
+    - Audited the deprecated transitive packages (`lodash.isequal`, `inflight`, `glob@7`, `boolean`, `rimraf@2`) and verified they are all `electron-builder` / `electron-updater` ecosystem transitives. They cannot be cleanly upgraded via `overrides` without risking packaging stack breakage.
+    - Verified that they are already tracked and documented correctly in `docs/DEVELOPMENT/troubleshooting.md` with zero active vulnerabilities, and that the roadmap marks this step complete.
+  - **Files changed:** `tests/setup.ts`, `server.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `npm test -- --run src/shared/logger.test.ts` PASS; `npm run test:ui` PASS (no longer emits noisy `getItem failed` or proxy timeout errors to stderr).

@@ -57,8 +57,13 @@ const requiredGates = [
 console.log("Checking CI contract...");
 
 // 1. Verify that package.json's verify:contracts contains all required gates
-const verifyContractsScript = pkg.scripts['verify:contracts'];
-if (!verifyContractsScript) {
+const staticScript = pkg.scripts['verify:contracts:static'] || '';
+const featuresScript = pkg.scripts['verify:contracts:features'] || '';
+const releaseScript = pkg.scripts['verify:contracts:release'] || '';
+const baseContractsScript = pkg.scripts['verify:contracts'] || '';
+const verifyContractsScript = [staticScript, featuresScript, releaseScript, baseContractsScript].join(' && ');
+
+if (!pkg.scripts['verify:contracts']) {
   console.error("❌ package.json is missing 'verify:contracts' script");
   process.exit(1);
 }

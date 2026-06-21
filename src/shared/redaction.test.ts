@@ -1,7 +1,7 @@
 /** @fileoverview Unit tests for redaction of secrets and tokens. */
 
 import { describe, expect, it } from "vitest";
-import { redactErrorMessage, redactSecrets } from "./redaction";
+import { redactErrorMessage, redactSecrets, sanitizeErrorText } from "./redaction";
 
 /** Tests for redactSecrets. */
 describe("redactSecrets", () => {
@@ -49,6 +49,9 @@ describe("redactErrorMessage", () => {
   it("redacts local absolute paths", () => {
     expect(redactErrorMessage(new Error("failed at /Users/private/config.json")))
       .toBe("failed at [REDACTED-PATH]");
+    expect(sanitizeErrorText("/mnt/data/vf/repo/src/file.ts:1:2")).not.toContain("/mnt/data");
+    expect(sanitizeErrorText("/tmp/build/repo/src/file.ts")).not.toContain("/tmp");
+    expect(sanitizeErrorText("/Volumes/External/repo/src/file.ts")).not.toContain("/Volumes");
   });
 
   it("redacts venice_ tokens", () => {

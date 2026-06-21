@@ -76,7 +76,10 @@ function verifyPackageJson() {
   if (pkg.scripts?.["verify:document-ingestion"] !== "node scripts/verify-document-ingestion.cjs") {
     fail("package.json script is missing or incorrect.");
   }
-  if (!pkg.scripts?.["verify:contracts"]?.includes("npm run verify:document-ingestion")) {
+  const allContracts = (pkg.scripts?.["verify:contracts"] || "") + 
+                       (pkg.scripts?.["verify:contracts:features"] || "") + 
+                       (pkg.scripts?.["verify:contracts:static"] || "");
+  if (!allContracts.includes("npm run verify:document-ingestion")) {
     fail("verify:contracts does not include verify:document-ingestion.");
   }
   for (const dep of ["mammoth", "pdfjs-dist", "remark-math", "rehype-katex", "rehype-sanitize"]) {

@@ -1,5 +1,11 @@
 import { vi } from "vitest";
 import "fake-indexeddb/auto";
+import * as logger from "../src/shared/logger";
+
+// Silence expected application logs during tests to keep CI output clean.
+// This is done at the module level so it captures logs emitted during store hydration (imports).
+console.warn = vi.fn();
+console.error = vi.fn();
 
 if (typeof globalThis.HTMLCanvasElement !== "undefined") {
   Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {

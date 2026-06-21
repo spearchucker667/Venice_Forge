@@ -65,6 +65,12 @@ afterEach(() => {
   activeApps = [];
 });
 
+beforeEach(() => {
+  // Suppress expected proxy errors from reaching stderr during tests.
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+});
+
 describe("server.ts lifecycle cleanup", () => {
   it("removes per-app process shutdown listeners during test cleanup", () => {
     const beforeExit = process.listenerCount("exit");
