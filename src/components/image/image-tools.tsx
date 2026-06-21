@@ -1,38 +1,38 @@
-import { useEffect, useId, useState, useRef } from 'react'
+import { useEffect, useId, useMemo, useState, useRef } from 'react'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useImageEdit, useImageUpscale, useBackgroundRemove } from '../../hooks/use-image-tools'
+import { useModels } from '../../hooks/use-models'
 import { useBlobUrl } from '../../hooks/use-blob-url'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, ErrorText, EmptyState } from '../ui/shared'
 import { cn, generateId } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
 import { redactErrorMessage } from '../../shared/redaction'
+import { FALLBACK_MODELS, modelSupportsEdit } from '../../constants/venice'
 import { useMediaStore } from '../../stores/media-store'
 import { blobToDataUrl } from '../../utils/image'
 import type { MediaOperation } from '../../types/media'
+import type { VeniceModel } from '../../types/venice'
 import { useImageWorkspaceStore } from '../../stores/image-workspace-store'
 import { isSupportedImageFile, readImageAttachment } from '../../services/attachmentService'
 
 type Tool = 'edit' | 'upscale' | 'remove-bg'
+type ImageModelChoice = VeniceModel | (typeof FALLBACK_MODELS.image)[number]
 
-const EDIT_MODELS = [
-  { value: 'qwen-edit', label: 'Qwen Edit' },
-  { value: 'qwen-image-2-edit', label: 'Qwen Image 2 Edit' },
-  { value: 'qwen-image-2-pro-edit', label: 'Qwen Image 2 Pro Edit' },
-  { value: 'flux-2-max-edit', label: 'Flux 2 Max Edit' },
-  { value: 'gpt-image-1-5-edit', label: 'GPT Image 1.5 Edit' },
-  { value: 'grok-imagine-edit', label: 'Grok Imagine Edit' },
-  { value: 'nano-banana-2-edit', label: 'Nano Banana 2 Edit' },
-  { value: 'nano-banana-pro-edit', label: 'Nano Banana Pro Edit' },
-  { value: 'seedream-v4-edit', label: 'Seedream V4 Edit' },
-  { value: 'seedream-v5-lite-edit', label: 'Seedream V5 Lite Edit' },
-]
+function modelSpecFor(model: ImageModelChoice): VeniceModel['model_spec'] | undefined {
+  return 'model_spec' in model ? model.model_spec : undefined
+}
+
+function labelForModel(model: ImageModelChoice): string {
+  return modelSpecFor(model)?.name || ('name' in model ? model.name : undefined) || model.id
+}
 
 export function ImageTools() {
   const editPromptId = useId()
   const editModelId = useId()
   const enhancePromptId = useId()
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
+  const { data: imageModels } = useModels('image')
   const [tool, setTool] = useState<Tool>('edit')
   const [imageData, setImageData] = useState<string | null>(null)
   const [imageName, setImageName] = useState('')
@@ -43,7 +43,26 @@ export function ImageTools() {
 
   // Edit state
   const [editPrompt, setEditPrompt] = useState('')
-  const [editModel, setEditModel] = useState('qwen-edit')
+  const [editModel, setEditModel] = useState('')
+  const editModelOptions = useMemo(() => {
+    const candidates = imageModels && imageModels.length > 0 ? imageModels : FALLBACK_MODELS.image
+    const seen = new Set<string>()
+    return candidates
+      .filter((model) => modelSupportsEdit({
+        id: model.id,
+        name: labelForModel(model),
+        type: 'type' in model ? model.type : 'image',
+        traits: 'traits' in model ? model.traits : modelSpecFor(model)?.traits,
+        capabilities: modelSpecFor(model)?.capabilities,
+        features: modelSpecFor(model)?.constraints,
+      }))
+      .filter((model) => {
+        if (seen.has(model.id)) return false
+        seen.add(model.id)
+        return true
+      })
+      .map((model) => ({ value: model.id, label: labelForModel(model) }))
+  }, [imageModels])
 
   // Upscale state
   const [scale, setScale] = useState(2)
@@ -57,8 +76,15 @@ export function ImageTools() {
   const resultBlobRef = useRef<Blob | null>(null)
   const lastToolRef = useRef<Tool>('edit')
   const lastScaleRef = useRef<number>(2)
-  const lastEditModelRef = useRef<string>('qwen-edit')
+  const lastEditModelRef = useRef<string>('')
   const lastPromptRef = useRef<string>('')
+
+  useEffect(() => {
+    if (editModelOptions.length === 0) return
+    if (!editModelOptions.some((option) => option.value === editModel)) {
+      setEditModel(editModelOptions[0].value)
+    }
+  }, [editModel, editModelOptions])
 
   useEffect(() => {
     if (!pendingHandoff || pendingHandoff.target !== 'tools') return
@@ -211,7 +237,7 @@ export function ImageTools() {
         {tool === 'edit' && (
           <>
             <div><Label htmlFor={editPromptId}>Edit prompt</Label><TextArea id={editPromptId} value={editPrompt} onChange={setEditPrompt} placeholder="Change the background to a sunset beach..." rows={3} /></div>
-            <div><Label htmlFor={editModelId}>Model</Label><Select id={editModelId} value={editModel} onChange={setEditModel} options={EDIT_MODELS} searchable ariaLabel="Edit model" /></div>
+            <div><Label htmlFor={editModelId}>Model</Label><Select id={editModelId} value={editModel} onChange={setEditModel} options={editModelOptions} searchable ariaLabel="Edit model" /></div>
           </>
         )}
 

@@ -26,6 +26,23 @@ function safeUrlTransform(url: string, key: string): string {
   return ''
 }
 
+type InjectedContextSource = NonNullable<ChatMessage['metadata']>['injectedContextSource']
+
+function formatInjectedContextSource(source: InjectedContextSource | undefined): string {
+  switch (source) {
+    case 'memory':
+      return 'Memory'
+    case 'prior_context':
+      return 'Prior context'
+    case 'approved_context':
+      return 'Approved context'
+    case 'mixed':
+      return 'Mixed context'
+    default:
+      return 'Injected context'
+  }
+}
+
 function CodeBlock({ children, className, ...props }: ComponentPropsWithoutRef<'code'>) {
   const match = /language-(\w+)/.exec(className || '')
   const lang = match ? match[1] : ''
@@ -107,6 +124,10 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate, onGener
   const localFamilySafeModeEnabled = useSettingsStore((s) => s.localFamilySafeModeEnabled)
   const characterSceneGenerationEnabled = useSettingsStore((s) => s.characterSceneGenerationEnabled)
   const sceneGeneration = message.metadata?.sceneGeneration as CharacterSceneGenerationResult | undefined
+  const injectedContext = typeof message.metadata?.injectedContext === 'string'
+    ? message.metadata.injectedContext.trim()
+    : ''
+  const injectedContextLabel = formatInjectedContextSource(message.metadata?.injectedContextSource)
 
   const localSafetyDecision = content && localFamilySafeModeEnabled ? (() => {
     try {
@@ -134,6 +155,17 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate, onGener
     if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
     copyTimeoutRef.current = setTimeout(() => setCopied(false), 1500)
   }
+
+  const injectedContextDisclosure = injectedContext ? (
+    <details className="mt-3 rounded-lg border border-border/50 bg-surface-elevated/30 text-left text-[12px] text-text-secondary">
+      <summary className="cursor-pointer select-none px-3 py-2 font-medium text-text-primary">
+        {injectedContextLabel} attached to this message
+      </summary>
+      <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words border-t border-border/40 px-3 py-2 font-mono text-[11.5px] leading-relaxed text-text-muted">
+        {injectedContext}
+      </pre>
+    </details>
+  ) : null
 
   const actions = (
     <div className={`flex items-center gap-0.5 h-6 transition-opacity duration-150 ${hovering ? 'opacity-100' : 'opacity-0'}`}>
@@ -207,6 +239,7 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate, onGener
                 )}
               </div>
             )}
+            {injectedContextDisclosure}
           </div>
         </div>
       </div>
@@ -300,6 +333,7 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate, onGener
             <span className="w-1 h-1 rounded-full bg-text-muted animate-pulse-dot [animation-delay:400ms]" />
           </span>
         )}
+        {injectedContextDisclosure}
         {isAssistant && sceneGeneration && (
           <CharacterSceneCard
             status={sceneGeneration.status}

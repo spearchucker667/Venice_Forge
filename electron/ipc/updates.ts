@@ -11,6 +11,9 @@ const UPDATE_CHECK_TIMEOUT_MS = 30_000;
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
 
+let updateHandlersRegistered = false;
+let updateDownloaded = false;
+
 /** Broadcasts an IPC event to all open renderer windows. */
 function broadcast(channel: string, payload?: unknown) {
   const windows = BrowserWindow.getAllWindows();
@@ -26,6 +29,9 @@ function broadcast(channel: string, payload?: unknown) {
 
 /** Registers IPC handlers and autoUpdater event listeners. */
 export function registerUpdateHandlers(): void {
+  if (updateHandlersRegistered) return;
+  updateHandlersRegistered = true;
+
   const handleIpc = (channel: string, handler: Parameters<typeof ipcMain.handle>[1]) => {
     ipcMain.handle(channel, rateLimitIpcHandler(channel, handler));
   };
@@ -68,8 +74,6 @@ export function registerUpdateHandlers(): void {
       return { ok: false, error: "Update download failed. Please try again later." };
     }
   });
-
-  let updateDownloaded = false;
 
   handleIpc("app:installUpdate", () => {
     if (!updateDownloaded) {

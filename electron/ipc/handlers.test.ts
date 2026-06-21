@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach, vi, beforeAll } from "vitest";
 import path from "path";
 import os from "os";
+import { ipcMain } from "electron";
 
 const capturedHandlers = new Map<string, (...args: unknown[]) => unknown>();
 
@@ -133,6 +134,13 @@ describe("registerIpcHandlers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetIpcRateLimitForTests();
+  });
+
+  it("is idempotent when bootstrap calls registration more than once", () => {
+    const registeredChannels = new Set(capturedHandlers.keys());
+    registerIpcHandlers();
+    expect(ipcMain.handle).not.toHaveBeenCalled();
+    expect(new Set(capturedHandlers.keys())).toEqual(registeredChannels);
   });
 
   describe("venice:request", () => {
@@ -370,6 +378,28 @@ describe("registerIpcHandlers", () => {
   });
 
   describe("app:readLocalFile", () => {
+    it("advertises only text attachment extensions in the native picker", async () => {
+      const handler = capturedHandlers.get("app:readLocalFile");
+      expect(handler).toBeDefined();
+
+      const { dialog } = await import("electron");
+      vi.mocked(dialog.showOpenDialog).mockResolvedValueOnce({
+        canceled: true,
+        filePaths: [],
+      });
+
+      await handler!(
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents }
+      );
+
+      expect(dialog.showOpenDialog).toHaveBeenCalledWith(expect.objectContaining({
+        title: "Import text attachment",
+        filters: [
+          { name: "Text attachments", extensions: ["txt", "md", "json", "csv", "yaml", "yml"] },
+        ],
+      }));
+    });
+
     it("rejects hidden files (dotfiles)", async () => {
       const handler = capturedHandlers.get("app:readLocalFile");
       expect(handler).toBeDefined();
@@ -406,6 +436,28 @@ describe("registerIpcHandlers", () => {
         ok: false,
         error: "Unsupported attachment type.",
       });
+    });
+
+    it("keeps document and image formats out of the text-only local reader", async () => {
+      const handler = capturedHandlers.get("app:readLocalFile");
+      expect(handler).toBeDefined();
+
+      const { dialog } = await import("electron");
+      for (const ext of [".pdf", ".docx", ".doc", ".xls", ".xlsx", ".png", ".jpg", ".webp"]) {
+        vi.mocked(dialog.showOpenDialog).mockResolvedValueOnce({
+          canceled: false,
+          filePaths: [`/Users/test/attachment${ext}`],
+        });
+
+        const result = await handler!(
+          { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents }
+        );
+
+        expect(result).toMatchObject({
+          ok: false,
+          error: "Unsupported attachment type.",
+        });
+      }
     });
   });
 

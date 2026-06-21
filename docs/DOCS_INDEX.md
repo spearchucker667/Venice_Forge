@@ -15,6 +15,7 @@ evidence. If a historical report conflicts with live source, package scripts, or
 | Agent instructions | [../AGENTS.md](../AGENTS.md) |
 | Agent/session handoff ledger | [summary_of_work.md](summary_of_work.md) |
 | Current TODO roadmap | [audits/repository-todo-roadmap-current.md](audits/repository-todo-roadmap-current.md) |
+| Canonical report index | [reports/CANONICAL_REPORT_INDEX.md](reports/CANONICAL_REPORT_INDEX.md) |
 | Contributor workflow | [../CONTRIBUTING.md](../CONTRIBUTING.md) |
 | Security policy | [../SECURITY.md](../SECURITY.md) |
 | Privacy policy | [../PRIVACY.md](../PRIVACY.md) |
@@ -48,8 +49,10 @@ evidence. If a historical report conflicts with live source, package scripts, or
 ## Historical Reports
 
 The files under [reports/historical](reports/historical/) are retained for
-traceability. They are not current TODO lists. Each retained report should have
-a historical or superseded banner near the top.
+traceability. They are not current TODO lists. See
+[reports/CANONICAL_REPORT_INDEX.md](reports/CANONICAL_REPORT_INDEX.md) for the
+complete report authority map. Each retained report should have a historical or
+superseded banner near the top.
 
 | Report | Use |
 |---|---|

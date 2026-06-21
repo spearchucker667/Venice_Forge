@@ -10,7 +10,7 @@ try {
   // 2. Run unit tests for workflow templates
   console.log("\n2. Running unit tests for Workflow Templates...");
   execSync(
-    "npx vitest run src/types/workflow.test.ts src/services/workflowCompiler.test.ts src/services/workflowRunner.test.ts src/stores/workflow-template-store.test.ts src/components/workflows/WorkflowTemplatesView.test.tsx --fileParallelism=false",
+    "npx vitest run src/types/workflow.test.ts src/services/workflowCompiler.test.ts src/services/workflowRunner.test.ts src/lib/workflow-engine.test.ts src/lib/workflow-validator.test.ts src/lib/workflow-schema.test.ts src/lib/workflow-mutations.test.ts src/stores/workflow-template-store.test.ts src/components/workflows/workflow-node.test.tsx src/components/workflows/WorkflowTemplatesView.test.tsx --fileParallelism=false",
     { stdio: "inherit" }
   );
 

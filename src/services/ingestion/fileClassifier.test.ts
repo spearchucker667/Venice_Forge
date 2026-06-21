@@ -12,8 +12,9 @@ describe("fileClassifier", () => {
     expect(classifyFile(mockFile("test.docx")).kind).toBe("docx");
   });
 
-  it("classifies doc files", () => {
-    expect(classifyFile(mockFile("test.doc")).kind).toBe("doc");
+  it("does not accept legacy doc files without a parser", () => {
+    expect(classifyFile(mockFile("test.doc")).kind).toBe("unknown");
+    expect(isSupportedIngestionFile(mockFile("test.doc"))).toBe(false);
   });
 
   it("classifies markdown files", () => {
@@ -88,6 +89,8 @@ describe("fileClassifier", () => {
   it("classifies broad document extensions without falling through to unknown", () => {
     expect(classifyFile(mockFile("scan.rtf")).kind).toBe("text");
     expect(classifyFile(mockFile("table.csv")).kind).toBe("spreadsheet");
+    expect(classifyFile(mockFile("table.xls")).kind).toBe("unknown");
+    expect(classifyFile(mockFile("table.xlsx")).kind).toBe("unknown");
     expect(classifyFile(mockFile("feed.xml")).kind).toBe("text");
     expect(classifyFile(mockFile("page.html")).kind).toBe("text");
     expect(classifyFile(mockFile("page.htm")).kind).toBe("text");
@@ -115,6 +118,7 @@ describe("fileClassifier", () => {
     expect(isCodeLikeFile(mockFile("test.txt"))).toBe(false);
 
     expect(isDocumentLikeFile(mockFile("test.docx"))).toBe(true);
+    expect(isDocumentLikeFile(mockFile("test.doc"))).toBe(false);
     expect(isDocumentLikeFile(mockFile("test.png"))).toBe(false);
   });
 });

@@ -58,6 +58,7 @@ const IMAGE_MAGIC: Record<string, (buffer: Buffer) => boolean> = {
 
 /** Maximum accepted URL length. */
 const MAX_URL_LENGTH = 2048;
+const inFlightFetches = new Map<string, Promise<CharacterImageCacheResult>>();
 
 export interface CharacterImageCacheResult {
   ok: boolean;
@@ -322,57 +323,71 @@ export async function getCachedCharacterImage(url: string): Promise<CharacterIma
   }
 
   const staleUrl = existing ? `venice-character-cache://${key}` : undefined;
+  const inFlight = inFlightFetches.get(key);
+  if (inFlight) return inFlight;
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const fetchAndWrite = async (): Promise<CharacterImageCacheResult> => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-  try {
-    const { buffer, contentType } = await fetchImage(url, controller.signal);
-    await evictIfNeeded(buffer.length);
+    try {
+      const { buffer, contentType } = await fetchImage(url, controller.signal);
+      await evictIfNeeded(buffer.length);
 
-    const tmp = tempPath(key);
-    await fs.writeFile(tmp, buffer, { mode: 0o600 });
+      const tmp = tempPath(key);
+      await fs.writeFile(tmp, buffer, { mode: 0o600 });
 
-    // Validate containment after writing (paranoid: temp path is under root).
-    if (!isWithin(getCharacterImageCacheDir(), dp) || !isWithin(getCharacterImageCacheDir(), tmp)) {
-      try { await fs.unlink(tmp); } catch { /* ignore */ }
-      return { ok: false, error: "Resolved cache path is outside the cache directory." };
-    }
+      // Validate containment after writing (paranoid: temp path is under root).
+      if (!isWithin(getCharacterImageCacheDir(), dp) || !isWithin(getCharacterImageCacheDir(), tmp)) {
+        try { await fs.unlink(tmp); } catch { /* ignore */ }
+        return { ok: false, error: "Resolved cache path is outside the cache directory." };
+      }
 
-    await fs.rename(tmp, dp);
+      await fs.rename(tmp, dp);
 
-    const meta: CacheMeta = {
-      sourceUrl: url,
-      contentType,
-      bytes: buffer.length,
-      cachedAt: now,
-      expiresAt: now + CHARACTER_IMAGE_CACHE_TTL_MS,
-    };
-    await writeMeta(key, meta);
+      const meta: CacheMeta = {
+        sourceUrl: url,
+        contentType,
+        bytes: buffer.length,
+        cachedAt: now,
+        expiresAt: now + CHARACTER_IMAGE_CACHE_TTL_MS,
+      };
+      await writeMeta(key, meta);
 
-    return {
-      ok: true,
-      url: `venice-character-cache://${key}`,
-      contentType,
-      bytes: buffer.length,
-    };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    logWarn("Character image cache fetch failed", { error: message });
-
-    // Stale-while-revalidate: return the existing file even if refresh failed.
-    if (staleUrl) {
       return {
         ok: true,
-        url: staleUrl,
-        contentType: existing?.contentType,
-        bytes: existing?.bytes,
+        url: `venice-character-cache://${key}`,
+        contentType,
+        bytes: buffer.length,
       };
-    }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logWarn("Character image cache fetch failed", { error: message });
 
-    return { ok: false, error: message };
+      // Stale-while-revalidate: return the existing file even if refresh failed.
+      if (staleUrl) {
+        return {
+          ok: true,
+          url: staleUrl,
+          contentType: existing?.contentType,
+          bytes: existing?.bytes,
+        };
+      }
+
+      return { ok: false, error: message };
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+
+  const promise = fetchAndWrite();
+  inFlightFetches.set(key, promise);
+  try {
+    return await promise;
   } finally {
-    clearTimeout(timeout);
+    if (inFlightFetches.get(key) === promise) {
+      inFlightFetches.delete(key);
+    }
   }
 }
 

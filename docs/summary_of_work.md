@@ -115,6 +115,16 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-06-21 Remaining roadmap closure batch (current session):**
+  - Replaced the hardcoded Image Tools edit-model list with dynamic discovery from live `useModels("image")` metadata filtered through `modelSupportsEdit()`, with fallback to the existing image fallback catalog when the model API is unavailable.
+  - Fixed workflow-template rollback defects: `reorderSteps()` now updates cloned step objects instead of mutating the rollback snapshot, and `deleteWorkflow()` restores the pre-delete `activeWorkflowId` when persistence fails.
+  - Tightened document ingestion support: legacy `.doc` and binary `.xls/.xlsx` are now unsupported until real parsers exist, `.doc` was removed from ChatInput's accept list, and CSV remains the only spreadsheet-style text ingestion path.
+  - Added idempotency guards for `registerIpcHandlers()` and `registerUpdateHandlers()` so repeated bootstrap/setup calls do not duplicate `ipcMain.handle` registrations or updater listeners.
+  - Added in-flight request de-duplication to the desktop character image cache so concurrent cache misses for the same source URL share one upstream fetch/write.
+  - Expanded `verify:workflow-templates` to include workflow engine, validator, schema, mutation, and node tests alongside the existing template tests.
+  - Closed the remaining practical P1/P2 roadmap items with evidence: server listener cleanup plus full test/coverage pass, text-only desktop local-file picker parity tests, per-message injected-memory disclosure, active repo-slug verification, canonical report indexing, deprecated transitive dependency tracking, markdown XSS coverage for both renderers, and theme-token verification.
+  - **Remaining open roadmap scope:** P2 architecture decomposition of oversized core files and P3 future enhancements for stream-resume metadata plus richer OCR/spreadsheet ingestion adapters remain intentionally open because they are broad refactor/feature efforts, not safe stabilization checkboxes.
+
 - **2026-06-21 Character image cache protocol origin restriction (current session):**
   - Closed the next open roadmap P1: `venice-character-cache://` protocol requests now reject explicit foreign `Origin` or `Referer` provenance before cache key parsing or filesystem lookup.
   - Added `electron/utils/characterImageCacheProtocol.ts` with a focused access-policy helper for Vite dev renderer origin, packaged `file://` renderer referrers under `dist/`, and originless Electron image loads.
@@ -7423,14 +7433,14 @@ Result:
 - ~~**P1:** Fix bridge-server shutdown race with restart in `electron/services/bridgeServer.ts`.~~ **FIXED 2026-06-21** — `stopBridgeServer()` now exposes/serializes the async close, and `startBridgeServer()` waits for pending close before rebinding; deterministic restart regression added.
 - ~~**P1:** Reduce Conversation Vault manifest rewrite cost by appending new entries instead of full rewrite.~~ **FIXED 2026-06-21** — manifest upsert/delete operations now append to an encrypted journal and replay on load; full manifest save remains as compaction.
 - ~~**P1:** Add origin restrictions to character image cache protocol handler.~~ **FIXED 2026-06-21** — `venice-character-cache://` now rejects explicit foreign origin/referrer provenance before cache lookup; app renderer dev/prod paths and originless Electron image loads remain supported.
-- **P1:** Replace hardcoded Image Tools edit model list with dynamic model/capability discovery.
+- ~~**P1:** Replace hardcoded Image Tools edit model list with dynamic model/capability discovery.~~ **FIXED 2026-06-21** — Image Tools now derives edit-capable options from live image model metadata via `modelSupportsEdit()`, falling back to the existing image fallback catalog.
 
 ### Open Follow-Up from 2026-06-17 workflow-templates Audit
 
 - ~~**P0:** Mount `WorkflowTemplatesView` in `App.tsx` for the canonical `workflows` tab (or merge it into the `WorkflowsView` route); update lazy import and routing tests. VERIFY-049 currently violated.~~ **FIXED 2026-06-17** — `App.tsx` now lazy-loads and mounts `WorkflowTemplatesView` for the `workflows` tab.
-- **P1:** Fix `workflow-template-store.ts` `reorderSteps` so it does not mutate step objects in the rollback snapshot; use immutable updates.
-- **P1:** Fix `workflow-template-store.ts` `deleteWorkflow` rollback to restore the pre-delete `activeWorkflowId` instead of forcing `current.id`.
-- **P2:** Extend `scripts/verify-workflow-templates.cjs` to run `workflow-engine.test.ts`, `workflow-validator.test.ts`, `workflow-schema.test.ts`, `workflow-mutations.test.ts`, and `workflow-node.test.tsx`.
+- ~~**P1:** Fix `workflow-template-store.ts` `reorderSteps` so it does not mutate step objects in the rollback snapshot; use immutable updates.~~ **FIXED 2026-06-21** — regression test proves failed reorder restores original step ids/orders.
+- ~~**P1:** Fix `workflow-template-store.ts` `deleteWorkflow` rollback to restore the pre-delete `activeWorkflowId` instead of forcing `current.id`.~~ **FIXED 2026-06-21** — failed deletion now restores the previous active workflow id.
+- ~~**P2:** Extend `scripts/verify-workflow-templates.cjs` to run `workflow-engine.test.ts`, `workflow-validator.test.ts`, `workflow-schema.test.ts`, `workflow-mutations.test.ts`, and `workflow-node.test.tsx`.~~ **FIXED 2026-06-21** — `npm run verify:workflow-templates` now runs the expanded suite and passes.
 - **P2:** Implement ref resolution in `workflowCompiler.ts` so prompt/scene/character refs are injected into `resolvedInput`, or remove/disable the ref UI until implemented.
 - **P2/P3:** Harden `WorkflowTemplatesView` UI: debounce title edits, render run buttons for all actions, call `ensureWorkflowTemplatesLoaded` on mount, and add missing versions/import/export/favorite/tag controls.
 - **P3:** Remove `// @ts-nocheck` from `src/stores/workflow-template-store.test.ts` and replace `as any`/`as unknown` casts with typed fixtures.
@@ -8410,3 +8420,29 @@ Result:
 | `npm run verify:document-ingestion` | PASS | 11 files / 95 tests |
 | `npm run verify:research-browser` | PASS | 10 files / 147 tests |
 | `npm run build` | PASS | Web, server, and Electron build completed |
+
+
+## Validation Matrix (2026-06-21 remaining roadmap closure append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/components/image/image-tools.test.tsx --fileParallelism=false` | PASS | 6 tests passed after red-green dynamic edit-model coverage |
+| `npx vitest run src/stores/workflow-template-store.test.ts --fileParallelism=false` | PASS | 59 tests passed after rollback fixes |
+| `npx vitest run src/services/ingestion/fileClassifier.test.ts src/services/ingestion/attachmentAssembler.test.ts src/services/ingestion/docxIngestion.test.ts src/components/chat/chat-input.test.tsx --fileParallelism=false` | PASS | 4 files / 51 tests passed for `.doc` and binary Excel rejection |
+| `npx vitest run electron/ipc/handlers.test.ts electron/ipc/updates.test.ts --fileParallelism=false` | PASS | 2 files / 36 tests passed for IPC/update idempotency |
+| `npx vitest run electron/services/researchBrowserServer.test.ts --fileParallelism=false` | PASS | 16 tests passed |
+| `npx vitest run electron/services/characterImageCache.test.ts --fileParallelism=false` | PASS | 18 tests passed for in-flight image-cache de-duplication |
+| `npx vitest run server.test.ts --fileParallelism=false` | PASS | 3 files / 95 tests passed, including process-listener cleanup regression |
+| `npx vitest run src/components/chat/message-bubble.test.tsx src/utils/markdown.test.ts --fileParallelism=false` | PASS | 2 files / 19 tests passed for dual markdown-renderer XSS coverage |
+| `npx vitest run electron/ipc/handlers.test.ts src/services/attachmentService.test.ts --fileParallelism=false` | PASS | 2 files / 51 tests passed for text-only desktop local-file picker parity |
+| `npx vitest run tests/theme src/theme src/components/ThemeMaker.test.ts src/components/ThemeMaker.ui.test.tsx --fileParallelism=false` | PASS | 10 files / 120 tests passed |
+| `npm run verify:workflow-templates` | PASS | Typecheck plus 9 workflow test files / 106 tests |
+| `npm run verify:document-ingestion` | PASS | VERIFY-058 document-ingestion verifier passed; 11 files / 99 tests |
+| `npm run verify:markdown-links` | PASS | 78 Markdown files checked after canonical report index addition |
+| `npm run verify:repo-handoff-hygiene` | PASS | Repo handoff hygiene verifier passed |
+| `npm run verify:bundle-budget` | PASS | All chunks within budget, including PDF worker at 1343.59 KB under 1500 KB |
+| `npm audit --audit-level=moderate` | PASS | 0 vulnerabilities |
+| `npm explain lodash.isequal inflight glob boolean rimraf` | PASS | Deprecated package ownership traced to Electron updater/builder transitives and recorded in troubleshooting docs |
+| `npm run verify:theme-tokens` | PASS | 100 themeable UI files scanned with no forbidden hardcoded color classes |
+| `npm test -- --run` | PASS | 270 files passed, 1 skipped; 3376 tests passed, 1 skipped; duration 155.03s |
+| `npm run test:coverage` | PASS | 270 files passed, 1 skipped; 3376 tests passed, 1 skipped; coverage thresholds met |

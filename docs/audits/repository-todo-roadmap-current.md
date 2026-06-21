@@ -352,7 +352,7 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Residual risk:** Model-level instruction-following risk remains, but structural wrapper escape is blocked.
   * **Status:** Fixed 2026-06-21. `escapeXmlText()` now escapes local text/code/PDF/DOCX wrapper bodies, and malicious-body regression tests plus `npm run verify:document-ingestion` pass.
 
-* [ ] **P1 — Document ingestion: Do not silently send accepted `.doc` files with no extracted text**
+* [x] **P1 — Document ingestion: Do not silently send accepted `.doc` files with no extracted text**
 
   * **Evidence:** `src/components/chat/chat-input.tsx:19-22` accepts `.doc`. `src/services/ingestion/docxIngestion.ts:98-124` returns a legacy DOC attachment with no `text`. `src/hooks/use-chat.ts:362-369` only appends `att.text` or image data, so `.doc` content is omitted from the actual message.
   * **Why:** The UI can imply the file is attached while the model receives none of its contents. That is user-hostile in the way only file upload UX can be.
@@ -363,8 +363,9 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Platform:** Both desktop and web/dev mode.
   * **Expected behavior:** Unsupported legacy documents are clearly blocked or parsed before send.
   * **Current risk:** Accepted attachment can be semantically empty.
+  * **Status:** Fixed 2026-06-21. `.doc` is no longer classified as supported, no longer appears in the ChatInput accept list, and assembler/DOC tests assert legacy `.doc` files reject with `UnsupportedFileTypeError` until a real parser is available.
 
-* [ ] **P1 — Document ingestion: Resolve spreadsheet support drift**
+* [x] **P1 — Document ingestion: Resolve spreadsheet support drift**
 
   * **Evidence:** `src/services/ingestion/fileClassifier.ts:88` classifies `.csv`, `.xlsx`, and `.xls` as `spreadsheet`. `src/services/ingestion/attachmentAssembler.ts:18-21` routes `spreadsheet` to `ingestTextFile`. `src/components/chat/chat-input.tsx:19-83` accepts `.csv` but does not include `.xlsx` or `.xls`.
   * **Why:** Binary Excel files routed through text ingestion become garbage or fail unpredictably.
@@ -372,8 +373,9 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Files likely affected:** `src/services/ingestion/fileClassifier.ts`, `attachmentAssembler.ts`, `textIngestion.ts`, `chat-input.tsx`, ingestion tests, docs/design/REPOSITORY_TREE.md.
   * **Validate:** `npm test -- --run src/services/ingestion/fileClassifier.test.ts src/services/ingestion/attachmentAssembler.test.ts`
   * **Risk if ignored:** Excel attachments produce misleading or corrupted model context.
+  * **Status:** Fixed 2026-06-21. `.csv` remains supported as text-ingested spreadsheet data; binary `.xls/.xlsx` are no longer classified as supported and assembler tests assert they are rejected instead of routed through text ingestion.
 
-* [ ] **P1 — Electron IPC: Add idempotency guard and regression coverage for main handler registration**
+* [x] **P1 — Electron IPC: Add idempotency guard and regression coverage for main handler registration**
 
   * **Evidence:** `electron/ipc/handlers.ts:213-219` registers handlers directly with `ipcMain.handle`. `electron/main.ts:177-254` currently calls `registerIpcHandlers()` from bootstrap, so normal boot is likely safe. Research browser IPC has its own guard in `electron/services/researchBrowserServer.ts:86-98`. The observed prior crash was duplicate `researchBrowser:create`, but current tests at `electron/services/researchBrowserServer.test.ts:130-149` only assert channel registration, not duplicate setup/minimize/restore.
   * **Why:** Electron throws if a handler is registered twice. That exact class of bug has already appeared after minimize/restore.
@@ -384,9 +386,9 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Platform:** macOS primarily for activate/minimize flows; both for second-window/lifecycle defects.
   * **Expected behavior:** Handler setup is safe to call more than once.
   * **Current risk:** Research browser has a guard; general IPC registration does not.
-  * **Partial progress:** Research-browser window-recreate lifecycle leak fixed 2026-06-21. `setupResearchBrowserIpc()` now tears down stale `WebContentsView` state when the host `BrowserWindow` changes, and `electron/services/researchBrowserServer.test.ts` covers the recreate path. The broader `registerIpcHandlers()` idempotency item remains open.
+  * **Status:** Fixed 2026-06-21. `registerIpcHandlers()` and `registerUpdateHandlers()` now return early after first registration; `electron/ipc/handlers.test.ts` proves repeated registration does not call `ipcMain.handle`, and research-browser recreate/idempotency coverage passes.
 
-* [ ] **P1 — Testing reliability: Fix full test/coverage timeout and warning noise**
+* [x] **P1 — Testing reliability: Fix full test/coverage timeout and warning noise**
 
   * **Evidence:** `npm test -- --run` timed out after 300 seconds. `npm run test:coverage -- --run` also timed out. During execution, Vitest emitted `MaxListenersExceededWarning` from repeated server setup. `server.ts:173-175` attaches `exit`, `SIGINT`, and `SIGTERM` listeners every time `createServerApp()` is called.
   * **Why:** CI may pass in one environment while local/source-ZIP validation becomes unreliable. Flaky test gates are just roulette with YAML.
@@ -399,8 +401,9 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
     npm run test:coverage
     ```
   * **Risk if ignored:** Full test runs remain hard to trust, timeout-prone, and noisy.
+  * **Status:** Fixed 2026-06-21. `createServerApp()` cleanup now removes per-app shutdown listeners, `server.test.ts` asserts listener counts return to baseline, `npm test -- --run` passes in 155.03s, and `npm run test:coverage` passes in 177.78s with coverage thresholds met.
 
-* [ ] **P1 — Desktop attachment parity: Expand or deprecate `app:readLocalFile`**
+* [x] **P1 — Desktop attachment parity: Expand or deprecate `app:readLocalFile`**
 
   * **Evidence:** Renderer upload supports PDF, DOCX, DOC, Markdown, JSON/YAML, code, and images in `src/components/chat/chat-input.tsx:19-83`. Desktop IPC `app:readLocalFile` only allows `txt`, `md`, `json`, `csv`, `yaml`, and `yml` in `electron/ipc/handlers.ts:829-846`.
   * **Why:** Desktop file picker behavior can diverge from drag/drop or web upload behavior.
@@ -411,8 +414,9 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Platform:** Desktop only.
   * **Expected behavior:** One clear attachment capability matrix.
   * **Current risk:** Native dialog is narrower than renderer ingestion.
+  * **Status:** Fixed 2026-06-21 by explicitly scoping `app:readLocalFile` as a text-only native picker. The dialog title/filter advertise text attachments only, `attachmentService.readLocalPathAttachment()` is text-only, and IPC tests assert PDF/DOCX/DOC/binary spreadsheet/image formats are rejected instead of presented as general attachment import.
 
-* [ ] **P1 — Memory UX: Make auto-injected memory auditable on every sent message**
+* [x] **P1 — Memory UX: Make auto-injected memory auditable on every sent message**
 
   * **Evidence:** `src/hooks/use-chat.ts:291-357` can auto-pull and inject memory when `showPulledContextBeforeSending` is false. Preview UI exists at `src/components/chat/chat-view.tsx:289-325`, but auto mode bypasses preview and stores injected context in message metadata.
   * **Why:** Memory/context injection must be visible, scoped, and reversible. Silent contextual recall is where “helpful” becomes “why did it know that,” which is a fun legal and UX swamp.
@@ -420,8 +424,9 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Files likely affected:** `src/hooks/use-chat.ts`, `src/components/chat/message-bubble.tsx`, `src/components/layout/memory-panel.tsx`, `src/services/memoryService.ts`, relevant tests.
   * **Validate:** Add tests for global off, conversation off, preview on, preview off, character-bound chat disabled, and project scoping.
   * **Risk if ignored:** Users may not understand or control what memory influenced a response.
+  * **Status:** Fixed 2026-06-21 for the per-message audit surface. `useChat()` already stores injected context and source in sent-message metadata; `MessageBubble` now renders a collapsible disclosure for that metadata on user and assistant messages, with tests proving memory context is visible and ordinary messages remain undisclosed.
 
-* [ ] **P1 — Source/archive naming: Resolve `Windows-Venice-API-connector` vs `Venice_Forge` drift**
+* [x] **P1 — Source/archive naming: Resolve `Windows-Venice-API-connector` vs `Venice_Forge` drift**
 
   * **Evidence:** Uploaded ZIP/root name is `Windows-Venice-API-connector-clean-20260621-070025.zip`. `package.json:1-18` declares `venice-forge` and GitHub URLs under `spearchucker667/Venice_Forge`. `electron-builder.config.cjs:45-49` publishes to `Venice_Forge`.
   * **Why:** Artifact naming, repo URLs, docs, and support links should not disagree.
@@ -432,8 +437,9 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Platform:** Repo/distribution.
   * **Expected behavior:** Current app, package, artifact, and repo names align.
   * **Current risk:** Public metadata split-brain.
+  * **Status:** Verified 2026-06-21. Active package metadata, README, CONTRIBUTING, SECURITY, release docs, workflows, and electron-builder publish config use the canonical `spearchucker667/Venice_Forge` slug. `verify-release-packaging-hardening` includes a retired-slug guard for active release/setup metadata; remaining old names are historical audit/handoff evidence or redaction/verifier fixtures.
 
-* [ ] **P1 — Verifier quality: Strengthen semantic checks for document ingestion**
+* [x] **P1 — Verifier quality: Strengthen semantic checks for document ingestion**
 
   * **Evidence:** `scripts/verify-document-ingestion.cjs:75-129` checks token presence such as `SUPPORTED_ATTACHMENT_ACCEPT`, `AI is not vision capable`, and `rehypeSanitize`, then runs tests. It does not check attachment body escaping, `.doc` no-text behavior, or `.xlsx/.xls` routing.
   * **Why:** Token checks can pass while the behavior remains broken.
@@ -441,12 +447,13 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Files likely affected:** `scripts/verify-document-ingestion.cjs`, `src/services/ingestion/*.test.ts`, `src/components/chat/chat-view.test.tsx`.
   * **Validate:** `npm run verify:document-ingestion`
   * **Risk if ignored:** Validation claims ingestion is safe while wrapper breakout and no-content sends remain possible.
+  * **Status:** Fixed 2026-06-21. The verifier now runs semantic ingestion regression files covering body escaping, `.doc` rejection, and `.xls/.xlsx` rejection; `npm run verify:document-ingestion` passes.
 
 ---
 
 ### P2 — Quality, DX, and Maintainability
 
-* [ ] **P2 — Repo hygiene: Canonicalize audit/report sprawl**
+* [x] **P2 — Repo hygiene: Canonicalize audit/report sprawl**
 
   * **Evidence:** `docs/audits/*`, `docs/reports/historical/*`, `docs/summary_of_work.md`, `docs/VENICE_FORGE_TODO.md`, and `docs/VENICE_FORGE_ZIP_AUDIT_HANDOFF.md` all exist. `docs/DOCS_INDEX.md` already separates current and historical docs.
   * **Why:** Too many report files make contributors chase stale advice like raccoons in a data center.
@@ -454,8 +461,9 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Files likely affected:** `docs/DOCS_INDEX.md`, `docs/reports/README.md`, `docs/reports/CANONICAL_REPORT_INDEX.md` (new), `docs/audits/*`.
   * **Validate:** `npm run verify:markdown-links && npm run verify:repo-handoff-hygiene`
   * **Risk if ignored:** Agents and contributors follow stale TODOs.
+  * **Status:** Fixed 2026-06-21. Added `docs/reports/CANONICAL_REPORT_INDEX.md`, linked it from `docs/DOCS_INDEX.md` and `docs/reports/README.md`, and kept historical report artifacts as evidence instead of current TODO sources.
 
-* [ ] **P2 — Supply chain: Track deprecated transitive packages**
+* [x] **P2 — Supply chain: Track deprecated transitive packages**
 
   * **Evidence:** `npm ci` passed with zero vulnerabilities but emitted deprecated warnings for packages including `lodash.isequal`, `inflight`, `glob@7`, `boolean`, and `rimraf@2`.
   * **Why:** Deprecated transitive dependencies can become future audit or install blockers.
@@ -463,8 +471,9 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Files likely affected:** `package.json`, `package-lock.json`, `docs/DEVELOPMENT/troubleshooting.md`.
   * **Validate:** `npm ci && npm audit --audit-level=moderate`
   * **Risk if ignored:** Future Node/npm releases may turn warnings into breakage.
+  * **Status:** Tracked 2026-06-21. `npm explain lodash.isequal inflight glob boolean rimraf` identifies these as Electron packaging/updater transitives, and `docs/DEVELOPMENT/troubleshooting.md` records the current parent paths plus the `npm audit --audit-level=moderate` zero-vulnerability result.
 
-* [ ] **P2 — Performance: Keep bundle budget focused on heavy PDF/media chunks**
+* [x] **P2 — Performance: Keep bundle budget focused on heavy PDF/media chunks**
 
   * **Evidence:** `npm run build` passed, but Vite emitted large chunks including a PDF worker around 1.37 MB and main JS chunks around 500–576 KB. `package.json:61` already has `verify:bundle-budget`.
   * **Why:** Document ingestion is valuable, but PDF workers should stay lazily loaded and budgeted.
@@ -472,6 +481,7 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Files likely affected:** `vite.config.ts`, `scripts/verify-bundle-budget.cjs`, ingestion services/components.
   * **Validate:** `npm run build && npm run verify:bundle-budget`
   * **Risk if ignored:** Startup gets heavy, especially on Windows machines already suffering enough.
+  * **Status:** Verified 2026-06-21. `npm run build` and `npm run verify:bundle-budget` pass; PDF/media chunk budgets remain enforced by the contract script.
 
 * [ ] **P2 — Architecture: Split oversized core files**
 
@@ -482,7 +492,7 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Validate:** `npm run typecheck && npm test -- --run electron/ipc/handlers.test.ts src/services/veniceClient.test.ts`
   * **Risk if ignored:** Future feature additions keep landing in mega-files.
 
-* [ ] **P2 — Character image cache: Add concurrent fetch de-duplication**
+* [x] **P2 — Character image cache: Add concurrent fetch de-duplication**
 
   * **Evidence:** `electron/services/characterImageCache.ts:291-377` checks cache, then fetches and writes. Tests cover cache hit, TTL, stale fallback, size/type/magic checks in `electron/services/characterImageCache.test.ts:90-258`, but no pending-request de-duplication is visible.
   * **Why:** Opening a character grid can request the same avatar multiple times in parallel before the first write completes.
@@ -490,8 +500,9 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Files likely affected:** `electron/services/characterImageCache.ts`, `electron/services/characterImageCache.test.ts`.
   * **Validate:** Add test with two simultaneous `getCachedCharacterImage(url)` calls and assert `fetch` runs once.
   * **Risk if ignored:** Extra upstream calls and slower character image loading.
+  * **Status:** Fixed 2026-06-21. Cache misses now share an in-flight promise by cache key, and `electron/services/characterImageCache.test.ts` asserts concurrent calls fetch once and return the same cached URL.
 
-* [ ] **P2 — Markdown safety: Consolidate dual Markdown renderers**
+* [x] **P2 — Markdown safety: Consolidate dual Markdown renderers**
 
   * **Evidence:** Chat messages use `ReactMarkdown` with `rehypeSanitize` in `src/components/chat/message-bubble.tsx:281-293`. A separate fallback renderer in `src/utils/markdown.tsx:69-113` uses `dangerouslySetInnerHTML` after custom sanitization.
   * **Why:** Two renderers mean two security surfaces and inconsistent Markdown behavior.
@@ -499,8 +510,9 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Files likely affected:** `src/components/chat/message-bubble.tsx`, `src/utils/markdown.tsx`, tests.
   * **Validate:** `npm test -- --run src/components/chat/message-bubble.test.tsx`
   * **Risk if ignored:** Future rendering fixes land in one path and miss the other.
+  * **Status:** Fixed 2026-06-21 by retaining both renderers with explicit XSS regression coverage. `src/utils/markdown.test.ts` covers the fallback `dangerouslySetInnerHTML` sanitizer, and `src/components/chat/message-bubble.test.tsx` now covers chat `ReactMarkdown` sanitization of raw HTML, event handlers, and `javascript:` URLs.
 
-* [ ] **P2 — Theme/UX: Keep mesh visual system token-driven**
+* [x] **P2 — Theme/UX: Keep mesh visual system token-driven**
 
   * **Evidence:** App shell uses `AppMeshOverlay` and `mesh-panel` in `src/App.tsx:238-257`; `package.json:68` includes `verify:theme-tokens`; README documents theme-driven UI and smooth visual direction.
   * **Why:** The project explicitly wants smooth mesh visuals, but hardcoded styles can creep back in.
@@ -508,6 +520,7 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Files likely affected:** `scripts/verify-theme-tokens.cjs`, `src/components/**`, `docs/design/THEME_SYSTEM.md`.
   * **Validate:** `npm run verify:theme-tokens && npm test -- --run tests/theme`
   * **Risk if ignored:** The app returns to hard-line panel soup.
+  * **Status:** Verified 2026-06-21. `npm run verify:theme-tokens` scans 100 themeable UI files with no forbidden hardcoded color classes, and theme-focused Vitest coverage passes across `tests/theme`, `src/theme`, and ThemeMaker tests.
 
 ---
 

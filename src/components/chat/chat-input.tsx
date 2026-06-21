@@ -19,7 +19,6 @@ interface ChatInputProps {
 const SUPPORTED_ATTACHMENT_ACCEPT = [
   '.pdf',
   '.docx',
-  '.doc',
   '.md',
   '.markdown',
   '.txt',

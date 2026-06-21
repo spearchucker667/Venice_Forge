@@ -7,7 +7,7 @@ export interface ClassifiedFile {
   mimeType: string;
 }
 
-const DOCUMENT_EXTS = new Set(["pdf", "docx", "doc", "rtf", "csv", "xml", "html", "htm"]);
+const DOCUMENT_EXTS = new Set(["pdf", "docx", "rtf", "csv", "xml", "html", "htm"]);
 const TEXT_EXTS = new Set(["txt", "json", "jsonl", "yaml", "yml"]);
 const MARKDOWN_EXTS = new Set(["md", "markdown"]);
 const IMAGE_EXTS = new Set([
@@ -84,8 +84,9 @@ function classifyByExtensionAndName(name: string, mimeType: string): IngestedAtt
   // 2. Map specific extensions
   if (ext === "pdf") return "pdf";
   if (ext === "docx") return "docx";
-  if (ext === "doc") return "doc";
-  if (ext === "csv" || ext === "xlsx" || ext === "xls") return "spreadsheet"; // As requested or fallback
+  if (ext === "doc") return "unknown";
+  if (ext === "csv") return "spreadsheet";
+  if (ext === "xlsx" || ext === "xls") return "unknown";
 
   if (MARKDOWN_EXTS.has(ext)) return "markdown";
   if (TEXT_EXTS.has(ext)) return "text";
@@ -132,5 +133,5 @@ export function isCodeLikeFile(file: File): boolean {
 
 export function isDocumentLikeFile(file: File): boolean {
   const kind = classifyFile(file).kind;
-  return kind === "pdf" || kind === "docx" || kind === "doc" || kind === "markdown" || kind === "text";
+  return kind === "pdf" || kind === "docx" || kind === "markdown" || kind === "text";
 }

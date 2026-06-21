@@ -29,6 +29,37 @@ vi.mock('../../stores/auth-store', () => ({
   useAuthStore: (selector: (s: { apiKey: string | null; isConfigured: boolean }) => unknown) => selector({ apiKey: 'test-key', isConfigured: true }),
 }))
 
+vi.mock('../../hooks/use-models', () => ({
+  useModels: (type?: string) => ({
+    data: type === 'image'
+      ? [
+        {
+          id: 'live-only-edit-model',
+          object: 'model',
+          created: 1,
+          owned_by: 'venice',
+          model_spec: {
+            name: 'Live Only Edit Model',
+            capabilities: { supportsVision: true },
+            traits: [],
+          },
+        },
+        {
+          id: 'text-only-model',
+          object: 'model',
+          created: 1,
+          owned_by: 'venice',
+          model_spec: {
+            name: 'Text Only Model',
+            capabilities: {},
+            traits: [],
+          },
+        },
+      ]
+      : [],
+  }),
+}))
+
 vi.mock('../../services/attachmentService', () => ({
   isSupportedImageFile: vi.fn((file: File) => file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/webp'),
   readImageAttachment: vi.fn(async (file: File) => ({
@@ -253,5 +284,14 @@ describe('ImageTools → Media Studio wiring (P3 regression guard)', () => {
       expect(mockToastFromError).toHaveBeenCalledWith(expect.any(Error), 'Failed to read image')
     })
     expect(screen.queryByAltText('Source')).toBeNull()
+  })
+
+  it('builds edit model choices from live edit-capable image model metadata', async () => {
+    render(<ImageTools />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit model' }))
+
+    expect(await screen.findByRole('option', { name: 'Live Only Edit Model' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'Text Only Model' })).toBeNull()
   })
 })

@@ -89,4 +89,44 @@ describe("MessageBubble accessibility", () => {
     expect(imgs).toHaveLength(1);
     expect(imgs[0]).toHaveAttribute("src", "https://example.com/pic.png");
   });
+
+  it("sanitizes assistant markdown HTML and unsafe URLs", () => {
+    const message: ChatMessage = {
+      role: "assistant",
+      content: "safe text\n\n<script>alert('xss')</script><img src=x onerror=alert(1)> [bad](javascript:alert(1))",
+    };
+    const { container } = render(
+      <MessageBubble message={message} index={0} onCopy={() => {}} onDelete={() => {}} />,
+    );
+
+    expect(container.querySelector("script")).toBeNull();
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector("[onerror]")).toBeNull();
+    expect(container.querySelector('a[href^="javascript:"]')).toBeNull();
+    expect(screen.getByText("safe text")).toBeInTheDocument();
+  });
+
+  it("discloses injected memory context stored on a sent message", () => {
+    const message: ChatMessage = {
+      role: "user",
+      content: "Use the relevant context.",
+      metadata: {
+        injectedContext: "Memory: prefers local-only storage",
+        injectedContextSource: "memory",
+      },
+    };
+
+    render(<MessageBubble message={message} index={0} onCopy={() => {}} onDelete={() => {}} />);
+
+    expect(screen.getByText("Memory attached to this message")).toBeInTheDocument();
+    expect(screen.getByText("Memory: prefers local-only storage")).toBeInTheDocument();
+  });
+
+  it("does not render an injected-context disclosure when message metadata has no context", () => {
+    const message: ChatMessage = { role: "user", content: "No memory context here." };
+
+    render(<MessageBubble message={message} index={0} onCopy={() => {}} onDelete={() => {}} />);
+
+    expect(screen.queryByText(/attached to this message/i)).toBeNull();
+  });
 });

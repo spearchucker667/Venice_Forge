@@ -332,12 +332,12 @@ export const useWorkflowTemplateStore = create<WorkflowTemplateState>((set, get)
     const currentVersion = current.versions.find((v) => v.id === current.currentVersionId);
     if (!currentVersion) return;
 
-    const steps = [...currentVersion.steps];
-    steps.forEach((step) => {
+    const steps = currentVersion.steps.map((step) => {
       const newOrder = orderedStepIds.indexOf(step.id);
       if (newOrder !== -1) {
-        step.order = newOrder;
+        return sanitizeWorkflowStep({ ...step, order: newOrder });
       }
+      return sanitizeWorkflowStep(step);
     });
     steps.sort((a, b) => a.order - b.order);
 
@@ -378,8 +378,9 @@ export const useWorkflowTemplateStore = create<WorkflowTemplateState>((set, get)
     const current = get().workflows.find((w) => w.id === workflowId);
     if (!current) return;
 
+    const previousActiveWorkflowId = get().activeWorkflowId;
     const next = get().workflows.filter((w) => w.id !== workflowId);
-    const nextActive = get().activeWorkflowId === workflowId ? null : get().activeWorkflowId;
+    const nextActive = previousActiveWorkflowId === workflowId ? null : previousActiveWorkflowId;
     set({ workflows: next, activeWorkflowId: nextActive });
 
     try {
@@ -387,7 +388,7 @@ export const useWorkflowTemplateStore = create<WorkflowTemplateState>((set, get)
     } catch (err) {
       set((s) => ({
         workflows: [...s.workflows, current],
-        activeWorkflowId: current.id,
+        activeWorkflowId: previousActiveWorkflowId,
         loadError: redactErrorMessage(err),
       }));
       throw err;

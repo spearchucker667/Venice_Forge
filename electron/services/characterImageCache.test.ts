@@ -116,6 +116,23 @@ describe("characterImageCache", () => {
     expect(mockedFetch).toHaveBeenCalledTimes(1); // no refetch
   });
 
+  it("deduplicates concurrent cache misses for the same source URL", async () => {
+    const mockedFetch = vi.mocked(globalThis.fetch);
+    mockedFetch.mockImplementationOnce(
+      () => new Promise((resolve) => setTimeout(() => resolve(makeImageResponse(1024)), 10)),
+    );
+
+    const [first, second] = await Promise.all([
+      getCachedCharacterImage(OFFICIAL_URL),
+      getCachedCharacterImage(OFFICIAL_URL),
+    ]);
+
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    expect(second.url).toBe(first.url);
+    expect(mockedFetch).toHaveBeenCalledTimes(1);
+  });
+
   it("accepts AVIF images returned by the Venice character CDN", async () => {
     vi.mocked(globalThis.fetch).mockResolvedValueOnce(makeImageResponse(512, "image/avif"));
     const result = await getCachedCharacterImage(OFFICIAL_URL);

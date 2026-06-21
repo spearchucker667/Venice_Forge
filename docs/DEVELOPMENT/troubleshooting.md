@@ -93,12 +93,14 @@ Solution:
 
 ## Deprecated Transitive Dependencies
 
-During `npm install` or `npm ci`, several deprecation warnings may be emitted. These originate from third-party tools (primarily `electron-builder` and `electron-updater`) whose upstream repositories pin older versions of transitives. Upgrading them directly is unsafe because it alters packaging stack behavior. They are documented here as known holdouts:
+During `npm install` or `npm ci`, several deprecation warnings may be emitted. These originate from third-party tools (primarily `electron-builder` and `electron-updater`) whose upstream repositories pin older versions of transitives. Upgrading them directly is unsafe because it alters packaging stack behavior. They are documented here as known holdouts.
+
+Last verified: 2026-06-21 with `npm explain lodash.isequal inflight glob boolean rimraf` and `npm audit --audit-level=moderate` (`0 vulnerabilities`).
 
 | Deprecated package | Current parent path | Action | Rationale |
 |---|---|---|---|
-| `inflight@1.0.6` | `electron-builder -> app-builder-lib -> @electron/asar -> glob@7` | Documented upstream holdout | No safe direct dependency change available without changing packaging stack behavior. |
-| `rimraf@2.6.3` | `electron-builder -> app-builder-lib -> electron-builder-squirrel-windows -> electron-winstaller -> temp` | Documented upstream holdout | Required by Windows installer creation toolchain. |
 | `lodash.isequal@4.5.0` | `electron-updater` | Documented upstream holdout | Bound to the current supported auto-updater major version. |
+| `inflight@1.0.6` | `electron-builder -> app-builder-lib -> @electron/asar -> glob@7`; also via `electron-winstaller -> temp -> rimraf@2` | Documented upstream holdout | No safe direct dependency change available without changing packaging stack behavior. |
 | `glob@7.2.3` | `electron-builder -> app-builder-lib -> @electron/asar` | Documented upstream holdout | Pinned by upstream archival tooling. |
+| `rimraf@2.6.3` | `electron-builder -> app-builder-lib -> electron-builder-squirrel-windows -> electron-winstaller -> temp` | Documented upstream holdout | Required by Windows installer creation toolchain. |
 | `boolean@3.2.0` | `electron-builder -> app-builder-lib -> @electron/get -> global-agent` | Documented upstream holdout | Network transport utility for electron-builder. |

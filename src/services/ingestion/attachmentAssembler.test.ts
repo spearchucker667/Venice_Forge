@@ -43,10 +43,16 @@ describe("attachmentAssembler", () => {
     expect(docxIngestion.ingestDocxFile).toHaveBeenCalledWith(file);
   });
 
-  it("routes doc files", async () => {
+  it("rejects legacy doc files until a parser is available", async () => {
     const file = new File([""], "test.doc");
-    await processFileAttachment(file);
-    expect(docxIngestion.ingestDocFile).toHaveBeenCalledWith(file);
+    await expect(processFileAttachment(file)).rejects.toThrow(UnsupportedFileTypeError);
+    expect(docxIngestion.ingestDocFile).not.toHaveBeenCalled();
+  });
+
+  it("rejects binary Excel files instead of routing them through text ingestion", async () => {
+    await expect(processFileAttachment(new File([""], "test.xls"))).rejects.toThrow(UnsupportedFileTypeError);
+    await expect(processFileAttachment(new File([""], "test.xlsx"))).rejects.toThrow(UnsupportedFileTypeError);
+    expect(textIngestion.ingestTextFile).not.toHaveBeenCalled();
   });
 
   it("routes image files", async () => {

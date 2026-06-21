@@ -8,7 +8,7 @@ export class IngestionError extends Error {
 export class UnsupportedFileTypeError extends IngestionError {
   constructor(name: string) {
     super(
-      `Unsupported file type: ${name}. Supported: documents, PDFs, DOCX/DOC, images, Markdown, YAML/JSON/text, and code files.`,
+      `Unsupported file type: ${name}. Supported: PDFs, DOCX, CSV, images, Markdown, YAML/JSON/text, and code files.`,
       'UNSUPPORTED_FILE_TYPE'
     );
   }

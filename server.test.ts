@@ -65,6 +65,26 @@ afterEach(() => {
   activeApps = [];
 });
 
+describe("server.ts lifecycle cleanup", () => {
+  it("removes per-app process shutdown listeners during test cleanup", () => {
+    const beforeExit = process.listenerCount("exit");
+    const beforeSigint = process.listenerCount("SIGINT");
+    const beforeSigterm = process.listenerCount("SIGTERM");
+
+    const app = createServerApp();
+
+    expect(process.listenerCount("exit")).toBe(beforeExit + 1);
+    expect(process.listenerCount("SIGINT")).toBe(beforeSigint + 1);
+    expect(process.listenerCount("SIGTERM")).toBe(beforeSigterm + 1);
+
+    (app as express.Application & { cleanupIntervals?: () => void }).cleanupIntervals?.();
+
+    expect(process.listenerCount("exit")).toBe(beforeExit);
+    expect(process.listenerCount("SIGINT")).toBe(beforeSigint);
+    expect(process.listenerCount("SIGTERM")).toBe(beforeSigterm);
+  });
+});
+
 describe("server.ts Jina response limits", () => {
   const originalFetch = globalThis.fetch;
 

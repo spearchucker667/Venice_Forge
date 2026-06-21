@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ingestDocxFile, ingestDocFile } from "./docxIngestion";
-import { MAX_DOCX_FILE_BYTES, MAX_DOC_FILE_BYTES, MAX_EXTRACTED_TEXT_CHARS } from "./ingestionLimits";
+import { MAX_DOCX_FILE_BYTES, MAX_EXTRACTED_TEXT_CHARS } from "./ingestionLimits";
 import { FileTooLargeError, DocxExtractionError, UnsupportedFileTypeError } from "./ingestionErrors";
 
 // Mammoth needs to be mocked nicely since it's dynamically imported
@@ -119,19 +119,14 @@ describe("docxIngestion", () => {
   });
 
   describe("ingestDocFile", () => {
-    it("handles legacy .doc without local parser but with correct fallback notice", async () => {
+    it("rejects legacy .doc files until a parser is available", async () => {
       const file = createDocFile();
-      const result = await ingestDocFile(file);
-
-      expect(result.kind).toBe("doc");
-      expect(result.extraction.route).toBe("unsupported");
-      expect(result.extraction.local).toBe(false);
-      expect(result.extraction.warnings[0]).toContain("requires the Venice text parser");
+      await expect(ingestDocFile(file)).rejects.toThrow(UnsupportedFileTypeError);
     });
 
-    it("throws FileTooLargeError if file size exceeds MAX_DOC_FILE_BYTES", async () => {
-      const file = createDocFile(MAX_DOC_FILE_BYTES + 1);
-      await expect(ingestDocFile(file)).rejects.toThrow(FileTooLargeError);
+    it("rejects oversized legacy .doc files as unsupported before parsing", async () => {
+      const file = createDocFile(10_000_000);
+      await expect(ingestDocFile(file)).rejects.toThrow(UnsupportedFileTypeError);
     });
 
     it("throws UnsupportedFileTypeError for non-doc files", async () => {

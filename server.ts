@@ -173,6 +173,14 @@ export function createServerApp() {
   process.on("exit", cleanupDevSessionKeys);
   process.on("SIGINT", cleanupDevSessionKeys);
   process.on("SIGTERM", cleanupDevSessionKeys);
+  let processListenersRemoved = false;
+  const cleanupProcessListeners = () => {
+    if (processListenersRemoved) return;
+    process.off("exit", cleanupDevSessionKeys);
+    process.off("SIGINT", cleanupDevSessionKeys);
+    process.off("SIGTERM", cleanupDevSessionKeys);
+    processListenersRemoved = true;
+  };
   app.disable("x-powered-by");
 
   // Structured request logging (no bodies, no secrets) in development/test only.
@@ -914,6 +922,7 @@ export function createServerApp() {
     if ((app as express.Application & { staticRateLimiterCleanup?: ReturnType<typeof setInterval> }).staticRateLimiterCleanup) {
       clearInterval((app as express.Application & { staticRateLimiterCleanup?: ReturnType<typeof setInterval> }).staticRateLimiterCleanup);
     }
+    cleanupProcessListeners();
   };
 
   return app;

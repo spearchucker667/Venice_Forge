@@ -501,6 +501,29 @@ describe("workflow-template-store", () => {
       await expect(s3.reorderSteps(workflow.id, [steps[1].id, steps[0].id])).rejects.toThrow("Reorder step fail");
     });
 
+    it("reorderSteps: rolls back original step order after persist failure", async () => {
+      const store = useWorkflowTemplateStore.getState();
+      const workflow = await store.createWorkflow({ title: "W" });
+      await useWorkflowTemplateStore.getState().addStep(workflow.id, { kind: "prompt", target: "chat", title: "S1", enabled: true });
+      await useWorkflowTemplateStore.getState().addStep(workflow.id, { kind: "prompt", target: "chat", title: "S2", enabled: true });
+
+      const before = useWorkflowTemplateStore.getState().getCurrentVersion(workflow.id)!.steps.map((step) => ({
+        id: step.id,
+        order: step.order,
+      }));
+
+      vi.mocked(StorageService.saveItem).mockRejectedValueOnce(new Error("Reorder step fail"));
+      await expect(
+        useWorkflowTemplateStore.getState().reorderSteps(workflow.id, [before[1].id, before[0].id]),
+      ).rejects.toThrow("Reorder step fail");
+
+      const after = useWorkflowTemplateStore.getState().getCurrentVersion(workflow.id)!.steps.map((step) => ({
+        id: step.id,
+        order: step.order,
+      }));
+      expect(after).toEqual(before);
+    });
+
     it("reorderSteps: handles string save errors", async () => {
       const store = useWorkflowTemplateStore.getState();
       const workflow = await store.createWorkflow({ title: "W" });
@@ -582,6 +605,18 @@ describe("workflow-template-store", () => {
       const s2 = useWorkflowTemplateStore.getState();
       expect(s2.getWorkflow(workflow.id)).toBeTruthy();
       expect(s2.loadError).toBe("Delete fail");
+    });
+
+    it("deleteWorkflow: restores the previous activeWorkflowId when deletion fails", async () => {
+      const store = useWorkflowTemplateStore.getState();
+      const w1 = await store.createWorkflow({ title: "W1" });
+      const w2 = await useWorkflowTemplateStore.getState().createWorkflow({ title: "W2" });
+      expect(useWorkflowTemplateStore.getState().activeWorkflowId).toBe(w2.id);
+
+      vi.mocked(StorageService.deleteItem).mockRejectedValueOnce(new Error("Delete fail"));
+      await expect(useWorkflowTemplateStore.getState().deleteWorkflow(w1.id)).rejects.toThrow("Delete fail");
+
+      expect(useWorkflowTemplateStore.getState().activeWorkflowId).toBe(w2.id);
     });
 
     it("deleteWorkflow: handles string errors", async () => {

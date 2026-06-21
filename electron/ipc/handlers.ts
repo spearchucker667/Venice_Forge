@@ -210,8 +210,13 @@ async function testVeniceConnection(): Promise<{ ok: boolean; status?: number; m
   }
 }
 
+let ipcHandlersRegistered = false;
+
 /** Registers all IPC handlers used by the renderer process. */
 export function registerIpcHandlers(): void {
+  if (ipcHandlersRegistered) return;
+  ipcHandlersRegistered = true;
+
   registerUpdateHandlers();
 
   const handleIpc = (channel: string, handler: Parameters<typeof ipcMain.handle>[1]) => {
