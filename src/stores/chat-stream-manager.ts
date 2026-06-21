@@ -13,7 +13,6 @@ import { applyVeniceApiSafeMode } from "../shared/veniceSafeMode";
 import type { ChatMessage, ContentPart, VeniceParameters } from "../types/venice";
 import type { Conversation } from "../types/conversation";
 import * as logger from "../shared/logger";
-import { redactErrorMessage } from "../shared/redaction";
 
 /** Safe, non-disclosing error text appended to assistant messages when a
  *  chat stream fails. Never include raw exception text, paths, or secrets. */
@@ -137,7 +136,7 @@ function notifyListeners(): void {
     try {
       listener(snapshot);
     } catch (err) {
-      logger.error("chat-stream-manager listener failed", redactErrorMessage(err));
+      logger.error("chat-stream-manager listener failed", err);
     }
   });
 }

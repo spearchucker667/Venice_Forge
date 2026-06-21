@@ -50,4 +50,9 @@ describe("redactErrorMessage", () => {
     expect(redactErrorMessage(new Error("failed at /Users/private/config.json")))
       .toBe("failed at [REDACTED-PATH]");
   });
+
+  it("redacts venice_ tokens", () => {
+    expect(redactErrorMessage(new Error("token venice_abc123xyz leaked")))
+      .toBe("token [REDACTED] leaked");
+  });
 });

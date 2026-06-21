@@ -1,7 +1,7 @@
 /** @fileoverview Redacts secrets, API keys, and bearer tokens from strings and objects. */
 
 /** Pattern matching secret-related key names. */
-const SECRET_KEY_PATTERN = /(authorization|api[-_ ]?key|token|secret|password)/i;
+export const SECRET_KEY_PATTERN = /(authorization|api[-_ ]?key|token|secret|password)/i;
 
 /** Pattern matching Bearer token strings. */
 const BEARER_PATTERN = /Bearer\s+[A-Za-z0-9._~+/=-]+/gi;
@@ -12,6 +12,9 @@ const ASSIGNMENT_PATTERN =
 
 /** Pattern matching Venice API keys (vn-...). */
 const VENICE_KEY_PATTERN = /\bvn-[A-Za-z0-9._~+/=-]{8,}\b/gi;
+
+/** Pattern matching Venice underscore-prefixed tokens (venice_...). */
+const VENICE_UNDERSCORE_PATTERN = /\bvenice_[A-Za-z0-9._~+/=-]{8,}\b/gi;
 
 /** Pattern matching common OpenAI-compatible API keys (sk-...). */
 const SK_KEY_PATTERN = /\bsk-[A-Za-z0-9._~+/=-]{8,}\b/gi;
@@ -34,6 +37,7 @@ function redactString(value: string): string {
     .replace(BEARER_PATTERN, "Bearer [REDACTED]")
     .replace(ASSIGNMENT_PATTERN, "$1=[REDACTED]")
     .replace(VENICE_KEY_PATTERN, "[REDACTED]")
+    .replace(VENICE_UNDERSCORE_PATTERN, "[REDACTED]")
     .replace(SK_KEY_PATTERN, "[REDACTED]")
     .replace(ENV_ASSIGNMENT_PATTERN, "$1=[REDACTED]");
 }
