@@ -14,6 +14,7 @@ import { redactErrorMessage } from "../src/shared/redaction";
 import { checkPathContained } from "./utils/navigation";
 import { isTrustedExternalUrl } from "./utils/urlSecurity";
 import { rendererCsp } from "./utils/rendererCsp";
+import { isAllowedCharacterImageCacheProtocolAccess } from "./utils/characterImageCacheProtocol";
 import { startBridgeServer, stopBridgeServer } from "./services/bridgeServer";
 import { isValidBridgeHost } from "./utils/bridgeHost";
 import { getCharacterImageCacheDir, ALLOWED_CONTENT_TYPES } from "./services/characterImageCache";
@@ -271,6 +272,16 @@ if (!gotLock) {
 
   app.whenReady().then(() => {
     protocol.handle("venice-character-cache", async (request) => {
+      const rendererRoot = path.resolve(__dirname, "../../dist");
+      if (!isAllowedCharacterImageCacheProtocolAccess({
+        isDev,
+        origin: request.headers.get("origin"),
+        referrer: request.referrer,
+        rendererRoot,
+      })) {
+        return new Response("Forbidden", { status: 403 });
+      }
+
       const parsedUrl = new URL(request.url);
       const key = parsedUrl.hostname ? parsedUrl.hostname : parsedUrl.pathname.replace(/^\/+/, "");
 

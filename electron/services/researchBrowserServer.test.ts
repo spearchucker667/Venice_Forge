@@ -110,6 +110,7 @@ vi.mock("./runtimeSafetySettings", () => ({
 // Now setup imports from electron (retrieves the mock instances) and the server setup
 import { 
   _mockWebContents as mockWebContents, 
+  _mockWebContentsView as mockWebContentsView,
   _mockSession as mockSession, 
   BrowserWindow,
   shell
@@ -186,6 +187,22 @@ describe("Research Browser Server Main Process Integration", () => {
       const result = await destroyHandler();
       expect(result).toEqual({ ok: true });
       expect(mockWebContents.close).toHaveBeenCalled();
+    });
+
+    it("should tear down an existing view when setup is called for a recreated window", async () => {
+      const createHandler = ipcHandlers.get("researchBrowser:create");
+      await createHandler();
+
+      expect(mockWebContentsView).toHaveBeenCalledTimes(1);
+
+      const recreatedWindow = new (BrowserWindow as any)();
+      setupResearchBrowserIpc(recreatedWindow);
+
+      expect(mockWebContents.close).toHaveBeenCalled();
+
+      const result = await createHandler();
+      expect(result).toEqual({ ok: true });
+      expect(mockWebContentsView).toHaveBeenCalledTimes(2);
     });
   });
 

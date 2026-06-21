@@ -13,3 +13,16 @@ export function escapeXmlAttribute(value: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
 }
+
+/**
+ * Escape a string for safe use as XML body text.
+ *
+ * Attachment bodies are untrusted model context. Escaping angle brackets keeps
+ * uploaded text from closing the wrapper and adding fake structural tags.
+ */
+export function escapeXmlText(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}

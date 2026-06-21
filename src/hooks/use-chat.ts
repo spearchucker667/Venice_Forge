@@ -1,20 +1,20 @@
-import { useCallback, useRef, useEffect, useState } from 'react'
-import { veniceStreamChat } from '../services/veniceClient'
+import { useCallback, useRef, useState } from 'react'
 import { useChatStore } from '../stores/chat-store'
 import { useSettingsStore } from '../stores/settings-store'
-import { useCharacterStore } from '../stores/character-store'
+import {
+  resolveCharacterSlug,
+  startStream,
+  stopStream,
+} from '../stores/chat-stream-manager'
 import { toast } from '../stores/toast-store'
 import { desktopConversations } from '../services/desktopBridge'
-import type { ChatMessage, ContentPart, VeniceParameters } from '../types/venice'
-import type { Conversation } from '../types/conversation'
-import { applyVeniceApiSafeMode } from '../shared/veniceSafeMode'
+import type { ChatMessage, ContentPart } from '../types/venice'
 import { generateCharacterScene } from '../services/characterSceneGenerationService'
 import { parseCharacterSceneRequest } from '../services/characterSceneRequestParser'
 import { CharacterSceneRateLimiter } from '../services/characterSceneRateLimiter'
 import type { CharacterSceneGenerationResult } from '../types/characterSceneGeneration'
 import type { IngestedAttachment } from '../types/ingestion'
 import * as logger from '../shared/logger'
-import { redactErrorMessage } from '../shared/redaction'
 
 /** Safe, non-disclosing error text appended to assistant messages when a
  *  chat stream fails. Never include raw exception text, paths, or secrets. */
@@ -23,7 +23,7 @@ async function pullMemoryContextForSend(userMessage: string) {
   try {
     return await desktopConversations.pullContext({ message: userMessage });
   } catch (err) {
-    logger.warn('useChat memory retrieval skipped', redactErrorMessage(err));
+    logger.warn('useChat memory retrieval skipped', err);
     return {
       ok: false as const,
       context: { injectedText: '', facts: [], summaries: [], tokenEstimate: 0 },
@@ -32,52 +32,8 @@ async function pullMemoryContextForSend(userMessage: string) {
   }
 }
 
-/** Resolves the character slug for a conversation, in priority order:
- *  1. The conversation's persisted character metadata (authoritative).
- *  2. The user's currently-selected character slug in the Characters tab
- *     (used only when starting a brand-new conversation that has not yet
- *     been saved with character metadata).
- *
- *  Local RP character conversations (see `metadata.character.localCharacterId`)
- *  never resolve a Venice.ai slug and never fall back to the global selection,
- *  so the app does not try to fetch a locally created character from Venice.
- *
- *  This means a character chat always stays bound to the slug it was
- *  started with, even if the user later switches the global selection. */
-function resolveCharacterSlug(conv: Conversation | undefined): string | null {
-  const character = conv?.metadata?.character;
-  if (character?.localCharacterId) return null;
-  const persisted = character?.slug?.trim();
-  if (persisted) return persisted;
-  const globalSlug = useCharacterStore.getState().selectedCharacterSlug;
-  if (globalSlug) return globalSlug.trim();
-  return null;
-}
-
 /** Module-level rate limiter shared across hook instances and lifetimes. */
 const sceneRateLimiter = new CharacterSceneRateLimiter();
-
-function prependInjectedContext(
-  content: string | ContentPart[],
-  injectedContext?: string,
-): string | ContentPart[] {
-  if (!injectedContext?.trim()) return content
-
-  if (typeof content === 'string') {
-    return `${injectedContext.trim()}\n\n${content}`
-  }
-
-  const textPartIndex = content.findIndex((part) => part.type === 'text')
-  if (textPartIndex === -1) {
-    return [{ type: 'text', text: injectedContext.trim() }, ...content]
-  }
-
-  return content.map((part, index) =>
-    index === textPartIndex && part.type === 'text'
-      ? { ...part, text: `${injectedContext.trim()}\n\n${part.text}` }
-      : part,
-  )
-}
 
 function joinInjectedContexts(...contexts: Array<string | undefined>): string {
   return contexts.map((context) => context?.trim()).filter(Boolean).join('\n\n')
@@ -91,104 +47,17 @@ export type ChatMemoryDecision =
 type InjectedContextSource = NonNullable<ChatMessage['metadata']>['injectedContextSource']
 
 export function useChat() {
-  const abortRef = useRef<AbortController | null>(null)
   const sceneAbortRef = useRef<AbortController | null>(null)
+  const stopRequestedRef = useRef(false)
   const [memoryStatus, setMemoryStatus] = useState<ChatMemoryStatus>('idle')
   const addMessage = useChatStore((s) => s.addMessage)
-  const appendToLastAssistant = useChatStore((s) => s.appendToLastAssistant)
-  const appendReasoningToLastAssistant = useChatStore(
-    (s) => s.appendReasoningToLastAssistant,
-  )
   const deleteMessage = useChatStore((s) => s.deleteMessage)
   const setMessageMetadata = useChatStore((s) => s.setMessageMetadata)
   const setStreaming = useChatStore((s) => s.setStreaming)
   const isStreaming = useChatStore((s) => s.isStreaming)
-  const veniceParams = useChatStore((s) => s.veniceParams)
-  const systemPrompt = useChatStore((s) => s.systemPrompt)
-  const temperature = useChatStore((s) => s.temperature)
-  const topP = useChatStore((s) => s.topP)
-  const maxTokens = useChatStore((s) => s.maxTokens)
   const createConversation = useChatStore((s) => s.createConversation)
   const characterSceneGenerationEnabled = useSettingsStore((s) => s.characterSceneGenerationEnabled)
   const characterSceneGenerationMode = useSettingsStore((s) => s.characterSceneGenerationMode)
-
-  const streamResponse = useCallback(
-    async (convId: string, model: string, abortController: AbortController) => {
-      const conv = useChatStore.getState().conversations.find((c) => c.id === convId)
-      if (!conv) return
-
-      const requestMessages: ChatMessage[] = conv.messages
-        .filter((m) => m.content !== '')
-        .map((m) => {
-          const content = m.role === 'user'
-            ? prependInjectedContext(m.content, m.metadata?.injectedContext)
-            : m.content;
-          return { role: m.role, content };
-        })
-      // Conversation-scoped character prompts are authoritative. Character
-      // conversations never fall back to the global app system prompt.
-      const characterSystemPrompt = conv.metadata?.character?.systemPrompt;
-      const effectiveSystemPrompt = conv.metadata?.character
-        ? (conv.systemPrompt ?? characterSystemPrompt ?? '').trim()
-        : (conv.systemPrompt ?? systemPrompt).trim();
-      if (effectiveSystemPrompt) {
-        requestMessages.unshift({ role: 'system', content: effectiveSystemPrompt })
-      }
-
-      // Character slug is conversation-scoped: the persisted character
-      // metadata wins. We deliberately drop any prior global selection
-      // so a character chat does not silently swap personas mid-thread.
-      const characterSlug = resolveCharacterSlug(conv);
-      const veniceParamsForRequest: VeniceParameters = {
-        ...veniceParams,
-      };
-      if (characterSlug) {
-        veniceParamsForRequest.character_slug = characterSlug;
-      } else {
-        delete veniceParamsForRequest.character_slug;
-      }
-      const isCharacterConversation = !!conv.metadata?.character;
-      if (isCharacterConversation) {
-        veniceParamsForRequest.include_venice_system_prompt = false;
-        if (conv.metadata?.character?.webEnabled && veniceParamsForRequest.enable_web_search === 'off') {
-          veniceParamsForRequest.enable_web_search = 'auto';
-        }
-      }
-
-      // Build the base body then route the Venice API Safe Mode flag
-      // through the centralised helper so the endpoint matrix stays the
-      // single source of truth. (Note: safe_mode is no longer sent to
-      // /chat/completions — applyVeniceApiSafeMode is a no-op for this
-      // endpoint.)
-      const baseBody: Record<string, unknown> = {
-        model,
-        messages: requestMessages,
-        stream: true,
-        temperature,
-        top_p: topP,
-        max_tokens: maxTokens,
-        venice_parameters: veniceParamsForRequest,
-      };
-      const body = applyVeniceApiSafeMode(
-        "/chat/completions",
-        baseBody,
-        useSettingsStore.getState().veniceApiSafeMode,
-      );
-
-      await veniceStreamChat(body, {
-        signal: abortController.signal,
-        onDelta: (chunk: { content: string; reasoning: string }) => {
-          if (chunk.content) {
-            appendToLastAssistant(convId, chunk.content)
-          }
-          if (chunk.reasoning) {
-            appendReasoningToLastAssistant(convId, chunk.reasoning)
-          }
-        },
-      })
-    },
-    [appendToLastAssistant, appendReasoningToLastAssistant, veniceParams, systemPrompt, temperature, topP, maxTokens],
-  )
 
   const runSceneGeneration = useCallback(
     async (
@@ -390,33 +259,22 @@ export function useChat() {
 
       addMessage(convId, userMsg)
       addMessage(convId, { role: 'assistant', content: '' })
-      setStreaming(true)
 
-      const abortController = new AbortController()
-      abortRef.current = abortController
-
+      stopRequestedRef.current = false
       try {
-        await streamResponse(convId, streamModel, abortController)
-      } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') return
-        // T-114/T-115: do not persist raw exception text (paths, secrets,
-        // provider internals) into the conversation history.
-        logger.error('useChat send failed', err)
-        appendToLastAssistant(convId!, `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]`)
-      } finally {
-        setStreaming(false)
-        abortRef.current = null
-      }
-
-      if (!abortController.signal.aborted) {
-        try {
+        const { aborted } = await startStream(convId, streamModel)
+        if (!aborted && !stopRequestedRef.current) {
           await maybeAutoGenerateScene(convId)
-        } catch (sceneErr) {
-          logger.error('useChat auto scene generation failed', sceneErr)
         }
+      } catch (err) {
+        // The stream manager already appends a safe error message for non-
+        // abort failures. Log any unexpected synchronous throw without
+        // leaking raw error text to the UI.
+        logger.error('useChat send failed', err)
+        useChatStore.getState().appendToLastAssistant(convId, `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]`)
       }
     },
-    [addMessage, appendToLastAssistant, createConversation, setStreaming, streamResponse, maybeAutoGenerateScene],
+    [addMessage, createConversation, startStream, maybeAutoGenerateScene],
   )
 
   const regenerate = useCallback(
@@ -432,51 +290,27 @@ export function useChat() {
       }
 
       addMessage(convId, { role: 'assistant', content: '' })
-      setStreaming(true)
 
-      const abortController = new AbortController()
-      abortRef.current = abortController
-
+      stopRequestedRef.current = false
       try {
-        await streamResponse(convId, model, abortController)
-      } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') return
-        // T-114/T-115: do not persist raw exception text (paths, secrets,
-        // provider internals) into the conversation history.
-        logger.error('useChat regenerate failed', err)
-        appendToLastAssistant(convId, `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]`)
-      } finally {
-        setStreaming(false)
-        abortRef.current = null
-      }
-
-      if (!abortController.signal.aborted) {
-        try {
+        const { aborted } = await startStream(convId, model)
+        if (!aborted && !stopRequestedRef.current) {
           await maybeAutoGenerateScene(convId)
-        } catch (sceneErr) {
-          logger.error('useChat auto scene generation failed', sceneErr)
         }
+      } catch (err) {
+        logger.error('useChat regenerate failed', err)
+        useChatStore.getState().appendToLastAssistant(convId, `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]`)
       }
     },
-    [addMessage, appendToLastAssistant, deleteMessage, setStreaming, streamResponse, maybeAutoGenerateScene],
+    [addMessage, deleteMessage, startStream, maybeAutoGenerateScene],
   )
 
   const stop = useCallback(() => {
-    abortRef.current?.abort()
+    stopRequestedRef.current = true
+    stopStream()
     sceneAbortRef.current?.abort()
     setStreaming(false)
   }, [setStreaming])
-
-  // Abort any in-flight stream when the consuming component unmounts
-  // so that callbacks do not fire against detached state.
-  useEffect(() => {
-    return () => {
-      abortRef.current?.abort()
-      sceneAbortRef.current?.abort()
-      abortRef.current = null
-      sceneAbortRef.current = null
-    }
-  }, [])
 
   return { send, stop, regenerate, isStreaming, createScene, memoryStatus }
 }

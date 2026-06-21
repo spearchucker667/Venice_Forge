@@ -8,6 +8,7 @@ import { useCharacterStore } from "../stores/character-store";
 import { useSettingsStore } from "../stores/settings-store";
 import { veniceStreamChat } from "../services/veniceClient";
 import { desktopConversations } from "../services/desktopBridge";
+import { stopStream } from "../stores/chat-stream-manager";
 import type { CharacterCardV1 } from "../types/rp";
 import { DEFAULT_SYSTEM_PROMPT } from "../constants/venice";
 
@@ -96,6 +97,7 @@ describe("use-chat character_slug threading", () => {
   });
 
   afterEach(() => {
+    stopStream();
     resetStores();
   });
 
@@ -324,10 +326,10 @@ describe("use-chat character_slug threading", () => {
     expect(conv.messages.some((m) => m.role === "user" && m.content === "No preview available")).toBe(true);
   });
 
-  it("aborts the in-flight stream when the hook unmounts", async () => {
-    let capturedController: AbortController | undefined;
+  it("does NOT abort the in-flight stream when the hook unmounts", async () => {
+    let capturedSignal: AbortSignal | undefined;
     mockedVeniceStreamChat.mockImplementationOnce((_payload, opts) => {
-      capturedController = opts.signal as unknown as AbortController;
+      capturedSignal = opts.signal;
       return new Promise<void>((_, reject) => {
         opts.signal!.addEventListener("abort", () => {
           reject(new DOMException("Request aborted", "AbortError"));
@@ -336,11 +338,12 @@ describe("use-chat character_slug threading", () => {
     });
 
     const { result, unmount } = renderHook(() => useChat());
-    const sendPromise = act(async () => {
-      await result.current.send("Hello", "llama-3.3-70b");
+    let sendPromise!: Promise<void>;
+    act(() => {
+      sendPromise = result.current.send("Hello", "llama-3.3-70b");
     });
 
-    // Give React a tick to start the effect and the send flow.
+    // Give React a tick to start the send flow.
     await act(async () => {
       await Promise.resolve();
     });
@@ -348,8 +351,50 @@ describe("use-chat character_slug threading", () => {
     // Unmount while the stream is still pending.
     unmount();
 
-    await sendPromise;
-    expect(capturedController).toBeDefined();
+    expect(capturedSignal).toBeDefined();
+    expect(capturedSignal!.aborted).toBe(false);
+
+    // Clean up the lingering stream so the test can finish.
+    act(() => {
+      stopStream();
+    });
+
+    await act(async () => {
+      await sendPromise;
+    });
+  });
+
+  it("still aborts the stream when stop() is called after the hook unmounts", async () => {
+    let capturedSignal: AbortSignal | undefined;
+    mockedVeniceStreamChat.mockImplementationOnce((_payload, opts) => {
+      capturedSignal = opts.signal;
+      return new Promise<void>((_, reject) => {
+        opts.signal!.addEventListener("abort", () => {
+          reject(new DOMException("Request aborted", "AbortError"));
+        });
+      });
+    });
+
+    const { result, unmount } = renderHook(() => useChat());
+    let sendPromise!: Promise<void>;
+    act(() => {
+      sendPromise = result.current.send("Hello", "llama-3.3-70b");
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    unmount();
+
+    act(() => {
+      stopStream();
+    });
+
+    await act(async () => {
+      await sendPromise;
+    });
+    expect(capturedSignal?.aborted).toBe(true);
   });
 
   it("does not re-render when an unrelated chat-store field changes (P2-004 selectorization)", () => {

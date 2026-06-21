@@ -13,6 +13,28 @@ let currentBounds: ResearchBrowserBoundsInput | null = null;
 
 let lastBlockedError: string | null = null;
 
+function teardownResearchView(parentWindow: BrowserWindow | null): void {
+  if (!researchView) return;
+
+  if (parentWindow && !parentWindow.isDestroyed() && currentBounds?.visible) {
+    try {
+      parentWindow.contentView.removeChildView(researchView);
+    } catch {
+      // The view may already have been detached during BrowserWindow teardown.
+    }
+  }
+
+  try {
+    researchView.webContents.close();
+  } catch {
+    // Ignore close failures during app/window shutdown.
+  }
+
+  researchView = null;
+  currentBounds = null;
+  lastBlockedError = null;
+}
+
 function getViewState(): ResearchBrowserState {
   if (!researchView) {
     return {
@@ -87,9 +109,16 @@ let ipcHandlersRegistered = false;
 
 export function resetResearchBrowserIpcForTesting(): void {
   ipcHandlersRegistered = false;
+  researchView = null;
+  mainWindowRef = null;
+  currentBounds = null;
+  lastBlockedError = null;
 }
 
 export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
+  if (mainWindowRef && mainWindowRef !== mainWindow) {
+    teardownResearchView(mainWindowRef);
+  }
   mainWindowRef = mainWindow;
 
   if (ipcHandlersRegistered) {
@@ -190,13 +219,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
 
   handleIpc("researchBrowser:destroy", async () => {
     if (!researchView) return { ok: true };
-    if (mainWindowRef && !mainWindowRef.isDestroyed() && currentBounds?.visible) {
-      mainWindowRef.contentView.removeChildView(researchView);
-    }
-    researchView.webContents.close();
-    researchView = null;
-    currentBounds = null;
-    lastBlockedError = null;
+    teardownResearchView(mainWindowRef);
     broadcastState();
     return { ok: true };
   });

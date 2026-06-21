@@ -20,6 +20,7 @@ import { ConversationWriteQueue } from "./conversationWriteQueue";
 export const CONVERSATIONS_DIR = path.join(app.getPath("userData"), "conversations");
 const KEY_FILE = path.join(CONVERSATIONS_DIR, "vault-key.v1.json");
 export const MANIFEST_FILE = path.join(CONVERSATIONS_DIR, "manifest.v1.json.enc");
+export const MANIFEST_JOURNAL_FILE = path.join(CONVERSATIONS_DIR, "manifest.v1.journal.jsonl.enc");
 export const INDEX_FILE = path.join(CONVERSATIONS_DIR, "memory-index.v1.json.enc");
 
 let cachedVaultKey: Buffer | null = null;
@@ -74,6 +75,16 @@ export interface ManifestV1 {
   version: 1;
   updatedAt: number;
   conversations: ManifestConversationV1[];
+}
+
+type ManifestJournalOperationV1 =
+  | { type: "upsert"; updatedAt: number; entry: ManifestConversationV1 }
+  | { type: "delete"; updatedAt: number; id: string };
+
+interface ManifestJournalLineV1 {
+  version: 1;
+  entryId: string;
+  envelope: EncryptedVaultFileV1;
 }
 
 let cachedManifest: ManifestV1 | null = null;
@@ -288,6 +299,7 @@ export async function getOrLoadManifest(): Promise<ManifestV1> {
   if (decrypted) {
     try {
       cachedManifest = JSON.parse(decrypted) as ManifestV1;
+      await applyManifestJournal(cachedManifest);
       return cachedManifest;
     } catch {
       logError("Failed to parse manifest json.", "Resetting manifest.");
@@ -299,7 +311,70 @@ export async function getOrLoadManifest(): Promise<ManifestV1> {
     updatedAt: Date.now(),
     conversations: [],
   };
+  await applyManifestJournal(cachedManifest);
   return cachedManifest;
+}
+
+function applyManifestOperation(manifest: ManifestV1, operation: ManifestJournalOperationV1): void {
+  manifest.updatedAt = Math.max(manifest.updatedAt, operation.updatedAt);
+
+  if (operation.type === "upsert") {
+    const existingIdx = manifest.conversations.findIndex((item) => item.id === operation.entry.id);
+    if (existingIdx === -1) {
+      manifest.conversations.push(operation.entry);
+    } else {
+      manifest.conversations[existingIdx] = operation.entry;
+    }
+    return;
+  }
+
+  manifest.conversations = manifest.conversations.filter((item) => item.id !== operation.id);
+}
+
+async function applyManifestJournal(manifest: ManifestV1): Promise<void> {
+  let raw: string;
+  try {
+    raw = await fs.readFile(MANIFEST_JOURNAL_FILE, "utf-8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
+    throw err;
+  }
+
+  const key = await getOrInitVaultKey();
+  for (const line of raw.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    try {
+      const journalLine = JSON.parse(trimmed) as ManifestJournalLineV1;
+      if (journalLine.version !== 1 || typeof journalLine.entryId !== "string") {
+        throw new Error("Unsupported manifest journal line");
+      }
+      const decryptedOperation = decrypt(journalLine.envelope, key, "manifest-journal", journalLine.entryId);
+      applyManifestOperation(manifest, JSON.parse(decryptedOperation) as ManifestJournalOperationV1);
+    } catch (err) {
+      logError("Failed to apply manifest journal line", String(err));
+    }
+  }
+}
+
+async function appendManifestOperation(operation: ManifestJournalOperationV1): Promise<void> {
+  return writeQueue.enqueue("manifest", async () => {
+    const key = await getOrInitVaultKey();
+    const entryId = `journal_${crypto.randomUUID()}`;
+    const envelope = encrypt(JSON.stringify(operation), key, "manifest-journal", entryId);
+    const line: ManifestJournalLineV1 = {
+      version: 1,
+      entryId,
+      envelope,
+    };
+
+    await fs.mkdir(path.dirname(MANIFEST_JOURNAL_FILE), { recursive: true });
+    await fs.appendFile(MANIFEST_JOURNAL_FILE, `${JSON.stringify(line)}\n`, {
+      encoding: "utf-8",
+      mode: 0o600,
+    });
+  });
 }
 
 /**
@@ -310,6 +385,7 @@ export async function saveManifest(manifest: ManifestV1): Promise<void> {
   manifest.updatedAt = Date.now();
   return writeQueue.enqueue("manifest", async () => {
     await writeEncryptedFile(MANIFEST_FILE, JSON.stringify(manifest, null, 2), "manifest", "global");
+    await fs.rm(MANIFEST_JOURNAL_FILE, { force: true }).catch(() => {});
   });
 }
 
@@ -463,13 +539,19 @@ export async function saveConversation(record: ConversationRecordV1): Promise<{ 
         },
       };
 
+      const manifestUpdatedAt = Date.now();
       if (existingIdx !== -1) {
         manifest.conversations[existingIdx] = manifestEntry;
       } else {
         manifest.conversations.push(manifestEntry);
       }
+      manifest.updatedAt = manifestUpdatedAt;
 
-      await saveManifest(manifest);
+      await appendManifestOperation({
+        type: "upsert",
+        updatedAt: manifestUpdatedAt,
+        entry: manifestEntry,
+      });
 
       // Trigger index update in memoryPuller
       const { updateIndexForRecord } = await import("./memoryPuller");
@@ -505,8 +587,14 @@ export async function deleteConversation(id: string): Promise<{ ok: boolean; err
       await fs.rm(attachmentsDir, { recursive: true, force: true }).catch(() => {});
 
       // Remove from manifest
+      const manifestUpdatedAt = Date.now();
       manifest.conversations = manifest.conversations.filter((item) => item.id !== id);
-      await saveManifest(manifest);
+      manifest.updatedAt = manifestUpdatedAt;
+      await appendManifestOperation({
+        type: "delete",
+        updatedAt: manifestUpdatedAt,
+        id,
+      });
 
       // Remove from index
       const { removeRecordFromIndex } = await import("./memoryPuller");

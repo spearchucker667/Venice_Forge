@@ -39,6 +39,7 @@ vi.mock("electron", () => {
 import {
   CONVERSATIONS_DIR,
   INDEX_FILE,
+  MANIFEST_FILE,
   getOrInitVaultKey,
   encrypt,
   decrypt,
@@ -602,6 +603,22 @@ describe("ConversationVault core and services", () => {
       expect(read?.id).toBe(validId);
       const resolvedPath = getRecordPath(validId, record.createdAt);
       expect(await fs.stat(resolvedPath)).toBeDefined();
+    });
+
+    it("29. appends manifest updates to a journal instead of rewriting the full manifest for new records", async () => {
+      const journalPath = path.join(CONVERSATIONS_DIR, "manifest.v1.journal.jsonl.enc");
+      const first = makeRecord({ title: "First journaled conversation" });
+      const second = makeRecord({ title: "Second journaled conversation" });
+
+      await expect(saveConversation(first)).resolves.toMatchObject({ ok: true });
+      await expect(saveConversation(second)).resolves.toMatchObject({ ok: true });
+
+      await expect(fs.stat(journalPath)).resolves.toBeDefined();
+      await expect(fs.stat(MANIFEST_FILE)).rejects.toMatchObject({ code: "ENOENT" });
+
+      _resetVaultCache_TEST_ONLY();
+      const loaded = await listConversations();
+      expect(loaded.map((record) => record.id).sort()).toEqual([first.id, second.id].sort());
     });
   });
 });

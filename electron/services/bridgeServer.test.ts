@@ -4,6 +4,7 @@
 // written to stdout. Suppress the project-wide no-console lint rule for
 // this test file only.
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
+import { Server as HttpServer } from "http";
 import { startBridgeServer, stopBridgeServer, getBridgeToken } from "./bridgeServer";
 import { performVeniceRequest } from "./veniceClient";
 import { assessChildExploitationSafety } from "../../src/shared/safety";
@@ -446,5 +447,41 @@ describe("startBridgeServer env-var fallback (P2-009)", () => {
     process.env.VENICE_BRIDGE_TOKEN = strong;
     const accepted = await startBridgeServer(port, host);
     expect(accepted).toBe(strong);
+  }, 10000);
+});
+
+describe("bridgeServer restart lifecycle", () => {
+  const port = 5066;
+  const host = "127.0.0.1";
+
+  afterAll(() => {
+    stopBridgeServer();
+  });
+
+  it("waits for an in-flight close before rebinding the same host and port", async () => {
+    stopBridgeServer();
+    await startBridgeServer(port, host);
+
+    const originalClose = HttpServer.prototype.close;
+    const closeSpy = vi.spyOn(HttpServer.prototype, "close").mockImplementation(function delayedClose(
+      this: HttpServer,
+      callback?: (err?: Error) => void,
+    ) {
+      setTimeout(() => {
+        originalClose.call(this, callback);
+      }, 50);
+      return this;
+    } as typeof HttpServer.prototype.close);
+
+    const stopResult = stopBridgeServer();
+    const restart = startBridgeServer(port, host);
+
+    try {
+      await Promise.resolve(stopResult);
+      await expect(restart).resolves.toBe(getBridgeToken());
+    } finally {
+      closeSpy.mockRestore();
+      stopBridgeServer();
+    }
   }, 10000);
 });

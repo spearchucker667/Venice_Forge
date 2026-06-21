@@ -115,6 +115,56 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-06-21 Character image cache protocol origin restriction (current session):**
+  - Closed the next open roadmap P1: `venice-character-cache://` protocol requests now reject explicit foreign `Origin` or `Referer` provenance before cache key parsing or filesystem lookup.
+  - Added `electron/utils/characterImageCacheProtocol.ts` with a focused access-policy helper for Vite dev renderer origin, packaged `file://` renderer referrers under `dist/`, and originless Electron image loads.
+  - Added regression coverage for allowed app provenance, blocked foreign origins, blocked foreign referrers, and originless compatibility.
+  - **Files changed:** `electron/main.ts`, `electron/utils/characterImageCacheProtocol.ts`, `electron/utils/characterImageCacheProtocol.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `characterImageCacheProtocol.test.ts` PASS (5 tests); Electron main + production startup invariant tests PASS (34 tests).
+
+- **2026-06-21 Conversation Vault manifest journal (current session):**
+  - Closed the next open roadmap P1: new Conversation Vault manifest updates now append encrypted upsert/delete operations to `manifest.v1.journal.jsonl.enc` instead of rewriting the full encrypted manifest on every save/delete.
+  - `getOrLoadManifest()` now loads the compacted base manifest when present and replays the encrypted journal over it; `saveManifest()` remains available as a compaction path and removes the journal after writing the full manifest.
+  - Added a regression test proving new records create the journal, do not create/rewrite the full manifest, and still reload correctly after cache reset.
+  - **Files changed:** `electron/services/conversationVault.ts`, `electron/services/conversationVault.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `conversationVault.test.ts` PASS (29 tests); Conversation Vault + chat-store focused tests PASS (60 tests); `npm run lint:eslint` PASS; `npm run typecheck` PASS.
+
+- **2026-06-21 Bridge server restart race fix (current session):**
+  - Closed the next open roadmap P1: `electron/services/bridgeServer.ts` now tracks an in-flight `server.close()` promise and `startBridgeServer()` waits for it before rebinding the same host/port.
+  - `stopBridgeServer()` now returns `Promise<void>` while remaining compatible with existing fire-and-forget callers; repeated stops share the same in-flight close promise.
+  - Added a deterministic regression test that delays `http.Server.close()` and proves an immediate restart waits instead of failing with `EADDRINUSE`.
+  - **Files changed:** `electron/services/bridgeServer.ts`, `electron/services/bridgeServer.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** bridge red-green test PASS (22 tests); bridge + Electron main lifecycle tests PASS (55 tests); `npm run lint:eslint` PASS; `npm run typecheck` PASS.
+
+- **2026-06-21 Research Browser recreate lifecycle fix (current session):**
+  - Closed the next open roadmap P1: `electron/services/researchBrowserServer.ts` now tears down an existing `WebContentsView` when `setupResearchBrowserIpc()` is called with a different `BrowserWindow`, preventing stale browser views from surviving window recreation.
+  - Added `teardownResearchView()` to detach the visible child view, close the webContents, and clear bounds/error state; the explicit `researchBrowser:destroy` path now uses the same cleanup path.
+  - Added a regression test proving a recreated window closes the old view and the next `researchBrowser:create` call creates a fresh `WebContentsView`.
+  - **Files changed:** `electron/services/researchBrowserServer.ts`, `electron/services/researchBrowserServer.test.ts`, `docs/summary_of_work.md`, `docs/audits/repository-todo-roadmap-current.md`.
+  - **Validation:** focused red-green `researchBrowserServer.test.ts` PASS (16 tests); `npm run verify:research-browser` PASS (147 tests); `npm run lint:eslint` PASS; `npm run typecheck` PASS.
+
+- **2026-06-21 Attachment wrapper body escaping (current session):**
+  - Closed the remaining document-ingestion wrapper breakout risk from the supplied audit: local text, code, PDF, and DOCX ingestion now escape extracted body text before inserting it into `<attached_file>` wrappers, so uploaded content cannot close the wrapper with `</attached_file>` and inject fake structural tags.
+  - Added `escapeXmlText()` beside `escapeXmlAttribute()` in `src/services/ingestion/xmlEscape.ts`, with helper-level and service-level malicious-body regression tests.
+  - Updated the existing `VERIFY-060` registry wording in `AGENTS.md` to cover both malicious filename and malicious body escaping.
+  - **Files changed:** `AGENTS.md`, `src/services/ingestion/xmlEscape.ts`, `src/services/ingestion/xmlEscape.test.ts`, `src/services/ingestion/textIngestion.ts`, `src/services/ingestion/textIngestion.test.ts`, `src/services/ingestion/codeIngestion.ts`, `src/services/ingestion/codeIngestion.test.ts`, `src/services/ingestion/pdfIngestion.ts`, `src/services/ingestion/pdfIngestion.test.ts`, `src/services/ingestion/docxIngestion.ts`, `src/services/ingestion/docxIngestion.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** focused malicious-body ingestion tests PASS (37 tests); `npm run verify:document-ingestion` PASS (95 tests); `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm run verify:agent-docs` PASS.
+
+- **2026-06-21 Release packaging archive-mode local-config tolerance (release-hardening):**
+  - Extended `scripts/verify-release-packaging-hardening.cjs` archive-mode filtering to ignore `.config/*.local.yaml` and `.config/*.local.yml` at any depth under `.config/`, treating them as generated local-only config without weakening the git-tracked contaminant scan.
+  - Added a regression test in `scripts/verify-release-packaging-hardening.test.ts` that creates a minimal valid repo, drops `.config/config.local.yaml` and `.config/themes.local.yaml`, and asserts the verifier passes in archive mode.
+  - **Files changed:** `scripts/verify-release-packaging-hardening.cjs`, `scripts/verify-release-packaging-hardening.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `rm -f .config/config.local.yaml .config/themes.local.yaml && npm run verify:release-packaging-hardening` PASS (exit 0); `npx vitest run electron/services/configService.test.ts scripts/verify-release-packaging-hardening.test.ts --fileParallelism=false` PASS (38 tests); post-test `npm run verify:release-packaging-hardening` PASS (exit 0).
+
+- **2026-06-21 Stream-lifetime P0 release blocker (current session):**
+  - Moved chat provider stream ownership from `useChat` into a persistent `src/stores/chat-stream-manager.ts` so tab switches no longer abort in-flight assistant streams.
+  - `chat-stream-manager` builds the `/chat/completions` payload, owns the `AbortController`, drives `useChatStore` streaming/delta/error state, and exposes `isStreaming()`, `getActiveConvId()`, and `subscribeToStreamState()`.
+  - Refactored `src/hooks/use-chat.ts` to delegate `startStream`/`stopStream` to the manager, removed the unmount abort cleanup, and preserved memory injection, attachments, character slug resolution, system prompt, and scene auto-generation.
+  - Replaced the old unmount-abort test in `src/hooks/use-chat.test.ts` with regression tests proving unmount does not abort the signal and `stop()` still aborts after unmount.
+  - Added `src/stores/chat-stream-manager.test.ts` with focused coverage for body building, delta/reasoning appending, start/stop/isStreaming, safe error handling, and stream-state listeners.
+  - **Files changed:** `src/stores/chat-stream-manager.ts`, `src/stores/chat-stream-manager.test.ts`, `src/hooks/use-chat.ts`, `src/hooks/use-chat.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `npx vitest run src/hooks/use-chat.test.ts src/stores/chat-stream-manager.test.ts --fileParallelism=false` PASS (34 tests); `npx vitest run src/hooks/use-chat.character-scene.test.ts --fileParallelism=false` PASS (6 tests); `npm run lint:eslint` PASS (0 warnings); `npm run typecheck` PASS (renderer + electron main).
+
 - **2026-06-21 Push to main and workflow validation (current session):**
   - Committed all staged roadmap stabilization changes as `d41d568` (`chore: roadmap stabilization batch — media, privacy, config, safety, ingestion`).
   - Pushed `main` to `origin`; CI workflow `27902694991` and CodeQL workflow `27902694990` both completed successfully.
@@ -3104,6 +3154,54 @@ backlog files were removed.
 - **Status:** IN PROGRESS — Top five P0 roadmap items complete. Remaining roadmap items documented in Open TODO Ledger below. No secrets or private machine paths recorded.
 
 ## Session History
+
+### 2026-06-21 - Conversation Vault manifest journal
+
+- **Agent:** OpenAI GPT-5.
+- **Branch / state:** current branch; working tree already contained unrelated prior roadmap edits.
+- **Scope:** Continue the roadmap by reducing Conversation Vault manifest rewrite cost.
+- **Actions:**
+  - Added encrypted append-only manifest journal support at `manifest.v1.journal.jsonl.enc`.
+  - Replayed journal operations on manifest load, both with and without a compacted base manifest.
+  - Changed save/delete paths to update the in-memory manifest and append encrypted `upsert` / `delete` journal operations instead of calling full `saveManifest()`.
+  - Kept `saveManifest()` as an explicit compaction path that writes the full encrypted manifest and removes the journal.
+  - Added a regression test proving new saves append to the journal and survive cache reset.
+- **Validation:** focused Conversation Vault test PASS (29 tests); Conversation Vault + chat-store focused tests PASS (60 tests); lint and typecheck PASS.
+
+### 2026-06-21 - Bridge server restart race fix
+
+- **Agent:** OpenAI GPT-5.
+- **Branch / state:** current branch; working tree already contained unrelated prior roadmap edits.
+- **Scope:** Continue the roadmap by closing the bridge-server shutdown/restart race.
+- **Actions:**
+  - Added a deterministic regression test that delays `http.Server.close()` and proves immediate restart on the same port waits for the old listener to close.
+  - Added `stopInProgress` tracking in `electron/services/bridgeServer.ts`.
+  - Changed `stopBridgeServer()` to return a `Promise<void>` and share an in-flight close promise across repeated stop calls.
+  - Changed `startBridgeServer()` to await pending shutdown before binding.
+- **Validation:** focused bridge test PASS (22 tests); bridge + Electron main lifecycle tests PASS (55 tests); lint and typecheck PASS.
+
+### 2026-06-21 - Research Browser recreate lifecycle fix
+
+- **Agent:** OpenAI GPT-5.
+- **Branch / state:** current branch; working tree already contained unrelated prior roadmap edits.
+- **Scope:** Continue the roadmap by closing the research-browser `WebContentsView` leak on window recreation.
+- **Actions:**
+  - Added a failing regression test for `setupResearchBrowserIpc()` being called with a recreated `BrowserWindow` while a research browser view already exists.
+  - Added `teardownResearchView()` in `electron/services/researchBrowserServer.ts` and reused it from both recreated-window setup and `researchBrowser:destroy`.
+  - Reset research-browser module state in `resetResearchBrowserIpcForTesting()` to keep lifecycle tests isolated.
+- **Validation:** focused red-green test PASS (16 tests); `verify:research-browser` PASS (147 tests); lint and typecheck PASS.
+
+### 2026-06-21 - Attachment wrapper body escaping
+
+- **Agent:** OpenAI GPT-5.
+- **Branch / state:** current branch; working tree already contained unrelated P0 stream/release-hardening edits from prior work.
+- **Scope:** Close the document-ingestion wrapper body delimiter-injection risk without broad ingestion redesign.
+- **Actions:**
+  - Added `escapeXmlText()` to `src/services/ingestion/xmlEscape.ts`.
+  - Applied text escaping to local text, code, PDF, and DOCX extracted body insertion paths.
+  - Added malicious-body regression tests proving `</attached_file><system>...` is encoded as body text instead of becoming wrapper structure.
+  - Updated the `VERIFY-060` AGENTS registry description to include body escaping.
+- **Validation:** focused ingestion Vitest PASS (37 tests); `verify:document-ingestion` PASS (95 tests); lint, typecheck, and `verify:agent-docs` PASS.
 
 ### 2026-06-21 - Push to main and workflow validation
 
@@ -7317,14 +7415,14 @@ Result:
 ### Next Roadmap Items (P0/P1 — pending next session)
 
 - ~~**P0:** Fix web-mode conversation persistence in `src/stores/chat-store.ts` (desktop-only bridges no-op in browser; web mode currently loses conversations).~~ **FIXED 2026-06-21** — `src/stores/chat-store.ts` now falls back to the encrypted IndexedDB `conversations` store in web mode; `src/stores/chat-store.web.test.ts` added. VERIFY-059.
-- ~~**P0:** Escape `file.name` in document-ingestion XML wrappers to prevent prompt injection via malicious filenames.~~ **FIXED 2026-06-21** — added `src/services/ingestion/xmlEscape.ts` and applied `escapeXmlAttribute` in all `<attached_file>` builders; regression tests added. VERIFY-060.
+- ~~**P0:** Escape `file.name` in document-ingestion XML wrappers to prevent prompt injection via malicious filenames.~~ **FIXED 2026-06-21** — added `src/services/ingestion/xmlEscape.ts` and applied `escapeXmlAttribute` in all `<attached_file>` builders; regression tests added. Follow-up body-text breakout risk also fixed 2026-06-21 by applying `escapeXmlText` to local text/code/PDF/DOCX wrapper bodies with malicious-body regression tests. VERIFY-060.
 - ~~**P0:** Harden main-process logger redaction (`electron/services/logger.ts`) to match renderer redaction strength (Venice/Jina keys, bearer tokens, local paths).~~ **FIXED 2026-06-21** — `electron/services/logger.ts` now uses `sanitizeErrorText`/`redactSecrets` from `src/shared/redaction.ts`; redaction tests added. VERIFY-061.
 - ~~**P0:** Tighten production CSP `img-src` to remove arbitrary `https:`; allow only `blob:`, `data:`, and app-specific schemes.~~ **FIXED 2026-06-21** — removed `https:` from production `img-src` in `server.ts` and Electron renderer CSP; extracted `electron/utils/rendererCsp.ts`; regression tests added. VERIFY-062.
 - ~~**P0:** Restrict web scrape proxy to `https:` upstream URLs; reject `http:` unless explicitly allowlisted.~~ **FIXED 2026-06-21** — `server.ts` `/api/proxy-scrape` now rejects `http:` URLs before DNS/network; regression test added. VERIFY-063.
-- **P1:** Fix research-browser `WebContentsView` leak on window recreate in `electron/services/researchBrowserServer.ts`.
-- **P1:** Fix bridge-server shutdown race with restart in `electron/services/bridgeServer.ts`.
-- **P1:** Reduce Conversation Vault manifest rewrite cost by appending new entries instead of full rewrite.
-- **P1:** Add origin restrictions to character image cache protocol handler.
+- ~~**P1:** Fix research-browser `WebContentsView` leak on window recreate in `electron/services/researchBrowserServer.ts`.~~ **FIXED 2026-06-21** — `setupResearchBrowserIpc()` now tears down stale views when the host `BrowserWindow` changes; regression test added.
+- ~~**P1:** Fix bridge-server shutdown race with restart in `electron/services/bridgeServer.ts`.~~ **FIXED 2026-06-21** — `stopBridgeServer()` now exposes/serializes the async close, and `startBridgeServer()` waits for pending close before rebinding; deterministic restart regression added.
+- ~~**P1:** Reduce Conversation Vault manifest rewrite cost by appending new entries instead of full rewrite.~~ **FIXED 2026-06-21** — manifest upsert/delete operations now append to an encrypted journal and replay on load; full manifest save remains as compaction.
+- ~~**P1:** Add origin restrictions to character image cache protocol handler.~~ **FIXED 2026-06-21** — `venice-character-cache://` now rejects explicit foreign origin/referrer provenance before cache lookup; app renderer dev/prod paths and originless Electron image loads remain supported.
 - **P1:** Replace hardcoded Image Tools edit model list with dynamic model/capability discovery.
 
 ### Open Follow-Up from 2026-06-17 workflow-templates Audit
@@ -8254,3 +8352,61 @@ Result:
   - **Summary:** Implemented the top five P0 roadmap items: web-mode conversation persistence (VERIFY-059), document-ingestion XML attribute escaping (VERIFY-060), main-process logger redaction parity (VERIFY-061), production CSP `img-src` hardening (VERIFY-062), and HTTPS-only generic scrape proxy (VERIFY-063). Updated `scripts/verify-repo-handoff-hygiene.cjs` and `AGENTS.md` to recognize VERIFY-059..VERIFY-063.
   - **Files changed:** `src/stores/chat-store.ts`, `src/stores/chat-store.web.test.ts`, `src/services/ingestion/xmlEscape.ts`, `src/services/ingestion/xmlEscape.test.ts`, `src/services/ingestion/{text,code,pdf,docx,veniceTextParser}Ingestion.ts`, `src/services/ingestion/{text,code,pdf,docx}Ingestion.test.ts`, `electron/services/logger.ts`, `electron/services/logger.test.ts`, `electron/main.ts`, `electron/utils/rendererCsp.ts`, `electron/utils/rendererCsp.test.ts`, `server.ts`, `server.test.ts`, `scripts/verify-repo-handoff-hygiene.cjs`, `AGENTS.md`, `docs/summary_of_work.md`.
   - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; targeted vitest PASS (109 tests); `verify:document-ingestion` PASS; `verify:agent-docs` PASS; `verify:repo-handoff-hygiene` PASS; `verify:markdown-links` PASS.
+
+
+## Validation Matrix (2026-06-21 attachment body escaping append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run src/services/ingestion/xmlEscape.test.ts src/services/ingestion/textIngestion.test.ts src/services/ingestion/codeIngestion.test.ts src/services/ingestion/pdfIngestion.test.ts src/services/ingestion/docxIngestion.test.ts --fileParallelism=false` | PASS | 5 files / 37 tests passed after red-green failure confirmed |
+| `npm run verify:document-ingestion` | PASS | VERIFY-058 document-ingestion verifier passed; 11 files / 95 tests |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0` |
+| `npm run typecheck` | PASS | Renderer and Electron TypeScript projects clean |
+| `npm run verify:agent-docs` | PASS | Agent doc verification passed after VERIFY-060 wording update |
+
+
+## Validation Matrix (2026-06-21 research-browser recreate append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run electron/services/researchBrowserServer.test.ts --fileParallelism=false` | PASS | 16 tests passed after red-green failure confirmed |
+| `npm run verify:research-browser` | PASS | VERIFY-057 verifier passed; 10 files / 147 tests |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0` |
+| `npm run typecheck` | PASS | Renderer and Electron TypeScript projects clean |
+
+
+## Validation Matrix (2026-06-21 bridge restart append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run electron/services/bridgeServer.test.ts --fileParallelism=false` | PASS | 22 tests passed after deterministic red-green failure confirmed |
+| `npx vitest run electron/services/bridgeServer.test.ts electron/main.test.ts --fileParallelism=false` | PASS | 2 files / 55 tests |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0` |
+| `npm run typecheck` | PASS | Renderer and Electron TypeScript projects clean |
+
+
+## Validation Matrix (2026-06-21 conversation vault manifest journal append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run electron/services/conversationVault.test.ts --fileParallelism=false` | PASS | 29 tests passed after red-green failure confirmed |
+| `npx vitest run electron/services/conversationVault.test.ts src/stores/chat-store.test.ts --fileParallelism=false` | PASS | 2 files / 60 tests |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0` |
+| `npm run typecheck` | PASS | Renderer and Electron TypeScript projects clean |
+
+
+## Validation Matrix (2026-06-21 character image cache protocol origin restriction append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npx vitest run electron/utils/characterImageCacheProtocol.test.ts --fileParallelism=false` | PASS | 1 file / 5 tests |
+| `npx vitest run electron/main.test.ts tests/electron/productionStartupInvariant.test.ts --fileParallelism=false` | PASS | 2 files / 34 tests |
+| `npx vitest run src/hooks/use-chat.test.ts src/stores/chat-stream-manager.test.ts scripts/verify-release-packaging-hardening.test.ts src/services/ingestion/xmlEscape.test.ts src/services/ingestion/textIngestion.test.ts src/services/ingestion/codeIngestion.test.ts src/services/ingestion/pdfIngestion.test.ts src/services/ingestion/docxIngestion.test.ts electron/services/researchBrowserServer.test.ts electron/services/bridgeServer.test.ts electron/services/conversationVault.test.ts electron/utils/characterImageCacheProtocol.test.ts electron/main.test.ts tests/electron/productionStartupInvariant.test.ts --fileParallelism=false` | PASS | 14 files / 186 tests |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0` |
+| `npm run typecheck` | PASS | Renderer and Electron TypeScript projects clean |
+| `npm run verify:markdown-links` | PASS | 77 Markdown files checked |
+| `npm run verify:agent-docs` | PASS | Agent doc verification passed |
+| `npm run verify:release-packaging-hardening` | PASS | 102 release/archive hardening checks |
+| `npm run verify:document-ingestion` | PASS | 11 files / 95 tests |
+| `npm run verify:research-browser` | PASS | 10 files / 147 tests |
+| `npm run build` | PASS | Web, server, and Electron build completed |

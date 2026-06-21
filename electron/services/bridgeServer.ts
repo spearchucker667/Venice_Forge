@@ -26,6 +26,7 @@ const MIN_BRIDGE_TOKEN_DISTINCT_CHARS = 8;
 
 let serverInstance: Server | null = null;
 let bridgeToken: string = "";
+let stopInProgress: Promise<void> | null = null;
 
 export function getBridgeToken(): string {
   return bridgeToken;
@@ -88,7 +89,12 @@ export function startBridgeServer(
   host = "127.0.0.1",
   options?: { requestTimeoutMs?: number },
 ): Promise<string> {
-  return new Promise((resolve, reject) => {
+  return (async () => {
+    if (stopInProgress) {
+      await stopInProgress;
+    }
+
+    return new Promise<string>((resolve, reject) => {
     if (serverInstance) {
       resolve(bridgeToken);
       return;
@@ -335,18 +341,42 @@ export function startBridgeServer(
       });
 
       serverInstance.on("error", (err: Error) => {
+        if (serverInstance && !serverInstance.listening) {
+          serverInstance = null;
+        }
         reject(err);
       });
     } catch (err) {
       reject(err);
     }
-  });
+    });
+  })();
 }
 
-export function stopBridgeServer(): void {
-  if (serverInstance) {
-    serverInstance.close();
-    serverInstance = null;
-    logInfo("Stopped loopback bridge server.");
+export function stopBridgeServer(): Promise<void> {
+  if (stopInProgress) {
+    return stopInProgress;
   }
+
+  const server = serverInstance;
+  if (!server) {
+    return Promise.resolve();
+  }
+
+  stopInProgress = new Promise((resolve, reject) => {
+    server.close((err?: Error) => {
+      if (serverInstance === server) {
+        serverInstance = null;
+      }
+      stopInProgress = null;
+      if (err) {
+        reject(err);
+        return;
+      }
+      logInfo("Stopped loopback bridge server.");
+      resolve();
+    });
+  });
+
+  return stopInProgress;
 }

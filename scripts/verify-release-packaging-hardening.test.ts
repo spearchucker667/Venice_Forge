@@ -250,6 +250,25 @@ describe("verify-release-packaging-hardening (VERIFY-052)", () => {
     }
   });
 
+  it("archive mode ignores generated local-only config under .config/", () => {
+    const root = createMinimalValidRepo("venice-relpkg-local-config-");
+    try {
+      mkdirSync(join(root, ".config"), { recursive: true });
+      writeFileSync(join(root, ".config", "config.local.yaml"), "secrets:\n  venice_api_key: redacted\n");
+      writeFileSync(join(root, ".config", "themes.local.yaml"), "themes:\n  - name: local\n");
+
+      const out = spawnSync("node", [join(root, "scripts/verify-release-packaging-hardening.cjs")], {
+        cwd: root,
+        encoding: "utf8",
+      });
+
+      expect(out.status, (out.stderr || "") + (out.stdout || "")).toBe(0);
+      expect((out.stderr || "") + (out.stdout || "")).toMatch(/archive mode: no forbidden archive contaminants/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("does not emit git fatal stderr in archive mode", () => {
     const root = mkdtempSync(join(tmpdir(), "venice-relpkg-no-git-"));
     try {
