@@ -178,7 +178,12 @@ if (pkg) {
   } else {
     pass("`ci` script includes verify:research-workspace");
   }
-  if (!ci.includes("npm test") && !ci.includes("npm run test:coverage") && !ci.includes("vitest run")) {
+  const ciRunsTests =
+    ci.includes("npm test") ||
+    ci.includes("npm run test:coverage") ||
+    ci.includes("npm run test:ci") ||
+    ci.includes("vitest run");
+  if (!ciRunsTests) {
     fail("`ci` script is missing `npm test` or a test execution command");
   } else {
     pass("`ci` script includes test execution");
@@ -326,7 +331,11 @@ if (pkg) {
       pass(".github/workflows/release.yml runs verify:dist:portable");
     }
     // The release workflow must call typecheck / tests / build before packaging
-    if (!release.includes("npm run typecheck") || !release.includes("npm test") || !release.includes("npm run build")) {
+    const releaseRunsTests =
+      release.includes("npm test") ||
+      release.includes("npm run test:coverage") ||
+      release.includes("npm run test:ci");
+    if (!release.includes("npm run typecheck") || !releaseRunsTests || !release.includes("npm run build")) {
       fail(".github/workflows/release.yml must run typecheck, test, and build before packaging");
     } else {
       pass(".github/workflows/release.yml runs typecheck, test, and build");

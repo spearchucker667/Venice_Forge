@@ -79,6 +79,17 @@ npx vitest run server.test.ts -t "test name"
 npx vitest run tests/smoke/electron-smoke.test.ts   # via npm run smoke:electron
 ```
 
+### Segmented test scripts
+```bash
+npm run test:server     # server.test.ts (Express proxy)
+npm run test:electron   # electron/**/*.test.ts (main / IPC / services)
+npm run test:ingestion  # src/services/ingestion/*.test.ts
+npm run test:ui         # src/components/**/*.test.{ts,tsx} + tests/accessibility
+npm run test:unit       # remaining src/tests/scripts unit tests (catch-all excludes)
+npm run test:ci         # full suite with v8 coverage (used by CI/release workflows)
+```
+The union of `test:server`, `test:electron`, `test:ingestion`, `test:ui`, and `test:unit` covers every test file except `tests/smoke/electron-smoke.test.ts`, which is handled by `npm run smoke:electron`.
+
 ### Packaging
 ```bash
 npm run dist:win         # NSIS + portable
@@ -96,6 +107,7 @@ npm run build:web        # Only renderer → dist/ (sets ELECTRON_BUILD=true)
 npm run build:server     # Only proxy → dist/server.cjs
 npm run smoke:electron   # tests/smoke/electron-smoke.test.ts (Playwright; skipped when no display)
 npm run test:coverage    # v8 coverage; current enforced thresholds branches 61 / functions 68 / lines 73 / statements 70 (long-term target 70/80/80/80)
+npm run test:ci          # full suite with v8 coverage (CI/release gate)
 npm run profile:media-studio # Isolated Electron profile with 1,000 encrypted media records
 npm run verify:dist      # Build outputs only; does not require release/
 npm run verify:build-output  # Alias of verify:dist (semantically clearer name)

@@ -50,7 +50,7 @@ jobs:
         run: npm run typecheck
 
       - name: Test
-        run: npm test
+        run: npm run test:ci
 
       - name: Build
         run: npm run build
@@ -136,7 +136,7 @@ jobs:
         run: npm run typecheck
 
       - name: Test
-        run: npm test
+        run: npm run test:ci
 
       - name: Build
         run: npm run build
@@ -221,7 +221,7 @@ jobs:
         run: npm run typecheck
 
       - name: Test
-        run: npm test
+        run: npm run test:ci
 
       - name: Build
         run: npm run build

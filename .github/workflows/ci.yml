@@ -35,7 +35,7 @@ jobs:
         # High-only would be too permissive for a security-sensitive third-party client.
       - run: npm run lint:eslint
       - run: npm run typecheck
-      - run: npm run test:coverage
+      - run: npm run test:ci
       - run: npm run build
       - run: npm run verify:contracts
       - run: npm run verify:dist
@@ -66,9 +66,9 @@ jobs:
       - name: Typecheck (renderer + electron)
         run: npm run typecheck
       - name: Run Electron main-process tests on Windows
-        run: npx vitest run electron/services/configService.test.ts electron/services/mediaService.test.ts electron/services/chatStorage.test.ts electron/services/characterCardStorage.test.ts electron/services/rpChatStorage.test.ts
-      - name: Run renderer tests on Windows (Electron-sensitive subset)
-        run: npx vitest run src/components/gallery src/components/image src/utils/payloadBuilders.test.ts src/services/prompt-enhancer-service.test.ts
+        run: npm run test:electron
+      - name: Run renderer tests on Windows
+        run: npm run test:ui
       - name: Verify safety guard
         run: npm run verify:safety-guard
       - name: Verify markdown links
@@ -99,9 +99,9 @@ jobs:
       - name: Typecheck (renderer + electron)
         run: npm run typecheck
       - name: Run Electron main-process tests on macOS
-        run: npx vitest run electron/services/configService.test.ts electron/services/mediaService.test.ts electron/services/chatStorage.test.ts electron/services/characterCardStorage.test.ts electron/services/rpChatStorage.test.ts electron/services/secureStore.test.ts electron/services/bridgeServer.test.ts
-      - name: Run renderer tests on macOS (Electron-sensitive subset)
-        run: npx vitest run src/components/gallery src/components/image src/utils/payloadBuilders.test.ts src/services/prompt-enhancer-service.test.ts
+        run: npm run test:electron
+      - name: Run renderer tests on macOS
+        run: npm run test:ui
       - name: Verify safety guard
         run: npm run verify:safety-guard
       - name: Verify markdown links

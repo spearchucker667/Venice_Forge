@@ -48,4 +48,17 @@ describe("package.json test scripts", () => {
     expect(pkg.scripts.test).toBe("vitest run");
     expect(pkg.scripts["test:watch"]).toBe("vitest");
   });
+
+  it("exposes the segmented test scripts used by CI and local development", () => {
+    expect(pkg.scripts["test:server"]).toMatch(/^vitest run server\.test\.ts/);
+    expect(pkg.scripts["test:electron"]).toMatch(/^vitest run electron /);
+    expect(pkg.scripts["test:ingestion"]).toMatch(/^vitest run src\/services\/ingestion/);
+    expect(pkg.scripts["test:ui"]).toMatch(/^vitest run src\/components tests\/accessibility/);
+    expect(pkg.scripts["test:unit"]).toMatch(/^vitest run --exclude /);
+    expect(pkg.scripts["test:ci"]).toBe("vitest run --coverage");
+  });
+
+  it("uses test:ci in the aggregate ci script so coverage is collected", () => {
+    expect(pkg.scripts.ci).toContain("npm run test:ci");
+  });
 });
