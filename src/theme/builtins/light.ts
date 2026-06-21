@@ -1,0 +1,30 @@
+import { completeThemeTokens, type Theme } from '../themeTypes';
+
+export const BUILTIN_LIGHT: Theme = {
+  id: 'builtin-light',
+  name: 'Forge Daylight',
+  mode: 'light',
+  tokens: completeThemeTokens('light', {
+    background: '#f6f8fa',
+    surface: '#ffffff',
+    surfaceElevated: '#ffffff',
+    border: '#d0d7de',
+    textPrimary: '#1f2328',
+    textSecondary: '#57606a',
+    textMuted: '#8b949e',
+    accent: '#0969da',
+    accentHover: '#0860c4',
+    accentForeground: '#ffffff',
+    success: '#1a7f37',
+    warning: '#9a6700',
+    danger: '#cf222e',
+    info: '#0969da',
+    focusRing: '#0969da',
+    overlay: 'rgba(0,0,0,0.4)',
+    glow: 'rgba(9,105,218,0.18)',
+    surfaceMuted: '#eef1f4',
+    borderStrong: '#8c959f',
+    placeholder: '#57606a',
+    disabledForeground: '#6e7781',
+  }),
+};

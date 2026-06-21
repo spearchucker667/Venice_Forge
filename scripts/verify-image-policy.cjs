@@ -54,13 +54,13 @@ function main() {
   mustNotContain("electron/services/characterImageCache.ts", ["image/gif"], "non-canonical types");
 
   // 4. Electron IPC routed image save boundary
-  mustContain("electron/ipc/handlers.ts", [
+  mustContain("electron/ipc/handlers/fileHandlers.ts", [
     "ROUTED_IMAGE_EXTENSIONS_BY_MIME",
     "validateRoutedImageData",
     "sniffRoutedImageContentType",
     "decodeStrictRoutedBase64",
   ], "saveRoutedImage validation boundary");
-  mustNotContain("electron/ipc/handlers.ts", [
+  mustNotContain("electron/ipc/handlers/fileHandlers.ts", [
     "\".gif\", \".mp4\", \".webm\"",
     "Buffer.from(rawData, \"base64\")",
   ], "unsafe routed image policy");

@@ -21,13 +21,17 @@ describe("verify-safety-guard", () => {
   /** Creates all required enforcement files in tmpDir with passing content. */
   function createPassingMocks(dir: string, overrides: Record<string, string> = {}) {
     const defaults: Record<string, { subdir: string; content: string }> = {
-      "veniceClient.ts": {
-        subdir: "src/services",
-        content: "function a() { maybeRunLocalFamilyGuard(); } function b() { maybeRunLocalFamilyGuard(); }",
+      "fetch.ts": {
+        subdir: "src/services/veniceClient",
+        content: "export async function veniceFetch() { maybeRunLocalFamilyGuard(); }",
       },
-      "handlers.ts": {
-        subdir: "electron/ipc",
-        content: '"venice:request" handler { maybeRunLocalFamilyGuard(); } }); "venice:streamChat" handler { maybeRunLocalFamilyGuard(); } });',
+      "stream.ts": {
+        subdir: "src/services/veniceClient",
+        content: "export async function veniceStreamChat() { maybeRunLocalFamilyGuard(); }",
+      },
+      "veniceHandlers.ts": {
+        subdir: "electron/ipc/handlers",
+        content: '"venice:request" handler { performGuardedVeniceRequest(); } }); "venice:streamChat" handler { performGuardedVeniceRequest(); } });',
       },
       "server.ts": {
         subdir: "",
@@ -82,18 +86,18 @@ describe("verify-safety-guard", () => {
       expect(result).toEqual([]);
     });
 
-    it("fails when veniceClient.ts has fewer than 2 guard calls", () => {
+    it("fails when renderer transport fetch.ts lacks a guard call", () => {
       createPassingMocks(tmpDir, {
-        "veniceClient.ts": "function a() { maybeRunLocalFamilyGuard(); }",
+        "fetch.ts": "export async function veniceFetch() { /* no guard */ }",
       });
       const result = runEnforcementChecks(tmpDir);
       expect(result.length).toBeGreaterThan(0);
-      expect(result[0]).toContain("Renderer Transport");
+      expect(result.some((r: string) => r.includes("Renderer Transport (fetch)"))).toBe(true);
     });
 
     it("fails when IPC handlers are missing guards", () => {
       createPassingMocks(tmpDir, {
-        "handlers.ts": '"venice:request" { /* no guard */ } }); "venice:streamChat" { maybeRunLocalFamilyGuard(); } });',
+        "veniceHandlers.ts": '"venice:request" { /* no guard */ } }); "venice:streamChat" { performGuardedVeniceRequest(); } });',
       });
       const result = runEnforcementChecks(tmpDir);
       expect(result.some((r: string) => r.includes("IPC handlers"))).toBe(true);

@@ -1,0 +1,30 @@
+import { completeThemeTokens, type Theme } from '../themeTypes';
+
+export const BUILTIN_GITHUB_LIGHT: Theme = {
+  id: 'builtin-github-light',
+  name: 'Forge GitHub Light',
+  mode: 'light',
+  tokens: completeThemeTokens('light', {
+    background: '#ffffff',
+    surface: '#f6f8fa',
+    surfaceElevated: '#ffffff',
+    border: '#d0d7de',
+    textPrimary: '#24292f',
+    textSecondary: '#57606a',
+    textMuted: '#6e7781',
+    accent: '#0969da',
+    accentHover: '#0550ae',
+    accentForeground: '#ffffff',
+    success: '#1a7f37',
+    warning: '#9a6700',
+    danger: '#cf222e',
+    info: '#0969da',
+    focusRing: '#0969da',
+    overlay: 'rgba(0, 0, 0, 0.25)',
+    glow: 'rgba(9, 105, 218, 0.18)',
+    surfaceMuted: '#f6f8fa',
+    borderStrong: '#6e7781',
+    placeholder: '#57606a',
+    disabledForeground: '#6e7781',
+  }),
+};

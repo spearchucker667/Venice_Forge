@@ -12,17 +12,27 @@ const repoRoot = path.join(__dirname, '..');
 // Map of critical enforcement points and the functions/handlers that MUST be guarded.
 const enforcementMap = [
   {
-    file: 'src/services/veniceClient.ts',
-    name: 'Renderer Transport',
+    file: 'src/services/veniceClient/fetch.ts',
+    name: 'Renderer Transport (fetch)',
     check: (content) => {
-      // veniceFetch and veniceStreamChat must both call the guard
+      // veniceFetch must call the guard
       const guardCalls = (content.match(/maybeRunLocalFamilyGuard\s*\(/g) || []).length;
-      return guardCalls >= 2;
+      return guardCalls >= 1;
     },
     message: 'Renderer transport functions must call safety guard'
   },
   {
-    file: 'electron/ipc/handlers.ts',
+    file: 'src/services/veniceClient/stream.ts',
+    name: 'Renderer Transport (stream)',
+    check: (content) => {
+      // veniceStreamChat must call the guard
+      const guardCalls = (content.match(/maybeRunLocalFamilyGuard\s*\(/g) || []).length;
+      return guardCalls >= 1;
+    },
+    message: 'Renderer transport functions must call safety guard'
+  },
+  {
+    file: 'electron/ipc/handlers/veniceHandlers.ts',
     name: 'Electron IPC Handlers',
     check: (content) => {
       // Both "venice:request" and "venice:streamChat" handlers must call the guard

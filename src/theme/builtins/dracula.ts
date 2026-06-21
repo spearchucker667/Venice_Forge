@@ -1,0 +1,32 @@
+import { completeThemeTokens, type Theme } from '../themeTypes';
+
+export const BUILTIN_DRACULA: Theme = {
+  id: 'builtin-dracula',
+  name: 'Forge Dracula',
+  mode: 'dark',
+  tokens: completeThemeTokens('dark', {
+    background: '#282a36',
+    surface: '#343748',
+    surfaceElevated: '#44475a',
+    border: '#52566e',
+    textPrimary: '#f8f8f2',
+    textSecondary: '#bfbfbf',
+    textMuted: '#9e9fb4',
+    accent: '#bd93f9',
+    accentHover: '#ff79c6',
+    accentForeground: '#282a36',
+    success: '#50fa7b',
+    warning: '#f1fa8c',
+    danger: '#ff5555',
+    info: '#8be9fd',
+    focusRing: '#bd93f9',
+    overlay: 'rgba(40,42,54,0.7)',
+    glow: 'rgba(189,147,249,0.2)',
+    surfaceMuted: '#303241',
+    borderStrong: '#737896',
+    foregroundSubtle: '#a8a9bd',
+    placeholder: '#a8a9bd',
+    disabledForeground: '#9293aa',
+    link: '#8be9fd',
+  }),
+};
