@@ -483,7 +483,7 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Risk if ignored:** Startup gets heavy, especially on Windows machines already suffering enough.
   * **Status:** Verified 2026-06-21. `npm run build` and `npm run verify:bundle-budget` pass; PDF/media chunk budgets remain enforced by the contract script.
 
-* [ ] **P2 — Architecture: Split oversized core files**
+* [x] **P2 — Architecture: Split oversized core files**
 
   * **Evidence:** Large files include `src/services/veniceClient.ts` at 1,586 lines, `electron/ipc/handlers.ts` at 1,331 lines, `src/theme/themes.ts` at 1,113 lines, and `src/components/SettingsView.tsx` at 1,009 lines.
   * **Why:** Huge files make regression review harder and increase merge conflict risk.
@@ -491,6 +491,7 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Files likely affected:** `src/services/veniceClient.ts`, `electron/ipc/handlers.ts`, `src/theme/themes.ts`, `src/components/SettingsView.tsx`.
   * **Validate:** `npm run typecheck && npm test -- --run electron/ipc/handlers.test.ts src/services/veniceClient.test.ts`
   * **Risk if ignored:** Future feature additions keep landing in mega-files.
+  * **Status:** Fixed 2026-06-21. `src/theme/themes.ts` is now a barrel over `src/theme/builtins/*.ts`; `src/components/SettingsView.tsx` is a barrel over `src/components/settings/*.tsx`; `electron/ipc/handlers.ts` is a barrel over `electron/ipc/handlers/*.ts`; `src/services/veniceClient.ts` is a barrel over `src/services/veniceClient/*.ts`. All original import paths remain valid, all tests pass, and `verify:contracts` passes.
 
 * [x] **P2 — Character image cache: Add concurrent fetch de-duplication**
 
@@ -810,3 +811,40 @@ Advanced diagnostics and recovery UX
 6. Visual UI defects such as light-theme invisible text and bottom-left menu squish need screenshot or Playwright-style visual regression confirmation.
    Needed: targeted visual tests or captured QA snapshots across themes and desktop sizes.
 ```
+
+---
+
+## 11. 2026-06-21 09:50 Snapshot Follow-up
+
+This section tracks the follow-up repair pass against the ZIP snapshot audited at `Windows-Venice-API-connector-clean-20260621-095008.zip`.
+
+### Completed items
+
+* [x] **P0 — Testing: Fix `verify:document-ingestion` hang caused by forced serial jsdom component tests**
+  * **Root cause:** `scripts/verify-document-ingestion.cjs` ran all ingestion service tests and jsdom component tests in a single Vitest invocation with `--fileParallelism=false`. The component tests deadlocked when forced serial.
+  * **Fix:** Split the verifier into two invocations: ingestion tests still run serial (`--fileParallelism=false`), component tests run in parallel.
+  * **Files:** `scripts/verify-document-ingestion.cjs`, `scripts/verify-document-ingestion.test.ts`.
+  * **Validation:** `npm run verify:document-ingestion` passes (99 tests, ~7 s); `npm run verify:contracts` passes.
+
+* [x] **P1 — Testing: Segment the full Vitest suite to prevent 600 s+ opaque hangs**
+  * **Fix:** Added `test:server`, `test:electron`, `test:ingestion`, `test:ui`, `test:unit`, and `test:ci` scripts to `package.json`. Updated `.github/workflows/ci.yml` and `.github/workflows/release.yml` to use the segmented scripts. Updated `scripts/verify-release-packaging-hardening.cjs` to accept `npm run test:ci`. Added `package-scripts.test.ts` regression guards.
+  * **Files:** `package.json`, `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `scripts/verify-release-packaging-hardening.cjs`, `package-scripts.test.ts`, `AGENTS.md`.
+  * **Validation:** `npm run test:ci` passes (272 files / 3,393 tests / 1 skipped, coverage thresholds met); all individual segments pass; zero overlap confirmed.
+
+* [x] **P1 — Logging/Security: Redact dev/test logger output by default**
+  * **Root cause:** `src/shared/logger.ts` forwarded raw arguments to `console.warn`/`console.error` in dev/test, so paths and token-shaped strings appeared in stderr.
+  * **Fix:** Hardened `logger.warn`/`logger.error` to recursively sanitize arguments through `redactSecrets`/`sanitizeErrorText` before printing. Added `venice_` token pattern to `src/shared/redaction.ts`. Added `src/shared/logger.test.ts` regression guards.
+  * **Files:** `src/shared/logger.ts`, `src/shared/logger.test.ts`, `src/shared/redaction.ts`, `src/shared/redaction.test.ts`, `src/stores/chat-stream-manager.ts`.
+  * **Validation:** `npm test -- --run src/shared/logger.test.ts src/hooks/use-chat.test.ts src/stores/chat-stream-manager.test.ts src/shared/redaction.test.ts` passes (48 tests); stderr no longer contains `/Users/`, `Bearer`, `venice_`, or `sk-` shaped values.
+
+### Validation summary for this follow-up pass
+
+| Command | Result |
+| --- | --- |
+| `npm run lint:eslint` | Pass (0 warnings) |
+| `npm run typecheck` | Pass (renderer + electron main) |
+| `npm run build` | Pass |
+| `npm run verify:release-packaging-hardening` | Pass (102 checks) |
+| `npm run verify:document-ingestion` | Pass (99 tests) |
+| `npm run verify:contracts` | Pass (all 22+ sub-verifiers) |
+| `npm run test:ci` | Pass (272 files / 3,393 tests / 1 skipped, coverage thresholds met) |

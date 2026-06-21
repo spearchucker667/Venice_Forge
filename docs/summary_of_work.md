@@ -115,6 +115,41 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-06-21 Oversized core file architecture decomposition (current session):**
+  - Split `src/theme/themes.ts` (1,113 lines) into `src/theme/builtins/*.ts` (one file per built-in theme) plus `src/theme/builtins/index.ts`; kept `src/theme/themes.ts` as a back-compat barrel.
+  - Split `src/components/SettingsView.tsx` (1,009 lines) into focused panel components under `src/components/settings/` (`ApiKeysPanel`, `DefaultsPanel`, `SafetyPanel`, `DataStoragePanel`, `UpdatesPanel`, `ConfigPanel`, `AboutPanel`, and the `SettingsView` shell); kept `src/components/SettingsView.tsx` as a re-export shim.
+  - Split `electron/ipc/handlers.ts` (1,336 lines) into domain handlers under `electron/ipc/handlers/` (`veniceHandlers`, `apiKeyHandlers`, `jinaHandlers`, `fileHandlers`, `systemHandlers`, `common`, and `index`); kept `electron/ipc/handlers.ts` as a back-compat barrel.
+  - Split `src/services/veniceClient.ts` (1,586 lines) into focused modules under `src/services/veniceClient/` (`errors`, `diagnostics`, `serialization`, `retry`, `safety`, `fetch`, `stream`, `venice`, and `index`); kept `src/services/veniceClient.ts` as a re-export barrel.
+  - Updated `scripts/verify-safety-guard.cjs`, `scripts/verify-safety-guard.test.ts`, and `scripts/verify-image-policy.cjs` to point at the new split module paths.
+  - **Files changed:** `src/theme/themes.ts`, `src/theme/builtins/**`, `src/components/SettingsView.tsx`, `src/components/settings/**`, `electron/ipc/handlers.ts`, `electron/ipc/handlers/**`, `src/services/veniceClient.ts`, `src/services/veniceClient/**`, `scripts/verify-safety-guard.cjs`, `scripts/verify-safety-guard.test.ts`, `scripts/verify-image-policy.cjs`, `docs/summary_of_work.md`, `docs/audits/repository-todo-roadmap-current.md`.
+  - **Validation:** `npm run lint:eslint` PASS (0 warnings); `npm run typecheck` PASS (renderer + electron main); `npm run build` PASS; `npm run test:ci` PASS (272 test files / 3,393 tests passed / 1 skipped, coverage thresholds met); `npm run verify:contracts` PASS (all 22+ sub-verifiers).
+
+- **2026-06-21 Segmented test scripts and CI/release workflow updates (current session):**
+  - Added six segmented npm scripts in `package.json`: `test:server` (root `server.test.ts`), `test:electron` (Electron main-process tests), `test:ingestion` (`src/services/ingestion`), `test:ui` (`src/components` + `tests/accessibility`), `test:unit` (all remaining tests via catch-all excludes), and `test:ci` (`vitest run --coverage`).
+  - Updated `.github/workflows/ci.yml` to use `npm run test:ci` in the main `build-and-test` job and `npm run test:electron` / `npm run test:ui` in the Windows/macOS sensitive-test jobs.
+  - Updated `.github/workflows/release.yml` to use `npm run test:ci` in the macOS/Windows/Linux build jobs, preserving typecheck/build ordering.
+  - Updated `scripts/verify-release-packaging-hardening.cjs` to accept `npm run test:ci` (and `npm run test:coverage`) as valid test execution commands in the `ci` script and release workflow checks.
+  - Updated the root `ci` script in `package.json` to use `npm run test:ci` for consistency.
+  - **Files changed:** `package.json`, `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `scripts/verify-release-packaging-hardening.cjs`, `package-scripts.test.ts`, `AGENTS.md`, `docs/summary_of_work.md`, `docs/audits/repository-todo-roadmap-current.md`.
+  - **Validation:** `npm run lint:eslint` PASS (0 warnings); `npm run typecheck` PASS (renderer + electron main); `npm run test:ci` PASS (272 test files / 3,393 tests passed / 1 skipped, coverage thresholds met); `npm run verify:document-ingestion` PASS (99 tests); all segmented scripts individually PASS with no overlaps.
+
+- **2026-06-21 Document ingestion verifier split (current session):**
+  - Refactored `scripts/verify-document-ingestion.cjs` so ingestion service tests and UI component tests run in separate Vitest invocations.
+  - Ingestion tests (`src/services/ingestion/*.test.ts`) run with `--fileParallelism=false`.
+  - Component tests (`src/components/chat/*.test.tsx`, `src/components/research/ResearchWorkspaceView.test.tsx`) run in parallel without forcing serial execution.
+  - Added `scripts/verify-document-ingestion.test.ts` with regression coverage for the split, the serial-vs-parallel flags, and the missing-file failure path.
+  - **Files changed:** `scripts/verify-document-ingestion.cjs`, `scripts/verify-document-ingestion.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `npx vitest run scripts/verify-document-ingestion.test.ts` PASS (6 tests); `npm run verify:document-ingestion` PASS (99 tests across two Vitest invocations); `npm run lint:eslint` PASS (0 warnings); `npm run typecheck` PASS (renderer + electron main); `npm run verify:contracts` PASS (all 22+ sub-verifiers).
+
+- **2026-06-21 Logger redaction hardening (current session):**
+  - Hardened `src/shared/logger.ts` so that `warn` and `error` sinks redact raw paths, Bearer tokens, `venice_` tokens, `sk-` shaped keys, secret-keyed object properties, and local paths before forwarding arguments to `console.warn`/`console.error` in dev/test builds.
+  - Added the `venice_` token pattern to `src/shared/redaction.ts` and exported `SECRET_KEY_PATTERN` so `logger.ts` can redact by key name.
+  - Updated `src/stores/chat-stream-manager.ts` to pass the raw listener error to the hardened logger instead of pre-redacting with `redactErrorMessage`, removing the now-redundant redaction import.
+  - Added `src/shared/logger.test.ts` with regression guards proving raw paths and tokens never reach stderr, including Error-object and circular-object handling.
+  - Fixed a pre-existing lint error in `scripts/verify-document-ingestion.test.ts` by adding the same `@typescript-eslint/no-require-imports` disable used by sibling CJS-interop tests.
+  - **Files changed:** `src/shared/logger.ts`, `src/shared/logger.test.ts`, `src/shared/redaction.ts`, `src/shared/redaction.test.ts`, `src/stores/chat-stream-manager.ts`, `scripts/verify-document-ingestion.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `npm test -- --run src/shared/logger.test.ts src/hooks/use-chat.test.ts src/stores/chat-stream-manager.test.ts src/shared/redaction.test.ts` PASS (48 tests); `npm run lint:eslint` PASS (0 warnings); `npm run typecheck` PASS (renderer + electron main); `npm run verify:document-ingestion` PASS (99 tests); `npm run build` PASS.
+
 - **2026-06-21 Remaining roadmap closure batch (current session):**
   - Replaced the hardcoded Image Tools edit-model list with dynamic discovery from live `useModels("image")` metadata filtered through `modelSupportsEdit()`, with fallback to the existing image fallback catalog when the model API is unavailable.
   - Fixed workflow-template rollback defects: `reorderSteps()` now updates cloned step objects instead of mutating the rollback snapshot, and `deleteWorkflow()` restores the pre-delete `activeWorkflowId` when persistence fails.
@@ -329,6 +364,16 @@ backlog files were removed.
   - **Validation:** All 14 CI gates pass. Code fully verified for 14 audit items. Release gate: **PASS**.
 
 ### Session History
+- **2026-06-21 Segmented test scripts and CI/release workflow updates:**
+  - Added `test:server`, `test:electron`, `test:ingestion`, `test:ui`, `test:unit`, and `test:ci` npm scripts; wired them into `.github/workflows/ci.yml` and `.github/workflows/release.yml` while keeping coverage collection via `test:ci`.
+  - Adjusted `verify-release-packaging-hardening.cjs` to recognize the new `test:ci` command in workflow and `ci`-script audits.
+  - **Validation:** `lint:eslint`, `typecheck`, `test:ci`, and `verify:document-ingestion` all PASS.
+
+- **2026-06-21 Document ingestion verifier split:**
+  - Split `scripts/verify-document-ingestion.cjs` into two Vitest invocations: ingestion service tests run serially (`--fileParallelism=false`) and component tests run in parallel.
+  - Added `scripts/verify-document-ingestion.test.ts` covering the partition, command-line flags, and missing-file failure path.
+  - **Validation:** `npx vitest run scripts/verify-document-ingestion.test.ts` PASS (6 tests); `npm run verify:document-ingestion` PASS (99 tests); `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm run verify:contracts` PASS.
+
 - **2026-06-21 IMG-007 Plain Objects for venice() in Media Hooks:**
   - Removed `JSON.stringify()` from `venice()` calls in `use-video.ts`, `use-music.ts`, and `use-embeddings.ts`.
   - Added `use-video.test.tsx`, `use-music.test.tsx`, and `use-embeddings.test.tsx` verifying plain-object bodies.
@@ -996,6 +1041,26 @@ backlog files were removed.
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+- 2026-06-21 segmented test scripts and CI/release workflow updates:
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run typecheck`: PASS (renderer + electron main).
+  - `npm run test:ci`: PASS (272 test files / 3,393 tests passed / 1 skipped; v8 coverage thresholds met).
+  - `npm run test:server`: PASS (1 test file / 57 tests).
+  - `npm run test:electron`: PASS (26 test files / 365 tests).
+  - `npm run test:ingestion`: PASS (8 test files / 60 tests).
+  - `npm run test:ui`: PASS (51 test files / 343 tests).
+  - `npm run test:unit`: PASS (186 test files / 2,504 tests).
+  - `npm run verify:document-ingestion`: PASS (99 tests across 11 test files / 2 Vitest invocations).
+  - `npm run verify:release-packaging-hardening`: PASS (102 checks).
+  - `npm run verify:contracts`: PASS (all 22+ sub-verifiers).
+
+- 2026-06-21 document ingestion verifier split:
+  - `npx vitest run scripts/verify-document-ingestion.test.ts`: PASS (6 tests).
+  - `npm run verify:document-ingestion`: PASS (99 tests across 11 test files / 2 Vitest invocations).
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run typecheck`: PASS (renderer + electron main).
+  - `npm run verify:contracts`: PASS (all 22+ sub-verifiers).
+
 - 2026-06-21 push to main and workflow validation:
   - `npm test`: PASS (268 test files / 3,340 tests passed / 1 skipped).
   - `npm run ci`: PASS (lint, typecheck, coverage, safety, contracts, markdown-links, dist, archive-clean, release-packaging-hardening).
@@ -3164,6 +3229,21 @@ backlog files were removed.
 - **Status:** IN PROGRESS — Top five P0 roadmap items complete. Remaining roadmap items documented in Open TODO Ledger below. No secrets or private machine paths recorded.
 
 ## Session History
+
+### 2026-06-21 - Logger redaction hardening
+
+- **Agent:** Kimi Code (subagent).
+- **Branch / state:** current branch; working tree contained prior roadmap edits.
+- **Scope:** Harden dev/test logging so raw paths, Bearer strings, `venice_` tokens, `sk-` shaped keys, and other secret-like values never reach `stderr` through `console.warn`/`console.error`.
+- **Actions:**
+  - Rewrote `src/shared/logger.ts` to recursively sanitize every argument: strings run through `sanitizeErrorText`, `Error` objects become `{ name, message, stack }` with sanitized message/stack, objects/arrays are deep-copied with secret-keyed values replaced and nested strings sanitized, and circular references are replaced with `[Circular]`.
+  - Added `VENICE_UNDERSCORE_PATTERN` to `src/shared/redaction.ts`, included it in `redactString`/`sanitizeErrorText`, and exported `SECRET_KEY_PATTERN` for the logger's object-key redaction.
+  - Added a `venice_` redaction regression case to `src/shared/redaction.test.ts`.
+  - Removed the redundant `redactErrorMessage` call in `chat-stream-manager.ts` listener error logging now that the logger redacts natively.
+  - Added `src/shared/logger.test.ts` covering paths, Bearer tokens, `venice_` tokens, `sk-` keys, Error-object redaction, object secrets, primitive pass-through, and circular references.
+  - Added the existing `@typescript-eslint/no-require-imports` disable comment in `scripts/verify-document-ingestion.test.ts` to restore the zero-warnings lint contract.
+- **Files changed:** `src/shared/logger.ts`, `src/shared/logger.test.ts`, `src/shared/redaction.ts`, `src/shared/redaction.test.ts`, `src/stores/chat-stream-manager.ts`, `scripts/verify-document-ingestion.test.ts`, `docs/summary_of_work.md`.
+- **Validation:** focused Vitest PASS (48 tests); `npm run lint:eslint` PASS (0 warnings); `npm run typecheck` PASS (renderer + electron main); `npm run verify:document-ingestion` PASS (99 tests); `npm run build` PASS.
 
 ### 2026-06-21 - Conversation Vault manifest journal
 
