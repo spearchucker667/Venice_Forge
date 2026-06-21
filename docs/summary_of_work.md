@@ -115,6 +115,13 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-06-21 Push to main and workflow validation (current session):**
+  - Committed all staged roadmap stabilization changes as `d41d568` (`chore: roadmap stabilization batch — media, privacy, config, safety, ingestion`).
+  - Pushed `main` to `origin`; CI workflow `27902694991` and CodeQL workflow `27902694990` both completed successfully.
+  - All CI jobs passed: `build-and-test` (Node 22 + Node 24), `windows-sensitive-tests`, `macos-sensitive-tests`, `electron-smoke-windows`, `electron-smoke-macos`.
+  - **Files changed:** `docs/summary_of_work.md`.
+  - **Validation:** Local `npm run ci` PASS; `npm test` PASS (268 test files / 3,340 tests passed / 1 skipped); CI `27902694991` PASS; CodeQL `27902694990` PASS.
+
 - **2026-06-21 IMG-008/009 Image-view cast cleanup and MIME-based extension helper (current session):**
   - Confirmed `src/components/image/image-view.tsx` constructs its `MediaItem` directly with the correct fields; the unsafe `as unknown as MediaItem` cast is gone (IMG-008).
   - Added shared `getExtensionFromDataUrl(dataUrl)` helper in `src/utils/image.ts` and migrated `image-view.tsx` `downloadImage` and `media-export-bundle.ts` `extensionFor` to derive the saved/exported file extension from the actual Base64 MIME type (`png`/`jpg`/`webp`/`gif`/`avif`).
@@ -928,6 +935,13 @@ backlog files were removed.
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+- 2026-06-21 push to main and workflow validation:
+  - `npm test`: PASS (268 test files / 3,340 tests passed / 1 skipped).
+  - `npm run ci`: PASS (lint, typecheck, coverage, safety, contracts, markdown-links, dist, archive-clean, release-packaging-hardening).
+  - `git commit` / `git push origin main`: PASS (commit `d41d568`).
+  - GitHub CI workflow `27902694991`: PASS (all jobs green).
+  - GitHub CodeQL workflow `27902694990`: PASS.
+
 - 2026-06-21 IMG-008/009 image-view cast cleanup and MIME-based extension helper:
   - `npm run lint:eslint`: PASS (0 warnings).
   - `npm run typecheck`: PASS (renderer + electron main).
@@ -3089,6 +3103,22 @@ backlog files were removed.
 - **Status:** IN PROGRESS — Top five P0 roadmap items complete. Remaining roadmap items documented in Open TODO Ledger below. No secrets or private machine paths recorded.
 
 ## Session History
+
+### 2026-06-21 - Push to main and workflow validation
+
+- **Agent:** Kimi Code (root agent).
+- **Branch / state:** `main` at `d41d568` after the roadmap stabilization batch commit.
+- **Scope:** Land the accumulated roadmap stabilization changes and verify GitHub Actions CI/CodeQL pass.
+- **Deliverable:** `main` pushed to `origin` with green CI and CodeQL runs.
+- **Actions:**
+  - Ran local `npm test` (3,340 tests passed / 1 skipped) and `npm run ci` (all gates pass).
+  - Committed all changes as `d41d568`: `chore: roadmap stabilization batch — media, privacy, config, safety, ingestion`.
+  - Pushed `main` to `origin` (`fe85562..d41d568`).
+  - Monitored GitHub Actions:
+    - CI workflow `27902694991` — all jobs passed (`build-and-test` Node 22/24, `windows-sensitive-tests` Node 22/24, `macos-sensitive-tests`, `electron-smoke-windows`, `electron-smoke-macos`).
+    - CodeQL workflow `27902694990` — passed.
+- **Files changed:** `docs/summary_of_work.md`.
+- **Status:** Pushed and verified. No secrets or private machine paths recorded.
 
 ### 2026-06-21 - Image-view cast cleanup + MIME-based extension helper (IMG-008 / IMG-009)
 
