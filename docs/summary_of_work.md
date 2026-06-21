@@ -118,9 +118,10 @@ backlog files were removed.
 - **2026-06-21 Push to main and workflow validation (current session):**
   - Committed all staged roadmap stabilization changes as `d41d568` (`chore: roadmap stabilization batch — media, privacy, config, safety, ingestion`).
   - Pushed `main` to `origin`; CI workflow `27902694991` and CodeQL workflow `27902694990` both completed successfully.
+  - Committed the mandatory session-handoff update as `8238165` (`docs: update summary_of_work.md with CI/CodeQL validation`); its CI workflow `27902989170` and CodeQL workflow `27902989177` also passed.
   - All CI jobs passed: `build-and-test` (Node 22 + Node 24), `windows-sensitive-tests`, `macos-sensitive-tests`, `electron-smoke-windows`, `electron-smoke-macos`.
   - **Files changed:** `docs/summary_of_work.md`.
-  - **Validation:** Local `npm run ci` PASS; `npm test` PASS (268 test files / 3,340 tests passed / 1 skipped); CI `27902694991` PASS; CodeQL `27902694990` PASS.
+  - **Validation:** Local `npm run ci` PASS; `npm test` PASS (268 test files / 3,340 tests passed / 1 skipped); CI `27902694991` / `27902989170` PASS; CodeQL `27902694990` / `27902989177` PASS.
 
 - **2026-06-21 IMG-008/009 Image-view cast cleanup and MIME-based extension helper (current session):**
   - Confirmed `src/components/image/image-view.tsx` constructs its `MediaItem` directly with the correct fields; the unsafe `as unknown as MediaItem` cast is gone (IMG-008).
@@ -3107,7 +3108,7 @@ backlog files were removed.
 ### 2026-06-21 - Push to main and workflow validation
 
 - **Agent:** Kimi Code (root agent).
-- **Branch / state:** `main` at `d41d568` after the roadmap stabilization batch commit.
+- **Branch / state:** `main` at `8238165` after the handoff update.
 - **Scope:** Land the accumulated roadmap stabilization changes and verify GitHub Actions CI/CodeQL pass.
 - **Deliverable:** `main` pushed to `origin` with green CI and CodeQL runs.
 - **Actions:**
@@ -3117,6 +3118,8 @@ backlog files were removed.
   - Monitored GitHub Actions:
     - CI workflow `27902694991` — all jobs passed (`build-and-test` Node 22/24, `windows-sensitive-tests` Node 22/24, `macos-sensitive-tests`, `electron-smoke-windows`, `electron-smoke-macos`).
     - CodeQL workflow `27902694990` — passed.
+  - Committed mandatory session-handoff update as `8238165`: `docs: update summary_of_work.md with CI/CodeQL validation`.
+  - Pushed `main` to `origin` (`d41d568..8238165`); CI workflow `27902989170` and CodeQL workflow `27902989177` both passed.
 - **Files changed:** `docs/summary_of_work.md`.
 - **Status:** Pushed and verified. No secrets or private machine paths recorded.
 
