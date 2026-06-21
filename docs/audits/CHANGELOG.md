@@ -8,6 +8,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 
 ## [Unreleased]
 
+## [2.1.1] — 2026-06-20
+
+### Fixed
+- AI research citation deduplication/label correction and clarified local family safe mode warning copy.
+- Added an idempotency guard to prevent double registration of research browser IPC handlers when windows are recreated.
+
+### Changed
+- Added 15 new built-in themes to `src/theme/themes.ts` and matching YAML templates under `config/themes/`.
+- Reconciled safety documentation across `SECURITY.md`, `docs/legal/PRIVACY.md`, and `docs/LEGAL.md`; closed residual audit gaps.
+
 ## [2.1.0] — 2026-06-17
 
 ### Added

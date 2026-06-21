@@ -10,7 +10,7 @@ import { generateId } from '../lib/utils'
 import type { PulledMemoryContext } from '../types/conversationVault'
 import { toConversationRecord } from './chat-store-helpers'
 import { useSettingsStore } from './settings-store' // for defaulting projectRefs to active project on create (polished Phase 1)
-import { desktopChat, desktopConversations } from '../services/desktopBridge'
+import { desktopChat, desktopConversations, isElectron } from '../services/desktopBridge'
 import { redactErrorMessage } from '../shared/redaction'
 import * as logger from '../shared/logger'
 import { DEFAULT_CHAT_MODEL } from '../constants/venice'
@@ -309,6 +309,11 @@ export const useChatStore = create<ChatState>()(
 
         for (const id of targetIds) {
           try {
+            if (!isElectron()) {
+              await StorageService.deleteItem('conversations', id)
+              deleted.push(id)
+              continue
+            }
             const convRes = await desktopConversations.delete(id)
             if (convRes.ok) {
               deleted.push(id)
@@ -557,6 +562,16 @@ function scheduleFlush(): void {
 
 async function writeConversation(conv: Conversation): Promise<void> {
   const record = toConversationRecord(conv)
+  if (!isElectron()) {
+    try {
+      await StorageService.saveItem('conversations', { ...record, timestamp: conv.updatedAt } as Record<string, unknown>)
+      return
+    } catch (err) {
+      const error = redactErrorMessage(err instanceof Error ? err.message : 'Web conversation save failed')
+      logger.error('[chat] web conversations.save failed', error)
+      throw new Error(error)
+    }
+  }
   try {
     const convRes = await desktopConversations.save(record)
     if (convRes.ok) return
@@ -640,6 +655,22 @@ if (typeof window !== 'undefined') {
   // below short-circuit cleanly and log the same shape of warning
   // we already use elsewhere so the failure is observable without
   // it escaping asynchronously and poisoning unrelated tests.
+  const loadWebConversations = async (): Promise<void> => {
+    try {
+      const records = await StorageService.getItems<Conversation>("conversations");
+      const state = useChatStore.getState();
+      if (!state._hasLoadedHistory) {
+        // If the store already contains conversations (e.g. a synchronous test
+        // seed or a createConversation call that beat the async load), keep the
+        // in-memory state and just mark history as loaded. This prevents the
+        // bootstrap from racing with callers that bypass setConversations().
+        state.setConversations(state.conversations.length === 0 ? records : state.conversations);
+      }
+    } catch (err) {
+      logger.error("[chat] web conversations bootstrap failed", redactErrorMessage(err));
+    }
+  };
+
   const safeList = (
     namespace: "vault" | "legacy",
     provider: { list?: unknown },
@@ -674,6 +705,10 @@ if (typeof window !== 'undefined') {
     );
   };
   queueMicrotask(() => {
+    if (!isElectron()) {
+      void loadWebConversations();
+      return;
+    }
     safeList("vault", desktopConversations as { list?: unknown })
       .catch((err) => logger.error("[chat] vault bootstrap threw", err))
       .finally(() => {

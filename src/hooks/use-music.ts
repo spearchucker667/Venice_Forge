@@ -63,7 +63,7 @@ export function useMusic() {
       try {
         const result = await venice<MusicRetrieveResponse>('/audio/retrieve', {
           method: 'POST',
-          body: JSON.stringify({ id: requestIdRef.current }),
+          body: { id: requestIdRef.current },
         })
         if (token !== generationTokenRef.current) return
         const s = result.status.toLowerCase() as 'queued' | 'processing' | 'completed' | 'failed'
@@ -92,7 +92,7 @@ export function useMusic() {
     mutationFn: (req: MusicQueueRequest) =>
       venice<MusicQueueResponse>('/audio/queue', {
         method: 'POST',
-        body: JSON.stringify(req),
+        body: req,
       }),
     onSuccess: (data) => {
       generationTokenRef.current += 1

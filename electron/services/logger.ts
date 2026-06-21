@@ -4,6 +4,7 @@
 import { app, shell } from "electron";
 import fs from "fs";
 import path from "path";
+import { redactSecrets, sanitizeErrorText } from "../../src/shared/redaction";
 
 /** Name of the log file written to the user data directory. */
 const LOG_FILE = "venice-forge.log";
@@ -13,17 +14,6 @@ const MAX_LOG_BYTES = 1024 * 1024;
 
 /** Holds the most recent API error message for diagnostics display. */
 let lastApiError = "";
-
-/** Redacts secrets, tokens, and API keys from a log value.
- *  @param value The raw value to sanitize.
- *  @returns A redacted string safe for logging.
- */
-function redact(value: unknown): string {
-  return String(value ?? "")
-    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [REDACTED]")
-    .replace(/\b(api[-_ ]?key|token|secret|password)\s*[:=]\s*["']?[^"',\s}]+/gi, "$1=[REDACTED]")
-    .replace(/\bvn-[A-Za-z0-9._~+/=-]{8,}\b/gi, "[REDACTED]");
-}
 
 /** Returns the directory path where log files are stored. */
 export function getLogsDir(): string {
@@ -119,8 +109,10 @@ export function logError(message: string, error?: unknown): void {
 function writeLog(level: "INFO" | "WARN" | "ERROR", message: string, meta?: unknown): void {
   try {
     ensureLogFile();
-    const metaText = meta === undefined ? "" : ` ${redact(typeof meta === "string" ? meta : JSON.stringify(meta))}`;
-    const safeMessage = redact(message).replace(/\r?\n/g, "\\n");
+    const safeMessage = sanitizeErrorText(message).replace(/\r?\n/g, "\\n");
+    const metaText = meta === undefined
+      ? ""
+      : ` ${sanitizeErrorText(typeof meta === "string" ? meta : JSON.stringify(redactSecrets(meta)))}`;
     const safeMeta = metaText.replace(/\r?\n/g, "\\n");
     fs.appendFileSync(getLogPath(), `${new Date().toISOString()} ${level} ${safeMessage}${safeMeta}\n`, "utf-8");
   } catch {
@@ -132,7 +124,7 @@ function writeLog(level: "INFO" | "WARN" | "ERROR", message: string, meta?: unkn
  *  @param error The error to record.
  */
 export function setLastApiError(error: unknown): void {
-  lastApiError = redact(error instanceof Error ? error.message : String(error || ""));
+  lastApiError = sanitizeErrorText(error instanceof Error ? error.message : String(error || ""));
 }
 
 /** Retrieves the last stored API error message. */

@@ -2,11 +2,40 @@ import { useEffect } from "react";
 import { useStoragePrivacyStore } from "../../stores/storage-privacy-store";
 import { useSettingsStore, type Tab } from "../../stores/settings-store";
 import { 
-  type StoragePrivacySeverity, 
+  type StoragePrivacySeverity,
+  type StoragePrivacyCategory,
   type StorageStoreInventoryItem,
   type StorageReferenceIssue,
 } from "../../types/storage-privacy";
 import { askDecision } from "../ui/modal-requests";
+
+/** Map a storage-privacy category to the canonical tab id for manual review. */
+export function mapPrivacyCategoryToTab(category: StoragePrivacyCategory): Tab {
+  switch (category) {
+    case "conversations":
+      return "history";
+    case "projects":
+      return "settings";
+    case "media":
+      return "media";
+    case "prompts":
+      return "prompts";
+    case "scenes":
+      return "scenes";
+    case "rp":
+      return "rp-studio";
+    case "workflows":
+      return "workflows";
+    case "settings":
+    case "api_keys":
+      return "settings";
+    case "diagnostics":
+      return "status";
+    case "cache":
+    case "unknown":
+      return "privacy";
+  }
+}
 
 const SEVERITY_COLOR: Record<StoragePrivacySeverity, string> = {
   ok: "text-success",
@@ -68,7 +97,7 @@ export function StoragePrivacyDashboard() {
     return (
       <div className="flex h-full items-center justify-center p-8 text-text-secondary" data-testid="privacy-loading">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-text-muted border-t-text-muted" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-text-muted border-t-accent" />
           <p>Analyzing local storage...</p>
         </div>
       </div>
@@ -195,7 +224,7 @@ export function StoragePrivacyDashboard() {
                     </div>
                     {issue.repairable && (
                         <button
-                            onClick={() => setActiveTab(issue.sourceCategory as Tab)}
+                            onClick={() => setActiveTab(mapPrivacyCategoryToTab(issue.sourceCategory))}
                             className="px-2 py-1 rounded border border-warning/30 text-warning hover:bg-warning/10 text-xs whitespace-nowrap"
                         >
                             Review

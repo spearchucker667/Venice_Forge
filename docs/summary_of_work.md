@@ -115,6 +115,82 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-06-21 IMG-008/009 Image-view cast cleanup and MIME-based extension helper (current session):**
+  - Confirmed `src/components/image/image-view.tsx` constructs its `MediaItem` directly with the correct fields; the unsafe `as unknown as MediaItem` cast is gone (IMG-008).
+  - Added shared `getExtensionFromDataUrl(dataUrl)` helper in `src/utils/image.ts` and migrated `image-view.tsx` `downloadImage` and `media-export-bundle.ts` `extensionFor` to derive the saved/exported file extension from the actual Base64 MIME type (`png`/`jpg`/`webp`/`gif`/`avif`).
+  - Added unit tests for `getExtensionFromDataUrl` covering all supported MIME types and the fallback to `.png`.
+  - **Files changed:** `src/utils/image.ts`, `src/utils/image.test.ts`, `src/components/image/image-view.tsx`, `src/stores/media-export-bundle.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npx vitest run src/utils/image.test.ts src/components/image/image-view.test.tsx src/stores/media-export-bundle.test.ts --fileParallelism=false` PASS (58 tests); `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS; `git diff --check` PASS.
+
+- **2026-06-21 IMG-007 Plain Objects for venice() in Media Hooks (current session):**
+  - Removed `JSON.stringify()` wrappers from `venice()` calls in `use-video.ts`, `use-music.ts`, and `use-embeddings.ts` so the client receives plain objects and can serialize them once (preventing double-stringification).
+  - Created `src/hooks/use-video.test.tsx`, `src/hooks/use-music.test.tsx`, and `src/hooks/use-embeddings.test.tsx` to assert that queue/retrieve/embeddings bodies are passed as plain objects, not pre-stringified strings.
+  - **Files changed:** `src/hooks/use-video.ts`, `src/hooks/use-music.ts`, `src/hooks/use-embeddings.ts`, `src/hooks/use-video.test.tsx`, `src/hooks/use-music.test.tsx`, `src/hooks/use-embeddings.test.tsx`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npx vitest run src/hooks/use-embeddings.test.tsx src/hooks/use-video.test.tsx src/hooks/use-music.test.tsx --fileParallelism=false` PASS (3 tests); `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS.
+
+- **2026-06-21 IMG-006 Crypto randomSeed() (current session):**
+  - Replaced the `Math.random()` fallback in `src/utils/payloadBuilders.ts` `randomSeed()` with a pure `crypto.getRandomValues` implementation.
+  - Added a regression test verifying `randomSeed()` calls `globalThis.crypto.getRandomValues` and never calls `Math.random`.
+  - **Files changed:** `src/utils/payloadBuilders.ts`, `src/utils/payloadBuilders.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npx vitest run src/utils/payloadBuilders.test.ts --fileParallelism=false` PASS (48 tests); `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS.
+
+- **2026-06-21 IMG-005 Semantic Accent Tokens in Media Components (current session):**
+  - Replaced inline `var(--color-accent)` CSS variable classes in image/gallery/video/audio/music components with semantic Tailwind v4 tokens (`text-accent`, `bg-accent`, `border-t-accent`, `outline-accent`).
+  - **Files changed:** `src/components/audio/audio-view.tsx`, `src/components/gallery/media-card.tsx`, `src/components/image/image-tools.tsx`, `src/components/image/image-view.tsx`, `src/components/music/music-view.tsx`, `src/components/video/video-view.tsx`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; focused Vitest on changed component tests PASS (22 tests); `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS.
+
+- **2026-06-21 RCW-003..006 Config/Workflow/AGENTS Cleanup (current session):**
+  - **RCW-003:** Updated `AGENTS.md:269` to state that `npm audit --audit-level=moderate` is the release gate for both production and build-time dependencies, matching the local `ci` script and all `.github/workflows/*.yml` audit steps.
+  - **RCW-004:** Verified `tsconfig.electron.json` uses LF line endings (`cat -e` shows no `\r`) and the `.gitattributes` `eol=lf` rule is applied.
+  - **RCW-005:** Verified the `package.json` `ci` script no longer contains a redundant `npm test` and relies on `npm run test:coverage`.
+  - **RCW-006:** Expanded `AGENTS.md:132` state-store summary from the outdated "5 stores" list to the full Zustand surface, grouping stores into core app, content libraries, and support/utility categories.
+  - **Files changed:** `AGENTS.md`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS.
+
+- **2026-06-21 SP-008 Typed Mocks in Storage-Privacy Tests (current session):**
+  - Eliminated all `as any` casts in the storage-privacy test surface.
+  - In `StoragePrivacyDashboard.test.tsx`, replaced repeated `(useStoragePrivacyStore as any).mockReturnValue(...)` calls with a typed `mockStore(partial: Partial<StoragePrivacyState>)` helper that builds a full `StoragePrivacyState` and uses `vi.mocked(...)`.
+  - Updated dashboard test fixtures to use `satisfies StorageInventoryResult` / `satisfies StorageMaintenancePlan` and explicit `StoragePrivacyCategory` literals.
+  - In `storage-privacy-store.test.ts`, replaced `mockAnchor as any` with `mockAnchor as unknown as ReturnType<typeof document.createElement>` and replaced the maintenance-action result `as any` with `as StorageMaintenanceApplyResult`.
+  - **Files changed:** `src/components/privacy/StoragePrivacyDashboard.test.tsx`, `src/stores/storage-privacy-store.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npx vitest run src/components/privacy/StoragePrivacyDashboard.test.tsx src/stores/storage-privacy-store.test.ts src/stores/storage-privacy-store.mappers.test.ts --fileParallelism=false` PASS (27 tests); `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS.
+
+- **2026-06-21 SP-007 Privacy Category-to-Tab Mapping (current session):**
+  - Removed the unsafe `issue.sourceCategory as Tab` cast from the storage-privacy issue Review button.
+  - Added an exhaustive `mapPrivacyCategoryToTab(category: StoragePrivacyCategory): Tab` helper in `StoragePrivacyDashboard.tsx` that maps every storage-privacy category to a canonical tab id (e.g. `conversations` → `history`, `rp` → `rp-studio`, `diagnostics` → `status`, `projects`/`api_keys` → `settings`, `cache`/`unknown` → `privacy`).
+  - Updated `StoragePrivacyDashboard.test.tsx` with unit tests for the mapper and an integration test verifying the Review button navigates to the mapped tab.
+  - **Files changed:** `src/components/privacy/StoragePrivacyDashboard.tsx`, `src/components/privacy/StoragePrivacyDashboard.test.tsx`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npx vitest run src/components/privacy/StoragePrivacyDashboard.test.tsx --fileParallelism=false` PASS (7 tests); `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS.
+
+- **2026-06-21 SP-006 Typed Storage-Privacy Mappers (current session):**
+  - Replaced the remaining blanket `as { ... }` casts in `storage-privacy-store.ts` with per-store typed mapper functions: `mapMediaItemToStorageRecord`, `mapWorkflowToStorageRecord`, `mapCharacterToStorageRecord`, `mapLorebookToStorageRecord`, `mapPersonaToStorageRecord`, `mapScenarioToStorageRecord`, and `mapSceneToStorageRecord`.
+  - Added imports for `MediaItem`, `WorkflowTemplateItem`, `CharacterCardV1`, `LorebookV1`, `UserPersonaV1`, `ScenarioV1`, and `SceneComposerItem` so the mappers are type-safe.
+  - Exported the mappers and added `src/stores/storage-privacy-store.mappers.test.ts` with 8 regression tests covering each mapper.
+  - **Files changed:** `src/stores/storage-privacy-store.ts`, `src/stores/storage-privacy-store.mappers.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npx vitest run src/stores/storage-privacy-store.test.ts src/stores/storage-privacy-store.mappers.test.ts --fileParallelism=false` PASS (20 tests); `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS.
+
+- **2026-06-21 SP-004 Storage Privacy Loading Spinner Fix (current session):**
+  - Fixed the invisible loading spinner in `StoragePrivacyDashboard.tsx`: changed the spinner's top border from `border-t-text-muted` (same color as the ring) to `border-t-accent` so the rotating segment is visible against the muted ring.
+  - Added a regression test in `StoragePrivacyDashboard.test.tsx` that asserts the spinner element exists in the loading state and carries the contrasting `border-t-accent` class.
+  - **Files changed:** `src/components/privacy/StoragePrivacyDashboard.tsx`, `src/components/privacy/StoragePrivacyDashboard.test.tsx`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npx vitest run src/components/privacy/StoragePrivacyDashboard.test.tsx --fileParallelism=false` PASS; `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS.
+
+- **2026-06-21 Roadmap Clipboard / Privacy Maintenance Cleanup (current session):**
+  - Continued the open TODO roadmap in order.
+  - Verified that `media-inspector.tsx` and `embeddings-view.tsx` already use the canonical `copyText` helper from `src/stores/media-send-to.ts`; marked ledger items IMG-002 and IMG-003 closed.
+  - Addressed SP-003 by replacing the raw `navigator.clipboard.writeText` call in `storage-privacy-store.ts` `copySafeSummary()` with the canonical `copyText` helper. The function now surfaces a toast error when the clipboard helper fails instead of silently swallowing the failure.
+  - Added a regression test for the copy-failure path in `src/stores/storage-privacy-store.test.ts`.
+  - **Files changed:** `src/stores/storage-privacy-store.ts`, `src/stores/storage-privacy-store.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; focused Vitest (`storage-privacy-store.test.ts`, `media-send-to.test.ts`) PASS; `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS.
+
+- **2026-06-21 Test Isolation Regression Repair (current session):**
+  - Investigated a full-suite test failure in `src/components/chat/HistoryView.test.tsx` where the title-search test failed with "No conversations found" despite passing in isolation.
+  - Root cause: the global `fake-indexeddb/auto` initialization in `tests/setup.ts` (added to silence IndexedDB stderr noise) caused `chat-store.ts`'s async web-conversation bootstrap to actually resolve in tests. When a test seeded conversations via direct `useChatStore.setState({ conversations })`, the bootstrap could overwrite them before assertions because `_hasLoadedHistory` was not set.
+  - Fixed `src/stores/chat-store.ts` `loadWebConversations()` to only overwrite conversations when the in-memory list is still empty, and to mark history as loaded either way. This preserves real bootstrap behavior while protecting test seeds and synchronous createConversation callers.
+  - Fixed `src/hooks/use-chat.test.ts` to mock `../services/desktopBridge` with `importOriginal` so the `isElectron` export is preserved, eliminating an unhandled "No isElectron export" error that poisoned the test runner.
+  - **Files changed:** `src/stores/chat-store.ts`, `src/hooks/use-chat.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm test` PASS (266 test files / 3,343 tests passed / 1 skipped); `npm run build` PASS; `npm run verify:dist` PASS; `npm run verify:contracts` PASS; `npm run verify:markdown-links` PASS; `git diff --check` PASS.
+
 - **2026-06-20 Push to Main and Workflow Validation (current session):**
   - Monitored the triggered GitHub Actions CI and Release workflows on the `main` branch after pushing the v2.1.1 tag.
   - Verified that all jobs for `CI` (`27886689060`) and `v2.1.1 Release` (`27886689375`) completed successfully (`publish` included).
@@ -185,6 +261,59 @@ backlog files were removed.
   - **Validation:** All 14 CI gates pass. Code fully verified for 14 audit items. Release gate: **PASS**.
 
 ### Session History
+- **2026-06-21 IMG-007 Plain Objects for venice() in Media Hooks:**
+  - Removed `JSON.stringify()` from `venice()` calls in `use-video.ts`, `use-music.ts`, and `use-embeddings.ts`.
+  - Added `use-video.test.tsx`, `use-music.test.tsx`, and `use-embeddings.test.tsx` verifying plain-object bodies.
+  - **Validation:** lint, typecheck, focused hook tests (3 tests), build, `verify:dist`, `verify:contracts` all PASS.
+
+- **2026-06-21 IMG-006 Crypto randomSeed():**
+  - Removed the `Math.random()` fallback from `randomSeed()` in `src/utils/payloadBuilders.ts`; the function now uses `crypto.getRandomValues` exclusively.
+  - Added a regression test spying on both `Math.random` and `crypto.getRandomValues`.
+  - **Validation:** lint, typecheck, focused `payloadBuilders.test.ts` (48 tests), build, `verify:dist`, `verify:contracts` all PASS.
+
+- **2026-06-21 IMG-005 Semantic Accent Tokens in Media Components:**
+  - Replaced inline `var(--color-accent)` classes in audio, gallery, image, music, and video components with Tailwind semantic tokens (`text-accent`, `bg-accent`, `border-t-accent`, `outline-accent`).
+  - **Validation:** lint, typecheck, focused component tests (22 tests), build, `verify:dist`, `verify:contracts` all PASS.
+
+- **2026-06-21 RCW-003..006 Config/Workflow/AGENTS Cleanup:**
+  - RCW-003: Aligned documented audit scope in `AGENTS.md` with the actual `ci` script and workflow commands (`npm audit --audit-level=moderate`, no `--omit=dev`).
+  - RCW-004: Confirmed `tsconfig.electron.json` LF normalization.
+  - RCW-005: Confirmed redundant `npm test` removed from `ci` script.
+  - RCW-006: Expanded `AGENTS.md` state-store summary to the full Zustand store surface.
+  - **Validation:** lint, typecheck, build, `verify:dist`, `verify:contracts` all PASS.
+
+- **2026-06-21 SP-008 Typed Mocks in Storage-Privacy Tests:**
+  - Removed all `as any` casts from `StoragePrivacyDashboard.test.tsx` and `storage-privacy-store.test.ts`.
+  - Introduced a typed `mockStore` helper in the dashboard test; typed the maintenance-action result and the `createElement` mock return.
+  - **Validation:** lint, typecheck, focused Vitest (27 tests), build, `verify:dist`, `verify:contracts` all PASS.
+
+- **2026-06-21 SP-007 Privacy Category-to-Tab Mapping:**
+  - Replaced the unsafe `issue.sourceCategory as Tab` cast with an exhaustive `mapPrivacyCategoryToTab()` helper in `StoragePrivacyDashboard.tsx`.
+  - Added tests for every category mapping and for the Review button navigation behavior.
+  - **Validation:** lint, typecheck, focused Vitest (7 tests), build, `verify:dist`, `verify:contracts` all PASS.
+
+- **2026-06-21 SP-006 Typed Storage-Privacy Mappers:**
+  - Removed blanket `as { ... }` casts from `storage-privacy-store.ts` by introducing typed per-store mapper functions for media, workflows, characters, lorebooks, personas, scenarios, and scenes.
+  - Added `src/stores/storage-privacy-store.mappers.test.ts` with focused regression coverage for every mapper.
+  - **Validation:** lint, typecheck, focused Vitest (20 tests), build, `verify:dist`, `verify:contracts` all PASS.
+
+- **2026-06-21 SP-004 Storage Privacy Loading Spinner Fix:**
+  - Fixed the invisible loading spinner in `StoragePrivacyDashboard.tsx` by giving it a contrasting `border-t-accent` top border.
+  - Added a regression test verifying the spinner is present and visibly contrasting in the loading state.
+  - **Validation:** lint, typecheck, focused dashboard test, build, `verify:dist`, `verify:contracts` all PASS.
+
+- **2026-06-21 Clipboard Helper Consolidation / Privacy Maintenance Cleanup:**
+  - Continued the open TODO roadmap starting with IMG-002/IMG-003; confirmed both are already implemented via the canonical `copyText` helper.
+  - Closed the remaining raw clipboard usage in `storage-privacy-store.ts` by routing `copySafeSummary()` through `copyText` and adding a failure toast.
+  - Added a regression test for the copy-failure path.
+  - **Validation:** lint, typecheck, focused Vitest, build, `verify:dist`, `verify:contracts` all PASS.
+
+- **2026-06-21 Chat-Store Web Bootstrap Race Repair:**
+  - Repaired a test-isolation regression introduced when `fake-indexeddb/auto` was initialized globally: `chat-store.ts`'s `loadWebConversations()` could overwrite conversations seeded by direct `setState` in tests.
+  - Hardened the bootstrap to keep existing in-memory conversations when history has not been loaded yet, and to mark `_hasLoadedHistory` regardless so later loads cannot clobber seeded state.
+  - Repaired the `use-chat.test.ts` `desktopBridge` mock to preserve `isElectron`, removing an unhandled exception from the serial test run.
+  - **Validation:** lint, typecheck, full `npm test`, build, `verify:dist`, `verify:contracts`, `verify:markdown-links`, and `git diff --check` all PASS.
+
 - **2026-06-19 Safety / Privacy / Legal Documentation Reconciliation:**
   - Rewrote the public Family Safe Mode contract in the docs to match the current code and tests instead of older audit wording.
   - Documented what the guard does and does not do, where it runs, the supported endpoint matrix, local/no-network behavior, logging/diagnostics redaction boundaries, aggregate-only audit counters, maintainer endpoint-wiring steps, verification commands, fixture hygiene, and current limitations/future work.
@@ -588,6 +717,46 @@ backlog files were removed.
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
+- 2026-06-21 storage-privacy dashboard polish + config cleanup + IMG-005/006/007 (IMG-002 / IMG-003 / SP-003 / SP-004 / SP-006 / SP-007 / SP-008 / RCW-003 / RCW-004 / RCW-005 / RCW-006 / IMG-005 / IMG-006 / IMG-007) — CLOSED in this session:
+  - IMG-005: Replaced inline `var(--color-accent)` classes in audio/gallery/image/music/video components with Tailwind semantic tokens.
+  - IMG-006: `randomSeed()` in `src/utils/payloadBuilders.ts` now uses `crypto.getRandomValues` exclusively; regression test added.
+  - IMG-007: Removed `JSON.stringify()` from `venice()` calls in `use-video.ts`, `use-music.ts`, and `use-embeddings.ts`; added regression tests for all three hooks.
+  - IMG-002 / IMG-003: `media-inspector.tsx` and `embeddings-view.tsx` already use the canonical `copyText` helper.
+  - SP-003: `storage-privacy-store.ts` `copySafeSummary()` now routes through `copyText` and surfaces a toast error on failure.
+  - SP-004: `StoragePrivacyDashboard.tsx` loading spinner now uses a contrasting `border-t-accent` top border; regression test added.
+  - SP-006: Replaced blanket `as { ... }` casts in `storage-privacy-store.ts` with typed per-store mapper functions and added `storage-privacy-store.mappers.test.ts`.
+  - SP-007: Replaced unsafe `issue.sourceCategory as Tab` cast with exhaustive `mapPrivacyCategoryToTab()` helper; added mapping + navigation tests.
+  - SP-008: Removed all `as any` casts from storage-privacy tests; introduced typed `mockStore` helper and `satisfies`-typed fixtures.
+  - RCW-003: `AGENTS.md` audit description aligned with `package.json` `ci` script and workflows (`npm audit --audit-level=moderate`, no `--omit=dev`).
+  - RCW-004: `tsconfig.electron.json` LF line endings verified.
+  - RCW-005: `package.json` `ci` script verified to rely on `test:coverage` only (no redundant `npm test`).
+  - RCW-006: `AGENTS.md` state-store summary expanded to the full Zustand surface.
+  - Validation: lint, typecheck, focused Vitest, build, `verify:dist`, `verify:contracts` all pass.
+- 2026-06-21 image-view cast cleanup + MIME-based extension helper (IMG-008 / IMG-009) — CLOSED in this session:
+  - IMG-008: `src/components/image/image-view.tsx` no longer uses `as unknown as MediaItem`; it builds a real `MediaItem` object with correct fields.
+  - IMG-009: Added shared `getExtensionFromDataUrl()` in `src/utils/image.ts`; `image-view.tsx` `downloadImage` and `media-export-bundle.ts` `extensionFor` now derive extension from the actual data URL MIME type, including `avif`.
+  - Validation: lint, typecheck, focused Vitest (58 tests), build, `verify:dist`, `verify:contracts`, `git diff --check` all pass.
+- 2026-06-21 storage-privacy dashboard polish + config cleanup (IMG-002 / IMG-003 / SP-003 / SP-004 / SP-006 / SP-007 / SP-008 / RCW-003 / RCW-004 / RCW-005 / RCW-006) — CLOSED in this session:
+  - IMG-002 / IMG-003: `media-inspector.tsx` and `embeddings-view.tsx` already use the canonical `copyText` helper.
+  - SP-003: `storage-privacy-store.ts` `copySafeSummary()` now routes through `copyText` and surfaces a toast error on failure.
+  - SP-004: `StoragePrivacyDashboard.tsx` loading spinner now uses a contrasting `border-t-accent` top border; regression test added.
+  - SP-006: Replaced blanket `as { ... }` casts in `storage-privacy-store.ts` with typed per-store mapper functions and added `storage-privacy-store.mappers.test.ts`.
+  - SP-007: Replaced unsafe `issue.sourceCategory as Tab` cast with exhaustive `mapPrivacyCategoryToTab()` helper; added mapping + navigation tests.
+  - SP-008: Removed all `as any` casts from storage-privacy tests; introduced typed `mockStore` helper and `satisfies`-typed fixtures.
+  - RCW-003: `AGENTS.md` audit description aligned with `package.json` `ci` script and workflows (`npm audit --audit-level=moderate`, no `--omit=dev`).
+  - RCW-004: `tsconfig.electron.json` LF line endings verified.
+  - RCW-005: `package.json` `ci` script verified to rely on `test:coverage` only (no redundant `npm test`).
+  - RCW-006: `AGENTS.md` state-store summary expanded to the full Zustand surface.
+  - Validation: lint, typecheck, focused Vitest, build, `verify:dist`, `verify:contracts` all pass.
+- 2026-06-21 clipboard helper consolidation (IMG-002 / IMG-003 / SP-003) — CLOSED in this session:
+  - `media-inspector.tsx` and `embeddings-view.tsx` already use the canonical `copyText` helper; ledger items IMG-002 and IMG-003 are closed.
+  - `storage-privacy-store.ts` `copySafeSummary()` previously used raw `navigator.clipboard.writeText`; it now routes through `copyText` and surfaces a toast error on failure.
+  - SP-003 is closed: the privacy dashboard exposes Copy/Export via top-level buttons wired to the store's `copySafeSummary` / `exportSafeSummary`; no broken maintenance-plan actions remain.
+  - Validation: lint, typecheck, focused Vitest, build, `verify:dist`, `verify:contracts` all pass.
+- 2026-06-21 global `fake-indexeddb/auto` test-isolation regression — CLOSED in this session:
+  - The global `fake-indexeddb/auto` setup caused `chat-store.ts`'s async web-conversation bootstrap to resolve in tests and race with direct `useChatStore.setState({ conversations })` seeds.
+  - CLOSED by making `loadWebConversations()` keep existing in-memory conversations when history has not been loaded yet, and by repairing the `use-chat.test.ts` `desktopBridge` mock to preserve `isElectron`.
+  - Full `npm test` (3,343 tests), lint, typecheck, build, `verify:dist`, `verify:contracts`, and `verify:markdown-links` all pass.
 - 2026-06-19 safety/privacy/legal/diagnostics doc reconciliation — CLOSED in this session:
   - Public docs now describe Family Safe Mode as local and non-comprehensive, document the canonical 451 block shape, and state that audit counters are aggregate-only.
   - Maintainer docs now include the new-endpoint wiring checklist, safety verification commands, and synthetic fixture hygiene guidance.
@@ -759,6 +928,105 @@ backlog files were removed.
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+- 2026-06-21 IMG-008/009 image-view cast cleanup and MIME-based extension helper:
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run typecheck`: PASS (renderer + electron main).
+  - `npx vitest run src/utils/image.test.ts src/components/image/image-view.test.tsx src/stores/media-export-bundle.test.ts --fileParallelism=false`: PASS (58 tests).
+  - `npm run build`: PASS (`dist/`, `dist-electron/`, `dist/server.cjs`).
+  - `npm run verify:dist`: PASS.
+  - `npm run verify:contracts`: PASS (all 22+ sub-verifiers).
+  - `git diff --check`: PASS.
+
+- 2026-06-21 IMG-007 plain objects for venice() in media hooks:
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run typecheck`: PASS (renderer + electron main).
+  - `npx vitest run src/hooks/use-embeddings.test.tsx src/hooks/use-video.test.tsx src/hooks/use-music.test.tsx --fileParallelism=false`: PASS (3 tests).
+  - `npm run build`: PASS (`dist/`, `dist-electron/`, `dist/server.cjs`).
+  - `npm run verify:dist`: PASS.
+  - `npm run verify:contracts`: PASS (all 22+ sub-verifiers).
+  - `git diff --check`: PASS.
+
+- 2026-06-21 IMG-006 crypto randomSeed():
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run typecheck`: PASS (renderer + electron main).
+  - `npx vitest run src/utils/payloadBuilders.test.ts --fileParallelism=false`: PASS (48 tests).
+  - `npm run build`: PASS (`dist/`, `dist-electron/`, `dist/server.cjs`).
+  - `npm run verify:dist`: PASS.
+  - `npm run verify:contracts`: PASS (all 22+ sub-verifiers).
+  - `git diff --check`: PASS.
+
+- 2026-06-21 IMG-005 semantic accent tokens in media components:
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run typecheck`: PASS (renderer + electron main).
+  - Focused Vitest on changed component tests: PASS (22 tests across 4 test files).
+  - `npm run build`: PASS (`dist/`, `dist-electron/`, `dist/server.cjs`).
+  - `npm run verify:dist`: PASS.
+  - `npm run verify:contracts`: PASS (all 22+ sub-verifiers).
+  - `git diff --check`: PASS.
+
+- 2026-06-21 RCW-003..006 config/workflow/AGENTS cleanup:
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run typecheck`: PASS (renderer + electron main).
+  - `npm run build`: PASS (`dist/`, `dist-electron/`, `dist/server.cjs`).
+  - `npm run verify:dist`: PASS.
+  - `npm run verify:contracts`: PASS (all 22+ sub-verifiers).
+  - `git diff --check`: PASS.
+
+- 2026-06-21 SP-008 typed mocks in storage-privacy tests:
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run typecheck`: PASS (renderer + electron main).
+  - `npx vitest run src/components/privacy/StoragePrivacyDashboard.test.tsx src/stores/storage-privacy-store.test.ts src/stores/storage-privacy-store.mappers.test.ts --fileParallelism=false`: PASS (27 tests).
+  - `npm run build`: PASS (`dist/`, `dist-electron/`, `dist/server.cjs`).
+  - `npm run verify:dist`: PASS.
+  - `npm run verify:contracts`: PASS (all 22+ sub-verifiers).
+  - `git diff --check`: PASS.
+
+- 2026-06-21 SP-007 privacy category-to-tab mapping:
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run typecheck`: PASS (renderer + electron main).
+  - `npx vitest run src/components/privacy/StoragePrivacyDashboard.test.tsx --fileParallelism=false`: PASS (7 tests).
+  - `npm run build`: PASS (`dist/`, `dist-electron/`, `dist/server.cjs`).
+  - `npm run verify:dist`: PASS.
+  - `npm run verify:contracts`: PASS (all 22+ sub-verifiers).
+  - `git diff --check`: PASS.
+
+- 2026-06-21 SP-006 typed storage-privacy mappers:
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run typecheck`: PASS (renderer + electron main).
+  - `npx vitest run src/stores/storage-privacy-store.test.ts src/stores/storage-privacy-store.mappers.test.ts --fileParallelism=false`: PASS (20 tests).
+  - `npm run build`: PASS (`dist/`, `dist-electron/`, `dist/server.cjs`).
+  - `npm run verify:dist`: PASS.
+  - `npm run verify:contracts`: PASS (all 22+ sub-verifiers).
+  - `git diff --check`: PASS.
+
+- 2026-06-21 SP-004 storage privacy loading spinner fix:
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run typecheck`: PASS (renderer + electron main).
+  - `npx vitest run src/components/privacy/StoragePrivacyDashboard.test.tsx --fileParallelism=false`: PASS (5 tests).
+  - `npm run build`: PASS (`dist/`, `dist-electron/`, `dist/server.cjs`).
+  - `npm run verify:dist`: PASS.
+  - `npm run verify:contracts`: PASS (all 22+ sub-verifiers).
+  - `git diff --check`: PASS.
+
+- 2026-06-21 clipboard helper / privacy maintenance cleanup:
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run typecheck`: PASS (renderer + electron main).
+  - `npx vitest run src/stores/storage-privacy-store.test.ts src/stores/media-send-to.test.ts --fileParallelism=false`: PASS (49 tests).
+  - `npm run build`: PASS (`dist/`, `dist-electron/`, `dist/server.cjs`).
+  - `npm run verify:dist`: PASS.
+  - `npm run verify:contracts`: PASS (all 22+ sub-verifiers).
+  - `git diff --check`: PASS.
+
+- 2026-06-21 chat-store web bootstrap race repair:
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run typecheck`: PASS (renderer + electron main).
+  - `npm test`: PASS (266 test files / 3,343 tests passed / 1 skipped).
+  - `npm run build`: PASS (`dist/`, `dist-electron/`, `dist/server.cjs`).
+  - `npm run verify:dist`: PASS.
+  - `npm run verify:contracts`: PASS (all 22+ sub-verifiers).
+  - `npm run verify:markdown-links`: PASS (77 Markdown files checked).
+  - `git diff --check`: PASS.
+
 - 2026-06-19 safety/privacy/legal/diagnostics documentation reconciliation:
   - `npm run verify:markdown-links`: PASS.
   - `npm run verify:safety-guard`: PASS.
@@ -2813,14 +3081,82 @@ backlog files were removed.
 
 ## Latest Session Summary
 
-- **Date:** 2026-06-17
+- **Date:** 2026-06-21
 - **Agent:** Kimi Code (root agent)
-- **Branch / state:** `main` at `bda8fb761f86ddbcd6ad8aa191c36a07be08328e`; working tree had pre-existing modified/untracked files from in-flight 2.1.0 work.
-- **Scope:** Phase 2I+ Research Web Expansion + Mini Browser implementation. Hardened `electron/services/researchBrowserServer.ts` with security handlers (permissions, navigation blocking, URL safety). Extended `src/config/configSchema.ts` with 7 new research fields (`default_search_provider`, `default_reader_provider`, `enable_live_browser`, `live_browser_search_provider`, `live_browser_persist_session`, `live_browser_javascript_enabled`, `max_browser_extract_chars`). Created `src/components/search/ResearchProviderStatus.tsx` with 4-provider status indicators. Integrated browser sub-tab into `src/components/search/SearchScrapeView.tsx` with `ResearchBrowserView`, `onCaptureWithJina`, and `researchBrowserBridge`. Upgraded `src/components/search/AiResearchTab.tsx` with `researchBudget` controls (maxQueries, maxResultsPerQuery, maxPages, maxCharsPerPage, perRequestTimeoutMs, totalJobTimeoutMs), `researchSearchProvider`, `researchScrapeProvider`, and `researchRunMode` (`retrieve-only`/`retrieve-and-synthesize`). Added provider action buttons to `src/components/search/SearchTab.tsx`. Created `scripts/verify-research-browser.cjs` audit script and registered `verify:research-browser` in `package.json` and `verify:contracts`. Added `VERIFY-057` regression guard to `AGENTS.md`. Created `src/components/search/ResearchProviderStatus.test.tsx` with 6 tests.
-- **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm run build` PASS; `npm run verify:contracts` PASS (all 22 gates: bundle-budget, safety-guard, markdown-links, theme-tokens, model-aware-recipes, media-studio-power-tools, status-diagnostics, prompt-library, scene-composer, rp-studio-polish, workflow-templates, storage-privacy, storage-policy, research-workspace, research-browser, network-boundaries, venice-api-docs, release-packaging-hardening, ci-contract, agent-docs, image-policy, work-orders, no-native-dialogs, web-contents-view); `node scripts/verify-research-browser.cjs` PASS (107 tests across 8 files); `node scripts/verify-research-workspace.cjs` PASS (101 tests across 7 files).
-- **Status:** COMPLETE — Phase 2I+ Research Web Expansion + Mini Browser implemented, tested, and verified. All gates pass. No secrets or private machine paths recorded.
+- **Branch / state:** `main` at `fe85562fcd40c1015205334d5c9bfbda6b2ede80`; working tree clean of stale release artifacts.
+- **Scope:** Roadmap stabilization batch 2 — implemented the top five P0 items from the production-readiness roadmap: web-mode conversation persistence, document-ingestion XML attribute escaping, main-process logger redaction parity, production CSP `img-src` hardening, and HTTPS-only generic scrape proxy. Added regression guards VERIFY-059 through VERIFY-063 and updated the handoff hygiene verifier to recognize the new IDs.
+- **Validation:** `npm run lint:eslint` PASS (0 warnings); `npm run typecheck` PASS (renderer + Electron main); targeted vitest run PASS (109 tests across chat-store, ingestion, logger, renderer CSP, main navigation); `npm run verify:document-ingestion` PASS; `npm run verify:agent-docs` PASS; `npm run verify:repo-handoff-hygiene` PASS; `npm run verify:markdown-links` PASS.
+- **Status:** IN PROGRESS — Top five P0 roadmap items complete. Remaining roadmap items documented in Open TODO Ledger below. No secrets or private machine paths recorded.
 
 ## Session History
+
+### 2026-06-21 - Image-view cast cleanup + MIME-based extension helper (IMG-008 / IMG-009)
+
+- **Agent:** Kimi Code (root agent).
+- **Branch / state:** `main` (working tree after IMG-007).
+- **Scope:** Continue the component-extraction / media-roadmap cleanup for Image Studio.
+- **Deliverable:** Remove the unsafe `as unknown as MediaItem` cast in `image-view.tsx` and centralize image-extension derivation on the actual Base64 MIME type.
+- **Fixed in this session:**
+  - **IMG-008 — Remove unsafe `as unknown as MediaItem` cast:** `src/components/image/image-view.tsx` now constructs a real `MediaItem` literal with all required fields; the unsafe cast is gone.
+  - **IMG-009 — MIME-based image extension derivation:** Added `getExtensionFromDataUrl()` in `src/utils/image.ts` and updated `image-view.tsx` `downloadImage` and `media-export-bundle.ts` `extensionFor` to derive `.png` / `.jpg` / `.webp` / `.gif` / `.avif` from the data URL MIME type, with a safe `.png` fallback.
+  - Added unit tests for `getExtensionFromDataUrl` in `src/utils/image.test.ts`.
+- **Files changed:** `src/utils/image.ts`, `src/utils/image.test.ts`, `src/components/image/image-view.tsx`, `src/stores/media-export-bundle.ts`, `docs/summary_of_work.md`.
+- **Validation:**
+  - `npm run lint:eslint` — PASS (0 warnings).
+  - `npm run typecheck` — PASS (renderer + Electron main).
+  - `npx vitest run src/utils/image.test.ts src/components/image/image-view.test.tsx src/stores/media-export-bundle.test.ts --fileParallelism=false` — PASS (58 tests).
+  - `npm run build` — PASS (`dist/`, `dist-electron/`, `dist/server.cjs`).
+  - `npm run verify:dist` — PASS.
+  - `npm run verify:contracts` — PASS (all 22+ sub-verifiers).
+  - `git diff --check` — PASS.
+- **Status:** Closed. No secrets or private machine paths recorded.
+
+### 2026-06-21 - Roadmap stabilization batch 2 (P0 items)
+
+- **Agent:** Kimi Code (root agent).
+- **Branch / state:** `main` at `fe85562fcd40c1015205334d5c9bfbda6b2ede80`.
+- **Scope:** Implement the top five P0 items from the production-readiness roadmap.
+- **Deliverable:** Working web-mode chat persistence, escaped ingestion wrappers, hardened main-process logger, tightened production CSP, HTTPS-only scrape proxy, and regression guards VERIFY-059..VERIFY-063.
+- **Fixed in this session:**
+  - **VERIFY-059 — Web-mode conversation persistence:** `src/stores/chat-store.ts` now falls back to the encrypted IndexedDB `conversations` store when `isElectron()` is false. `writeConversation` saves via `StorageService.saveItem`, `deleteConversations` deletes via `StorageService.deleteItem`, and bootstrap hydrates via `StorageService.getItems`. Added `src/stores/chat-store.web.test.ts` with create/save, delete, and reload-hydration tests.
+  - **VERIFY-060 — Document ingestion XML escaping:** Added `src/services/ingestion/xmlEscape.ts` with `escapeXmlAttribute`. Updated `textIngestion.ts`, `codeIngestion.ts`, `pdfIngestion.ts`, `docxIngestion.ts`, and `veniceTextParserIngestion.ts` to escape file names (and kind/language where applicable) inside `<attached_file>` wrappers. Added malicious-filename regression tests to each ingestion test suite plus `xmlEscape.test.ts`.
+  - **VERIFY-061 — Main-process logger redaction parity:** `electron/services/logger.ts` now imports `sanitizeErrorText` and `redactSecrets` from `src/shared/redaction.ts`, matching the renderer's redaction strength. Log files now redact bearer tokens, `sk-…` keys, Venice keys, secret assignments, and local file paths. `setLastApiError` also sanitizes. Added redaction tests to `electron/services/logger.test.ts`.
+  - **VERIFY-062 — Production CSP `img-src` hardening:** Removed arbitrary `https:` from `img-src` in both `server.ts` and the Electron renderer CSP. Extracted `electron/utils/rendererCsp.ts` from `electron/main.ts` for testability; kept the `venice-character-cache:` scheme in Electron. Added CSP regression tests in `server.test.ts` and `electron/utils/rendererCsp.test.ts`.
+  - **VERIFY-063 — Scrape proxy HTTPS-only:** `server.ts` `/api/proxy-scrape` now rejects `http:` URLs with "Only HTTPS URLs are allowed" before any DNS or network call. Added regression test in `server.test.ts`.
+  - **VERIFY namespace hygiene:** Extended `scripts/verify-repo-handoff-hygiene.cjs` to recognize VERIFY-001..VERIFY-063 plus VERIFY-168. Added VERIFY-059..VERIFY-063 rows to `AGENTS.md`.
+- **Validation:**
+  - `npm run lint:eslint` — PASS (0 warnings).
+  - `npm run typecheck` — PASS (renderer + Electron main).
+  - `npx vitest run src/stores/chat-store.web.test.ts src/stores/chat-store.test.ts src/services/ingestion/xmlEscape.test.ts src/services/ingestion/codeIngestion.test.ts src/services/ingestion/textIngestion.test.ts src/services/ingestion/docxIngestion.test.ts src/services/ingestion/pdfIngestion.test.ts electron/services/logger.test.ts electron/utils/rendererCsp.test.ts electron/main.test.ts --fileParallelism=false` — PASS (109 tests).
+  - `npm run verify:document-ingestion` — PASS (VERIFY-058 + new escaping coverage).
+  - `npm run verify:agent-docs` — PASS.
+  - `npm run verify:repo-handoff-hygiene` — PASS (VERIFY-059..VERIFY-063 recognized).
+  - `npm run verify:markdown-links` — PASS.
+- **Files changed:** `src/stores/chat-store.ts`, `src/stores/chat-store.web.test.ts`, `src/services/ingestion/xmlEscape.ts`, `src/services/ingestion/xmlEscape.test.ts`, `src/services/ingestion/textIngestion.ts`, `src/services/ingestion/codeIngestion.ts`, `src/services/ingestion/pdfIngestion.ts`, `src/services/ingestion/docxIngestion.ts`, `src/services/ingestion/veniceTextParserIngestion.ts`, `src/services/ingestion/textIngestion.test.ts`, `src/services/ingestion/codeIngestion.test.ts`, `src/services/ingestion/pdfIngestion.test.ts`, `src/services/ingestion/docxIngestion.test.ts`, `electron/services/logger.ts`, `electron/services/logger.test.ts`, `electron/main.ts`, `electron/utils/rendererCsp.ts`, `electron/utils/rendererCsp.test.ts`, `server.ts`, `server.test.ts`, `scripts/verify-repo-handoff-hygiene.cjs`, `AGENTS.md`, `docs/summary_of_work.md`.
+- **Status:** Batch 2 complete. Roadmap execution continues. No secrets or private machine paths recorded.
+
+### 2026-06-21 - Exhaustive repository audit + roadmap stabilization batch 1
+
+- **Agent:** Kimi Code (root agent + 15 parallel audit subagents).
+- **Branch / state:** `main` at `fe85562fcd40c1015205334d5c9bfbda6b2ede80`; working tree had pre-existing `release/` v2.1.0 artifacts.
+- **Scope:** Comprehensive production-readiness audit of Venice Forge; generate and begin executing a GitHub-ready TODO roadmap.
+- **Deliverable:** Repository TODO roadmap (reported to user) and this ledger update; first stabilization batch of mechanical fixes.
+- **Fixed in this session:**
+  - Ran `npm run clean` to remove stale `release/` v2.1.0 DMG/ZIP/sidecar artifacts.
+  - Updated README.md release badge and AGENTS.md header version from 2.1.0 to 2.1.1.
+  - Added a `## [2.1.1] — 2026-06-20` section to `docs/audits/CHANGELOG.md` covering the AI research citation/local family safe mode warning fix, research-browser IPC double-registration guard, and 15 new built-in themes.
+  - Normalized `tsconfig.electron.json` from CRLF to LF line endings.
+  - Removed the dead `"outDir": "dist-electron"` line from `tsconfig.electron.json` ( emission is performed by esbuild; `noEmit: true` made it misleading).
+  - Added `import "fake-indexeddb/auto";` to `tests/setup.ts` so storage-dependent tests exercise real IndexedDB paths instead of swallowing `indexedDB is not defined` errors.
+- **Validation:**
+  - `npm run lint:eslint` — PASS (0 warnings).
+  - `npm run typecheck` — PASS (renderer + Electron main).
+  - `npx vitest run src/services/storageService.test.ts src/stores/chat-store.test.ts --fileParallelism=false` — PASS (41 tests; `indexedDB is not defined` stderr noise eliminated).
+  - `npm run verify:markdown-links` — PASS.
+  - `npm run verify:agent-docs` — PASS.
+  - `npm run verify:repo-handoff-hygiene` — PASS.
+- **Files changed:** `README.md`, `AGENTS.md`, `docs/audits/CHANGELOG.md`, `tsconfig.electron.json`, `tests/setup.ts`, `docs/summary_of_work.md`.
+- **Status:** Stabilization batch 1 complete. Roadmap execution continues in subsequent sessions. No secrets or private machine paths recorded.
 
 ### 2026-06-17 - Phase 2I+ Research Web Expansion + Mini Browser
 
@@ -6938,6 +7274,26 @@ Result:
 
 ## Open TODO Ledger
 
+### Open Follow-Up from 2026-06-21 Roadmap Stabilization Batch 1
+
+- ~~**P0:** Run `npm run clean` to remove stale `release/` v2.1.0 artifacts before packaging (REL-001).~~ **FIXED 2026-06-21** — `release/` cleared of stale v2.1.0 DMG/ZIP/sidecar artifacts.
+- ~~**P1:** Sync public version strings to v2.1.1 (README badge, AGENTS.md header, CHANGELOG).~~ **FIXED 2026-06-21** — all three files updated; CHANGELOG now contains a `## [2.1.1] — 2026-06-20` section.
+- ~~**P1:** Normalize `tsconfig.electron.json` line endings and remove dead `outDir`.~~ **FIXED 2026-06-21** — file converted to LF and `"outDir": "dist-electron"` removed.
+- ~~**P1:** Eliminate `indexedDB is not defined` test stderr noise by initializing `fake-indexeddb/auto` globally.~~ **FIXED 2026-06-21** — added to `tests/setup.ts`; `chat-store` and `storageService` tests pass cleanly.
+
+### Next Roadmap Items (P0/P1 — pending next session)
+
+- ~~**P0:** Fix web-mode conversation persistence in `src/stores/chat-store.ts` (desktop-only bridges no-op in browser; web mode currently loses conversations).~~ **FIXED 2026-06-21** — `src/stores/chat-store.ts` now falls back to the encrypted IndexedDB `conversations` store in web mode; `src/stores/chat-store.web.test.ts` added. VERIFY-059.
+- ~~**P0:** Escape `file.name` in document-ingestion XML wrappers to prevent prompt injection via malicious filenames.~~ **FIXED 2026-06-21** — added `src/services/ingestion/xmlEscape.ts` and applied `escapeXmlAttribute` in all `<attached_file>` builders; regression tests added. VERIFY-060.
+- ~~**P0:** Harden main-process logger redaction (`electron/services/logger.ts`) to match renderer redaction strength (Venice/Jina keys, bearer tokens, local paths).~~ **FIXED 2026-06-21** — `electron/services/logger.ts` now uses `sanitizeErrorText`/`redactSecrets` from `src/shared/redaction.ts`; redaction tests added. VERIFY-061.
+- ~~**P0:** Tighten production CSP `img-src` to remove arbitrary `https:`; allow only `blob:`, `data:`, and app-specific schemes.~~ **FIXED 2026-06-21** — removed `https:` from production `img-src` in `server.ts` and Electron renderer CSP; extracted `electron/utils/rendererCsp.ts`; regression tests added. VERIFY-062.
+- ~~**P0:** Restrict web scrape proxy to `https:` upstream URLs; reject `http:` unless explicitly allowlisted.~~ **FIXED 2026-06-21** — `server.ts` `/api/proxy-scrape` now rejects `http:` URLs before DNS/network; regression test added. VERIFY-063.
+- **P1:** Fix research-browser `WebContentsView` leak on window recreate in `electron/services/researchBrowserServer.ts`.
+- **P1:** Fix bridge-server shutdown race with restart in `electron/services/bridgeServer.ts`.
+- **P1:** Reduce Conversation Vault manifest rewrite cost by appending new entries instead of full rewrite.
+- **P1:** Add origin restrictions to character image cache protocol handler.
+- **P1:** Replace hardcoded Image Tools edit model list with dynamic model/capability discovery.
+
 ### Open Follow-Up from 2026-06-17 workflow-templates Audit
 
 - ~~**P0:** Mount `WorkflowTemplatesView` in `App.tsx` for the canonical `workflows` tab (or merge it into the `WorkflowsView` route); update lazy import and routing tests. VERIFY-049 currently violated.~~ **FIXED 2026-06-17** — `App.tsx` now lazy-loads and mounts `WorkflowTemplatesView` for the `workflows` tab.
@@ -7826,3 +8182,42 @@ Result:
   - **Summary:** Investigated a bug where the diagnostics inspector showed a warning that Family Safe Mode was disabled, even when the local toggle was on. Discovered that the logic in `diagnosticsService.ts` for evaluating safety severity was combining the status of the local `localFamilySafeModeEnabled` toggle and the remote API's `veniceApiSafeMode` feature using a `pickWorst` approach. Modified `buildSafetyStatus` to determine the severity warning solely based on the local Family Safe Mode toggle, while continuing to report both statuses in the detailed snapshot. The inspector will now correctly report 'ok' when the local guard is active.
   - **Files changed:** `src/services/diagnosticsService.ts`.
   - **Validation:** Ran `npm run verify:contracts`, `npm run verify:safety-guard` and `npm test` successfully. Tests correctly assert that severity is tied to the local setting.
+
+
+## Validation Matrix (2026-06-21 roadmap stabilization batch 1 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npm run lint:eslint` | PASS | 0 warnings (`--max-warnings=0`) |
+| `npm run typecheck` | PASS | `tsc --noEmit` + `tsc --noEmit --project tsconfig.electron.json` both clean |
+| `npx vitest run src/services/storageService.test.ts src/stores/chat-store.test.ts --fileParallelism=false` | PASS | 41 tests passed; no `indexedDB is not defined` stderr noise |
+| `npm run verify:markdown-links` | PASS | Local Markdown targets and heading fragments resolve |
+| `npm run verify:agent-docs` | PASS | Agent-doc parity verified |
+| `npm run verify:repo-handoff-hygiene` | PASS | No stale private paths or secrets in handoff doc |
+
+- **Date:** 2026-06-21 (Exhaustive repository audit + roadmap stabilization batch 1)
+  - **Agent:** Kimi Code (root agent + 15 parallel audit subagents)
+  - **Branch / state:** `main` at `fe85562fcd40c1015205334d5c9bfbda6b2ede80`; `release/` had stale v2.1.0 artifacts.
+  - **Summary:** Completed a comprehensive production-readiness audit and generated a GitHub-ready TODO roadmap. Executed the first stabilization batch: cleaned stale release artifacts, synced public version strings to 2.1.1, normalized `tsconfig.electron.json` line endings and removed its dead `outDir`, and initialized `fake-indexeddb/auto` globally in `tests/setup.ts` to eliminate IndexedDB stderr noise in storage-dependent tests.
+  - **Files changed:** `README.md`, `AGENTS.md`, `docs/audits/CHANGELOG.md`, `tsconfig.electron.json`, `tests/setup.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; targeted vitest PASS; `verify:markdown-links` PASS; `verify:agent-docs` PASS; `verify:repo-handoff-hygiene` PASS.
+
+
+## Validation Matrix (2026-06-21 roadmap stabilization batch 2 append)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npm run lint:eslint` | PASS | 0 warnings (`--max-warnings=0`) |
+| `npm run typecheck` | PASS | `tsc --noEmit` + `tsc --noEmit --project tsconfig.electron.json` both clean |
+| `npx vitest run src/stores/chat-store.web.test.ts src/stores/chat-store.test.ts src/services/ingestion/xmlEscape.test.ts src/services/ingestion/codeIngestion.test.ts src/services/ingestion/textIngestion.test.ts src/services/ingestion/docxIngestion.test.ts src/services/ingestion/pdfIngestion.test.ts electron/services/logger.test.ts electron/utils/rendererCsp.test.ts electron/main.test.ts --fileParallelism=false` | PASS | 109 tests passed |
+| `npm run verify:document-ingestion` | PASS | VERIFY-058 + new XML escaping coverage |
+| `npm run verify:agent-docs` | PASS | Agent-doc parity verified |
+| `npm run verify:repo-handoff-hygiene` | PASS | VERIFY-059..VERIFY-063 recognized |
+| `npm run verify:markdown-links` | PASS | 77 Markdown files checked |
+
+- **Date:** 2026-06-21 (Roadmap stabilization batch 2 — P0 items)
+  - **Agent:** Kimi Code (root agent)
+  - **Branch / state:** `main` at `fe85562fcd40c1015205334d5c9bfbda6b2ede80`.
+  - **Summary:** Implemented the top five P0 roadmap items: web-mode conversation persistence (VERIFY-059), document-ingestion XML attribute escaping (VERIFY-060), main-process logger redaction parity (VERIFY-061), production CSP `img-src` hardening (VERIFY-062), and HTTPS-only generic scrape proxy (VERIFY-063). Updated `scripts/verify-repo-handoff-hygiene.cjs` and `AGENTS.md` to recognize VERIFY-059..VERIFY-063.
+  - **Files changed:** `src/stores/chat-store.ts`, `src/stores/chat-store.web.test.ts`, `src/services/ingestion/xmlEscape.ts`, `src/services/ingestion/xmlEscape.test.ts`, `src/services/ingestion/{text,code,pdf,docx,veniceTextParser}Ingestion.ts`, `src/services/ingestion/{text,code,pdf,docx}Ingestion.test.ts`, `electron/services/logger.ts`, `electron/services/logger.test.ts`, `electron/main.ts`, `electron/utils/rendererCsp.ts`, `electron/utils/rendererCsp.test.ts`, `server.ts`, `server.test.ts`, `scripts/verify-repo-handoff-hygiene.cjs`, `AGENTS.md`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; targeted vitest PASS (109 tests); `verify:document-ingestion` PASS; `verify:agent-docs` PASS; `verify:repo-handoff-hygiene` PASS; `verify:markdown-links` PASS.

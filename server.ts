@@ -315,7 +315,7 @@ export function createServerApp() {
         "default-src 'self'",
         scriptSrc,
         styleSrc,
-        "img-src 'self' data: blob: https:",
+        "img-src 'self' data: blob:",
         connectSrc,
         "font-src 'self' data:",
         "media-src 'self' blob:",
@@ -767,8 +767,8 @@ export function createServerApp() {
         return res.status(400).json({ error: "Invalid URL format" });
       }
 
-      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        return res.status(400).json({ error: "Only http/https allowed" });
+      if (parsed.protocol !== "https:") {
+        return res.status(400).json({ error: "Only HTTPS URLs are allowed" });
       }
 
       if (isPrivateHostname(parsed.hostname)) {

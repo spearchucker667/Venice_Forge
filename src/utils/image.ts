@@ -10,6 +10,16 @@ export function stripDataUrlPrefix(dataUrl: string) {
   return String(dataUrl || "").replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, "");
 }
 
+/** Extracts a file extension from an image data URL based on its MIME type. */
+export function getExtensionFromDataUrl(dataUrl: string): string {
+  const match = String(dataUrl || "").match(/^data:image\/([a-zA-Z0-9.+-]+);base64,/);
+  if (!match) return "png";
+  const subtype = match[1].toLowerCase();
+  if (subtype === "jpeg" || subtype === "jpg") return "jpg";
+  if (subtype === "png" || subtype === "webp" || subtype === "gif" || subtype === "avif") return subtype;
+  return "png";
+}
+
 /**
  * Normalizes various image payload shapes into a standard data URL or HTTPS URL.
  *

@@ -19,6 +19,7 @@ import { getPromptStartersForCategory } from '../../services/promptStarterServic
 import { isElectron, desktopMedia } from '../../services/desktopBridge'
 import { PROMPT_TEMPLATES } from '../../constants/promptTemplates'
 import { processBase64Image, routeAsset } from '../../utils/imageProcessor'
+import { getExtensionFromDataUrl } from '../../utils/image'
 import { getImageModelCapabilities, buildDimensionOptions, getRecipeCapabilityList } from '../../config/image-model-capabilities'
 import { enhancePrompt } from '../../services/prompt-enhancer-service'
 import {
@@ -151,11 +152,7 @@ export function ImageView() {
   }, [caps, dimOptions, hasAspectRatios, aspectOptions, resolutionOptions, defaultSteps, steps]);
 
   const downloadImage = async (b64: string, index?: number) => {
-    let ext = "png";
-    if (b64.startsWith("data:image/jpeg")) ext = "jpg";
-    else if (b64.startsWith("data:image/webp")) ext = "webp";
-    else if (b64.startsWith("data:image/gif")) ext = "gif";
-    
+    const ext = getExtensionFromDataUrl(b64);
     const filename = `venice-image${index !== undefined ? `-${index + 1}` : ''}.${ext}`;
     const routedFolder = routeAsset(prompt);
     if (isElectron()) {
@@ -731,7 +728,7 @@ export function ImageView() {
         <div className="flex items-center justify-center h-full">
           {mutation.isPending ? (
             <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
-              <div className="w-8 h-8 border-2 border-border border-t-[var(--color-accent)] rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-border border-t-accent rounded-full animate-spin" />
               <span className="text-[13px] text-text-secondary">Generating…</span>
             </div>
           ) : (

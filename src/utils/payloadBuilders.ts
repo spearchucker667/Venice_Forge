@@ -177,16 +177,14 @@ export function clampSeed(value: unknown): number | null {
 }
 
 /** Generate a fresh random seed uniformly in the supported range
- *  (full ±999999999 — including negative values). The result is
- *  always a valid integer the API will accept. */
+ *  (full ±999999999 — including negative values). Uses
+ *  `crypto.getRandomValues` for cryptographically secure randomness.
+ *  The result is always a valid integer the API will accept. */
 export function randomSeed(): number {
   const span = VENICE_SEED_MAX - VENICE_SEED_MIN + 1;
-  let rand = Math.random();
-  if (typeof globalThis.crypto !== "undefined" && typeof globalThis.crypto.getRandomValues === "function") {
-    const array = new Uint32Array(1);
-    globalThis.crypto.getRandomValues(array);
-    rand = array[0] / 4294967296; // Divide by 0xffffffff + 1
-  }
+  const array = new Uint32Array(1);
+  globalThis.crypto.getRandomValues(array);
+  const rand = array[0] / 4_294_967_296; // Divide by 0xffffffff + 1
   return VENICE_SEED_MIN + Math.floor(rand * span);
 }
 

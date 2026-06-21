@@ -13,6 +13,7 @@ import { logError, logInfo } from "./services/logger";
 import { redactErrorMessage } from "../src/shared/redaction";
 import { checkPathContained } from "./utils/navigation";
 import { isTrustedExternalUrl } from "./utils/urlSecurity";
+import { rendererCsp } from "./utils/rendererCsp";
 import { startBridgeServer, stopBridgeServer } from "./services/bridgeServer";
 import { isValidBridgeHost } from "./utils/bridgeHost";
 import { getCharacterImageCacheDir, ALLOWED_CONTENT_TYPES } from "./services/characterImageCache";
@@ -31,45 +32,6 @@ const isDev = !app.isPackaged;
 const allowProdDevTools = process.env.VENICE_FORGE_DEBUG_DEVTOOLS === "true";
 if (allowProdDevTools) {
   logInfo("VENICE_FORGE_DEBUG_DEVTOOLS is enabled — DevTools will be available in production builds.");
-}
-
-/** Builds the Content-Security-Policy header string for the renderer.
- *  The theme bootstrap script lives in a separate file (bootstrap-theme.js)
- *  so production does not need 'unsafe-inline' for scripts.
- *  In development, 'unsafe-inline' and 'unsafe-eval' are kept for Vite HMR.
- *
- *  STYLE-SRC POLICY (T1): production style-src is 'self' (no 'unsafe-inline').
- *  The renderer's *application* code has zero JSX `style={...}` attributes —
- *  this invariant is enforced by tests/csp/inlineStyleInvariant.test.ts
- *  (VERIFY-007). The bootstrap script (public/bootstrap-theme.js) does call
- *  `document.documentElement.style.setProperty(...)` to apply theme tokens
- *  before first paint, but that path is not blocked by style-src 'self'
- *  (style.setProperty writes to inline styles which the browser allows
- *  regardless of CSP for non-third-party elements).
- */
-function rendererCsp(): string {
-  const connectSrc = isDev ? "'self' http://localhost:5173 ws://localhost:5173" : "'self'";
-  // Production style-src: 'self' only. Dev adds 'unsafe-inline' for Vite HMR
-  // which injects inline style tags during fast refresh.
-  const styleSrc = isDev ? "'self' 'unsafe-inline' http://localhost:5173" : "'self'";
-  // Production permits only self-hosted scripts; inline and eval remain disabled.
-  const scriptSrc = isDev
-    ? "'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173"
-    : "'self'";
-
-  return [
-    "default-src 'self'",
-    `script-src ${scriptSrc}`,
-    `style-src ${styleSrc}`,
-    "img-src 'self' data: blob: https: venice-character-cache:",
-    `connect-src ${connectSrc}`,
-    "font-src 'self' data:",
-    "media-src 'self' blob:",
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'none'",
-    "frame-ancestors 'none'",
-  ].join("; ");
 }
 
 /** Maximum length for displaying a URL in the external link confirmation dialog. */
@@ -232,7 +194,7 @@ async function bootstrap(): Promise<void> {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
-        "Content-Security-Policy": [rendererCsp()],
+        "Content-Security-Policy": [rendererCsp(isDev)],
       },
     });
   });

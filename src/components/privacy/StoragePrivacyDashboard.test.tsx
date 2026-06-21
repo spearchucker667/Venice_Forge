@@ -1,40 +1,62 @@
 // VERIFY-056 regression guard
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { StoragePrivacyDashboard } from "./StoragePrivacyDashboard";
-import { useStoragePrivacyStore } from "../../stores/storage-privacy-store";
+import { StoragePrivacyDashboard, mapPrivacyCategoryToTab } from "./StoragePrivacyDashboard";
+import { useStoragePrivacyStore, type StoragePrivacyState } from "../../stores/storage-privacy-store";
+import type { StorageInventoryResult, StorageMaintenancePlan, StoragePrivacyCategory } from "../../types/storage-privacy";
 
 // Mock the store
 vi.mock("../../stores/storage-privacy-store", () => ({
   useStoragePrivacyStore: vi.fn(),
 }));
 
+function mockStore(partial: Partial<StoragePrivacyState>) {
+  const full: StoragePrivacyState = {
+    inventory: null,
+    maintenancePlan: null,
+    hydrated: true,
+    refreshing: false,
+    error: null,
+    lastRefreshedAt: null,
+    refreshInventory: vi.fn(),
+    copySafeSummary: vi.fn(),
+    exportSafeSummary: vi.fn(),
+    runMaintenanceAction: vi.fn(),
+    clear: vi.fn(),
+    ...partial,
+  };
+  vi.mocked(useStoragePrivacyStore).mockReturnValue(full);
+}
+
+const setActiveTab = vi.fn();
+vi.mock("../../stores/settings-store", () => ({
+  useSettingsStore: vi.fn((selector?: (state: { setActiveTab: typeof setActiveTab }) => unknown) =>
+    selector ? selector({ setActiveTab }) : { setActiveTab }
+  ),
+}));
+
 describe("StoragePrivacyDashboard", () => {
   const mockInventory = {
     stores: [
-      { id: "projects", label: "Projects", category: "projects", count: 2, encrypted: true, severity: "ok", summary: "2 items", storeName: "projects", exportableInSafeSummary: true },
-      { id: "api_keys", label: "API Keys", category: "api_keys", count: 1, encrypted: true, severity: "ok", summary: "Keys present", storeName: "settings", exportableInSafeSummary: false, containsSecrets: true },
+      { id: "projects", label: "Projects", category: "projects" as StoragePrivacyCategory, count: 2, encrypted: true, severity: "ok" as const, summary: "2 items", storeName: "projects", exportableInSafeSummary: true, containsUserContent: true, containsSecrets: false },
+      { id: "api_keys", label: "API Keys", category: "api_keys" as StoragePrivacyCategory, count: 1, encrypted: true, severity: "ok" as const, summary: "Keys present", storeName: "settings", exportableInSafeSummary: false, containsUserContent: false, containsSecrets: true },
     ],
     issues: [],
     generatedAt: new Date().toISOString(),
-  };
+  } satisfies StorageInventoryResult;
 
   const mockMaintenancePlan = {
+    version: 1 as const,
+    generatedAt: new Date().toISOString(),
     actions: [
-      { id: "refresh", label: "Refresh Inventory", description: "Recount", destructive: false, requiresConfirmation: false, affectedCategories: [] },
+      { id: "refresh", label: "Refresh Inventory", description: "Recount", destructive: false, requiresConfirmation: false, affectedCategories: [] as StoragePrivacyCategory[], dryRunOnly: false },
     ],
-  };
+    issues: [],
+    warnings: [],
+  } satisfies StorageMaintenancePlan;
 
   beforeEach(() => {
-    (useStoragePrivacyStore as any).mockReturnValue({
-      inventory: mockInventory,
-      maintenancePlan: mockMaintenancePlan,
-      refreshing: false,
-      refreshInventory: vi.fn(),
-      copySafeSummary: vi.fn(),
-      exportSafeSummary: vi.fn(),
-      runMaintenanceAction: vi.fn(),
-    });
+    mockStore({ inventory: mockInventory, maintenancePlan: mockMaintenancePlan });
   });
 
   it("renders the dashboard with category counts", () => {
@@ -52,28 +74,61 @@ describe("StoragePrivacyDashboard", () => {
 
   it("calls refreshInventory on mount", () => {
     const refreshInventory = vi.fn();
-    (useStoragePrivacyStore as any).mockReturnValue({
-      inventory: null,
-      maintenancePlan: null,
-      refreshing: false,
-      refreshInventory,
-    });
+    mockStore({ inventory: null, maintenancePlan: null, refreshInventory });
     render(<StoragePrivacyDashboard />);
     expect(refreshInventory).toHaveBeenCalled();
   });
 
+  it("renders a visible loading spinner with a contrasting top border", () => {
+    mockStore({ inventory: null, maintenancePlan: null });
+    render(<StoragePrivacyDashboard />);
+    const spinner = document.querySelector('[data-testid="privacy-loading"] .animate-spin');
+    expect(spinner).not.toBeNull();
+    expect(spinner?.className).toContain("border-t-accent");
+  });
+
   it("calls runMaintenanceAction when button is clicked", () => {
     const runMaintenanceAction = vi.fn();
-    (useStoragePrivacyStore as any).mockReturnValue({
-      inventory: mockInventory,
-      maintenancePlan: mockMaintenancePlan,
-      refreshing: false,
-      refreshInventory: vi.fn(),
-      runMaintenanceAction,
-    });
+    mockStore({ inventory: mockInventory, maintenancePlan: mockMaintenancePlan, runMaintenanceAction });
     render(<StoragePrivacyDashboard />);
     const runBtn = screen.getByText("Run Action");
     fireEvent.click(runBtn);
     expect(runMaintenanceAction).toHaveBeenCalledWith("refresh");
+  });
+
+  it("maps privacy categories to canonical tab ids", () => {
+    expect(mapPrivacyCategoryToTab("conversations")).toBe("history");
+    expect(mapPrivacyCategoryToTab("media")).toBe("media");
+    expect(mapPrivacyCategoryToTab("prompts")).toBe("prompts");
+    expect(mapPrivacyCategoryToTab("scenes")).toBe("scenes");
+    expect(mapPrivacyCategoryToTab("rp")).toBe("rp-studio");
+    expect(mapPrivacyCategoryToTab("workflows")).toBe("workflows");
+    expect(mapPrivacyCategoryToTab("settings")).toBe("settings");
+    expect(mapPrivacyCategoryToTab("api_keys")).toBe("settings");
+    expect(mapPrivacyCategoryToTab("diagnostics")).toBe("status");
+    expect(mapPrivacyCategoryToTab("projects")).toBe("settings");
+    expect(mapPrivacyCategoryToTab("cache")).toBe("privacy");
+    expect(mapPrivacyCategoryToTab("unknown")).toBe("privacy");
+  });
+
+  it("navigates to the mapped tab when a repairable issue Review button is clicked", () => {
+    const inventoryWithIssue = {
+      ...mockInventory,
+      issues: [
+        {
+          id: "issue-1",
+          severity: "warn" as const,
+          sourceCategory: "media" as StoragePrivacyCategory,
+          targetCategory: "projects" as StoragePrivacyCategory,
+          message: "Orphaned media reference",
+          repairable: true,
+        },
+      ],
+    };
+    mockStore({ inventory: inventoryWithIssue, maintenancePlan: mockMaintenancePlan });
+    render(<StoragePrivacyDashboard />);
+    const reviewBtn = screen.getByText("Review");
+    fireEvent.click(reviewBtn);
+    expect(setActiveTab).toHaveBeenCalledWith("media");
   });
 });

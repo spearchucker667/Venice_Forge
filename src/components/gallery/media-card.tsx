@@ -80,7 +80,7 @@ function MediaCardImpl({
         onContextMenu={(_e) => {
           onSelect(item, !multiSelectMode);
         }}
-        className="relative block aspect-square w-full overflow-hidden bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
+        className="relative block aspect-square w-full overflow-hidden bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
         aria-label={`Open ${isVideo ? "video" : "image"}: ${item.prompt || "untitled"}`}
       >
         {url && !thumbFailed ? (

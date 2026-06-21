@@ -32,6 +32,7 @@
 import type { MediaItem } from "../types/media";
 import { extractGenerationRecipe } from "../types/project";
 import { redactSecrets } from "../shared/redaction";
+import { getExtensionFromDataUrl } from "../utils/image";
 
 export const EXPORT_BUNDLE_VERSION = 1 as const;
 export const EXPORT_BUNDLE_APP = "Venice Forge" as const;
@@ -99,14 +100,12 @@ function sanitiseFilename(input: string): string {
 }
 
 function extensionFor(item: MediaItem): string {
-  // Phase 2A: media items persist as base64 strings. We don't try to
-  // parse the data URL — the caller already has the bytes and can
-  // sniff the type. We default to png for images and mp4 for videos
-  // and let the consumer override via the `mediaFile.extension` field.
+  // Phase 2A: media items persist as base64 strings. Derive the
+  // extension from the data URL MIME type; default to png for images
+  // and mp4 for videos. The consumer can override via the
+  // `mediaFile.extension` field.
   if (item.mediaType === "video") return "mp4";
-  if (typeof item.image === "string" && item.image.startsWith("data:image/jpeg")) return "jpg";
-  if (typeof item.image === "string" && item.image.startsWith("data:image/webp")) return "webp";
-  if (typeof item.image === "string" && item.image.startsWith("data:image/gif")) return "gif";
+  if (typeof item.image === "string") return getExtensionFromDataUrl(item.image);
   return "png";
 }
 

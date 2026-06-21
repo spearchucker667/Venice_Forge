@@ -1,7 +1,7 @@
 // VERIFY-056 regression guard
 /** @fileoverview Unit tests for chat and image payload builders. */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildChatPayload,
   buildImagePayload,
@@ -361,6 +361,22 @@ describe("randomSeed", () => {
     const values = Array.from({ length: 200 }, () => randomSeed());
     expect(values.some((v) => v > 0)).toBe(true);
     expect(values.some((v) => v < 0)).toBe(true);
+  });
+  it("uses crypto.getRandomValues and never calls Math.random", () => {
+    const mathRandomSpy = vi.spyOn(Math, "random").mockImplementation(() => 0.5);
+    const cryptoSpy = vi.spyOn(globalThis.crypto, "getRandomValues").mockImplementation((buffer) => {
+      if (buffer instanceof Uint32Array) buffer[0] = 2_147_483_648; // midpoint
+      return buffer as never;
+    });
+
+    const v = randomSeed();
+
+    expect(cryptoSpy).toHaveBeenCalled();
+    expect(mathRandomSpy).not.toHaveBeenCalled();
+    expect(v).toBe(0);
+
+    mathRandomSpy.mockRestore();
+    cryptoSpy.mockRestore();
   });
 });
 

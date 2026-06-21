@@ -88,7 +88,7 @@ export function MusicView() {
           <button
             onClick={() => setInstrumental(!instrumental)}
             aria-pressed={instrumental}
-            className={cn('w-9 h-5 rounded-full transition-colors relative', instrumental ? 'bg-[var(--color-accent)]' : 'bg-surface-elevated')}
+            className={cn('w-9 h-5 rounded-full transition-colors relative', instrumental ? 'bg-accent' : 'bg-surface-elevated')}
           >
             <div className={cn('absolute top-[2px] w-[16px] h-[16px] rounded-full bg-accent-fg transition-all', instrumental ? 'left-[20px]' : 'left-[2px]')} />
           </button>

@@ -1,7 +1,7 @@
 /** @fileoverview Unit tests for image normalization, extraction, and filename utilities. */
 
 import { describe, it, expect } from "vitest";
-import { galleryFilename, normalizeImageData, extractImages, stripDataUrlPrefix, blobToDataUrl } from "./image";
+import { galleryFilename, normalizeImageData, extractImages, stripDataUrlPrefix, blobToDataUrl, getExtensionFromDataUrl } from "./image";
 
 /** Tests for the galleryFilename helper. */
 describe("galleryFilename", () => {
@@ -181,6 +181,23 @@ describe("stripDataUrlPrefix", () => {
     expect(stripDataUrlPrefix("")).toBe("");
     expect(stripDataUrlPrefix(undefined as unknown as string)).toBe("");
     expect(stripDataUrlPrefix(null as unknown as string)).toBe("");
+  });
+});
+
+describe("getExtensionFromDataUrl", () => {
+  it("derives extensions from image data URL MIME types", () => {
+    expect(getExtensionFromDataUrl("data:image/png;base64,abc")).toBe("png");
+    expect(getExtensionFromDataUrl("data:image/jpeg;base64,abc")).toBe("jpg");
+    expect(getExtensionFromDataUrl("data:image/jpg;base64,abc")).toBe("jpg");
+    expect(getExtensionFromDataUrl("data:image/webp;base64,abc")).toBe("webp");
+    expect(getExtensionFromDataUrl("data:image/gif;base64,abc")).toBe("gif");
+    expect(getExtensionFromDataUrl("data:image/avif;base64,abc")).toBe("avif");
+  });
+
+  it("defaults to png for unrecognised or missing MIME types", () => {
+    expect(getExtensionFromDataUrl("data:text/plain;base64,abc")).toBe("png");
+    expect(getExtensionFromDataUrl("plain-base64-string")).toBe("png");
+    expect(getExtensionFromDataUrl("")).toBe("png");
   });
 });
 

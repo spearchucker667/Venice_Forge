@@ -414,7 +414,7 @@ export function VideoView() {
                     'text-[14px] flex items-center gap-1.5 transition-opacity',
                     alreadySaved
                       ? 'text-text-muted cursor-default'
-                      : 'text-[var(--color-accent)] hover:opacity-85',
+                      : 'text-accent hover:opacity-85',
                   )}
                   title={alreadySaved ? 'Already saved to Media Studio' : 'Save to Media Studio'}
                   aria-label={alreadySaved ? 'Already saved to Media Studio' : 'Save to Media Studio'}

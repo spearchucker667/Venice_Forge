@@ -463,16 +463,18 @@ Recommended new/updated files:
   - **Risk if ignored:** Linux users may assume unsupported artifacts are
     production-supported.
 
-- [x] **P3 - Image Studio: Derive downloaded image extension from MIME type**
-  - **Evidence:** `image-view.tsx` saves generated images as
+- [x] **P3 - Image Studio: Derive downloaded/exported image extension from MIME type**
+  - **Evidence:** `image-view.tsx` saved generated images as
     `venice-image*.png` regardless of actual returned media type.
   - **Why:** Incorrect extensions can confuse users and external tools.
-  - **Action:** Parse/track returned MIME and choose `.png`, `.jpg`, `.webp`,
-    etc.
-  - **Files likely affected:** `src/components/image/image-view.tsx`, image
-    tests.
-  - **Validate:** Targeted image-view test and manual generation/download.
-  - **Risk if ignored:** Saved files can have misleading extensions.
+  - **Action:** Added shared `getExtensionFromDataUrl()` in `src/utils/image.ts`;
+    `image-view.tsx` `downloadImage` and `media-export-bundle.ts` now derive
+    `.png` / `.jpg` / `.webp` / `.gif` / `.avif` from the data URL MIME type.
+  - **Files likely affected:** `src/utils/image.ts`, `src/utils/image.test.ts`,
+    `src/components/image/image-view.tsx`, `src/stores/media-export-bundle.ts`.
+  - **Validate:** `src/utils/image.test.ts`, `image-view.test.tsx`,
+    `media-export-bundle.test.ts`; targeted Vitest passes.
+  - **Risk if ignored:** Saved or exported files can have misleading extensions.
 
 - [x] **P3 - Randomness: Use Web Crypto for image random seed generation**
   - **Evidence:** `src/utils/payloadBuilders.ts` uses `Math.random()` in

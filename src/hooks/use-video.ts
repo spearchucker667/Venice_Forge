@@ -73,7 +73,7 @@ export function useVideo() {
       try {
         const result = await venice<VideoRetrieveResponse>('/video/retrieve', {
           method: 'POST',
-          body: JSON.stringify({ id: requestIdRef.current }),
+          body: { id: requestIdRef.current },
         })
         if (token !== generationTokenRef.current) return
         setStatus(result.status)
@@ -101,7 +101,7 @@ export function useVideo() {
     mutationFn: (req: VideoQueueRequest) =>
       venice<VideoQueueResponse>('/video/queue', {
         method: 'POST',
-        body: JSON.stringify(req),
+        body: req,
       }),
     onSuccess: (data, variables) => {
       generationTokenRef.current += 1

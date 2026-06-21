@@ -3,7 +3,6 @@
   "compilerOptions": {
     "module": "CommonJS",
     "moduleResolution": "node",
-    "outDir": "dist-electron",
     "lib": ["ES2022"],
     "noEmit": true,
     "allowImportingTsExtensions": false,

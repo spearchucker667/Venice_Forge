@@ -114,7 +114,7 @@ export function AudioView() {
       <div className="flex gap-px bg-surface-elevated rounded-lg p-0.5 border border-border">
         {(['tts', 'transcribe'] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)} aria-pressed={tab === t} className={cn(
-            'flex-1 px-3 py-2 text-[13px] font-medium rounded-[7px] transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]',
+            'flex-1 px-3 py-2 text-[13px] font-medium rounded-[7px] transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
             tab === t ? 'bg-accent text-accent-fg shadow-sm' : 'text-text-secondary hover:text-text-secondary',
           )}>
             {t === 'tts' ? 'Text to Speech' : 'Transcribe'}
@@ -144,7 +144,7 @@ export function AudioView() {
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="w-full border border-dashed border-border hover:border-accent hover:bg-surface-muted rounded-xl p-8 text-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
+            className="w-full border border-dashed border-border hover:border-accent hover:bg-surface-muted rounded-xl p-8 text-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
           >
             <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="mx-auto mb-2 text-text-muted"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>

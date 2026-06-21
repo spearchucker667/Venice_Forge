@@ -32,6 +32,7 @@ vi.mock("http-proxy-middleware", () => ({
 }));
 
 import { applyVeniceProxyHeaders, createServerApp as originalCreateServerApp } from "./server";
+import { AppConfig } from "./src/shared/configSchema";
 import * as safetyModule from "./src/shared/safety";
 import * as localFamilyGuardRules from "./src/shared/safety/localFamilyGuardRules";
 
@@ -270,6 +271,16 @@ describe("server.ts proxy validation", () => {
     expect(res.headers["x-frame-options"]).toBe("DENY");
     expect(res.headers["referrer-policy"]).toBe("no-referrer");
     expect(res.headers["content-security-policy"]).toBeTruthy();
+  });
+
+  // VERIFY-062: production CSP must not allow arbitrary https: images.
+  it("sets a production CSP that does not allow arbitrary https: image sources", async () => {
+    vi.spyOn(AppConfig, "NODE_ENV", "get").mockReturnValue("production");
+    const res = await request(createServerApp()).get("/api/venice/admin/blocked");
+    const csp = res.headers["content-security-policy"] as string;
+    expect(csp).toContain("img-src 'self' data: blob:");
+    expect(csp).not.toContain("img-src 'self' data: blob: https:");
+    expect(csp).not.toMatch(/img-src[^;]*\shttps:/);
   });
 });
 
@@ -773,6 +784,20 @@ describe("server.ts scrape proxy error handling", () => {
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: "Invalid URL format" });
+  });
+
+  // VERIFY-063: scrape proxy must reject http: URLs.
+  it("rejects http: scrape URLs before DNS/network", async () => {
+    const lookupSpy = vi.spyOn(dns as any, "lookup");
+    const response = await request(createServerApp())
+      .post("/api/proxy-scrape")
+      .set("X-Venice-Forge-Family-Safe-Mode", "false")
+      .send({ url: "http://example.com" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe("Only HTTPS URLs are allowed");
+    expect(lookupSpy).not.toHaveBeenCalled();
+    lookupSpy.mockRestore();
   });
 
   it("rejects malformed percent-encoding with exact 400 shape", async () => {

@@ -16,11 +16,16 @@ vi.mock("../services/veniceClient", () => ({
   veniceFetch: vi.fn(),
 }));
 
-vi.mock("../services/desktopBridge", () => ({
-  desktopConversations: {
-    pullContext: vi.fn(),
-  },
-}));
+vi.mock("../services/desktopBridge", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/desktopBridge")>();
+  return {
+    ...actual,
+    desktopConversations: {
+      ...actual.desktopConversations,
+      pullContext: vi.fn(),
+    },
+  };
+});
 
 const mockedVeniceStreamChat = vi.mocked(veniceStreamChat);
 const mockedPullContext = vi.mocked(desktopConversations.pullContext);

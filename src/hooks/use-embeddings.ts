@@ -7,7 +7,7 @@ export function useEmbeddings() {
     mutationFn: (req: EmbeddingRequest) =>
       venice<EmbeddingResponse>('/embeddings', {
         method: 'POST',
-        body: JSON.stringify(req),
+        body: req,
       }),
   })
 }

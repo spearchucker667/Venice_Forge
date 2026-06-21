@@ -1,9 +1,14 @@
 // VERIFY-056 regression guard
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useStoragePrivacyStore } from "./storage-privacy-store";
-import { applyMaintenanceAction } from "../services/storageMaintenance";
+import { applyMaintenanceAction, type StorageMaintenanceApplyResult } from "../services/storageMaintenance";
 import { buildStorageInventory } from "../services/storagePrivacyService";
 import { toast } from "./toast-store";
+
+// Mock copy helper
+vi.mock("../stores/media-send-to", () => ({
+  copyText: vi.fn().mockResolvedValue(true),
+}));
 
 // Mock services
 vi.mock("../services/storagePrivacyService", () => ({
@@ -138,17 +143,25 @@ describe("storage-privacy-store", () => {
   });
 
   it("copySafeSummary copies to clipboard", async () => {
-    const writeTextSpy = vi.fn().mockResolvedValue(undefined);
-    vi.stubGlobal("navigator", { clipboard: { writeText: writeTextSpy } });
+    const { copyText } = await import("../stores/media-send-to");
+    const store = useStoragePrivacyStore.getState();
+    await store.refreshInventory();
+    await store.copySafeSummary();
+
+    expect(copyText).toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalledWith("Safe privacy summary copied to clipboard");
+  });
+
+  it("copySafeSummary reports failure when copy helper returns false", async () => {
+    const { copyText } = await import("../stores/media-send-to");
+    vi.mocked(copyText).mockResolvedValueOnce(false);
 
     const store = useStoragePrivacyStore.getState();
     await store.refreshInventory();
     await store.copySafeSummary();
 
-    expect(writeTextSpy).toHaveBeenCalled();
-    expect(toast.success).toHaveBeenCalledWith("Safe privacy summary copied to clipboard");
-
-    vi.unstubAllGlobals();
+    expect(copyText).toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith("Failed to copy privacy summary");
   });
 
   it("copySafeSummary handles unhydrated state", async () => {
@@ -159,7 +172,7 @@ describe("storage-privacy-store", () => {
   it("exportSafeSummary triggers download", async () => {
     const createElementSpy = vi.spyOn(document, "createElement");
     const mockAnchor = { href: "", download: "", click: vi.fn() };
-    createElementSpy.mockReturnValue(mockAnchor as any);
+    createElementSpy.mockReturnValue(mockAnchor as unknown as ReturnType<typeof document.createElement>);
     
     const revokeObjectURLSpy = vi.fn();
     const createObjectURLSpy = vi.fn().mockReturnValue("blob:test");
@@ -189,7 +202,7 @@ describe("storage-privacy-store", () => {
   });
 
   it("runMaintenanceAction handles partial failure", async () => {
-    vi.mocked(applyMaintenanceAction).mockResolvedValueOnce({ actionId: "test-action", requested: 1, succeeded: [], failed: [{ id: "test-action", reason: "Access denied" }] } as any);
+    vi.mocked(applyMaintenanceAction).mockResolvedValueOnce({ actionId: "test-action", requested: 1, succeeded: [], failed: [{ id: "test-action", reason: "Access denied" }] } as StorageMaintenanceApplyResult);
     
     await useStoragePrivacyStore.getState().runMaintenanceAction("test-action");
     expect(toast.error).toHaveBeenCalledWith("Maintenance action partially failed: Access denied");

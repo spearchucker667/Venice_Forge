@@ -19,6 +19,11 @@ import { useAuthStore } from "./auth-store";
 import { useChatStore } from "./chat-store";
 import { toast } from "./toast-store";
 import { desktopCharacterImage, isElectron } from "../services/desktopBridge";
+import { copyText } from "../stores/media-send-to";
+import type { MediaItem } from "../types/media";
+import type { WorkflowTemplateItem } from "../types/workflow";
+import type { CharacterCardV1, LorebookV1, UserPersonaV1, ScenarioV1 } from "../types/rp";
+import type { SceneComposerItem } from "../types/scene";
 
 function toStorageRecord(
   item: { id: string; title?: string; name?: string; projectId?: string | null; archivedAt?: string | number | null },
@@ -30,6 +35,34 @@ function toStorageRecord(
     projectId: item.projectId ?? null,
     archivedAt: item.archivedAt ?? null,
   };
+}
+
+export function mapMediaItemToStorageRecord(item: MediaItem): StorageInventoryRecord {
+  return { id: item.id, projectId: item.projectId ?? null };
+}
+
+export function mapWorkflowToStorageRecord(item: WorkflowTemplateItem): StorageInventoryRecord {
+  return { id: item.id, title: item.title, projectId: item.projectId ?? null, archivedAt: item.archivedAt ?? null };
+}
+
+export function mapCharacterToStorageRecord(item: CharacterCardV1): StorageInventoryRecord {
+  return { id: item.id, name: item.name };
+}
+
+export function mapLorebookToStorageRecord(item: LorebookV1): StorageInventoryRecord {
+  return { id: item.id, name: item.name, projectId: item.projectId ?? null };
+}
+
+export function mapPersonaToStorageRecord(item: UserPersonaV1): StorageInventoryRecord {
+  return { id: item.id, name: item.name, projectId: item.projectId ?? null };
+}
+
+export function mapScenarioToStorageRecord(item: ScenarioV1): StorageInventoryRecord {
+  return { id: item.id, name: item.name, projectId: item.projectId ?? null, archivedAt: item.archivedAt ?? null };
+}
+
+export function mapSceneToStorageRecord(item: SceneComposerItem): StorageInventoryRecord {
+  return { id: item.id, title: item.title, projectId: item.projectId ?? null, archivedAt: item.archivedAt ?? null };
 }
 
 export interface StoragePrivacyState {
@@ -92,13 +125,13 @@ export const useStoragePrivacyStore = create<StoragePrivacyState>((set, get) => 
         projects: useProjectStore.getState().projects.map(toStorageRecord),
         conversations,
         prompts: usePromptLibraryStore.getState().prompts.map(toStorageRecord),
-        scenes: useSceneComposerStore.getState().scenes.map(toStorageRecord),
-        media: useMediaStore.getState().items.map((m) => toStorageRecord(m as { id: string; title?: string; name?: string; projectId?: string | null; archivedAt?: string | number | null })),
-        workflows: useWorkflowTemplateStore.getState().workflows.map((w) => toStorageRecord(w as { id: string; title?: string; name?: string })),
-        characters: useCharacterCardStore.getState().cards.map((c) => toStorageRecord(c as { id: string; name?: string })),
-        lorebooks: useLorebookStore.getState().lorebooks.map((l) => toStorageRecord(l as { id: string; name?: string })),
-        personas: usePersonaStore.getState().personas.map((p) => toStorageRecord(p as { id: string; name?: string })),
-        scenarios: useScenarioStore.getState().scenarios.map((s) => toStorageRecord(s as { id: string; name?: string; projectId?: string | null; archivedAt?: string | number | null })),
+        scenes: useSceneComposerStore.getState().scenes.map(mapSceneToStorageRecord),
+        media: useMediaStore.getState().items.map(mapMediaItemToStorageRecord),
+        workflows: useWorkflowTemplateStore.getState().workflows.map(mapWorkflowToStorageRecord),
+        characters: useCharacterCardStore.getState().cards.map(mapCharacterToStorageRecord),
+        lorebooks: useLorebookStore.getState().lorebooks.map(mapLorebookToStorageRecord),
+        personas: usePersonaStore.getState().personas.map(mapPersonaToStorageRecord),
+        scenarios: useScenarioStore.getState().scenarios.map(mapScenarioToStorageRecord),
         apiKey: {
           configured: veniceConfigured,
           storage: isElectron() ? "secure-storage" : "web-environment",
@@ -134,8 +167,12 @@ export const useStoragePrivacyStore = create<StoragePrivacyState>((set, get) => 
     }
     const summary = buildSafePrivacySummary(inventory);
     const json = JSON.stringify(summary, null, 2);
-    await navigator.clipboard.writeText(json);
-    toast.success("Safe privacy summary copied to clipboard");
+    const ok = await copyText(json);
+    if (ok) {
+      toast.success("Safe privacy summary copied to clipboard");
+    } else {
+      toast.error("Failed to copy privacy summary");
+    }
   },
 
   exportSafeSummary: () => {

@@ -270,7 +270,7 @@ export function ImageTools() {
             <div className="flex items-center justify-between">
               <Label>Result</Label>
               <div className="flex items-center gap-3">
-                <button onClick={() => void handleSaveToMedia()} className="text-[14px] text-[var(--color-accent)] hover:opacity-85 transition-opacity flex items-center gap-1.5" title="Save to Media Studio">
+                <button onClick={() => void handleSaveToMedia()} className="text-[14px] text-accent hover:opacity-85 transition-opacity flex items-center gap-1.5" title="Save to Media Studio">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
                   Save to Media Studio
                 </button>
