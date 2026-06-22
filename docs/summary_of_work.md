@@ -115,7 +115,16 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
-- **2026-06-22 Review GitHub CodeQL security code-scanning alerts (current session):**
+- **2026-06-22 Review CodeQL configuration status page (current session):**
+  - Inspected the linked CodeQL status/configuration page (`actions-FZTWS5DIOVRC653POJVWM3DPO5ZS6Q3PMRSVCTBAIFSHMYLOMNSWILTZNVWA`).
+  - The repository uses **advanced CodeQL setup** via `.github/workflows/codeql.yml`; the default-setup API reports `state: not-configured` because advanced setup is active.
+  - Workflow config: `languages: javascript-typescript`, `queries: security-extended,security-and-quality`, `build-mode: none`, runs on `push`/`pull_request` to `main`, weekly schedule, and `workflow_dispatch`.
+  - Latest scans (main branch): ~73–74 alerts from 200 rules, CodeQL `2.25.6`, analysis key `.github/workflows/codeql.yml:analyze`.
+  - Earlier history shows a transition from `dynamic/github-code-scanning/codeql:analyze` (default setup) to the current workflow-based advanced setup.
+  - **Files changed:** `docs/summary_of_work.md` only.
+  - **Validation:** GitHub API queries succeeded; no source commands required.
+
+- **2026-06-22 Review GitHub CodeQL security code-scanning alerts (current session):
   - Queried the repository's code-scanning alert list via `gh api repos/spearchucker667/Venice_Forge/code-scanning/alerts`.
   - Total alerts: 98 (70 open, 21 fixed, 7 dismissed). All alerts are from CodeQL; severity fields were not populated.
   - Reviewed the security-relevant open findings and inspected source for the top risk items.
@@ -397,6 +406,11 @@ backlog files were removed.
   - **Validation:** All 14 CI gates pass. Code fully verified for 14 audit items. Release gate: **PASS**.
 
 ### Session History
+- **2026-06-22 Review CodeQL configuration status page:**
+  - Confirmed the linked configuration is the active advanced CodeQL setup driven by `.github/workflows/codeql.yml`.
+  - Documented configuration details: `javascript-typescript`, `security-extended,security-and-quality` queries, `build-mode: none`, triggers, and recent scan counts (73–74 alerts / 200 rules).
+  - **Validation:** GitHub API queries succeeded.
+
 - **2026-06-22 Review GitHub CodeQL security code-scanning alerts:**
   - Queried 98 code-scanning alerts via the GitHub API (70 open, 21 fixed, 7 dismissed).
   - Inspected source for the highest-risk open rules and categorized them as real weaknesses, false positives/acceptably mitigated, or low-impact code-quality issues.
@@ -1108,6 +1122,12 @@ backlog files were removed.
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+- 2026-06-22 CodeQL configuration status page review:
+  - `gh api repos/spearchucker667/Venice_Forge/code-scanning/default-setup`: SUCCESS (state `not-configured`, languages listed).
+  - `gh api repos/spearchucker667/Venice_Forge/code-scanning/analyses --paginate`: SUCCESS (retrieved recent analyses; confirmed advanced workflow setup).
+  - Read `.github/workflows/codeql.yml`: confirmed advanced setup, languages, queries, triggers.
+  - No source build/test commands required.
+
 - 2026-06-22 GitHub CodeQL security alert review:
   - `gh api repos/spearchucker667/Venice_Forge/code-scanning/alerts --paginate`: SUCCESS (98 alerts retrieved).
   - No source build/test commands required for this review.
