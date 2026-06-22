@@ -121,6 +121,7 @@ backlog files were removed.
   - Covered failure clusters: blocked `/image/styles` IPC endpoint, character image cache failures, unsupported `prompt()` usage, stream aborts, insecure CSP warnings, invalid rgba-to-hex theme colors, React provider/runtime errors, production renderer load failure, missing `latest-mac.yml` updater metadata, Venice API network failure classification, `render-process-gone` lifecycle context, and CI Node vs Electron bundled Node version drift.
   - **Files changed:** `docs/BUG_HUNTING_AGENT_PROMPT.md`, `docs/summary_of_work.md`.
   - **Validation:** `npm run verify:markdown-links` PASS (78 Markdown files checked); `git diff --check` PASS.
+  - **Commit/push:** Committed as `e129dea` and pushed to `origin main`.
 
 - **2026-06-21 Oversized core file architecture decomposition (current session):**
   - Split `src/theme/themes.ts` (1,113 lines) into `src/theme/builtins/*.ts` (one file per built-in theme) plus `src/theme/builtins/index.ts`; kept `src/theme/themes.ts` as a back-compat barrel.
@@ -377,7 +378,8 @@ backlog files were removed.
   - Expanded `docs/BUG_HUNTING_AGENT_PROMPT.md` with a "Runtime Log Evidence to Incorporate" section and detailed log-backed failure priorities derived from observed `venice-forge.log` patterns.
   - Instructed future audit agents to map log errors to source, classify severity, create evidence-backed TODOs, and include a runtime-log evidence summary table in roadmaps.
   - No source files were modified; the change is documentation-only.
-  - **Validation:** No build/test commands required for this change.
+  - **Validation:** `npm run verify:markdown-links` PASS; `git diff --check` PASS.
+  - **Commit/push:** Committed as `e129dea` and pushed to `origin main`.
 
 - **2026-06-21 Segmented test scripts and CI/release workflow updates:**
   - Added `test:server`, `test:electron`, `test:ingestion`, `test:ui`, `test:unit`, and `test:ci` npm scripts; wired them into `.github/workflows/ci.yml` and `.github/workflows/release.yml` while keeping coverage collection via `test:ci`.
@@ -1064,6 +1066,7 @@ backlog files were removed.
   - Documentation-only change to `docs/BUG_HUNTING_AGENT_PROMPT.md`; no lint, typecheck, test, or build commands required.
   - `npm run verify:markdown-links`: PASS (78 Markdown files checked).
   - `git diff --check`: PASS.
+  - `git commit` / `git push origin main`: PASS (commit `e129dea`).
 
 - 2026-06-21 segmented test scripts and CI/release workflow updates:
   - `npm run lint:eslint`: PASS (0 warnings).
