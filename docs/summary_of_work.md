@@ -123,6 +123,7 @@ backlog files were removed.
   - Earlier history shows a transition from `dynamic/github-code-scanning/codeql:analyze` (default setup) to the current workflow-based advanced setup.
   - **Files changed:** `docs/summary_of_work.md` only.
   - **Validation:** GitHub API queries succeeded; no source commands required.
+  - **Commit/push:** Committed as `52235b9` and pushed to `origin main`.
 
 - **2026-06-22 Review GitHub CodeQL security code-scanning alerts (current session):
   - Queried the repository's code-scanning alert list via `gh api repos/spearchucker667/Venice_Forge/code-scanning/alerts`.
@@ -410,6 +411,7 @@ backlog files were removed.
   - Confirmed the linked configuration is the active advanced CodeQL setup driven by `.github/workflows/codeql.yml`.
   - Documented configuration details: `javascript-typescript`, `security-extended,security-and-quality` queries, `build-mode: none`, triggers, and recent scan counts (73–74 alerts / 200 rules).
   - **Validation:** GitHub API queries succeeded.
+  - **Commit/push:** Committed as `52235b9` and pushed to `origin main`.
 
 - **2026-06-22 Review GitHub CodeQL security code-scanning alerts:**
   - Queried 98 code-scanning alerts via the GitHub API (70 open, 21 fixed, 7 dismissed).
@@ -1127,6 +1129,7 @@ backlog files were removed.
   - `gh api repos/spearchucker667/Venice_Forge/code-scanning/analyses --paginate`: SUCCESS (retrieved recent analyses; confirmed advanced workflow setup).
   - Read `.github/workflows/codeql.yml`: confirmed advanced setup, languages, queries, triggers.
   - No source build/test commands required.
+  - `git commit` / `git push origin main`: PASS (commit `52235b9`).
 
 - 2026-06-22 GitHub CodeQL security alert review:
   - `gh api repos/spearchucker667/Venice_Forge/code-scanning/alerts --paginate`: SUCCESS (98 alerts retrieved).
