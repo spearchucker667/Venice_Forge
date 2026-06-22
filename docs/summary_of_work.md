@@ -127,6 +127,7 @@ backlog files were removed.
     - The bulk of open alerts are code-quality issues (`unused-local-variable`, `missing-space-in-concatenation`, `trivial-conditional`, `automatic-semicolon-insertion`, `useless-assignment-to-local`) with no direct security impact.
   - **Files changed:** `docs/summary_of_work.md` only.
   - **Validation:** `gh api` query succeeded; no source build/test commands required.
+  - **Commit/push:** Committed as `1878d65` and pushed to `origin main`.
 
 - **2026-06-22 Fix strict safe-storage quota-retry test (current session):**
   - Repaired `src/lib/safe-storage.test.ts` test `'prunes oversized arrays and retries on quota error'` which failed in CI (Node 26+) because it asserted `warn` was never called with `'cleared persisted state'`.
@@ -401,6 +402,7 @@ backlog files were removed.
   - Inspected source for the highest-risk open rules and categorized them as real weaknesses, false positives/acceptably mitigated, or low-impact code-quality issues.
   - Identified `src/utils/markdown.tsx` regex sanitization as the top priority for remediation.
   - **Validation:** GitHub API query succeeded; no source commands required.
+  - **Commit/push:** Committed as `1878d65` and pushed to `origin main`.
 
 - **2026-06-22 Fix strict safe-storage quota-retry test:**
   - Updated `src/lib/safe-storage.test.ts` `'prunes oversized arrays and retries on quota error'` to assert the real contract (retry + prune + persisted state) instead of forbidding a warning that the implementation intentionally emits on retry failure.
@@ -1109,6 +1111,7 @@ backlog files were removed.
 - 2026-06-22 GitHub CodeQL security alert review:
   - `gh api repos/spearchucker667/Venice_Forge/code-scanning/alerts --paginate`: SUCCESS (98 alerts retrieved).
   - No source build/test commands required for this review.
+  - `git commit` / `git push origin main`: PASS (commit `1878d65`).
 
 - 2026-06-22 safe-storage quota-retry test fix:
   - `npx vitest run src/lib/safe-storage.test.ts --fileParallelism=false`: PASS (7 tests).
