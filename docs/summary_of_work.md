@@ -115,6 +115,19 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-06-22 Review GitHub CodeQL security code-scanning alerts (current session):**
+  - Queried the repository's code-scanning alert list via `gh api repos/spearchucker667/Venice_Forge/code-scanning/alerts`.
+  - Total alerts: 98 (70 open, 21 fixed, 7 dismissed). All alerts are from CodeQL; severity fields were not populated.
+  - Reviewed the security-relevant open findings and inspected source for the top risk items.
+  - Key findings:
+    - `src/utils/markdown.tsx` regex-based HTML sanitization (`bad-tag-filter`, `incomplete-multi-character-sanitization`) is the most credible weakness; DOMPurify or equivalent should be evaluated.
+    - `server.ts:675` header copy, `electron/services/mediaService.ts:291` stat/readFile, and `electron/ipc/handlers/fileHandlers.ts:203` file read are low-to-medium risk due to allowlisting/user-dialog controls but still flagged.
+    - `js/file-access-to-http` findings in Jina, character image cache, and Venice client are largely false positives because the code validates allowed hosts/URLs before the network call.
+    - `js/log-injection` in `src/shared/logger.ts:64` is mitigated by `sanitizeArg`; `js/remote-property-injection` in `src/shared/redaction.ts` is intentional recursive redaction.
+    - The bulk of open alerts are code-quality issues (`unused-local-variable`, `missing-space-in-concatenation`, `trivial-conditional`, `automatic-semicolon-insertion`, `useless-assignment-to-local`) with no direct security impact.
+  - **Files changed:** `docs/summary_of_work.md` only.
+  - **Validation:** `gh api` query succeeded; no source build/test commands required.
+
 - **2026-06-22 Fix strict safe-storage quota-retry test (current session):**
   - Repaired `src/lib/safe-storage.test.ts` test `'prunes oversized arrays and retries on quota error'` which failed in CI (Node 26+) because it asserted `warn` was never called with `'cleared persisted state'`.
   - The implementation intentionally logs that warning when the pruned retry fails; under CI's localStorage/jsdom behavior the retry can throw, so the assertion was environment-dependent.
@@ -383,6 +396,12 @@ backlog files were removed.
   - **Validation:** All 14 CI gates pass. Code fully verified for 14 audit items. Release gate: **PASS**.
 
 ### Session History
+- **2026-06-22 Review GitHub CodeQL security code-scanning alerts:**
+  - Queried 98 code-scanning alerts via the GitHub API (70 open, 21 fixed, 7 dismissed).
+  - Inspected source for the highest-risk open rules and categorized them as real weaknesses, false positives/acceptably mitigated, or low-impact code-quality issues.
+  - Identified `src/utils/markdown.tsx` regex sanitization as the top priority for remediation.
+  - **Validation:** GitHub API query succeeded; no source commands required.
+
 - **2026-06-22 Fix strict safe-storage quota-retry test:**
   - Updated `src/lib/safe-storage.test.ts` `'prunes oversized arrays and retries on quota error'` to assert the real contract (retry + prune + persisted state) instead of forbidding a warning that the implementation intentionally emits on retry failure.
   - Removed the unused `console.warn` spy.
@@ -862,6 +881,12 @@ backlog files were removed.
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
+- **2026-06-22 GitHub CodeQL alert remediation — OPEN, priorities identified:**
+  - **P1 (security):** Replace or harden regex-based HTML sanitization in `src/utils/markdown.tsx` (alerts #89, #86–#88: `js/bad-tag-filter`, `js/incomplete-multi-character-sanitization`).
+  - **P2 (security/hardening):** Review and document TOCTOU/file-system-race alerts in `electron/services/mediaService.ts:291` and `electron/ipc/handlers/fileHandlers.ts:203`; verify user-path validation and dialog controls.
+  - **P2 (security/hardening):** Review `server.ts:675` header-forwarding allowlist and confirm no additional sensitive headers can leak.
+  - **P2 (noise reduction):** Mark clearly false-positive CodeQL alerts as dismissed with justification (e.g., `js/file-access-to-http` in Jina/Venice clients with host validation; `js/log-injection` with `sanitizeArg`; `js/remote-property-injection` in `redaction.ts`).
+  - **P3 (code quality):** Address the 28 `unused-local-variable`, 7 `missing-space-in-concatenation`, 6 `trivial-conditional`, 4 `automatic-semicolon-insertion`, and 3 `useless-assignment-to-local` open alerts to reduce alert noise.
 - **2026-06-22 CI safe-storage quota-retry test failure — CLOSED in this session:**
   - `src/lib/safe-storage.test.ts:80` failed in CI because it asserted `warn` was never called with `'cleared persisted state'`, but `createSafeStorage` intentionally logs that warning when pruned retry fails.
   - Fixed by replacing the environment-dependent log-negative assertion with behavior-based assertions: retry attempts, persisted pruned value, and reduced `conversations` array length.
@@ -1081,6 +1106,10 @@ backlog files were removed.
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+- 2026-06-22 GitHub CodeQL security alert review:
+  - `gh api repos/spearchucker667/Venice_Forge/code-scanning/alerts --paginate`: SUCCESS (98 alerts retrieved).
+  - No source build/test commands required for this review.
+
 - 2026-06-22 safe-storage quota-retry test fix:
   - `npx vitest run src/lib/safe-storage.test.ts --fileParallelism=false`: PASS (7 tests).
   - `npm run lint:eslint`: PASS (0 warnings).
