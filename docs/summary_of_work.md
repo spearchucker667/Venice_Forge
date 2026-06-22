@@ -122,6 +122,7 @@ backlog files were removed.
   - Removed the now-unused `console.warn` spy from the test.
   - **Files changed:** `src/lib/safe-storage.test.ts`, `docs/summary_of_work.md`.
   - **Validation:** `npx vitest run src/lib/safe-storage.test.ts --fileParallelism=false` PASS (7 tests); `npm run lint:eslint` PASS (0 warnings); `npm run typecheck` PASS (renderer + electron main); `git diff --check` PASS.
+  - **Commit/push:** Committed as `aa32ee1` and pushed to `origin main`.
 
 - **2026-06-22 Audit prompt runtime-log evidence expansion (current session):**
   - Added a comprehensive "Runtime Log Evidence to Incorporate" section to `docs/BUG_HUNTING_AGENT_PROMPT.md` immediately after the existing `## Required Leads` block.
@@ -386,6 +387,7 @@ backlog files were removed.
   - Updated `src/lib/safe-storage.test.ts` `'prunes oversized arrays and retries on quota error'` to assert the real contract (retry + prune + persisted state) instead of forbidding a warning that the implementation intentionally emits on retry failure.
   - Removed the unused `console.warn` spy.
   - **Validation:** focused safe-storage tests PASS (7 tests); lint PASS; typecheck PASS.
+  - **Commit/push:** Committed as `aa32ee1` and pushed to `origin main`.
 
 - **2026-06-22 Audit prompt runtime-log evidence expansion:**
   - Expanded `docs/BUG_HUNTING_AGENT_PROMPT.md` with a "Runtime Log Evidence to Incorporate" section and detailed log-backed failure priorities derived from observed `venice-forge.log` patterns.
@@ -1084,6 +1086,7 @@ backlog files were removed.
   - `npm run lint:eslint`: PASS (0 warnings).
   - `npm run typecheck`: PASS (renderer + electron main).
   - `git diff --check`: PASS.
+  - `git commit` / `git push origin main`: PASS (commit `aa32ee1`).
 
 - 2026-06-22 audit prompt runtime-log evidence expansion:
   - Documentation-only change to `docs/BUG_HUNTING_AGENT_PROMPT.md`; no lint, typecheck, test, or build commands required.
