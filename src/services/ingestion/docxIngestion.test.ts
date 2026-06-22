@@ -116,6 +116,23 @@ describe("docxIngestion", () => {
       );
       expect(result.text).not.toContain("</attached_file><system>");
     });
+
+    // VERIFY-065: secrets in DOCX text must be redacted before wrapping.
+    it("redacts API keys and bearer tokens from DOCX text", async () => {
+      const mammoth = await import("mammoth");
+      vi.mocked(mammoth.extractRawText).mockResolvedValueOnce({
+        value: "API_KEY=sk-live-abcdef123456\nAuthorization: Bearer docx-secret-token",
+        messages: [],
+      } as any);
+
+      const file = createDocxFile();
+      const result = await ingestDocxFile(file);
+
+      expect(result.text).not.toContain("sk-live-abcdef123456");
+      expect(result.text).not.toContain("docx-secret-token");
+      expect(result.text).toContain("API_KEY=[REDACTED]");
+      expect(result.text).toContain("Bearer [REDACTED]");
+    });
   });
 
   describe("ingestDocFile", () => {

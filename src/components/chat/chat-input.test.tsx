@@ -385,4 +385,48 @@ describe("ChatInput", () => {
     );
     expect(screen.queryByAltText("Attachment 1")).not.toBeInTheDocument();
   });
+
+  // VERIFY-062: attachment count limit must be enforced at upload time.
+  it("rejects files that would exceed MAX_ATTACHMENTS_PER_MESSAGE", async () => {
+    render(<ChatInput onSend={vi.fn()} onStop={vi.fn()} isStreaming={false} />);
+
+    const files = Array.from({ length: 9 }, (_, i) =>
+      new File(["dummy"], `test${i}.png`, { type: "image/png" }),
+    );
+    const fileInput = screen.getByLabelText("Message input").parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
+
+    await userEvent.upload(fileInput, files);
+
+    await waitFor(() => {
+      expect(mockProcessFileAttachment).toHaveBeenCalledTimes(8);
+      expect(mockToastWarn).toHaveBeenCalledWith(
+        "Too many attachments",
+        expect.stringContaining("Only 8 of 9 files were added"),
+      );
+    });
+  });
+
+  it("warns and rejects all new files when already at MAX_ATTACHMENTS_PER_MESSAGE", async () => {
+    render(<ChatInput onSend={vi.fn()} onStop={vi.fn()} isStreaming={false} />);
+
+    const firstBatch = Array.from({ length: 8 }, (_, i) =>
+      new File(["dummy"], `test${i}.png`, { type: "image/png" }),
+    );
+    const fileInput = screen.getByLabelText("Message input").parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
+
+    await userEvent.upload(fileInput, firstBatch);
+    await waitFor(() => expect(mockProcessFileAttachment).toHaveBeenCalledTimes(8));
+
+    mockProcessFileAttachment.mockClear();
+    const extra = new File(["dummy"], "extra.png", { type: "image/png" });
+    await userEvent.upload(fileInput, extra);
+
+    await waitFor(() => {
+      expect(mockProcessFileAttachment).not.toHaveBeenCalled();
+      expect(mockToastWarn).toHaveBeenCalledWith(
+        "Attachment limit reached",
+        expect.stringContaining("up to 8 files"),
+      );
+    });
+  });
 });

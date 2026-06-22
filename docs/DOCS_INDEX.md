@@ -76,3 +76,5 @@ superseded banner near the top.
 - `docs/audits/current-audit-cross-check-status.md` and
   `docs/audits/current-audit-cross-check-status.yaml` were deleted because the
   closed findings are covered by the repair evidence and current ledger.
+- `docs/VENICE_FORGE_TODO.md` and `docs/VENICE_FORGE_ZIP_AUDIT_HANDOFF.md` were
+  completed and moved to [archives/](archives/) as historical evidence.

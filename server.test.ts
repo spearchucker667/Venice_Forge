@@ -1064,27 +1064,111 @@ describe("server.ts scrape proxy error handling", () => {
       expect(response.body).toHaveProperty("contentType");
     });
 
-    it("returns raw body when ?raw=true is specified", async () => {
+    // VERIFY-064 regression guard: raw mode must sanitize Content-Type reflection.
+    it("returns raw body with a sanitized Content-Type header", async () => {
+      requestSpy.mockRestore();
+      const nodeHttps = require("node:https");
+      requestSpy = vi.spyOn(nodeHttps, "request").mockImplementation((options: any, callback?: any) => {
+        const res = {
+          statusCode: 200,
+          headers: { "content-type": "text/html; charset=utf-8" },
+          destroy: vi.fn(),
+          on: vi.fn((event, cb) => {
+            if (event === "data") {
+              cb(Buffer.from("<html><body>Mocked Scrape</body></html>"));
+            }
+            if (event === "end") {
+              cb();
+            }
+          }),
+        };
+        if (callback) callback(res);
+        return {
+          on: vi.fn(),
+          end: vi.fn(),
+        } as any;
+      });
+
       const app = createServerApp();
-      
       const response = await request(app)
         .post("/api/proxy-scrape?raw=true")
         .set("X-Venice-Forge-Family-Safe-Mode", "false")
         .send({ url: "https://public.example.com" });
-        
-      expect(response.status).not.toBe(403);
-      expect(response.status).not.toBe(405);
-      // Wait, we don't know the exact content type mocked, but it shouldn't be a JSON envelope
-      // if the body was HTML. At least it's not JSON body.
-      // We will just verify it's not a JSON object with a `body` field when it shouldn't be.
-      if (response.headers["content-type"]?.includes("application/json")) {
-        // If it happens to be json, it shouldn't have the envelope
-        if (response.body && typeof response.body === 'object') {
-          expect(response.body.finalUrl).toBeUndefined();
-        }
-      } else {
-        expect(response.headers["content-type"]).toBeDefined();
-      }
+
+      expect(response.status).toBe(200);
+      expect(response.text).toBe("<html><body>Mocked Scrape</body></html>");
+      expect(response.headers["content-type"]).toBe("text/html; charset=utf-8");
+      expect(response.headers["x-content-type-options"]).toBe("nosniff");
+    });
+
+    it("does not reflect arbitrary Content-Type parameters or header injection in raw mode", async () => {
+      requestSpy.mockRestore();
+      const nodeHttps = require("node:https");
+      requestSpy = vi.spyOn(nodeHttps, "request").mockImplementation((options: any, callback?: any) => {
+        const res = {
+          statusCode: 200,
+          headers: { "content-type": "text/html; charset=utf-8; foo=bar\r\nX-Injected: evil" },
+          destroy: vi.fn(),
+          on: vi.fn((event, cb) => {
+            if (event === "data") {
+              cb(Buffer.from("<html><body>Mocked Scrape</body></html>"));
+            }
+            if (event === "end") {
+              cb();
+            }
+          }),
+        };
+        if (callback) callback(res);
+        return {
+          on: vi.fn(),
+          end: vi.fn(),
+        } as any;
+      });
+
+      const app = createServerApp();
+      const response = await request(app)
+        .post("/api/proxy-scrape?raw=true")
+        .set("X-Venice-Forge-Family-Safe-Mode", "false")
+        .send({ url: "https://public.example.com" });
+
+      expect(response.status).toBe(200);
+      expect(response.headers["content-type"]).toBe("text/html; charset=utf-8");
+      expect(response.headers["x-injected"]).toBeUndefined();
+      expect(response.headers["x-content-type-options"]).toBe("nosniff");
+    });
+
+    it("rejects an upstream Content-Type outside the scrape allowlist", async () => {
+      requestSpy.mockRestore();
+      const nodeHttps = require("node:https");
+      requestSpy = vi.spyOn(nodeHttps, "request").mockImplementation((options: any, callback?: any) => {
+        const res = {
+          statusCode: 200,
+          headers: { "content-type": "application/octet-stream" },
+          destroy: vi.fn(),
+          on: vi.fn((event, cb) => {
+            if (event === "data") {
+              cb(Buffer.from("binary data"));
+            }
+            if (event === "end") {
+              cb();
+            }
+          }),
+        };
+        if (callback) callback(res);
+        return {
+          on: vi.fn(),
+          end: vi.fn(),
+        } as any;
+      });
+
+      const app = createServerApp();
+      const response = await request(app)
+        .post("/api/proxy-scrape?raw=true")
+        .set("X-Venice-Forge-Family-Safe-Mode", "false")
+        .send({ url: "https://public.example.com" });
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toMatch(/Scrape failed|Content-Type not allowed/i);
     });
   });
 });

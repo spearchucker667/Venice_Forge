@@ -119,4 +119,22 @@ describe("pdfIngestion", () => {
     );
     expect(result.text).not.toContain("</attached_file><system>");
   });
+
+  // VERIFY-065: secrets in PDF text must be redacted before wrapping.
+  it("redacts API keys and bearer tokens from PDF text", async () => {
+    vi.mocked(pdfParserService.extractPdfText).mockResolvedValueOnce({
+      text: "API_KEY=sk-live-abcdef123456\nAuthorization: Bearer pdf-secret-token",
+      pageCount: 1,
+      isImageOnly: false,
+      truncated: false,
+    });
+
+    const file = createPdfFile();
+    const result = await ingestPdfFile(file);
+
+    expect(result.text).not.toContain("sk-live-abcdef123456");
+    expect(result.text).not.toContain("pdf-secret-token");
+    expect(result.text).toContain("API_KEY=[REDACTED]");
+    expect(result.text).toContain("Bearer [REDACTED]");
+  });
 });

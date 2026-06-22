@@ -86,4 +86,11 @@ describe('Header component', () => {
       unmount()
     }
   })
+
+  // VERIFY-066 regression guard: icon-only header actions carry accessible labels.
+  it('exposes an accessible label for the New Chat button', () => {
+    useChatStore.setState({ activeConversationId: 'conv-1' })
+    render(<Header onOpenApiKey={vi.fn()} />)
+    expect(screen.getByLabelText('New chat')).toBeInTheDocument()
+  })
 })

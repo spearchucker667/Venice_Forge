@@ -40,6 +40,21 @@ function safeDecodeForScreening(value: string): string {
   }
 }
 
+const SCRAPE_ALLOWED_CONTENT_TYPES = ["text/html", "text/plain", "application/xhtml+xml", "application/json"] as const;
+
+/** Sanitizes an upstream Content-Type so the raw scrape proxy never reflects
+ *  arbitrary parameters or header-injection payloads. Only the base media type
+ *  is honoured, and only a safe UTF-8 charset parameter is preserved. */
+function sanitizeScrapeContentTypeHeader(contentType: string): string | null {
+  const base = String(contentType).split(";")[0].trim().toLowerCase();
+  if (!SCRAPE_ALLOWED_CONTENT_TYPES.includes(base as typeof SCRAPE_ALLOWED_CONTENT_TYPES[number])) {
+    return null;
+  }
+  const charsetMatch = /charset=([a-zA-Z0-9_-]+)/i.exec(contentType);
+  const charset = charsetMatch && charsetMatch[1].toLowerCase() === "utf-8" ? "; charset=utf-8" : "";
+  return `${base}${charset}`;
+}
+
 function isLoopbackClient(req: express.Request): boolean {
   const address = req.socket.remoteAddress ?? "";
   return address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1";
@@ -847,9 +862,8 @@ export function createServerApp() {
             }
 
             const contentType = String(response.headers["content-type"] || "");
-            const ALLOWED_CONTENT_TYPES = ["text/html", "text/plain", "application/xhtml+xml", "application/json"];
-            const allowed = ALLOWED_CONTENT_TYPES.some((t) => contentType.toLowerCase().includes(t));
-            if (!allowed) {
+            const baseContentType = contentType.split(";")[0].trim().toLowerCase();
+            if (!SCRAPE_ALLOWED_CONTENT_TYPES.includes(baseContentType as typeof SCRAPE_ALLOWED_CONTENT_TYPES[number])) {
               response.destroy();
               reject(new Error("Content-Type not allowed"));
               return;
@@ -894,8 +908,10 @@ export function createServerApp() {
       }
 
       if (req.query.raw === "true") {
-        if (scrapeResult.contentType) {
-          res.setHeader("Content-Type", scrapeResult.contentType);
+        const sanitizedContentType = sanitizeScrapeContentTypeHeader(scrapeResult.contentType);
+        if (sanitizedContentType) {
+          res.setHeader("Content-Type", sanitizedContentType);
+          res.setHeader("X-Content-Type-Options", "nosniff");
         }
         res.status(scrapeResult.status).send(scrapeResult.body);
       } else {
@@ -928,12 +944,26 @@ export function createServerApp() {
   return app;
 }
 
-function isMainModule() {
+function isMainModule(): boolean {
   try {
-    return import.meta.url === pathToFileURL(process.argv[1] || "").href;
+    // ESM entry point (e.g., tsx server.ts)
+    if (import.meta.url === pathToFileURL(process.argv[1] || "").href) {
+      return true;
+    }
   } catch {
-    return false;
+    // import.meta may be unavailable in bundled CJS output.
   }
+
+  try {
+    // CommonJS entry point (e.g., node dist/server.cjs)
+    if (require.main === module) {
+      return true;
+    }
+  } catch {
+    // require may be unavailable in native ESM.
+  }
+
+  return false;
 }
 
 if (isMainModule()) {

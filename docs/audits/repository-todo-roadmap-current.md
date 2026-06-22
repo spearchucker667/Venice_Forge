@@ -231,10 +231,9 @@ server.ts
 
 ```text
 docs/audits/*
+docs/archives/*
 docs/reports/historical/*
 docs/summary_of_work.md
-docs/VENICE_FORGE_TODO.md
-docs/VENICE_FORGE_ZIP_AUDIT_HANDOFF.md
 docs/BUG_HUNTING_AGENT_PROMPT.md
 _REPO_EXTRACT_METADATA/*
 ```
@@ -455,13 +454,13 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
 
 * [x] **P2 — Repo hygiene: Canonicalize audit/report sprawl**
 
-  * **Evidence:** `docs/audits/*`, `docs/reports/historical/*`, `docs/summary_of_work.md`, `docs/VENICE_FORGE_TODO.md`, and `docs/VENICE_FORGE_ZIP_AUDIT_HANDOFF.md` all exist. `docs/DOCS_INDEX.md` already separates current and historical docs.
+  * **Evidence:** `docs/audits/*`, `docs/archives/*`, `docs/reports/historical/*`, and `docs/summary_of_work.md` exist. `docs/DOCS_INDEX.md` already separates current and historical docs.
   * **Why:** Too many report files make contributors chase stale advice like raccoons in a data center.
-  * **Action:** Create one canonical report index mapping old reports to current documents; move superseded files under dated archive folders only after preserving release evidence.
-  * **Files likely affected:** `docs/DOCS_INDEX.md`, `docs/reports/README.md`, `docs/reports/CANONICAL_REPORT_INDEX.md` (new), `docs/audits/*`.
+  * **Action:** Create one canonical report index mapping old reports to current documents; move superseded files under `docs/archives/` only after preserving release evidence.
+  * **Files likely affected:** `docs/DOCS_INDEX.md`, `docs/reports/README.md`, `docs/reports/CANONICAL_REPORT_INDEX.md` (new), `docs/archives/*`, `docs/audits/*`.
   * **Validate:** `npm run verify:markdown-links && npm run verify:repo-handoff-hygiene`
   * **Risk if ignored:** Agents and contributors follow stale TODOs.
-  * **Status:** Fixed 2026-06-21. Added `docs/reports/CANONICAL_REPORT_INDEX.md`, linked it from `docs/DOCS_INDEX.md` and `docs/reports/README.md`, and kept historical report artifacts as evidence instead of current TODO sources.
+  * **Status:** Fixed 2026-06-21. Added `docs/reports/CANONICAL_REPORT_INDEX.md`, linked it from `docs/DOCS_INDEX.md` and `docs/reports/README.md`, and moved the completed `VENICE_FORGE_TODO.md` / `VENICE_FORGE_ZIP_AUDIT_HANDOFF.md` handoffs into `docs/archives/` as historical evidence.
 
 * [x] **P2 — Supply chain: Track deprecated transitive packages**
 

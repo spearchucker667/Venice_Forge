@@ -3329,12 +3329,13 @@ backlog files were removed.
 
 ## Latest Session Summary
 
-- **Date:** 2026-06-21
+- **Date:** 2026-06-22
 - **Agent:** Kimi Code (root agent)
-- **Branch / state:** `main` at `fe85562fcd40c1015205334d5c9bfbda6b2ede80`; working tree clean of stale release artifacts.
-- **Scope:** Roadmap stabilization batch 2 — implemented the top five P0 items from the production-readiness roadmap: web-mode conversation persistence, document-ingestion XML attribute escaping, main-process logger redaction parity, production CSP `img-src` hardening, and HTTPS-only generic scrape proxy. Added regression guards VERIFY-059 through VERIFY-063 and updated the handoff hygiene verifier to recognize the new IDs.
-- **Validation:** `npm run lint:eslint` PASS (0 warnings); `npm run typecheck` PASS (renderer + Electron main); targeted vitest run PASS (109 tests across chat-store, ingestion, logger, renderer CSP, main navigation); `npm run verify:document-ingestion` PASS; `npm run verify:agent-docs` PASS; `npm run verify:repo-handoff-hygiene` PASS; `npm run verify:markdown-links` PASS.
-- **Status:** IN PROGRESS — Top five P0 roadmap items complete. Remaining roadmap items documented in Open TODO Ledger below. No secrets or private machine paths recorded.
+- **Branch / state:** `main` at `61be3e1`; working tree contains uncommitted roadmap fixes.
+- **Scope:** Roadmap stabilization batch 3 — completed remaining P0/P1/P2 items from the production-readiness roadmap: secret redaction for all document-ingestion paths, attachment count and context-byte budgets in chat input/`use-chat`, Venice text-parser XML escaping, `/image/styles` allowlist parity, production `dist/server.cjs` entry-point detection, coverage enforcement in the `ci` script, raw-mode Content-Type sanitization for `/api/proxy-scrape`, archival of completed handoff files with docs-index updates, reconciliation of `LEGAL.md`/`SECURITY.md` with live CodeQL alert data, and accessible labels plus a skip-to-content link.
+- **Regressions added:** VERIFY-064 (scrape raw Content-Type sanitization), VERIFY-065 (ingestion secret redaction), VERIFY-066 (accessible labels / skip link). `scripts/verify-repo-handoff-hygiene.cjs` and `AGENTS.md` updated to recognize VERIFY-001..VERIFY-066.
+- **Validation:** `npm run lint:eslint` PASS (0 warnings); `npm run typecheck` PASS (renderer + Electron main); `npm run test:coverage` PASS (3406 tests, coverage above enforced thresholds); `npm run verify:repo-handoff-hygiene` PASS; `npm run verify:markdown-links` PASS; focused test suites for header, skip link, focus trap, and scrape proxy output PASS.
+- **Status:** DONE — all items in the current TODO batch are complete; `docs/summary_of_work.md` and `docs/audits/repository-todo-roadmap-current.md` updated. No secrets or private machine paths recorded.
 
 ## Session History
 
@@ -8643,3 +8644,71 @@ Result:
     - Verified that they are already tracked and documented correctly in `docs/DEVELOPMENT/troubleshooting.md` with zero active vulnerabilities, and that the roadmap marks this step complete.
   - **Files changed:** `tests/setup.ts`, `server.test.ts`, `docs/summary_of_work.md`.
   - **Validation:** `npm test -- --run src/shared/logger.test.ts` PASS; `npm run test:ui` PASS (no longer emits noisy `getItem failed` or proxy timeout errors to stderr).
+
+### Completed this session (2026-06-22 — Roadmap batch: ingestion redaction, attachment budgets, CI coverage, scrape hardening, docs hygiene, accessibility)
+
+- **P0 — Secret redaction for document ingestion:**
+  - Applied `redactSecrets()` to extracted text in `src/services/ingestion/textIngestion.ts`, `codeIngestion.ts`, `pdfIngestion.ts`, `docxIngestion.ts`, and `veniceTextParserIngestion.ts` before XML wrapping.
+  - Added regression tests in each ingestion test file under VERIFY-065.
+- **P0 — Venice text-parser XML escaping:**
+  - Changed `veniceTextParserIngestion.ts` to escape parser output with `escapeXmlText()` before wrapping.
+  - Added `src/services/ingestion/veniceTextParserIngestion.test.ts`.
+- **P0 — Attachment count and context-byte budgets:**
+  - `src/components/chat/chat-input.tsx` caps uploads at `MAX_ATTACHMENTS_PER_MESSAGE` with toast warnings.
+  - `src/hooks/use-chat.ts` truncates attachment text at `MAX_TOTAL_CONTEXT_BYTES`.
+  - Added `src/hooks/use-chat.attachments.test.ts` and extended `chat-input.test.tsx`.
+- **P1 — `/image/styles` allowlist parity:**
+  - Added `/image/styles` as GET-only to `ALLOWED_VENICE_ENDPOINTS` and `VENICE_ENDPOINT_METHODS` in `src/shared/validation.ts`; updated tests.
+- **P1 — Production `dist/server.cjs` entry point:**
+  - Updated `isMainModule()` in `server.ts` to detect both ESM (`import.meta.url`) and bundled CJS (`require.main === module`) entry points.
+- **P1 — Coverage enforcement in CI:**
+  - Added `npm run test:coverage` to the `ci` script in `package.json` and to the Ubuntu `build-and-test` job in `.github/workflows/ci.yml`.
+  - Verified `npm run test:coverage` passes above enforced thresholds.
+- **P1 — Scrape raw-mode Content-Type hardening:**
+  - Added `sanitizeScrapeContentTypeHeader()` and `SCRAPE_ALLOWED_CONTENT_TYPES` in `server.ts`.
+  - Raw `/api/proxy-scrape?raw=true` responses now reflect only the base media type and a safe `charset=utf-8` parameter, plus `X-Content-Type-Options: nosniff`.
+  - Tightened upstream Content-Type validation to exact base-type matching.
+  - Added VERIFY-064 regression coverage in `server.test.ts`.
+- **P2 — Docs/archive hygiene:**
+  - Moved completed `docs/VENICE_FORGE_TODO.md` and `docs/VENICE_FORGE_ZIP_AUDIT_HANDOFF.md` to `docs/archives/`.
+  - Updated `docs/DOCS_INDEX.md`, `docs/reports/README.md`, `docs/BUG_HUNTING_AGENT_PROMPT.md`, and `docs/audits/repository-todo-roadmap-current.md` to point to archived locations.
+- **P2 — Reconcile `LEGAL.md` and `SECURITY.md` with live CodeQL data:**
+  - Queried GitHub API for open code-scanning alerts and replaced the stale "Current open alerts: 0" claim in `SECURITY.md` with a live snapshot (29 open findings as of 2026-06-22) and a link to Security → Code Scanning.
+  - Corrected CodeQL suppression line numbers and descriptions in `SECURITY.md`.
+  - Updated `LEGAL.md` maintainer checklist to require confirming `SECURITY.md` matches the live CodeQL view.
+- **P2 — Accessible labels and skip link:**
+  - Added `aria-label="New chat"` to the header New Chat button.
+  - Added a keyboard-accessible "Skip to main content" link in `App.tsx` targeting `<main id="main-content">`.
+  - Added VERIFY-066 regression tests in `src/components/layout/header.test.tsx` and `src/App.skip-link.test.ts`.
+- **Repository governance:**
+  - Updated `scripts/verify-repo-handoff-hygiene.cjs` to allow VERIFY-001..VERIFY-066.
+  - Added VERIFY-064, VERIFY-065, and VERIFY-066 entries to `AGENTS.md`.
+- **Files changed:** `src/services/ingestion/textIngestion.ts`, `src/services/ingestion/codeIngestion.ts`, `src/services/ingestion/pdfIngestion.ts`, `src/services/ingestion/docxIngestion.ts`, `src/services/ingestion/veniceTextParserIngestion.ts`, `src/services/ingestion/textIngestion.test.ts`, `src/services/ingestion/codeIngestion.test.ts`, `src/services/ingestion/pdfIngestion.test.ts`, `src/services/ingestion/docxIngestion.test.ts`, `src/services/ingestion/veniceTextParserIngestion.test.ts`, `src/components/chat/chat-input.tsx`, `src/components/chat/chat-input.test.tsx`, `src/hooks/use-chat.ts`, `src/hooks/use-chat.attachments.test.ts`, `src/shared/validation.ts`, `src/shared/validation.test.ts`, `server.ts`, `server.test.ts`, `package.json`, `.github/workflows/ci.yml`, `docs/VENICE_FORGE_TODO.md`, `docs/VENICE_FORGE_ZIP_AUDIT_HANDOFF.md`, `docs/archives/`, `docs/DOCS_INDEX.md`, `docs/reports/README.md`, `docs/BUG_HUNTING_AGENT_PROMPT.md`, `docs/audits/repository-todo-roadmap-current.md`, `SECURITY.md`, `LEGAL.md`, `src/components/layout/header.tsx`, `src/components/layout/header.test.tsx`, `src/App.tsx`, `src/App.skip-link.test.ts`, `scripts/verify-repo-handoff-hygiene.cjs`, `AGENTS.md`, `docs/summary_of_work.md`.
+- **Validation:** `npm run lint:eslint` PASS (0 warnings); `npm run typecheck` PASS (renderer + Electron main); `npm run test:coverage` PASS (3406 tests, 1 skipped, coverage thresholds met); `npm run verify:repo-handoff-hygiene` PASS; `npm run verify:markdown-links` PASS; focused test suites for ingestion, chat-input, use-chat attachments, server scrape proxy, header, skip link, and focus trap PASS.
+
+## Validation Matrix (2026-06-22 roadmap batch)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0` |
+| `npm run typecheck` | PASS | Renderer and Electron TypeScript projects clean |
+| `npm run test:coverage` | PASS | 274 files / 3406 tests passed, 1 skipped; coverage above thresholds |
+| `npm run verify:repo-handoff-hygiene` | PASS | VERIFY-001..VERIFY-066 namespace valid |
+| `npm run verify:markdown-links` | PASS | 78 Markdown files checked |
+| `npx vitest run src/services/ingestion --fileParallelism=false` | PASS | Ingestion tests including redaction/escaping coverage |
+| `npx vitest run src/components/chat/chat-input.test.tsx src/hooks/use-chat.attachments.test.ts --fileParallelism=false` | PASS | Attachment budget regression coverage |
+| `npx vitest run server.test.ts --fileParallelism=false` | PASS | Scrape proxy HTTPS + raw Content-Type sanitization |
+| `npx vitest run src/components/layout/header.test.tsx src/App.skip-link.test.ts src/hooks/useFocusTrap.test.tsx --fileParallelism=false` | PASS | Accessible labels and skip-link coverage |
+
+## Validation Matrix (2026-06-22 final full-gate confirmation)
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0` |
+| `npm run typecheck` | PASS | Renderer and Electron TypeScript projects clean |
+| `npm run test:ci` | PASS | Server, Electron, ingestion, unit, and UI suites pass |
+| `npm run test:coverage` | PASS | 275 files / 3411 tests passed, 1 skipped; coverage above thresholds |
+| `npm audit --audit-level=moderate` | PASS | 0 vulnerabilities |
+| `npm run build` | PASS | Web, server, and Electron build completed |
+| `npm run verify:contracts` | PASS | All static, feature, and release contract verifiers pass |
+| `npm run verify:dist` | PASS | Build outputs verified for v2.1.1 |

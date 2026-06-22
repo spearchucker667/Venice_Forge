@@ -14,6 +14,7 @@ import { parseCharacterSceneRequest } from '../services/characterSceneRequestPar
 import { CharacterSceneRateLimiter } from '../services/characterSceneRateLimiter'
 import type { CharacterSceneGenerationResult } from '../types/characterSceneGeneration'
 import type { IngestedAttachment } from '../types/ingestion'
+import { MAX_TOTAL_CONTEXT_BYTES } from '../services/ingestion/ingestionLimits'
 import * as logger from '../shared/logger'
 
 /** Safe, non-disclosing error text appended to assistant messages when a
@@ -229,12 +230,31 @@ export function useChat() {
       const imageParts: ContentPart[] = [];
 
       if (attachments && attachments.length > 0) {
+        let contextBytesUsed = new TextEncoder().encode(combinedMessage).length;
+        let contextTruncated = false;
+
         for (const att of attachments) {
           if (att.kind === 'image' && att.dataUrl) {
             imageParts.push({ type: 'image_url', image_url: { url: att.dataUrl } });
-          } else if (att.text) {
-            combinedMessage += `\n\n${att.text}`;
+            continue;
           }
+
+          if (att.text) {
+            const attBytes = new TextEncoder().encode(att.text).length;
+            if (contextBytesUsed + attBytes > MAX_TOTAL_CONTEXT_BYTES) {
+              contextTruncated = true;
+              continue;
+            }
+            combinedMessage += `\n\n${att.text}`;
+            contextBytesUsed += attBytes;
+          }
+        }
+
+        if (contextTruncated) {
+          toast.warn(
+            'Attachment context truncated',
+            `Total attachment text exceeded ${MAX_TOTAL_CONTEXT_BYTES / 1024} KB. Some attachments were omitted from this message.`,
+          );
         }
       }
 

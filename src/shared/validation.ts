@@ -4,6 +4,7 @@
 /** Venice API endpoints permitted by the IPC and proxy validators. */
 export const ALLOWED_VENICE_ENDPOINTS = [
   "/models",
+  "/image/styles",
   "/chat/completions",
   "/image/generate",
   "/image/upscale",
@@ -35,6 +36,7 @@ export type VeniceIpcMethod = (typeof ALLOWED_VENICE_METHODS)[number];
 /** Allowed HTTP methods for each permitted Venice endpoint. */
 export const VENICE_ENDPOINT_METHODS: Record<VeniceIpcEndpoint, readonly VeniceIpcMethod[]> = {
   "/models": ["GET"],
+  "/image/styles": ["GET"],
   "/chat/completions": ["POST"],
   "/image/generate": ["POST"],
   "/image/upscale": ["POST"],

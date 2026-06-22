@@ -17,6 +17,7 @@ describe("validation", () => {
     it("contains exactly the expected endpoints", () => {
       expect(ALLOWED_VENICE_ENDPOINTS).toEqual([
         "/models",
+        "/image/styles",
         "/chat/completions",
         "/image/generate",
         "/image/upscale",
@@ -49,17 +50,23 @@ describe("validation", () => {
       expect(VENICE_ENDPOINT_METHODS["/models"]).toEqual(["GET"]);
     });
 
-    it("allows POST for all non-model endpoints", () => {
+    it("allows GET only for /image/styles", () => {
+      expect(VENICE_ENDPOINT_METHODS["/image/styles"]).toEqual(["GET"]);
+    });
+
+    it("allows POST for all non-GET-only endpoints", () => {
+      const getOnlyEndpoints = new Set(["/models", "/image/styles"]);
       const postEndpoints = Object.entries(VENICE_ENDPOINT_METHODS).filter(
-        ([ep, methods]) => ep !== "/models" && methods.includes("POST")
+        ([ep, methods]) => !getOnlyEndpoints.has(ep) && methods.includes("POST")
       );
-      expect(postEndpoints.length).toBe(ALLOWED_VENICE_ENDPOINTS.length - 1);
+      expect(postEndpoints.length).toBe(ALLOWED_VENICE_ENDPOINTS.length - getOnlyEndpoints.size);
     });
   });
 
   describe("isAllowedVeniceRequest", () => {
     it("returns true for allowed endpoint/method pairs", () => {
       expect(isAllowedVeniceRequest("/models", "GET")).toBe(true);
+      expect(isAllowedVeniceRequest("/image/styles", "GET")).toBe(true);
       expect(isAllowedVeniceRequest("/chat/completions", "POST")).toBe(true);
       expect(isAllowedVeniceRequest("/image/generate", "POST")).toBe(true);
       expect(isAllowedVeniceRequest("/video/queue", "POST")).toBe(true);
@@ -75,6 +82,7 @@ describe("validation", () => {
 
     it("returns false for wrong method", () => {
       expect(isAllowedVeniceRequest("/models", "POST")).toBe(false);
+      expect(isAllowedVeniceRequest("/image/styles", "POST")).toBe(false);
       expect(isAllowedVeniceRequest("/chat/completions", "GET")).toBe(false);
     });
 

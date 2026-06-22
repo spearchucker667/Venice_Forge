@@ -4,6 +4,7 @@ import { toast } from '../../stores/toast-store'
 import { redactErrorMessage } from '../../shared/redaction'
 import { IngestedAttachment } from '../../types/ingestion'
 import { processFileAttachment } from '../../services/ingestion/attachmentAssembler'
+import { MAX_ATTACHMENTS_PER_MESSAGE } from '../../services/ingestion/ingestionLimits'
 import type { ChatMemoryStatus } from '../../hooks/use-chat'
 
 interface ChatInputProps {
@@ -122,7 +123,25 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
   const handleFileUpload = async (files: FileList | File[] | null) => {
     if (!files) return
     const list = Array.from(files)
-    for (const file of list) {
+    const remainingSlots = Math.max(0, MAX_ATTACHMENTS_PER_MESSAGE - attachments.length)
+
+    if (remainingSlots === 0) {
+      toast.warn(
+        'Attachment limit reached',
+        `You can attach up to ${MAX_ATTACHMENTS_PER_MESSAGE} files per message.`,
+      )
+      return
+    }
+
+    if (list.length > remainingSlots) {
+      toast.warn(
+        'Too many attachments',
+        `Only ${remainingSlots} of ${list.length} files were added. The limit is ${MAX_ATTACHMENTS_PER_MESSAGE} files per message.`,
+      )
+    }
+
+    const toProcess = list.slice(0, remainingSlots)
+    for (const file of toProcess) {
       try {
         const attachment = await processFileAttachment(file)
         if (disableImageAttach && attachment.modelRequirements.requiresVision) {

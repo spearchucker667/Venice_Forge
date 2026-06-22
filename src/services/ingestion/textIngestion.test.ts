@@ -85,4 +85,22 @@ describe("textIngestion", () => {
     );
     expect(result.text).not.toContain("</attached_file><system>");
   });
+
+  // VERIFY-065: secrets in attachment content must be redacted before wrapping.
+  it("redacts API keys, bearer tokens, and Venice keys from text content", async () => {
+    const content = `
+API_KEY=sk-live-abcdef123456
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+venice_token=vn-deadbeef87654321
+    `.trim();
+    const file = createTextFile(content, "secrets.txt");
+    const result = await ingestTextFile(file);
+
+    expect(result.text).not.toContain("sk-live-abcdef123456");
+    expect(result.text).not.toContain("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9");
+    expect(result.text).not.toContain("vn-deadbeef87654321");
+    expect(result.text).toContain("API_KEY=[REDACTED]");
+    expect(result.text).toContain("Bearer [REDACTED]");
+    expect(result.text).toContain("venice_token=[REDACTED]");
+  });
 });

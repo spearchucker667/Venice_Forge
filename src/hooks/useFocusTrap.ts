@@ -17,7 +17,7 @@ export function useFocusTrap(
 
     const el = ref.current;
     const previouslyFocused = document.activeElement;
-    
+
     // Find all focusable elements
     const focusableSelectors = [
       'a[href]',
@@ -28,7 +28,7 @@ export function useFocusTrap(
       '[tabindex]:not([tabindex="-1"])',
       '[contenteditable]'
     ].join(',');
-    
+
     const getFocusable = () => Array.from(el.querySelectorAll<HTMLElement>(focusableSelectors));
 
     // Focus the first element when active

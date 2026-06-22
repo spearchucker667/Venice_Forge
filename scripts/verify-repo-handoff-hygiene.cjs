@@ -78,7 +78,7 @@ if (!agents.includes("VERIFY-168") || !agents.includes("intentional legacy")) {
 }
 
 const allowedVerifyIds = new Set(["VERIFY-168"]);
-for (let id = 1; id <= 63; id += 1) {
+for (let id = 1; id <= 66; id += 1) {
   allowedVerifyIds.add(`VERIFY-${String(id).padStart(3, "0")}`);
 }
 

@@ -3,6 +3,7 @@ import { classifyFile } from "./fileClassifier";
 import { MAX_DOCX_FILE_BYTES, MAX_DOC_FILE_BYTES, MAX_EXTRACTED_TEXT_CHARS } from "./ingestionLimits";
 import { FileTooLargeError, UnsupportedFileTypeError, DocxExtractionError } from "./ingestionErrors";
 import { escapeXmlAttribute, escapeXmlText } from "./xmlEscape";
+import { redactSecrets } from "../../shared/redaction";
 
 function generateId(): string {
   return crypto.randomUUID();
@@ -42,7 +43,8 @@ export async function ingestDocxFile(file: File): Promise<IngestedAttachment> {
   const rawText = result.text;
   
   const truncated = rawText.length > MAX_EXTRACTED_TEXT_CHARS;
-  const text = truncated ? rawText.slice(0, MAX_EXTRACTED_TEXT_CHARS) : rawText;
+  const truncatedText = truncated ? rawText.slice(0, MAX_EXTRACTED_TEXT_CHARS) : rawText;
+  const text = redactSecrets(truncatedText);
 
   const warnings = [...result.warnings];
   if (truncated) {

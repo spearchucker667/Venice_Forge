@@ -86,8 +86,8 @@ README.md
 CONTRIBUTING.md
 docs/DOCS_INDEX.md
 docs/summary_of_work.md
-docs/VENICE_FORGE_TODO.md
-docs/VENICE_FORGE_ZIP_AUDIT_HANDOFF.md
+docs/archives/VENICE_FORGE_TODO.md
+docs/archives/VENICE_FORGE_ZIP_AUDIT_HANDOFF.md
 ```
 
 Historical reports under `docs/reports/historical/` are evidence snapshots, not

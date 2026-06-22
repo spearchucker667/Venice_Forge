@@ -80,4 +80,18 @@ describe("codeIngestion", () => {
     );
     expect(result.text).not.toContain("</attached_file><system>");
   });
+
+  // VERIFY-065: secrets in code files must be redacted before wrapping.
+  it("redacts API keys and bearer tokens from code content", async () => {
+    const file = createCodeFile(
+      "const apiKey = 'sk-live-abcdef123456';\nconst headers = { Authorization: 'Bearer secret-token-value' };",
+      "config.ts",
+    );
+    const result = await ingestCodeFile(file);
+
+    expect(result.text).not.toContain("sk-live-abcdef123456");
+    expect(result.text).not.toContain("secret-token-value");
+    expect(result.text).toContain("apiKey=[REDACTED]");
+    expect(result.text).toContain("Bearer [REDACTED]");
+  });
 });

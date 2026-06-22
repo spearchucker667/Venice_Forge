@@ -276,20 +276,28 @@ A clean audit at the `moderate` level or higher (`npm audit --audit-level=modera
 The tracked `.github/workflows/codeql.yml` workflow automatically runs CodeQL analysis on pull requests, pushes to main, and on a schedule. You can opt-out by setting the repository variable `VENICE_FORGE_DISABLE_CODEQL=true`. Findings appear in
 [Security → Code Scanning](https://github.com/spearchucker667/Venice_Forge/security/code-scanning).
 
-### Current open alerts: **0**
+### Current open alerts
 
-All CodeQL findings in `server.ts` and the GitHub Actions workflows are either
-fixed or dismissed with justification. The two defended false positives are
-annotated at the call site with `// nosec:js/<rule-id>` plus an inline
-justification:
+The authoritative open-alert count lives in
+[Security → Code Scanning](https://github.com/spearchucker667/Venice_Forge/security/code-scanning).
+A snapshot taken on 2026-06-22 shows **29 open CodeQL findings**: one error
+(`js/log-injection`), eleven warnings, and seventeen notes. The warnings cover
+areas such as `file-access-to-http`, `incomplete-multi-character-sanitization`,
+`remote-property-injection`, and `incomplete-url-substring-sanitization`; the
+notes are mostly `unused-local-variable` and `missing-space-in-concatenation`.
+These findings are triaged in priority order; the live view always reflects the
+current state.
 
-- `server.ts:299-305` — `js/resource-exhaustion`: `setTimeout` duration is
+Two intentional suppressions in `server.ts` are annotated at the call site with
+`// nosec:js/<rule-id>` plus an inline justification:
+
+- `server.ts:703-709` — `js/resource-exhaustion`: `setTimeout` duration is
   `Math.min(timeoutMs, 180000) || 30000` (3-minute max). CodeQL does not see
   the clamp because it lives inside a conditional expression.
-- `server.ts:684-717` — `js/request-forgery`: The scrape URL is parsed,
-  restricted to `http:` / `https:`, rejected for private hostnames, resolved
-  with DNS, and every returned A/AAAA record is checked for private IP ranges
-  before the upstream request is made.
+- `server.ts:712-718` — `js/request-forgery`: The Jina Reader URL is parsed
+  from a user-supplied string but then restricted to the `r.jina.ai` /
+  `s.jina.ai` allowlist and required to use `https:` (see `server.ts:362-365`).
+  SSRF to internal services is impossible by construction.
 
 If a future CodeQL update flags these sites again, the suppressions and
 allowlist check should be re-verified, not removed.

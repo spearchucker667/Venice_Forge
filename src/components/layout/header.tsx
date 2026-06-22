@@ -76,6 +76,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
               <button
                 type="button"
                 onClick={() => setActiveConversation(null)}
+                aria-label="New chat"
                 title="New Chat (⌘N)"
                 className="flex items-center justify-center w-8 h-8 rounded-md border border-border hover:border-text-muted hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent cursor-pointer"
               >
