@@ -64,7 +64,6 @@ describe('createSafeStorage', () => {
   })
 
   it('prunes oversized arrays and retries on quota error', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     let attempts = 0
     const oversized = { state: { conversations: Array.from({ length: 100 }, (_, i) => ({ id: i })) }, version: 3 }
     vi.spyOn(localStorageMock, 'setItem').mockImplementation((key, value) => {
@@ -77,7 +76,13 @@ describe('createSafeStorage', () => {
     const storage = createSafeStorage()
     storage.setItem('key', JSON.stringify(oversized))
     expect(attempts).toBe(2)
-    expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('cleared persisted state'))
+
+    // Verify retry happened and data was persisted in pruned form
+    const written = localStorageStore['key']
+    expect(written).toBeTruthy()
+    const parsed = JSON.parse(written)
+    expect(Array.isArray(parsed.state.conversations)).toBe(true)
+    expect(parsed.state.conversations.length).toBeLessThan(100)
   })
 
   it('removes a value even if localStorage.removeItem throws', () => {
