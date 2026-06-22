@@ -115,6 +115,13 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-06-22 Audit prompt runtime-log evidence expansion (current session):**
+  - Added a comprehensive "Runtime Log Evidence to Incorporate" section to `docs/BUG_HUNTING_AGENT_PROMPT.md` immediately after the existing `## Required Leads` block.
+  - The new section instructs audit agents to treat `venice-forge.log` as evidence, maps 12 recurring log-backed failure clusters to concrete investigations, and requires a prioritized evidence summary table in any roadmap produced from log inspection.
+  - Covered failure clusters: blocked `/image/styles` IPC endpoint, character image cache failures, unsupported `prompt()` usage, stream aborts, insecure CSP warnings, invalid rgba-to-hex theme colors, React provider/runtime errors, production renderer load failure, missing `latest-mac.yml` updater metadata, Venice API network failure classification, `render-process-gone` lifecycle context, and CI Node vs Electron bundled Node version drift.
+  - **Files changed:** `docs/BUG_HUNTING_AGENT_PROMPT.md`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run verify:markdown-links` PASS (78 Markdown files checked); `git diff --check` PASS.
+
 - **2026-06-21 Oversized core file architecture decomposition (current session):**
   - Split `src/theme/themes.ts` (1,113 lines) into `src/theme/builtins/*.ts` (one file per built-in theme) plus `src/theme/builtins/index.ts`; kept `src/theme/themes.ts` as a back-compat barrel.
   - Split `src/components/SettingsView.tsx` (1,009 lines) into focused panel components under `src/components/settings/` (`ApiKeysPanel`, `DefaultsPanel`, `SafetyPanel`, `DataStoragePanel`, `UpdatesPanel`, `ConfigPanel`, `AboutPanel`, and the `SettingsView` shell); kept `src/components/SettingsView.tsx` as a re-export shim.
@@ -366,6 +373,12 @@ backlog files were removed.
   - **Validation:** All 14 CI gates pass. Code fully verified for 14 audit items. Release gate: **PASS**.
 
 ### Session History
+- **2026-06-22 Audit prompt runtime-log evidence expansion:**
+  - Expanded `docs/BUG_HUNTING_AGENT_PROMPT.md` with a "Runtime Log Evidence to Incorporate" section and detailed log-backed failure priorities derived from observed `venice-forge.log` patterns.
+  - Instructed future audit agents to map log errors to source, classify severity, create evidence-backed TODOs, and include a runtime-log evidence summary table in roadmaps.
+  - No source files were modified; the change is documentation-only.
+  - **Validation:** No build/test commands required for this change.
+
 - **2026-06-21 Segmented test scripts and CI/release workflow updates:**
   - Added `test:server`, `test:electron`, `test:ingestion`, `test:ui`, `test:unit`, and `test:ci` npm scripts; wired them into `.github/workflows/ci.yml` and `.github/workflows/release.yml` while keeping coverage collection via `test:ci`.
   - Adjusted `verify-release-packaging-hardening.cjs` to recognize the new `test:ci` command in workflow and `ci`-script audits.
@@ -832,6 +845,10 @@ backlog files were removed.
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
+- **2026-06-22 Log-backed runtime failures embedded in audit prompt — OPEN for source verification:**
+  - The canonical bug-hunt prompt now includes a "Runtime Log Evidence to Incorporate" section with 12 log-backed failure clusters from `venice-forge.log`.
+  - Priorities for future agents: P0 production renderer load + React provider crashes; P0/P1 streaming abort ownership; P1 blocked `/image/styles` IPC endpoint; P1 character image cache failure storm; P1 unsupported `prompt()` usage; P1 insecure CSP warnings; P1 Venice API network failure classification; P1 missing `latest-mac.yml` updater metadata; P2 rgba-to-hex theme color normalization; P2 context-aware `render-process-gone` classification; P2 CI Node vs Electron bundled Node documentation.
+  - These are not yet source-level TODOs; they are explicit investigation priorities the next audit must disposition.
 - 2026-06-21 storage-privacy dashboard polish + config cleanup + IMG-005/006/007 (IMG-002 / IMG-003 / SP-003 / SP-004 / SP-006 / SP-007 / SP-008 / RCW-003 / RCW-004 / RCW-005 / RCW-006 / IMG-005 / IMG-006 / IMG-007) — CLOSED in this session:
   - IMG-005: Replaced inline `var(--color-accent)` classes in audio/gallery/image/music/video components with Tailwind semantic tokens.
   - IMG-006: `randomSeed()` in `src/utils/payloadBuilders.ts` now uses `crypto.getRandomValues` exclusively; regression test added.
@@ -1043,6 +1060,11 @@ backlog files were removed.
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+- 2026-06-22 audit prompt runtime-log evidence expansion:
+  - Documentation-only change to `docs/BUG_HUNTING_AGENT_PROMPT.md`; no lint, typecheck, test, or build commands required.
+  - `npm run verify:markdown-links`: PASS (78 Markdown files checked).
+  - `git diff --check`: PASS.
+
 - 2026-06-21 segmented test scripts and CI/release workflow updates:
   - `npm run lint:eslint`: PASS (0 warnings).
   - `npm run typecheck`: PASS (renderer + electron main).
