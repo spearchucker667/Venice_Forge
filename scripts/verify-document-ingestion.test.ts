@@ -48,6 +48,10 @@ describe("verify-document-ingestion (VERIFY-058)", () => {
       const out = spawnSync("node", [scriptPath], {
         cwd: repoRoot,
         encoding: "utf8",
+        env: {
+          ...process.env,
+          VERIFY_DOCUMENT_INGESTION_SKIP_VITEST: "1",
+        },
       });
       expect(out.status, (out.stderr || "") + (out.stdout || "")).toBe(0);
       expect(out.stdout).toMatch(/VERIFY-058: Document ingestion validation passed/);

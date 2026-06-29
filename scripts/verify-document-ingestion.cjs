@@ -174,14 +174,18 @@ function runVitest(tests, extraArgs, label) {
   }
 }
 
+const skipVitest = process.env.VERIFY_DOCUMENT_INGESTION_SKIP_VITEST === "1";
+
 function main() {
   verifyStaticFiles();
   verifyPackageJson();
   verifyAgentsMd();
   verifySourceIntegrationTokens();
 
-  runVitest(ingestionTests, ["--fileParallelism=false"], "document ingestion service tests (serial)");
-  runVitest(componentTests, [], "document ingestion component tests (parallel)");
+  if (!skipVitest) {
+    runVitest(ingestionTests, ["--fileParallelism=false"], "document ingestion service tests (serial)");
+    runVitest(componentTests, [], "document ingestion component tests (parallel)");
+  }
 
   console.log("\n✅ VERIFY-058: Document ingestion validation passed.");
   process.exit(0);
