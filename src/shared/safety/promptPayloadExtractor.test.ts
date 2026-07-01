@@ -221,4 +221,67 @@ describe("extractPromptLikeFields", () => {
     const concat = fields.map((f) => f.value).join("\n").toLowerCase();
     expect(concat).toContain(trigger);
   });
+
+  it("extracts from plain text strings", () => {
+    const fields = extractPromptLikeFields("just some text", "/chat/completions");
+    expect(fields).toContainEqual({ path: "body", value: "just some text" });
+  });
+
+  it("extracts from JSON strings", () => {
+    const fields = extractPromptLikeFields('{"prompt": "hello from json"}', "/image/generate");
+    expect(fields).toContainEqual({ path: "prompt", value: "hello from json" });
+  });
+
+  it("handles excessively long plain strings", () => {
+    const longString = "x".repeat(11 * 1024 * 1024); // 11MB
+    const fields = extractPromptLikeFields(longString, "/chat/completions");
+    expect(fields).toContainEqual({ path: "body", value: longString.slice(0, 8000) }); // MAX_FIELD_CHARS
+  });
+
+  it("handles unknown endpoints by scanning common prompt fields", () => {
+    // Tests line 208 default return
+    const fields = extractPromptLikeFields({ instruction: "do the thing" }, "/unknown/path");
+    expect(fields).toContainEqual({ path: "instruction", value: "do the thing" });
+  });
+
+  it("handles unknown endpoints by falling back to recursive scan for nested fields", () => {
+    // Tests lines 254-256 recursive scan when common fields aren't found
+    const fields = extractPromptLikeFields({ someOuter: { randomInner: "find me" } }, "/unknown/path");
+    expect(fields).toContainEqual({ path: "someOuter.randomInner", value: "find me" });
+  });
+
+  it("extracts from array payloads directly", () => {
+    // Tests lines 260-276
+    const payload = [
+      { text: "first text", ignoreMe: 123 },
+      { content: "second content", model: "deny-listed-so-ignored" }
+    ];
+    const fields = extractPromptLikeFields(payload, "/unknown/path");
+    expect(fields).toContainEqual({ path: "[0].text", value: "first text" });
+    expect(fields).toContainEqual({ path: "[1].content", value: "second content" });
+  });
+
+  it("handles non-file serialized FormData entries", () => {
+    // Tests line 85 and number serialization
+    const payload = {
+      _isSerializedFormData: true,
+      entries: [
+        { name: "query", value: "normal string value" },
+        { name: "temperature", value: 0.5 }, // will be ignored due to DENY_FIELD_NAMES
+        { name: "question", value: 42 } // number converted to string
+      ],
+    };
+    const fields = extractPromptLikeFields(payload, "/augment/search");
+    expect(fields).toContainEqual({ path: "formData.query", value: "normal string value" });
+    expect(fields).toContainEqual({ path: "formData.question", value: "42" });
+  });
+
+  it("extracts native FormData entries taking max string cap into account", () => {
+    const formData = new FormData();
+    formData.append("query", "   "); // Empty when trimmed
+    formData.append("text", "valid text");
+    const fields = extractPromptLikeFields(formData, "/augment/text-parser");
+    expect(fields).toEqual([{ path: "formData.text", value: "valid text" }]);
+  });
 });
+

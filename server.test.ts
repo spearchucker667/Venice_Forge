@@ -4,7 +4,6 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vite
 import request from "supertest";
 import express from "express";
 import dns from "node:dns/promises";
-
 // Configurable proxy mock status for circuit-breaker tests.
 const proxyMocks = vi.hoisted(() => ({ statusCode: 200 }));
 
