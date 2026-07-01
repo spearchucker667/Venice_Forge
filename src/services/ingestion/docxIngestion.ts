@@ -1,6 +1,6 @@
 import { IngestedAttachment } from "../../types/ingestion";
 import { classifyFile } from "./fileClassifier";
-import { MAX_DOCX_FILE_BYTES, MAX_DOC_FILE_BYTES, MAX_EXTRACTED_TEXT_CHARS } from "./ingestionLimits";
+import { MAX_DOCX_FILE_BYTES, MAX_EXTRACTED_TEXT_CHARS } from "./ingestionLimits";
 import { FileTooLargeError, UnsupportedFileTypeError, DocxExtractionError } from "./ingestionErrors";
 import { escapeXmlAttribute, escapeXmlText } from "./xmlEscape";
 import { redactSecrets } from "../../shared/redaction";
@@ -85,43 +85,4 @@ ${escapeXmlText(text)}
   };
 }
 
-/** Handles legacy DOC files which require server/venice parsing. */
-export async function ingestDocFile(file: File): Promise<IngestedAttachment> {
-  const classified = classifyFile(file);
-  
-  if (classified.kind !== "doc") {
-    throw new UnsupportedFileTypeError(file.name);
-  }
 
-  if (file.size > MAX_DOC_FILE_BYTES) {
-    throw new FileTooLargeError(file.name, MAX_DOC_FILE_BYTES);
-  }
-
-  return {
-    id: generateId(),
-    kind: "doc",
-    name: file.name,
-    extension: classified.extension,
-    mimeType: file.type,
-    sizeBytes: file.size,
-    createdAt: new Date().toISOString(),
-    // For DOC files, we do NOT have local text unless parsed elsewhere
-    extraction: {
-      route: "unsupported", // Needs venice-text-parser
-      local: false,
-      truncated: false,
-      warnings: ["This legacy .doc file requires the Venice text parser or an approved desktop converter. Choose “Parse with Venice” to extract text."],
-      errors: [],
-    },
-    modelRequirements: {
-      requiresVision: false,
-      canFallbackToText: true,
-    },
-    security: {
-      untrusted: true,
-      macrosExecuted: false,
-      scriptsExecuted: false,
-      htmlSanitized: true,
-    },
-  };
-}

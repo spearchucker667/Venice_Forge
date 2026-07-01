@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ingestDocxFile, ingestDocFile } from "./docxIngestion";
+import { ingestDocxFile } from "./docxIngestion";
 import { MAX_DOCX_FILE_BYTES, MAX_EXTRACTED_TEXT_CHARS } from "./ingestionLimits";
 import { FileTooLargeError, DocxExtractionError, UnsupportedFileTypeError } from "./ingestionErrors";
 
@@ -14,15 +14,6 @@ describe("docxIngestion", () => {
       name: "test.docx",
       size: sizeBytes,
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      arrayBuffer: async () => new ArrayBuffer(0),
-    } as unknown as File;
-  };
-
-  const createDocFile = (sizeBytes: number = 100) => {
-    return {
-      name: "legacy.doc",
-      size: sizeBytes,
-      type: "application/msword",
       arrayBuffer: async () => new ArrayBuffer(0),
     } as unknown as File;
   };
@@ -135,20 +126,5 @@ describe("docxIngestion", () => {
     });
   });
 
-  describe("ingestDocFile", () => {
-    it("rejects legacy .doc files until a parser is available", async () => {
-      const file = createDocFile();
-      await expect(ingestDocFile(file)).rejects.toThrow(UnsupportedFileTypeError);
-    });
 
-    it("rejects oversized legacy .doc files as unsupported before parsing", async () => {
-      const file = createDocFile(10_000_000);
-      await expect(ingestDocFile(file)).rejects.toThrow(UnsupportedFileTypeError);
-    });
-
-    it("throws UnsupportedFileTypeError for non-doc files", async () => {
-      const file = new File(["binary"], "test.exe", { type: "application/x-msdownload" });
-      await expect(ingestDocFile(file)).rejects.toThrow(UnsupportedFileTypeError);
-    });
-  });
 });

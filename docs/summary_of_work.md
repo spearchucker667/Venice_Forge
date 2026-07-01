@@ -115,7 +115,15 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
-- **2026-07-01 CI Workflow Fix, Test Coverage, and PR Cleanup (current session):**
+- **2026-07-01 Richer File Ingestion Adapters (current session):**
+  - Addressed the roadmap item for richer file ingestion.
+  - Allowed `.doc`, `.xls`, and `.xlsx` to be uploaded via UI by classifying them as supported legacy formats.
+  - Updated `attachmentAssembler.ts` to seamlessly route legacy documents and spreadsheets to `veniceTextParserIngestion` instead of silently rejecting them or routing binary files to local text ingestion.
+  - Implemented automatic OCR queue routing: images uploaded to non-vision-capable models are now seamlessly forwarded to `parseWithVeniceTextParser`, avoiding warnings and producing text-extracted document cards.
+  - Updated `chat-input.test.tsx`, `chat-view.test.tsx`, `fileClassifier.test.ts`, and `attachmentAssembler.test.ts` to expect the new capabilities and behavior.
+  - **Files changed:** `src/components/chat/chat-input.tsx`, `src/services/ingestion/fileClassifier.ts`, `src/services/ingestion/attachmentAssembler.ts`, `src/services/ingestion/docxIngestion.ts`, `src/services/ingestion/fileClassifier.test.ts`, `src/services/ingestion/attachmentAssembler.test.ts`, `src/services/ingestion/docxIngestion.test.ts`, `src/services/ingestion/veniceTextParserIngestion.test.ts`, `src/components/chat/chat-input.test.tsx`, `src/components/chat/chat-view.test.tsx`, `docs/audits/repository-todo-roadmap-current.md`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run test:ui` PASS; `npm run test:ingestion` PASS.
+- **2026-07-01 CI Workflow Fix, Test Coverage, and PR Cleanup (previous session):**
   - Fixed an architectural bug in `npm run test:coverage` by replacing the sequentially chained shard runs with a single unified `vitest run --coverage` command with exclusions. This ensures Vitest evaluates global coverage correctly across all files.
   - Added test coverage for `src/theme/validateColor.ts` and `src/AI/AIService/chunkSplitter/textExtractor.ts` to satisfy global CI coverage requirements.
   - Stabilized tests for `src/stores/chat-stream-manager.ts` and `src/hooks/use-chat.test.ts` to handle streaming retries and network errors without causing infinite loops or timeouts.
