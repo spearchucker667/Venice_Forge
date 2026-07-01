@@ -10,6 +10,7 @@ import {
   BUILTIN_ONE_DARK,
   BUILTIN_MONOKAI,
   BUILTIN_GITHUB_LIGHT,
+  BUILTIN_LIGHT,
 } from "./themes";
 
 const NEW_BUILTINS = [
@@ -21,6 +22,8 @@ const NEW_BUILTINS = [
   BUILTIN_ONE_DARK,
   BUILTIN_MONOKAI,
   BUILTIN_GITHUB_LIGHT,
+  // Light themes with explicit WCAG AA coverage (VERIFY-067)
+  BUILTIN_LIGHT,
 ];
 
 describe("built-in theme collection", () => {

@@ -115,6 +115,14 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-06-30 Visual UI Bug Fixes (current session):**
+  - Fixed light-theme contrast bugs affecting warnings, text, and surfaces. Reverted a global `statusForeground` fallback in `themeTypes.ts` that broke dark backgrounds, and instead explicitly updated `textMuted`, `warning`, `danger`, and `surfaceElevated` in `light.ts`, `githubLight.ts`, and `solarizedLight.ts` to pass WCAG AA contrast. Added `BUILTIN_LIGHT` to `themes.test.ts` WCAG coverage array.
+  - Fixed invisible `.skeleton` shimmer on light backgrounds in `theme.css` by using `color-mix` with `var(--fg)` instead of hardcoded white rgba values.
+  - Fixed the bottom-left menu squish on short viewports in `sidebar.tsx` by removing the `max-h-[35vh] overflow-y-auto` cap and increasing the breakpoint (to 800px) at which descriptive text hides, allowing the main navigation panel to flex properly without overlapping.
+  - **Files changed:** `src/theme/themeTypes.ts`, `src/theme/themes.test.ts`, `src/theme/builtins/light.ts`, `src/theme/builtins/githubLight.ts`, `src/theme/builtins/solarizedLight.ts`, `src/styles/theme.css`, `src/components/layout/sidebar.tsx`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run test:ui:layout` (simulated via vitest runs) PASS; `npm run test:ui` PASS; `npx vitest run src/theme/themes.test.ts` PASS (21 tests).
+
+
 - **2026-06-30 Open PR Triage (current session):**
   - Reviewed 3 open Dependabot PRs (#27, #28, #29) using CI check status via `gh pr view`.
   - **PR #27** (`softprops/action-gh-release` 3.0.0 → 3.0.1): All CI checks pass (build-and-test Node 22/24, windows-sensitive-tests, macos-sensitive-tests, electron-smoke, CodeQL). The `dependency-review` FAILURE is a known false-positive for GitHub Actions (not npm) version bumps — the dep-review action checks npm dependency changes and cannot evaluate actions dep changes correctly. **Recommendation: MERGE.**

@@ -116,7 +116,7 @@ a { color: var(--link); }
 .section-transition { animation: section-enter var(--motion-medium) var(--motion-ease); }
 
 .skeleton {
-  background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 100%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--fg) 3%, transparent) 0%, color-mix(in srgb, var(--fg) 8%, transparent) 50%, color-mix(in srgb, var(--fg) 3%, transparent) 100%);
   background-size: 1000px 100%;
   animation: shimmer 2s infinite linear;
 }

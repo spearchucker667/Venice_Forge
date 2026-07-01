@@ -17,7 +17,7 @@ export const BUILTIN_SOLARIZED_LIGHT: Theme = {
     accentForeground: '#ffffff',
     success: '#556b00',
     warning: '#8f6a00',
-    danger: '#dc322f',
+    danger: '#c52c29',
     info: '#268bd2',
     focusRing: '#cb4b16',
     overlay: 'rgba(0, 0, 0, 0.25)',

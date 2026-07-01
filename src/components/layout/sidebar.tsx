@@ -569,12 +569,12 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
       </div>
 
       {expanded && (
-        <div className="shrink-0 soft-separator-y p-3 gap-2 flex flex-col max-h-[35vh] overflow-y-auto">
+        <div className="shrink-0 soft-separator-y p-3 gap-2 flex flex-col">
           {/* Developer / Red-Team controls */}
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted leading-none">Red-Team Mode</span>
-              <p className="text-[10.5px] leading-snug text-text-muted mt-0.5 [@media(max-height:720px)]:hidden">
+              <p className="text-[10.5px] leading-snug text-text-muted mt-0.5 [@media(max-height:800px)]:hidden">
                 Shows raw model output and local safety decisions.
               </p>
             </div>
@@ -599,7 +599,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           <div className="flex items-center justify-between gap-3 pt-2">
             <div className="min-w-0">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted leading-none">Family Safe Mode</span>
-              <p className="text-[10.5px] leading-snug text-text-muted mt-0.5 [@media(max-height:720px)]:hidden">
+              <p className="text-[10.5px] leading-snug text-text-muted mt-0.5 [@media(max-height:800px)]:hidden">
                 {localFamilySafeModeEnabled ? 'ON: local family filter runs.' : 'OFF: Adult Mode skips the local filter.'}
               </p>
             </div>
@@ -635,7 +635,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
             <span>{showInspector ? 'Hide Inspector' : 'Show Inspector'}</span>
           </button>
 
-          <div className="pt-2 text-[11px] text-text-secondary flex flex-col gap-1 shrink-0 [@media(max-height:640px)]:hidden">
+          <div className="pt-2 text-[11px] text-text-secondary flex flex-col gap-1 shrink-0 [@media(max-height:800px)]:hidden">
             <div className="flex justify-between items-center leading-none"><span>New chat</span><kbd className="font-mono text-text-muted">⌘N</kbd></div>
             <div className="flex justify-between items-center leading-none"><span>Switch tab</span><kbd className="font-mono text-text-muted">⌘1-8</kbd></div>
           </div>
