@@ -298,14 +298,13 @@ describe("workflow-template-store", () => {
       await updatedStoreBeforeAdd3.addWorkflowVersion(workflow.id, { steps: [] });
       
       let updatedStore = useWorkflowTemplateStore.getState();
-      let currentVersion = updatedStore.getCurrentVersion(workflow.id)!;
       // We are now on version 2, which has 0 steps! Let's add steps to version 2
       await updatedStore.addStep(workflow.id, { kind: "prompt", target: "chat", title: "Step 1", enabled: true });
       await updatedStore.addStep(workflow.id, { kind: "scene", target: "scene_composer", title: "Step 2", enabled: true, order: 5 });
       await updatedStore.addStep(workflow.id, { kind: "note", target: "none", title: "Step 3", enabled: true });
       
       updatedStore = useWorkflowTemplateStore.getState();
-      currentVersion = updatedStore.getCurrentVersion(workflow.id)!;
+      let currentVersion = updatedStore.getCurrentVersion(workflow.id)!;
       expect(currentVersion.steps).toHaveLength(3);
       expect(currentVersion.steps[0].title).toBe("Step 1");
       expect(currentVersion.steps[1].title).toBe("Step 2");

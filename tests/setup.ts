@@ -1,6 +1,5 @@
 import { vi } from "vitest";
 import "fake-indexeddb/auto";
-import * as logger from "../src/shared/logger";
 
 // Silence expected application logs during tests to keep CI output clean.
 // This is done at the module level so it captures logs emitted during store hydration (imports).

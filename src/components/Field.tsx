@@ -4,8 +4,8 @@ export function Field({ label, children }: { label: string; children: React.Reac
   const generatedId = useId();
   const labelId = useId();
 
-  let childWithId = children;
-  let targetId: string | undefined = undefined;
+  let childWithId: React.ReactNode;
+  let targetId: string | undefined;
 
   // Only attempt to clone and inject ID if it's a single element and NOT a Fragment
   if (React.isValidElement(children) && children.type !== React.Fragment) {

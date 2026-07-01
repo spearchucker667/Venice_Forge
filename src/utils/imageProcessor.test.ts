@@ -212,7 +212,7 @@ describe('imageProcessor', () => {
       const data = new Uint8Array([
         0x52, 0x49, 0x46, 0x46, 0,0,0,0, 0x57, 0x45, 0x42 // 11 bytes. Actually if it's 11 bytes detectMimeType returns null!
       ]);
-      const { data: result, report } = stripImageMetadata(data);
+      const { data: _result, report } = stripImageMetadata(data);
       expect(report.warnings).toContain('Unsupported image format');
     });
 

@@ -176,7 +176,6 @@ function buildMemoryBlock(memories: RpMemoryV1[], budget: number): { text: strin
       const remaining = budget - used;
       if (remaining > 4) {
         lines.push(clamp(line, remaining));
-        used = budget;
       }
       break;
     }
