@@ -84,9 +84,9 @@ function classifyByExtensionAndName(name: string, mimeType: string): IngestedAtt
   // 2. Map specific extensions
   if (ext === "pdf") return "pdf";
   if (ext === "docx") return "docx";
-  if (ext === "doc") return "unknown";
+  if (ext === "doc") return "doc";
   if (ext === "csv") return "spreadsheet";
-  if (ext === "xlsx" || ext === "xls") return "unknown";
+  if (ext === "xlsx" || ext === "xls") return "spreadsheet";
 
   if (MARKDOWN_EXTS.has(ext)) return "markdown";
   if (TEXT_EXTS.has(ext)) return "text";

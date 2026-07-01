@@ -27,9 +27,9 @@ describe("veniceTextParserIngestion", () => {
     const file = createFile("legacy.doc", "application/msword");
     const result = await parseWithVeniceTextParser(file);
 
-    expect(result.kind).toBe("unknown");
+    expect(result.kind).toBe("doc");
     expect(result.text).toContain("Parsed content from Venice");
-    expect(result.text).toContain('<attached_file name="legacy.doc" kind="unknown">');
+    expect(result.text).toContain('<attached_file name="legacy.doc" kind="doc">');
     expect(result.extraction.route).toBe("venice-text-parser");
   });
 
@@ -69,7 +69,7 @@ describe("veniceTextParserIngestion", () => {
     const file = createFile("legacy.doc", "application/msword");
     const result = await parseWithVeniceTextParser(file);
 
-    expect(result.text).toContain('<attached_file name="legacy.doc" kind="unknown">');
+    expect(result.text).toContain('<attached_file name="legacy.doc" kind="doc">');
     expect(result.text).not.toContain("undefined");
   });
 });

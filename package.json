@@ -91,7 +91,7 @@
     "test:coverage:ui:research": "vitest run src/components/research src/components/search --coverage",
     "test:coverage:ui:settings": "vitest run src/components/SettingsView.test.tsx src/components/privacy --coverage",
     "test:coverage:unit": "vitest run --exclude 'server.test.ts' --exclude 'electron/**/*' --exclude 'src/components/**/*' --exclude 'src/services/ingestion/**/*' --exclude 'tests/smoke/**/*' --exclude 'tests/accessibility/**/*' --exclude 'scripts/verify-document-ingestion.test.ts' --coverage",
-    "test:coverage": "vitest run --exclude 'tests/smoke/**/*' --exclude 'tests/electron/**/*' --exclude 'scripts/verify-document-ingestion.test.ts' --coverage",
+    "test:coverage": "vitest run --exclude 'tests/smoke/**/*' --exclude 'tests/electron/**/*' --exclude 'scripts/verify-document-ingestion.test.ts' --coverage --no-file-parallelism",
     "test:server": "vitest run server.test.ts --exclude 'electron/**/*'",
     "test:electron": "vitest run electron --exclude 'tests/smoke/**/*' --exclude 'tests/electron/**/*'",
     "test:ingestion": "vitest run src/services/ingestion",

@@ -72,6 +72,10 @@ vi.mock("../../services/promptStarterService", () => ({
   getBalancedPromptStarters: () => [],
 }));
 
+vi.mock("../../services/veniceClient", () => ({
+  veniceFormData: vi.fn().mockResolvedValue({ text: "OCR text" }),
+}));
+
 vi.mock("../../utils/characterImageResolver", () => ({
   resolveCharacterImageUrl: () => null,
 }));
@@ -136,7 +140,7 @@ describe("ChatView", () => {
     (globalThis as any).Image = originalImage;
   });
 
-  it("warns when sending an image with a non-vision model", async () => {
+  it("OCRs the image and avoids warning when sending an image with a non-vision model", async () => {
     const warnSpy = vi.spyOn(toast, "warn");
     render(<ChatView />);
 
@@ -144,16 +148,16 @@ describe("ChatView", () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     await userEvent.upload(fileInput, file);
 
-    await waitFor(() => expect(screen.getByAltText("Attachment 1")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("img.png")).toBeInTheDocument());
 
     const input = screen.getByLabelText("Message input");
     await userEvent.type(input, "Describe this");
     await userEvent.keyboard("{Enter}");
 
     await waitFor(() =>
-      expect(warnSpy).toHaveBeenCalledWith(
+      expect(warnSpy).not.toHaveBeenCalledWith(
         "AI is not vision capable",
-        "“llama-3.3-70b” cannot read image attachments. Select a vision-capable model or convert the image/PDF to text first.",
+        expect.any(String),
       ),
     );
   });

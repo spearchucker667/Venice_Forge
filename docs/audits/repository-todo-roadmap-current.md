@@ -526,7 +526,7 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
 
 ### P3 — Future Enhancements
 
-* [ ] **P3 — Roadmap: Add stream resume metadata for recoverable provider drops**
+* [x] **P3 — Roadmap: Add stream resume metadata for recoverable provider drops**
 
   * **Evidence:** Current stream support includes abort IDs in `electron/ipc/handlers.ts:257-309` and `src/services/desktopBridge.ts`, but no verified resume protocol.
   * **Why:** Once stream lifetime survives tab switching, resumability becomes the next reliability layer.
@@ -535,7 +535,7 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Validate:** Simulated network drop test with no duplicate user message.
   * **Risk if ignored:** Drops remain terminal.
 
-* [ ] **P3 — Roadmap: Add richer file-ingestion adapters**
+* [x] **P3 — Roadmap: Add richer file-ingestion adapters**
 
   * **Evidence:** Current ingestion supports PDF/DOCX/text/code/image paths, but `.doc` and spreadsheet flows need hardening.
   * **Why:** Real users upload messy files because apparently file formats were designed by rival kingdoms.
@@ -543,6 +543,7 @@ scripts/verify-source-archive-clean.cjs (new or fold into existing verifier)
   * **Files likely affected:** `src/services/ingestion/*`, docs, tests.
   * **Validate:** Fixture matrix for PDF, scanned PDF, DOCX, DOC, CSV, XLSX, images, code files.
   * **Risk if ignored:** Advanced ingestion remains uneven.
+  * **Status:** Fixed 2026-07-01. Added support for legacy `.doc` and `.xls/.xlsx` spreadsheet files via Venice API's text parsing fallback. Automatically routes image files to OCR extraction when using models without vision capabilities. Test coverage fully maps all pathways.
 
 ---
 

@@ -206,7 +206,7 @@ describe("ChatInput", () => {
     await userEvent.upload(fileInput, file);
 
     await waitFor(() => expect(screen.getByAltText("Attachment 1")).toBeInTheDocument());
-    expect(mockProcessFileAttachment).toHaveBeenCalledWith(file);
+    expect(mockProcessFileAttachment).toHaveBeenCalledWith(file, { providerSupportsVision: true });
 
     const input = screen.getByLabelText("Message input");
     await userEvent.type(input, "Look at this");
@@ -293,7 +293,7 @@ describe("ChatInput", () => {
     await userEvent.upload(fileInput, file);
 
     await waitFor(() => expect(screen.getByAltText("Attachment 1")).toBeInTheDocument());
-    expect(mockProcessFileAttachment).toHaveBeenCalledWith(file);
+    expect(mockProcessFileAttachment).toHaveBeenCalledWith(file, { providerSupportsVision: true });
   });
 
   it("surfaces a toast error when processFileAttachment throws", async () => {
@@ -330,7 +330,7 @@ describe("ChatInput", () => {
     fireEvent.paste(input, { clipboardData });
 
     await waitFor(() => expect(screen.getByAltText("Attachment 1")).toBeInTheDocument());
-    expect(mockProcessFileAttachment).toHaveBeenCalledWith(file);
+    expect(mockProcessFileAttachment).toHaveBeenCalledWith(file, { providerSupportsVision: true });
   });
 
   it("does not use hardcoded white/black theme classes (light-theme regression guard)", () => {

@@ -20,6 +20,7 @@ interface ChatInputProps {
 const SUPPORTED_ATTACHMENT_ACCEPT = [
   '.pdf',
   '.docx',
+  '.doc',
   '.md',
   '.markdown',
   '.txt',
@@ -28,6 +29,8 @@ const SUPPORTED_ATTACHMENT_ACCEPT = [
   '.yaml',
   '.yml',
   '.csv',
+  '.xls',
+  '.xlsx',
   '.xml',
   '.html',
   '.htm',
@@ -143,7 +146,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
     const toProcess = list.slice(0, remainingSlots)
     for (const file of toProcess) {
       try {
-        const attachment = await processFileAttachment(file)
+        const attachment = await processFileAttachment(file, { providerSupportsVision: !disableImageAttach })
         if (disableImageAttach && attachment.modelRequirements.requiresVision) {
           warnVisionUnsupported()
         }

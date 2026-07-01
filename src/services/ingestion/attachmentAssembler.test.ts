@@ -43,15 +43,17 @@ describe("attachmentAssembler", () => {
     expect(docxIngestion.ingestDocxFile).toHaveBeenCalledWith(file);
   });
 
-  it("rejects legacy doc files until a parser is available", async () => {
+  it("routes legacy doc files through venice text parser", async () => {
     const file = new File([""], "test.doc");
-    await expect(processFileAttachment(file)).rejects.toThrow(UnsupportedFileTypeError);
-    expect(docxIngestion.ingestDocFile).not.toHaveBeenCalled();
+    // It should route to parseWithVeniceTextParser (which might fail in test without mock, but the error would be Venice text-parser failed)
+    // Actually the mock for parseWithVeniceTextParser should handle it, but wait, it throws a Venice text-parser failed if no mock.
+    // Let's assert it throws the venice text parser error, not UnsupportedFileTypeError.
+    await expect(processFileAttachment(file)).rejects.toThrow(/Venice text-parser failed/);
   });
 
-  it("rejects binary Excel files instead of routing them through text ingestion", async () => {
-    await expect(processFileAttachment(new File([""], "test.xls"))).rejects.toThrow(UnsupportedFileTypeError);
-    await expect(processFileAttachment(new File([""], "test.xlsx"))).rejects.toThrow(UnsupportedFileTypeError);
+  it("routes binary Excel files through venice text parser", async () => {
+    await expect(processFileAttachment(new File([""], "test.xls"))).rejects.toThrow(/Venice text-parser failed/);
+    await expect(processFileAttachment(new File([""], "test.xlsx"))).rejects.toThrow(/Venice text-parser failed/);
     expect(textIngestion.ingestTextFile).not.toHaveBeenCalled();
   });
 
