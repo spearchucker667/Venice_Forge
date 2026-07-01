@@ -31,6 +31,7 @@ import { pathToFileURL, fileURLToPath } from "node:url";
 import { isPrivateHostname } from "./src/shared/urlSecurity";
 import { JINA_MAX_RESPONSE_BYTES } from "./src/shared/limits";
 import { FetchBodyTooLargeError, parseJsonOrNull, readBoundedFetchBody } from "./src/shared/readBoundedFetchBody";
+import { applyVeniceApiSafeMode } from "./src/shared/veniceSafeMode";
 
 function safeDecodeForScreening(value: string): string {
   try {
@@ -152,6 +153,18 @@ export function applyVeniceProxyHeaders(
   } else if (req.method === "GET") {
     proxyReq.removeHeader("Content-Length");
     proxyReq.removeHeader("Transfer-Encoding");
+  }
+}
+
+function forceProviderSafeModeInJsonBody(endpoint: string, body: Buffer | undefined): Buffer | undefined {
+  if (!body || body.length === 0) return body;
+  try {
+    const parsed: unknown = JSON.parse(body.toString("utf-8"));
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return body;
+    const next = applyVeniceApiSafeMode(endpoint, parsed as Record<string, unknown>, true);
+    return Buffer.from(JSON.stringify(next), "utf-8");
+  } catch {
+    return body;
   }
 }
 
@@ -518,10 +531,11 @@ export function createServerApp() {
       req.body = body;
       
       let decision;
+      const familySafeModeEnabled = isLocalFamilySafeModeEnabled(req);
       try {
         decision = maybeRunLocalFamilyGuard(
           { endpoint, method: "POST", payload: body, source: "web-proxy" },
-          isLocalFamilySafeModeEnabled(req),
+          familySafeModeEnabled,
         );
       } catch (err) {
         // Fail-closed: if the safety guard throws (e.g. extraction bug), block the request.
@@ -562,6 +576,9 @@ export function createServerApp() {
           severity: decision.guardDecision.severity,
         });
         return;
+      }
+      if (familySafeModeEnabled && Buffer.isBuffer(req.body)) {
+        req.body = forceProviderSafeModeInJsonBody(endpoint, req.body);
       }
       next();
     },

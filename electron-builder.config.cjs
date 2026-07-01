@@ -32,6 +32,7 @@ const config = {
     "!dist/**/*.map",
     "dist-electron/**/*",
     "!dist-electron/**/*.map",
+    "assets/**/*",
     "package.json",
     "!**/*.map",
   ],

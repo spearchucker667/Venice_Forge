@@ -167,7 +167,7 @@ export function sendToImageTools(item: MediaItem, tool: "edit" | "upscale" = "ed
     parentId: item.id,
     image: item.image,
     prompt: item.prompt ?? "",
-    filename: `${item.id}.${item.mediaType === "video" ? "mp4" : "png"}`,
+    filename: `${item.id}.${item.mediaType === "video" ? "mp4" : item.mediaType === "audio" ? "mp3" : "png"}`,
   });
   setActiveTabSafe("image");
   return { destination: "image-tools", ok: true, artifactId: id };

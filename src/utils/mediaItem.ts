@@ -52,7 +52,7 @@ export function mediaCapabilities(item: MediaItemWithLiveCapabilities): MediaCap
 export function mediaItemSource(item: MediaItem): string | null {
   const raw = item.image;
   if (!raw) return null;
-  if (item.mediaType === "video") {
+  if (item.mediaType === "video" || item.mediaType === "audio") {
     if (
       raw.startsWith("data:") ||
       raw.startsWith("blob:") ||
@@ -69,7 +69,7 @@ export function mediaItemSource(item: MediaItem): string | null {
 }
 
 export function isVideoItem(item: MediaItem): boolean {
-  return item.mediaType === "video";
+  return item.mediaType === "video" || item.mediaType === "audio";
 }
 
 const DIMENSION_FORMAT = new Intl.NumberFormat("en-US");

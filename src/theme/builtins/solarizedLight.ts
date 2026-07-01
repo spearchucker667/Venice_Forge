@@ -22,7 +22,7 @@ export const BUILTIN_SOLARIZED_LIGHT: Theme = {
     focusRing: '#cb4b16',
     overlay: 'rgba(0, 0, 0, 0.25)',
     glow: 'rgba(203, 75, 22, 0.18)',
-    surfaceMuted: '#eee8d5',
+    surfaceMuted: '#e6dfc8',
     borderStrong: '#586e75',
   }),
 };

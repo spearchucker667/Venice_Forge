@@ -13,11 +13,17 @@
  *  `src/shared/safety/localFamilySafeGuard.ts` is the primitive that
  *  actually evaluates a prompt; this file orchestrates it. */
 
-import { maybeRunLocalFamilyGuard, SafetyGuardBlockedError } from "../../src/shared/safety";
+import {
+  maybeRunLocalFamilyGuard,
+  SafetyGuardBlockedError,
+  safetyBlockBodyFromResponseScreen,
+  screenResponseBody,
+} from "../../src/shared/safety";
 import type { SafetyGuardInput } from "../../src/shared/safety";
 import { performVeniceRequest } from "./veniceClient";
 import { getRuntimeLocalFamilySafeModeEnabled } from "./runtimeSafetySettings";
 import type { VeniceIpcResponse } from "./veniceClient";
+import { applyVeniceApiSafeMode } from "../../src/shared/veniceSafeMode";
 
 /** Shape of a Family Safe Mode block response. Matches the 451 body
  *  emitted by every IPC entry point so the renderer can recognise
@@ -82,6 +88,58 @@ export type GuardedVeniceResult =
   | { kind: "response"; response: VeniceIpcResponse }
   | { kind: "blocked"; block: GuardedBlock };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function withFamilySafeProviderOverride(rawRequest: unknown, endpoint: string): unknown {
+  if (!getRuntimeLocalFamilySafeModeEnabled()) return rawRequest;
+  if (!isRecord(rawRequest)) return rawRequest;
+  const body = rawRequest.body;
+  if (!isRecord(body)) return rawRequest;
+  return {
+    ...rawRequest,
+    body: applyVeniceApiSafeMode(endpoint, body, true),
+  };
+}
+
+function stringifyResponseForScreening(body: unknown): string {
+  if (typeof body === "string") return body;
+  if (body == null) return "";
+  if (isRecord(body)) {
+    const redactedBinary = { ...body };
+    for (const key of ["dataBase64", "image", "images", "dataUrl", "audio", "video"]) {
+      if (key in redactedBinary) redactedBinary[key] = "[binary-media]";
+    }
+    return JSON.stringify(redactedBinary);
+  }
+  try {
+    return JSON.stringify(body);
+  } catch {
+    return "";
+  }
+}
+
+function screenUpstreamResponse(endpoint: string, method: string, response: VeniceIpcResponse): GuardedBlock | null {
+  if (!getRuntimeLocalFamilySafeModeEnabled()) return null;
+  const bodyText = stringifyResponseForScreening(response.body);
+  if (!bodyText.trim()) return null;
+  const screen = screenResponseBody(
+    bodyText,
+    { endpoint, method, source: "ipc" },
+    true,
+  );
+  if (screen.allowed) return null;
+  return {
+    ok: false,
+    status: 451,
+    statusText: "Blocked by Family Safe Mode",
+    headers: {} as Record<string, never>,
+    body: safetyBlockBodyFromResponseScreen(screen),
+    contentType: "application/json",
+  };
+}
+
 /** Run the local family-safe guard then forward to `performVeniceRequest`.
  *  This is the single entry point that every Venice-touching IPC handler
  *  must use, so that the guard always evaluates against the runtime
@@ -106,7 +164,10 @@ export async function performGuardedVeniceRequest(
       source: "ipc",
     });
     if (block) return { kind: "blocked", block };
-    const response = await performVeniceRequest(rawRequest, options);
+    const requestForDispatch = withFamilySafeProviderOverride(rawRequest, endpoint);
+    const response = await performVeniceRequest(requestForDispatch, options);
+    const responseBlock = screenUpstreamResponse(endpoint, method, response);
+    if (responseBlock) return { kind: "blocked", block: responseBlock };
     return { kind: "response", response };
   } catch (err) {
     if (err instanceof SafetyGuardBlockedError) {

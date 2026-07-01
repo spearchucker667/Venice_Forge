@@ -19,6 +19,7 @@ export interface WorkflowCompiledStep {
   target: WorkflowStepTarget;
   summary: string;
   resolvedInput: Record<string, unknown>;
+  outputKey?: string;
   warnings: WorkflowCompileWarning[];
 }
 
@@ -64,6 +65,7 @@ export function compileWorkflowTemplate(
       target: step.target,
       summary: "",
       resolvedInput: { ...step.input },
+      outputKey: step.outputKey,
       warnings: [],
     };
 

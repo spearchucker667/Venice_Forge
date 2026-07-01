@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, createEvent, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../services/storageService', () => ({
@@ -283,6 +283,43 @@ describe('ImageTools → Media Studio wiring (P3 regression guard)', () => {
     await waitFor(() => {
       expect(mockToastFromError).toHaveBeenCalledWith(expect.any(Error), 'Failed to read image')
     })
+    expect(screen.queryByAltText('Source')).toBeNull()
+  })
+
+  it('accepts a valid dropped PNG source image without changing the selected tool', async () => {
+    render(<ImageTools />)
+    fireEvent.click(screen.getByRole('button', { name: 'Upscale' }))
+
+    const dropZone = screen.getByRole('button', { name: /drop or click to upload image/i })
+    const file = new File(['png'], 'drop.png', { type: 'image/png' })
+    const dropEvent = createEvent.drop(dropZone)
+    Object.defineProperty(dropEvent, 'dataTransfer', { value: { files: [file] } })
+
+    await act(async () => {
+      fireEvent(dropZone, dropEvent)
+    })
+
+    expect(dropEvent.defaultPrevented).toBe(true)
+    expect(mockReadImageAttachment).toHaveBeenCalledWith(file)
+    expect(await screen.findByText('drop.png')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Upscale Image/ })).toBeInTheDocument()
+  })
+
+  it('ignores invalid dropped files after preventing browser navigation', async () => {
+    render(<ImageTools />)
+
+    const dropZone = screen.getByRole('button', { name: /drop or click to upload image/i })
+    const file = new File(['bmp'], 'drop.bmp', { type: 'image/bmp' })
+    const dropEvent = createEvent.drop(dropZone)
+    Object.defineProperty(dropEvent, 'dataTransfer', { value: { files: [file] } })
+
+    await act(async () => {
+      fireEvent(dropZone, dropEvent)
+    })
+
+    expect(dropEvent.defaultPrevented).toBe(true)
+    expect(mockIsSupportedImageFile).toHaveBeenCalledWith(file)
+    expect(mockReadImageAttachment).not.toHaveBeenCalled()
     expect(screen.queryByAltText('Source')).toBeNull()
   })
 

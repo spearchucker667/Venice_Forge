@@ -43,7 +43,7 @@ export interface MediaSidecar {
   version: typeof EXPORT_BUNDLE_VERSION;
   id: string;
   projectId?: string;
-  type: "image" | "video";
+  type: "image" | "video" | "audio";
   model: string;
   prompt: string;
   negative?: string;
@@ -105,6 +105,7 @@ function extensionFor(item: MediaItem): string {
   // and mp4 for videos. The consumer can override via the
   // `mediaFile.extension` field.
   if (item.mediaType === "video") return "mp4";
+  if (item.mediaType === "audio") return "mp3";
   if (typeof item.image === "string") return getExtensionFromDataUrl(item.image);
   return "png";
 }

@@ -22,7 +22,7 @@ export const BUILTIN_GITHUB_LIGHT: Theme = {
     focusRing: '#0969da',
     overlay: 'rgba(0, 0, 0, 0.25)',
     glow: 'rgba(9, 105, 218, 0.18)',
-    surfaceMuted: '#f6f8fa',
+    surfaceMuted: '#ebeef1',
     borderStrong: '#6e7781',
     placeholder: '#57606a',
     disabledForeground: '#6e7781',

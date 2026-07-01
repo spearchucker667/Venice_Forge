@@ -169,6 +169,8 @@ export function useMediaThumb(item: MediaItem | null | undefined): { url: string
         let thumb = "";
         if (item.mediaType === "video") {
           thumb = await makeVideoPoster(source);
+        } else if (item.mediaType === "audio") {
+          thumb = source;
         } else if (source.startsWith("data:") || source.startsWith("http")) {
           if (!isCanvasAvailable()) {
             thumb = source;

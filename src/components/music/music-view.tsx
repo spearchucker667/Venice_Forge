@@ -1,11 +1,13 @@
-import { useId, useState } from 'react'
+import { useId, useState, useRef, useEffect } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useMusic } from '../../hooks/use-music'
 import { Label, TextArea, PrimaryButton, ErrorText, ExamplePrompts } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
-import { cn } from '../../lib/utils'
+import { cn, generateId } from '../../lib/utils'
+import { toast } from '../../stores/toast-store'
+import { useMediaStore } from '../../stores/media-store'
 import type { MusicQueueRequest } from '../../types/venice'
 import { getPromptStartersForCategory } from '../../services/promptStarterService'
 
@@ -46,8 +48,35 @@ export function MusicView() {
   const [duration, setDuration] = useState(30)
   const [instrumental, setInstrumental] = useState(false)
 
-  const { queue, isQueueing, status, audioUrl, error, reset, cancel, elapsedMs } = useMusic()
+  const { queue, isQueueing, status, audioUrl, error, reset, cancel, elapsedMs, queueId, lastRequest } = useMusic()
   const isProcessing = status === 'queued' || status === 'processing'
+  const savedQueueIdsRef = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (status !== 'completed' || !audioUrl || !queueId) return
+    if (savedQueueIdsRef.current.has(queueId)) return
+    savedQueueIdsRef.current.add(queueId)
+    const mediaItem = {
+      id: generateId(),
+      image: audioUrl,
+      prompt: lastRequest?.prompt ?? prompt.trim(),
+      model: lastRequest?.model ?? model,
+      timestamp: Date.now(),
+      mediaType: 'audio' as const,
+      operation: 'music-generate' as const,
+      parentId: null,
+      childrenIds: [] as string[],
+      tags: [] as string[],
+      note: '',
+      favorite: false,
+      queueId,
+      downloadUrl: audioUrl,
+    }
+    void useMediaStore.getState().upsert(mediaItem, {
+      attachActiveProject: true,
+      source: 'generated',
+    })
+  }, [status, audioUrl, queueId, lastRequest, prompt, model])
 
   const handleGenerate = () => {
     if (!prompt.trim()) return
@@ -125,10 +154,60 @@ export function MusicView() {
           <div className="animate-fade-in flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <Label>Output</Label>
-              <a href={audioUrl} download="venice-music.mp3" target="_blank" rel="noopener noreferrer" className="text-[14px] text-text-muted hover:text-text-muted transition-colors flex items-center gap-1.5">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
-                Download
-              </a>
+              <div className="flex items-center gap-3">
+                {(() => {
+                  const alreadySaved = !!queueId && savedQueueIdsRef.current.has(queueId)
+                  return (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (queueId && savedQueueIdsRef.current.has(queueId)) {
+                      toast.success('Already in Media Studio')
+                      return
+                    }
+                    const item = {
+                      id: generateId(),
+                      image: audioUrl,
+                      prompt: lastRequest?.prompt ?? prompt.trim(),
+                      model: lastRequest?.model ?? model,
+                      timestamp: Date.now(),
+                      mediaType: 'audio' as const,
+                      operation: 'music-generate' as const,
+                      parentId: null,
+                      childrenIds: [] as string[],
+                      tags: [] as string[],
+                      note: '',
+                      favorite: false,
+                      queueId: queueId ?? undefined,
+                      downloadUrl: audioUrl,
+                    }
+                    if (queueId) savedQueueIdsRef.current.add(queueId)
+                    void useMediaStore.getState().upsert(item, {
+                      attachActiveProject: true,
+                      source: 'generated',
+                    })
+                    toast.success('Saved to Media Studio')
+                  }}
+                  disabled={alreadySaved}
+                  className={cn(
+                    'text-[14px] flex items-center gap-1.5 transition-opacity',
+                    alreadySaved
+                      ? 'text-text-muted cursor-default'
+                      : 'text-accent hover:opacity-85',
+                  )}
+                  title={alreadySaved ? 'Already saved to Media Studio' : 'Save to Media Studio'}
+                  aria-label={alreadySaved ? 'Already saved to Media Studio' : 'Save to Media Studio'}
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
+                  {alreadySaved ? 'Saved' : 'Save to Media Studio'}
+                </button>
+                  )
+                })()}
+                <a href={audioUrl} download="venice-music.mp3" target="_blank" rel="noopener noreferrer" className="text-[14px] text-text-muted hover:text-text-muted transition-colors flex items-center gap-1.5">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+                  Download
+                </a>
+              </div>
             </div>
             <audio controls src={audioUrl} className="w-full" />
             <div className="bg-surface-elevated border border-border rounded-lg p-4">

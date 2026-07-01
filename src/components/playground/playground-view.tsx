@@ -65,11 +65,15 @@ export function PlaygroundView() {
     store.setRunResults(initial)
     try {
       await executeWorkflow(draft.nodes, draft.edges, {
+        isRunning: false,
         onUpdate: (nodeId, result) => store.updateRunNode(nodeId, result),
       })
       toast.success('Workflow completed')
     } catch (err) {
-      toast.fromError(err, 'Workflow failed')
+      const message = err instanceof Error ? err.message : ''
+      if (message !== 'Workflow is already running.') {
+        toast.fromError(err, 'Workflow failed')
+      }
     } finally {
       usePlaygroundStore.getState().setIsRunning(false)
     }

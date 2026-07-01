@@ -25,6 +25,7 @@ import { enhancePrompt } from '../../services/prompt-enhancer-service'
 import {
   buildImagePayload,
   clampSeed,
+  IMAGE_PROMPT_MAX_CHARS,
   randomSeed,
   type ImageSeedState,
 } from '../../utils/payloadBuilders'
@@ -79,10 +80,19 @@ export function ImageView() {
   const dimOptions = useMemo(() => buildDimensionOptions(model, constraints), [model, constraints])
   const capabilitySummary = useMemo(() => getRecipeCapabilityList(caps), [caps])
 
+  const modelPricing = modelData?.model_spec?.pricing
+  const modelCostLabel = useMemo(() => {
+    if (!modelPricing) return null
+    const parts: string[] = []
+    if (modelPricing.input?.usd !== undefined) parts.push(`$${modelPricing.input.usd}/1M in`)
+    if (modelPricing.output?.usd !== undefined) parts.push(`$${modelPricing.output.usd}/1M out`)
+    return parts.length > 0 ? parts.join(' · ') : null
+  }, [modelPricing])
+
   const hasAspectRatios = (dimOptions.dimensionMode === "aspectRatio" || dimOptions.dimensionMode === "aspectResolution") && !!dimOptions.aspectRatios?.length
   const maxSteps = constraints?.steps?.max || 50
   const defaultSteps = constraints?.steps?.default || 20
-  const promptLimit = constraints?.promptCharacterLimit || 4096
+  const promptLimit = Math.min(constraints?.promptCharacterLimit || IMAGE_PROMPT_MAX_CHARS, IMAGE_PROMPT_MAX_CHARS)
 
   const [prompt, setPrompt] = useState('')
   const [negativePrompt, setNegativePrompt] = useState('')
@@ -189,6 +199,9 @@ export function ImageView() {
         enhancerConfig,
       )
       setEnhancedPrompt(result.prompt)
+      if (result.truncated) {
+        toast.warn('Enhanced prompt shortened', `Prompt enhancer output was trimmed to ${IMAGE_PROMPT_MAX_CHARS} characters.`)
+      }
       setShowEnhanceReview(true)
     } catch {
       // error handled silently — user keeps original prompt
@@ -293,6 +306,10 @@ export function ImageView() {
     if (!prompt.trim()) return
 
     const currentPrompt = enhancedPrompt && showEnhanceReview ? enhancedPrompt : prompt.trim()
+    if (currentPrompt.length > IMAGE_PROMPT_MAX_CHARS) {
+      toast.warn('Prompt is too long', `Image prompts must be ${IMAGE_PROMPT_MAX_CHARS} characters or fewer.`)
+      return
+    }
 
     let width: number | undefined
     let height: number | undefined
@@ -398,6 +415,9 @@ export function ImageView() {
               processedBytes: report.processedBytes,
               mimeType: report.mimeType,
               assetCategory: routedFolder,
+              cost: modelPricing?.input?.usd !== undefined || modelPricing?.output?.usd !== undefined
+                ? { inputPrice: modelPricing?.input?.usd, outputPrice: modelPricing?.output?.usd }
+                : undefined,
             };
 
             if (isEnhanced) {
@@ -476,6 +496,12 @@ export function ImageView() {
         {capabilitySummary.map((item) => (
           <span key={item} className="opacity-90">{item}</span>
         ))}
+        {modelCostLabel && (
+          <>
+            <span aria-hidden="true">·</span>
+            <span className="opacity-90" data-testid="image-model-cost">{modelCostLabel}</span>
+          </>
+        )}
       </div>
       <div>
         <div className="flex items-center justify-between">
@@ -520,7 +546,7 @@ export function ImageView() {
                   e.target.value = "";
                 }
               }}
-              className="text-[12px] bg-surface-elevated text-text-secondary border border-border rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-accent hover:text-text-secondary transition-colors cursor-pointer"
+              className="relative z-20 text-[12px] bg-surface-elevated text-text-secondary border border-border rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-accent hover:text-text-secondary transition-colors cursor-pointer"
               defaultValue=""
             >
               <option value="" disabled>Add Template...</option>
@@ -693,7 +719,7 @@ export function ImageView() {
         <input id={variantsId} type="range" min={1} max={4} value={variants} onChange={(e) => setVariants(Number(e.target.value))} className="w-full" />
       </div>
 
-      <PrimaryButton onClick={handleGenerate} disabled={!prompt.trim() || !hasVeniceKey} loading={mutation.isPending} size="lg">
+      <PrimaryButton onClick={handleGenerate} disabled={!prompt.trim() || prompt.length > promptLimit || !hasVeniceKey} loading={mutation.isPending} size="lg">
         {mutation.isPending ? 'Generating…' : 'Generate'}
       </PrimaryButton>
       {mutation.error && <ErrorText>{redactErrorMessage(mutation.error)}</ErrorText>}

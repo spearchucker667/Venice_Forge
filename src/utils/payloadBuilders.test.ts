@@ -113,18 +113,18 @@ describe("normalizeImageDraft", () => {
     expect(high.imageCount).toBe(4);
   });
 
-  /** Verifies that oversized prompts are truncated to the 7500-char limit. */
-  it("truncates prompts longer than 7500 characters", () => {
-    const longPrompt = "a".repeat(8000);
+  /** Verifies that oversized prompts are truncated to the 1500-char app limit. */
+  it("truncates prompts longer than 1500 characters", () => {
+    const longPrompt = "a".repeat(1600);
     const result = normalizeImageDraft({ prompt: longPrompt });
-    expect(result.prompt.length).toBe(7500);
+    expect(result.prompt.length).toBe(1500);
   });
 
-  /** Verifies that oversized negative prompts are truncated to 7500. */
-  it("truncates negative prompts longer than 7500 characters", () => {
-    const long = "b".repeat(8000);
+  /** Verifies that oversized negative prompts are truncated to 1500. */
+  it("truncates negative prompts longer than 1500 characters", () => {
+    const long = "b".repeat(1600);
     const result = normalizeImageDraft({ prompt: "p", negative: long });
-    expect((result.negative ?? "").length).toBe(7500);
+    expect((result.negative ?? "").length).toBe(1500);
   });
 
   /** Verifies that empty prompts are preserved (rejected later by UI). */

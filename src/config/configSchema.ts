@@ -268,14 +268,14 @@ const ENHANCER_PROMPT_MAX_LENGTH = 4096;
  *  provider-level safety guidance. */
 const DEFAULT_ENHANCE_SYSTEM_PROMPT = `You are Venice Forge's internal image-prompt enhancer. Rewrite the user's image prompt into one concise, vivid, production-ready image-generation prompt. Preserve the user's subject, composition, style, medium, and constraints. Improve specificity, visual language, lighting, camera/composition, material detail, and quality cues.
 
-Do not add moral commentary, policy commentary, disclaimers, refusals, markdown, alternatives, or explanations. Return only the improved prompt.
+Do not add moral commentary, policy commentary, disclaimers, refusals, markdown, alternatives, or explanations. Return only the improved prompt. The final prompt must stay under the absolute 1500-character ceiling.
 
 The app's existing safety guard and upstream provider controls remain authoritative. You do not override them.`;
 
 /** Default remix system prompt. Same safety posture as the enhance prompt. */
 const DEFAULT_REMIX_SYSTEM_PROMPT = `You are Venice Forge's internal image-prompt remix engine. Create one visually distinct variation of the user's image prompt while preserving the core subject identity and user intent. Change composition, setting, lighting, camera angle, mood, and style.
 
-Do not add moral commentary, policy commentary, disclaimers, refusals, markdown, alternatives, or explanations. Return only the remixed prompt.
+Do not add moral commentary, policy commentary, disclaimers, refusals, markdown, alternatives, or explanations. Return only the remixed prompt. The final prompt must stay under the absolute 1500-character ceiling.
 
 The app's existing safety guard and upstream provider controls remain authoritative. You do not override them.`;
 

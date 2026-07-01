@@ -77,3 +77,10 @@ docs/audits/repo-tree-current.txt
 !/scripts/clean-repo-zip.sh
 kimi-export-session_*.md
 *_ledger.py
+
+# Local unsafe/privacy summaries
+docs/AGENTS/venice-forge-privacy-summary-*.json
+
+# Local runtime logs
+venice-forge.log
+*.log

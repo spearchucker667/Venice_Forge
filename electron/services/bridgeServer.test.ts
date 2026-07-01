@@ -24,9 +24,26 @@ vi.mock("./logger", () => ({
 
 vi.mock("../../src/shared/safety", () => {
   const assessChildExploitationSafety = vi.fn();
+  class SafetyGuardBlockedError extends Error {
+    readonly decision: unknown;
+    readonly status = 451;
+    constructor(decision: unknown) {
+      super("Blocked by Family Safe Mode");
+      this.name = "SafetyGuardBlockedError";
+      this.decision = decision;
+    }
+  }
   return {
+    SafetyGuardBlockedError,
     assessChildExploitationSafety,
     recordDecision: vi.fn(),
+    safetyBlockBodyFromResponseScreen: vi.fn((screen: { userMessage: string; reasonCode: string; category: string; severity: string }) => ({
+      error: screen.userMessage,
+      reasonCode: screen.reasonCode,
+      category: screen.category,
+      severity: screen.severity,
+    })),
+    screenResponseBody: vi.fn(() => ({ allowed: true, skipped: false })),
     maybeRunLocalFamilyGuard: vi.fn((input: unknown, enabled: boolean) => {
       if (!enabled) return { allowed: true, skipped: true, reason: "local-family-safe-mode-disabled" };
       const guardDecision = assessChildExploitationSafety(input);

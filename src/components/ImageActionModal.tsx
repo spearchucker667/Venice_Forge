@@ -51,7 +51,7 @@ export function ImageActionModal({
   const truncatedAlt =
     promptText.length > 120 ? promptText.slice(0, 117) + "…" : promptText;
 
-  const isVideo = image.mediaType === "video";
+  const isVideo = image.mediaType === "video" || image.mediaType === "audio";
   const mediaSrc = isVideo ? (image.downloadUrl || image.image) : image.image;
 
   return (

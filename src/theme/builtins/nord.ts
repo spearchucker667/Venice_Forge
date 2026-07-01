@@ -10,7 +10,7 @@ export const BUILTIN_NORD: Theme = {
     surfaceElevated: '#434C5E',
     border: '#4C566A',
     textPrimary: '#D8DEE9',
-    textSecondary: '#E5E9F0',
+    textSecondary: '#B0B9C6',
     textMuted: '#81A1C1',
     accent: '#88C0D0',
     accentHover: '#8FBCBB',

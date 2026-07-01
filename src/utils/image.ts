@@ -109,7 +109,9 @@ export function galleryFilename(item: unknown, index = 0, suffix = "") {
   const ext =
     record.mediaType === "video"
       ? (/\.webm($|\?)/i.test(String(record.downloadUrl || record.image || "")) ? ".webm" : ".mp4")
-      : ".png";
+      : record.mediaType === "audio"
+        ? ".mp3"
+        : ".png";
 
   return `${safeModel}-${id}${suffix}${ext}`;
 }

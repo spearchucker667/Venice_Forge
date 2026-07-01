@@ -135,6 +135,40 @@ export const SEXUALIZATION_PATTERNS: readonly RegExp[] = [
   /\b(?:genital|genitals|privates)\b/i,
 ];
 
+/** Image-generation PG-13 explicit nudity blocks. Image requests are stricter
+ *  than chat because the output is visual and harder to safely transform after
+ *  generation. */
+export const IMAGE_EXPLICIT_NUDITY_PATTERNS: readonly RegExp[] = [
+  /\b(?:explicit|full|complete|front(?:al)?)\s+(?:nude|nudity|naked)\b/i,
+  /\b(?:nude|nudity|naked)\s+(?:adult\s+)?(?:portrait|photo|image|body|figure|model|person|woman|man)\b/i,
+  /\b(?:topless|bottomless|full\s+frontal|full\s+nude|full\s+naked)\b/i,
+];
+
+/** Image-generation PG-13 visible-genital blocks. */
+export const IMAGE_VISIBLE_GENITAL_PATTERNS: readonly RegExp[] = [
+  /\b(?:visible|show(?:ing)?|exposed|expose|focus(?:ed)?\s+on)\s+(?:genital|genitals|privates)\b/i,
+  /\b(?:genital|genitals|privates)\s+(?:visible|showing|exposed|detail|closeup|close-up)\b/i,
+];
+
+/** Image-generation PG-13 erotic-framing blocks. */
+export const IMAGE_EROTIC_FRAMING_PATTERNS: readonly RegExp[] = [
+  /\b(?:erotic|pornographic|fetish|sexualized|seductive|aroused)\s+(?:adult\s+)?(?:pose|posing|portrait|photo|image|scene|framing)\b/i,
+  /\b(?:erotic|pornographic|fetish|sexualized)\b/i,
+];
+
+/** Image-generation PG-13 graphic gore / severe injury blocks. */
+export const IMAGE_GRAPHIC_GORE_PATTERNS: readonly RegExp[] = [
+  /\b(?:graphic\s+)?gore\b/i,
+  /\b(?:dismemberment|dismembered|mutilation|mutilated|exposed\s+organs?|entrails)\b/i,
+  /\b(?:severed|amputated)\s+(?:limb|arm|leg|head|body\s+part)\b/i,
+  /\b(?:realistic|detailed|closeup|close-up)\s+(?:wound|injury|blood|gore)\b/i,
+];
+
+/** Neutral visual contexts that should not be mistaken for erotic framing. */
+export const IMAGE_NEUTRAL_BODY_CONTEXT_PATTERNS: readonly RegExp[] = [
+  /\b(?:non[-\s]?erotic|neutral|clinical|medical|classical\s+art|swimwear|swimsuit|beachwear)\b/i,
+];
+
 /** Terms indicating hard minor/underage status. */
 export const HARD_YOUTH_TERMS: readonly string[] = [
   "child", "children", "minor", "minors", "underage", "preteen", "preteens",

@@ -12,6 +12,7 @@
 import { DEFAULT_PROMPT_ENHANCER_MODEL } from "../constants/venice";
 import { venice } from "../lib/venice-client";
 import type { YamlInternalPromptEnhancer } from "../config/configSchema";
+import { IMAGE_PROMPT_MAX_CHARS } from "../utils/payloadBuilders";
 
 export type PromptEnhanceMode = "enhance" | "remix";
 
@@ -27,6 +28,7 @@ export interface EnhancePromptInput {
 export interface EnhancePromptResult {
   prompt: string;
   modelUsed: string;
+  truncated?: boolean;
 }
 
 /** Configuration shape for the prompt-enhancer LLM call.
@@ -48,14 +50,14 @@ export const DEFAULT_ENHANCER_MODEL = DEFAULT_PROMPT_ENHANCER_MODEL;
  *  as overriding safety. */
 export const DEFAULT_ENHANCE_SYSTEM_PROMPT = `You are Venice Forge's internal image-prompt enhancer. Rewrite the user's image prompt into one concise, vivid, production-ready image-generation prompt. Preserve the user's subject, composition, style, medium, and constraints. Improve specificity, visual language, lighting, camera/composition, material detail, and quality cues.
 
-Do not add moral commentary, policy commentary, disclaimers, refusals, markdown, alternatives, or explanations. Return only the improved prompt.
+Do not add moral commentary, policy commentary, disclaimers, refusals, markdown, alternatives, or explanations. Return only the improved prompt. The final prompt must stay under the absolute 1500-character ceiling.
 
 The app's existing safety guard and upstream provider controls remain authoritative. You do not override them.`;
 
 /** Default remix system prompt. Same safety posture as the enhance prompt. */
 export const DEFAULT_REMIX_SYSTEM_PROMPT = `You are Venice Forge's internal image-prompt remix engine. Create one visually distinct variation of the user's image prompt while preserving the core subject identity and user intent. Change composition, setting, lighting, camera angle, mood, and style.
 
-Do not add moral commentary, policy commentary, disclaimers, refusals, markdown, alternatives, or explanations. Return only the remixed prompt.
+Do not add moral commentary, policy commentary, disclaimers, refusals, markdown, alternatives, or explanations. Return only the remixed prompt. The final prompt must stay under the absolute 1500-character ceiling.
 
 The app's existing safety guard and upstream provider controls remain authoritative. You do not override them.`;
 
@@ -76,6 +78,26 @@ export function stripEnhancerOutput(raw: string): string {
   result = result.replace(/^["']([\s\S]*)["']$/, "$1");
 
   return result.trim();
+}
+
+export function clampEnhancedPrompt(raw: string): { prompt: string; truncated: boolean } {
+  const cleaned = raw.trim();
+  if (cleaned.length <= IMAGE_PROMPT_MAX_CHARS) {
+    return { prompt: cleaned, truncated: false };
+  }
+  const hardLimit = cleaned.slice(0, IMAGE_PROMPT_MAX_CHARS).trimEnd();
+  const boundary = Math.max(
+    hardLimit.lastIndexOf(". "),
+    hardLimit.lastIndexOf("! "),
+    hardLimit.lastIndexOf("? "),
+    hardLimit.lastIndexOf("; "),
+    hardLimit.lastIndexOf(", "),
+  );
+  if (boundary >= Math.floor(IMAGE_PROMPT_MAX_CHARS * 0.65)) {
+    const prompt = hardLimit.slice(0, boundary + 1).trimEnd();
+    return { prompt, truncated: true };
+  }
+  return { prompt: hardLimit, truncated: true };
 }
 
 /** Clamp a model id to a safe string. Defensive against an unsafe config
@@ -145,6 +167,7 @@ function buildEnhancePrompt(input: EnhancePromptInput): string {
   sections.push("- Return ONLY the final prompt text");
   sections.push("- No explanations, no markdown, no quotes");
   sections.push("- Preserve the user's stated subject, composition, style, and constraints");
+  sections.push(`- Absolute maximum length: ${IMAGE_PROMPT_MAX_CHARS} characters`);
 
   return sections.join("\n");
 }
@@ -249,9 +272,10 @@ export async function enhancePrompt(
   });
 
   const rawContent = response?.choices?.[0]?.message?.content ?? "";
-  const prompt = stripEnhancerOutput(rawContent) || input.prompt;
+  const cleanedPrompt = stripEnhancerOutput(rawContent) || input.prompt;
+  const { prompt, truncated } = clampEnhancedPrompt(cleanedPrompt);
 
-  return { prompt, modelUsed: effective.model };
+  return { prompt, modelUsed: effective.model, truncated };
 }
 
 /** Remix a prompt using the internal LLM.

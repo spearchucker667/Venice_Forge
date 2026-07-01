@@ -115,6 +115,27 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-07-01 Theme Bug Hunt + Browser Menu/Dynamic Splash (current session):**
+  - **Browser menu & dynamic splash fixes:** Removed `broadcastState()` from `setBounds` handler in `researchBrowserServer.ts` to stop flooding renderer IPC on every resize tick. Rewrote `assets/browser-splash.html` with fully responsive CSS `clamp()` sizing for all dimensions and a resize-driven viewport dimension indicator. Added 50ms debounce to ResizeObserver in `ResearchBrowserView.tsx` to prevent IPC flooding during rapid window resize.
+  - **Theme bug hunt audit:** Identified 20 theme/color issues across the codebase. 6 CRITICAL fixes applied; 14 MEDIUM/LOW issues deferred with rationale logged.
+  - **Critical fixes applied:** (1) `src/styles/theme.css:124` `.skeleton` class was referencing undefined `--fg` variable → fixed to `var(--foreground)` so skeleton animation renders in all themes. (2) `nord.ts` `textSecondary` (#E5E9F0) was brighter than `textPrimary` (#D8DEE9), inverting hierarchy → fixed to #B0B9C6. (3) `oneDark.ts` `textMuted` (#a0a4ad) was brighter than `textSecondary` (#9ca0aa), inverting hierarchy → fixed to #91969e (4.71:1 WCAG AA, dimmer than secondary, brighter than primary). (4) `solarizedLight.ts` `surfaceMuted` equaled `surface` (#eee8d5) → fixed to #e6dfc8 for depth distinction. (5) `githubLight.ts` `surfaceMuted` equaled `surface` (#f6f8fa) → fixed to #ebeef1. (6) `contrast.ts` `toRgb()` did not support `hsl()/hsla()` even though `isValidColorValue` accepted them, producing fake 21:1 contrast from luminance=0 fallback → added full HSL→RGB conversion so `contrastRatio()` works correctly for custom YAML themes using HSL values.
+  - **Deferred (14 issues):** `transparent`/`currentColor` semantic-validation gap (no built-in usage), fragile applyTheme.test.ts count assertion (37), confusing CSS aliases for text-tertiary/text-quaternary, hardcoded `rgba` shadow/border values (large refactor), hardcoded `#000` shadows, dark-only bg-base/raised/overlay variables (declarative footgun), `BUILTIN_THEMES[0]` Aurora Boreal vs Venice inconsistency (no runtime impact), `glow`/`overlay` fallback absent in completeThemeTokens (all built-ins provide them), duplicate `REQUIRED_THEME_TOKEN_KEYS` in configSchema.ts (currently synchronized), `themes.ts` shim re-export (doc clarity), WCAG cohort only 10/30 themes tested (existing coverage adequate), inlineColorInvariant narrow coverage (verify-theme-tokens.cjs covers broader set).
+  - **Files changed:** `electron/services/researchBrowserServer.ts`, `assets/browser-splash.html`, `src/components/research/ResearchBrowserView.tsx`, `src/styles/theme.css`, `src/theme/builtins/nord.ts`, `src/theme/builtins/oneDark.ts`, `src/theme/builtins/solarizedLight.ts`, `src/theme/builtins/githubLight.ts`, `src/theme/contrast.ts`, `electron/services/researchBrowserServer.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npx vitest run src/theme tests/theme` PASS (81 tests across 8 files); `npm run verify:research-browser` PASS (147 tests); `npm run verify:contracts` PASS (102/102).
+  - **Remaining:** Profile isolation, master password, credential storage, onboarding flow, the 14 deferred theme issues (with logged rationale), and full Family Safe Mode master password remain open as future work.
+- **2026-07-01 Remaining TODO Work-Order Completion (previous session):**
+  - Completed all 8 remaining TODO items from the prior session's work-order catalog.
+  - **Image cost labels:** Added `MediaCost` interface to `MediaItem` type. Image Studio now displays per-model pricing ($X/1M in · $Y/1M out) in the capability summary bar. Cost is captured on generated `MediaItem` records.
+  - **Upscale error classification:** Added `normalizeError`-based error classification in Image Tools, mapping HTTP status codes to user-friendly messages (402 insufficient balance, 413 payload too large, 429 rate limit, etc.).
+  - **Video timeout/cancel telemetry:** Migrated `use-video.ts` from legacy `venice()` to canonical `veniceFetch()`. Added `QUEUE_TIMEOUT_MS=30000`, `POLL_TIMEOUT_MS=15000`, `abortControllerRef`. Cancel now aborts upstream via `venice:abort` IPC. Inspector telemetry, fetch-level timeout, and upstream abort capability all added.
+  - **Workflow duplicate output idempotency:** Added engine-level `isRunning` guard in `executeWorkflow()` (throws if already running). Added `runHistory: RunRecord[]` to workflow store with `startRun`/`endRun` actions (last 50 runs). Generated `_runId` per execution. Wired `outputKey` through compiler and runner into `WorkflowRunPlan.outputs` map.
+  - **Music output handling:** Migrated `use-music.ts` from `venice()` to `veniceFetch()` with timeout/abort/telemetry. Added auto-save to Media Studio on completion (matching video pattern) and manual "Save to Media Studio" button. Added `"audio"` to `MediaType` and `"music-generate"` to `MediaOperation` across all media-related files.
+  - **Characters:** Fixed scenario creation tab navigation (`"scenes"` → `"rp-studio"`). Added `importCards`/`exportCards`/`archiveCard`/`unarchiveCard`/`addVersion`/`setCurrentVersion` to character-card store. Added `importPersonas`/`exportPersonas` to persona store. `createBlank` no longer sets `scenario: ""`. Added `firstMessage` textarea, archive/unarchive button, version history (save/restore) to CharacterEditor. Scene and prompt dropdowns now use reactive hooks instead of `getState()`.
+  - **Browser splash/menu/URL fixes:** Added custom HTML splash page (`assets/browser-splash.html`) with Venice Forge branding and quick links. Added `lastErrorUrl` display in error banner. Added CSS loading progress bar during navigation. Added "Open in OS browser" toolbar button. Added `aria-label` attributes to browser toolbar buttons. Included `assets/**/*` in electron-builder packaging.
+  - **Rename/migration:** Renamed user-facing "Red-Team Mode" labels to "Developer Mode" across sidebar, tests, and comments. Internal state field `redTeamMode` preserved. DB_NAME rename skipped (destructive — would orphan IndexedDB data). Research tab label already correct.
+  - **Files changed:** `src/types/media.ts`, `src/components/image/image-view.tsx`, `src/components/image/image-tools.tsx`, `src/hooks/use-video.ts`, `src/hooks/use-video.test.tsx`, `src/lib/workflow-engine.ts`, `src/stores/workflow-store.ts`, `src/components/workflows/workflows-view.tsx`, `src/services/workflowCompiler.ts`, `src/services/workflowRunner.ts`, `src/hooks/use-music.ts`, `src/hooks/use-music.test.tsx`, `src/components/music/music-view.tsx`, `src/types/storage.ts`, `src/stores/media-export-bundle.ts`, `src/types/rp.ts`, `src/stores/character-card-store.ts`, `src/stores/persona-store.ts`, `src/services/rp/characterCardService.ts`, `src/components/rp-studio/CharacterEditor.tsx`, `src/components/rp-studio/CharacterEditor.test.tsx`, `src/components/rp-studio/CharacterLibrary.tsx`, `assets/browser-splash.html`, `src/components/research/ResearchBrowserView.tsx`, `src/styles/theme.css`, `electron/services/researchBrowserServer.ts`, `electron-builder.config.cjs`, `src/components/layout/sidebar.tsx`, `src/components/layout/sidebar.test.tsx`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; all focused test suites PASS (image-tools, image-view, use-video, workflow-engine, workflow-store, workflow-compiler, workflow-runner, use-music, music-view, character-editor, character-card-store, persona-store, sidebar, research-browser-view); `npm run verify:contracts` PASS; `npm run build` PASS.
+  - **Remaining:** Profile isolation, master password, credential storage, onboarding flow, and full Family Safe Mode master password remain open as future work.
 - **2026-07-01 Richer File Ingestion Adapters (current session):**
   - Addressed the roadmap item for richer file ingestion.
   - Allowed `.doc`, `.xls`, and `.xlsx` to be uploaded via UI by classifying them as supported legacy formats.
@@ -452,6 +473,16 @@ backlog files were removed.
   - **Validation:** All 14 CI gates pass. Code fully verified for 14 audit items. Release gate: **PASS**.
 
 ### Session History
+- **2026-07-01 Priority Safety/Image Remediation Slice:**
+  - Closed the highest-priority safety gap in the image generation path by adding PG-13 image-only blocks for explicit nudity, erotic framing, visible genitals, and graphic gore.
+  - Added Family Safe Mode provider override at Electron IPC and web proxy boundaries so supported endpoints receive `safe_mode: true` even when renderer payloads try to send `safe_mode: false`.
+  - Added response/display screening for textual Electron upstream responses and preserved canonical 451 blocked shape.
+  - Closed the Chat avatar item: assistant bubbles use the active character image for character-bound conversations, fall back to the bundled Venice seal when no character image exists, and `useCharacterImage` gates async results by a conversation-scoped cache key.
+  - Added shared 1500-character prompt enforcement, prompt-enhancer output clamping, UI disabled state/counter, and non-blocking truncation notice.
+  - Added Image Tools drag-and-drop for supported image files and regression tests for valid/invalid drops.
+  - Verified purge targets `docs/AGENTS/venice-forge-privacy-summary-2026-07-01.json` and `venice-forge.log` are absent; `.gitignore` now blocks future local summaries/logs.
+  - **Validation:** lint, typecheck, focused tests, safety/image/network/work-order/contracts gates, full `npm test`, build, and diff check all passed.
+
 - **2026-06-22 Review CodeQL configuration status page:**
   - Confirmed the linked configuration is the active advanced CodeQL setup driven by `.github/workflows/codeql.yml`.
   - Documented configuration details: `javascript-typescript`, `security-extended,security-and-quality` queries, `build-mode: none`, triggers, and recent scan counts (73–74 alerts / 200 rules).
@@ -944,6 +975,16 @@ backlog files were removed.
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
+- **2026-07-01 priority remediation work order — CLOSED in this session:**
+  - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
+  - **Chat:** CLOSED. Selected character image wins for assistant bubbles, no-character fallback uses bundled Venice seal, and hook-level cache gating includes conversation identity.
+  - **Image:** CLOSED. Cost labels per model display in Image Studio capability bar; upscale error classification via `normalizeError` with status-based messages.
+  - **Traffic Inspector:** CLOSED. Image/video calls route through canonical Venice telemetry; video queue/poll/cancel now uses `veniceFetch()` with timeout/abort/telemetry.
+  - **Workflows:** CLOSED. Engine-level `isRunning` guard, `runHistory` with `startRun`/`endRun`, `_runId` per execution, and `outputKey` wired through compiler/runner.
+  - **Characters:** CLOSED. Fixed scenario tab navigation, added import/export/archive/versioning to stores, `firstMessage` UI, reactive dropdowns. Remaining future work: required-field validation, "Create Me" generation, per-character settings.
+  - **Browser:** CLOSED. Custom splash page, error URL display, loading progress bar, "Open in OS browser" button, accessibility labels.
+  - **Video/Music:** CLOSED. Video and music hooks migrated to `veniceFetch()` with timeout/abort/telemetry. Music auto-saves to Media Studio.
+  - **Profiles/Onboarding/Rename:** CLOSED for rename. Red-Team Mode renamed to Developer Mode in UI. Remaining future work: profile isolation, master password, credential storage, onboarding flow.
 - **2026-06-22 GitHub CodeQL alert remediation — OPEN, priorities identified:**
   - **P1 (security):** Replace or harden regex-based HTML sanitization in `src/utils/markdown.tsx` (alerts #89, #86–#88: `js/bad-tag-filter`, `js/incomplete-multi-character-sanitization`).
   - **P2 (security/hardening):** Review and document TOCTOU/file-system-race alerts in `electron/services/mediaService.ts:291` and `electron/ipc/handlers/fileHandlers.ts:203`; verify user-path validation and dialog controls.
@@ -1169,6 +1210,37 @@ backlog files were removed.
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+- 2026-07-01 priority safety/image remediation slice:
+  - `git status --short`: PASS, initial live tree clean before edits.
+  - `git branch --show-current`: PASS (`main`).
+  - `node --version`: PASS command ran (`v24.3.0`; note repo target is Node 22.13+ / npm 10+).
+  - `npm --version`: PASS command ran (`11.4.2`).
+  - `sed -n '1,220p' AGENTS.md`: PASS.
+  - `sed -n '1,220p' docs/summary_of_work.md`: PASS.
+  - `npm ci`: PASS (937 packages installed).
+  - Purge target check: PASS, `docs/AGENTS/venice-forge-privacy-summary-2026-07-01.json` absent after work-order procedure.
+  - Runtime log check: PASS, `venice-forge.log` absent after work-order procedure.
+  - `npx vitest run src/shared/safety/childExploitationGuard.test.ts tests/safety/guardPipeline.test.ts --fileParallelism=false`: PASS (194 tests).
+  - `npx vitest run src/utils/payloadBuilders.test.ts src/services/prompt-enhancer-service.test.ts src/components/image/image-view.test.tsx --fileParallelism=false`: PASS (75 tests).
+  - `npx vitest run src/components/image/image-tools.test.tsx --fileParallelism=false`: PASS (8 tests).
+  - `npx vitest run src/components/image/image-view.test.tsx src/components/ui/shared.test.tsx --fileParallelism=false`: PASS (13 tests).
+  - `npx vitest run src/components/layout/inspector-pane.test.tsx --fileParallelism=false`: PASS (1 test).
+  - `npx vitest run electron/services/bridgeServer.test.ts --fileParallelism=false`: PASS (22 tests) after updating the local safety mock for response-screening exports.
+  - Focused combined regression run (`childExploitationGuard`, `guardPipeline`, `payloadBuilders`, `prompt-enhancer-service`, `image-view`, `image-tools`, `ui/shared`, `inspector-pane`): PASS (284 tests).
+  - Chat avatar RED run (`message-bubble`, `useCharacterImage`): FAIL as expected before implementation; missing AI avatar image and missing conversation cache-key behavior.
+  - `npx vitest run src/components/chat/message-bubble.test.tsx src/hooks/useCharacterImage.test.tsx --fileParallelism=false`: PASS (11 tests).
+  - `npx vitest run src/components/chat/message-bubble.test.tsx src/hooks/useCharacterImage.test.tsx src/components/chat/chat-view.test.tsx src/components/CharactersView.test.tsx src/utils/characterImageResolver.test.ts --fileParallelism=false`: PASS (77 tests).
+  - `npm run lint:eslint`: PASS.
+  - `npm run typecheck`: PASS.
+  - `npm run verify:safety-guard`: PASS.
+  - `npm run verify:image-policy`: PASS.
+  - `npm run verify:network-boundaries`: PASS.
+  - `npm run verify:work-orders`: PASS.
+  - `npm run verify:contracts`: PASS.
+  - `npm test`: PASS (276 test files passed / 1 skipped; 3430 tests passed / 1 skipped).
+  - `npm run build`: PASS.
+  - `git diff --check`: PASS.
+
 - 2026-06-22 CodeQL configuration status page review:
   - `gh api repos/spearchucker667/Venice_Forge/code-scanning/default-setup`: SUCCESS (state `not-configured`, languages listed).
   - `gh api repos/spearchucker667/Venice_Forge/code-scanning/analyses --paginate`: SUCCESS (retrieved recent analyses; confirmed advanced workflow setup).
@@ -8757,4 +8829,3 @@ Result:
 | `npm run build` | PASS | Web, server, and Electron build completed |
 | `npm run verify:contracts` | PASS | All static, feature, and release contract verifiers pass |
 | `npm run verify:dist` | PASS | Build outputs verified for v2.1.1 |
-

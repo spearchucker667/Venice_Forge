@@ -570,10 +570,10 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
 
       {expanded && (
         <div className="shrink-0 soft-separator-y p-3 gap-2 flex flex-col">
-          {/* Developer / Red-Team controls */}
+          {/* Developer controls */}
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted leading-none">Red-Team Mode</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted leading-none">Developer Mode</span>
               <p className="text-[10.5px] leading-snug text-text-muted mt-0.5 [@media(max-height:800px)]:hidden">
                 Shows raw model output and local safety decisions.
               </p>
@@ -587,7 +587,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                 "w-8 h-4 rounded-full transition-colors relative cursor-pointer shrink-0",
                 redTeamMode ? "bg-accent" : "bg-border"
               )}
-              aria-label="Toggle Red-Team Mode"
+              aria-label="Toggle Developer Mode"
             >
               <div className={cn(
                 "w-3.5 h-3.5 rounded-full bg-surface-elevated shadow-sm absolute top-[1px] transition-all",

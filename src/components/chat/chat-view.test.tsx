@@ -77,6 +77,7 @@ vi.mock("../../services/veniceClient", () => ({
 }));
 
 vi.mock("../../utils/characterImageResolver", () => ({
+  avatarFallback: (name: string) => name.trim().slice(0, 2).toUpperCase() || "?",
   resolveCharacterImageUrl: () => null,
 }));
 

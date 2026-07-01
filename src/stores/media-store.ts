@@ -432,6 +432,7 @@ export type MediaFilter =
   | "all"
   | "image"
   | "video"
+  | "audio"
   | "favorites"
   | "upscaled"
   | "edited"
@@ -484,6 +485,8 @@ export function filterMedia(items: MediaItem[], filter: MediaFilter): MediaItem[
       return items.filter((item) => item.mediaType === "image")
     case "video":
       return items.filter((item) => item.mediaType === "video")
+    case "audio":
+      return items.filter((item) => item.mediaType === "audio")
     case "favorites":
       return items.filter((item) => item.favorite)
     case "upscaled":

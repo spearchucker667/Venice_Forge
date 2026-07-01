@@ -18,7 +18,8 @@ import {
   generateId as svcGenerateId,
   normalizeCard,
 } from "../services/rp/characterCardService";
-import type { CharacterCardV1 } from "../types/rp";
+import type { CharacterCardV1, CharacterCardExport, CharacterCardVersion } from "../types/rp";
+import { RP_CARD_EXPORT_VERSION } from "../types/rp";
 import { toast } from "./toast-store";
 
 const PAGE_SIZE = 60;
@@ -48,6 +49,12 @@ export interface CharacterCardState {
   upsert: (card: CharacterCardV1) => Promise<CharacterCardV1 | null>;
   remove: (id: string) => Promise<boolean>;
   getById: (id: string) => CharacterCardV1 | undefined;
+  importCards: (json: string) => Promise<number>;
+  exportCards: () => string;
+  archiveCard: (id: string) => Promise<CharacterCardV1 | null>;
+  unarchiveCard: (id: string) => Promise<CharacterCardV1 | null>;
+  addVersion: (id: string, reason?: string) => Promise<CharacterCardV1 | null>;
+  setCurrentVersion: (id: string, versionId: string) => Promise<CharacterCardV1 | null>;
 }
 
 export const useCharacterCardStore = create<CharacterCardState>((set, get) => ({
@@ -86,7 +93,6 @@ export const useCharacterCardStore = create<CharacterCardState>((set, get) => ({
       name: "New Character",
       description: "",
       systemPrompt: "",
-      scenario: "",
       tags: [],
       adult: false,
       exampleDialogues: [],
@@ -145,6 +151,102 @@ export const useCharacterCardStore = create<CharacterCardState>((set, get) => ({
     }
   },
 
+  importCards: async (json) => {
+    let parsed: unknown;
+    try { parsed = JSON.parse(json); } catch { return 0; }
+    if (!parsed || typeof parsed !== "object") return 0;
+    const p = parsed as Record<string, unknown>;
+    if (p.version !== RP_CARD_EXPORT_VERSION || p.app !== "Venice Forge") return 0;
+    const arr = Array.isArray(p.cards) ? p.cards : [];
+    let count = 0;
+    for (const raw of arr) {
+      const normalized = normalizeCard(raw);
+      if (!normalized) continue;
+      const saved = await get().upsert(normalized);
+      if (saved) count++;
+    }
+    return count;
+  },
+
+  exportCards: () => {
+    const list = get().cards;
+    const safe: CharacterCardV1[] = list.map((c) => {
+      const copy = JSON.parse(JSON.stringify(c)) as CharacterCardV1;
+      delete copy.archivedAt;
+      return copy;
+    });
+    const env: CharacterCardExport = {
+      version: RP_CARD_EXPORT_VERSION,
+      app: "Venice Forge",
+      exportedAt: Date.now(),
+      cards: safe,
+    };
+    return JSON.stringify(env, null, 2);
+  },
+
+  archiveCard: async (id) => {
+    const current = get().cards.find((c) => c.id === id);
+    if (!current) return null;
+    return get().upsert({ ...current, archivedAt: Date.now() });
+  },
+
+  unarchiveCard: async (id) => {
+    const current = get().cards.find((c) => c.id === id);
+    if (!current) return null;
+    const next = { ...current };
+    delete next.archivedAt;
+    return get().upsert(next);
+  },
+
+  addVersion: async (id, reason) => {
+    const current = get().cards.find((c) => c.id === id);
+    if (!current) return null;
+    const ver: CharacterCardVersion = {
+      id: svcGenerateId(),
+      createdAt: Date.now(),
+      reason,
+      snapshot: {
+        name: current.name,
+        description: current.description,
+        systemPrompt: current.systemPrompt,
+        scenario: current.scenario,
+        tags: current.tags,
+        modelId: current.modelId,
+        author: current.author,
+        adult: current.adult,
+        exampleDialogues: current.exampleDialogues,
+        firstMessage: current.firstMessage,
+      },
+    };
+    const versions = [...(current.versions ?? []), ver];
+    const saved = await get().upsert({ ...current, versions, currentVersionId: ver.id });
+    return saved;
+  },
+
+  setCurrentVersion: async (id, versionId) => {
+    const current = get().cards.find((c) => c.id === id);
+    if (!current) return null;
+    const ver = current.versions?.find((v) => v.id === versionId);
+    if (!ver) return null;
+    const restored: CharacterCardV1 = {
+      ...current,
+      name: ver.snapshot.name,
+      description: ver.snapshot.description,
+      systemPrompt: ver.snapshot.systemPrompt,
+      scenario: ver.snapshot.scenario,
+      tags: ver.snapshot.tags,
+      modelId: ver.snapshot.modelId,
+      author: ver.snapshot.author,
+      adult: ver.snapshot.adult,
+      exampleDialogues: ver.snapshot.exampleDialogues,
+      firstMessage: ver.snapshot.firstMessage,
+      currentVersionId: versionId,
+      updatedAt: Date.now(),
+    };
+    const saved = get().upsert(restored);
+    return saved;
+  },
+
   getById: (id) => get().cards.find((c) => c.id === id),
 }));
 
@@ -156,6 +258,7 @@ export function useFilteredCharacterCards(): CharacterCardV1[] {
   const needle = q.trim().toLowerCase();
   const out: CharacterCardV1[] = [];
   for (const c of cards) {
+    if (c.archivedAt) continue;
     if (!includeAdult && c.adult) continue;
     if (needle) {
       const hay = `${c.name}\n${c.description}\n${c.tags.join(" ")}`.toLowerCase();

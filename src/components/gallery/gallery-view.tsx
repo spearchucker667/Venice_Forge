@@ -322,7 +322,7 @@ export function MediaStudioView() {
 
   const handleDelete = useCallback(async (item: MediaItem) => {
     const shouldDelete = await askDecision({
-      title: `Delete this ${item.mediaType === "video" ? "video" : "image"}?`,
+      title: `Delete this ${item.mediaType === "video" ? "video" : item.mediaType === "audio" ? "audio track" : "image"}?`,
       detail: "This cannot be undone.",
       actionLabel: "Delete",
       danger: true,

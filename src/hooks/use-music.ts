@@ -1,10 +1,14 @@
 import { useMutation } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { venice } from '../lib/venice-client'
+import { veniceFetch } from '../services/veniceClient/fetch'
+import { sanitizeErrorText } from '../shared/redaction'
 import type { MusicQueueRequest, MusicQueueResponse, MusicRetrieveResponse } from '../types/venice'
 
 const POLL_INTERVAL_MS = 3000
 const MAX_ATTEMPTS = 120 // ~6 minutes
+const MAX_ERROR_LENGTH = 200
+const QUEUE_TIMEOUT_MS = 30000
+const POLL_TIMEOUT_MS = 15000
 
 export const SAFE_ERROR_MESSAGES = {
   queue: 'Unable to queue music generation. Please try again.',
@@ -13,11 +17,20 @@ export const SAFE_ERROR_MESSAGES = {
   timeout: 'Generation took too long. Cancel and try again.',
 } as const
 
+function toUserFacingMusicError(value: unknown, fallback: string): string {
+  const normalized = value || fallback
+  const text = typeof normalized === 'string' ? normalized : normalized instanceof Error ? normalized.message : String(normalized)
+  const redacted = sanitizeErrorText(text)
+  return redacted.length > MAX_ERROR_LENGTH ? `${redacted.slice(0, MAX_ERROR_LENGTH)}…` : redacted
+}
+
 export function useMusic() {
   const [status, setStatus] = useState<'idle' | 'queued' | 'processing' | 'completed' | 'failed'>('idle')
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [elapsedMs, setElapsedMs] = useState(0)
+  const [queueId, setQueueId] = useState<string | null>(null)
+  const [lastRequest, setLastRequest] = useState<MusicQueueRequest | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval>>(undefined)
   const tickRef = useRef<ReturnType<typeof setInterval>>(undefined)
   const requestIdRef = useRef<string | null>(null)
@@ -26,6 +39,7 @@ export function useMusic() {
   const cancelledRef = useRef(false)
   const isPollingRef = useRef(false)
   const generationTokenRef = useRef(0)
+  const abortControllerRef = useRef<AbortController>(new AbortController())
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = undefined }
@@ -33,7 +47,10 @@ export function useMusic() {
     isPollingRef.current = false
   }, [])
 
-  useEffect(() => () => stopPolling(), [stopPolling])
+  useEffect(() => () => {
+    stopPolling()
+    abortControllerRef.current.abort()
+  }, [stopPolling])
 
   const startPolling = useCallback(() => {
     stopPolling()
@@ -48,9 +65,11 @@ export function useMusic() {
     }, 1000)
 
     isPollingRef.current = false
+    const signal = abortControllerRef.current.signal
     pollRef.current = setInterval(async () => {
       if (cancelledRef.current) return
       if (isPollingRef.current) return
+      if (signal.aborted) return
       isPollingRef.current = true
       attemptsRef.current += 1
       if (attemptsRef.current > MAX_ATTEMPTS) {
@@ -61,24 +80,28 @@ export function useMusic() {
         return
       }
       try {
-        const result = await venice<MusicRetrieveResponse>('/audio/retrieve', {
+        const result = await veniceFetch<MusicRetrieveResponse>('/audio/retrieve', {
           method: 'POST',
           body: { id: requestIdRef.current },
+          signal,
+          timeoutMs: POLL_TIMEOUT_MS,
+          retry: false,
         })
         if (token !== generationTokenRef.current) return
-        const s = result.status.toLowerCase() as 'queued' | 'processing' | 'completed' | 'failed'
+        const s = result.data.status.toLowerCase() as 'queued' | 'processing' | 'completed' | 'failed'
         setStatus(s)
-        if (s === 'completed' && result.audio_url) {
-          setAudioUrl(result.audio_url)
+        if (s === 'completed' && result.data.audio_url) {
+          setAudioUrl(result.data.audio_url)
           stopPolling()
         } else if (s === 'failed') {
-          setError(SAFE_ERROR_MESSAGES.generation)
+          setError(toUserFacingMusicError(result.data.error, SAFE_ERROR_MESSAGES.generation))
           stopPolling()
         }
-      } catch {
+      } catch (err) {
         if (token !== generationTokenRef.current) return
+        if (err instanceof DOMException && err.name === 'AbortError') return
         if (attemptsRef.current >= MAX_ATTEMPTS) {
-          setError(SAFE_ERROR_MESSAGES.polling)
+          setError(toUserFacingMusicError(err, SAFE_ERROR_MESSAGES.polling))
           setStatus('failed')
           stopPolling()
         }
@@ -89,22 +112,33 @@ export function useMusic() {
   }, [stopPolling])
 
   const queueMutation = useMutation({
-    mutationFn: (req: MusicQueueRequest) =>
-      venice<MusicQueueResponse>('/audio/queue', {
+    mutationFn: async (req: MusicQueueRequest) => {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = new AbortController()
+      const result = await veniceFetch<MusicQueueResponse>('/audio/queue', {
         method: 'POST',
         body: req,
-      }),
-    onSuccess: (data) => {
+        signal: abortControllerRef.current.signal,
+        timeoutMs: QUEUE_TIMEOUT_MS,
+        retry: false,
+      })
+      return result.data
+    },
+    onSuccess: (data, variables) => {
       generationTokenRef.current += 1
       cancelledRef.current = false
-      requestIdRef.current = data.queue_id
+      const id = data.queue_id || data.id || ''
+      requestIdRef.current = id
+      setQueueId(id)
+      setLastRequest(variables)
       setStatus('queued')
       setAudioUrl(null)
       setError(null)
       startPolling()
     },
-    onError: () => {
-      setError(SAFE_ERROR_MESSAGES.queue)
+    onError: (err) => {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      setError(toUserFacingMusicError(err, SAFE_ERROR_MESSAGES.queue))
       setStatus('failed')
     },
   })
@@ -112,9 +146,13 @@ export function useMusic() {
   const cancel = useCallback(() => {
     cancelledRef.current = true
     generationTokenRef.current += 1
+    abortControllerRef.current.abort()
+    abortControllerRef.current = new AbortController()
     stopPolling()
     setStatus('idle')
     setError(null)
+    setQueueId(null)
+    setLastRequest(null)
     requestIdRef.current = null
     startedAtRef.current = null
     setElapsedMs(0)
@@ -134,5 +172,7 @@ export function useMusic() {
     elapsedMs,
     cancel,
     reset,
+    queueId,
+    lastRequest,
   }
 }

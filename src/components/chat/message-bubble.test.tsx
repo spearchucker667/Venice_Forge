@@ -100,7 +100,8 @@ describe("MessageBubble accessibility", () => {
     );
 
     expect(container.querySelector("script")).toBeNull();
-    expect(container.querySelector("img")).toBeNull();
+    const markdown = container.querySelector(".prose-venice");
+    expect(markdown?.querySelector("img")).toBeNull();
     expect(container.querySelector("[onerror]")).toBeNull();
     expect(container.querySelector('a[href^="javascript:"]')).toBeNull();
     expect(screen.getByText("safe text")).toBeInTheDocument();
@@ -128,5 +129,32 @@ describe("MessageBubble accessibility", () => {
     render(<MessageBubble message={message} index={0} onCopy={() => {}} onDelete={() => {}} />);
 
     expect(screen.queryByText(/attached to this message/i)).toBeNull();
+  });
+
+  it("uses the bundled Venice seal for assistant messages without a character avatar", () => {
+    const message: ChatMessage = { role: "assistant", content: "Hi there" };
+
+    render(<MessageBubble message={message} index={0} onCopy={() => {}} onDelete={() => {}} />);
+
+    expect(screen.getByAltText("AI avatar")).toHaveAttribute(
+      "src",
+      "assets/branding/venice-seal-red-fill.svg",
+    );
+  });
+
+  it("uses the selected character image for assistant messages when provided", () => {
+    const message: ChatMessage = { role: "assistant", content: "Hi there" };
+
+    render(
+      <MessageBubble
+        message={message}
+        index={0}
+        onCopy={() => {}}
+        onDelete={() => {}}
+        assistantAvatarUrl="file:///cached/alan.png"
+      />,
+    );
+
+    expect(screen.getByAltText("AI avatar")).toHaveAttribute("src", "file:///cached/alan.png");
   });
 });

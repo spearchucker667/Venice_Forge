@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState, useRef } from 'react'
+import { useEffect, useId, useMemo, useState, useRef, type DragEvent } from 'react'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useImageEdit, useImageUpscale, useBackgroundRemove } from '../../hooks/use-image-tools'
 import { useModels } from '../../hooks/use-models'
@@ -7,8 +7,8 @@ import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, ErrorText, EmptyState } from '../ui/shared'
 import { cn, generateId } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
-import { redactErrorMessage } from '../../shared/redaction'
 import { FALLBACK_MODELS, modelSupportsEdit } from '../../constants/venice'
+import { normalizeError } from '../../services/veniceClient/errors'
 import { useMediaStore } from '../../stores/media-store'
 import { blobToDataUrl } from '../../utils/image'
 import type { MediaOperation } from '../../types/media'
@@ -113,6 +113,32 @@ export function ImageTools() {
     }
   }
 
+  const handleDroppedFile = async (file: File) => {
+    if (!isSupportedImageFile(file)) return
+    try {
+      const attachment = await readImageAttachment(file)
+      setImageData(attachment.content)
+      setImageName(file.name)
+      setParentId(null)
+      resetResult()
+    } catch (err) {
+      toast.fromError(err, 'Failed to read image')
+    }
+  }
+
+  const handleSourceDragOver = (event: DragEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
+  const handleSourceDrop = (event: DragEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    const file = event.dataTransfer.files?.[0]
+    if (!file) return
+    void handleDroppedFile(file)
+  }
+
   const handleProcess = () => {
     if (!imageData) return
     resetResult()
@@ -182,6 +208,13 @@ export function ImageTools() {
   const isLoading = editMutation.isPending || upscaleMutation.isPending || bgRemoveMutation.isPending
   const error = editMutation.error || upscaleMutation.error || bgRemoveMutation.error
 
+  const classifiedError = useMemo(() => {
+    if (!error) return null
+    const status = (error as { status?: number }).status ?? null
+    const message = error instanceof Error ? error.message : String(error)
+    return normalizeError(status, message)
+  }, [error])
+
   const downloadResult = () => {
     if (!resultUrl) return
     const a = document.createElement('a')
@@ -224,7 +257,10 @@ export function ImageTools() {
           ) : (
             <button
               type="button"
+              aria-label="Drop or click to upload image"
               onClick={() => fileRef.current?.click()}
+              onDragOver={handleSourceDragOver}
+              onDrop={handleSourceDrop}
               className="w-full border border-dashed border-border hover:border-accent rounded-lg py-8 text-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
             >
               <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleFileSelect(e.target.files[0]) }} />
@@ -287,7 +323,7 @@ export function ImageTools() {
         >
           {tool === 'edit' ? 'Edit Image' : tool === 'upscale' ? 'Upscale Image' : 'Remove Background'}
         </PrimaryButton>
-        {error && <ErrorText>{redactErrorMessage(error)}</ErrorText>}
+        {error && <ErrorText>{classifiedError}</ErrorText>}
       </div>
 
       <div className="flex-1 p-6 overflow-y-auto flex flex-col min-w-0">

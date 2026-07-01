@@ -64,6 +64,11 @@ describe("default safety posture", () => {
     expect(DEFAULT_ENHANCE_SYSTEM_PROMPT).toMatch(/safety guard/i);
     expect(DEFAULT_REMIX_SYSTEM_PROMPT).toMatch(/safety guard/i);
   });
+
+  it("default system prompts state the absolute 1500-character ceiling", () => {
+    expect(DEFAULT_ENHANCE_SYSTEM_PROMPT).toMatch(/1500-character/i);
+    expect(DEFAULT_REMIX_SYSTEM_PROMPT).toMatch(/1500-character/i);
+  });
 });
 
 describe("enhancePrompt routing", () => {
@@ -199,6 +204,15 @@ describe("enhancePrompt output handling", () => {
     mockedVenice.mockResolvedValueOnce({ choices: [] });
     const result = await enhancePrompt({ mode: "enhance", prompt: "cat" });
     expect(result.prompt).toBe("cat");
+  });
+
+  it("clamps enhancer output to the image prompt limit even when the model exceeds it", async () => {
+    mockedVenice.mockResolvedValueOnce({
+      choices: [{ message: { content: `${"a".repeat(1490)}. ${"b".repeat(200)}` } }],
+    });
+    const result = await enhancePrompt({ mode: "enhance", prompt: "cat" });
+    expect(result.prompt.length).toBeLessThanOrEqual(1500);
+    expect(result.prompt.endsWith(".")).toBe(true);
   });
 });
 

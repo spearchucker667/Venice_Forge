@@ -43,7 +43,7 @@ export interface GalleryImage {
   timestamp: number;
   upscaled?: boolean;
   parentId?: string | null;
-  mediaType?: "image" | "video";
+  mediaType?: "image" | "video" | "audio";
   workflow?: string;
   queueId?: string;
   downloadUrl?: string;

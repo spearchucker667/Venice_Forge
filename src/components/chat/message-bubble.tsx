@@ -12,6 +12,8 @@ import { copyText } from '../../stores/media-send-to'
 import { CharacterSceneCard } from './CharacterSceneCard'
 import type { CharacterSceneGenerationResult } from '../../types/characterSceneGeneration'
 
+export const DEFAULT_AI_AVATAR_SRC = 'assets/branding/venice-seal-red-fill.svg'
+
 // Allow http/https/mailto links and image data: URIs only. Strips javascript:,
 // vbscript:, file:, and any other smuggled protocols.
 const SAFE_URL_PROTOCOLS = /^(https?:|mailto:|#)/i
@@ -104,9 +106,10 @@ interface MessageBubbleProps {
   onRegenerate?: () => void
   onGenerateScene?: () => void
   isCharacterBound?: boolean
+  assistantAvatarUrl?: string
 }
 
-export function MessageBubble({ message, onCopy, onDelete, onRegenerate, onGenerateScene, isCharacterBound }: MessageBubbleProps) {
+export function MessageBubble({ message, onCopy, onDelete, onRegenerate, onGenerateScene, isCharacterBound, assistantAvatarUrl }: MessageBubbleProps) {
   useEffect(() => {
     // Dynamically load KaTeX CSS only when rendering messages to save bundle weight
     // @ts-expect-error - TS doesn't know about CSS imports without ambient declarations
@@ -248,21 +251,16 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate, onGener
 
   return (
     <div className="flex gap-3" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
-      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white/95 to-white/75 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-        <svg aria-hidden="true" focusable="false" viewBox="0 0 32 32" width="14" height="14" fill="none">
-          <g fill="#0a0a0c">
-            <rect x="6.2" y="7.5" width="1.6" height="18" rx="0.8" transform="rotate(-42 6.2 7.5)" />
-            <rect x="24.2" y="6.3" width="1.6" height="18" rx="0.8" transform="rotate(42 24.2 6.3)" />
-            <polygon points="7.2,8.8 3.8,7.2 4.5,5.5 8.5,7.2" />
-            <polygon points="24.8,8.8 28.2,7.2 27.5,5.5 23.5,7.2" />
-            <rect x="14.3" y="14.3" width="3.4" height="3.4" rx="0.4" transform="rotate(45 16 16)" />
-            <circle cx="9.2" cy="24.5" r="4" />
-            <circle cx="9.2" cy="24.5" r="1.7" fill="#fff" />
-            <circle cx="22.8" cy="24.5" r="4" />
-            <circle cx="22.8" cy="24.5" r="1.7" fill="#fff" />
-            <path d="M16 5.5L12.5 8.5V12.5L16 10.5L19.5 12.5V8.5Z" />
-          </g>
-        </svg>
+      <div className="w-8 h-8 rounded-lg bg-surface-elevated border border-border flex items-center justify-center shrink-0 mt-0.5 shadow-sm overflow-hidden">
+        <img
+          src={assistantAvatarUrl || DEFAULT_AI_AVATAR_SRC}
+          alt="AI avatar"
+          width={32}
+          height={32}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover"
+        />
       </div>
       <div className="min-w-0 flex-1">
         {/* Reasoning content (thinking) */}

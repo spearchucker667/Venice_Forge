@@ -309,7 +309,7 @@ describe("CharacterEditor — Workflow section", () => {
         characterId: "card_test_001",
         name: `Scenario for ${sampleCard.name}`,
       });
-      expect(mocks.setActiveTabMock).toHaveBeenCalledWith("scenes");
+      expect(mocks.setActiveTabMock).toHaveBeenCalledWith("rp-studio");
     });
   });
 

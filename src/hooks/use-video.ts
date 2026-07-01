@@ -1,12 +1,14 @@
 import { useMutation } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { venice } from '../lib/venice-client'
+import { veniceFetch } from '../services/veniceClient/fetch'
 import { sanitizeErrorText } from '../shared/redaction'
 import type { VideoQueueRequest, VideoQueueResponse, VideoRetrieveResponse } from '../types/venice'
 
 const POLL_INTERVAL_MS = 3000
 const MAX_ATTEMPTS = 200 // ~10 minutes
 const MAX_ERROR_LENGTH = 200
+const QUEUE_TIMEOUT_MS = 30000
+const POLL_TIMEOUT_MS = 15000
 
 /**
  * Sanitizes a raw provider or polling error into a safe UI string.
@@ -36,6 +38,7 @@ export function useVideo() {
   const cancelledRef = useRef(false)
   const isPollingRef = useRef(false)
   const generationTokenRef = useRef(0)
+  const abortControllerRef = useRef<AbortController>(new AbortController())
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = undefined }
@@ -43,7 +46,10 @@ export function useVideo() {
     isPollingRef.current = false
   }, [])
 
-  useEffect(() => () => stopPolling(), [stopPolling])
+  useEffect(() => () => {
+    stopPolling()
+    abortControllerRef.current.abort()
+  }, [stopPolling])
 
   const startPolling = useCallback(() => {
     stopPolling()
@@ -52,6 +58,7 @@ export function useVideo() {
     attemptsRef.current = 0
     startedAtRef.current = Date.now()
     setElapsedMs(0)
+    const signal = abortControllerRef.current.signal
 
     tickRef.current = setInterval(() => {
       if (startedAtRef.current) setElapsedMs(Date.now() - startedAtRef.current)
@@ -61,6 +68,7 @@ export function useVideo() {
     pollRef.current = setInterval(async () => {
       if (cancelledRef.current) return
       if (isPollingRef.current) return
+      if (signal.aborted) return
       isPollingRef.current = true
       attemptsRef.current += 1
       if (attemptsRef.current > MAX_ATTEMPTS) {
@@ -71,22 +79,25 @@ export function useVideo() {
         return
       }
       try {
-        const result = await venice<VideoRetrieveResponse>('/video/retrieve', {
+        const result = await veniceFetch<VideoRetrieveResponse>('/video/retrieve', {
           method: 'POST',
           body: { id: requestIdRef.current },
+          signal,
+          timeoutMs: POLL_TIMEOUT_MS,
+          retry: false,
         })
         if (token !== generationTokenRef.current) return
-        setStatus(result.status)
-        if (result.status === 'completed' && result.video_url) {
-          setVideoUrl(result.video_url)
+        setStatus(result.data.status)
+        if (result.data.status === 'completed' && result.data.video_url) {
+          setVideoUrl(result.data.video_url)
           stopPolling()
-        } else if (result.status === 'failed') {
-          setError(toUserFacingVideoError(result.error, 'Video generation failed'))
+        } else if (result.data.status === 'failed') {
+          setError(toUserFacingVideoError(result.data.error, 'Video generation failed'))
           stopPolling()
         }
       } catch (err) {
         if (token !== generationTokenRef.current) return
-        // Transient failure — keep polling unless we've burned through too many attempts.
+        if (err instanceof DOMException && err.name === 'AbortError') return
         if (attemptsRef.current >= MAX_ATTEMPTS) {
           setError(toUserFacingVideoError(err, 'Polling failed'))
           stopPolling()
@@ -98,11 +109,18 @@ export function useVideo() {
   }, [stopPolling])
 
   const queueMutation = useMutation({
-    mutationFn: (req: VideoQueueRequest) =>
-      venice<VideoQueueResponse>('/video/queue', {
+    mutationFn: async (req: VideoQueueRequest) => {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = new AbortController()
+      const result = await veniceFetch<VideoQueueResponse>('/video/queue', {
         method: 'POST',
         body: req,
-      }),
+        signal: abortControllerRef.current.signal,
+        timeoutMs: QUEUE_TIMEOUT_MS,
+        retry: false,
+      })
+      return result.data
+    },
     onSuccess: (data, variables) => {
       generationTokenRef.current += 1
       cancelledRef.current = false
@@ -116,6 +134,7 @@ export function useVideo() {
       startPolling()
     },
     onError: (err) => {
+      if (err instanceof DOMException && err.name === 'AbortError') return
       setError(toUserFacingVideoError(err, 'Queue failed'))
       setStatus('failed')
     },
@@ -124,6 +143,8 @@ export function useVideo() {
   const cancel = useCallback(() => {
     cancelledRef.current = true
     generationTokenRef.current += 1
+    abortControllerRef.current.abort()
+    abortControllerRef.current = new AbortController()
     stopPolling()
     setStatus('idle')
     setError(null)

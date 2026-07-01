@@ -246,6 +246,7 @@ describe("Research Browser Server Main Process Integration", () => {
 
     it("should load URL when validation passes", async () => {
       const navigateHandler = ipcHandlers.get("researchBrowser:navigate");
+      mockWebContents.loadURL.mockClear();
       const result = await navigateHandler(null, { urlOrQuery: "https://safe.com" });
 
       expect(result.ok).toBe(true);
@@ -254,6 +255,7 @@ describe("Research Browser Server Main Process Integration", () => {
 
     it("should block loading when URL validation fails", async () => {
       const navigateHandler = ipcHandlers.get("researchBrowser:navigate");
+      mockWebContents.loadURL.mockClear();
       const result = await navigateHandler(null, { urlOrQuery: "https://blocked-site.com" });
 
       expect(result.ok).toBe(false);
@@ -263,6 +265,7 @@ describe("Research Browser Server Main Process Integration", () => {
 
     it("should construct search queries for non-URLs", async () => {
       const navigateHandler = ipcHandlers.get("researchBrowser:navigate");
+      mockWebContents.loadURL.mockClear();
       await navigateHandler(null, { urlOrQuery: "quantum computing research", searchProvider: "google" });
 
       expect(mockWebContents.loadURL).toHaveBeenCalledWith(

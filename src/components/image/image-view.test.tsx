@@ -130,6 +130,17 @@ describe('ImageView model-aware payloads', () => {
     // The capability summary still renders
     expect(screen.getByTestId('image-capability-summary')).toBeInTheDocument()
   })
+
+  it('disables generation when the image prompt exceeds 1500 characters', () => {
+    render(<ImageView />)
+    fireEvent.change(screen.getByPlaceholderText(/serene mountain landscape/i), {
+      target: { value: 'a'.repeat(1501) },
+    })
+
+    expect(screen.getByText('1501/1500')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled()
+    expect(mutate).not.toHaveBeenCalled()
+  })
 })
 
 describe('ImageView lightbox', () => {

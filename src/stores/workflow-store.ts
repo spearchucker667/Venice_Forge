@@ -95,11 +95,22 @@ export type NodeResult = {
   error?: string
 }
 
+export interface RunRecord {
+  runId: string
+  workflowId: string
+  startedAt: number
+  finishedAt?: number
+  nodeResults: Record<string, NodeResult>
+}
+
 interface WorkflowState {
   workflows: Workflow[]
   activeWorkflowId: string | null
   runResults: Record<string, NodeResult>
   isRunning: boolean
+  currentRunId: string | null
+  currentRunStartedAt: number | null
+  runHistory: RunRecord[]
 
   createWorkflow: (name: string) => string
   updateWorkflow: (id: string, updates: Partial<Pick<Workflow, 'name' | 'nodes' | 'edges'>>) => void
@@ -108,6 +119,8 @@ interface WorkflowState {
   setRunResults: (results: Record<string, NodeResult>) => void
   updateNodeResult: (nodeId: string, result: Partial<NodeResult>) => void
   setIsRunning: (running: boolean) => void
+  startRun: (workflowId: string) => string
+  endRun: () => void
   clearResults: () => void
   applyPatches: (workflowId: string, patches: readonly WorkflowPatch[]) => PatchResult
 }
@@ -119,6 +132,9 @@ export const useWorkflowStore = create<WorkflowState>()(
       activeWorkflowId: null,
       runResults: {},
       isRunning: false,
+      currentRunId: null,
+      currentRunStartedAt: null,
+      runHistory: [],
 
       createWorkflow: (name) => {
         const id = generateId()
@@ -157,6 +173,38 @@ export const useWorkflowStore = create<WorkflowState>()(
         })),
 
       setIsRunning: (running) => set({ isRunning: running }),
+
+      startRun: (_workflowId) => {
+        const runId = crypto.randomUUID()
+        set({
+          isRunning: true,
+          currentRunId: runId,
+          currentRunStartedAt: Date.now(),
+          runResults: {},
+        })
+        return runId
+      },
+
+      endRun: () => {
+        const state = get()
+        if (state.currentRunId && state.activeWorkflowId) {
+          const record: RunRecord = {
+            runId: state.currentRunId,
+            workflowId: state.activeWorkflowId,
+            startedAt: state.currentRunStartedAt ?? Date.now(),
+            finishedAt: Date.now(),
+            nodeResults: { ...state.runResults },
+          }
+          set({
+            isRunning: false,
+            currentRunId: null,
+            currentRunStartedAt: null,
+            runHistory: [...state.runHistory.slice(-49), record],
+          })
+        } else {
+          set({ isRunning: false, currentRunId: null, currentRunStartedAt: null })
+        }
+      },
 
       clearResults: () => set({ runResults: {} }),
 

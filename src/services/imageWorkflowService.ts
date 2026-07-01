@@ -168,7 +168,7 @@ export async function downloadAllGallery(
     }
     const item = items[i];
     try {
-      const mediaSrc = item.mediaType === "video" ? (item.downloadUrl || item.image) : item.image;
+      const mediaSrc = item.mediaType === "video" || item.mediaType === "audio" ? (item.downloadUrl || item.image) : item.image;
       const result = await downloadImage(mediaSrc, galleryFilename(item));
       if (result.confirmed) {
         downloaded++;

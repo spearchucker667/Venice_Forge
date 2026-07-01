@@ -14,10 +14,11 @@ export type MediaOperation =
   | "regenerate"
   | "video-generate"
   | "video-upscale"
+  | "music-generate"
   | "import";
 
 /** Supported media types. */
-export type MediaType = "image" | "video";
+export type MediaType = "image" | "video" | "audio";
 
 /** A line in a media item's lineage chain (parent or child reference). */
 export interface MediaLineageRef {
@@ -74,6 +75,18 @@ export interface MediaItem extends GalleryImage {
    * Legacy items without it are "unscoped" / visible in All.
    */
   projectId?: string;
+
+  /** API cost metadata captured at generation time. */
+  cost?: MediaCost;
+}
+
+export interface MediaCost {
+  /** Venice API input pricing (USD per token, from model spec). */
+  inputPrice?: number;
+  /** Venice API output pricing (USD per token, from model spec). */
+  outputPrice?: number;
+  /** Estimated cost in USD. */
+  estimatedCost?: number;
 }
 
 /** Patch payload used by `mediaStore.patch` for partial updates. */
@@ -100,6 +113,7 @@ export type MediaItemPatch = Partial<
     | "quality"
     | "recipe"
     | "projectId"
+    | "cost"
   >
 >;
 

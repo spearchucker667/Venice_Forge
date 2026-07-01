@@ -33,7 +33,7 @@ export function TextArea({ value, onChange, placeholder, rows = 3, ariaLabel, ma
       aria-label={ariaLabel}
       maxLength={maxLength}
       autoFocus={autoFocus}
-      className="w-full bg-input-bg border border-border rounded-lg px-3 py-2.5 text-[15px] text-input-fg outline-none focus:border-border-strong transition-colors resize-none placeholder:text-placeholder leading-relaxed"
+      className="w-full min-w-0 max-w-full overflow-x-hidden break-words whitespace-pre-wrap bg-input-bg border border-border rounded-lg px-3 py-2.5 text-[15px] text-input-fg outline-none focus:border-border-strong transition-colors resize-none placeholder:text-placeholder leading-relaxed"
     />
   )
 }

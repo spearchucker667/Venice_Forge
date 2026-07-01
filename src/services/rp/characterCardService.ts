@@ -165,6 +165,8 @@ export function normalizeCard(input: unknown): CharacterCardV1 | null {
   if (versions && versions.length > 0) out.versions = versions;
   if (currentVersionId) out.currentVersionId = currentVersionId;
   if (metadata) out.metadata = metadata;
+  const archivedAt = typeof r.archivedAt === "number" ? r.archivedAt : undefined;
+  if (archivedAt !== undefined) out.archivedAt = archivedAt;
   return out;
 }
 

@@ -11,7 +11,7 @@ export const BUILTIN_ONE_DARK: Theme = {
     border: '#4b5263',
     textPrimary: '#abb2bf',
     textSecondary: '#9ca0aa',
-    textMuted: '#a0a4ad',
+    textMuted: '#91969e',
     accent: '#61afef',
     accentHover: '#528bcc',
     accentForeground: '#282c34',

@@ -130,6 +130,49 @@ describe("VERIFY-015 guard pipeline — performGuardedVeniceRequest", () => {
     expect(mockedPerformVeniceRequest).not.toHaveBeenCalled();
   });
 
+  it("blocks unsafe PG-13 image prompt before dispatch and never calls performVeniceRequest", async () => {
+    const result = await performGuardedVeniceRequest({
+      endpoint: "/image/generate",
+      method: "POST",
+      body: {
+        model: "test-image-model",
+        prompt: "visible genitals in the generated image",
+        safe_mode: false,
+      },
+      localFamilySafeModeEnabled: false,
+    });
+    expect(result.kind).toBe("blocked");
+    if (result.kind !== "blocked") throw new Error("expected blocked");
+    expect(result.block.status).toBe(451);
+    expect(result.block.body.reasonCode).toBe("IMAGE_VISIBLE_GENITALS");
+    expect(mockedPerformVeniceRequest).not.toHaveBeenCalled();
+  });
+
+  it("forces provider safe_mode true for supported endpoints when Family Safe Mode is ON", async () => {
+    const upstream = {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      body: { id: "x" },
+      contentType: "application/json",
+    };
+    mockedPerformVeniceRequest.mockResolvedValue(upstream);
+    const result = await performGuardedVeniceRequest({
+      endpoint: "/image/generate",
+      method: "POST",
+      body: { model: "m", prompt: benignInput("GENERIC"), safe_mode: false },
+    });
+    expect(result.kind).toBe("response");
+    expect(mockedPerformVeniceRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: "/image/generate",
+        body: expect.objectContaining({ safe_mode: true }),
+      }),
+      expect.any(Object),
+    );
+  });
+
   it("returns a response result on benign input and forwards to performVeniceRequest", async () => {
     const upstream = {
       ok: true,
@@ -149,6 +192,28 @@ describe("VERIFY-015 guard pipeline — performGuardedVeniceRequest", () => {
     if (result.kind !== "response") throw new Error("expected response");
     expect(result.response).toEqual(upstream);
     expect(mockedPerformVeniceRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("screens textual upstream responses and returns canonical block without exposing raw unsafe text", async () => {
+    mockedPerformVeniceRequest.mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      body: { text: "graphic gore with dismemberment" },
+      contentType: "application/json",
+    });
+    const result = await performGuardedVeniceRequest({
+      endpoint: "/image/generate",
+      method: "POST",
+      body: { model: "m", prompt: benignInput("GENERIC") },
+    });
+    expect(result.kind).toBe("blocked");
+    if (result.kind !== "blocked") throw new Error("expected blocked");
+    expect(result.block.status).toBe(451);
+    expect(result.block.body.reasonCode).toBe("IMAGE_GRAPHIC_GORE");
+    expect(result.block.body.error).toMatch(/Family Safe Mode/i);
+    expect(JSON.stringify(result.block.body)).not.toContain("dismemberment");
   });
 
   it("skips the guard when runtime snapshot is OFF (Adult Mode)", async () => {

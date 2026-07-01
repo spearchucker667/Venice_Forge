@@ -37,7 +37,7 @@ export function CharacterLibrary({ onEdit }: Props) {
 
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
   // Adult filtering is a normal user preference and is no longer gated by
-  // the developer "Red-Team Mode" switch.
+  // the developer "Developer Mode" switch.
   const [adultFilter, setAdultFilter] = useState<"standard" | "adult">("standard");
   const adultFilterOptions = useMemo(() => STANDARD_FILTER, []);
 

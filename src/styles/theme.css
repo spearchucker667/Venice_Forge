@@ -105,6 +105,11 @@ a { color: var(--link); }
   0% { background-position: -1000px 0; }
   100% { background-position: 1000px 0; }
 }
+@keyframes loadingBar {
+  0% { width: 0%; margin-left: 0; }
+  50% { width: 60%; margin-left: 20%; }
+  100% { width: 0%; margin-left: 100%; }
+}
 .animate-fade-in { animation: fade-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .animate-scale-in { animation: scale-in 0.14s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .animate-pulse-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
@@ -116,7 +121,7 @@ a { color: var(--link); }
 .section-transition { animation: section-enter var(--motion-medium) var(--motion-ease); }
 
 .skeleton {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--fg) 3%, transparent) 0%, color-mix(in srgb, var(--fg) 8%, transparent) 50%, color-mix(in srgb, var(--fg) 3%, transparent) 100%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--foreground) 3%, transparent) 0%, color-mix(in srgb, var(--foreground) 8%, transparent) 50%, color-mix(in srgb, var(--foreground) 3%, transparent) 100%);
   background-size: 1000px 100%;
   animation: shimmer 2s infinite linear;
 }

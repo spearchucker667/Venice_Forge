@@ -9,6 +9,7 @@ interface ResearchBrowserViewProps {
 export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewProps) {
   const [browserState, setBrowserState] = useState<ResearchBrowserState | null>(null);
   const [address, setAddress] = useState("");
+  const [lastErrorUrl, setLastErrorUrl] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
@@ -40,6 +41,9 @@ export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewPr
         if (state.url && !state.loading) {
           setAddress(state.url);
         }
+        if (state.error) {
+          setLastErrorUrl(state.url);
+        }
       }
     });
 
@@ -52,6 +56,8 @@ export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewPr
 
   useEffect(() => {
     if (!containerRef.current || browserState?.error === "Unavailable in web mode") return;
+
+    let debounceTimer: ReturnType<typeof setTimeout>;
 
     const updateBounds = async () => {
       if (!containerRef.current) return;
@@ -69,12 +75,14 @@ export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewPr
 
     if (typeof ResizeObserver !== "undefined") {
       resizeObserverRef.current = new ResizeObserver(() => {
-        updateBounds();
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(updateBounds, 50);
       });
       resizeObserverRef.current.observe(containerRef.current);
     }
 
     return () => {
+      clearTimeout(debounceTimer);
       resizeObserverRef.current?.disconnect();
     };
   }, [browserState?.error]);
@@ -82,7 +90,16 @@ export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewPr
   const handleNavigate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!address.trim()) return;
+    setLastErrorUrl(null);
     await researchBrowserBridge.navigate({ urlOrQuery: address });
+  };
+
+  const handleOpenExternal = async () => {
+    if (!browserState?.url) return;
+    const result = await researchBrowserBridge.openExternal(browserState.url);
+    if (!result.ok) {
+      // Silently ignore; external link opening has its own confirmation dialog
+    }
   };
 
   if (browserState?.error === "Unavailable in web mode") {
@@ -100,9 +117,29 @@ export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewPr
   }
 
   const isJinaSupported = browserState?.url && (browserState.url.startsWith("http://") || browserState.url.startsWith("https://"));
+  const errorUrl = browserState?.error ? lastErrorUrl || browserState.url : null;
 
   return (
     <div className="mesh-panel flex flex-col h-full w-full bg-[var(--surface-sunken)] rounded-lg border border-[var(--border-subtle)] overflow-hidden">
+      <div className="flex flex-col">
+        {browserState?.loading && (
+          <div className="h-0.5 bg-[var(--surface-base)]">
+            <div className="h-full bg-[var(--brand-primary)] animate-[loadingBar_2s_ease-in-out_infinite]" style={{ width: "30%" }} />
+          </div>
+        )}
+        {browserState?.error && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--tone-error-bg,var(--surface-raised))] border-b border-[var(--border-subtle)] text-[var(--tone-error)] text-xs">
+            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span className="truncate">{browserState.error}</span>
+            {errorUrl && (
+              <span className="text-[var(--text-muted)] truncate hidden sm:inline">({errorUrl})</span>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Browser Toolbar */}
       <div className="flex items-center gap-2 p-2 bg-[var(--surface-raised)] border-b border-[var(--border-subtle)]">
         <div className="flex gap-1">
@@ -111,6 +148,7 @@ export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewPr
             disabled={!browserState?.canGoBack}
             onClick={() => researchBrowserBridge.back()}
             title="Back"
+            aria-label="Back"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           </button>
@@ -119,6 +157,7 @@ export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewPr
             disabled={!browserState?.canGoForward}
             onClick={() => researchBrowserBridge.forward()}
             title="Forward"
+            aria-label="Forward"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
           </button>
@@ -126,6 +165,7 @@ export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewPr
             className="p-1.5 rounded hover:bg-[var(--surface-hover)] transition-colors"
             onClick={() => browserState?.loading ? researchBrowserBridge.stop() : researchBrowserBridge.reload()}
             title={browserState?.loading ? "Stop" : "Reload"}
+            aria-label={browserState?.loading ? "Stop" : "Reload"}
           >
             {browserState?.loading ? (
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -157,6 +197,17 @@ export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewPr
             </div>
           )}
         </form>
+
+        {browserState?.url && (
+          <button
+            className="p-1.5 rounded hover:bg-[var(--surface-hover)] transition-colors"
+            onClick={handleOpenExternal}
+            title="Open in system browser"
+            aria-label="Open in system browser"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+          </button>
+        )}
 
         {isJinaSupported && onCaptureWithJina && (
           <button 

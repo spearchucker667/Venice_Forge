@@ -248,6 +248,10 @@ async function executeNode(
 
 export interface ExecuteOptions {
   signal?: AbortSignal
+  /** When true, the engine will refuse to start — the caller must guard
+   *  against concurrent runs.  This is an engine-level invariant, not a
+   *  UI-only check. */
+  isRunning?: boolean
   onUpdate: (nodeId: string, result: Partial<NodeResult>) => void
 }
 
@@ -258,8 +262,13 @@ export async function executeWorkflow(
 ): Promise<void> {
   // Backwards-compatible: accept either an options bag or a bare onUpdate function.
   const opts: ExecuteOptions = typeof arg === 'function' ? { onUpdate: arg } : arg
-  const { signal, onUpdate } = opts
+  const { signal, isRunning, onUpdate } = opts
 
+  if (isRunning) {
+    throw new WorkflowExecutionError('Workflow is already running.')
+  }
+
+  const _runId = crypto.randomUUID()
   const validation = validateWorkflow({ nodes, edges })
   if (!validation.ok) {
     const first = validation.errors[0]

@@ -17,12 +17,14 @@ export interface WorkflowRunAction {
   tabId?: string;
   label: string;
   payload?: Record<string, unknown>;
+  outputKey?: string;
 }
 
 export interface WorkflowRunPlan {
   workflowId: string;
   versionId: string;
   actions: WorkflowRunAction[];
+  outputs: Record<string, Record<string, unknown>>;
   warnings: WorkflowCompileWarning[];
 }
 
@@ -31,7 +33,8 @@ export function createWorkflowRunPlan(compiled: WorkflowCompileResult): Workflow
     workflowId: compiled.workflowId,
     versionId: compiled.versionId,
     actions: [],
-    warnings: [...compiled.warnings], // Global warnings
+    outputs: {},
+    warnings: [...compiled.warnings],
   };
 
   if (!compiled.canRun) {
@@ -39,7 +42,6 @@ export function createWorkflowRunPlan(compiled: WorkflowCompileResult): Workflow
   }
 
   for (const step of compiled.steps) {
-    // Collect step-level warnings
     plan.warnings.push(...step.warnings);
 
     let tabId: string | undefined;
@@ -53,6 +55,10 @@ export function createWorkflowRunPlan(compiled: WorkflowCompileResult): Workflow
       case "none": tabId = undefined; break;
     }
 
+    if (step.outputKey) {
+      plan.outputs[step.outputKey] = { ...step.resolvedInput };
+    }
+
     if (step.kind === "prompt") {
       plan.actions.push({
         id: step.id,
@@ -61,6 +67,7 @@ export function createWorkflowRunPlan(compiled: WorkflowCompileResult): Workflow
         tabId,
         label: `Send prompt to ${step.target}`,
         payload: { ...step.resolvedInput },
+        outputKey: step.outputKey,
       });
     } else if (step.kind === "image_recipe") {
       plan.actions.push({
@@ -70,6 +77,7 @@ export function createWorkflowRunPlan(compiled: WorkflowCompileResult): Workflow
         tabId,
         label: `Send recipe to ${step.target}`,
         payload: { ...step.resolvedInput },
+        outputKey: step.outputKey,
       });
     } else if (step.kind === "scene") {
       plan.actions.push({
@@ -79,6 +87,7 @@ export function createWorkflowRunPlan(compiled: WorkflowCompileResult): Workflow
         tabId,
         label: `Send scene to ${step.target}`,
         payload: { ...step.resolvedInput },
+        outputKey: step.outputKey,
       });
     } else if (step.kind === "media") {
       plan.actions.push({
@@ -88,6 +97,7 @@ export function createWorkflowRunPlan(compiled: WorkflowCompileResult): Workflow
         tabId,
         label: `Select media`,
         payload: { ...step.resolvedInput },
+        outputKey: step.outputKey,
       });
     } else if (step.kind === "rp_character" || step.kind === "rp_scenario") {
       plan.actions.push({
@@ -97,6 +107,7 @@ export function createWorkflowRunPlan(compiled: WorkflowCompileResult): Workflow
         tabId,
         label: `Open RP context`,
         payload: { ...step.resolvedInput },
+        outputKey: step.outputKey,
       });
     } else if (step.kind === "note") {
        plan.actions.push({
@@ -106,9 +117,9 @@ export function createWorkflowRunPlan(compiled: WorkflowCompileResult): Workflow
         tabId,
         label: `Show note`,
         payload: { ...step.resolvedInput },
+        outputKey: step.outputKey,
       });
     } else {
-        // research or handoff step
         plan.actions.push({
             id: step.id,
             kind: "open_tab",
@@ -116,6 +127,7 @@ export function createWorkflowRunPlan(compiled: WorkflowCompileResult): Workflow
             tabId,
             label: `Open ${step.target}`,
             payload: { ...step.resolvedInput },
+            outputKey: step.outputKey,
         });
     }
   }

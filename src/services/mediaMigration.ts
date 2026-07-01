@@ -24,7 +24,7 @@ export function migrateGalleryImageToMediaItem(record: unknown): MediaItem {
   // Default `mediaType`. Legacy records have no field; pre-existing `mediaType: 'video'`
   // is honored. New fields default to "image".
   const rawMediaType = base.mediaType;
-  const mediaType: MediaItem["mediaType"] = rawMediaType === "video" ? "video" : "image";
+  const mediaType: MediaItem["mediaType"] = rawMediaType === "video" || rawMediaType === "audio" ? rawMediaType : "image";
 
   // Default `operation`. Legacy records have no field; pre-existing `upscaled: true`
   // gets a best-effort `upscale` label; videos get `video-generate`.
@@ -35,6 +35,8 @@ export function migrateGalleryImageToMediaItem(record: unknown): MediaItem {
     operation = "upscale";
   } else if (mediaType === "video") {
     operation = "video-generate";
+  } else if (mediaType === "audio") {
+    operation = "music-generate";
   } else {
     operation = "generate";
   }

@@ -106,6 +106,8 @@ export interface CharacterCardV1 {
    *  (e.g. `attachedSceneId`, `attachedPromptId`, `sourceMediaId`).
    *  NEVER includes API keys, bearer tokens, or raw prompt text. */
   metadata?: Record<string, unknown>;
+  /** Unix ms. `undefined` = active; non-null = archived at that time. */
+  archivedAt?: number | null;
 }
 
 /** One immutable snapshot in a character card's revision history. */

@@ -27,6 +27,12 @@ export interface UseCharacterImageResult {
   showInitials: boolean;
 }
 
+export interface UseCharacterImageOptions {
+  /** Caller-owned identity boundary, e.g. a conversation id, used to prevent
+   *  late async avatar resolutions from crossing chat/profile boundaries. */
+  cacheKey?: string | null;
+}
+
 /** Resolves and caches a character avatar image for display.
  *
  *  In desktop mode the URL is passed through
@@ -42,10 +48,19 @@ type CharacterImageInput =
   | (Pick<VeniceCharacter, "slug" | "name" | "photoUrl"> & { id?: string })
   | (Pick<ConversationCharacterMeta, "name" | "modelId" | "localCharacterId"> & { slug?: string; photoUrl?: string; id?: string });
 
+function getLocalCharacterId(character: CharacterImageInput | undefined | null): string | undefined {
+  return character && "localCharacterId" in character ? character.localCharacterId : undefined;
+}
+
 export function useCharacterImage(
   character: CharacterImageInput | undefined | null,
+  options: UseCharacterImageOptions = {},
 ): UseCharacterImageResult {
-  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+  const cacheKey = options.cacheKey ?? "global";
+  const [imageState, setImageState] = useState<{ requestKey: string; url: string | undefined }>({
+    requestKey: "initial",
+    url: undefined,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
   const [retryToken, setRetryToken] = useState(0);
@@ -56,6 +71,17 @@ export function useCharacterImage(
     [character?.slug, character?.id, character?.photoUrl],
   );
 
+  const requestKey = useMemo(
+    () => [
+      cacheKey,
+      sourceUrl ?? "no-source",
+      character?.id ?? "no-id",
+      character?.slug ?? "no-slug",
+      getLocalCharacterId(character) ?? "no-local-id",
+    ].join("|"),
+    [cacheKey, character?.id, character?.slug, character, sourceUrl],
+  );
+
   const fallbackInitials = useMemo(
     () => avatarFallback(character?.name ?? ""),
     [character?.name],
@@ -63,7 +89,7 @@ export function useCharacterImage(
 
   useEffect(() => {
     if (!character) {
-      setImageUrl(undefined);
+      setImageState({ requestKey, url: undefined });
       setError(undefined);
       setLoading(false);
       return;
@@ -79,12 +105,12 @@ export function useCharacterImage(
         const result = await desktopCharacterImage.getCachedUrl(targetUrl);
         if (cancelled || requestId !== latestRequestRef.current) return false;
         if (result.ok && result.url) {
-          setImageUrl(result.url);
+          setImageState({ requestKey, url: result.url });
           setError(undefined);
           recordCharacterImageResolution({ slug: diagnosticSlug, source, ok: true, cached: !result.url.startsWith("http") });
           return true;
         } else {
-          setImageUrl(undefined);
+          setImageState({ requestKey, url: undefined });
           setError(result.error ?? "Failed to load character image.");
           recordCharacterImageResolution({
             slug: diagnosticSlug,
@@ -97,7 +123,7 @@ export function useCharacterImage(
         }
       } catch (err) {
         if (cancelled || requestId !== latestRequestRef.current) return false;
-        setImageUrl(undefined);
+        setImageState({ requestKey, url: undefined });
         const message = err instanceof Error ? err.message : String(err);
         setError(message);
         recordCharacterImageResolution({
@@ -121,7 +147,7 @@ export function useCharacterImage(
 
       // Local RP characters never resolve through Venice.ai image endpoints.
       if ("localCharacterId" in char && char.localCharacterId) {
-        setImageUrl(undefined);
+        setImageState({ requestKey, url: undefined });
         setLoading(false);
         return;
       }
@@ -150,7 +176,7 @@ export function useCharacterImage(
       if (fallbackUrl) {
         await resolveAndCache(fallbackUrl, "page-fallback");
       } else if (!sourceUrl) {
-        setImageUrl(undefined);
+        setImageState({ requestKey, url: undefined });
         recordCharacterImageResolution({
           slug: diagnosticSlug,
           source: "none",
@@ -171,7 +197,9 @@ export function useCharacterImage(
     return () => {
       cancelled = true;
     };
-  }, [character, sourceUrl, retryToken]);
+  }, [character, requestKey, sourceUrl, retryToken]);
+
+  const imageUrl = imageState.requestKey === requestKey ? imageState.url : undefined;
 
   return {
     imageUrl,

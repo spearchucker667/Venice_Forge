@@ -41,8 +41,14 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
   const cards = useCharacterCardStore((s) => s.cards);
   const upsert = useCharacterCardStore((s) => s.upsert);
   const remove = useCharacterCardStore((s) => s.remove);
+  const archiveCard = useCharacterCardStore((s) => s.archiveCard);
+  const unarchiveCard = useCharacterCardStore((s) => s.unarchiveCard);
+  const addVersion = useCharacterCardStore((s) => s.addVersion);
+  const setCurrentVersion = useCharacterCardStore((s) => s.setCurrentVersion);
   const { createWorkflow, setActiveWorkflow } = useWorkflowTemplateStore();
   const setActiveTab = useSettingsStore((s) => s.setActiveTab);
+  const scenes = useSceneComposerStore((s) => s.scenes);
+  const prompts = usePromptLibraryStore((s) => s.prompts);
   const initial = useMemo(() => cards.find((c) => c.id === cardId), [cards, cardId]);
   const [draft, setDraft] = useState<CharacterCardV1 | null>(initial ?? null);
   const [saving, setSaving] = useState(false);
@@ -270,9 +276,35 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
       name: `Scenario for ${draft.name || "character"}`,
       content: draft.scenario || draft.description || "",
     });
-    useSettingsStore.getState().setActiveTab("scenes" as Tab);
-    toast.success("Scenario created", "Open the Scene Composer to edit it.");
+    useSettingsStore.getState().setActiveTab("rp-studio" as Tab);
+    toast.success("Scenario created", "Open the RP Studio to edit it.");
     return id;
+  };
+
+  const handleArchive = async () => {
+    if (draft.archivedAt) {
+      const restored = await unarchiveCard(draft.id);
+      if (restored) setDraft(restored);
+    } else {
+      const archived = await archiveCard(draft.id);
+      if (archived) setDraft(archived);
+    }
+  };
+
+  const handleSaveVersion = async () => {
+    const saved = await addVersion(draft.id);
+    if (saved) {
+      setDraft(saved);
+      toast.success("Version saved", "Character snapshot created.");
+    }
+  };
+
+  const handleRestoreVersion = async (versionId: string) => {
+    const restored = await setCurrentVersion(draft.id, versionId);
+    if (restored) {
+      setDraft(restored);
+      toast.success("Version restored", "Character reverted to saved version.");
+    }
   };
 
   const avatarSrc = avatarDataUri(draft.avatar);
@@ -298,6 +330,9 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
         </div>
         <div className="ml-auto flex items-center gap-2">
           <GhostButton onClick={handleDelete}>Delete</GhostButton>
+          <GhostButton onClick={() => void handleArchive()}>
+            {draft.archivedAt ? "Unarchive" : "Archive"}
+          </GhostButton>
           <PrimaryButton
             onClick={handleSave}
             loading={saving}
@@ -451,6 +486,21 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
         </section>
 
         <section>
+          <Label htmlFor="card-first-message" hint="optional">
+            First message
+          </Label>
+          <TextArea
+            id="card-first-message"
+            value={draft.firstMessage ?? ""}
+            onChange={(v) => update("firstMessage", v || undefined)}
+            placeholder="Greeting shown on the first assistant turn."
+            rows={3}
+            maxLength={CARD_FIELD_MAX}
+            ariaLabel="First message"
+          />
+        </section>
+
+        <section>
           <Label htmlFor="card-tags" hint={`${draft.tags.length}/${MAX_TAGS}`}>
             Tags
           </Label>
@@ -533,6 +583,52 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
           )}
         </section>
 
+        <section className="space-y-2 pt-3 border-t border-border/50">
+          <div className="flex items-center justify-between">
+            <Label>Version history</Label>
+            <GhostButton onClick={() => void handleSaveVersion()}>Save version</GhostButton>
+          </div>
+          {draft.versions && draft.versions.length > 0 ? (
+            <div className="space-y-1">
+              {[...draft.versions].reverse().map((v) => (
+                <div
+                  key={v.id}
+                  className={`flex items-center justify-between px-2 py-1.5 rounded-md border text-[12px] ${
+                    v.id === draft.currentVersionId
+                      ? "border-accent/30 bg-accent/5"
+                      : "border-border bg-surface"
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <span className="text-text-primary">
+                      {new Date(v.createdAt).toLocaleString()}
+                    </span>
+                    {v.reason ? (
+                      <span className="text-text-muted ml-2">— {v.reason}</span>
+                    ) : null}
+                    {v.id === draft.currentVersionId ? (
+                      <span className="text-accent ml-2">(current)</span>
+                    ) : null}
+                  </div>
+                  {v.id !== draft.currentVersionId && (
+                    <button
+                      type="button"
+                      onClick={() => void handleRestoreVersion(v.id)}
+                      className="text-[11px] px-2 py-0.5 rounded text-text-secondary hover:text-accent hover:bg-accent/10 transition-colors"
+                    >
+                      Restore
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-[12px] text-text-muted italic">
+              No versions saved. Save a version to track changes.
+            </div>
+          )}
+        </section>
+
         <section className="space-y-2 pt-3 border-t border-border/50" data-testid="character-editor-workflow">
           <Label>Workflow</Label>
           <div className="flex flex-wrap gap-2">
@@ -558,7 +654,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
               className="text-[12px] px-2 py-1.5 rounded-md border border-border bg-surface text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors disabled:opacity-50"
             >
               <option value="">Attach scene…</option>
-              {useSceneComposerStore.getState().scenes.map((s) => (
+              {scenes.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.title}
                 </option>
@@ -577,7 +673,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
               className="text-[12px] px-2 py-1.5 rounded-md border border-border bg-surface text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors disabled:opacity-50"
             >
               <option value="">Attach prompt…</option>
-              {usePromptLibraryStore.getState().prompts
+              {prompts
                 .filter((p) => !p.archivedAt)
                 .map((p) => (
                   <option key={p.id} value={p.id}>

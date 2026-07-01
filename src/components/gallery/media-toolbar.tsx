@@ -13,6 +13,7 @@ const FILTER_OPTIONS: Array<{ value: MediaFilter; label: string }> = [
   { value: "all", label: "All" },
   { value: "image", label: "Images" },
   { value: "video", label: "Videos" },
+  { value: "audio", label: "Audio" },
   { value: "favorites", label: "Favorites" },
   { value: "upscaled", label: "Upscaled" },
   { value: "edited", label: "Edited" },

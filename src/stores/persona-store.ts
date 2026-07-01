@@ -10,7 +10,8 @@ import {
   generateId as svcGenerateId,
   normalizePersona,
 } from "../services/rp/personaService";
-import type { UserPersonaV1 } from "../types/rp";
+import type { UserPersonaV1, PersonaExport } from "../types/rp";
+import { RP_PERSONA_EXPORT_VERSION } from "../types/rp";
 import { toast } from "./toast-store";
 import { getActivePersonaId, setActivePersonaId } from "../services/rp/personaPreferenceService";
 import { redactErrorMessage } from "../shared/redaction";
@@ -30,6 +31,8 @@ export interface PersonaState {
   upsert: (persona: UserPersonaV1) => Promise<UserPersonaV1 | null>;
   remove: (id: string) => Promise<boolean>;
   getById: (id: string) => UserPersonaV1 | undefined;
+  importPersonas: (json: string) => Promise<number>;
+  exportPersonas: () => string;
 }
 
 export const usePersonaStore = create<PersonaState>((set, get) => ({
@@ -120,6 +123,34 @@ export const usePersonaStore = create<PersonaState>((set, get) => ({
       toast.error("Could not delete persona", msg);
       return false;
     }
+  },
+
+  importPersonas: async (json) => {
+    let parsed: unknown;
+    try { parsed = JSON.parse(json); } catch { return 0; }
+    if (!parsed || typeof parsed !== "object") return 0;
+    const p = parsed as Record<string, unknown>;
+    if (p.version !== RP_PERSONA_EXPORT_VERSION || p.app !== "Venice Forge") return 0;
+    const arr = Array.isArray(p.personas) ? p.personas : [];
+    let count = 0;
+    for (const raw of arr) {
+      const normalized = normalizePersona(raw);
+      if (!normalized) continue;
+      const saved = await get().upsert(normalized);
+      if (saved) count++;
+    }
+    return count;
+  },
+
+  exportPersonas: () => {
+    const list = get().personas;
+    const env: PersonaExport = {
+      version: RP_PERSONA_EXPORT_VERSION,
+      app: "Venice Forge",
+      exportedAt: Date.now(),
+      personas: list,
+    };
+    return JSON.stringify(env, null, 2);
   },
 
   getById: (id) => get().personas.find((p) => p.id === id),

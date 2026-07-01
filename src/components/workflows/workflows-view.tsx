@@ -186,7 +186,7 @@ const TEMPLATES: Array<{ name: string; desc: string; build: () => TemplateGraph 
 ]
 
 function WorkflowCanvas() {
-  const { activeWorkflowId, workflows, updateWorkflow, updateNodeResult, setIsRunning, isRunning, clearResults } = useWorkflowStore()
+  const { activeWorkflowId, workflows, updateWorkflow, updateNodeResult, startRun, endRun, isRunning } = useWorkflowStore()
   const workflow = workflows.find((w) => w.id === activeWorkflowId)
 
   const [nodes, setNodes, onNodesChange] = useNodesState(workflow?.nodes ?? [])
@@ -243,18 +243,15 @@ function WorkflowCanvas() {
 
   const handleRun = async () => {
     if (isRunning) return
-    // Get current nodes/edges from React Flow (source of truth)
     const currentNodes = getNodes() as Node<VeniceNodeData>[]
     const currentEdges = getEdges()
     if (currentNodes.length === 0) return
 
-    // Save to store first
     if (activeWorkflowId) {
       updateWorkflow(activeWorkflowId, { nodes: currentNodes, edges: currentEdges })
     }
 
-    clearResults()
-    setIsRunning(true)
+    startRun(activeWorkflowId ?? '')
     const initial: Record<string, { nodeId: string; status: 'pending'; output: undefined; error: undefined }> = {}
     for (const n of currentNodes) {
       initial[n.id] = { nodeId: n.id, status: 'pending', output: undefined, error: undefined }
@@ -262,12 +259,18 @@ function WorkflowCanvas() {
     useWorkflowStore.getState().setRunResults(initial)
 
     try {
-      await executeWorkflow(currentNodes, currentEdges, { onUpdate: updateNodeResult })
+      await executeWorkflow(currentNodes, currentEdges, {
+        isRunning: false,
+        onUpdate: updateNodeResult,
+      })
       toast.success('Workflow completed')
     } catch (err) {
-      toast.fromError(err, 'Workflow failed')
+      const message = err instanceof Error ? err.message : ''
+      if (message !== 'Workflow is already running.') {
+        toast.fromError(err, 'Workflow failed')
+      }
     } finally {
-      setIsRunning(false)
+      endRun()
     }
   }
 

@@ -1,4 +1,5 @@
-import { BrowserWindow, WebContentsView, ipcMain, session } from "electron";
+import { BrowserWindow, WebContentsView, ipcMain, session, app } from "electron";
+import path from "node:path";
 import type { 
   ResearchBrowserState, 
   ResearchBrowserBoundsInput, 
@@ -214,6 +215,13 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
       return { action: "deny" };
     });
 
+    try {
+      const splashPath = path.join(app.isPackaged ? path.dirname(app.getPath("exe")) : app.getAppPath(), "assets", "browser-splash.html");
+      await wc.loadFile(splashPath);
+    } catch {
+      wc.loadURL("about:blank");
+    }
+
     return { ok: true };
   });
 
@@ -283,7 +291,6 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
       });
     }
 
-    broadcastState();
     return { ok: true };
   });
 

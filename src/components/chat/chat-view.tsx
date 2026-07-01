@@ -44,6 +44,9 @@ export function ChatView() {
     liveVisionSupports === null ? null : { supportsVision: liveVisionSupports },
   )
   const { send, stop, regenerate, isStreaming, createScene, memoryStatus } = useChat()
+  const activeCharacterImage = useCharacterImage(conversation?.metadata?.character, {
+    cacheKey: conversation?.id,
+  })
   const enableMemoryRetrieval = useSettingsStore((s) => s.enableMemoryRetrieval)
   // The global Memory panel toggle must be reflected immediately in the chat
   // input indicator, not just on the next send. When retrieval is disabled we
@@ -233,6 +236,7 @@ export function ChatView() {
                 <div className="max-w-[960px] mx-auto px-4 sm:px-5 py-2 flex items-center gap-3">
                   <ActiveCharacterPill
                     character={conversation.metadata.character}
+                    imageUrl={activeCharacterImage.imageUrl}
                     onClear={() => {
                       const convId = conversation.id;
                       // Strip character binding from the conversation so
@@ -278,6 +282,7 @@ export function ChatView() {
                   onRegenerate={msg.role === 'assistant' && i === conversation.messages.length - 1 ? () => regenerate(model) : undefined}
                   onGenerateScene={msg.role === 'assistant' ? () => createScene(msg.id) : undefined}
                   isCharacterBound={isCharacterBound}
+                  assistantAvatarUrl={conversation?.metadata?.character ? activeCharacterImage.imageUrl : undefined}
                 />
               ))}
               <div ref={messagesEndRef} />
@@ -519,13 +524,14 @@ function PriorConversationContextSelector({
  *  model, and offers a way to clear the binding. */
 function ActiveCharacterPill({
   character,
+  imageUrl,
   onClear,
 }: {
   character: NonNullable<NonNullable<Conversation["metadata"]>["character"]>;
+  imageUrl: string | undefined;
   onClear: () => void;
 }) {
   const initial = character.name?.trim()?.charAt(0)?.toUpperCase() || "?";
-  const { imageUrl } = useCharacterImage(character);
   return (
     <div
       className="flex items-center gap-3 rounded-full bg-surface-elevated border border-accent/30 pl-1.5 pr-3 py-1 text-[12.5px]"
