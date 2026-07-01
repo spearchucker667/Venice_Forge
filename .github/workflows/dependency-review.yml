@@ -14,19 +14,20 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
-      - name: Check dependency graph availability
+      - name: Check dependency review API availability
         id: dependency-graph
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          status="$(gh api "repos/${REPO}" --jq '.security_and_analysis.dependency_graph.status // "disabled"' || echo "disabled")"
-          if [ "${status}" = "enabled" ]; then
+          if gh api "repos/${REPO}/dependency-graph/compare/${BASE_SHA}...${HEAD_SHA}" >/dev/null 2>&1; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "Dependency review skipped: dependency graph is not enabled for ${REPO}."
+            echo "Dependency review skipped: dependency review API not available for ${REPO}."
           fi
       - name: Review dependency changes
         if: steps.dependency-graph.outputs.enabled == 'true'
