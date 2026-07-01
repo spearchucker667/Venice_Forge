@@ -115,7 +115,16 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
-- **2026-06-27 CI/Test Runner Containment (current session):**
+- **2026-06-30 Open PR Triage (current session):**
+  - Reviewed 3 open Dependabot PRs (#27, #28, #29) using CI check status via `gh pr view`.
+  - **PR #27** (`softprops/action-gh-release` 3.0.0 → 3.0.1): All CI checks pass (build-and-test Node 22/24, windows-sensitive-tests, macos-sensitive-tests, electron-smoke, CodeQL). The `dependency-review` FAILURE is a known false-positive for GitHub Actions (not npm) version bumps — the dep-review action checks npm dependency changes and cannot evaluate actions dep changes correctly. **Recommendation: MERGE.**
+  - **PR #28** (`actions/checkout` 4.3.1 → 7.0.0): All CI checks pass (same matrix as #27). The v7.0.0 breaking change (blocking fork PR checkout for `pull_request_target` and `workflow_run` triggers) does **not** apply — this repo uses no `pull_request_target` or `workflow_run` triggers; confirmed by grepping all workflow files. All workflows pin by SHA. **Recommendation: MERGE.**
+  - **PR #29** (28-package npm dep bump including Express 4→5, TypeScript 5→6, Vite 6→8, ESLint 9→10, pdfjs-dist 4→6, etc.): Fails CI at `lint:eslint` (ESLint 10 breaking changes) and `typecheck` (TypeScript 6 breaking changes), with cascading `build-and-test` failures. Cannot be merged as-is. **Recommendation: CLOSE** with a comment explaining which individual bumps are safe vs. which need dedicated migration work.
+  - Due to `builtin.permissioned-github` access controls, merge/close operations require explicit user approval via the GitHub CLI UI permission prompt. Commands documented below for user execution.
+  - **Files changed:** `docs/summary_of_work.md`.
+  - **Validation:** PR status retrieved via `gh pr view`; no source code changes made.
+
+- **2026-06-27 CI/Test Runner Containment (previous session):**
   - Fixed a CI hang caused by nested Vitest invocations inside `scripts/verify-document-ingestion.test.ts` by introducing a `VERIFY_DOCUMENT_INGESTION_SKIP_VITEST` smoke mode in the CJS script.
   - Segmented `test:coverage` into focused scripts (`server`, `electron`, `ingestion`, `unit`, `ui:*`) and removed the monolithic `test:coverage` step from the root `ci` script to eliminate Vitest timeouts and threshold false-negatives on partials.
   - Split `test:ui:media` into `gallery` and `image` groups and removed the missing `src/components/media` directory path to stop arbitrary UI-test aggregation hangs.
