@@ -115,6 +115,15 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-07-01 CI Workflow Fix and PR Cleanup (current session):**
+  - Fixed a CI workflow issue in `.github/workflows/dependency-review.yml` by adding a `paths` filter (`package.json`, `package-lock.json`). This resolves the false-positive failure where the dependency review action would crash on PRs that only updated GitHub Actions.
+  - Merged PR #27 (`softprops/action-gh-release` 3.0.0 → 3.0.1) and PR #28 (`actions/checkout` 4.3.1 → 7.0.0) into `main`.
+  - Closed/deleted the remote branches for PR #27, PR #28, and an outdated `copilot/fix-build-and-test-job-24` branch. (PR #29 was previously closed by Dependabot).
+  - Pushed all changes and branch deletions to `origin`.
+  - **Files changed:** `.github/workflows/dependency-review.yml`, `docs/summary_of_work.md`.
+  - **Validation:** Clean Git push and remote branch deletion completed successfully.
+
+
 - **2026-06-30 Visual UI Bug Fixes (current session):**
   - Fixed light-theme contrast bugs affecting warnings, text, and surfaces. Reverted a global `statusForeground` fallback in `themeTypes.ts` that broke dark backgrounds, and instead explicitly updated `textMuted`, `warning`, `danger`, and `surfaceElevated` in `light.ts`, `githubLight.ts`, and `solarizedLight.ts` to pass WCAG AA contrast. Added `BUILTIN_LIGHT` to `themes.test.ts` WCAG coverage array.
   - Fixed invisible `.skeleton` shimmer on light backgrounds in `theme.css` by using `color-mix` with `var(--fg)` instead of hardcoded white rgba values.
