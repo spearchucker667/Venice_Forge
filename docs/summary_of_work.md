@@ -115,6 +115,13 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-07-01 Fix failing Dependency Review workflow (current session):**
+  - Investigated failed run `28497742898` / job `84470318988` and confirmed the failure was `Dependency review is not supported on this repository`.
+  - Root cause: `.github/workflows/dependency-review.yml` always invoked `actions/dependency-review-action`, but this repository currently has dependency graph support disabled, which causes the action to hard-fail.
+  - Applied a minimal workflow fix by adding a pre-check that queries `security_and_analysis.dependency_graph.status` and only runs dependency review when the graph is enabled.
+  - **Files changed:** `.github/workflows/dependency-review.yml`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run verify:release-packaging-hardening` PASS; `npm run ci` PASS.
+
 - **2026-07-01 Fix failing GitHub Actions `build-and-test (24)` (current session):**
   - Investigated failed run `28491947782` / job `84450339996` and confirmed the failure occurred in `npm run test:coverage` (coverage thresholds failed immediately after `test:coverage:server`).
   - Root cause: `.github/workflows/ci.yml` ran `npm run test:ci` and then `npm run test:coverage`; the segmented `test:coverage:*` commands are not the canonical CI gate and fail threshold checks when run as isolated slices.
@@ -122,7 +129,7 @@ backlog files were removed.
   - **Files changed:** `.github/workflows/ci.yml`, `docs/summary_of_work.md`.
   - **Validation:** `npm ci` PASS; `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm run test:ci` PASS; `npm run test:coverage` FAIL reproduced pre-fix (same threshold failure as Actions log); `npm run verify:ci-contract` PASS; `npm run verify:release-packaging-hardening` PASS.
 
-- **2026-06-30 Open PR Triage (current session):**
+- **2026-06-30 Open PR Triage (previous session):**
   - Reviewed 3 open Dependabot PRs (#27, #28, #29) using CI check status via `gh pr view`.
   - **PR #27** (`softprops/action-gh-release` 3.0.0 → 3.0.1): All CI checks pass (build-and-test Node 22/24, windows-sensitive-tests, macos-sensitive-tests, electron-smoke, CodeQL). The `dependency-review` FAILURE is a known false-positive for GitHub Actions (not npm) version bumps — the dep-review action checks npm dependency changes and cannot evaluate actions dep changes correctly. **Recommendation: MERGE.**
   - **PR #28** (`actions/checkout` 4.3.1 → 7.0.0): All CI checks pass (same matrix as #27). The v7.0.0 breaking change (blocking fork PR checkout for `pull_request_target` and `workflow_run` triggers) does **not** apply — this repo uses no `pull_request_target` or `workflow_run` triggers; confirmed by grepping all workflow files. All workflows pin by SHA. **Recommendation: MERGE.**
