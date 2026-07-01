@@ -694,7 +694,7 @@ describe("use-chat character_slug threading", () => {
 
   describe("safe error handling (T-114/T-115)", () => {
     it("send appends a generic error message, never raw exception text", async () => {
-      const sensitive = "Network error at /Users/super_user/secret/path with token venice_abc123";
+      const sensitive = "API error at /Users/super_user/secret/path with token venice_abc123";
       mockedVeniceStreamChat.mockRejectedValueOnce(new Error(sensitive));
 
       const { result } = renderHook(() => useChat());

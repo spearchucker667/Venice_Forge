@@ -70,6 +70,7 @@ export function registerVeniceHandlers(): void {
             signalId: request.signalId,
             delta: chunk.content,
             reasoning: chunk.reasoning,
+            providerRequestId: chunk.providerRequestId,
           });
         },
       });

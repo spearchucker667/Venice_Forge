@@ -166,6 +166,8 @@ export interface StreamDelta {
   malformed: boolean;
   /** Raw data when malformed (useful for diagnostics; never forwarded to renderer). */
   rawData?: string;
+  /** The upstream provider's unique request ID, typically present on the first chunk. */
+  providerRequestId?: string;
 }
 
 /** Result of parsing an SSE buffer. */
@@ -211,10 +213,11 @@ export function extractStreamDelta(data: string): StreamDelta {
       const reasoning = json?.choices?.[0]?.delta?.reasoning_content ??
                         json?.choices?.[0]?.message?.reasoning_content ??
                         "";
+      const providerRequestId = json?.id;
       if (isErrorFrame && !content && !reasoning) {
-        return { content: "", reasoning: "", parsed: true, malformed: true, rawData: data };
+        return { content: "", reasoning: "", providerRequestId, parsed: true, malformed: true, rawData: data };
       }
-      return { content, reasoning, parsed: true, malformed: false };
+      return { content, reasoning, providerRequestId, parsed: true, malformed: false };
     }
     return { content: "", reasoning: "", parsed: true, malformed: false };
   } catch {
@@ -250,7 +253,7 @@ export function extractStreamDelta(data: string): StreamDelta {
  */
 export function parseSseLines(
   buffer: string,
-  onDelta: (chunk: { content: string; reasoning: string }) => void,
+  onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void,
   onMalformed?: (rawData: string) => void,
 ): SseParseResult {
   const lines = buffer.split(/\r?\n/);
@@ -279,10 +282,10 @@ export function parseSseLines(
       }
       return;
     }
-    if (delta.content || delta.reasoning) {
+    if (delta.content || delta.reasoning || delta.providerRequestId) {
       text += delta.content;
-      // Preserve the existing onDelta contract: only `{ content, reasoning }`.
-      onDelta({ content: delta.content, reasoning: delta.reasoning });
+      // Preserve the existing onDelta contract: only `{ content, reasoning, providerRequestId }`.
+      onDelta({ content: delta.content, reasoning: delta.reasoning, providerRequestId: delta.providerRequestId });
     }
   };
   for (const line of lines) {
@@ -335,7 +338,7 @@ export function abortVeniceRequest(signalId: string): { ok: boolean } {
  */
 export async function performVeniceRequest(
   rawRequest: unknown,
-  options: { onDelta?: (chunk: { content: string; reasoning: string }) => void } = {}
+  options: { onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void } = {}
 ): Promise<VeniceIpcResponse> {
   const request = validateVeniceIpcRequest(rawRequest);
   const apiKey = getApiKey();

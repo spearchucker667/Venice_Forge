@@ -23,6 +23,25 @@ export interface StreamState {
   convId: string | null;
 }
 
+const MAX_STREAM_RETRIES = 2;
+const RETRYABLE_STATUSES = [408, 429, 500, 502, 503, 504];
+
+function isRetryableError(err: unknown): boolean {
+  if (err instanceof DOMException && err.name === "AbortError") return false;
+  if (typeof err === "object" && err !== null && "status" in err) {
+    const status = (err as Record<string, unknown>).status;
+    if (typeof status === "number" && RETRYABLE_STATUSES.includes(status)) return true;
+  }
+  // Catch typical network drop messages.
+  if (err instanceof TypeError && err.message.toLowerCase().includes("fetch")) return true;
+  if (err instanceof Error && (
+      err.message.toLowerCase().includes("network") ||
+      err.message.toLowerCase().includes("socket") ||
+      err.message.toLowerCase().includes("econnreset")
+  )) return true;
+  return false;
+}
+
 /** Resolves the character slug for a conversation, in priority order:
  *  1. The conversation's persisted character metadata (authoritative).
  *  2. The user's currently-selected character slug in the Characters tab
@@ -196,25 +215,52 @@ export async function startStream(
   useChatStore.getState().setStreaming(true);
 
   try {
-    const body = buildStreamBody(convId, model);
-    await veniceStreamChat(body, {
-      signal: controller.signal,
-      onDelta: (chunk: { content: string; reasoning: string }) => {
-        if (chunk.content) {
-          useChatStore.getState().appendToLastAssistant(convId, chunk.content);
+    let attempts = 0;
+    
+    while (attempts <= MAX_STREAM_RETRIES) {
+      try {
+        const body = buildStreamBody(convId, model);
+        await veniceStreamChat(body, {
+          signal: controller.signal,
+          onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => {
+            if (chunk.content) {
+              useChatStore.getState().appendToLastAssistant(convId, chunk.content);
+            }
+            if (chunk.reasoning) {
+              useChatStore.getState().appendReasoningToLastAssistant(convId, chunk.reasoning);
+            }
+            if (chunk.providerRequestId) {
+              const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
+              if (conv) {
+                const lastIdx = conv.messages.length - 1;
+                const msg = conv.messages[lastIdx];
+                if (msg && msg.role === "assistant" && msg.metadata?.providerRequestId !== chunk.providerRequestId) {
+                  useChatStore.getState().setMessageMetadata(convId, lastIdx, { providerRequestId: chunk.providerRequestId });
+                }
+              }
+            }
+          },
+        });
+        return { aborted: false };
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return { aborted: true };
         }
-        if (chunk.reasoning) {
-          useChatStore.getState().appendReasoningToLastAssistant(convId, chunk.reasoning);
+        
+        const retryable = isRetryableError(err);
+        if (retryable && attempts < MAX_STREAM_RETRIES) {
+          attempts++;
+          logger.warn(`Stream dropped (attempt ${attempts}/${MAX_STREAM_RETRIES}). Retrying from checkpoint...`, err);
+          // Exponential backoff before retry (1s, 2s)
+          await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempts - 1)));
+          continue;
         }
-      },
-    });
-    return { aborted: false };
-  } catch (err) {
-    if (err instanceof DOMException && err.name === "AbortError") {
-      return { aborted: true };
+        
+        logger.error("chat stream manager failed", err);
+        useChatStore.getState().appendToLastAssistant(convId, `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]`);
+        return { aborted: false };
+      }
     }
-    logger.error("chat stream manager failed", err);
-    useChatStore.getState().appendToLastAssistant(convId, `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]`);
     return { aborted: false };
   } finally {
     if (activeGeneration === generation) {

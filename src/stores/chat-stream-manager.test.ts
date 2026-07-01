@@ -37,6 +37,7 @@ function resetStores() {
 
 describe("chat-stream-manager", () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     resetStores();
     vi.clearAllMocks();
   });
@@ -44,6 +45,7 @@ describe("chat-stream-manager", () => {
   afterEach(() => {
     stopStream();
     resetStores();
+    vi.useRealTimers();
   });
 
   it("builds the request body from the current conversation and model", async () => {
@@ -162,9 +164,14 @@ describe("chat-stream-manager", () => {
     useChatStore.getState().addMessage(convId, { role: "assistant", content: "" });
 
     const sensitive = "Network error at /Users/super_user/secret/path";
-    mockedVeniceStreamChat.mockRejectedValueOnce(new Error(sensitive));
+    mockedVeniceStreamChat.mockRejectedValue(new Error(sensitive));
 
-    const result = await startStream(convId, "llama-3.3-70b");
+    const promise = startStream(convId, "llama-3.3-70b");
+    
+    // Advance timers to trigger the exponential backoff (1s, 2s)
+    await vi.advanceTimersByTimeAsync(4000);
+    
+    const result = await promise;
 
     expect(result.aborted).toBe(false);
     const conv = useChatStore.getState().conversations.find((c) => c.id === convId)!;

@@ -115,15 +115,16 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
-- **2026-07-01 CI Workflow Fix and PR Cleanup (current session):**
-  - Fixed an architectural bug in `npm run test:coverage` by replacing the sequentially chained shard runs with a single unified `vitest run --coverage` command with exclusions. This ensures Vitest evaluates global coverage correctly across all files, resolving false-positive failures for shared files like `promptPayloadExtractor.ts` and `validateColor.ts`.
-  - Added new test suites in `src/theme/validateColor.test.ts` and expanded coverage in `src/shared/safety/promptPayloadExtractor.test.ts`.
+- **2026-07-01 CI Workflow Fix, Test Coverage, and PR Cleanup (current session):**
+  - Fixed an architectural bug in `npm run test:coverage` by replacing the sequentially chained shard runs with a single unified `vitest run --coverage` command with exclusions. This ensures Vitest evaluates global coverage correctly across all files.
+  - Added test coverage for `src/theme/validateColor.ts` and `src/AI/AIService/chunkSplitter/textExtractor.ts` to satisfy global CI coverage requirements.
+  - Stabilized tests for `src/stores/chat-stream-manager.ts` and `src/hooks/use-chat.test.ts` to handle streaming retries and network errors without causing infinite loops or timeouts.
   - Fixed a CI workflow issue in `.github/workflows/dependency-review.yml` by adding a `paths` filter (`package.json`, `package-lock.json`). This resolves the false-positive failure where the dependency review action would crash on PRs that only updated GitHub Actions.
   - Merged PR #27 (`softprops/action-gh-release` 3.0.0 → 3.0.1) and PR #28 (`actions/checkout` 4.3.1 → 7.0.0) into `main`.
   - Closed/deleted the remote branches for PR #27, PR #28, and an outdated `copilot/fix-build-and-test-job-24` branch. (PR #29 was previously closed by Dependabot).
   - Pushed all changes and branch deletions to `origin`.
-  - **Files changed:** `package.json`, `server.test.ts`, `src/theme/validateColor.test.ts`, `src/shared/safety/promptPayloadExtractor.test.ts`, `src/theme/themes.test.ts`, `.github/workflows/dependency-review.yml`, `docs/summary_of_work.md`.
-  - **Validation:** `npm run test:coverage` PASS (global coverage met thresholds: 74% lines, 68% functions, 71% statements, 63% branches); `npm run test:ci` PASS. Clean Git push and remote branch deletion completed successfully.
+  - **Files changed:** `package.json`, `server.test.ts`, `src/theme/validateColor.test.ts`, `src/AI/AIService/chunkSplitter/textExtractor.test.ts`, `src/shared/safety/promptPayloadExtractor.test.ts`, `src/theme/themes.test.ts`, `src/stores/chat-stream-manager.test.ts`, `src/hooks/use-chat.test.ts`, `src/types/conversation.ts`, `electron/services/veniceClient.ts`, `.github/workflows/dependency-review.yml`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run test:ui && npm run test:coverage` PASS (global coverage met thresholds: 74% lines, 68% functions, 71% statements, 63% branches); `npm run test:ci` PASS. Clean Git push and remote branch deletion completed successfully.
 
 
 - **2026-06-30 Visual UI Bug Fixes (current session):**

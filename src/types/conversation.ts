@@ -21,6 +21,7 @@ export interface ConversationMessage {
     attachments?: string[];
     injectedContext?: string;
     injectedContextSource?: "memory" | "prior_context" | "approved_context" | "mixed";
+    providerRequestId?: string;
   };
 }
 
