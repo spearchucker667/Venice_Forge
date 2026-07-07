@@ -115,6 +115,12 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-07-07 Release v2.1.2 Preparation — COMPLETE (current session):**
+  - Bumped version to 2.1.2 in `package.json` and `AGENTS.md`.
+  - Created a new release tag `v2.1.2` and pushed to origin.
+  - **Files changed:** `package.json`, `AGENTS.md`, `docs/summary_of_work.md`.
+  - **Validation:** Git status clean; version string incremented safely.
+
 - **2026-07-07 Dependabot Regression Fixes — COMPLETE:**
   - Audited recent Dependabot PR merges that introduced strict ESLint rules (breaking the build) and test regressions.
   - Reverted the breaking `npm-dependencies` Dependabot PR (which updated ESLint and triggered widespread `react-hooks/exhaustive-deps` failures).
