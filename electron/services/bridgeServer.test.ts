@@ -3,7 +3,7 @@
 // startBridgeServer() so VERIFY-001 can assert the bearer token is never
 // written to stdout. Suppress the project-wide no-console lint rule for
 // this test file only.
-import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from "vitest";
 import { Server as HttpServer } from "http";
 import { startBridgeServer, stopBridgeServer, getBridgeToken } from "./bridgeServer";
 import { performVeniceRequest } from "./veniceClient";
@@ -501,4 +501,85 @@ describe("bridgeServer restart lifecycle", () => {
       stopBridgeServer();
     }
   }, 10000);
+});
+
+// Bug 7.1 regression guard: the loopback bridge previously accepted
+// unlimited POSTs from any authenticated caller. The IPC layer has its
+// own per-channel limiter, but the bridge is reachable from any
+// loopback client (renderer, plugin host, automation tool) and from any
+// path/method combination, so it needs a separate
+// per-(client, method, path) rate-limit before any provider request
+// round-trip. The default floors must be at least as strict as the IPC
+// STRICT_LIMIT (30/min). /ping is exempt so monitor sweeps do not burn
+// the bucket.
+describe("bridgeServer rate limiting (Bug 7.1)", () => {
+  // Import the pure function. We use a fresh module each test by
+  // resetting the buckets before each scenario.
+  beforeEach(async () => {
+    const { resetBridgeRateLimitForTests } = await import("./bridgeServer");
+    resetBridgeRateLimitForTests();
+  });
+
+  it("imports checkBridgeRateLimit + resetBridgeRateLimitForTests", async () => {
+    const bridge = await import("./bridgeServer");
+    expect(typeof (bridge as { checkBridgeRateLimit?: unknown }).checkBridgeRateLimit).toBe("function");
+    expect(typeof (bridge as { resetBridgeRateLimitForTests?: unknown }).resetBridgeRateLimitForTests).toBe("function");
+  });
+
+  it("allows the first N POST requests and blocks the (N+1)th", async () => {
+    const { checkBridgeRateLimit } = await import("./bridgeServer");
+    const client = "test-client-strict";
+    for (let i = 0; i < 30; i++) {
+      expect(checkBridgeRateLimit(client, "POST", "/chat/completions")).toBeNull();
+    }
+    const denied = checkBridgeRateLimit(client, "POST", "/chat/completions");
+    expect(denied).not.toBeNull();
+    expect(denied?.limit).toBe(30);
+    expect(denied?.windowMs).toBe(60_000);
+    expect(denied?.retryAfterSeconds).toBeGreaterThan(0);
+  });
+
+  it("allows more GET requests than POST before tripping the limit", async () => {
+    const { checkBridgeRateLimit } = await import("./bridgeServer");
+    const client = "test-client-relaxed";
+    // 120 GET requests should all succeed.
+    for (let i = 0; i < 120; i++) {
+      expect(checkBridgeRateLimit(client, "GET", "/models")).toBeNull();
+    }
+    const denied = checkBridgeRateLimit(client, "GET", "/models");
+    expect(denied?.limit).toBe(120);
+  });
+
+  it("exempts /ping from rate limiting regardless of caller", async () => {
+    const { checkBridgeRateLimit } = await import("./bridgeServer");
+    const client = "test-ping-client";
+    for (let i = 0; i < 200; i++) {
+      expect(checkBridgeRateLimit(client, "GET", "/ping")).toBeNull();
+    }
+  });
+
+  it("uses separate buckets per (client, method, path) tuple", async () => {
+    const { checkBridgeRateLimit } = await import("./bridgeServer");
+    const clientA = "test-bucket-A";
+    const clientB = "test-bucket-B";
+    // Burn clientA's POST /chat/completions budget.
+    for (let i = 0; i < 30; i++) {
+      checkBridgeRateLimit(clientA, "POST", "/chat/completions");
+    }
+    expect(checkBridgeRateLimit(clientA, "POST", "/chat/completions")).not.toBeNull();
+    // clientB remains unaffected.
+    expect(checkBridgeRateLimit(clientB, "POST", "/chat/completions")).toBeNull();
+    // clientA at a different path remains unaffected.
+    expect(checkBridgeRateLimit(clientA, "POST", "/image/generate")).toBeNull();
+    // clientA on GET remains unaffected (relaxed limit, fresh bucket).
+    expect(checkBridgeRateLimit(clientA, "GET", "/models")).toBeNull();
+  });
+
+  it("does not leak state across calls within the same window", async () => {
+    const { checkBridgeRateLimit } = await import("./bridgeServer");
+    const client = "test-call-shape";
+    expect(checkBridgeRateLimit(client, "POST", "/chat/completions")).toBeNull();
+    const empty = checkBridgeRateLimit(client, "POST", "/chat/completions");
+    expect(empty).toBeNull(); // 2nd call still permitted
+  });
 });

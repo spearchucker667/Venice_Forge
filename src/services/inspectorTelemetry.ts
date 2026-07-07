@@ -55,6 +55,8 @@ const SENSITIVE_HEADERS = new Set([
   "authorization",
   "cookie",
   "set-cookie",
+  "proxy-authorization",
+  "proxy-authenticate",
   "x-api-key",
   "x-auth-token",
   "x-csrf-token",
@@ -136,6 +138,11 @@ function sanitizeMessage(message: unknown): unknown {
     next.content = record.content.map(sanitizeContentPart);
   } else if (record.content !== undefined) {
     next.content = "[redacted message content]";
+  }
+  if (typeof record.name === "string") {
+    next.name = summarizeString(record.name);
+  } else if (record.name !== undefined) {
+    next.name = "[redacted message name]";
   }
   return next;
 }
@@ -224,6 +231,16 @@ export function sanitizeInspectorPayload(body: unknown): unknown {
   return redactSecrets(sanitized);
 }
 
+/** URL-shaped fields that may carry identity-sensitive references. Always summarized. */
+const URL_RESPONSE_FIELDS = new Set([
+  "dataUrl",
+  "imageUrl",
+  "url",
+  "audioUrl",
+  "videoUrl",
+  "downloadUrl",
+]);
+
 /** Summarizes response bodies so scrape/image payloads never land verbatim in telemetry. */
 export function sanitizeInspectorResponse(body: unknown): unknown {
   if (body === undefined || body === null) return body;
@@ -235,8 +252,14 @@ export function sanitizeInspectorResponse(body: unknown): unknown {
   if (!body || typeof body !== "object") return body;
 
   const record = body as Record<string, unknown>;
-  if (typeof record.dataUrl === "string") {
-    return { dataUrl: summarizeString(record.dataUrl) };
+
+  for (const field of URL_RESPONSE_FIELDS) {
+    if (record[field] !== undefined) {
+      const value = record[field];
+      const next: Record<string, unknown> = { ...redactSecrets(record) };
+      next[field] = typeof value === "string" ? summarizeString(value) : `[non-string ${field}]`;
+      return next;
+    }
   }
 
   if (typeof record.text === "string" || typeof record.markdown === "string") {

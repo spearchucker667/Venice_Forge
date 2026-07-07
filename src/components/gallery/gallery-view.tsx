@@ -82,6 +82,14 @@ export function MediaStudioView() {
   // delegate to it.
   const selectedMediaIds = useMediaSelectionStore((s) => s.selectedMediaIds);
 
+  // BUG-React#12 regression guard: captive closures inside the
+  // registerMediaCommandHandlers effect (which runs with [] deps) need to
+  // see the latest stable runExport / runBulkAddTag identities. Ref mirrors
+  // forward them through a useEffect that has those callbacks in its dep
+  // array, so the registration body can read ref.current.
+  const runExportRef = useRef<((ids: string[]) => Promise<void>) | null>(null)
+  const runBulkAddTagRef = useRef<((ids: string[], tags: string[]) => Promise<void>) | null>(null)
+
   // Phase 2B dynamic filter (project / model / tag / operation). Phase 1
   // project scoping still wins (it lives in activeProjectIdForMediaFilter).
   // Model / tag dynamic filters are reserved for a future toolbar UI;
@@ -108,7 +116,7 @@ export function MediaStudioView() {
   // Initial load.
   useEffect(() => {
     void refresh();
-  }, []);
+  }, [refresh]); // BUG-React#9 regression guard: refresh is stable in Zustand v5; include it to satisfy react-hooks/exhaustive-deps so a future store refactor does not silently swap the closure.
 
   // Phase 2B: publish the visible (filtered) ids to the selection store
   // so the Command Palette's "Select all visible" works without
@@ -133,22 +141,33 @@ export function MediaStudioView() {
     return sortMedia(filteredItems, sort);
   }, [dynamicFiltered, query, filter, sort]);
 
+  // BUG-React#10 regression guard: combine setVisibleMediaIds +
+  // reconcileWithVisible into a single scheduled effect on `filtered`
+  // so subscribers only re-render once per filter change. Previously
+  // two separate useEffects walked the same `filtered` array on the
+  // same dep and each forced two Zustand subscriber re-renders.
+  const filteredIds = useMemo(() => filtered.map((i) => i.id), [filtered]);
   useEffect(() => {
-    useMediaSelectionStore.getState().setVisibleMediaIds(filtered.map((i) => i.id));
-  }, [filtered]);
+    const sel = useMediaSelectionStore.getState();
+    sel.setVisibleMediaIds(filteredIds);
+    sel.reconcileWithVisible(filteredIds);
+  }, [filteredIds]);
 
   // Phase 2B: register media command handlers with the Command Palette.
   // The registry is module-level; the unsubscribe ensures handlers do
   // not leak when the user navigates away from Media Studio.
   // AUDIT-018: Use a ref to avoid re-registration on every filter change.
-  const filteredRef = useRef(filtered);
+  const filteredRef = useRef(filteredIds);
   useEffect(() => {
-    filteredRef.current = filtered;
-  }, [filtered]);
+    filteredRef.current = filteredIds;
+  }, [filteredIds]);
 
   useEffect(() => {
     const cleanup = registerMediaCommandHandlers({
-      visibleIds: () => filteredRef.current.map((i) => i.id),
+      // BUG-React#10+#12 regression guard: filteredRef mirrors filteredIds
+      // (the memoized id array), so the visibleIds accessor returns it
+      // directly without re-mapping.
+      visibleIds: () => filteredRef.current,
       resolveItems: (ids) => useMediaStore.getState().items.filter((it) => ids.includes(it.id)),
       isMediaActive: () => useSettingsStore.getState().activeTab === "media",
       onSelectAllVisible: () => useMediaSelectionStore.getState().selectAllVisible(),
@@ -157,7 +176,7 @@ export function MediaStudioView() {
         setCompareOpen(true);
       },
       onExport: (ids) => {
-        void runExport(ids);
+        if (runExportRef.current) void runExportRef.current(ids);
       },
       onFavorite: async (ids) => {
         const r = await bulkSetFavorite(ids, true);
@@ -173,7 +192,7 @@ export function MediaStudioView() {
           validate: (value) => value.trim() ? null : "Enter a tag.",
         }))?.trim().toLowerCase();
         if (!tag) return;
-        await runBulkAddTag(ids, [tag]);
+        if (runBulkAddTagRef.current) await runBulkAddTagRef.current(ids, [tag]);
       },
       onSendToImage: (ids) => {
         const first = useMediaStore.getState().items.find((it) => it.id === ids[0]);
@@ -222,6 +241,15 @@ export function MediaStudioView() {
   // BUG-008 lineage handling (unchanged from Phase 2A).
   const loadById = useMediaStore((state) => state.loadById);
   const [missingChildIds, setMissingChildIds] = useState<string[]>([]);
+  // BUG-React#11 regression guard: mirror `missingChildIds` through a ref so the
+  // detection effect can read the latest value without re-scheduling itself on
+  // every setState. The functional setState inside the effect already excludes
+  // known ids, so dropping the dep only prevents no-op re-runs while keeping
+  // the same observable behavior.
+  const missingChildIdsRef = useRef<string[]>(missingChildIds);
+  useEffect(() => {
+    missingChildIdsRef.current = missingChildIds;
+  }, [missingChildIds]);
   useEffect(() => {
     setMissingChildIds([]);
   }, [inspectorItem?.id]);
@@ -236,7 +264,7 @@ export function MediaStudioView() {
   useEffect(() => {
     if (!inspectorItem) return
     const missing = inspectorItem.childrenIds.filter(
-      (id) => !items.some((candidate) => candidate.id === id) && !missingChildIds.includes(id),
+      (id) => !items.some((candidate) => candidate.id === id) && !missingChildIdsRef.current.includes(id),
     )
     if (missing.length === 0) return
     let cancelled = false
@@ -259,7 +287,11 @@ export function MediaStudioView() {
     return () => {
       cancelled = true
     }
-  }, [inspectorItem, items, loadById, missingChildIds])
+    // BUG-React#11 regression guard: missingChildIds is intentionally NOT in
+    // this dep list. The functional setState below already excludes known ids,
+    // and reading the latest value via `missingChildIdsRef` avoids the
+    // no-op re-run that Array.from(new Set(...)) causes every setState cycle.
+  }, [inspectorItem, items, loadById])
 
   // Phase 2B: selected items (resolved from ids).
   const selectedItems = useMemo(
@@ -267,13 +299,10 @@ export function MediaStudioView() {
     [items, selectedMediaIds],
   );
 
-  // Phase 2B: clear / prune selection when items leave the loaded cache
-  // (e.g. after delete). The selection store's reconcileWithVisible
-  // handles the visible-set case; this handles the in-memory case.
-  useEffect(() => {
-    const visibleIds = filtered.map((i) => i.id)
-    useMediaSelectionStore.getState().reconcileWithVisible(visibleIds)
-  }, [filtered])
+  // BUG-React#10 regression guard: the reconcileWithVisible case has been
+  // merged into the single effect above so we no longer schedule two effects
+  // on the same `filtered` dep. The selection store's reconcileWithVisible
+  // also clears ids that left the visible set after a bulk delete.
 
   // ---- Selection / active logic ----
 
@@ -454,6 +483,15 @@ export function MediaStudioView() {
     const filenameList = exportItems.map((it) => buildMediaFilename(it)).join("\n")
     toast.success(`Exported ${ids.length} item${ids.length === 1 ? "" : "s"}. Sidecar filenames:\n${filenameList}`)
   }, [items]);
+
+  // BUG-React#12 regression guard: forward the latest runExport and runBulkAddTag
+  // callback identities to the refs that the registerMediaCommandHandlers effect
+  // (which runs with [] deps) reads from. This avoids stale-closure risk when the
+  // caller (Command Palette) fires an export / bulk-tag command.
+  useEffect(() => {
+    runExportRef.current = runExport
+    runBulkAddTagRef.current = runBulkAddTag
+  }, [runExport, runBulkAddTag])
 
   // ---- Gallery handoff: image workspace ----
 

@@ -634,8 +634,23 @@ export function _debugGetDirtyConversationIds(): readonly string[] {
 export { toConversationRecord } from './chat-store-helpers'
 
 let cleanupUnloadListeners: (() => void) | undefined
-/** Exported for test cleanup only. */
+/**
+ * Exported for test cleanup only. The renderer process keeps the listeners
+ * attached for its full lifetime — Electron does not reload the renderer
+ * mid-session, so teardown is unnecessary in production code. Tests still
+ * call this to verify the listeners are wired correctly and to deregister
+ * them between specs so they do not leak across test files.
+ */
 export { cleanupUnloadListeners }
+
+// BUG-React#15 regression guard: capture the dirty-tracking subscription's
+// unsubscribe handle so its lifecycle is observable for tests and future
+// HMR replays. Declared ABOVE the `if (typeof window !== 'undefined')`
+// block so the assignment inside that branch does not hit a TDZ when the
+// module first evaluates in jsdom.
+let unsubscribeDirtyTracking: (() => void) | undefined
+/** Exported for test cleanup only, mirroring `cleanupUnloadListeners`. */
+export { unsubscribeDirtyTracking }
 
 // Sync conversations with Desktop backend
 if (typeof window !== 'undefined') {
@@ -743,7 +758,12 @@ if (typeof window !== 'undefined') {
     }
   })()
 
-  useChatStore.subscribe((state, prevState) => {
+  // BUG-React#15 regression guard: capture the unsubscribe handle so the
+  // dirty-tracking subscription's lifecycle is observable. The subscription
+  // itself stays attached for the renderer process lifetime — Electron does
+  // not reload the renderer mid-session, so no production code calls the
+  // unsubscribe. Tests and potential HMR replays can use this handle.
+  unsubscribeDirtyTracking = useChatStore.subscribe((state, prevState) => {
     // If any conversation's identity changed (i.e. it was replaced in
     // the conversations array, which Zustand does on `set` with a
     // fresh object), mark it dirty. This catches BOTH the active

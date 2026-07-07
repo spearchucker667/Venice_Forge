@@ -92,23 +92,31 @@ export function isSafeUrl(url: string): boolean {
   if (isIpv6InCidr(hostname, "fc00::", 7)) return false;
   if (isIpv6InCidr(hostname, "fe80::", 10)) return false;
 
-  // IPv4-mapped IPv6 (::ffff:<private-v4>)
-  // URL normalization may compress the IPv4 into hex (e.g. ::ffff:7f00:1).
-  if (hostname.startsWith("::ffff:")) {
-    const suffix = hostname.slice(7);
+  // IPv4-mapped IPv6 (::ffff:<private-v4>) and the deprecated
+  // IPv4-compatible IPv6 form (::<private-v4>). URL normalization may
+  // compress the IPv4 portion into a hex pair (e.g. ::7f00:1 is
+  // equivalent to ::127.0.0.1), so we expand both representations.
+  // Without this, https://[::192.168.1.1]/ and https://[::c0a8:101]/
+  // bypass the IPv4 blocklist above. (Bug 3.1 / SSRF regression)
+  if (hostname.startsWith("::")) {
+    const suffix = hostname.startsWith("::ffff:") ? hostname.slice(7) : hostname.slice(2);
     let mappedV4: string | null = null;
     if (suffix.includes(".")) {
+      // Dotted-quad form: ::127.0.0.1 / ::ffff:127.0.0.1
       mappedV4 = suffix;
     } else {
-      const groups = suffix.split(":").map((g) => g.padStart(4, "0"));
-      const hex = groups.join("");
-      if (hex.length === 8) {
-        mappedV4 = [
-          parseInt(hex.slice(0, 2), 16),
-          parseInt(hex.slice(2, 4), 16),
-          parseInt(hex.slice(4, 6), 16),
-          parseInt(hex.slice(6, 8), 16),
-        ].join(".");
+      // Compressed hex form: ::7f00:1 ::ffff:7f00:1 ::c0a8:101 ::a00:1
+      const groups = suffix.split(":");
+      if (groups.length === 2) {
+        const hex = groups[0].padStart(4, "0") + groups[1].padStart(4, "0");
+        if (hex.length === 8) {
+          mappedV4 = [
+            parseInt(hex.slice(0, 2), 16),
+            parseInt(hex.slice(2, 4), 16),
+            parseInt(hex.slice(4, 6), 16),
+            parseInt(hex.slice(6, 8), 16),
+          ].join(".");
+        }
       }
     }
     if (

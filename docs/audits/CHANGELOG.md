@@ -8,6 +8,49 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 
 ## [Unreleased]
 
+### Added
+- **Image Studio cost display:** Per-model pricing ($/1M input and output tokens) now appears in the Image Studio capability summary bar, reading from `modelData.model_spec.pricing`. Generated `MediaItem` records now carry an optional `MediaCost` payload (`src/types/media.ts`).
+- **Upscale error classification:** Image Tools upscale flow now classifies upstream failures by HTTP status (402 insufficient balance, 413 payload too large, 422 unprocessable, 429 rate limit, 500 server) via `normalizeError`.
+- **Workflow run history with idempotency:** Visual workflow engine now throws `WorkflowExecutionError` if `isRunning` is already true; every run gets a `_runId`; the Zustand workflow store keeps the last 50 runs (`runHistory: RunRecord[]`) with `startedAt`/`finishedAt`/`duration`-correct timestamps. `outputKey` is now wired through `compileWorkflowTemplate()` into `WorkflowRunPlan.outputs`.
+- **`veniceFetch()` migration for media hooks:** `use-video.ts` and `use-music.ts` now use the canonical telemetry-instrumented fetch with per-request `timeoutMs` (`QUEUE_TIMEOUT_MS=30000`, `POLL_TIMEOUT_MS=15000`), `AbortSignal` forwarding, and IPC `venice:abort` on cancel.
+- **Music auto-save to Media Studio:** Completed music generations are auto-saved to the encrypted `images` IDB store under `mediaType: 'audio'`, `operation: 'music-generate'`; users can also re-save manually.
+- **`'audio'` MediaType and `'music-generate'` MediaOperation** added across `media.ts`, `mediaMigration.ts`, `media-store.ts`, `media-send-to.ts`, `imageWorkflowService.ts`, `useMediaThumb.ts`, `media-export-bundle.ts`, `mediaItem.ts`, `media-toolbar.tsx`, `gallery-view.tsx`, and `ImageActionModal.tsx`.
+- **Character card import/export:** `character-card-store` now exposes `importCards()` / `exportCards()`; `persona-store` now exposes `importPersonas()` / `exportPersonas()`. `CharacterCardV1` gains an `archivedAt?: number | null` field and the store supports `archiveCard` / `unarchiveCard` / `addVersion` / `setCurrentVersion`.
+- **Character editor workflow section:** `firstMessage` textarea, archive/unarchive button, and version history (save version, restore version) sections added to `CharacterEditor`. Scene and prompt dropdowns now use reactive Zustand hooks instead of `getState()` snapshots. Scenario creation from the editor now routes to the canonical `rp-studio` tab (was previously the wrong `scenes` tab).
+- **Research Mini Browser splash and improvements:** Custom HTML splash page (`assets/browser-splash.html`) with Venice Forge branding, welcome copy, and quick links is loaded on browser create. Loading progress bar, error URL display, and an "Open in OS browser" toolbar button (with `aria-label`) added. ResizeObserver callback debounced to 50 ms to prevent IPC floods during rapid window resize.
+- **Browser splat/refactor lifecycle hardening:** Removed `broadcastState()` from the `setBounds` IPC path — bounds changes no longer flood renderer IPC. Splash page rewritten with `clamp()`-based responsive sizing.
+
+### Changed
+- **UI rename:** "Red-Team Mode" developer switch renamed to "Developer Mode" across `sidebar.tsx`, `sidebar.test.tsx`, `CharacterLibrary.tsx`, and `SECURITY.md`. The internal Zustand state field is still `redTeamMode`; the rename is user-facing only and preserved for backwards compatibility.
+- **Documentation drift cleanup:** `SECURITY.md` updated to call the feature "Developer Mode" with a back-compat note for the internal `redTeamMode` state field.
+
+### Fixed
+- **Theme — `.skeleton` animation broken in all themes:** `src/styles/theme.css:124` referenced `var(--fg)` which is never defined in the codebase — the shimmer was always `transparent`. Now uses `var(--foreground)`.
+- **Theme — Nord text hierarchy inverted:** `textSecondary: '#E5E9F0'` was brighter than `textPrimary: '#D8DEE9'`. Now `textSecondary: '#B0B9C6'` (lower luminance, correct hierarchy).
+- **Theme — One Dark text hierarchy inverted:** `textMuted: '#a0a4ad'` was brighter than `textSecondary: '#9ca0aa'`. Now `textMuted: '#91969e'`, still dimmer than secondary and brighter than primary.
+- **Theme — Solarized Light and GitHub Light `surfaceMuted` equal to `surface`:** No visual depth distinction. Updated to `'#e6dfc8'` and `'#ebeef1'` respectively.
+- **Theme — `toRgb()` did not support `hsl()`/`hsla()`:** `contrast.ts` would set `luminance=0` for HSL colors (producing a fake ~21:1 contrast ratio). Added full HSL/HSLA parsing.
+- **Workflow run timing:** `RunRecord.startedAt` was set to `Date.now()` inside `endRun()` (same value as `finishedAt`), so every run reported `duration = 0`. Added `currentRunStartedAt` to the workflow store; `startRun` now stamps it and `endRun` reads from state.
+- **Research browser server test mocks:** The "block loading when URL validation fails" test previously failed because the splash page's `loadFile()` call left `loadURL` recorded. Tests now `mockClear()` before asserting on per-call behaviour.
+- **IPC payload DoS surface:** `chat:save` and `conversations:save` IPC handlers now preflight `Buffer.byteLength(JSON.stringify(payload), "utf8") > VENICE_MAX_BODY_BYTES` (25 MiB) and return `{ ok: false, error: "Conversation payload is too large." }` before delegating to disk-write handlers. Closes a renderer-side DoS vector.
+- **IPC validation header blocklist incomplete:** `validateVeniceIpcRequest.headers` now strips `authorization`, `host`, `cookie`, `content-length`, `transfer-encoding`, `origin`, `referer`, `proxy-authorization`, `proxy-authenticate`, AND any `x-forwarded-*` header before forwarding to upstream Venice. New `BLOCKED_VENICE_HEADERS` Set + prefix check.
+- **Inspector telemetry — proxy auth and other credential headers leaked:** `SENSITIVE_HEADERS` now also covers `proxy-authorization` and `proxy-authenticate`.
+- **Inspector telemetry — message `name` field leaked verbatim:** `sanitizeMessage` now redacts the `name` field through `summarizeString` (or `[redacted message name]` placeholder for non-string values).
+- **Inspector telemetry — `dataUrl`/`imageUrl`/`url`/`audioUrl`/`videoUrl`/`downloadUrl` only summarized when shaped like a data URL:** New `URL_RESPONSE_FIELDS` Set plus a loop that always summarizes any of these keys regardless of value type (preserves other fields via `{ ...redactSecrets(record) }`).
+- **Renderer-side SSRF via IPv4-compatible IPv6 shortform:** `src/research/providers/genericHttpScrapeProvider.ts` `::`/`::ffff:` handler now also recognizes the dotted-quad form `::192.168.1.1` and the compressed hex forms `::c0a8:101` / `::7f00:1` / `::a00:1` that previously bypassed the IPv4 CIDR check.
+- **Bridge server had no per-endpoint rate limit:** `electron/services/bridgeServer.ts` `app.all("*")` handler now calls a pure `checkBridgeRateLimit()` keyed on `(method, path, bucket)` with `BRIDGE_STRICT_LIMIT_PER_MIN=30` for POST and `BRIDGE_RELAXED_LIMIT_PER_MIN=120` for GET; `/ping` is exempt; overflow returns 429 with `Retry-After`.
+- **React perf — `useCharacterImage` re-raced the IPC image resolver on every streaming tick:** `requestKey` and effect deps now use primitives (`charSlug`, `charId`, `charPhotoUrl`, `charLocalId`), not the full `character` object. Regression test asserts `getCachedUrl` runs once across three new-identity rerenders.
+- **React perf — `MessageBubble` re-rendered on every conversation mutation:** Now wrapped in `React.memo`. Per-message callbacks in `chat-view.tsx` are built once via `useMemo<Map<string, MessageBubbleCallbacks>>`, with `messagesRef`/`conversationIdRef` so stale closures still resolve the correct message id; `assistantAvatarUrl` hoisted.
+- **React perf — `localSafetyDecision` IIFE ran on every bubble render:** Replaced with `useMemo`, gated on `redTeamMode && content && localFamilySafeModeEnabled` so non-redteam users skip the regex/lookup cost entirely.
+- **React perf — KaTeX CSS import fired inside every `MessageBubble` mount:** New `src/hooks/useKatexCss.ts` holds a module-level singleton `katexCssPromise` and is called once per bubble (singleton kicks). Regression test monitors `katexLoadTracker.count` across 50 simultaneous mounts + 50 re-renders.
+- **React perf — `availablePriorConversations` recomputed every keystroke:** Now memoized via `useMemo([conversations, activeConversationId])`.
+- **React perf — chat-view `handleSend`/`handleRemoveFact`/`handleForgetFact` recreated each render:** Wrapped in `useCallback`. `pendingContext` mirrored through `pendingContextRef` so async `handleForgetFact` always reads the post-render state.
+- **React perf — gallery-view initial-load effect missing `refresh` dep:** Added to deps with `// BUG-React#9 regression guard` comment.
+- **React perf — gallery-view had two parallel effects on `filtered`:** Merged into one `useEffect([filteredIds])` calling both `setVisibleMediaIds` and `reconcileWithVisible`. `filteredRef` source type narrowed to `string[]`; registration line 167 fixed to `visibleIds: () => filteredRef.current`.
+- **React perf — gallery-view children-detection effect self-looped via `missingChildIds` dep:** `missingChildIdsRef` mirrors state; dep list dropped to `[inspectorItem, items, loadById]`; body reads `!missingChildIdsRef.current.includes(id)`.
+- **React perf — gallery-view command-registration effect captured stale `runExport`/`runBulkAddTag`:** `runExportRef`/`runBulkAddTagRef` declared near `selectedMediaIds`; forwarder `useEffect([runExport, runBulkAddTag])` mutates them after the useCallback declarations; registration body uses `runExportRef.current?.(ids)` and `runBulkAddTagRef.current?.(ids, [tag])`.
+- **React perf — chat-store module-level `subscribe` had no observable unsubscribe handle:** `unsubscribeDirtyTracking` is now captured into a hoisted `let` (above the `if (typeof window !== 'undefined')` block to avoid TDZ) and exported alongside `cleanupUnloadListeners` for testability.
+
 ## [2.1.1] — 2026-06-20
 
 ### Fixed
@@ -15,7 +58,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 - Added an idempotency guard to prevent double registration of research browser IPC handlers when windows are recreated.
 
 ### Changed
-- Added 15 new built-in themes to `src/theme/themes.ts` and matching YAML templates under `config/themes/`.
+- Added 15 new built-in themes to `src/theme/builtins/*.ts` (re-exported through `src/theme/themes.ts`) and matching YAML templates under `config/themes/`.
 - Reconciled safety documentation across `SECURITY.md`, `docs/legal/PRIVACY.md`, and `docs/LEGAL.md`; closed residual audit gaps.
 
 ## [2.1.0] — 2026-06-17

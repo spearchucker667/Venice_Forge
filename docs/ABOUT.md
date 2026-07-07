@@ -57,7 +57,7 @@ Web mode (development only):
 |-------|-----------|----------------|
 | UI | React 19 + Tailwind v4 | All user-facing screens |
 | State | Zustand 5 stores | Centralised app state (slice stores; `auth`, `chat`, `playground`, `settings`, `toast`, `workflow`) |
-| Storage | IndexedDB (via `StorageService`) | `images`, `files`, legacy `chats`, `settings`, `conversations`, and `ai_memory` are encrypted at rest with AES-GCM; `diagnostics` is stored unencrypted and should contain only sanitized timing/status metadata |
+| Storage | IndexedDB (via `StorageService`) | 18 stores (17 encrypted at rest with AES-GCM): `images`, `files`, `chats`, `settings`, `conversations`, `character_cards`, `personas`, `lorebooks`, `rp_chats`, `rp_assets`, `rp_scenarios`, `visual_workflows`, `playground`, `prompt_library`, `scenes`, `workflow_templates`, `research_sessions`; only the `diagnostics` store is unencrypted (it contains only sanitized timing/status metadata) |
 | Chat storage | Electron main-process filesystem (`chat-history/*.json`) | Conversation persistence with atomic writes and corruption recovery; filesystem chat JSON is not separately encrypted by Venice Forge |
 | Content safety | `src/shared/safety/childExploitationGuard.ts` | Local Family Safe Mode screens supported prompt-like request fields and Jina/scrape text responses; evaluates `negative_prompt` and cross-sentence context; returns safe 451 blocks with metadata; keeps audit counters aggregate-only; never logs raw prompt text |
 | Headless Bridge | `electron/services/bridgeServer.ts` | Loopback-only Express API server running on `127.0.0.1` for CLI and mobile integrations; enforces bearer token auth and active safety guards |
@@ -96,7 +96,7 @@ tabs are:
 | Privacy | Storage inventory, safe privacy summaries, and non-destructive maintenance actions |
 | Playground | Conversational agent that builds and edits workflows on a live canvas using plain language. Lazy-loaded. |
 | Config | API key management, theme selection (built-in + custom export/import), import/export |
-| Status | Diagnostics, rate-limit info, log access (renamed from "Diagnostics") |
+| Status | Diagnostics, rate-limit info, log access |
 
 ## Technology Stack
 

@@ -5,19 +5,30 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ChatMessage } from "../../types/venice";
 import { MessageBubble } from "./message-bubble";
 
+const testSettings = vi.hoisted(() => ({
+  redTeamMode: false,
+  localFamilySafeModeEnabled: false,
+}));
+
 vi.mock("../../stores/settings-store", () => ({
   useSettingsStore: (selector: (s: { redTeamMode: boolean; localFamilySafeModeEnabled: boolean }) => unknown) =>
-    selector({ redTeamMode: false, localFamilySafeModeEnabled: false }),
+    selector(testSettings),
 }));
 
 vi.mock("../../shared/safety", () => ({
-  maybeRunLocalFamilyGuard: vi.fn(),
+  maybeRunLocalFamilyGuard: vi.fn(() => ({ allowed: true as const })),
 }));
+
+import { maybeRunLocalFamilyGuard } from "../../shared/safety";
 
 beforeEach(() => {
   Object.assign(navigator, {
     clipboard: { writeText: vi.fn() },
   });
+  testSettings.redTeamMode = false;
+  testSettings.localFamilySafeModeEnabled = false;
+  vi.mocked(maybeRunLocalFamilyGuard).mockClear();
+  vi.mocked(maybeRunLocalFamilyGuard).mockReturnValue({ allowed: true as const });
 });
 
 describe("MessageBubble accessibility", () => {
@@ -156,5 +167,45 @@ describe("MessageBubble accessibility", () => {
     );
 
     expect(screen.getByAltText("AI avatar")).toHaveAttribute("src", "file:///cached/alan.png");
+  });
+});
+
+describe("MessageBubble local-family-guard gating (BUG-React#3)", () => {
+  it("does NOT invoke the safety guard when Red-Team Mode is disabled", () => {
+    testSettings.redTeamMode = false;
+    testSettings.localFamilySafeModeEnabled = true;
+    const message: ChatMessage = { role: "assistant", content: "Hello world" };
+
+    render(<MessageBubble message={message} index={0} onCopy={() => {}} onDelete={() => {}} />);
+
+    expect(maybeRunLocalFamilyGuard).not.toHaveBeenCalled();
+  });
+
+  it("memoizes the safety guard across re-renders with identical deps", () => {
+    testSettings.redTeamMode = true;
+    testSettings.localFamilySafeModeEnabled = true;
+    const messageA: ChatMessage = { role: "assistant", content: "Hello world" };
+    const messageB: ChatMessage = { role: "assistant", content: "Hello world" };
+
+    const { rerender } = render(<MessageBubble message={messageA} index={0} onCopy={() => {}} onDelete={() => {}} />);
+    rerender(<MessageBubble message={messageB} index={0} onCopy={() => {}} onDelete={() => {}} />);
+
+    expect(maybeRunLocalFamilyGuard).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-runs the safety guard only when the content or Family Safe flag changes", () => {
+    testSettings.redTeamMode = true;
+    testSettings.localFamilySafeModeEnabled = true;
+    const messageA: ChatMessage = { role: "assistant", content: "Hello world" };
+    const messageB: ChatMessage = { role: "assistant", content: "different content" };
+
+    const { rerender } = render(<MessageBubble message={messageA} index={0} onCopy={() => {}} onDelete={() => {}} />);
+    expect(maybeRunLocalFamilyGuard).toHaveBeenCalledTimes(1);
+
+    rerender(<MessageBubble message={messageB} index={0} onCopy={() => {}} onDelete={() => {}} />);
+    expect(maybeRunLocalFamilyGuard).toHaveBeenCalledTimes(2);
+
+    rerender(<MessageBubble message={messageB} index={0} onCopy={() => {}} onDelete={() => {}} />);
+    expect(maybeRunLocalFamilyGuard).toHaveBeenCalledTimes(2);
   });
 });

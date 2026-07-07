@@ -24,6 +24,9 @@ import {
 import { checkLocalFamilyGuard } from "../../services/guardPipeline";
 import { getRuntimeLocalFamilySafeModeEnabled } from "../../services/runtimeSafetySettings";
 import { redactErrorMessage } from "../../../src/shared/redaction";
+import { VENICE_MAX_BODY_BYTES } from "../../../src/shared/limits";
+
+const IPC_PAYLOAD_TOO_LARGE = "Conversation payload is too large.";
 import { registerIpcChannel } from "./common";
 
 interface LookupResult {
@@ -275,6 +278,11 @@ export function registerSystemHandlers(): void {
       if (!p.conversation || typeof p.conversation !== "object") {
         return { ok: false, error: "Missing conversation" };
       }
+      const payloadBytes = Buffer.byteLength(JSON.stringify(p.conversation), "utf8");
+      if (payloadBytes > VENICE_MAX_BODY_BYTES) {
+        logError("chat:save rejected: payload too large", `${payloadBytes} bytes`);
+        return { ok: false, error: IPC_PAYLOAD_TOO_LARGE };
+      }
       const result = await saveConversation(p.conversation as Conversation);
       return result;
     } catch (err) {
@@ -350,6 +358,11 @@ export function registerSystemHandlers(): void {
       }
       if (rec.id.length > 128 || rec.id.includes("\0") || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(rec.id)) {
         return { ok: false, error: "Invalid record id" };
+      }
+      const payloadBytes = Buffer.byteLength(JSON.stringify(rec), "utf8");
+      if (payloadBytes > VENICE_MAX_BODY_BYTES) {
+        logError("conversations:save rejected: payload too large", `${payloadBytes} bytes`);
+        return { ok: false, error: IPC_PAYLOAD_TOO_LARGE };
       }
       const { saveConversation } = await import("../../services/conversationVault");
       return await saveConversation(rec);

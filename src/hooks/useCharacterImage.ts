@@ -48,10 +48,6 @@ type CharacterImageInput =
   | (Pick<VeniceCharacter, "slug" | "name" | "photoUrl"> & { id?: string })
   | (Pick<ConversationCharacterMeta, "name" | "modelId" | "localCharacterId"> & { slug?: string; photoUrl?: string; id?: string });
 
-function getLocalCharacterId(character: CharacterImageInput | undefined | null): string | undefined {
-  return character && "localCharacterId" in character ? character.localCharacterId : undefined;
-}
-
 export function useCharacterImage(
   character: CharacterImageInput | undefined | null,
   options: UseCharacterImageOptions = {},
@@ -66,20 +62,26 @@ export function useCharacterImage(
   const [retryToken, setRetryToken] = useState(0);
   const latestRequestRef = useRef(0);
 
+  const charSlug = character?.slug;
+  const charId = character?.id;
+  const charPhotoUrl = character && "photoUrl" in character ? character.photoUrl : undefined;
+  const charLocalId = character && "localCharacterId" in character ? character.localCharacterId : undefined;
+
   const sourceUrl = useMemo(
     () => (character ? resolveCharacterImageUrl(character) ?? undefined : undefined),
-    [character?.slug, character?.id, character?.photoUrl],
+    [charSlug, charId, charPhotoUrl],
   );
 
   const requestKey = useMemo(
     () => [
       cacheKey,
       sourceUrl ?? "no-source",
-      character?.id ?? "no-id",
-      character?.slug ?? "no-slug",
-      getLocalCharacterId(character) ?? "no-local-id",
+      charId ?? "no-id",
+      charSlug ?? "no-slug",
+      charPhotoUrl ?? "no-photo",
+      charLocalId ?? "no-local-id",
     ].join("|"),
-    [cacheKey, character?.id, character?.slug, character, sourceUrl],
+    [cacheKey, charId, charSlug, charPhotoUrl, charLocalId, sourceUrl],
   );
 
   const fallbackInitials = useMemo(
@@ -88,15 +90,18 @@ export function useCharacterImage(
   );
 
   useEffect(() => {
-    if (!character) {
+    const hasAnyIdentity = !!(charSlug || charId || charPhotoUrl || charLocalId);
+    if (!hasAnyIdentity) {
       setImageState({ requestKey, url: undefined });
       setError(undefined);
       setLoading(false);
       return;
     }
 
-    const char = character;
-    const diagnosticSlug = char.slug || char.id || "unknown";
+    const charPhotoUrlForSource = charPhotoUrl;
+    const charLocalIdForGuard = charLocalId;
+    const charSlugForFallback = charSlug;
+    const diagnosticSlug = charSlug || charId || "unknown";
     const requestId = ++latestRequestRef.current;
     let cancelled = false;
 
@@ -146,7 +151,7 @@ export function useCharacterImage(
       setError(undefined);
 
       // Local RP characters never resolve through Venice.ai image endpoints.
-      if ("localCharacterId" in char && char.localCharacterId) {
+      if (charLocalIdForGuard) {
         setImageState({ requestKey, url: undefined });
         setLoading(false);
         return;
@@ -156,7 +161,7 @@ export function useCharacterImage(
 
       if (sourceUrl) {
         const source =
-          char.photoUrl ? "api-photoUrl" :
+          charPhotoUrlForSource ? "api-photoUrl" :
           sourceUrl.includes("/api/characters/") && sourceUrl.endsWith("/photo") ? "synthetic-photo" :
           "api-field";
         const primaryOk = await resolveAndCache(sourceUrl, source);
@@ -170,7 +175,7 @@ export function useCharacterImage(
         }
       }
 
-      const fallbackUrl = char.slug ? await tryResolveCharacterImageFromPublicPage(char.slug) : null;
+      const fallbackUrl = charSlugForFallback ? await tryResolveCharacterImageFromPublicPage(charSlugForFallback) : null;
       if (cancelled || requestId !== latestRequestRef.current) return;
 
       if (fallbackUrl) {
@@ -197,7 +202,7 @@ export function useCharacterImage(
     return () => {
       cancelled = true;
     };
-  }, [character, requestKey, sourceUrl, retryToken]);
+  }, [requestKey, sourceUrl, charSlug, charId, charPhotoUrl, charLocalId, retryToken]);
 
   const imageUrl = imageState.requestKey === requestKey ? imageState.url : undefined;
 

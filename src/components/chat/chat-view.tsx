@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useChatStore } from '../../stores/chat-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
@@ -23,6 +23,13 @@ import type { Conversation } from '../../types/conversation'
 import type { ChatMemoryDecision } from '../../hooks/use-chat'
 import { buildChatPayloadContext, buildPriorConversationContextText } from '../../utils/chatPayloadContext'
 import { redactErrorMessage } from '../../shared/redaction'
+
+interface MessageBubbleCallbacks {
+  onCopy: () => void
+  onDelete: () => void
+  onRegenerate?: () => void
+  onGenerateScene?: () => void
+}
 
 export function ChatView() {
   const deleteMessage = useChatStore((s) => s.deleteMessage)
@@ -57,9 +64,17 @@ export function ChatView() {
 
   const [includePriorContext, setIncludePriorContext] = useState(false)
   const [selectedPriorConversationIds, setSelectedPriorConversationIds] = useState<string[]>([])
-  const availablePriorConversations = conversations.filter((item) => item.id !== conversation?.id)
+  // BUG-React#6 regression guard: memoize the prior-conversation list so it is
+  // not recomputed on every keystroke or streaming tick. The active conversation
+  // is excluded and the array reference is stable across renders that do not
+  // change conversations or the active id.
+  const activeConversationId = conversation?.id
+  const availablePriorConversations = useMemo(
+    () => conversations.filter((item) => item.id !== activeConversationId),
+    [conversations, activeConversationId],
+  )
 
-  const handleSend = (message: string, attachments?: IngestedAttachment[]) => {
+  const handleSend = useCallback((message: string, attachments?: IngestedAttachment[]) => {
     const requiresVision = attachments?.some(att => att.modelRequirements.requiresVision) ?? false;
     if (requiresVision && !visionSupported) {
       toast.warn(
@@ -87,10 +102,23 @@ export function ChatView() {
       ? buildPriorConversationContextText(selectedConversations)
       : ''
     send(message, model, attachments, priorContextText, { mode: 'auto', source: 'global' })
-  }
+  }, [
+    visionSupported,
+    model,
+    includePriorContext,
+    selectedPriorConversationIds,
+    availablePriorConversations,
+    currentProjectId,
+    send,
+  ])
 
   const pendingContext = useChatStore((s) => s.pendingContext)
   const setPendingContext = useChatStore((s) => s.setPendingContext)
+  // BUG-React#7 regression guard: mirror `pendingContext` through a ref so
+  // async handleForgetFact / handleRemoveFact callbacks always see the
+  // post-render state, not whatever was captured at callback creation time.
+  const pendingContextRef = useRef(pendingContext)
+  pendingContextRef.current = pendingContext
   const [isEditingContext, setIsEditingContext] = useState(false)
   const [editedText, setEditedText] = useState("")
 
@@ -100,12 +128,13 @@ export function ChatView() {
     }
   }, [pendingContext])
 
-  const handleRemoveFact = (factId: string) => {
-    if (!pendingContext) return
-    const remainingFacts = pendingContext.facts.filter((f: MemoryFact) => f.id !== factId)
-    
+  const handleRemoveFact = useCallback((factId: string) => {
+    const context = pendingContextRef.current
+    if (!context) return
+    const remainingFacts = context.facts.filter((f: MemoryFact) => f.id !== factId)
+
     const lines: string[] = []
-    pendingContext.summaries.forEach((sum: string) => {
+    context.summaries.forEach((sum: string) => {
       lines.push(`- Previous thread: ${sum}`)
     })
     remainingFacts.forEach((fact: MemoryFact) => {
@@ -124,13 +153,13 @@ export function ChatView() {
     }
 
     setPendingContext({
-      ...pendingContext,
+      ...context,
       facts: remainingFacts,
       injectedText
     })
-  }
+  }, [setPendingContext])
 
-  const handleForgetFact = async (factId: string, factText: string) => {
+  const handleForgetFact = useCallback(async (factId: string, factText: string) => {
     const shouldForget = await askDecision({
       title: 'Forget this fact?',
       detail: factText,
@@ -139,7 +168,7 @@ export function ChatView() {
     })
     if (!shouldForget) return
     try {
-      
+
       const res = await desktopConversations.list()
       if (res.ok) {
         const record = res.records.find((r: ConversationRecordV1) => r.memory?.userFacts?.some((f: MemoryFact) => f.id === factId))
@@ -164,19 +193,59 @@ export function ChatView() {
       logger.error("Forget fact error", err)
       toast.error("Failed to forget fact", redactErrorMessage(err))
     }
-  }
+  }, [handleRemoveFact])
 
   const [starters, setStarters] = useState<PromptStarter[]>([])
 
   const conversationId = conversation?.id
   const isCharacterBound = !!conversation?.metadata?.character?.slug
   const messageCount = conversation?.messages.length ?? 0
+  const assistantAvatarUrl = isCharacterBound ? activeCharacterImage.imageUrl : undefined
 
   useEffect(() => {
     if (messageCount === 0) {
       setStarters(getBalancedPromptStarters())
     }
   }, [conversationId, messageCount])
+
+  // BUG-React#2 regression guard: stable per-message callbacks for memoized
+  // MessageBubble; mirrored live index via refs so stale closures still hit
+  // the right message when messages are prepended/inserted later.
+  const messagesRef = useRef(conversation?.messages)
+  const conversationIdRef = useRef(conversation?.id)
+  messagesRef.current = conversation?.messages
+  conversationIdRef.current = conversation?.id
+
+  const characterSlug = conversation?.metadata?.character?.slug
+  const messageCallbacks = useMemo(() => {
+    const map = new Map<string, MessageBubbleCallbacks>()
+    if (!conversation || !messagesRef.current) return map
+    const messages = messagesRef.current
+    const lastIndex = messages.length - 1
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i]
+      if (!msg) continue
+      map.set(msg.id, {
+        onCopy: () => {},
+        onDelete: () => {
+          const liveMessages = messagesRef.current
+          const liveConvId = conversationIdRef.current
+          if (!liveMessages || !liveConvId) return
+          const liveIndex = liveMessages.findIndex((m) => m.id === msg.id)
+          if (liveIndex >= 0) deleteMessage(liveConvId, liveIndex)
+        },
+        onRegenerate:
+          msg.role === 'assistant' && i === lastIndex
+            ? () => { regenerate(model) }
+            : undefined,
+        onGenerateScene:
+          msg.role === 'assistant'
+            ? () => { createScene(msg.id) }
+            : undefined,
+      })
+    }
+    return map
+  }, [conversation?.id, messageCount, model, characterSlug, deleteMessage, regenerate, createScene])
 
   const lastContent = conversation?.messages[messageCount - 1]?.content
   const lastLen = typeof lastContent === 'string' ? lastContent.length : 0
@@ -272,19 +341,22 @@ export function ChatView() {
               <VeniceParams />
             </div>
             <div className="w-full max-w-[960px] mx-auto py-5 px-4 sm:px-5 flex flex-col gap-5">
-              {conversation.messages.map((msg, i) => (
-                <MessageBubble
-                  key={msg.id}
-                  message={msg}
-                  index={i}
-                  onCopy={() => {}}
-                  onDelete={() => { if (conversation) deleteMessage(conversation.id, i) }}
-                  onRegenerate={msg.role === 'assistant' && i === conversation.messages.length - 1 ? () => regenerate(model) : undefined}
-                  onGenerateScene={msg.role === 'assistant' ? () => createScene(msg.id) : undefined}
-                  isCharacterBound={isCharacterBound}
-                  assistantAvatarUrl={conversation?.metadata?.character ? activeCharacterImage.imageUrl : undefined}
-                />
-              ))}
+              {conversation.messages.map((msg, i) => {
+                const cb = messageCallbacks.get(msg.id)
+                return (
+                  <MessageBubble
+                    key={msg.id}
+                    message={msg}
+                    index={i}
+                    onCopy={cb?.onCopy ?? (() => {})}
+                    onDelete={cb?.onDelete ?? (() => {})}
+                    onRegenerate={cb?.onRegenerate}
+                    onGenerateScene={cb?.onGenerateScene}
+                    isCharacterBound={isCharacterBound}
+                    assistantAvatarUrl={assistantAvatarUrl}
+                  />
+                )
+              })}
               <div ref={messagesEndRef} />
             </div>
           </>

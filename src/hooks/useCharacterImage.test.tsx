@@ -31,6 +31,39 @@ describe("useCharacterImage", () => {
     vi.mocked(desktopCharacterImage.getCachedUrl).mockReset();
   });
 
+  it("does not re-resolve the avatar when the parent passes a new object identity for the same character", async () => {
+    vi.mocked(desktopCharacterImage.getCachedUrl).mockResolvedValue({
+      ok: true,
+      url: "file:///alan.png",
+    });
+
+    const initial = {
+      id: "alan-watts",
+      slug: "alan-watts",
+      name: "Alan Watts",
+      photoUrl: "https://outerface.venice.ai/api/characters/alan-watts/photo",
+    };
+
+    const { rerender } = renderHook(
+      ({ snapVersion }) => useCharacterImage(
+        { ...initial, _snap: snapVersion } as typeof initial & { _snap: number },
+        { cacheKey: "chat-1" },
+      ),
+      { initialProps: { snapVersion: 0 } },
+    );
+
+    await waitFor(() =>
+      expect(desktopCharacterImage.getCachedUrl).toHaveBeenCalledTimes(1),
+    );
+
+    rerender({ snapVersion: 1 });
+    rerender({ snapVersion: 2 });
+
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    expect(desktopCharacterImage.getCachedUrl).toHaveBeenCalledTimes(1);
+  });
+
   it("includes the conversation cache key when deciding whether an async avatar result is current", async () => {
     const first = deferred<{ ok: true; url: string }>();
     vi.mocked(desktopCharacterImage.getCachedUrl)

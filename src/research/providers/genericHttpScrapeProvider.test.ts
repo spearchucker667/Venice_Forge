@@ -99,6 +99,25 @@ describe("isSafeUrl SSRF blocklist", () => {
     expect(isSafeUrl("http://[::ffff:8.8.8.8]")).toBe(true); // public
   });
 
+  // Bug 3.1 regression guard: without IPv4-compatible IPv6 shortform
+  // coverage, ::192.168.1.1 / ::c0a8:101 / ::7f00:1 bypassed the
+  // IPv4 CIDR blocklist above. The shared isPrivateHostname() helper
+  // already handled this via recursive fallback; this provider must
+  // also defend since it is the entry point for /api/proxy-scrape.
+  it("blocks ::<private-v4> (IPv4-compatible IPv6 shortform)", () => {
+    expect(isSafeUrl("http://[::127.0.0.1]")).toBe(false);
+    expect(isSafeUrl("http://[::10.0.0.1]")).toBe(false);
+    expect(isSafeUrl("http://[::192.168.1.1]")).toBe(false);
+    // Compressed hex form: ::c0a8:101 -> 192.168.1.1
+    expect(isSafeUrl("http://[::c0a8:101]")).toBe(false);
+    // Compressed hex form: ::7f00:1 -> 127.0.0.1
+    expect(isSafeUrl("http://[::7f00:1]")).toBe(false);
+    // Compressed hex form: ::a00:1 -> 10.0.0.1
+    expect(isSafeUrl("http://[::a00:1]")).toBe(false);
+    // Public compressed hex form: ::0808:0808 -> 8.8.8.8
+    expect(isSafeUrl("http://[::0808:0808]")).toBe(true);
+  });
+
   it("blocks trailing-dot hostnames (SEC-002)", () => {
     expect(isSafeUrl("http://localhost./")).toBe(false);
     expect(isSafeUrl("http://127.0.0.1./")).toBe(false);

@@ -103,7 +103,7 @@ function withFamilySafeProviderOverride(rawRequest: unknown, endpoint: string): 
   };
 }
 
-function stringifyResponseForScreening(body: unknown): string {
+function stringifyResponseForScreening(body: unknown): string | null {
   if (typeof body === "string") return body;
   if (body == null) return "";
   if (isRecord(body)) {
@@ -111,21 +111,35 @@ function stringifyResponseForScreening(body: unknown): string {
     for (const key of ["dataBase64", "image", "images", "dataUrl", "audio", "video"]) {
       if (key in redactedBinary) redactedBinary[key] = "[binary-media]";
     }
-    return JSON.stringify(redactedBinary);
+    try {
+      return JSON.stringify(redactedBinary);
+    } catch {
+      return null;
+    }
   }
   try {
     return JSON.stringify(body);
   } catch {
-    return "";
+    return null;
   }
 }
 
 function screenUpstreamResponse(endpoint: string, method: string, response: VeniceIpcResponse): GuardedBlock | null {
   if (!getRuntimeLocalFamilySafeModeEnabled()) return null;
-  const bodyText = stringifyResponseForScreening(response.body);
-  if (!bodyText.trim()) return null;
+  const bodyTextOrNull = stringifyResponseForScreening(response.body);
+  if (bodyTextOrNull === null) {
+    return {
+      ok: false,
+      status: 451,
+      statusText: "Blocked by Family Safe Mode",
+      headers: {} as Record<string, never>,
+      body: { error: "Response screening unavailable", reasonCode: "RESPONSE_SCREEN_UNAVAILABLE" },
+      contentType: "application/json",
+    };
+  }
+  if (!bodyTextOrNull.trim()) return null;
   const screen = screenResponseBody(
-    bodyText,
+    bodyTextOrNull,
     { endpoint, method, source: "ipc" },
     true,
   );

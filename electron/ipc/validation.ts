@@ -34,6 +34,21 @@ export interface VeniceIpcRequest {
   signalId?: string;
 }
 
+/** Headers the renderer is never allowed to set on a forwarded Venice request.
+ *  `x-forwarded-*` prefix matches are handled separately because the
+ *  blocklist needs to match every variant. */
+const BLOCKED_VENICE_HEADERS = new Set([
+  "authorization",
+  "host",
+  "cookie",
+  "content-length",
+  "transfer-encoding",
+  "origin",
+  "referer",
+  "proxy-authorization",
+  "proxy-authenticate",
+]);
+
 /** Computes the UTF-8 byte length of a request body. */
 function bodySizeBytes(body: unknown): number {
   if (body === undefined) return 0;
@@ -118,7 +133,8 @@ export function validateVeniceIpcRequest(input: unknown): VeniceIpcRequest {
     }
     for (const [key, value] of Object.entries(request.headers as Record<string, unknown>)) {
       const lower = key.toLowerCase();
-      if (lower === "authorization" || lower === "host" || lower === "cookie") continue;
+      if (BLOCKED_VENICE_HEADERS.has(lower)) continue;
+      if (lower.startsWith("x-forwarded-")) continue;
       if (typeof value === "string" && value.length <= 512) headers[key] = value;
     }
   }

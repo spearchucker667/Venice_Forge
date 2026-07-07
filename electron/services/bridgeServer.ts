@@ -28,6 +28,70 @@ let serverInstance: Server | null = null;
 let bridgeToken: string = "";
 let stopInProgress: Promise<void> | null = null;
 
+/** Per-endpoint rate limiter for the loopback bridge. The IPC layer already
+ *  has a similar limiter keyed by IPC channel, but the bridge is reachable
+ *  from any authenticated client (not just the renderer) and from any
+ *  path/method combination, so a separate per-(method,path) bucket keyed by
+ *  the stabilised loopback remote is required.
+ *
+ *  Defaults are picked from the IPC matrix: 30 req/min for write/proxy
+ *  paths (POST under /chat/* /image/* /audio/* /video/* /api/venice/*) and
+ *  120 req/min for safe reads (/ping, /models). The /ping health endpoint
+ *  is exempt so monitor/health-check sweeps do not trip the limit.
+ *  (Bug 7.1 / Rate-limiting regression guard for the 2026-06-09
+ *  bridge-server bug-hunt finding.) */
+const BRIDGE_STRICT_LIMIT_PER_MIN = 30;
+const BRIDGE_RELAXED_LIMIT_PER_MIN = 120;
+const BRIDGE_RATE_WINDOW_MS = 60_000;
+const BRIDGE_RATE_BUCKETS = new Map<string, { count: number; resetAt: number }>();
+
+function getBridgeRateLimit(method: string, _path: string): number {
+  if (method.toUpperCase() !== "POST") return BRIDGE_RELAXED_LIMIT_PER_MIN;
+  // Strict limit for every POST that bubbles through to upstream Venice.
+  // /ping is GET-only and exempt below.
+  return BRIDGE_STRICT_LIMIT_PER_MIN;
+}
+
+function isBridgeHealthPath(path: string): boolean {
+  // Strip leading slash for a stable comparison.
+  return path === "/ping" || path === "" || path === "/";
+}
+
+/**
+ * Checks and consumes one rate-limit token for a bridge request. Returns
+ * `null` when the request is permitted and a `{ retryAfterSeconds, limit,
+ * windowMs }` payload when the request is over-budget. Exposed for tests.
+ */
+export function checkBridgeRateLimit(
+  clientKey: string,
+  method: string,
+  path: string,
+  now = Date.now(),
+): { retryAfterSeconds: number; limit: number; windowMs: number } | null {
+  if (isBridgeHealthPath(path)) return null;
+  const limit = getBridgeRateLimit(method, path);
+  const key = `${clientKey}:${method.toUpperCase()}:${path}`;
+  const bucket = BRIDGE_RATE_BUCKETS.get(key);
+  if (!bucket || bucket.resetAt <= now) {
+    BRIDGE_RATE_BUCKETS.set(key, { count: 1, resetAt: now + BRIDGE_RATE_WINDOW_MS });
+    return null;
+  }
+  if (bucket.count >= limit) {
+    return {
+      retryAfterSeconds: Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)),
+      limit,
+      windowMs: BRIDGE_RATE_WINDOW_MS,
+    };
+  }
+  bucket.count += 1;
+  return null;
+}
+
+/** Resets every bridge rate-limit bucket. Tests only. */
+export function resetBridgeRateLimitForTests(): void {
+  BRIDGE_RATE_BUCKETS.clear();
+}
+
 export function getBridgeToken(): string {
   return bridgeToken;
 }
@@ -160,6 +224,22 @@ export function startBridgeServer(
       // Only allow GET or POST
       if (method !== "GET" && method !== "POST") {
         res.status(405).json({ error: "Method Not Allowed" });
+        return;
+      }
+
+      // Per-(client, method, path) rate limit. Health checks (/ping) are
+      // exempt so monitoring sweeps do not burn the bucket. The remote
+      // address falls back to a constant when the socket is unavailable
+      // (e.g., during unit tests using a stub transport).
+      const rateKey = req.ip || req.socket?.remoteAddress || "unknown";
+      const rateLimitResult = checkBridgeRateLimit(rateKey, method, endpoint);
+      if (rateLimitResult) {
+        res.setHeader("Retry-After", String(rateLimitResult.retryAfterSeconds));
+        res.status(429).json({
+          error: "Rate limit exceeded",
+          limit: rateLimitResult.limit,
+          windowMs: rateLimitResult.windowMs,
+        });
         return;
       }
 

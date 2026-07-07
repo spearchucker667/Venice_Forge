@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ComponentPropsWithoutRef } from 'react'
+import { useState, useRef, useEffect, memo, useMemo, type ComponentPropsWithoutRef } from 'react'
 import ReactMarkdown, { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -9,6 +9,7 @@ import { cn } from '../../lib/utils'
 import { useSettingsStore } from '../../stores/settings-store'
 import { maybeRunLocalFamilyGuard } from '../../shared/safety'
 import { copyText } from '../../stores/media-send-to'
+import { useKatexCss } from '../../hooks/useKatexCss'
 import { CharacterSceneCard } from './CharacterSceneCard'
 import type { CharacterSceneGenerationResult } from '../../types/characterSceneGeneration'
 
@@ -109,12 +110,8 @@ interface MessageBubbleProps {
   assistantAvatarUrl?: string
 }
 
-export function MessageBubble({ message, onCopy, onDelete, onRegenerate, onGenerateScene, isCharacterBound, assistantAvatarUrl }: MessageBubbleProps) {
-  useEffect(() => {
-    // Dynamically load KaTeX CSS only when rendering messages to save bundle weight
-    // @ts-expect-error - TS doesn't know about CSS imports without ambient declarations
-    import('katex/dist/katex.min.css')
-  }, [])
+function MessageBubbleImpl({ message, onCopy, onDelete, onRegenerate, onGenerateScene, isCharacterBound, assistantAvatarUrl }: MessageBubbleProps) {
+  useKatexCss()
 
   const [hovering, setHovering] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -132,7 +129,11 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate, onGener
     : ''
   const injectedContextLabel = formatInjectedContextSource(message.metadata?.injectedContextSource)
 
-  const localSafetyDecision = content && localFamilySafeModeEnabled ? (() => {
+  const localSafetyDecision = useMemo(() => {
+    // BUG-React#3 regression guard: only run the safety guard in Red-Team Mode AND
+    // when Family Safe Mode is enabled; non-redteam users should never pay the
+    // regex/lookup cost on every render.
+    if (!redTeamMode || !content || !localFamilySafeModeEnabled) return null
     try {
       return maybeRunLocalFamilyGuard(
         { endpoint: '/chat/completions', method: 'POST', text: content, source: 'chat' },
@@ -141,7 +142,7 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate, onGener
     } catch {
       return null
     }
-  })() : null
+  }, [content, localFamilySafeModeEnabled, redTeamMode])
 
   useEffect(() => {
     return () => {
@@ -366,3 +367,6 @@ function ActionBtn({ label, onClick, children }: { label: string; onClick: () =>
     </button>
   )
 }
+
+// BUG-React#2 regression guard
+export const MessageBubble = memo(MessageBubbleImpl)

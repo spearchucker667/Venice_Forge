@@ -203,12 +203,12 @@ When started with `--headless`, the application runs an Express loopback bridge 
 - **Renderer hydration gate:** Renderer-side preflight guards (`saveCharacterCard`, `savePersona`, `appendRpMessage`, `generateScene`) route the toggle value through `getEffectiveRendererLocalFamilySafeModeEnabled` / `getEffectiveRendererVeniceApiSafeMode` in `src/safetyHydration.ts`. In Electron mode these helpers throw `ConfigNotHydratedError` until the main-process config snapshot has hydrated into the renderer, preventing the renderer from making a preflight decision that disagrees with the canonical main-process state. The RP Studio orchestrator disables safety-sensitive save controls while the hydration is pending and surfaces a banner explaining the wait. See VERIFY-017 in `tests/safety/hydrationGate.test.ts`.
 - **Returned body screening:** Jina (`/api/proxy-jina`) and generic HTTP scrape (`/api/proxy-scrape`) web-proxy endpoints now screen the response body through `screenResponseBody()` before forwarding to the renderer. Large bodies are sampled against an 8 KiB window. A detected block is converted into the same 451 shape as a request-side block.
 
-## Developer Traffic Inspector & Red-Team Mode
+## Developer Traffic Inspector & Developer Mode
 
 The Developer Traffic Inspector logs request/response diagnostics to the renderer store (`src/stores/inspector-store.ts`).
 - **Secret Masking:** To prevent exposing keys to local logs, the UI, or export functions, all header lists are sanitized. Header keys matching `Authorization`, `Cookie`, `x-api-key`, or names containing `key` or `token` are automatically replaced with `******`.
 - **Non-mutating safety preview:** Inspector previews use `previewLocalFamilyGuard()` so they do not increment audit counters. Aggregate counters are produced only by the authoritative enforcement path.
-- **Sandbox Red-Team Mode:** The Red-Team Mode switch disables renderer Markdown/HTML formatting to prevent template injection or rendering exploits from unsafe model outputs, and shows the raw text directly alongside local safety audit signals.
+- **Sandbox Developer Mode:** The Developer Mode switch (formerly labelled "Red-Team Mode") disables renderer Markdown/HTML formatting to prevent template injection or rendering exploits from unsafe model outputs, and shows the raw text directly alongside local safety audit signals. The internal state field remains `redTeamMode` for back-compat.
 
 
 External URLs opened via `shell.openExternal` are validated by
