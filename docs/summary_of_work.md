@@ -8873,3 +8873,12 @@ Result:
 | `npm run build` | PASS | Web, server, and Electron build completed |
 | `npm run verify:contracts` | PASS | All static, feature, and release contract verifiers pass |
 | `npm run verify:dist` | PASS | Build outputs verified for v2.1.1 |
+
+## 2026-07-07: Venice Client Rate Limit Jitter & Audit Execution
+- **P2 — Add Jitter to Venice Client Rate Limit Backoff:**
+  - `src/services/veniceClient/retry.ts`: Updated `calculateBackoff` to include randomized jitter (+ up to 20%).
+  - Verified jitter logic does not break existing `veniceClient.test.ts` test suites.
+- **Audit Execution completed successfully based on previous checklist findings.**
+- **Audit Review:** Investigated the remaining issues from the initial repository-wide scan and determined that they were false positives or hallucinations (e.g. `desktopBridge.ts` contextBridge security is already handled by `contextBridge` internals; `chatStorage.ts` strictly validates IDs before any FS operations; `media-bulk-actions.ts` already handles race conditions via a `before` state snapshot; `AGENTS.md` already properly documents Linux build requirements; `HeaderStatusCluster.tsx` dynamically sets `aria-label` appropriately). 
+- **Tab Migration Warning:** Added a development-mode deprecation warning in `src/config/tabs.ts`'s `normaliseTab` to notify developers to migrate off legacy aliases.
+- **Media Inspector Flex Fix:** Added `flex-wrap` to `RecipeCompatibilityCard`'s status container to prevent layout overflow on narrow viewports.

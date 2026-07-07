@@ -63,14 +63,16 @@ export function resolveTimeoutMs(timeoutMs: number | null | undefined): number |
 }
 
 /**
- * Computes an exponential backoff delay.
+ * Computes an exponential backoff delay with randomized jitter.
  * @param attempt The current retry attempt (0-indexed).
  * @param baseMs The base delay in milliseconds.
  * @param maxMs The maximum delay in milliseconds.
  * @returns The backoff delay.
  */
 export function calculateBackoff(attempt: number, baseMs = 1000, maxMs = 8000): number {
-  return Math.min(baseMs * Math.pow(2, attempt), maxMs);
+  const backoff = Math.min(baseMs * Math.pow(2, attempt), maxMs);
+  const jitter = backoff * 0.2 * Math.random(); // Add up to 20% jitter
+  return Math.floor(backoff + jitter);
 }
 
 /**

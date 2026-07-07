@@ -70,7 +70,7 @@ export function RecipeCompatibilityCard({
   return (
     <div className={className} data-testid="recipe-compatibility-card">
       <div
-        className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md border text-[12px] ${STATUS_TONE[report.status]}`}
+        className={`flex flex-wrap items-center justify-between gap-2 px-2.5 py-1.5 rounded-md border text-[12px] ${STATUS_TONE[report.status]}`}
         data-testid="recipe-compatibility-status"
         data-status={report.status}
         role="status"

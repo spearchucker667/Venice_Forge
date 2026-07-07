@@ -110,6 +110,9 @@ export function resolveTab(id: string | null | undefined): TabDescriptor | null 
  */
 export function normaliseTab(id: string | null | undefined): TabId {
   const resolved = resolveTab(id);
+  if (resolved && resolved.id !== id && typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
+    console.warn(`[tabs] Deprecation warning: tab alias '${id}' used. Please migrate to the canonical id '${resolved.id}'.`);
+  }
   return resolved?.id ?? 'chat';
 }
 
