@@ -124,7 +124,7 @@ export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewPr
       <div className="flex flex-col">
         {browserState?.loading && (
           <div className="h-0.5 bg-[var(--surface-base)]">
-            <div className="h-full bg-[var(--brand-primary)] animate-[loadingBar_2s_ease-in-out_infinite]" style={{ width: "30%" }} />
+            <div className="h-full bg-[var(--brand-primary)] animate-[loadingBar_2s_ease-in-out_infinite] w-[30%]" />
           </div>
         )}
         {browserState?.error && (

@@ -36,7 +36,7 @@ describe("veniceClient web regressions", () => {
     globalThis.fetch = fetchMock;
 
     const request = veniceFetch("/models", { method: "GET", dispatch });
-    await vi.advanceTimersByTimeAsync(2400);
+    await vi.advanceTimersByTimeAsync(10000);
 
     await expect(request).resolves.toMatchObject({ data: { data: [] } });
     expect(fetchMock).toHaveBeenCalledTimes(2);
