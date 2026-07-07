@@ -115,6 +115,17 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-07-07 Dependabot Regression Fixes — COMPLETE:**
+  - Audited recent Dependabot PR merges that introduced strict ESLint rules (breaking the build) and test regressions.
+  - Reverted the breaking `npm-dependencies` Dependabot PR (which updated ESLint and triggered widespread `react-hooks/exhaustive-deps` failures).
+  - Fixed a CSP violation in `src/components/research/ResearchBrowserView.tsx` by replacing an inline style attribute with a Tailwind utility class.
+  - Fixed a timeout in `src/services/veniceClient.web.test.ts` caused by recent jitter logic updates in `calculateBackoff`.
+  - Deleted the remote branch for the reverted `npm-dependencies` Dependabot PR to clean up.
+  - Successfully ran `npm run ci` covering all tests, linters, and contracts.
+  - **Files changed:** `src/components/research/ResearchBrowserView.tsx`, `src/services/veniceClient.web.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `npm run ci` PASS (all linters, typechecks, Vitest suites, and verification contracts succeeded).
+
+
 - **2026-07-01 React Perf Bug Hunt Fix Session — COMPLETE (current session):** Closed BUG-React #1+#5, #2, #3, #4, #6, #7, #9, #10, #11, #12, #14, #15 across the CORE React, Chat view, and Gallery-view clusters. All twelve HIGH-severity React renderer findings from the earlier audit are now addressed with regression guards, plus the chat-store teardown parity work for #14+#15.
   - **BUG-React #1+#5:** `src/hooks/useCharacterImage.ts` no longer uses the full `character` object in `requestKey` or effect deps. Extracted primitives (`charSlug`, `charId`, `charPhotoUrl`, `charLocalId`) up-front at hook scope so streaming-tick rebuilds of `conversation.metadata.character` no longer trigger a redundant IPC `getCachedUrl` + scratch fetch. Unused `getLocalCharacterId` helper removed. New regression test asserts `desktopCharacterImage.getCachedUrl` is invoked only once across three `rerender(...)` calls with new object identity but byte-identical primitive fields.
   - **BUG-React #2:** `src/components/chat/message-bubble.tsx` line 1 added `memo`; renamed export to internal `MessageBubbleImpl`; final line `export const MessageBubble = memo(MessageBubbleImpl)`. `chat-view.tsx` builds per-message callbacks once via `useMemo<Map<string, MessageBubbleCallbacks>>` keyed on primitives (`conversation.id`, `messageCount`, `model`, `characterSlug`) + Zustand action refs. Closures use `messagesRef` + `conversationIdRef` to find the live index of `msg.id` so a stale closure still deletes the correct message even when messages are prepended/inserted. Inline arrows in `conversation.messages.map(...)` replaced by stable `messageCallbacks.get(msg.id)` lookups. `assistantAvatarUrl` hoisted to the top of `ChatView`. Bug-React#2 regression guard comment placed at the `memo` export.
