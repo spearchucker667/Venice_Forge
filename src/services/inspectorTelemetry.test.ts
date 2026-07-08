@@ -111,6 +111,34 @@ describe("inspectorTelemetry", () => {
     expect(deriveCallOutcome(500, "server")).toBe("error");
   });
 
+  // VERIFY-056 regression guard — cancel vs timeout must be distinguishable end-to-end.
+  // 408 / `includes("timeout")` classify to "timeout"; subsequent deriveCallOutcome
+  // promotes the row to a dedicated "timeout" outcome so the inspector chip and
+  // audit counters can separate provider deadlines from user-driven aborts.
+  it("classifies provider timeouts and routes them through a distinct outcome", () => {
+    expect(classifyInspectorError(408)).toBe("timeout");
+    expect(classifyInspectorError(0, "Request timeout after 120s")).toBe("timeout");
+    expect(classifyInspectorError(undefined, "ETIMEDOUT")).toBe("timeout");
+    expect(deriveCallOutcome(undefined, "timeout")).toBe("timeout");
+  });
+
+  it("keeps timeout rows out of the cancelled chip and routes them through the timeout chip", () => {
+    const timedOut = {
+      transport: "venice" as const,
+      callOutcome: "timeout" as const,
+      errorClass: "timeout" as const,
+    };
+    const cancelled = {
+      transport: "venice" as const,
+      callOutcome: "aborted" as const,
+      errorClass: "aborted" as const,
+    };
+    expect(matchesInspectorFilter(timedOut, "timeout")).toBe(true);
+    expect(matchesInspectorFilter(timedOut, "aborted")).toBe(false);
+    expect(matchesInspectorFilter(cancelled, "aborted")).toBe(true);
+    expect(matchesInspectorFilter(cancelled, "timeout")).toBe(false);
+  });
+
   it("filters blocked, transport, and local-only rows", () => {
     const blocked = {
       transport: "venice" as const,

@@ -28,6 +28,7 @@ evidence. If a historical report conflicts with live source, package scripts, or
 | Configuration | [DEVELOPMENT/CONFIG.md](DEVELOPMENT/CONFIG.md) |
 | Storage policy | [DEVELOPMENT/storage-policy.md](DEVELOPMENT/storage-policy.md) |
 | Repository map | [design/REPOSITORY_TREE.md](design/REPOSITORY_TREE.md) |
+| File tree (current) | [FILE_TREE.md](FILE_TREE.md) |
 | Theme system | [design/THEME_SYSTEM.md](design/THEME_SYSTEM.md) |
 
 ## Current Audit Evidence

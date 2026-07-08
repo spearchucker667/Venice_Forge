@@ -29,7 +29,13 @@ export type InspectorTransport = "venice" | "jina" | "local";
 
 export type InspectorGuardOutcome = "allow" | "block" | "skipped" | "deferred" | "pending";
 
-export type InspectorCallOutcome = "pending" | "success" | "blocked" | "error" | "aborted";
+export type InspectorCallOutcome =
+  | "pending"
+  | "success"
+  | "blocked"
+  | "error"
+  | "aborted"
+  | "timeout";
 
 export type InspectorErrorClass =
   | "none"
@@ -47,6 +53,7 @@ export type InspectorLogFilter =
   | "blocked"
   | "error"
   | "aborted"
+  | "timeout"
   | "venice"
   | "jina"
   | "local";
@@ -317,7 +324,11 @@ export function classifyInspectorError(
   if (typeof status === "number" && status >= 500) return "server";
   const normalized = (error || "").toLowerCase();
   if (normalized.includes("abort")) return "aborted";
-  if (normalized.includes("timeout") || normalized.includes("timed out")) return "timeout";
+  if (
+    normalized.includes("timeout") ||
+    normalized.includes("timed out") ||
+    normalized.includes("etimedout")
+  ) return "timeout";
   if (normalized.includes("network") || normalized.includes("fetch failure") || status === 0) {
     return "network";
   }
@@ -325,13 +336,16 @@ export function classifyInspectorError(
   return "none";
 }
 
-/** Derives the terminal call outcome from HTTP status and error metadata. */
+/** Derives the terminal call outcome from HTTP status and error metadata.
+ *  Exposes `timeout` as its own outcome so the inspector can distinguish
+ *  provider/operation deadlines from user-driven aborts. */
 export function deriveCallOutcome(
   status?: number,
   errorClass?: InspectorErrorClass,
 ): InspectorCallOutcome {
   if (status === undefined && errorClass === "none") return "pending";
   if (errorClass === "aborted") return "aborted";
+  if (errorClass === "timeout") return "timeout";
   if (status === 451 || errorClass === "safety-block") return "blocked";
   if (typeof status === "number" && status >= 200 && status < 300) return "success";
   if (status !== undefined || (errorClass && errorClass !== "none")) return "error";
@@ -460,6 +474,9 @@ export function matchesInspectorFilter(
   }
   if (filter === "aborted") {
     return log.callOutcome === "aborted" || log.errorClass === "aborted";
+  }
+  if (filter === "timeout") {
+    return log.callOutcome === "timeout" || log.errorClass === "timeout";
   }
   if (filter === "venice") return log.transport === "venice";
   if (filter === "jina") return log.transport === "jina";

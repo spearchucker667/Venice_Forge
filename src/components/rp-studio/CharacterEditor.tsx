@@ -159,10 +159,12 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
   const handleAvatarFile = async (file: File) => {
     if (!isSupportedImageFile(file)) {
       setError("Avatar must be a supported image file (PNG, JPEG, WEBP).");
+      update("avatar", undefined);
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
       setError(`Avatar file is too large (must be ≤ ${MAX_AVATAR_BYTES / (1024 * 1024)} MiB).`);
+      update("avatar", undefined);
       return;
     }
     try {
@@ -171,6 +173,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
       const match = dataUri.match(/^data:(image\/(png|jpeg|webp));base64,(.*)$/);
       if (!match) {
         setError("Failed to process avatar image.");
+        update("avatar", undefined);
         return;
       }
       const mimeType = match[1] as CharacterCardAvatar["mimeType"];
@@ -180,6 +183,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
       setError(null);
     } catch {
       setError("Failed to read avatar image.");
+      update("avatar", undefined);
     }
   };
 

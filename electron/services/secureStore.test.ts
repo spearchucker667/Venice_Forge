@@ -33,6 +33,12 @@ import {
   setCredential,
   getCredential,
   deleteCredential,
+  setProfilePassword,
+  verifyProfilePassword,
+  isProfilePasswordSet,
+  clearProfilePassword,
+  getProfilePasswordName,
+  isAnyProfilePasswordConfigured,
 } from "./secureStore";
 
 const STORE_PATH = path.join(os.tmpdir(), "secure-prefs.json");
@@ -178,5 +184,121 @@ describe("secureStore", () => {
     expect(() => setCredential("password", "secret")).toThrow(
       /refuse the plaintext fallback/,
     );
+  });
+
+  // ── RELEASE-BLOCKER #5: profile_password* and *_password must refuse plaintext EVERYWHERE ──
+  // The credential-name pattern allowlist covers all profile-namespaced
+  // password variants and any name ending in _password. We assert each path
+  // throws on the Linux plaintext-fallback (with env opt-in enabled) and
+  // that the encrypted happy path round-trips correctly.
+
+  it.each([
+    ["profile_password"],
+    ["profile_password:user-a"],
+    ["profile_password:user-b"],
+    ["profile_password_work"],
+    ["profile_password_work"],
+    ["account_password"],
+  ])("setCredential refuses the Linux plaintext fallback for '%s' even when explicitly enabled", (name) => {
+    process.env.VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE = "true";
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(false);
+
+    expect(() => setCredential(name, "plaintext-secret")).toThrow(
+      /refuse the plaintext fallback/,
+    );
+    expect(fs.existsSync(STORE_PATH)).toBe(false);
+  });
+
+  it("getCredential refuses the Linux plaintext fallback for profile_password* even when explicitly enabled", () => {
+    fs.writeFileSync(
+      STORE_PATH,
+      JSON.stringify({
+        cred_profile_password_userA: "verifier-blob",
+        credEncrypted_profile_password_userA: "false",
+      }),
+      "utf-8",
+    );
+    process.env.VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE = "true";
+    __clearCacheForTests();
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(false);
+
+    expect(getCredential("profile_password:userA")).toBeNull();
+    expect(getCredential("profile_password_userA")).toBeNull();
+  });
+
+  it("setCredential + getCredential round-trip for 'profile_password:userX' works when encryption is available", () => {
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    const record = JSON.stringify({ v: 1, hash: "h" });
+    setCredential("profile_password:userX", record);
+    expect(getCredential("profile_password:userX")).toBe(record);
+  });
+
+  // ── RELEASE-BLOCKER #4: profile password setup/verify surface ──
+  // The renderer UI is intentionally not wired in this release, but the
+  // secureStore layer MUST expose a verifier-only API that namespaces per
+  // profile id, stores only the SHA-256 verifier, refuses plaintext under
+  // any escape hatch, and replays the encrypted happy path on every OS.
+
+  it("setProfilePassword stores only the SHA-256 verifier (not the plaintext) when encryption is available", () => {
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    const plaintext = "super-secret-passphrase";
+    setProfilePassword(plaintext, "userA");
+
+    expect(isProfilePasswordSet("userA")).toBe(true);
+    expect(isAnyProfilePasswordConfigured()).toBe(true);
+
+    // The on-disk row must NOT contain the plaintext.
+    const raw = fs.readFileSync(STORE_PATH, "utf-8");
+    expect(raw).not.toContain(plaintext);
+
+    // The credential row is written under a namespaced key.
+    expect(raw).toMatch(/cred_profile_password:userA/);
+  });
+
+  it("verifyProfilePassword accepts the correct plaintext and rejects any other", () => {
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    setProfilePassword("hunter2", "userB");
+
+    expect(verifyProfilePassword("hunter2", "userB")).toBe(true);
+    expect(verifyProfilePassword("hunter3", "userB")).toBe(false);
+    expect(verifyProfilePassword("", "userB")).toBe(false);
+    expect(verifyProfilePassword("hunter2", "userC")).toBe(false);
+  });
+
+  it("clearProfilePassword removes the profile row but does not touch other profiles", () => {
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    setProfilePassword("pw-a", "userA");
+    setProfilePassword("pw-b", "userB");
+
+    expect(isProfilePasswordSet("userA")).toBe(true);
+    expect(isProfilePasswordSet("userB")).toBe(true);
+
+    clearProfilePassword("userA");
+
+    expect(isProfilePasswordSet("userA")).toBe(false);
+    expect(isProfilePasswordSet("userB")).toBe(true);
+  });
+
+  it("setProfilePassword refuses the Linux plaintext fallback even when explicitly opted-in", () => {
+    process.env.VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE = "true";
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(false);
+
+    expect(() => setProfilePassword("plaintext", "userFails")).toThrow(
+      /refuse the plaintext fallback/,
+    );
+    expect(isProfilePasswordSet("userFails")).toBe(false);
+  });
+
+  it("setProfilePassword rejects empty or non-string plaintext", () => {
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    // @ts-expect-error intentionally bad input
+    expect(() => setProfilePassword("", "userZ")).toThrow(/non-empty/);
+    // @ts-expect-error intentionally bad input
+    expect(() => setProfilePassword(undefined, "userZ")).toThrow(/non-empty/);
+  });
+
+  it("getProfilePasswordName namespaces per profile id and falls back to the legacy default", () => {
+    expect(getProfilePasswordName("userA")).toBe("profile_password:userA");
+    expect(getProfilePasswordName("")).toBe("profile_password");
   });
 });

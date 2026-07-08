@@ -97,15 +97,16 @@ export function useVideo() {
   /**
    * Marks the in-flight /video/queue log as timed out (overall wall-clock
    * deadline, MAX_ATTEMPTS overage, or grouped provider stall). Classified
-   * as `errorClass: 'timeout'` so cancel-vs-timeout is distinguishable in
-   * the inspector.
+   * as `callOutcome: 'timeout'` + `errorClass: 'timeout'` so cancel-vs-timeout
+   * is distinguishable in the inspector and the `timeout` filter chip works
+   * correctly.
    */
   const markGenerationTimedOut = useCallback((reason: string) => {
     const logId = currentLogIdRef.current
     if (!logId) return
     const durationMs = startedAtRef.current ? Date.now() - startedAtRef.current : undefined
     useInspectorStore.getState().updateLog(logId, {
-      callOutcome: 'aborted',
+      callOutcome: 'timeout',
       errorClass: 'timeout',
       error: reason,
       durationMs,

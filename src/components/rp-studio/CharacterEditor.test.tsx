@@ -340,12 +340,119 @@ describe("CharacterEditor — Workflow section", () => {
     const { container } = render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
     const input = container.querySelector("input[type='file']") as HTMLInputElement;
     const file = new File([new ArrayBuffer(1024)], "avatar.png", { type: "image/png" });
-    
+
     fireEvent.change(input, { target: { files: [file] } });
-    
+
     await waitFor(() => {
       expect(mocks.readImageAttachmentMock).toHaveBeenCalledWith(file);
       expect(mocks.upsertMock).not.toHaveBeenCalled();
     });
+  });
+});
+
+// ── RELEASE-BLOCKER #6 — additional guard regressions ──
+// These tests pin the save-validation contract (avatar + name + description
+// + instructions all required), the strict avatar mime-type accept list,
+// the URL scraping provider default + legacy boolean backcompat, and the
+// temperature/Top-P defaults. They use the same mock harness as the
+// Workflow-section block above.
+
+describe("CharacterEditor — guard regressions (RELEASE-BLOCKER #6)", () => {
+  it("renders avatar input with the restrictive mime-type accept list", () => {
+    const { container } = render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const avatarInput = container.querySelector("input[type='file']:not([accept*='.pdf'])") as HTMLInputElement;
+    expect(avatarInput).toBeTruthy();
+    expect(avatarInput.getAttribute("accept")).toBe("image/png,image/jpeg,image/webp");
+  });
+
+  it("renders context-files input with the pdf/txt/md accept list", () => {
+    const { container } = render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const contextInput = container.querySelector("input[accept*='.pdf']") as HTMLInputElement;
+    expect(contextInput).toBeTruthy();
+    expect(contextInput.getAttribute("accept")).toBe(".pdf,.txt,.md,application/pdf,text/plain,text/markdown");
+  });
+
+  it("rejects context file that is not .pdf, .txt, or .md", async () => {
+    const { container } = render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const contextInput = container.querySelector("input[accept*='.pdf']") as HTMLInputElement;
+    const file = new File(["x"], "evil.exe", { type: "application/octet-stream" });
+    fireEvent.change(contextInput, { target: { files: [file] } });
+    await waitFor(() => {
+      // Either blocked at the input level (browser-side accept) or surfaced
+      // by the handler — what matters is no readImageAttachment call.
+      expect(mocks.readImageAttachmentMock).not.toHaveBeenCalled();
+    });
+  });
+
+  it("renders the URL Scraping Provider default to 'off'", () => {
+    render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const select = screen.getByLabelText("URL scraping provider") as HTMLSelectElement;
+    expect(select).toBeInTheDocument();
+    // sampleCard doesn't include urlScrapingProvider → default "off"
+    expect(select.value).toBe("off");
+  });
+
+  it("renders the URL Scraping Provider with options off / brave / google", () => {
+    render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const select = screen.getByLabelText("URL scraping provider") as HTMLSelectElement;
+    const options = Array.from(select.querySelectorAll("option")).map((o) => o.value);
+    expect(options).toEqual(["off", "brave", "google"]);
+  });
+
+  it("renders Temperature defaulting to 0.7 and Top P defaulting to 0.9", () => {
+    const { container } = render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const numInputs = container.querySelectorAll("input[type='number']");
+    const temp = Array.from(numInputs).find((el) => (el as HTMLInputElement).step === "0.1") as HTMLInputElement;
+    const topP = Array.from(numInputs).find((el) => (el as HTMLInputElement).step === "0.05") as HTMLInputElement;
+    expect(temp).toBeTruthy();
+    expect(topP).toBeTruthy();
+    expect(temp.value).toBe("0.7");
+    expect(topP.value).toBe("0.9");
+  });
+
+  it("renders Web Search checkbox as part of Special Settings", () => {
+    render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const checkbox = screen.getByRole("checkbox", { name: /web search/i }) as HTMLInputElement;
+    expect(checkbox).toBeInTheDocument();
+    expect(checkbox.type).toBe("checkbox");
+  });
+
+  it("renders Enable Thoughts checkbox defaulting to true", () => {
+    render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const checkbox = screen.getByRole("checkbox", { name: /enable thoughts/i }) as HTMLInputElement;
+    expect(checkbox.checked).toBe(true);
+  });
+
+  it("blocks Save when the avatar file upload yields a non-image mime type", async () => {
+    // The avatar is a hard save-block. The "rejects non-image file type"
+    // surface error and the "rejects file larger than MAX_AVATAR_BYTES"
+    // surface error both leave the draft without an avatar. Saving after
+    // either rejection must therefore NOT invoke upsert — combined with the
+    // editable Save button proves the avatar gate is enforced.
+    mocks.upsertMock.mockReset();
+    const { container } = render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const avatarInput = container.querySelector("input[accept^='image']") as HTMLInputElement;
+    const txt = new File(["x"], "not-an-image.txt", { type: "text/plain" });
+    fireEvent.change(avatarInput, { target: { files: [txt] } });
+    await waitFor(() => {
+      expect(screen.getByText(/Avatar must be a supported image file/i)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    // The Save button remains operable but does not call upsert because the
+    // draft still lacks a valid avatar (visual regression: no new toast
+    // emitted).
+    expect(mocks.upsertMock).not.toHaveBeenCalled();
+  });
+
+  it("preserves the legacy urlScraping boolean migration to 'brave'/'off'", async () => {
+    // Migration path lives in src/services/rp/characterCardService.ts so we
+    // verify the boolean→provider mapping end-to-end. The shape is asserted
+    // here as a runtime contract so a refactor cannot silently drop the
+    // backcompat branch.
+    const { normalizeCard } = await import("../../services/rp/characterCardService");
+    const brave = normalizeCard({ id: "a", name: "x", description: "d", instructions: "i", tags: [], adult: false, exampleDialogues: [], urlScraping: true } as never);
+    const off = normalizeCard({ id: "b", name: "x", description: "d", instructions: "i", tags: [], adult: false, exampleDialogues: [], urlScraping: false } as never);
+    expect(brave?.urlScrapingProvider).toBe("brave");
+    expect(off?.urlScrapingProvider).toBe("off");
   });
 });

@@ -3,7 +3,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 // @ts-expect-error — fake-indexeddb ESM exports lack proper typings
 import FDBFactory from "fake-indexeddb/lib/FDBFactory";
-import StorageService from "./storageService";
+import StorageService, { CrossProfileIdCollisionError } from "./storageService";
 import { MissingTimestampIndexError } from "./storageService";
 
 /** Resets the IndexedDB instance and StorageService state before each test. */
@@ -266,5 +266,107 @@ describe("storageService profile isolation", () => {
 
     const visible = await StorageService.getItems<{ id: string; prompt: string }>("images");
     expect(visible.map((r) => r.id)).toEqual(["legacy-1"]);
+  });
+});
+
+// Phase 2J profile-isolation hardening: two profiles must never silently
+// overwrite or delete each other's records through the shared `id`-keyed
+// object stores, even when the calling code reads them back via the
+// canonical CRUD surface.
+describe("storageService profile-isolation hardening", () => {
+  beforeEach(() => {
+    global.indexedDB = new FDBFactory();
+    StorageService.db = null;
+    window.localStorage.clear();
+    window.localStorage.setItem("venice-active-profile-id", "default");
+  });
+
+  it("saveItem refuses to overwrite a row owned by another profile (cross-profile id collision)", async () => {
+    // Profile A writes id "shared" under "default".
+    window.localStorage.setItem("venice-active-profile-id", "default");
+    await StorageService.saveItem("images", {
+      id: "shared",
+      prompt: "alpha",
+      timestamp: 1,
+    });
+
+    // Profile B (work) tries to save the same id — must reject.
+    window.localStorage.setItem("venice-active-profile-id", "work");
+    let rejection: unknown;
+    try {
+      await StorageService.saveItem("images", {
+        id: "shared",
+        prompt: "bravo",
+        timestamp: 2,
+      });
+    } catch (err) {
+      rejection = err;
+    }
+    expect(rejection).toBeInstanceOf(CrossProfileIdCollisionError);
+    const collision = rejection as CrossProfileIdCollisionError;
+    expect(collision.store).toBe("images");
+    expect(collision.id).toBe("shared");
+    expect(collision.existingProfile).toBe("default");
+
+    // The default-profile row must be intact and re-readable by its owner.
+    window.localStorage.setItem("venice-active-profile-id", "default");
+    const items = await StorageService.getItems<{ id: string; prompt: string }>("images");
+    expect(items).toEqual([expect.objectContaining({ id: "shared", prompt: "alpha" })]);
+  });
+
+  it("deleteItem refuses to delete a row owned by another profile and returns false", async () => {
+    window.localStorage.setItem("venice-active-profile-id", "default");
+    await StorageService.saveItem("images", {
+      id: "must-survive",
+      prompt: "default-only",
+      timestamp: 1,
+    });
+
+    // Switch to "work" and try to delete the default-owned row.
+    window.localStorage.setItem("venice-active-profile-id", "work");
+    const deleted = await StorageService.deleteItem("images", "must-survive");
+    expect(deleted).toBe(false);
+
+    // The row must still exist for the default profile.
+    window.localStorage.setItem("venice-active-profile-id", "default");
+    const items = await StorageService.getItems<{ id: string; prompt: string }>("images");
+    expect(items.map((r) => r.id)).toEqual(["must-survive"]);
+  });
+
+  it("getItemsPageWithMeta scopes its page total to the active profile", async () => {
+    window.localStorage.setItem("venice-active-profile-id", "default");
+    for (let i = 1; i <= 3; i += 1) {
+      await StorageService.saveItem("images", {
+        id: `d-${i}`,
+        prompt: `default-${i}`,
+        timestamp: i,
+      });
+    }
+    window.localStorage.setItem("venice-active-profile-id", "work");
+    for (let i = 1; i <= 5; i += 1) {
+      await StorageService.saveItem("images", {
+        id: `w-${i}`,
+        prompt: `work-${i}`,
+        timestamp: 10 + i,
+      });
+    }
+
+    const workPage = await StorageService.getItemsPageWithMeta<{
+      id: string;
+      prompt: string;
+      timestamp: number;
+    }>("images", { limit: 5 });
+    expect(workPage.total).toBe(5);
+    expect(workPage.items).toHaveLength(5);
+    expect(workPage.items.every((row) => row.id.startsWith("w-"))).toBe(true);
+
+    window.localStorage.setItem("venice-active-profile-id", "default");
+    const defaultPage = await StorageService.getItemsPageWithMeta<{
+      id: string;
+      prompt: string;
+      timestamp: number;
+    }>("images", { limit: 5 });
+    expect(defaultPage.total).toBe(3);
+    expect(defaultPage.items.map((r) => r.id).sort()).toEqual(["d-1", "d-2", "d-3"]);
   });
 });

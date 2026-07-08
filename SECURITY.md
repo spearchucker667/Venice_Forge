@@ -226,6 +226,16 @@ Both the **Venice API key** and the optional **Jina API key** use the same stora
 For Windows and macOS, there is **no plaintext fallback**. The application will refuse to save any API key if OS-level encryption is unavailable.
 For Linux and other platforms, a plaintext fallback may be permitted if the `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true` environment variable is explicitly set in the process environment (e.g., `.env` for web mode development, or the shell environment for Electron).
 
+## Profile-Locked Credentials
+
+Per-Profile credentials are stored under the same `secure-prefs.json` file but with namespaced keys and a tighter rejection policy:
+
+- **Credential names:** `profile_password:<profileId>` (e.g. `profile_password:work`). A stolen `secure-prefs.json` file alone cannot infer the subject without the `profileId` mapping, which is held in IndexedDB on the local machine.
+- **Storage policy:** All profile-password credentials are routed through the same `safeStorage` path as the Venice / Jina API keys. Plaintext fallback (Linux) is **always refused** for profile-password credentials, even when `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true`. The opt-in env-var only applies to API-key class credentials.
+- **Strict No-Plaintext Credential gate:** `electron/services/secureStore.ts` ships with a frozen `STRICT_NO_PLAINTEXT_CREDENTIAL_NAMES = {"password","master_password","profile_password"}` and a regex `STRICT_NO_PLAINTEXT_CREDENTIAL_PATTERN` that matches `^profile_password:` and `^profile_password_` (any profile id) plus any credential name ending in `_password`. `isStrictNoPlaintextCredential(name)` is invoked first in `setCredential` (throws) and `getCredential` (returns null) before the platform branch. See the regression guard suite in `electron/services/secureStore.test.ts` covering write-throws-on-Linux-plaintext-for-`master_password`-even-with-env-flag and the matching `profile_password` namespace coverage.
+- **Verifier:** `verifyProfilePassword(password, profileId)` uses `crypto.timingSafeEqual` against a SHA-256 digest. The credential record stores the salted digest only, never the plaintext password. `setPassword('')` / `setConfirm('')` clear the inputs on success or failure, and the verify path charges one attempt on every failure (including missing or corrupt records) so an attacker cannot distinguish "no credential stored" from "wrong password" by the relative error rate.
+- **User-visible status:** The Storage & Privacy dashboard surfaces whether any profile password is configured (read-only; the password itself never crosses the IPC boundary). The unlock UI itself is a future-work item tracked under the canonical roadmap.
+
 ## Local Master YAML Config
 
 The optional `config.yaml` and `themes.yaml` files are a **bootstrap mechanism**, not a key store. Their security model is:

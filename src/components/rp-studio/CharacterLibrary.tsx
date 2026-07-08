@@ -61,12 +61,31 @@ export function CharacterLibrary({ onEdit }: Props) {
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
   const [createMePrompt, setCreateMePrompt] = useState("");
   const [isCreatingMe, setIsCreatingMe] = useState(false);
+  // createMeAvatarError surfaces a retryable error when the avatar generator
+  // refuses or fails — the user can edit the prompt and click "Create Me"
+  // again. The card is NEVER persisted until `card.avatar` is set.
+  const [_createMeAvatarError, setCreateMeAvatarError] = useState<string | null>(null);
   const safeMode = useSettingsStore((s) => s.localFamilySafeModeEnabled);
+
+  /**
+   * Builds a safe, deterministic avatar prompt from the validated character
+   * metadata when `validated.imagePrompt` is missing. Keeps prompts short,
+   * avoids any names/descriptions that should never appear in an avatar,
+   * and is capped at 600 chars to match the validated schema.
+   */
+  function synthAvatarPrompt(v: { name: string; description: string; tags: string[] }): string {
+    const safeName = v.name.replace(/[\r\n"]+/g, " ").slice(0, 40);
+    const safeDesc = v.description.replace(/[\r\n"]+/g, " ").slice(0, 200);
+    const tagClouds = v.tags.slice(0, 4).map((t) => t.replace(/[^\w-]/g, "")).filter(Boolean).join(" ");
+    const template = `Portrait avatar of ${safeName}, ${tagClouds}. ${safeDesc}. Square icon framing, soft light, no text, no watermarks.`;
+    return template.slice(0, 600);
+  }
 
   const handleCreateMe = async () => {
     if (!createMePrompt.trim()) return;
     const promptText = createMePrompt.trim();
 
+    setCreateMeAvatarError(null);
     setIsCreatingMe(true);
     try {
       // (1) Pre-flight guard on the user's prompt itself.
@@ -168,31 +187,48 @@ export function CharacterLibrary({ onEdit }: Props) {
         updatedAt: now,
       };
 
-      // (4) Generate an avatar via the configured image model. The
-      //     image-prompt is screened through Family Safe Mode BEFORE we
-      //     hit the network, then `extractImages` returns a data URL we
-      //     persist onto the card before opening the editor. Inspector
-      //     logs already redact prompts via `sanitizeInspectorPayload`.
-      let avatar: CharacterCardAvatar | undefined;
-      if (validated.imagePrompt && validated.imagePrompt.trim()) {
-        const imagePrompt = validated.imagePrompt.trim().slice(0, 600);
-        if (safeMode) {
-          const guard = maybeRunLocalFamilyGuard(
-            { text: imagePrompt, source: "image" },
-            true,
+      // (4) MANDATORY: every character must have an avatar before we persist
+      //     the card. We try the model-supplied imagePrompt first, then fall
+      //     back to a synthesized avatar prompt derived from validated name
+      //     / description / tags so the user does not end up with a card
+      //     whose only avatar is a placeholder initials block. Failure (or
+      //     Family Safe Mode refusal of the prompt) leaves the user with a
+      //     retryable error and the editor-link is NOT opened — the card is
+      //     also NOT saved.
+      const candidateImagePrompt =
+        (validated.imagePrompt && validated.imagePrompt.trim())
+          ? validated.imagePrompt.trim().slice(0, 600)
+          : synthAvatarPrompt(validated);
+
+      if (safeMode) {
+        const imageGuard = maybeRunLocalFamilyGuard(
+          { text: candidateImagePrompt, source: "image" },
+          true,
+        );
+        if (!imageGuard.allowed) {
+          setCreateMeAvatarError(
+            "Avatar image prompt was blocked by Family Safe Mode. Edit your prompt or disable the guard, then try again.",
           );
-          if (guard.allowed) {
-            avatar = await generateAvatarForCard(imagePrompt);
-          }
-        } else {
-          avatar = await generateAvatarForCard(imagePrompt);
+          toast.error("Avatar blocked by safety guard.");
+          setIsCreatingMe(false);
+          return;
         }
       }
-      if (avatar) card.avatar = avatar;
+      const avatar = await generateAvatarForCard(candidateImagePrompt);
+      if (!avatar) {
+        setCreateMeAvatarError(
+          "Could not generate an avatar for this character. The card was NOT saved. Retry, or open the editor and upload an image manually.",
+        );
+        toast.error("Avatar generation failed; card not saved.");
+        setIsCreatingMe(false);
+        return;
+      }
+      card.avatar = avatar;
 
       const saved = await upsert(card);
       if (saved) {
         setCreateMePrompt("");
+        setCreateMeAvatarError(null);
         onEdit(saved.id);
       }
     } catch (err) {

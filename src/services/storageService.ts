@@ -12,6 +12,29 @@ type StoreName = (typeof STORE_NAMES)[number];
 /** Marker field added to every record so reads can filter by active profile. */
 export const PROFILE_ID_FIELD = "profileId";
 
+/**
+ * Thrown when `saveItem` would overwrite a record that belongs to a different
+ * profile (two profiles sharing the same `id` in the `id`-keyed object stores
+ * would otherwise silently collide once the record keys are equal).
+ */
+export class CrossProfileIdCollisionError extends Error {
+  public readonly store: StoreName;
+  public readonly id: string;
+  public readonly existingProfile: string;
+  constructor(store: StoreName, id: string, existingProfile: string) {
+    super(
+      `[storageService] Cannot save record with id "${id}" in store "${store}": ` +
+      `id is already used by profile "${existingProfile}". Use a profile-unique id ` +
+      `(e.g. suffix with profile name, or use crypto.randomUUID()) so cross-profile ` +
+      `records cannot overwrite each other through the shared keyPath.`,
+    );
+    this.name = "CrossProfileIdCollisionError";
+    this.store = store;
+    this.id = id;
+    this.existingProfile = existingProfile;
+  }
+}
+
 /** List of store names whose records are encrypted before persistence. */
 // diagnostics is intentionally excluded: it stores sanitized timing/status metadata
 // only (no raw prompts, no API keys), so encryption overhead is not warranted.
@@ -165,6 +188,16 @@ const StorageService = {
 
   /**
    * Saves an item to the specified store, encrypting if required.
+   *
+   * Profile isolation: before writing, the call probes for an existing row
+   * with the same `id` that belongs to a *different* profile. If such a row
+   * exists the call rejects with `CrossProfileIdCollisionError` instead of
+   * silently overwriting the other profile's record (the object stores use
+   * the logical `id` as the IndexedDB keyPath, so two profiles using the
+   * same id would otherwise collapse onto the same physical row). The
+   * collision guard operates inside a single readonly transaction so the
+   * read is consistent with concurrent writes.
+   *
    * @param store The target object store name.
    * @param item The record to persist.
    * @returns A promise resolving to the saved record with generated id and timestamp.
@@ -174,16 +207,38 @@ const StorageService = {
     const id = typeof item.id === "string" ? item.id : crypto.randomUUID();
     assertValidId(id, "saveItem");
     const timestamp = typeof item.timestamp === "number" ? item.timestamp : Date.now();
+    const activeProfile = getActiveProfileId();
+
+    const existingOwner = await new Promise<string | null>((resolve, reject) => {
+      const tx = db.transaction(store, "readonly");
+      const req = tx.objectStore(store).get(id);
+      req.onsuccess = () => {
+        const row = req.result as Record<string, unknown> | undefined;
+        if (!row) {
+          resolve(null);
+          return;
+        }
+        const rowProfile = typeof row[PROFILE_ID_FIELD] === "string"
+          ? (row[PROFILE_ID_FIELD] as string)
+          : DEFAULT_PROFILE_ID;
+        resolve(rowProfile);
+      };
+      req.onerror = () => reject(req.error);
+    });
+
+    if (existingOwner !== null && existingOwner !== activeProfile) {
+      throw new CrossProfileIdCollisionError(store, id, existingOwner);
+    }
 
     let payload: Record<string, unknown> = {
       ...item,
       id,
       timestamp,
-      [PROFILE_ID_FIELD]: getActiveProfileId(),
+      [PROFILE_ID_FIELD]: activeProfile,
     };
     if (ENCRYPTED_STORES.includes(store)) {
       const encryptedData = await encryptData(payload);
-      payload = { id, timestamp, [PROFILE_ID_FIELD]: getActiveProfileId(), data: encryptedData, _isEncryptedWrapper: true };
+      payload = { id, timestamp, [PROFILE_ID_FIELD]: activeProfile, data: encryptedData, _isEncryptedWrapper: true };
     }
 
     return new Promise((resolve, reject) => {
@@ -235,10 +290,24 @@ const StorageService = {
       throw new MissingTimestampIndexError(store);
     }
 
+    // Profile isolation invariant: the page total and the page cursor must
+    // both be scoped to the active profile.
+    //   - Preferred path: use the `profileId` index for both count() and the
+    //     timestamp cursor fallback filter (most stores have a profileId
+    //     index after migration v15).
+    //   - Legacy fallback (no profileId index): count all rows, filter the
+    //     cursor result manually. `effectiveTotal` is set to the filtered row
+    //     length so the page navigator never reports a bogus "next page".
+    const hasProfileIndex = objectStore.indexNames.contains("profileId");
+    if (!hasProfileIndex) {
+      warn(
+        `[storageService] Store "${store}" lacks a profileId index so ` +
+        "pagination will fall back to in-memory filtering. Apply migration v15+.",
+      );
+    }
+
     return new Promise((resolve, reject) => {
       const rows: Record<string, unknown>[] = [];
-      const countRequest = objectStore.count();
-      const cursorRequest = objectStore.index("timestamp").openCursor(null, "prev");
       let total: number | null = null;
       let cursorDone = false;
       let advanced = offset === 0;
@@ -249,23 +318,29 @@ const StorageService = {
         settled = true;
         try {
           const decoded = await decodeRows<T>(store, rows, activeProfile);
+          const effectiveTotal = hasProfileIndex ? total : decoded.items.length;
           resolve({
             ...decoded,
-            total,
+            total: effectiveTotal,
             offset,
             limit,
-            hasMore: offset + decoded.items.length < total,
+            hasMore: offset + decoded.items.length < effectiveTotal,
           });
         } catch (error) {
           reject(error);
         }
       };
 
+      const countRequest = hasProfileIndex
+        ? objectStore.index("profileId").count(IDBKeyRange.only(activeProfile))
+        : objectStore.count();
       countRequest.onsuccess = () => {
         total = countRequest.result;
         void finish();
       };
       countRequest.onerror = () => reject(countRequest.error);
+
+      const cursorRequest = objectStore.index("timestamp").openCursor(null, "prev");
       cursorRequest.onsuccess = () => {
         const cursor = cursorRequest.result;
         if (!cursor || rows.length >= limit) {
@@ -278,7 +353,17 @@ const StorageService = {
           cursor.advance(offset);
           return;
         }
-        rows.push(cursor.value as Record<string, unknown>);
+        const row = cursor.value as Record<string, unknown>;
+        // Always enforce profile scope on every row the cursor returns,
+        // regardless of whether the profileId index is present. The cursor
+        // walks the `timestamp` index (not the profileId index), so without
+        // this guard the page would leak rows from other profiles whenever
+        // the profileId index is missing OR a row is missing the field.
+        if (!rowBelongsToActiveProfile(row, activeProfile)) {
+          cursor.continue();
+          return;
+        }
+        rows.push(row);
         cursor.continue();
       };
       cursorRequest.onerror = () => reject(cursorRequest.error);
@@ -337,21 +422,54 @@ const StorageService = {
   },
 
   /**
-   * Deletes a single record from a store. Cross-profile deletes are allowed
-   * (caller-supplied id always wins) so users can clean up wrong-profile
-   * imports.
+   * Deletes a single record from a store. Profile isolation invariant:
+   * before deleting, the call verifies the row belongs to the active
+   * profile. If the row is owned by a different profile the call returns
+   * `false` (not an error) so the caller can treat "missing" and
+   * "foreign-profile" identically. Cross-profile deletes are intentionally
+   * rejected — there is no UI path that should be able to wipe another
+   * profile's record through this entry point.
+   *
    * @param store The object store name.
    * @param id The unique identifier of the record to delete.
-   * @returns A promise resolving to true on success.
+   * @returns A promise resolving to true when a row owned by the active
+   *          profile was deleted, false otherwise (including row missing or
+   *          owned by a different profile).
    */
   async deleteItem(store: StoreName, id: string): Promise<boolean> {
     assertValidId(id, "deleteItem");
     const db = await this.openDB();
+    const activeProfile = getActiveProfileId();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(store, "readwrite");
-      tx.objectStore(store).delete(id);
+      const objectStore = tx.objectStore(store);
+      const lookup = objectStore.get(id);
+      lookup.onsuccess = () => {
+        const row = lookup.result as Record<string, unknown> | undefined;
+        if (!row) {
+          resolve(false);
+          return;
+        }
+        if (!rowBelongsToActiveProfile(row, activeProfile)) {
+          // Foreign-profile row — refuse the delete and abort the transaction
+          // so the read-only probe does not accidentally commit.
+          try { tx.abort(); } catch { /* transaction already finalised */ }
+          resolve(false);
+          return;
+        }
+        objectStore.delete(id);
+      };
+      lookup.onerror = () => reject(lookup.error);
       tx.oncomplete = () => resolve(true);
-      tx.onerror = () => reject(tx.error);
+      tx.onerror = () => {
+        // Aborted transactions raise here; treat foreign-profile abort as
+        // `false` (the explicit "not deleted" return above).
+        if (tx.error && tx.error.name === "AbortError") {
+          resolve(false);
+          return;
+        }
+        reject(tx.error);
+      };
     });
   },
 

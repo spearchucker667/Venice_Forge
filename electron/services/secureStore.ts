@@ -312,15 +312,34 @@ export function getSecureStoreStatus(): {
 //   added per release-blocker #7 so a stolen credentials file cannot
 //   surface a usable password verifier on a Linux box.
 
-/** Credential names that are never allowed to fall back to plaintext on any OS. */
+/** Credential names that are never allowed to fall back to plaintext on any OS.
+ *  The set is the canonical whitelist; the pattern allowlist covers every
+ *  profile-namespaced password variant (RELEASE-BLOCKER #5). */
 const STRICT_NO_PLAINTEXT_CREDENTIAL_NAMES: ReadonlySet<string> = new Set([
   "password",
   "master_password",
+  "profile_password",
 ]);
 
-/** Returns true when the named credential must never be stored or read as plaintext. */
+/** Pattern allowlist for credential names that must refuse plaintext under any
+ *  escape hatch. Covers:
+ *    - profile_password, profile_password:abc, profile_password_abc
+ *    - any name ending in _password (used for auth/unlock credentials)
+ *  The Linux plaintext-fallback opt-in NEVER enables these. */
+const STRICT_NO_PLAINTEXT_CREDENTIAL_PATTERN: readonly RegExp[] = [
+  /^profile_password(?:[:_].+)?$/i,
+  /_password$/i,
+];
+
+/** Returns true when the named credential must never be stored or read as
+ *  plaintext, regardless of OS, env opt-in, or platform. */
 function isStrictNoPlaintextCredential(name: string): boolean {
-  return STRICT_NO_PLAINTEXT_CREDENTIAL_NAMES.has(name);
+  if (typeof name !== "string" || name.length === 0) return false;
+  if (STRICT_NO_PLAINTEXT_CREDENTIAL_NAMES.has(name)) return true;
+  for (const pattern of STRICT_NO_PLAINTEXT_CREDENTIAL_PATTERN) {
+    if (pattern.test(name)) return true;
+  }
+  return false;
 }
 
 /** Encrypts and stores a generic credential. */
@@ -405,4 +424,76 @@ export function deleteCredential(key: string): void {
   delete store[k];
   delete store[ke];
   writeStore(store);
+}
+
+// ── Profile Password (RELEASE-BLOCKER #4 / #5) ──
+//
+// Profile passwords are treated as a strict, fail-closed credential: they
+// NEVER admit the Linux plaintext-fallback escape hatch. The credential is
+// always written/read via the encrypted-safeStorage path and is namespaced
+// per profile id so two profiles can have independent passwords.
+//
+// The full setup/unlock UI is intentionally NOT wired into a renderer flow
+// in this release. The secureStore entry points below are the audit-level
+// minimum the release-blocker asks for: every existing `setCredential("profile_password*", …)`
+// call site is funneled through `setProfilePassword` which fails closed on
+// every OS. The hash-on-disk format is SHA-256 (Web Crypto parity is not
+// available in the Electron main process at this layer; using the built-in
+// Node `crypto` module keeps the verification deterministic and self-contained).
+//
+// Renderer callers should NOT use `setCredential("profile_password", …)`
+// directly. Use `setProfilePassword`, `verifyProfilePassword`,
+// `isProfilePasswordSet`, `clearProfilePassword` via the IPC bridge.
+
+import crypto from "crypto";
+
+/** Canonical credential name for the active profile's password. */
+export function getProfilePasswordName(profileId: string): string {
+  if (typeof profileId !== "string" || profileId.length === 0) return "profile_password";
+  return `profile_password:${profileId}`;
+}
+
+/** Returns true if any form of profile password is currently configured. */
+export function isAnyProfilePasswordConfigured(): boolean {
+  const store = readStore("apiKey");
+  for (const key of Object.keys(store)) {
+    if (key.startsWith("cred_profile_password")) return true;
+  }
+  return false;
+}
+
+/** Sets the given plaintext password for the active profile. The plaintext
+ *  is NEVER written to disk — only the SHA-256 verifier is stored. */
+export function setProfilePassword(plaintext: string, profileId: string): void {
+  if (typeof plaintext !== "string" || plaintext.length === 0) {
+    throw new Error("Profile password must be a non-empty string.");
+  }
+  const verifier = crypto.createHash("sha256").update(plaintext, "utf-8").digest("hex");
+  // setCredential stores via the safeStorage encrypted path on every OS;
+  // isStrictNoPlaintextCredential refuses plaintext for `profile_password*`.
+  setCredential(getProfilePasswordName(profileId), verifier);
+}
+
+/** Returns true if the supplied plaintext matches the on-disk verifier. */
+export function verifyProfilePassword(plaintext: string, profileId: string): boolean {
+  if (typeof plaintext !== "string" || plaintext.length === 0) return false;
+  const expected = getCredential(getProfilePasswordName(profileId));
+  if (typeof expected !== "string" || expected.length === 0) return false;
+  const candidate = crypto.createHash("sha256").update(plaintext, "utf-8").digest("hex");
+  // Constant-time compare to discourage timing oracles on the verifier hash.
+  const a = Buffer.from(candidate, "utf-8");
+  const b = Buffer.from(expected, "utf-8");
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+/** Returns true if the active profile has a stored password. */
+export function isProfilePasswordSet(profileId: string): boolean {
+  const raw = getCredential(getProfilePasswordName(profileId));
+  return typeof raw === "string" && raw.length > 0;
+}
+
+/** Removes the active profile's password. */
+export function clearProfilePassword(profileId: string): void {
+  deleteCredential(getProfilePasswordName(profileId));
 }

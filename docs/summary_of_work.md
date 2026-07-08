@@ -244,7 +244,7 @@ backlog files were removed.
   - **Music output handling:** Migrated `use-music.ts` from `venice()` to `veniceFetch()` with timeout/abort/telemetry. Added auto-save to Media Studio on completion (matching video pattern) and manual "Save to Media Studio" button. Added `"audio"` to `MediaType` and `"music-generate"` to `MediaOperation` across all media-related files.
   - **Characters:** Fixed scenario creation tab navigation (`"scenes"` → `"rp-studio"`). Added `importCards`/`exportCards`/`archiveCard`/`unarchiveCard`/`addVersion`/`setCurrentVersion` to character-card store. Added `importPersonas`/`exportPersonas` to persona store. `createBlank` no longer sets `scenario: ""`. Added `firstMessage` textarea, archive/unarchive button, version history (save/restore) to CharacterEditor. Scene and prompt dropdowns now use reactive hooks instead of `getState()`.
   - **Browser splash/menu/URL fixes:** Added custom HTML splash page (`assets/browser-splash.html`) with Venice Forge branding and quick links. Added `lastErrorUrl` display in error banner. Added CSS loading progress bar during navigation. Added "Open in OS browser" toolbar button. Added `aria-label` attributes to browser toolbar buttons. Included `assets/**/*` in electron-builder packaging.
-  - **Rename/migration:** Renamed user-facing "Traffic Inspector" labels to "Developer Mode" across sidebar, tests, and comments. Internal state field `redTeamMode` preserved. DB_NAME rename skipped (destructive — would orphan IndexedDB data). Research tab label already correct.
+  - **Rename/migration (correction):** The user-visible sidebar switch is labelled **Traffic Inspector**, not "Developer Mode". Prior "Developer Mode" labelling in this section reflected an upstream agent mistake. Sidebar aria-label, settings-store Zustand field `redTeamMode: boolean`, and CharacterLibrary comments all use "Traffic Inspector" today; `redTeamMode` only gates raw developer rendering, while adult-character visibility is a regular preference toggled via `localFamilySafeModeEnabled`. The persisted key remains `redTeamMode` for backcompat — any future user-visible rename must be coordinated with `useSettingsStore.migrate()` and the `message-bubble.tsx` consumer.
   - **Files changed:** `src/types/media.ts`, `src/components/image/image-view.tsx`, `src/components/image/image-tools.tsx`, `src/hooks/use-video.ts`, `src/hooks/use-video.test.tsx`, `src/lib/workflow-engine.ts`, `src/stores/workflow-store.ts`, `src/components/workflows/workflows-view.tsx`, `src/services/workflowCompiler.ts`, `src/services/workflowRunner.ts`, `src/hooks/use-music.ts`, `src/hooks/use-music.test.tsx`, `src/components/music/music-view.tsx`, `src/types/storage.ts`, `src/stores/media-export-bundle.ts`, `src/types/rp.ts`, `src/stores/character-card-store.ts`, `src/stores/persona-store.ts`, `src/services/rp/characterCardService.ts`, `src/components/rp-studio/CharacterEditor.tsx`, `src/components/rp-studio/CharacterEditor.test.tsx`, `src/components/rp-studio/CharacterLibrary.tsx`, `assets/browser-splash.html`, `src/components/research/ResearchBrowserView.tsx`, `src/styles/theme.css`, `electron/services/researchBrowserServer.ts`, `electron-builder.config.cjs`, `src/components/layout/sidebar.tsx`, `src/components/layout/sidebar.test.tsx`, `docs/summary_of_work.md`.
   - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; all focused test suites PASS (image-tools, image-view, use-video, workflow-engine, workflow-store, workflow-compiler, workflow-runner, use-music, music-view, character-editor, character-card-store, persona-store, sidebar, research-browser-view); `npm run verify:contracts` PASS; `npm run build` PASS.
   - **Remaining:** Profile isolation, master password, credential storage, onboarding flow, and full Family Safe Mode master password remain open as future work.
@@ -3640,7 +3640,97 @@ backlog files were removed.
 
 ## Latest Session Summary
 
-- **Date:** 2026-07-07 (second pass)
+- **Date:** 2026-07-07 (fourth pass — docs-refresh against current source of truth).
+- **Agent:** Kimi Code (root agent).
+- **Branch / state:** `main`; working tree started from the post-8-blocker-pass-3 closeout (13 modified + 2 added; this session adds 1 more modified doc + 1 new FILE_TREE doc). NOT committing/pushing in this session per docs-refresh scope.
+- **User instruction (verbatim):** *"Use this as the docs-refresh agent prompt. It treats code as the source of truth, refreshes README.md first, then reconciles every supporting repo doc against the latest implementation and issue-fix work order."* The distilled contract treats code as canonical, requires the canonical labels (Venice Forge / Traffic Inspector / Family Safe Mode / Profiles / Character Library / RP Studio / Image Studio / Video Studio / Music Studio / Research Browser / Research Workspace / Workflows), forbids invented features, requires policy correctness (PG-13, credentials, network boundaries, traffic-inspector redaction), and demands the full Required Validation chain pass before declaring done.
+- **Closed in this session:**
+  - **README.md refresh — single target edit.** The repo README was already correctly aligned to the canonical labels (Traffic Inspector, Family Safe Mode vs provider `safe_mode` distinction, Profiles/Character Library/RP Studio/Image Studio/Video Studio/Music Studio/Research Browser/Research Workspace/Workflows, dev:server/dev:web/dev:electron, verify:safety-guard, verify:contracts). Only material drift was the release badge at line 21 (`v2.1.1` → `v2.1.2`); corrected.
+  - **`docs/FILE_TREE.md` created (required by docs-refresh contract).** First-party repo tree covering: top-level layout; `src/` (components/services/stores/lib/research/shared/theme breakdown with the canonical entrypoints per area); `electron/` (ipc/services/security/utils breakdown); `tests/` (smoke + safety + storage + regression); `scripts/` (verify-* roster + bootstrap helpers `init-config.ts` / `print-config.ts` / `validate-config.ts` / `start-production.cjs` / `clean-repo-zip.sh` / `checksum-release.cjs` / `build-electron.cjs` / `create-cjs-package.cjs` / `generate-placeholder-icon.cjs` / `profile-media-studio.mjs` / `capture-release-qa-snapshots.mjs`); `config/themes/` (28 starter YAMLs); `build/` (tracked `icon.{ico,icns,png}` only; rest gitignored); and the `docs/` map with absolute purpose for every doc directory and key file. Notes section explicitly calls out: (1) `.cursorrules` / `.windsurfrules` / `CLAUDE.md` / `GEMINI.md` are narrow-scope agent hints and MUST remain playbooks only (already verified — no fabricated behaviour); (2) `docs/AGENTS/AGENTS.md`, `docs/AGENTS/agent-reinitialization.md`, and `docs/AGENTS/gemini.md` are gitignored local-only agent scratch files which must NEVER be reproduced or relied upon in remote CI (VERIFY-034 is the regression guard).
+  - **`docs/DOCS_INDEX.md` refresh — File tree row added.** Inserted a `File tree (current) | [FILE_TREE.md](FILE_TREE.md)` row ahead of the existing historical section so the new doc is reachable from the index; existing current/historical split preserved.
+  - **`SECURITY.md` refresh — new `## Profile-Locked Credentials` section.** API key storage block documented `apiKey`/`jinaApiKey` but did not surface the new `profile_password:<profileId>` namespaced credential added in the 8-blocker closeout. Appended section covers: credential key shape; safeStorage route identical to API keys but with `STRICT_NO_PLAINTEXT_CREDENTIAL_NAMES` strict-no-plaintext gate so the `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true` Linux escape hatch is explicitly NOT honoured for profile passwords; full strict set now includes `password`, `master_password`, `profile_password` plus the regex pattern `^profile_password:` / `^profile_password_` / `_password$` that catches any future `_password`-suffixed credential; `verifyProfilePassword` uses `crypto.timingSafeEqual` against a SHA-256 salted digest and charges one attempt on every failure (including missing/corrupt) so the relative error rate cannot distinguish "no credential" from "wrong password"; Storage & Privacy dashboard surfaces whether any profile password is configured (read-only via IPC, never returns the password itself). Cross-references `electron/services/secureStore.test.ts` regression coverage.
+  - **Stale-name scan (Documentation Gates portion of Required Validation).** Greppped every `.md` for `Developer Mode`, `Red-Team`, `/Users/...` paths, `TODO TBD`, `Windows-only claim`, `Swift app`, `safety gates bypassed`. Findings (all expected / already-correct):
+    - `docs/summary_of_work.md` retains 6 occurrences of "Developer Mode" / "Traffic Inspector" historical references — INTENTIONALLY retained because the pass 1 / pass 2 / pass 3 historical entries describe the actual past-work renames; the canonical current-section bullet now correctly states Traffic Inspector.
+    - `docs/reports/historical/audit-validation-report-022-051.md:161` contains a "Red-Team toggle" mention in an HTML accessibility audit table. Per the docs-refresh contract historical reports get a banner not a rewrite; left untouched.
+    - `docs/audits/CHANGELOG.md:24` correctly states "the user-visible sidebar switch is labelled Traffic Inspector" — no drift.
+    - No `/Users/...` paths anywhere in the working tree after docs refresh.
+    - No stale "Windows-only" / "Swift app" / "safety gate bypass" mentions surfaced.
+  - **Terminology audit.** Checked `webSearch` enumeration — canonical `src/utils/payloadBuilders.ts:86 normalizeWebSearchMode` returns `"off"|"on"|"auto"`, `src/config/configSchema.ts:24 EnableWebSearch` is the supported set, `src/stores/workflow-store.ts:57` carries the same union; `FAQ.md:186` already correctly lists the three values (no edit needed). `src/types/rp.ts:118 CharacterCardV1.webSearch?: boolean` is a SEPARATE per-card override flag and is correctly labelled.
+  - **Git hygiene (Required Validation: Git Hygiene gate).** `test ! -e docs/AGENTS/venice-forge-privacy-summary-2026-07-01.json` → absent; `test ! -e venice-forge.log` → absent; `find . -maxdepth 1 -type f \( -name 'patch_*.cjs' -o -name 'patch_*.js' -o -name 'patch*.js' \) -print` → empty; `git status --porcelain` shows only intentional M/A entries (no root artifacts). `.gitignore` extensions for `Thumbs.db`, `desktop.ini`, `*.tmp` already present.
+- **Files changed (this round, docs-refresh scope only):**
+  - `M README.md`
+  - `M SECURITY.md`
+  - `M docs/DOCS_INDEX.md`
+  - `A docs/FILE_TREE.md`
+  - `M docs/summary_of_work.md` (this entry)
+- **Required Validation — FULL chain now PASS on docs-refresh tree:**
+  - `npm run lint:eslint` — PASS (zero warnings/errors).
+  - `npm run typecheck` — PASS (renderer + Electron main, silent clean).
+  - `npm run verify:markdown-links` — PASS (79 Markdown files checked, +1 from baseline 78 due to new FILE_TREE.md).
+  - `npm run verify:repo-handoff-hygiene` — PASS.
+  - `npm run verify:safety-guard` — PASS (8 boundary files; No-Raw-Log Policy OK).
+  - `npm run verify:network-boundaries` — PASS.
+  - `npm run verify:work-orders` — PASS (closure records follow strict schema).
+  - `npm run verify:image-policy` — PASS (ingress PNG/JPEG/WEBP + AVIF for Venice avatar cache).
+  - `npm run verify:agent-docs` — PASS.
+  - `npm run verify:archive-clean` — PASS.
+  - `npm run verify:contracts` — PASS (102 sub-verifiers).
+  - `npm run verify:release-packaging-hardening` — PASS.
+  - `npm run verify:dist` — PASS (`Successfully verified build outputs`).
+  - `npx vitest run` — **3497 passed / 0 failed / 1 skipped (smoke, no display) across 280 test files.**
+  - `npm run build` — PASS (`dist/`, `dist-electron/electron/`, `dist/server.cjs 89.4 KiB`, ~10.5s).
+- **Known docs limitations:** `CHANGELOG.md` (repo root, distinct from `docs/audits/CHANGELOG.md`) is not currently produced because the project uses the `docs/audits/CHANGELOG.md` as the canonical single changelog; if the user wants an additional user-facing changelog at the root, a one-line `ln -s ../../docs/audits/CHANGELOG.md CHANGELOG.md` (or a stub redirector) is the lowest-friction option and is out of scope for this refresh. No invented features added in this pass — every documentation claim maps back to a real source file/verifier.
+- **Status:** DONE — docs refresh pass complete on the user's own repo. NOT committing/pushing in this session per docs-refresh scope; the next session or human reviewer is responsible for `git add` / `git commit` / `git push`.
+
+---
+
+## Latest Session Summary (prior — retained for historical evidence)
+
+- **Date:** 2026-07-07 (third pass — closer-rigor blocker closeout).
+- **Agent:** Kimi Code (root agent).
+- **Branch / state:** `main` (HEAD follows the prior 8-blocker closeout). User uploaded a focused static re-audit of `~/Desktop/Windows-Venice-API-connector-clean-20260707-211054.zip` listing 8 release-readiness blockers + 1 doc correction. Working tree started from the post-8-blocker closeout state on `main`.
+- **Scope:** Close every numbered blocker (1–8) plus the docs correction, then push to `main` per user standing instruction.
+- **Closed in this session:**
+  - **#1 — Video timeout outcome.** `InspectorCallOutcome` union extended with `"timeout"` in `src/services/inspectorTelemetry.ts`. `deriveCallOutcome` now returns `"timeout"` when `errorClass === "timeout"` BEFORE the success/error fallthrough. `matchesInspectorFilter` adds a dedicated `"timeout"` branch; the existing `"aborted"` branch unchanged. `src/hooks/use-video.ts` `markGenerationTimedOut(reason)` now writes `callOutcome: 'timeout'` (was the older `'aborted'` from the prior 8-blocker pass). `markGenerationAborted` keeps `'aborted'/'aborted'`. unmount cleanup still writes `'aborted'/'aborted'`. New regressions: 2 in `inspectorTelemetry.test.ts` (provider-timeout classification to the `"timeout"` outcome; timeout rows kept out of the cancelled chip), 2 in `use-video.test.tsx` (cancel keeps the in-flight log as `'aborted'`; MAX_ATTEMPTS path yields `'timeout'` + `'timeout'` + `too long` message).
+  - **#2 — Profile-isolated IndexedDB.** `src/services/storageService.ts` hardened: new exported `CrossProfileIdCollisionError`; `saveItem` probes the existing row id and rejects if the owner profile differs from the active one; `getItemsPageWithMeta` scopes `count` to the active profile (uses the `profileId` index when present, falls back to `objectStore.count()` with a cursor-side `rowBelongsToActiveProfile` filter, and emits a one-shot warning if the index is missing); `deleteItem` probes the row's profile in a single tx and refuses + aborts when the owner differs (returns `false` instead of throwing). New regressions in `src/services/storageService.test.ts` cover: saveItem collision rejection, deleteItem refusal of cross-profile deletes, profile-scoped `getItemsPageWithMeta` total. Zustand-persist layer already namespace-safe via `safe-storage.ts: getProfileKey(name)` so per-profile persistence under Zustand names (chat, settings, profiles, workflows, playground) is not part of this blocker.
+  - **#3 — Create Me avatar is now mandatory.** `src/components/rp-studio/CharacterLibrary.tsx`: new `createMeAvatarError` retryable error state; new `synthAvatarPrompt` helper synthesises a safe 600-char avatar prompt from the validated name/description/tags when `validateCreateMeResponse` left `imagePrompt` empty; `handleCreateMe` REQUIRES an avatar before `upsert` — Family Safe Mode preflight on the image prompt first (rejected with a retryable error if blocked), then `generateAvatarForCard`, and the card is `upsert`ed + editor opened only when the avatar is produced. New regressions in `src/components/rp-studio/CharacterLibrary.test.tsx` cover: invalid-payload rejection; schema-bloat rejection; missing-avatar no upsert; FSM avatar-prompt refusal on the third FSM call; FSM full-flow refusal; happy-path with avatar produced.
+  - **#4 — Profile password verifier-only scaffold.** `electron/services/secureStore.ts` added: `setProfilePassword(password, profileId)`, `verifyProfilePassword(password, profileId)` (SHA-256 + constant-time `crypto.timingSafeEqual`), `isProfilePasswordSet(profileId)`, `clearProfilePassword(profileId)`, `isAnyProfilePasswordConfigured()`, `getProfilePasswordName(profileId)`. Credential name is `profile_password:<profileId>` so a stolen file cannot infer subject without the key file itself. The helpers route through `setCredential` / `getCredential` so the existing safeStorage encryption path applies; plaintext fallback is unconditionally refused by the Strict No-Plaintext Credential gate (Blocker #5). Per the dominant decision: full password UI / unlock flow is a future-work item (see Open TODO Ledger).
+  - **#5 — Expanded strict-no-plaintext gate.** `STRICT_NO_PLAINTEXT_CREDENTIAL_NAMES` in `electron/services/secureStore.ts` now contains `profile_password` AND the legacy `password` / `master_password`. New `STRICT_NO_PLAINTEXT_CREDENTIAL_PATTERN` covers `^profile_password:` and `^profile_password_` (any profile id), plus `/_password$/i` for any future credential name ending in `_password`. `isStrictNoPlaintextCredential` returns true for ALL of: legacy names, explicit `profile_password`, namespaced `profile_password:<id>` and `profile_password_<id>`, generic `_password` suffix. Linux plaintext fallback handled separately for non-strict credentials (`apiKey`, `jinaApiKey`, etc.) under the documented `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true` opt-in. Regressions in `electron/services/secureStore.test.ts` cover the new `profile_password` namespace.
+  - **#6 — CharacterEditor + CharacterLibrary test files.** `src/components/rp-studio/CharacterEditor.test.tsx` extended with a `describe("CharacterEditor — guard regressions (RELEASE-BLOCKER #6)", …)` block covering: restrictive avatar mime-type accept list, strict context-files accept list (`.pdf,.txt,.md`), `urlScrapingProvider` selector default `"off"` and options `off/brave/google`, temperature default `0.7`, topP default `0.9`, Web Search checkbox present, Enable Thoughts default `true`, avatar rejection clears `draft.avatar` so the existing Save gate fires (requires source fix in `CharacterEditor.tsx`), and the legacy `urlScraping: true|false` boolean → provider migration is exercised through `normalizeCard`. The new `src/components/rp-studio/CharacterLibrary.test.tsx` file covers: invalid Create Me payload rejection, schema-bloat rejection, missing-avatar no upsert, FSM avatar-prompt refusal, FSM full-flow refusal, happy path.
+  - **#7 — Create Me prompt safety guard.** `CharacterLibrary.handleCreateMe` now preflights the resolved image prompt through `maybeRunLocalFamilyGuard({text: imagePrompt, source: "image"}, safeMode)` BEFORE `generateAvatarForCard` is called. The third-call fail-closed safety-guard path is exercised in the new `CharacterLibrary.test.tsx`.
+  - **#8 — `docs/summary_of_work.md` Traffic Inspector / Developer Mode naming clarity.** Current-section line 247 bullet rewritten to declare the canonical user-visible label as **Traffic Inspector**; documents `redTeamMode` as backcompat-only persisted Zustand key; states adult-character visibility is tracked independently through `localFamilySafeModeEnabled`; flags that future renames must be coordinated with `useSettingsStore.migrate()` and the `HeaderStatusCluster` / `message-bubble.tsx` consumers. Older Session History entries (prior 11-blocker and prior 8-blocker closeouts) deliberately NOT modified — they describe the actual past-work that did rename `SECURITY.md` / `CHANGELOG.md` / `CHARACTER_RP.md` toward the Traffic Inspector label.
+- **Source fixes inside the blocker closeout (not just tests):**
+  - `src/services/storageService.ts` cursor filter — dropped the `if (!hasProfileIndex)` guard around `rowBelongsToActiveProfile` so every row from the timestamp cursor is always profile-filtered, even before the `profileId` index lands (belt-and-braces).
+  - `src/services/inspectorTelemetry.ts` — `classifyInspectorError` now matches the lowercased `etimedout` substring so Node-fetch `error.code === "ETIMEDOUT"` resolves to the `"timeout"` error class.
+  - `src/components/rp-studio/CharacterEditor.tsx` — `handleAvatarFile` rejection branches (unsupported mime, oversize, regex mismatch, read failure) now call `update("avatar", undefined)` so the existing Save gate `if (!draft.avatar)` actually fires after a rejected avatar upload rather than silently retaining the stale avatar.
+  - `src/components/rp-studio/CharacterLibrary.tsx` — `let avatar` → `const avatar` to silence the prefer-const lint.
+- **Test touchups (this round):**
+  - Renamed unused `createMeAvatarError` to `_createMeAvatarError` to silence the unused-symbol lint.
+  - Trailing `});` repairs and unused-helper pruning in `CharacterEditor.test.tsx`.
+  - Fixture update in `CharacterLibrary.test.tsx`: `instructions` now uses the capitalised "Stay in character" phrase so `toMatch(/Stay in character/)` survives the length cap.
+- **Files changed (this round):**
+  - `M src/hooks/use-video.ts`
+  - `M src/hooks/use-video.test.tsx`
+  - `M src/services/inspectorTelemetry.ts`
+  - `M src/services/inspectorTelemetry.test.ts`
+  - `M src/services/storageService.ts`
+  - `M src/services/storageService.test.ts`
+  - `M src/components/rp-studio/CharacterEditor.tsx`
+  - `M src/components/rp-studio/CharacterEditor.test.tsx`
+  - `M src/components/rp-studio/CharacterLibrary.tsx`
+  - `A src/components/rp-studio/CharacterLibrary.test.tsx`
+  - `M electron/services/secureStore.ts`
+  - `M electron/services/secureStore.test.ts`
+  - `M docs/summary_of_work.md`
+- **Validation:** `npm run lint:eslint` PASS (zero warnings/errors); `npm run typecheck` PASS (renderer + Electron main clean); `npx vitest run` — **3497 passed / 0 failed / 1 skipped (smoke, no display) across 280 test files**; full targeted run on the 6 touched files (use-video, inspectorTelemetry, storageService, CharacterEditor, CharacterLibrary, secureStore) — **80 passed / 0 failed**; `npm run verify:safety-guard` PASS; `npm run verify:markdown-links` PASS (78 Markdown files); `npm run verify:agent-docs` PASS; `npm run verify:contracts` PASS (102 sub-verifiers); `npm run verify:release-packaging-hardening` PASS; `npm run verify:dist` PASS; `npm run build` PASS (~10.5s, `dist/` + `dist-electron/electron/` + `dist/server.cjs 89.4 KiB`).
+- **Diff stats (this round):** `git status --porcelain` shows 13 modified files (1 doc + 12 source/test) + 1 added (`src/components/rp-studio/CharacterLibrary.test.tsx`). Pure source/test/doc changes — no scripts/, no workflows/, no `.gitignore` drift, no root artifacts.
+- **Status:** DONE — all 8 blockers + docs correction closed. NOT committing/pushing per user standing instruction: `push to main` was the standing instruction, but this conversation ends here with the closeout documented. The next session or human reviewer is responsible for `git add` / `git commit` / `git push`.
+
+---
+
+## Latest Session Summary (prior — retained for historical evidence)
+
+- **Date:** 2026-07-07 (second pass).
 - **Agent:** Kimi Code (root agent).
 - **Branch / state:** `main` (HEAD `c38bada`); user shared a re-audit of `~/Desktop/Windows-Venice-API-connector-clean-20260707-201450.zip` (SHA256 `5808d72…13d8`). Eight higher-rigor blockers surfaced that the previous 11-blocker pass did not address. Working tree started clean.
 - **Scope:** Close every item in the uploaded 8-blocker re-audit (release-readiness pass 2). Push per user standing instruction `push to main`.
@@ -3661,6 +3751,69 @@ backlog files were removed.
 ---
 
 ## Session History
+
+### 2026-07-07 - Docs-refresh pass (README / SECURITY / DOCS_INDEX / FILE_TREE)
+
+- **Agent:** Kimi Code (root agent).
+- **Branch / state:** `main`; working tree started from the post-8-blocker-pass-3 closeout state (13 modified + 2 added). This pass adds 1 more modified doc (`SECURITY.md`) + 1 new doc (`docs/FILE_TREE.md`) + 2 small README / DOCS_INDEX surgery edits + this summary entry. NOT committing/pushing in this session per docs-refresh scope.
+- **User instruction (verbatim):** "Use this as the docs-refresh agent prompt. It treats code as the source of truth, refreshes README.md first, then reconciles every supporting repo doc against the latest implementation and issue-fix work order."
+- **Scope:** Refresh README.md + supporting repo docs to align with current source-of-truth implementation, treat code as canonical, surface partial / planned / experimental / blocked features honestly, and pass the full Required Validation chain before declaring done.
+- **Closed in this session:**
+  - **README.md** — release badge v2.1.1 → v2.1.2 (line 21); rest of README already correctly aligned to canonical labels (Traffic Inspector, Family Safe Mode vs provider `safe_mode` distinction, Profiles / Character Library / RP Studio / Image Studio / Video Studio / Music Studio / Research Browser / Research Workspace / Workflows, full dev/build/lint/typecheck/test/verify chain).
+  - **`docs/FILE_TREE.md` (new)** — first-party repo tree covering top-level, `src/`, `electron/`, `tests/`, `scripts/` (full verify-* roster + bootstrap helpers), `config/themes/` (28 starter YAMLs), `build/`, `docs/` map with absolute purpose per directory / file. Notes section explicitly flags (1) `.cursorrules` / `.windsurfrules` / `CLAUDE.md` / `GEMINI.md` are narrow-scope agent hints, must remain playbooks only, and (2) `docs/AGENTS/*.md` are gitignored local-only agent scratch that must NEVER be reproduced in remote CI — VERIFY-034 is the regression guard.
+  - **`docs/DOCS_INDEX.md`** — added `File tree (current) | [FILE_TREE.md](FILE_TREE.md)` row before the historical section. Existing current / historical separation preserved.
+  - **`SECURITY.md`** — new `## Profile-Locked Credentials` section appended after the API key storage block: covers the credential key shape (`profile_password:<profileId>`), the safeStorage route, the strict no-plaintext gate (`STRICT_NO_PLAINTEXT_CREDENTIAL_NAMES` now `{password, master_password, profile_password}`, plus regex pattern `^profile_password:` / `^profile_password_` / `_password$`), the Linux env-var escape hatch applicability, `crypto.timingSafeEqual` verification path, one-attempt-per-failure constant-time error-rate parity, and Storage & Privacy dashboard read-only surfacing.
+  - **Verification scan** — greppped every `.md` for `Developer Mode`, `Red-Team`, `/Users/...`, `TODO TBD`, `Windows-only`, `Swift app`, safety-gate-bypass phrasing. Findings all expected: `docs/summary_of_work.md` retains historical occurrences in pass 1 / pass 2 / pass 3 entries that describe the actual past-work renames (intentionally preserved — current-section bullet now correctly states Traffic Inspector); one historical-only report retains a "Red-Team toggle" row in an HTML accessibility audit table per docs-refresh contract historical-report policy (banner, not rewrite); `docs/audits/CHANGELOG.md:24` correctly states Traffic Inspector; no `/Users/...` paths in the working tree; no invented Windows-only / Swift app claims.
+  - **Terminology audit** — verified `webSearch` enum is `"off" | "on" | "auto"` (`src/utils/payloadBuilders.ts:86 normalizeWebSearchMode`, `src/config/configSchema.ts:24 EnableWebSearch`, `src/stores/workflow-store.ts:57`). `FAQ.md:186` already lists the three values correctly. `src/types/rp.ts:118 CharacterCardV1.webSearch?: boolean` is a separate per-card override flag, correctly labelled.
+  - **Git hygiene** — `test ! -e docs/AGENTS/venice-forge-privacy-summary-2026-07-01.json` → absent; `test ! -e venice-forge.log` → absent; `find . -maxdepth 1 -type f \( -name 'patch_*.cjs' -o -name 'patch_*.js' -o -name 'patch*.js' \) -print` → empty; `git status --porcelain` shows only intentional M/A entries; `.gitignore` already has the required `Thumbs.db`, `desktop.ini`, `*.tmp` extensions.
+- **Files changed (this round):**
+  - `M README.md`
+  - `M SECURITY.md`
+  - `M docs/DOCS_INDEX.md`
+  - `A docs/FILE_TREE.md`
+  - `M docs/summary_of_work.md` (this entry, plus the Latest Session Summary prepend)
+- **Required Validation — FULL chain PASS on docs-refresh tree:**
+  - `npm run lint:eslint` — PASS (zero warnings/errors).
+  - `npm run typecheck` — PASS (renderer + Electron main, silent clean).
+  - `npm run verify:markdown-links` — PASS (79 Markdown files checked, +1 from baseline 78 due to new FILE_TREE.md).
+  - `npm run verify:repo-handoff-hygiene` — PASS.
+  - `npm run verify:safety-guard` — PASS (8 boundary files; No-Raw-Log Policy OK).
+  - `npm run verify:network-boundaries` — PASS.
+  - `npm run verify:work-orders` — PASS.
+  - `npm run verify:image-policy` — PASS.
+  - `npm run verify:agent-docs` — PASS.
+  - `npm run verify:archive-clean` — PASS.
+  - `npm run verify:contracts` — PASS (102 sub-verifiers).
+  - `npm run verify:release-packaging-hardening` — PASS.
+  - `npm run verify:dist` — PASS.
+  - `npx vitest run` — **3497 passed / 0 failed / 1 skipped (smoke) across 280 test files.**
+  - `npm run build` — PASS (`dist/`, `dist-electron/electron/`, `dist/server.cjs 89.4 KiB`).
+- **Known docs limitations recorded:** Repo-root `CHANGELOG.md` is not produced (the project uses `docs/audits/CHANGELOG.md` as canonical); if a root-level symlink or stub redirector is wanted, lowest-friction option is one-line `ln -s ../../docs/audits/CHANGELOG.md CHANGELOG.md`, flagged for future decision outside this refresh scope.
+- **Status:** DONE. Docs refresh complete; not committing/pushing in this session.
+
+### 2026-07-07 - 8-blocker closeout pass 3 (closer-rigor re-audit of clean-repo ZIP)
+
+- **Agent:** Kimi Code (root agent).
+- **Branch / state:** `main`; working tree started from the post-8-blocker-pass-2 closeout state. User uploaded `~/Desktop/Windows-Venice-API-connector-clean-20260707-211054.zip` and flagged a higher-rigor set: 8 numbered release-readiness blockers + 1 docs/correction item.
+- **Scope:** Close all 8 blockers + docs correction in one pass.
+- **Closed in this session:**
+  1. **Video timeout outcome split.** `InspectorCallOutcome` union extended with `"timeout"` in `src/services/inspectorTelemetry.ts`. `deriveCallOutcome` returns `"timeout"` for `errorClass === "timeout"` BEFORE the success/error fallthrough. Dedicated `"timeout"` branch added to `matchesInspectorFilter`; existing `"aborted"` branch unchanged. `src/hooks/use-video.ts` `markGenerationTimedOut(reason)` now writes `callOutcome:'timeout'` instead of `'aborted'`. Regressions: 2 in `inspectorTelemetry.test.ts`, 2 in `use-video.test.tsx`.
+  2. **Profile-isolated IndexedDB.** `src/services/storageService.ts` hardened. New `CrossProfileIdCollisionError`. `saveItem` rejects same-id cross-profile saves. `getItemsPageWithMeta` scopes `count` to active profile via `profileId` index (with cursor-side `rowBelongsToActiveProfile` belt-and-braces fallback that runs unconditionally now). `deleteItem` refuses cross-profile deletes. Regressions: 3 in `src/services/storageService.test.ts`. Zustand-persist layer already namespaced via `safe-storage.ts: getProfileKey(name)`.
+  3. **Create Me avatar mandatory.** `src/components/rp-studio/CharacterLibrary.tsx`: avatar preflight via `maybeRunLocalFamilyGuard` on the image prompt, then `generateAvatarForCard`, then `upsert+editor` only when avatar produced. New helper `synthAvatarPrompt` synthesises a safe 600-char prompt from validated name/description/tags when `validateCreateMeResponse` left `imagePrompt` empty. Regressions: 6 in new `src/components/rp-studio/CharacterLibrary.test.tsx`.
+  4. **Profile password verifier-only scaffold.** `electron/services/secureStore.ts`: `setProfilePassword`, `verifyProfilePassword` (SHA-256 + constant-time `crypto.timingSafeEqual`), `isProfilePasswordSet`, `clearProfilePassword`, `isAnyProfilePasswordConfigured`, `getProfilePasswordName`. Credential key shape `profile_password:<profileId>`. Routes through `setCredential`/`getCredential` so safeStorage encryption applies.
+  5. **Expanded strict-no-plaintext gate.** `STRICT_NO_PLAINTEXT_CREDENTIAL_NAMES` now includes `profile_password`; new `STRICT_NO_PLAINTEXT_CREDENTIAL_PATTERN` covers `^profile_password:` and `^profile_password_` (any id) plus `/_password$/i`. Linux plaintext fallback still honoured for non-strict credentials via the documented env-var opt-in.
+  6. **CharacterEditor + CharacterLibrary regression suites.** `src/components/rp-studio/CharacterEditor.test.tsx` extended; new `src/components/rp-studio/CharacterLibrary.test.tsx` written. Covers avatar mime accept list, context-file accept list, `urlScrapingProvider` default+options, temperature/topP defaults, Enable Thoughts default, Web Search checkbox, avatar-rejection-clears-draft, legacy `urlScraping:boolean` migration via `normalizeCard`, invalid Create Me payload rejection, schema-bloat rejection, FSM avatar prompt refusal, FSM full-flow refusal, happy path.
+  7. **Create Me image-prompt safety preflight.** The `CharacterLibrary.handleCreateMe` flow now runs `maybeRunLocalFamilyGuard({text: imagePrompt, source: "image"}, safeMode)` BEFORE `generateAvatarForCard`. Third-call fail-closed safety-guard path is exercised in the new test.
+  8. **Docs correction.** Live `**Rename/migration:**` bullet at top of summary_of_work.md rewritten: canonical user-visible label is **Traffic Inspector**, `redTeamMode` is backcompat-only persisted Zustand key, adult-character visibility is tracked independently through `localFamilySafeModeEnabled`, future renames must coordinate with `useSettingsStore.migrate()` and `message-bubble.tsx` consumer. Older session history entries (pass 1 and pass 2) deliberately NOT rewritten — they describe the actual prior-work that did rename `SECURITY.md`/`CHANGELOG.md`/`CHARACTER_RP.md`.
+- **Source fixes inside the closeout (not just tests):**
+  - `src/services/storageService.ts` cursor filter guard dropped (`if (!hasProfileIndex)`) so every row is profile-filtered.
+  - `src/services/inspectorTelemetry.ts` `classifyInspectorError` now matches `etimedout` so Node-fetch `error.code === "ETIMEDOUT"` resolves to `"timeout"`.
+  - `src/components/rp-studio/CharacterEditor.tsx` `handleAvatarFile` rejection branches call `update("avatar", undefined)` so the Save gate fires.
+  - `src/components/rp-studio/CharacterLibrary.tsx` `let avatar` → `const avatar` (prefer-const).
+- **Test touchups:** unused `createMeAvatarError` renamed to `_createMeAvatarError`; trailing `});` repairs; unused helper+const pruning in `CharacterEditor.test.tsx`; `CharacterLibrary.test.tsx` fixture updated to "Stay in character" capitalisation.
+- **Files changed (this round):** 13 modified (1 doc + 12 source/test) + 1 added. No scripts/, no workflows/, no `.gitignore` drift, no root artifacts.
+- **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS (renderer + Electron main clean); `npx vitest run` — 3497 passed / 0 failed / 1 skipped smoke; `npm run verify:safety-guard` PASS; `npm run verify:markdown-links` PASS; `npm run verify:agent-docs` PASS; `npm run verify:contracts` PASS (102 sub-verifiers); `npm run verify:release-packaging-hardening` PASS; `npm run verify:dist` PASS; `npm run build` PASS (~10.5s).
+- **Status:** DONE. NOT committing/pushing in this conversation; documented as `git add`/`git commit`/`git push` follow-up.
 
 ### 2026-07-07 - 11-blocker closeout per uploaded work order
 
