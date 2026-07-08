@@ -10250,6 +10250,9 @@ Reviewed all web-browsing surfaces: Research Mini Browser (Electron main), rende
 5. **CI verifier parity (Medium)** — `scripts/verify-web-contents-view.cjs`
    - Updated the regex to accept both `venice-forge-research-browser` and `persist:venice-forge-research-browser` partitions so the verifier stays aligned with the configurable persistence setting.
 
+6. **veniceClient binary response test mocks (Medium)** — `src/services/veniceClient.edge.test.ts`
+   - Replaced `new Response(new Blob([...]))` with `new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]))` in the `veniceBlob` and `veniceFormData` "does not stringify binary image responses" tests. The jsdom `Response` implementation calls `.stream()` on Blob bodies, which the test-environment Blob mock does not support; `Uint8Array` avoids that path.
+
 ### Open TODO Ledger
 - **P1 (windows-credman):** Replace Windows `safeStorage` DPAPI backend for profile-password storage with a Windows Credential Manager native bridge. Deferred until a safe small implementation (Node-API addon or tightly scoped PowerShell bridge) is available.
 - `verify:contracts:features` full aggregate still exceeds timeout in this sandbox environment; run the 5 partitioned sub-commands individually (`features:chat|image|workflow|rp|settings`).
@@ -10323,5 +10326,14 @@ Reviewed all web-browsing surfaces: Research Mini Browser (Electron main), rende
 | `npm run build` | PASS | Web, server, and Electron outputs built. |
 | `npm run verify:dist` | PASS | Build outputs verified. |
 | `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
+| `npm run typecheck` | PASS | Renderer + Electron main TypeScript clean. |
+
+## Validation Matrix — 2026-07-08 veniceClient binary-response test repair
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npx vitest run src/services/veniceClient.edge.test.ts` | PASS | 14 tests; binary response mocks no longer trip Blob.stream(). |
+| `npx vitest run src/services/veniceClient.test.ts src/lib/venice-client.test.ts src/lib/venice-client.dual.test.ts src/lib/venice-client.web-guard.test.ts` | PASS | 54 tests across 4 files. |
+| `npm run lint:eslint` | PASS | Zero warnings. |
 | `npm run typecheck` | PASS | Renderer + Electron main TypeScript clean. |
 

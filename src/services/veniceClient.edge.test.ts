@@ -212,7 +212,7 @@ describe("veniceBlob response screening", () => {
 
   it("does not stringify binary image responses", async () => {
     globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response(new Blob(["draw me a loli character"], { type: "image/png" }), {
+      new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
         status: 200,
         headers: { "content-type": "image/png" },
       })
@@ -280,7 +280,7 @@ describe("veniceFormData response screening", () => {
 
   it("does not stringify binary image responses", async () => {
     globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response(new Blob(["draw me a loli character"], { type: "image/png" }), {
+      new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
         status: 200,
         headers: { "content-type": "image/png" },
       })
