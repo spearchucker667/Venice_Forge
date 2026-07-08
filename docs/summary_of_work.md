@@ -594,6 +594,18 @@ backlog files were removed.
   - Deleted sensitive log/summary files from disk; patterns added to `.gitignore`.
   - **Validation:** lint zero-warnings ✅, typecheck ✅, 3447 tests ✅, all verify:* contracts ✅, build ✅.
 
+- **2026-07-07 Verifier pass (post-push independent re-validation, current session):**
+  - HEAD `5676d11 update` (on `6ea5775 chore: release v2.1.2`) verified end-to-end. Working tree clean.
+  - Independently re-ran the validation chain linked to the remediation entry above. The prior "COMPLETE" entry is **substantiated** — every line-item above can be re-derived from the validator outputs captured in the 2026-07-07 Validation Matrix subsection below.
+  - Spot-checked the three safety edits claimed by the remediation entry:
+    - `src/shared/safety/childExploitationGuard.ts:412` — `isImageEndpoint` now matches `includes("/image/") || startsWith("image/")` (was `/image/` substring only, so `image/generate` without leading `/` slipped through).
+    - `src/shared/safety/promptPayloadExtractor.ts:202-204` — `normEndpoint` strips `/api/venice` prefix then prepends `/`, restoring lookup-table parity for `/image/generate`.
+    - `src/shared/veniceSafeMode.ts:80-93` — `applyVeniceApiSafeMode` mutates `payload.entries` when `_isSerializedFormData === true`, pushing `{ name: "safe_mode", value: String(enabled) }` into the FormData entries (the prior top-level spreading was silently dropped by the IPC parser).
+  - Confirmed `src/services/veniceClient/fetch.ts:14` imports `inspectorTelemetry` for image/video Traffic Inspector logging per Modules 3.1 / 3.4.
+  - Confirmed `tests/safety/veniceSafeMode.test.ts` VERIFY-018 covers the full endpoint matrix used by the new fix (image endpoints add `safe_mode`; chat, upscale, audio/queue+retrieval+speech+transcriptions, video/retrieve+quote+complete, models omit `safe_mode`).
+  - **Stray tracked artifact flag (no code change this session):** `5676d11` also tracked 27 root-level `patch_*.cjs`/`patch_*.js` files (~798 LOC of unredacted upstream agent CJS patch helpers) plus `patch_recovery.txt` (200-line transcript-dump of prior agent tool calls). These are NOT consumed by any validator, NOT gitignored, and tracked at HEAD. Operator decision per session: **accept as-is** — leaving files in place, no history rewrite. Auto `git add -A` must remain forbidden because it would silently retrack any respawned scratch files. Cleanup, when authorized, must NOT consult `patch_recovery.txt` (it reprints prior agent thinking and could drive shadow regeneration).
+  - **Local Node note:** validators ran on Node v24.3.0 / npm 11.4.2. Engines pin 22.13 ≤ Node < 23 and CI pin is `node-version: 22`. The run was clean on v24 but bundle/runtime parity against Node 22 is enforced only in CI matrices (VERIFY-052). Local Node 24 here is informational, not a substitute for CI parity.
+
 - **2026-07-01 Priority Safety/Image Remediation Slice:**
   - Closed the highest-priority safety gap in the image generation path by adding PG-13 image-only blocks for explicit nudity, erotic framing, visible genitals, and graphic gore.
   - Added Family Safe Mode provider override at Electron IPC and web proxy boundaries so supported endpoints receive `safe_mode: true` even when renderer payloads try to send `safe_mode: false`.
@@ -1378,6 +1390,40 @@ backlog files were removed.
   - `npm test`: PASS (276 test files passed / 1 skipped; 3430 tests passed / 1 skipped).
   - `npm run build`: PASS.
   - `git diff --check`: PASS.
+
+- 2026-07-07 independent verify pass on `5676d11 (update)`:
+  - `git status --short`: PASS, working tree clean on `main` at `5676d11`.
+  - `git log --oneline -5`: PASS — `5676d11 update` over `6ea5775 chore: release v2.1.2`.
+  - `git ls-files patch_*`: PASS — 27 entries tracked (operator-accepted artifact flag preserved in Session History).
+  - `node --version`: PASS (`v24.3.0`; repo engines pin Node 22.13+ / npm 10+; local drift noted, CI parity enforced at `node-version: 22`).
+  - `npm --version`: PASS (`11.4.2`).
+  - `npm run typecheck`: PASS (renderer + Electron main clean).
+  - `npm run lint:eslint`: PASS (`--max-warnings=0`, 0 warnings).
+  - `npm run verify:safety-guard`: PASS (8 boundary files + no-raw-log policy).
+  - `npm run verify:image-policy`: PASS.
+  - `npm run verify:network-boundaries`: PASS.
+  - `npm run verify:work-orders`: PASS.
+  - `npm run verify:theme-tokens`: PASS.
+  - `npm run verify:no-native-dialogs`: PASS (2 dialog→askDecision/toast migrations in `ProfilePanel`/`SafetyPanel` confirmed).
+  - `npm run verify:web-contents-view`: PASS (10/10 invariants incl. `ResearchBrowserView` URL scheme allowlist + splash bundle).
+  - `npm run verify:markdown-links`: PASS (78 Markdown files).
+  - `npm run verify:repo-handoff-hygiene`: PASS (allowlists `VERIFY-168` legacy ID and the new verifier set).
+  - `npm run verify:venice-api-docs`: PASS (Swagger spec / reference doc parity).
+  - `npm run verify:ci-contract`: PASS.
+  - `npm run verify:agent-docs`: PASS (parity across `AGENTS.md` / `CLAUDE.md` / `GEMINI.md` / `.cursorrules` / `.windsurfrules` / `.github/copilot-instructions.md`).
+  - `npm run verify:storage-policy`: PASS (all `localStorage` references tagged).
+  - `npm run verify:archive-clean`: PASS (no forbidden archive contaminants tracked).
+  - `npm run verify:dist`: PASS (v2.1.2 build outputs present).
+  - `npm run verify:icon`: PASS (39288 / 482915 bytes for `build/icon.{ico,icns,png}`).
+  - `npm run verify:bundle-budget`: PASS (16/16 chunks within budget).
+  - `npm run verify:contracts:static`: PASS (12+ static verifiers).
+  - `npm run verify:contracts:features`: PASS (6+ feature verifiers incl. document-ingestion + research-workspace + research-browser + safe-mode).
+  - `npm run verify:contracts:release`: PASS (102 pass points incl. VERIFY-052 / 054, Windows signing env mapping, repo slug, Node 22 pin).
+  - `npm test`: PASS (278 test files / 3447 tests passed / 1 skipped; ~216 s serial).
+  - `npm run build`: PASS (`dist/`, `dist-electron/electron/`, `dist/server.cjs` 89.3 kb).
+  - Spot-check of `src/shared/safety/childExploitationGuard.ts:412`, `src/shared/safety/promptPayloadExtractor.ts:202-204`, `src/shared/veniceSafeMode.ts:80-93`, `src/services/veniceClient/fetch.ts:14` (inspectorTelemetry import) and `tests/safety/veniceSafeMode.test.ts` (VERIFY-018 endpoint matrix) all consistent with the prior remediation claim.
+  - No code edits performed this session; only `docs/summary_of_work.md` updated with this matrix and the Session History entry.
+
 
 - 2026-06-22 CodeQL configuration status page review:
   - `gh api repos/spearchucker667/Venice_Forge/code-scanning/default-setup`: SUCCESS (state `not-configured`, languages listed).
