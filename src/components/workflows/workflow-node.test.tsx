@@ -57,6 +57,34 @@ function renderNode(nodeType: 'chat' | 'output' | 'textInput' = 'chat', result?:
   )
 }
 
+function renderOutputNode(id: string) {
+  const baseData = {
+    label: 'Test',
+    nodeType: 'output',
+    model: '',
+    prompt: '',
+  } as const
+
+  return (
+    <WorkflowNode
+      id={id}
+      type="default"
+      data={baseData}
+      draggable={false}
+      selectable={false}
+      deletable={false}
+      selected={false}
+      dragging={false}
+      zIndex={0}
+      isConnectable={false}
+      positionAbsoluteX={0}
+      positionAbsoluteY={0}
+      targetPosition={Position.Top}
+      sourcePosition={Position.Bottom}
+    />
+  )
+}
+
 describe('WorkflowNode — accessibility', () => {
   beforeEach(() => {
     setNodesMock.mockReset()
@@ -107,5 +135,53 @@ describe('WorkflowNode — accessibility', () => {
     svgs.forEach((svg) => {
       expect(svg).toHaveAttribute('aria-hidden', 'true')
     })
+  })
+
+  it('revokes workflow blob audio URLs when the rendered output unmounts', () => {
+    const revokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', { ...URL, revokeObjectURL })
+    try {
+      const { unmount } = renderNode('output', { status: 'done', output: '[audio:blob:workflow-tts]' })
+      expect(document.querySelector('audio')?.getAttribute('src')).toBe('blob:workflow-tts')
+      expect(revokeObjectURL).not.toHaveBeenCalled()
+
+      unmount()
+
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:workflow-tts')
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('keeps a shared workflow blob audio URL alive until the final rendered owner unmounts', () => {
+    const revokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', { ...URL, revokeObjectURL })
+    try {
+      useWorkflowStoreMock.mockImplementation((selector: (state: { runResults: Record<string, unknown> }) => unknown) =>
+        selector({
+          runResults: {
+            'node-1': { status: 'done', output: '[audio:blob:workflow-tts]' },
+            'node-2': { status: 'done', output: '[audio:blob:workflow-tts]' },
+          },
+        }),
+      )
+      const { container, rerender, unmount } = render(
+        <>
+          {renderOutputNode('node-1')}
+          {renderOutputNode('node-2')}
+        </>,
+      )
+      expect(container.querySelectorAll('audio[src="blob:workflow-tts"]')).toHaveLength(2)
+
+      rerender(renderOutputNode('node-2'))
+      expect(container.querySelectorAll('audio[src="blob:workflow-tts"]')).toHaveLength(1)
+      expect(revokeObjectURL).not.toHaveBeenCalled()
+
+      unmount()
+      expect(revokeObjectURL).toHaveBeenCalledTimes(1)
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:workflow-tts')
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })

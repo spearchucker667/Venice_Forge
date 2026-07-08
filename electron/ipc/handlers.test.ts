@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach, vi, beforeAll } from "vitest";
 import path from "path";
 import os from "os";
+import * as fs from "fs/promises";
 import { ipcMain } from "electron";
 
 const capturedHandlers = new Map<string, (...args: unknown[]) => unknown>();
@@ -559,6 +560,43 @@ describe("registerIpcHandlers", () => {
           ok: false,
           error: "Unsupported attachment type.",
         });
+      }
+    });
+  });
+
+  describe("app:loadYamlFile", () => {
+    it("reads the selected YAML file from the validated open descriptor", async () => {
+      const handler = capturedHandlers.get("app:loadYamlFile");
+      expect(handler).toBeDefined();
+
+      const { dialog } = await import("electron");
+      const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vf-yaml-import-"));
+      const filePath = path.join(tmpDir, "theme.yaml");
+      await fs.writeFile(filePath, "theme: path\n", "utf-8");
+      const probe = await fs.open(filePath, "r");
+      const fileHandlePrototype = Object.getPrototypeOf(probe) as { readFile: (options: { encoding: "utf-8" }) => Promise<string> };
+      await probe.close();
+      const descriptorReadSpy = vi.spyOn(fileHandlePrototype, "readFile").mockResolvedValue("theme: descriptor\n");
+
+      vi.mocked(dialog.showOpenDialog).mockResolvedValueOnce({
+        canceled: false,
+        filePaths: [filePath],
+      });
+
+      try {
+        const result = await handler!(
+          { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents }
+        );
+
+        expect(result).toMatchObject({
+          ok: true,
+          canceled: false,
+          data: "theme: descriptor\n",
+        });
+        expect(descriptorReadSpy).toHaveBeenCalledWith({ encoding: "utf-8" });
+      } finally {
+        descriptorReadSpy.mockRestore();
+        await fs.rm(tmpDir, { recursive: true, force: true });
       }
     });
   });

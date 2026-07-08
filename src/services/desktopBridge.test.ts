@@ -6,6 +6,7 @@ import FDBFactory from "fake-indexeddb/lib/FDBFactory";
 import {
   desktopApiKey,
   desktopApp,
+  desktopJina,
   desktopJinaApiKey,
   desktopVenice,
   fetchWithTimeout,
@@ -17,6 +18,7 @@ vi.mock("./veniceClient", () => ({
 }));
 
 import { veniceFetch } from "./veniceClient";
+import { ACTIVE_PROFILE_STORAGE_KEY } from "./activeProfile";
 
 // Polyfill localStorage for Node 26+ / jsdom environments where it may be
 // unavailable by default (see safe-storage.test.ts and modelService.test.ts).
@@ -87,6 +89,32 @@ describe("desktopBridge web fallback", () => {
     await expect(desktopApiKey.set("vn-electron-fixture")).resolves.toEqual({ ok: true });
     expect(set).toHaveBeenCalledWith("vn-electron-fixture", "default");
     expect(vi.mocked(fetch).mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
+  });
+
+  it("injects the active profile id into Electron Jina requests", async () => {
+    const request = vi.fn(async () => ({ ok: true, status: 200, body: "ok" }));
+    localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, "work");
+    vi.stubGlobal("window", {
+      indexedDB: global.indexedDB,
+      localStorage: localStorageMock as unknown as Storage,
+      veniceForge: { isDesktop: true, jina: { request } },
+    });
+
+    await expect(
+      desktopJina.request({
+        url: "https://r.jina.ai/https://example.com",
+        headers: { accept: "text/plain" },
+        timeoutMs: 5000,
+      }),
+    ).resolves.toMatchObject({ ok: true, status: 200 });
+
+    expect(request).toHaveBeenCalledWith({
+      url: "https://r.jina.ai/https://example.com",
+      headers: { accept: "text/plain" },
+      timeoutMs: 5000,
+      profileId: "work",
+    });
+    expect(vi.mocked(fetch).mock.calls.some(([url]) => url === "/api/proxy-jina")).toBe(false);
   });
 
   /** Verifies that web mode reports correctly and delegates to veniceFetch. */

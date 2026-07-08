@@ -115,6 +115,79 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-07-08 Final Continuation Fixes + Main Push Prep — COMPLETE (current session):**
+
+  Continued from the deep bug review and applied the remaining live fixes before the requested push/archive step.
+
+  **Fixes / coverage added:**
+  - `src/components/workflows/workflow-node.tsx` now ref-counts rendered workflow `blob:` audio URLs. A shared TTS URL rendered by both an upstream node preview and a downstream output node stays valid until the final rendered owner unmounts, while single-owner cleanup still revokes on unmount.
+  - `electron/ipc/handlers/fileHandlers.ts` now reads YAML imports from the already-open, size-checked descriptor via `fd.readFile(...)`, matching JSON import behavior and closing the stat/read TOCTOU gap.
+  - `src/components/research/ResearchWorkspaceView.tsx` now uses document-level `mousemove` / `mouseup` listeners while resizing the embedded research browser column, so dragging remains reliable outside the workspace container and cleanup always runs.
+  - Added regression guards in `workflow-node.test.tsx`, `electron/ipc/handlers.test.ts`, and `ResearchWorkspaceView.test.tsx` proving the three bug fixes.
+
+  **Validation:**
+  - Focused TDD red run failed on all three new guards before implementation; post-fix focused run passed, 84 tests.
+  - `npm run lint:eslint`, `npm run typecheck`, `npm run build` — PASS.
+  - Changed-area tests — PASS, 127 tests across 8 files.
+  - `npm run verify:dist`, `verify:bundle-budget`, `verify:safety-guard`, `verify:network-boundaries`, `verify:markdown-links`, `verify:repo-handoff-hygiene`, `verify:archive-clean`, `verify:document-ingestion`, `verify:contracts:static`, `verify:storage-policy`, `verify:release-packaging-hardening` — PASS.
+  - `git diff --check` — PASS.
+
+- **2026-07-08 Deep Bug Review — FINDINGS ONLY (current session):**
+
+  Ran a repo-wide review pass over the dirty working tree and high-risk production boundaries: Electron IPC, credential/profile handling, Jina/Venice network boundaries, storage/profile purge, file-system import/export handlers, workflow media lifecycle, research workspace/browser surfaces, and the current uncommitted diff. No code fixes were applied in this review pass.
+
+  **Findings:**
+  - **MAJOR — Workflow audio blob URLs have multiple render owners.** `executeNode("output")` returns the exact upstream `[audio:blob:...]` string, and `WorkflowNode` can render the same URL in both the producing node preview and a downstream output node. `AudioOutput` revokes on unmount per instance, so one rendered owner can revoke a blob URL while another owner still references it.
+  - **MEDIUM — YAML import has a TOCTOU gap.** `app:loadYamlFile` opens and stats the selected file descriptor, then reads `result.filePaths[0]` by path instead of reading from the already-open descriptor. A local file swap between stat and read can bypass the checked descriptor.
+  - **MEDIUM — Research workspace browser resize drag is container-bound.** Resize state is tracked through React handlers on the layout container; leaving that container cancels the drag and mouseup outside the container is not guaranteed to reset via document/window listeners. This makes browser-width resizing fragile and can strand/cancel resize interactions.
+
+  **Validation / checks run:**
+  - `npm run verify:safety-guard` — PASS.
+  - `npm run verify:network-boundaries` — PASS.
+  - `npm run lint:eslint` — PASS.
+  - `npm run typecheck` — PASS.
+  - `npm test -- electron/ipc/handlers.test.ts src/components/research/ResearchBrowserView.test.tsx src/components/research/ResearchWorkspaceView.test.tsx src/components/workflows/workflow-node.test.tsx` — PASS, 81 tests across the matching files.
+
+- **2026-07-08 React Gallery Export Continuation — COMPLETE (current session):**
+
+  Closed the next remaining React bug-hunt item, **BUG-React #13**, in `src/components/gallery/gallery-view.tsx`.
+
+  **Fix / coverage added:**
+  - `handleBatchExport` now depends on the current `runExport` callback instead of closing over the initial exporter while only tracking `selectedMediaIds`.
+  - `runExport` is declared before `handleBatchExport` so the hook dependency can include it without a temporal-dead-zone issue.
+  - `src/components/gallery/gallery-view.test.tsx` adds a regression guard proving a selected media item exports the latest store data after the media store changes without changing the selection.
+  - Tightened the existing recipe-export test cleanup so its `document.createElement` / `URL.createObjectURL` spies do not leak into later gallery tests.
+
+  **Validation:**
+  - Red/green TDD proof: the new gallery export regression first failed with `Received: "Copper city at dusk"` after the store prompt was updated to `"Updated copper city"`, then passed after the dependency fix.
+  - `npm test -- src/components/gallery/gallery-view.test.tsx` — PASS, 14 tests.
+  - `npm run lint:eslint` — PASS.
+  - `npm run typecheck` — PASS.
+  - `npm test -- src/components/gallery/gallery-view.test.tsx src/components/settings/ProfilePanel.test.tsx src/components/workflows/workflow-node.test.tsx src/lib/workflow-engine.test.ts src/services/desktopBridge.test.ts` — PASS, 43 tests.
+  - `npm test -- scripts/verify-document-ingestion.test.ts` — PASS, 7 tests.
+
+- **2026-07-08 Final Hardening Follow-Up (20260708-010525 audit response) — COMPLETE (current session):**
+
+  Reconciled the supplied 20260708-010525 audit against the live repo. Most line-backed fixes were already present in the checkout; this pass closed the remaining live gaps and refreshed validation under the repo-supported Node 22 toolchain.
+
+  **Fixes / coverage added:**
+  - `src/components/settings/ProfilePanel.tsx` now treats `default` as the unprotected system fallback during secure-store password metadata sync. If an orphan default-profile verifier exists, the panel best-effort clears it and never calls `updateProfile("default", ...)`, avoiding the reserved-id runtime throw.
+  - `src/components/settings/ProfilePanel.test.tsx` adds a regression guard for the orphan default verifier case using the real profile store.
+  - `src/services/desktopBridge.test.ts` adds renderer-side coverage proving Electron Jina requests are stamped with the active profile id before IPC.
+  - `src/lib/workflow-engine.test.ts` adds a TTS regression guard proving workflow-created blob URLs remain alive after run completion.
+  - `src/components/workflows/workflow-node.test.tsx` adds lifecycle coverage proving rendered workflow audio blob URLs are revoked on unmount.
+  - `scripts/verify-document-ingestion.cjs` now recognizes partitioned `verify:contracts:*` scripts when checking that `verify:document-ingestion` is covered by the aggregate contract. `scripts/verify-document-ingestion.test.ts` covers the partitioned `features:chat` wiring.
+
+  **Live audit reconciliation:**
+  - Already present before this pass: Jina IPC profile-id validation and profile-scoped key lookup; API key IPC profile-id validation; default-profile password UI hide + IPC rejection; onboarding Settings -> Profiles deep-link; workflow engine no longer revokes TTS blob URLs at run completion; component-owned blob URL cleanup; secret scanner assignment-shaped matching; partitioned `verify:contracts:features:*` package scripts.
+  - Local ignored files `.config/config.local.yaml` and `.config/themes.local.yaml` exist on disk; they are untracked local config files and were not deleted. Archive/release verifiers pass.
+
+  **Validation:**
+  - `npm ci` — PASS under Node 22; dependency deprecation warnings only.
+  - `npm run lint:eslint`, `npm run typecheck`, `npm run build`, `npm run verify:dist`, `npm run verify:bundle-budget`, `npm run verify:safety-guard`, `npm run verify:image-policy`, `npm run verify:network-boundaries`, `npm run verify:work-orders`, `npm run verify:contracts:static`, `npm run verify:markdown-links`, `npm run verify:storage-policy`, `npm run verify:repo-handoff-hygiene`, `npm run verify:theme-tokens`, `npm run verify:release-packaging-hardening`, `npm run verify:archive-clean`, `npm run verify:contracts:features`, and `npm run verify:contracts` — PASS.
+  - Focused regression batch — PASS, 109 tests across ProfilePanel, desktopBridge, workflow-engine, workflow-node, OnboardingSplash, Electron IPC handlers, and verify-document-ingestion tests.
+  - `git diff --check` and `git diff --cached --check` — PASS.
+
 - **2026-07-08 Full ZIP Audit Remediation (20260708-002419) — COMPLETE (current session):**
 
   Applied all 12 line-backed fixes from the full ZIP audit report (20260708-002419). Prioritized critical profile security issues, then major archive/storage hygiene, then minor workflow cleanup.
@@ -341,7 +414,7 @@ backlog files were removed.
   - **BUG-React #14 + #15:** `src/stores/chat-store.ts` `cleanupUnloadListeners` (already exported for tests) now has JSDoc explaining the renderer process keeps listeners attached for its full lifetime (Electron does not reload mid-session) and tests use the export handle for cross-spec cleanup. `unsubscribeDirtyTracking` (`useChatStore.subscribe` return value) is now captured into a hoisted module-level `let` and exported with parity JSDoc. The hoisted declaration is placed ABOVE the `if (typeof window !== 'undefined')` block that assigns to it so the mutation at line 766 does not hit TDZ. Comments: `// BUG-React#15 regression guard: capture the dirty-tracking subscription's unsubscribe handle so its lifecycle is observable for tests and future HMR replays.`
   - **Files changed (consolidated):** `src/hooks/useCharacterImage.ts`, `src/hooks/useCharacterImage.test.tsx`, `src/hooks/useKatexCss.ts` (new), `src/hooks/useKatexCss.test.tsx` (new), `src/components/chat/message-bubble.tsx`, `src/components/chat/message-bubble.test.tsx`, `src/components/chat/chat-view.tsx`, `src/stores/chat-store.ts`, `src/components/gallery/gallery-view.tsx`.
   - **Validation:** `npm run typecheck` PASS; `npm run lint:eslint` PASS; chat cluster `npx vitest run src/components/chat/chat-view.test.tsx src/components/chat/message-bubble.test.tsx src/components/chat/chat-input.test.tsx src/hooks/useKatexCss.test.tsx src/hooks/useCharacterImage.test.tsx --fileParallelism=false` PASS (48 tests across 5 files); gallery cluster `npx vitest run src/components/gallery/gallery-view.test.tsx --fileParallelism=false` PASS (13 tests). Cumulative 61 tests across 6 files PASS across the full React perf session.
-  - **Remaining open MEDIUM React items (lower priority, deferred):** #13 (LOW) gallery-view `runExport` useCallback deps miss reactive inputs, #17 ResearchWorkspaceView mouse-drag conditional handlers, #18 ResearchBrowserView ResizeObserver mixed ref/closure scope, #19 chat-view full-array Zustand subscription, #20 chat-view inline model vision probe.
+  - **Remaining open MEDIUM React items (lower priority, deferred):** #17 ResearchWorkspaceView mouse-drag conditional handlers, #18 ResearchBrowserView ResizeObserver mixed ref/closure scope, #19 chat-view full-array Zustand subscription, #20 chat-view inline model vision probe. #13 was closed in the 2026-07-08 React Gallery Export Continuation.
 - **2026-07-01 Three-Area Bug Hunt Fix Session (current session):**
   - Applied all 7 bug-hunt fixes from the IPC/storage/auth + React + safety/validation audits. The React renderer findings (MessageBubble memo, KaTeX CSS import, useCharacterImage deps, IIFE guard per render, mouse-drag conditional handlers, module-level subscribe never unsubscribed) are deferred and remain in the open TODO ledger because they are performance/quality concerns, not security regressions.
   - **Fix #1 (HIGH Bug 1.1, MEDIUM Bug 1.4):** `electron/ipc/handlers/systemHandlers.ts` `chat:save` (lines 282-284) + `conversations:save` (lines 363-365) now preflight `Buffer.byteLength(JSON.stringify(...), "utf8") > VENICE_MAX_BODY_BYTES` and return `{ ok: false, error: IPC_PAYLOAD_TOO_LARGE }` before delegating to `saveConversation`. Imports `VENICE_MAX_BODY_BYTES` from `src/shared/limits.ts` and declares `IPC_PAYLOAD_TOO_LARGE` constant.
@@ -712,6 +785,17 @@ backlog files were removed.
   - **Validation:** All 14 CI gates pass. Code fully verified for 14 audit items. Release gate: **PASS**.
 
 ### Session History
+- **2026-07-08 Deep Bug Review — FINDINGS ONLY:**
+  - Reviewed the dirty tree and high-risk repo surfaces without applying source fixes.
+  - Logged three actionable findings for follow-up: multi-owner workflow audio blob URL revocation, YAML import TOCTOU, and container-bound Research Workspace resize handling.
+  - Verified existing guardrails still pass under the repo-supported Node 22 path: safety guard, network boundaries, ESLint, typecheck, and the targeted IPC/research/workflow-node test batch.
+
+- **2026-07-08 React Gallery Export Continuation — COMPLETE:**
+  - Closed BUG-React #13 in `src/components/gallery/gallery-view.tsx`: batch export now calls the current `runExport` identity after media-store changes, so selected items export fresh data even when the selected ID list is unchanged.
+  - Added a `gallery-view.test.tsx` regression that selects media, mutates the store prompt, and asserts the exported JSON bundle contains the updated prompt.
+  - Confirmed the regression failed before the production fix and passed afterward.
+  - **Validation:** focused gallery test PASS (14 tests); lint PASS; typecheck PASS; focused modified-file regression batch PASS (43 tests); document-ingestion verifier test PASS (7 tests).
+
 - **2026-07-07 Chat Memory / Scenario Error Continuation — COMPLETE:**
   - Verified STO-002 / STO-003 are stale in the live tree: `src/stores/character-store.ts` and `src/stores/scenario-store.ts` contain no direct `console.error` calls and already use shared logger/redaction paths.
   - Closed CM-001 with a `ChatView` regression proving character unbind clears character metadata, resets source to `"chat"`, disables `memoryRetrievalEnabled`, and marks the conversation dirty.
@@ -1274,8 +1358,8 @@ backlog files were removed.
   - Fixed by replacing the environment-dependent log-negative assertion with behavior-based assertions: retry attempts, persisted pruned value, and reduced `conversations` array length.
   - Removed unused `console.warn` spy; lint, typecheck, and focused tests pass.
 - **2026-07-01 React renderer performance bug-hunt batch — CLOSED in this session:**
-  - Originally identified 28 React renderer findings across `src/components/chat/`, `src/components/gallery/`, `src/hooks/`, `src/stores/`. Twelve HIGH-severity items addressed with regression guards; the remaining five MEDIUM/LOW items (#13, #17, #18, #19, #20) are explicitly deferred and remain in the `Remaining open MEDIUM React items` list.
-  - **Closed items (12):**
+  - Originally identified 28 React renderer findings across `src/components/chat/`, `src/components/gallery/`, `src/hooks/`, `src/stores/`. Twelve HIGH-severity items were addressed with regression guards in that pass; #13 was closed in the 2026-07-08 React Gallery Export Continuation; the remaining four MEDIUM items (#17, #18, #19, #20) are explicitly deferred.
+  - **Closed items (13 including the 2026-07-08 #13 continuation):**
     - **#1 + #5:** `useCharacterImage` deps now primitives (`charSlug`, `charId`, `charPhotoUrl`, `charLocalId`); redundant IPC `getCachedUrl` eliminated across streaming-tick rebuilds of `conversation.metadata.character`.
     - **#2:** `MessageBubble` wrapped in `React.memo`; per-message callbacks built once via `useMemo<Map<string, MessageBubbleCallbacks>>` in `chat-view.tsx`, with `messagesRef`/`conversationIdRef` for live id→index lookup so stale closures still delete the correct message even when messages are prepended/inserted. `assistantAvatarUrl` hoisted.
     - **#3:** `localSafetyDecision` IIFE → `useMemo`, gated on `redTeamMode && content && localFamilySafeModeEnabled` so non-redteam users (common case) skip the regex/lookup cost entirely.
@@ -1286,6 +1370,7 @@ backlog files were removed.
     - **#10:** Two separate dep-on-`filtered` effects merged into one memoized `useEffect([filteredIds])` calling both `setVisibleMediaIds` and `reconcileWithVisible`. Line 167 typecheck fix (`visibleIds: () => filteredRef.current`, no `.map`).
     - **#11:** `missingChildIdsRef` mirrors state; children-detection effect dep list dropped from `[inspectorItem, items, loadById, missingChildIds]` to `[inspectorItem, items, loadById]` so the no-op re-run that `Array.from(new Set(...))` causes every setState cycle is eliminated.
     - **#12:** `runExportRef` + `runBulkAddTagRef` with forwarder useEffect `[runExport, runBulkAddTag]`. Registration body uses `runExportRef.current?.(ids)` and `runBulkAddTagRef.current?.(ids, [tag])`.
+    - **#13:** `handleBatchExport` now depends on the current `runExport` callback and has regression coverage proving bulk export serializes the latest selected media after store updates that do not change selection.
     - **#14:** `cleanupUnloadListeners` JSDoc added; renderer process keeps listeners attached for its full lifetime, tests use the export handle for cross-spec cleanup.
     - **#15:** `unsubscribeDirtyTracking = useChatStore.subscribe(...)` captured into hoisted module-level `let` (above the `if (typeof window !== 'undefined')` block to avoid TDZ) and exported.
   - **Regression tests added (6):** `useCharacterImage.test.tsx` (1 new — single getCachedUrl across re-renders), `message-bubble.test.tsx` (3 new — redteam gate, memo identity, invalidation), `useKatexCss.test.tsx` (monitor `katexLoadTracker.count` across 50 simultaneous mounts + 50 re-renders).
@@ -3980,6 +4065,23 @@ backlog files were removed.
 ---
 
 ## Session History
+
+### 2026-07-08 - Final continuation fixes and archive prep
+
+- **Scope:** Applied the remaining live bug fixes from the deep review before the requested main-branch push and clean ZIP packaging run.
+- **Workflow audio lifecycle:** `WorkflowNode` now uses shared ref-count ownership for rendered `blob:` audio URLs so duplicate displays of the same TTS output do not revoke each other prematurely. Added a regression guard proving the URL is revoked only after the final rendered owner unmounts.
+- **YAML import descriptor safety:** `app:loadYamlFile` now reads from the already-open descriptor after `fd.stat()` instead of reopening by path. Added IPC coverage that fails if descriptor reads are not used.
+- **Research browser resize:** `ResearchWorkspaceView` now tracks active resize drags with document-level `mousemove` / `mouseup` listeners and an accessible separator handle. Added coverage for dragging outside the workspace container.
+- **Validation:** Focused red/green tests passed after implementation; lint, typecheck, build, changed-area tests, static/security/archive verifiers, document-ingestion verifier, release-packaging hardening, and diff whitespace checks all passed.
+
+### 2026-07-08 - Final hardening follow-up (20260708-010525 audit response)
+
+- **Scope:** Reconciled the supplied `Windows-Venice-API-connector-clean-20260708-010525.zip` hardening assessment against the live repo, then closed remaining live gaps without redoing already-fixed work.
+- **Default-profile password policy:** Fixed the remaining orphan-verifier path in `ProfilePanel.tsx`: secure-store sync now clears an orphan `default` verifier and never calls `updateProfile("default", ...)`.
+- **Profile/Jina coverage:** Added `desktopBridge.test.ts` coverage proving Electron Jina requests include the active profile id, complementing existing main-process IPC tests for profile-scoped Jina key lookup and invalid profile-id rejection.
+- **Workflow TTS lifecycle coverage:** Added engine coverage proving TTS blob URLs are not revoked at run completion, plus `WorkflowNode` coverage proving rendered blob audio URLs are revoked on unmount.
+- **Feature-contract partition verifier:** Fixed `verify-document-ingestion.cjs` so it recognizes partitioned `verify:contracts:*` scripts; added a test fixture for the `verify:contracts:features:chat` wiring.
+- **Validation:** Node 22 `npm ci`, lint, typecheck, build, required static/security/archive verifiers, `verify:contracts:features`, full `verify:contracts`, focused regression tests, and diff whitespace checks all pass. Local ignored `.config/*.local.yaml` files were observed and left intact.
 
 ### 2026-07-08 - Bug and missing feature remediation
 
@@ -9852,7 +9954,75 @@ Targeted test outcomes this round:
 | `vitest run src/components/rp-studio/CharacterEditor.test.tsx src/components/rp-studio/CharacterLibrary.test.tsx src/stores/character-card-store.test.ts` | PASS | 50 / 50 passed. |
 | `git diff --check` | PASS | No whitespace errors after the hardening edits. |
 | `git diff --cached --check` | PASS | No staged diff whitespace errors. |
-| `verify:contracts:features` (full aggregate) | NOT RUN | 12-step aggregate exceeds the agent/sandbox timeout budget in this environment. The 5 partitioned subcommands (`features:chat|image|workflow|rp|settings`) are the recommended agent-loop entrypoint and individually completed (`features:settings` confirmed PASS in this session; the rest are unchanged blueprint scripts). |
+| `verify:contracts:features` (full aggregate) | SUPERSEDED | Earlier pass skipped this timeout-prone aggregate. Follow-up validation on 2026-07-08 ran the full partitioned aggregate successfully; see the append below. |
+
+## Validation Matrix — 2026-07-08 final hardening follow-up append
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm ci` | PASS | Ran under Node 22 path; dependency deprecation warnings only. |
+| `npm test -- src/components/settings/ProfilePanel.test.tsx` | PASS | 7 tests; includes orphan default-profile verifier regression. |
+| `npm test -- src/services/desktopBridge.test.ts` | PASS | 8 tests; includes active-profile Jina request injection. |
+| `npm test -- src/lib/workflow-engine.test.ts` | PASS | 7 tests; includes TTS blob URL remains alive after run completion. |
+| `npm test -- src/components/workflows/workflow-node.test.tsx` | PASS | 7 tests; includes blob audio URL revoke-on-unmount coverage. |
+| `npm test -- scripts/verify-document-ingestion.test.ts` | PASS | 7 tests; includes partitioned `verify:contracts:features:chat` wiring. |
+| `npm test -- src/components/settings/ProfilePanel.test.tsx src/services/desktopBridge.test.ts src/lib/workflow-engine.test.ts src/components/workflows/workflow-node.test.tsx src/components/OnboardingSplash.test.tsx electron/ipc/handlers.test.ts scripts/verify-document-ingestion.test.ts` | PASS | 109 tests across 7 files. |
+| `npm run lint:eslint` | PASS | Zero warnings/errors. |
+| `npm run typecheck` | PASS | Renderer + Electron main clean. |
+| `npm run build` | PASS | Renderer, server, and Electron outputs built. |
+| `npm run verify:dist` | PASS | Build outputs verified. |
+| `npm run verify:bundle-budget` | PASS | All chunks within budget. |
+| `npm run verify:safety-guard` | PASS | Safety guard enforcement passed. |
+| `npm run verify:image-policy` | PASS | Image policy verifier passed. |
+| `npm run verify:network-boundaries` | PASS | Network boundaries intact. |
+| `npm run verify:work-orders` | PASS | Work-order schema verifier passed. |
+| `npm run verify:contracts:static` | PASS | Static contract aggregate passed. |
+| `npm run verify:markdown-links` | PASS | 79 Markdown files checked. |
+| `npm run verify:storage-policy` | PASS | All localStorage references tagged. |
+| `npm run verify:repo-handoff-hygiene` | PASS | Handoff hygiene OK. |
+| `npm run verify:theme-tokens` | PASS | No forbidden hardcoded color classes. |
+| `npm run verify:release-packaging-hardening` | PASS | 102 pass checks. |
+| `npm run verify:archive-clean` | PASS | Archive exclusion config and tracked files clean. |
+| `npm run verify:contracts:features:chat` | PASS | Prompt library + document ingestion partition passed. |
+| `npm run verify:contracts:features:image` | PASS | Model-aware recipes + Media Studio power tools passed. |
+| `npm run verify:contracts:features:workflow` | PASS | Workflow templates + RP polish passed. |
+| `npm run verify:contracts:features:rp` | PASS | Scene composer, RP polish, research workspace, and research browser passed. |
+| `npm run verify:contracts:features:settings` | PASS | Status diagnostics, storage privacy, and storage policy passed. |
+| `npm run verify:contracts:features` | PASS | Full partitioned feature aggregate passed. |
+| `npm run verify:contracts` | PASS | Full static + feature + release aggregate passed. |
+| `test ! -e docs/AGENTS/venice-forge-privacy-summary-2026-07-01.json` | PASS | File absent. |
+| `test ! -e venice-forge.log` | PASS | File absent. |
+| `find . -maxdepth 1 -type f \( -name 'patch_*.cjs' -o -name 'patch_*.js' -o -name 'patch*.js' \) -print` | PASS | No root patch files printed. |
+| `find . -path './.config/*.local.yaml' -print` | WARN | Printed untracked local config files: `.config/config.local.yaml`, `.config/themes.local.yaml`; left intact. |
+| `git status --short -- docs/AGENTS/venice-forge-privacy-summary-2026-07-01.json venice-forge.log .gitignore .config` | PASS | No tracked changes for protected paths. |
+| `git diff --check` | PASS | No whitespace errors. |
+| `git diff --cached --check` | PASS | No staged diff whitespace errors. |
+
+## Validation Matrix — 2026-07-08 React gallery export continuation append
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm test -- src/components/gallery/gallery-view.test.tsx` | FAIL then PASS | New BUG-React #13 guard first failed with stale prompt (`Copper city at dusk` instead of `Updated copper city`), then passed after the dependency fix. Final run: 14 / 14 tests passed. |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
+| `npm run typecheck` | PASS | Renderer + Electron main TypeScript clean. |
+| `npm test -- src/components/gallery/gallery-view.test.tsx src/components/settings/ProfilePanel.test.tsx src/components/workflows/workflow-node.test.tsx src/lib/workflow-engine.test.ts src/services/desktopBridge.test.ts` | PASS | 43 / 43 tests passed across modified source/test areas. |
+| `npm test -- scripts/verify-document-ingestion.test.ts` | PASS | 7 / 7 tests passed. |
+| `npm run verify:markdown-links` | PASS | 79 Markdown files checked after ledger edits. |
+| `git diff --check` | PASS | No whitespace errors. |
+| `git diff --cached --check` | PASS | No staged diff whitespace errors. |
+
+## Validation Matrix — 2026-07-08 deep bug review append
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm run verify:safety-guard` | PASS | Safety guard enforcement and no-raw-log policy passed. |
+| `npm run verify:network-boundaries` | PASS | Network boundary verifier passed. |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
+| `npm run typecheck` | PASS | Renderer + Electron main TypeScript clean. |
+| `npm test -- electron/ipc/handlers.test.ts src/components/research/ResearchBrowserView.test.tsx src/components/research/ResearchWorkspaceView.test.tsx src/components/workflows/workflow-node.test.tsx` | PASS | 81 tests passed across the matching IPC/research/workflow-node files. |
+| `npm run verify:markdown-links` | PASS | 79 Markdown files checked after audit ledger edits. |
+| `git diff --check` | PASS | No whitespace errors. |
+| `git diff --cached --check` | PASS | No staged diff whitespace errors. |
 
 ## Validation Matrix — 2026-07-08 Phase 1 README/docs remediation pass
 
@@ -9911,3 +10081,25 @@ Addressed missing features and major bugs identified in the prior discovery audi
 ### Open TODO Ledger
 - `verify:contracts:features` full aggregate still exceeds timeout in this sandbox environment; run the 5 partitioned sub-commands individually (`features:chat|image|workflow|rp|settings`).
 - `verify:contracts` full aggregate not run in this session (same timeout constraint).
+
+## Validation Matrix — 2026-07-08 final continuation fixes and archive prep
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm test -- src/components/workflows/workflow-node.test.tsx electron/ipc/handlers.test.ts src/components/research/ResearchWorkspaceView.test.tsx` | FAIL then PASS | New guards first failed for shared audio URL revocation, YAML descriptor read, and document-level resize drag; final run passed 84 tests. |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
+| `npm run typecheck` | PASS | Renderer + Electron TypeScript projects clean. |
+| `npm run build` | PASS | Web, server, and Electron outputs built. |
+| `npm test -- src/components/settings/ProfilePanel.test.tsx src/components/workflows/workflow-node.test.tsx src/lib/workflow-engine.test.ts src/services/desktopBridge.test.ts src/components/gallery/gallery-view.test.tsx scripts/verify-document-ingestion.test.ts electron/ipc/handlers.test.ts src/components/research/ResearchWorkspaceView.test.tsx` | PASS | 127 tests passed across 8 changed-area files. |
+| `npm run verify:dist` | PASS | Build outputs verified. |
+| `npm run verify:bundle-budget` | PASS | All emitted chunks within configured budgets. |
+| `npm run verify:safety-guard` | PASS | Guard enforcement and no-raw-log policy passed. |
+| `npm run verify:network-boundaries` | PASS | Network boundary verifier passed. |
+| `npm run verify:markdown-links` | PASS | 79 Markdown files checked. |
+| `npm run verify:repo-handoff-hygiene` | PASS | Handoff hygiene OK. |
+| `npm run verify:archive-clean` | PASS | Archive exclusion config and tracked files clean. |
+| `npm run verify:document-ingestion` | PASS | VERIFY-058 passed; 56 service tests and 53 component tests passed inside verifier. |
+| `npm run verify:contracts:static` | PASS | Static contract aggregate passed, including theme tokens, CI contract, agent docs, image policy, work orders, and WebContentsView checks. |
+| `npm run verify:storage-policy` | PASS | All `localStorage` references tagged. |
+| `npm run verify:release-packaging-hardening` | PASS | 102 release-packaging checks passed. |
+| `git diff --check` | PASS | No whitespace errors. |

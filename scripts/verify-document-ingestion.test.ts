@@ -143,6 +143,60 @@ describe("verify-document-ingestion (VERIFY-058)", () => {
     }
   });
 
+  it("accepts document ingestion wired through a partitioned feature contract", () => {
+    const root = mkdtempSync(join(tmpdir(), "venice-doc-ingest-partition-"));
+    try {
+      mkdirSync(join(root, "scripts"), { recursive: true });
+      for (const file of requiredFiles) {
+        mkdirSync(dirname(join(root, file)), { recursive: true });
+        writeFileSync(join(root, file), [
+          "DOCUMENT_EXTS TEXT_EXTS MARKDOWN_EXTS IMAGE_EXTS CODE_EXTS \".dockerfile\"",
+          "processFileAttachment SUPPORTED_ATTACHMENT_ACCEPT AI is not vision capable setAttachments((prev) => [...prev, attachment])",
+          "modelRequirements.requiresVision disableImageAttach={!visionSupported}",
+          "remarkMath rehypeKatex rehypeSanitize safeUrlTransform",
+          "kind: 'manual_note' localFile: true extractionRoute",
+        ].join("\n"));
+      }
+
+      const realScript = readFileSync(scriptPath, "utf8");
+      writeFileSync(join(root, "scripts/verify-document-ingestion.cjs"), realScript);
+      writeFileSync(
+        join(root, "package.json"),
+        JSON.stringify({
+          name: "fake",
+          scripts: {
+            "verify:document-ingestion": "node scripts/verify-document-ingestion.cjs",
+            "verify:contracts": "npm run verify:contracts:features",
+            "verify:contracts:features": "npm run verify:contracts:features:chat",
+            "verify:contracts:features:chat": "npm run verify:document-ingestion",
+          },
+          dependencies: {
+            mammoth: "1.0.0",
+            "pdfjs-dist": "1.0.0",
+            "remark-math": "1.0.0",
+            "rehype-katex": "1.0.0",
+            "rehype-sanitize": "1.0.0",
+          },
+        }),
+      );
+      writeFileSync(join(root, "AGENTS.md"), "# Fake\nVERIFY-058\nverify:document-ingestion\n");
+
+      const out = spawnSync("node", [join(root, "scripts/verify-document-ingestion.cjs")], {
+        cwd: root,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          VERIFY_DOCUMENT_INGESTION_SKIP_VITEST: "1",
+        },
+      });
+
+      expect(out.status, (out.stderr || "") + (out.stdout || "")).toBe(0);
+      expect(out.stdout).toMatch(/VERIFY-058: Document ingestion validation passed/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("requiredFiles includes every test in the ingestion and component groups", () => {
     for (const test of [...ingestionTests, ...componentTests]) {
       expect(requiredFiles).toContain(test);

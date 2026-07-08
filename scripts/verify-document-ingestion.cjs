@@ -76,9 +76,10 @@ function verifyPackageJson() {
   if (pkg.scripts?.["verify:document-ingestion"] !== "node scripts/verify-document-ingestion.cjs") {
     fail("package.json script is missing or incorrect.");
   }
-  const allContracts = (pkg.scripts?.["verify:contracts"] || "") + 
-                       (pkg.scripts?.["verify:contracts:features"] || "") + 
-                       (pkg.scripts?.["verify:contracts:static"] || "");
+  const allContracts = Object.entries(pkg.scripts || {})
+    .filter(([name]) => name === "verify:contracts" || name.startsWith("verify:contracts:"))
+    .map(([, command]) => String(command))
+    .join("\n");
   if (!allContracts.includes("npm run verify:document-ingestion")) {
     fail("verify:contracts does not include verify:document-ingestion.");
   }

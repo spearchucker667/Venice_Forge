@@ -27,6 +27,7 @@ vi.mock('../../hooks/use-models', () => ({
 
 import StorageService from '../../services/storageService'
 import { useMediaStore } from '../../stores/media-store'
+import { useMediaSelectionStore } from '../../stores/media-selection-store'
 import { GalleryView } from './gallery-view'
 import { useImageWorkspaceStore } from '../../stores/image-workspace-store'
 import { useSettingsStore } from '../../stores/settings-store'
@@ -56,6 +57,7 @@ describe('MediaStudioView (GalleryView)', () => {
       items: [], loading: false, loadingMore: false, loaded: false,
       totalCount: 0, hasMore: false, nextOffset: 0, lastError: null,
     })
+    useMediaSelectionStore.getState().clearSelection()
     vi.mocked(StorageService.getItemsPageWithMeta).mockResolvedValue({
       items: [sampleRecord], decryptFailures: 0, total: 1, offset: 0, limit: 60, hasMore: false,
     })
@@ -347,9 +349,10 @@ describe('MediaStudioView (GalleryView)', () => {
 
   it('exports a reusable recipe as a JSON download (AUDIT-IMG-001 regression)', async () => {
     const createObjectURL = vi.fn().mockReturnValue('blob:recipe')
+    const originalCreateObjectURL = URL.createObjectURL
     URL.createObjectURL = createObjectURL
     const clickSpy = vi.fn()
-    const originalCreateElement = document.createElement
+    const originalCreateElement = Document.prototype.createElement
     vi.spyOn(document, 'createElement').mockImplementation((tag) => {
       const el = originalCreateElement.call(document, tag)
       if (tag.toLowerCase() === 'a') el.click = clickSpy
@@ -366,16 +369,60 @@ describe('MediaStudioView (GalleryView)', () => {
     vi.mocked(StorageService.getItemsPageWithMeta).mockResolvedValue({
       items: [record], decryptFailures: 0, total: 1, offset: 0, limit: 60, hasMore: false,
     })
-    render(<GalleryView />)
-    await screen.findByText('Copper city at dusk')
-    fireEvent.doubleClick(screen.getByRole('button', { name: /open image: copper city at dusk/i }))
-    fireEvent.click(await screen.findByTestId('inspector-export-recipe'))
+    try {
+      render(<GalleryView />)
+      await screen.findByText('Copper city at dusk')
+      fireEvent.doubleClick(screen.getByRole('button', { name: /open image: copper city at dusk/i }))
+      fireEvent.click(await screen.findByTestId('inspector-export-recipe'))
 
-    await waitFor(() => {
-      expect(createObjectURL).toHaveBeenCalled()
-      expect(clickSpy).toHaveBeenCalled()
+      await waitFor(() => {
+        expect(createObjectURL).toHaveBeenCalled()
+        expect(clickSpy).toHaveBeenCalled()
+      })
+      const blob = createObjectURL.mock.calls[0][0] as Blob
+      expect(blob.type).toBe('application/json')
+    } finally {
+      URL.createObjectURL = originalCreateObjectURL
+      vi.restoreAllMocks()
+    }
+  })
+
+  it('exports the latest selected media after the media store changes without changing selection', async () => {
+    const createObjectURL = vi.fn().mockReturnValue('blob:bundle')
+    const revokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL })
+    const clickSpy = vi.fn()
+    const originalCreateElement = Document.prototype.createElement
+    vi.spyOn(document, 'createElement').mockImplementation((tag) => {
+      const el = originalCreateElement.call(document, tag)
+      if (tag.toLowerCase() === 'a') el.click = clickSpy
+      return el
     })
-    const blob = createObjectURL.mock.calls[0][0] as Blob
-    expect(blob.type).toBe('application/json')
+
+    try {
+      render(<GalleryView />)
+      await screen.findByText('Copper city at dusk')
+      fireEvent.click(screen.getByRole('button', { name: 'Select' }))
+      fireEvent.click(screen.getByTestId('bulk-select-all'))
+
+      await waitFor(() => expect(screen.getByTestId('bulk-export')).toBeEnabled())
+      act(() => {
+        useMediaStore.setState({
+          items: [{ ...useMediaStore.getState().items[0], prompt: 'Updated copper city' }],
+        })
+      })
+      expect(await screen.findByText('Updated copper city')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByTestId('bulk-export'))
+
+      await waitFor(() => expect(createObjectURL).toHaveBeenCalled())
+      const blob = createObjectURL.mock.calls[0][0] as Blob
+      const exported = JSON.parse(await blob.text())
+      expect(exported.items[0].prompt).toBe('Updated copper city')
+      expect(clickSpy).toHaveBeenCalled()
+    } finally {
+      vi.unstubAllGlobals()
+      vi.restoreAllMocks()
+    }
   })
 })

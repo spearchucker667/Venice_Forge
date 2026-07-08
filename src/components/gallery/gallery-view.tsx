@@ -453,10 +453,6 @@ export function MediaStudioView() {
     setCompareOpen(true);
   }, []);
 
-  const handleBatchExport = useCallback(() => {
-    void runExport(selectedMediaIds);
-  }, [selectedMediaIds]);
-
   // Phase 2B: export the selected media as a JSON bundle (browser side).
   // The renderer never gets filesystem access; we trigger a download via
   // the same Blob+anchor path the inspector already uses.
@@ -483,6 +479,10 @@ export function MediaStudioView() {
     const filenameList = exportItems.map((it) => buildMediaFilename(it)).join("\n")
     toast.success(`Exported ${ids.length} item${ids.length === 1 ? "" : "s"}. Sidecar filenames:\n${filenameList}`)
   }, [items]);
+
+  const handleBatchExport = useCallback(() => {
+    void runExport(selectedMediaIds);
+  }, [selectedMediaIds, runExport]);
 
   // BUG-React#12 regression guard: forward the latest runExport and runBulkAddTag
   // callback identities to the refs that the registerMediaCommandHandlers effect

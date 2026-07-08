@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { executeWorkflow, WorkflowExecutionError } from './workflow-engine'
-import { venice } from './venice-client'
+import { venice, veniceBlob } from './venice-client'
 import type { Node, Edge } from '@xyflow/react'
 import type { VeniceNodeData } from '../stores/workflow-store'
-import { DEFAULT_VIDEO_MODEL } from '../constants/venice'
+import { DEFAULT_TTS_MODEL, DEFAULT_VIDEO_MODEL } from '../constants/venice'
 
 vi.mock('./venice-client', () => ({
   venice: vi.fn(),
@@ -157,6 +157,37 @@ describe('workflow-engine', () => {
       expect(updateError).not.toContain('/secret/path')
     } finally {
       vi.useRealTimers()
+    }
+  })
+
+  it('keeps TTS blob URLs alive after workflow completion', async () => {
+    const createObjectURL = vi.fn(() => 'blob:workflow-tts')
+    const revokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL })
+    try {
+      vi.mocked(veniceBlob).mockResolvedValue(new Blob(['audio'], { type: 'audio/mpeg' }))
+
+      const nodes: Node<VeniceNodeData>[] = [
+        { id: 'n1', type: 'venice', position: { x: 0, y: 0 }, data: { label: 'In', nodeType: 'textInput', inputText: 'say hello', model: '', prompt: '' } },
+        { id: 'n2', type: 'venice', position: { x: 0, y: 0 }, data: { label: 'TTS', nodeType: 'tts', model: DEFAULT_TTS_MODEL, prompt: '{{input}}' } }
+      ]
+      const edges: Edge[] = [{ id: 'e1', source: 'n1', target: 'n2' }]
+      const updates: Record<string, any>[] = []
+
+      await executeWorkflow(nodes, edges, (nodeId, res) => {
+        updates.push({ nodeId, ...res })
+      })
+
+      expect(createObjectURL).toHaveBeenCalledTimes(1)
+      expect(revokeObjectURL).not.toHaveBeenCalled()
+      expect(updates).toContainEqual(expect.objectContaining({
+        nodeId: 'n2',
+        status: 'done',
+        output: '[audio:blob:workflow-tts]',
+        outputKind: 'audio',
+      }))
+    } finally {
+      vi.unstubAllGlobals()
     }
   })
 })

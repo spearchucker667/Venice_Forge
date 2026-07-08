@@ -200,7 +200,7 @@ export function registerFileHandlers(): void {
         if (fstat.size > MAX_JSON_FILE_BYTES) {
           throw new Error("Import file is too large.");
         }
-        const data = await fs.readFile(result.filePaths[0], "utf-8");
+        const data = await fd.readFile({ encoding: "utf-8" });
         return { ok: true, canceled: false, data };
       } finally {
         await fd.close();

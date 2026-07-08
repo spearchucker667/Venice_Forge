@@ -38,6 +38,12 @@ export function ProfilePanel() {
     ).then((results) => {
       if (cancelled) return
       for (const { profile, isSet } of results) {
+        if (profile.id === DEFAULT_PROFILE_ID) {
+          if (isSet) {
+            void desktopProfilePassword.clear(DEFAULT_PROFILE_ID).catch(() => undefined)
+          }
+          continue
+        }
         if ((profile.hasPassword === true) !== isSet) {
           updateProfile(profile.id, { hasPassword: isSet })
         }

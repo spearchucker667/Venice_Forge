@@ -64,6 +64,21 @@ describe("ProfilePanel profile password lock flow", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("clears an orphan default-profile verifier without updating reserved default metadata", async () => {
+    vi.mocked(desktopProfilePassword.isSet).mockImplementation(async (profileId) => profileId === "default");
+    const updateProfile = vi.spyOn(useProfileStore.getState(), "updateProfile");
+
+    render(<ProfilePanel />);
+
+    await waitFor(() => {
+      expect(desktopProfilePassword.clear).toHaveBeenCalledWith("default");
+    });
+    expect(updateProfile).not.toHaveBeenCalledWith("default", expect.anything());
+    expect(
+      screen.queryByRole("button", { name: /Remove password for Default Profile/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it("produces a store-level error when updateProfile is called for the reserved default id", () => {
     // Real store: confirms assertUserCreatableProfileId rejects "default"
     // — this is the regression guard the previous mock-based test hid.

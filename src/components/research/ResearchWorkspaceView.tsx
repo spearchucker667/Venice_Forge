@@ -4,7 +4,7 @@
  * running searches, scraping URLs, building findings, and generating summaries.
  */
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { 
   useResearchStore 
 } from '../../stores/research-store';
@@ -103,6 +103,15 @@ export const ResearchWorkspaceView: React.FC = () => {
   const resizerRef = useRef<HTMLDivElement>(null);
   const browserColRef = useRef<HTMLDivElement>(null);
 
+  const updateBrowserWidthFromClientX = useCallback((clientX: number) => {
+    const newWidth = document.body.clientWidth - clientX;
+    setBrowserWidth(Math.max(300, Math.min(newWidth, 800)));
+  }, []);
+
+  const stopBrowserResizeDrag = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
   useEffect(() => {
     if (leftColRef.current) leftColRef.current.style.width = `calc(100% - ${browserWidth}px)`;
     if (browserColRef.current) browserColRef.current.style.width = `${browserWidth}px`;
@@ -117,6 +126,24 @@ export const ResearchWorkspaceView: React.FC = () => {
   useEffect(() => {
     ensureResearchLoaded();
   }, [ensureResearchLoaded]);
+
+  useEffect(() => {
+    if (!isDragging) return undefined;
+
+    const handleMouseMove = (event: MouseEvent) => {
+      updateBrowserWidthFromClientX(event.clientX);
+    };
+    const handleMouseUp = () => {
+      stopBrowserResizeDrag();
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, stopBrowserResizeDrag, updateBrowserWidthFromClientX]);
 
   const handleOpenInBrowser = async (url: string) => {
     await researchBrowserBridge.navigate({ urlOrQuery: url });
@@ -400,12 +427,6 @@ export const ResearchWorkspaceView: React.FC = () => {
 
             <div 
               className="flex-1 flex overflow-hidden relative"
-              onMouseMove={isDragging ? (e) => {
-                const newWidth = document.body.clientWidth - e.clientX;
-                setBrowserWidth(Math.max(300, Math.min(newWidth, 800)));
-              } : undefined}
-              onMouseUp={() => setIsDragging(false)}
-              onMouseLeave={() => setIsDragging(false)}
             >
               <div 
                 ref={leftColRef}
@@ -562,8 +583,12 @@ export const ResearchWorkspaceView: React.FC = () => {
               <div 
                 ref={resizerRef}
                 className="w-1 cursor-col-resize hover:bg-accent transition-colors shrink-0"
+                role="separator"
+                aria-label="Resize research browser"
+                aria-orientation="vertical"
                 onMouseDown={(e) => {
                   e.preventDefault();
+                  updateBrowserWidthFromClientX(e.clientX);
                   setIsDragging(true);
                 }}
               />

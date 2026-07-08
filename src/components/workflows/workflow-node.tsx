@@ -6,20 +6,33 @@ import { useModels } from '../../hooks/use-models'
 import { Select } from '../ui/select'
 import { cn } from '../../lib/utils'
 
+const workflowBlobUrlRefs = new Map<string, number>()
+
+function retainWorkflowBlobUrl(url: string) {
+  workflowBlobUrlRefs.set(url, (workflowBlobUrlRefs.get(url) ?? 0) + 1)
+}
+
+function releaseWorkflowBlobUrl(url: string) {
+  const next = (workflowBlobUrlRefs.get(url) ?? 0) - 1
+  if (next > 0) {
+    workflowBlobUrlRefs.set(url, next)
+    return
+  }
+  workflowBlobUrlRefs.delete(url)
+  try { URL.revokeObjectURL(url) } catch { /* ignore */ }
+}
+
 /**
- * Renders a `[audio:<blob:url>]` workflow output and owns the blob URL's
- * lifetime. The engine no longer revokes media URLs at run completion, so
- * pages of rendered workflows would otherwise accumulate blob URLs forever.
- * Revocation policy: when the URL changes OR the component unmounts the
- * previous URL is revoked. Pure server-hosted URLs (`https://`, `http://`,
- * data:) are passed straight through without revocation.
+ * Renders a `[audio:<blob:url>]` workflow output and participates in shared
+ * blob URL ownership. Workflow output nodes can display the same TTS URL as
+ * their upstream producer, so the URL is revoked only after the final rendered
+ * owner unmounts.
  */
 function AudioOutput({ url }: { url: string }) {
   useEffect(() => {
     if (!url.startsWith('blob:')) return
-    return () => {
-      try { URL.revokeObjectURL(url) } catch { /* ignore */ }
-    }
+    retainWorkflowBlobUrl(url)
+    return () => releaseWorkflowBlobUrl(url)
   }, [url])
   return <audio src={url} controls className="w-full h-8" />
 }
