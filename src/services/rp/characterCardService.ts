@@ -132,17 +132,25 @@ export function normalizeCard(input: unknown): CharacterCardV1 | null {
   const metadata: Record<string, unknown> | undefined = (() => {
     if (!r.metadata || typeof r.metadata !== "object") return undefined;
     const m = r.metadata as Record<string, unknown>;
-    // Only allow primitive scalar values (string/number/boolean/null) — never
-    // store nested objects with raw prompts, API keys, or token strings.
-    const out: Record<string, unknown> = {};
+    const outMeta: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(m)) {
       if (v === null || typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
         if (typeof v === "string" && v.length > 500) continue;
-        out[k] = v;
+        outMeta[k] = v;
       }
     }
-    return Object.keys(out).length > 0 ? out : undefined;
+    return Object.keys(outMeta).length > 0 ? outMeta : undefined;
   })();
+
+  const contextFiles = Array.isArray(r.contextFiles)
+    ? r.contextFiles.filter((f): f is Record<string, unknown> => !!f && typeof f === "object").map(f => ({
+        id: typeof f.id === "string" ? f.id : "",
+        name: typeof f.name === "string" ? f.name : "",
+        content: typeof f.content === "string" ? f.content : "",
+        size: typeof f.size === "number" ? f.size : 0,
+      })).filter(f => f.id && f.name && f.content)
+    : undefined;
+
   const createdAt = typeof r.createdAt === "number" ? r.createdAt : Date.now();
   const updatedAt = typeof r.updatedAt === "number" ? r.updatedAt : createdAt;
   const out: CharacterCardV1 = {
@@ -167,6 +175,14 @@ export function normalizeCard(input: unknown): CharacterCardV1 | null {
   if (metadata) out.metadata = metadata;
   const archivedAt = typeof r.archivedAt === "number" ? r.archivedAt : undefined;
   if (archivedAt !== undefined) out.archivedAt = archivedAt;
+
+  if (contextFiles && contextFiles.length > 0) out.contextFiles = contextFiles;
+  if (typeof r.webSearch === "boolean") out.webSearch = r.webSearch;
+  if (typeof r.urlScraping === "boolean") out.urlScraping = r.urlScraping;
+  if (typeof r.enableThoughts === "boolean") out.enableThoughts = r.enableThoughts;
+  if (typeof r.temperature === "number") out.temperature = r.temperature;
+  if (typeof r.topP === "number") out.topP = r.topP;
+
   return out;
 }
 

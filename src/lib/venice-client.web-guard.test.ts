@@ -14,9 +14,61 @@ vi.mock("../services/desktopBridge", () => ({
   isElectron: () => false,
 }));
 
+vi.mock("../stores/inspector-store", () => ({
+  useInspectorStore: {
+    getState: () => ({
+      addLog: vi.fn(() => "log-id-mock"),
+      updateLog: vi.fn(),
+    }),
+  },
+}));
+
+vi.mock("../services/inspectorTelemetry", () => ({
+  buildInspectorTelemetryPatch: vi.fn(() => ({})),
+  deriveGuardOutcome: vi.fn(() => "allow"),
+  maskInspectorHeaders: vi.fn((h: unknown) => h),
+  sanitizeInspectorPayload: vi.fn((p: unknown) => p),
+  getSafetyDecisionForLog: vi.fn(() => ({ decision: null, previewDurationMs: 0 })),
+}));
+
+vi.mock("../services/veniceClient/safety", () => ({
+  getSafetyDecisionForLog: vi.fn(() => ({ decision: null, previewDurationMs: 0 })),
+}));
+
+
 vi.mock("../shared/safety/localFamilySafeGuard", () => ({
   maybeRunLocalFamilyGuard: (...args: unknown[]) => maybeRunLocalFamilyGuard(...args),
   previewLocalFamilyGuard: vi.fn(),
+  FAMILY_SAFE_MODE_BLOCK_MESSAGE: "Blocked by Family Safe Mode",
+  runLocalFamilyGuard: vi.fn(),
+  safetyBlockBodyFromResponseScreen: vi.fn(),
+  screenResponseBody: vi.fn(),
+}));
+
+// Also mock the barrel so fetch.ts (which imports from "../../shared/safety")
+// sees the same maybeRunLocalFamilyGuard spy.
+vi.mock("../shared/safety", () => ({
+  maybeRunLocalFamilyGuard: (...args: unknown[]) => maybeRunLocalFamilyGuard(...args),
+  previewLocalFamilyGuard: vi.fn(),
+  SafetyGuardBlockedError: class SafetyGuardBlockedError extends Error {
+    readonly status = 451;
+    readonly decision = { allow: false, action: "block", reasonCode: "sp-001-test" };
+    constructor({ userMessage }: { userMessage?: string } = {}) {
+      super(userMessage ?? "Blocked by Family Safe Mode");
+      this.name = "SafetyGuardBlockedError";
+    }
+  },
+  assessChildExploitationSafety: vi.fn(),
+  assertChildExploitationSafe: vi.fn(),
+  assessPromptForSafeContext: vi.fn(),
+  normalizeText: vi.fn(),
+  extractPromptLikeFields: vi.fn(() => []),
+  recordDecision: vi.fn(),
+  getAuditSnapshot: vi.fn(),
+  _resetAuditCounters_TEST_ONLY: vi.fn(),
+  runLocalFamilyGuard: vi.fn(),
+  safetyBlockBodyFromResponseScreen: vi.fn(),
+  screenResponseBody: vi.fn(),
 }));
 
 vi.mock("../shared/safety/childExploitationGuard", () => ({

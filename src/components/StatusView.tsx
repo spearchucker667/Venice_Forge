@@ -11,6 +11,7 @@ import { Chip } from './Chip';
 import { desktopApp, isElectron } from '../services/desktopBridge';
 import { getAuditSnapshot } from '../shared/safety';
 import { useSettingsStore } from '../stores/settings-store';
+import { useInspectorStore } from '../stores/inspector-store';
 
 interface AppDiagnostics {
   appVersion: string;
@@ -45,6 +46,7 @@ function getEmptyDiagnostics(): AppDiagnostics {
 export function StatusView() {
   const [diag, setDiag] = useState<AppDiagnostics>(getEmptyDiagnostics);
   const activeTab = useSettingsStore((s) => s.activeTab);
+  const lastRequest = useInspectorStore((s) => s.logs[0]);
 
   useEffect(() => {
     let cancelled = false;
@@ -138,11 +140,26 @@ export function StatusView() {
 
       <section className="rounded-lg border border-border bg-surface-muted p-3 space-y-1.5">
         <h3 className="text-[12px] uppercase tracking-wide text-text-muted">Last request</h3>
-        <Chip>no requests yet (last error below if any)</Chip>
-        {diag.lastApiError && (
-          <div className="text-[11.5px] text-danger pt-1 break-words">
-            Last error: {diag.lastApiError}
-          </div>
+        {lastRequest ? (
+          <>
+            <Row k="Endpoint" v={lastRequest.endpoint} mono />
+            <Row k="Status" v={String(lastRequest.status || 'Pending')} />
+            <Row k="Method" v={lastRequest.method} />
+            {lastRequest.error && (
+              <div className="text-[11.5px] text-danger pt-1 break-words">
+                Last error: {lastRequest.error}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <Chip>no requests yet (last error below if any)</Chip>
+            {diag.lastApiError && (
+              <div className="text-[11.5px] text-danger pt-1 break-words">
+                Last error: {diag.lastApiError}
+              </div>
+            )}
+          </>
         )}
       </section>
 

@@ -19,6 +19,8 @@ type VeniceRequest = {
   headers?: Record<string, string>;
   signalId?: string;
   localFamilySafeModeEnabled?: boolean;
+  profileId?: string;
+
 };
 
 /** API surface exposed to the renderer via contextBridge. */
@@ -76,46 +78,59 @@ const veniceForge = {
     },
   },
 
+  
+  credentials: {
+    set(key: string, value: string): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("credential:set", { key, value });
+    },
+    get(key: string): Promise<{ ok: boolean; value: string | null; error?: string }> {
+      return ipcRenderer.invoke("credential:get", key);
+    },
+    delete(key: string): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("credential:delete", key);
+    },
+  },
+
   apiKey: {
     /** Checks whether a Venice API key has been stored securely.
      *  @returns A promise resolving to true when a key is configured.
      */
-    isConfigured(): Promise<boolean> {
-      return ipcRenderer.invoke("apiKey:isConfigured");
+    isConfigured(profileId?: string): Promise<boolean> {
+      return ipcRenderer.invoke("apiKey:isConfigured", profileId);
     },
     /** Stores the Venice API key using OS-level encryption.
      *  @param key The API key to encrypt and store.
      *  @returns A promise resolving with the operation result.
      */
-    set(key: string): Promise<{ ok: boolean }> {
-      return ipcRenderer.invoke("apiKey:set", key);
+    set(key: string, profileId?: string): Promise<{ ok: boolean }> {
+      return ipcRenderer.invoke("apiKey:set", { key, profileId });
     },
     /** Removes the stored Venice API key.
      *  @returns A promise resolving with the operation result.
      */
-    delete(): Promise<{ ok: boolean }> {
-      return ipcRenderer.invoke("apiKey:delete");
+    delete(profileId?: string): Promise<{ ok: boolean }> {
+      return ipcRenderer.invoke("apiKey:delete", profileId);
     },
     /** Verifies connectivity to the Venice API with the stored key.
      *  @returns A promise resolving with the test result and status.
      */
-    test(): Promise<{ ok: boolean; status?: number; message: string }> {
-      return ipcRenderer.invoke("apiKey:test");
+    test(profileId?: string): Promise<{ ok: boolean; status?: number; message: string }> {
+      return ipcRenderer.invoke("apiKey:test", profileId);
     },
   },
 
   jinaApiKey: {
-    isConfigured(): Promise<boolean> {
-      return ipcRenderer.invoke("jinaApiKey:isConfigured");
+    isConfigured(profileId?: string): Promise<boolean> {
+      return ipcRenderer.invoke("jinaApiKey:isConfigured", profileId);
     },
-    set(key: string): Promise<{ ok: boolean }> {
-      return ipcRenderer.invoke("jinaApiKey:set", key);
+    set(key: string, profileId?: string): Promise<{ ok: boolean }> {
+      return ipcRenderer.invoke("jinaApiKey:set", { key, profileId });
     },
-    delete(): Promise<{ ok: boolean }> {
-      return ipcRenderer.invoke("jinaApiKey:delete");
+    delete(profileId?: string): Promise<{ ok: boolean }> {
+      return ipcRenderer.invoke("jinaApiKey:delete", profileId);
     },
-    test(): Promise<{ ok: boolean; status?: number; message: string }> {
-      return ipcRenderer.invoke("jinaApiKey:test");
+    test(profileId?: string): Promise<{ ok: boolean; status?: number; message: string }> {
+      return ipcRenderer.invoke("jinaApiKey:test", profileId);
     },
   },
 

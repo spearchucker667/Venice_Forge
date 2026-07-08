@@ -67,23 +67,24 @@ function sanitizeJinaForwardHeaders(input: unknown): Record<string, string> {
 }
 
 export function registerJinaHandlers(): void {
-  registerIpcChannel("jinaApiKey:isConfigured", () => isJinaApiKeyConfigured());
+  registerIpcChannel("jinaApiKey:isConfigured", (_event, profileId?: string) => isJinaApiKeyConfigured(profileId));
 
-  registerIpcChannel("jinaApiKey:set", (_event, key: unknown) => {
+  registerIpcChannel("jinaApiKey:set", (_event, payload: unknown) => {
+    const { key, profileId } = typeof payload === "object" && payload !== null && "key" in payload ? payload as { key: unknown, profileId?: string } : { key: payload, profileId: undefined };
     try {
       const trimmed = typeof key === "string" ? key.trim() : "";
       if (!trimmed) throw new Error("Enter a Jina API key before saving.");
       if (trimmed.length > 512) throw new Error("Jina API key is too long.");
-      setJinaApiKey(trimmed);
+      setJinaApiKey(trimmed, profileId);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
   });
 
-  registerIpcChannel("jinaApiKey:delete", () => {
+  registerIpcChannel("jinaApiKey:delete", (_event, profileId?: string) => {
     try {
-      deleteJinaApiKey();
+      deleteJinaApiKey(profileId);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };

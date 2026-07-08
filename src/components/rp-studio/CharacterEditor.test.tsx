@@ -22,6 +22,8 @@ const fixtures = vi.hoisted(() => {
     tags: ["test"],
     adult: false,
     exampleDialogues: [],
+    // Minimal avatar so "Image (avatar) is required." validation passes.
+    avatar: { dataUri: "data:image/png;base64,iVBORw0KGgo=", mimeType: "image/png" as const },
     createdAt: 1_700_000_000_000,
     updatedAt: 1_700_000_000_000,
   };

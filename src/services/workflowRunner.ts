@@ -28,6 +28,8 @@ export interface WorkflowRunPlan {
   warnings: WorkflowCompileWarning[];
 }
 
+const globalEmittedOutputs = new Set<string>();
+
 export function createWorkflowRunPlan(compiled: WorkflowCompileResult): WorkflowRunPlan {
   const plan: WorkflowRunPlan = {
     workflowId: compiled.workflowId,
@@ -56,6 +58,10 @@ export function createWorkflowRunPlan(compiled: WorkflowCompileResult): Workflow
     }
 
     if (step.outputKey) {
+      if (globalEmittedOutputs.has(step.outputKey)) {
+        continue;
+      }
+      globalEmittedOutputs.add(step.outputKey);
       plan.outputs[step.outputKey] = { ...step.resolvedInput };
     }
 

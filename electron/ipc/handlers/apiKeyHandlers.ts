@@ -4,6 +4,9 @@ import {
   deleteApiKey,
   isApiKeyConfigured,
   setApiKey,
+  setCredential,
+  getCredential,
+  deleteCredential
 } from "../../services/secureStore";
 import { readResponseError } from "../../services/veniceClient";
 import { performGuardedVeniceRequest } from "../../services/guardPipeline";
@@ -49,8 +52,8 @@ function classifyConnectivityFailure(status: number, message: string): ApiConnec
   );
 }
 
-async function testVeniceConnection(): Promise<{ ok: boolean; status?: number; message: string; connectivity: ApiConnectivityStatus }> {
-  if (!isApiKeyConfigured()) {
+async function testVeniceConnection(profileId?: string): Promise<{ ok: boolean; status?: number; message: string; connectivity: ApiConnectivityStatus }> {
+  if (!isApiKeyConfigured(profileId)) {
     return {
       ok: false,
       message: "No API key configured.",
@@ -61,7 +64,7 @@ async function testVeniceConnection(): Promise<{ ok: boolean; status?: number; m
     };
   }
   try {
-    const guarded = await performGuardedVeniceRequest({ endpoint: "/models", method: "GET" });
+    const guarded = await performGuardedVeniceRequest({ endpoint: "/models", method: "GET", profileId });
     const response = guarded.kind === "blocked"
       ? { ok: false, status: 451, statusText: "Blocked by Family Safe Mode", headers: {}, body: { error: guarded.block.body.error }, contentType: "application/json" }
       : guarded.response;
@@ -104,26 +107,55 @@ async function testVeniceConnection(): Promise<{ ok: boolean; status?: number; m
 }
 
 export function registerApiKeyHandlers(): void {
-  registerIpcChannel("apiKey:isConfigured", () => isApiKeyConfigured());
 
-  registerIpcChannel("apiKey:set", (_event, key: unknown) => {
+  registerIpcChannel("credential:set", (_event, payload: { key: string, value: string }) => {
+    try {
+      setCredential(payload.key, payload.value);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  registerIpcChannel("credential:get", (_event, key: string) => {
+    try {
+      const val = getCredential(key);
+      return { ok: true, value: val };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  registerIpcChannel("credential:delete", (_event, key: string) => {
+    try {
+      deleteCredential(key);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  registerIpcChannel("apiKey:isConfigured", (_event, profileId?: string) => isApiKeyConfigured(profileId));
+
+  registerIpcChannel("apiKey:set", (_event, payload: unknown) => {
+    const { key, profileId } = typeof payload === "object" && payload !== null && "key" in payload ? payload as { key: unknown, profileId?: string } : { key: payload, profileId: undefined };
     try {
       const trimmed = validateApiKeyInput(key);
-      setApiKey(trimmed);
+      setApiKey(trimmed, profileId);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
   });
 
-  registerIpcChannel("apiKey:delete", () => {
+  registerIpcChannel("apiKey:delete", (_event, profileId?: string) => {
     try {
-      deleteApiKey();
+      deleteApiKey(profileId);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
   });
 
-  registerIpcChannel("apiKey:test", () => testVeniceConnection());
+  registerIpcChannel("apiKey:test", (_event, profileId?: string) => testVeniceConnection(profileId));
 }

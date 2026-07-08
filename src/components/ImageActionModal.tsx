@@ -95,7 +95,7 @@ export function ImageActionModal({
           <div className="space-y-4">
             <div>
               <div className="mb-1 text-xs font-bold uppercase tracking-wider text-text-muted">Prompt</div>
-              <div className="max-h-[120px] overflow-y-auto rounded-xl border border-border/50 bg-surface/40 p-3 text-sm text-text-secondary">
+              <div className="max-h-[120px] overflow-y-auto break-all whitespace-pre-wrap rounded-xl border border-border/50 bg-surface/40 p-3 text-sm text-text-secondary">
                 {image.prompt}
               </div>
             </div>
@@ -103,7 +103,7 @@ export function ImageActionModal({
             {image.negative && (
               <div>
                 <div className="mb-1 text-xs font-bold uppercase tracking-wider text-text-muted">Negative prompt</div>
-                <div className="max-h-[80px] overflow-y-auto rounded-xl border border-border/50 bg-surface/40 p-3 text-sm text-text-secondary">
+                <div className="max-h-[80px] overflow-y-auto break-all whitespace-pre-wrap rounded-xl border border-border/50 bg-surface/40 p-3 text-sm text-text-secondary">
                   {image.negative}
                 </div>
               </div>

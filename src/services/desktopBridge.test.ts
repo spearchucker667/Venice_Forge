@@ -85,7 +85,7 @@ describe("desktopBridge web fallback", () => {
     });
 
     await expect(desktopApiKey.set("vn-electron-fixture")).resolves.toEqual({ ok: true });
-    expect(set).toHaveBeenCalledWith("vn-electron-fixture");
+    expect(set).toHaveBeenCalledWith("vn-electron-fixture", "default");
     expect(vi.mocked(fetch).mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
   });
 

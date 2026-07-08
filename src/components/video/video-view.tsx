@@ -32,7 +32,7 @@ export function VideoView() {
   const [audioEnabled, setAudioEnabled] = useState(true)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const { queue, isQueueing, status, videoUrl, error, reset, cancel, elapsedMs, queueId, lastRequest } = useVideo()
+  const { progress, queue, isQueueing, status, videoUrl, error, reset, cancel, elapsedMs, queueId, lastRequest } = useVideo()
   const isProcessing = status === 'queued' || status === 'processing'
 
   // Resolve current group and constraints
@@ -440,9 +440,14 @@ export function VideoView() {
                 <div className="w-7 h-7 border border-border border-t-accent rounded-full animate-spin" />
                 <span className="text-text-secondary text-center">
                   {status === 'queued' ? 'Queued — waiting for a slot' : 'Generating your video'}
-                  {elapsedMs > 0 && (
+                                    {elapsedMs > 0 && (
                     <span className="block text-[12px] text-text-muted font-mono mt-1">
                       {formatElapsed(elapsedMs)} · typically 30s–2min
+                    </span>
+                  )}
+                  {progress !== undefined && progress !== null && (
+                    <span className="block text-[12px] text-accent font-mono mt-1">
+                      {progress}%
                     </span>
                   )}
                 </span>

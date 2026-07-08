@@ -32,6 +32,8 @@ export interface VeniceIpcRequest {
   body?: unknown;
   headers?: Record<string, string>;
   signalId?: string;
+  profileId?: string;
+
 }
 
 /** Headers the renderer is never allowed to set on a forwarded Venice request.
@@ -164,5 +166,6 @@ export function validateVeniceIpcRequest(input: unknown): VeniceIpcRequest {
     body: request.body,
     headers,
     signalId: request.signalId,
+    profileId: typeof request.profileId === "string" ? request.profileId : undefined,
   };
 }

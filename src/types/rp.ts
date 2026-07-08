@@ -59,6 +59,13 @@ export function isValidRpId(id: unknown): id is string {
   return typeof id === "string" && VALID_ID_RE.test(id);
 }
 
+export interface CharacterContextFile {
+  id: string;
+  name: string;
+  content: string;
+  size: number;
+}
+
 /** Persisted location for a single character card. */
 export interface CharacterCardAvatar {
   /** Bytes; for desktop filesystem cards, this is the raw PNG. For web cards, a base64 data URL. */
@@ -90,6 +97,14 @@ export interface CharacterCardV1 {
   exampleDialogues: CharacterExampleDialogue[];
   /** Optional avatar. */
   avatar?: CharacterCardAvatar;
+  
+  // Special Character Settings
+  contextFiles?: CharacterContextFile[];
+  webSearch?: boolean;
+  urlScraping?: boolean;
+  enableThoughts?: boolean;
+  temperature?: number;
+  topP?: number;
   /** Unix ms created. */
   createdAt: number;
   /** Unix ms last updated. */

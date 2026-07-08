@@ -546,7 +546,7 @@ export function ImageView() {
                   e.target.value = "";
                 }
               }}
-              className="relative z-20 text-[12px] bg-surface-elevated text-text-secondary border border-border rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-accent hover:text-text-secondary transition-colors cursor-pointer"
+              className="relative z-40 text-[12px] bg-surface-elevated text-text-secondary border border-border rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-accent hover:text-text-secondary transition-colors cursor-pointer"
               defaultValue=""
             >
               <option value="" disabled>Add Template...</option>
@@ -575,7 +575,7 @@ export function ImageView() {
       {showEnhanceReview && enhancedPrompt && (
         <div className="p-3 rounded-lg border border-accent/30 bg-accent/5">
           <Label>Enhanced Prompt Preview</Label>
-          <div className="text-[12.5px] text-text-primary mt-1 p-2 rounded bg-surface border border-border">
+          <div className="text-[12.5px] text-text-primary mt-1 p-2 rounded bg-surface border border-border break-all whitespace-pre-wrap">
             {enhancedPrompt}
           </div>
           <div className="flex gap-2 mt-2">

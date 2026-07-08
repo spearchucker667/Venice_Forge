@@ -149,7 +149,7 @@ describe("MessageBubble accessibility", () => {
 
     expect(screen.getByAltText("AI avatar")).toHaveAttribute(
       "src",
-      "assets/branding/venice-seal-red-fill.svg",
+      "/assets/branding/venice-seal-red-fill.svg",
     );
   });
 
@@ -171,7 +171,7 @@ describe("MessageBubble accessibility", () => {
 });
 
 describe("MessageBubble local-family-guard gating (BUG-React#3)", () => {
-  it("does NOT invoke the safety guard when Red-Team Mode is disabled", () => {
+  it("does NOT invoke the safety guard when Traffic Inspector is disabled", () => {
     testSettings.redTeamMode = false;
     testSettings.localFamilySafeModeEnabled = true;
     const message: ChatMessage = { role: "assistant", content: "Hello world" };

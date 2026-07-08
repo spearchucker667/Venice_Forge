@@ -338,10 +338,10 @@ export function abortVeniceRequest(signalId: string): { ok: boolean } {
  */
 export async function performVeniceRequest(
   rawRequest: unknown,
-  options: { onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void } = {}
+  options: { profileId?: string; onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void } = {}
 ): Promise<VeniceIpcResponse> {
   const request = validateVeniceIpcRequest(rawRequest);
-  const apiKey = getApiKey();
+  const apiKey = getApiKey(request.profileId || options.profileId);
   if (!apiKey) {
     return {
       ok: false,

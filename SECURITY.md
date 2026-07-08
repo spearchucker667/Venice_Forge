@@ -208,7 +208,7 @@ When started with `--headless`, the application runs an Express loopback bridge 
 The Developer Traffic Inspector logs request/response diagnostics to the renderer store (`src/stores/inspector-store.ts`).
 - **Secret Masking:** To prevent exposing keys to local logs, the UI, or export functions, all header lists are sanitized. Header keys matching `Authorization`, `Cookie`, `x-api-key`, or names containing `key` or `token` are automatically replaced with `******`.
 - **Non-mutating safety preview:** Inspector previews use `previewLocalFamilyGuard()` so they do not increment audit counters. Aggregate counters are produced only by the authoritative enforcement path.
-- **Sandbox Developer Mode:** The Developer Mode switch (formerly labelled "Red-Team Mode") disables renderer Markdown/HTML formatting to prevent template injection or rendering exploits from unsafe model outputs, and shows the raw text directly alongside local safety audit signals. The internal state field remains `redTeamMode` for back-compat.
+- **Sandbox Developer Mode:** The Developer Mode switch (formerly labelled "Traffic Inspector") disables renderer Markdown/HTML formatting to prevent template injection or rendering exploits from unsafe model outputs, and shows the raw text directly alongside local safety audit signals. The internal state field remains `redTeamMode` for back-compat.
 
 
 External URLs opened via `shell.openExternal` are validated by

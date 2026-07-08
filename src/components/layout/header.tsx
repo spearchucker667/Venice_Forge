@@ -8,6 +8,7 @@ import { StatusDot } from '../ui/shared'
 import { HeaderStatusCluster } from '../status/HeaderStatusCluster'
 
 import { resolveTab } from '../../config/tabs'
+import { formatModelLabelWithCost } from '../../utils/pricing'
 
 interface Props {
   onOpenApiKey: () => void
@@ -28,7 +29,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   const modelType = tabDesc?.modelType || 'text'
   const { data: models } = useModels(hasOwnSelector ? undefined : modelType)
   const currentModel = hasOwnSelector ? '' : (selectedModels[activeTab] || models?.[0]?.id || '')
-  const modelOptions = hasOwnSelector ? [] : (models?.map((m) => ({ value: m.id, label: m.model_spec?.name || m.id })) ?? [])
+  const modelOptions = hasOwnSelector ? [] : (models?.map((m) => ({ value: m.id, label: (modelType === 'image' || modelType === 'video') ? formatModelLabelWithCost(m) : m.model_spec?.name || m.id })) ?? [])
 
   return (
     <header className="flex items-center gap-3 h-14 px-3 soft-separator-y mesh-surface mesh-header shrink-0 shell-region">

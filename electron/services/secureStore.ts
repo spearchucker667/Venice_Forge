@@ -90,11 +90,13 @@ function writeStore(data: Record<string, string>): void {
 /** Encrypts and stores the Venice API key using OS-level encryption when possible.
  *  @param key The API key to store.
  */
-export function setApiKey(key: string): void {
+export function setApiKey(key: string, profileId: string = "default"): void {
   const store = readStore("apiKey");
+  const k = profileId === "default" ? "apiKey" : `apiKey_${profileId}`;
+  const ke = profileId === "default" ? "apiKeyEncrypted" : `apiKeyEncrypted_${profileId}`;
   if (safeStorage.isEncryptionAvailable()) {
-    store["apiKey"] = safeStorage.encryptString(key).toString("base64");
-    store["apiKeyEncrypted"] = "true";
+    store[k] = safeStorage.encryptString(key).toString("base64");
+    store[ke] = "true";
   } else {
     if (process.platform === "win32" || process.platform === "darwin") {
       throw new Error(
@@ -109,8 +111,8 @@ export function setApiKey(key: string): void {
     // Linux plaintext fallback — log a clear security warning (never on Win/mac).
     // Per AGENTS.md and review: this is a last-resort Linux-only escape hatch.
     console.warn("[SECURITY] Using plaintext API key storage because OS secure storage (safeStorage) is unavailable. This is Linux-only and should only be used in trusted environments.");
-    store["apiKey"] = key;
-    store["apiKeyEncrypted"] = "false";
+    store[k] = key;
+    store[ke] = "false";
   }
   writeStore(store);
 }
@@ -118,12 +120,14 @@ export function setApiKey(key: string): void {
 /** Retrieves and decrypts the stored Venice API key, if available.
  *  @returns The decrypted key, or null if missing or corrupted.
  */
-export function getApiKey(): string | null {
+export function getApiKey(profileId: string = "default"): string | null {
   const store = readStore("apiKey");
-  const raw = store["apiKey"];
+  const k = profileId === "default" ? "apiKey" : `apiKey_${profileId}`;
+  const ke = profileId === "default" ? "apiKeyEncrypted" : `apiKeyEncrypted_${profileId}`;
+  const raw = store[k];
   if (typeof raw !== "string" || raw.length === 0) return null;
 
-  const encryptedFlag = store["apiKeyEncrypted"] as unknown;
+  const encryptedFlag = store[ke] as unknown;
   const isEncrypted = encryptedFlag === "true" || encryptedFlag === true;
 
   if (isEncrypted) {
@@ -156,10 +160,12 @@ export function getApiKey(): string | null {
 }
 
 /** Removes the stored Venice API key from secure preferences. */
-export function deleteApiKey(): void {
+export function deleteApiKey(profileId: string = "default"): void {
   const store = readStore("apiKey");
-  delete store["apiKey"];
-  delete store["apiKeyEncrypted"];
+  const k = profileId === "default" ? "apiKey" : `apiKey_${profileId}`;
+  const ke = profileId === "default" ? "apiKeyEncrypted" : `apiKeyEncrypted_${profileId}`;
+  delete store[k];
+  delete store[ke];
   writeStore(store);
 }
 
@@ -168,11 +174,13 @@ export function deleteApiKey(): void {
 /** Encrypts and stores the Jina API key using OS-level encryption when possible.
  *  @param key The Jina API key to store.
  */
-export function setJinaApiKey(key: string): void {
+export function setJinaApiKey(key: string, profileId: string = "default"): void {
   const store = readStore("jinaApiKey");
+  const k = profileId === "default" ? "jinaApiKey" : `jinaApiKey_${profileId}`;
+  const ke = profileId === "default" ? "jinaApiKeyEncrypted" : `jinaApiKeyEncrypted_${profileId}`;
   if (safeStorage.isEncryptionAvailable()) {
-    store["jinaApiKey"] = safeStorage.encryptString(key).toString("base64");
-    store["jinaApiKeyEncrypted"] = "true";
+    store[k] = safeStorage.encryptString(key).toString("base64");
+    store[ke] = "true";
   } else {
     if (process.platform === "win32" || process.platform === "darwin") {
       throw new Error(
@@ -184,8 +192,8 @@ export function setJinaApiKey(key: string): void {
         "OS secure storage is unavailable. Set VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true to allow documented plaintext fallback."
       );
     }
-    store["jinaApiKey"] = key;
-    store["jinaApiKeyEncrypted"] = "false";
+    store[k] = key;
+    store[ke] = "false";
   }
   writeStore(store);
 }
@@ -193,12 +201,14 @@ export function setJinaApiKey(key: string): void {
 /** Retrieves and decrypts the stored Jina API key, if available.
  *  @returns The decrypted key, or null if missing or corrupted.
  */
-export function getJinaApiKey(): string | null {
+export function getJinaApiKey(profileId: string = "default"): string | null {
   const store = readStore("jinaApiKey");
-  const raw = store["jinaApiKey"];
+  const k = profileId === "default" ? "jinaApiKey" : `jinaApiKey_${profileId}`;
+  const ke = profileId === "default" ? "jinaApiKeyEncrypted" : `jinaApiKeyEncrypted_${profileId}`;
+  const raw = store[k];
   if (typeof raw !== "string" || raw.length === 0) return null;
 
-  const encryptedFlag = store["jinaApiKeyEncrypted"] as unknown;
+  const encryptedFlag = store[ke] as unknown;
   const isEncrypted = encryptedFlag === "true" || encryptedFlag === true;
 
   if (isEncrypted) {
@@ -225,23 +235,25 @@ export function getJinaApiKey(): string | null {
 }
 
 /** Removes the stored Jina API key from secure preferences. */
-export function deleteJinaApiKey(): void {
+export function deleteJinaApiKey(profileId: string = "default"): void {
   const store = readStore("jinaApiKey");
-  delete store["jinaApiKey"];
-  delete store["jinaApiKeyEncrypted"];
+  const k = profileId === "default" ? "jinaApiKey" : `jinaApiKey_${profileId}`;
+  const ke = profileId === "default" ? "jinaApiKeyEncrypted" : `jinaApiKeyEncrypted_${profileId}`;
+  delete store[k];
+  delete store[ke];
   writeStore(store);
 }
 
 /** Checks whether a usable Jina API key is currently stored. */
-export function isJinaApiKeyConfigured(): boolean {
-  return getJinaApiKey() !== null;
+export function isJinaApiKeyConfigured(profileId: string = "default"): boolean {
+  return getJinaApiKey(profileId) !== null;
 }
 
 /** Checks whether a usable Venice API key is currently stored. */
-export function isApiKeyConfigured(): boolean {
+export function isApiKeyConfigured(profileId: string = "default"): boolean {
   // Must test actual decryptability, not just raw byte presence.
   // A corrupted or DPAPI-unreadable blob would pass the raw check but fail here.
-  return getApiKey() !== null;
+  return getApiKey(profileId) !== null;
 }
 
 /** Checks whether OS-level encryption is available on this platform. */
@@ -281,4 +293,61 @@ export function getSecureStoreStatus(): {
     corrupted: !!error,
     error,
   };
+}
+
+
+// ── Generic Credential Storage (Master Password, Profile Secrets) ──
+
+/** Encrypts and stores a generic credential. */
+export function setCredential(key: string, value: string): void {
+  const store = readStore("apiKey"); // We use apiKey's error slot for generic creds for now, or don't report
+  const k = `cred_${key}`;
+  const ke = `credEncrypted_${key}`;
+  
+  if (safeStorage.isEncryptionAvailable()) {
+    store[k] = safeStorage.encryptString(value).toString("base64");
+    store[ke] = "true";
+  } else {
+    if (process.platform === "win32" || process.platform === "darwin") {
+      throw new Error("Native credential storage unavailable.");
+    }
+    store[k] = value;
+    store[ke] = "false";
+  }
+  writeStore(store);
+}
+
+/** Retrieves and decrypts a generic credential. */
+export function getCredential(key: string): string | null {
+  const store = readStore("apiKey");
+  const k = `cred_${key}`;
+  const ke = `credEncrypted_${key}`;
+  const raw = store[k];
+  if (typeof raw !== "string" || raw.length === 0) return null;
+
+  const encryptedFlag = store[ke] as unknown;
+  const isEncrypted = encryptedFlag === "true" || encryptedFlag === true;
+
+  if (isEncrypted) {
+    try {
+      return safeStorage.decryptString(Buffer.from(raw, "base64"));
+    } catch {
+      return null;
+    }
+  }
+
+  if (process.platform === "win32" || process.platform === "darwin") {
+    return null;
+  }
+  return raw;
+}
+
+/** Deletes a generic credential. */
+export function deleteCredential(key: string): void {
+  const store = readStore("apiKey");
+  const k = `cred_${key}`;
+  const ke = `credEncrypted_${key}`;
+  delete store[k];
+  delete store[ke];
+  writeStore(store);
 }

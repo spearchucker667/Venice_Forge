@@ -27,6 +27,11 @@ import { useSettingsStore } from "../stores/settings-store";
  * Detects whether the app is currently running inside the Electron desktop shell.
  * @returns True if running in Electron desktop mode.
  */
+
+function getActiveProfileId(): string {
+  return typeof window !== "undefined" ? window.localStorage?.getItem('venice-active-profile-id') /* localStorage-allowed: active profile routing; written only by profile-store */ || 'default' : 'default';
+}
+
 export function isElectron(): boolean {
   return typeof window !== "undefined" && window.veniceForge?.isDesktop === true;
 }
@@ -80,6 +85,7 @@ export const desktopVenice = {
       return await window.veniceForge!.venice.request({
         ...input,
         signalId,
+        profileId: getActiveProfileId(),
       });
     } finally {
       cleanup?.();
@@ -105,6 +111,7 @@ export const desktopVenice = {
       return await window.veniceForge!.venice.streamChat({
         ...input,
         signalId,
+        profileId: getActiveProfileId(),
       }, onDelta);
     } finally {
       cleanup?.();
@@ -155,7 +162,7 @@ export const desktopApiKey = {
    * @returns A promise resolving to true if a key is present.
    */
   async isConfigured(): Promise<boolean> {
-    if (isElectron()) return window.veniceForge!.apiKey.isConfigured();
+    if (isElectron()) return window.veniceForge!.apiKey.isConfigured(getActiveProfileId());
     try {
       const response = await fetchWithTimeout("/api/session-key");
       if (!response.ok) return _webSessionVeniceApiKey.isConfigured;
@@ -172,7 +179,7 @@ export const desktopApiKey = {
    * @returns A promise resolving to an ok flag.
    */
   async set(key: string): Promise<{ ok: boolean }> {
-    if (isElectron()) return window.veniceForge!.apiKey.set(key);
+    if (isElectron()) return window.veniceForge!.apiKey.set(key, getActiveProfileId());
     const response = await fetchWithTimeout("/api/session-key", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -188,7 +195,7 @@ export const desktopApiKey = {
    * @returns A promise resolving to an ok flag.
    */
   async delete(): Promise<{ ok: boolean }> {
-    if (isElectron()) return window.veniceForge!.apiKey.delete();
+    if (isElectron()) return window.veniceForge!.apiKey.delete(getActiveProfileId());
     const response = await fetchWithTimeout("/api/session-key", { method: "DELETE" });
     if (!response.ok) return { ok: false };
     _webSessionVeniceApiKey.clear();
@@ -200,7 +207,7 @@ export const desktopApiKey = {
    * @returns A promise resolving to the test result, status, and message.
    */
   async test(): Promise<{ ok: boolean; status?: number; message: string; connectivity?: ApiConnectivityStatus }> {
-    if (isElectron()) return window.veniceForge!.apiKey.test();
+    if (isElectron()) return window.veniceForge!.apiKey.test(getActiveProfileId());
     try {
       const { response } = await veniceFetch("/models", { retry: false });
       const checkedAt = new Date().toISOString();
@@ -759,7 +766,7 @@ export const desktopScenarios = {
 /** Manages the Jina API key across desktop secure storage and server-side web session state. */
 export const desktopJinaApiKey = {
   async isConfigured(): Promise<boolean> {
-    if (isElectron()) return window.veniceForge!.jinaApiKey.isConfigured();
+    if (isElectron()) return window.veniceForge!.jinaApiKey.isConfigured(getActiveProfileId());
     try {
       const response = await fetchWithTimeout("/api/session-jina-key");
       if (!response.ok) return false;
@@ -770,7 +777,7 @@ export const desktopJinaApiKey = {
     }
   },
   async set(key: string): Promise<{ ok: boolean }> {
-    if (isElectron()) return window.veniceForge!.jinaApiKey.set(key);
+    if (isElectron()) return window.veniceForge!.jinaApiKey.set(key, getActiveProfileId());
     const response = await fetchWithTimeout("/api/session-jina-key", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -779,12 +786,12 @@ export const desktopJinaApiKey = {
     return { ok: response.ok };
   },
   async delete(): Promise<{ ok: boolean }> {
-    if (isElectron()) return window.veniceForge!.jinaApiKey.delete();
+    if (isElectron()) return window.veniceForge!.jinaApiKey.delete(getActiveProfileId());
     const response = await fetchWithTimeout("/api/session-jina-key", { method: "DELETE" });
     return { ok: response.ok };
   },
   async test(): Promise<{ ok: boolean; status?: number; message: string }> {
-    if (isElectron()) return window.veniceForge!.jinaApiKey.test();
+    if (isElectron()) return window.veniceForge!.jinaApiKey.test(getActiveProfileId());
     try {
       const resp = await fetchWithTimeout("/api/proxy-jina", {
         method: "POST",
@@ -979,4 +986,20 @@ export const desktopConfig = {
     if (!isElectron()) return { ok: false, error: "Local config is only available in desktop mode." };
     return window.veniceForge!.config.resetSecureStoreKeys();
   },
+};
+
+
+export const desktopCredentials = {
+  async set(key: string, value: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Not available in web" };
+    return window.veniceForge!.credentials.set(key, value);
+  },
+  async get(key: string): Promise<{ ok: boolean; value: string | null; error?: string }> {
+    if (!isElectron()) return { ok: false, value: null, error: "Not available in web" };
+    return window.veniceForge!.credentials.get(key);
+  },
+  async delete(key: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Not available in web" };
+    return window.veniceForge!.credentials.delete(key);
+  }
 };

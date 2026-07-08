@@ -50,7 +50,8 @@ const ENDPOINTS_WITH_SAFE_MODE: ReadonlySet<string> = new Set([
  * payload fields for some endpoints.
  */
 export function endpointSupportsSafeMode(endpoint: string): boolean {
-  return ENDPOINTS_WITH_SAFE_MODE.has(endpoint);
+  const norm = endpoint.startsWith("/") ? endpoint : "/" + endpoint;
+  return ENDPOINTS_WITH_SAFE_MODE.has(norm);
 }
 
 /**
@@ -75,6 +76,20 @@ export function applyVeniceApiSafeMode(
 ): Record<string, unknown> {
   if (typeof enabled !== "boolean") return { ...payload };
   if (!endpointSupportsSafeMode(endpoint)) return { ...payload };
+
+  if (payload._isSerializedFormData === true && Array.isArray(payload.entries)) {
+    const newEntries = [...payload.entries];
+    const existingIdx = newEntries.findIndex(
+      (e) => typeof e === "object" && e !== null && (e as Record<string, unknown>).name === "safe_mode"
+    );
+    if (existingIdx >= 0) {
+      newEntries[existingIdx] = { ...newEntries[existingIdx], value: String(enabled) };
+    } else {
+      newEntries.push({ name: "safe_mode", value: String(enabled) });
+    }
+    return { ...payload, entries: newEntries };
+  }
+
   return { ...payload, safe_mode: enabled };
 }
 

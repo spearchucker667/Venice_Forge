@@ -90,8 +90,12 @@ export function useMusic() {
         if (token !== generationTokenRef.current) return
         const s = result.data.status.toLowerCase() as 'queued' | 'processing' | 'completed' | 'failed'
         setStatus(s)
-        if (s === 'completed' && result.data.audio_url) {
-          setAudioUrl(result.data.audio_url)
+                if (s === 'completed' && result.data.audio_url) {
+          let finalUrl = result.data.audio_url;
+          if (!finalUrl.startsWith('http') && !finalUrl.startsWith('data:') && !finalUrl.startsWith('blob:')) {
+            finalUrl = `data:audio/mpeg;base64,${finalUrl}`;
+          }
+          setAudioUrl(finalUrl)
           stopPolling()
         } else if (s === 'failed') {
           setError(toUserFacingMusicError(result.data.error, SAFE_ERROR_MESSAGES.generation))

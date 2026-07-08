@@ -215,6 +215,7 @@ describe("SettingsView safety toggles", () => {
   });
 
   it("persists Venice API Safe Mode on toggle in Electron mode", async () => {
+    useSettingsStore.setState({ localFamilySafeModeEnabled: false });
     vi.mocked(isElectron).mockReturnValue(true);
 
     render(<SettingsView />);

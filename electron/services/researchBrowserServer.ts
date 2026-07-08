@@ -1,4 +1,4 @@
-import { BrowserWindow, WebContentsView, ipcMain, session, app } from "electron";
+import { BrowserWindow, WebContentsView, ipcMain, session, app, Menu, clipboard } from "electron";
 import path from "node:path";
 import type { 
   ResearchBrowserState, 
@@ -177,6 +177,39 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
 
     const wc = researchView.webContents;
 
+    
+    wc.on("context-menu", (e, params) => {
+      e.preventDefault();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const template: any[] = [];
+      if (params.linkURL) {
+        template.push({
+          label: 'Copy Link',
+          click: () => {
+            clipboard.writeText(params.linkURL);
+          }
+        });
+      }
+      if (params.hasImageContents) {
+        template.push({ role: 'copyImage' });
+      }
+      if (params.isEditable) {
+        template.push({ role: 'undo' });
+        template.push({ role: 'redo' });
+        template.push({ type: 'separator' });
+        template.push({ role: 'cut' });
+        template.push({ role: 'copy' });
+        template.push({ role: 'paste' });
+      } else if (params.selectionText) {
+        template.push({ role: 'copy' });
+      }
+      template.push({ type: 'separator' });
+      template.push({ role: 'selectAll' });
+      
+      const menu = Menu.buildFromTemplate(template);
+      menu.popup({ window: mainWindowRef || undefined });
+    });
+
     wc.on("did-start-loading", () => {
       clearBlockedState();
       broadcastState();
@@ -216,7 +249,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     });
 
     try {
-      const splashPath = path.join(app.isPackaged ? path.dirname(app.getPath("exe")) : app.getAppPath(), "assets", "browser-splash.html");
+      const splashPath = path.join(app.isPackaged ? path.join(app.getAppPath(), "dist") : path.join(app.getAppPath(), "public"), "research-browser-home.html");
       await wc.loadFile(splashPath);
     } catch {
       wc.loadURL("about:blank");
@@ -300,20 +333,29 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     let finalUrl = input.urlOrQuery.trim();
 
     if (!finalUrl.startsWith("http://") && !finalUrl.startsWith("https://")) {
+      let isAllowedUrl = false;
       try {
-        new URL(finalUrl);
+        const parsed = new URL(finalUrl);
+        if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+          isAllowedUrl = true;
+        }
       } catch {
+        // ignore
+      }
+
+      if (!isAllowedUrl) {
         if (!finalUrl.includes(" ") && finalUrl.includes(".")) {
           try {
             new URL(`https://${finalUrl}`);
             finalUrl = `https://${finalUrl}`;
+            isAllowedUrl = true;
           } catch {
             // ignore
           }
         }
       }
       
-      if (!finalUrl.startsWith("http://") && !finalUrl.startsWith("https://")) {
+      if (!isAllowedUrl) {
         if (input.searchProvider === "brave") {
           finalUrl = `https://search.brave.com/search?q=${encodeURIComponent(input.urlOrQuery)}`;
         } else {

@@ -77,7 +77,7 @@ describe('Header component', () => {
     const nonSelectorTabs = [
       'media', 'prompts', 'scenes', 'privacy', 'settings',
       'status', 'search', 'characters', 'rp-studio', 'workflows',
-      'playground', 'video'
+      'playground'
     ]
     for (const tabId of nonSelectorTabs) {
       useSettingsStore.setState({ activeTab: tabId as any })

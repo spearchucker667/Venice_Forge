@@ -19,6 +19,7 @@ import { DataStoragePanel } from "./DataStoragePanel";
 import { UpdatesPanel } from "./UpdatesPanel";
 import { ConfigPanel } from "./ConfigPanel";
 import { AboutPanel } from "./AboutPanel";
+import { ProfilePanel } from "./ProfilePanel";
 import type { PendingConfirm } from "./types";
 
 export function SettingsView() {
@@ -311,6 +312,9 @@ export function SettingsView() {
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Navigation Rail */}
         <div className="w-52 border-r border-border/50 p-3 space-y-1 overflow-y-auto shrink-0 hidden sm:block">
+          <button onClick={() => setActiveSection("profiles")} className={sectionButtonClass("profiles")}>
+            Profiles
+          </button>
           <button onClick={() => setActiveSection("api-keys")} className={sectionButtonClass("api-keys")}>
             API Keys
           </button>
@@ -349,6 +353,10 @@ export function SettingsView() {
 
         {/* Content panel */}
         <div className="flex-1 overflow-y-auto p-6 max-w-3xl">
+          {activeSection === "profiles" && (
+            <ProfilePanel />
+          )}
+
           {activeSection === "api-keys" && (
             <ApiKeysPanel
               veniceConfigured={veniceConfigured}

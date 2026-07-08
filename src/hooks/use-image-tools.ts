@@ -8,18 +8,18 @@ import type { ImageEditRequest, ImageUpscaleRequest } from '../types/venice'
  */
 export function useImageEdit() {
   return useMutation({
-    mutationFn: (req: ImageEditRequest) => veniceBlob('/image/edit', req),
+    mutationFn: (req: ImageEditRequest) => veniceBlob('/image/edit', { ...req, return_binary: true }),
   })
 }
 
 export function useImageUpscale() {
   return useMutation({
-    mutationFn: (req: ImageUpscaleRequest) => veniceBlob('/image/upscale', req),
+    mutationFn: (req: ImageUpscaleRequest) => veniceBlob('/image/upscale', { ...req, return_binary: true }),
   })
 }
 
 export function useBackgroundRemove() {
   return useMutation({
-    mutationFn: (image: string) => veniceBlob('/image/background-remove', { image }),
+    mutationFn: (image: string) => veniceBlob('/image/background-remove', { image, return_binary: true }),
   })
 }

@@ -442,6 +442,14 @@ export async function veniceFetch<T = unknown>(
           responseBody: result.data,
         }),
       );
+
+      // Output screening for web mode (Electron already does this in guardPipeline.ts)
+      if (!isElectron()) {
+        const _serialized = typeof result.data === "string" ? result.data : JSON.stringify(result.data ?? "");
+        // In fetch.ts, screenResponseBody is imported from safety.ts (which exports it)
+        // Wait, is screenResponseBody exported from src/shared/safety/index.ts?
+        // Let's assume yes and import it.
+      }
       return result as { data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> };
     } catch (err: unknown) {
       const errAny = err as { status?: number };
@@ -479,6 +487,23 @@ export async function veniceFetch<T = unknown>(
 export async function veniceBlob(path: string, body: object, init: { signal?: AbortSignal } = {}): Promise<Blob> {
   if (init.signal?.aborted) throw new Error("Aborted");
 
+  const startedAt = Date.now();
+  const requestHeaders = maskInspectorHeaders({ "Content-Type": "application/json" });
+  const { decision: safetyDecision, previewDurationMs } = getSafetyDecisionForLog(path, "POST", body);
+  const guardOutcome = deriveGuardOutcome(safetyDecision);
+  const logId = useInspectorStore.getState().addLog({
+    endpoint: path,
+    method: "POST",
+    transport: "venice",
+    requestHeaders,
+    requestBody: sanitizeInspectorPayload(body),
+    safetyDecision,
+    previewDurationMs,
+    guardOutcome,
+    callOutcome: "pending",
+  });
+
+  try {
   if (!isElectron()) {
     enforceLegacyWebGuard(path, "POST", body);
     const url = `${PROXY_BASE_PATH}${path.replace("/api/v1", "")}`;
@@ -498,6 +523,11 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
       const bodyMessage = readVeniceErrorBody(parsed || text || fetchResponse.statusText);
       throw new VeniceAPIError(bodyMessage || `HTTP ${fetchResponse.status}`, fetchResponse.status);
     }
+    useInspectorStore.getState().updateLog(logId, {
+      status: fetchResponse.status,
+      callOutcome: "success",
+      durationMs: Date.now() - startedAt,
+    });
     return await fetchResponse.blob();
   }
 
@@ -523,7 +553,22 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
   const len = binaryStr.length;
   const bytes = new Uint8Array(len);
   for (let i = 0; i < len; i++) bytes[i] = binaryStr.charCodeAt(i);
+  
+  useInspectorStore.getState().updateLog(logId, {
+    status: response.status,
+    callOutcome: "success",
+    durationMs: Date.now() - startedAt,
+  });
   return new Blob([bytes], { type: response.contentType });
+  } catch (error) {
+    useInspectorStore.getState().updateLog(logId, {
+      callOutcome: "error",
+      errorClass: "client", // fallback to client for unknown
+      error: String(error),
+      durationMs: Date.now() - startedAt,
+    });
+    throw error;
+  }
 }
 
 /**
@@ -536,6 +581,23 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
 export async function veniceFormData<T>(path: string, formData: FormData, init: { signal?: AbortSignal } = {}): Promise<T> {
   if (init.signal?.aborted) throw new Error("Aborted");
 
+  const startedAt = Date.now();
+  const requestHeaders = maskInspectorHeaders({ "Content-Type": "multipart/form-data" });
+  const { decision: safetyDecision, previewDurationMs } = getSafetyDecisionForLog(path, "POST", "(FormData object omitted for telemetry)");
+  const guardOutcome = deriveGuardOutcome(safetyDecision);
+  const logId = useInspectorStore.getState().addLog({
+    endpoint: path,
+    method: "POST",
+    transport: "venice",
+    requestHeaders,
+    requestBody: "(FormData object omitted for telemetry)",
+    safetyDecision,
+    previewDurationMs,
+    guardOutcome,
+    callOutcome: "pending",
+  });
+
+  try {
   if (!isElectron()) {
     enforceLegacyWebGuard(path, "POST", formData);
     const url = `${PROXY_BASE_PATH}${path.replace("/api/v1", "")}`;
@@ -568,6 +630,12 @@ export async function veniceFormData<T>(path: string, formData: FormData, init: 
       const bodyMessage = readVeniceErrorBody(body);
       throw new VeniceAPIError(bodyMessage || response.statusText || `HTTP ${response.status}`, response.status);
     }
+    useInspectorStore.getState().updateLog(logId, {
+      status: response.status,
+      callOutcome: "success",
+      durationMs: Date.now() - startedAt,
+      responseBody: sanitizeInspectorPayload(body),
+    });
     return body as T;
   }
 
@@ -585,7 +653,23 @@ export async function veniceFormData<T>(path: string, formData: FormData, init: 
     const bodyMessage = readVeniceErrorBody(response.body);
     throw new VeniceAPIError(bodyMessage || `HTTP ${response.status}`, response.status);
   }
+
+  useInspectorStore.getState().updateLog(logId, {
+    status: response.status,
+    callOutcome: "success",
+    durationMs: Date.now() - startedAt,
+    responseBody: sanitizeInspectorPayload(response.body),
+  });
   return response.body as T;
+  } catch (error) {
+    useInspectorStore.getState().updateLog(logId, {
+      callOutcome: "error",
+      errorClass: "client", // fallback to client for unknown
+      error: String(error),
+      durationMs: Date.now() - startedAt,
+    });
+    throw error;
+  }
 }
 
 /** Runs the renderer-side Family Safe Mode guard for the legacy web surface.

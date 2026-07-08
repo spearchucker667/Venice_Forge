@@ -199,7 +199,10 @@ export function extractPromptLikeFields(
 ): ExtractedField[] {
   if (!payload) return [];
 
-  const normEndpoint = endpoint?.replace(/^\/api\/venice/, "") ?? "";
+  let normEndpoint = endpoint?.replace(/^\/api\/venice/, "") ?? "";
+  if (normEndpoint && !normEndpoint.startsWith("/")) {
+    normEndpoint = "/" + normEndpoint;
+  }
   const fieldNames: readonly string[] = (() => {
     for (const [key, fields] of Object.entries(ENDPOINT_FIELDS)) {
       if (normEndpoint.startsWith(key)) return fields;

@@ -65,7 +65,7 @@ export interface TabDescriptor {
   /** Subtitle for the page header. */
   subtitle?: string;
   /** Model selector type if this tab supports select models, otherwise undefined. */
-  modelType?: 'text' | 'image' | 'tts' | 'music' | 'embedding';
+  modelType?: 'text' | 'image' | 'tts' | 'music' | 'embedding' | 'video';
 }
 
 export const TAB_REGISTRY: readonly TabDescriptor[] = [
@@ -77,7 +77,7 @@ export const TAB_REGISTRY: readonly TabDescriptor[] = [
   { id: 'scenes', label: 'Scene Composer', group: 'generate', subtitle: 'Compose complex image generation scenes' },
   { id: 'audio', label: 'Audio Studio', group: 'generate', subtitle: 'Text-to-speech and transcription', modelType: 'tts' },
   { id: 'music', label: 'Music Studio', group: 'generate', subtitle: 'Generate music and sound', modelType: 'music' },
-  { id: 'video', label: 'Video Studio', group: 'generate', subtitle: 'Generate video clips' },
+  { id: 'video', label: 'Video Studio', group: 'generate', subtitle: 'Generate video clips', modelType: 'video' },
   { id: 'embeddings', label: 'Embeddings', group: 'generate', subtitle: 'Vector representations of text', modelType: 'embedding' },
   { id: 'search', label: 'Research', group: 'generate', subtitle: 'Deep research and web scraping' },
   { id: 'characters', label: 'Characters', group: 'generate', subtitle: 'Configure roleplay characters' },

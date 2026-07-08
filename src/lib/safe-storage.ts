@@ -26,27 +26,41 @@ import * as logger from '../shared/logger'
  * `/* localStorage-allowed: <reason> *\/` and enforced by
  * `scripts/verify-storage-policy.cjs`.
  */
+
+function getProfileKey(name: string): string {
+  // Global stores not scoped to profiles
+  if (name === 'venice-profiles' || name === 'venice-auth' || name === 'theme-storage' || name === 'venice-master-settings') {
+    return name;
+  }
+  const profileId = typeof window !== 'undefined' ? window.localStorage?.getItem('venice-active-profile-id') /* localStorage-allowed: active profile routing; written only by profile-store */ || 'default' : 'default';
+  
+  if (profileId === 'default') {
+    return name; // Keep legacy name for default profile migration
+  }
+  return `${name}_${profileId}`;
+}
+
 export function createSafeStorage(): StateStorage {
   return {
     getItem: (name) => {
-      try { return typeof window !== 'undefined' && window.localStorage ? window.localStorage.getItem(name) /* localStorage-allowed: zustand persist safeStorage wrapper */ : null } catch { return null }
+      try { return typeof window !== 'undefined' && window.localStorage ? window.localStorage.getItem(getProfileKey(name)) /* localStorage-allowed: zustand persist safeStorage wrapper */ : null } catch { return null }
     },
     setItem: (name, value) => {
       try {
         if (typeof window === 'undefined' || !window.localStorage /* localStorage-allowed: zustand persist safeStorage wrapper */) return
-        window.localStorage.setItem(name, value) /* localStorage-allowed: zustand persist safeStorage wrapper */
+        window.localStorage.setItem(getProfileKey(name), value) /* localStorage-allowed: zustand persist safeStorage wrapper */
       } catch (err) {
         if (!isQuotaErr(err)) { logger.warn('[storage] setItem failed', name, err); return }
         const pruned = pruneOversized(value)
         if (pruned) {
-          try { window.localStorage.setItem(name, pruned) /* localStorage-allowed: zustand persist safeStorage wrapper */; return } catch { /* fall through */ }
+          try { window.localStorage.setItem(getProfileKey(name), pruned) /* localStorage-allowed: zustand persist safeStorage wrapper */; return } catch { /* fall through */ }
         }
-        try { window.localStorage.removeItem(name) /* localStorage-allowed: zustand persist safeStorage wrapper */ } catch { /* noop */ }
+        try { window.localStorage.removeItem(getProfileKey(name)) /* localStorage-allowed: zustand persist safeStorage wrapper */ } catch { /* noop */ }
         logger.warn(`[storage] quota exceeded for ${name}; cleared persisted state`)
       }
     },
     removeItem: (name) => {
-      try { if (typeof window !== 'undefined' && window.localStorage) window.localStorage.removeItem(name) /* localStorage-allowed: zustand persist safeStorage wrapper */ } catch { /* noop */ }
+      try { if (typeof window !== 'undefined' && window.localStorage) window.localStorage.removeItem(getProfileKey(name)) /* localStorage-allowed: zustand persist safeStorage wrapper */ } catch { /* noop */ }
     },
   }
 }

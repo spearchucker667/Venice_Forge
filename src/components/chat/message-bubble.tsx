@@ -13,7 +13,7 @@ import { useKatexCss } from '../../hooks/useKatexCss'
 import { CharacterSceneCard } from './CharacterSceneCard'
 import type { CharacterSceneGenerationResult } from '../../types/characterSceneGeneration'
 
-export const DEFAULT_AI_AVATAR_SRC = 'assets/branding/venice-seal-red-fill.svg'
+export const DEFAULT_AI_AVATAR_SRC = '/assets/branding/venice-seal-red-fill.svg'
 
 // Allow http/https/mailto links and image data: URIs only. Strips javascript:,
 // vbscript:, file:, and any other smuggled protocols.
@@ -130,7 +130,7 @@ function MessageBubbleImpl({ message, onCopy, onDelete, onRegenerate, onGenerate
   const injectedContextLabel = formatInjectedContextSource(message.metadata?.injectedContextSource)
 
   const localSafetyDecision = useMemo(() => {
-    // BUG-React#3 regression guard: only run the safety guard in Red-Team Mode AND
+    // BUG-React#3 regression guard: only run the safety guard in Traffic Inspector AND
     // when Family Safe Mode is enabled; non-redteam users should never pay the
     // regex/lookup cost on every render.
     if (!redTeamMode || !content || !localFamilySafeModeEnabled) return null

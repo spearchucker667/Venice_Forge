@@ -14,6 +14,9 @@ import type { CharacterCardV1 } from "../../types/rp";
 import { generateId } from "../../services/rp/characterCardService";
 import { startNormalChatForCharacter } from "../../services/rpHelpers";
 import { toast } from "../../stores/toast-store";
+import { veniceFetch } from "../../services/veniceClient/fetch";
+import { maybeRunLocalFamilyGuard } from "../../shared/safety/localFamilySafeGuard";
+import { useSettingsStore } from "../../stores/settings-store";
 
 const STANDARD_FILTER = [
   { value: "standard", label: "Standard" },
@@ -36,6 +39,74 @@ export function CharacterLibrary({ onEdit }: Props) {
   const allCards = useCharacterCardStore((s) => s.cards);
 
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
+  const [createMePrompt, setCreateMePrompt] = useState("");
+  const [isCreatingMe, setIsCreatingMe] = useState(false);
+  const safeMode = useSettingsStore((s) => s.localFamilySafeModeEnabled);
+
+  const handleCreateMe = async () => {
+    if (!createMePrompt.trim()) return;
+    const promptText = createMePrompt.trim();
+    
+    setIsCreatingMe(true);
+    try {
+      if (safeMode) {
+        const guard = await maybeRunLocalFamilyGuard({ text: promptText, source: "chat" }, true);
+        if (!guard.allowed) {
+          toast.error("Blocked by safety guard.");
+          setIsCreatingMe(false);
+          return;
+        }
+      }
+
+      const res = await veniceFetch('/chat/completions', {
+        method: 'POST',
+        body: {
+          model: 'llama-3.3-70b',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a character creator. Return ONLY valid JSON with no markdown wrapping. The JSON must match the CharacterCardV1 schema: { "name": string, "description": string, "systemPrompt": string, "adult": boolean, "tags": string[] }.'
+            },
+            {
+              role: 'user',
+              content: `Create a character based on this prompt: ${promptText}`
+            }
+          ],
+          temperature: 0.7
+        }
+      });
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let text = (res.data as any).choices[0].message.content;
+      text = text.replace(/^```json/, '').replace(/^```/, '').replace(/```$/, '').trim();
+      const parsed = JSON.parse(text);
+      
+      const now = Date.now();
+      const card: CharacterCardV1 = {
+        schema: "CharacterCardV1",
+        id: generateId(),
+        name: parsed.name || "Untitled",
+        description: parsed.description || "",
+        systemPrompt: parsed.systemPrompt || "",
+        tags: Array.isArray(parsed.tags) ? parsed.tags : [],
+        adult: !!parsed.adult,
+        exampleDialogues: [],
+        createdAt: now,
+        updatedAt: now,
+      };
+      
+      const saved = await upsert(card);
+      if (saved) {
+        setCreateMePrompt("");
+        onEdit(saved.id);
+      }
+    } catch (err) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error(String((err as any).message || err));
+    } finally {
+      setIsCreatingMe(false);
+    }
+  };
   // Adult filtering is a normal user preference and is no longer gated by
   // the developer "Developer Mode" switch.
   const [adultFilter, setAdultFilter] = useState<"standard" | "adult">("standard");
@@ -99,9 +170,22 @@ export function CharacterLibrary({ onEdit }: Props) {
           }}
           ariaLabel="Adult filter"
         />
-        <PrimaryButton onClick={handleCreate} size="sm">
-          New character
-        </PrimaryButton>
+                <div className="flex items-center gap-2">
+          <input 
+            type="text" 
+            placeholder="Auto-create prompt..." 
+            value={createMePrompt} 
+            onChange={e => setCreateMePrompt(e.target.value)} 
+            onKeyDown={e => { if (e.key === 'Enter') handleCreateMe(); }}
+            className="text-[13px] bg-surface-elevated border border-border rounded px-3 py-1.5 focus:outline-none focus:border-accent"
+          />
+          <PrimaryButton onClick={handleCreateMe} size="sm" disabled={isCreatingMe || !createMePrompt.trim()}>
+            {isCreatingMe ? "Creating..." : "Create Me"}
+          </PrimaryButton>
+          <PrimaryButton onClick={handleCreate} size="sm">
+            New character
+          </PrimaryButton>
+        </div>
       </div>
 
       {error && (

@@ -1,4 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
+import { MasterPasswordDialog } from "./MasterPasswordDialog";
+import { useProfileStore } from "../../stores/profile-store";
+import { toast } from "../../stores/toast-store";
 
 export interface SafetyPanelProps {
   localFamilySafeModeEnabled: boolean;
@@ -14,6 +17,9 @@ export function SafetyPanel({
   veniceApiSafeMode,
   onUpdateSafetySetting,
 }: SafetyPanelProps): React.ReactElement {
+  const { masterPasswordSet } = useProfileStore();
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{key: "local_family_safe_mode_enabled" | "venice_api_safe_mode", enabled: boolean} | null>(null);
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
@@ -28,7 +34,14 @@ export function SafetyPanel({
             <input
               type="checkbox"
               checked={localFamilySafeModeEnabled}
-              onChange={(event) => void onUpdateSafetySetting("local_family_safe_mode_enabled", event.target.checked)}
+              onChange={(event) => {
+              if (masterPasswordSet) {
+                setPendingAction({ key: 'local_family_safe_mode_enabled', enabled: event.target.checked });
+                setShowPasswordDialog(true);
+              } else {
+                onUpdateSafetySetting('local_family_safe_mode_enabled', event.target.checked);
+              }
+            }}
               className="h-4 w-4 rounded border-border bg-surface text-accent"
             />
             <span className="text-[12.5px] font-medium text-text-primary">
@@ -36,11 +49,28 @@ export function SafetyPanel({
             </span>
           </label>
         </div>
+        
         <p className="text-[12px] text-text-muted leading-relaxed">
           {localFamilySafeModeEnabled
             ? "When enabled, matching requests are blocked locally before the provider is called."
             : "Bypasses Venice Forge's local family-safe filter. Venice/API-level safety and provider-side safemode are controlled separately."}
         </p>
+        <div className="mt-2">
+          {!masterPasswordSet ? (
+            <button
+              className="text-[12.5px] text-accent underline"
+              onClick={() => {
+                setPendingAction(null);
+                setShowPasswordDialog(true);
+              }}
+            >
+              Set Master Password to lock Family Safe Mode
+            </button>
+          ) : (
+            <span className="text-[12.5px] text-green-500">Master Password is enabled</span>
+          )}
+        </div>
+
       </div>
 
       <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
@@ -55,11 +85,32 @@ export function SafetyPanel({
             type="checkbox"
             aria-label="Venice API Safe Mode"
             checked={veniceApiSafeMode}
-            onChange={(event) => void onUpdateSafetySetting("venice_api_safe_mode", event.target.checked)}
+            onChange={(event) => {
+              if (localFamilySafeModeEnabled && !event.target.checked) {
+              toast.error('Cannot disable Provider Safe Mode', 'Family Safe Mode must be turned off first.');
+              return;
+            }
+            onUpdateSafetySetting('venice_api_safe_mode', event.target.checked);
+          }}
             className="h-4 w-4 rounded border-border bg-surface text-accent cursor-pointer"
           />
         </div>
       </div>
+    
+      {showPasswordDialog && (
+        <MasterPasswordDialog
+          isOpen={showPasswordDialog}
+          mode={masterPasswordSet ? 'verify' : 'setup'}
+          onClose={() => setShowPasswordDialog(false)}
+          onSuccess={() => {
+            setShowPasswordDialog(false);
+            if (pendingAction) {
+              onUpdateSafetySetting(pendingAction.key, pendingAction.enabled);
+              setPendingAction(null);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

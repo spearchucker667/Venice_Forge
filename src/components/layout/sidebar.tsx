@@ -166,7 +166,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
     setRedTeamMode(enabled)
     if (enabled) setShowInspector(true)
     toast.success(
-      enabled ? 'Red-Team Mode enabled' : 'Red-Team Mode disabled',
+      enabled ? 'Traffic Inspector enabled' : 'Traffic Inspector disabled',
       enabled ? 'Raw responses, safety decisions, and adult character controls are visible.' : 'Standard rendering restored.',
     )
   }

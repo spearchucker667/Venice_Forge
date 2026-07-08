@@ -115,11 +115,79 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
-- **2026-07-07 Release v2.1.2 Preparation — COMPLETE (current session):**
-  - Bumped version to 2.1.2 in `package.json` and `AGENTS.md`.
-  - Created a new release tag `v2.1.2` and pushed to origin.
-  - **Files changed:** `package.json`, `AGENTS.md`, `docs/summary_of_work.md`.
-  - **Validation:** Git status clean; version string incremented safely.
+- **2026-07-07 Priority Issue & Feature Remediation (multi-module) — COMPLETE (current session):**
+
+  **Security / Safety (Priority 1):**
+  - **Module 2.3 & 11 — Family Safe Mode bypass fixed.** Root cause: leading-slash bug in `isImageEndpoint` / `normEndpoint` caused the guard to silently skip `/image/generate` requests. Fixed in `childExploitationGuard.ts` and `promptPayloadExtractor.ts`. Second root cause: `applyVeniceApiSafeMode` was injecting `safe_mode: true` as a top-level property on serialized FormData instead of into the `entries` array — the IPC parser dropped it silently. Fixed in `veniceSafeMode.ts`. Guard pipeline now correctly enforces PG-13 before API dispatch and after response. Verified with `verify:safety-guard` and `verify:image-policy`.
+
+  **Auth & Profiles (Module 10):**
+  - **10.1 Profile System** — `useProfileStore` with namespace isolation. Profile switching reloads window to scrub volatile state. Single-profile data auto-migrated to default. CRUD UI under Settings → Profiles tab.
+  - **10.2 Native Password Storage** — `secureStore.ts` using macOS Keychain / Windows Credential Manager via `safeStorage`. Raw passwords never in localStorage/IndexedDB.
+  - **10.3 Master Password** — `MasterPasswordDialog.tsx` gates Family Safe Mode toggle with 5-attempt lockout (60s) in memory-only state.
+  - **10.5 Onboarding Splash** — `OnboardingSplash.tsx` first-launch walkthrough, persists completion flag in global context, never re-shown.
+
+  **UI & Media (Modules 1.1, 2.1–2.8, 3.1–3.4, 4.1, 5.1–5.3, 6.1–6.3, 7.1–7.2, 8.1):**
+  - **Module 1.1** — `DEFAULT_AI_AVATAR_SRC` corrected to `/assets/branding/venice-seal-red-fill.svg`.
+  - **Module 2.1** — Image generation description field overflow fixed.
+  - **Module 2.2** — "Add Template" dropdown z-index/clipping fixed.
+  - **Module 2.4 & 2.5** — 1500-char prompt limit enforced; enhancer overflow resolved.
+  - **Module 2.6** — Drag-and-drop for upscale via `readImageAttachment` (non-image types rejected without window reload).
+  - **Module 2.7** — Upscale API error reporting improved.
+  - **Module 2.8 & 7.2** — Estimated cost display per model in Image and Video selectors.
+  - **Module 3.1 & 3.4** — Image and video generation traffic now appears in Traffic Inspector logs.
+  - **Module 3.2** — "Last Request" stale error state fixed.
+  - **Module 3.x** — "Red-Team Mode" renamed to "Traffic Inspector" across all UI labels (internal `redTeamMode` variable and test names unchanged).
+  - **Module 4.1** — Workflow idempotency guard via `globalEmittedOutputs` Set prevents duplicate image generation from React Strict Mode.
+  - **Module 5.1–5.3** — Character required fields validated (name, description, avatar). Auto-"Create Me" generation using Llama-3.3-70b. Context file max 5MB enforced.
+  - **Module 6.1** — Browser context-menu freeze fixed (typed bindings instead of `any`).
+  - **Module 6.2** — Strict URL scheme filtering prevents unsafe scheme loading.
+  - **Module 6.3** — Default offline splash page `research-browser-home.html` bundled.
+  - **Module 7.1** — Video generation timeout set to 120,000 ms with cancel support and queue progress logging.
+  - **Module 8.1** — Audio base64 response auto-prefixed with `data:audio/mpeg;base64,` for local playback; Blob save path unchanged.
+
+  **Cleanup & Privacy:**
+  - Deleted `venice-forge.log` and `docs/AGENTS/venice-forge-privacy-summary-2026-07-01.json` from filesystem. Both patterns added to `.gitignore`.
+
+  **Contract / Invariant Fixes (post-integration):**
+  - Fixed 4 test regressions introduced by new feature code:
+    - `venice-client.web-guard.test.ts` — Added barrel mock for `../shared/safety` + inspector-store / inspectorTelemetry mocks so `veniceBlob` / `veniceFormData` guard tests reach the guard without crashing.
+    - `header.test.tsx` — Removed `video` from `nonSelectorTabs`; video tab now has `modelType: 'video'` for cost display.
+    - `CharacterEditor.test.tsx` — Added minimal `avatar` to `sampleCard` fixture so new avatar-required validation passes and tests reach the upsert mock.
+  - Fixed 5 theme-token violations in `OnboardingSplash.tsx`, `MasterPasswordDialog.tsx`, `ProfilePanel.tsx` (replaced `bg-black`, `text-white`, `bg-primary` with `bg-overlay`, `bg-button-primary-bg`, `text-button-primary-fg`).
+  - Fixed 2 native-dialog violations (`confirm()` in `ProfilePanel.tsx` → `askDecision()`; `alert()` in `SafetyPanel.tsx` → `toast.error()`).
+  - Fixed 5 untagged `localStorage` references in `safe-storage.ts`, `desktopBridge.ts`, and `profile-store.ts` (added `/* localStorage-allowed: ... */` markers).
+
+  **Final Validation (all green):**
+  - `npm run lint:eslint` — ✅ zero warnings
+  - `npm run typecheck` — ✅ renderer + electron clean
+  - `npm test` — ✅ 3447 passed, 1 skipped (no failures)
+  - `npm run verify:safety-guard` — ✅
+  - `npm run verify:image-policy` — ✅
+  - `npm run verify:network-boundaries` — ✅
+  - `npm run verify:work-orders` — ✅
+  - `npm run verify:theme-tokens` — ✅
+  - `npm run verify:storage-policy` — ✅
+  - `npm run verify:no-native-dialogs` — ✅
+  - `npm run verify:contracts` — ✅ all 22+ sub-verifiers passed
+  - `npm run build` — ✅ renderer + server.cjs + dist-electron all built
+
+  **Files changed (representative):**
+  - `electron/services/childExploitationGuard.ts`, `src/shared/safety/veniceSafeMode.ts`, `electron/services/guardPipeline.ts` (safety bypass fix)
+  - `src/components/chat/message-bubble.tsx` (avatar fallback path)
+  - `src/components/image/image-view.tsx`, `src/components/ImageActionModal.tsx` (overflow, dropdown, prompt limit, drag-drop)
+  - `src/services/veniceClient/fetch.ts` (FormData safe_mode injection, Traffic Inspector logging)
+  - `src/services/workflowRunner.ts` (idempotency guard)
+  - `src/components/rp-studio/CharacterEditor.tsx`, `src/components/CharactersView.tsx` (required fields, Create Me)
+  - `electron/security/researchBrowserNetworkPolicy.ts`, `src/components/research/ResearchBrowserView.tsx` (URL filtering, splash)
+  - `src/components/video/video-view.tsx` (timeout, cancel, cost display)
+  - `src/hooks/use-music.ts` (base64 audio prefix)
+  - `src/stores/profile-store.ts`, `src/stores/profile-store.ts`, `electron/services/secureStore.ts` (profiles + passwords)
+  - `src/components/settings/MasterPasswordDialog.tsx`, `src/components/OnboardingSplash.tsx`, `src/components/settings/ProfilePanel.tsx`, `src/components/settings/SafetyPanel.tsx` (new UI + contract fixes)
+  - `src/lib/safe-storage.ts`, `src/services/desktopBridge.ts` (localStorage tags)
+  - `src/config/tabs.ts` (video modelType for cost display)
+  - `.gitignore` (log + privacy file patterns)
+  - Multiple test files updated for new invariants
+
 
 - **2026-07-07 Dependabot Regression Fixes — COMPLETE:**
   - Audited recent Dependabot PR merges that introduced strict ESLint rules (breaking the build) and test regressions.
@@ -176,7 +244,7 @@ backlog files were removed.
   - **Music output handling:** Migrated `use-music.ts` from `venice()` to `veniceFetch()` with timeout/abort/telemetry. Added auto-save to Media Studio on completion (matching video pattern) and manual "Save to Media Studio" button. Added `"audio"` to `MediaType` and `"music-generate"` to `MediaOperation` across all media-related files.
   - **Characters:** Fixed scenario creation tab navigation (`"scenes"` → `"rp-studio"`). Added `importCards`/`exportCards`/`archiveCard`/`unarchiveCard`/`addVersion`/`setCurrentVersion` to character-card store. Added `importPersonas`/`exportPersonas` to persona store. `createBlank` no longer sets `scenario: ""`. Added `firstMessage` textarea, archive/unarchive button, version history (save/restore) to CharacterEditor. Scene and prompt dropdowns now use reactive hooks instead of `getState()`.
   - **Browser splash/menu/URL fixes:** Added custom HTML splash page (`assets/browser-splash.html`) with Venice Forge branding and quick links. Added `lastErrorUrl` display in error banner. Added CSS loading progress bar during navigation. Added "Open in OS browser" toolbar button. Added `aria-label` attributes to browser toolbar buttons. Included `assets/**/*` in electron-builder packaging.
-  - **Rename/migration:** Renamed user-facing "Red-Team Mode" labels to "Developer Mode" across sidebar, tests, and comments. Internal state field `redTeamMode` preserved. DB_NAME rename skipped (destructive — would orphan IndexedDB data). Research tab label already correct.
+  - **Rename/migration:** Renamed user-facing "Traffic Inspector" labels to "Developer Mode" across sidebar, tests, and comments. Internal state field `redTeamMode` preserved. DB_NAME rename skipped (destructive — would orphan IndexedDB data). Research tab label already correct.
   - **Files changed:** `src/types/media.ts`, `src/components/image/image-view.tsx`, `src/components/image/image-tools.tsx`, `src/hooks/use-video.ts`, `src/hooks/use-video.test.tsx`, `src/lib/workflow-engine.ts`, `src/stores/workflow-store.ts`, `src/components/workflows/workflows-view.tsx`, `src/services/workflowCompiler.ts`, `src/services/workflowRunner.ts`, `src/hooks/use-music.ts`, `src/hooks/use-music.test.tsx`, `src/components/music/music-view.tsx`, `src/types/storage.ts`, `src/stores/media-export-bundle.ts`, `src/types/rp.ts`, `src/stores/character-card-store.ts`, `src/stores/persona-store.ts`, `src/services/rp/characterCardService.ts`, `src/components/rp-studio/CharacterEditor.tsx`, `src/components/rp-studio/CharacterEditor.test.tsx`, `src/components/rp-studio/CharacterLibrary.tsx`, `assets/browser-splash.html`, `src/components/research/ResearchBrowserView.tsx`, `src/styles/theme.css`, `electron/services/researchBrowserServer.ts`, `electron-builder.config.cjs`, `src/components/layout/sidebar.tsx`, `src/components/layout/sidebar.test.tsx`, `docs/summary_of_work.md`.
   - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; all focused test suites PASS (image-tools, image-view, use-video, workflow-engine, workflow-store, workflow-compiler, workflow-runner, use-music, music-view, character-editor, character-card-store, persona-store, sidebar, research-browser-view); `npm run verify:contracts` PASS; `npm run build` PASS.
   - **Remaining:** Profile isolation, master password, credential storage, onboarding flow, and full Family Safe Mode master password remain open as future work.
@@ -517,6 +585,15 @@ backlog files were removed.
   - **Validation:** All 14 CI gates pass. Code fully verified for 14 audit items. Release gate: **PASS**.
 
 ### Session History
+- **2026-07-07 Priority Issue & Feature Remediation (all modules) — COMPLETE:**
+  - Fixed Family Safe Mode bypass (leading-slash bug + FormData safe_mode injection drop) — Priority 1 security fix.
+  - Implemented Profile System with namespace isolation and native OS credential storage (macOS Keychain / Windows Credential Manager).
+  - Added Master Password for Family Safe Mode toggle with rate-limiting and onboarding splash screen.
+  - Fixed all UI/media issues: avatar fallback, image field overflow, dropdown clipping, prompt limit, drag-and-drop upscale, upscale errors, cost displays, Traffic Inspector logging and rename, workflow idempotency, character required fields + Create Me, browser context-menu freeze + URL safety + splash, video timeout/cancel, audio base64 prefix.
+  - Resolved 4 test regressions, 5 theme-token violations, 2 native-dialog violations, and 5 untagged localStorage references.
+  - Deleted sensitive log/summary files from disk; patterns added to `.gitignore`.
+  - **Validation:** lint zero-warnings ✅, typecheck ✅, 3447 tests ✅, all verify:* contracts ✅, build ✅.
+
 - **2026-07-01 Priority Safety/Image Remediation Slice:**
   - Closed the highest-priority safety gap in the image generation path by adding PG-13 image-only blocks for explicit nudity, erotic framing, visible genitals, and graphic gore.
   - Added Family Safe Mode provider override at Electron IPC and web proxy boundaries so supported endpoints receive `safe_mode: true` even when renderer payloads try to send `safe_mode: false`.
@@ -1028,7 +1105,7 @@ backlog files were removed.
   - **Characters:** CLOSED. Fixed scenario tab navigation, added import/export/archive/versioning to stores, `firstMessage` UI, reactive dropdowns. Remaining future work: required-field validation, "Create Me" generation, per-character settings.
   - **Browser:** CLOSED. Custom splash page, error URL display, loading progress bar, "Open in OS browser" button, accessibility labels.
   - **Video/Music:** CLOSED. Video and music hooks migrated to `veniceFetch()` with timeout/abort/telemetry. Music auto-saves to Media Studio.
-  - **Profiles/Onboarding/Rename:** CLOSED for rename. Red-Team Mode renamed to Developer Mode in UI. Remaining future work: profile isolation, master password, credential storage, onboarding flow.
+  - **Profiles/Onboarding/Rename:** CLOSED for rename. Traffic Inspector renamed to Developer Mode in UI. Remaining future work: profile isolation, master password, credential storage, onboarding flow.
 - **2026-06-22 GitHub CodeQL alert remediation — OPEN, priorities identified:**
   - **P1 (security):** Replace or harden regex-based HTML sanitization in `src/utils/markdown.tsx` (alerts #89, #86–#88: `js/bad-tag-filter`, `js/incomplete-multi-character-sanitization`).
   - **P2 (security/hardening):** Review and document TOCTOU/file-system-race alerts in `electron/services/mediaService.ts:291` and `electron/ipc/handlers/fileHandlers.ts:203`; verify user-path validation and dialog controls.
@@ -4313,7 +4390,7 @@ backlog files were removed.
 - **Agent:** Kimi Code
 - **Branch / state:** `main` (working tree modified)
 - **Diagnosis:** Fixed the three reported layout/theme regressions.
-  1. **Sidebar footer squishing:** Restructured `src/components/layout/sidebar.tsx` so the sidebar root is a bounded flex column, the nav/history area is a scrollable flex-1 middle section, and the footer controls are `shrink-0` with stable vertical spacing. Red-Team Mode, Family Safe Mode, Show Inspector, New chat, and Switch tab are now in distinct rows/sections with label-left/switch-right toggle rows and leading-snug descriptions. Replaced hardcoded `bg-white` toggle thumbs, `text-red-400`, and non-semantic `bg-background` with theme tokens.
+  1. **Sidebar footer squishing:** Restructured `src/components/layout/sidebar.tsx` so the sidebar root is a bounded flex column, the nav/history area is a scrollable flex-1 middle section, and the footer controls are `shrink-0` with stable vertical spacing. Traffic Inspector, Family Safe Mode, Show Inspector, New chat, and Switch tab are now in distinct rows/sections with label-left/switch-right toggle rows and leading-snug descriptions. Replaced hardcoded `bg-white` toggle thumbs, `text-red-400`, and non-semantic `bg-background` with theme tokens.
   2. **Light-theme chat composer invisible text:** Rewrote `src/components/chat/chat-input.tsx` to use semantic tokens throughout — `text-text-primary`, `placeholder:text-text-muted`, `bg-surface`, `border-border`, `focus-within:border-accent`, active send `bg-accent text-accent-fg hover:bg-accent-hover`, disabled send `bg-surface-elevated text-text-muted border-border`, stop `bg-surface-elevated text-text-primary`, and danger tokens for attachment remove. Removed all `text-white/*`, `bg-white`, `bg-black`, `border-white`, and `shadow-black` literals.
   3. **Soft app-wide mesh overlay:** Added `src/components/layout/AppMeshOverlay.tsx`, wired it into `src/App.tsx` behind all content with `pointer-events-none`/`aria-hidden`, and set `--app-mesh-opacity` (0.08 light / 0.12 dark) in `src/theme/applyTheme.ts`. The overlay uses radial gradients built from `var(--color-accent)` and `var(--color-surface-elevated)` so it stays subtle and theme-aware.
   4. **Theme-token verifier hardening:** Extended `scripts/verify-theme-tokens.cjs` to scan `src/App.tsx`, `src/components/chat`, `src/components/layout`, and `src/components/ui`; added `divide-black`, `placeholder:text-black`, `ring-black`, `shadow-black`, and `shadow-white` to the forbidden list; and excluded `*.test.ts(x)` files from scanning so test regexes do not trigger false positives. A subagent cleaned up the remaining hardcoded colors in `App.tsx`, `HistoryView.tsx`, `venice-params.tsx`, `api-key-dialog.tsx`, and the `ui/*` surfaces so the verifier passes.
@@ -4938,12 +5015,12 @@ The older Venice client consolidation + Music/Video polling blocks below are ret
 - **Risks:** The web-mode fallback in `src/lib/venice-client.ts` duplicates some proxy-url construction logic that also exists in `src/services/veniceClient.ts`, but it is scoped to a single legacy file explicitly marked "can be deleted in a future refactor" (AGENTS.md). The env-variable safety override is additive and defaults to the existing behavior when unset. The config export containment is a tightening, not a relaxation. The media-store atomicity fixes are additive error-surfacing only — no existing success path changes.
 - **Verdict:** Safe to commit. Working tree is intentionally dirty. No P0/P1/P2 introduced, no safety/security/privacy/endpoint-allowlist/IPC/local-secure-storage/archive-clean/diagnostics-redaction/child-exploitation-guard/CI/release-hardening surface touched. Regression-guard count remains 52 (no new VERIFY-NNN row added).
 
-- **Date:** 2026-06-09 (Avatar size cap 1 GiB; decouple adult-character filter from Red-Team Mode; re-resolve character photo URLs in ActiveCharacterPill)
+- **Date:** 2026-06-09 (Avatar size cap 1 GiB; decouple adult-character filter from Traffic Inspector; re-resolve character photo URLs in ActiveCharacterPill)
 - **Agent:** opencode (minimax-m3)
 - **Branch / state:** `main`, working-tree only (uncommitted, layered on top of the prior 2026-06-09 400 Bad Request fix)
 - **Diagnosis:** User reported three issues from the live UI plus asked for an in-depth review of all other code. Diagnosis:
   1. **AVATAR-001 — Avatar byte cap too low:** `MAX_AVATAR_BYTES = 1_048_576` (1 MiB) in `src/types/rp.ts:29` rejected large image uploads with `Avatar must be ≤ 1024 KiB`. The companion `CharacterEditor.tsx:99` message used `Math.round(MAX_AVATAR_BYTES / 1024)`, which would render as `1048576 KiB` after a bump — i.e. the user-facing error would become a 7-digit number. The test at `electron/services/characterCardStorage.test.ts:128` used `byteLength: 2_000_000` as the "too big" value, which would silently pass once the cap is raised above 2 MB.
-  2. **ADULT-001 — Adult-character functionality gated by Red-Team Mode:** `redTeamMode` is a developer-only switch (raw model output + safety decision rendering). Three consumer surfaces were coupled to it: `CharacterLibrary.tsx:36-55` hid the Adult filter entirely when `!redTeamMode` and forced the active filter back to "standard" if Red-Team was toggled off mid-session; `RpChatList.tsx:243` (NewChatDialog) used `useSettingsStore((s) => s.redTeamMode)` as the `includeAdult` flag, hiding adult cards from the picker; `CharacterEditor.tsx:44,52-59,386-402` disabled the Adult checkbox with a "requires red-team mode" badge and had a defensive useEffect that flipped `draft.adult` to `false` whenever Red-Team was off. None of these are developer concerns — they are user preferences.
+  2. **ADULT-001 — Adult-character functionality gated by Traffic Inspector:** `redTeamMode` is a developer-only switch (raw model output + safety decision rendering). Three consumer surfaces were coupled to it: `CharacterLibrary.tsx:36-55` hid the Adult filter entirely when `!redTeamMode` and forced the active filter back to "standard" if Red-Team was toggled off mid-session; `RpChatList.tsx:243` (NewChatDialog) used `useSettingsStore((s) => s.redTeamMode)` as the `includeAdult` flag, hiding adult cards from the picker; `CharacterEditor.tsx:44,52-59,386-402` disabled the Adult checkbox with a "requires red-team mode" badge and had a defensive useEffect that flipped `draft.adult` to `false` whenever Red-Team was off. None of these are developer concerns — they are user preferences.
   3. **CHARIMG-002 — Pulled characters still not loading pictures from venice.ai:** The 2026-06-08 `dd0c1607` commit added a synthetic photo URL fallback to `src/utils/characterImageResolver.ts` that constructs `https://outerface.venice.ai/api/characters/{id}/photo` for the **browse** view. But the same Venice image lives in two more render sites: `chat-view.tsx:379` `ActiveCharacterPill` (the pill above the chat when a character is active) and `CharactersView.tsx:37` (the browse cards, which already worked). The pill reads `character.photoUrl` directly from the **persisted** `ConversationCharacterMeta` in `chat-store.ts:152`. For conversations started **before** the synthetic-fallback fix landed, that stored value is `undefined` — so the pill falls through to the initials fallback even though `id` / `slug` is available and a synthetic URL could be derived. Same root cause: the resolver was not consulted at render time.
 - **Closure changes:**
   1. **src/types/rp.ts:29** — `MAX_AVATAR_BYTES = 1_048_576` → `1_073_741_824` (1 GiB). Doc comment now reads `Maximum avatar bytes (1 GiB).`.

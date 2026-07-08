@@ -13,7 +13,7 @@ import { useSceneComposerStore } from "../../stores/scene-composer-store";
 import { useScenarioStore } from "../../stores/scenario-store";
 import { useWorkflowTemplateStore } from "../../stores/workflow-template-store";
 import { type WorkflowStep } from "../../types/workflow";
-import { CARD_FIELD_MAX, MAX_AVATAR_BYTES, MAX_TAGS, type CharacterCardV1, type CharacterCardAvatar, type CharacterExampleDialogue } from "../../types/rp";
+import { CARD_FIELD_MAX, MAX_AVATAR_BYTES, MAX_TAGS, type CharacterCardV1, type CharacterCardAvatar, type CharacterExampleDialogue, CharacterContextFile } from "../../types/rp";
 import { GhostButton, Label, PrimaryButton, TextArea, ErrorText } from "../ui/shared";
 import { Spinner } from "../ui/spinner";
 import { FALLBACK_MODELS } from "../../constants/venice";
@@ -88,6 +88,34 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
     update("tags", draft.tags.filter((t) => t !== tag));
   };
 
+  
+  const handleContextFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Context file must be 5MB or smaller.");
+      return;
+    }
+    try {
+      const text = await file.text();
+      const newFile: CharacterContextFile = {
+        id: Date.now().toString() + Math.random(),
+        name: file.name,
+        content: text,
+        size: file.size
+      };
+      update("contextFiles", [...(draft.contextFiles || []), newFile]);
+    } catch {
+      setError("Failed to read context file.");
+    }
+    e.target.value = "";
+  };
+
+  const removeContextFile = (id: string) => {
+    update("contextFiles", (draft.contextFiles || []).filter(f => f.id !== id));
+  };
+
+
   const handleAvatarFile = async (file: File) => {
     if (!isSupportedImageFile(file)) {
       setError("Avatar must be a supported image file (PNG, JPEG, WEBP).");
@@ -151,6 +179,20 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
       setError("Local config is still loading. Try again in a moment.");
       return;
     }
+    
+    if (!draft.name?.trim()) {
+      setError("Name is required.");
+      return;
+    }
+    if (!draft.description?.trim()) {
+      setError("Description is required.");
+      return;
+    }
+    if (!draft.avatar) {
+      setError("Image (avatar) is required.");
+      return;
+    }
+
     setSaving(true);
     setError(null);
     try {
@@ -576,6 +618,62 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                       <line x1="18" y1="6" x2="6" y2="18" />
                       <line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        
+        <section className="space-y-4 pt-4 border-t border-border/50">
+          <Label>Special Settings</Label>
+          <div className="grid grid-cols-2 gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={!!draft.webSearch} onChange={e => update("webSearch", e.target.checked)} className="rounded border-border bg-surface text-accent focus:ring-accent" />
+              <span className="text-[12px] text-text-primary">Web Search</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={!!draft.urlScraping} onChange={e => update("urlScraping", e.target.checked)} className="rounded border-border bg-surface text-accent focus:ring-accent" />
+              <span className="text-[12px] text-text-primary">URL Scraping</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={!!draft.enableThoughts} onChange={e => update("enableThoughts", e.target.checked)} className="rounded border-border bg-surface text-accent focus:ring-accent" />
+              <span className="text-[12px] text-text-primary">Enable Thoughts</span>
+            </label>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label hint="Temperature">Temperature</Label>
+              <input type="number" step="0.1" min="0" max="2" value={draft.temperature ?? 1} onChange={e => update("temperature", parseFloat(e.target.value))} className="w-full bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent" />
+            </div>
+            <div>
+              <Label hint="Top P">Top P</Label>
+              <input type="number" step="0.05" min="0" max="1" value={draft.topP ?? 1} onChange={e => update("topP", parseFloat(e.target.value))} className="w-full bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent" />
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-2 pt-4 border-t border-border/50">
+          <div className="flex items-center justify-between mb-2">
+            <Label>Context Files</Label>
+            <label className="text-[11px] px-2 py-1 rounded-md border border-border bg-surface-elevated text-text-secondary hover:text-text-primary hover:border-accent/40 cursor-pointer transition-colors">
+              Upload File (Max 5MB)
+              <input type="file" className="hidden" onChange={handleContextFileUpload} accept=".txt,.json,.md,.csv" />
+            </label>
+          </div>
+          {(!draft.contextFiles || draft.contextFiles.length === 0) ? (
+            <div className="text-[12px] text-text-muted italic">No context files uploaded.</div>
+          ) : (
+            <div className="space-y-2">
+              {draft.contextFiles.map((f) => (
+                <div key={f.id} className="flex gap-2 items-center justify-between bg-surface-elevated border border-border rounded-lg p-2">
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[12.5px] text-text-primary truncate">{f.name}</span>
+                    <span className="text-[11px] text-text-muted">{(f.size / 1024).toFixed(1)} KB</span>
+                  </div>
+                  <button type="button" onClick={() => removeContextFile(f.id)} className="text-text-muted hover:text-rose-300 p-1">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                   </button>
                 </div>
               ))}

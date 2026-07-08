@@ -254,6 +254,7 @@ export interface VideoRetrieveResponse {
   status: 'queued' | 'processing' | 'completed' | 'failed'
   video_url?: string
   error?: string
+  progress?: number
 }
 
 // Embedding types

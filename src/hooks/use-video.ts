@@ -7,7 +7,7 @@ import type { VideoQueueRequest, VideoQueueResponse, VideoRetrieveResponse } fro
 const POLL_INTERVAL_MS = 3000
 const MAX_ATTEMPTS = 200 // ~10 minutes
 const MAX_ERROR_LENGTH = 200
-const QUEUE_TIMEOUT_MS = 30000
+const QUEUE_TIMEOUT_MS = 120000
 const POLL_TIMEOUT_MS = 15000
 
 /**
@@ -28,6 +28,7 @@ export function useVideo() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [elapsedMs, setElapsedMs] = useState(0)
+  const [progress, setProgress] = useState<number | null>(null)
   const [queueId, setQueueId] = useState<string | null>(null)
   const [lastRequest, setLastRequest] = useState<VideoQueueRequest | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval>>(undefined)
@@ -57,6 +58,7 @@ export function useVideo() {
     const token = generationTokenRef.current
     attemptsRef.current = 0
     startedAtRef.current = Date.now()
+    setProgress(null)
     setElapsedMs(0)
     const signal = abortControllerRef.current.signal
 
@@ -88,6 +90,7 @@ export function useVideo() {
         })
         if (token !== generationTokenRef.current) return
         setStatus(result.data.status)
+        if (result.data.progress !== undefined) setProgress(result.data.progress)
         if (result.data.status === 'completed' && result.data.video_url) {
           setVideoUrl(result.data.video_url)
           stopPolling()
@@ -161,6 +164,7 @@ export function useVideo() {
   }, [cancel])
 
   return {
+    progress,
     queue: queueMutation.mutate,
     isQueueing: queueMutation.isPending,
     status,

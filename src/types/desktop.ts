@@ -15,10 +15,10 @@ import type { ApiConnectivityStatus } from "./api-connectivity";
 
 /** Manages the Venice API key in secure OS-level storage. */
 export interface VeniceForgeApiKey {
-  isConfigured(): Promise<boolean>;
-  set(key: string): Promise<{ ok: boolean }>;
-  delete(): Promise<{ ok: boolean }>;
-  test(): Promise<{ ok: boolean; status?: number; message: string; connectivity?: ApiConnectivityStatus }>;
+  isConfigured(profileId?: string): Promise<boolean>;
+  set(key: string, profileId?: string): Promise<{ ok: boolean }>;
+  delete(profileId?: string): Promise<{ ok: boolean }>;
+  test(profileId?: string): Promise<{ ok: boolean; status?: number; message: string; connectivity?: ApiConnectivityStatus }>;
 }
 
 /** Makes Jina API requests from the main process with the stored key attached. */
@@ -38,6 +38,8 @@ export interface VeniceForgeRequest {
   headers?: Record<string, string>;
   signalId?: string;
   localFamilySafeModeEnabled?: boolean;
+  profileId?: string;
+
 }
 
 /** Describes the response returned from the Electron IPC bridge. */
@@ -273,7 +275,15 @@ export interface VeniceForgeConversations {
 }
 
 /** Root interface for the Venice Forge preload bridge exposed on the window object. */
+
+export interface VeniceForgeCredentials {
+  set(key: string, value: string): Promise<{ ok: boolean; error?: string }>;
+  get(key: string): Promise<{ ok: boolean; value: string | null; error?: string }>;
+  delete(key: string): Promise<{ ok: boolean; error?: string }>;
+}
+
 export interface VeniceForge {
+  credentials: VeniceForgeCredentials;
   readonly isDesktop: true;
   venice: VeniceForgeVenice;
   apiKey: VeniceForgeApiKey;
