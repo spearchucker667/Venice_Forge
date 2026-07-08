@@ -437,7 +437,7 @@ export function SearchScrapeView() {
                       setScrapeOutput(String(result.sources[0].excerpt));
                     }
                   } catch (err) {
-                    setScrapeOutput(String(err));
+                    setScrapeOutput(describeResearchError(err as Error, "Reading with Jina failed.", "jina"));
                   }
                 }}
                 onSaveToSession={async (item) => {
@@ -521,7 +521,7 @@ export function SearchScrapeView() {
                     setSubTab("search");
                   }
                 } catch (err) {
-                  setScrapeOutput(String(err));
+                  setScrapeOutput(describeResearchError(err as Error, "Reading with Jina failed.", "jina"));
                 }
               }}
             />

@@ -10226,48 +10226,26 @@ Addressed missing features and major bugs identified in the prior discovery audi
 ## Latest Session Summary
 
 **Date:** 2026-07-08
-**Session type:** Deep bug review / CI repair
+**Session type:** Webbrowsing / Research Browser bug review
 **Target snapshot:** `Windows-Venice-API-connector-clean-20260708-111500.zip`
 
-Reviewed the uploaded snapshot as the source of truth. No source files were modified outside this session. Addressed the deterministic CI failure and the prioritized safety/UI/RP findings from the review.
+Reviewed all web-browsing surfaces: Research Mini Browser (Electron main), renderer bridge, search/scrape UI, research providers, and network policy. Ran focused tests and the `verify:research-browser` audit. Fixed config drift where three `research.*` settings were exposed in the schema but ignored by the main-process browser implementation. Also hardened Jina error surfacing in the renderer.
 
 ### Fixes applied this session
 
-1. **CI configService env mismatch (Critical)** — `electron/services/configService.test.ts`
-   - Updated the dev-local config-path test to clear `process.env.CI`.
-   - Added a new test proving `CI=true` forces `userdata` paths even when `NODE_ENV=development`.
+1. **Research Browser session persistence (High)** — `electron/services/researchBrowserServer.ts`
+   - The browser now respects `research.live_browser_persist_session` from the loaded YAML config.
+   - When enabled (default), the partition is `persist:venice-forge-research-browser`; when disabled, a non-persistent partition is used.
+   - Updated `electron/services/researchBrowserServer.test.ts` mock and expectation to match the default persisted partition.
 
-2. **Upscale safety preflight gap (Critical)** — `src/shared/safety/promptPayloadExtractor.ts`
-   - Added `enhancePrompt`, `enhance_prompt`, and `prompt` to the `/image/upscale` extraction map.
-   - Added `VERIFY-067` regression tests for extraction, guard blocking, and no raw prompt logging.
+2. **Research Browser JavaScript toggle (High)** — `electron/services/researchBrowserServer.ts`
+   - The browser now respects `research.live_browser_javascript_enabled` via `webPreferences.javascript` on the `WebContentsView`.
 
-3. **Web-mode response-screening parity (High)** — `src/services/veniceClient/fetch.ts`
-   - Factored `screenVeniceResponse()` into a shared helper called by `veniceFetch`, `veniceBlob`, and `veniceFormData`.
-   - Binary payloads are never stringified; only textual/JSON metadata bodies are screened.
+3. **Research Browser extract length (High)** — `electron/services/researchBrowserServer.ts`
+   - `scrapeCurrent` now uses `research.max_browser_extract_chars` instead of the hard-coded 40,000-character cap.
 
-4. **Binary empty-success behavior (High)** — `src/services/veniceClient/fetch.ts`
-   - `veniceBlob()` now throws a redacted `VeniceAPIError` when a successful response lacks usable binary data.
-   - Added client-side `/image/upscale` input validation (format, non-empty, size limit).
-
-5. **Image prompt hard-stop (Medium)** — `src/components/image/image-view.tsx`
-   - Prompt state is sliced to 1500 characters at every entry point (typing, paste, template, enhancer, workspace handoff).
-   - Added regression coverage for over-limit typing, paste, template, enhancer, and submitted payload.
-
-6. **Video cost labels (Medium)** — `src/components/video/video-view.tsx`
-   - Selector options now show per-model cost via `formatModelLabelWithCost`, with live pricing, local fallback, unknown price state, and non-blocking failure recovery.
-
-7. **Music/audio inspector parity (Medium)** — `src/hooks/use-music.ts`, `src/components/music/music-view.tsx`, `src/hooks/use-audio.ts`, `src/components/audio/audio-view.tsx`
-   - Added queue/poll/success/timeout/abort inspector logging, MIME preservation, empty-response rejection, unsupported-codec UI errors, and object-URL revocation.
-
-8. **Character context file MIME validation (Medium)** — `src/components/rp-studio/CharacterEditor.tsx`
-   - Enforces MIME type for context uploads where the browser reports one.
-   - PDF extraction failures now surface fixed, safe UI messages.
-
-9. **Character model selection (Medium)** — `src/stores/character-store.ts`, `src/components/CharactersView.tsx`, `src/types/characters.ts`
-   - Added `selectedModel` persistence and `getEffectiveModel` priority (user override > character modelId > settings fallback).
-
-10. **Profile password storage decision (Deferred P1)** — `electron/services/secureStore.ts`
-    - Recorded decision in `docs/audits/repository-todo-roadmap-current.md`: macOS `safeStorage` is approved (SecItem/Keychain), Linux is acceptable, Windows DPAPI does not meet the Credential Manager requirement and needs a future native bridge.
+4. **Jina error surfacing (Medium)** — `src/components/search/SearchScrapeView.tsx`
+   - Replaced raw `String(err)` output with `describeResearchError(..., "Reading with Jina failed.", "jina")` in both Jina-read handlers.
 
 ### Open TODO Ledger
 - **P1 (windows-credman):** Replace Windows `safeStorage` DPAPI backend for profile-password storage with a Windows Credential Manager native bridge. Deferred until a safe small implementation (Node-API addon or tightly scoped PowerShell bridge) is available.
@@ -10320,3 +10298,15 @@ Reviewed the uploaded snapshot as the source of truth. No source files were modi
 | `npm run build` | PASS | Web, server, and Electron outputs built. |
 | `npm run verify:dist` | PASS | Build outputs verified. |
 | `git diff --check` | PASS | No whitespace errors. |
+
+## Validation Matrix — 2026-07-08 web-browsing bug review
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npx vitest run electron/services/researchBrowserServer.test.ts electron/security/researchBrowserNetworkPolicy.test.ts` | PASS | 43 tests across 2 files. |
+| `npx vitest run src/components/search/SearchScrapeView.test.tsx src/components/search/ResearchProviderStatus.test.tsx` | PASS | 7 tests across 2 files. |
+| `npx vitest run src/services/researchService.test.ts src/research/providers/genericHttpScrapeProvider.test.ts src/research/providers/jinaResearchProvider.test.ts src/research/providers/veniceResearchProvider.test.ts` | PASS | 46 tests across 4 files. |
+| `node scripts/verify-research-browser.cjs` | PASS | 152 tests across 10 files; VERIFY-057 passed. |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
+| `npm run typecheck` | PASS | Renderer + Electron main TypeScript clean. |
+

@@ -91,6 +91,7 @@ import { screenResponseBody } from "../../src/shared/safety";
 import { getRuntimeLocalFamilySafeModeEnabled } from "./runtimeSafetySettings";
 import { validateResearchBrowserNetworkUrl } from "../security/researchBrowserNetworkPolicy";
 import { rateLimitIpcHandler } from "../utils/rateLimit";
+import { getCurrentConfig } from "./configService";
 
 function assertSafeUrl(url: string): boolean {
   return isAllowedResearchBrowserUrl(url);
@@ -134,7 +135,11 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
   handleIpc("researchBrowser:create", async () => {
     if (researchView) return { ok: true };
 
-    const researchSession = session.fromPartition("venice-forge-research-browser");
+    const config = getCurrentConfig();
+    const partitionName = config.research.live_browser_persist_session
+      ? "persist:venice-forge-research-browser"
+      : "venice-forge-research-browser";
+    const researchSession = session.fromPartition(partitionName);
 
     // Block all permission requests (camera, microphone, geolocation, notifications, etc.)
     researchSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
@@ -179,12 +184,12 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
         experimentalFeatures: false,
         navigateOnDragDrop: false,
         safeDialogs: true,
+        javascript: config.research.live_browser_javascript_enabled,
       },
     });
 
     const wc = researchView.webContents;
 
-    
     wc.on("context-menu", (e, params) => {
       e.preventDefault();
       const template: Electron.MenuItemConstructorOptions[] = [];
@@ -446,6 +451,8 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
   handleIpc("researchBrowser:scrapeCurrent", async (): Promise<{ ok: boolean; source?: ResearchBrowserScrapeResult; error?: string }> => {
     if (!researchView) return { ok: false, error: "Not initialized" };
     try {
+      const extractConfig = getCurrentConfig().research;
+      const maxExtractChars = extractConfig.max_browser_extract_chars;
       const result = await researchView.webContents.executeJavaScript(`
         (() => {
           const title = document.title;
@@ -454,15 +461,15 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
           const canonicalUrl = canonicalElement ? canonicalElement.href : undefined;
           const metaDescription = document.querySelector('meta[name="description"]');
           const description = metaDescription ? metaDescription.content : undefined;
-          
+
           // Basic text extraction stripping scripts and styles
           const clone = document.body.cloneNode(true);
           const scripts = clone.querySelectorAll('script, style, noscript');
           scripts.forEach(s => s.remove());
           const text = clone.innerText || clone.textContent || "";
           let maxExcerpt = text;
-          if (maxExcerpt.length > 40000) {
-            maxExcerpt = maxExcerpt.slice(0, 40000);
+          if (maxExcerpt.length > ${maxExtractChars}) {
+            maxExcerpt = maxExcerpt.slice(0, ${maxExtractChars});
           }
           return {
             title,

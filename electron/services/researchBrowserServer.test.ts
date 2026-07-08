@@ -117,6 +117,16 @@ vi.mock("./runtimeSafetySettings", () => ({
   getRuntimeLocalFamilySafeModeEnabled: vi.fn(() => true),
 }));
 
+vi.mock("./configService", () => ({
+  getCurrentConfig: vi.fn(() => ({
+    research: {
+      live_browser_persist_session: true,
+      live_browser_javascript_enabled: true,
+      max_browser_extract_chars: 40_000,
+    },
+  })),
+}));
+
 // Now setup imports from electron (retrieves the mock instances) and the server setup
 import { 
   _mockWebContents as mockWebContents, 
@@ -173,7 +183,7 @@ describe("Research Browser Server Main Process Integration", () => {
       expect(result).toEqual({ ok: true });
 
       const { session } = await import("electron");
-      expect(session.fromPartition).toHaveBeenCalledWith("venice-forge-research-browser");
+      expect(session.fromPartition).toHaveBeenCalledWith("persist:venice-forge-research-browser");
 
       // Verifies that permission handler blocks camera/microphone/notifications/etc.
       expect(mockSession.setPermissionRequestHandler).toHaveBeenCalled();
