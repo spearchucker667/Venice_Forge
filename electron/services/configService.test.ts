@@ -95,10 +95,16 @@ beforeEach(async () => {
 describe("configService path resolution", () => {
   it("uses repo-local .config/config.local.yaml in dev", async () => {
     process.env.VENICE_FORGE_CONFIG_FILE = "";
-    const paths = getPaths();
-    // In dev (not packaged), source should be repo-local.
-    expect(paths.source).toBe("repo-local");
-    expect(paths.configPath).toContain("config.local.yaml");
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development"; // Override to allow repo-local resolution
+    try {
+      const paths = getPaths();
+      // In dev (not packaged), source should be repo-local.
+      expect(paths.source).toBe("repo-local");
+      expect(paths.configPath).toContain("config.local.yaml");
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
   });
 
   it("honours an absolute env override", () => {
