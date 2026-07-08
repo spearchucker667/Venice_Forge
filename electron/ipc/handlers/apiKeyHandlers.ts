@@ -6,7 +6,11 @@ import {
   setApiKey,
   setCredential,
   getCredential,
-  deleteCredential
+  deleteCredential,
+  setProfilePassword,
+  verifyProfilePassword,
+  isProfilePasswordSet,
+  clearProfilePassword,
 } from "../../services/secureStore";
 import { readResponseError } from "../../services/veniceClient";
 import { performGuardedVeniceRequest } from "../../services/guardPipeline";
@@ -132,6 +136,57 @@ export function registerApiKeyHandlers(): void {
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  registerIpcChannel("profilePassword:isSet", (_event, profileId: unknown) => {
+    if (typeof profileId !== "string" || profileId.length === 0) return false;
+    return isProfilePasswordSet(profileId);
+  });
+
+  registerIpcChannel("profilePassword:set", (_event, payload: unknown) => {
+    try {
+      if (!payload || typeof payload !== "object") {
+        throw new Error("Invalid profile password payload.");
+      }
+      const { profileId, password } = payload as { profileId?: unknown; password?: unknown };
+      if (typeof profileId !== "string" || profileId.length === 0) {
+        throw new Error("Profile id is required.");
+      }
+      if (typeof password !== "string" || password.length === 0) {
+        throw new Error("Profile password must be a non-empty string.");
+      }
+      setProfilePassword(password, profileId);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  registerIpcChannel("profilePassword:verify", (_event, payload: unknown) => {
+    try {
+      if (!payload || typeof payload !== "object") {
+        throw new Error("Invalid profile password payload.");
+      }
+      const { profileId, password } = payload as { profileId?: unknown; password?: unknown };
+      if (typeof profileId !== "string" || profileId.length === 0 || typeof password !== "string") {
+        return { ok: true, verified: false };
+      }
+      return { ok: true, verified: verifyProfilePassword(password, profileId) };
+    } catch (err) {
+      return { ok: false, verified: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  registerIpcChannel("profilePassword:clear", (_event, profileId: unknown) => {
+    try {
+      if (typeof profileId !== "string" || profileId.length === 0) {
+        throw new Error("Profile id is required.");
+      }
+      clearProfilePassword(profileId);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
     }
   });
 

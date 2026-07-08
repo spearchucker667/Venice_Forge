@@ -5,6 +5,7 @@ import type {
   ConversationSource,
   MemoryFact,
 } from "./conversationVault";
+import type { CharacterSceneGenerationResult } from "./characterSceneGeneration";
 import type { ContentPart } from "./venice";
 
 /** A single message within a conversation. */
@@ -22,6 +23,7 @@ export interface ConversationMessage {
     injectedContext?: string;
     injectedContextSource?: "memory" | "prior_context" | "approved_context" | "mixed";
     providerRequestId?: string;
+    sceneGeneration?: CharacterSceneGenerationResult;
   };
 }
 

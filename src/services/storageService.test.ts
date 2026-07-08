@@ -3,7 +3,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 // @ts-expect-error — fake-indexeddb ESM exports lack proper typings
 import FDBFactory from "fake-indexeddb/lib/FDBFactory";
-import StorageService, { CrossProfileIdCollisionError } from "./storageService";
+import StorageService from "./storageService";
 import { MissingTimestampIndexError } from "./storageService";
 
 /** Resets the IndexedDB instance and StorageService state before each test. */
@@ -152,7 +152,7 @@ describe("storageService", () => {
     const db = await StorageService.openDB();
     const rawRow: any = await new Promise((resolve, reject) => {
       const tx = db.transaction("conversations", "readonly");
-      const req = tx.objectStore("conversations").get("conv-priv-1");
+      const req = tx.objectStore("conversations").get("default:conv-priv-1");
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
@@ -166,8 +166,9 @@ describe("storageService", () => {
     expect(rawRow.messages).toBeUndefined();
     expect(rawRow.systemPrompt).toBeUndefined();
     expect(rawRow.prompt).toBeUndefined();
-    // The wrapper still carries the id/timestamp for indexing.
-    expect(rawRow.id).toBe("conv-priv-1");
+    // The wrapper carries the physical id for indexing and the logical id for callers.
+    expect(rawRow.id).toBe("default:conv-priv-1");
+    expect(rawRow.logicalId).toBe("conv-priv-1");
     expect(typeof rawRow.timestamp).toBe("number");
 
     // And the normal read path still returns usable plaintext (service decrypts).
@@ -217,7 +218,7 @@ describe("storageService profile isolation", () => {
       req.onsuccess = () => resolve(req.result as string[]);
       req.onerror = () => reject(req.error);
     });
-    expect(allIds.sort()).toEqual(["d-1", "d-2", "d-3", "w-1"]);
+    expect(allIds.sort()).toEqual(["default:d-1", "default:d-2", "default:d-3", "work:w-1"]);
 
     // Switch back to "default" — defaults reappear, "work" row hidden.
     window.localStorage.setItem("venice-active-profile-id", "default");
@@ -243,7 +244,7 @@ describe("storageService profile isolation", () => {
       req.onsuccess = () => resolve(req.result as string[]);
       req.onerror = () => reject(req.error);
     });
-    expect(remaining.sort()).toEqual(["d-1", "d-2"]);
+    expect(remaining.sort()).toEqual(["default:d-1", "default:d-2"]);
 
     // And reading under "default" still surfaces both rows.
     window.localStorage.setItem("venice-active-profile-id", "default");
@@ -269,10 +270,9 @@ describe("storageService profile isolation", () => {
   });
 });
 
-// Phase 2J profile-isolation hardening: two profiles must never silently
-// overwrite or delete each other's records through the shared `id`-keyed
-// object stores, even when the calling code reads them back via the
-// canonical CRUD surface.
+// Phase 2J profile-isolation hardening: two profiles must be able to persist
+// the same logical id without overwriting, reading, or deleting each other's
+// physical rows.
 describe("storageService profile-isolation hardening", () => {
   beforeEach(() => {
     global.indexedDB = new FDBFactory();
@@ -281,7 +281,7 @@ describe("storageService profile-isolation hardening", () => {
     window.localStorage.setItem("venice-active-profile-id", "default");
   });
 
-  it("saveItem refuses to overwrite a row owned by another profile (cross-profile id collision)", async () => {
+  it("allows two profiles to save the same logical image id without collision", async () => {
     // Profile A writes id "shared" under "default".
     window.localStorage.setItem("venice-active-profile-id", "default");
     await StorageService.saveItem("images", {
@@ -290,28 +290,57 @@ describe("storageService profile-isolation hardening", () => {
       timestamp: 1,
     });
 
-    // Profile B (work) tries to save the same id — must reject.
+    // Profile B (work) writes the same logical id under a distinct physical key.
     window.localStorage.setItem("venice-active-profile-id", "work");
-    let rejection: unknown;
-    try {
-      await StorageService.saveItem("images", {
-        id: "shared",
-        prompt: "bravo",
-        timestamp: 2,
-      });
-    } catch (err) {
-      rejection = err;
-    }
-    expect(rejection).toBeInstanceOf(CrossProfileIdCollisionError);
-    const collision = rejection as CrossProfileIdCollisionError;
-    expect(collision.store).toBe("images");
-    expect(collision.id).toBe("shared");
-    expect(collision.existingProfile).toBe("default");
+    await StorageService.saveItem("images", {
+      id: "shared",
+      prompt: "bravo",
+      timestamp: 2,
+    });
 
-    // The default-profile row must be intact and re-readable by its owner.
+    const workItems = await StorageService.getItems<{ id: string; prompt: string }>("images");
+    expect(workItems).toEqual([expect.objectContaining({ id: "shared", prompt: "bravo" })]);
+
     window.localStorage.setItem("venice-active-profile-id", "default");
     const items = await StorageService.getItems<{ id: string; prompt: string }>("images");
     expect(items).toEqual([expect.objectContaining({ id: "shared", prompt: "alpha" })]);
+
+    const db = await StorageService.openDB();
+    const keys: string[] = await new Promise((resolve, reject) => {
+      const req = db.transaction("images", "readonly").objectStore("images").getAllKeys();
+      req.onsuccess = () => resolve(req.result as string[]);
+      req.onerror = () => reject(req.error);
+    });
+    expect(keys.sort()).toEqual(["default:shared", "work:shared"]);
+  });
+
+  it("allows profile A and profile B to persist fixed app store ids independently", async () => {
+    window.localStorage.setItem("venice-active-profile-id", "default");
+    await StorageService.saveItem("chats", { id: "venice-chat", value: "default-chat", timestamp: 1 });
+    await StorageService.saveItem("visualWorkflows", { id: "venice-workflows", value: "default-workflow", timestamp: 2 });
+
+    window.localStorage.setItem("venice-active-profile-id", "work");
+    await StorageService.saveItem("chats", { id: "venice-chat", value: "work-chat", timestamp: 3 });
+    await StorageService.saveItem("visualWorkflows", { id: "venice-workflows", value: "work-workflow", timestamp: 4 });
+
+    expect(await StorageService.getItem<{ id: string; value: string }>("chats", "venice-chat")).toMatchObject({
+      id: "venice-chat",
+      value: "work-chat",
+    });
+    expect(await StorageService.getItem<{ id: string; value: string }>("visualWorkflows", "venice-workflows")).toMatchObject({
+      id: "venice-workflows",
+      value: "work-workflow",
+    });
+
+    window.localStorage.setItem("venice-active-profile-id", "default");
+    expect(await StorageService.getItem<{ id: string; value: string }>("chats", "venice-chat")).toMatchObject({
+      id: "venice-chat",
+      value: "default-chat",
+    });
+    expect(await StorageService.getItem<{ id: string; value: string }>("visualWorkflows", "venice-workflows")).toMatchObject({
+      id: "venice-workflows",
+      value: "default-workflow",
+    });
   });
 
   it("deleteItem refuses to delete a row owned by another profile and returns false", async () => {
@@ -368,5 +397,25 @@ describe("storageService profile-isolation hardening", () => {
     }>("images", { limit: 5 });
     expect(defaultPage.total).toBe(3);
     expect(defaultPage.items.map((r) => r.id).sort()).toEqual(["d-1", "d-2", "d-3"]);
+  });
+
+  it("legacy unscoped records are visible only to the default profile", async () => {
+    const db = await StorageService.openDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction("images", "readwrite");
+      tx.objectStore("images").put({ id: "legacy-shared", prompt: "legacy", timestamp: 1 });
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+
+    window.localStorage.setItem("venice-active-profile-id", "work");
+    expect(await StorageService.getItem("images", "legacy-shared")).toBeNull();
+    expect(await StorageService.getItems("images")).toEqual([]);
+
+    window.localStorage.setItem("venice-active-profile-id", "default");
+    expect(await StorageService.getItem<{ id: string; prompt: string }>("images", "legacy-shared")).toMatchObject({
+      id: "legacy-shared",
+      prompt: "legacy",
+    });
   });
 });

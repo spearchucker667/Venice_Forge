@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { ChatView } from "./chat-view";
-import { useChatStore } from "../../stores/chat-store";
+import { _debugGetDirtyConversationIds, useChatStore } from "../../stores/chat-store";
 import { useSettingsStore } from "../../stores/settings-store";
 import { useAuthStore } from "../../stores/auth-store";
 import { toast } from "../../stores/toast-store";
@@ -94,6 +94,7 @@ describe("ChatView", () => {
     if (!globalThis.URL) {
       (globalThis as any).URL = {} as any;
     }
+    Element.prototype.scrollIntoView = vi.fn();
     globalThis.URL.createObjectURL = vi.fn(() => "blob:mock-url");
     globalThis.URL.revokeObjectURL = vi.fn();
     class MockImage {
@@ -206,6 +207,46 @@ describe("ChatView", () => {
     // without waiting for a message to be sent. This is the regression guard
     // for the "disable memory for this chat toggle doesn't work" bug.
     expect(screen.getByTitle("Memory retrieval is disabled in Settings.")).toBeInTheDocument();
+  });
+
+  it("clears character metadata and memory retrieval when unbinding a character chat", async () => {
+    useChatStore.setState({
+      conversations: [
+        {
+          id: "character-chat-1",
+          title: "Chat with Ada",
+          model: "llama-3.3-70b",
+          createdAt: 1,
+          updatedAt: 1,
+          messages: [{ id: "m1", role: "user", content: "Hello", timestamp: 1 }],
+          metadata: {
+            tags: [],
+            pinned: false,
+            archived: false,
+            source: "character",
+            messageCount: 1,
+            memoryRetrievalEnabled: true,
+            character: {
+              slug: "ada",
+              name: "Ada",
+              modelId: "llama-3.3-70b",
+            },
+          },
+          memory: { summary: "", topics: [], entities: [], userFacts: [], projectRefs: [] },
+        },
+      ],
+      activeConversationId: "character-chat-1",
+    });
+
+    render(<ChatView />);
+
+    await userEvent.click(screen.getByTestId("active-character-clear"));
+
+    const updated = useChatStore.getState().conversations[0];
+    expect(updated.metadata?.source).toBe("chat");
+    expect(updated.metadata?.character).toBeUndefined();
+    expect(updated.metadata?.memoryRetrievalEnabled).toBe(false);
+    expect(_debugGetDirtyConversationIds()).toContain("character-chat-1");
   });
 
   it("keeps prior conversation context off by default when sending", async () => {

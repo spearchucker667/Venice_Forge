@@ -21,7 +21,7 @@ Current public readiness status:
 
 - **18+ Age Restriction.** Use of the application is strictly restricted to adults aged 18 and older, acknowledging the inherent risks of unfiltered AI image generation (including CSAM).
 - **Privacy-conscious defaults.** Venice Forge keeps API keys out of the renderer process, redacts secret-like values from safe exports and diagnostics, and avoids first-party telemetry. Provider-bound requests still leave the device when you send them.
-- **Offline-first storage.** Images and settings live in browser IndexedDB. Desktop chat history is stored as local plaintext JSON under the app data directory, while web-mode conversations use IndexedDB. There is no cloud sync or telemetry.
+- **Offline-first storage.** Images, settings, and web-fallback conversations live in encrypted renderer IndexedDB stores. Current desktop conversations use the encrypted Conversation Vault under the app data directory; older `chat-history/*.json` files may still exist as plaintext legacy migration or backup artifacts. There is no cloud sync or telemetry.
 - **Unified Creative Suite.** Provide a seamless, visual interface for the full spectrum of Venice multimodal capabilities.
 - **Reproducible builds.** TypeScript strict mode, Node 22 CI, and `npm ci` ensure every build starts from a known state.
 
@@ -58,10 +58,11 @@ Web mode (development only):
 | UI | React 19 + Tailwind v4 | All user-facing screens |
 | State | Zustand 5 stores | Centralised app state (slice stores; `auth`, `chat`, `playground`, `settings`, `toast`, `workflow`) |
 | Storage | IndexedDB (via `StorageService`) | 18 stores (17 encrypted at rest with AES-GCM): `images`, `files`, `chats`, `settings`, `conversations`, `character_cards`, `personas`, `lorebooks`, `rp_chats`, `rp_assets`, `rp_scenarios`, `visual_workflows`, `playground`, `prompt_library`, `scenes`, `workflow_templates`, `research_sessions`; only the `diagnostics` store is unencrypted (it contains only sanitized timing/status metadata) |
-| Chat storage | Electron main-process filesystem (`chat-history/*.json`) | Conversation persistence with atomic writes and corruption recovery; filesystem chat JSON is not separately encrypted by Venice Forge |
+| Chat storage | Electron Conversation Vault (`conversations/records/**/*.v1.json.enc`) plus legacy `chat-history/*.json` migration support | Current desktop conversation records are AES-256-GCM encrypted with an OS-protected vault key; legacy chat-history JSON files are plaintext if still present |
 | Content safety | `src/shared/safety/childExploitationGuard.ts` | Local Family Safe Mode screens supported prompt-like request fields and Jina/scrape text responses; evaluates `negative_prompt` and cross-sentence context; returns safe 451 blocks with metadata; keeps audit counters aggregate-only; never logs raw prompt text |
 | Headless Bridge | `electron/services/bridgeServer.ts` | Loopback-only Express API server running on `127.0.0.1` for CLI and mobile integrations; enforces bearer token auth and active safety guards |
 | Traffic Inspector | `src/stores/inspector-store.ts` | Local developer request/response diagnostics with masked headers and non-mutating safety previews; safe diagnostics export is a separate redacted surface |
+| Profile password verifier | `electron/services/secureStore.ts` + `src/components/settings/ProfilePanel.tsx` | Salted PBKDF2 verifier in `safeStorage`; Profiles panel setup/removal and switch-time unlock gate |
 
 | Secure storage | Electron `safeStorage` | Venice and Jina API keys (encrypted) |
 | IPC bridge | Electron preload + `ipcMain` | Renderer ↔ main transport |
@@ -145,9 +146,9 @@ User input
                                                     ↓
                                            Response data
                                                     ↓
-                                        IndexedDB (images / legacy chats)
+                                        IndexedDB (images / web fallback stores)
                                                     ↓
-                              Electron: chat-history/*.json (atomic writes)
+                              Electron: encrypted Conversation Vault
                                                     ↓
                                         React state update → UI
 ```

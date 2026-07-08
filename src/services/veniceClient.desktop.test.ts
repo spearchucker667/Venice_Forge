@@ -18,6 +18,11 @@ function getLatestInspectorError(): string | undefined {
   return logs[0]?.error;
 }
 
+function getLatestInspectorStatus(): number | undefined {
+  const logs = useInspectorStore.getState().logs;
+  return logs[0]?.status;
+}
+
 describe("veniceClient desktop regressions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -77,6 +82,7 @@ describe("veniceClient desktop regressions", () => {
         }),
       })
     );
+    expect(getLatestInspectorStatus()).toBe(400);
   });
 
   // T-170 regression guard: veniceFetch must redact secret-like tokens from

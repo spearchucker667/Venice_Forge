@@ -78,6 +78,10 @@ vi.mock("../services/secureStore", () => ({
   getJinaApiKey: vi.fn(() => null),
   setJinaApiKey: vi.fn(),
   deleteJinaApiKey: vi.fn(),
+  setProfilePassword: vi.fn(),
+  verifyProfilePassword: vi.fn(() => true),
+  isProfilePasswordSet: vi.fn(() => false),
+  clearProfilePassword: vi.fn(),
 }));
 
 vi.mock("../services/veniceClient", () => ({

@@ -282,8 +282,16 @@ export interface VeniceForgeCredentials {
   delete(key: string): Promise<{ ok: boolean; error?: string }>;
 }
 
+export interface VeniceForgeProfilePassword {
+  isSet(profileId: string): Promise<boolean>;
+  set(profileId: string, password: string): Promise<{ ok: boolean; error?: string }>;
+  verify(profileId: string, password: string): Promise<{ ok: boolean; verified: boolean; error?: string }>;
+  clear(profileId: string): Promise<{ ok: boolean; error?: string }>;
+}
+
 export interface VeniceForge {
   credentials: VeniceForgeCredentials;
+  profilePassword: VeniceForgeProfilePassword;
   readonly isDesktop: true;
   venice: VeniceForgeVenice;
   apiKey: VeniceForgeApiKey;

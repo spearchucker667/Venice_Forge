@@ -171,6 +171,38 @@ describe("use-chat character scene generation", () => {
     expect(opts.source).toBe("automatic");
   });
 
+  it("isolates automatic scene generation failures from successful assistant streams", async () => {
+    useSettingsStore.setState({ characterSceneGenerationEnabled: true, characterSceneGenerationMode: "auto" });
+    useChatStore.getState().createCharacterConversation(CHARACTER, "llama-3.3-70b");
+
+    mockedVeniceStreamChat.mockImplementationOnce((_payload, opts) => {
+      opts.onDelta?.({
+        content: "Here is a scene. <venice_forge_scene_request>{\"intent\":\"create_scene\",\"focus\":\"sunset picnic\"}</venice_forge_scene_request>",
+        reasoning: "",
+      });
+      return Promise.resolve(undefined);
+    });
+    mockedParseCharacterSceneRequest.mockReturnValue({
+      request: { intent: "create_scene", focus: "sunset picnic" },
+      displayText: "Here is a scene.",
+    });
+    mockedGenerateCharacterScene.mockRejectedValueOnce(new Error("scene service exploded"));
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("Sunset picnic", "llama-3.3-70b");
+    });
+
+    const conv = useChatStore.getState().conversations[0];
+    const assistant = conv.messages.find((message) => message.role === "assistant");
+    expect(assistant?.content).toBe("Here is a scene.");
+    expect(String(assistant?.content)).not.toContain("Sorry, something went wrong");
+    expect(assistant?.metadata?.sceneGeneration).toMatchObject({
+      status: "failed",
+      error: "Character scene generation failed. Please try again.",
+    });
+  });
+
   it("does not auto-generate for non-character chats", async () => {
     useSettingsStore.setState({ characterSceneGenerationEnabled: true, characterSceneGenerationMode: "auto" });
     const { result } = renderHook(() => useChat());

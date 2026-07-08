@@ -130,10 +130,10 @@ Built-in themes expose the complete semantic token contract. Forge Dracula has e
 ## Data & Storage
 
 ### Where is my data stored?
-- **Conversations (desktop):** Individual `.json` files in the OS app-data folder — one file per conversation with atomic writes and automatic corruption recovery.
-  - Windows: `%APPDATA%\Venice Forge\chat-history\*.json`
-  - macOS: `~/Library/Application Support/Venice Forge/chat-history/*.json`
-- **Images, files, legacy chats, settings, conversations, diagnostics:** Renderer IndexedDB (local only; images, files, chats, settings, and conversations are encrypted at rest, diagnostics is not).
+- **Conversations (desktop):** Current records live in the encrypted Conversation Vault under the OS app-data folder. Legacy `chat-history/*.json` files may still exist after upgrades or as backups and are plaintext until migrated or deleted by the user.
+  - Windows vault: `%APPDATA%\Venice Forge\conversations\`
+  - macOS vault: `~/Library/Application Support/Venice Forge/conversations/`
+- **Images, files, legacy chats, settings, web-fallback conversations, diagnostics:** Renderer IndexedDB (local only; images, files, chats, settings, and conversations are encrypted at rest, diagnostics is not).
 - **Memories:** Renderer IndexedDB `ai_memory` store (encrypted at rest).
 - **API keys:** OS secure storage (Windows DPAPI / macOS Keychain).
 - **Logs:**
@@ -159,7 +159,7 @@ File and URL attachments are assembled into the current prompt context when you 
 
 
 ### Is my data encrypted?
-- **Conversations (desktop):** Stored as JSON on the local filesystem. These are **not encrypted** by Venice Forge — they rely on OS-level filesystem permissions.
+- **Conversations (desktop):** Current Conversation Vault records are AES-256-GCM encrypted, with the vault key protected by Electron `safeStorage` where available. Legacy `chat-history/*.json` files are plaintext if still present.
 - **Images, legacy chats, settings, and conversations (web / IndexedDB):** Encrypted with AES-GCM using a browser-managed key stored in same-origin IndexedDB. This reduces casual local inspection risk but is **not equivalent to OS credential storage**. The `diagnostics` store is not encrypted — it contains only sanitized timing and status metadata.
 
 ### How do I test safety changes safely?

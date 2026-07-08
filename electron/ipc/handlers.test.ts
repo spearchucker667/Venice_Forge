@@ -67,6 +67,10 @@ vi.mock("../services/secureStore", () => ({
   isJinaApiKeyConfigured: vi.fn(() => false),
   setApiKey: vi.fn(),
   setJinaApiKey: vi.fn(),
+  setProfilePassword: vi.fn(),
+  verifyProfilePassword: vi.fn(() => true),
+  isProfilePasswordSet: vi.fn(() => false),
+  clearProfilePassword: vi.fn(),
 }));
 
 vi.mock("../services/logger", () => ({
@@ -124,6 +128,12 @@ vi.mock("../services/memoryPuller", () => ({
 
 import { registerIpcHandlers } from "./handlers";
 import { resetIpcRateLimitForTests } from "../utils/rateLimit";
+import {
+  clearProfilePassword,
+  isProfilePasswordSet,
+  setProfilePassword,
+  verifyProfilePassword,
+} from "../services/secureStore";
 
 describe("registerIpcHandlers", () => {
   beforeAll(() => {
@@ -141,6 +151,20 @@ describe("registerIpcHandlers", () => {
     registerIpcHandlers();
     expect(ipcMain.handle).not.toHaveBeenCalled();
     expect(new Set(capturedHandlers.keys())).toEqual(registeredChannels);
+  });
+
+  it("registers profile password IPC handlers without returning verifier material", async () => {
+    vi.mocked(isProfilePasswordSet).mockReturnValueOnce(true);
+    vi.mocked(verifyProfilePassword).mockReturnValueOnce(true);
+
+    expect(await capturedHandlers.get("profilePassword:isSet")!(null, "work")).toBe(true);
+    expect(await capturedHandlers.get("profilePassword:set")!(null, { profileId: "work", password: "secret" })).toEqual({ ok: true });
+    expect(await capturedHandlers.get("profilePassword:verify")!(null, { profileId: "work", password: "secret" })).toEqual({ ok: true, verified: true });
+    expect(await capturedHandlers.get("profilePassword:clear")!(null, "work")).toEqual({ ok: true });
+
+    expect(setProfilePassword).toHaveBeenCalledWith("secret", "work");
+    expect(verifyProfilePassword).toHaveBeenCalledWith("secret", "work");
+    expect(clearProfilePassword).toHaveBeenCalledWith("work");
   });
 
   describe("venice:request", () => {

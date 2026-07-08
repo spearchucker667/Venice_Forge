@@ -11,29 +11,7 @@ type StoreName = (typeof STORE_NAMES)[number];
 
 /** Marker field added to every record so reads can filter by active profile. */
 export const PROFILE_ID_FIELD = "profileId";
-
-/**
- * Thrown when `saveItem` would overwrite a record that belongs to a different
- * profile (two profiles sharing the same `id` in the `id`-keyed object stores
- * would otherwise silently collide once the record keys are equal).
- */
-export class CrossProfileIdCollisionError extends Error {
-  public readonly store: StoreName;
-  public readonly id: string;
-  public readonly existingProfile: string;
-  constructor(store: StoreName, id: string, existingProfile: string) {
-    super(
-      `[storageService] Cannot save record with id "${id}" in store "${store}": ` +
-      `id is already used by profile "${existingProfile}". Use a profile-unique id ` +
-      `(e.g. suffix with profile name, or use crypto.randomUUID()) so cross-profile ` +
-      `records cannot overwrite each other through the shared keyPath.`,
-    );
-    this.name = "CrossProfileIdCollisionError";
-    this.store = store;
-    this.id = id;
-    this.existingProfile = existingProfile;
-  }
-}
+const LOGICAL_ID_FIELD = "logicalId";
 
 /** List of store names whose records are encrypted before persistence. */
 // diagnostics is intentionally excluded: it stores sanitized timing/status metadata
@@ -86,14 +64,37 @@ export interface GetItemsPageResult<T = unknown> extends GetItemsResult<T> {
  * `[item, ok]` where `ok === false` means decryption failed for an
  * encrypted row that survived the profile filter.
  */
+function toPhysicalId(profileId: string, logicalId: string): string {
+  return `${profileId}:${logicalId}`;
+}
+
+function logicalIdFromRow(row: Record<string, unknown>): string | null {
+  if (typeof row[LOGICAL_ID_FIELD] === "string") return row[LOGICAL_ID_FIELD] as string;
+  if (typeof row.id === "string") {
+    const rowProfile = typeof row[PROFILE_ID_FIELD] === "string" ? row[PROFILE_ID_FIELD] as string : null;
+    const prefix = rowProfile ? `${rowProfile}:` : "";
+    if (prefix && row.id.startsWith(prefix)) return row.id.slice(prefix.length);
+    return row.id;
+  }
+  return null;
+}
+
+function normalizePlainRow<T>(row: Record<string, unknown>): T {
+  const logicalId = logicalIdFromRow(row);
+  const normalized = { ...row };
+  if (logicalId) normalized.id = logicalId;
+  delete normalized[LOGICAL_ID_FIELD];
+  return normalized as T;
+}
+
 async function decodeRow<T>(store: StoreName, row: Record<string, unknown>): Promise<[T | null, boolean]> {
   if (!ENCRYPTED_STORES.includes(store)) {
-    return [row as T, true];
+    return [normalizePlainRow<T>(row), true];
   }
   if (row._isEncryptedWrapper !== true) {
     // Legacy plaintext record in an encrypted store — keep but flag as
     // not-OK so the caller can warn about the inconsistency.
-    return [row as T, false];
+    return [normalizePlainRow<T>(row), false];
   }
   if (!row.data) return [null, false];
   const result = await decryptDataResult<T>(row.data as EncryptedPayload);
@@ -111,6 +112,23 @@ function rowBelongsToActiveProfile(row: Record<string, unknown>, activeProfile: 
     ? (row[PROFILE_ID_FIELD] as string)
     : DEFAULT_PROFILE_ID;
   return rowProfile === activeProfile;
+}
+
+function candidatePhysicalIds(activeProfile: string, logicalId: string): string[] {
+  const scoped = toPhysicalId(activeProfile, logicalId);
+  return activeProfile === DEFAULT_PROFILE_ID ? [scoped, logicalId] : [scoped];
+}
+
+async function findWritablePhysicalId(db: IDBDatabase, store: StoreName, activeProfile: string, logicalId: string): Promise<string> {
+  if (activeProfile !== DEFAULT_PROFILE_ID) return toPhysicalId(activeProfile, logicalId);
+  const legacyRow = await new Promise<Record<string, unknown> | undefined>((resolve, reject) => {
+    const tx = db.transaction(store, "readonly");
+    const req = tx.objectStore(store).get(logicalId);
+    req.onsuccess = () => resolve(req.result as Record<string, unknown> | undefined);
+    req.onerror = () => reject(req.error);
+  });
+  if (legacyRow && rowBelongsToActiveProfile(legacyRow, DEFAULT_PROFILE_ID)) return logicalId;
+  return toPhysicalId(activeProfile, logicalId);
 }
 
 async function decodeRows<T>(
@@ -189,14 +207,10 @@ const StorageService = {
   /**
    * Saves an item to the specified store, encrypting if required.
    *
-   * Profile isolation: before writing, the call probes for an existing row
-   * with the same `id` that belongs to a *different* profile. If such a row
-   * exists the call rejects with `CrossProfileIdCollisionError` instead of
-   * silently overwriting the other profile's record (the object stores use
-   * the logical `id` as the IndexedDB keyPath, so two profiles using the
-   * same id would otherwise collapse onto the same physical row). The
-   * collision guard operates inside a single readonly transaction so the
-   * read is consistent with concurrent writes.
+   * Profile isolation: object stores keep `keyPath: "id"` for migration
+   * stability, but new writes use a profile-scoped physical id internally
+   * (`profileId:logicalId`). The decrypted/plain record returned to callers
+   * still uses the logical `id`.
    *
    * @param store The target object store name.
    * @param item The record to persist.
@@ -208,27 +222,7 @@ const StorageService = {
     assertValidId(id, "saveItem");
     const timestamp = typeof item.timestamp === "number" ? item.timestamp : Date.now();
     const activeProfile = getActiveProfileId();
-
-    const existingOwner = await new Promise<string | null>((resolve, reject) => {
-      const tx = db.transaction(store, "readonly");
-      const req = tx.objectStore(store).get(id);
-      req.onsuccess = () => {
-        const row = req.result as Record<string, unknown> | undefined;
-        if (!row) {
-          resolve(null);
-          return;
-        }
-        const rowProfile = typeof row[PROFILE_ID_FIELD] === "string"
-          ? (row[PROFILE_ID_FIELD] as string)
-          : DEFAULT_PROFILE_ID;
-        resolve(rowProfile);
-      };
-      req.onerror = () => reject(req.error);
-    });
-
-    if (existingOwner !== null && existingOwner !== activeProfile) {
-      throw new CrossProfileIdCollisionError(store, id, existingOwner);
-    }
+    const physicalId = await findWritablePhysicalId(db, store, activeProfile, id);
 
     let payload: Record<string, unknown> = {
       ...item,
@@ -238,13 +232,26 @@ const StorageService = {
     };
     if (ENCRYPTED_STORES.includes(store)) {
       const encryptedData = await encryptData(payload);
-      payload = { id, timestamp, [PROFILE_ID_FIELD]: activeProfile, data: encryptedData, _isEncryptedWrapper: true };
+      payload = {
+        id: physicalId,
+        [LOGICAL_ID_FIELD]: id,
+        timestamp,
+        [PROFILE_ID_FIELD]: activeProfile,
+        data: encryptedData,
+        _isEncryptedWrapper: true,
+      };
+    } else {
+      payload = {
+        ...payload,
+        id: physicalId,
+        [LOGICAL_ID_FIELD]: id,
+      };
     }
 
     return new Promise((resolve, reject) => {
       const tx = db.transaction(store, "readwrite");
       tx.objectStore(store).put(payload);
-      tx.oncomplete = () => resolve({ ...item, id, timestamp } as T & { id: string; timestamp: number }); // Return unencrypted to caller
+      tx.oncomplete = () => resolve({ ...item, id, timestamp } as T & { id: string; timestamp: number }); // Return logical record to caller
       tx.onerror = () => reject(tx.error);
     });
   },
@@ -291,13 +298,10 @@ const StorageService = {
     }
 
     // Profile isolation invariant: the page total and the page cursor must
-    // both be scoped to the active profile.
-    //   - Preferred path: use the `profileId` index for both count() and the
-    //     timestamp cursor fallback filter (most stores have a profileId
-    //     index after migration v15).
-    //   - Legacy fallback (no profileId index): count all rows, filter the
-    //     cursor result manually. `effectiveTotal` is set to the filtered row
-    //     length so the page navigator never reports a bogus "next page".
+    // both be scoped to the active profile. We walk the timestamp index once
+    // and filter before applying `offset`; this keeps legacy default rows
+    // without profileId visible to the default profile and prevents offset
+    // from being consumed by another profile's rows.
     const hasProfileIndex = objectStore.indexNames.contains("profileId");
     if (!hasProfileIndex) {
       warn(
@@ -307,66 +311,91 @@ const StorageService = {
     }
 
     return new Promise((resolve, reject) => {
-      const rows: Record<string, unknown>[] = [];
-      let total: number | null = null;
-      let cursorDone = false;
-      let advanced = offset === 0;
-      let settled = false;
-
-      const finish = async () => {
-        if (settled || total === null || !cursorDone) return;
-        settled = true;
-        try {
-          const decoded = await decodeRows<T>(store, rows, activeProfile);
-          const effectiveTotal = hasProfileIndex ? total : decoded.items.length;
-          resolve({
-            ...decoded,
-            total: effectiveTotal,
-            offset,
-            limit,
-            hasMore: offset + decoded.items.length < effectiveTotal,
-          });
-        } catch (error) {
-          reject(error);
-        }
-      };
-
-      const countRequest = hasProfileIndex
-        ? objectStore.index("profileId").count(IDBKeyRange.only(activeProfile))
-        : objectStore.count();
-      countRequest.onsuccess = () => {
-        total = countRequest.result;
-        void finish();
-      };
-      countRequest.onerror = () => reject(countRequest.error);
-
+      const filteredRows: Record<string, unknown>[] = [];
       const cursorRequest = objectStore.index("timestamp").openCursor(null, "prev");
       cursorRequest.onsuccess = () => {
         const cursor = cursorRequest.result;
-        if (!cursor || rows.length >= limit) {
-          cursorDone = true;
-          void finish();
-          return;
-        }
-        if (!advanced) {
-          advanced = true;
-          cursor.advance(offset);
+        if (!cursor) {
+          const total = filteredRows.length;
+          const rows = filteredRows.slice(offset, offset + limit);
+          void (async () => {
+            try {
+              const decoded = await decodeRows<T>(store, rows, activeProfile);
+              resolve({
+                ...decoded,
+                total,
+                offset,
+                limit,
+                hasMore: offset + decoded.items.length < total,
+              });
+            } catch (error) {
+              reject(error);
+            }
+          })();
           return;
         }
         const row = cursor.value as Record<string, unknown>;
-        // Always enforce profile scope on every row the cursor returns,
-        // regardless of whether the profileId index is present. The cursor
-        // walks the `timestamp` index (not the profileId index), so without
-        // this guard the page would leak rows from other profiles whenever
-        // the profileId index is missing OR a row is missing the field.
-        if (!rowBelongsToActiveProfile(row, activeProfile)) {
-          cursor.continue();
-          return;
+        if (rowBelongsToActiveProfile(row, activeProfile)) {
+          filteredRows.push(row);
         }
-        rows.push(row);
         cursor.continue();
       };
       cursorRequest.onerror = () => reject(cursorRequest.error);
+      tx.onerror = () => reject(tx.error);
+    });
+  },
+
+  async getRawProfileRow(db: IDBDatabase, store: StoreName, id: string, activeProfile: string): Promise<Record<string, unknown> | null> {
+    const candidates = candidatePhysicalIds(activeProfile, id);
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(store, "readonly");
+      const objectStore = tx.objectStore(store);
+      let index = 0;
+      const readNext = () => {
+        if (index >= candidates.length) {
+          resolve(null);
+          return;
+        }
+        const req = objectStore.get(candidates[index]);
+        index += 1;
+        req.onsuccess = () => {
+          const row = req.result as Record<string, unknown> | undefined;
+          if (row && rowBelongsToActiveProfile(row, activeProfile)) {
+            resolve(row);
+            return;
+          }
+          readNext();
+        };
+        req.onerror = () => reject(req.error);
+      };
+      readNext();
+    });
+  },
+
+  async deleteRawProfileRows(db: IDBDatabase, store: StoreName, id: string, activeProfile: string): Promise<boolean> {
+    const candidates = candidatePhysicalIds(activeProfile, id);
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(store, "readwrite");
+      const objectStore = tx.objectStore(store);
+      let deleted = false;
+      let index = 0;
+      const readNext = () => {
+        if (index >= candidates.length) return;
+        const key = candidates[index];
+        index += 1;
+        const req = objectStore.get(key);
+        req.onsuccess = () => {
+          const row = req.result as Record<string, unknown> | undefined;
+          if (row && rowBelongsToActiveProfile(row, activeProfile)) {
+            objectStore.delete(key);
+            deleted = true;
+          }
+          readNext();
+        };
+        req.onerror = () => reject(req.error);
+      };
+      readNext();
+      tx.oncomplete = () => resolve(deleted);
       tx.onerror = () => reject(tx.error);
     });
   },
@@ -383,42 +412,22 @@ const StorageService = {
     if (!isValidId(id)) return null;
     const db = await this.openDB();
     const activeProfile = getActiveProfileId();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(store, "readonly");
-      const req = tx.objectStore(store).get(id);
-      req.onsuccess = async () => {
-        const row = req.result as Record<string, unknown> | undefined;
-        if (!row) {
-          resolve(null);
-          return;
-        }
-        if (!rowBelongsToActiveProfile(row, activeProfile)) {
-          resolve(null);
-          return;
-        }
-        if (!ENCRYPTED_STORES.includes(store)) {
-          resolve(row as T);
-          return;
-        }
-        if (row._isEncryptedWrapper && row.data) {
-          const result = await decryptDataResult(row.data);
-          if (!result.ok) {
-            warn(`[storageService] Record "${id}" in store "${store}" could not be decrypted.`);
-            resolve(null);
-            return;
-          }
-          resolve(result.data as T);
-          return;
-        }
-        if (row._isEncryptedWrapper) {
-          warn(`[storageService] Encrypted record "${id}" in store "${store}" is missing payload; returning null.`);
-          resolve(null);
-          return;
-        }
-        resolve(row as T);
-      };
-      req.onerror = () => reject(req.error);
-    });
+    const row = await this.getRawProfileRow(db, store, id, activeProfile);
+    if (!row) return null;
+    if (!ENCRYPTED_STORES.includes(store)) return normalizePlainRow<T>(row);
+    if (row._isEncryptedWrapper && row.data) {
+      const result = await decryptDataResult(row.data);
+      if (!result.ok) {
+        warn(`[storageService] Record "${id}" in store "${store}" could not be decrypted.`);
+        return null;
+      }
+      return result.data as T;
+    }
+    if (row._isEncryptedWrapper) {
+      warn(`[storageService] Encrypted record "${id}" in store "${store}" is missing payload; returning null.`);
+      return null;
+    }
+    return normalizePlainRow<T>(row);
   },
 
   /**
@@ -440,37 +449,7 @@ const StorageService = {
     assertValidId(id, "deleteItem");
     const db = await this.openDB();
     const activeProfile = getActiveProfileId();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(store, "readwrite");
-      const objectStore = tx.objectStore(store);
-      const lookup = objectStore.get(id);
-      lookup.onsuccess = () => {
-        const row = lookup.result as Record<string, unknown> | undefined;
-        if (!row) {
-          resolve(false);
-          return;
-        }
-        if (!rowBelongsToActiveProfile(row, activeProfile)) {
-          // Foreign-profile row — refuse the delete and abort the transaction
-          // so the read-only probe does not accidentally commit.
-          try { tx.abort(); } catch { /* transaction already finalised */ }
-          resolve(false);
-          return;
-        }
-        objectStore.delete(id);
-      };
-      lookup.onerror = () => reject(lookup.error);
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => {
-        // Aborted transactions raise here; treat foreign-profile abort as
-        // `false` (the explicit "not deleted" return above).
-        if (tx.error && tx.error.name === "AbortError") {
-          resolve(false);
-          return;
-        }
-        reject(tx.error);
-      };
-    });
+    return this.deleteRawProfileRows(db, store, id, activeProfile);
   },
 
   /**

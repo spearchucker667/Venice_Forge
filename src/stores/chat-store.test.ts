@@ -237,6 +237,28 @@ describe('chat-store desktopBridge routing', () => {
     expect(useChatStore.getState().conversations.some((conversation) => conversation.id === id)).toBe(true)
   })
 
+  it('redacts batch delete persistence errors before returning them to the UI', async () => {
+    conversationDeleteMock.mockResolvedValueOnce({
+      ok: false,
+      error: 'vault failed with Authorization: Bearer sk-1234567890abcdef at /Users/private/chat.json',
+    })
+    chatDeleteMock.mockResolvedValueOnce({
+      ok: false,
+      error: 'legacy failed with venice_abc123xyz in /tmp/chat-history.json',
+    })
+    const id = useChatStore.getState().createConversation('llama-3')
+
+    const result = await useChatStore.getState().deleteConversations([id])
+
+    expect(result.deleted).toEqual([])
+    expect(result.failed).toHaveLength(1)
+    expect(result.failed[0].id).toBe(id)
+    expect(result.failed[0].error).toContain('[REDACTED]')
+    expect(result.failed[0].error).not.toContain('venice_abc123xyz')
+    expect(result.failed[0].error).not.toContain('/tmp/chat-history.json')
+    expect(result.failed[0].error).not.toContain('/Users/private/chat.json')
+  })
+
   it('restores conversation', async () => {
     const id = useChatStore.getState().createConversation('llama-3')
     const conv = useChatStore.getState().conversations[0]

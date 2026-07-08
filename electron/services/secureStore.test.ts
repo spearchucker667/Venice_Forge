@@ -236,10 +236,10 @@ describe("secureStore", () => {
   // ── RELEASE-BLOCKER #4: profile password setup/verify surface ──
   // The renderer UI is intentionally not wired in this release, but the
   // secureStore layer MUST expose a verifier-only API that namespaces per
-  // profile id, stores only the SHA-256 verifier, refuses plaintext under
+  // profile id, stores only a salted PBKDF2 verifier, refuses plaintext under
   // any escape hatch, and replays the encrypted happy path on every OS.
 
-  it("setProfilePassword stores only the SHA-256 verifier (not the plaintext) when encryption is available", () => {
+  it("setProfilePassword stores only a salted PBKDF2 verifier record when encryption is available", () => {
     vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
     const plaintext = "super-secret-passphrase";
     setProfilePassword(plaintext, "userA");
@@ -253,6 +253,24 @@ describe("secureStore", () => {
 
     // The credential row is written under a namespaced key.
     expect(raw).toMatch(/cred_profile_password:userA/);
+
+    const verifierRaw = getCredential("profile_password:userA");
+    expect(verifierRaw).toBeTruthy();
+    const verifier = JSON.parse(verifierRaw as string) as {
+      version: number;
+      algorithm: string;
+      iterations: number;
+      salt: string;
+      digest: string;
+    };
+    expect(verifier).toMatchObject({
+      version: 1,
+      algorithm: "pbkdf2-sha256",
+      iterations: 310000,
+    });
+    expect(verifier.salt).toMatch(/^[A-Za-z0-9+/]+={0,2}$/);
+    expect(verifier.digest).toMatch(/^[A-Za-z0-9+/]+={0,2}$/);
+    expect(verifier.digest).not.toBe(plaintext);
   });
 
   it("verifyProfilePassword accepts the correct plaintext and rejects any other", () => {
@@ -277,6 +295,17 @@ describe("secureStore", () => {
 
     expect(isProfilePasswordSet("userA")).toBe(false);
     expect(isProfilePasswordSet("userB")).toBe(true);
+  });
+
+  it("verifyProfilePassword rejects legacy unsalted SHA-256 verifier records", () => {
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    setCredential(
+      "profile_password:legacy",
+      "f52fbd32b2b3b86ff88ef6c490628285f48234fc6242c68934fb4c9ef1088f4d",
+    );
+
+    expect(isProfilePasswordSet("legacy")).toBe(false);
+    expect(verifyProfilePassword("hunter2", "legacy")).toBe(false);
   });
 
   it("setProfilePassword refuses the Linux plaintext fallback even when explicitly opted-in", () => {

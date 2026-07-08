@@ -166,7 +166,8 @@ Electron main process
   ├─ OS secure storage for API keys
   ├─ IPC request validation
   ├─ HTTPS Venice/Jina client boundaries
-  ├─ local chat-history filesystem access
+  ├─ encrypted Conversation Vault access
+  ├─ legacy chat-history migration support
   └─ packaging/runtime integration
 
 React renderer
@@ -194,7 +195,8 @@ Core invariants:
 - Desktop keys are stored through OS secure storage.
 - Web-mode Venice keys live in server-side `.env`.
 - Venice and Jina requests pass through allowlisted, validated request paths.
-- Local Family Safe Mode is separate from provider-side Venice safe-mode parameters.
+- Local Family Safe Mode is separate from provider-side Venice `safe_mode`
+  parameters.
 - Family Safe Mode is local and privacy-preserving in scope: it performs no
   network moderation calls, blocked request text is not sent upstream, and
   blocked Jina/scrape response text is not returned to the renderer.
@@ -202,6 +204,37 @@ Core invariants:
 - Prompt text is not logged.
 - No telemetry or analytics are collected by Venice Forge.
 - External URL opening is constrained by trusted URL validation.
+
+### Traffic Inspector
+
+Traffic Inspector is the local request/response diagnostics surface. It records
+masked request metadata, response status, latency, sanitized body excerpts, and
+local safety-preview decisions for supported Venice, image, video, Jina, and
+scrape paths. It must not be treated as a raw network dump: authorization
+headers and key-like values are redacted, safe diagnostics are a separate
+redacted export surface, and raw prompt text is not written to application logs.
+
+### Profiles and Credentials
+
+Profiles separate renderer storage, fixed app store IDs, and secure credential
+slots by active profile. Storage records use a profile-scoped physical key while
+callers continue to see the logical record ID, so profiles can both persist
+records such as `venice-chat` and `venice-workflows` without collision.
+
+Venice and Jina API keys are stored through Electron `safeStorage` in desktop
+mode. Profile-password verifier helpers exist in the Electron secure store and
+use salted PBKDF2 records with strict no-plaintext fallback. In desktop mode,
+the Profiles panel can set, remove, and verify a profile password before
+switching into a locked profile.
+
+### Family Safe Mode vs Provider `safe_mode`
+
+Family Safe Mode is Venice Forge's local on-device guard. It screens supported
+prompt-like fields before provider dispatch and screens supported Jina/scrape
+text responses before renderer delivery. Provider `safe_mode` is the Venice API
+request parameter controlled separately by Venice API Safe Mode and is only sent
+to endpoints that support it. Adult Mode skips the local Family Safe Mode guard;
+it does not automatically change provider `safe_mode`.
 
 Read:
 
@@ -475,9 +508,11 @@ Read:
 | Data | Location | Protection |
 | --- | --- | --- |
 | Desktop API keys | macOS Keychain / Windows DPAPI | OS secure storage |
+| Profile password verifier | Electron `safeStorage` | Salted PBKDF2 verifier; Profiles panel unlock gate |
 | Web-mode Venice key | Express server `.env` | Server-side only |
 | Logs | Application support directory | Plain text, local disk |
-| Desktop chat history | `chat-history/*.json` | Plain text JSON in user profile |
+| Desktop Conversation Vault | `conversations/records/**/*.v1.json.enc` under app data | AES-256-GCM with OS-protected vault key |
+| Legacy desktop chat history | `chat-history/*.json` | Migration/backup surface; plaintext if legacy files still exist |
 | Settings | IndexedDB | AES-GCM through app storage service |
 | Conversations | IndexedDB | AES-GCM through app storage service |
 | Memories | IndexedDB | AES-GCM through app storage service |
@@ -490,7 +525,8 @@ Read:
 Encryption scope:
 
 - IndexedDB-backed encrypted stores are protected by `src/services/storageService.ts`.
-- Desktop `chat-history/*.json` files are plaintext because the Electron main process does not always have a stable cross-platform key path at load time.
+- Desktop Conversation Vault files are protected by `electron/services/conversationVault.ts`.
+- Legacy `chat-history/*.json` files may still exist from older installs or backups and are plaintext until migrated or removed by the user.
 - Browser-managed AES-GCM reduces casual disk inspection risk but does not protect against malware, active XSS, browser compromise, same-user OS compromise, or process-memory access.
 
 Import/export behavior:
@@ -595,7 +631,7 @@ Theme features:
 | Packaging fails | `npm run clean && npm ci && npm run build` before packaging |
 | SmartScreen or Gatekeeper warning | Expected for unsigned local builds |
 | No API key prompt | Open **Config**, save key, test connection |
-| Chat history not loading | Inspect `chat-history`; corrupted files are backed up as `.backup-{timestamp}` |
+| Chat history not loading | Inspect Conversation Vault status and legacy `chat-history`; corrupted legacy files are backed up as `.backup-{timestamp}` |
 | `400` from chat/image requests | Verify selected model and payload parameters |
 | `401` / `403` | Verify API key validity and scope |
 | `429` | Check reset information in **Status** |
@@ -654,7 +690,8 @@ Read:
 
 - Local builds are unsigned unless signing credentials are configured.
 - Auto-update behavior depends on release workflow configuration and GitHub Releases.
-- Desktop chat-history files are plaintext JSON.
+- Legacy desktop `chat-history` files, if present from older installs, are plaintext JSON.
+- Profile password unlock is an in-app profile-switch gate. It is not a substitute for OS account security, disk encryption, or an unattended-session lock.
 - IndexedDB encryption is not a malware/XSS/browser-compromise boundary.
 - Same-user OS compromise and process-memory access are outside the local threat model.
 - Linux packaging is CI-oriented; local cross-builds are not supported.

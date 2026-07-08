@@ -115,6 +115,91 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-07-07 Chat Memory / Scenario Error Continuation — COMPLETE (current session):**
+
+  **Closed / verified-fixed TODOs:**
+  - Verified `character-store.ts` and `scenario-store.ts` no longer contain direct `console.error` calls for the STO-002 / STO-003 TODO; both stores now route error reporting through the shared logger/redaction path.
+  - Added regression coverage proving character unbind in `ChatView` clears the persisted character metadata and disables per-chat memory retrieval before marking the conversation dirty (CM-001).
+  - Fixed automatic character scene generation so a failed image/scene side-effect is isolated from a successful assistant stream instead of appending the generic chat-stream failure text to the assistant message (CM-002).
+  - Added regression coverage proving dirty-map entries are retained after persistence failures so the next chat-store flush can retry instead of silently dropping unsaved changes (CM-003).
+  - Updated conversation/chat message metadata types to include the existing runtime `sceneGeneration` payload, matching the production write/read path used by `use-chat` and message rendering.
+
+  **Validation:**
+  - `npm test -- src/components/chat/chat-view.test.tsx -t "clears character metadata"` — PASS, 1 test.
+  - `npm test -- src/stores/chat-store.dirty.test.ts` — PASS, 7 tests.
+  - `npm test -- src/hooks/use-chat.character-scene.test.ts -t "isolates automatic scene generation failures"` — PASS, 1 test.
+  - `npm test -- src/hooks/use-chat.character-scene.test.ts` — PASS, 7 tests.
+  - `npm test -- src/components/chat/chat-view.test.tsx src/stores/chat-store.dirty.test.ts src/hooks/use-chat.character-scene.test.ts src/stores/chat-store.character.test.ts src/stores/character-store.test.ts src/stores/scenario-store.errors.test.ts` — PASS, 68 tests.
+  - `npm run typecheck` — initially FAIL on missing `sceneGeneration` metadata typing; PASS after adding the metadata field to chat/conversation/vault message types.
+  - `npm run lint:eslint`, `npm run verify:safety-guard`, `npm run verify:markdown-links`, `npm run verify:repo-handoff-hygiene`, `git diff --check`, and `git diff --cached --check` — PASS.
+
+- **2026-07-07 Remaining P1 TODO Evidence Closure — COMPLETE (current session):**
+
+  **Closed / verified-fixed TODOs:**
+  - Added regression coverage proving `deleteConversations()` redacts secret-like tokens and local paths before returning batch-delete failure messages to the UI.
+  - Added regression coverage proving failed desktop `veniceStreamChat()` responses preserve the upstream HTTP status in the Traffic Inspector row instead of falling back to 500.
+  - Implemented workflow-template prompt / scene / character reference resolution in `compileWorkflowTemplate()`, injecting resolved records and current prompt content into each step's `resolvedInput` while preserving missing-ref warnings.
+  - No production behavior change was needed for the first two verification items; live source already routed through `redactErrorMessage()` and already attached `error.status` before the inspector catch block.
+
+  **Validation:**
+  - `npm test -- src/stores/chat-store.test.ts -t "redacts batch delete persistence errors"` — PASS, 1 test.
+  - `npm test -- src/services/veniceClient.desktop.test.ts -t "failed desktop streaming responses"` — PASS, 1 test.
+  - `npm test -- src/stores/chat-store.test.ts src/services/veniceClient.desktop.test.ts` — PASS, 36 tests.
+  - `npm test -- src/services/workflowCompiler.test.ts` — PASS, 7 tests.
+  - `npm run test:workflow:core` — PASS, 102 tests.
+  - `npm run verify:workflow-templates` — PASS.
+  - `npm run typecheck` and `npm run lint:eslint` — PASS.
+
+- **2026-07-07 Profile Password Unlock Flow Continuation — COMPLETE (current session):**
+
+  **Profile password UI / IPC:**
+  - Added dedicated `profilePassword:*` IPC channels backed by `setProfilePassword`, `verifyProfilePassword`, `isProfilePasswordSet`, and `clearProfilePassword`. Renderer calls now receive only result booleans/envelopes, never verifier material.
+  - Exposed the profile-password bridge through `electron/preload.ts`, `src/types/desktop.ts`, and `src/services/desktopBridge.ts`.
+  - Implemented Profiles panel setup/removal and switch-time unlock flow. Password-protected profiles now require successful verification before `switchProfile()` is called.
+  - Password inputs are transient component state and are cleared on success, mismatch, failed unlock, and cancel. Failed unlock attempts are rate-limited in memory with a 5-attempt / 60-second lockout.
+  - Deleting a password-protected profile now best-effort clears its profile-password verifier before removing the profile entry.
+
+  **Docs / TODO status:**
+  - Updated README, SECURITY, ABOUT, and Privacy docs to describe profile password setup/unlock as implemented, while preserving the limitation that it is an in-app switch gate and not an OS/session security boundary.
+  - Closed the active P1 Open TODO for profile password setup/unlock UI and profile-switch enforcement.
+
+  **Validation:**
+  - `npm test -- src/components/settings/ProfilePanel.test.tsx` — PASS, 3 tests.
+  - `npm test -- electron/ipc/handlers.test.ts electron/ipc/updates.test.ts src/components/settings/ProfilePanel.test.tsx src/components/SettingsView.test.tsx` — PASS, 48 tests.
+  - `npm run typecheck` — PASS.
+  - `npm run lint:eslint` — PASS.
+  - `npm run verify:markdown-links`, `verify:repo-handoff-hygiene`, `verify:no-native-dialogs`, `verify:storage-policy`, `verify:safety-guard`, `verify:image-policy`, `verify:network-boundaries`, `verify:contracts`, and `npm run build` — PASS.
+  - `npm test` — PASS, 3504 passed / 1 skipped across 281 passed files / 1 skipped smoke file.
+
+- **2026-07-07 Final Release Candidate Hardening — COMPLETE (current session):**
+
+  **Profile storage isolation:**
+  - Replaced the cross-profile collision guard in `src/services/storageService.ts` with profile-scoped physical IndexedDB keys (`profileId:logicalId`) while preserving logical `id` values returned to callers.
+  - `saveItem`, `getItem`, `deleteItem`, `clearStore`, `getItems*`, `getItemsPageWithMeta`, `patchMedia`, and bulk media helpers now route through the scoped key model through the shared CRUD surface.
+  - Legacy unscoped rows remain readable only from the `default` profile; default-profile writes update an existing legacy row instead of duplicating it.
+  - Added regressions proving two profiles can both persist logical IDs `shared`, `venice-chat`, and `venice-workflows`; active-profile reads/deletes stay isolated; page totals are active-profile scoped; legacy unscoped rows are default-only.
+
+  **Profile password verifier:**
+  - Kept profile passwords explicitly as a verifier scaffold, not a complete profile lock system. Setup/unlock UI and profile-switch lock enforcement remain future work.
+  - Replaced the unsalted SHA-256 verifier with a structured PBKDF2-SHA256 record: `{ version: 1, algorithm: "pbkdf2-sha256", iterations: 310000, salt, digest }`.
+  - Verification uses `crypto.timingSafeEqual`; legacy unsalted SHA-256 verifier strings are rejected and are not counted as configured profile passwords.
+
+  **Docs / privacy / archive hygiene:**
+  - Updated `README.md` with Traffic Inspector, Profiles and Credentials, Family Safe Mode vs provider `safe_mode`, profile-password limitation, and corrected Conversation Vault storage wording.
+  - Updated `SECURITY.md`, `docs/legal/PRIVACY.md`, `docs/ABOUT.md`, and `docs/FAQ.md` so storage claims distinguish Electron secure storage, encrypted Conversation Vault files, encrypted IndexedDB stores, diagnostics metadata, generated exports, and legacy plaintext `chat-history` files.
+  - Added `_REPO_EXTRACT_METADATA/` to `.gitignore`; no such directory exists in the live working tree.
+  - Confirmed purge targets remain absent: `docs/AGENTS/venice-forge-privacy-summary-2026-07-01.json`, `venice-forge.log`, and root `patch*.js` / `patch_*.cjs` artifacts.
+
+  **Validation (all green):**
+  - `npm ci` — PASS, zero vulnerabilities; deprecation warnings only.
+  - `npm run lint:eslint` — PASS, zero warnings.
+  - `npm run typecheck` — PASS, renderer + Electron main clean.
+  - `npm test` — PASS, 3500 passed / 1 skipped across 281 test files.
+  - `npm test -- src/services/storageService.test.ts electron/services/secureStore.test.ts src/stores/chat-store.test.ts src/stores/chat-store.dirty.test.ts src/stores/chat-store.flush.test.ts src/stores/chat-store.web.test.ts src/stores/chat-store.character.test.ts src/stores/chat-store.multimodal.test.ts src/components/SettingsView.test.tsx` — PASS, 117 tests.
+  - `npm run verify:safety-guard`, `verify:image-policy`, `verify:network-boundaries`, `verify:work-orders`, `verify:markdown-links`, `verify:storage-policy`, `verify:repo-handoff-hygiene`, `verify:contracts` — PASS.
+  - `npm run build` — PASS, web + server + Electron outputs generated.
+  - Final hygiene: `_REPO_EXTRACT_METADATA/` absent; purge targets absent; no root patch JS artifacts printed; `git diff --check` and `git diff --cached --check` PASS.
+
 - **2026-07-07 Priority Issue & Feature Remediation (multi-module) — COMPLETE (current session):**
 
   **Security / Safety (Priority 1):**
@@ -585,6 +670,14 @@ backlog files were removed.
   - **Validation:** All 14 CI gates pass. Code fully verified for 14 audit items. Release gate: **PASS**.
 
 ### Session History
+- **2026-07-07 Chat Memory / Scenario Error Continuation — COMPLETE:**
+  - Verified STO-002 / STO-003 are stale in the live tree: `src/stores/character-store.ts` and `src/stores/scenario-store.ts` contain no direct `console.error` calls and already use shared logger/redaction paths.
+  - Closed CM-001 with a `ChatView` regression proving character unbind clears character metadata, resets source to `"chat"`, disables `memoryRetrievalEnabled`, and marks the conversation dirty.
+  - Closed CM-002 with a `use-chat` fix and regression: automatic scene-generation failures are caught inside `runSceneGeneration()` and written to message `metadata.sceneGeneration` without converting a successful assistant stream into a stream failure.
+  - Closed CM-003 with a chat-store dirty-map regression proving failed persistence leaves the dirty entry queued for a later successful flush.
+  - Added explicit `sceneGeneration?: CharacterSceneGenerationResult` metadata typing to `ChatMessage`, `ConversationMessage`, and vault conversation messages.
+  - **Validation:** focused chat/store/scene regression batch PASS (68 tests); `npm run typecheck` PASS after metadata typing fix; `npm run lint:eslint`, `npm run verify:safety-guard`, `npm run verify:markdown-links`, `npm run verify:repo-handoff-hygiene`, `git diff --check`, and `git diff --cached --check` PASS.
+
 - **2026-07-07 Priority Issue & Feature Remediation (all modules) — COMPLETE:**
   - Fixed Family Safe Mode bypass (leading-slash bug + FormData safe_mode injection drop) — Priority 1 security fix.
   - Implemented Profile System with namespace isolation and native OS credential storage (macOS Keychain / Windows Credential Manager).
@@ -3751,6 +3844,31 @@ backlog files were removed.
 ---
 
 ## Session History
+
+### 2026-07-07 - Profile password unlock flow continuation
+
+- **Scope:** Continued the final release-candidate hardening pass by choosing the implementation path for the remaining profile-password blocker instead of leaving it documented as a verifier-only scaffold.
+- **IPC / preload / bridge:** Added `profilePassword:isSet`, `profilePassword:set`, `profilePassword:verify`, and `profilePassword:clear` IPC channels; exposed them through `electron/preload.ts`, `src/types/desktop.ts`, and `src/services/desktopBridge.ts`. The bridge returns booleans/result envelopes only and never exposes verifier records or raw stored password material.
+- **Profiles UI:** `src/components/settings/ProfilePanel.tsx` now supports profile password setup, removal, and switch-time unlock. Password-protected profiles require successful verification before `switchProfile()` runs. Password input state is cleared on success, mismatch, failure, and cancel, and unlock failures are rate-limited in memory after five failed attempts for 60 seconds.
+- **Regression coverage:** Added `src/components/settings/ProfilePanel.test.tsx` for set/unlock/failure flows and extended Electron IPC tests so the new profile-password channels are registered and do not return verifier material.
+- **Docs:** Updated README, SECURITY, ABOUT, Privacy, and this ledger to describe profile passwords as implemented for in-app profile switching while preserving the limitation that this is not an OS account lock, disk-encryption boundary, or process-memory isolation feature.
+- **Validation:** Targeted profile/UI/IPC tests, lint, typecheck, markdown/hygiene/storage/native-dialog gates, safety/image/network gates, full `npm test`, `verify:contracts`, and `npm run build` passed. Final diff hygiene was rerun after this ledger update.
+
+### 2026-07-07 - Remaining P1 TODO evidence closure
+
+- **Scope:** Continued from the now-closed profile-password hardening item and addressed the next two open P1 TODOs from the final massive bug-hunt ledger.
+- **`deleteConversations` UI error redaction (STO-001):** Added a regression test proving batch-delete persistence errors redact secret-like tokens and local paths before they are returned in `result.failed[]`. Source was already using `redactErrorMessage()`, so no production code change was required.
+- **`veniceStreamChat` inspector status reporting (SP-002):** Added a regression assertion proving failed desktop streaming responses preserve the upstream status (`400` in the test) in the Traffic Inspector log. Source was already setting `VeniceApiError.status` before the shared catch block updates inspector telemetry, so no production code change was required.
+- **Workflow reference resolution:** Implemented the open workflow-template compiler P2. `compileWorkflowTemplate()` now resolves prompt, scene, and character refs from the supplied compile context into `resolvedInput`. Prompt refs select the requested prompt version, then `currentVersionId`, then the latest version; scene and character refs inject shallow record copies plus stable id/title/name fields. Missing refs still produce warnings and do not block `canRun`.
+- **Validation:** `npm test -- src/stores/chat-store.test.ts -t "redacts batch delete persistence errors"`, `npm test -- src/services/veniceClient.desktop.test.ts -t "failed desktop streaming responses"`, `npm test -- src/stores/chat-store.test.ts src/services/veniceClient.desktop.test.ts`, `npm test -- src/services/workflowCompiler.test.ts`, `npm run test:workflow:core`, `npm run verify:workflow-templates`, `npm run typecheck`, and `npm run lint:eslint` passed.
+
+### 2026-07-07 - Final release-candidate profile/storage/docs hardening
+
+- **Scope:** Closed the remaining hardening blockers from the `Windows-Venice-API-connector-clean-20260707-214731.zip` review without redoing already-closed cleanup.
+- **Profile isolation:** Reworked `StorageService` to use profile-scoped physical keys while preserving logical caller IDs. Added tests for same logical IDs across profiles, fixed app store IDs (`venice-chat`, `venice-workflows`), cross-profile delete refusal, scoped pagination totals, and default-only legacy unscoped rows.
+- **Profile passwords:** Replaced unsalted SHA-256 verifier storage with salted PBKDF2-SHA256 verifier records. Legacy SHA-256 verifier strings are rejected. Full setup/unlock UI remains partial/future work and is documented as such.
+- **Docs:** Updated README, SECURITY, privacy, ABOUT, and FAQ storage/password terminology. Added `_REPO_EXTRACT_METADATA/` to `.gitignore`; directory was absent in the working tree.
+- **Validation:** `npm ci`; `npm run lint:eslint`; `npm run typecheck`; `npm test`; targeted storage/secure-store/chat/settings suite; `verify:safety-guard`; `verify:image-policy`; `verify:network-boundaries`; `verify:work-orders`; `verify:contracts`; `verify:markdown-links`; `verify:storage-policy`; `verify:repo-handoff-hygiene`; `npm run build`; purge/hygiene checks; diff checks all passed.
 
 ### 2026-07-07 - Docs-refresh pass (README / SECURITY / DOCS_INDEX / FILE_TREE)
 
@@ -8168,6 +8286,10 @@ Result:
 
 ## Open TODO Ledger
 
+### Open Follow-Up from 2026-07-07 Final RC Hardening
+
+- ~~**P1:** Complete profile password setup/unlock UI and profile-switch lock enforcement, or keep the feature permanently documented as a verifier-only scaffold. Current code stores salted PBKDF2 verifier records through `safeStorage`, but profiles are not yet fully password-locked.~~ **FIXED 2026-07-07 continuation** — `profilePassword:*` IPC bridge added; Profiles panel now supports set/remove/unlock and requires successful verification before switching into a locked profile. Remaining limitation: this is an in-app switch gate, not an OS session or disk-encryption boundary.
+
 ### Open Follow-Up from 2026-06-21 Roadmap Stabilization Batch 1
 
 - ~~**P0:** Run `npm run clean` to remove stale `release/` v2.1.0 artifacts before packaging (REL-001).~~ **FIXED 2026-06-21** — `release/` cleared of stale v2.1.0 DMG/ZIP/sidecar artifacts.
@@ -8194,16 +8316,16 @@ Result:
 - ~~**P1:** Fix `workflow-template-store.ts` `reorderSteps` so it does not mutate step objects in the rollback snapshot; use immutable updates.~~ **FIXED 2026-06-21** — regression test proves failed reorder restores original step ids/orders.
 - ~~**P1:** Fix `workflow-template-store.ts` `deleteWorkflow` rollback to restore the pre-delete `activeWorkflowId` instead of forcing `current.id`.~~ **FIXED 2026-06-21** — failed deletion now restores the previous active workflow id.
 - ~~**P2:** Extend `scripts/verify-workflow-templates.cjs` to run `workflow-engine.test.ts`, `workflow-validator.test.ts`, `workflow-schema.test.ts`, `workflow-mutations.test.ts`, and `workflow-node.test.tsx`.~~ **FIXED 2026-06-21** — `npm run verify:workflow-templates` now runs the expanded suite and passes.
-- **P2:** Implement ref resolution in `workflowCompiler.ts` so prompt/scene/character refs are injected into `resolvedInput`, or remove/disable the ref UI until implemented.
+- ~~**P2:** Implement ref resolution in `workflowCompiler.ts` so prompt/scene/character refs are injected into `resolvedInput`, or remove/disable the ref UI until implemented.~~ **FIXED 2026-07-07 continuation** — `compileWorkflowTemplate()` now resolves prompt, scene, and character refs from compile context into `resolvedInput`; compiler regressions cover current prompt content and scene/character record injection.
 - **P2/P3:** Harden `WorkflowTemplatesView` UI: debounce title edits, render run buttons for all actions, call `ensureWorkflowTemplatesLoaded` on mount, and add missing versions/import/export/favorite/tag controls.
 - **P3:** Remove `// @ts-nocheck` from `src/stores/workflow-template-store.test.ts` and replace `as any`/`as unknown` casts with typed fixtures.
 
 ### Open Follow-Up from 2026-06-17 Final Massive Bug Hunt
 
-- **P1:** Fix `veniceStreamChat` inspector status reporting (SP-002) — preserve upstream HTTP status on non-OK streaming responses instead of defaulting to 500.
-- **P1:** Redact `chat-store.ts` `deleteConversations` errors before returning them to the UI (STO-001).
-- **P1:** Replace direct `console.error` in `character-store.ts` (STO-002) and `scenario-store.ts` (STO-003) with the shared logger + redaction.
-- **P1:** Chat-memory fixes: reset `memoryRetrievalDisabled` on character unbind (CM-001); isolate scene-generation errors from successful streams (CM-002); retain dirty-map entries on persistence failure (CM-003).
+- ~~**P1:** Fix `veniceStreamChat` inspector status reporting (SP-002) — preserve upstream HTTP status on non-OK streaming responses instead of defaulting to 500.~~ **VERIFIED FIXED 2026-07-07 continuation** — `src/services/veniceClient.desktop.test.ts` now asserts the Traffic Inspector row preserves upstream status `400` for failed desktop streaming responses.
+- ~~**P1:** Redact `chat-store.ts` `deleteConversations` errors before returning them to the UI (STO-001).~~ **VERIFIED FIXED 2026-07-07 continuation** — `src/stores/chat-store.test.ts` now asserts batch-delete failure results redact secret-like tokens and local paths before returning to UI callers.
+- ~~**P1:** Replace direct `console.error` in `character-store.ts` (STO-002) and `scenario-store.ts` (STO-003) with the shared logger + redaction.~~ **VERIFIED FIXED 2026-07-07 continuation** — live source contains no direct `console.error` calls in either store; existing store tests plus focused rerun confirm the shared logger/error paths remain green.
+- ~~**P1:** Chat-memory fixes: reset `memoryRetrievalDisabled` on character unbind (CM-001); isolate scene-generation errors from successful streams (CM-002); retain dirty-map entries on persistence failure (CM-003).~~ **FIXED 2026-07-07 continuation** — `ChatView` unbind now has regression coverage for clearing character metadata and disabling memory retrieval; `runSceneGeneration()` catches scene side-effect failures without poisoning successful assistant streams; chat-store dirty-map coverage proves failed persistence remains queued for retry.
 - **P1:** Scene-composer fixes: run write-time sanitization on all fields (SC-01); resolve Prompt Library refs before sending to Image Studio (SC-02); call `redactSecrets` in `sceneCompiler.ts` (SC-03).
 - **P1:** Storage-privacy inventory fixes: map `Conversation[]` to `StorageInventoryRecord[]` correctly (SP-01); load RP Studio stores before reading them (SP-02).
 - **P1:** Run `npm run clean` to clear stale `release/` v2.0.0 artifacts before packaging (REL-001).
@@ -9353,6 +9475,36 @@ Result:
 | `npm run verify:contracts` | PASS (102 sub-verifiers, includes `verify:storage-policy`) |
 | `npm run build` | PASS (`dist/`, `dist-electron/electron/`, `dist/server.cjs` 89.4 KiB) |
 
+## Validation Matrix — 2026-07-07 final RC profile/storage/docs hardening append
+
+| Command / check | Result | Notes |
+| --- | --- | --- |
+| `git status --short` | PASS | Clean before edits. |
+| `node --version` | INFO | Local shell reported `v24.3.0`; repo engine remains `>=22.13.0`. |
+| `npm --version` | INFO | Local shell reported `11.4.2`; repo engine remains `>=10.0.0`. |
+| `npm ci` | PASS | 937 packages installed; zero vulnerabilities; deprecation warnings only. |
+| `npm test -- src/services/storageService.test.ts` | PASS | 18 tests; includes new profile-scoped physical-key regressions. |
+| `npm test -- electron/services/secureStore.test.ts` | PASS | 24 tests; includes PBKDF2 verifier and legacy SHA-256 rejection regressions. |
+| `npm test -- src/services/storageService.test.ts electron/services/secureStore.test.ts src/stores/chat-store.dirty.test.ts src/stores/profile-store.test.ts` | PASS | 48 tests across 3 existing files; no `src/stores/profile-store.test.ts` exists. |
+| `npm test -- src/services/storageService.test.ts electron/services/secureStore.test.ts src/stores/chat-store.test.ts src/stores/chat-store.dirty.test.ts src/stores/chat-store.flush.test.ts src/stores/chat-store.web.test.ts src/stores/chat-store.character.test.ts src/stores/chat-store.multimodal.test.ts src/components/SettingsView.test.tsx` | PASS | 117 tests across 9 files. |
+| `npm run typecheck` | PASS | Renderer and Electron TypeScript projects clean. |
+| `npm run verify:markdown-links` | PASS | 79 Markdown files checked. |
+| `npm run verify:storage-policy` | PASS | All localStorage references tagged. |
+| `npm run verify:repo-handoff-hygiene` | PASS | Handoff hygiene OK. |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
+| `npm run verify:safety-guard` | PASS | Safety guard enforcement and no-raw-log checks passed. |
+| `npm run verify:image-policy` | PASS | Image ingress policy intact. |
+| `npm run verify:network-boundaries` | PASS | Network boundaries intact. |
+| `npm run verify:work-orders` | PASS | Work-order closure schema valid. |
+| `npm test` | PASS | 3500 passed, 1 skipped; 280 passed files, 1 skipped smoke file. |
+| `npm run verify:contracts` | PASS | Static, feature, and release contract chains passed. |
+| `npm run build` | PASS | Web, server, and Electron outputs generated. |
+| `test ! -e docs/AGENTS/venice-forge-privacy-summary-2026-07-01.json && test ! -e venice-forge.log && find ... patch*.js` | PASS | Privacy summary and log absent; no root patch JS artifacts printed. |
+| `find . -maxdepth 2 -type d -name '_REPO_EXTRACT_METADATA' -print` | PASS | No `_REPO_EXTRACT_METADATA/` directory present. |
+| `git status --short -- docs/AGENTS/venice-forge-privacy-summary-2026-07-01.json venice-forge.log .gitignore` | PASS | Only `.gitignore` modified among those paths. |
+| `git diff --check` | PASS | No whitespace errors. |
+| `git diff --cached --check` | PASS | No staged diff / no whitespace errors. |
+
 Evidence checks (all PASS):
 - `test ! -e docs/AGENTS/venice-forge-privacy-summary-2026-07-01.json` → absent.
 - `test ! -e venice-forge.log` → absent.
@@ -9376,3 +9528,52 @@ Targeted test outcomes this round:
 - **T-206** Add a two-profile isolation **integration** test that asserts legacy records without `profileId` are treated as the default profile during migration AND that pagination cursors pause on the same profile boundary.
 - **T-207** Add a real PDF OCR / image-only-PDF fallback to `handleContextFileUpload` so the user only sees the "convert or OCR your PDF" hint when truly impossibly dense — currently the path always tells the user to convert even when the file is text-based.
 - **T-208** Add the previously injected but unwritten regression: `new URL('javascript:alert(1)')` and friends must be rejected at `buildImagePayload` if a future model field accepts URLs.
+
+## Validation Matrix — 2026-07-07 profile password unlock flow continuation append
+
+| Command / check | Result | Notes |
+| --- | --- | --- |
+| `npm test -- src/components/settings/ProfilePanel.test.tsx` | PASS | 3 tests; covers setting a password, unlocking before switch, and failed unlock input clearing. |
+| `npm test -- electron/ipc/handlers.test.ts electron/ipc/updates.test.ts src/components/settings/ProfilePanel.test.tsx src/components/SettingsView.test.tsx` | PASS | 48 tests across 4 files; covers the new profile-password IPC channels plus settings integration. |
+| `npm run typecheck` | PASS | Renderer and Electron TypeScript projects clean. |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
+| `npm run verify:markdown-links` | PASS | 79 Markdown files checked after docs/ledger edits. |
+| `npm run verify:repo-handoff-hygiene` | PASS | Handoff hygiene OK. |
+| `npm run verify:no-native-dialogs` | PASS | No native blocking dialogs in production code. |
+| `npm run verify:storage-policy` | PASS | All localStorage references tagged. |
+| `npm run build` | PASS | Web, server, and Electron outputs generated. |
+| `npm run verify:safety-guard` | PASS | Safety guard enforcement and no-raw-log checks passed. |
+| `npm run verify:image-policy` | PASS | Image ingress policy intact. |
+| `npm run verify:network-boundaries` | PASS | Network boundaries intact. |
+| `npm run verify:contracts` | PASS | Static, feature, and release contract chains passed; 102 release-packaging-hardening checks passed. |
+| `npm test` | PASS | 3504 passed, 1 skipped; 281 passed files, 1 skipped smoke file. |
+
+## Validation Matrix — 2026-07-07 remaining P1 TODO evidence closure append
+
+| Command / check | Result | Notes |
+| --- | --- | --- |
+| `npm test -- src/stores/chat-store.test.ts -t "redacts batch delete persistence errors"` | PASS | 1 test; verifies `deleteConversations()` failure results redact secret-like tokens and local paths before reaching UI callers. |
+| `npm test -- src/services/veniceClient.desktop.test.ts -t "failed desktop streaming responses"` | PASS | 1 test; verifies failed desktop stream inspector rows preserve upstream HTTP status `400`. |
+| `npm test -- src/stores/chat-store.test.ts src/services/veniceClient.desktop.test.ts` | PASS | 36 tests across the two touched test files. |
+| `npm test -- src/services/workflowCompiler.test.ts` | PASS | 7 tests; includes new prompt, scene, and character ref-resolution regressions. |
+| `npm run test:workflow:core` | PASS | 102 tests across 8 workflow core files. |
+| `npm run verify:workflow-templates` | PASS | VERIFY-049 core + UI workflow-template checks passed. |
+| `npm run typecheck` | PASS | Renderer and Electron TypeScript projects clean after compiler changes. |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
+
+## Validation Matrix — 2026-07-07 chat memory / scenario error continuation append
+
+| Command / check | Result | Notes |
+| --- | --- | --- |
+| `npm test -- src/components/chat/chat-view.test.tsx -t "clears character metadata"` | PASS | 1 test; proves character unbind clears character metadata, sets source back to `chat`, disables memory retrieval, and marks the conversation dirty. |
+| `npm test -- src/stores/chat-store.dirty.test.ts` | PASS | 7 tests; includes dirty-map retry coverage after failed persistence. |
+| `npm test -- src/hooks/use-chat.character-scene.test.ts -t "isolates automatic scene generation failures"` | PASS after fix | Red/green regression; initially reproduced assistant-message stream-error poisoning, then passed after isolating scene-generation failures in `runSceneGeneration()`. |
+| `npm test -- src/hooks/use-chat.character-scene.test.ts` | PASS | 7 tests across character scene-generation chat behavior. |
+| `npm test -- src/components/chat/chat-view.test.tsx src/stores/chat-store.dirty.test.ts src/hooks/use-chat.character-scene.test.ts src/stores/chat-store.character.test.ts src/stores/character-store.test.ts src/stores/scenario-store.errors.test.ts` | PASS | 68 tests across 6 files. |
+| `npm run typecheck` | PASS after metadata type fix | Initial run failed because `ConversationMessage.metadata` lacked `sceneGeneration`; added explicit metadata typing to `src/types/venice.ts`, `src/types/conversation.ts`, and `src/types/conversationVault.ts`. |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
+| `npm run verify:safety-guard` | PASS | Safety guard enforcement and no-raw-log checks passed. |
+| `npm run verify:markdown-links` | PASS | 79 Markdown files checked. |
+| `npm run verify:repo-handoff-hygiene` | PASS | Handoff hygiene OK. |
+| `git diff --check` | PASS | No whitespace errors. |
+| `git diff --cached --check` | PASS | No staged diff whitespace errors. |

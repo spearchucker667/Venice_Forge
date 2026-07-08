@@ -1,5 +1,6 @@
 /** @fileoverview Shared type definitions for the Venice Forge Encrypted Conversation Vault. */
 
+import type { CharacterSceneGenerationResult } from "./characterSceneGeneration";
 import type { ContentPart } from "./venice";
 
 export type ConversationSource =
@@ -64,6 +65,7 @@ export interface ConversationMessage {
     attachments?: string[];
     injectedContext?: string;
     injectedContextSource?: "memory" | "prior_context" | "approved_context" | "mixed";
+    sceneGeneration?: CharacterSceneGenerationResult;
   };
 }
 

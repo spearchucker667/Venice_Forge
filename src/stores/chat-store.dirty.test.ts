@@ -123,6 +123,27 @@ describe('chat-store dirty tracking for non-active saves (BUG-CHAT-DIRTY regress
     expect(_debugGetDirtyConversationIds()).toEqual([])
   })
 
+  it('retains dirty-map entries when persistence fails so the next flush can retry', async () => {
+    useChatStore.setState({
+      conversations: [],
+      activeConversationId: null,
+    } as never)
+    saveMock.mockResolvedValueOnce({ ok: false, error: 'temporary vault failure' })
+    chatSaveMock.mockResolvedValueOnce({ ok: false, error: 'temporary legacy failure' })
+
+    const id = useChatStore.getState().createConversation('llama-3.3-70b')
+    useChatStore.getState().addMessage(id, { role: 'user', content: 'retry me' })
+
+    await flushAllPendingSaves()
+
+    expect(_debugGetDirtyConversationIds()).toContain(id)
+
+    saveMock.mockResolvedValue({ ok: true, id })
+    await flushAllPendingSaves()
+
+    expect(_debugGetDirtyConversationIds()).not.toContain(id)
+  })
+
   it('pagehide flushes BOTH active and non-active dirty conversations', async () => {
     useChatStore.setState({
       conversations: [],

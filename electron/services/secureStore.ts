@@ -437,15 +437,30 @@ export function deleteCredential(key: string): void {
 // in this release. The secureStore entry points below are the audit-level
 // minimum the release-blocker asks for: every existing `setCredential("profile_password*", …)`
 // call site is funneled through `setProfilePassword` which fails closed on
-// every OS. The hash-on-disk format is SHA-256 (Web Crypto parity is not
-// available in the Electron main process at this layer; using the built-in
-// Node `crypto` module keeps the verification deterministic and self-contained).
+// every OS. The verifier-on-disk format is a JSON PBKDF2-SHA256 record with
+// a per-profile random salt. Web Crypto parity is not available in the
+// Electron main process at this layer; Node `crypto` keeps verification
+// deterministic and self-contained.
 //
 // Renderer callers should NOT use `setCredential("profile_password", …)`
 // directly. Use `setProfilePassword`, `verifyProfilePassword`,
 // `isProfilePasswordSet`, `clearProfilePassword` via the IPC bridge.
 
 import crypto from "crypto";
+
+const PROFILE_PASSWORD_VERIFIER_VERSION = 1;
+const PROFILE_PASSWORD_ALGORITHM = "pbkdf2-sha256";
+const PROFILE_PASSWORD_ITERATIONS = 310_000;
+const PROFILE_PASSWORD_SALT_BYTES = 16;
+const PROFILE_PASSWORD_DIGEST_BYTES = 32;
+
+interface ProfilePasswordVerifierRecord {
+  version: 1;
+  algorithm: "pbkdf2-sha256";
+  iterations: number;
+  salt: string;
+  digest: string;
+}
 
 /** Canonical credential name for the active profile's password. */
 export function getProfilePasswordName(profileId: string): string {
@@ -462,13 +477,55 @@ export function isAnyProfilePasswordConfigured(): boolean {
   return false;
 }
 
-/** Sets the given plaintext password for the active profile. The plaintext
- *  is NEVER written to disk — only the SHA-256 verifier is stored. */
+function buildProfilePasswordVerifier(plaintext: string): ProfilePasswordVerifierRecord {
+  const salt = crypto.randomBytes(PROFILE_PASSWORD_SALT_BYTES);
+  const digest = crypto.pbkdf2Sync(
+    plaintext,
+    salt,
+    PROFILE_PASSWORD_ITERATIONS,
+    PROFILE_PASSWORD_DIGEST_BYTES,
+    "sha256",
+  );
+  return {
+    version: PROFILE_PASSWORD_VERIFIER_VERSION,
+    algorithm: PROFILE_PASSWORD_ALGORITHM,
+    iterations: PROFILE_PASSWORD_ITERATIONS,
+    salt: salt.toString("base64"),
+    digest: digest.toString("base64"),
+  };
+}
+
+function parseProfilePasswordVerifier(raw: string): ProfilePasswordVerifierRecord | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  const record = parsed as Partial<ProfilePasswordVerifierRecord>;
+  if (
+    record.version !== PROFILE_PASSWORD_VERIFIER_VERSION ||
+    record.algorithm !== PROFILE_PASSWORD_ALGORITHM ||
+    record.iterations !== PROFILE_PASSWORD_ITERATIONS ||
+    typeof record.salt !== "string" ||
+    typeof record.digest !== "string"
+  ) {
+    return null;
+  }
+  const salt = Buffer.from(record.salt, "base64");
+  const digest = Buffer.from(record.digest, "base64");
+  if (salt.length !== PROFILE_PASSWORD_SALT_BYTES || digest.length !== PROFILE_PASSWORD_DIGEST_BYTES) return null;
+  return record as ProfilePasswordVerifierRecord;
+}
+
+/** Sets the given plaintext password for the active profile. The plaintext is
+ *  NEVER written to disk — only the salted PBKDF2 verifier record is stored. */
 export function setProfilePassword(plaintext: string, profileId: string): void {
   if (typeof plaintext !== "string" || plaintext.length === 0) {
     throw new Error("Profile password must be a non-empty string.");
   }
-  const verifier = crypto.createHash("sha256").update(plaintext, "utf-8").digest("hex");
+  const verifier = JSON.stringify(buildProfilePasswordVerifier(plaintext));
   // setCredential stores via the safeStorage encrypted path on every OS;
   // isStrictNoPlaintextCredential refuses plaintext for `profile_password*`.
   setCredential(getProfilePasswordName(profileId), verifier);
@@ -477,20 +534,27 @@ export function setProfilePassword(plaintext: string, profileId: string): void {
 /** Returns true if the supplied plaintext matches the on-disk verifier. */
 export function verifyProfilePassword(plaintext: string, profileId: string): boolean {
   if (typeof plaintext !== "string" || plaintext.length === 0) return false;
-  const expected = getCredential(getProfilePasswordName(profileId));
-  if (typeof expected !== "string" || expected.length === 0) return false;
-  const candidate = crypto.createHash("sha256").update(plaintext, "utf-8").digest("hex");
-  // Constant-time compare to discourage timing oracles on the verifier hash.
-  const a = Buffer.from(candidate, "utf-8");
-  const b = Buffer.from(expected, "utf-8");
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(a, b);
+  const raw = getCredential(getProfilePasswordName(profileId));
+  if (typeof raw !== "string" || raw.length === 0) return false;
+  const expected = parseProfilePasswordVerifier(raw);
+  if (!expected) return false;
+  const salt = Buffer.from(expected.salt, "base64");
+  const expectedDigest = Buffer.from(expected.digest, "base64");
+  const candidate = crypto.pbkdf2Sync(
+    plaintext,
+    salt,
+    expected.iterations,
+    expectedDigest.length,
+    "sha256",
+  );
+  if (candidate.length !== expectedDigest.length) return false;
+  return crypto.timingSafeEqual(candidate, expectedDigest);
 }
 
 /** Returns true if the active profile has a stored password. */
 export function isProfilePasswordSet(profileId: string): boolean {
   const raw = getCredential(getProfilePasswordName(profileId));
-  return typeof raw === "string" && raw.length > 0;
+  return typeof raw === "string" && parseProfilePasswordVerifier(raw) !== null;
 }
 
 /** Removes the active profile's password. */

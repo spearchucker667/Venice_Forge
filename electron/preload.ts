@@ -91,6 +91,21 @@ const veniceForge = {
     },
   },
 
+  profilePassword: {
+    isSet(profileId: string): Promise<boolean> {
+      return ipcRenderer.invoke("profilePassword:isSet", profileId);
+    },
+    set(profileId: string, password: string): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("profilePassword:set", { profileId, password });
+    },
+    verify(profileId: string, password: string): Promise<{ ok: boolean; verified: boolean; error?: string }> {
+      return ipcRenderer.invoke("profilePassword:verify", { profileId, password });
+    },
+    clear(profileId: string): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("profilePassword:clear", profileId);
+    },
+  },
+
   apiKey: {
     /** Checks whether a Venice API key has been stored securely.
      *  @returns A promise resolving to true when a key is configured.

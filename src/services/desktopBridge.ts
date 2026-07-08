@@ -1000,3 +1000,22 @@ export const desktopCredentials = {
     return window.veniceForge!.credentials.delete(key);
   }
 };
+
+export const desktopProfilePassword = {
+  async isSet(profileId: string): Promise<boolean> {
+    if (!isElectron()) return false;
+    return window.veniceForge!.profilePassword.isSet(profileId);
+  },
+  async set(profileId: string, password: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Not available in web" };
+    return window.veniceForge!.profilePassword.set(profileId, password);
+  },
+  async verify(profileId: string, password: string): Promise<{ ok: boolean; verified: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, verified: false, error: "Not available in web" };
+    return window.veniceForge!.profilePassword.verify(profileId, password);
+  },
+  async clear(profileId: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Not available in web" };
+    return window.veniceForge!.profilePassword.clear(profileId);
+  },
+};

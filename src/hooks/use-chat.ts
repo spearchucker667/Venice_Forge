@@ -87,14 +87,25 @@ export function useChat() {
       const sceneAbort = new AbortController()
       sceneAbortRef.current = sceneAbort
 
-      const result = await generateCharacterScene({
-        conversation: conv,
-        source,
-        selectedMessageId,
-        assistantMessageId,
-        limiter: sceneRateLimiter,
-        signal: sceneAbort.signal,
-      })
+      let result: CharacterSceneGenerationResult
+      try {
+        result = await generateCharacterScene({
+          conversation: conv,
+          source,
+          selectedMessageId,
+          assistantMessageId,
+          limiter: sceneRateLimiter,
+          signal: sceneAbort.signal,
+        })
+      } catch (err) {
+        logger.error('character scene generation failed', err)
+        result = {
+          requestId: 'failed',
+          status: 'failed',
+          error: 'Character scene generation failed. Please try again.',
+          updatedAt: new Date().toISOString(),
+        }
+      }
 
       if (sceneAbort.signal.aborted) return
 

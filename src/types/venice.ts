@@ -1,3 +1,5 @@
+import type { CharacterSceneGenerationResult } from "./characterSceneGeneration";
+
 export type ModelType = 'text' | 'image' | 'audio' | 'tts' | 'video' | 'music' | 'embedding' | 'upscale' | 'asr' | 'code'
 
 export interface ImageConstraints {
@@ -89,6 +91,7 @@ export interface ChatMessage {
   metadata?: {
     injectedContext?: string
     injectedContextSource?: "memory" | "prior_context" | "approved_context" | "mixed"
+    sceneGeneration?: CharacterSceneGenerationResult
     [key: string]: unknown
   }
 }

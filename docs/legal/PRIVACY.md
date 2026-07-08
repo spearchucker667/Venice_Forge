@@ -22,11 +22,23 @@ privacy or complete safety protection.
 
 ## Local Data Storage
 
-- **Desktop conversations:** stored as local JSON files under the app data
-  directory. They are not additionally encrypted by Venice Forge.
-- **IndexedDB stores:** images, files, settings, conversations, memories,
-  prompts, scenes, workflows, and other local records are stored in renderer
-  IndexedDB. The encrypted stores use app-managed AES-GCM wrapping.
+- **Desktop conversations:** current Conversation Vault records are stored under
+  the app data `conversations/` directory as AES-256-GCM encrypted files. The
+  vault key is protected with Electron `safeStorage` where available. Older
+  `chat-history/*.json` files may still exist as legacy migration or backup
+  artifacts and are plaintext until migrated or deleted by the user.
+- **IndexedDB stores:** images, files, settings, web-fallback conversations,
+  memories, prompts, scenes, workflows, profile metadata, and other local
+  records are stored in renderer IndexedDB. Encrypted stores use app-managed
+  AES-GCM wrapping via `src/services/storageService.ts`; the `diagnostics`
+  store is intentionally excluded.
+- **Profile-scoped records:** IndexedDB records are physically keyed by active
+  profile where applicable while preserving logical IDs to callers. Legacy
+  unscoped rows belong to the default profile.
+- **Profile passwords:** the Profiles panel can set, remove, and verify a
+  profile password before switching into a locked profile. The secure-store
+  verifier stores salted PBKDF2 records through `safeStorage`; raw passwords
+  are not written to disk or returned over IPC.
 - **Diagnostics:** the `diagnostics` store is intentionally unencrypted because
   it contains sanitized timing/status metadata only. Safe diagnostics exclude
   API keys, bearer tokens, raw prompt content, base64 media, and full local
@@ -68,6 +80,10 @@ privacy or complete safety protection.
 - Local storage encryption is not equivalent to OS credential storage.
 - Same-user malware, browser compromise, injected extensions, or memory access
   are outside the local threat model.
+- Profile password unlock is an in-app switch gate and does not replace OS
+  account locking, full-disk encryption, or process-memory protections.
+- Legacy desktop `chat-history/*.json` files, generated exports, and user-made
+  backups are user-controlled files and may be plaintext.
 - Family Safe Mode is not a guarantee that all unsafe or unlawful content will
   be blocked.
 - Upstream provider privacy behavior, retention, and safety policies remain
