@@ -123,7 +123,7 @@ backlog files were removed.
   - `src/components/workflows/workflow-node.tsx` now ref-counts rendered workflow `blob:` audio URLs. A shared TTS URL rendered by both an upstream node preview and a downstream output node stays valid until the final rendered owner unmounts, while single-owner cleanup still revokes on unmount.
   - `electron/ipc/handlers/fileHandlers.ts` now reads YAML imports from the already-open, size-checked descriptor via `fd.readFile(...)`, matching JSON import behavior and closing the stat/read TOCTOU gap.
   - `src/components/research/ResearchWorkspaceView.tsx` now uses document-level `mousemove` / `mouseup` listeners while resizing the embedded research browser column, so dragging remains reliable outside the workspace container and cleanup always runs.
-  - `scripts/clean-repo-zip.sh` now ignores derived secret-presence metadata booleans such as `has_venice_api_key: config.secrets.venice_api_key.length > 0`, preventing false high-risk archive blocks without weakening literal secret detection.
+  - `scripts/clean-repo-zip.sh` now ignores derived secret-presence metadata booleans such as `has_venice_api_key: config.secrets.venice_api_key.length > 0` and no longer treats generic storage/cache `*_KEY` constants as credentials. Credential-shaped names such as `API_KEY`, `ACCESS_KEY`, tokens, secrets, and passwords remain high-risk.
   - Added regression guards in `workflow-node.test.tsx`, `electron/ipc/handlers.test.ts`, and `ResearchWorkspaceView.test.tsx` proving the three bug fixes.
   - Added `verify-archive-clean.test.ts` coverage proving derived secret-presence metadata booleans do not block clean repo ZIP generation.
 
@@ -4075,7 +4075,7 @@ backlog files were removed.
 - **Workflow audio lifecycle:** `WorkflowNode` now uses shared ref-count ownership for rendered `blob:` audio URLs so duplicate displays of the same TTS output do not revoke each other prematurely. Added a regression guard proving the URL is revoked only after the final rendered owner unmounts.
 - **YAML import descriptor safety:** `app:loadYamlFile` now reads from the already-open descriptor after `fd.stat()` instead of reopening by path. Added IPC coverage that fails if descriptor reads are not used.
 - **Research browser resize:** `ResearchWorkspaceView` now tracks active resize drags with document-level `mousemove` / `mouseup` listeners and an accessible separator handle. Added coverage for dragging outside the workspace container.
-- **Archive scanner false positive:** `clean-repo-zip.sh` now skips derived secret-presence metadata booleans while still blocking literal source-secret values. Added archive-clean coverage for the `has_*_api_key: config.secrets.*.length > 0` case.
+- **Archive scanner false positive:** `clean-repo-zip.sh` now skips derived secret-presence metadata booleans and generic storage/cache key constants while still blocking literal source-secret values. Added archive-clean coverage for the `has_*_api_key: config.secrets.*.length > 0` and storage-key constant cases.
 - **Validation:** Focused red/green tests passed after implementation; lint, typecheck, build, changed-area tests, static/security/archive verifiers, document-ingestion verifier, release-packaging hardening, and diff whitespace checks all passed.
 
 ### 2026-07-08 - Final hardening follow-up (20260708-010525 audit response)

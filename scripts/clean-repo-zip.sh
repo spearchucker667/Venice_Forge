@@ -559,9 +559,10 @@ SECRET_SCAN_SUMMARY="$META_DIR/SECRET_SCAN_SUMMARY.txt"
       # words like "password" or "secret" in docs/inline prose are noise;
       # we only flag assignment/value-shaped matches. Real high-value leaks
       # are caught by the bearer/sk/vn/github/aws patterns below.
-      # Matches `<key-with-_KEY|_TOKEN|_SECRET|_PASSWORD suffix> <op> <value>`
-      # where the value is 16+ chars of plausible secret material.
-      scan_pattern "secret-assignment"    "([A-Za-z0-9_]*(_KEY|_TOKEN|_SECRET|PASSWORD)[A-Za-z0-9_]*)[[:space:]]*[:=][[:space:]]*['\"]?[A-Za-z0-9_./+=-]{16,}" "high-risk-source"
+      # Matches credential-shaped env/config names such as API_KEY,
+      # ACCESS_KEY, SECRET_KEY, *_TOKEN, *_SECRET, and PASSWORD. Generic
+      # storage/cache constants ending in KEY are intentionally ignored.
+      scan_pattern "secret-assignment"    "([A-Za-z0-9_]*(API_KEY|ACCESS_KEY|SECRET_KEY|PRIVATE_KEY|VENICE_KEY|JINA_KEY|_TOKEN|_SECRET|PASSWORD)[A-Za-z0-9_]*)[[:space:]]*[:=][[:space:]]*['\"]?[A-Za-z0-9_./+=-]{16,}" "high-risk-source"
       # `api[_-]?key` only flagged when paired with a real value (>= 16 chars),
       # so tests / docs / parameter names do not light up the scan.
       scan_pattern "api-key-or-secret"    "(api[_-]?key|secret|password|passwd)[[:space:]]*[:=][[:space:]]*['\"]?[A-Za-z0-9_./+=-]{16,}" "high-risk-source"

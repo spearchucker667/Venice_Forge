@@ -248,6 +248,9 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
           "  has_venice_api_key: config.secrets.venice_api_key.length > 0,",
           "  has_jina_api_key: config.secrets.jina_api_key.length > 0,",
           "};",
+          "export const ACTIVE_PROFILE_STORAGE_KEY = \"venice-active-profile-id\";",
+          "export const CACHE_KEY = \"venice-forge-models-cache\";",
+          "export const FIRST_RUN_ACK_KEY = \"vf.legal.firstRunAcknowledged\";",
           "",
         ].join("\n"),
       );
