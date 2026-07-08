@@ -67,10 +67,18 @@ vi.mock("../services/secureStore", () => ({
   isJinaApiKeyConfigured: vi.fn(() => false),
   setApiKey: vi.fn(),
   setJinaApiKey: vi.fn(),
+  setCredential: vi.fn(),
+  getCredential: vi.fn(() => null),
+  deleteCredential: vi.fn(),
   setProfilePassword: vi.fn(),
   verifyProfilePassword: vi.fn(() => true),
   isProfilePasswordSet: vi.fn(() => false),
   clearProfilePassword: vi.fn(),
+  getProfilePasswordLockoutSeconds: vi.fn(() => 0),
+  setMasterPassword: vi.fn(),
+  verifyMasterPassword: vi.fn(() => ({ verified: true, lockedOutSeconds: 0 })),
+  isMasterPasswordSet: vi.fn(() => false),
+  clearMasterPassword: vi.fn(),
 }));
 
 vi.mock("../services/logger", () => ({
@@ -133,6 +141,11 @@ import {
   isProfilePasswordSet,
   setProfilePassword,
   verifyProfilePassword,
+  getProfilePasswordLockoutSeconds,
+  setMasterPassword,
+  verifyMasterPassword,
+  isMasterPasswordSet,
+  clearMasterPassword,
 } from "../services/secureStore";
 
 describe("registerIpcHandlers", () => {
@@ -159,12 +172,72 @@ describe("registerIpcHandlers", () => {
 
     expect(await capturedHandlers.get("profilePassword:isSet")!(null, "work")).toBe(true);
     expect(await capturedHandlers.get("profilePassword:set")!(null, { profileId: "work", password: "secret" })).toEqual({ ok: true });
-    expect(await capturedHandlers.get("profilePassword:verify")!(null, { profileId: "work", password: "secret" })).toEqual({ ok: true, verified: true });
+    expect(await capturedHandlers.get("profilePassword:verify")!(null, { profileId: "work", password: "secret" })).toEqual({ ok: true, verified: true, lockedOutSeconds: 0 });
     expect(await capturedHandlers.get("profilePassword:clear")!(null, "work")).toEqual({ ok: true });
 
     expect(setProfilePassword).toHaveBeenCalledWith("secret", "work");
     expect(verifyProfilePassword).toHaveBeenCalledWith("secret", "work");
+    expect(getProfilePasswordLockoutSeconds).toHaveBeenCalledWith("work");
     expect(clearProfilePassword).toHaveBeenCalledWith("work");
+  });
+
+  it("registers master password IPC handlers without returning verifier material", async () => {
+    vi.mocked(isMasterPasswordSet).mockReturnValueOnce(true);
+    vi.mocked(verifyMasterPassword).mockReturnValueOnce({ verified: true, lockedOutSeconds: 0 });
+
+    expect(await capturedHandlers.get("masterPassword:isSet")!(null)).toBe(true);
+    expect(await capturedHandlers.get("masterPassword:set")!(null, "secret")).toEqual({ ok: true });
+    expect(await capturedHandlers.get("masterPassword:verify")!(null, "secret")).toEqual({ ok: true, verified: true, lockedOutSeconds: 0 });
+    expect(await capturedHandlers.get("masterPassword:clear")!(null)).toEqual({ ok: true });
+
+    expect(setMasterPassword).toHaveBeenCalledWith("secret");
+    expect(verifyMasterPassword).toHaveBeenCalledWith("secret");
+    expect(clearMasterPassword).toHaveBeenCalled();
+  });
+
+  describe("generic credential bridge denylist", () => {
+    it.each([
+      "password",
+      "master_password",
+      "profile_password",
+      "profile_password:user-a",
+      "profile_password_user-a",
+      "account_password",
+      "my_unlock_secret",
+      "secret-unlock-token",
+    ])("credential:set rejects reserved name '%s'", async (key) => {
+      const handler = capturedHandlers.get("credential:set");
+      const result = await handler!(null, { key, value: "secret" });
+      expect(result).toMatchObject({ ok: false });
+      expect(result.error).toMatch(/reserved/i);
+    });
+
+    it.each([
+      "master_password",
+      "profile_password",
+      "profile_password:user-a",
+      "account_password",
+    ])("credential:get returns null for reserved name '%s'", async (key) => {
+      const handler = capturedHandlers.get("credential:get");
+      const result = await handler!(null, key);
+      expect(result).toEqual({ ok: true, value: null });
+    });
+
+    it.each([
+      "master_password",
+      "profile_password",
+      "account_password",
+    ])("credential:delete no-ops for reserved name '%s'", async (key) => {
+      const handler = capturedHandlers.get("credential:delete");
+      const result = await handler!(null, key);
+      expect(result).toEqual({ ok: true });
+    });
+
+    it("credential:set still allows non-reserved api-key-like keys", async () => {
+      const handler = capturedHandlers.get("credential:set");
+      const result = await handler!(null, { key: "openrouter_api_key", value: "sk-or-xxx" });
+      expect(result).toEqual({ ok: true });
+    });
   });
 
   describe("venice:request", () => {

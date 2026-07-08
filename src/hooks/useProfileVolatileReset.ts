@@ -8,7 +8,7 @@
  * automatic cross-profile reset: a half-edited image-workspace draft, a
  * stale traffic inspector log, or the previously-active conversation id
  * could leak through to the newly-active profile until the page reload
- * triggered by `profileStore.switchProfile` finishes.
+ * triggered by `profileStore.requestSwitchProfile` finishes.
  *
  * This hook installs a single subscription that synchronously clears:
  *

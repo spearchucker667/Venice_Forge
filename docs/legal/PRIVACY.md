@@ -35,10 +35,24 @@ privacy or complete safety protection.
 - **Profile-scoped records:** IndexedDB records are physically keyed by active
   profile where applicable while preserving logical IDs to callers. Legacy
   unscoped rows belong to the default profile.
+- **Master password:** a master password can be configured in desktop mode to
+  gate changes to Family Safe Mode settings. The plaintext password is sent to
+  the Electron main process over typed IPC channels; the salted PBKDF2-SHA256
+  verifier is derived, stored, and verified only in the main process. The
+  renderer never stores or retrieves the verifier. Five consecutive failed
+  attempts trigger a 60-second main-process lockout.
 - **Profile passwords:** the Profiles panel can set, remove, and verify a
   profile password before switching into a locked profile. The secure-store
-  verifier stores salted PBKDF2 records through `safeStorage`; raw passwords
-  are not written to disk or returned over IPC.
+  verifier stores salted PBKDF2-SHA256 records through `safeStorage`; raw
+  passwords are not written to disk or returned over IPC. Verification is
+  enforced in the main process with `crypto.timingSafeEqual` and per-profile
+  lockout after five failed attempts. This is an in-app switch gate, not an
+  OS account or disk-encryption boundary.
+- **Profile deletion:** deleting a profile best-effort purges the profile
+  password verifier, Venice/Jina API keys for that profile, profile-scoped
+  `localStorage` keys, and IndexedDB records tagged with the profile id.
+  Filesystem chat history under `userData/chat-history/` is not keyed by
+  profile and remains intact.
 - **Diagnostics:** the `diagnostics` store is intentionally unencrypted because
   it contains sanitized timing/status metadata only. Safe diagnostics exclude
   API keys, bearer tokens, raw prompt content, base64 media, and full local
@@ -80,8 +94,9 @@ privacy or complete safety protection.
 - Local storage encryption is not equivalent to OS credential storage.
 - Same-user malware, browser compromise, injected extensions, or memory access
   are outside the local threat model.
-- Profile password unlock is an in-app switch gate and does not replace OS
-  account locking, full-disk encryption, or process-memory protections.
+- Master password and profile password unlock are in-app gates and do not
+  replace OS account locking, full-disk encryption, or process-memory
+  protections.
 - Legacy desktop `chat-history/*.json` files, generated exports, and user-made
   backups are user-controlled files and may be plaintext.
 - Family Safe Mode is not a guarantee that all unsafe or unlawful content will

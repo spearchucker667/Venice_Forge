@@ -570,7 +570,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
 
       {expanded && (
         <div className="shrink-0 soft-separator-y p-3 gap-2 flex flex-col">
-          {/* Developer controls */}
+          {/* Traffic Inspector controls */}
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted leading-none">Traffic Inspector</span>

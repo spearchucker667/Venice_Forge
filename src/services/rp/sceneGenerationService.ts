@@ -9,7 +9,7 @@
  * Safety:
  *   - `assessScenePrompt` is the first step. The guard is gated by
  *     `useSettingsStore.getState().localFamilySafeModeEnabled` — when Local
- *     Family Safe Mode is OFF (Adult Mode) the rule engine is bypassed; when
+ *     Family Safe Mode is OFF (Adult Mode) the rule engine is skipped; when
  *     ON a block prevents the call from reaching Venice and prevents the
  *     asset from being registered.
  *   - Raw prompt text is NEVER logged. Errors return safe user-facing strings.

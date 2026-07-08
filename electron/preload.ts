@@ -91,6 +91,21 @@ const veniceForge = {
     },
   },
 
+  masterPassword: {
+    isSet(): Promise<boolean> {
+      return ipcRenderer.invoke("masterPassword:isSet");
+    },
+    set(password: string): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("masterPassword:set", password);
+    },
+    verify(password: string): Promise<{ ok: boolean; verified: boolean; lockedOutSeconds?: number; error?: string }> {
+      return ipcRenderer.invoke("masterPassword:verify", password);
+    },
+    clear(): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("masterPassword:clear");
+    },
+  },
+
   profilePassword: {
     isSet(profileId: string): Promise<boolean> {
       return ipcRenderer.invoke("profilePassword:isSet", profileId);
@@ -98,7 +113,7 @@ const veniceForge = {
     set(profileId: string, password: string): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("profilePassword:set", { profileId, password });
     },
-    verify(profileId: string, password: string): Promise<{ ok: boolean; verified: boolean; error?: string }> {
+    verify(profileId: string, password: string): Promise<{ ok: boolean; verified: boolean; lockedOutSeconds?: number; error?: string }> {
       return ipcRenderer.invoke("profilePassword:verify", { profileId, password });
     },
     clear(profileId: string): Promise<{ ok: boolean; error?: string }> {

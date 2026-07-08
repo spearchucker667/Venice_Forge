@@ -282,15 +282,23 @@ export interface VeniceForgeCredentials {
   delete(key: string): Promise<{ ok: boolean; error?: string }>;
 }
 
+export interface VeniceForgeMasterPassword {
+  isSet(): Promise<boolean>;
+  set(password: string): Promise<{ ok: boolean; error?: string }>;
+  verify(password: string): Promise<{ ok: boolean; verified: boolean; lockedOutSeconds?: number; error?: string }>;
+  clear(): Promise<{ ok: boolean; error?: string }>;
+}
+
 export interface VeniceForgeProfilePassword {
   isSet(profileId: string): Promise<boolean>;
   set(profileId: string, password: string): Promise<{ ok: boolean; error?: string }>;
-  verify(profileId: string, password: string): Promise<{ ok: boolean; verified: boolean; error?: string }>;
+  verify(profileId: string, password: string): Promise<{ ok: boolean; verified: boolean; lockedOutSeconds?: number; error?: string }>;
   clear(profileId: string): Promise<{ ok: boolean; error?: string }>;
 }
 
 export interface VeniceForge {
   credentials: VeniceForgeCredentials;
+  masterPassword: VeniceForgeMasterPassword;
   profilePassword: VeniceForgeProfilePassword;
   readonly isDesktop: true;
   venice: VeniceForgeVenice;

@@ -131,3 +131,27 @@ describe("built-in semantic theme contract", () => {
     }
   });
 });
+
+describe("all built-in themes WCAG contrast regression guard", () => {
+  it.each(BUILTIN_THEMES.map((t) => [t.id, t] as const))(
+    "%s passes expanded contrast checks",
+    (_id, theme) => {
+      const t = theme.tokens;
+      expect(isAAPass(t.foreground, t.background)).toBe(true);
+      expect(isAAPass(t.foregroundMuted, t.background)).toBe(true);
+      expect(isAAPass(t.foreground, t.surface)).toBe(true);
+      expect(isAAPass(t.foreground, t.surfaceElevated)).toBe(true);
+      expect(isAAPass(t.accentForeground, t.accent)).toBe(true);
+      expect(isAAPass(t.inputForeground, t.inputBackground)).toBe(true);
+      expect(isAAPass(t.buttonPrimaryForeground, t.buttonPrimaryBackground)).toBe(true);
+      expect(isAAPass(t.buttonSecondaryForeground, t.buttonSecondaryBackground)).toBe(true);
+      expect(isAAPass(t.dangerForeground, t.danger)).toBe(true);
+      expect(isAAPass(t.warningForeground, t.warning)).toBe(true);
+      expect(isAAPass(t.successForeground, t.success)).toBe(true);
+      expect(isAAPass(t.selectionForeground, t.selectionBackground)).toBe(true);
+      expect(contrastRatio(t.disabledForeground, t.background)).toBeGreaterThanOrEqual(3);
+      expect(contrastRatio(t.focusRing, t.background)).toBeGreaterThanOrEqual(3);
+      expect(contrastRatio(t.foregroundSubtle, t.background)).toBeGreaterThanOrEqual(3);
+    },
+  );
+});

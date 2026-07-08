@@ -11,6 +11,11 @@ import {
   verifyProfilePassword,
   isProfilePasswordSet,
   clearProfilePassword,
+  setMasterPassword,
+  verifyMasterPassword,
+  isMasterPasswordSet,
+  clearMasterPassword,
+  getProfilePasswordLockoutSeconds,
 } from "../../services/secureStore";
 import { readResponseError } from "../../services/veniceClient";
 import { performGuardedVeniceRequest } from "../../services/guardPipeline";
@@ -110,10 +115,28 @@ async function testVeniceConnection(profileId?: string): Promise<{ ok: boolean; 
   }
 }
 
+/** Reserved credential names that must never be read/written through the
+ *  generic credential bridge. Passwords, profile secrets, and unlock-secrets
+ *  must use their typed IPC channels so the main process can enforce
+ *  lockout, verifier-only storage, and plaintext-fallback refusal. */
+function isReservedCredentialName(name: unknown): boolean {
+  if (typeof name !== "string" || name.length === 0) return true;
+  const lower = name.toLowerCase();
+  if (["password", "master_password", "profile_password"].includes(lower)) return true;
+  if (/^profile_password[:_]/.test(lower)) return true;
+  if (/_password$/.test(lower)) return true;
+  if (lower.includes("password")) return true;
+  if (/unlock[_-]?secret|secret[_-]?unlock|unlocksecret|secretunlock/.test(lower)) return true;
+  return false;
+}
+
 export function registerApiKeyHandlers(): void {
 
   registerIpcChannel("credential:set", (_event, payload: { key: string, value: string }) => {
     try {
+      if (isReservedCredentialName(payload.key)) {
+        return { ok: false, error: `Credential name "${payload.key}" is reserved. Use typed password/profile APIs.` };
+      }
       setCredential(payload.key, payload.value);
       return { ok: true };
     } catch (err) {
@@ -123,6 +146,9 @@ export function registerApiKeyHandlers(): void {
 
   registerIpcChannel("credential:get", (_event, key: string) => {
     try {
+      if (isReservedCredentialName(key)) {
+        return { ok: true, value: null };
+      }
       const val = getCredential(key);
       return { ok: true, value: val };
     } catch (err) {
@@ -132,10 +158,48 @@ export function registerApiKeyHandlers(): void {
 
   registerIpcChannel("credential:delete", (_event, key: string) => {
     try {
+      if (isReservedCredentialName(key)) {
+        return { ok: true };
+      }
       deleteCredential(key);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  registerIpcChannel("masterPassword:isSet", () => isMasterPasswordSet());
+
+  registerIpcChannel("masterPassword:set", (_event, password: unknown) => {
+    try {
+      if (typeof password !== "string" || password.length === 0) {
+        throw new Error("Master password must be a non-empty string.");
+      }
+      setMasterPassword(password);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  registerIpcChannel("masterPassword:verify", (_event, password: unknown) => {
+    try {
+      if (typeof password !== "string") {
+        return { ok: true, verified: false, lockedOutSeconds: 0 };
+      }
+      const { verified, lockedOutSeconds } = verifyMasterPassword(password);
+      return { ok: true, verified, lockedOutSeconds };
+    } catch (err) {
+      return { ok: false, verified: false, lockedOutSeconds: 0, error: redactErrorMessage(err) };
+    }
+  });
+
+  registerIpcChannel("masterPassword:clear", () => {
+    try {
+      clearMasterPassword();
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
     }
   });
 
@@ -170,11 +234,13 @@ export function registerApiKeyHandlers(): void {
       }
       const { profileId, password } = payload as { profileId?: unknown; password?: unknown };
       if (typeof profileId !== "string" || profileId.length === 0 || typeof password !== "string") {
-        return { ok: true, verified: false };
+        return { ok: true, verified: false, lockedOutSeconds: 0 };
       }
-      return { ok: true, verified: verifyProfilePassword(password, profileId) };
+      const verified = verifyProfilePassword(password, profileId);
+      const lockedOutSeconds = getProfilePasswordLockoutSeconds(profileId);
+      return { ok: true, verified, lockedOutSeconds };
     } catch (err) {
-      return { ok: false, verified: false, error: redactErrorMessage(err) };
+      return { ok: false, verified: false, lockedOutSeconds: 0, error: redactErrorMessage(err) };
     }
   });
 

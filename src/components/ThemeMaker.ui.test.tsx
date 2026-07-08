@@ -39,6 +39,11 @@ describe("ThemeMaker built-in theme selection", () => {
     expect(screen.getByRole("button", { name: "Forge One Dark" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Forge Monokai" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Forge GitHub Light" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Obsidian Bloom" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Harbor Fog" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Circuit Mint" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Amber Archive" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Neon Dusk" })).toBeInTheDocument();
   });
 
   it.each([
@@ -50,6 +55,11 @@ describe("ThemeMaker built-in theme selection", () => {
     ["Forge One Dark", "builtin-one-dark"],
     ["Forge Monokai", "builtin-monokai"],
     ["Forge GitHub Light", "builtin-github-light"],
+    ["Obsidian Bloom", "builtin-obsidian-bloom"],
+    ["Harbor Fog", "builtin-harbor-fog"],
+    ["Circuit Mint", "builtin-circuit-mint"],
+    ["Amber Archive", "builtin-amber-archive"],
+    ["Neon Dusk", "builtin-neon-dusk"],
   ] as const)("selects %s when its button is clicked", (label, id) => {
     render(<ThemeMaker />);
     fireEvent.click(screen.getByRole("button", { name: label }));

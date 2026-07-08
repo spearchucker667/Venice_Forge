@@ -433,12 +433,13 @@ export function deleteCredential(key: string): void {
 // always written/read via the encrypted-safeStorage path and is namespaced
 // per profile id so two profiles can have independent passwords.
 //
-// The full setup/unlock UI is intentionally NOT wired into a renderer flow
-// in this release. The secureStore entry points below are the audit-level
-// minimum the release-blocker asks for: every existing `setCredential("profile_password*", …)`
-// call site is funneled through `setProfilePassword` which fails closed on
-// every OS. The verifier-on-disk format is a JSON PBKDF2-SHA256 record with
-// a per-profile random salt. Web Crypto parity is not available in the
+// The setup/unlock UI is wired through the renderer's ProfilePanel, which
+// routes password operations to the IPC bridge and ultimately to the
+// functions below. The secureStore entry points remain the audit-level
+// enforcement layer: every `setCredential("profile_password*", …)` call site
+// is funneled through `setProfilePassword`, which fails closed on every OS.
+// The verifier-on-disk format is a JSON PBKDF2-SHA256 record with a
+// per-profile random salt. Web Crypto parity is not available in the
 // Electron main process at this layer; Node `crypto` keeps verification
 // deterministic and self-contained.
 //
@@ -448,19 +449,218 @@ export function deleteCredential(key: string): void {
 
 import crypto from "crypto";
 
-const PROFILE_PASSWORD_VERIFIER_VERSION = 1;
-const PROFILE_PASSWORD_ALGORITHM = "pbkdf2-sha256";
-const PROFILE_PASSWORD_ITERATIONS = 310_000;
-const PROFILE_PASSWORD_SALT_BYTES = 16;
-const PROFILE_PASSWORD_DIGEST_BYTES = 32;
+// ── Shared verifier primitives ──
+// Both master and profile passwords use the same PBKDF2-SHA256 verifier
+// format. Keeping them identical avoids divergence and makes auditing easier.
 
-interface ProfilePasswordVerifierRecord {
+const VERIFIER_VERSION = 1;
+const VERIFIER_ALGORITHM = "pbkdf2-sha256";
+const VERIFIER_ITERATIONS = 310_000;
+const VERIFIER_SALT_BYTES = 16;
+const VERIFIER_DIGEST_BYTES = 32;
+
+const MAX_VERIFY_ATTEMPTS = 5;
+const VERIFY_LOCKOUT_MS = 60_000;
+
+interface PasswordVerifierRecord {
   version: 1;
   algorithm: "pbkdf2-sha256";
   iterations: number;
   salt: string;
   digest: string;
 }
+
+function buildVerifier(plaintext: string): PasswordVerifierRecord {
+  const salt = crypto.randomBytes(VERIFIER_SALT_BYTES);
+  const digest = crypto.pbkdf2Sync(
+    plaintext,
+    salt,
+    VERIFIER_ITERATIONS,
+    VERIFIER_DIGEST_BYTES,
+    "sha256",
+  );
+  return {
+    version: VERIFIER_VERSION,
+    algorithm: VERIFIER_ALGORITHM,
+    iterations: VERIFIER_ITERATIONS,
+    salt: salt.toString("base64"),
+    digest: digest.toString("base64"),
+  };
+}
+
+function parseVerifier(raw: string): PasswordVerifierRecord | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  const record = parsed as Partial<PasswordVerifierRecord>;
+  if (
+    record.version !== VERIFIER_VERSION ||
+    record.algorithm !== VERIFIER_ALGORITHM ||
+    record.iterations !== VERIFIER_ITERATIONS ||
+    typeof record.salt !== "string" ||
+    typeof record.digest !== "string"
+  ) {
+    return null;
+  }
+  const salt = Buffer.from(record.salt, "base64");
+  const digest = Buffer.from(record.digest, "base64");
+  if (salt.length !== VERIFIER_SALT_BYTES || digest.length !== VERIFIER_DIGEST_BYTES) return null;
+  return record as PasswordVerifierRecord;
+}
+
+function compareVerifier(plaintext: string, expected: PasswordVerifierRecord): boolean {
+  const salt = Buffer.from(expected.salt, "base64");
+  const expectedDigest = Buffer.from(expected.digest, "base64");
+  const candidate = crypto.pbkdf2Sync(
+    plaintext,
+    salt,
+    expected.iterations,
+    expectedDigest.length,
+    "sha256",
+  );
+  if (candidate.length !== expectedDigest.length) return false;
+  return crypto.timingSafeEqual(candidate, expectedDigest);
+}
+
+// ── Main-process lockout state ──
+// Failed password attempts are tracked in the main process so a renderer
+// reset (page reload, store recreation, etc.) cannot clear the lockout.
+
+interface LockoutEntry {
+  attempts: number;
+  lockedUntil: number | null;
+}
+
+const masterPasswordLockout: LockoutEntry = { attempts: 0, lockedUntil: null };
+const profilePasswordLockouts = new Map<string, LockoutEntry>();
+
+function getLockoutEntry(map: Map<string, LockoutEntry>, key: string): LockoutEntry {
+  let entry = map.get(key);
+  if (!entry) {
+    entry = { attempts: 0, lockedUntil: null };
+    map.set(key, entry);
+  }
+  return entry;
+}
+
+function getLockedOutSeconds(entry: LockoutEntry): number {
+  if (!entry.lockedUntil) return 0;
+  const remaining = Math.ceil((entry.lockedUntil - Date.now()) / 1000);
+  return remaining > 0 ? remaining : 0;
+}
+
+function recordFailedAttempt(entry: LockoutEntry): number {
+  entry.attempts += 1;
+  if (entry.attempts >= MAX_VERIFY_ATTEMPTS) {
+    entry.lockedUntil = Date.now() + VERIFY_LOCKOUT_MS;
+  }
+  return getLockedOutSeconds(entry);
+}
+
+function clearLockout(entry: LockoutEntry): void {
+  entry.attempts = 0;
+  entry.lockedUntil = null;
+}
+
+/** Exposed for test isolation. */
+export function __resetMasterPasswordLockoutForTests(): void {
+  clearLockout(masterPasswordLockout);
+}
+
+/** Exposed for test isolation. */
+export function __resetProfilePasswordLockoutsForTests(): void {
+  profilePasswordLockouts.clear();
+}
+
+// ── Master Password ──
+// The master password is a single global verifier stored in the main process.
+// Renderer code must NEVER access the verifier directly; it sends the
+// plaintext over typed IPC to `masterPassword:verify`, and the main process
+// performs the constant-time comparison and lockout enforcement.
+
+const MASTER_PASSWORD_CREDENTIAL_NAME = "master_password";
+
+/** Stores a salted PBKDF2 verifier for the master password. */
+export function setMasterPassword(plaintext: string): void {
+  if (typeof plaintext !== "string" || plaintext.length === 0) {
+    throw new Error("Master password must be a non-empty string.");
+  }
+  setCredential(MASTER_PASSWORD_CREDENTIAL_NAME, JSON.stringify(buildVerifier(plaintext)));
+  clearLockout(masterPasswordLockout);
+}
+
+/** Returns true when a master password verifier is stored. */
+export function isMasterPasswordSet(): boolean {
+  const raw = getCredential(MASTER_PASSWORD_CREDENTIAL_NAME);
+  return typeof raw === "string" && parseVerifier(raw) !== null;
+}
+
+/** Verifies the master password with main-process lockout enforcement. */
+export function verifyMasterPassword(plaintext: string): { verified: boolean; lockedOutSeconds: number } {
+  if (typeof plaintext !== "string" || plaintext.length === 0) {
+    return { verified: false, lockedOutSeconds: getLockedOutSeconds(masterPasswordLockout) };
+  }
+
+  const lockedBefore = getLockedOutSeconds(masterPasswordLockout);
+  if (lockedBefore > 0) {
+    return { verified: false, lockedOutSeconds: lockedBefore };
+  }
+
+  const raw = getCredential(MASTER_PASSWORD_CREDENTIAL_NAME);
+  if (typeof raw !== "string" || raw.length === 0) {
+    // Charge an attempt even when no verifier exists so missing-record
+    // failures are indistinguishable from wrong-password failures.
+    const lockedOutSeconds = recordFailedAttempt(masterPasswordLockout);
+    return { verified: false, lockedOutSeconds };
+  }
+
+  const expected = parseVerifier(raw);
+  if (!expected) {
+    const lockedOutSeconds = recordFailedAttempt(masterPasswordLockout);
+    return { verified: false, lockedOutSeconds };
+  }
+
+  if (compareVerifier(plaintext, expected)) {
+    clearLockout(masterPasswordLockout);
+    return { verified: true, lockedOutSeconds: 0 };
+  }
+
+  const lockedOutSeconds = recordFailedAttempt(masterPasswordLockout);
+  return { verified: false, lockedOutSeconds };
+}
+
+/** Removes the stored master password verifier. */
+export function clearMasterPassword(): void {
+  deleteCredential(MASTER_PASSWORD_CREDENTIAL_NAME);
+  clearLockout(masterPasswordLockout);
+}
+
+// ── Profile Password (RELEASE-BLOCKER #4 / #5) ──
+//
+// Profile passwords are treated as a strict, fail-closed credential: they
+// NEVER admit the Linux plaintext-fallback escape hatch. The credential is
+// always written/read via the encrypted-safeStorage path and is namespaced
+// per profile id so two profiles can have independent passwords.
+//
+// The setup/unlock UI is wired through the renderer's ProfilePanel, which
+// routes password operations to the IPC bridge and ultimately to the
+// functions below. The secureStore entry points remain the audit-level
+// enforcement layer: every `setCredential("profile_password*", …)` call site
+// is funneled through `setProfilePassword`, which fails closed on every OS.
+// The verifier-on-disk format is a JSON PBKDF2-SHA256 record with a
+// per-profile random salt. Web Crypto parity is not available in the
+// Electron main process at this layer; Node `crypto` keeps verification
+// deterministic and self-contained.
+//
+// Renderer callers should NOT use `setCredential("profile_password", …)`
+// directly. Use `setProfilePassword`, `verifyProfilePassword`,
+// `isProfilePasswordSet`, `clearProfilePassword` via the IPC bridge.
+
+type ProfilePasswordVerifierRecord = PasswordVerifierRecord;
 
 /** Canonical credential name for the active profile's password. */
 export function getProfilePasswordName(profileId: string): string {
@@ -477,87 +677,64 @@ export function isAnyProfilePasswordConfigured(): boolean {
   return false;
 }
 
-function buildProfilePasswordVerifier(plaintext: string): ProfilePasswordVerifierRecord {
-  const salt = crypto.randomBytes(PROFILE_PASSWORD_SALT_BYTES);
-  const digest = crypto.pbkdf2Sync(
-    plaintext,
-    salt,
-    PROFILE_PASSWORD_ITERATIONS,
-    PROFILE_PASSWORD_DIGEST_BYTES,
-    "sha256",
-  );
-  return {
-    version: PROFILE_PASSWORD_VERIFIER_VERSION,
-    algorithm: PROFILE_PASSWORD_ALGORITHM,
-    iterations: PROFILE_PASSWORD_ITERATIONS,
-    salt: salt.toString("base64"),
-    digest: digest.toString("base64"),
-  };
-}
-
-function parseProfilePasswordVerifier(raw: string): ProfilePasswordVerifierRecord | null {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return null;
-  }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
-  const record = parsed as Partial<ProfilePasswordVerifierRecord>;
-  if (
-    record.version !== PROFILE_PASSWORD_VERIFIER_VERSION ||
-    record.algorithm !== PROFILE_PASSWORD_ALGORITHM ||
-    record.iterations !== PROFILE_PASSWORD_ITERATIONS ||
-    typeof record.salt !== "string" ||
-    typeof record.digest !== "string"
-  ) {
-    return null;
-  }
-  const salt = Buffer.from(record.salt, "base64");
-  const digest = Buffer.from(record.digest, "base64");
-  if (salt.length !== PROFILE_PASSWORD_SALT_BYTES || digest.length !== PROFILE_PASSWORD_DIGEST_BYTES) return null;
-  return record as ProfilePasswordVerifierRecord;
-}
-
 /** Sets the given plaintext password for the active profile. The plaintext is
  *  NEVER written to disk — only the salted PBKDF2 verifier record is stored. */
 export function setProfilePassword(plaintext: string, profileId: string): void {
   if (typeof plaintext !== "string" || plaintext.length === 0) {
     throw new Error("Profile password must be a non-empty string.");
   }
-  const verifier = JSON.stringify(buildProfilePasswordVerifier(plaintext));
+  const verifier = JSON.stringify(buildVerifier(plaintext));
   // setCredential stores via the safeStorage encrypted path on every OS;
   // isStrictNoPlaintextCredential refuses plaintext for `profile_password*`.
   setCredential(getProfilePasswordName(profileId), verifier);
+  // Clear any prior lockout when an authorized user resets the password.
+  clearLockout(getLockoutEntry(profilePasswordLockouts, profileId));
+}
+
+/** Returns the number of seconds remaining in the lockout for a profile. */
+export function getProfilePasswordLockoutSeconds(profileId: string): number {
+  return getLockedOutSeconds(getLockoutEntry(profilePasswordLockouts, profileId));
 }
 
 /** Returns true if the supplied plaintext matches the on-disk verifier. */
 export function verifyProfilePassword(plaintext: string, profileId: string): boolean {
   if (typeof plaintext !== "string" || plaintext.length === 0) return false;
+
+  const entry = getLockoutEntry(profilePasswordLockouts, profileId);
+  if (getLockedOutSeconds(entry) > 0) return false;
+
   const raw = getCredential(getProfilePasswordName(profileId));
-  if (typeof raw !== "string" || raw.length === 0) return false;
-  const expected = parseProfilePasswordVerifier(raw);
-  if (!expected) return false;
-  const salt = Buffer.from(expected.salt, "base64");
-  const expectedDigest = Buffer.from(expected.digest, "base64");
-  const candidate = crypto.pbkdf2Sync(
-    plaintext,
-    salt,
-    expected.iterations,
-    expectedDigest.length,
-    "sha256",
-  );
-  if (candidate.length !== expectedDigest.length) return false;
-  return crypto.timingSafeEqual(candidate, expectedDigest);
+  if (typeof raw !== "string" || raw.length === 0) {
+    // Charge an attempt even when no verifier exists to avoid leaking
+    // whether the profile has a password through timing/error details.
+    recordFailedAttempt(entry);
+    return false;
+  }
+
+  const expected = parseVerifier(raw) as ProfilePasswordVerifierRecord | null;
+  if (!expected) {
+    recordFailedAttempt(entry);
+    return false;
+  }
+
+  if (compareVerifier(plaintext, expected)) {
+    clearLockout(entry);
+    return true;
+  }
+
+  recordFailedAttempt(entry);
+  return false;
 }
 
 /** Returns true if the active profile has a stored password. */
 export function isProfilePasswordSet(profileId: string): boolean {
   const raw = getCredential(getProfilePasswordName(profileId));
-  return typeof raw === "string" && parseProfilePasswordVerifier(raw) !== null;
+  return typeof raw === "string" && parseVerifier(raw) !== null;
 }
 
 /** Removes the active profile's password. */
 export function clearProfilePassword(profileId: string): void {
   deleteCredential(getProfilePasswordName(profileId));
+  const entry = profilePasswordLockouts.get(profileId);
+  if (entry) clearLockout(entry);
 }

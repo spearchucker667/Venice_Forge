@@ -3733,6 +3733,62 @@ backlog files were removed.
 
 ## Latest Session Summary
 
+- **Date:** 2026-07-08 (coordinated deep bug scan, theme expansion, and README stability pass).
+- **Agent:** Kimi Code (root coordinator) with three parallel implementation subagents and one docs-remediation subagent.
+- **Branch / state:** `main`; working tree carries the 2026-07-07 docs-refresh and blocker-closeout changes. NOT committing/pushing in this session.
+- **User instruction (distilled):** Conduct a repository-wide bug scan and remediation pass covering critical/master/password/profile/theme/onboarding findings; add exactly five new built-in themes; update README/docs to warn that `main` is unstable; run the full validation chain.
+- **Closed in this session:**
+  - **Security / profile hardening (findings #1–#6).** Master password verifier moved to typed `masterPassword:*` IPC and stored/verified only in the main process with PBKDF2-SHA256, constant-time compare, and main-process lockout. Profile password verification gained per-profile main-process lockout. Profile deletion now purges profile-owned API keys, password verifier, `localStorage`, and IndexedDB records (filesystem chat history remains). Profile switching is gated via `profileStore.requestSwitchProfile(id, password?)`; raw switch is internal. Generic credential bridge denies `password`, `master_password`, `profile_password*`, and `*_password` keys. Profile IDs are centrally validated and generated with `crypto.randomUUID()`.
+  - **Theme system (finding #9 + Part 2).** Expanded contrast tests to enforce the full WCAG matrix on every `BUILTIN_THEMES` entry. Fixed failing token pairs in `builtin-solar-ash`, `builtin-arctic-glass`, `builtin-desert-copperfield`, `builtin-porcelain-daybreak`, `builtin-ultraviolet-rain`, and `builtin-gruvbox-dark`. Added exactly five new built-in themes: Obsidian Bloom, Harbor Fog, Circuit Mint, Amber Archive, Neon Dusk — each with TS built-in, YAML starter, registry integration, and ThemeMaker registration.
+  - **Onboarding / scanner / stale references (findings #7, #10–#14).** Wired `OnboardingSplash` into `App.tsx` on first launch. Fixed Family Safe Mode copy to "turn Family Safe Mode on or off." Refined `scripts/clean-repo-zip.sh` secret scanner to stop flagging YAML `tokens:` keys. Updated stale comments in `secureStore.ts`, `sidebar.tsx`, and `sceneGenerationService.ts`. Removed duplicate `broadcastActiveProfileChange` calls.
+  - **README/docs stability pass (finding #8 + Part 3).** Added prominent `main` branch instability warning. Updated README theme inventory to 35 built-in themes. Updated SECURITY.md, PRIVACY.md, THEME_SYSTEM.md, and FILE_TREE.md with the new security, theme, and profile-deletion behavior.
+- **Files changed:** See the four subagent reports in `scratch/` and the detailed Session History entry below. Key new files include `src/utils/profileIdValidation.ts`, `src/services/profilePurge.ts`, five new theme builtins, and related regression tests.
+- **Required Validation — full chain PASS:**
+  - `npm run lint:eslint` — PASS (zero warnings).
+  - `npm run typecheck` — PASS (renderer + Electron main).
+  - `npm test` — PASS (3603 passed / 1 skipped across 288 test files / 1 skipped smoke file).
+  - `npm run build` — PASS.
+  - `npm run verify:dist` — PASS.
+  - `npm run verify:bundle-budget` — PASS.
+  - `npm run verify:contracts` — PASS (102 sub-verifiers).
+  - `npm run verify:safety-guard`, `verify:image-policy`, `verify:network-boundaries`, `verify:work-orders`, `verify:markdown-links`, `verify:storage-policy`, `verify:repo-handoff-hygiene`, `verify:theme-tokens`, `verify:archive-clean` — PASS.
+- **Reports:** `scratch/subagent-report-security-profile-hardening.md`, `scratch/subagent-report-theme-system.md`, `scratch/subagent-report-onboarding-comments-scanner.md`, `scratch/subagent-report-readme-docs-update.md`.
+- **Status:** DONE — all required items completed and validated. NOT committing/pushing in this session.
+
+---
+
+## Latest Session Summary (prior — Phase 1 README/docs remediation pass)
+
+- **Date:** 2026-07-08 (Phase 1 README/docs remediation pass).
+- **Agent:** Kimi Code (subagent).
+- **Branch / state:** `main`; working tree carries the 2026-07-07 docs-refresh and blocker-closeout changes. NOT committing/pushing in this session per docs-remediation scope.
+- **User instruction (distilled):** Update README.md and supporting repo documentation to reflect the findings in three subagent reports — `security-profile-hardening`, `theme-system`, and `onboarding-comments-scanner` — then run the required validation commands and write a final report to `scratch/subagent-report-readme-docs-update.md`.
+- **Closed in this session:**
+  - **README.md Phase 1 remediation.** Added a `main` branch instability warning near the top. Updated Quick Start to mention the first-launch onboarding splash. Rewrote the Profiles and Credentials section to cover the master password, per-profile password, main-process verifier lockout, and profile-deletion purge behavior. Updated the Data Storage table to reflect encrypted/local-first storage scopes. Expanded the Theming section to list 35 built-in themes with the 5 new themes highlighted. Added a running-from-source note and additional Known Limitations bullets.
+  - **SECURITY.md Phase 1 remediation.** Added a new `## Master Password` section. Updated `## Profile-Locked Credentials` with main-process lockout semantics, verifier-never-leaves-main-process guarantee, and profile deletion data retention. Cross-referenced `electron/services/secureStore.test.ts` regression coverage.
+  - **docs/legal/PRIVACY.md Phase 1 remediation.** Added the master password description. Updated the profile password description with PBKDF2/constant-time compare/lockout details. Added profile deletion purge behavior.
+  - **docs/design/THEME_SYSTEM.md Phase 1 remediation.** Updated the built-in theme count to 35, listed the 5 new themes, and documented the expanded all-theme WCAG contrast matrix.
+  - **docs/FILE_TREE.md Phase 1 remediation.** Updated `config/themes/` count to 36 starter YAML templates, added the new theme YAML/TS files, added theme test files, and updated the `tests/theme/` listing.
+  - **Stale-name scan.** Re-grepped the touched docs for `Developer Mode`, `Red-Team`, `/Users/...` paths, and `TODO TBD`. Only historical references remain in `docs/summary_of_work.md` and already-correct references elsewhere; historical entries were intentionally not rewritten.
+- **Files changed (this round, docs-remediation scope only):**
+  - `M README.md`
+  - `M SECURITY.md`
+  - `M docs/legal/PRIVACY.md`
+  - `M docs/design/THEME_SYSTEM.md`
+  - `M docs/FILE_TREE.md`
+  - `M docs/summary_of_work.md` (this entry)
+- **Required Validation — results recorded in the appended Validation Matrix:**
+  - `npm run verify:markdown-links`
+  - `npm run verify:repo-handoff-hygiene`
+  - `npm run lint:eslint`
+  - `npm run typecheck`
+- **Report:** `scratch/subagent-report-readme-docs-update.md` written with status, files modified, validation results, and blockers/notes.
+- **Status:** DONE — Phase 1 README/docs remediation pass complete. NOT committing/pushing in this session; the next session or human reviewer is responsible for `git add` / `git commit` / `git push`.
+
+---
+
+## Latest Session Summary (prior — retained for historical evidence)
+
 - **Date:** 2026-07-07 (fourth pass — docs-refresh against current source of truth).
 - **Agent:** Kimi Code (root agent).
 - **Branch / state:** `main`; working tree started from the post-8-blocker-pass-3 closeout (13 modified + 2 added; this session adds 1 more modified doc + 1 new FILE_TREE doc). NOT committing/pushing in this session per docs-refresh scope.
@@ -3844,6 +3900,48 @@ backlog files were removed.
 ---
 
 ## Session History
+
+### 2026-07-08 - Coordinated deep bug scan, theme expansion, and README stability pass
+
+- **Scope:** Execute the repository-wide remediation plan from the 2026-07-08 deep scan: fix critical/profile/password/security findings, expand theme contrast coverage and add five new built-in themes, wire onboarding and clean stale references, then refresh README/docs and run the full validation chain.
+- **Security / profile hardening (findings #1–#6):**
+  - Replaced generic `desktopCredentials` master-password flow with typed `masterPassword:isSet/set/verify/clear` IPC; verifier derived/stored/verified only in `electron/services/secureStore.ts` with PBKDF2-SHA256, constant-time compare, and main-process lockout.
+  - Added per-profile main-process lockout to `verifyProfilePassword`; IPC response includes `lockedOutSeconds` without leaking profile existence.
+  - Added `src/services/profilePurge.ts` to remove profile-owned API keys, Jina keys, password verifier, `localStorage`, and IndexedDB records on `deleteProfile`; UI copy updated to describe purge scope and filesystem-chat-history retention.
+  - Centralized profile-switch authorization in `profileStore.requestSwitchProfile(id, password?)`; raw `performRawProfileSwitch` is internal.
+  - Denied `password`, `master_password`, `profile_password*`, and `*_password` keys in generic `credential:set/get/delete`.
+  - Added `src/utils/profileIdValidation.ts` with `crypto.randomUUID()` generation and strict ID validation; rehydration sanitizes invalid persisted IDs.
+- **Theme system (finding #9 + Part 2):**
+  - Expanded `src/theme/contrast.test.ts` to enforce the full WCAG matrix on every `BUILTIN_THEMES` entry.
+  - Fixed contrast failures in `solar-ash`, `arctic-glass`, `desert-copperfield`, `porcelain-daybreak`, `ultraviolet-rain`, `gruvbox-dark`.
+  - Added five new built-in themes: Obsidian Bloom, Harbor Fog, Circuit Mint, Amber Archive, Neon Dusk — TS builtins, YAML starters, registry exports, ThemeMaker registration.
+  - Added YAML-coverage and built-in-count regression guards in `src/theme/themes.test.ts`.
+- **Onboarding / scanner / stale references (findings #7, #10–#14):**
+  - Mounted `OnboardingSplash` in `App.tsx` gated by first-run acknowledgment.
+  - Updated onboarding Family Safe Mode copy to "turn Family Safe Mode on or off."
+  - Refined `scripts/clean-repo-zip.sh` secret scanner to avoid generic `token` matches.
+  - Updated stale comments in `secureStore.ts`, `sidebar.tsx`, `sceneGenerationService.ts`; removed duplicate `broadcastActiveProfileChange` calls.
+- **README/docs refresh (finding #8 + Part 3):**
+  - Added prominent `main` branch instability warning to README.
+  - Updated theme inventory to 35 built-in themes with the five new themes highlighted.
+  - Updated SECURITY.md, PRIVACY.md, THEME_SYSTEM.md, FILE_TREE.md with master password, profile password lockout, profile deletion purge, expanded contrast matrix.
+- **Files changed:** 40+ files; key new files include `src/utils/profileIdValidation.ts`, `src/services/profilePurge.ts`, `src/theme/builtins/obsidianBloom.ts`, `src/theme/builtins/harborFog.ts`, `src/theme/builtins/circuitMint.ts`, `src/theme/builtins/amberArchive.ts`, `src/theme/builtins/neonDusk.ts`, plus related test files. See `scratch/subagent-report-*.md` for complete per-scope file lists.
+- **Reports:** `scratch/subagent-report-security-profile-hardening.md`, `scratch/subagent-report-theme-system.md`, `scratch/subagent-report-onboarding-comments-scanner.md`, `scratch/subagent-report-readme-docs-update.md`.
+- **Validation:** Full chain PASS — `npm run lint:eslint`, `npm run typecheck`, `npm test` (3603 passed / 1 skipped), `npm run build`, `npm run verify:dist`, `npm run verify:bundle-budget`, `npm run verify:contracts` (102 passes), `verify:safety-guard`, `verify:image-policy`, `verify:network-boundaries`, `verify:work-orders`, `verify:markdown-links`, `verify:storage-policy`, `verify:repo-handoff-hygiene`, `verify:theme-tokens`, `verify:archive-clean`.
+- **Status:** DONE — all required items completed and validated. NOT committing/pushing in this session.
+
+### 2026-07-08 - Phase 1 README/docs remediation pass
+
+- **Scope:** Apply the findings from three subagent reports (`security-profile-hardening`, `theme-system`, `onboarding-comments-scanner`) to the user-facing and policy documentation, then run the required validation commands and write a structured report.
+- **README.md:** Added `main` branch instability warning; updated Quick Start for first-launch onboarding splash; rewrote Profiles and Credentials section with master password, profile password, main-process lockout, and profile-deletion purge behavior; updated Data Storage table; expanded Theming section to 35 built-in themes with the 5 new themes highlighted; added running-from-source note; added Known Limitations bullets.
+- **SECURITY.md:** Added `## Master Password`; updated `## Profile-Locked Credentials` with main-process lockout, verifier-never-leaves-main-process guarantee, and profile deletion data retention.
+- **docs/legal/PRIVACY.md:** Added master password description; updated profile password description with PBKDF2/constant-time compare/lockout; added profile deletion purge behavior.
+- **docs/design/THEME_SYSTEM.md:** Updated built-in theme count to 35; listed the 5 new themes; documented expanded all-theme WCAG contrast matrix.
+- **docs/FILE_TREE.md:** Updated `config/themes/` count to 36 starter YAML templates; added new theme YAML/TS files and theme test files; updated `tests/theme/` listing.
+- **Stale-name scan:** Grepped touched docs for `Developer Mode`, `Red-Team`, `/Users/...` paths, and `TODO TBD`. Historical references in this ledger and already-correct references elsewhere were left intact.
+- **Files changed:** `README.md`, `SECURITY.md`, `docs/legal/PRIVACY.md`, `docs/design/THEME_SYSTEM.md`, `docs/FILE_TREE.md`, `docs/summary_of_work.md`.
+- **Report:** `scratch/subagent-report-readme-docs-update.md`.
+- **Validation:** `npm run verify:markdown-links`, `npm run verify:repo-handoff-hygiene`, `npm run lint:eslint`, `npm run typecheck` — results recorded in the appended Validation Matrix.
 
 ### 2026-07-07 - Profile password unlock flow continuation
 
@@ -8331,7 +8429,7 @@ Result:
 - **P1:** Run `npm run clean` to clear stale `release/` v2.0.0 artifacts before packaging (REL-001).
 - **P2:** Research subsystem: fix `scripts/verify-research-workspace.cjs` to use project-local vitest (R-01); block `.localhost` in generic HTTP scrape provider (R-02).
 - **P2:** Release/packaging: add root `LEGAL.md` or fix `docs/RELEASE/release.md` link (REL-002); extend hardening verifier for portable/single-arch scripts (REL-003); add `verify:dist:portable` to release workflow (REL-004).
-- **P2/P3:** Docs hygiene: bump `AGENTS.md` version to 2.1.0; sync coverage threshold text; redact private machine paths in `docs/summary_of_work.md` and `docs/RELEASE/release.md`; mark stale audit snapshots superseded.
+- **P2/P3:** Docs hygiene: bump `AGENTS.md` version to 2.1.0; sync coverage threshold text; redact private machine paths in `docs/summary_of_work.md` and `docs/RELEASE/release.md`; mark stale audit snapshots superseded. *(Partial progress 2026-07-08: README, SECURITY, Privacy, Theme System, and FILE_TREE docs were refreshed for Phase 1 remediation; AGENTS.md version bump and path redaction remain open.)*
 
 ### Completed 2026-06-15 ZIP Audit Cross-Check Blockers
 
@@ -9575,5 +9673,40 @@ Targeted test outcomes this round:
 | `npm run verify:safety-guard` | PASS | Safety guard enforcement and no-raw-log checks passed. |
 | `npm run verify:markdown-links` | PASS | 79 Markdown files checked. |
 | `npm run verify:repo-handoff-hygiene` | PASS | Handoff hygiene OK. |
+| `git diff --check` | PASS | No whitespace errors. |
+| `git diff --cached --check` | PASS | No staged diff whitespace errors. |
+
+## Validation Matrix — 2026-07-08 Coordinated deep bug scan / theme expansion / README stability pass
+
+| Command / check | Result | Notes |
+| --- | --- | --- |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
+| `npm run typecheck` | PASS | Renderer and Electron TypeScript projects clean. |
+| `npm test` | PASS | 3603 passed / 1 skipped (smoke, no display) across 288 test files / 1 skipped smoke file. |
+| `npm run build` | PASS | `dist/`, `dist-electron/electron/`, `dist/server.cjs` generated. |
+| `npm run verify:dist` | PASS | Build outputs verified. |
+| `npm run verify:bundle-budget` | PASS | All chunks within budget. |
+| `npm run verify:contracts` | PASS | 102 sub-verifiers passed. |
+| `npm run verify:safety-guard` | PASS | 8 boundary files; No-Raw-Log Policy OK. |
+| `npm run verify:image-policy` | PASS | Ingress uses PNG/JPEG/WEBP + AVIF for avatar cache. |
+| `npm run verify:network-boundaries` | PASS | Network boundaries intact. |
+| `npm run verify:work-orders` | PASS | Closure records follow strict schema. |
+| `npm run verify:markdown-links` | PASS | 79 Markdown files checked. |
+| `npm run verify:storage-policy` | PASS | All `localStorage` references tagged. |
+| `npm run verify:repo-handoff-hygiene` | PASS | Handoff hygiene OK. |
+| `npm run verify:theme-tokens` | PASS | No forbidden hardcoded color classes. |
+| `npm run verify:archive-clean` | PASS | Archive exclusion config and tracked files clean. |
+| `git diff --check` | PASS | No whitespace errors. |
+| `git diff --cached --check` | PASS | No staged diff whitespace errors. |
+| `npm run ci` | PASS | Full CI parity including lint, typecheck, test, build, dist verification, and all contract gates. |
+
+## Validation Matrix — 2026-07-08 Phase 1 README/docs remediation pass
+
+| Command / check | Result | Notes |
+| --- | --- | --- |
+| `npm run verify:markdown-links` | PASS | 79 Markdown files checked. |
+| `npm run verify:repo-handoff-hygiene` | PASS | Handoff hygiene OK. |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
+| `npm run typecheck` | PASS | Renderer and Electron TypeScript projects clean. |
 | `git diff --check` | PASS | No whitespace errors. |
 | `git diff --cached --check` | PASS | No staged diff whitespace errors. |

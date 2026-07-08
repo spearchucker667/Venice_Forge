@@ -2,7 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
 import { ProfilePanel } from "./ProfilePanel";
 import { useProfileStore } from "../../stores/profile-store";
 import { desktopProfilePassword, isElectron } from "../../services/desktopBridge";
@@ -23,12 +23,15 @@ vi.mock("../ui/modal-requests", () => ({
 
 describe("ProfilePanel profile password lock flow", () => {
   const addProfile = vi.fn();
-  const switchProfile = vi.fn();
+  const requestSwitchProfile = vi.fn();
   const updateProfile = vi.fn();
   const deleteProfile = vi.fn();
   const setMasterPasswordSet = vi.fn();
+  let reloadFn: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    reloadFn = vi.fn();
+    vi.stubGlobal("location", { reload: reloadFn });
     vi.clearAllMocks();
     vi.mocked(isElectron).mockReturnValue(true);
     vi.mocked(desktopProfilePassword.set).mockResolvedValue({ ok: true });
@@ -45,11 +48,15 @@ describe("ProfilePanel profile password lock flow", () => {
       globalOnboardingCompleted: false,
       setGlobalOnboardingCompleted: vi.fn(),
       addProfile,
-      switchProfile,
+      requestSwitchProfile,
       updateProfile,
       deleteProfile,
       setMasterPasswordSet,
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("sets a profile password through the secure bridge and marks the profile locked", async () => {
@@ -68,6 +75,8 @@ describe("ProfilePanel profile password lock flow", () => {
   });
 
   it("requires a successful unlock before switching to a password-protected profile", async () => {
+    requestSwitchProfile.mockResolvedValue({ ok: true });
+
     render(<ProfilePanel />);
 
     await userEvent.click(screen.getByRole("button", { name: /Switch to Work/i }));
@@ -75,13 +84,12 @@ describe("ProfilePanel profile password lock flow", () => {
     await userEvent.click(screen.getByRole("button", { name: "Unlock" }));
 
     await waitFor(() => {
-      expect(desktopProfilePassword.verify).toHaveBeenCalledWith("work", "correct-pass");
+      expect(requestSwitchProfile).toHaveBeenCalledWith("work", "correct-pass");
     });
-    expect(switchProfile).toHaveBeenCalledWith("work");
   });
 
   it("clears the unlock input and does not switch after a failed unlock", async () => {
-    vi.mocked(desktopProfilePassword.verify).mockResolvedValueOnce({ ok: true, verified: false });
+    requestSwitchProfile.mockResolvedValue({ ok: false, error: "Incorrect password" });
 
     render(<ProfilePanel />);
 
@@ -93,7 +101,6 @@ describe("ProfilePanel profile password lock flow", () => {
     await waitFor(() => {
       expect(screen.getByText("Incorrect password")).toBeInTheDocument();
     });
-    expect(switchProfile).not.toHaveBeenCalled();
     expect(screen.getByLabelText("Unlock password")).toHaveValue("");
   });
 });

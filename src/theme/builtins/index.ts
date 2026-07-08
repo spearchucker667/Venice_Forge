@@ -1,3 +1,8 @@
+import { BUILTIN_OBSIDIAN_BLOOM } from './obsidianBloom';
+import { BUILTIN_HARBOR_FOG } from './harborFog';
+import { BUILTIN_CIRCUIT_MINT } from './circuitMint';
+import { BUILTIN_AMBER_ARCHIVE } from './amberArchive';
+import { BUILTIN_NEON_DUSK } from './neonDusk';
 import { BUILTIN_AURORA_BOREAL } from './auroraBoreal';
 import { BUILTIN_SAKURA_TERMINAL } from './sakuraTerminal';
 import { BUILTIN_BASALT_NOIR } from './basaltNoir';
@@ -30,6 +35,11 @@ import { BUILTIN_MONOKAI } from './monokai';
 import { BUILTIN_GITHUB_LIGHT } from './githubLight';
 
 export {
+  BUILTIN_OBSIDIAN_BLOOM,
+  BUILTIN_HARBOR_FOG,
+  BUILTIN_CIRCUIT_MINT,
+  BUILTIN_AMBER_ARCHIVE,
+  BUILTIN_NEON_DUSK,
   BUILTIN_AURORA_BOREAL,
   BUILTIN_SAKURA_TERMINAL,
   BUILTIN_BASALT_NOIR,
@@ -63,6 +73,11 @@ export {
 };
 
 export const BUILTIN_THEMES = [
+  BUILTIN_OBSIDIAN_BLOOM,
+  BUILTIN_HARBOR_FOG,
+  BUILTIN_CIRCUIT_MINT,
+  BUILTIN_AMBER_ARCHIVE,
+  BUILTIN_NEON_DUSK,
   BUILTIN_AURORA_BOREAL,
   BUILTIN_SAKURA_TERMINAL,
   BUILTIN_BASALT_NOIR,

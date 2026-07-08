@@ -4,8 +4,6 @@ import { askDecision } from '../ui/modal-requests'
 import { desktopProfilePassword, isElectron } from '../../services/desktopBridge'
 
 const MIN_PROFILE_PASSWORD_LENGTH = 4
-const MAX_UNLOCK_ATTEMPTS = 5
-const UNLOCK_LOCKOUT_MS = 60_000
 
 type PasswordDialogState =
   | { mode: 'set'; profileId: string; profileName: string }
@@ -13,13 +11,12 @@ type PasswordDialogState =
   | null
 
 export function ProfilePanel() {
-  const { profiles, activeProfileId, addProfile, switchProfile, updateProfile, deleteProfile } = useProfileStore()
+  const { profiles, activeProfileId, addProfile, requestSwitchProfile, updateProfile, deleteProfile } = useProfileStore()
   const [newProfileName, setNewProfileName] = useState('')
   const [passwordDialog, setPasswordDialog] = useState<PasswordDialogState>(null)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordError, setPasswordError] = useState('')
-  const [unlockAttempts, setUnlockAttempts] = useState<Record<string, { attempts: number; lockedUntil: number | null }>>({})
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault()
@@ -76,7 +73,7 @@ export function ProfilePanel() {
       openUnlock(profileId, profileName)
       return
     }
-    switchProfile(profileId)
+    void requestSwitchProfile(profileId)
   }
 
   const handleClearPassword = async (profileId: string, profileName: string) => {
@@ -123,38 +120,17 @@ export function ProfilePanel() {
       return
     }
 
-    const current = unlockAttempts[passwordDialog.profileId]
-    const lockedUntil = current?.lockedUntil ?? null
-    if (lockedUntil && Date.now() < lockedUntil) {
-      setPassword('')
-      setPasswordError(`Locked out. Try again in ${Math.ceil((lockedUntil - Date.now()) / 1000)}s`)
-      return
-    }
-
-    const result = await desktopProfilePassword.verify(passwordDialog.profileId, password)
+    const result = await requestSwitchProfile(passwordDialog.profileId, password)
     setPassword('')
     setConfirmPassword('')
-    if (result.ok && result.verified) {
-      setUnlockAttempts((state) => ({
-        ...state,
-        [passwordDialog.profileId]: { attempts: 0, lockedUntil: null },
-      }))
-      const targetId = passwordDialog.profileId
+    if (result.ok) {
+      // The successful switch triggers a page reload; close the dialog
+      // immediately so it does not flash after reload.
       closePasswordDialog()
-      switchProfile(targetId)
       return
     }
 
-    const nextAttempts = (current?.attempts ?? 0) + 1
-    const nextLockedUntil = nextAttempts >= MAX_UNLOCK_ATTEMPTS ? Date.now() + UNLOCK_LOCKOUT_MS : null
-    setUnlockAttempts((state) => ({
-      ...state,
-      [passwordDialog.profileId]: {
-        attempts: nextAttempts,
-        lockedUntil: nextLockedUntil,
-      },
-    }))
-    setPasswordError(nextLockedUntil ? 'Too many failed attempts. Locked out for 1 minute.' : 'Incorrect password')
+    setPasswordError(result.error || 'Incorrect password')
   }
 
   return (
@@ -210,15 +186,12 @@ export function ProfilePanel() {
                   <button type="button" onClick={async () => {
                     const confirmed = await askDecision({
                       title: 'Delete profile?',
-                      detail: `"${p.name}" — all isolated settings will be removed. Files on disk remain.`,
+                      detail: `"${p.name}" — isolated settings, API keys, and encrypted records will be removed. Files on disk (e.g. chat history) remain.`,
                       actionLabel: 'Delete',
                       danger: true,
                     })
                     if (confirmed) {
-                      if (p.hasPassword) {
-                        await desktopProfilePassword.clear(p.id).catch(() => ({ ok: false }))
-                      }
-                      deleteProfile(p.id)
+                      await deleteProfile(p.id)
                     }
                   }} className="text-[12px] text-danger hover:underline px-2 py-1">
                     Delete

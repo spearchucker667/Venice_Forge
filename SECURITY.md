@@ -233,8 +233,29 @@ Per-Profile credentials are stored under the same `secure-prefs.json` file but w
 - **Credential names:** `profile_password:<profileId>` (e.g. `profile_password:work`). A stolen `secure-prefs.json` file alone cannot infer the subject without the `profileId` mapping, which is held in IndexedDB on the local machine.
 - **Storage policy:** All profile-password credentials are routed through the same `safeStorage` path as the Venice / Jina API keys. Plaintext fallback (Linux) is **always refused** for profile-password credentials, even when `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true`. The opt-in env-var only applies to API-key class credentials.
 - **Strict No-Plaintext Credential gate:** `electron/services/secureStore.ts` ships with a frozen `STRICT_NO_PLAINTEXT_CREDENTIAL_NAMES = {"password","master_password","profile_password"}` and a regex `STRICT_NO_PLAINTEXT_CREDENTIAL_PATTERN` that matches `^profile_password:` and `^profile_password_` (any profile id) plus any credential name ending in `_password`. `isStrictNoPlaintextCredential(name)` is invoked first in `setCredential` (throws) and `getCredential` (returns null) before the platform branch. See the regression guard suite in `electron/services/secureStore.test.ts` covering write-throws-on-Linux-plaintext-for-`master_password`-even-with-env-flag and the matching `profile_password` namespace coverage.
-- **Verifier:** `setProfilePassword(password, profileId)` stores a structured verifier record: `{ version: 1, algorithm: "pbkdf2-sha256", iterations: 310000, salt, digest }`. The salt is random per profile-password write, the digest is PBKDF2-SHA256, and verification uses `crypto.timingSafeEqual`. Legacy unsalted SHA-256 verifier strings are rejected rather than treated as configured passwords.
+- **Verifier:** `setProfilePassword(password, profileId)` stores a structured verifier record: `{ version: 1, algorithm: "pbkdf2-sha256", iterations: 310000, salt, digest }`. The salt is random per profile-password write, the digest is PBKDF2-SHA256, and verification uses `crypto.timingSafeEqual`. Legacy unsalted SHA-256 verifier strings are rejected rather than treated as configured passwords. The verifier never leaves the main process; the renderer does not store or retrieve it.
+- **Main-process lockout:** `verifyProfilePassword` is enforced in the Electron main process and is keyed by `profileId`. Five consecutive failed attempts for a profile trigger a 60-second lockout that clears only on success or after cooldown. The IPC response includes `lockedOutSeconds` so the UI can display remaining time without exposing profile existence.
 - **User-visible status:** The Storage & Privacy dashboard surfaces whether any profile password verifier is configured (read-only; the password itself never crosses the IPC boundary). The Profiles panel can set, remove, and verify profile passwords; switching into a password-protected profile requires successful verification through the dedicated `profilePassword:*` IPC bridge.
+- **Profile deletion:** Deleting a profile purges the profile password verifier, Venice/Jina API keys for that profile, profile-scoped `localStorage` keys, and IndexedDB records tagged with the profile id. Filesystem chat history under `userData/chat-history/` is not keyed by profile and is not removed.
+
+## Master Password
+
+In desktop mode, a master password can be configured to gate changes to Family
+Safe Mode settings. The renderer never stores or retrieves the verifier.
+
+- **IPC surface:** Dedicated typed channels (`masterPassword:isSet`,
+  `masterPassword:set`, `masterPassword:verify`, `masterPassword:clear`) route
+  the user-entered plaintext to the main process. The renderer receives only
+  boolean results or status envelopes; the verifier record never crosses the IPC
+  boundary.
+- **Verifier:** The main process derives a salted PBKDF2-SHA256 verifier record
+  (`{ version: 1, algorithm: "pbkdf2-sha256", iterations, salt, digest }`) and
+  stores it through `safeStorage`. Verification uses `crypto.timingSafeEqual`.
+- **Lockout:** Five consecutive failed verification attempts trigger a
+  60-second main-process lockout. The lockout clears only on success or after
+  the cooldown expires.
+- **Scope:** The master password is an in-app control. It is not a substitute
+  for OS account security, disk encryption, or process-memory isolation.
 
 ## Local Master YAML Config
 

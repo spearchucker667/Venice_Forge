@@ -48,6 +48,9 @@
 
 ## Important Notice
 
+> [!WARNING]
+> The `main` branch is active development and may be unstable. It can include incomplete features, schema migrations, experimental UI, and breaking changes. Normal users should install a tagged release from [GitHub Releases](https://github.com/spearchucker667/Venice_Forge/releases). Developers running `main` should back up local profile/app data before launching.
+
 > [!IMPORTANT]
 > **Venice Forge is unofficial.**  
 > Venice Forge is an independent, third-party desktop client for the Venice API. It is not affiliated with, endorsed by, sponsored by, or maintained by Venice.ai, Inc.
@@ -87,13 +90,15 @@
 
 2. Install and launch Venice Forge.
 
-3. Open **Config**.
+3. Complete the first-launch onboarding splash (age acknowledgement and initial preferences). It is shown once and can be skipped.
 
-4. Add your Venice API key.
+4. Open **Config**.
 
-5. Test the connection.
+5. Add your Venice API key.
 
-6. Start using Chat, Image Studio, Media Studio, Research, Characters, RP Studio, Workflows, and local workspace tools.
+6. Test the connection.
+
+7. Start using Chat, Image Studio, Media Studio, Research, Characters, RP Studio, Workflows, and local workspace tools.
 
 ---
 
@@ -222,10 +227,38 @@ callers continue to see the logical record ID, so profiles can both persist
 records such as `venice-chat` and `venice-workflows` without collision.
 
 Venice and Jina API keys are stored through Electron `safeStorage` in desktop
-mode. Profile-password verifier helpers exist in the Electron secure store and
-use salted PBKDF2 records with strict no-plaintext fallback. In desktop mode,
-the Profiles panel can set, remove, and verify a profile password before
-switching into a locked profile.
+mode. The renderer never receives the raw key material.
+
+#### Master password
+
+A master password can be configured in desktop mode to gate changes to Family
+Safe Mode settings. The plaintext password is sent to the main process over the
+typed `masterPassword:*` IPC bridge; the salted PBKDF2-SHA256 verifier is
+derived, stored, and verified only in the Electron main process
+(`electron/services/secureStore.ts`). The renderer never sees the verifier. Five
+consecutive failed verification attempts trigger a 60-second main-process
+lockout that clears only on success or after cooldown.
+
+#### Profile password
+
+In desktop mode, the Profiles panel can set, remove, and verify a per-profile
+password before switching into a locked profile. Like the master password, the
+verifier is a salted PBKDF2-SHA256 record held in `safeStorage`; verification
+uses `crypto.timingSafeEqual` and is enforced in the main process. Per-profile
+lockout is keyed by `profileId` so one profile's lockout does not affect
+another, and the IPC response surfaces remaining lockout time without revealing
+whether the profile exists. This is an in-app profile-switch gate, not a
+substitute for OS account security, disk encryption, or an unattended-session
+lock.
+
+#### Profile deletion
+
+Deleting a profile best-effort purges profile-scoped data: Venice and Jina API
+keys for that profile, the profile password verifier, profile-scoped
+`localStorage` keys, and IndexedDB records tagged with the profile id. The
+active profile is switched safely to `default` if it was the one deleted.
+Filesystem chat history under `userData/chat-history/` is not keyed by profile
+and remains intact.
 
 ### Family Safe Mode vs Provider `safe_mode`
 
@@ -304,6 +337,12 @@ npm run dev:web
 The Vite renderer proxies `/api/*` to `http://127.0.0.1:3000` by
 default. Set `VITE_API_PROXY_TARGET` when the Express proxy uses a
 different host or port.
+
+> [!NOTE]
+> Running from `main` is for development only. The branch may contain unstable
+> work-in-progress features and schema migrations. Back up local profile/app
+> data before launching, and run `npm run lint:eslint`, `npm run typecheck`,
+> `npm test`, and `npm run verify:contracts` before opening a PR or packaging.
 
 ---
 
@@ -508,7 +547,7 @@ Read:
 | Data | Location | Protection |
 | --- | --- | --- |
 | Desktop API keys | macOS Keychain / Windows DPAPI | OS secure storage |
-| Profile password verifier | Electron `safeStorage` | Salted PBKDF2 verifier; Profiles panel unlock gate |
+| Profile password verifier | Electron `safeStorage` | Salted PBKDF2-SHA256 verifier; verified in main process with `crypto.timingSafeEqual`; per-profile lockout after failed attempts |
 | Web-mode Venice key | Express server `.env` | Server-side only |
 | Logs | Application support directory | Plain text, local disk |
 | Desktop Conversation Vault | `conversations/records/**/*.v1.json.enc` under app data | AES-256-GCM with OS-protected vault key |
@@ -598,22 +637,31 @@ and fixture hygiene, see [SECURITY.md](SECURITY.md).
 
 ## Theming
 
-Venice Forge includes a token-based theme system.
+Venice Forge includes a token-based theme system with 35 built-in themes:
 
-Built-in themes include:
+**New in this release:**
 
-- Forge Graphite
-- Forge Daylight
-- Forge Copper
-- Forge Dracula
-- Venice Parity Dark
-- GruvBox Dark
-- Rosé Pine
+- Obsidian Bloom (dark)
+- Harbor Fog (light)
+- Circuit Mint (dark)
+- Amber Archive (light)
+- Neon Dusk (dark)
+
+**Complete built-in catalog:**
+
+- Aurora Boreal, Sakura Terminal, Basalt Noir, Solar Ash, Cyber Orchid
+- Arctic Glass, Desert Copperfield, Toxic LimeWire, Midnight Velvet, Porcelain Daybreak
+- Synthwave Harbor, Moss Circuit, Ember Monastery, Glacial Ink, Ultraviolet Rain
+- Venice Parity Dark, Forge Graphite, Forge Daylight, Forge Copper, Forge Dracula
+- GruvBox Dark, Rosé Pine, Nord, Tokyo Night, Catppuccin
+- Solarized Dark, Solarized Light, One Dark, Monokai, GitHub Light
+- Obsidian Bloom, Harbor Fog, Circuit Mint, Amber Archive, Neon Dusk
 
 Theme features:
 
 - Runtime CSS token application
-- WCAG-aware semantic pairs
+- WCAG AA contrast validation across all built-in themes
+- Expanded pair matrix: foreground/background, foreground/surface, accent foreground/accent, button/status/selection pairs, focus/disabled/foregroundSubtle minimums
 - Live Theme Maker
 - YAML import/export
 - Encrypted custom-theme persistence
@@ -688,6 +736,8 @@ Read:
 
 ## Known Limitations
 
+- The `main` branch is active development and may be unstable; normal users should install a tagged release.
+- Running from source can include incomplete features, schema migrations, experimental UI, and breaking changes. Back up local profile/app data before launching.
 - Local builds are unsigned unless signing credentials are configured.
 - Auto-update behavior depends on release workflow configuration and GitHub Releases.
 - Legacy desktop `chat-history` files, if present from older installs, are plaintext JSON.

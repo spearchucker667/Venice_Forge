@@ -9,6 +9,7 @@ import { Header } from './components/layout/header'
 import { ApiKeyDialog } from './components/layout/api-key-dialog'
 import { InspectorPane } from './components/layout/inspector-pane'
 import { FirstRunModal } from './components/FirstRunModal'
+import { OnboardingSplash } from './components/OnboardingSplash'
 import { ChatView } from './components/chat/chat-view'
 import { CommandPalette } from './components/command-palette/CommandPalette'
 import { AppMeshOverlay } from './components/layout/AppMeshOverlay'
@@ -175,7 +176,7 @@ export function App() {
   usePrefersReducedMotion()
   // Subscribe to active-profile changes so volatile per-profile caches
   // (pending Image Studio handoffs, traffic inspector logs, active
-  // conversation id) are cleared before `switchProfile` reloads the page.
+  // conversation id) are cleared before `requestSwitchProfile` reloads the page.
   useProfileVolatileReset()
 
   // Theme state lifecycle synchronization. Uses the registry-based
@@ -280,6 +281,7 @@ export function App() {
         onAcknowledge={acknowledgeFirstRun}
         onDismiss={() => { /* cannot dismiss the age gate; user must acknowledge */ }}
       />
+      {firstRunAcked && <OnboardingSplash />}
       <Toaster />
       <ModalRequestHost />
       <CommandPalette

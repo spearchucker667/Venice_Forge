@@ -484,6 +484,49 @@ const StorageService = {
   },
 
   /**
+   * Deletes every record in every store that is tagged with the given
+   * profile id. This is the renderer-side half of profile deletion:
+   * it purges IndexedDB rows without decrypting them so a profile's
+   * encrypted data cannot be recovered later by switching back.
+   *
+   * The default profile is intentionally rejected — deleting the default
+   * profile is a metadata-only operation and does not purge anything.
+   *
+   * @param profileId The profile whose records should be removed.
+   * @returns The number of stores that were scanned.
+   */
+  async deleteRecordsForProfile(profileId: string): Promise<number> {
+    if (profileId === DEFAULT_PROFILE_ID) return 0;
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      let completed = 0;
+      for (const store of STORE_NAMES) {
+        const tx = db.transaction(store, "readwrite");
+        const objectStore = tx.objectStore(store);
+        const req = objectStore.openCursor();
+        req.onsuccess = () => {
+          const cursor = req.result;
+          if (!cursor) return;
+          const row = cursor.value as Record<string, unknown>;
+          const rowProfile = typeof row[PROFILE_ID_FIELD] === "string"
+            ? (row[PROFILE_ID_FIELD] as string)
+            : DEFAULT_PROFILE_ID;
+          if (rowProfile === profileId) {
+            cursor.delete();
+          }
+          cursor.continue();
+        };
+        req.onerror = () => reject(req.error);
+        tx.oncomplete = () => {
+          completed += 1;
+          if (completed === STORE_NAMES.length) resolve(completed);
+        };
+        tx.onerror = () => reject(tx.error);
+      }
+    });
+  },
+
+  /**
    * Media Studio helpers. All values are persisted in the `images` store and
    * round-trip through the standard encrypt/decrypt path. The migrator in
    * `mediaMigration.ts` is applied on read to enrich legacy records.

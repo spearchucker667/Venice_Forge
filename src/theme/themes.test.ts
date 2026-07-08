@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import { isAAPass, contrastRatio } from "./contrast";
 import {
   BUILTIN_THEMES,
@@ -25,6 +27,11 @@ const NEW_BUILTINS = [
   // Light themes with explicit WCAG AA coverage
   BUILTIN_LIGHT,
 ];
+
+function expectedYamlNames(themeId: string): string[] {
+  const suffix = themeId.replace("builtin-", "");
+  return [`${suffix}.yaml`, `${suffix.replace(/-/g, "_")}.yaml`];
+}
 
 describe("built-in theme collection", () => {
   it("has unique theme ids", () => {
@@ -109,4 +116,19 @@ describe("built-in theme collection", () => {
       expect(t.border).not.toBe(t.foregroundSubtle);
     }
   );
+
+  it("has a YAML starter template for every built-in theme", () => {
+    const root = path.resolve(__dirname, "../../config/themes");
+    const files = new Set(fs.readdirSync(root));
+    for (const theme of BUILTIN_THEMES) {
+      const names = expectedYamlNames(theme.id);
+      const hasYaml = names.some((n) => files.has(n));
+      expect(hasYaml, `${theme.id} missing YAML counterpart (${names.join(" or ")})`).toBe(true);
+    }
+  });
+
+  it("exports the expected number of built-in themes", () => {
+    // This guard ensures the count stays in sync with the handoff-specified inventory.
+    expect(BUILTIN_THEMES.length).toBe(35);
+  });
 });

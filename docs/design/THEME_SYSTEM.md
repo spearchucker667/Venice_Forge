@@ -26,8 +26,8 @@
 
 Venice Forge uses a **semantic token-based theme system** built on Tailwind CSS v4 CSS variables. Core surfaces, text, status, form, button, link, focus, and selection colors derive from 29 canonical semantic roles mapped to CSS custom properties. This enables:
 
-- **Built-in themes:** Venice Parity Dark (default), Forge Graphite (dark), Forge Daylight (light), Forge Copper (dark), Forge Dracula (dark), GruvBox Dark (dark), Rosepine (dark), Forge Nord (dark), Forge Tokyo (dark), Forge Catppuccin (dark), Forge Solarized Dark (dark), Forge Solarized Light (light), Forge One Dark (dark), Forge Monokai (dark), Forge GitHub Light (light).
-- **YAML-backed themes:** 15 additional themes loaded from `.config/themes.local.yaml` (dev) or `themes.yaml` (userData) at runtime: Aurora Boreal, Sakura Terminal, Basalt Noir, Solar Ash, Cyber Orchid, Arctic Glass, Desert Copperfield, Toxic Limewire, Midnight Velvet, Porcelain Daybreak, Synthwave Harbor, Moss Circuit, Ember Monastery, Glacial Ink, Ultraviolet Rain. These themes are validated by the same schema as built-in themes and appear in the ThemeMaker selector without code changes.
+- **Built-in themes:** 35 hardcoded themes including Venice Parity Dark (default), Forge Graphite, Forge Daylight, Forge Copper, Forge Dracula, GruvBox Dark, Rosepine, Nord, Tokyo Night, Catppuccin, Solarized Dark, Solarized Light, One Dark, Monokai, GitHub Light, Aurora Boreal, Sakura Terminal, Basalt Noir, Solar Ash, Cyber Orchid, Arctic Glass, Desert Copperfield, Toxic Limewire, Midnight Velvet, Porcelain Daybreak, Synthwave Harbor, Moss Circuit, Ember Monastery, Glacial Ink, Ultraviolet Rain, and the five new themes Obsidian Bloom, Harbor Fog, Circuit Mint, Amber Archive, and Neon Dusk.
+- **YAML-backed themes:** 36 starter YAML templates ship under `config/themes/` (one for each built-in theme plus `example.theme.yaml`). User themes can also be loaded from `.config/themes.local.yaml` (dev) or `themes.yaml` (userData) at runtime and are validated by the same schema as built-in themes.
 - **Custom themes:** Users can define every token via the in-app ThemeMaker and import/export configurations in YAML format. The starter configurations for all built-in themes are provided in the `config/themes/` directory as `.yaml` files.
 - **Live preview:** Changes apply immediately without reload.
 - **Persistent storage:** Canonical settings live in encrypted IndexedDB; a lightweight `localStorage` bootstrap cache prevents FOUC on startup.
@@ -188,7 +188,17 @@ Venice Forge supports three categories of themes:
 
 ### Built-in Themes (Hardcoded)
 
-The following themes are compiled into the renderer bundle and available even when no YAML config is present:
+The following 35 themes are compiled into the renderer bundle and available even when no YAML config is present:
+
+**New built-ins:**
+
+- `builtin-obsidian-bloom` — Obsidian Bloom (dark)
+- `builtin-harbor-fog` — Harbor Fog (light)
+- `builtin-circuit-mint` — Circuit Mint (dark)
+- `builtin-amber-archive` — Amber Archive (light)
+- `builtin-neon-dusk` — Neon Dusk (dark)
+
+**Full catalog:**
 
 - `builtin-venice` — Default Venice dark aesthetic
 - `builtin-dark` — Classic graphite dark
@@ -204,40 +214,44 @@ The following themes are compiled into the renderer bundle and available even wh
 - `builtin-solarized-light` — Beige orange light
 - `builtin-one-dark` — Calm blue code-editor dark
 - `builtin-monokai` — Bright lime dark
-- `builtin-github-light` — Clean light (if present in bundle)
+- `builtin-github-light` — Clean light theme mirroring GitHub's default light UI
+- `builtin-aurora-boreal` — Deep space black with vibrant mint-green aurora accent
+- `builtin-sakura-terminal` — Warm cream with soft pink cherry-blossom accent
+- `builtin-basalt-noir` — Charcoal-black basalt with bold rose-red accent
+- `builtin-solar-ash` — Warm desert sand with burnt-orange sunburst accent
+- `builtin-cyber-orchid` — Midnight electric-blue with vivid magenta orchid accent
+- `builtin-arctic-glass` — Crisp ice-blue glass with cool cyan accent
+- `builtin-desert-copperfield` — Warm terracotta with rich copper-orange accent
+- `builtin-toxic-limewire` — Pitch black with neon-lime toxic accent (high contrast)
+- `builtin-midnight-velvet` — Deep midnight blue with soft lavender velvet accent
+- `builtin-porcelain-daybreak` — Clean porcelain white with warm amber daybreak accent
+- `builtin-synthwave-harbor` — Dark neon harbor with hot-pink synthwave accent
+- `builtin-moss-circuit` — Deep forest green with bright lime-green circuit accent
+- `builtin-ember-monastery` — Dark stone with warm burnt-orange ember accent
+- `builtin-glacial-ink` — Near-black with sharp cyan glacial accent (high contrast)
+- `builtin-ultraviolet-rain` — Dark violet with electric purple ultraviolet accent
 
 ### YAML-Backed Themes (Runtime-Loaded)
 
-The following 15 themes are shipped as YAML config entries and loaded dynamically:
-
-| ID | Name | Mode | Accent Color | Description |
-|----|------|------|--------------|-------------|
-| `aurora-boreal` | Aurora Boreal | dark | `#4ff0b6` | Deep space black with vibrant mint-green aurora accent |
-| `sakura-terminal` | Sakura Terminal | light | `#ff7eb3` | Warm cream with soft pink cherry-blossom accent |
-| `basalt-noir` | Basalt Noir | dark | `#ff4d6d` | Charcoal-black basalt with bold rose-red accent |
-| `solar-ash` | Solar Ash | light | `#ff9f43` | Warm desert sand with burnt-orange sunburst accent |
-| `cyber-orchid` | Cyber Orchid | dark | `#d946ef` | Midnight electric-blue with vivid magenta orchid accent |
-| `arctic-glass` | Arctic Glass | light | `#0ea5e9` | Crisp ice-blue glass with cool cyan accent |
-| `desert-copperfield` | Desert Copperfield | dark | `#e67e22` | Warm terracotta with rich copper-orange accent |
-| `toxic-limewire` | Toxic LimeWire | dark | `#39ff14` | Pitch black with neon-lime toxic accent (high contrast) |
-| `midnight-velvet` | Midnight Velvet | dark | `#a78bfa` | Deep midnight blue with soft lavender velvet accent |
-| `porcelain-daybreak` | Porcelain Daybreak | light | `#f59e0b` | Clean porcelain white with warm amber daybreak accent |
-| `synthwave-harbor` | Synthwave Harbor | dark | `#ff2a6d` | Dark neon harbor with hot-pink synthwave accent |
-| `moss-circuit` | Moss Circuit | dark | `#84cc16` | Deep forest green with bright lime-green circuit accent |
-| `ember-monastery` | Ember Monastery | dark | `#f97316` | Dark stone with warm burnt-orange ember accent |
-| `glacial-ink` | Glacial Ink | dark | `#22d3ee` | Near-black with sharp cyan glacial accent (high contrast) |
-| `ultraviolet-rain` | Ultraviolet Rain | dark | `#8b5cf6` | Dark violet with electric purple ultraviolet accent |
-
-YAML themes are stored in `.config/themes.local.yaml` (dev) or `userData/.config/themes.yaml` (packaged). On startup, `configService.loadMergedThemes()` parses the file, validates each entry (schema version 1, all 29 required tokens, safe color values), converts snake_case keys to camelCase via `yamlThemeToTheme()`, and caches the resulting `Theme` objects in `useConfigStore.yamlThemes`. They appear in the ThemeMaker selector alongside built-in themes and can be selected just like built-in themes.
-
-### Forge GitHub Light — `builtin-github-light`
-Clean light theme (`#ffffff`) with a blue accent (`#0969da`) that mirrors GitHub's default light UI.
+`config/themes/` ships 36 starter YAML templates — one for every built-in theme above plus `example.theme.yaml`. Users can also define additional themes in `.config/themes.local.yaml` (dev) or `userData/.config/themes.yaml` (packaged). On startup, `configService.loadMergedThemes()` parses the file, validates each entry (schema version 1, all 29 required tokens, safe color values), converts snake_case keys to camelCase via `yamlThemeToTheme()`, and caches the resulting `Theme` objects in `useConfigStore.yamlThemes`. They appear in the ThemeMaker selector alongside built-in themes and can be selected just like built-in themes.
 
 ### Contrast Verification
 
-Built-in themes are audited for WCAG AA compliance (4.5:1 ratio for normal text, 3:1 for large text).
+All built-in themes are audited against an expanded WCAG AA contrast matrix enforced by the regression guard in `src/theme/contrast.test.ts`:
 
-All ratios exceed WCAG AA thresholds (4.5:1 for normal text, 3:1 for large text).
+- `foreground` / `background` ≥ 4.5:1
+- `foreground` / `surface` ≥ 4.5:1
+- `foreground` / `surfaceElevated` ≥ 4.5:1
+- `accentForeground` / `accent` ≥ 4.5:1
+- `buttonPrimaryForeground` / `buttonPrimaryBackground` ≥ 4.5:1
+- `buttonSecondaryForeground` / `buttonSecondaryBackground` ≥ 4.5:1
+- `dangerForeground` / `danger` ≥ 4.5:1
+- `warningForeground` / `warning` ≥ 4.5:1
+- `successForeground` / `success` ≥ 4.5:1
+- `selectionForeground` / `selectionBackground` ≥ 4.5:1
+- `focusRing` / `background` ≥ 3.0:1
+- `disabledForeground` / `background` ≥ 3.0:1
+- `foregroundSubtle` / `background` ≥ 3.0:1
 
 ---
 
@@ -363,7 +377,13 @@ Users create custom themes via the ThemeMaker UI. No code changes required.
 | File | Purpose |
 |------|---------|
 | `src/theme/themeTypes.ts` | Type contracts (`ThemeMode`, `ThemeTokens`, `Theme`, `ThemeState`) |
-| `src/theme/themes.ts` | Built-in palette definitions |
+| `src/theme/themes.ts` | Built-in palette barrel (back-compat) |
+| `src/theme/builtins/index.ts` | Built-in theme registry and `BUILTIN_THEMES` array |
+| `src/theme/builtins/obsidianBloom.ts` | Obsidian Bloom built-in theme |
+| `src/theme/builtins/harborFog.ts` | Harbor Fog built-in theme |
+| `src/theme/builtins/circuitMint.ts` | Circuit Mint built-in theme |
+| `src/theme/builtins/amberArchive.ts` | Amber Archive built-in theme |
+| `src/theme/builtins/neonDusk.ts` | Neon Dusk built-in theme |
 | `src/theme/applyTheme.ts` | Maps tokens to CSS variables + resolves initial theme |
 | `src/theme/contrast.ts` | WCAG luminance and contrast ratio utilities |
 | `src/theme/fallbacks.ts` | Shared fallback constant (`#000000`) for validation |

@@ -17,7 +17,7 @@ export const BUILTIN_GRUVBOX_DARK: Theme = {
     accentForeground: '#282828',
     success: '#b8bb26',
     warning: '#fabd2f',
-    danger: '#fb4934',
+    danger: '#ff6b57',
     info: '#83a598',
     focusRing: '#fabd2f',
     overlay: 'rgba(40, 40, 40, 0.6)',

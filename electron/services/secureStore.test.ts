@@ -39,6 +39,13 @@ import {
   clearProfilePassword,
   getProfilePasswordName,
   isAnyProfilePasswordConfigured,
+  setMasterPassword,
+  verifyMasterPassword,
+  isMasterPasswordSet,
+  clearMasterPassword,
+  getProfilePasswordLockoutSeconds,
+  __resetMasterPasswordLockoutForTests,
+  __resetProfilePasswordLockoutsForTests,
 } from "./secureStore";
 
 const STORE_PATH = path.join(os.tmpdir(), "secure-prefs.json");
@@ -54,6 +61,8 @@ describe("secureStore", () => {
   beforeEach(() => {
     delete process.env.VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE;
     __clearCacheForTests();
+    __resetMasterPasswordLockoutForTests();
+    __resetProfilePasswordLockoutsForTests();
     cleanStore();
   });
   afterEach(() => {
@@ -234,10 +243,11 @@ describe("secureStore", () => {
   });
 
   // ── RELEASE-BLOCKER #4: profile password setup/verify surface ──
-  // The renderer UI is intentionally not wired in this release, but the
-  // secureStore layer MUST expose a verifier-only API that namespaces per
-  // profile id, stores only a salted PBKDF2 verifier, refuses plaintext under
-  // any escape hatch, and replays the encrypted happy path on every OS.
+  // The renderer UI (ProfilePanel) is wired to this layer through the IPC
+  // bridge. The secureStore layer MUST expose a verifier-only API that
+  // namespaces per profile id, stores only a salted PBKDF2 verifier, refuses
+  // plaintext under any escape hatch, and replays the encrypted happy path on
+  // every OS.
 
   it("setProfilePassword stores only a salted PBKDF2 verifier record when encryption is available", () => {
     vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
@@ -329,5 +339,110 @@ describe("secureStore", () => {
   it("getProfilePasswordName namespaces per profile id and falls back to the legacy default", () => {
     expect(getProfilePasswordName("userA")).toBe("profile_password:userA");
     expect(getProfilePasswordName("")).toBe("profile_password");
+  });
+
+  // ── Master password verifier is main-process only ──
+
+  it("setMasterPassword stores only a salted PBKDF2 verifier record", () => {
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    const plaintext = "master-secret-passphrase";
+    setMasterPassword(plaintext);
+
+    expect(isMasterPasswordSet()).toBe(true);
+
+    const raw = fs.readFileSync(STORE_PATH, "utf-8");
+    expect(raw).not.toContain(plaintext);
+    expect(raw).toContain("cred_master_password");
+
+    const verifierRaw = getCredential("master_password");
+    expect(verifierRaw).toBeTruthy();
+    const verifier = JSON.parse(verifierRaw as string) as {
+      version: number;
+      algorithm: string;
+      iterations: number;
+      salt: string;
+      digest: string;
+    };
+    expect(verifier).toMatchObject({
+      version: 1,
+      algorithm: "pbkdf2-sha256",
+      iterations: 310000,
+    });
+    expect(verifier.salt).toMatch(/^[A-Za-z0-9+/]+={0,2}$/);
+    expect(verifier.digest).toMatch(/^[A-Za-z0-9+/]+={0,2}$/);
+  });
+
+  it("verifyMasterPassword accepts the correct password and rejects others", () => {
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    setMasterPassword("hunter2");
+
+    expect(verifyMasterPassword("hunter2")).toMatchObject({ verified: true, lockedOutSeconds: 0 });
+    expect(verifyMasterPassword("hunter3")).toMatchObject({ verified: false });
+    expect(verifyMasterPassword("")).toMatchObject({ verified: false });
+  });
+
+  it("master password locks out after repeated failed attempts and clears on success", () => {
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    setMasterPassword("correct");
+
+    for (let i = 0; i < 4; i += 1) {
+      expect(verifyMasterPassword("wrong").verified).toBe(false);
+    }
+    const locked = verifyMasterPassword("wrong");
+    expect(locked.verified).toBe(false);
+    expect(locked.lockedOutSeconds).toBeGreaterThan(0);
+
+    // A correct password during lockout is still rejected.
+    expect(verifyMasterPassword("correct").verified).toBe(false);
+
+    // Simulated cooldown: reset lockout and try again.
+    __resetMasterPasswordLockoutForTests();
+    expect(verifyMasterPassword("correct")).toMatchObject({ verified: true, lockedOutSeconds: 0 });
+  });
+
+  it("clearMasterPassword removes the verifier", () => {
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    setMasterPassword("correct");
+    expect(isMasterPasswordSet()).toBe(true);
+    clearMasterPassword();
+    expect(isMasterPasswordSet()).toBe(false);
+  });
+
+  // ── Profile password main-process lockout ──
+
+  it("profile password locks out after repeated failed attempts and clears on success", () => {
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    setProfilePassword("correct", "userA");
+
+    for (let i = 0; i < 4; i += 1) {
+      expect(verifyProfilePassword("wrong", "userA")).toBe(false);
+      expect(getProfilePasswordLockoutSeconds("userA")).toBe(0);
+    }
+
+    const locked = verifyProfilePassword("wrong", "userA");
+    expect(locked).toBe(false);
+    expect(getProfilePasswordLockoutSeconds("userA")).toBeGreaterThan(0);
+
+    // Correct password is rejected while locked out.
+    expect(verifyProfilePassword("correct", "userA")).toBe(false);
+
+    // Simulated cooldown and successful unlock.
+    __resetProfilePasswordLockoutsForTests();
+    expect(verifyProfilePassword("correct", "userA")).toBe(true);
+    expect(getProfilePasswordLockoutSeconds("userA")).toBe(0);
+  });
+
+  it("profile password lockout is per-profile", () => {
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    setProfilePassword("pw-a", "userA");
+    setProfilePassword("pw-b", "userB");
+
+    for (let i = 0; i < 5; i += 1) {
+      verifyProfilePassword("wrong", "userA");
+    }
+
+    expect(getProfilePasswordLockoutSeconds("userA")).toBeGreaterThan(0);
+    expect(getProfilePasswordLockoutSeconds("userB")).toBe(0);
+    expect(verifyProfilePassword("pw-b", "userB")).toBe(true);
   });
 });

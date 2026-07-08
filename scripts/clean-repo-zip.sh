@@ -551,7 +551,13 @@ SECRET_SCAN_SUMMARY="$META_DIR/SECRET_SCAN_SUMMARY.txt"
             done || true
       }
 
-      scan_pattern "api-key-or-secret"    "(api[_-]?key|secret|token|password|passwd)"    "example-or-docs"
+      # Generic keyword scan: intentionally omits the bare word "token" because
+      # theme/config YAML keys like "tokens:" are not secrets. Real token
+      # values are caught by the bearer/sk/vn/github/aws patterns below.
+      scan_pattern "api-key-or-secret"    "(api[_-]?key|secret|password|passwd)"          "example-or-docs"
+      # Token values that look like assignments (e.g. token = "abc...") are
+      # still flagged for review, but bare YAML keys like "tokens:" are not.
+      scan_pattern "token-assignment"     "(auth[_-]?token|access[_-]?token|token)\s*[:=]\s*[\"'][^\"']{8,}" "example-or-docs"
       scan_pattern "bearer-token"         "bearer[[:space:]]+[A-Za-z0-9._~+/=-]{20,}"    "high-risk-source"
       scan_pattern "sk-token"             "sk-[A-Za-z0-9._~+/=-]{8,}"                     "high-risk-source"
       scan_pattern "venice-vn-token"      "vn-[A-Za-z0-9._~+/=-]{8,}"                     "high-risk-source"

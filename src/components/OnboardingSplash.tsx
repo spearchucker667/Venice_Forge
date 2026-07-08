@@ -22,7 +22,7 @@ export function OnboardingSplash() {
     },
     {
       title: 'Family Safe Mode',
-      description: 'You can protect settings with a Master Password. Family Safe Mode requires this password to bypass.',
+      description: 'You can protect settings with a Master Password. You can turn Family Safe Mode on or off from Settings.',
     },
   ]
 

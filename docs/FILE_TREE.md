@@ -155,6 +155,61 @@ Code reused by the renderer, the web proxy, and the Electron main process:
 YAML theme loader, contrast checkers, built-ins (`builtins/`), validator, and
 appliers. See `tests/theme/inlineColorInvariant.test.ts` for the token discipline.
 
+```
+src/theme/
+├── builtins/              # one file per built-in theme (35 total)
+│   ├── index.ts           # registry + BUILTIN_THEMES array
+│   ├── amberArchive.ts
+│   ├── arcticGlass.ts
+│   ├── auroraBoreal.ts
+│   ├── basaltNoir.ts
+│   ├── circuitMint.ts
+│   ├── copper.ts
+│   ├── catppuccin.ts
+│   ├── cyberOrchid.ts
+│   ├── dark.ts
+│   ├── desertCopperfield.ts
+│   ├── dracula.ts
+│   ├── emberMonastery.ts
+│   ├── githubLight.ts
+│   ├── glacialInk.ts
+│   ├── gruvboxDark.ts
+│   ├── harborFog.ts
+│   ├── light.ts
+│   ├── midnightVelvet.ts
+│   ├── monokai.ts
+│   ├── mossCircuit.ts
+│   ├── neonDusk.ts
+│   ├── nord.ts
+│   ├── obsidianBloom.ts
+│   ├── oneDark.ts
+│   ├── porcelainDaybreak.ts
+│   ├── rosepine.ts
+│   ├── sakuraTerminal.ts
+│   ├── solarAsh.ts
+│   ├── solarizedDark.ts
+│   ├── solarizedLight.ts
+│   ├── synthwaveHarbor.ts
+│   ├── tokyoNight.ts
+│   ├── toxicLimewire.ts
+│   ├── ultravioletRain.ts
+│   └── venice.ts
+├── applyTheme.ts
+├── applyTheme.test.ts
+├── contrast.test.ts       # expanded all-theme WCAG matrix regression guard
+├── contrast.ts
+├── fallbacks.ts
+├── fallbacks.test.ts
+├── index.ts
+├── themeTypes.ts
+├── themes.test.ts         # built-in count + YAML starter coverage guard
+├── themes.ts              # back-compat barrel
+├── validateColor.ts
+├── validateColor.test.ts
+├── yamlTheme.ts
+└── yamlTheme.test.ts
+```
+
 ---
 
 ## `electron/` (main process + preload)
@@ -217,7 +272,9 @@ tests/
 ├── rp/                    # promptBuilderService, lorebookService, rpMemory, characterCardService
 ├── smoke/
 │   └── electron-smoke.test.ts  # Playwright; skipped when no display available
-└── theme/                 # inline-color invariant
+└── theme/                 # inline-color invariant + mesh-surface invariant
+    ├── inlineColorInvariant.test.ts
+    └── meshSurfaceInvariant.test.ts
 ```
 
 ---
@@ -285,10 +342,13 @@ dev-tools/
 
 ```
 config/
-└── themes/                  # 28 starter YAML themes
+└── themes/                  # 36 starter YAML theme templates (35 built-ins + example.theme.yaml)
+    ├── amber-archive.yaml
     ├── arctic-glass.yaml
     ├── aurora-boreal.yaml
     ├── basalt-noir.yaml
+    ├── circuit-mint.yaml
+    ├── copper.yaml
     ├── catppuccin.yaml
     ├── cyber-orchid.yaml
     ├── dark.yaml
@@ -299,11 +359,14 @@ config/
     ├── github_light.yaml
     ├── glacial-ink.yaml
     ├── gruvbox_dark.yaml
+    ├── harbor-fog.yaml
     ├── light.yaml
     ├── midnight-velvet.yaml
     ├── monokai.yaml
     ├── moss-circuit.yaml
+    ├── neon-dusk.yaml
     ├── nord.yaml
+    ├── obsidian-bloom.yaml
     ├── one_dark.yaml
     ├── porcelain-daybreak.yaml
     ├── rosepine.yaml

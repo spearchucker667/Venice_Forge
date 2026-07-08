@@ -189,10 +189,11 @@ export const desktopApiKey = {
 
   /**
    * Removes the stored Venice API key.
+   * @param profileId Optional profile id to delete the key for.
    * @returns A promise resolving to an ok flag.
    */
-  async delete(): Promise<{ ok: boolean }> {
-    if (isElectron()) return window.veniceForge!.apiKey.delete(getActiveProfileId());
+  async delete(profileId?: string): Promise<{ ok: boolean }> {
+    if (isElectron()) return window.veniceForge!.apiKey.delete(profileId ?? getActiveProfileId());
     const response = await fetchWithTimeout("/api/session-key", { method: "DELETE" });
     if (!response.ok) return { ok: false };
     _webSessionVeniceApiKey.clear();
@@ -782,8 +783,8 @@ export const desktopJinaApiKey = {
     });
     return { ok: response.ok };
   },
-  async delete(): Promise<{ ok: boolean }> {
-    if (isElectron()) return window.veniceForge!.jinaApiKey.delete(getActiveProfileId());
+  async delete(profileId?: string): Promise<{ ok: boolean }> {
+    if (isElectron()) return window.veniceForge!.jinaApiKey.delete(profileId ?? getActiveProfileId());
     const response = await fetchWithTimeout("/api/session-jina-key", { method: "DELETE" });
     return { ok: response.ok };
   },
@@ -1001,6 +1002,25 @@ export const desktopCredentials = {
   }
 };
 
+export const desktopMasterPassword = {
+  async isSet(): Promise<boolean> {
+    if (!isElectron()) return false;
+    return window.veniceForge!.masterPassword.isSet();
+  },
+  async set(password: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Not available in web" };
+    return window.veniceForge!.masterPassword.set(password);
+  },
+  async verify(password: string): Promise<{ ok: boolean; verified: boolean; lockedOutSeconds?: number; error?: string }> {
+    if (!isElectron()) return { ok: false, verified: false, error: "Not available in web" };
+    return window.veniceForge!.masterPassword.verify(password);
+  },
+  async clear(): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Not available in web" };
+    return window.veniceForge!.masterPassword.clear();
+  },
+};
+
 export const desktopProfilePassword = {
   async isSet(profileId: string): Promise<boolean> {
     if (!isElectron()) return false;
@@ -1010,7 +1030,7 @@ export const desktopProfilePassword = {
     if (!isElectron()) return { ok: false, error: "Not available in web" };
     return window.veniceForge!.profilePassword.set(profileId, password);
   },
-  async verify(profileId: string, password: string): Promise<{ ok: boolean; verified: boolean; error?: string }> {
+  async verify(profileId: string, password: string): Promise<{ ok: boolean; verified: boolean; lockedOutSeconds?: number; error?: string }> {
     if (!isElectron()) return { ok: false, verified: false, error: "Not available in web" };
     return window.veniceForge!.profilePassword.verify(profileId, password);
   },
