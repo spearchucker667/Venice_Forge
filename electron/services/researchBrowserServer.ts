@@ -136,10 +136,9 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     if (researchView) return { ok: true };
 
     const config = getCurrentConfig();
-    const partitionName = config.research.live_browser_persist_session
-      ? "persist:venice-forge-research-browser"
-      : "venice-forge-research-browser";
-    const researchSession = session.fromPartition(partitionName);
+    const researchSession = config.research.live_browser_persist_session
+      ? session.fromPartition("persist:venice-forge-research-browser")
+      : session.fromPartition("venice-forge-research-browser");
 
     // Block all permission requests (camera, microphone, geolocation, notifications, etc.)
     researchSession.setPermissionRequestHandler((_webContents, _permission, callback) => {

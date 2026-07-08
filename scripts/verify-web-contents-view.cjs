@@ -12,7 +12,7 @@ const content = fs.readFileSync(fileToCheck, 'utf-8');
 
 const assertions = [
   { regex: /new\s+WebContentsView/, msg: "Must use WebContentsView (not BrowserView or webview)" },
-  { regex: /session\.fromPartition\(["']venice-forge-research-browser["']\)/, msg: "Must use isolated non-persistent venice-forge-research-browser partition" },
+  { regex: /session\.fromPartition\(["'](?:persist:)?venice-forge-research-browser["']\)/, msg: "Must use isolated venice-forge-research-browser partition" },
   { regex: /nodeIntegration:\s*false/, msg: "Must disable nodeIntegration" },
   { regex: /contextIsolation:\s*true/, msg: "Must enable contextIsolation" },
   { regex: /sandbox:\s*true/, msg: "Must enable sandbox" },

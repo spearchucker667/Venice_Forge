@@ -10247,6 +10247,9 @@ Reviewed all web-browsing surfaces: Research Mini Browser (Electron main), rende
 4. **Jina error surfacing (Medium)** — `src/components/search/SearchScrapeView.tsx`
    - Replaced raw `String(err)` output with `describeResearchError(..., "Reading with Jina failed.", "jina")` in both Jina-read handlers.
 
+5. **CI verifier parity (Medium)** — `scripts/verify-web-contents-view.cjs`
+   - Updated the regex to accept both `venice-forge-research-browser` and `persist:venice-forge-research-browser` partitions so the verifier stays aligned with the configurable persistence setting.
+
 ### Open TODO Ledger
 - **P1 (windows-credman):** Replace Windows `safeStorage` DPAPI backend for profile-password storage with a Windows Credential Manager native bridge. Deferred until a safe small implementation (Node-API addon or tightly scoped PowerShell bridge) is available.
 - `verify:contracts:features` full aggregate still exceeds timeout in this sandbox environment; run the 5 partitioned sub-commands individually (`features:chat|image|workflow|rp|settings`).
@@ -10307,6 +10310,18 @@ Reviewed all web-browsing surfaces: Research Mini Browser (Electron main), rende
 | `npx vitest run src/components/search/SearchScrapeView.test.tsx src/components/search/ResearchProviderStatus.test.tsx` | PASS | 7 tests across 2 files. |
 | `npx vitest run src/services/researchService.test.ts src/research/providers/genericHttpScrapeProvider.test.ts src/research/providers/jinaResearchProvider.test.ts src/research/providers/veniceResearchProvider.test.ts` | PASS | 46 tests across 4 files. |
 | `node scripts/verify-research-browser.cjs` | PASS | 152 tests across 10 files; VERIFY-057 passed. |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
+| `npm run typecheck` | PASS | Renderer + Electron main TypeScript clean. |
+
+## Validation Matrix — 2026-07-08 web-browsing CI repair
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm run verify:contracts` | PASS | Full contract aggregate including verify:web-contents-view. |
+| `npm run test:ci` | PASS | Full segmented suite. |
+| `npm run test:coverage` | PASS | Coverage thresholds met. |
+| `npm run build` | PASS | Web, server, and Electron outputs built. |
+| `npm run verify:dist` | PASS | Build outputs verified. |
 | `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
 | `npm run typecheck` | PASS | Renderer + Electron main TypeScript clean. |
 
