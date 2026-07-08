@@ -93,7 +93,9 @@ The renderer MUST refuse the user-visible action when `decision.allow === false`
 - **Allowed**: clearly-identified adult sexual content (e.g. `consensual`, `MILF`, `18+`, numeric age ≥ 18).
 - **Blocked unconditionally**: any content involving minors, youth-coded subjects, age-evasion attempts, CSAM genre labels (`loli`, `shota`, `shotacon`, `lolicon`, `lolita`), fictional minor sexualization, or obfuscated attempts to disguise any of the above.
 
-The `redTeamMode` setting gates raw developer rendering and adult-character UI visibility. It is independent from `localFamilySafeModeEnabled`, which controls whether the local family filter runs. Venice API Safe Mode remains provider-side and separate from both.
+The persisted `redTeamMode` field gates raw developer rendering — that is, the Traffic Inspector panel that disables renderer Markdown/HTML formatting and exposes local safety audit signals. The user-visible sidebar label is **Traffic Inspector**; `redTeamMode` is preserved only as the internal Zustand state key for backwards compatibility.
+
+Adult-character visibility is a regular user preference tracked independently of `redTeamMode`. The canonical switch is `localFamilySafeModeEnabled`, which also controls whether the local family filter runs. Venice API Safe Mode remains provider-side and separate from both.
 
 ## Prompt assembly contract
 

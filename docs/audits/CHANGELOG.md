@@ -21,8 +21,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 - **Browser splat/refactor lifecycle hardening:** Removed `broadcastState()` from the `setBounds` IPC path — bounds changes no longer flood renderer IPC. Splash page rewritten with `clamp()`-based responsive sizing.
 
 ### Changed
-- **UI rename:** "Traffic Inspector" developer switch renamed to "Developer Mode" across `sidebar.tsx`, `sidebar.test.tsx`, `CharacterLibrary.tsx`, and `SECURITY.md`. The internal Zustand state field is still `redTeamMode`; the rename is user-facing only and preserved for backwards compatibility.
-- **Documentation drift cleanup:** `SECURITY.md` updated to call the feature "Developer Mode" with a back-compat note for the internal `redTeamMode` state field.
+- **UI rename correction:** The user-visible sidebar switch is labelled **Traffic Inspector** (the previous "Developer Mode" labelling reflected an upstream agent mistake). Renamed back across `sidebar.tsx`, `sidebar.test.tsx`, `CharacterLibrary.tsx`, and `SECURITY.md`. The internal Zustand state field is still `redTeamMode`; the user-visible label is the canonical name and the persisted key is preserved only for backwards compatibility.
+- **Documentation drift cleanup:** `SECURITY.md` updated to call the feature "Traffic Inspector" with a back-compat note for the internal `redTeamMode` state field. Adult-character visibility is now explicitly documented as a normal user preference gated by `localFamilySafeModeEnabled`, **not** by the Traffic Inspector switch.
 
 ### Fixed
 - **Theme — `.skeleton` animation broken in all themes:** `src/styles/theme.css:124` referenced `var(--fg)` which is never defined in the codebase — the shimmer was always `transparent`. Now uses `var(--foreground)`.

@@ -17,7 +17,7 @@
  */
 
 import { isElectron, desktopCharacterCards } from "../desktopBridge";
-import type { CharacterCardV1, CharacterCardAvatar } from "../../types/rp";
+import type { CharacterCardV1, CharacterCardAvatar, CharacterUrlScrapingProvider } from "../../types/rp";
 import { CARD_FIELD_MAX, MAX_TAGS, RP_SCHEMA_VERSION, isValidRpId } from "../../types/rp";
 import { assessCharacterImport } from "../../shared/safety/characterImportSafety";
 import { SafetyGuardBlockedError } from "../../shared/safety";
@@ -178,7 +178,25 @@ export function normalizeCard(input: unknown): CharacterCardV1 | null {
 
   if (contextFiles && contextFiles.length > 0) out.contextFiles = contextFiles;
   if (typeof r.webSearch === "boolean") out.webSearch = r.webSearch;
-  if (typeof r.urlScraping === "boolean") out.urlScraping = r.urlScraping;
+  // urlScrapingProvider replaces the legacy `urlScraping: boolean`. Backcompat:
+  //   legacy `urlScraping === true`   -> "brave" (was the original behaviour)
+  //   legacy `urlScraping === false`  -> "off"
+  //   legacy field missing/unset + new provider set -> honour new field
+  //   provider field that is not in the enum is silently coerced to "off"
+  const urlScrapingProvider = (() => {
+    if (
+      r.urlScrapingProvider === "off" ||
+      r.urlScrapingProvider === "brave" ||
+      r.urlScrapingProvider === "google"
+    ) {
+      return r.urlScrapingProvider;
+    }
+    if (typeof r.urlScraping === "boolean") {
+      return r.urlScraping ? "brave" : "off";
+    }
+    return "off";
+  })() as CharacterUrlScrapingProvider;
+  out.urlScrapingProvider = urlScrapingProvider;
   if (typeof r.enableThoughts === "boolean") out.enableThoughts = r.enableThoughts;
   if (typeof r.temperature === "number") out.temperature = r.temperature;
   if (typeof r.topP === "number") out.topP = r.topP;

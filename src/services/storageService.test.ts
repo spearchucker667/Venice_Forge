@@ -120,7 +120,10 @@ describe("storageService", () => {
     expect(result.items).toHaveLength(0); // corrupt record was silently dropped
     expect(result.decryptFailures).toBe(1);
     expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('1 record(s) in "chats" could not be decrypted')
+      expect.stringContaining('1 record(s) in "chats"')
+    );
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('could not be decrypted')
     );
     warnSpy.mockRestore();
   });
@@ -172,5 +175,96 @@ describe("storageService", () => {
     const found = roundtripped.find((c: any) => c.id === "conv-priv-1");
     expect(found?.title).toBe("Secret chat about something sensitive");
     expect(found?.messages?.[0]?.content).toContain("private prompt text");
+  });
+});
+
+// VERIFY-066 regression guard: two distinct profiles must never see each
+// other's rows. Even though both profiles share the same IDB store name,
+// saveItem stamps profileId and getItems filters before decrypt.
+describe("storageService profile isolation", () => {
+  beforeEach(() => {
+    global.indexedDB = new FDBFactory();
+    StorageService.db = null;
+    // Make each test deterministic: start on "default".
+    window.localStorage.clear();
+    window.localStorage.setItem("venice-active-profile-id", "default");
+  });
+
+  it("hides rows between profile switches and prefers rows belonging to the active profile", async () => {
+    // Save three rows under "default".
+    await StorageService.saveItem("images", { id: "d-1", prompt: "alpha", timestamp: 1 });
+    await StorageService.saveItem("images", { id: "d-2", prompt: "bravo", timestamp: 2 });
+    await StorageService.saveItem("images", { id: "d-3", prompt: "charlie", timestamp: 3 });
+
+    const defaultView = await StorageService.getItems<{ id: string; prompt: string }>("images");
+    expect(defaultView.map((r) => r.id).sort()).toEqual(["d-1", "d-2", "d-3"]);
+
+    // Switch to "work" — same store, no rows yet.
+    window.localStorage.setItem("venice-active-profile-id", "work");
+    const emptyView = await StorageService.getItems<{ id: string; prompt: string }>("images");
+    expect(emptyView).toEqual([]);
+
+    // Save one row under "work".
+    await StorageService.saveItem("images", { id: "w-1", prompt: "delta", timestamp: 4 });
+    const workView = await StorageService.getItems<{ id: string; prompt: string }>("images");
+    expect(workView.map((r) => r.id)).toEqual(["w-1"]);
+
+    // raw row peek — the work row is present but the default rows are
+    // still in the database; isolation is enforced only at read time.
+    const db = await StorageService.openDB();
+    const allIds: string[] = await new Promise((resolve, reject) => {
+      const req = db.transaction("images", "readonly").objectStore("images").getAllKeys();
+      req.onsuccess = () => resolve(req.result as string[]);
+      req.onerror = () => reject(req.error);
+    });
+    expect(allIds.sort()).toEqual(["d-1", "d-2", "d-3", "w-1"]);
+
+    // Switch back to "default" — defaults reappear, "work" row hidden.
+    window.localStorage.setItem("venice-active-profile-id", "default");
+    const restored = await StorageService.getItems<{ id: string; prompt: string }>("images");
+    expect(restored.map((r) => r.id).sort()).toEqual(["d-1", "d-2", "d-3"]);
+  });
+
+  it("clearStore on the active profile leaves untouched profiles intact", async () => {
+    window.localStorage.setItem("venice-active-profile-id", "default");
+    await StorageService.saveItem("images", { id: "d-1", prompt: "alpha", timestamp: 1 });
+    await StorageService.saveItem("images", { id: "d-2", prompt: "bravo", timestamp: 2 });
+
+    window.localStorage.setItem("venice-active-profile-id", "work");
+    await StorageService.saveItem("images", { id: "w-1", prompt: "delta", timestamp: 3 });
+
+    // Clearing the "work" store must not touch "default" rows.
+    const clearedWork = await StorageService.clearStore("images");
+    expect(clearedWork).toBe(true);
+
+    const db = await StorageService.openDB();
+    const remaining: string[] = await new Promise((resolve, reject) => {
+      const req = db.transaction("images", "readonly").objectStore("images").getAllKeys();
+      req.onsuccess = () => resolve(req.result as string[]);
+      req.onerror = () => reject(req.error);
+    });
+    expect(remaining.sort()).toEqual(["d-1", "d-2"]);
+
+    // And reading under "default" still surfaces both rows.
+    window.localStorage.setItem("venice-active-profile-id", "default");
+    const def = await StorageService.getItems<{ id: string; prompt: string }>("images");
+    expect(def.map((r) => r.id).sort()).toEqual(["d-1", "d-2"]);
+  });
+
+  it("legacy records without a profileId field are treated as the default profile", async () => {
+    // Inject a raw row that predates the profile-id migration — the helper
+    // `rowBelongsToActiveProfile` must classify it as "default" so the
+    // migration does not silently orphan legacy data.
+    window.localStorage.setItem("venice-active-profile-id", "default");
+    const db = await StorageService.openDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction("images", "readwrite");
+      tx.objectStore("images").put({ id: "legacy-1", prompt: "ancient", timestamp: 1 });
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+
+    const visible = await StorageService.getItems<{ id: string; prompt: string }>("images");
+    expect(visible.map((r) => r.id)).toEqual(["legacy-1"]);
   });
 });

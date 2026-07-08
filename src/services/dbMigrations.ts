@@ -186,6 +186,40 @@ export const MIGRATIONS: MigrationStep[] = [
       }
     },
   },
+  {
+    toVersion: 15,
+    description: "Add profileId index to every store for multi-profile isolation",
+    up(db, tx) {
+      const stores = [
+        "images",
+        "chats",
+        "settings",
+        "conversations",
+        "ai_memory",
+        "files",
+        "character_cards",
+        "personas",
+        "lorebooks",
+        "rp_chats",
+        "rp_assets",
+        "projects",
+        "promptLibrary",
+        "scenes",
+        "rpScenarios",
+        "workflowTemplates",
+        "researchSessions",
+        "visualWorkflows",
+        "playground",
+      ] as const;
+      for (const name of stores) {
+        if (!db.objectStoreNames.contains(name)) continue;
+        const store = tx.objectStore(name);
+        if (!store.indexNames.contains("profileId")) {
+          store.createIndex("profileId", "profileId", { unique: false });
+        }
+      }
+    },
+  },
 ];
 
 /**

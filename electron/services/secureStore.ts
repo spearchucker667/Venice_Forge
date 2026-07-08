@@ -303,17 +303,45 @@ export function getSecureStoreStatus(): {
 // or any future unencrypted path) we MUST obtain an explicit
 // VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true opt-in before writing
 // or reading plaintext. Otherwise the credential is unreachable.
+//
+// Strict plaintext-no-go exception:
+//   Credential names in `STRICT_NO_PLAINTEXT_CREDENTIAL_NAMES` (master
+//   password + any generic "password" record) NEVER honour the Linux
+//   plaintext escape hatch. They fail closed on every OS — even when
+//   `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true` is set. This was
+//   added per release-blocker #7 so a stolen credentials file cannot
+//   surface a usable password verifier on a Linux box.
+
+/** Credential names that are never allowed to fall back to plaintext on any OS. */
+const STRICT_NO_PLAINTEXT_CREDENTIAL_NAMES: ReadonlySet<string> = new Set([
+  "password",
+  "master_password",
+]);
+
+/** Returns true when the named credential must never be stored or read as plaintext. */
+function isStrictNoPlaintextCredential(name: string): boolean {
+  return STRICT_NO_PLAINTEXT_CREDENTIAL_NAMES.has(name);
+}
 
 /** Encrypts and stores a generic credential. */
 export function setCredential(key: string, value: string): void {
   const store = readStore("apiKey"); // We use apiKey's error slot for generic creds for now, or don't report
   const k = `cred_${key}`;
   const ke = `credEncrypted_${key}`;
-  
+
   if (safeStorage.isEncryptionAvailable()) {
     store[k] = safeStorage.encryptString(value).toString("base64");
     store[ke] = "true";
   } else {
+    // Release-blocker #7: master_password / password must NEVER be written in
+    // plaintext under any escape hatch. Surface the canonical refuse-the-
+    // plaintext message BEFORE the platform/window branch so the same error
+    // text is returned on Linux, macOS, and Windows for password credentials.
+    if (isStrictNoPlaintextCredential(key)) {
+      throw new Error(
+        `Credential "${key}" requires OS-level encryption and is configured to refuse the plaintext fallback. Set up credentials on a host where Electron safeStorage encryption is available (DPAPI on Windows, Keychain on macOS, Secret Service on Linux).`,
+      );
+    }
     if (process.platform === "win32" || process.platform === "darwin") {
       throw new Error("Native credential storage unavailable.");
     }
@@ -351,6 +379,14 @@ export function getCredential(key: string): string | null {
   }
 
   if (process.platform === "win32" || process.platform === "darwin") {
+    return null;
+  }
+  // Release-blocker #7: master_password / password plaintext reads are
+  // forbidden on any OS — even with the Linux plaintext-fallback opt-in
+  // set. Return null so the caller is forced to re-enter / re-setup the
+  // password through the standard encrypted path. This keeps a stolen
+  // credentials file from leaking a usable password on Linux.
+  if (isStrictNoPlaintextCredential(key)) {
     return null;
   }
   // Even on Linux, plaintext credential reads require the same explicit

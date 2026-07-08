@@ -19,6 +19,7 @@ const fixtures = vi.hoisted(() => {
     description: "test desc",
     systemPrompt: "You are a test character.",
     scenario: "",
+    instructions: "Stay in character, be helpful, never break the fourth wall.",
     tags: ["test"],
     adult: false,
     exampleDialogues: [],

@@ -3,10 +3,14 @@
 import { DB_NAME, DB_VERSION, STORE_NAMES } from "../constants/venice";
 import { warn } from "../shared/logger";
 import { assertValidId, isValidId } from "../utils/idValidation";
-import { encryptData, decryptDataResult } from "./cryptoService";
+import { encryptData, decryptDataResult, type EncryptedPayload } from "./cryptoService";
 import { applyMigrations } from "./dbMigrations";
+import { DEFAULT_PROFILE_ID, getActiveProfileId } from "./activeProfile";
 
 type StoreName = (typeof STORE_NAMES)[number];
+
+/** Marker field added to every record so reads can filter by active profile. */
+export const PROFILE_ID_FIELD = "profileId";
 
 /** List of store names whose records are encrypted before persistence. */
 // diagnostics is intentionally excluded: it stores sanitized timing/status metadata
@@ -53,30 +57,60 @@ export interface GetItemsPageResult<T = unknown> extends GetItemsResult<T> {
   hasMore: boolean;
 }
 
-async function decodeRows<T>(store: StoreName, rows: Record<string, unknown>[]): Promise<GetItemsResult<T>> {
+/**
+ * Decodes an IndexDB row that may be encrypted (cipher inside `data`,
+ * `_isEncryptedWrapper === true`) or plaintext. Returns a tuple of
+ * `[item, ok]` where `ok === false` means decryption failed for an
+ * encrypted row that survived the profile filter.
+ */
+async function decodeRow<T>(store: StoreName, row: Record<string, unknown>): Promise<[T | null, boolean]> {
   if (!ENCRYPTED_STORES.includes(store)) {
-    return { items: rows as T[], decryptFailures: 0 };
+    return [row as T, true];
   }
+  if (row._isEncryptedWrapper !== true) {
+    // Legacy plaintext record in an encrypted store — keep but flag as
+    // not-OK so the caller can warn about the inconsistency.
+    return [row as T, false];
+  }
+  if (!row.data) return [null, false];
+  const result = await decryptDataResult<T>(row.data as EncryptedPayload);
+  if (!result.ok) return [null, false];
+  return [result.data as T, true];
+}
 
-  const decrypted = await Promise.all(
-    rows.map(async (row) => {
-      if (row._isEncryptedWrapper === true && row.data) {
-        const result = await decryptDataResult(row.data);
-        if (!result.ok) return null;
-        return result.data;
-      }
-      if (row._isEncryptedWrapper === true) return null;
-      return row;
-    }),
-  );
-  const decryptFailures = decrypted.filter((value) => !value).length;
+/**
+ * Returns true if the row belongs to the active profile. Records with no
+ * `profileId` field are treated as legacy and attributed to the default
+ * profile (matches the pre-profile-isolation behaviour).
+ */
+function rowBelongsToActiveProfile(row: Record<string, unknown>, activeProfile: string): boolean {
+  const rowProfile = typeof row[PROFILE_ID_FIELD] === "string"
+    ? (row[PROFILE_ID_FIELD] as string)
+    : DEFAULT_PROFILE_ID;
+  return rowProfile === activeProfile;
+}
+
+async function decodeRows<T>(
+  store: StoreName,
+  rows: Record<string, unknown>[],
+  activeProfile: string,
+): Promise<GetItemsResult<T>> {
+  // Filter to the active profile BEFORE decrypting so unrelated-profile
+  // records don't burn cipher cycles.
+  const scoped = rows.filter((row) => rowBelongsToActiveProfile(row, activeProfile));
+  if (!ENCRYPTED_STORES.includes(store)) {
+    return { items: scoped as T[], decryptFailures: 0 };
+  }
+  const decrypted = await Promise.all(scoped.map((row) => decodeRow<T>(store, row)));
+  const items = decrypted.flatMap(([value]) => (value === null ? [] : [value]));
+  const decryptFailures = decrypted.filter(([, ok]) => !ok).length;
   if (decryptFailures > 0) {
     warn(
-      `[storageService] ${decryptFailures} record(s) in "${store}" could not be decrypted and were skipped. ` +
-      "This may indicate key-store loss, data corruption, or a browser/profile reset. The records are still persisted in IndexedDB.",
+      `[storageService] ${decryptFailures} record(s) in "${store}" for profile "${activeProfile}" could not be decrypted. ` +
+      "This may indicate key-store loss, data corruption, or a browser/profile reset.",
     );
   }
-  return { items: decrypted.filter(Boolean) as T[], decryptFailures };
+  return { items: items as T[], decryptFailures };
 }
 
 export class MissingTimestampIndexError extends Error {
@@ -141,10 +175,15 @@ const StorageService = {
     assertValidId(id, "saveItem");
     const timestamp = typeof item.timestamp === "number" ? item.timestamp : Date.now();
 
-    let payload: Record<string, unknown> = { ...item, id, timestamp };
+    let payload: Record<string, unknown> = {
+      ...item,
+      id,
+      timestamp,
+      [PROFILE_ID_FIELD]: getActiveProfileId(),
+    };
     if (ENCRYPTED_STORES.includes(store)) {
       const encryptedData = await encryptData(payload);
-      payload = { id, timestamp, data: encryptedData, _isEncryptedWrapper: true };
+      payload = { id, timestamp, [PROFILE_ID_FIELD]: getActiveProfileId(), data: encryptedData, _isEncryptedWrapper: true };
     }
 
     return new Promise((resolve, reject) => {
@@ -156,17 +195,19 @@ const StorageService = {
   },
 
   /**
-   * Retrieves all items from a store, decrypting encrypted records.
+   * Retrieves all items from a store, decrypting encrypted records and
+   * filtering to the active profile.
    * @param store The object store name to query.
    * @returns A promise resolving to an array of decrypted records sorted by timestamp descending.
    */
   async getItemsWithMeta<T = unknown>(store: StoreName): Promise<GetItemsResult<T>> {
     const db = await this.openDB();
+    const activeProfile = getActiveProfileId();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(store, "readonly");
       const req = tx.objectStore(store).getAll();
       req.onsuccess = async () => {
-        const decoded = await decodeRows<T>(store, (req.result || []) as Record<string, unknown>[]);
+        const decoded = await decodeRows<T>(store, (req.result || []) as Record<string, unknown>[], activeProfile);
         decoded.items.sort((a, b) => ((b as { timestamp?: number }).timestamp || 0) - ((a as { timestamp?: number }).timestamp || 0));
         resolve(decoded);
       };
@@ -186,6 +227,7 @@ const StorageService = {
     const offset = Math.max(0, Math.floor(options.offset ?? 0));
     const limit = Math.min(200, Math.max(1, Math.floor(options.limit ?? 60)));
     const db = await this.openDB();
+    const activeProfile = getActiveProfileId();
     const tx = db.transaction(store, "readonly");
     const objectStore = tx.objectStore(store);
 
@@ -206,13 +248,13 @@ const StorageService = {
         if (settled || total === null || !cursorDone) return;
         settled = true;
         try {
-          const decoded = await decodeRows<T>(store, rows);
+          const decoded = await decodeRows<T>(store, rows, activeProfile);
           resolve({
             ...decoded,
             total,
             offset,
             limit,
-            hasMore: offset + rows.length < total,
+            hasMore: offset + decoded.items.length < total,
           });
         } catch (error) {
           reject(error);
@@ -246,7 +288,8 @@ const StorageService = {
 
   /**
    * Retrieves a single record by id from a store, decrypting if the record is
-   * in the encrypted-stores set. Returns null when the record does not exist.
+   * in the encrypted-stores set. Returns null when the record does not exist
+   * or belongs to a different profile.
    * @param store The object store name to query.
    * @param id The unique identifier of the record.
    * @returns A promise resolving to the decrypted record or null.
@@ -254,12 +297,17 @@ const StorageService = {
   async getItem<T = unknown>(store: StoreName, id: string): Promise<T | null> {
     if (!isValidId(id)) return null;
     const db = await this.openDB();
+    const activeProfile = getActiveProfileId();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(store, "readonly");
       const req = tx.objectStore(store).get(id);
       req.onsuccess = async () => {
         const row = req.result as Record<string, unknown> | undefined;
         if (!row) {
+          resolve(null);
+          return;
+        }
+        if (!rowBelongsToActiveProfile(row, activeProfile)) {
           resolve(null);
           return;
         }
@@ -289,7 +337,9 @@ const StorageService = {
   },
 
   /**
-   * Deletes a single record from a store.
+   * Deletes a single record from a store. Cross-profile deletes are allowed
+   * (caller-supplied id always wins) so users can clean up wrong-profile
+   * imports.
    * @param store The object store name.
    * @param id The unique identifier of the record to delete.
    * @returns A promise resolving to true on success.
@@ -306,15 +356,31 @@ const StorageService = {
   },
 
   /**
-   * Clears all records from the specified store.
+   * Clears all records from the specified store. Only clears records that
+   * belong to the active profile — never accidentally wipes another
+   * profile's data.
    * @param store The object store name to clear.
    * @returns A promise resolving to true on success.
    */
   async clearStore(store: StoreName): Promise<boolean> {
     const db = await this.openDB();
+    const activeProfile = getActiveProfileId();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(store, "readwrite");
-      tx.objectStore(store).clear();
+      const objectStore = tx.objectStore(store);
+      const req = objectStore.openCursor();
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (!cursor) {
+          return;
+        }
+        const row = cursor.value as Record<string, unknown>;
+        if (rowBelongsToActiveProfile(row, activeProfile)) {
+          cursor.delete();
+        }
+        cursor.continue();
+      };
+      req.onerror = () => reject(req.error);
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => reject(tx.error);
     });

@@ -76,6 +76,18 @@ export interface CharacterCardAvatar {
   byteLength: number;
 }
 
+/**
+ * URL-scraping provider for a character. Replaces the legacy
+ * `urlScraping: boolean` field (VERIFY-048 migration surface).
+ *
+ *   | Value    | Meaning                                                     |
+ *   |----------|-------------------------------------------------------------|
+ *   | `off`    | URL scraping disabled (legacy `false` or missing)           |
+ *   | `brave`  | Use the Brave search/scraping endpoint (legacy `true`)      |
+ *   | `google` | Use the Google custom-search endpoint                       |
+ */
+export type CharacterUrlScrapingProvider = "off" | "brave" | "google";
+
 export interface CharacterCardV1 {
   schema: "CharacterCardV1";
   id: string;
@@ -104,7 +116,9 @@ export interface CharacterCardV1 {
    *  Optional additive field — older CharacterCardV1 records load unchanged. */
   instructions?: string;
   webSearch?: boolean;
-  urlScraping?: boolean;
+  /** URL-scraping provider. Replaces the legacy `urlScraping: boolean`
+   *  (boolean loader still supports backcompat via `normalizeCard` / `clampCard`). */
+  urlScrapingProvider?: CharacterUrlScrapingProvider;
   enableThoughts?: boolean;
   temperature?: number;
   topP?: number;

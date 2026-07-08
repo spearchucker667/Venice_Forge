@@ -22,15 +22,12 @@ import {
 } from "./inspectorTelemetry";
 import { useInspectorStore } from "../stores/inspector-store";
 import { useSettingsStore } from "../stores/settings-store";
+import { getActiveProfileId } from "./activeProfile";
 
 /**
  * Detects whether the app is currently running inside the Electron desktop shell.
- * @returns True if running in Electron desktop mode.
+ * @returns True when running in Electron desktop mode.
  */
-
-function getActiveProfileId(): string {
-  return typeof window !== "undefined" ? window.localStorage?.getItem('venice-active-profile-id') /* localStorage-allowed: active profile routing; written only by profile-store */ || 'default' : 'default';
-}
 
 export function isElectron(): boolean {
   return typeof window !== "undefined" && window.veniceForge?.isDesktop === true;

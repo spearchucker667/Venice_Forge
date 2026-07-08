@@ -21,6 +21,7 @@ import { FIRST_RUN_ACK_KEY } from './shared/legal'
 import { applyTheme, resolveInitialTheme } from './theme'
 import { CANONICAL_TAB_ORDER, normaliseTab, type TabId } from './config/tabs'
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion'
+import { useProfileVolatileReset } from './hooks/useProfileVolatileReset'
 
 /** Exported for regression testing: identifies whether a keyboard event target
  *  is an editable element where global shortcuts should be ignored. */
@@ -172,6 +173,10 @@ export function App() {
   const activeTab = useSettingsStore((s) => s.activeTab)
   const setActiveTab = useSettingsStore((s) => s.setActiveTab)
   usePrefersReducedMotion()
+  // Subscribe to active-profile changes so volatile per-profile caches
+  // (pending Image Studio handoffs, traffic inspector logs, active
+  // conversation id) are cleared before `switchProfile` reloads the page.
+  useProfileVolatileReset()
 
   // Theme state lifecycle synchronization. Uses the registry-based
   // `resolveInitialTheme` so a future theme can be added without

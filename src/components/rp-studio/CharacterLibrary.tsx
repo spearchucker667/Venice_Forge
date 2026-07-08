@@ -10,7 +10,7 @@ import { useCharacterCardStore } from "../../stores/character-card-store";
 import { GhostButton, PillGroup, PrimaryButton, ErrorText, EmptyState } from "../ui/shared";
 import { Spinner } from "../ui/spinner";
 import { avatarDataUri, formatRelativeTime, truncate } from "./_shared";
-import type { CharacterCardV1 } from "../../types/rp";
+import type { CharacterCardAvatar, CharacterCardV1 } from "../../types/rp";
 import { CARD_FIELD_MAX } from "../../types/rp";
 import { generateId } from "../../services/rp/characterCardService";
 import { startNormalChatForCharacter } from "../../services/rpHelpers";
@@ -18,11 +18,30 @@ import { toast } from "../../stores/toast-store";
 import { veniceFetch } from "../../services/veniceClient/fetch";
 import { maybeRunLocalFamilyGuard } from "../../shared/safety/localFamilySafeGuard";
 import { useSettingsStore } from "../../stores/settings-store";
+import { DEFAULT_IMAGE_MODEL, FALLBACK_MODELS } from "../../constants/venice";
+import { buildImagePayload } from "../../utils/payloadBuilders";
+import { extractImages } from "../../utils/image";
 
 const STANDARD_FILTER = [
   { value: "standard", label: "Standard" },
   { value: "adult", label: "Adult" },
 ] as const;
+
+/**
+ * Internal shape produced by the strict Create Me validator. These are
+ * the only fields the validator will accept and every field is non-empty
+ * (with the exception of optional firstMessage / systemPrompt / imagePrompt).
+ */
+interface ValidatedCreateMeResponse {
+  name: string;
+  description: string;
+  instructions: string;
+  firstMessage?: string;
+  systemPrompt: string;
+  imagePrompt?: string;
+  tags: string[];
+  adult: boolean;
+}
 
 interface Props {
   onEdit: (id: string) => void;
@@ -50,6 +69,7 @@ export function CharacterLibrary({ onEdit }: Props) {
 
     setIsCreatingMe(true);
     try {
+      // (1) Pre-flight guard on the user's prompt itself.
       if (safeMode) {
         const guard = await maybeRunLocalFamilyGuard({ text: promptText, source: "chat" }, true);
         if (!guard.allowed) {
@@ -59,36 +79,63 @@ export function CharacterLibrary({ onEdit }: Props) {
         }
       }
 
+      // (2) Pick the configured text model so users can route Venice DIY
+      //     Character Studio through prompt-lab favourite, fallback list,
+      //     etc. Never hardcode model ids.
+      const configuredTextModel = useSettingsStore.getState().selectedModels.text;
+      const textModel =
+        configuredTextModel
+        || FALLBACK_MODELS.text[0]?.id
+        || "llama-3.3-70b";
+
       const res = await veniceFetch('/chat/completions', {
         method: 'POST',
         body: {
-          model: 'llama-3.3-70b',
+          model: textModel,
           messages: [
             {
               role: 'system',
-              content: 'You are a character creator. Return ONLY valid JSON with no markdown wrapping. The JSON must match the CharacterCardV1 schema: { "name": string, "description": string, "systemPrompt": string, "firstMessage": string, "instructions": string, "tags": string[], "adult": boolean }.'
+              content:
+                'You are a character creator. Return ONLY a single valid JSON object ' +
+                'with no markdown wrappers, no prose, no code fences. ' +
+                'The JSON keys MUST match this exact schema: ' +
+                '{ "name": string (1-80 chars), "description": string (1-600 chars), ' +
+                '"firstMessage": string (optional, <= 800 chars), ' +
+                '"instructions": string (required, 1-2000 chars), ' +
+                '"systemPrompt": string (optional, <= 8000 chars), ' +
+                '"imagePrompt": string (optional, <= 600 chars; short English description ' +
+                'suitable for an avatar / icon of the character), ' +
+                '"tags": string[] (max 8 entries, lowercase, hyphenated), ' +
+                '"adult": boolean }. ' +
+                'Every string must be non-empty when required; do not include ' +
+                'unknown keys; do not include trailing commas.',
             },
             {
               role: 'user',
-              content: `Create a character based on this prompt: ${promptText}`
-            }
+              content: `Create a character based on this prompt: ${promptText}`,
+            },
           ],
-          temperature: 0.7
-        }
+          temperature: 0.7,
+        },
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const raw = String((res.data as any).choices?.[0]?.message?.content ?? "");
       const parsed = safeParseCharacterJson(raw);
-      if (!parsed) {
-        toast.error("Character generator returned an unparseable response.");
+      const validated = validateCreateMeResponse(parsed);
+      if (!validated) {
+        toast.error("Character generator returned an invalid or unparseable response.");
         setIsCreatingMe(false);
         return;
       }
 
+      // (3) Post-generation safety guard on the AI output (preflight +
+      //     postflight). Adult flag set by the model is fused with the
+      //     postflight decision — safer to fail closed than to honour a
+      //     self-reported flag.
       if (safeMode) {
         const postGuard = maybeRunLocalFamilyGuard(
-          { text: JSON.stringify(parsed), source: "chat" },
+          { text: JSON.stringify(validated), source: "chat" },
           true,
         );
         if (!postGuard.allowed) {
@@ -96,11 +143,11 @@ export function CharacterLibrary({ onEdit }: Props) {
           setIsCreatingMe(false);
           return;
         }
-        if (parsed.adult === true) {
-          toast.error("Generated character was flagged as adult; please revise your prompt or finish editing manually.");
-          setIsCreatingMe(false);
-          return;
-        }
+      }
+      if (safeMode && validated.adult === true) {
+        toast.error("Generated character was flagged as adult; please revise your prompt or finish editing manually.");
+        setIsCreatingMe(false);
+        return;
       }
 
       const now = Date.now();
@@ -108,17 +155,40 @@ export function CharacterLibrary({ onEdit }: Props) {
       const card: CharacterCardV1 = {
         schema: "CharacterCardV1",
         id: generateId(),
-        name: typeof parsed.name === "string" ? cap(parsed.name) : "Untitled",
-        description: typeof parsed.description === "string" ? cap(parsed.description) : "",
-        systemPrompt: typeof parsed.systemPrompt === "string" ? cap(parsed.systemPrompt) : "",
-        instructions: typeof parsed.instructions === "string" ? cap(parsed.instructions) : undefined,
-        tags: Array.isArray(parsed.tags) ? parsed.tags.filter((t: unknown) => typeof t === "string").slice(0, 32).map((t) => cap(t as string)) : [],
-        adult: !!parsed.adult,
+        name: cap(validated.name) || "Untitled",
+        description: cap(validated.description || ""),
+        systemPrompt: cap(validated.systemPrompt || ""),
+        instructions: cap(validated.instructions),
+        tags: validated.tags.slice(0, 8).map((t) => t.toLowerCase().slice(0, 40)),
+        adult: !!validated.adult,
         exampleDialogues: [],
-        firstMessage: typeof parsed.firstMessage === "string" ? cap(parsed.firstMessage) : undefined,
+        firstMessage: validated.firstMessage ? cap(validated.firstMessage) : undefined,
+        modelId: textModel,
         createdAt: now,
         updatedAt: now,
       };
+
+      // (4) Generate an avatar via the configured image model. The
+      //     image-prompt is screened through Family Safe Mode BEFORE we
+      //     hit the network, then `extractImages` returns a data URL we
+      //     persist onto the card before opening the editor. Inspector
+      //     logs already redact prompts via `sanitizeInspectorPayload`.
+      let avatar: CharacterCardAvatar | undefined;
+      if (validated.imagePrompt && validated.imagePrompt.trim()) {
+        const imagePrompt = validated.imagePrompt.trim().slice(0, 600);
+        if (safeMode) {
+          const guard = maybeRunLocalFamilyGuard(
+            { text: imagePrompt, source: "image" },
+            true,
+          );
+          if (guard.allowed) {
+            avatar = await generateAvatarForCard(imagePrompt);
+          }
+        } else {
+          avatar = await generateAvatarForCard(imagePrompt);
+        }
+      }
+      if (avatar) card.avatar = avatar;
 
       const saved = await upsert(card);
       if (saved) {
@@ -132,6 +202,116 @@ export function CharacterLibrary({ onEdit }: Props) {
       setIsCreatingMe(false);
     }
   };
+
+  async function generateAvatarForCard(imagePrompt: string): Promise<CharacterCardAvatar | undefined> {
+    try {
+      const configuredImageModel = useSettingsStore.getState().selectedModels.image;
+      const fallback = FALLBACK_MODELS.image[0]?.id;
+      const imageModel = configuredImageModel || fallback || DEFAULT_IMAGE_MODEL;
+      const payload = buildImagePayload(
+        imageModel,
+        {
+          prompt: imagePrompt,
+          width: 512,
+          height: 512,
+          aspectRatio: "1:1",
+          safeMode: useSettingsStore.getState().veniceApiSafeMode,
+          disableWatermark: true,
+          imageCount: 1,
+          supportsReturnBinary: false,
+        },
+        imagePrompt,
+        undefined,
+      );
+      const res = await veniceFetch('/image/generate', {
+        method: 'POST',
+        body: payload,
+      });
+      const urls = extractImages(res.data);
+      const first = urls[0];
+      if (!first) return undefined;
+      return dataUrlToAvatar(first);
+    } catch {
+      // Avatar gen is best-effort; failing here just leaves the editor
+      // to use the placeholder initials avatar (the user can re-roll).
+      return undefined;
+    }
+  }
+
+  // Strict runtime validation of the model output. Every field is
+  // type-checked — partial / structurally-invalid responses fail closed
+  // rather than degrading silently. The validator follows the schema
+  // declared in the chat/completions system prompt.
+  function validateCreateMeResponse(value: unknown): ValidatedCreateMeResponse | null {
+    if (!value || typeof value !== "object") return null;
+    const record = value as Record<string, unknown>;
+
+    const askString = (key: string, minLen: number, maxLen: number): string | null => {
+      const v = record[key];
+      if (typeof v !== "string") return null;
+      const trimmed = v.trim();
+      if (!trimmed) return null;
+      if (trimmed.length < minLen || trimmed.length > maxLen) return null;
+      return trimmed.slice(0, maxLen);
+    };
+
+    const name = askString("name", 1, 80);
+    const description = askString("description", 1, 600);
+    const instructions = askString("instructions", 1, 2000);
+    if (!name || !description || !instructions) return null;
+
+    const firstMessage = askString("firstMessage", 1, 800) ?? undefined;
+    const systemPrompt = askString("systemPrompt", 1, 8000) ?? "";
+    const imagePrompt = askString("imagePrompt", 1, 600) ?? undefined;
+
+    const tags: string[] = [];
+    if (record.tags !== undefined) {
+      if (!Array.isArray(record.tags)) return null;
+      for (const t of record.tags) {
+        if (typeof t !== "string") return null;
+        const trimmed = t.trim().slice(0, 40);
+        if (!trimmed) return null;
+        tags.push(trimmed);
+        if (tags.length > 8) break;
+      }
+    }
+
+    let adult = false;
+    if (record.adult !== undefined) {
+      if (typeof record.adult !== "boolean") return null;
+      adult = record.adult;
+    }
+
+    for (const key of Object.keys(record)) {
+      if (
+        key !== "name" &&
+        key !== "description" &&
+        key !== "firstMessage" &&
+        key !== "instructions" &&
+        key !== "systemPrompt" &&
+        key !== "imagePrompt" &&
+        key !== "tags" &&
+        key !== "adult"
+      ) {
+        return null;
+      }
+    }
+
+    return { name, description, instructions, firstMessage, systemPrompt, imagePrompt, tags, adult };
+  }
+
+  function dataUrlToAvatar(dataUrl: string): CharacterCardAvatar | undefined {
+    if (!/^data:image\//i.test(dataUrl)) return undefined;
+    const match = /^data:(image\/(?:png|jpeg|webp));base64,(.*)$/i.exec(dataUrl);
+    if (!match) return undefined;
+    const mimeType = match[1].toLowerCase() as "image/png" | "image/jpeg" | "image/webp";
+    const base64 = match[2].replace(/\s+/g, "");
+    // Approximate byte length: 3 bytes / 4 base64 chars.
+    const byteLength = Math.floor((base64.length * 3) / 4);
+    if (!byteLength) return undefined;
+    if (base64.length > 6 * 1024 * 1024) return undefined;
+    return { data: dataUrl, mimeType, byteLength };
+  }
 
   // Bracket-balanced JSON extractor for code fences (handles ```json ... ``` and bare objects).
   function safeParseCharacterJson(raw: string): Record<string, unknown> | null {

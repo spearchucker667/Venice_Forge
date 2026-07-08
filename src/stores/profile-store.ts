@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { createSafeStorage } from '../lib/safe-storage'
+import { broadcastActiveProfileChange, setActiveProfileId } from '../services/activeProfile'
 
 export interface UserProfile {
   id: string
@@ -54,7 +55,8 @@ export const useProfileStore = create<ProfileState>()(
         // Clear active volatile state by reloading the window
         // safeStorage uses venice-active-profile-id synchronously on load
         if (typeof window !== 'undefined') {
-          window.localStorage.setItem('venice-active-profile-id', id) /* localStorage-allowed: active profile routing; canonical write-site */
+          setActiveProfileId(id)
+          broadcastActiveProfileChange(id)
           window.location.reload()
         }
       },
@@ -73,7 +75,8 @@ export const useProfileStore = create<ProfileState>()(
           if (activeId === id) {
              activeId = 'default'
              if (typeof window !== 'undefined') {
-                window.localStorage.setItem('venice-active-profile-id', activeId) /* localStorage-allowed: active profile routing; canonical write-site */
+                setActiveProfileId(activeId)
+                broadcastActiveProfileChange(activeId)
                 setTimeout(() => window.location.reload(), 0)
              }
           }
@@ -95,5 +98,5 @@ export const useProfileStore = create<ProfileState>()(
 if (typeof window !== 'undefined') {
   // Ensure the local storage flag is in sync with the persisted state on load
   const state = useProfileStore.getState()
-  window.localStorage.setItem('venice-active-profile-id', state.activeProfileId) /* localStorage-allowed: active profile routing; sync on cold boot */
+  setActiveProfileId(state.activeProfileId)
 }

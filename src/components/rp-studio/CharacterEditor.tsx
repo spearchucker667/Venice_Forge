@@ -92,15 +92,47 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
   const handleContextFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const ext = file.name.toLowerCase().split(".").pop() ?? "";
+    const allowedExts = new Set(["txt", "md", "pdf"]);
     if (file.size > 5 * 1024 * 1024) {
       setError("Context file must be 5MB or smaller.");
+      e.target.value = "";
       return;
     }
-    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+    if (!allowedExts.has(ext)) {
       setError(
-        "PDF context files are accepted but their text cannot be extracted yet. " +
-        "Convert to .txt / .md / .csv, paste the text directly, or open a feature request.",
+        `Context files must be .pdf, .txt, or .md. Got ".${ext}". ` +
+        `These formats are wired to the local PDF text extractor and pass-through readers; ` +
+        `JSON or CSV context is intentionally rejected to avoid prompt-injection via structured data.`,
       );
+      e.target.value = "";
+      return;
+    }
+    if (ext === "pdf") {
+      try {
+        const { extractPdfText } = await import("../../services/pdfParserService");
+        const result = await extractPdfText(file);
+        if (result.isImageOnly) {
+          setError(
+            "This PDF has no embedded text layer (likely a scanned image). " +
+            "Use the Venice /augment/text-parser endpoint for OCR, or convert to .txt / .md first.",
+          );
+          e.target.value = "";
+          return;
+        }
+        const newFile: CharacterContextFile = {
+          id: Date.now().toString() + Math.random(),
+          name: file.name,
+          content: result.text.slice(0, 100_000),
+          size: file.size,
+        };
+        update("contextFiles", [...(draft.contextFiles || []), newFile]);
+      } catch (err) {
+        setError(
+          `Failed to extract PDF text: ${err instanceof Error ? err.message : "unknown error"}. ` +
+          `Try converting the file to .txt or .md.`,
+        );
+      }
       e.target.value = "";
       return;
     }
@@ -194,6 +226,10 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
     }
     if (!draft.description?.trim()) {
       setError("Description is required.");
+      return;
+    }
+    if (!draft.instructions?.trim()) {
+      setError("Instructions are required. Tell the model how to behave as this character.");
       return;
     }
     if (!draft.avatar) {
@@ -656,9 +692,18 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
               <input type="checkbox" checked={!!draft.webSearch} onChange={e => update("webSearch", e.target.checked)} className="rounded border-border bg-surface text-accent focus:ring-accent" />
               <span className="text-[12px] text-text-primary">Web Search</span>
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={!!draft.urlScraping} onChange={e => update("urlScraping", e.target.checked)} className="rounded border-border bg-surface text-accent focus:ring-accent" />
-              <span className="text-[12px] text-text-primary">URL Scraping</span>
+            <label className="flex flex-col gap-1 cursor-pointer">
+              <span className="text-[12px] text-text-primary">URL Scraping Provider</span>
+              <select
+                value={draft.urlScrapingProvider ?? "off"}
+                onChange={(e) => update("urlScrapingProvider", e.target.value as "off" | "brave" | "google")}
+                className="bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent"
+                aria-label="URL scraping provider"
+              >
+                <option value="off">Off</option>
+                <option value="brave">Brave</option>
+                <option value="google">Google</option>
+              </select>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={draft.enableThoughts ?? true} onChange={e => update("enableThoughts", e.target.checked)} className="rounded border-border bg-surface text-accent focus:ring-accent" />
@@ -682,7 +727,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
             <Label>Context Files</Label>
             <label className="text-[11px] px-2 py-1 rounded-md border border-border bg-surface-elevated text-text-secondary hover:text-text-primary hover:border-accent/40 cursor-pointer transition-colors">
               Upload File (Max 5MB)
-              <input type="file" className="hidden" onChange={handleContextFileUpload} accept=".txt,.json,.md,.csv,.pdf,application/pdf" />
+              <input type="file" className="hidden" onChange={handleContextFileUpload} accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown" />
             </label>
           </div>
           {(!draft.contextFiles || draft.contextFiles.length === 0) ? (

@@ -75,6 +75,12 @@ export function useVideo() {
     }
   }, [stopPolling])
 
+  /**
+   * Marks the in-flight /video/queue log as aborted by the user or on unmount.
+   * Distinct from timeout: emit `errorClass: 'aborted'` so the inspector UI
+   * and audit counters can separate user-driven cancellations from provider
+   * timeouts. No-op if no current log is tracked.
+   */
   const markGenerationAborted = useCallback((reason: string) => {
     const logId = currentLogIdRef.current
     if (!logId) return
@@ -82,6 +88,25 @@ export function useVideo() {
     useInspectorStore.getState().updateLog(logId, {
       callOutcome: 'aborted',
       errorClass: 'aborted',
+      error: reason,
+      durationMs,
+    })
+    currentLogIdRef.current = null
+  }, [])
+
+  /**
+   * Marks the in-flight /video/queue log as timed out (overall wall-clock
+   * deadline, MAX_ATTEMPTS overage, or grouped provider stall). Classified
+   * as `errorClass: 'timeout'` so cancel-vs-timeout is distinguishable in
+   * the inspector.
+   */
+  const markGenerationTimedOut = useCallback((reason: string) => {
+    const logId = currentLogIdRef.current
+    if (!logId) return
+    const durationMs = startedAtRef.current ? Date.now() - startedAtRef.current : undefined
+    useInspectorStore.getState().updateLog(logId, {
+      callOutcome: 'aborted',
+      errorClass: 'timeout',
       error: reason,
       durationMs,
     })
@@ -103,11 +128,11 @@ export function useVideo() {
     }, 1000)
 
     isPollingRef.current = false
-    const capAttemptLifecycle = (reason: string) => {
+    const capTimeout = (reason: string) => {
       if (token !== generationTokenRef.current) return
       isPollingRef.current = false
       stopPolling()
-      markGenerationAborted(reason)
+      markGenerationTimedOut(reason)
       setError(reason)
       setStatus('failed')
     }
@@ -119,11 +144,11 @@ export function useVideo() {
       attemptsRef.current += 1
       // Overall deadline from queue success — replaces the ~10-minute budget.
       if (startedAtRef.current && Date.now() - startedAtRef.current > MAX_GENERATION_MS) {
-        capAttemptLifecycle('Video generation exceeded the 2-minute budget. Cancel and try again.')
+        capTimeout('Video generation exceeded the 2-minute budget. Cancel and try again.')
         return
       }
       if (attemptsRef.current > MAX_ATTEMPTS) {
-        capAttemptLifecycle('Generation took too long. Cancel and try again, or check your Venice dashboard.')
+        capTimeout('Generation took too long. Cancel and try again, or check your Venice dashboard.')
         return
       }
       try {
@@ -171,29 +196,36 @@ export function useVideo() {
         if (token !== generationTokenRef.current) return
         if (err instanceof DOMException && err.name === 'AbortError') return
         if (attemptsRef.current >= MAX_ATTEMPTS) {
-          capAttemptLifecycle('Generation took too long. Cancel and try again, or check your Venice dashboard.')
+          capTimeout('Generation took too long. Cancel and try again, or check your Venice dashboard.')
           return
         }
         if (startedAtRef.current && Date.now() - startedAtRef.current > MAX_GENERATION_MS) {
-          capAttemptLifecycle('Video generation exceeded the 2-minute budget. Cancel and try again.')
+          capTimeout('Video generation exceeded the 2-minute budget. Cancel and try again.')
           return
         }
       } finally {
         isPollingRef.current = false
       }
     }, POLL_INTERVAL_MS)
-  }, [stopPolling, markGenerationAborted])
+  }, [stopPolling, markGenerationAborted, markGenerationTimedOut])
 
   const queueMutation = useMutation({
     mutationFn: async (req: VideoQueueRequest) => {
       abortControllerRef.current.abort()
       abortControllerRef.current = new AbortController()
+      // veniceFetch already emits a /video/queue inspector log; capture its
+      // id via `registerLogId` so cancel / timeout / completion handlers can
+      // mark the SAME entry instead of creating a duplicate.
+      currentLogIdRef.current = null
       const result = await veniceFetch<VideoQueueResponse>('/video/queue', {
         method: 'POST',
         body: req,
         signal: abortControllerRef.current.signal,
         timeoutMs: QUEUE_TIMEOUT_MS,
         retry: false,
+        registerLogId: (logId) => {
+          currentLogIdRef.current = logId
+        },
       })
       return result.data
     },
@@ -207,23 +239,6 @@ export function useVideo() {
       setStatus('queued')
       setVideoUrl(null)
       setError(null)
-      // Record our own inspector log entry so cancel / deadline paths have a
-      // stable id to mark `aborted` even if veniceFetch's internal log is
-      // updated out from under the hook. We mark it `completed:false`
-      // straight away and clear it on success.
-      try {
-        const logId = useInspectorStore.getState().addLog({
-          endpoint: '/video/queue',
-          method: 'POST',
-          transport: 'venice',
-          requestHeaders: {},
-          requestBody: variables,
-        })
-        currentLogIdRef.current = logId
-        useInspectorStore.getState().updateLog(logId, { callOutcome: 'pending' })
-      } catch {
-        currentLogIdRef.current = null
-      }
       startPolling()
     },
     onError: (err) => {

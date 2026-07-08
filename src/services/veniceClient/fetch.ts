@@ -22,6 +22,37 @@ import { extractModelName, parseDiagnosticsHeaders, safeInspectorError, summariz
 import { serializeFormData, dedupeKey } from "./serialization";
 import { calculateBackoff, computeRateLimitWait, deleteInFlight, getInFlight, hasInFlight, resolveTimeoutMs, setInFlight } from "./retry";
 import { getSafetyDecisionForLog } from "./safety";
+import type { SafetyGuardDecision } from "../../shared/safety";
+
+/**
+ * Builds a minimal `SafetyGuardDecision` for fail-closed response-blocking
+ * paths where the guard could not run on a payload (e.g., circular
+ * references prevented serialization, or the body was empty / null). The
+ * shape mirrors `maybeRunLocalFamilyGuard`'s return so downstream
+ * telemetry, the inspector patch, and `SafetyGuardBlockedError` all see a
+ * consistent decision object.
+ */
+function buildFailClosedDecision(userMessage: string, reasonCode: string): SafetyGuardDecision {
+  return {
+    allow: false,
+    action: "block",
+    severity: "high",
+    category: "csam_request",
+    reasonCode,
+    userMessage,
+    developerMessage: userMessage,
+    normalizedChanged: false,
+    transformedText: undefined,
+    signals: [],
+    audit: {
+      decisionId: `failclosed-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      promptHash: "",
+      promptLength: 0,
+      matchedFieldPaths: [],
+    },
+  };
+}
 
 /**
  * Performs a Venice API request through the desktop IPC bridge with retries.
@@ -369,9 +400,16 @@ export async function veniceFetch<T = unknown>(
     timeoutMs?: number;
     dedupe?: boolean;
     validator?: (data: unknown) => data is T;
+    /**
+     * Optional callback that receives the inspector log id as soon as
+     * veniceFetch records it. Lets long-lived callers (e.g. video polling)
+     * attach later lifecycle updates (cancel/timeout) to the same log
+     * without creating a duplicate entry.
+     */
+    registerLogId?: (logId: string) => void;
   } = {}
-): Promise<{ data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }> {
-  const { dedupe = false, method = "GET", body } = options;
+): Promise<{ data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry>; }> {
+  const { dedupe = false, method = "GET", body, registerLogId } = options;
 
   const startedAt = Date.now();
   const requestHeaders = maskInspectorHeaders(options.headers);
@@ -388,6 +426,9 @@ export async function veniceFetch<T = unknown>(
     guardOutcome,
     callOutcome: "pending",
   });
+  if (registerLogId) {
+    try { registerLogId(logId); } catch { /* caller hooks are best effort */ }
+  }
 
   // Child exploitation safety guard — enforcement at transport boundary.
   // Note: GET requests (e.g., /models) are skipped because they carry no user content.
@@ -447,28 +488,72 @@ export async function veniceFetch<T = unknown>(
 
       // Output screening for web mode (Electron already does this in guardPipeline.ts).
       // Only POST responses carry user content worth screening; GETs (models, lists)
-      // are skipped to avoid scanning provider metadata.
+      // are skipped to avoid scanning provider metadata. Object payloads MUST be
+      // JSON.stringified so the guard sees the actual text content (otherwise
+      // `[object Object]` trivially bypasses rule detection).
       if (!isElectron() && method === "POST") {
-        const serialized = typeof result.data === "string"
-          ? result.data
-          : safeInspectorError(result.data);
         const safeMode = useSettingsStore.getState().localFamilySafeModeEnabled;
-        const decision = maybeRunLocalFamilyGuard(
-          { endpoint, method, text: serialized, source: "venice-client" },
-          safeMode,
-        );
-        if (!decision.allowed && !decision.skipped) {
-          useInspectorStore.getState().updateLog(
-            logId,
-            buildInspectorTelemetryPatch({
-              status: 451,
-              durationMs: Date.now() - startedAt,
-              previewDurationMs,
-              guardOutcome: "block",
-              error: decision.userMessage,
-            }),
+        let serialized: string;
+        if (typeof result.data === "string") {
+          serialized = result.data;
+        } else {
+          try {
+            serialized = JSON.stringify(result.data, (_key, value: unknown) => {
+              if (typeof value === "bigint") return `[bigint:${value.toString()}]`;
+              return value;
+            }) ?? "";
+          } catch {
+            // Fail-closed: cannot serialize → cannot verify safety → block.
+            useInspectorStore.getState().updateLog(
+              logId,
+              buildInspectorTelemetryPatch({
+                status: 451,
+                durationMs: Date.now() - startedAt,
+                previewDurationMs,
+                guardOutcome: "block",
+                error: "Response blocked: could not be safely serialized for review.",
+              }),
+            );
+            throw new SafetyGuardBlockedError(buildFailClosedDecision(
+              "Response blocked: could not be safely serialized for review.",
+              "response_unserializable",
+            ));
+          }
+          if (!serialized) {
+            useInspectorStore.getState().updateLog(
+              logId,
+              buildInspectorTelemetryPatch({
+                status: 451,
+                durationMs: Date.now() - startedAt,
+                previewDurationMs,
+                guardOutcome: "block",
+                error: "Response blocked: empty payload.",
+              }),
+            );
+            throw new SafetyGuardBlockedError(buildFailClosedDecision(
+              "Response blocked: empty payload.",
+              "response_empty",
+            ));
+          }
+        }
+        if (safeMode) {
+          const decision = maybeRunLocalFamilyGuard(
+            { endpoint, method, text: serialized, source: "venice-client" },
+            safeMode,
           );
-          throw new SafetyGuardBlockedError(decision.guardDecision);
+          if (!decision.allowed) {
+            useInspectorStore.getState().updateLog(
+              logId,
+              buildInspectorTelemetryPatch({
+                status: 451,
+                durationMs: Date.now() - startedAt,
+                previewDurationMs,
+                guardOutcome: "block",
+                error: decision.userMessage,
+              }),
+            );
+            throw new SafetyGuardBlockedError(decision.guardDecision);
+          }
         }
       }
       return result as { data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> };
