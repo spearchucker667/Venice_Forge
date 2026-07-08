@@ -6,6 +6,8 @@ const ipcHandlers = new Map<string, (...args: any[]) => Promise<any> | any>();
 
 // Mock electron module with self-contained definitions and test-only exports
 vi.mock("electron", () => {
+  const mockPopup = vi.fn();
+  const mockMenuBuildFromTemplate = vi.fn((template) => ({ popup: mockPopup, template }));
   const mockWebContents = {
     getURL: vi.fn(() => "https://example.com"),
     getTitle: vi.fn(() => "Example Page"),
@@ -67,10 +69,18 @@ vi.mock("electron", () => {
     shell: {
       openExternal: vi.fn(async () => {}),
     },
+    Menu: {
+      buildFromTemplate: mockMenuBuildFromTemplate,
+    },
+    clipboard: {
+      writeText: vi.fn(),
+    },
     // Test-only exports for direct validation access
     _mockWebContents: mockWebContents,
     _mockSession: mockSession,
     _mockWebContentsView: mockWebContentsView,
+    _mockPopup: mockPopup,
+    _mockMenuBuildFromTemplate: mockMenuBuildFromTemplate,
   };
 });
 
@@ -112,9 +122,13 @@ import {
   _mockWebContents as mockWebContents, 
   _mockWebContentsView as mockWebContentsView,
   _mockSession as mockSession, 
+  _mockPopup as mockPopup,
   BrowserWindow,
-  shell
+  shell,
+  Menu,
+  clipboard,
 } from "electron";
+import { validateResearchBrowserNetworkUrl } from "../security/researchBrowserNetworkPolicy";
 import { setupResearchBrowserIpc, resetResearchBrowserIpcForTesting } from "./researchBrowserServer";
 
 describe("Research Browser Server Main Process Integration", () => {
@@ -244,6 +258,18 @@ describe("Research Browser Server Main Process Integration", () => {
       await createHandler();
     });
 
+    it("allows file:// requests so the splash page can load without hitting the network policy", async () => {
+      const onBeforeRequestHandler = (mockSession.webRequest.onBeforeRequest as any).mock.calls[0][1];
+      const callback = vi.fn();
+      onBeforeRequestHandler(
+        { url: "file:///Applications/Venice Forge.app/Contents/Resources/app.asar/dist/research-browser-home.html" },
+        callback,
+      );
+
+      expect(callback).toHaveBeenCalledWith({ cancel: false });
+      expect(validateResearchBrowserNetworkUrl).not.toHaveBeenCalled();
+    });
+
     it("should load URL when validation passes", async () => {
       const navigateHandler = ipcHandlers.get("researchBrowser:navigate");
       mockWebContents.loadURL.mockClear();
@@ -299,6 +325,61 @@ describe("Research Browser Server Main Process Integration", () => {
       expect(result.ok).toBe(false);
       expect(result.error).toBe("Canceled");
       expect(shell.openExternal).not.toHaveBeenCalledWith("https://trusted.com/home");
+    });
+  });
+
+  describe("context menu behavior", () => {
+    beforeEach(async () => {
+      const createHandler = ipcHandlers.get("researchBrowser:create");
+      await createHandler();
+    });
+
+    it("shows a context menu with explicit coordinates relative to the parent window", () => {
+      const contextMenuHandler = (mockWebContents.on as any).mock.calls.find(
+        (call: any[]) => call[0] === "context-menu",
+      )?.[1];
+      expect(contextMenuHandler).toBeDefined();
+
+      const event = { preventDefault: vi.fn() };
+      const params = { x: 120, y: 80, linkURL: "https://example.com", selectionText: "hello" };
+      contextMenuHandler(event, params);
+
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(Menu.buildFromTemplate).toHaveBeenCalled();
+      expect(mockPopup).toHaveBeenCalledWith({
+        window: mockWindow,
+        x: 120,
+        y: 80,
+      });
+    });
+
+    it("does not show a context menu when there are no actionable items", () => {
+      const contextMenuHandler = (mockWebContents.on as any).mock.calls.find(
+        (call: any[]) => call[0] === "context-menu",
+      )?.[1];
+
+      const event = { preventDefault: vi.fn() };
+      const params = { x: 0, y: 0 };
+      contextMenuHandler(event, params);
+
+      expect(Menu.buildFromTemplate).not.toHaveBeenCalled();
+      expect(mockPopup).not.toHaveBeenCalled();
+    });
+
+    it("copies the link URL when the Copy Link item is clicked", () => {
+      const contextMenuHandler = (mockWebContents.on as any).mock.calls.find(
+        (call: any[]) => call[0] === "context-menu",
+      )?.[1];
+
+      const event = { preventDefault: vi.fn() };
+      const params = { x: 10, y: 20, linkURL: "https://venice.ai/characters/alan" };
+      contextMenuHandler(event, params);
+
+      const builtTemplate = (Menu.buildFromTemplate as any).mock.calls[0][0];
+      const copyLinkItem = builtTemplate.find((item: any) => item.label === "Copy Link");
+      expect(copyLinkItem).toBeDefined();
+      copyLinkItem.click();
+      expect(clipboard.writeText).toHaveBeenCalledWith("https://venice.ai/characters/alan");
     });
   });
 

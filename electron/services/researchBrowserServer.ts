@@ -146,8 +146,15 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
       return false;
     });
 
-    // Block navigation to disallowed URLs before the network request is made
+    // Block navigation to disallowed URLs before the network request is made.
+    // Local file:// requests are allowed here so the splash page loaded via
+    // loadFile() can render; navigation to file:// URLs is still blocked by
+    // will-navigate / will-frame-navigate below.
     researchSession.webRequest.onBeforeRequest({ urls: ["*://*/*"] }, (details, callback) => {
+      if (details.url.startsWith("file:")) {
+        callback({ cancel: false });
+        return;
+      }
       void validateResearchBrowserNetworkUrl(details.url).then((decision) => {
         if (!decision.allowed) {
           callback({ cancel: true });
@@ -180,9 +187,10 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     
     wc.on("context-menu", (e, params) => {
       e.preventDefault();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const template: any[] = [];
+      const template: Electron.MenuItemConstructorOptions[] = [];
+      let hasActionableItems = false;
       if (params.linkURL) {
+        hasActionableItems = true;
         template.push({
           label: 'Copy Link',
           click: () => {
@@ -190,10 +198,9 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
           }
         });
       }
-      if (params.hasImageContents) {
-        template.push({ role: 'copyImage' });
-      }
+
       if (params.isEditable) {
+        hasActionableItems = true;
         template.push({ role: 'undo' });
         template.push({ role: 'redo' });
         template.push({ type: 'separator' });
@@ -201,13 +208,26 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
         template.push({ role: 'copy' });
         template.push({ role: 'paste' });
       } else if (params.selectionText) {
+        hasActionableItems = true;
         template.push({ role: 'copy' });
       }
+
+      if (!hasActionableItems || !mainWindowRef || mainWindowRef.isDestroyed()) {
+        return;
+      }
+
       template.push({ type: 'separator' });
       template.push({ role: 'selectAll' });
-      
+
       const menu = Menu.buildFromTemplate(template);
-      menu.popup({ window: mainWindowRef || undefined });
+      // WebContentsView menus must be positioned explicitly relative to the
+      // parent BrowserWindow; omitting coordinates can leave the menu stuck
+      // open or unresponsive on macOS.
+      menu.popup({
+        window: mainWindowRef,
+        x: Math.round(params.x),
+        y: Math.round(params.y),
+      });
     });
 
     wc.on("did-start-loading", () => {

@@ -115,6 +115,43 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-07-08 Research Browser Splash Page Load Fix — COMPLETE (current session):**
+
+  Investigated a report that the Research Browser sub-tab renders a black screen and becomes unresponsive on open.
+
+  **Root cause:** `electron/services/researchBrowserServer.ts` registers `webRequest.onBeforeRequest` with the filter `"*://*/*"`. The handler routes every request through `validateResearchBrowserNetworkUrl`, whose `isAllowedResearchBrowserUrl` helper only permits `http:`/`https:`. The splash page is loaded with `webContents.loadFile()`, which issues a `file://` request. That request was cancelled before the page could render, leaving the `WebContentsView` empty over the dark renderer and capturing input in its bounds.
+
+  **Fix / coverage added:**
+  - `electron/services/researchBrowserServer.ts`: the `webRequest.onBeforeRequest` handler now short-circuits `file://` requests with `{ cancel: false }`. Navigation to `file://` URLs is still blocked by the existing `will-navigate` / `will-frame-navigate` handlers, so arbitrary local-file navigation remains disallowed.
+  - Added a regression test in `electron/services/researchBrowserServer.test.ts` proving the splash-page `file://` request is allowed without invoking the network policy.
+
+  **Validation:**
+  - `npx vitest run electron/services/researchBrowserServer.test.ts` — PASS (20 tests).
+  - `npm run verify:research-browser` — PASS (152 tests across 10 files).
+  - `npm run test:electron` — PASS (437 tests across 26 files).
+  - `npm run lint:eslint` — PASS.
+  - `npm run typecheck` — PASS.
+
+- **2026-07-08 Packaged App Runtime Bug Fixes — COMPLETE (current session):**
+
+  Investigated and fixed two runtime issues reported after launching the packaged macOS build.
+
+  **Fixes / coverage added:**
+  - `src/components/chat/message-bubble.tsx`: changed `DEFAULT_AI_AVATAR_SRC` from an absolute `/assets/branding/venice-seal-red-fill.svg` path to a relative `assets/branding/venice-seal-red-fill.svg` path. In the packaged Electron app `loadFile()` base URL, the absolute path resolved to `file:///assets/...` and was blocked by CSP, so the AI avatar appeared broken. The relative path resolves correctly beside `dist/index.html`.
+  - `electron/services/researchBrowserServer.ts`: fixed the research-browser context menu so it pops up with explicit `x`/`y` coordinates relative to the parent `BrowserWindow`, skips empty/non-actionable menus, and guards against a destroyed main window. Previously `menu.popup({ window: mainWindowRef || undefined })` without coordinates could leave the menu stuck open and unresponsive in a `WebContentsView`.
+  - Added/updated regression tests in `src/components/chat/message-bubble.test.tsx` and `electron/services/researchBrowserServer.test.ts` proving the avatar path and context-menu coordinates.
+
+  **Validation:**
+  - `npx vitest run src/components/chat/message-bubble.test.tsx electron/services/researchBrowserServer.test.ts` — PASS (32 tests).
+  - `npm run test:ui:chat` — PASS (63 tests).
+  - `npm run test:electron` — PASS (436 tests).
+  - `npm run lint:eslint` — PASS.
+  - `npm run typecheck` — PASS.
+  - `npm run dist:mac:arm64` — PASS; packaged app rebuilt.
+  - `release/mac-arm64/Venice Forge.app` launched and main/renderer/helper processes observed.
+  - `grep` confirmed the relative avatar path is present in the built renderer bundle.
+  - Note: visual confirmation via `screencapture` was not possible in this headless session, so the fix was verified by code-path analysis, CSP constraint analysis, and bundle inspection.
+
 - **2026-07-08 Pre-Existing CI Test Failures Repair — COMPLETE (current session):**
 
   Fixed the two remaining pre-existing `test:ci` failures that were unrelated to the earlier review-fix pass.
@@ -807,6 +844,13 @@ backlog files were removed.
   - **Validation:** All 14 CI gates pass. Code fully verified for 14 audit items. Release gate: **PASS**.
 
 ### Session History
+- **2026-07-08 Research Browser Splash Page Load Fix — COMPLETE:**
+  - **Root cause:** `electron/services/researchBrowserServer.ts` registered `webRequest.onBeforeRequest` with `"*://*/*"`, so the local `file://` request issued by `webContents.loadFile()` for the splash page was cancelled by the network policy before it could render.
+  - **Fix:** Short-circuit `file://` requests in the `webRequest.onBeforeRequest` handler with `{ cancel: false }`. `will-navigate` / `will-frame-navigate` continue to block arbitrary `file://` navigation.
+  - **Coverage:** Added regression test proving the splash-page `file://` request bypasses the network policy.
+  - **Files changed:** `electron/services/researchBrowserServer.ts`, `electron/services/researchBrowserServer.test.ts`, `docs/summary_of_work.md`.
+  - **Validation:** `npx vitest run electron/services/researchBrowserServer.test.ts` PASS (20 tests); `npm run verify:research-browser` PASS (152 tests); `npm run test:electron` PASS (437 tests); `npm run lint:eslint` PASS; `npm run typecheck` PASS.
+
 - **2026-07-08 Pre-Existing CI Test Failures Repair — COMPLETE:**
   - Fixed `src/stores/profile-store.broadcast.test.ts` mock: added missing `isValidProfileStorageId`, `isUserCreatableProfileId`, and `assertUserCreatableProfileId` exports to the `../utils/profileIdValidation` mock so `profile-store.ts` hydration/deletion no longer crashes during test setup.
   - Fixed `src/research/agent/researchRunner.ts` search-loop error handling: `AbortError` is now re-thrown immediately; non-abort search failures are captured and re-thrown only when no query succeeded, so the T-141 safe-error classifier surfaces safe messages for unexpected, secret-bearing, network, timeout, and cancellation errors.
@@ -4108,6 +4152,19 @@ backlog files were removed.
 ---
 
 ## Session History
+
+### 2026-07-08 - Packaged macOS runtime bug fixes and pre-existing CI repair
+
+- **Scope:** Investigated and fixed two runtime issues reported after launching the packaged macOS build, then repaired the two remaining pre-existing `test:ci` failures unrelated to the earlier review-fix pass.
+- **Packaged app runtime fixes:**
+  - `src/components/chat/message-bubble.tsx`: changed `DEFAULT_AI_AVATAR_SRC` from absolute `/assets/branding/venice-seal-red-fill.svg` to relative `assets/branding/venice-seal-red-fill.svg`. In the packaged Electron app the absolute path resolved to `file:///assets/...` and was blocked by the production CSP, so the AI avatar appeared broken. The relative path resolves beside `dist/index.html`.
+  - `electron/services/researchBrowserServer.ts`: fixed the research-browser context menu so it pops up with explicit `x`/`y` coordinates relative to the parent `BrowserWindow`, skips empty/non-actionable menus, guards against a destroyed main window, and removes the invalid `{ role: 'copyImage' }` entry. Previously `menu.popup({ window: mainWindowRef || undefined })` without coordinates could leave the menu stuck open and unresponsive in a `WebContentsView`.
+- **Pre-existing CI test failure repair:**
+  - `src/stores/profile-store.broadcast.test.ts`: updated the `../utils/profileIdValidation` mock to export `isValidProfileStorageId`, `isUserCreatableProfileId`, and `assertUserCreatableProfileId`, matching the real module surface used by `profile-store.ts` hydration and deletion paths.
+  - `src/research/agent/researchRunner.ts`: search-loop errors are no longer swallowed unconditionally. `AbortError` is re-thrown immediately so cancellations/timeouts surface correctly; other search failures are captured and re-thrown only when no query succeeded, preserving resilience while ensuring the T-141 safe-error classifier maps unexpected/network/timeout errors to safe UI messages.
+- **Regression coverage:** Added/updated tests in `src/components/chat/message-bubble.test.tsx` and `electron/services/researchBrowserServer.test.ts` for the runtime fixes; existing tests cover the CI repair.
+- **Validation:** `npx vitest run src/components/chat/message-bubble.test.tsx electron/services/researchBrowserServer.test.ts` PASS (32 tests); `npm run test:ui:chat` PASS (63 tests); `npm run test:electron` PASS (436 tests); `npx vitest run src/stores/profile-store.broadcast.test.ts src/research/agent/researchRunner.test.ts` PASS (16 tests); `npm run test:ci` PASS; `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm run dist:mac:arm64` PASS; packaged app relaunched and main/renderer/helper processes observed; `grep` confirmed relative avatar path in built bundle. Visual confirmation via `screencapture` was not possible in this headless session, so the avatar fix was verified by code-path/CSP analysis and bundle inspection.
+- **Status:** DONE — no commit/push in this session.
 
 ### 2026-07-08 - Final continuation fixes and archive prep
 
@@ -8654,6 +8711,7 @@ Result:
 - ~~**MEDIUM (music-audio-parity):** Music/audio generation lacks video-level timeout, cancellation, inspector status, and MIME-safe playback handling.~~ **FIXED 2026-07-08 deep bug review** — `useMusic.ts`, `useAudio.ts`, `music-view.tsx`, and `audio-view.tsx` now log queue/poll/success/timeout/abort inspector events, preserve provider MIME type, reject empty audio, show unsupported codec errors, and revoke object URLs. Tests added.
 - ~~**MEDIUM (character-context-mime):** Character context file validation covers extension and size but not MIME type; PDF extraction errors can leak raw messages.~~ **FIXED 2026-07-08 deep bug review** — `src/components/rp-studio/CharacterEditor.tsx` now enforces MIME type where available and normalizes PDF extraction errors to safe UI messages. Tests added.
 - ~~**MEDIUM (character-model-selection):** Character editor settings lack a model selection dropdown for hosted characters.~~ **FIXED 2026-07-08 deep bug review** — added `selectedModel`/`getEffectiveModel` to `src/stores/character-store.ts`, wired a model dropdown in `src/components/CharactersView.tsx`, and applied user override > character modelId > settings fallback when starting chat. Tests added.
+- ~~**CRITICAL (research-browser-black-screen):** Research Browser sub-tab opens to a black screen and cannot be closed, forcing the user to force-quit the app.~~ **FIXED 2026-07-08** — `webRequest.onBeforeRequest` in `electron/services/researchBrowserServer.ts` was cancelling the local `file://` request issued by `webContents.loadFile()` for the splash page because the network policy only allows `http:`/`https:`. The handler now short-circuits `file://` requests; navigation to `file://` is still blocked by `will-navigate` / `will-frame-navigate`. Regression test added.
 - **P1 (windows-credman):** Profile password storage on Windows currently uses Electron `safeStorage` (DPAPI), not Windows Credential Manager (`CredRead`/`CredWrite`) as the work-order requires. Decision recorded: macOS `safeStorage` is approved (it uses SecItem/Keychain), Linux `safeStorage` is acceptable, but Windows needs a native Node-API addon, tightly scoped PowerShell bridge, or vetted native dependency. Deferred until a safe small implementation is available.
 
 ### Open Follow-Up from 2026-07-08 Final Hardening Pass (20260708-010525)
@@ -10234,3 +10292,31 @@ Reviewed the uploaded snapshot as the source of truth. No source files were modi
 | `npm run verify:contracts:static` | PASS | Static contract aggregate passed. |
 | `npm run build` | PASS | Web, server, and Electron outputs built. |
 | `npm run verify:dist` | PASS | Build outputs verified. |
+
+## Validation Matrix — 2026-07-08 packaged macOS runtime bug fixes and pre-existing CI repair
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npx vitest run src/components/chat/message-bubble.test.tsx electron/services/researchBrowserServer.test.ts` | PASS | 32 tests; avatar path and context-menu coordinate regressions. |
+| `npm run test:ui:chat` | PASS | 63 tests. |
+| `npm run test:electron` | PASS | 436 tests. |
+| `npx vitest run src/stores/profile-store.broadcast.test.ts src/research/agent/researchRunner.test.ts` | PASS | 16 tests; pre-existing CI repair. |
+| `npm run test:ci` | PASS | Full segmented suite. |
+| `npm run lint:eslint` | PASS | Zero warnings. |
+| `npm run typecheck` | PASS | Renderer + Electron main. |
+| `npm run dist:mac:arm64` | PASS | Packaged app rebuilt. |
+| `npm run verify:dist` | PASS | Build outputs verified after rebuild. |
+| `git diff --check` | PASS | No whitespace errors. |
+
+## Validation Matrix — 2026-07-08 Research Browser splash page load fix
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npx vitest run electron/services/researchBrowserServer.test.ts` | PASS | 20 tests; new `file://` splash-page regression guard passes. |
+| `npm run verify:research-browser` | PASS | 152 tests across 10 files. |
+| `npm run test:electron` | PASS | 437 tests across 26 files. |
+| `npm run lint:eslint` | PASS | Zero warnings. |
+| `npm run typecheck` | PASS | Renderer + Electron main TypeScript clean. |
+| `npm run build` | PASS | Web, server, and Electron outputs built. |
+| `npm run verify:dist` | PASS | Build outputs verified. |
+| `git diff --check` | PASS | No whitespace errors. |

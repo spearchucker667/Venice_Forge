@@ -13,7 +13,10 @@ import { useKatexCss } from '../../hooks/useKatexCss'
 import { CharacterSceneCard } from './CharacterSceneCard'
 import type { CharacterSceneGenerationResult } from '../../types/characterSceneGeneration'
 
-export const DEFAULT_AI_AVATAR_SRC = '/assets/branding/venice-seal-red-fill.svg'
+// Relative path so the default avatar resolves correctly both in Vite dev
+// (where index.html is served from project root) and in the packaged Electron
+// app (where loadFile points at dist/index.html beside ./assets/branding).
+export const DEFAULT_AI_AVATAR_SRC = 'assets/branding/venice-seal-red-fill.svg'
 
 // Allow http/https/mailto links and image data: URIs only. Strips javascript:,
 // vbscript:, file:, and any other smuggled protocols.

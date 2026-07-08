@@ -926,3 +926,55 @@ Two unrelated test regressions were blocking `npm run test:ci`:
 | `npm run build` | Pass |
 | `npm run verify:dist` | Pass |
 | `git diff --check` | Pass |
+
+---
+
+## 14. Packaged macOS Runtime Bug Fixes
+
+**Date:** 2026-07-08
+**Source:** User-reported issues after launching `release/mac-arm64/Venice Forge.app`
+
+### Problems
+
+1. **Chat AI avatar did not render.** In the packaged macOS app the assistant message bubble showed a broken image instead of the Venice seal avatar.
+2. **Research browser context menu could not be closed.** Right-clicking inside the research browser opened a menu that was stuck and unresponsive.
+3. **Research browser tab renders a black screen and cannot be closed.** Opening the Browser sub-tab inside Research showed a black content area and left the app unresponsive, requiring a force-quit.
+
+### Fixes
+
+- `src/components/chat/message-bubble.tsx` — changed `DEFAULT_AI_AVATAR_SRC` from absolute `/assets/branding/venice-seal-red-fill.svg` to relative `assets/branding/venice-seal-red-fill.svg`. In the packaged app the absolute path resolved to `file:///assets/...`, which both does not exist and violates the production CSP (`img-src 'self' data: blob: venice-character-cache:`). The relative path resolves correctly beside `dist/index.html`.
+- `electron/services/researchBrowserServer.ts` — fixed the research-browser context menu:
+  - Pops up with explicit `x`/`y` coordinates relative to the parent `BrowserWindow`.
+  - Skips menus with no actionable items.
+  - Guards against a destroyed main window.
+  - Removed the invalid `{ role: 'copyImage' }` entry (not a real Electron role).
+- `electron/services/researchBrowserServer.ts` — fixed the research-browser splash page load:
+  - `webRequest.onBeforeRequest` was cancelling the local `file://` request issued by `webContents.loadFile()` for the splash page, because the network policy only permits `http:`/`https:`.
+  - The handler now short-circuits `file://` requests with `{ cancel: false }`.
+  - `will-navigate` / `will-frame-navigate` continue to block arbitrary navigation to `file://` URLs.
+
+### Regression coverage
+
+- `src/components/chat/message-bubble.test.tsx` — asserts the relative avatar path is used.
+- `electron/services/researchBrowserServer.test.ts` — asserts context-menu popup receives coordinates and skips empty menus.
+- `electron/services/researchBrowserServer.test.ts` — asserts the splash-page `file://` request bypasses the network policy and does not invoke `validateResearchBrowserNetworkUrl`.
+
+### Validation
+
+| Command | Result |
+| --- | --- |
+| `npx vitest run src/components/chat/message-bubble.test.tsx electron/services/researchBrowserServer.test.ts` | Pass (32 tests) |
+| `npx vitest run electron/services/researchBrowserServer.test.ts` | Pass (20 tests; new splash-page regression guard) |
+| `npm run verify:research-browser` | Pass (152 tests across 10 files) |
+| `npm run test:ui:chat` | Pass (63 tests) |
+| `npm run test:electron` | Pass (437 tests) |
+| `npm run lint:eslint` | Pass (0 warnings) |
+| `npm run typecheck` | Pass (renderer + electron main) |
+| `npm run build` | Pass |
+| `npm run verify:dist` | Pass |
+
+### Notes
+
+- The app was relaunched after rebuild; main/renderer/helper processes were observed.
+- Visual confirmation via `screencapture` was not possible in this headless session, so the avatar fix was verified by code-path/CSP analysis and bundle inspection (`grep` confirmed the relative path in `dist/assets/index-*.js`).
+- The splash-page fix was verified by code-path analysis and the new regression test; the actual packaged-app visual behavior can only be confirmed by running the rebuilt macOS app.
