@@ -94,14 +94,26 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
     if (!file) return;
     const ext = file.name.toLowerCase().split(".").pop() ?? "";
     const allowedExts = new Set(["txt", "md", "pdf"]);
+    const allowedMimeTypes = new Set([
+      "application/pdf",
+      "text/plain",
+      "text/markdown",
+      "text/x-markdown",
+    ]);
     if (file.size > 5 * 1024 * 1024) {
       setError("Context file must be 5MB or smaller.");
       e.target.value = "";
       return;
     }
-    if (!allowedExts.has(ext)) {
+    // Enforce MIME type when the browser reports one, and always require a
+    // matching extension as defense-in-depth.
+    const mimeAllowed = !file.type || allowedMimeTypes.has(file.type);
+    const extAllowed = allowedExts.has(ext);
+    if (!mimeAllowed || !extAllowed) {
       setError(
-        `Context files must be .pdf, .txt, or .md. Got ".${ext}". ` +
+        `Context files must be .pdf, .txt, or .md. Got ".${ext}"${
+          file.type ? ` (MIME type: ${file.type})` : ""
+        }. ` +
         `These formats are wired to the local PDF text extractor and pass-through readers; ` +
         `JSON or CSV context is intentionally rejected to avoid prompt-injection via structured data.`,
       );
@@ -127,10 +139,12 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
           size: file.size,
         };
         update("contextFiles", [...(draft.contextFiles || []), newFile]);
-      } catch (err) {
+      } catch {
+        // Normalize PDF extraction failures to a safe user-facing message.
+        // Raw parser errors may contain local paths or internal details.
         setError(
-          `Failed to extract PDF text: ${err instanceof Error ? err.message : "unknown error"}. ` +
-          `Try converting the file to .txt or .md.`,
+          "Failed to extract PDF text. The file may be corrupt, password-protected, or unreadable. " +
+          "Try converting the file to .txt or .md.",
         );
       }
       e.target.value = "";

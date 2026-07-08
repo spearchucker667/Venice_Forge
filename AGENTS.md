@@ -177,7 +177,7 @@ guard fails CI if a future change weakens the protection. When adding a
 new guard, append it to the list below and reference the ID in the
 test's comment header.
 
-The primary active sequence is `VERIFY-001` through `VERIFY-066`.
+The primary active sequence is `VERIFY-001` through `VERIFY-067`.
 `VERIFY-168` is an intentional legacy bridge for the older T-168 storage
 privacy redaction finding and is allowlisted by `verify:repo-handoff-hygiene`;
 do not add new out-of-sequence IDs without updating that verifier and this
@@ -251,6 +251,7 @@ registry.
 | `VERIFY-064` | Scrape proxy raw-mode Content-Type sanitization — `server.ts` `/api/proxy-scrape?raw=true` parses only the base media type, preserves only a safe `charset=utf-8` parameter, sets `X-Content-Type-Options: nosniff`, and never reflects arbitrary upstream Content-Type parameters or header-injection payloads; `server.test.ts` regression-guards sanitized output and rejected injection attempts. | `server.ts`, `server.test.ts` |
 | `VERIFY-065` | Document ingestion secret redaction — `src/services/ingestion/{text,code,pdf,docx,veniceTextParser}Ingestion.ts` applies `redactSecrets()` to extracted text before XML wrapping so uploaded documents cannot leak API keys, bearer tokens, or Venice keys into chat context; covered by each ingestion test suite. | `src/services/ingestion/textIngestion.ts`, `src/services/ingestion/codeIngestion.ts`, `src/services/ingestion/pdfIngestion.ts`, `src/services/ingestion/docxIngestion.ts`, `src/services/ingestion/veniceTextParserIngestion.ts`, `src/services/ingestion/*.test.ts` |
 | `VERIFY-066` | Accessible labels and skip link — header icon-only actions (e.g., New chat) expose `aria-label`; `App.tsx` renders a keyboard-accessible "Skip to main content" link targeting the `<main>` region; regression-guarded by `src/components/layout/header.test.tsx` and `src/App.skip-link.test.ts`. | `src/components/layout/header.tsx`, `src/App.tsx`, `src/components/layout/header.test.tsx`, `src/App.skip-link.test.ts` |
+| `VERIFY-067` | `/image/upscale` prompt extraction and safety preflight — `promptPayloadExtractor.ts` extracts `enhancePrompt`/`enhance_prompt`/`prompt` from `/image/upscale`; unsafe enhancer prompts are blocked by local Family Safe Mode before network dispatch; no raw prompt text is logged; regression-guarded by `src/shared/safety/promptPayloadExtractor.test.ts`. | `src/shared/safety/promptPayloadExtractor.ts`, `src/shared/safety/promptPayloadExtractor.test.ts` |
 | `VERIFY-168` | Safe summary redacts user titles and names from issue messages | `src/services/storagePrivacyService.test.ts` |
 ---
 

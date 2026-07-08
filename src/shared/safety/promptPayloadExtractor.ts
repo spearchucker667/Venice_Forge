@@ -15,7 +15,7 @@ export interface ExtractedField {
 const ENDPOINT_FIELDS: Record<string, readonly string[]> = {
   "/chat/completions": ["prompt", "system", "messages"],
   "/image/generate": ["prompt", "negative_prompt"],
-  "/image/upscale": [],
+  "/image/upscale": ["enhancePrompt", "enhance_prompt", "prompt"],
   "/augment/search": ["query", "question"],
   "/augment/scrape": ["instructions", "url"],
   "/augment/text-parser": ["text", "content", "prompt", "query"],

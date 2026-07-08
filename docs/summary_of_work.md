@@ -115,6 +115,25 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-07-08 Pre-Existing CI Test Failures Repair — COMPLETE (current session):**
+
+  Fixed the two remaining pre-existing `test:ci` failures that were unrelated to the earlier review-fix pass.
+
+  **Fixes / coverage added:**
+  - `src/stores/profile-store.broadcast.test.ts`: updated the `../utils/profileIdValidation` mock to export `isValidProfileStorageId`, `isUserCreatableProfileId`, and `assertUserCreatableProfileId`, matching the real module surface used by `profile-store.ts` hydration and deletion paths.
+  - `src/research/agent/researchRunner.ts`: search-loop errors are no longer swallowed unconditionally. `AbortError` is re-thrown immediately so cancellations/timeouts surface correctly; other search failures are captured and re-thrown only when no query succeeded, preserving resilience while ensuring the T-141 safe-error classifier maps unexpected/network/timeout errors to safe UI messages.
+
+  **Validation:**
+  - `npx vitest run src/stores/profile-store.broadcast.test.ts src/research/agent/researchRunner.test.ts` — PASS (16 tests).
+  - `npm run lint:eslint` — PASS.
+  - `npm run typecheck` — PASS.
+  - `npm run test:electron` — PASS (433 tests).
+  - `npm run test:ci` — PASS (198 test files / 2,664 tests passed).
+  - `npm run verify:safety-guard`, `verify:image-policy`, `verify:network-boundaries`, `verify:work-orders`, `verify:contracts:static` — PASS.
+  - `npm run build` — PASS.
+  - `npm run verify:dist` — PASS.
+  - `git diff --check` — PASS.
+
 - **2026-07-08 Final Continuation Fixes + Main Push Prep — COMPLETE (current session):**
 
   Continued from the deep bug review and applied the remaining live fixes before the requested push/archive step.
@@ -788,6 +807,12 @@ backlog files were removed.
   - **Validation:** All 14 CI gates pass. Code fully verified for 14 audit items. Release gate: **PASS**.
 
 ### Session History
+- **2026-07-08 Pre-Existing CI Test Failures Repair — COMPLETE:**
+  - Fixed `src/stores/profile-store.broadcast.test.ts` mock: added missing `isValidProfileStorageId`, `isUserCreatableProfileId`, and `assertUserCreatableProfileId` exports to the `../utils/profileIdValidation` mock so `profile-store.ts` hydration/deletion no longer crashes during test setup.
+  - Fixed `src/research/agent/researchRunner.ts` search-loop error handling: `AbortError` is now re-thrown immediately; non-abort search failures are captured and re-thrown only when no query succeeded, so the T-141 safe-error classifier surfaces safe messages for unexpected, secret-bearing, network, timeout, and cancellation errors.
+  - **Files changed:** `src/stores/profile-store.broadcast.test.ts`, `src/research/agent/researchRunner.ts`.
+  - **Validation:** focused failing-file run PASS (16 tests); `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm run test:electron` PASS (433 tests); `npm run test:ci` PASS (198 test files / 2,664 tests); `npm run verify:safety-guard`, `verify:image-policy`, `verify:network-boundaries`, `verify:work-orders`, `verify:contracts:static` PASS; `npm run build` PASS; `npm run verify:dist` PASS; `git diff --check` PASS.
+
 - **2026-07-08 Deep Bug Review — FINDINGS ONLY:**
   - Reviewed the dirty tree and high-risk repo surfaces without applying source fixes.
   - Logged three actionable findings for follow-up: multi-owner workflow audio blob URL revocation, YAML import TOCTOU, and container-bound Research Workspace resize handling.
@@ -1593,6 +1618,21 @@ backlog files were removed.
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+- 2026-07-08 pre-existing CI failure repair pass:
+  - `npx vitest run src/stores/profile-store.broadcast.test.ts src/research/agent/researchRunner.test.ts`: PASS (16 tests).
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run typecheck`: PASS (renderer + Electron main clean).
+  - `npm run test:electron`: PASS (26 test files / 433 tests).
+  - `npm run test:ci`: PASS (198 test files / 2,664 tests passed).
+  - `npm run verify:safety-guard`: PASS.
+  - `npm run verify:image-policy`: PASS.
+  - `npm run verify:network-boundaries`: PASS.
+  - `npm run verify:work-orders`: PASS.
+  - `npm run verify:contracts:static`: PASS.
+  - `npm run build`: PASS.
+  - `npm run verify:dist`: PASS.
+  - `git diff --check`: PASS.
+
 - 2026-07-01 priority safety/image remediation slice:
   - `git status --short`: PASS, initial live tree clean before edits.
   - `git branch --show-current`: PASS (`main`).
@@ -8603,6 +8643,19 @@ Result:
 
 ## Open TODO Ledger
 
+### Open Follow-Up from 2026-07-08 Deep Bug Review / CI Repair
+
+- ~~**CRITICAL (ci-env):** `electron/services/configService.test.ts` fails in CI because the test expects repo-local `.config` in dev but the runner sets `CI=true`, and the implementation intentionally disables repo-local config in CI/test/packaged.~~ **FIXED 2026-07-08 deep bug review** — updated the existing dev-local test to clear `process.env.CI` and added a new test proving `CI=true` falls back to `userdata` even when `NODE_ENV=development`. `npm run test:electron` now passes (432 tests).
+- ~~**CRITICAL (upscale-guard):** `/image/upscale` ignores prompt-like `enhancePrompt` text, allowing unsafe enhancer prompts to bypass the local Family Safe Mode preflight.~~ **FIXED 2026-07-08 deep bug review** — added `enhancePrompt`, `enhance_prompt`, and `prompt` to `/image/upscale` in `src/shared/safety/promptPayloadExtractor.ts`. Added `VERIFY-067` regression tests proving extraction, guard blocking, and no raw prompt logging.
+- ~~**HIGH (blob-screening):** `veniceBlob()` and `veniceFormData()` in web mode return responses without the output-screening parity that `veniceFetch()` has.~~ **FIXED 2026-07-08 deep bug review** — factored `screenVeniceResponse()` into a shared helper in `src/services/veniceClient/fetch.ts` and wired it into `veniceFetch`, `veniceBlob`, and `veniceFormData`. Binary payloads are never stringified; only textual/JSON metadata bodies are screened.
+- ~~**HIGH (blob-empty-success):** `veniceBlob()` returns an empty `Blob` on successful responses that lack the expected `dataBase64` or string body shape, masking real API/protocol errors.~~ **FIXED 2026-07-08 deep bug review** — `veniceBlob()` now throws a redacted `VeniceAPIError` with status, endpoint, content-type, and safe structural shape. Added client-side `/image/upscale` input validation (format, non-empty, size) before dispatch.
+- ~~**MEDIUM (image-prompt-limit):** Image prompt field allows UI state to exceed 1500 characters; only submit is disabled and payload builder truncates.~~ **FIXED 2026-07-08 deep bug review** — hard-stopped prompt input at 1500 characters in `src/components/image/image-view.tsx` by slicing all state updates (typing, paste, template insert, enhancer apply, workspace handoff). Added regression coverage.
+- ~~**MEDIUM (video-cost-labels):** Video model selector does not expose cost-per-model labels.~~ **FIXED 2026-07-08 deep bug review** — `src/components/video/video-view.tsx` now uses `formatModelLabelWithCost` with live pricing, local fallback, unknown price state, and non-blocking failure recovery. Tests added.
+- ~~**MEDIUM (music-audio-parity):** Music/audio generation lacks video-level timeout, cancellation, inspector status, and MIME-safe playback handling.~~ **FIXED 2026-07-08 deep bug review** — `useMusic.ts`, `useAudio.ts`, `music-view.tsx`, and `audio-view.tsx` now log queue/poll/success/timeout/abort inspector events, preserve provider MIME type, reject empty audio, show unsupported codec errors, and revoke object URLs. Tests added.
+- ~~**MEDIUM (character-context-mime):** Character context file validation covers extension and size but not MIME type; PDF extraction errors can leak raw messages.~~ **FIXED 2026-07-08 deep bug review** — `src/components/rp-studio/CharacterEditor.tsx` now enforces MIME type where available and normalizes PDF extraction errors to safe UI messages. Tests added.
+- ~~**MEDIUM (character-model-selection):** Character editor settings lack a model selection dropdown for hosted characters.~~ **FIXED 2026-07-08 deep bug review** — added `selectedModel`/`getEffectiveModel` to `src/stores/character-store.ts`, wired a model dropdown in `src/components/CharactersView.tsx`, and applied user override > character modelId > settings fallback when starting chat. Tests added.
+- **P1 (windows-credman):** Profile password storage on Windows currently uses Electron `safeStorage` (DPAPI), not Windows Credential Manager (`CredRead`/`CredWrite`) as the work-order requires. Decision recorded: macOS `safeStorage` is approved (it uses SecItem/Keychain), Linux `safeStorage` is acceptable, but Windows needs a native Node-API addon, tightly scoped PowerShell bridge, or vetted native dependency. Deferred until a safe small implementation is available.
+
 ### Open Follow-Up from 2026-07-08 Final Hardening Pass (20260708-010525)
 
 - ~~**CRITICAL 1 (cred-iso-01):** `jina:request` and `jinaApiKey:test` Jina IPC paths ignore the active profile — a non-default profile can silently use the default profile's Jina key while ignoring its own.~~ **FIXED 2026-07-08 final hardening** — renderer bridge stamps `profileId: getActiveProfileId()` before IPC; preload `jina.request` accepts `profileId?: string`; main-process handler routes through shared `parseOptionalProfileId(profileId)` validator; `jinaApiKey:test` validates profileId and refuses invalid ids before lookup. `src/types/desktop.ts` `VeniceForgeJina.request` accepts `profileId?: string`. Regression tests added (handlers suite, desktopBridge matrix).
@@ -10058,7 +10111,7 @@ Targeted test outcomes this round:
 | `git diff --check` | PASS | No whitespace errors. |
 | `git diff --cached --check` | PASS | No staged diff whitespace errors. |
 
-## Latest Session Summary
+## Latest Session Summary (prior — Audit remediation pass)
 
 **Date:** 2026-07-08
 **Session type:** Audit remediation pass
@@ -10111,3 +10164,73 @@ Addressed missing features and major bugs identified in the prior discovery audi
 | `npm run verify:archive-clean` | PASS | Re-run after scanner follow-up; archive exclusion config and tracked files clean. |
 | `npm run verify:release-packaging-hardening` | PASS | Re-run after scanner follow-up; 102 release-packaging checks passed. |
 | `git diff --check` | PASS | No whitespace errors. |
+
+## Latest Session Summary
+
+**Date:** 2026-07-08
+**Session type:** Deep bug review / CI repair
+**Target snapshot:** `Windows-Venice-API-connector-clean-20260708-111500.zip`
+
+Reviewed the uploaded snapshot as the source of truth. No source files were modified outside this session. Addressed the deterministic CI failure and the prioritized safety/UI/RP findings from the review.
+
+### Fixes applied this session
+
+1. **CI configService env mismatch (Critical)** — `electron/services/configService.test.ts`
+   - Updated the dev-local config-path test to clear `process.env.CI`.
+   - Added a new test proving `CI=true` forces `userdata` paths even when `NODE_ENV=development`.
+
+2. **Upscale safety preflight gap (Critical)** — `src/shared/safety/promptPayloadExtractor.ts`
+   - Added `enhancePrompt`, `enhance_prompt`, and `prompt` to the `/image/upscale` extraction map.
+   - Added `VERIFY-067` regression tests for extraction, guard blocking, and no raw prompt logging.
+
+3. **Web-mode response-screening parity (High)** — `src/services/veniceClient/fetch.ts`
+   - Factored `screenVeniceResponse()` into a shared helper called by `veniceFetch`, `veniceBlob`, and `veniceFormData`.
+   - Binary payloads are never stringified; only textual/JSON metadata bodies are screened.
+
+4. **Binary empty-success behavior (High)** — `src/services/veniceClient/fetch.ts`
+   - `veniceBlob()` now throws a redacted `VeniceAPIError` when a successful response lacks usable binary data.
+   - Added client-side `/image/upscale` input validation (format, non-empty, size limit).
+
+5. **Image prompt hard-stop (Medium)** — `src/components/image/image-view.tsx`
+   - Prompt state is sliced to 1500 characters at every entry point (typing, paste, template, enhancer, workspace handoff).
+   - Added regression coverage for over-limit typing, paste, template, enhancer, and submitted payload.
+
+6. **Video cost labels (Medium)** — `src/components/video/video-view.tsx`
+   - Selector options now show per-model cost via `formatModelLabelWithCost`, with live pricing, local fallback, unknown price state, and non-blocking failure recovery.
+
+7. **Music/audio inspector parity (Medium)** — `src/hooks/use-music.ts`, `src/components/music/music-view.tsx`, `src/hooks/use-audio.ts`, `src/components/audio/audio-view.tsx`
+   - Added queue/poll/success/timeout/abort inspector logging, MIME preservation, empty-response rejection, unsupported-codec UI errors, and object-URL revocation.
+
+8. **Character context file MIME validation (Medium)** — `src/components/rp-studio/CharacterEditor.tsx`
+   - Enforces MIME type for context uploads where the browser reports one.
+   - PDF extraction failures now surface fixed, safe UI messages.
+
+9. **Character model selection (Medium)** — `src/stores/character-store.ts`, `src/components/CharactersView.tsx`, `src/types/characters.ts`
+   - Added `selectedModel` persistence and `getEffectiveModel` priority (user override > character modelId > settings fallback).
+
+10. **Profile password storage decision (Deferred P1)** — `electron/services/secureStore.ts`
+    - Recorded decision in `docs/audits/repository-todo-roadmap-current.md`: macOS `safeStorage` is approved (SecItem/Keychain), Linux is acceptable, Windows DPAPI does not meet the Credential Manager requirement and needs a future native bridge.
+
+### Open TODO Ledger
+- **P1 (windows-credman):** Replace Windows `safeStorage` DPAPI backend for profile-password storage with a Windows Credential Manager native bridge. Deferred until a safe small implementation (Node-API addon or tightly scoped PowerShell bridge) is available.
+- `verify:contracts:features` full aggregate still exceeds timeout in this sandbox environment; run the 5 partitioned sub-commands individually (`features:chat|image|workflow|rp|settings`).
+- `verify:contracts` full aggregate not run in this session (same timeout constraint).
+- Pre-existing `test:unit` failures in `src/research/agent/researchRunner.test.ts` (6 tests) and `src/stores/profile-store.broadcast.test.ts` (mock setup) are unrelated to this session's changes and remain open.
+
+## Validation Matrix — 2026-07-08 deep bug review / CI repair
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
+| `npm run typecheck` | PASS | Renderer + Electron main TypeScript clean. |
+| `npm run test:electron` | PASS | 432 passed (26 files). |
+| `npm run test:server` | PASS | 59 passed. |
+| `npm run test:ingestion` | PASS | 65 passed. |
+| `npm run test:ci` | FAIL | 2650 passed; 6 pre-existing failures in `src/research/agent/researchRunner.test.ts` and 1 pre-existing mock failure in `src/stores/profile-store.broadcast.test.ts`. These files were not changed in this session. |
+| `npm run verify:safety-guard` | PASS | Guard enforcement and no-raw-log policy passed. |
+| `npm run verify:image-policy` | PASS | Ingress uses PNG/JPEG/WEBP; avatar cache permits AVIF. |
+| `npm run verify:network-boundaries` | PASS | Network boundaries intact. |
+| `npm run verify:work-orders` | PASS | Work-order closure records follow schema. |
+| `npm run verify:contracts:static` | PASS | Static contract aggregate passed. |
+| `npm run build` | PASS | Web, server, and Electron outputs built. |
+| `npm run verify:dist` | PASS | Build outputs verified. |

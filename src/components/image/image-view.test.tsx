@@ -131,15 +131,26 @@ describe('ImageView model-aware payloads', () => {
     expect(screen.getByTestId('image-capability-summary')).toBeInTheDocument()
   })
 
-  it('disables generation when the image prompt exceeds 1500 characters', () => {
+  it('hard-stops the image prompt at 1500 characters when typing over the limit', () => {
     render(<ImageView />)
     fireEvent.change(screen.getByPlaceholderText(/serene mountain landscape/i), {
       target: { value: 'a'.repeat(1501) },
     })
 
-    expect(screen.getByText('1501/1500')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled()
+    expect(screen.getByText('1500/1500')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Generate' })).not.toBeDisabled()
     expect(mutate).not.toHaveBeenCalled()
+  })
+
+  it('hard-stops pasted input at 1500 characters', () => {
+    render(<ImageView />)
+    const textarea = screen.getByPlaceholderText(/serene mountain landscape/i)
+    fireEvent.paste(textarea, {
+      clipboardData: { getData: () => 'a'.repeat(2000) },
+    })
+    fireEvent.change(textarea, { target: { value: 'a'.repeat(2000) } })
+
+    expect(screen.getByText('1500/1500')).toBeInTheDocument()
   })
 })
 

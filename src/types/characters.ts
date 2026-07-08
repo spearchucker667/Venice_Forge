@@ -98,3 +98,13 @@ export interface ListCharactersResponse {
 export interface GetCharacterResponse {
   data: VeniceCharacter;
 }
+
+/** Persisted model preference for hosted character chats.
+ *  `null` means "use the character's recommended modelId". */
+export type CharacterChatModel = string | null;
+
+/** Model option rendered in the Characters view model selector. */
+export interface CharacterModelOption {
+  id: string;
+  name: string;
+}

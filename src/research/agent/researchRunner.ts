@@ -189,6 +189,7 @@ export async function runResearchJob(input: ResearchJobInput): Promise<ResearchJ
     }
 
     // Phase 1: Search
+    let lastSearchError: unknown = null;
     for (const query of queries) {
       assertNotAborted();
       if (queriesUsed.length >= budget.maxQueries) break;
@@ -205,9 +206,14 @@ export async function runResearchJob(input: ResearchJobInput): Promise<ResearchJ
           timeoutMs: budget.perRequestTimeoutMs,
           signal: requestSignal,
         });
-      } catch {
-        // Individual search failures are non-fatal; continue to next query
-        // after a short cooldown to avoid hammering a failing host.
+      } catch (err) {
+        // Abort errors are always fatal — the user or budget cancelled the job.
+        if (err instanceof DOMException && err.name === "AbortError") {
+          throw err;
+        }
+        // Track the last failure so we can surface a safe error if every
+        // query fails. Continue to the next query to preserve resilience.
+        lastSearchError = err;
         await sleep(300, jobSignal).catch(() => {});
         continue;
       }
@@ -222,6 +228,12 @@ export async function runResearchJob(input: ResearchJobInput): Promise<ResearchJ
         seenUrls.add(norm);
         allSearchResults.push(r);
       }
+    }
+
+    // If no query succeeded, the job as a whole failed. Surface the last
+    // captured error so the safe-error classifier can map it appropriately.
+    if (queriesUsed.length === 0 && lastSearchError !== null) {
+      throw lastSearchError;
     }
 
     store.addSearch(allSearchResults);

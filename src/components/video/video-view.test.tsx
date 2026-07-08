@@ -26,26 +26,62 @@ vi.mock('../../hooks/use-models', () => ({
   useVideoModels: () => ({
     groups: [
       {
-        name: 'Test Group',
+        name: 'Priced Group',
         textModel: {
-          id: 'text-to-video-model',
+          id: 'text-to-video-priced',
           model_spec: {
+            name: 'Priced Text-to-Video',
             constraints: {
               model_type: 'text-to-video',
               durations: ['4s', '8s'],
               resolutions: ['480p', '720p'],
               aspect_ratios: ['16:9', '9:16'],
             },
+            pricing: { output: { usd: 0.123 } },
           },
         },
         imageModel: {
-          id: 'image-to-video-model',
+          id: 'image-to-video-priced',
           model_spec: {
+            name: 'Priced Image-to-Video',
             constraints: {
               model_type: 'image-to-video',
               durations: ['4s', '8s'],
               resolutions: ['480p', '720p'],
               aspect_ratios: ['16:9', '9:16'],
+            },
+            pricing: { output: { usd: 0.234 } },
+          },
+        },
+        sets: [],
+      },
+      {
+        name: 'Fallback Group',
+        textModel: {
+          id: 'fallback-text-to-video',
+          model_spec: {
+            name: 'Fallback Text-to-Video',
+            constraints: {
+              model_type: 'text-to-video',
+              durations: ['4s'],
+              resolutions: ['480p'],
+              aspect_ratios: ['16:9'],
+            },
+          },
+        },
+        sets: [],
+      },
+      {
+        name: 'No Text Model',
+        imageModel: {
+          id: 'image-only-video',
+          model_spec: {
+            name: 'Image-Only Video',
+            constraints: {
+              model_type: 'image-to-video',
+              durations: ['4s'],
+              resolutions: ['480p'],
+              aspect_ratios: ['16:9'],
             },
           },
         },
@@ -241,5 +277,32 @@ describe('VideoView accessibility', () => {
     })
     expect(JSON.stringify(mockToastError.mock.calls)).not.toContain('Bearer secret')
     expect(JSON.stringify(mockToastError.mock.calls)).not.toContain('/Users/private')
+  })
+
+  it('shows live pricing in the model selector for text-to-video mode', () => {
+    render(<VideoView />)
+    const modelButton = screen.getByRole('button', { name: 'Model' })
+    fireEvent.click(modelButton)
+    expect(screen.getAllByText('Priced Text-to-Video (~$0.123)').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Fallback Text-to-Video (~$0.050)').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('No Text Model').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('switches cost label to the image-to-video model when mode changes', () => {
+    render(<VideoView />)
+    fireEvent.click(screen.getByRole('button', { name: 'Image to Video' }))
+    const modelButton = screen.getByRole('button', { name: 'Model' })
+    fireEvent.click(modelButton)
+    expect(screen.getAllByText('Priced Image-to-Video (~$0.234)').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Image-Only Video (~$0.005)').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('falls back to the group name when the active-mode model is missing', () => {
+    render(<VideoView />)
+    // The "No Text Model" group has no text model, so in text mode its label
+    // should simply be the group name.
+    const modelButton = screen.getByRole('button', { name: 'Model' })
+    fireEvent.click(modelButton)
+    expect(screen.getAllByText('No Text Model').length).toBeGreaterThanOrEqual(1)
   })
 })

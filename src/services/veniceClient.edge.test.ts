@@ -2,7 +2,9 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { AppDispatch } from "../types/app";
-import { serializeFormData, veniceFetch } from "./veniceClient";
+import { serializeFormData, veniceFetch, veniceBlob, veniceFormData } from "./veniceClient";
+import { useSettingsStore } from "../stores/settings-store";
+import { useInspectorStore } from "../stores/inspector-store";
 
 const originalFetch = globalThis.fetch;
 
@@ -176,5 +178,131 @@ describe("veniceFetch rate-limit handling", () => {
 
     await expect(request).resolves.toMatchObject({ data: { data: [] } });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("veniceBlob response screening", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    globalThis.fetch = originalFetch;
+    useInspectorStore.getState().clearLogs();
+    useSettingsStore.getState().setLocalFamilySafeModeEnabled(true);
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("blocks textual JSON responses that fail the safety guard", async () => {
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ message: "draw me a loli character" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      })
+    );
+
+    await expect(
+      veniceBlob("/api/v1/image/upscale", {
+        image: "data:image/png;base64,iVBORw0KGgo=",
+      })
+    ).rejects.toThrow("Blocked by Family Safe Mode");
+
+    expect(useInspectorStore.getState().logs[0]?.status).toBe(451);
+  });
+
+  it("does not stringify binary image responses", async () => {
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(new Blob(["draw me a loli character"], { type: "image/png" }), {
+        status: 200,
+        headers: { "content-type": "image/png" },
+      })
+    );
+
+    const blob = await veniceBlob("/api/v1/image/upscale", {
+      image: "data:image/png;base64,iVBORw0KGgo=",
+    });
+
+    expect(blob.type).toBe("image/png");
+    expect(useInspectorStore.getState().logs[0]?.status).toBe(200);
+  });
+
+  it("skips response screening when Family Safe Mode is disabled", async () => {
+    useSettingsStore.getState().setLocalFamilySafeModeEnabled(false);
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ message: "draw me a loli character" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      })
+    );
+
+    const blob = await veniceBlob("/api/v1/image/upscale", {
+      image: "data:image/png;base64,iVBORw0KGgo=",
+    });
+
+    expect(blob.type).toBe("application/json");
+    expect(blob.size).toBeGreaterThan(0);
+  });
+});
+
+describe("veniceFormData response screening", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    globalThis.fetch = originalFetch;
+    useInspectorStore.getState().clearLogs();
+    useSettingsStore.getState().setLocalFamilySafeModeEnabled(true);
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  function safeFormData(): FormData {
+    const form = new FormData();
+    form.append("model", "test-model");
+    form.append("prompt", "hello");
+    return form;
+  }
+
+  it("blocks JSON responses that fail the safety guard", async () => {
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ message: "draw me a loli character" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      })
+    );
+
+    await expect(veniceFormData("/api/v1/image/edit", safeFormData())).rejects.toThrow(
+      "Blocked by Family Safe Mode"
+    );
+
+    expect(useInspectorStore.getState().logs[0]?.status).toBe(451);
+  });
+
+  it("does not stringify binary image responses", async () => {
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(new Blob(["draw me a loli character"], { type: "image/png" }), {
+        status: 200,
+        headers: { "content-type": "image/png" },
+      })
+    );
+
+    const body = await veniceFormData<{ text: string }>("/api/v1/image/edit", safeFormData());
+
+    expect(body.text).toBeDefined();
+    expect(useInspectorStore.getState().logs[0]?.status).toBe(200);
+  });
+
+  it("skips response screening when Family Safe Mode is disabled", async () => {
+    useSettingsStore.getState().setLocalFamilySafeModeEnabled(false);
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ message: "draw me a loli character" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      })
+    );
+
+    const body = await veniceFormData<{ message: string }>("/api/v1/image/edit", safeFormData());
+
+    expect(body.message).toBe("draw me a loli character");
   });
 });

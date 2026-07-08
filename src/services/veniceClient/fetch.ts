@@ -55,6 +55,110 @@ function buildFailClosedDecision(userMessage: string, reasonCode: string): Safet
 }
 
 /**
+ * Screens a Venice response body in web mode. Electron responses are skipped
+ * because the main-process guard pipeline is authoritative. Binary payloads
+ * (image/audio/video bytes and Blob/ArrayBuffer views) are never stringified;
+ * only textual/JSON metadata bodies are screened. On block the inspector log
+ * is updated with a 451 safety-block patch and `SafetyGuardBlockedError` is
+ * thrown.
+ */
+async function screenVeniceResponse(
+  data: unknown,
+  contentType: string | null,
+  endpoint: string,
+  method: string,
+  logId: string,
+  startedAt: number,
+  previewDurationMs: number,
+): Promise<void> {
+  if (isElectron()) return;
+  if (method !== "POST") return;
+
+  const safeMode = useSettingsStore.getState().localFamilySafeModeEnabled;
+  if (!safeMode) return;
+
+  const ct = (contentType || "").toLowerCase();
+  if (
+    ct.startsWith("image/") ||
+    ct.startsWith("audio/") ||
+    ct.startsWith("video/")
+  ) {
+    return;
+  }
+  if (
+    data instanceof Blob ||
+    data instanceof ArrayBuffer ||
+    ArrayBuffer.isView(data)
+  ) {
+    return;
+  }
+
+  let serialized: string;
+  if (typeof data === "string") {
+    serialized = data;
+  } else {
+    try {
+      serialized = JSON.stringify(data, (_key, value: unknown) => {
+        if (typeof value === "bigint") return `[bigint:${value.toString()}]`;
+        return value;
+      }) ?? "";
+    } catch {
+      useInspectorStore.getState().updateLog(
+        logId,
+        buildInspectorTelemetryPatch({
+          status: 451,
+          durationMs: Date.now() - startedAt,
+          previewDurationMs,
+          guardOutcome: "block",
+          error: "Response blocked: could not be safely serialized for review.",
+        }),
+      );
+      throw new SafetyGuardBlockedError(buildFailClosedDecision(
+        "Response blocked: could not be safely serialized for review.",
+        "response_unserializable",
+      ));
+    }
+    if (!serialized) {
+      useInspectorStore.getState().updateLog(
+        logId,
+        buildInspectorTelemetryPatch({
+          status: 451,
+          durationMs: Date.now() - startedAt,
+          previewDurationMs,
+          guardOutcome: "block",
+          error: "Response blocked: empty payload.",
+        }),
+      );
+      throw new SafetyGuardBlockedError(buildFailClosedDecision(
+        "Response blocked: empty payload.",
+        "response_empty",
+      ));
+    }
+  }
+
+  const decision = maybeRunLocalFamilyGuard(
+    { endpoint, method, text: serialized, source: "venice-client" },
+    safeMode,
+  );
+  if (!decision.allowed) {
+    useInspectorStore.getState().updateLog(
+      logId,
+      buildInspectorTelemetryPatch({
+        status: 451,
+        durationMs: Date.now() - startedAt,
+        previewDurationMs,
+        guardOutcome: "block",
+        error: decision.userMessage,
+      }),
+    );
+    throw new SafetyGuardBlockedError({
+      ...decision.guardDecision,
+      userMessage: decision.userMessage,
+    });
+  }
+}
+
+/**
  * Performs a Venice API request through the desktop IPC bridge with retries.
  * @param endpoint The Venice API endpoint.
  * @param options Request options including method, body, signal, and dispatch.
@@ -487,77 +591,25 @@ export async function veniceFetch<T = unknown>(
       );
 
       // Output screening for web mode (Electron already does this in guardPipeline.ts).
-      // Only POST responses carry user content worth screening; GETs (models, lists)
-      // are skipped to avoid scanning provider metadata. Object payloads MUST be
-      // JSON.stringified so the guard sees the actual text content (otherwise
-      // `[object Object]` trivially bypasses rule detection).
-      if (!isElectron() && method === "POST") {
-        const safeMode = useSettingsStore.getState().localFamilySafeModeEnabled;
-        let serialized: string;
-        if (typeof result.data === "string") {
-          serialized = result.data;
-        } else {
-          try {
-            serialized = JSON.stringify(result.data, (_key, value: unknown) => {
-              if (typeof value === "bigint") return `[bigint:${value.toString()}]`;
-              return value;
-            }) ?? "";
-          } catch {
-            // Fail-closed: cannot serialize → cannot verify safety → block.
-            useInspectorStore.getState().updateLog(
-              logId,
-              buildInspectorTelemetryPatch({
-                status: 451,
-                durationMs: Date.now() - startedAt,
-                previewDurationMs,
-                guardOutcome: "block",
-                error: "Response blocked: could not be safely serialized for review.",
-              }),
-            );
-            throw new SafetyGuardBlockedError(buildFailClosedDecision(
-              "Response blocked: could not be safely serialized for review.",
-              "response_unserializable",
-            ));
-          }
-          if (!serialized) {
-            useInspectorStore.getState().updateLog(
-              logId,
-              buildInspectorTelemetryPatch({
-                status: 451,
-                durationMs: Date.now() - startedAt,
-                previewDurationMs,
-                guardOutcome: "block",
-                error: "Response blocked: empty payload.",
-              }),
-            );
-            throw new SafetyGuardBlockedError(buildFailClosedDecision(
-              "Response blocked: empty payload.",
-              "response_empty",
-            ));
-          }
-        }
-        if (safeMode) {
-          const decision = maybeRunLocalFamilyGuard(
-            { endpoint, method, text: serialized, source: "venice-client" },
-            safeMode,
-          );
-          if (!decision.allowed) {
-            useInspectorStore.getState().updateLog(
-              logId,
-              buildInspectorTelemetryPatch({
-                status: 451,
-                durationMs: Date.now() - startedAt,
-                previewDurationMs,
-                guardOutcome: "block",
-                error: decision.userMessage,
-              }),
-            );
-            throw new SafetyGuardBlockedError(decision.guardDecision);
-          }
-        }
-      }
+      const contentType = result.response instanceof Response
+        ? result.response.headers.get("content-type")
+        : (result.response as VeniceForgeResponse).contentType || null;
+      await screenVeniceResponse(
+        result.data,
+        contentType,
+        endpoint,
+        method,
+        logId,
+        startedAt,
+        previewDurationMs,
+      );
+
       return result as { data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> };
     } catch (err: unknown) {
+      if (err instanceof SafetyGuardBlockedError) {
+        // The response-screening helper has already logged the 451 safety-block patch.
+        throw err;
+      }
       const errAny = err as { status?: number };
       useInspectorStore.getState().updateLog(
         logId,
@@ -629,6 +681,27 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
       const bodyMessage = readVeniceErrorBody(parsed || text || fetchResponse.statusText);
       throw new VeniceAPIError(bodyMessage || `HTTP ${fetchResponse.status}`, fetchResponse.status);
     }
+
+    const contentType = fetchResponse.headers.get("content-type");
+    const ct = (contentType || "").toLowerCase();
+    const isTextual =
+      ct.includes("application/json") ||
+      ct.startsWith("text/");
+    const screenBody = isTextual
+      ? await fetchResponse.clone().text().catch(() => null)
+      : null;
+    if (screenBody != null) {
+      await screenVeniceResponse(
+        screenBody,
+        contentType,
+        path,
+        "POST",
+        logId,
+        startedAt,
+        previewDurationMs,
+      );
+    }
+
     useInspectorStore.getState().updateLog(logId, {
       status: fetchResponse.status,
       callOutcome: "success",
@@ -667,6 +740,10 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
   });
   return new Blob([bytes], { type: response.contentType });
   } catch (error) {
+    if (error instanceof SafetyGuardBlockedError) {
+      // The response-screening helper has already logged the 451 safety-block patch.
+      throw error;
+    }
     const errAny = error as { status?: number; message?: string };
     const errorClass = classifyInspectorError(errAny.status, errAny.message);
     useInspectorStore.getState().updateLog(logId, {
@@ -738,6 +815,17 @@ export async function veniceFormData<T>(path: string, formData: FormData, init: 
       const bodyMessage = readVeniceErrorBody(body);
       throw new VeniceAPIError(bodyMessage || response.statusText || `HTTP ${response.status}`, response.status);
     }
+
+    await screenVeniceResponse(
+      body,
+      contentType,
+      path,
+      "POST",
+      logId,
+      startedAt,
+      previewDurationMs,
+    );
+
     useInspectorStore.getState().updateLog(logId, {
       status: response.status,
       callOutcome: "success",
@@ -770,6 +858,10 @@ export async function veniceFormData<T>(path: string, formData: FormData, init: 
   });
   return response.body as T;
   } catch (error) {
+    if (error instanceof SafetyGuardBlockedError) {
+      // The response-screening helper has already logged the 451 safety-block patch.
+      throw error;
+    }
     const errAny = error as { status?: number; message?: string };
     const errorClass = classifyInspectorError(errAny.status, errAny.message);
     useInspectorStore.getState().updateLog(logId, {

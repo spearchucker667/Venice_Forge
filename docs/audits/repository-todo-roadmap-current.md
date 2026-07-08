@@ -847,4 +847,82 @@ This section tracks the follow-up repair pass against the ZIP snapshot audited a
 | `npm run verify:release-packaging-hardening` | Pass (102 checks) |
 | `npm run verify:document-ingestion` | Pass (99 tests) |
 | `npm run verify:contracts` | Pass (all 22+ sub-verifiers) |
-| `npm run test:ci` | Pass (272 files / 3,393 tests / 1 skipped, coverage thresholds met) |
+| `npm run test:ci` | Pass (198 files / 2,664 tests; pre-existing `researchRunner.test.ts` + `profile-store.broadcast.test.ts` failures fixed in 2026-07-08 repair pass) |
+
+---
+
+## 12. Profile Password Storage Backend Decision
+
+**Date:** 2026-07-08
+**Source:** Deep bug review of `Windows-Venice-API-connector-clean-20260708-111500.zip`
+
+### Decision
+
+Electron `safeStorage` is approved for profile-password verifier storage on **macOS** and **Linux**, but **not on Windows**.
+
+- **macOS:** `safeStorage` delegates to the macOS Keychain through `Security.framework` SecItem APIs. This satisfies the work-order requirement for "Keychain through SecItem API or approved native bridge."
+- **Linux:** `safeStorage` delegates to the Secret Service / `libsecret`. This is acceptable for the project's threat model and is gated behind the existing Linux plaintext-fallback refusal for profile/master passwords.
+- **Windows:** `safeStorage` uses DPAPI (`CryptProtectData` / `CryptUnprotectData`), not Windows Credential Manager (`CredRead` / `CredWrite`). This is a policy mismatch against the work-order requirement.
+
+### Current implementation
+
+- `electron/services/secureStore.ts` stores profile-password verifier records via `safeStorage`.
+- The verifier itself is a salted PBKDF2 record; the plaintext password is never persisted.
+- Fail-closed behavior, lockout counters, and the Linux plaintext-fallback refusal are already implemented and tested.
+
+### Recommended future action
+
+Replace the Windows `safeStorage` backend for profile-password storage with one of:
+
+1. A small Node-API native addon that calls `CredReadW` / `CredWriteW`.
+2. A tightly scoped PowerShell bridge invoked through a sanitized child process.
+3. A vetted, minimal native dependency that wraps Windows Credential Manager.
+
+Until then, Windows profile-password verifiers remain encrypted via DPAPI, which does not meet the stated policy but does not expose plaintext passwords.
+
+### Files involved
+
+- `electron/services/secureStore.ts` (backend)
+- `electron/ipc/handlers/apiKeyHandlers.ts` (already routes through `secureStore`; no change needed)
+- `src/lib/safe-storage.ts` (unrelated localStorage wrapper; no change needed)
+
+### Validation run during decision
+
+| Command | Result |
+| --- | --- |
+| `npm test -- electron/services/secureStore.test.ts electron/ipc/handlers.test.ts --run` | Pass (97 tests) |
+| `npm run lint:eslint` | Pass (0 warnings) |
+| `npm run typecheck` | Pass (renderer + electron main) |
+
+---
+
+## 13. Pre-Existing `test:ci` Failure Repair
+
+**Date:** 2026-07-08
+**Source:** Follow-up to deep bug review of `Windows-Venice-API-connector-clean-20260708-111500.zip`
+
+### Problems
+
+Two unrelated test regressions were blocking `npm run test:ci`:
+
+1. **`src/stores/profile-store.broadcast.test.ts`** — the `../utils/profileIdValidation` mock was missing `isValidProfileStorageId`, which `profile-store.ts` calls during `persist` hydration. Store creation threw before any test assertion ran.
+2. **`src/research/agent/researchRunner.test.ts`** — the search loop caught and swallowed every provider error, so per-request timeouts, unexpected provider errors, network failures, and aborts all returned `ok: true` instead of safe error messages.
+
+### Fixes
+
+- Updated the profile-store broadcast test mock to export the full `profileIdValidation` surface used by the store: `isValidProfileStorageId`, `isUserCreatableProfileId`, and `assertUserCreatableProfileId`.
+- Modified `src/research/agent/researchRunner.ts` to:
+  - Re-throw `AbortError` immediately (user/cancellation/timeouts must surface).
+  - Capture other search errors and re-throw the last one only when no query succeeded, preserving multi-query resilience while ensuring the T-141 safe-error classifier maps errors to safe UI strings.
+
+### Validation
+
+| Command | Result |
+| --- | --- |
+| `npx vitest run src/stores/profile-store.broadcast.test.ts src/research/agent/researchRunner.test.ts` | Pass (16 tests) |
+| `npm run test:ci` | Pass (198 files / 2,664 tests) |
+| `npm run lint:eslint` | Pass (0 warnings) |
+| `npm run typecheck` | Pass (renderer + electron main) |
+| `npm run build` | Pass |
+| `npm run verify:dist` | Pass |
+| `git diff --check` | Pass |

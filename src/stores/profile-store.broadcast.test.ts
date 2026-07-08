@@ -33,8 +33,15 @@ vi.mock('../utils/profileIdValidation', () => ({
       throw new Error('Invalid profile id')
     }
   }),
+  assertUserCreatableProfileId: vi.fn((id: string) => {
+    if (!id || typeof id !== 'string' || id.length === 0 || id === 'default') {
+      throw new Error('Invalid profile id')
+    }
+  }),
   generateProfileId: vi.fn(() => 'generated-id'),
   isValidProfileId: vi.fn((id: string) => typeof id === 'string' && id.length > 0),
+  isValidProfileStorageId: vi.fn((id: string) => typeof id === 'string' && id.length > 0),
+  isUserCreatableProfileId: vi.fn((id: string) => typeof id === 'string' && id.length > 0 && id !== 'default'),
 }))
 
 describe('profile-store broadcast deduplication', () => {

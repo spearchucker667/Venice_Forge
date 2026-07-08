@@ -10,9 +10,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useCharacterStore } from "../stores/character-store";
 import { useChatStore } from "../stores/chat-store";
 import { useSettingsStore } from "../stores/settings-store";
-import { DEFAULT_CHAT_MODEL } from "../constants/venice";
+import { DEFAULT_CHAT_MODEL, FALLBACK_MODELS } from "../constants/venice";
 import { useCharacterImage } from "../hooks/useCharacterImage";
 import type {
+  CharacterModelOption,
   CharacterSortBy,
   CharacterSortOrder,
   VeniceCharacter,
@@ -31,6 +32,11 @@ const SORT_OPTIONS: Array<{ value: CharacterSortBy; label: string }> = [
 const SORT_ORDER_OPTIONS: Array<{ value: CharacterSortOrder; label: string }> = [
   { value: "desc", label: "Descending" },
   { value: "asc", label: "Ascending" },
+];
+
+const MODEL_OPTIONS: CharacterModelOption[] = [
+  { id: "", name: "Character default" },
+  ...FALLBACK_MODELS.text.map((m) => ({ id: m.id, name: m.name })),
 ];
 
 export function Avatar({ character }: { character: VeniceCharacter }) {
@@ -173,12 +179,14 @@ export function CharactersView() {
     sortOrder,
     includeAdultCharacters,
     webEnabledOnly,
+    selectedModel,
     hasMore,
     setSearchQuery,
     setSortBy,
     setSortOrder,
     setIncludeAdult,
     setWebEnabledOnly,
+    setSelectedModel,
     searchCharacters,
     loadMore,
     selectCharacter,
@@ -208,8 +216,11 @@ export function CharactersView() {
   }, [debouncedQuery, sortBy, sortOrder, includeAdultCharacters, webEnabledOnly, searchCharacters]);
 
   const handleChat = (character: VeniceCharacter) => {
+    // Resolve the model BEFORE selectCharacter mutates selectedModel,
+    // so a user-chosen override in the header dropdown is honoured.
+    const effectiveModel = useCharacterStore.getState().getEffectiveModel(character, fallbackModel);
     selectCharacter(character);
-    createCharacterConversation(character, fallbackModel);
+    createCharacterConversation(character, effectiveModel);
     setActiveTab("chat");
   };
 
@@ -260,6 +271,22 @@ export function CharactersView() {
                 {SORT_ORDER_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
+                  </option>
+                ))}
+              </select>
+              <label className="text-[11.5px] uppercase tracking-wider text-text-muted font-semibold">
+                Model
+              </label>
+              <select
+                value={selectedModel ?? ""}
+                onChange={(e) => setSelectedModel(e.target.value || null)}
+                aria-label="Character chat model"
+                data-testid="character-model-select"
+                className="bg-surface-elevated border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary cursor-pointer"
+              >
+                {MODEL_OPTIONS.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.name}
                   </option>
                 ))}
               </select>

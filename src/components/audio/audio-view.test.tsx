@@ -1,7 +1,7 @@
 /** @fileoverview Audio view accessibility (Wave 2). */
 
 import '@testing-library/jest-dom/vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { AudioView } from './audio-view'
 
@@ -15,7 +15,7 @@ vi.mock('../../hooks/use-audio', () => ({
 }))
 
 vi.mock('../../hooks/use-blob-url', () => ({
-  useBlobUrl: () => [null, vi.fn(), vi.fn()],
+  useBlobUrl: () => ['blob:mock-audio-url', vi.fn(), vi.fn()],
 }))
 
 vi.mock('../../stores/auth-store', () => ({
@@ -41,5 +41,19 @@ describe('AudioView accessibility', () => {
     expect(screen.getByRole('textbox', { name: 'Text' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Voice' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Format' })).toBeInTheDocument()
+  })
+
+  it('shows an unsupported codec message when the audio element errors', () => {
+    const { container } = render(<AudioView />)
+    const audio = container.querySelector('audio')
+    expect(audio).toBeInTheDocument()
+    // jsdom does not fully implement HTMLMediaElement.error, so set it directly.
+    // MEDIA_ERR_SRC_NOT_SUPPORTED === 4
+    Object.defineProperty(audio!, 'error', {
+      value: { code: 4 },
+      configurable: true,
+    })
+    fireEvent.error(audio!)
+    expect(screen.getByText(/not supported/i)).toBeInTheDocument()
   })
 })

@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect, useId } from 'react'
+import { useState, useRef, useMemo, useEffect, useCallback, useId } from 'react'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useVideoModels, type VideoModelGroup } from '../../hooks/use-models'
 import { useVideo } from '../../hooks/use-video'
@@ -10,6 +10,7 @@ import { toast } from '../../stores/toast-store'
 import { useMediaStore } from '../../stores/media-store'
 import type { VideoQueueRequest, VideoConstraints } from '../../types/venice'
 import { isSupportedImageFile, readImageAttachment } from '../../services/attachmentService'
+import { formatModelLabelWithCost } from '../../utils/pricing'
 
 export function VideoView() {
   const promptId = useId()
@@ -132,12 +133,25 @@ export function VideoView() {
     })
   }, [status, videoUrl, queueId, lastRequest, prompt])
 
+  const formatGroupLabel = useCallback(
+    (g: VideoModelGroup) => {
+      const model = mode === 'image' ? g.imageModel : g.textModel
+      if (!model) return g.name
+      try {
+        return formatModelLabelWithCost(model)
+      } catch {
+        return g.name
+      }
+    },
+    [mode],
+  )
+
   const groupOptions = useMemo(() =>
     groups.map((g) => ({
       value: g.name,
-      label: g.name,
+      label: formatGroupLabel(g),
     })),
-    [groups],
+    [groups, formatGroupLabel],
   )
 
   const handleImageUpload = async (file: File) => {

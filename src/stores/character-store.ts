@@ -5,6 +5,7 @@ import { listCharacters, getCharacter } from "../services/characterService";
 import { redactErrorMessage } from "../shared/redaction";
 import * as logger from "../shared/logger";
 import type {
+  CharacterChatModel,
   CharacterSortBy,
   CharacterSortOrder,
   VeniceCharacter,
@@ -27,6 +28,9 @@ export interface CharacterState {
   selectedCharacter: VeniceCharacter | null;
   /** Persisted character slug for the next character chat. */
   selectedCharacterSlug: string | null;
+  /** User-overridden model for the currently selected character chat.
+   *  `null` means honour the character's recommended modelId. */
+  selectedModel: CharacterChatModel;
   /** When false, adult characters are filtered out client-side. */
   includeAdultCharacters: boolean;
   /** When true, only web-enabled characters are returned. */
@@ -54,6 +58,8 @@ export interface CharacterState {
   loadMore: () => Promise<void>;
   selectCharacter: (character: VeniceCharacter) => void;
   clearCharacter: () => void;
+  setSelectedModel: (modelId: CharacterChatModel) => void;
+  getEffectiveModel: (character: VeniceCharacter | null, fallbackModel: string) => string;
   fetchBySlug: (slug: string) => Promise<VeniceCharacter | null>;
 }
 
@@ -77,6 +83,7 @@ export const useCharacterStore = create<CharacterState>((set, get) => ({
   results: [],
   selectedCharacter: null,
   selectedCharacterSlug: null,
+  selectedModel: null,
   includeAdultCharacters: false,
   webEnabledOnly: false,
   isLoading: false,
@@ -162,11 +169,25 @@ export const useCharacterStore = create<CharacterState>((set, get) => ({
     set({
       selectedCharacter: character,
       selectedCharacterSlug: character.slug,
+      selectedModel: character.modelId ?? null,
     });
   },
 
   clearCharacter: () => {
-    set({ selectedCharacter: null, selectedCharacterSlug: null });
+    set({ selectedCharacter: null, selectedCharacterSlug: null, selectedModel: null });
+  },
+
+  setSelectedModel: (modelId) => {
+    set({ selectedModel: modelId });
+  },
+
+  getEffectiveModel: (character, fallbackModel) => {
+    const state = get();
+    return (
+      state.selectedModel ??
+      character?.modelId ??
+      fallbackModel
+    );
   },
 
   fetchBySlug: async (slug) => {

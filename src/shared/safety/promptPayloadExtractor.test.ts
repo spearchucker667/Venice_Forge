@@ -54,10 +54,10 @@ describe("extractPromptLikeFields", () => {
     const payload = {
       _isSerializedFormData: true,
       entries: [
-        { name: "prompt", value: "should not be extracted for upscale endpoint" },
+        { name: "prompt", value: "should not be extracted for retrieve endpoint" },
       ],
     };
-    const fields = extractPromptLikeFields(payload, "/image/upscale");
+    const fields = extractPromptLikeFields(payload, "/video/retrieve");
 
     expect(fields).toEqual([]);
   });
@@ -185,8 +185,8 @@ describe("extractPromptLikeFields", () => {
 
   it("returns no fields for native FormData when endpoint has no extractable fields", () => {
     const formData = new FormData();
-    formData.append("prompt", "should not be extracted for upscale endpoint");
-    const fields = extractPromptLikeFields(formData, "/image/upscale");
+    formData.append("prompt", "should not be extracted for retrieve endpoint");
+    const fields = extractPromptLikeFields(formData, "/video/retrieve");
 
     expect(fields).toEqual([]);
   });
@@ -282,6 +282,58 @@ describe("extractPromptLikeFields", () => {
     formData.append("text", "valid text");
     const fields = extractPromptLikeFields(formData, "/augment/text-parser");
     expect(fields).toEqual([{ path: "formData.text", value: "valid text" }]);
+  });
+
+  // VERIFY-067 regression guard: /image/upscale must extract prompt-like enhancer text
+  describe("VERIFY-067 /image/upscale prompt extraction", () => {
+    it("extracts enhancePrompt from JSON payload", () => {
+      const fields = extractPromptLikeFields(
+        { enhancePrompt: "add more detail to the portrait" },
+        "/image/upscale"
+      );
+      expect(fields).toEqual([
+        { path: "enhancePrompt", value: "add more detail to the portrait" },
+      ]);
+    });
+
+    it("extracts enhance_prompt and prompt aliases", () => {
+      const fields = extractPromptLikeFields(
+        { enhance_prompt: "make it sharper", prompt: "enhance this image" },
+        "/image/upscale"
+      );
+      expect(fields).toContainEqual({ path: "enhance_prompt", value: "make it sharper" });
+      expect(fields).toContainEqual({ path: "prompt", value: "enhance this image" });
+    });
+
+    it("extracts enhancePrompt from serialized FormData", () => {
+      const payload = {
+        _isSerializedFormData: true,
+        entries: [{ name: "enhancePrompt", value: "upscale with better lighting" }],
+      };
+      const fields = extractPromptLikeFields(payload, "/image/upscale");
+      expect(fields).toEqual([
+        { path: "formData.enhancePrompt", value: "upscale with better lighting" },
+      ]);
+    });
+
+    it("extracts enhancePrompt from native FormData", () => {
+      const formData = new FormData();
+      formData.append("enhancePrompt", "sharpen and denoise");
+      const fields = extractPromptLikeFields(formData, "/image/upscale");
+      expect(fields).toEqual([
+        { path: "formData.enhancePrompt", value: "sharpen and denoise" },
+      ]);
+    });
+
+    it("does not extract deny-listed fields on upscale", () => {
+      const fields = extractPromptLikeFields(
+        { enhancePrompt: "improve quality", model: "upscaler", seed: "123" },
+        "/image/upscale"
+      );
+      expect(fields).toEqual([
+        { path: "enhancePrompt", value: "improve quality" },
+      ]);
+    });
   });
 });
 

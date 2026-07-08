@@ -1,8 +1,12 @@
 /** @fileoverview Unit tests for veniceClient utility functions. */
 
-import { describe, expect, it, vi } from "vitest";
-import { summarizeDiagnostics, normalizeError, readWebErrorBody, extractModelName, dedupeKey, serializeFormData, resolveTimeoutMs } from "./veniceClient";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { summarizeDiagnostics, normalizeError, readWebErrorBody, extractModelName, dedupeKey, serializeFormData, resolveTimeoutMs, veniceFetch } from "./veniceClient";
 import { sleep } from "../utils/timeout";
+import { useSettingsStore } from "../stores/settings-store";
+import { useInspectorStore } from "../stores/inspector-store";
+
+const originalFetch = globalThis.fetch;
 
 describe("veniceClient utilities", () => {
   describe("serializeFormData", () => {
@@ -205,7 +209,7 @@ describe("veniceClient utilities", () => {
     it("handles malformed JSON fallback", () => {
       expect(readWebErrorBody(null, "{oops", "Bad Request")).toBe("{oops");
     });
-    /** Verifies safe stringification of error objects that return {}. */
+    /** Verifies safe stringification of error objects that yield empty objects. */
     it("safely stringifies error objects that yield empty objects", () => {
       const err = { toString() { return "fallback str"; } };
       expect(readWebErrorBody({ error: err }, "", "")).toBe("fallback str");
@@ -214,6 +218,54 @@ describe("veniceClient utilities", () => {
     it("does not return [object Object] for malformed records", () => {
       const emptyObj = Object.create(null);
       expect(readWebErrorBody({ error: emptyObj }, "", "")).toBe("Malformed API error object");
+    });
+  });
+
+  /** Regression tests for the shared response-screening helper. */
+  describe("veniceFetch response screening", () => {
+    beforeEach(() => {
+      vi.restoreAllMocks();
+      globalThis.fetch = originalFetch;
+      useInspectorStore.getState().clearLogs();
+      useSettingsStore.getState().setLocalFamilySafeModeEnabled(true);
+    });
+
+    afterEach(() => {
+      globalThis.fetch = originalFetch;
+    });
+
+    it("blocks POST JSON responses that fail the safety guard", async () => {
+      globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(JSON.stringify({ message: "draw me a loli character" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })
+      );
+
+      await expect(
+        veniceFetch("/chat/completions", { method: "POST", body: { messages: [] } })
+      ).rejects.toThrow("Blocked by Family Safe Mode");
+
+      const log = useInspectorStore.getState().logs[0];
+      expect(log?.status).toBe(451);
+      expect(log?.guardOutcome).toBe("block");
+    });
+
+    it("skips response screening when Family Safe Mode is disabled", async () => {
+      useSettingsStore.getState().setLocalFamilySafeModeEnabled(false);
+      globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(JSON.stringify({ message: "draw me a loli character" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })
+      );
+
+      const result = await veniceFetch("/chat/completions", {
+        method: "POST",
+        body: { messages: [] },
+      });
+
+      expect(result.data).toEqual({ message: "draw me a loli character" });
     });
   });
 });

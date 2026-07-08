@@ -95,6 +95,15 @@ export function ImageView() {
   const promptLimit = Math.min(constraints?.promptCharacterLimit || IMAGE_PROMPT_MAX_CHARS, IMAGE_PROMPT_MAX_CHARS)
 
   const [prompt, setPrompt] = useState('')
+  const setPromptClamped = useCallback(
+    (next: React.SetStateAction<string>) => {
+      setPrompt((prev) => {
+        const base = typeof next === 'function' ? (next as (prev: string) => string)(prev) : next
+        return base.slice(0, promptLimit)
+      })
+    },
+    [promptLimit],
+  )
   const [negativePrompt, setNegativePrompt] = useState('')
   const [starters, setStarters] = useState<string[]>(() => getPromptStartersForCategory('image', 4))
   const [sizeKey, setSizeKey] = useState('1024x1024')
@@ -211,10 +220,10 @@ export function ImageView() {
   }, [prompt, negativePrompt, enhancerEnabled, enhancerConfig])
 
   const applyEnhancedPrompt = useCallback(() => {
-    if (enhancedPrompt) setPrompt(enhancedPrompt)
+    if (enhancedPrompt) setPromptClamped(enhancedPrompt)
     setShowEnhanceReview(false)
     setEnhancedPrompt(null)
-  }, [enhancedPrompt])
+  }, [enhancedPrompt, setPromptClamped])
 
   const cancelEnhanceReview = useCallback(() => {
     setShowEnhanceReview(false)
@@ -270,7 +279,7 @@ export function ImageView() {
       quality?: string;
       seed?: number | null;
     }) => {
-      if (typeof draft.prompt === "string") setPrompt(draft.prompt);
+      if (typeof draft.prompt === "string") setPromptClamped(draft.prompt);
       if (typeof draft.negativePrompt === "string") setNegativePrompt(draft.negativePrompt);
       if (typeof draft.style === "string") setStyle(draft.style);
       if (typeof draft.steps === "number" && Number.isFinite(draft.steps)) setSteps(draft.steps);
@@ -299,7 +308,7 @@ export function ImageView() {
       // Auto-generation is scheduled separately so these state updates
       // commit before the shared payload builder reads them.
     },
-    [],
+    [setPromptClamped],
   )
 
   const handleGenerate = () => {
@@ -540,7 +549,7 @@ export function ImageView() {
                     if (t.category === "negative") {
                       setNegativePrompt((prev) => prev ? `${prev}, ${t.appendText}` : t.appendText);
                     } else {
-                      setPrompt((prev) => prev ? `${prev}${t.appendText}` : t.appendText.replace(/^, /, ""));
+                      setPromptClamped((prev) => prev ? `${prev}${t.appendText}` : t.appendText.replace(/^, /, ""));
                     }
                   }
                   e.target.value = "";
@@ -568,7 +577,7 @@ export function ImageView() {
             </select>
           </div>
         </div>
-        <TextArea id={promptId} value={prompt} onChange={setPrompt} placeholder="A serene mountain landscape at golden hour…" />
+        <TextArea id={promptId} value={prompt} onChange={setPromptClamped} maxLength={promptLimit} placeholder="A serene mountain landscape at golden hour…" />
       </div>
 
       {/* Enhance prompt review flow */}
@@ -760,7 +769,7 @@ export function ImageView() {
           ) : (
             <ExamplePrompts
               items={starters}
-              onPick={setPrompt}
+              onPick={setPromptClamped}
               onShuffle={() => setStarters(getPromptStartersForCategory('image', 4))}
             />
           )}

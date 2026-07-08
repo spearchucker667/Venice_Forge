@@ -16,6 +16,7 @@ describe("useCharacterStore", () => {
       results: [],
       selectedCharacter: null,
       selectedCharacterSlug: null,
+      selectedModel: null,
       includeAdultCharacters: false,
       webEnabledOnly: false,
       isLoading: false,
@@ -44,6 +45,7 @@ describe("useCharacterStore", () => {
     expect(state.results).toEqual([]);
     expect(state.selectedCharacter).toBeNull();
     expect(state.selectedCharacterSlug).toBeNull();
+    expect(state.selectedModel).toBeNull();
     expect(state.includeAdultCharacters).toBe(false);
     expect(state.webEnabledOnly).toBe(false);
     expect(state.isLoading).toBe(false);
@@ -251,16 +253,29 @@ describe("useCharacterStore", () => {
     it("should set selected character", () => {
       const char = mockCharacter();
       useCharacterStore.getState().selectCharacter(char);
-      
+
       const state = useCharacterStore.getState();
       expect(state.selectedCharacter).toEqual(char);
       expect(state.selectedCharacterSlug).toBe(char.slug);
     });
 
-    it("should clear selected character", () => {
+    it("should default selectedModel to the character's modelId when selecting", () => {
+      const char = mockCharacter({ modelId: "venice-uncensored-1-2" });
+      useCharacterStore.getState().selectCharacter(char);
+      expect(useCharacterStore.getState().selectedModel).toBe("venice-uncensored-1-2");
+    });
+
+    it("should keep selectedModel null when the character has no modelId", () => {
+      const char = mockCharacter({ modelId: undefined });
+      useCharacterStore.getState().selectCharacter(char);
+      expect(useCharacterStore.getState().selectedModel).toBeNull();
+    });
+
+    it("should clear selected character and selectedModel", () => {
       useCharacterStore.setState({
         selectedCharacter: mockCharacter(),
         selectedCharacterSlug: "some-slug",
+        selectedModel: "llama-3.3-70b",
       });
 
       useCharacterStore.getState().clearCharacter();
@@ -268,6 +283,45 @@ describe("useCharacterStore", () => {
       const state = useCharacterStore.getState();
       expect(state.selectedCharacter).toBeNull();
       expect(state.selectedCharacterSlug).toBeNull();
+      expect(state.selectedModel).toBeNull();
+    });
+  });
+
+  describe("selectedModel", () => {
+    it("should update selectedModel", () => {
+      useCharacterStore.getState().setSelectedModel("llama-3.3-70b");
+      expect(useCharacterStore.getState().selectedModel).toBe("llama-3.3-70b");
+    });
+
+    it("should allow clearing selectedModel", () => {
+      useCharacterStore.getState().setSelectedModel("llama-3.3-70b");
+      useCharacterStore.getState().setSelectedModel(null);
+      expect(useCharacterStore.getState().selectedModel).toBeNull();
+    });
+
+    it("getEffectiveModel prefers selectedModel override", () => {
+      useCharacterStore.getState().setSelectedModel("override-model");
+      const char = mockCharacter({ modelId: "character-model" });
+      const model = useCharacterStore.getState().getEffectiveModel(char, "fallback-model");
+      expect(model).toBe("override-model");
+    });
+
+    it("getEffectiveModel falls back to character modelId", () => {
+      const char = mockCharacter({ modelId: "character-model" });
+      const model = useCharacterStore.getState().getEffectiveModel(char, "fallback-model");
+      expect(model).toBe("character-model");
+    });
+
+    it("getEffectiveModel falls back to supplied fallback when no override or character model", () => {
+      const char = mockCharacter({ modelId: undefined });
+      const model = useCharacterStore.getState().getEffectiveModel(char, "fallback-model");
+      expect(model).toBe("fallback-model");
+    });
+
+    it("getEffectiveModel handles null character", () => {
+      useCharacterStore.getState().setSelectedModel("override-model");
+      const model = useCharacterStore.getState().getEffectiveModel(null, "fallback-model");
+      expect(model).toBe("override-model");
     });
   });
 

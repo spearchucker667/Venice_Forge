@@ -93,17 +93,45 @@ beforeEach(async () => {
 });
 
 describe("configService path resolution", () => {
-  it("uses repo-local .config/config.local.yaml in dev", async () => {
+  it("uses repo-local .config/config.local.yaml in dev when CI is not set", async () => {
     process.env.VENICE_FORGE_CONFIG_FILE = "";
     const originalNodeEnv = process.env.NODE_ENV;
+    const originalCI = process.env.CI;
     process.env.NODE_ENV = "development"; // Override to allow repo-local resolution
+    delete process.env.CI; // CI runners set this; clear it to test dev-local behavior
     try {
       const paths = getPaths();
-      // In dev (not packaged), source should be repo-local.
+      // In dev (not packaged, not CI), source should be repo-local.
       expect(paths.source).toBe("repo-local");
       expect(paths.configPath).toContain("config.local.yaml");
     } finally {
       process.env.NODE_ENV = originalNodeEnv;
+      if (originalCI === undefined) {
+        delete process.env.CI;
+      } else {
+        process.env.CI = originalCI;
+      }
+    }
+  });
+
+  it("falls back to userdata when CI=true even in development", () => {
+    process.env.VENICE_FORGE_CONFIG_FILE = "";
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalCI = process.env.CI;
+    process.env.NODE_ENV = "development";
+    process.env.CI = "true";
+    try {
+      const paths = getPaths();
+      expect(paths.source).toBe("userdata");
+      expect(paths.configPath).toContain("config.yaml");
+      expect(paths.themesPath).toContain("themes.yaml");
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+      if (originalCI === undefined) {
+        delete process.env.CI;
+      } else {
+        process.env.CI = originalCI;
+      }
     }
   });
 

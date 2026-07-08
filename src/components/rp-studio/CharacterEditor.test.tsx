@@ -99,6 +99,7 @@ const mocks = vi.hoisted(() => ({
   readImageAttachmentMock: vi.fn(),
   isSupportedImageFileMock: vi.fn(),
   toastErrorMock: vi.fn(),
+  extractPdfTextMock: vi.fn(),
 }));
 
 vi.mock("../../stores/toast-store", () => ({
@@ -162,6 +163,10 @@ vi.mock("../../services/attachmentService", () => ({
   isSupportedImageFile: mocks.isSupportedImageFileMock,
 }));
 
+vi.mock("../../services/pdfParserService", () => ({
+  extractPdfText: mocks.extractPdfTextMock,
+}));
+
 import { CharacterEditor } from "./CharacterEditor";
 
 const { sampleCard } = fixtures;
@@ -180,6 +185,7 @@ function resetMocks(): void {
   mocks.readImageAttachmentMock.mockReset();
   mocks.isSupportedImageFileMock.mockReset();
   mocks.toastErrorMock.mockReset();
+  mocks.extractPdfTextMock.mockReset();
 
   mocks.upsertMock.mockResolvedValue(sampleCard);
   mocks.saveToLibMock.mockResolvedValue("prompt_new");
@@ -206,6 +212,12 @@ function resetMocks(): void {
       content: `data:${file.type};base64,YWJj`,
       size: 3,
     };
+  });
+  mocks.extractPdfTextMock.mockResolvedValue({
+    text: "Extracted PDF text",
+    pageCount: 1,
+    isImageOnly: false,
+    truncated: false,
   });
 }
 
@@ -350,6 +362,55 @@ describe("CharacterEditor — Workflow section", () => {
   });
 });
 
+describe("CharacterEditor — context file validation", () => {
+  it("rejects a context file with a disallowed MIME type", async () => {
+    const { container } = render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const contextInput = container.querySelector("input[accept*='.pdf']") as HTMLInputElement;
+    const file = new File(["x"], "evil.txt", { type: "application/octet-stream" });
+    fireEvent.change(contextInput, { target: { files: [file] } });
+    await waitFor(() => {
+      expect(screen.getByText(/Context files must be \.pdf, \.txt, or \.md/i)).toBeInTheDocument();
+    });
+  });
+
+  it("accepts a .txt file with text/plain MIME type", async () => {
+    const { container } = render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const contextInput = container.querySelector("input[accept*='.pdf']") as HTMLInputElement;
+    const file = new File(["hello world"], "notes.txt", { type: "text/plain" });
+    fireEvent.change(contextInput, { target: { files: [file] } });
+    await waitFor(() => {
+      expect(screen.getByText("notes.txt")).toBeInTheDocument();
+    });
+  });
+
+  it("accepts a .pdf file and extracts text", async () => {
+    const { container } = render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const contextInput = container.querySelector("input[accept*='.pdf']") as HTMLInputElement;
+    const file = new File(["x"], "doc.pdf", { type: "application/pdf" });
+    fireEvent.change(contextInput, { target: { files: [file] } });
+    await waitFor(() => {
+      expect(screen.getByText("doc.pdf")).toBeInTheDocument();
+      expect(mocks.extractPdfTextMock).toHaveBeenCalledWith(file);
+    });
+  });
+
+  it("surfaces a safe message when PDF extraction fails (no raw paths)", async () => {
+    mocks.extractPdfTextMock.mockRejectedValueOnce(
+      new Error("ENOENT: /Users/private/path.pdf"),
+    );
+    const { container } = render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const contextInput = container.querySelector("input[accept*='.pdf']") as HTMLInputElement;
+    const file = new File(["x"], "doc.pdf", { type: "application/pdf" });
+    fireEvent.change(contextInput, { target: { files: [file] } });
+    await waitFor(() => {
+      const error = screen.getByText(/Failed to extract PDF text/i);
+      expect(error).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/ENOENT/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/\/Users\/private/i)).not.toBeInTheDocument();
+  });
+});
+
 // ── RELEASE-BLOCKER #6 — additional guard regressions ──
 // These tests pin the save-validation contract (avatar + name + description
 // + instructions all required), the strict avatar mime-type accept list,
@@ -454,5 +515,31 @@ describe("CharacterEditor — guard regressions (RELEASE-BLOCKER #6)", () => {
     const off = normalizeCard({ id: "b", name: "x", description: "d", instructions: "i", tags: [], adult: false, exampleDialogues: [], urlScraping: false } as never);
     expect(brave?.urlScrapingProvider).toBe("brave");
     expect(off?.urlScrapingProvider).toBe("off");
+  });
+
+  it("renders the Default model dropdown defaulting to 'Use chat default'", () => {
+    render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const select = screen.getByLabelText("Default model") as HTMLSelectElement;
+    expect(select).toBeInTheDocument();
+    expect(select.value).toBe("");
+    const options = Array.from(select.querySelectorAll("option")).map((o) => o.value);
+    expect(options[0]).toBe("");
+    expect(options.length).toBeGreaterThan(1);
+  });
+
+  it("persists the selected modelId when saving the character", async () => {
+    mocks.upsertMock.mockReset();
+    render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const select = screen.getByLabelText("Default model") as HTMLSelectElement;
+    const targetValue = Array.from(select.querySelectorAll("option"))
+      .map((o) => o.value)
+      .find((v) => v && v !== "") ?? "venice-uncensored";
+    fireEvent.change(select, { target: { value: targetValue } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => {
+      expect(mocks.upsertMock).toHaveBeenCalled();
+    });
+    const saved = mocks.upsertMock.mock.calls[0]![0] as { modelId?: string };
+    expect(saved.modelId).toBe(targetValue);
   });
 });

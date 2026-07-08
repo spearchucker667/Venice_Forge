@@ -1,4 +1,4 @@
-import { useState, useRef, useId } from 'react'
+import { useState, useRef, useId, useEffect } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
@@ -62,12 +62,17 @@ export function AudioView() {
   const [speed, setSpeed] = useState(1)
   const [format, setFormat] = useState<string>('mp3')
   const [audioUrl, setAudioBlob] = useBlobUrl()
+  const [playbackError, setPlaybackError] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [transcript, setTranscript] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
   const tts = useTTS()
   const transcription = useTranscription()
+
+  useEffect(() => {
+    if (!audioUrl) setPlaybackError(null)
+  }, [audioUrl])
 
   const voiceOptions = VOICES.map((v) => {
     const prefix = v.slice(0, 2)
@@ -99,6 +104,7 @@ export function AudioView() {
 
   const handleTTS = () => {
     if (!text.trim()) return
+    setPlaybackError(null)
     setAudioBlob(null)
     tts.mutate(
       { model, input: text.trim(), voice, speed, response_format: format as typeof FORMATS[number] },
@@ -171,7 +177,24 @@ export function AudioView() {
                   Download
                 </a>
               </div>
-              <audio controls src={audioUrl} className="w-full" />
+              <audio
+                controls
+                src={audioUrl}
+                className="w-full"
+                onError={(e) => {
+                  const target = e.currentTarget
+                  const code = target.error?.code
+                  // MediaError constants: MEDIA_ERR_SRC_NOT_SUPPORTED = 4, MEDIA_ERR_DECODE = 3
+                  if (code === 4) {
+                    setPlaybackError('This audio format is not supported by your browser.')
+                  } else if (code === 3) {
+                    setPlaybackError('Failed to decode audio. The file may be corrupted.')
+                  } else {
+                    setPlaybackError('Failed to play audio. Please try downloading it.')
+                  }
+                }}
+              />
+              {playbackError && <ErrorText>{playbackError}</ErrorText>}
               <div className="bg-surface-elevated border border-border rounded-lg p-4">
                 <p className="text-[15px] text-text-muted leading-relaxed">{text}</p>
               </div>

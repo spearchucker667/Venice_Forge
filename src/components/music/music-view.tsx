@@ -47,10 +47,15 @@ export function MusicView() {
   const [lyrics, setLyrics] = useState('')
   const [duration, setDuration] = useState(30)
   const [instrumental, setInstrumental] = useState(false)
+  const [playbackError, setPlaybackError] = useState<string | null>(null)
 
   const { queue, isQueueing, status, audioUrl, error, reset, cancel, elapsedMs, queueId, lastRequest } = useMusic()
   const isProcessing = status === 'queued' || status === 'processing'
   const savedQueueIdsRef = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (!audioUrl) setPlaybackError(null)
+  }, [audioUrl])
 
   useEffect(() => {
     if (status !== 'completed' || !audioUrl || !queueId) return
@@ -80,6 +85,7 @@ export function MusicView() {
 
   const handleGenerate = () => {
     if (!prompt.trim()) return
+    setPlaybackError(null)
     const req: MusicQueueRequest = {
       model,
       prompt: prompt.trim(),
@@ -209,7 +215,24 @@ export function MusicView() {
                 </a>
               </div>
             </div>
-            <audio controls src={audioUrl} className="w-full" />
+            <audio
+              controls
+              src={audioUrl}
+              className="w-full"
+              onError={(e) => {
+                const target = e.currentTarget
+                const code = target.error?.code
+                // MediaError constants: MEDIA_ERR_SRC_NOT_SUPPORTED = 4, MEDIA_ERR_DECODE = 3
+                if (code === 4) {
+                  setPlaybackError('This audio format is not supported by your browser.')
+                } else if (code === 3) {
+                  setPlaybackError('Failed to decode audio. The file may be corrupted.')
+                } else {
+                  setPlaybackError('Failed to play audio. Please try downloading it.')
+                }
+              }}
+            />
+            {playbackError && <ErrorText>{playbackError}</ErrorText>}
             <div className="bg-surface-elevated border border-border rounded-lg p-4">
               <p className="text-[15px] text-text-muted leading-relaxed">{prompt}</p>
               {lyrics && <p className="text-[14px] text-text-muted mt-2 italic">{lyrics}</p>}
