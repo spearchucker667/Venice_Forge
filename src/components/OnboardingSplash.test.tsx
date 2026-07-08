@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { OnboardingSplash } from './OnboardingSplash'
 import { useProfileStore } from '../stores/profile-store'
+import { useSettingsStore } from '../stores/settings-store'
 
 describe('OnboardingSplash', () => {
   beforeEach(() => {
@@ -13,6 +14,10 @@ describe('OnboardingSplash', () => {
       masterPasswordSet: false,
       globalOnboardingCompleted: false,
     })
+    useSettingsStore.setState({
+      activeTab: 'chat',
+      pendingSettingsSection: null,
+    } as any)
   })
 
   afterEach(() => {
@@ -22,6 +27,10 @@ describe('OnboardingSplash', () => {
       masterPasswordSet: false,
       globalOnboardingCompleted: false,
     })
+    useSettingsStore.setState({
+      activeTab: 'chat',
+      pendingSettingsSection: null,
+    } as any)
   })
 
   it('renders the first step on first launch', () => {
@@ -72,5 +81,19 @@ describe('OnboardingSplash', () => {
     fireEvent.click(screen.getByRole('button', { name: /next/i }))
     expect(screen.getByRole('button', { name: /get started/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /create profile/i })).toBeInTheDocument()
+  })
+
+  // Audit 2026-07-08 #4: Create Profile must deep-link to Settings → Profiles,
+  // not just land on Settings → API Keys as the default landing section.
+  it('Create Profile opens Settings and requests the Profiles section', () => {
+    render(<OnboardingSplash />)
+    fireEvent.click(screen.getByRole('button', { name: /next/i }))
+    fireEvent.click(screen.getByRole('button', { name: /next/i }))
+    fireEvent.click(screen.getByRole('button', { name: /next/i }))
+    fireEvent.click(screen.getByRole('button', { name: /create profile/i }))
+
+    expect(useProfileStore.getState().globalOnboardingCompleted).toBe(true)
+    expect(useSettingsStore.getState().activeTab).toBe('settings')
+    expect(useSettingsStore.getState().pendingSettingsSection).toBe('profiles')
   })
 })

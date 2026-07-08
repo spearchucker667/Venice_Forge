@@ -197,12 +197,20 @@ export async function runResearchJob(input: ResearchJobInput): Promise<ResearchJ
         ? createTimeoutSignal(budget.perRequestTimeoutMs, jobSignal)
         : null;
       const requestSignal = requestTimeout?.signal ?? jobSignal;
-      const results = await provider.search!({
-        query,
-        maxResults: budget.maxResultsPerQuery,
-        timeoutMs: budget.perRequestTimeoutMs,
-        signal: requestSignal,
-      });
+      let results: SearchResult[] = [];
+      try {
+        results = await provider.search!({
+          query,
+          maxResults: budget.maxResultsPerQuery,
+          timeoutMs: budget.perRequestTimeoutMs,
+          signal: requestSignal,
+        });
+      } catch {
+        // Individual search failures are non-fatal; continue to next query
+        // after a short cooldown to avoid hammering a failing host.
+        await sleep(300, jobSignal).catch(() => {});
+        continue;
+      }
 
       queriesUsed.push(query);
 

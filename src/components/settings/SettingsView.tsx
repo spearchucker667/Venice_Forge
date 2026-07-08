@@ -40,7 +40,20 @@ export function SettingsView() {
   // Chat store settings
   const { systemPrompt, setSystemPrompt, veniceParams, setVeniceParams } = useChatStore();
 
-  const [activeSection, setActiveSection] = useState("api-keys");
+  const pendingSettingsSection = useSettingsStore((s) => s.pendingSettingsSection);
+  const setPendingSettingsSection = useSettingsStore((s) => s.setPendingSettingsSection);
+  const [activeSection, setActiveSection] = useState<string>(
+    pendingSettingsSection ?? "api-keys",
+  );
+  // Honour a one-shot deep-link from outside (e.g. onboarding "Create Profile").
+  // When the user navigates away from settings elsewhere, the pending field
+  // is cleared by the next user-driven section change.
+  useEffect(() => {
+    if (!pendingSettingsSection) return;
+    setActiveSection(pendingSettingsSection);
+    setPendingSettingsSection(null);
+  }, [pendingSettingsSection, setPendingSettingsSection]);
+
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
   // One-shot cancel callback for the safety-import confirmation. The import
   // path resolves a Promise via the modal's confirm/cancel buttons; this ref

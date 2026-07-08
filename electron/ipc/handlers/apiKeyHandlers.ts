@@ -33,6 +33,14 @@ function parseProfileId(profileId: unknown): string {
   return profileId;
 }
 
+/** Parses an optional profile id, returning "default" when omitted. Throws on
+ *  invalid ids so an attacker-controlled IPC payload cannot write to
+ *  secure-prefs entries with namespaces like `apiKey_../../x`. */
+function parseProfileIdOrDefault(profileId: unknown): string {
+  if (profileId === undefined || profileId === null) return "default";
+  return parseProfileId(profileId);
+}
+
 function connectivityFailure(
   kind: ApiConnectivityFailureKind,
   safeMessage: string,
@@ -227,6 +235,13 @@ export function registerApiKeyHandlers(): void {
       }
       const { profileId, password } = payload as { profileId?: unknown; password?: unknown };
       const validId = parseProfileId(profileId);
+      // Option A (audit 2026-07-08 #2): the default profile is the unprotected
+      // system fallback and cannot be password-locked. Rejecting here also
+      // prevents an orphan verifier from being written when the renderer
+      // metadata update fails (audit fixes #2 + #3 simultaneously).
+      if (validId === "default") {
+        return { ok: false, error: "The default profile cannot be password-protected." };
+      }
       if (typeof password !== "string" || password.length === 0) {
         throw new Error("Profile password must be a non-empty string.");
       }
@@ -265,27 +280,49 @@ export function registerApiKeyHandlers(): void {
     }
   });
 
-  registerIpcChannel("apiKey:isConfigured", (_event, profileId?: string) => isApiKeyConfigured(profileId));
+  registerIpcChannel("apiKey:isConfigured", (_event, profileId?: unknown) => {
+    try {
+      return isApiKeyConfigured(parseProfileIdOrDefault(profileId));
+    } catch {
+      return false;
+    }
+  });
 
   registerIpcChannel("apiKey:set", (_event, payload: unknown) => {
-    const { key, profileId } = typeof payload === "object" && payload !== null && "key" in payload ? payload as { key: unknown, profileId?: string } : { key: payload, profileId: undefined };
+    const { key, profileId } = typeof payload === "object" && payload !== null && "key" in payload ? payload as { key: unknown, profileId?: unknown } : { key: payload, profileId: undefined };
     try {
+      const validId = parseProfileIdOrDefault(profileId);
       const trimmed = validateApiKeyInput(key);
-      setApiKey(trimmed, profileId);
+      setApiKey(trimmed, validId);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
   });
 
-  registerIpcChannel("apiKey:delete", (_event, profileId?: string) => {
+  registerIpcChannel("apiKey:delete", (_event, profileId?: unknown) => {
     try {
-      deleteApiKey(profileId);
+      deleteApiKey(parseProfileIdOrDefault(profileId));
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
   });
 
-  registerIpcChannel("apiKey:test", (_event, profileId?: string) => testVeniceConnection(profileId));
+  registerIpcChannel("apiKey:test", (_event, profileId?: unknown) => {
+    let validId = "default";
+    try {
+      validId = parseProfileIdOrDefault(profileId);
+    } catch {
+      return {
+        ok: false,
+        message: "Invalid profile id.",
+        connectivity: connectivityFailure(
+          "missing-api-key",
+          "Profile context is invalid. Reopen Config and retry the connection test.",
+        ),
+      };
+    }
+    return testVeniceConnection(validId);
+  });
 }

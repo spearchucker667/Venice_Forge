@@ -1,10 +1,28 @@
-import { memo, useCallback, useState } from 'react'
+import { memo, useCallback, useEffect, useState } from 'react'
 import { Handle, Position, useReactFlow, type NodeProps, type Node } from '@xyflow/react'
 import type { VeniceNodeData, VeniceNodeType } from '../../stores/workflow-store'
 import { useWorkflowStore } from '../../stores/workflow-store'
 import { useModels } from '../../hooks/use-models'
 import { Select } from '../ui/select'
 import { cn } from '../../lib/utils'
+
+/**
+ * Renders a `[audio:<blob:url>]` workflow output and owns the blob URL's
+ * lifetime. The engine no longer revokes media URLs at run completion, so
+ * pages of rendered workflows would otherwise accumulate blob URLs forever.
+ * Revocation policy: when the URL changes OR the component unmounts the
+ * previous URL is revoked. Pure server-hosted URLs (`https://`, `http://`,
+ * data:) are passed straight through without revocation.
+ */
+function AudioOutput({ url }: { url: string }) {
+  useEffect(() => {
+    if (!url.startsWith('blob:')) return
+    return () => {
+      try { URL.revokeObjectURL(url) } catch { /* ignore */ }
+    }
+  }, [url])
+  return <audio src={url} controls className="w-full h-8" />
+}
 
 function InputIcon() {
   return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="22 12 16 12 14 15 10 9 8 12 2 12" /></svg>
@@ -133,7 +151,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
           result?.status === 'done' && result.output ? (
             <div className="min-h-[60px]">
               {result.output.startsWith('[audio:') ? (
-                <audio src={result.output.slice(7, -1)} controls className="w-full h-8" />
+                <AudioOutput url={result.output.slice(7, -1)} />
               ) : result.output.startsWith('[video:') ? (
                 <a href={result.output.slice(7, -1)} target="_blank" rel="noreferrer" className="text-[14px] text-blue-400 underline">Open video</a>
               ) : result.output.startsWith('[image:') ? (
@@ -416,7 +434,9 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
               <span className="text-[11px] text-green-400/40 uppercase tracking-wider font-medium">Output</span>
             </div>
             {result.output.startsWith('[audio:') ? (
-              <audio src={result.output.slice(7, -1)} controls className="w-full h-7" onClick={(e) => e.stopPropagation()} />
+              <div onClick={(e) => e.stopPropagation()}>
+                <AudioOutput url={result.output.slice(7, -1)} />
+              </div>
             ) : result.output.startsWith('[video:') ? (
               <a href={result.output.slice(7, -1)} target="_blank" rel="noreferrer" className="text-[13px] text-blue-400 underline" onClick={(e) => e.stopPropagation()}>
                 Open video

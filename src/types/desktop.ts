@@ -21,12 +21,17 @@ export interface VeniceForgeApiKey {
   test(profileId?: string): Promise<{ ok: boolean; status?: number; message: string; connectivity?: ApiConnectivityStatus }>;
 }
 
-/** Makes Jina API requests from the main process with the stored key attached. */
+/** Makes Jina API requests from the main process with the profile-scoped key attached. */
 export interface VeniceForgeJina {
   request(input: {
     url: string;
     headers?: Record<string, string>;
     timeoutMs?: number;
+    /** Optional profile id used to look up the Jina API key in secure
+     *  storage. The renderer bridge normally stamps this with the active
+     *  profile id; tests may override with a specific profile id to
+     *  exercise the credential isolation matrix. */
+    profileId?: string;
   }): Promise<{ ok: boolean; status?: number; body?: unknown; contentType?: string; error?: string }>;
 }
 

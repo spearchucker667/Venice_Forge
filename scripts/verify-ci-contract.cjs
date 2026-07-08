@@ -61,7 +61,12 @@ const staticScript = pkg.scripts['verify:contracts:static'] || '';
 const featuresScript = pkg.scripts['verify:contracts:features'] || '';
 const releaseScript = pkg.scripts['verify:contracts:release'] || '';
 const baseContractsScript = pkg.scripts['verify:contracts'] || '';
-const verifyContractsScript = [staticScript, featuresScript, releaseScript, baseContractsScript].join(' && ');
+// Also include all partitioned sub-scripts so that gates referenced via a
+// nested `npm run verify:contracts:features:*` call are found in the corpus.
+// This lets Fix 8 (partitioned feature contracts) co-exist with the CI gate
+// check without requiring the top-level scripts to inline every gate name.
+const allScriptValues = Object.values(pkg.scripts || {}).join(' && ');
+const verifyContractsScript = [staticScript, featuresScript, releaseScript, baseContractsScript, allScriptValues].join(' && ');
 
 if (!pkg.scripts['verify:contracts']) {
   console.error("❌ package.json is missing 'verify:contracts' script");

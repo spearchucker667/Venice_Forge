@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useProfileStore } from '../../stores/profile-store'
+import { DEFAULT_PROFILE_ID } from '../../services/activeProfile'
 import { askDecision } from '../ui/modal-requests'
 import { desktopProfilePassword, isElectron } from '../../services/desktopBridge'
 
@@ -151,7 +152,7 @@ export function ProfilePanel() {
                 </span>
               </div>
               <div className="flex flex-wrap justify-end gap-2">
-                {isElectron() && (
+                {isElectron() && p.id !== DEFAULT_PROFILE_ID && (
                   p.hasPassword ? (
                     <button
                       type="button"
@@ -182,7 +183,7 @@ export function ProfilePanel() {
                     Switch To
                   </button>
                 )}
-                {p.id !== 'default' && (
+                {p.id !== DEFAULT_PROFILE_ID && (
                   <button type="button" onClick={async () => {
                     const confirmed = await askDecision({
                       title: 'Delete profile?',

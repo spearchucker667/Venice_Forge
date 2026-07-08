@@ -551,13 +551,19 @@ SECRET_SCAN_SUMMARY="$META_DIR/SECRET_SCAN_SUMMARY.txt"
             done || true
       }
 
-      # Generic keyword scan: intentionally omits the bare word "token" because
-      # theme/config YAML keys like "tokens:" are not secrets. Real token
-      # values are caught by the bearer/sk/vn/github/aws patterns below.
-      scan_pattern "api-key-or-secret"    "(api[_-]?key|secret|password|passwd)"          "example-or-docs"
+      # Generic keyword scan (audit 2026-07-08 #7 noise reduction). Bare
+      # words like "password" or "secret" in docs/inline prose are noise;
+      # we only flag assignment/value-shaped matches. Real high-value leaks
+      # are caught by the bearer/sk/vn/github/aws patterns below.
+      # Matches `<key-with-_KEY|_TOKEN|_SECRET|_PASSWORD suffix> <op> <value>`
+      # where the value is 16+ chars of plausible secret material.
+      scan_pattern "secret-assignment"    "([A-Za-z0-9_]*(_KEY|_TOKEN|_SECRET|PASSWORD)[A-Za-z0-9_]*)[[:space:]]*[:=][[:space:]]*['\"]?[A-Za-z0-9_./+=-]{16,}" "high-risk-source"
+      # `api[_-]?key` only flagged when paired with a real value (>= 16 chars),
+      # so tests / docs / parameter names do not light up the scan.
+      scan_pattern "api-key-or-secret"    "(api[_-]?key|secret|password|passwd)[[:space:]]*[:=][[:space:]]*['\"]?[A-Za-z0-9_./+=-]{16,}" "high-risk-source"
       # Token values that look like assignments (e.g. token = "abc...") are
       # still flagged for review, but bare YAML keys like "tokens:" are not.
-      scan_pattern "token-assignment"     "(auth[_-]?token|access[_-]?token|token)\s*[:=]\s*[\"'][^\"']{8,}" "example-or-docs"
+      scan_pattern "token-assignment"     "(auth[_-]?token|access[_-]?token|token)\s*[:=]\s*[\"'][^\"']{8,}" "high-risk-source"
       scan_pattern "bearer-token"         "bearer[[:space:]]+[A-Za-z0-9._~+/=-]{20,}"    "high-risk-source"
       scan_pattern "sk-token"             "sk-[A-Za-z0-9._~+/=-]{8,}"                     "high-risk-source"
       scan_pattern "venice-vn-token"      "vn-[A-Za-z0-9._~+/=-]{8,}"                     "high-risk-source"

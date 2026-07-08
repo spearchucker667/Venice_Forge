@@ -22,11 +22,6 @@ vi.mock("../ui/modal-requests", () => ({
 }));
 
 describe("ProfilePanel profile password lock flow", () => {
-  const addProfile = vi.fn();
-  const requestSwitchProfile = vi.fn();
-  const updateProfile = vi.fn();
-  const deleteProfile = vi.fn();
-  const setMasterPasswordSet = vi.fn();
   let reloadFn: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -38,20 +33,18 @@ describe("ProfilePanel profile password lock flow", () => {
     vi.mocked(desktopProfilePassword.verify).mockResolvedValue({ ok: true, verified: true });
     vi.mocked(desktopProfilePassword.clear).mockResolvedValue({ ok: true });
     vi.mocked(desktopProfilePassword.isSet).mockImplementation(async (profileId) => profileId === "work");
+    // Use the REAL store (no `updateProfile` mock) so the regression guard
+    // catches the audit 2026-07-08 #6 bug where a mocked `updateProfile`
+    // hid the `default` reserved-id throw from the production store.
     useProfileStore.setState({
       profiles: [
         { id: "default", name: "Default Profile", onboardingCompleted: false },
         { id: "work", name: "Work", onboardingCompleted: false, hasPassword: true },
+        { id: "personal", name: "Personal", onboardingCompleted: false, hasPassword: false },
       ],
       activeProfileId: "default",
       masterPasswordSet: false,
       globalOnboardingCompleted: false,
-      setGlobalOnboardingCompleted: vi.fn(),
-      addProfile,
-      requestSwitchProfile,
-      updateProfile,
-      deleteProfile,
-      setMasterPasswordSet,
     });
   });
 
@@ -59,24 +52,48 @@ describe("ProfilePanel profile password lock flow", () => {
     vi.unstubAllGlobals();
   });
 
-  it("sets a profile password through the secure bridge and marks the profile locked", async () => {
+  it("does not offer Set Password or Remove Password for the default profile (audit 2026-07-08 #2)", () => {
     render(<ProfilePanel />);
 
-    await userEvent.click(screen.getByRole("button", { name: /Set password for Default Profile/i }));
+    // Default profile is the unprotected system fallback; lock options are hidden.
+    expect(
+      screen.queryByRole("button", { name: /Set password for Default Profile/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Remove password for Default Profile/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("produces a store-level error when updateProfile is called for the reserved default id", () => {
+    // Real store: confirms assertUserCreatableProfileId rejects "default"
+    // — this is the regression guard the previous mock-based test hid.
+    expect(() =>
+      useProfileStore.getState().updateProfile("default", { hasPassword: true }),
+    ).toThrow(/reserved/);
+  });
+
+  it("allows updateProfile metadata changes for non-default profiles", () => {
+    expect(() =>
+      useProfileStore.getState().updateProfile("work", { hasPassword: false }),
+    ).not.toThrow();
+    expect(useProfileStore.getState().profiles.find((p) => p.id === "work")?.hasPassword).toBe(false);
+  });
+
+  it("sets a non-default profile password through the secure bridge", async () => {
+    render(<ProfilePanel />);
+
+    await userEvent.click(screen.getByRole("button", { name: /Set password for Personal/i }));
     await userEvent.type(screen.getByLabelText("Profile password"), "secret-pass");
     await userEvent.type(screen.getByLabelText("Confirm profile password"), "secret-pass");
     await userEvent.click(screen.getByRole("button", { name: "Save Password" }));
 
     await waitFor(() => {
-      expect(desktopProfilePassword.set).toHaveBeenCalledWith("default", "secret-pass");
+      expect(desktopProfilePassword.set).toHaveBeenCalledWith("personal", "secret-pass");
     });
-    expect(updateProfile).toHaveBeenCalledWith("default", { hasPassword: true });
     expect(screen.queryByLabelText("Profile password")).not.toBeInTheDocument();
   });
 
   it("requires a successful unlock before switching to a password-protected profile", async () => {
-    requestSwitchProfile.mockResolvedValue({ ok: true });
-
     render(<ProfilePanel />);
 
     await userEvent.click(screen.getByRole("button", { name: /Switch to Work/i }));
@@ -84,12 +101,17 @@ describe("ProfilePanel profile password lock flow", () => {
     await userEvent.click(screen.getByRole("button", { name: "Unlock" }));
 
     await waitFor(() => {
-      expect(requestSwitchProfile).toHaveBeenCalledWith("work", "correct-pass");
+      expect(desktopProfilePassword.verify).toHaveBeenCalledWith("work", "correct-pass");
     });
   });
 
-  it("clears the unlock input and does not switch after a failed unlock", async () => {
-    requestSwitchProfile.mockResolvedValue({ ok: false, error: "Incorrect password" });
+  it("clears the unlock input and surfaces the error after a failed unlock", async () => {
+    vi.mocked(desktopProfilePassword.verify).mockResolvedValue({
+      ok: true,
+      verified: false,
+      lockedOutSeconds: 0,
+      error: "Incorrect password",
+    });
 
     render(<ProfilePanel />);
 

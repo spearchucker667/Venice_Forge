@@ -146,6 +146,11 @@ import {
   verifyMasterPassword,
   isMasterPasswordSet,
   clearMasterPassword,
+  setApiKey,
+  setJinaApiKey,
+  deleteApiKey,
+  deleteJinaApiKey,
+  getJinaApiKey,
 } from "../services/secureStore";
 
 describe("registerIpcHandlers", () => {
@@ -871,6 +876,190 @@ describe("registerIpcHandlers", () => {
 
       expect(result.status).toBe(200);
       expect(result.ok).toBe(true);
+    });
+  });
+
+  // Audit 2026-07-08 #1 + #3: profile-scoped credential isolation. Each
+  // credential IPC channel must validate the supplied profile id before
+  // reaching the storage layer. An invalid id must NOT write a storage
+  // entry shape that collides with separators (`_`, `:`, `/`).
+  describe("audit 2026-07-08: profile-scoped credential isolation", () => {
+    const ctx = () =>
+      ({ sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents });
+
+    it("apiKey:set accepts a valid storage id and writes to that profile", async () => {
+      const handler = capturedHandlers.get("apiKey:set");
+      const ok = await handler!(ctx(), { key: "sk-valid", profileId: "work" });
+      expect(ok).toEqual({ ok: true });
+      expect(setApiKey).toHaveBeenCalledWith("sk-valid", "work");
+    });
+
+    it("apiKey:set rejects an invalid profileId without writing", async () => {
+      const handler = capturedHandlers.get("apiKey:set");
+      const bad = await handler!(ctx(), { key: "sk-valid", profileId: "bad_id" });
+      expect(bad).toMatchObject({ ok: false });
+      expect(setApiKey).not.toHaveBeenCalled();
+    });
+
+    it("apiKey:set with omitted profileId falls back to the default profile", async () => {
+      const handler = capturedHandlers.get("apiKey:set");
+      const ok = await handler!(ctx(), { key: "sk-default", profileId: undefined });
+      expect(ok).toEqual({ ok: true });
+      expect(setApiKey).toHaveBeenCalledWith("sk-default", "default");
+    });
+
+    it("apiKey:delete rejects an invalid profileId without writing", async () => {
+      const handler = capturedHandlers.get("apiKey:delete");
+      const bad = await handler!(ctx(), "../../x");
+      expect(bad).toMatchObject({ ok: false });
+      expect(deleteApiKey).not.toHaveBeenCalled();
+    });
+
+    it("apiKey:isConfigured returns false for invalid profileId without throwing", async () => {
+      const handler = capturedHandlers.get("apiKey:isConfigured");
+      const result = await handler!(ctx(), "bad_id");
+      expect(result).toBe(false);
+    });
+
+    it("jinaApiKey:set accepts a valid storage id and writes to that profile", async () => {
+      const handler = capturedHandlers.get("jinaApiKey:set");
+      const ok = await handler!(ctx(), { key: "jina-valid-key", profileId: "work" });
+      expect(ok).toEqual({ ok: true });
+      expect(setJinaApiKey).toHaveBeenCalledWith("jina-valid-key", "work");
+    });
+
+    it("jinaApiKey:set rejects an invalid profileId without writing", async () => {
+      const handler = capturedHandlers.get("jinaApiKey:set");
+      const bad = await handler!(ctx(), { key: "jina-valid-key", profileId: "bad_id" });
+      expect(bad).toMatchObject({ ok: false });
+      expect(setJinaApiKey).not.toHaveBeenCalled();
+    });
+
+    it("jinaApiKey:delete rejects an invalid profileId without writing", async () => {
+      const handler = capturedHandlers.get("jinaApiKey:delete");
+      const bad = await handler!(ctx(), "../../x");
+      expect(bad).toMatchObject({ ok: false });
+      expect(deleteJinaApiKey).not.toHaveBeenCalled();
+    });
+
+    it("jinaApiKey:test uses the supplied profile's key, not the default's", async () => {
+      // Profile A is the active profile; default has a different key.
+      vi.mocked(getJinaApiKey).mockImplementation((pid) =>
+        pid === "work" ? "jina-key-A" : "jina-key-default",
+      );
+      // Suppress the actual HTTP call to keep the test isolated.
+      vi.stubGlobal("fetch", vi.fn(async () => new Response("ok", { status: 200 })));
+
+      const handler = capturedHandlers.get("jinaApiKey:test");
+      const result = await handler!(ctx(), "work");
+      expect(result.ok).toBe(true);
+      // Verify the request actually used the profile-A key.
+      const fetchMock = vi.mocked(globalThis.fetch);
+      const fetchCall = fetchMock.mock.calls[0];
+      const sentHeaders = fetchCall?.[1]?.headers as Record<string, string> | undefined;
+      expect(sentHeaders?.Authorization).toBe("Bearer jina-key-A");
+
+      vi.unstubAllGlobals();
+    });
+
+    it("jinaApiKey:test falls back to the default profile key when id is omitted", async () => {
+      vi.mocked(getJinaApiKey).mockReturnValue("jina-key-default");
+      vi.stubGlobal("fetch", vi.fn(async () => new Response("ok", { status: 200 })));
+
+      const handler = capturedHandlers.get("jinaApiKey:test");
+      const result = await handler!(ctx(), undefined);
+      expect(result.ok).toBe(true);
+      const fetchMock = vi.mocked(globalThis.fetch);
+      const sentHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string> | undefined;
+      expect(sentHeaders?.Authorization).toBe("Bearer jina-key-default");
+
+      vi.unstubAllGlobals();
+    });
+
+    it("jinaApiKey:test rejects an invalid profileId", async () => {
+      const handler = capturedHandlers.get("jinaApiKey:test");
+      const result = await handler!(ctx(), "bad_id");
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(/Invalid profile id/);
+    });
+
+    it("jina:request uses the supplied profile's Jina key", async () => {
+      vi.mocked(getJinaApiKey).mockImplementation((pid) =>
+        pid === "work" ? "jina-key-A" : "jina-key-default",
+      );
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response("<html></html>", { status: 200, headers: { "content-type": "text/html" } })),
+      );
+
+      const handler = capturedHandlers.get("jina:request");
+      const result = await handler!(
+        ctx(),
+        { url: "https://r.jina.ai/https://example.com", headers: {}, timeoutMs: 5000, profileId: "work" },
+      );
+
+      expect(result.ok).toBe(true);
+      const fetchMock = vi.mocked(globalThis.fetch);
+      const sentHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string> | undefined;
+      expect(sentHeaders?.Authorization).toBe("Bearer jina-key-A");
+
+      vi.unstubAllGlobals();
+    });
+
+    it("jina:request without profileId falls back to the default profile key", async () => {
+      vi.mocked(getJinaApiKey).mockReturnValue("jina-key-default");
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response("<html></html>", { status: 200, headers: { "content-type": "text/html" } })),
+      );
+
+      const handler = capturedHandlers.get("jina:request");
+      const result = await handler!(
+        ctx(),
+        { url: "https://r.jina.ai/https://example.com", headers: {}, timeoutMs: 5000 },
+      );
+
+      expect(result.ok).toBe(true);
+      const fetchMock = vi.mocked(globalThis.fetch);
+      const sentHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string> | undefined;
+      expect(sentHeaders?.Authorization).toBe("Bearer jina-key-default");
+
+      vi.unstubAllGlobals();
+    });
+
+    it("jina:request rejects an invalid profileId", async () => {
+      const handler = capturedHandlers.get("jina:request");
+      const result = await handler!(
+        ctx(),
+        { url: "https://r.jina.ai/https://example.com", headers: {}, timeoutMs: 5000, profileId: "../../x" },
+      );
+
+      expect(result).toMatchObject({ ok: false });
+      // Specifically: a generic 400-class shape so an invalid-profile
+      // attempt cannot enumerate the underlying error.
+      expect(typeof result.status).toBe("number");
+    });
+  });
+
+  // Audit 2026-07-08 #2: default profile cannot be password-locked (Option A).
+  describe("audit 2026-07-08: default profile lock policy", () => {
+    const ctx = () =>
+      ({ sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents });
+
+    it("profilePassword:set rejects the reserved default id without writing", async () => {
+      const handler = capturedHandlers.get("profilePassword:set");
+      const result = await handler!(ctx(), { profileId: "default", password: "secret" });
+      expect(result).toMatchObject({ ok: false });
+      expect(result.error).toMatch(/default profile cannot be password-protected/);
+      // MUST NOT have written a verifier row to secure-prefs.
+      expect(setProfilePassword).not.toHaveBeenCalled();
+    });
+
+    it("profilePassword:set still works for non-default valid ids", async () => {
+      const handler = capturedHandlers.get("profilePassword:set");
+      const result = await handler!(ctx(), { profileId: "work", password: "secret" });
+      expect(result).toEqual({ ok: true });
+      expect(setProfilePassword).toHaveBeenCalledWith("secret", "work");
     });
   });
 });

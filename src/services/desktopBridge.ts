@@ -855,7 +855,12 @@ export const desktopJina = {
     url: string;
     headers?: Record<string, string>;
     timeoutMs?: number;
+    profileId?: string;
   }): Promise<{ ok: boolean; status?: number; body?: unknown; contentType?: string; error?: string }> {
+    // The desktop bridge always stamps the request with the active profile id
+    // so the main process reads the per-profile Jina credential rather than
+    // silently falling back to the default profile's key. Web mode is
+    // session-scoped (no per-profile keyring) so it does not need a profile id.
     const startedAt = Date.now();
     const requestHeaders = maskInspectorHeaders(input.headers);
     const logId = useInspectorStore.getState().addLog({
@@ -888,7 +893,7 @@ export const desktopJina = {
     };
 
     if (isElectron()) {
-      const result = await window.veniceForge!.jina.request(input);
+      const result = await window.veniceForge!.jina.request({ ...input, profileId: getActiveProfileId() });
       return finishLog(result);
     }
 

@@ -169,6 +169,7 @@ const veniceForge = {
       url: string;
       headers?: Record<string, string>;
       timeoutMs?: number;
+      profileId?: string;
     }): Promise<{ ok: boolean; status?: number; body?: unknown; contentType?: string; error?: string }> {
       return ipcRenderer.invoke("jina:request", input);
     },

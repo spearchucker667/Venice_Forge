@@ -149,7 +149,6 @@ async function executeNode(
   node: Node<VeniceNodeData>,
   input: string,
   signal?: AbortSignal,
-  disposables?: Array<() => void>,
 ): Promise<string> {
   const data = node.data
   switch (data.nodeType) {
@@ -212,9 +211,12 @@ async function executeNode(
         response_format: data.responseFormat || 'mp3',
       }, { signal })
       const url = URL.createObjectURL(blob)
-      // Register cleanup so the caller can revoke the object URL when the
-      // workflow run is complete, preventing memory leaks in long sessions.
-      disposables?.push(() => URL.revokeObjectURL(url))
+      // The blob URL's lifetime is owned by the component that renders the
+      // `[audio:...]` output (see WorkflowNode). The engine MUST NOT register
+      // a global revocation here — the `finally { cleanup() }` block runs at
+      // run completion, which is exactly when the preview component is
+      // trying to play the audio. Registering now would silently revoke the
+      // URL on every successful run.
       return `[audio:${url}]`
     }
 
@@ -305,48 +307,49 @@ export async function executeWorkflow(
 
   const outputs = new Map<string, string>()
   const nodeMap = new Map(nodes.map((n) => [n.id, n]))
-  // Blob URLs (e.g. from TTS nodes) are registered here and revoked after the
-  // run completes to prevent memory leaks in long sessions.
-  const disposables: Array<() => void> = []
 
-  const cleanup = () => {
-    for (const dispose of disposables) {
-      try { dispose() } catch { /* ignore */ }
-    }
-    disposables.length = 0
-  }
-
-  try {
+  // Per-node media output lifecycle is owned by the render layer (see
+  // `WorkflowNode`). The engine MUST NOT revoke media URLs in a
+  // run-completion `finally` — previews try to play the audio as soon as the
+  // run completes. The engine remains cancellation-safe: an AbortSignal
+  // surfaces DOMException aborts that the renderer's <audio src=...> element
+  // can react to via React unmount when the user-led "Stop" path runs.
   for (const level of levels) {
     if (signal?.aborted) return
-    // Run all nodes at this dependency level in parallel.
-    await Promise.all(level.map(async (nodeId) => {
-      const node = nodeMap.get(nodeId)
-      if (!node) return
-      onUpdate(nodeId, { status: 'running', output: undefined, error: undefined })
-      try {
-        const input = getInputs(nodeId, edges, outputs)
-        const output = await executeNode(node, input, signal, disposables)
-        outputs.set(nodeId, output)
-        const kind = NODE_SCHEMAS[node.data.nodeType]?.output as IOKind | undefined
-        const outputKind = kind && kind !== 'none' ? (kind as NodeResult['outputKind']) : undefined
-        onUpdate(nodeId, { status: 'done', output, outputKind })
-      } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') {
-          onUpdate(nodeId, { status: 'error', error: 'Cancelled' })
-          throw err
+    const levelCtrl = new AbortController()
+    const onParentAbort = () => levelCtrl.abort()
+    if (signal) signal.addEventListener('abort', onParentAbort)
+
+    try {
+      // Run all nodes at this dependency level in parallel.
+      await Promise.all(level.map(async (nodeId) => {
+        const node = nodeMap.get(nodeId)
+        if (!node) return
+        onUpdate(nodeId, { status: 'running', output: undefined, error: undefined })
+        try {
+          const input = getInputs(nodeId, edges, outputs)
+          const output = await executeNode(node, input, levelCtrl.signal)
+          outputs.set(nodeId, output)
+          const kind = NODE_SCHEMAS[node.data.nodeType]?.output as IOKind | undefined
+          const outputKind = kind && kind !== 'none' ? (kind as NodeResult['outputKind']) : undefined
+          onUpdate(nodeId, { status: 'done', output, outputKind })
+        } catch (err) {
+          levelCtrl.abort() // Immediately abort sibling tasks in this level
+          if (err instanceof DOMException && err.name === 'AbortError') {
+            onUpdate(nodeId, { status: 'error', error: 'Cancelled' })
+            throw err
+          }
+          // T-134: never surface raw exception text, upstream payloads, paths,
+          // or secrets in the UI or thrown error. Use a safe node-level message.
+          const message = err instanceof WorkflowExecutionError
+            ? err.message
+            : safeNodeErrorMessage(node)
+          onUpdate(nodeId, { status: 'error', error: message })
+          throw new WorkflowExecutionError(message, nodeId)
         }
-        // T-134: never surface raw exception text, upstream payloads, paths,
-        // or secrets in the UI or thrown error. Use a safe node-level message.
-        const message = err instanceof WorkflowExecutionError
-          ? err.message
-          : safeNodeErrorMessage(node)
-        onUpdate(nodeId, { status: 'error', error: message })
-        throw new WorkflowExecutionError(message, nodeId)
-      }
-    }))
-  }
-  } finally {
-    cleanup()
+      }))
+    } finally {
+      if (signal) signal.removeEventListener('abort', onParentAbort)
+    }
   }
 }

@@ -195,6 +195,15 @@ function WorkflowCanvas() {
 
   // Use a ref-based save to always get latest nodes/edges
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const abortRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort()
+      abortRef.current = null
+    }
+  }, [])
+
   const debouncedSave = useCallback(() => {
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
@@ -241,6 +250,11 @@ function WorkflowCanvas() {
     debouncedSave()
   }
 
+  const handleCancel = () => {
+    abortRef.current?.abort()
+    abortRef.current = null
+  }
+
   const handleRun = async () => {
     if (isRunning) return
     const currentNodes = getNodes() as Node<VeniceNodeData>[]
@@ -258,18 +272,25 @@ function WorkflowCanvas() {
     }
     useWorkflowStore.getState().setRunResults(initial)
 
+    const ctrl = new AbortController()
+    abortRef.current = ctrl
+
     try {
       await executeWorkflow(currentNodes, currentEdges, {
+        signal: ctrl.signal,
         isRunning: false,
         onUpdate: updateNodeResult,
       })
       toast.success('Workflow completed')
     } catch (err) {
       const message = err instanceof Error ? err.message : ''
-      if (message !== 'Workflow is already running.') {
+      if (message !== 'Workflow is already running.' && err !== 'Cancelled') {
         toast.fromError(err, 'Workflow failed')
       }
     } finally {
+      if (abortRef.current === ctrl) {
+        abortRef.current = null
+      }
       endRun()
     }
   }
@@ -318,19 +339,19 @@ function WorkflowCanvas() {
 
         <div className="p-3 border-t border-border/50">
           <button
-            onClick={handleRun}
-            disabled={isRunning || nodes.length === 0}
+            onClick={isRunning ? handleCancel : handleRun}
+            disabled={!isRunning && nodes.length === 0}
             className={cn(
               'w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[14px] font-medium transition-all',
               isRunning
-                ? 'bg-surface-elevated text-text-muted cursor-wait'
+                ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20'
                 : 'bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-30 disabled:cursor-not-allowed',
             )}
           >
             {isRunning ? (
               <>
-                <span className="w-3 h-3 border-2 border-border border-t-transparent rounded-full animate-spin" />
-                Running...
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /></svg>
+                Cancel Workflow
               </>
             ) : (
               <>

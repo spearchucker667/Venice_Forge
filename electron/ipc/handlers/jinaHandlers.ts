@@ -20,7 +20,17 @@ import {
 } from "../../../src/shared/safety";
 import { checkLocalFamilyGuard } from "../../services/guardPipeline";
 import { getRuntimeLocalFamilySafeModeEnabled } from "../../services/runtimeSafetySettings";
+import { isValidProfileStorageId } from "../../../src/utils/profileIdValidation";
 import { registerIpcChannel } from "./common";
+
+/** Parses and validates an optional profile id (e.g. for credential IPC). */
+function parseOptionalProfileId(profileId: unknown): string | undefined {
+  if (profileId === undefined || profileId === null) return undefined;
+  if (!isValidProfileStorageId(profileId)) {
+    throw new Error("Invalid profile id.");
+  }
+  return profileId;
+}
 
 const JINA_ALLOWED_FORWARD_HEADERS = new Set([
   "accept",
@@ -67,24 +77,31 @@ function sanitizeJinaForwardHeaders(input: unknown): Record<string, string> {
 }
 
 export function registerJinaHandlers(): void {
-  registerIpcChannel("jinaApiKey:isConfigured", (_event, profileId?: string) => isJinaApiKeyConfigured(profileId));
+  registerIpcChannel("jinaApiKey:isConfigured", (_event, profileId?: unknown) => {
+    try {
+      return isJinaApiKeyConfigured(parseOptionalProfileId(profileId));
+    } catch {
+      return false;
+    }
+  });
 
   registerIpcChannel("jinaApiKey:set", (_event, payload: unknown) => {
-    const { key, profileId } = typeof payload === "object" && payload !== null && "key" in payload ? payload as { key: unknown, profileId?: string } : { key: payload, profileId: undefined };
+    const { key, profileId } = typeof payload === "object" && payload !== null && "key" in payload ? payload as { key: unknown, profileId?: unknown } : { key: payload, profileId: undefined };
     try {
+      const validId = parseOptionalProfileId(profileId);
       const trimmed = typeof key === "string" ? key.trim() : "";
       if (!trimmed) throw new Error("Enter a Jina API key before saving.");
       if (trimmed.length > 512) throw new Error("Jina API key is too long.");
-      setJinaApiKey(trimmed, profileId);
+      setJinaApiKey(trimmed, validId);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
   });
 
-  registerIpcChannel("jinaApiKey:delete", (_event, profileId?: string) => {
+  registerIpcChannel("jinaApiKey:delete", (_event, profileId?: unknown) => {
     try {
-      deleteJinaApiKey(profileId);
+      deleteJinaApiKey(parseOptionalProfileId(profileId));
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
@@ -93,7 +110,7 @@ export function registerJinaHandlers(): void {
 
   registerIpcChannel("jina:request", async (_event, input: unknown) => {
     try {
-      const request = input as { url?: unknown; headers?: unknown; timeoutMs?: unknown };
+      const request = input as { url?: unknown; headers?: unknown; timeoutMs?: unknown; profileId?: unknown };
       if (typeof request.url !== "string") {
         return { ok: false, status: 400, error: "Missing Jina request URL." };
       }
@@ -111,7 +128,14 @@ export function registerJinaHandlers(): void {
 
       const headers = sanitizeJinaForwardHeaders(request.headers);
 
-      const jinaKey = (() => { try { return getJinaApiKey(); } catch { return null; } })();
+      // Profile-scoped credential lookup. `parseOptionalProfileId` throws on
+      // ids that are not valid storage ids — never fall back to the active
+      // profile automatically, because the renderer may not be in sync with
+      // the desktop bridge here. An omitted `profileId` falls back to
+      // "default" (the system profile) so an unambiguous, audit-able key
+      // lookup happens.
+      const validProfileId = parseOptionalProfileId(request.profileId) ?? "default";
+      const jinaKey = (() => { try { return getJinaApiKey(validProfileId); } catch { return null; } })();
       if (jinaKey) headers["Authorization"] = `Bearer ${jinaKey}`;
 
       const controller = new AbortController();
@@ -165,10 +189,17 @@ export function registerJinaHandlers(): void {
     }
   });
 
-  registerIpcChannel("jinaApiKey:test", async () => {
+  registerIpcChannel("jinaApiKey:test", async (_event, profileId?: unknown) => {
+    let validProfileId = "default";
+    try {
+      const parsed = parseOptionalProfileId(profileId);
+      if (parsed) validProfileId = parsed;
+    } catch {
+      return { ok: false, status: 0, message: "Invalid profile id." };
+    }
     const jinaKey = (() => {
       try {
-        return getJinaApiKey();
+        return getJinaApiKey(validProfileId);
       } catch { return null; }
     })();
     try {

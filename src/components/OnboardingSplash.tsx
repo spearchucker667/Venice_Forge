@@ -5,6 +5,7 @@ import { useSettingsStore } from '../stores/settings-store'
 export function OnboardingSplash() {
   const { globalOnboardingCompleted, setGlobalOnboardingCompleted } = useProfileStore()
   const setActiveTab = useSettingsStore(s => s.setActiveTab)
+  const setPendingSettingsSection = useSettingsStore(s => s.setPendingSettingsSection)
   const [step, setStep] = useState(0)
 
   if (globalOnboardingCompleted) return null
@@ -40,6 +41,7 @@ export function OnboardingSplash() {
 
   const handleCreateProfile = () => {
     setGlobalOnboardingCompleted(true)
+    setPendingSettingsSection('profiles')
     setActiveTab('settings')
   }
 

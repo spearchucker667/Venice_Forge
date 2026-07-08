@@ -21,6 +21,7 @@ import {
 import type { CharacterCardV1, CharacterCardExport, CharacterCardVersion } from "../types/rp";
 import { RP_CARD_EXPORT_VERSION } from "../types/rp";
 import { toast } from "./toast-store";
+import { useRpChatStore } from "./rp-chat-store";
 
 const PAGE_SIZE = 60;
 
@@ -143,6 +144,20 @@ export const useCharacterCardStore = create<CharacterCardState>((set, get) => ({
         cards: s.cards.filter((c) => c.id !== id),
         editingId: s.editingId === id ? null : s.editingId,
       }));
+
+      // Cascading cleanup for RP chats that reference this character
+      const rpStore = useRpChatStore.getState();
+      for (const chat of rpStore.chats) {
+        if (chat.characterIds.includes(id)) {
+          const survivingIds = chat.characterIds.filter((cid) => cid !== id);
+          if (survivingIds.length === 0) {
+            await rpStore.remove(chat.id);
+          } else {
+            await rpStore.upsert({ ...chat, characterIds: survivingIds });
+          }
+        }
+      }
+
       return true;
     } catch {
       set({ error: SAFE_REMOVE_ERROR });

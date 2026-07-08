@@ -12,6 +12,44 @@ import { normaliseTab, type TabId } from '../config/tabs'
  */
 export type Tab = TabId
 
+/** Canonical sub-section id within the Settings tab. Used by the
+ *  onboarding "Create Profile" deep-link and any future external entry
+ *  points to land users on the right surface (Profiles, API Keys, …). */
+export type SettingsSection =
+  | 'profiles'
+  | 'api-keys'
+  | 'defaults'
+  | 'safety'
+  | 'vault'
+  | 'appearance'
+  | 'data'
+  | 'about'
+  | 'updates'
+  | 'config'
+
+const VALID_SETTINGS_SECTIONS = new Set<SettingsSection>([
+  'profiles',
+  'api-keys',
+  'defaults',
+  'safety',
+  'vault',
+  'appearance',
+  'data',
+  'about',
+  'updates',
+  'config',
+])
+
+/** Defensive coercion: returns null when the value is not a known
+ *  SettingsSection. Stops stray IPC / external callers from forcing a
+ *  SettingsView into an undefined render state. */
+function coerceSettingsSection(value: unknown): SettingsSection | null {
+  if (typeof value !== 'string') return null
+  return VALID_SETTINGS_SECTIONS.has(value as SettingsSection)
+    ? (value as SettingsSection)
+    : null
+}
+
 function safeNormaliseTab(id: string | null | undefined): TabId {
   if (typeof id !== 'string' || !id) return 'chat'
   return normaliseTab(id)
@@ -27,6 +65,12 @@ interface SettingsState {
   setSelectedModel: (tab: string, modelId: string) => void
   playgroundAgentModel: string
   setPlaygroundAgentModel: (modelId: string) => void
+
+  /** One-shot deep-link used by the onboarding splash (and any future
+   *  external entry points). When set, `SettingsView` will activate the
+   *  referenced section and immediately clear the field. Never persisted. */
+  pendingSettingsSection: SettingsSection | null
+  setPendingSettingsSection: (section: SettingsSection | null) => void
   
   // Theme settings
   selectedThemeId: string
@@ -78,12 +122,14 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      activeTab: 'chat' as Tab,
-      setActiveTab: (tab) => set({ activeTab: safeNormaliseTab(tab) as Tab }),
-      sidebarOpen: true,
-      setSidebarOpen: (open) => set({ sidebarOpen: open }),
-      toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
-      selectedModels: {},
+  activeTab: 'chat' as Tab,
+  setActiveTab: (tab) => set({ activeTab: safeNormaliseTab(tab) as Tab }),
+  sidebarOpen: true,
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
+  toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+  pendingSettingsSection: null,
+  setPendingSettingsSection: (section) => set({ pendingSettingsSection: section }),
+  selectedModels: {},
       setSelectedModel: (tab, modelId) =>
         set((s) => ({ selectedModels: { ...s.selectedModels, [tab]: modelId } })),
       playgroundAgentModel: '',
@@ -149,6 +195,9 @@ export const useSettingsStore = create<SettingsState>()(
           // v5 (character scene generation): default off.
           characterSceneGenerationEnabled: state.characterSceneGenerationEnabled ?? false,
           characterSceneGenerationMode: state.characterSceneGenerationMode ?? 'manual',
+          // Session-only: never persisted (covered by `partialize`), but defend
+          // against a hand-edited localStorage entry by coercing back to null.
+          pendingSettingsSection: coerceSettingsSection(state.pendingSettingsSection),
         } as SettingsState
       },
       merge: (persisted, current) => ({
