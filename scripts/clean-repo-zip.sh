@@ -534,6 +534,10 @@ SECRET_SCAN_SUMMARY="$META_DIR/SECRET_SCAN_SUMMARY.txt"
               local filepath="${matchline%%:*}"
               local rest="${matchline#*:}"
               local lineno="${rest%%:*}"
+              local line_text="${rest#*:}"
+              if [[ "$line_text" =~ has_[A-Za-z0-9_]*(api_key|secret|token|password)[A-Za-z0-9_]*[[:space:]]*:[[:space:]]*[A-Za-z0-9_.]+\.length[[:space:]]* ]]; then
+                continue
+              fi
               case "$filepath" in
                 *.test.ts|*.test.tsx|*.test.js|*.test.jsx|*.spec.ts|*.spec.tsx|*.spec.js|*.spec.jsx)
                   # Intentional redaction/security fixtures. They are still

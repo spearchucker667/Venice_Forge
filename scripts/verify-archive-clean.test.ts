@@ -233,6 +233,46 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     }
   });
 
+  archiveIt("clean-repo-zip.sh does not block derived secret-presence metadata booleans", () => {
+    const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-secret-metadata-repo-"));
+    const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-secret-metadata-out-"));
+    const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-secret-metadata-extract-"));
+    try {
+      writeFileSync(join(repo, "package.json"), JSON.stringify({ name: "fake-repo" }));
+      writeFileSync(join(repo, "README.md"), "# fake");
+      mkdirSync(join(repo, "src"), { recursive: true });
+      writeFileSync(
+        join(repo, "src", "config.ts"),
+        [
+          "export const metadata = {",
+          "  has_venice_api_key: config.secrets.venice_api_key.length > 0,",
+          "  has_jina_api_key: config.secrets.jina_api_key.length > 0,",
+          "};",
+          "",
+        ].join("\n"),
+      );
+
+      execSync(`bash ${shellQuote(join(__dirname, "clean-repo-zip.sh"))} ${shellQuote(repo)} ${shellQuote(outDir)}`, {
+        encoding: "utf8",
+        stdio: "pipe",
+      });
+
+      const zipPath = findZip(outDir);
+      expect(zipPath).not.toBeNull();
+      execSync(`unzip -q ${shellQuote(zipPath!)} -d ${shellQuote(extractDir)}`, { stdio: "pipe" });
+
+      const extractedName = readdirSync(extractDir)[0];
+      const metaDir = join(extractDir, extractedName, "_REPO_EXTRACT_METADATA");
+      const summary = readFileSync(join(metaDir, "SECRET_SCAN_SUMMARY.txt"), "utf8");
+
+      expect(summary).toMatch(/^high_risk_hits=0\nexample_hits=0\nraw_line_content_emitted=false\n?$/);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+      rmSync(outDir, { recursive: true, force: true });
+      rmSync(extractDir, { recursive: true, force: true });
+    }
+  });
+
   it("clean-repo-zip.sh scans flexible sk/vn keys and omits absolute paths by default", () => {
     const script = readFileSync(join(__dirname, "clean-repo-zip.sh"), "utf8");
     expect(script).toContain('"sk-[A-Za-z0-9._~+/=-]{8,}"');
