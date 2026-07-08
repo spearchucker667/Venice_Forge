@@ -851,10 +851,11 @@ This section tracks the follow-up repair pass against the ZIP snapshot audited a
 
 ---
 
-## 12. Profile Password Storage Backend Decision
+## 12. Profile Password Storage Backend Decision — RESOLVED
 
 **Date:** 2026-07-08
 **Source:** Deep bug review of `Windows-Venice-API-connector-clean-20260708-111500.zip`
+**Status:** Implemented in 2026-07-08 remediation pass.
 
 ### Decision
 
@@ -862,37 +863,36 @@ Electron `safeStorage` is approved for profile-password verifier storage on **ma
 
 - **macOS:** `safeStorage` delegates to the macOS Keychain through `Security.framework` SecItem APIs. This satisfies the work-order requirement for "Keychain through SecItem API or approved native bridge."
 - **Linux:** `safeStorage` delegates to the Secret Service / `libsecret`. This is acceptable for the project's threat model and is gated behind the existing Linux plaintext-fallback refusal for profile/master passwords.
-- **Windows:** `safeStorage` uses DPAPI (`CryptProtectData` / `CryptUnprotectData`), not Windows Credential Manager (`CredRead` / `CredWrite`). This is a policy mismatch against the work-order requirement.
+- **Windows:** `safeStorage` uses DPAPI (`CryptProtectData` / `CryptUnprotectData`), which did not satisfy the work-order requirement. A Windows Credential Manager bridge was implemented to satisfy the policy.
 
-### Current implementation
+### Implementation
 
-- `electron/services/secureStore.ts` stores profile-password verifier records via `safeStorage`.
-- The verifier itself is a salted PBKDF2 record; the plaintext password is never persisted.
-- Fail-closed behavior, lockout counters, and the Linux plaintext-fallback refusal are already implemented and tested.
-
-### Recommended future action
-
-Replace the Windows `safeStorage` backend for profile-password storage with one of:
-
-1. A small Node-API native addon that calls `CredReadW` / `CredWriteW`.
-2. A tightly scoped PowerShell bridge invoked through a sanitized child process.
-3. A vetted, minimal native dependency that wraps Windows Credential Manager.
-
-Until then, Windows profile-password verifiers remain encrypted via DPAPI, which does not meet the stated policy but does not expose plaintext passwords.
+- `electron/services/windowsCredentialStore.ts` (new): synchronous PowerShell bridge calling `CredWriteW` / `CredReadW` / `CredDeleteW`. Secrets are passed via stdin; target names are sanitized to `[a-zA-Z0-9_.:-]{1,256}`; non-Windows platforms fail closed.
+- `electron/services/secureStore.ts`: strict password credentials (`password`, `master_password`, `profile_password*`, `*_password`) now route to Windows Credential Manager on Windows via the bridge. `setCredential` removes any legacy DPAPI-backed local copy after a successful write; `getCredential` reads Credential Manager first and falls back to the local store only for legacy migration; `deleteCredential` also deletes the Credential Manager entry. Fail-closed behavior, lockout counters, and Linux plaintext-fallback refusal remain enforced.
+- The verifier itself is still a salted PBKDF2 record; the plaintext password is never persisted.
 
 ### Files involved
 
-- `electron/services/secureStore.ts` (backend)
+- `electron/services/secureStore.ts` (routing + verifier logic)
+- `electron/services/windowsCredentialStore.ts` (new Windows bridge)
+- `electron/services/secureStore.test.ts` (regressions for Windows routing and fallback)
+- `electron/services/windowsCredentialStore.test.ts` (new bridge tests)
 - `electron/ipc/handlers/apiKeyHandlers.ts` (already routes through `secureStore`; no change needed)
 - `src/lib/safe-storage.ts` (unrelated localStorage wrapper; no change needed)
 
-### Validation run during decision
+### Validation
 
 | Command | Result |
 | --- | --- |
-| `npm test -- electron/services/secureStore.test.ts electron/ipc/handlers.test.ts --run` | Pass (97 tests) |
+| `npx vitest run electron/services/secureStore.test.ts electron/services/windowsCredentialStore.test.ts` | Pass (49 tests) |
+| `npm test` | Pass (3713 passed, 1 skipped) |
 | `npm run lint:eslint` | Pass (0 warnings) |
 | `npm run typecheck` | Pass (renderer + electron main) |
+| `npm run verify:contracts` | Pass |
+| `npm run verify:safety-guard` | Pass |
+| `npm run verify:ci-contract` | Pass |
+
+**Note:** The PowerShell bridge is mocked in unit tests and must be validated on a real Windows runner before release. If the bridge fails at runtime, the code fails closed rather than silently reverting to DPAPI for password credentials.
 
 ---
 

@@ -5,6 +5,12 @@
 import { app, safeStorage } from "electron";
 import fs from "fs";
 import path from "path";
+import {
+  isWindowsCredentialStoreAvailable,
+  readWindowsCredential,
+  writeWindowsCredential,
+  deleteWindowsCredential,
+} from "./windowsCredentialStore";
 
 /** Name of the JSON file used for secure preferences storage. */
 const STORE_FILE = "secure-prefs.json";
@@ -12,6 +18,19 @@ const STORE_FILE = "secure-prefs.json";
 /** Whether plaintext fallback is permitted when OS encryption is unavailable. */
 function isPlaintextFallbackAllowed(): boolean {
   return process.env.VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE === "true";
+}
+
+/** Whether strict credentials should be routed to the Windows Credential Manager
+ *  bridge on Windows. Defaults to enabled; set the env var to `"false"` to keep
+ *  DPAPI/safeStorage for profile/master password verifiers. */
+function useWindowsCredentialManager(): boolean {
+  if (process.env.VENICE_FORGE_USE_WINDOWS_CREDENTIAL_MANAGER === "false") return false;
+  return isWindowsCredentialStoreAvailable();
+}
+
+/** Returns the Credential Manager target name for a generic credential key. */
+function windowsCredentialTarget(key: string): string {
+  return `VeniceForge:credential:${key}`;
 }
 
 /** Describes the current secure storage mode. */
@@ -348,6 +367,25 @@ export function setCredential(key: string, value: string): void {
   const k = `cred_${key}`;
   const ke = `credEncrypted_${key}`;
 
+  // On Windows, route strict password credentials to Windows Credential Manager
+  // instead of DPAPI-backed safeStorage to satisfy the work-order policy.
+  if (isStrictNoPlaintextCredential(key) && useWindowsCredentialManager()) {
+    try {
+      writeWindowsCredential(windowsCredentialTarget(key), value);
+      // Remove any legacy local copy so the credential lives only in Credential Manager.
+      delete store[k];
+      delete store[ke];
+      writeStore(store);
+      return;
+    } catch (err) {
+      // Fail closed if Credential Manager is unavailable rather than silently
+      // falling back to a weaker store for password credentials.
+      throw new Error(
+        `Credential "${key}" could not be stored in Windows Credential Manager: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
   if (safeStorage.isEncryptionAvailable()) {
     store[k] = safeStorage.encryptString(value).toString("base64");
     store[ke] = "true";
@@ -380,6 +418,18 @@ export function setCredential(key: string, value: string): void {
 
 /** Retrieves and decrypts a generic credential. */
 export function getCredential(key: string): string | null {
+  // On Windows, strict password credentials live in Credential Manager when
+  // available. Read from there first, and fall back to the local store only
+  // for migration of legacy entries.
+  if (isStrictNoPlaintextCredential(key) && useWindowsCredentialManager()) {
+    try {
+      const value = readWindowsCredential(windowsCredentialTarget(key));
+      if (value !== null) return value;
+    } catch {
+      // Fall through to local-store migration check.
+    }
+  }
+
   const store = readStore("apiKey");
   const k = `cred_${key}`;
   const ke = `credEncrypted_${key}`;
@@ -423,6 +473,18 @@ export function deleteCredential(key: string): void {
   const ke = `credEncrypted_${key}`;
   delete store[k];
   delete store[ke];
+
+  // On Windows, strict password credentials may live in Credential Manager.
+  // Attempt to remove the entry there as well, but do not fail the operation
+  // if the bridge is transiently unavailable — the local copy is already gone.
+  if (isStrictNoPlaintextCredential(key) && useWindowsCredentialManager()) {
+    try {
+      deleteWindowsCredential(windowsCredentialTarget(key));
+    } catch {
+      /* ignore — best-effort cleanup of the OS credential */
+    }
+  }
+
   writeStore(store);
 }
 

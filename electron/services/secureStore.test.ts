@@ -18,9 +18,23 @@ vi.mock("electron", () => ({
   },
 }));
 
+vi.mock("./windowsCredentialStore", () => ({
+  isWindowsCredentialStoreAvailable: vi.fn(),
+  readWindowsCredential: vi.fn(),
+  writeWindowsCredential: vi.fn(),
+  deleteWindowsCredential: vi.fn(),
+}));
+
 import {
   safeStorage as mockedSafeStorage,
 } from "electron";
+
+import {
+  isWindowsCredentialStoreAvailable as isWindowsCredentialStoreAvailableMock,
+  readWindowsCredential as readWindowsCredentialMock,
+  writeWindowsCredential as writeWindowsCredentialMock,
+  deleteWindowsCredential as deleteWindowsCredentialMock,
+} from "./windowsCredentialStore";
 
 import {
   setApiKey,
@@ -57,6 +71,7 @@ function cleanStore() {
 
 describe("secureStore", () => {
   const originalPlaintextFlag = process.env.VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE;
+  const credentialVault = new Map<string, string>();
 
   beforeEach(() => {
     delete process.env.VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE;
@@ -64,6 +79,22 @@ describe("secureStore", () => {
     __resetMasterPasswordLockoutForTests();
     __resetProfilePasswordLockoutsForTests();
     cleanStore();
+
+    credentialVault.clear();
+    vi.mocked(isWindowsCredentialStoreAvailableMock).mockReset().mockReturnValue(false);
+    vi.mocked(readWindowsCredentialMock)
+      .mockReset()
+      .mockImplementation((target: string) => credentialVault.get(target) ?? null);
+    vi.mocked(writeWindowsCredentialMock)
+      .mockReset()
+      .mockImplementation((target: string, secret: string) => {
+        credentialVault.set(target, secret);
+      });
+    vi.mocked(deleteWindowsCredentialMock)
+      .mockReset()
+      .mockImplementation((target: string) => {
+        credentialVault.delete(target);
+      });
   });
   afterEach(() => {
     if (originalPlaintextFlag === undefined) {
@@ -444,5 +475,85 @@ describe("secureStore", () => {
     expect(getProfilePasswordLockoutSeconds("userA")).toBeGreaterThan(0);
     expect(getProfilePasswordLockoutSeconds("userB")).toBe(0);
     expect(verifyProfilePassword("pw-b", "userB")).toBe(true);
+  });
+
+  // ── Windows Credential Manager routing (work-order P1) ──
+
+  it("setCredential routes strict credentials to Windows Credential Manager when available", () => {
+    vi.mocked(isWindowsCredentialStoreAvailableMock).mockReturnValue(true);
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    const record = JSON.stringify({ v: 1, hash: "h" });
+
+    setCredential("master_password", record);
+
+    expect(writeWindowsCredentialMock).toHaveBeenCalledWith(
+      "VeniceForge:credential:master_password",
+      record,
+    );
+    expect(getCredential("master_password")).toBe(record);
+
+    // The legacy local row must be removed so the value lives only in Credential Manager.
+    const raw = fs.readFileSync(STORE_PATH, "utf-8");
+    expect(raw).not.toContain("cred_master_password");
+  });
+
+  it("setCredential fails closed when Windows Credential Manager write fails", () => {
+    vi.mocked(isWindowsCredentialStoreAvailableMock).mockReturnValue(true);
+    vi.mocked(writeWindowsCredentialMock).mockImplementation(() => {
+      throw new Error("CredWriteW failed");
+    });
+
+    expect(() => setCredential("master_password", "value")).toThrow(/CredWriteW failed/);
+  });
+
+  it("getCredential falls back to the local store when Credential Manager has no entry", () => {
+    vi.mocked(isWindowsCredentialStoreAvailableMock).mockReturnValue(true);
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    // Simulate a legacy encrypted local row so the fallback path is exercised.
+    const legacyValue = "legacy-local-value";
+    fs.writeFileSync(
+      STORE_PATH,
+      JSON.stringify({
+        cred_master_password: Buffer.from(`enc:${legacyValue}`).toString("base64"),
+        credEncrypted_master_password: "true",
+      }),
+      "utf-8",
+    );
+    __clearCacheForTests();
+
+    expect(getCredential("master_password")).toBe(legacyValue);
+  });
+
+  it("deleteCredential removes the credential from Windows Credential Manager when available", () => {
+    vi.mocked(isWindowsCredentialStoreAvailableMock).mockReturnValue(true);
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    credentialVault.set("VeniceForge:credential:master_password", "value");
+    fs.writeFileSync(
+      STORE_PATH,
+      JSON.stringify({
+        cred_master_password: "value",
+        credEncrypted_master_password: "true",
+      }),
+      "utf-8",
+    );
+    __clearCacheForTests();
+
+    deleteCredential("master_password");
+
+    expect(deleteWindowsCredentialMock).toHaveBeenCalledWith(
+      "VeniceForge:credential:master_password",
+    );
+    const raw = fs.readFileSync(STORE_PATH, "utf-8");
+    expect(raw).not.toContain("cred_master_password");
+  });
+
+  it("setCredential does not route non-strict credentials to Windows Credential Manager", () => {
+    vi.mocked(isWindowsCredentialStoreAvailableMock).mockReturnValue(true);
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+
+    setCredential("profile_secret", "value");
+
+    expect(writeWindowsCredentialMock).not.toHaveBeenCalled();
+    expect(getCredential("profile_secret")).toBe("value");
   });
 });

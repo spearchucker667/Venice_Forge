@@ -115,6 +115,29 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-07-08 Windows Credential Manager Bridge + Node Policy Fix — COMPLETE (current session):**
+
+  Completed the remaining P1 work-order item from the 2026-07-08 deep bug review and resolved the Node-version ambiguity in CI.
+
+  **Fixes / coverage added:**
+  - `package.json`: pinned `engines.node` to `>=22.13.0 <23.0.0` (was `>=22.13.0`).
+  - `.github/workflows/ci.yml`: reduced the matrix to `[22]` (was `[22, 24]`) so CI stays aligned with the pinned Node policy.
+  - `electron/services/windowsCredentialStore.ts` (new): synchronous PowerShell bridge to Windows Credential Manager using `CredWriteW` / `CredReadW` / `CredDeleteW`. Secrets are passed via stdin; target names are sanitized; non-Windows calls fail closed.
+  - `electron/services/secureStore.ts`: strict password credentials (`password`, `master_password`, `profile_password*`, `*_password`) now route to Windows Credential Manager on Windows. `setCredential` writes there and removes any legacy local DPAPI copy; `getCredential` reads Credential Manager first and falls back to the local store only for legacy migration; `deleteCredential` also deletes the Credential Manager entry.
+  - `electron/services/windowsCredentialStore.test.ts` (new): 14 tests covering platform gating, target sanitization, write/read/delete success, not-found handling, PowerShell error propagation, and stdin-based secret passing.
+  - `electron/services/secureStore.test.ts`: added 5 regressions proving Windows routing, fail-closed write errors, local-store fallback, Credential Manager deletion, and that non-strict credentials stay on the safeStorage path.
+
+  **Validation:**
+  - `npm run lint:eslint` — PASS.
+  - `npm run typecheck` — PASS (renderer + electron main).
+  - `npx vitest run electron/services/secureStore.test.ts electron/services/windowsCredentialStore.test.ts` — PASS (49 tests).
+  - `npm test` — PASS (3713 passed, 1 skipped).
+  - `npm run verify:contracts` — PASS.
+  - `npm run verify:safety-guard`, `verify:image-policy`, `verify:network-boundaries`, `verify:work-orders` — PASS.
+  - `npm run build` and `npm run verify:dist` — PASS.
+  - `npm run verify:ci-contract` — PASS (Node 22 matrix verified).
+  - Note: the PowerShell bridge is mocked in tests and must be validated on a real Windows runner before release.
+
 - **2026-07-08 Research Browser Splash Page Load Fix — COMPLETE (current session):**
 
   Investigated a report that the Research Browser sub-tab renders a black screen and becomes unresponsive on open.
@@ -8712,7 +8735,7 @@ Result:
 - ~~**MEDIUM (character-context-mime):** Character context file validation covers extension and size but not MIME type; PDF extraction errors can leak raw messages.~~ **FIXED 2026-07-08 deep bug review** — `src/components/rp-studio/CharacterEditor.tsx` now enforces MIME type where available and normalizes PDF extraction errors to safe UI messages. Tests added.
 - ~~**MEDIUM (character-model-selection):** Character editor settings lack a model selection dropdown for hosted characters.~~ **FIXED 2026-07-08 deep bug review** — added `selectedModel`/`getEffectiveModel` to `src/stores/character-store.ts`, wired a model dropdown in `src/components/CharactersView.tsx`, and applied user override > character modelId > settings fallback when starting chat. Tests added.
 - ~~**CRITICAL (research-browser-black-screen):** Research Browser sub-tab opens to a black screen and cannot be closed, forcing the user to force-quit the app.~~ **FIXED 2026-07-08** — `webRequest.onBeforeRequest` in `electron/services/researchBrowserServer.ts` was cancelling the local `file://` request issued by `webContents.loadFile()` for the splash page because the network policy only allows `http:`/`https:`. The handler now short-circuits `file://` requests; navigation to `file://` is still blocked by `will-navigate` / `will-frame-navigate`. Regression test added.
-- **P1 (windows-credman):** Profile password storage on Windows currently uses Electron `safeStorage` (DPAPI), not Windows Credential Manager (`CredRead`/`CredWrite`) as the work-order requires. Decision recorded: macOS `safeStorage` is approved (it uses SecItem/Keychain), Linux `safeStorage` is acceptable, but Windows needs a native Node-API addon, tightly scoped PowerShell bridge, or vetted native dependency. Deferred until a safe small implementation is available.
+- ~~**P1 (windows-credman):** Profile password storage on Windows currently uses Electron `safeStorage` (DPAPI), not Windows Credential Manager (`CredRead`/`CredWrite`) as the work-order requires.~~ **FIXED 2026-07-08** — implemented a tightly scoped PowerShell bridge in `electron/services/windowsCredentialStore.ts` that calls `CredWriteW` / `CredReadW` / `CredDeleteW`; `electron/services/secureStore.ts` now routes strict password credentials (`password`, `master_password`, `profile_password*`, `*_password`) to Windows Credential Manager on Windows and removes any legacy DPAPI-backed local copy. Full regression coverage added in `electron/services/windowsCredentialStore.test.ts` and `electron/services/secureStore.test.ts`. The PowerShell bridge is best-effort and must be validated on a real Windows runner before release; if it fails, the code fails closed rather than silently reverting to DPAPI for password credentials.
 
 ### Open Follow-Up from 2026-07-08 Final Hardening Pass (20260708-010525)
 
@@ -10254,7 +10277,7 @@ Reviewed all web-browsing surfaces: Research Mini Browser (Electron main), rende
    - Replaced `new Response(new Blob([...]))` with `new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]))` in the `veniceBlob` and `veniceFormData` "does not stringify binary image responses" tests. The jsdom `Response` implementation calls `.stream()` on Blob bodies, which the test-environment Blob mock does not support; `Uint8Array` avoids that path.
 
 ### Open TODO Ledger
-- **P1 (windows-credman):** Replace Windows `safeStorage` DPAPI backend for profile-password storage with a Windows Credential Manager native bridge. Deferred until a safe small implementation (Node-API addon or tightly scoped PowerShell bridge) is available.
+- ~~**P1 (windows-credman):** Replace Windows `safeStorage` DPAPI backend for profile-password storage with a Windows Credential Manager native bridge.~~ **RESOLVED 2026-07-08** — PowerShell bridge implemented and wired into `secureStore.ts`; see Latest Session Summary entry below.
 - `verify:contracts:features` full aggregate still exceeds timeout in this sandbox environment; run the 5 partitioned sub-commands individually (`features:chat|image|workflow|rp|settings`).
 - `verify:contracts` full aggregate not run in this session (same timeout constraint).
 - Pre-existing `test:unit` failures in `src/research/agent/researchRunner.test.ts` (6 tests) and `src/stores/profile-store.broadcast.test.ts` (mock setup) are unrelated to this session's changes and remain open.
