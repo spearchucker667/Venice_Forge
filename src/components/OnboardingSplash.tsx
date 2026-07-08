@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
 import { useProfileStore } from '../stores/profile-store'
+import { useSettingsStore } from '../stores/settings-store'
 
 export function OnboardingSplash() {
   const { globalOnboardingCompleted, setGlobalOnboardingCompleted } = useProfileStore()
+  const setActiveTab = useSettingsStore(s => s.setActiveTab)
   const [step, setStep] = useState(0)
 
   if (globalOnboardingCompleted) return null
@@ -22,7 +24,7 @@ export function OnboardingSplash() {
     },
     {
       title: 'Family Safe Mode',
-      description: 'You can protect settings with a Master Password. You can turn Family Safe Mode on or off from Settings.',
+      description: 'A master password is required before Family Safe Mode can be turned on or off. Family Safe Mode also forces provider safe_mode where supported.',
     },
   ]
 
@@ -34,6 +36,11 @@ export function OnboardingSplash() {
     } else {
       setStep(s => s + 1)
     }
+  }
+
+  const handleCreateProfile = () => {
+    setGlobalOnboardingCompleted(true)
+    setActiveTab('settings')
   }
 
   return (
@@ -48,13 +55,32 @@ export function OnboardingSplash() {
           ))}
         </div>
 
-        <button
-          onClick={nextStep}
-          className="w-full py-2 bg-button-primary-bg text-button-primary-fg rounded font-medium hover:bg-accent-hover transition-colors"
-          autoFocus
-        >
-          {isLast ? 'Get Started' : 'Next'}
-        </button>
+        {isLast ? (
+          <div className="flex flex-col gap-3 w-full">
+            <button
+              onClick={nextStep}
+              className="w-full py-2 bg-button-primary-bg text-button-primary-fg rounded font-medium hover:bg-accent-hover transition-colors"
+              autoFocus
+            >
+              Get Started
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateProfile}
+              className="w-full py-2 bg-transparent border border-[var(--venice-border)] text-[var(--venice-fg)] rounded font-medium hover:bg-[var(--venice-surface)] transition-colors"
+            >
+              Create Profile
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={nextStep}
+            className="w-full py-2 bg-button-primary-bg text-button-primary-fg rounded font-medium hover:bg-accent-hover transition-colors"
+            autoFocus
+          >
+            Next
+          </button>
+        )}
       </div>
     </div>
   )

@@ -112,9 +112,15 @@ function isUrl(value: string): boolean {
 }
 
 /** Returns the active repo-local config dir if we are running in dev and the
- *  repo has a `.config/` folder. Otherwise returns null. */
+ *  repo has a `.config/` folder. Returns null in packaged builds, CI, and
+ *  test environments to prevent validation/build runs from creating forbidden
+ *  archive contaminants under `.config/`. */
 function getRepoLocalConfigDir(): string | null {
-  if (!app.isPackaged) {
+  if (
+    !app.isPackaged &&
+    process.env.CI !== "true" &&
+    process.env.NODE_ENV !== "test"
+  ) {
     // In dev, app.getAppPath() is the repo root.
     const repoRoot = app.getAppPath();
     return path.join(repoRoot, REPO_CONFIG_DIRNAME);

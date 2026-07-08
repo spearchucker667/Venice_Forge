@@ -22,7 +22,13 @@ import {
 } from "./desktopBridge";
 import StorageService from "./storageService";
 
-/** Known Zustand persist store names whose localStorage keys are scoped by profile. */
+/** Known localStorage key prefixes that Venice Forge owns.
+ *  Only keys matching one of these prefixes are eligible for purge. */
+const VENICE_OWNED_LOCAL_STORAGE_PREFIXES = [
+  "venice-",
+  "veniceForge:",
+  "vf.",
+];
 const PROFILE_SCOPED_LOCAL_STORES = [
   "venice-settings",
   "venice-chat",
@@ -111,7 +117,11 @@ export async function purgeProfileData(profileId: string): Promise<ProfilePurgeR
     }
     for (let i = 0; i < window.localStorage.length /* localStorage-allowed: profile purge; scans only key suffixes */; i++) {
       const key = window.localStorage.key(i) /* localStorage-allowed: profile purge; scans only key suffixes */;
-      if (key && key.endsWith(`_${profileId}`)) {
+      if (
+        key &&
+        key.endsWith(`_${profileId}`) &&
+        VENICE_OWNED_LOCAL_STORAGE_PREFIXES.some((prefix) => key.startsWith(prefix))
+      ) {
         keysToRemove.push(key);
       }
     }

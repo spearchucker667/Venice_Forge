@@ -42,10 +42,23 @@ describe("purgeProfileData", () => {
     expect(desktopProfilePassword.clear).toHaveBeenCalledWith("work");
     expect(StorageService.deleteRecordsForProfile).toHaveBeenCalledWith("work");
 
+    // Venice-owned keys are removed.
     expect(localStorage.getItem("venice-settings_work")).toBeNull();
-    expect(localStorage.getItem("other_work")).toBeNull();
+    // Unrelated same-origin keys are NOT removed (security fix: only Venice-owned prefixes).
+    expect(localStorage.getItem("other_work")).toBe("x");
     expect(localStorage.getItem("venice-active-profile-id")).toBe("default");
-    expect(result.localStorageKeysRemoved).toBeGreaterThanOrEqual(2);
+    expect(result.localStorageKeysRemoved).toBeGreaterThanOrEqual(1);
     expect(result.indexedDBStoresScanned).toBe(1);
+  });
+
+  it("does not remove unrelated same-origin keys ending in the profile id", async () => {
+    localStorage.setItem("thirdparty_work", "sensitive");
+    localStorage.setItem("unrelated_work_suffix", "also-unrelated");
+
+    await purgeProfileData("work");
+
+    // These do not start with a Venice-owned prefix and must survive.
+    expect(localStorage.getItem("thirdparty_work")).toBe("sensitive");
+    expect(localStorage.getItem("unrelated_work_suffix")).toBe("also-unrelated");
   });
 });

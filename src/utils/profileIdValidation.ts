@@ -19,24 +19,29 @@ const SAFE_PROFILE_ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 /** Reserved ids that cannot be used for user-created profiles. */
 const RESERVED_PROFILE_IDS = new Set(["default"]);
 
-/** Returns true when the id is a valid, non-reserved profile identifier. */
-export function isValidProfileId(id: unknown): id is string {
+/**
+ * Returns true when the id is a valid profile identifier for storage and
+ * system use — including the reserved "default" system profile.
+ *
+ * Use this for:
+ *   - Active profile read/write (localStorage)
+ *   - Persisted profile hydration and migration
+ *   - Physical storage key construction (IndexedDB, secure-prefs)
+ *   - Profile password IPC channels
+ */
+export function isValidProfileStorageId(id: unknown): id is string {
   if (typeof id !== "string") return false;
   if (id.length === 0 || id.length > MAX_PROFILE_ID_LENGTH) return false;
-  if (RESERVED_PROFILE_IDS.has(id)) return false;
   return SAFE_PROFILE_ID_RE.test(id);
 }
 
-/** Throws a descriptive error when the id is not a valid profile identifier. */
-export function assertValidProfileId(id: unknown): asserts id is string {
+/** Throws when id is not valid for storage/system use (including "default"). */
+export function assertValidProfileStorageId(id: unknown): asserts id is string {
   if (typeof id !== "string" || id.length === 0) {
     throw new Error("Profile id must be a non-empty string.");
   }
   if (id.length > MAX_PROFILE_ID_LENGTH) {
     throw new Error(`Profile id must be at most ${MAX_PROFILE_ID_LENGTH} characters.`);
-  }
-  if (RESERVED_PROFILE_IDS.has(id)) {
-    throw new Error(`Profile id "${id}" is reserved.`);
   }
   if (!SAFE_PROFILE_ID_RE.test(id)) {
     throw new Error(
@@ -44,6 +49,38 @@ export function assertValidProfileId(id: unknown): asserts id is string {
     );
   }
 }
+
+/**
+ * Returns true when the id is valid for a user-created profile — excludes
+ * reserved system ids such as "default".
+ *
+ * Use this for:
+ *   - Creating or importing user profiles (addProfile / import)
+ */
+export function isUserCreatableProfileId(id: unknown): id is string {
+  return isValidProfileStorageId(id) && !RESERVED_PROFILE_IDS.has(id as string);
+}
+
+/** Throws when id is not valid for a user-created profile. */
+export function assertUserCreatableProfileId(id: unknown): asserts id is string {
+  assertValidProfileStorageId(id);
+  if (RESERVED_PROFILE_IDS.has(id)) {
+    throw new Error(`Profile id "${id}" is reserved and cannot be used for user-created profiles.`);
+  }
+}
+
+/**
+ * @deprecated Use `isUserCreatableProfileId` for user-created profiles, or
+ * `isValidProfileStorageId` for system/storage access. This alias preserves
+ * backward compatibility and maps to the user-creatable check.
+ */
+export const isValidProfileId = isUserCreatableProfileId;
+
+/**
+ * @deprecated Use `assertUserCreatableProfileId` for user-created profiles, or
+ * `assertValidProfileStorageId` for system/storage access.
+ */
+export const assertValidProfileId = assertUserCreatableProfileId;
 
 /** Generates a fresh profile id using the platform RNG. */
 export function generateProfileId(): string {

@@ -96,8 +96,28 @@ async function pollUntilDone<T>({ path, id, kind, getStatus, getResult, signal }
   for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
     await new Promise<void>((resolve, reject) => {
-      const t = setTimeout(resolve, POLL_INTERVAL_MS)
-      signal?.addEventListener('abort', () => { clearTimeout(t); reject(new DOMException('Aborted', 'AbortError')) }, { once: true })
+      let settled = false
+
+      const cleanup = () => {
+        signal?.removeEventListener('abort', onAbort)
+      }
+
+      const onAbort = () => {
+        if (settled) return
+        settled = true
+        clearTimeout(timeout)
+        cleanup()
+        reject(new DOMException('Aborted', 'AbortError'))
+      }
+
+      const timeout = setTimeout(() => {
+        if (settled) return
+        settled = true
+        cleanup()
+        resolve()
+      }, POLL_INTERVAL_MS)
+
+      signal?.addEventListener('abort', onAbort, { once: true })
     })
     const result = await venice<T>(path, {
       method: 'POST',
@@ -129,6 +149,7 @@ async function executeNode(
   node: Node<VeniceNodeData>,
   input: string,
   signal?: AbortSignal,
+  disposables?: Array<() => void>,
 ): Promise<string> {
   const data = node.data
   switch (data.nodeType) {
@@ -190,7 +211,11 @@ async function executeNode(
         speed: data.speed ?? 1,
         response_format: data.responseFormat || 'mp3',
       }, { signal })
-      return `[audio:${URL.createObjectURL(blob)}]`
+      const url = URL.createObjectURL(blob)
+      // Register cleanup so the caller can revoke the object URL when the
+      // workflow run is complete, preventing memory leaks in long sessions.
+      disposables?.push(() => URL.revokeObjectURL(url))
+      return `[audio:${url}]`
     }
 
     case 'music': {
@@ -280,7 +305,18 @@ export async function executeWorkflow(
 
   const outputs = new Map<string, string>()
   const nodeMap = new Map(nodes.map((n) => [n.id, n]))
+  // Blob URLs (e.g. from TTS nodes) are registered here and revoked after the
+  // run completes to prevent memory leaks in long sessions.
+  const disposables: Array<() => void> = []
 
+  const cleanup = () => {
+    for (const dispose of disposables) {
+      try { dispose() } catch { /* ignore */ }
+    }
+    disposables.length = 0
+  }
+
+  try {
   for (const level of levels) {
     if (signal?.aborted) return
     // Run all nodes at this dependency level in parallel.
@@ -290,7 +326,7 @@ export async function executeWorkflow(
       onUpdate(nodeId, { status: 'running', output: undefined, error: undefined })
       try {
         const input = getInputs(nodeId, edges, outputs)
-        const output = await executeNode(node, input, signal)
+        const output = await executeNode(node, input, signal, disposables)
         outputs.set(nodeId, output)
         const kind = NODE_SCHEMAS[node.data.nodeType]?.output as IOKind | undefined
         const outputKind = kind && kind !== 'none' ? (kind as NodeResult['outputKind']) : undefined
@@ -309,5 +345,8 @@ export async function executeWorkflow(
         throw new WorkflowExecutionError(message, nodeId)
       }
     }))
+  }
+  } finally {
+    cleanup()
   }
 }

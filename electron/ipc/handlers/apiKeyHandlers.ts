@@ -21,8 +21,17 @@ import { readResponseError } from "../../services/veniceClient";
 import { performGuardedVeniceRequest } from "../../services/guardPipeline";
 import { validateApiKeyInput } from "../validation";
 import { redactErrorMessage } from "../../../src/shared/redaction";
+import { isValidProfileStorageId } from "../../../src/utils/profileIdValidation";
 import type { ApiConnectivityFailureKind, ApiConnectivityStatus } from "../../../src/types/api-connectivity";
 import { registerIpcChannel } from "./common";
+
+/** Parses and validates a profile id for IPC use (storage-valid, including "default"). */
+function parseProfileId(profileId: unknown): string {
+  if (!isValidProfileStorageId(profileId)) {
+    throw new Error("Invalid profile id.");
+  }
+  return profileId;
+}
 
 function connectivityFailure(
   kind: ApiConnectivityFailureKind,
@@ -204,8 +213,11 @@ export function registerApiKeyHandlers(): void {
   });
 
   registerIpcChannel("profilePassword:isSet", (_event, profileId: unknown) => {
-    if (typeof profileId !== "string" || profileId.length === 0) return false;
-    return isProfilePasswordSet(profileId);
+    try {
+      return isProfilePasswordSet(parseProfileId(profileId));
+    } catch {
+      return false;
+    }
   });
 
   registerIpcChannel("profilePassword:set", (_event, payload: unknown) => {
@@ -214,13 +226,11 @@ export function registerApiKeyHandlers(): void {
         throw new Error("Invalid profile password payload.");
       }
       const { profileId, password } = payload as { profileId?: unknown; password?: unknown };
-      if (typeof profileId !== "string" || profileId.length === 0) {
-        throw new Error("Profile id is required.");
-      }
+      const validId = parseProfileId(profileId);
       if (typeof password !== "string" || password.length === 0) {
         throw new Error("Profile password must be a non-empty string.");
       }
-      setProfilePassword(password, profileId);
+      setProfilePassword(password, validId);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
@@ -233,23 +243,22 @@ export function registerApiKeyHandlers(): void {
         throw new Error("Invalid profile password payload.");
       }
       const { profileId, password } = payload as { profileId?: unknown; password?: unknown };
-      if (typeof profileId !== "string" || profileId.length === 0 || typeof password !== "string") {
+      const validId = parseProfileId(profileId);
+      if (typeof password !== "string") {
         return { ok: true, verified: false, lockedOutSeconds: 0 };
       }
-      const verified = verifyProfilePassword(password, profileId);
-      const lockedOutSeconds = getProfilePasswordLockoutSeconds(profileId);
+      const verified = verifyProfilePassword(password, validId);
+      const lockedOutSeconds = getProfilePasswordLockoutSeconds(validId);
       return { ok: true, verified, lockedOutSeconds };
-    } catch (err) {
-      return { ok: false, verified: false, lockedOutSeconds: 0, error: redactErrorMessage(err) };
+    } catch {
+      // Return generic failure — never expose the reason to the renderer.
+      return { ok: true, verified: false, lockedOutSeconds: 0 };
     }
   });
 
   registerIpcChannel("profilePassword:clear", (_event, profileId: unknown) => {
     try {
-      if (typeof profileId !== "string" || profileId.length === 0) {
-        throw new Error("Profile id is required.");
-      }
-      clearProfilePassword(profileId);
+      clearProfilePassword(parseProfileId(profileId));
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };

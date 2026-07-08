@@ -115,7 +115,49 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
-- **2026-07-07 Chat Memory / Scenario Error Continuation — COMPLETE (current session):**
+- **2026-07-08 Full ZIP Audit Remediation (20260708-002419) — COMPLETE (current session):**
+
+  Applied all 12 line-backed fixes from the full ZIP audit report (20260708-002419). Prioritized critical profile security issues, then major archive/storage hygiene, then minor workflow cleanup.
+
+  **CRITICAL fixes:**
+  - **Fix 1 — Profile ID validation split** (`src/utils/profileIdValidation.ts`): Added `isValidProfileStorageId` (allows "default" system profile) and `isUserCreatableProfileId` (blocks "default"). The old `isValidProfileId` is preserved as a deprecated alias for `isUserCreatableProfileId`. Updated `src/services/activeProfile.ts` to use `isValidProfileStorageId` so `setActiveProfileId("default")` and `getActiveProfileId()` accept the system profile. Updated `src/stores/profile-store.ts` hydration to use `isValidProfileStorageId` so the `default` profile is never filtered out during rehydration.
+  - **Fix 2 — Password-protected profile bypass** (`src/stores/profile-store.ts`): `requestSwitchProfile` now fails closed if `target.hasPassword` is true and `isElectron()` is false — no unverified switch in web mode. Startup restore now detects a password-protected `activeProfileId` and falls back to `DEFAULT_PROFILE_ID` before mounting profile-scoped stores.
+  - **Fix 3 — Profile password IPC validation** (`electron/ipc/handlers/apiKeyHandlers.ts`): Added `parseProfileId()` helper using `isValidProfileStorageId`; applied to all four `profilePassword:*` IPC channels (`isSet`, `set`, `verify`, `clear`). Invalid IDs (containing `:`, `/`, or otherwise malformed) are rejected before any secure-store operation. `profilePassword:verify` now returns a generic failure for invalid IDs instead of exposing error details.
+
+  **MAJOR fixes:**
+  - **Fix 4 — Archive verifier alignment** (`scripts/verify-release-packaging-hardening.cjs`): Removed the `ARCHIVE_MODE_IGNORED_LOCAL_CONFIG_RE` exemption that allowed `.config/*.local.yaml` in archive mode. Both `verify-release-packaging-hardening` and `verify-archive-clean` now agree that `.config/*.local.yaml` is forbidden in distributable archives.
+  - **Fix 5 — configService CI/test guard** (`electron/services/configService.ts`): `getRepoLocalConfigDir()` now returns `null` when `CI === "true"` or `NODE_ENV === "test"`, preventing validation/build runs from creating `.config/config.local.yaml` and `.config/themes.local.yaml` in a clean repo checkout.
+  - **Fix 6 — StorageService getItems() normalization** (`src/services/storageService.ts`): `decodeRows()` now applies `normalizePlainRow<T>()` for non-encrypted stores, so `getItems()` returns logical IDs (not physical `profileId:logicalId` IDs) and strips `_logicalId` metadata, matching the behavior of `getItem()`.
+  - **Fix 7 — Onboarding copy and Create Profile CTA** (`src/components/OnboardingSplash.tsx`): Updated Family Safe Mode step description to accurately state "A master password is required before Family Safe Mode can be turned on or off." Added a secondary "Create Profile" button on the final onboarding step that calls `setGlobalOnboardingCompleted(true)` and routes to the `settings` tab.
+  - **Fix 8 — Profile deletion dialog copy** (`src/components/settings/ProfilePanel.tsx`): Updated the confirm-delete `detail` text to accurately state that desktop conversation-vault files and shared caches are not profile-scoped and may remain after deletion.
+
+  **MINOR fixes:**
+  - **Fix 9+10 — Workflow abort listener accumulation + TTS blob URL leak** (`src/lib/workflow-engine.ts`): `pollUntilDone` now explicitly removes the abort listener after each poll interval (not relying solely on `{ once: true }` for the non-abort path). `executeNode` accepts a `disposables` array; the TTS case registers `URL.revokeObjectURL` on it. `executeWorkflow` maintains a local `disposables` array and calls `cleanup()` in a `finally` block.
+  - **Fix 11 — Profile purge localStorage scoping** (`src/services/profilePurge.ts`): The broad localStorage scan now only removes keys that start with a Venice Forge-owned prefix (`venice-`, `veniceForge:`, `vf.`). Unrelated same-origin keys ending with `_${profileId}` are no longer deleted.
+  - **Fix 12 — Missing tests** (`src/services/activeProfile.test.ts`, `src/utils/profileIdValidation.test.ts`, `src/components/OnboardingSplash.test.tsx`, `src/services/profilePurge.test.ts`): Added regression tests for switching back to "default", invalid ID rejection, storage-level vs user-creatable validation, onboarding "Create Profile" CTA presence, and the localStorage-scoping fix.
+
+  **Validation:**
+  - `npm run typecheck` — ✅ renderer + Electron main clean
+  - `npm run lint:eslint` — ✅ zero warnings
+  - `npm run verify:safety-guard` — ✅
+  - `npm run verify:release-packaging-hardening` — ✅ 102 checks
+  - `npm run verify:archive-clean` — ✅
+  - Targeted tests (114 tests across 9 files) — ✅ all pass
+    - `src/utils/profileIdValidation.test.ts` — 15 tests
+    - `src/services/activeProfile.test.ts` — 6 tests
+    - `src/stores/profile-store.test.ts` — 7 tests
+    - `src/services/storageService.test.ts` — 18 tests
+    - `src/services/profilePurge.test.ts` — 3 tests
+    - `electron/ipc/handlers.test.ts` — 50 tests
+    - `src/lib/workflow-engine.test.ts` — 6 tests
+    - `src/components/settings/ProfilePanel.test.tsx` — 3 tests
+    - `src/components/OnboardingSplash.test.tsx` — 6 tests
+
+  **Open (docs/minor items not addressed this session):**
+  - Item 9 (audit §9): Docs/verifier separation of handoff archive metadata vs release artifacts — the `_REPO_EXTRACT_METADATA/` distinction is a documentation-only clarification, not a code defect. No code change needed; this is tracking only.
+  - README `[!WARNING]` main-branch instability notice — already present in README from a prior session; confirmed present, no action needed.
+
+
 
   **Closed / verified-fixed TODOs:**
   - Verified `character-store.ts` and `scenario-store.ts` no longer contain direct `console.error` calls for the STO-002 / STO-003 TODO; both stores now route error reporting through the shared logger/redaction path.
@@ -3901,7 +3943,16 @@ backlog files were removed.
 
 ## Session History
 
-### 2026-07-08 - Coordinated deep bug scan, theme expansion, and README stability pass
+### 2026-07-08 - Full ZIP audit remediation (20260708-002419) — 12 fixes
+
+- **Scope:** Fix all line-backed issues from the 20260708-002419 full ZIP audit: profile identity/security invariants, archive/config hygiene, storage API consistency, onboarding completeness, and workflow cleanup.
+- **Critical:** Split `profileIdValidation.ts` into `isValidProfileStorageId` / `isUserCreatableProfileId`; updated `activeProfile.ts` and `profile-store.ts` hydration; fixed password-protected profile bypass in non-Electron mode and on startup restore; added `isValidProfileStorageId` guard to all four `profilePassword:*` IPC channels.
+- **Major:** Removed archive-mode `.config/*.local.yaml` exemption from `verify-release-packaging-hardening.cjs`; guarded `configService.ts` against writing repo-local config in CI/test; normalized `StorageService.getItems()` to return logical IDs for non-encrypted stores; updated onboarding copy (Family Safe Mode gate) and added "Create Profile" secondary CTA; corrected profile deletion dialog copy to accurately describe retained data.
+- **Minor:** Fixed workflow TTS blob URL leak (revoke in `finally`); fixed abort listener accumulation in `pollUntilDone`; restricted profile purge localStorage scan to Venice-owned key prefixes.
+- **Tests:** 114 targeted tests across 9 test files — all pass. Updated `profilePurge.test.ts` and `OnboardingSplash.test.tsx` to match correct new behavior; added new tests for storage-level vs user-creatable validation, default-profile switching, IPC rejection coverage.
+- **Validation:** `typecheck`, `lint:eslint`, `verify:safety-guard`, `verify:release-packaging-hardening`, `verify:archive-clean` — all ✅.
+
+
 
 - **Scope:** Execute the repository-wide remediation plan from the 2026-07-08 deep scan: fix critical/profile/password/security findings, expand theme contrast coverage and add five new built-in themes, wire onboarding and clean stale references, then refresh README/docs and run the full validation chain.
 - **Security / profile hardening (findings #1–#6):**

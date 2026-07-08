@@ -61,6 +61,16 @@ describe('OnboardingSplash', () => {
     fireEvent.click(screen.getByRole('button', { name: /next/i }))
     fireEvent.click(screen.getByRole('button', { name: /next/i }))
     expect(screen.getByText('Family Safe Mode')).toBeInTheDocument()
-    expect(screen.getByText(/turn Family Safe Mode on or off/)).toBeInTheDocument()
+    // Accurate copy: master password gates FSM toggling (not generic settings protection).
+    expect(screen.getByText(/master password is required before Family Safe Mode/)).toBeInTheDocument()
+  })
+
+  it('shows both Get Started and Create Profile CTAs on the last step', () => {
+    render(<OnboardingSplash />)
+    fireEvent.click(screen.getByRole('button', { name: /next/i }))
+    fireEvent.click(screen.getByRole('button', { name: /next/i }))
+    fireEvent.click(screen.getByRole('button', { name: /next/i }))
+    expect(screen.getByRole('button', { name: /get started/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /create profile/i })).toBeInTheDocument()
   })
 })

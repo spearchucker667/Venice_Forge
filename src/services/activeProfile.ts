@@ -14,7 +14,7 @@
  * inspector logs, active conversation).
  */
 
-import { isValidProfileId } from "../utils/profileIdValidation";
+import { isValidProfileStorageId } from "../utils/profileIdValidation";
 
 /** localStorage key the active profile id is persisted under. */
 export const ACTIVE_PROFILE_STORAGE_KEY = "venice-active-profile-id";
@@ -32,7 +32,7 @@ export function getActiveProfileId(): string {
   }
   try {
     const value = window.localStorage.getItem(ACTIVE_PROFILE_STORAGE_KEY) /* localStorage-allowed: active profile routing */;
-    if (value && value.length > 0 && isValidProfileId(value)) {
+    if (value && value.length > 0 && isValidProfileStorageId(value)) {
       return value;
     }
     return DEFAULT_PROFILE_ID;
@@ -63,7 +63,7 @@ const listeners = new Set<ActiveProfileListener>();
  */
 export function setActiveProfileId(id: string): void {
   if (typeof window === "undefined" || !window.localStorage /* localStorage-allowed: active profile routing */) return;
-  if (!id || typeof id !== "string" || !isValidProfileId(id)) return;
+  if (!id || typeof id !== "string" || !isValidProfileStorageId(id)) return;
   const prevId = getActiveProfileId();
   if (prevId === id) return; // idempotent: no write, no broadcast
   try {

@@ -24,6 +24,23 @@ describe('activeProfile', () => {
     expect(getActiveProfileId()).toBe('work')
   })
 
+  it('allows switching back to the default system profile', () => {
+    // Regression guard: isValidProfileStorageId must accept 'default' so that
+    // setActiveProfileId can write it after switching away from a custom profile.
+    setActiveProfileId('work')
+    expect(getActiveProfileId()).toBe('work')
+    setActiveProfileId(DEFAULT_PROFILE_ID)
+    expect(window.localStorage.getItem(ACTIVE_PROFILE_STORAGE_KEY)).toBe(DEFAULT_PROFILE_ID)
+    expect(getActiveProfileId()).toBe(DEFAULT_PROFILE_ID)
+  })
+
+  it('rejects invalid profile ids', () => {
+    // Invalid ids must not be written to localStorage.
+    setActiveProfileId('bad id with spaces')
+    expect(window.localStorage.getItem(ACTIVE_PROFILE_STORAGE_KEY)).toBeNull()
+    expect(getActiveProfileId()).toBe(DEFAULT_PROFILE_ID)
+  })
+
   it('broadcasts exactly once per actual change', () => {
     const listener = vi.fn()
     const unsubscribe = subscribeActiveProfile(listener)

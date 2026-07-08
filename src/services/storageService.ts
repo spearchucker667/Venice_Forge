@@ -140,7 +140,7 @@ async function decodeRows<T>(
   // records don't burn cipher cycles.
   const scoped = rows.filter((row) => rowBelongsToActiveProfile(row, activeProfile));
   if (!ENCRYPTED_STORES.includes(store)) {
-    return { items: scoped as T[], decryptFailures: 0 };
+    return { items: scoped.map((row) => normalizePlainRow<T>(row)), decryptFailures: 0 };
   }
   const decrypted = await Promise.all(scoped.map((row) => decodeRow<T>(store, row)));
   const items = decrypted.flatMap(([value]) => (value === null ? [] : [value]));

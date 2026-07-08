@@ -186,7 +186,7 @@ export function ProfilePanel() {
                   <button type="button" onClick={async () => {
                     const confirmed = await askDecision({
                       title: 'Delete profile?',
-                      detail: `"${p.name}" — isolated settings, API keys, and encrypted records will be removed. Files on disk (e.g. chat history) remain.`,
+                      detail: `"${p.name}" will be removed. Renderer IndexedDB records, profile-scoped local settings, API keys, and the profile password verifier will be purged where possible. Desktop conversation-vault files and shared caches are not profile-scoped and may remain.`,
                       actionLabel: 'Delete',
                       danger: true,
                     })
