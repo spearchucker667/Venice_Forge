@@ -30,6 +30,7 @@ describe("validation", () => {
         "/video/complete",
         "/image/edit",
         "/image/multi-edit",
+        "/image/background-remove",
         "/embeddings",
         "/audio/queue",
         "/audio/retrieve",

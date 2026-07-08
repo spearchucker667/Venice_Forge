@@ -37,6 +37,12 @@ interface SettingsState {
   setAppearanceMode: (mode: 'dark' | 'light') => void
   imageDownloadDirectory: string
   setImageDownloadDirectory: (dir: string) => void
+  // `redTeamMode` is the persisted Zustand slice whose visible switch is
+  // labelled "Traffic Inspector" in the sidebar (`src/components/layout/sidebar.tsx`).
+  // The internal key was retained for backwards compatibility with persisted
+  // state from earlier builds; do NOT rename without a migrate() bump and a
+  // coordinated update to `src/components/chat/message-bubble.tsx` which reads
+  // it as the opt-in for showing the inspector badge on each message bubble.
   redTeamMode: boolean
   setRedTeamMode: (mode: boolean) => void
   localFamilySafeModeEnabled: boolean

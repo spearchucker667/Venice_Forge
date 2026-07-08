@@ -96,6 +96,14 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
       setError("Context file must be 5MB or smaller.");
       return;
     }
+    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+      setError(
+        "PDF context files are accepted but their text cannot be extracted yet. " +
+        "Convert to .txt / .md / .csv, paste the text directly, or open a feature request.",
+      );
+      e.target.value = "";
+      return;
+    }
     try {
       const text = await file.text();
       const newFile: CharacterContextFile = {
@@ -514,6 +522,21 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
         </section>
 
         <section>
+          <Label htmlFor="card-instructions" hint={`${(draft.instructions ?? "").length}/${CARD_FIELD_MAX}`}>
+            Instructions
+          </Label>
+          <TextArea
+            id="card-instructions"
+            value={draft.instructions ?? ""}
+            onChange={(v) => update("instructions", v || undefined)}
+            placeholder="Optional higher-level guidance for the model (steering rules, output style)."
+            rows={4}
+            maxLength={CARD_FIELD_MAX}
+            ariaLabel="Instructions"
+          />
+        </section>
+
+        <section>
           <Label htmlFor="card-scenario" hint="optional">
             Scenario
           </Label>
@@ -638,18 +661,18 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
               <span className="text-[12px] text-text-primary">URL Scraping</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={!!draft.enableThoughts} onChange={e => update("enableThoughts", e.target.checked)} className="rounded border-border bg-surface text-accent focus:ring-accent" />
+              <input type="checkbox" checked={draft.enableThoughts ?? true} onChange={e => update("enableThoughts", e.target.checked)} className="rounded border-border bg-surface text-accent focus:ring-accent" />
               <span className="text-[12px] text-text-primary">Enable Thoughts</span>
             </label>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label hint="Temperature">Temperature</Label>
-              <input type="number" step="0.1" min="0" max="2" value={draft.temperature ?? 1} onChange={e => update("temperature", parseFloat(e.target.value))} className="w-full bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent" />
+              <input type="number" step="0.1" min="0" max="2" value={draft.temperature ?? 0.7} onChange={e => update("temperature", parseFloat(e.target.value))} className="w-full bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent" />
             </div>
             <div>
               <Label hint="Top P">Top P</Label>
-              <input type="number" step="0.05" min="0" max="1" value={draft.topP ?? 1} onChange={e => update("topP", parseFloat(e.target.value))} className="w-full bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent" />
+              <input type="number" step="0.05" min="0" max="1" value={draft.topP ?? 0.9} onChange={e => update("topP", parseFloat(e.target.value))} className="w-full bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent" />
             </div>
           </div>
         </section>
@@ -659,7 +682,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
             <Label>Context Files</Label>
             <label className="text-[11px] px-2 py-1 rounded-md border border-border bg-surface-elevated text-text-secondary hover:text-text-primary hover:border-accent/40 cursor-pointer transition-colors">
               Upload File (Max 5MB)
-              <input type="file" className="hidden" onChange={handleContextFileUpload} accept=".txt,.json,.md,.csv" />
+              <input type="file" className="hidden" onChange={handleContextFileUpload} accept=".txt,.json,.md,.csv,.pdf,application/pdf" />
             </label>
           </div>
           {(!draft.contextFiles || draft.contextFiles.length === 0) ? (

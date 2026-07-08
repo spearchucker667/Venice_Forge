@@ -35,13 +35,14 @@ export function SafetyPanel({
               type="checkbox"
               checked={localFamilySafeModeEnabled}
               onChange={(event) => {
-              if (masterPasswordSet) {
+                // Force a master password setup before any toggle is committed.
+                // Without a master password, an attacker (or a curious sibling) who
+                // sits down at the unlocked app can flip Family Safe Mode with
+                // one click. Routing through the dialog also lets the dialog run
+                // in "setup" mode the first time and "verify" mode afterwards.
                 setPendingAction({ key: 'local_family_safe_mode_enabled', enabled: event.target.checked });
                 setShowPasswordDialog(true);
-              } else {
-                onUpdateSafetySetting('local_family_safe_mode_enabled', event.target.checked);
-              }
-            }}
+              }}
               className="h-4 w-4 rounded border-border bg-surface text-accent"
             />
             <span className="text-[12.5px] font-medium text-text-primary">

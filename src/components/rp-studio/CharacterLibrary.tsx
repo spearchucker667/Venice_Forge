@@ -11,6 +11,7 @@ import { GhostButton, PillGroup, PrimaryButton, ErrorText, EmptyState } from "..
 import { Spinner } from "../ui/spinner";
 import { avatarDataUri, formatRelativeTime, truncate } from "./_shared";
 import type { CharacterCardV1 } from "../../types/rp";
+import { CARD_FIELD_MAX } from "../../types/rp";
 import { generateId } from "../../services/rp/characterCardService";
 import { startNormalChatForCharacter } from "../../services/rpHelpers";
 import { toast } from "../../stores/toast-store";
@@ -46,7 +47,7 @@ export function CharacterLibrary({ onEdit }: Props) {
   const handleCreateMe = async () => {
     if (!createMePrompt.trim()) return;
     const promptText = createMePrompt.trim();
-    
+
     setIsCreatingMe(true);
     try {
       if (safeMode) {
@@ -65,7 +66,7 @@ export function CharacterLibrary({ onEdit }: Props) {
           messages: [
             {
               role: 'system',
-              content: 'You are a character creator. Return ONLY valid JSON with no markdown wrapping. The JSON must match the CharacterCardV1 schema: { "name": string, "description": string, "systemPrompt": string, "adult": boolean, "tags": string[] }.'
+              content: 'You are a character creator. Return ONLY valid JSON with no markdown wrapping. The JSON must match the CharacterCardV1 schema: { "name": string, "description": string, "systemPrompt": string, "firstMessage": string, "instructions": string, "tags": string[], "adult": boolean }.'
             },
             {
               role: 'user',
@@ -75,26 +76,50 @@ export function CharacterLibrary({ onEdit }: Props) {
           temperature: 0.7
         }
       });
-      
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let text = (res.data as any).choices[0].message.content;
-      text = text.replace(/^```json/, '').replace(/^```/, '').replace(/```$/, '').trim();
-      const parsed = JSON.parse(text);
-      
+      const raw = String((res.data as any).choices?.[0]?.message?.content ?? "");
+      const parsed = safeParseCharacterJson(raw);
+      if (!parsed) {
+        toast.error("Character generator returned an unparseable response.");
+        setIsCreatingMe(false);
+        return;
+      }
+
+      if (safeMode) {
+        const postGuard = maybeRunLocalFamilyGuard(
+          { text: JSON.stringify(parsed), source: "chat" },
+          true,
+        );
+        if (!postGuard.allowed) {
+          toast.error("Generated character blocked by safety guard.");
+          setIsCreatingMe(false);
+          return;
+        }
+        if (parsed.adult === true) {
+          toast.error("Generated character was flagged as adult; please revise your prompt or finish editing manually.");
+          setIsCreatingMe(false);
+          return;
+        }
+      }
+
       const now = Date.now();
+      const cap = (value: string) => value.length > CARD_FIELD_MAX ? value.slice(0, CARD_FIELD_MAX) : value;
       const card: CharacterCardV1 = {
         schema: "CharacterCardV1",
         id: generateId(),
-        name: parsed.name || "Untitled",
-        description: parsed.description || "",
-        systemPrompt: parsed.systemPrompt || "",
-        tags: Array.isArray(parsed.tags) ? parsed.tags : [],
+        name: typeof parsed.name === "string" ? cap(parsed.name) : "Untitled",
+        description: typeof parsed.description === "string" ? cap(parsed.description) : "",
+        systemPrompt: typeof parsed.systemPrompt === "string" ? cap(parsed.systemPrompt) : "",
+        instructions: typeof parsed.instructions === "string" ? cap(parsed.instructions) : undefined,
+        tags: Array.isArray(parsed.tags) ? parsed.tags.filter((t: unknown) => typeof t === "string").slice(0, 32).map((t) => cap(t as string)) : [],
         adult: !!parsed.adult,
         exampleDialogues: [],
+        firstMessage: typeof parsed.firstMessage === "string" ? cap(parsed.firstMessage) : undefined,
         createdAt: now,
         updatedAt: now,
       };
-      
+
       const saved = await upsert(card);
       if (saved) {
         setCreateMePrompt("");
@@ -107,8 +132,45 @@ export function CharacterLibrary({ onEdit }: Props) {
       setIsCreatingMe(false);
     }
   };
+
+  // Bracket-balanced JSON extractor for code fences (handles ```json ... ``` and bare objects).
+  function safeParseCharacterJson(raw: string): Record<string, unknown> | null {
+    const cleaned = raw.replace(/```(?:json)?/gi, "").trim();
+    if (!cleaned) return null;
+    try {
+      return JSON.parse(cleaned);
+    } catch {
+      // Fallback: scan for the first balanced {…} substring and try that.
+      let depth = 0;
+      let inString = false;
+      let escape = false;
+      for (let i = 0; i < cleaned.length; i++) {
+        const ch = cleaned[i];
+        if (escape) { escape = false; continue; }
+        if (inString) {
+          if (ch === "\\") { escape = true; continue; }
+          if (ch === '"') { inString = false; }
+          continue;
+        }
+        if (ch === '"') { inString = true; continue; }
+        if (ch === "{") { depth += 1; continue; }
+        if (ch === "}") {
+          depth -= 1;
+          if (depth === 0) {
+            const candidate = cleaned.slice(cleaned.indexOf("{", 0), i + 1);
+            try {
+              return JSON.parse(candidate);
+            } catch {
+              return null;
+            }
+          }
+        }
+      }
+      return null;
+    }
+  }
   // Adult filtering is a normal user preference and is no longer gated by
-  // the developer "Developer Mode" switch.
+  // the Traffic Inspector switch.
   const [adultFilter, setAdultFilter] = useState<"standard" | "adult">("standard");
   const adultFilterOptions = useMemo(() => STANDARD_FILTER, []);
 

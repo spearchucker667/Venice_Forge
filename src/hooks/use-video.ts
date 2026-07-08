@@ -3,12 +3,17 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { veniceFetch } from '../services/veniceClient/fetch'
 import { sanitizeErrorText } from '../shared/redaction'
 import type { VideoQueueRequest, VideoQueueResponse, VideoRetrieveResponse } from '../types/venice'
+import { useInspectorStore } from '../stores/inspector-store'
 
 const POLL_INTERVAL_MS = 3000
-const MAX_ATTEMPTS = 200 // ~10 minutes
+const MAX_ATTEMPTS = 200 // upper bound on poll iterations
 const MAX_ERROR_LENGTH = 200
 const QUEUE_TIMEOUT_MS = 120000
 const POLL_TIMEOUT_MS = 15000
+// Overall deadline from queue success to completion (2 minutes including queue + poll).
+// Replaces the previous implicit ~10-minute budget driven by MAX_ATTEMPTS so calls
+// cannot quietly consume ten minutes of credits on a stuck Venice job.
+const MAX_GENERATION_MS = 120000
 
 /**
  * Sanitizes a raw provider or polling error into a safe UI string.
@@ -40,6 +45,11 @@ export function useVideo() {
   const isPollingRef = useRef(false)
   const generationTokenRef = useRef(0)
   const abortControllerRef = useRef<AbortController>(new AbortController())
+  // Tracks the most recent /video/queue inspector log so cancel() and the
+  // MAX_GENERATION_MS deadline can mark it `aborted` even when no log
+  // update has been written yet (cancel between polls, or overage before
+  // the first poll result returns).
+  const currentLogIdRef = useRef<string | null>(null)
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = undefined }
@@ -50,7 +60,33 @@ export function useVideo() {
   useEffect(() => () => {
     stopPolling()
     abortControllerRef.current.abort()
+    const logId = currentLogIdRef.current
+    if (logId) {
+      try {
+        useInspectorStore.getState().updateLog(logId, {
+          callOutcome: 'aborted',
+          errorClass: 'aborted',
+          error: 'Component unmounted',
+        })
+      } catch {
+        /* inspector store is best effort */
+      }
+      currentLogIdRef.current = null
+    }
   }, [stopPolling])
+
+  const markGenerationAborted = useCallback((reason: string) => {
+    const logId = currentLogIdRef.current
+    if (!logId) return
+    const durationMs = startedAtRef.current ? Date.now() - startedAtRef.current : undefined
+    useInspectorStore.getState().updateLog(logId, {
+      callOutcome: 'aborted',
+      errorClass: 'aborted',
+      error: reason,
+      durationMs,
+    })
+    currentLogIdRef.current = null
+  }, [])
 
   const startPolling = useCallback(() => {
     stopPolling()
@@ -67,17 +103,27 @@ export function useVideo() {
     }, 1000)
 
     isPollingRef.current = false
+    const capAttemptLifecycle = (reason: string) => {
+      if (token !== generationTokenRef.current) return
+      isPollingRef.current = false
+      stopPolling()
+      markGenerationAborted(reason)
+      setError(reason)
+      setStatus('failed')
+    }
     pollRef.current = setInterval(async () => {
       if (cancelledRef.current) return
       if (isPollingRef.current) return
       if (signal.aborted) return
       isPollingRef.current = true
       attemptsRef.current += 1
+      // Overall deadline from queue success — replaces the ~10-minute budget.
+      if (startedAtRef.current && Date.now() - startedAtRef.current > MAX_GENERATION_MS) {
+        capAttemptLifecycle('Video generation exceeded the 2-minute budget. Cancel and try again.')
+        return
+      }
       if (attemptsRef.current > MAX_ATTEMPTS) {
-        isPollingRef.current = false
-        stopPolling()
-        setError('Generation took too long. Cancel and try again, or check your Venice dashboard.')
-        setStatus('failed')
+        capAttemptLifecycle('Generation took too long. Cancel and try again, or check your Venice dashboard.')
         return
       }
       try {
@@ -94,22 +140,49 @@ export function useVideo() {
         if (result.data.status === 'completed' && result.data.video_url) {
           setVideoUrl(result.data.video_url)
           stopPolling()
+          // Mark the queue log successful so the Traffic Inspector entry stops
+          // appearing as "in-progress" once the result lands.
+          const logId = currentLogIdRef.current
+          if (logId) {
+            const durationMs = startedAtRef.current ? Date.now() - startedAtRef.current : undefined
+            useInspectorStore.getState().updateLog(logId, {
+              callOutcome: 'success',
+              status: 200,
+              durationMs,
+            })
+            currentLogIdRef.current = null
+          }
         } else if (result.data.status === 'failed') {
           setError(toUserFacingVideoError(result.data.error, 'Video generation failed'))
           stopPolling()
+          const logId = currentLogIdRef.current
+          if (logId) {
+            const durationMs = startedAtRef.current ? Date.now() - startedAtRef.current : undefined
+            useInspectorStore.getState().updateLog(logId, {
+              callOutcome: 'error',
+              errorClass: 'server',
+              error: toUserFacingVideoError(result.data.error, 'Video generation failed'),
+              durationMs,
+            })
+            currentLogIdRef.current = null
+          }
         }
       } catch (err) {
         if (token !== generationTokenRef.current) return
         if (err instanceof DOMException && err.name === 'AbortError') return
         if (attemptsRef.current >= MAX_ATTEMPTS) {
-          setError(toUserFacingVideoError(err, 'Polling failed'))
-          stopPolling()
+          capAttemptLifecycle('Generation took too long. Cancel and try again, or check your Venice dashboard.')
+          return
+        }
+        if (startedAtRef.current && Date.now() - startedAtRef.current > MAX_GENERATION_MS) {
+          capAttemptLifecycle('Video generation exceeded the 2-minute budget. Cancel and try again.')
+          return
         }
       } finally {
         isPollingRef.current = false
       }
     }, POLL_INTERVAL_MS)
-  }, [stopPolling])
+  }, [stopPolling, markGenerationAborted])
 
   const queueMutation = useMutation({
     mutationFn: async (req: VideoQueueRequest) => {
@@ -134,10 +207,36 @@ export function useVideo() {
       setStatus('queued')
       setVideoUrl(null)
       setError(null)
+      // Record our own inspector log entry so cancel / deadline paths have a
+      // stable id to mark `aborted` even if veniceFetch's internal log is
+      // updated out from under the hook. We mark it `completed:false`
+      // straight away and clear it on success.
+      try {
+        const logId = useInspectorStore.getState().addLog({
+          endpoint: '/video/queue',
+          method: 'POST',
+          transport: 'venice',
+          requestHeaders: {},
+          requestBody: variables,
+        })
+        currentLogIdRef.current = logId
+        useInspectorStore.getState().updateLog(logId, { callOutcome: 'pending' })
+      } catch {
+        currentLogIdRef.current = null
+      }
       startPolling()
     },
     onError: (err) => {
       if (err instanceof DOMException && err.name === 'AbortError') return
+      const logId = currentLogIdRef.current
+      if (logId) {
+        useInspectorStore.getState().updateLog(logId, {
+          callOutcome: 'error',
+          errorClass: 'client',
+          error: toUserFacingVideoError(err, 'Queue failed'),
+        })
+        currentLogIdRef.current = null
+      }
       setError(toUserFacingVideoError(err, 'Queue failed'))
       setStatus('failed')
     },
@@ -149,6 +248,7 @@ export function useVideo() {
     abortControllerRef.current.abort()
     abortControllerRef.current = new AbortController()
     stopPolling()
+    markGenerationAborted('Cancelled by user')
     setStatus('idle')
     setError(null)
     setQueueId(null)
@@ -156,7 +256,7 @@ export function useVideo() {
     requestIdRef.current = null
     startedAtRef.current = null
     setElapsedMs(0)
-  }, [stopPolling])
+  }, [stopPolling, markGenerationAborted])
 
   const reset = useCallback(() => {
     cancel()

@@ -84,3 +84,8 @@ docs/AGENTS/venice-forge-privacy-summary-*.json
 # Local runtime logs
 venice-forge.log
 *.log
+
+# Upstream-agent transcript dump (not source). Failed the clean-repo-secret scan
+# on heuristic sk-/vn- matches inside prior agent tool-call JSON. Untracked at
+# HEAD; kept on disk for forensic continuity until explicitly purged.
+/patch_*.txt

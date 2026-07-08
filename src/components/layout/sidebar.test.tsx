@@ -168,17 +168,17 @@ describe('Sidebar controls', () => {
     expect(useChatStore.getState().conversations).toHaveLength(1)
   })
 
-  it('makes Developer Mode visible by opening the Inspector', () => {
+  it('makes Traffic Inspector visible by opening the Inspector', () => {
     render(<Sidebar />)
-    fireEvent.click(screen.getByRole('switch', { name: 'Toggle Developer Mode' }))
+    fireEvent.click(screen.getByRole('switch', { name: 'Toggle Traffic Inspector' }))
     expect(useSettingsStore.getState()).toMatchObject({ redTeamMode: true, showInspector: true })
   })
 
-  it('places a working Family Safe Mode switch below Developer Mode', () => {
+  it('places a working Family Safe Mode switch below Traffic Inspector', () => {
     render(<Sidebar />)
     const switches = screen.getAllByRole('switch')
     expect(switches.map((item) => item.getAttribute('aria-label'))).toEqual([
-      'Toggle Developer Mode',
+      'Toggle Traffic Inspector',
       'Toggle Family Safe Mode',
     ])
 
@@ -285,7 +285,7 @@ describe('Sidebar controls', () => {
   it('renders footer controls without overlap indicators and uses semantic layout classes', () => {
     const { container } = render(<Sidebar />)
 
-    expect(screen.getByRole('switch', { name: 'Toggle Developer Mode' })).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Toggle Traffic Inspector' })).toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'Toggle Family Safe Mode' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Show Inspector/i })).toBeInTheDocument()
     expect(screen.getByText('New chat')).toBeInTheDocument()

@@ -297,6 +297,12 @@ export function getSecureStoreStatus(): {
 
 
 // ── Generic Credential Storage (Master Password, Profile Secrets) ──
+// Master password and any other "generic credential" follows the same
+// fail-closed contract as the Venice / Jina API key slot: on platforms
+// where OS encryption is unavailable (Linux without a Secret Service,
+// or any future unencrypted path) we MUST obtain an explicit
+// VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true opt-in before writing
+// or reading plaintext. Otherwise the credential is unreachable.
 
 /** Encrypts and stores a generic credential. */
 export function setCredential(key: string, value: string): void {
@@ -311,6 +317,14 @@ export function setCredential(key: string, value: string): void {
     if (process.platform === "win32" || process.platform === "darwin") {
       throw new Error("Native credential storage unavailable.");
     }
+    if (!isPlaintextFallbackAllowed()) {
+      throw new Error(
+        "OS secure storage is unavailable. Set VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true to allow documented plaintext fallback (Linux-only, emits security warning).",
+      );
+    }
+    console.warn(
+      `[SECURITY] Using plaintext storage for credential "${key}" because OS secure storage (safeStorage) is unavailable. Linux-only escape hatch — do not enable on untrusted machines.`,
+    );
     store[k] = value;
     store[ke] = "false";
   }
@@ -337,6 +351,11 @@ export function getCredential(key: string): string | null {
   }
 
   if (process.platform === "win32" || process.platform === "darwin") {
+    return null;
+  }
+  // Even on Linux, plaintext credential reads require the same explicit
+  // opt-in as writes — never silently expose a plaintext blob.
+  if (!isPlaintextFallbackAllowed()) {
     return null;
   }
   return raw;

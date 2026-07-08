@@ -8,6 +8,8 @@ import type { DiagnosticsEntry } from "../../types/venice";
 import { maybeRunLocalFamilyGuard, SafetyGuardBlockedError } from "../../shared/safety";
 import {
   buildInspectorTelemetryPatch,
+  classifyInspectorError,
+  deriveCallOutcome,
   deriveGuardOutcome,
   maskInspectorHeaders,
   sanitizeInspectorPayload,
@@ -443,12 +445,31 @@ export async function veniceFetch<T = unknown>(
         }),
       );
 
-      // Output screening for web mode (Electron already does this in guardPipeline.ts)
-      if (!isElectron()) {
-        const _serialized = typeof result.data === "string" ? result.data : JSON.stringify(result.data ?? "");
-        // In fetch.ts, screenResponseBody is imported from safety.ts (which exports it)
-        // Wait, is screenResponseBody exported from src/shared/safety/index.ts?
-        // Let's assume yes and import it.
+      // Output screening for web mode (Electron already does this in guardPipeline.ts).
+      // Only POST responses carry user content worth screening; GETs (models, lists)
+      // are skipped to avoid scanning provider metadata.
+      if (!isElectron() && method === "POST") {
+        const serialized = typeof result.data === "string"
+          ? result.data
+          : safeInspectorError(result.data);
+        const safeMode = useSettingsStore.getState().localFamilySafeModeEnabled;
+        const decision = maybeRunLocalFamilyGuard(
+          { endpoint, method, text: serialized, source: "venice-client" },
+          safeMode,
+        );
+        if (!decision.allowed && !decision.skipped) {
+          useInspectorStore.getState().updateLog(
+            logId,
+            buildInspectorTelemetryPatch({
+              status: 451,
+              durationMs: Date.now() - startedAt,
+              previewDurationMs,
+              guardOutcome: "block",
+              error: decision.userMessage,
+            }),
+          );
+          throw new SafetyGuardBlockedError(decision.guardDecision);
+        }
       }
       return result as { data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> };
     } catch (err: unknown) {
@@ -561,10 +582,12 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
   });
   return new Blob([bytes], { type: response.contentType });
   } catch (error) {
+    const errAny = error as { status?: number; message?: string };
+    const errorClass = classifyInspectorError(errAny.status, errAny.message);
     useInspectorStore.getState().updateLog(logId, {
-      callOutcome: "error",
-      errorClass: "client", // fallback to client for unknown
-      error: String(error),
+      callOutcome: deriveCallOutcome(errAny.status, errorClass) ?? "error",
+      errorClass,
+      error: safeInspectorError(error),
       durationMs: Date.now() - startedAt,
     });
     throw error;
@@ -662,10 +685,12 @@ export async function veniceFormData<T>(path: string, formData: FormData, init: 
   });
   return response.body as T;
   } catch (error) {
+    const errAny = error as { status?: number; message?: string };
+    const errorClass = classifyInspectorError(errAny.status, errAny.message);
     useInspectorStore.getState().updateLog(logId, {
-      callOutcome: "error",
-      errorClass: "client", // fallback to client for unknown
-      error: String(error),
+      callOutcome: deriveCallOutcome(errAny.status, errorClass) ?? "error",
+      errorClass,
+      error: safeInspectorError(error),
       durationMs: Date.now() - startedAt,
     });
     throw error;

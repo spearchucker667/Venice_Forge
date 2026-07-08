@@ -97,9 +97,12 @@ export interface CharacterCardV1 {
   exampleDialogues: CharacterExampleDialogue[];
   /** Optional avatar. */
   avatar?: CharacterCardAvatar;
-  
+
   // Special Character Settings
   contextFiles?: CharacterContextFile[];
+  /** Free-form creator instructions injected before the system prompt.
+   *  Optional additive field — older CharacterCardV1 records load unchanged. */
+  instructions?: string;
   webSearch?: boolean;
   urlScraping?: boolean;
   enableThoughts?: boolean;

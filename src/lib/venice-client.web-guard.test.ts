@@ -25,9 +25,18 @@ vi.mock("../stores/inspector-store", () => ({
 
 vi.mock("../services/inspectorTelemetry", () => ({
   buildInspectorTelemetryPatch: vi.fn(() => ({})),
+  classifyInspectorError: vi.fn((_status?: number, error?: unknown) => (
+    typeof error === "string" && error.includes("Family Safe") ? "safety-block" : "client"
+  )),
+  deriveCallOutcome: vi.fn(() => "error"),
   deriveGuardOutcome: vi.fn(() => "allow"),
   maskInspectorHeaders: vi.fn((h: unknown) => h),
   sanitizeInspectorPayload: vi.fn((p: unknown) => p),
+  safeInspectorError: vi.fn((err: unknown) => {
+    if (err instanceof Error) return err.message;
+    if (typeof err === "string") return err;
+    return "mock safe error";
+  }),
   getSafetyDecisionForLog: vi.fn(() => ({ decision: null, previewDurationMs: 0 })),
 }));
 

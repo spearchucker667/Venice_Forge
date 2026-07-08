@@ -193,11 +193,15 @@ describe("SettingsView safety toggles", () => {
       },
     });
   });
-
-  it("toggles Family Safe Mode and reverts with a toast when persistence fails", async () => {
+  it("opens the master password dialog on Family Safe Mode toggle (force setup gate)", async () => {
+    // After the force-setup hardening (#3), clicking the Family Safe Mode
+    // checkbox must NOT mutate state directly. Instead it must open the
+    // MasterPasswordDialog. This is the regression guard for the silent-toggle
+    // bypass that previously allowed an attacker with physical app access to
+    // flip Family Safe Mode off without ever proving they know the master
+    // password.
     vi.mocked(isElectron).mockReturnValue(true);
-    vi.mocked(desktopConfig.writeSanitized).mockResolvedValue({ ok: false, error: "Disk full" });
-    const errorSpy = vi.spyOn(toast, "error");
+    useSettingsStore.setState({ localFamilySafeModeEnabled: true });
 
     render(<SettingsView />);
     fireEvent.click(screen.getByRole("button", { name: "Safety" }));
@@ -209,8 +213,9 @@ describe("SettingsView safety toggles", () => {
 
     fireEvent.click(familyToggle);
 
-    await waitFor(() => expect(desktopConfig.writeSanitized).toHaveBeenCalled());
-    await waitFor(() => expect(errorSpy).toHaveBeenCalledWith("Disk full"));
+    // Dialog must appear, and the toggle must NOT have persisted by itself.
+    expect(await screen.findByText("Set Master Password")).toBeInTheDocument();
+    expect(desktopConfig.writeSanitized).not.toHaveBeenCalled();
     expect(useSettingsStore.getState().localFamilySafeModeEnabled).toBe(true);
   });
 
