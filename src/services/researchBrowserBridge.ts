@@ -32,8 +32,9 @@ export const researchBrowserBridge: ResearchBrowserPreloadApi = {
   reload: async () => window.veniceForge?.researchBrowser?.reload() ?? { ok: false, state: getWebFallbackState(), error: "Unavailable in web mode" },
   stop: async () => window.veniceForge?.researchBrowser?.stop() ?? { ok: false, state: getWebFallbackState(), error: "Unavailable in web mode" },
   getState: async () => window.veniceForge?.researchBrowser?.getState() ?? { ok: false, state: getWebFallbackState(), error: "Unavailable in web mode" },
-  openExternal: async (url) => window.veniceForge?.researchBrowser?.openExternal(url) ?? { ok: false, error: "Unavailable in web mode" },
+  requestOpenInSystemBrowser: async (url) => window.veniceForge?.researchBrowser?.requestOpenInSystemBrowser(url) ?? { ok: false, error: "Unavailable in web mode" },
   scrapeCurrent: async () => window.veniceForge?.researchBrowser?.scrapeCurrent() ?? { ok: false, error: "Unavailable in web mode" },
+  setTheme: async (themeVars) => window.veniceForge?.researchBrowser?.setTheme(themeVars) ?? { ok: false, error: "Unavailable in web mode" },
   captureMetadata: async () => window.veniceForge?.researchBrowser?.captureMetadata() ?? { ok: false, error: "Unavailable in web mode" },
   onStateChanged: (callback) => {
     if (window.veniceForge?.researchBrowser?.onStateChanged) {

@@ -1,6 +1,5 @@
 import React from "react";
 import { Field } from "../../components/Field";
-import { safeHref } from "./searchScrapeUtils";
 import type { SearchResultItem } from "./searchScrapeTypes";
 import { isElectron } from "../../services/desktopBridge";
 import { isTrustedExternalUrl } from "../../shared/urlSecurity";
@@ -17,7 +16,7 @@ export function SearchTab({
   onScrapeWithVenice,
   onReadWithJina,
   onSaveToSession,
-  onOpenExternal,
+  onRequestOpenInSystemBrowser,
 }: {
   query: string;
   setQuery: (val: string) => void;
@@ -30,7 +29,7 @@ export function SearchTab({
   onScrapeWithVenice?: (url: string) => void;
   onReadWithJina?: (url: string) => void;
   onSaveToSession?: (item: SearchResultItem) => void;
-  onOpenExternal?: (url: string) => void;
+  onRequestOpenInSystemBrowser?: (url: string) => void;
 }) {
   return (
     <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg flex flex-col gap-4">
@@ -73,9 +72,23 @@ export function SearchTab({
               <strong className="text-text-primary block mb-1">
                 {r.title || r.name || "Untitled result"}
               </strong>
-              <a href={safeHref(url)} target="_blank" rel="noreferrer" className="text-accent hover:underline break-all text-[11px] block mb-2">
-                {url}
-              </a>
+              {onOpenInBrowser ? (
+                <button
+                  type="button"
+                  onClick={() => onOpenInBrowser(url)}
+                  className="text-accent hover:underline break-all text-[11px] block mb-2 text-left cursor-pointer"
+                >
+                  {url}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onRequestOpenInSystemBrowser && onRequestOpenInSystemBrowser(url)}
+                  className="text-accent hover:underline break-all text-[11px] block mb-2 text-left cursor-pointer"
+                >
+                  {url}
+                </button>
+              )}
               <div className="text-text-secondary leading-relaxed mb-2">
                 {r.snippet || r.content || r.description || ""}
               </div>
@@ -112,9 +125,9 @@ export function SearchTab({
                     Save to session
                   </button>
                 )}
-                {onOpenExternal && isTrustedExternalUrl(url) && (
+                {onRequestOpenInSystemBrowser && isTrustedExternalUrl(url) && (
                   <button
-                    onClick={() => onOpenExternal(url)}
+                    onClick={() => onRequestOpenInSystemBrowser(url)}
                     className="px-2 py-1 rounded bg-surface-elevated border border-border text-[11px] hover:bg-surface-muted transition-colors"
                   >
                     Open external

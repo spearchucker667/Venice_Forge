@@ -203,6 +203,10 @@ npm run verify:contracts
 
 # 5. Build production bundles
 npm run build
+
+# 6. Verify release packaging hardening (Phase 2J) and dist output
+npm run verify:release-packaging-hardening
+npm run verify:dist
 ```
 
 ---

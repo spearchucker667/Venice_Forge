@@ -1,4 +1,5 @@
 import { BrowserWindow, WebContentsView, ipcMain, session, app, Menu, clipboard } from "electron";
+import { getResearchHomeDataUrl, isInternalResearchHomeUrl, ResearchBrowserThemeVars } from "./researchBrowserHome";
 import type { 
   ResearchBrowserState, 
   ResearchBrowserBoundsInput, 
@@ -14,101 +15,7 @@ let currentBounds: ResearchBrowserBoundsInput | null = null;
 let researchViewAttached = false;
 
 let lastBlockedError: string | null = null;
-
 const INTERNAL_RESEARCH_HOME_DISPLAY = "Venice Research Home";
-
-function buildResearchBrowserHomeHtml(): string {
-  return `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; font-src 'none'; script-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none';">
-  <title>${INTERNAL_RESEARCH_HOME_DISPLAY}</title>
-  <style>
-    :root {
-      color-scheme: light dark;
-      --vf-bg: var(--surface-sunken, #f7f8fb);
-      --vf-panel: var(--surface-raised, #ffffff);
-      --vf-text: var(--text-primary, #172033);
-      --vf-muted: var(--text-muted, #5d697d);
-      --vf-accent: var(--brand-primary, #b42318);
-      --vf-border: var(--border-subtle, #d7dce5);
-      --vf-link-bg: color-mix(in srgb, var(--vf-accent) 10%, transparent);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --vf-bg: var(--surface-sunken, #101318);
-        --vf-panel: var(--surface-raised, #171c24);
-        --vf-text: var(--text-primary, #eef2f7);
-        --vf-muted: var(--text-muted, #a9b3c2);
-        --vf-accent: var(--brand-primary, #f97066);
-        --vf-border: var(--border-subtle, #2d3542);
-      }
-    }
-    * { box-sizing: border-box; }
-    html, body { min-height: 100%; margin: 0; }
-    body {
-      display: grid;
-      place-items: center;
-      padding: 24px;
-      background: var(--vf-bg);
-      color: var(--vf-text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-    main {
-      width: min(520px, 100%);
-      padding: 22px;
-      border: 1px solid var(--vf-border);
-      border-radius: 8px;
-      background: var(--vf-panel);
-    }
-    h1 { margin: 0; font-size: 1.35rem; line-height: 1.2; letter-spacing: 0; }
-    p { margin: 8px 0 0; color: var(--vf-muted); font-size: 0.94rem; line-height: 1.45; }
-    nav {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
-      gap: 8px;
-      margin-top: 18px;
-    }
-    a {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 38px;
-      padding: 8px 10px;
-      border: 1px solid var(--vf-border);
-      border-radius: 6px;
-      background: var(--vf-link-bg);
-      color: var(--vf-text);
-      font-size: 0.88rem;
-      font-weight: 650;
-      text-decoration: none;
-    }
-    a:focus-visible { outline: 2px solid var(--vf-accent); outline-offset: 2px; }
-  </style>
-</head>
-<body>
-  <main>
-    <h1>Research Browser</h1>
-    <p>Search or open a site from the address bar.</p>
-    <nav aria-label="Research Browser quick links">
-      <a href="https://www.google.com/">Google</a>
-      <a href="https://search.brave.com/">Brave</a>
-      <a href="https://duckduckgo.com/">DuckDuckGo</a>
-      <a href="https://venice.ai/">Venice</a>
-      <a href="https://jina.ai/">Jina</a>
-    </nav>
-  </main>
-</body>
-</html>`;
-}
-
-const researchHomeDataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(buildResearchBrowserHomeHtml())}`;
-
-function isInternalResearchHomeUrl(url: string): boolean {
-  return url === researchHomeDataUrl;
-}
 
 function attachResearchView(): void {
   if (!mainWindowRef || mainWindowRef.isDestroyed() || !researchView || researchViewAttached) return;
@@ -504,7 +411,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     });
 
     try {
-      await wc.loadURL(researchHomeDataUrl);
+      await wc.loadURL(getResearchHomeDataUrl());
     } catch {
       wc.loadURL("about:blank");
     }
@@ -714,8 +621,22 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     return { ok: true, state: getViewState() };
   });
 
-  handleIpc("researchBrowser:openExternal", async (_event, url: string) => {
+  handleIpc("researchBrowser:setTheme", async (_event, themeVars: Record<string, string>) => {
+    if (!researchView) return { ok: false, error: "Not created" };
+    // Only reload the home page if we're currently looking at it
+    const currentUrl = researchView.webContents.getURL();
+    if (isInternalResearchHomeUrl(currentUrl)) {
+      await researchView.webContents.loadURL(getResearchHomeDataUrl(themeVars as unknown as ResearchBrowserThemeVars));
+    }
+    return { ok: true };
+  });
+
+  handleIpc("researchBrowser:requestOpenInSystemBrowser", async (_event, url: string) => {
     if (typeof url !== "string") return { ok: false, error: "Invalid url type" };
+    const config = getCurrentConfig();
+    if (!config.research.liveBrowserAllowExternalOpen) {
+      return { ok: false, error: "External open is disabled by configuration" };
+    }
     if (!mainWindowRef || mainWindowRef.isDestroyed()) return { ok: false, error: "Window unavailable" };
     if (!isTrustedExternalUrl(url)) {
       return { ok: false, error: "Blocked URL" };

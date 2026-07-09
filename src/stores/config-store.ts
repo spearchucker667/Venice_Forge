@@ -75,6 +75,7 @@ export interface SanitizedConfigSnapshot {
     default_provider: "venice" | "jina" | "auto";
     enable_jina: boolean;
     enable_social_discovery: boolean;
+    liveBrowserAllowExternalOpen?: boolean;
   };
   characters: {
     enabled: boolean;

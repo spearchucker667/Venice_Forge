@@ -15,9 +15,10 @@ const bridge = vi.hoisted(() => ({
   reload: vi.fn(),
   stop: vi.fn(),
   getState: vi.fn(),
-  openExternal: vi.fn(),
+  requestOpenInSystemBrowser: vi.fn(),
   scrapeCurrent: vi.fn(),
   captureMetadata: vi.fn(),
+  setTheme: vi.fn(),
   onStateChanged: vi.fn(),
 }));
 
@@ -103,6 +104,8 @@ describe("ResearchBrowserView", () => {
     bridge.setBounds.mockResolvedValue({ ok: true });
     bridge.navigate.mockResolvedValue({ ok: true, state: readyState });
     bridge.getState.mockResolvedValue({ ok: true, state: readyState });
+    bridge.setTheme.mockResolvedValue({ ok: true });
+    bridge.requestOpenInSystemBrowser.mockResolvedValue({ ok: true });
     bridge.onStateChanged.mockReturnValue(vi.fn());
     globalThis.ResizeObserver = TestResizeObserver;
     installRectMock();

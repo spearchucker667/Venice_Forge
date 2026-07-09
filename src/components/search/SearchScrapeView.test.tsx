@@ -81,7 +81,7 @@ vi.mock('../../services/researchService', () => ({
 // call navigate directly when "Open in Browser" is clicked.
 const mockBridge = vi.hoisted(() => ({
   navigate: vi.fn(),
-  openExternal: vi.fn(),
+  requestOpenInSystemBrowser: vi.fn(),
 }));
 vi.mock('../../services/researchBrowserBridge', () => ({
   researchBrowserBridge: mockBridge,

@@ -116,7 +116,7 @@ for (const token of ["researchBudget", "maxQueries", "maxResultsPerQuery", "maxP
 console.log("✅ AiResearchTab budget controls verified.");
 
 const searchTab = readFileSync("src/components/search/SearchTab.tsx", "utf8");
-for (const token of ["onOpenInBrowser", "onOpenExternal", "isTrustedExternalUrl"]) {
+for (const token of ["onOpenInBrowser", "onRequestOpenInSystemBrowser", "isTrustedExternalUrl"]) {
   if (!searchTab.includes(token)) {
     console.error(`[verify:research-browser] SearchTab missing token: ${token}`);
     process.exit(1);

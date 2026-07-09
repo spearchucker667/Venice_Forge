@@ -118,7 +118,22 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
-- **2026-07-09 Research Browser Elastic Layout / Internal Home / Real Browsing Policy Fix — COMPLETE (current session):**
+- **2026-07-09 Research Browser Theme-Driven Splash & External Navigation Containment — COMPLETE (current session):**
+
+  Fixed the final set of issues with the Research Browser to ensure it behaves as a fully embedded component:
+  1. **Browser Traffic Containment:** Replaced direct usage of `openExternal` across the app with `requestOpenInSystemBrowser`, which is gated by the `research.liveBrowserAllowExternalOpen` configuration (default false). Updated `SearchTab.tsx` fallback links to use secure system browser open requests instead of unrestricted `target="_blank"`. Added `scripts/verify-browser-traffic-contained.cjs` (VERIFY-068) to statically enforce this boundary.
+  2. **Theme-Driven Splash Screen:** Connected the `researchBrowserBridge.setTheme` IPC to the application theme using a `MutationObserver` on `document.documentElement` styles in `ResearchBrowserView.tsx`. The native browser shell's splash screen now dynamically tracks theme changes (`vfBg`, `vfPanel`, `vfText`, `vfMuted`, `vfAccent`, `vfBorder`).
+  3. **Elastic UI/Mesh Integration:** Updated `ResearchBrowserView.tsx` to observe `visualViewport` events (`resize`, `scroll`) in addition to `ResizeObserver` on elements, ensuring the bounds stay correct. Layout uses `mesh-panel` CSS tokens correctly.
+  4. **Regression Handling:** Fixed TypeScript errors introduced in earlier refactors (e.g. `INTERNAL_RESEARCH_HOME_DISPLAY` and `ResearchBrowserThemeVars` typings). Verified all fixes with full CI testing.
+
+  **Validation:**
+  - `npm run lint:eslint` — PASS.
+  - `npm run typecheck` — PASS.
+  - `npm run verify:browser-traffic-contained` — PASS.
+  - `npm run test:electron` — PASS.
+  - Visual verification via tests that bounds tracking observes theme changes.
+
+- **2026-07-09 Research Browser Elastic Layout / Internal Home / Real Browsing Policy Fix — COMPLETE (previous session):**
 
   Fixed the next headed Electron Research Browser failure after the `WebContentsView` primitive and coordinate-space fix: the browser panel still used fixed viewport-height math, displayed the internal splash as a local filesystem/debug URL, and over-applied navigation policy to page resources/popups in ways that could make normal HTTPS sites feel non-interactive.
 

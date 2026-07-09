@@ -81,8 +81,9 @@ export interface ResearchBrowserPreloadApi {
   reload(): Promise<{ ok: boolean; state?: ResearchBrowserState; error?: string }>;
   stop(): Promise<{ ok: boolean; state?: ResearchBrowserState; error?: string }>;
   getState(): Promise<{ ok: boolean; state?: ResearchBrowserState; error?: string }>;
-  openExternal(url: string): Promise<{ ok: boolean; error?: string }>;
+  requestOpenInSystemBrowser(url: string): Promise<{ ok: boolean; error?: string }>;
   scrapeCurrent(): Promise<{ ok: boolean; source?: ResearchBrowserScrapeResult; error?: string }>;
+  setTheme(themeVars: Record<string, string>): Promise<{ ok: boolean; error?: string }>;
   captureMetadata(): Promise<{ ok: boolean; metadata?: ResearchBrowserPageMetadata; error?: string }>;
   onStateChanged(callback: (state: ResearchBrowserState) => void): () => void;
 }

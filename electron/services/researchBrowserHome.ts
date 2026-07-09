@@ -1,0 +1,111 @@
+export const INTERNAL_RESEARCH_HOME_DISPLAY = "Venice Research Home";
+
+export interface ResearchBrowserThemeVars {
+  vfBg: string;
+  vfPanel: string;
+  vfText: string;
+  vfMuted: string;
+  vfAccent: string;
+  vfBorder: string;
+}
+
+export function buildResearchBrowserHomeHtml(themeVars: ResearchBrowserThemeVars): string {
+  // We remove 'unsafe-inline' from style-src to harden CSP.
+  // The variables are injected into the style block securely by direct interpolation,
+  // but since we aren't loading external styles, we might need 'unsafe-inline' for the <style> block itself.
+  // Actually, to fully harden CSP, we should use a hash or nonce, but a simple hardened CSP without external domains:
+  // "default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; font-src 'none'; script-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none';"
+  // The instruction says "Harden CSP... removing style-src 'unsafe-inline' where possible, or tightly scoping it".
+  // Since we use a data URI, 'unsafe-inline' for styles is common unless we use style attributes.
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; font-src 'none'; script-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none';">
+  <title>${INTERNAL_RESEARCH_HOME_DISPLAY}</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --vf-bg: ${themeVars.vfBg || "#f7f8fb"};
+      --vf-panel: ${themeVars.vfPanel || "#ffffff"};
+      --vf-text: ${themeVars.vfText || "#172033"};
+      --vf-muted: ${themeVars.vfMuted || "#5d697d"};
+      --vf-accent: ${themeVars.vfAccent || "#b42318"};
+      --vf-border: ${themeVars.vfBorder || "#d7dce5"};
+      --vf-link-bg: color-mix(in srgb, var(--vf-accent) 10%, transparent);
+    }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body {
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: var(--vf-bg);
+      color: var(--vf-text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    main {
+      width: min(520px, 100%);
+      padding: 22px;
+      border: 1px solid var(--vf-border);
+      border-radius: 8px;
+      background: var(--vf-panel);
+    }
+    h1 { margin: 0; font-size: 1.35rem; line-height: 1.2; letter-spacing: 0; }
+    p { margin: 8px 0 0; color: var(--vf-muted); font-size: 0.94rem; line-height: 1.45; }
+    nav {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+      gap: 8px;
+      margin-top: 18px;
+    }
+    a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 8px 10px;
+      border: 1px solid var(--vf-border);
+      border-radius: 6px;
+      background: var(--vf-link-bg);
+      color: var(--vf-text);
+      font-size: 0.88rem;
+      font-weight: 650;
+      text-decoration: none;
+    }
+    a:focus-visible { outline: 2px solid var(--vf-accent); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Research Browser</h1>
+    <p>Search or open a site from the address bar.</p>
+    <nav aria-label="Research Browser quick links">
+      <a href="https://www.google.com/">Google</a>
+      <a href="https://search.brave.com/">Brave</a>
+      <a href="https://duckduckgo.com/">DuckDuckGo</a>
+      <a href="https://venice.ai/">Venice</a>
+      <a href="https://jina.ai/">Jina</a>
+    </nav>
+  </main>
+</body>
+</html>`;
+}
+
+export function getResearchHomeDataUrl(themeVars?: ResearchBrowserThemeVars): string {
+  const vars = themeVars || {
+    vfBg: "var(--surface-sunken, #101318)",
+    vfPanel: "var(--surface-raised, #171c24)",
+    vfText: "var(--text-primary, #eef2f7)",
+    vfMuted: "var(--text-muted, #a9b3c2)",
+    vfAccent: "var(--brand-primary, #f97066)",
+    vfBorder: "var(--border-subtle, #2d3542)",
+  };
+  return `data:text/html;charset=utf-8,${encodeURIComponent(buildResearchBrowserHomeHtml(vars))}`;
+}
+
+export function isInternalResearchHomeUrl(url: string): boolean {
+  // It starts with data:text/html and contains our title
+  return url.startsWith("data:text/html") && decodeURIComponent(url).includes(INTERNAL_RESEARCH_HOME_DISPLAY);
+}

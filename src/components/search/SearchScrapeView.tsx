@@ -30,6 +30,7 @@ import { runResearchScrape } from "../../services/researchService";
 import { researchBrowserBridge } from "../../services/researchBrowserBridge";
 import { isElectron } from "../../services/desktopBridge";
 import { isTrustedExternalUrl } from "../../shared/urlSecurity";
+import { useConfigStore } from "../../stores/config-store";
 
 import { DEFAULT_CHAT_MODEL } from "../../constants/venice";
 
@@ -42,6 +43,7 @@ export function SearchScrapeView() {
   const selectedModel = useSettingsStore((s) => s.selectedModels.chat) || DEFAULT_CHAT_MODEL;
   const localFamilySafeModeEnabled = useSettingsStore((s) => s.localFamilySafeModeEnabled);
   const veniceKeyConfigured = useAuthStore((s) => s.isConfigured);
+  const allowExternalOpen = useConfigStore((s) => s.config?.research.liveBrowserAllowExternalOpen ?? false);
 
   function requireVeniceApiKey(where: string): boolean {
     if (veniceKeyConfigured) return true;
@@ -468,13 +470,14 @@ export function SearchScrapeView() {
                   });
                   toast.success("Saved to active research session");
                 }}
-                onOpenExternal={async (url) => {
+                onRequestOpenInSystemBrowser={allowExternalOpen ? async (url) => {
                   if (isElectron()) {
-                    await researchBrowserBridge.openExternal(url);
+                    await researchBrowserBridge.requestOpenInSystemBrowser(url);
                   } else if (isTrustedExternalUrl(url)) {
+                    // Only allowed if config is enabled
                     window.open(url, "_blank", "noopener,noreferrer");
                   }
-                }}
+                } : undefined}
               />
               <ScrapeTab
                 url={url}

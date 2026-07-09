@@ -141,6 +141,7 @@ vi.mock("./configService", () => ({
     research: {
       live_browser_persist_session: true,
       live_browser_javascript_enabled: true,
+      liveBrowserAllowExternalOpen: true,
       max_browser_extract_chars: 40_000,
     },
   })),
@@ -188,7 +189,7 @@ describe("Research Browser Server Main Process Integration", () => {
       "researchBrowser:reload",
       "researchBrowser:stop",
       "researchBrowser:getState",
-      "researchBrowser:openExternal",
+      "researchBrowser:requestOpenInSystemBrowser",
       "researchBrowser:scrapeCurrent",
       "researchBrowser:captureMetadata",
     ];
@@ -523,7 +524,7 @@ describe("Research Browser Server Main Process Integration", () => {
 
   it("should restrict external navigation to trusted HTTPS destinations", async () => {
       const { dialog } = await import("electron");
-      const openExternalHandler = ipcHandlers.get("researchBrowser:openExternal");
+      const openExternalHandler = ipcHandlers.get("researchBrowser:requestOpenInSystemBrowser");
 
       // Blocked untrusted URL
       const untrustedResult = await openExternalHandler!(null, "http://untrusted.com");
@@ -539,7 +540,7 @@ describe("Research Browser Server Main Process Integration", () => {
 
     it("should not open trusted external links when confirmation is canceled", async () => {
       const { dialog, shell } = await import("electron");
-      const openExternalHandler = ipcHandlers.get("researchBrowser:openExternal");
+      const openExternalHandler = ipcHandlers.get("researchBrowser:requestOpenInSystemBrowser");
 
       vi.mocked(dialog.showMessageBox).mockResolvedValueOnce({ response: 1 } as any);
       const result = await openExternalHandler!(null, "https://trusted.com/home");

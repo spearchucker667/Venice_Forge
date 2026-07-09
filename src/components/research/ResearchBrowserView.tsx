@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { researchBrowserBridge } from "../../services/researchBrowserBridge";
+import { useConfigStore } from "../../stores/config-store";
 import type {
   ResearchBrowserBoundsTelemetry,
   ResearchBrowserRectTelemetry,
@@ -103,6 +104,7 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   // Track whether the initialUrl has been consumed so it is only navigated once.
   const initialUrlConsumedRef = useRef(false);
+  const allowExternalOpen = useConfigStore((s) => s.config?.research.liveBrowserAllowExternalOpen ?? false);
   const browserAvailable = browserState !== null && browserState.error !== "Unavailable in web mode";
 
   const updateAddressFromState = (state: ResearchBrowserState) => {
@@ -177,6 +179,36 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
   }, []);
 
   useEffect(() => {
+    if (!browserAvailable) return;
+    const updateTheme = () => {
+      const root = document.documentElement;
+      const computed = getComputedStyle(root);
+      researchBrowserBridge.setTheme({
+        vfBg: computed.getPropertyValue("--surface").trim(),
+        vfPanel: computed.getPropertyValue("--surface-elevated").trim(),
+        vfText: computed.getPropertyValue("--text-primary").trim(),
+        vfMuted: computed.getPropertyValue("--text-muted").trim(),
+        vfAccent: computed.getPropertyValue("--accent").trim(),
+        vfBorder: computed.getPropertyValue("--border").trim(),
+      }).catch(() => {});
+    };
+
+    // Initial theme sync
+    updateTheme();
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === "attributes" && mutation.attributeName === "style") {
+          updateTheme();
+        }
+      }
+    });
+
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["style"] });
+    return () => observer.disconnect();
+  }, [browserAvailable]);
+
+  useEffect(() => {
     if (!browserAvailable || !shellRef.current || !toolbarRef.current || !viewportRef.current) return;
 
     let debounceTimer: ReturnType<typeof setTimeout>;
@@ -219,9 +251,6 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
     };
 
     updateBounds();
-    const handleWindowResize = () => {
-      void updateBounds();
-    };
 
     if (typeof ResizeObserver !== "undefined") {
       resizeObserverRef.current = new ResizeObserver(() => {
@@ -232,12 +261,21 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
       resizeObserverRef.current.observe(toolbarRef.current);
       resizeObserverRef.current.observe(viewportRef.current);
     }
-    window.addEventListener("resize", handleWindowResize);
+
+    window.addEventListener("resize", updateBounds);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", updateBounds);
+      window.visualViewport.addEventListener("scroll", updateBounds);
+    }
 
     return () => {
       clearTimeout(debounceTimer);
-      window.removeEventListener("resize", handleWindowResize);
       resizeObserverRef.current?.disconnect();
+      window.removeEventListener("resize", updateBounds);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", updateBounds);
+        window.visualViewport.removeEventListener("scroll", updateBounds);
+      }
       void researchBrowserBridge.setVisible(false);
     };
   }, [browserAvailable]);
@@ -259,9 +297,9 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
     }
   };
 
-  const handleOpenExternal = async () => {
+  const handleRequestOpenInSystemBrowser = async () => {
     if (!browserState?.url) return;
-    await researchBrowserBridge.openExternal(browserState.url);
+    await researchBrowserBridge.requestOpenInSystemBrowser(browserState.url);
   };
 
   if (browserState?.error === "Unavailable in web mode") {
@@ -371,10 +409,10 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
           )}
         </form>
 
-        {actualUrl && actualUrl.startsWith("http") && (
+        {allowExternalOpen && actualUrl && actualUrl.startsWith("http") && (
           <button
             className="p-1.5 rounded hover:bg-[var(--surface-hover)] transition-colors"
-            onClick={handleOpenExternal}
+            onClick={handleRequestOpenInSystemBrowser}
             title="Open in system browser"
             aria-label="Open in system browser"
           >

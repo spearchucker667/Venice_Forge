@@ -530,8 +530,9 @@ const veniceForge = {
     reload() { return ipcRenderer.invoke("researchBrowser:reload"); },
     stop() { return ipcRenderer.invoke("researchBrowser:stop"); },
     getState() { return ipcRenderer.invoke("researchBrowser:getState"); },
-    openExternal(url: string) { return ipcRenderer.invoke("researchBrowser:openExternal", url); },
+    requestOpenInSystemBrowser(url: string) { return ipcRenderer.invoke("researchBrowser:requestOpenInSystemBrowser", url); },
     scrapeCurrent() { return ipcRenderer.invoke("researchBrowser:scrapeCurrent"); },
+    setTheme(themeVars: Record<string, string>) { return ipcRenderer.invoke("researchBrowser:setTheme", themeVars); },
     captureMetadata() { return ipcRenderer.invoke("researchBrowser:captureMetadata"); },
     onStateChanged(callback: (state: ResearchBrowserState) => void) {
       const listener = (_event: Electron.IpcRendererEvent, state: ResearchBrowserState) => callback(state);
