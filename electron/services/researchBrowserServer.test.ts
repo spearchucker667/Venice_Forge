@@ -16,7 +16,6 @@ vi.mock("electron", () => {
     isLoading: vi.fn(() => false),
     on: vi.fn(),
     setWindowOpenHandler: vi.fn(),
-    loadFile: vi.fn(async () => {}),
     loadURL: vi.fn(async () => {}),
     goBack: vi.fn(),
     goForward: vi.fn(),
@@ -106,7 +105,17 @@ vi.mock("../security/researchBrowserNetworkPolicy", () => ({
 
 vi.mock("../utils/urlSecurity", () => ({
   isAllowedResearchBrowserUrl: vi.fn((url: string) => {
-    if (url.startsWith("file://") || url.startsWith("chrome://")) return false;
+    if (
+      url.startsWith("javascript:") ||
+      url.startsWith("file:") ||
+      url.startsWith("data:") ||
+      url.startsWith("chrome:") ||
+      url.startsWith("devtools:") ||
+      url.includes("localhost") ||
+      url.includes("127.0.0.1")
+    ) {
+      return false;
+    }
     return true;
   }),
   isTrustedExternalUrl: vi.fn((url: string) => {
@@ -212,18 +221,21 @@ describe("Research Browser Server Main Process Integration", () => {
       const checkHandler = (mockSession.setPermissionCheckHandler as any).mock.calls[0][0];
       expect(checkHandler(null, "notifications")).toBe(false);
 
-      // Verifies that popup window handlers are registered and deny popups
+      // Verifies that popup window handlers are registered and deny new windows.
       expect(mockWebContents.setWindowOpenHandler).toHaveBeenCalled();
       const popupHandler = (mockWebContents.setWindowOpenHandler as any).mock.calls[0][0];
-      expect(popupHandler()).toEqual({ action: "deny" });
+      expect(popupHandler({ url: "https://safe.com/docs" })).toEqual({ action: "deny" });
     });
 
-    it("loads the bundled splash page on create", async () => {
+    it("loads the internal Research Browser home without exposing a local file path", async () => {
       const createHandler = ipcHandlers.get("researchBrowser:create");
       await createHandler!();
 
-      expect(mockWebContents.loadFile).toHaveBeenCalledTimes(1);
-      expect((mockWebContents.loadFile as any).mock.calls[0][0]).toMatch(/research-browser-home\.html$/);
+      expect(mockWebContents.loadURL).toHaveBeenCalledTimes(1);
+      const homeUrl = (mockWebContents.loadURL as any).mock.calls[0][0] as string;
+      expect(homeUrl).toMatch(/^data:text\/html;charset=utf-8,/);
+      expect(decodeURIComponent(homeUrl)).toContain("Venice Research Home");
+      expect(homeUrl).not.toContain("/Users/");
     });
 
     it("should tear down the view on destroy", async () => {
@@ -379,16 +391,70 @@ describe("Research Browser Server Main Process Integration", () => {
       await createHandler!();
     });
 
-    it("allows file:// requests so the splash page can load without hitting the network policy", async () => {
+    it("allows HTTPS subresources without DNS-validating every page asset", async () => {
       const onBeforeRequestHandler = (mockSession.webRequest.onBeforeRequest as any).mock.calls[0][1];
       const callback = vi.fn();
       onBeforeRequestHandler(
-        { url: "file:///Applications/Venice Forge.app/Contents/Resources/app.asar/dist/research-browser-home.html" },
+        { url: "https://cdn.example.com/app.js", resourceType: "script" },
         callback,
       );
 
       expect(callback).toHaveBeenCalledWith({ cancel: false });
       expect(validateResearchBrowserNetworkUrl).not.toHaveBeenCalled();
+    });
+
+    it("blocks unsafe subresource schemes without DNS validation", async () => {
+      const onBeforeRequestHandler = (mockSession.webRequest.onBeforeRequest as any).mock.calls[0][1];
+      const callback = vi.fn();
+      onBeforeRequestHandler(
+        { url: "file:///etc/passwd", resourceType: "script" },
+        callback,
+      );
+
+      expect(callback).toHaveBeenCalledWith({ cancel: true });
+      expect(validateResearchBrowserNetworkUrl).not.toHaveBeenCalled();
+    });
+
+    it("strictly validates main-frame requests through the network policy", async () => {
+      const onBeforeRequestHandler = (mockSession.webRequest.onBeforeRequest as any).mock.calls[0][1];
+      const callback = vi.fn();
+      onBeforeRequestHandler(
+        { url: "https://safe.com", resourceType: "mainFrame" },
+        callback,
+      );
+
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(validateResearchBrowserNetworkUrl).toHaveBeenCalledWith("https://safe.com");
+      expect(callback).toHaveBeenCalledWith({ cancel: false });
+    });
+
+    it("routes safe target=_blank URLs into the current browser view", async () => {
+      const popupHandler = (mockWebContents.setWindowOpenHandler as any).mock.calls[0][0];
+      mockWebContents.loadURL.mockClear();
+
+      const result = popupHandler({ url: "https://safe.com/new-window" });
+
+      expect(result).toEqual({ action: "deny" });
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(mockWebContents.loadURL).toHaveBeenCalledWith("https://safe.com/new-window");
+    });
+
+    it("blocks unsafe target=_blank URLs", async () => {
+      const popupHandler = (mockWebContents.setWindowOpenHandler as any).mock.calls[0][0];
+      mockWebContents.loadURL.mockClear();
+
+      const result = popupHandler({ url: "javascript:alert(1)" });
+
+      expect(result).toEqual({ action: "deny" });
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(mockWebContents.loadURL).not.toHaveBeenCalled();
+      expect(mockWindow.webContents.send).toHaveBeenCalledWith(
+        "researchBrowser:onStateChanged",
+        expect.objectContaining({
+          error: "Popup blocked. Open externally if you trust this site.",
+        }),
+      );
     });
 
     it("should load URL when validation passes", async () => {

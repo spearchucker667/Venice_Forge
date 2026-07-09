@@ -57,7 +57,10 @@ vi.mock('./ProfileDiscoveryTab', () => ({
 // the pending-URL pattern is being used correctly.
 const mockResearchBrowserView = vi.fn();
 vi.mock('../research/ResearchBrowserView', () => ({
-  ResearchBrowserView: (props: Record<string, unknown>) => mockResearchBrowserView(props),
+  ResearchBrowserView: (props: Record<string, unknown>) => {
+    mockResearchBrowserView(props);
+    return <div data-testid="mock-research-browser-view" />;
+  },
 }));
 
 vi.mock('../../stores/research-store', () => ({
@@ -195,5 +198,18 @@ describe('SearchScrapeView', () => {
       const latestArgs = (mockResearchBrowserView.mock.calls as Array<[Record<string, unknown>]>).at(-1)?.[0] ?? {};
       expect(latestArgs?.initialUrl).toBeNull();
     });
+  });
+
+  it('uses an elastic min-h-0 browser wrapper instead of fixed viewport math', async () => {
+    render(<SearchScrapeView />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Browser' }));
+
+    const browser = await screen.findByTestId('mock-research-browser-view');
+    const wrapper = browser.parentElement;
+    expect(wrapper?.className).toContain('flex');
+    expect(wrapper?.className).toContain('min-h-0');
+    expect(wrapper?.className).toContain('flex-1');
+    expect(wrapper?.className).not.toContain('h-[calc(100vh-220px)]');
   });
 });

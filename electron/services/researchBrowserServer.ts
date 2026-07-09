@@ -1,5 +1,4 @@
 import { BrowserWindow, WebContentsView, ipcMain, session, app, Menu, clipboard } from "electron";
-import path from "node:path";
 import type { 
   ResearchBrowserState, 
   ResearchBrowserBoundsInput, 
@@ -15,6 +14,101 @@ let currentBounds: ResearchBrowserBoundsInput | null = null;
 let researchViewAttached = false;
 
 let lastBlockedError: string | null = null;
+
+const INTERNAL_RESEARCH_HOME_DISPLAY = "Venice Research Home";
+
+function buildResearchBrowserHomeHtml(): string {
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; font-src 'none'; script-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none';">
+  <title>${INTERNAL_RESEARCH_HOME_DISPLAY}</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --vf-bg: var(--surface-sunken, #f7f8fb);
+      --vf-panel: var(--surface-raised, #ffffff);
+      --vf-text: var(--text-primary, #172033);
+      --vf-muted: var(--text-muted, #5d697d);
+      --vf-accent: var(--brand-primary, #b42318);
+      --vf-border: var(--border-subtle, #d7dce5);
+      --vf-link-bg: color-mix(in srgb, var(--vf-accent) 10%, transparent);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --vf-bg: var(--surface-sunken, #101318);
+        --vf-panel: var(--surface-raised, #171c24);
+        --vf-text: var(--text-primary, #eef2f7);
+        --vf-muted: var(--text-muted, #a9b3c2);
+        --vf-accent: var(--brand-primary, #f97066);
+        --vf-border: var(--border-subtle, #2d3542);
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body {
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: var(--vf-bg);
+      color: var(--vf-text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    main {
+      width: min(520px, 100%);
+      padding: 22px;
+      border: 1px solid var(--vf-border);
+      border-radius: 8px;
+      background: var(--vf-panel);
+    }
+    h1 { margin: 0; font-size: 1.35rem; line-height: 1.2; letter-spacing: 0; }
+    p { margin: 8px 0 0; color: var(--vf-muted); font-size: 0.94rem; line-height: 1.45; }
+    nav {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+      gap: 8px;
+      margin-top: 18px;
+    }
+    a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 8px 10px;
+      border: 1px solid var(--vf-border);
+      border-radius: 6px;
+      background: var(--vf-link-bg);
+      color: var(--vf-text);
+      font-size: 0.88rem;
+      font-weight: 650;
+      text-decoration: none;
+    }
+    a:focus-visible { outline: 2px solid var(--vf-accent); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Research Browser</h1>
+    <p>Search or open a site from the address bar.</p>
+    <nav aria-label="Research Browser quick links">
+      <a href="https://www.google.com/">Google</a>
+      <a href="https://search.brave.com/">Brave</a>
+      <a href="https://duckduckgo.com/">DuckDuckGo</a>
+      <a href="https://venice.ai/">Venice</a>
+      <a href="https://jina.ai/">Jina</a>
+    </nav>
+  </main>
+</body>
+</html>`;
+}
+
+const researchHomeDataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(buildResearchBrowserHomeHtml())}`;
+
+function isInternalResearchHomeUrl(url: string): boolean {
+  return url === researchHomeDataUrl;
+}
 
 function attachResearchView(): void {
   if (!mainWindowRef || mainWindowRef.isDestroyed() || !researchView || researchViewAttached) return;
@@ -72,15 +166,18 @@ function getViewState(): ResearchBrowserState {
 
   const wc = researchView.webContents;
   const url = wc.getURL();
+  const isHome = isInternalResearchHomeUrl(url);
 
   let securityLabel: ResearchBrowserState["securityLabel"] = "secure";
   if (lastBlockedError) securityLabel = "blocked";
+  else if (isHome) securityLabel = "internal";
   else if (url.startsWith("http://")) securityLabel = "insecure";
   else if (!url.startsWith("http")) securityLabel = "internal";
 
   return {
     visible: currentBounds?.visible ?? false,
     url: url || null,
+    displayUrl: isHome ? INTERNAL_RESEARCH_HOME_DISPLAY : (url || null),
     title: wc.getTitle() || "",
     canGoBack: wc.canGoBack(),
     canGoForward: wc.canGoForward(),
@@ -115,6 +212,58 @@ import { getCurrentConfig } from "./configService";
 
 function assertSafeUrl(url: string): boolean {
   return isAllowedResearchBrowserUrl(url);
+}
+
+function isMainFrameRequest(details: { resourceType?: string }): boolean {
+  return details.resourceType === "mainFrame" || details.resourceType === "main-frame";
+}
+
+function isSubFrameRequest(details: { resourceType?: string }): boolean {
+  return details.resourceType === "subFrame" || details.resourceType === "sub-frame";
+}
+
+function isAllowedSubresourceUrl(url: string): boolean {
+  if (isInternalResearchHomeUrl(url)) return true;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+      return assertSafeUrl(url);
+    }
+    if (parsed.protocol === "data:" || parsed.protocol === "blob:") {
+      return true;
+    }
+    if (parsed.protocol === "about:" && parsed.href === "about:blank") {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+async function validateTopLevelNavigation(url: string): Promise<{ ok: boolean; error?: string }> {
+  if (isInternalResearchHomeUrl(url)) return { ok: true };
+  const decision = await validateResearchBrowserNetworkUrl(url);
+  if (!decision.allowed) {
+    return { ok: false, error: decision.reason ?? "Blocked by Research Browser policy." };
+  }
+  return { ok: true };
+}
+
+async function navigateCurrentViewIfSafe(url: string): Promise<void> {
+  if (!researchView) return;
+  const decision = await validateTopLevelNavigation(url);
+  if (!decision.ok) {
+    setBlockedState("Popup blocked. Open externally if you trust this site.");
+    return;
+  }
+  clearBlockedState();
+  try {
+    await researchView.webContents.loadURL(url);
+    broadcastState();
+  } catch {
+    setBlockedState("Popup blocked. Open externally if you trust this site.");
+  }
 }
 
 function clampResearchBrowserBounds(input: ResearchBrowserBoundsInput, host: { width: number; height: number }): ResearchBrowserBoundsInput {
@@ -218,26 +367,32 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
       return false;
     });
 
-    // Block navigation to disallowed URLs before the network request is made.
-    // Local file:// requests are allowed here so the splash page loaded via
-    // loadFile() can render; navigation to file:// URLs is still blocked by
-    // will-navigate / will-frame-navigate below.
+    // Gate top-level browsing strictly, but avoid DNS-gating every script,
+    // stylesheet, image, or XHR request; modern sites depend on those assets.
     researchSession.webRequest.onBeforeRequest({ urls: ["*://*/*"] }, (details, callback) => {
-      if (details.url.startsWith("file:")) {
-        callback({ cancel: false });
+      if (isMainFrameRequest(details)) {
+        void validateTopLevelNavigation(details.url).then((decision) => {
+          if (!decision.ok) {
+            callback({ cancel: true });
+            setBlockedState("Blocked by Research Browser policy.");
+            return;
+          }
+          callback({ cancel: false });
+        }).catch(() => {
+          callback({ cancel: true });
+          setBlockedState("Blocked by Research Browser policy.");
+        });
         return;
       }
-      void validateResearchBrowserNetworkUrl(details.url).then((decision) => {
-        if (!decision.allowed) {
+
+      if (isSubFrameRequest(details) || details.resourceType) {
+        if (!isAllowedSubresourceUrl(details.url)) {
           callback({ cancel: true });
-          setBlockedState(`Blocked navigation: ${decision.reason ?? details.url}`);
+          setBlockedState("Blocked by Research Browser policy.");
           return;
         }
-        callback({ cancel: false });
-      }).catch(() => {
-        callback({ cancel: true });
-        setBlockedState("Blocked navigation: DNS safety check failed.");
-      });
+      }
+      callback({ cancel: false });
     });
 
     researchView = new WebContentsView({
@@ -313,36 +468,43 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
 
     // Block main-frame navigation to unsafe URLs
     wc.on("will-navigate", (details) => {
+      if (isInternalResearchHomeUrl(details.url)) return;
       if (!assertSafeUrl(details.url)) {
         details.preventDefault();
-        setBlockedState("Navigation blocked by the Research Browser URL policy.");
+        setBlockedState("Blocked by Research Browser policy.");
       }
     });
 
-    // Block sub-frame navigation to unsafe URLs
+    // Block sub-frame navigation to unsafe URLs while allowing the browser
+    // primitives modern sites commonly use for empty/blob/data frames.
     wc.on("will-frame-navigate", (details) => {
-      if (!assertSafeUrl(details.url)) {
+      if (isInternalResearchHomeUrl(details.url)) return;
+      if (!isAllowedSubresourceUrl(details.url)) {
         details.preventDefault();
-        setBlockedState("Frame navigation blocked by the Research Browser URL policy.");
+        setBlockedState("Blocked by Research Browser policy.");
       }
     });
 
     // Block redirects to unsafe URLs
     wc.on("will-redirect", (details) => {
+      if (isInternalResearchHomeUrl(details.url)) return;
       if (!assertSafeUrl(details.url)) {
         details.preventDefault();
-        setBlockedState("Redirect blocked by the Research Browser URL policy.");
+        setBlockedState("Blocked by Research Browser policy.");
       }
     });
 
-    wc.setWindowOpenHandler(() => {
-      setBlockedState("Popup blocked. Use Open externally or paste the URL manually if you trust it.");
+    wc.setWindowOpenHandler(({ url }) => {
+      if (assertSafeUrl(url)) {
+        void navigateCurrentViewIfSafe(url);
+      } else {
+        setBlockedState("Popup blocked. Open externally if you trust this site.");
+      }
       return { action: "deny" };
     });
 
     try {
-      const splashPath = path.join(app.isPackaged ? path.join(app.getAppPath(), "dist") : path.join(app.getAppPath(), "public"), "research-browser-home.html");
-      await wc.loadFile(splashPath);
+      await wc.loadURL(researchHomeDataUrl);
     } catch {
       wc.loadURL("about:blank");
     }
@@ -502,10 +664,10 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
       }
     }
 
-    const decision = await validateResearchBrowserNetworkUrl(finalUrl);
-    if (!decision.allowed) {
-      setBlockedState(`Blocked unsafe URL: ${decision.reason ?? finalUrl}`);
-      return { ok: false, error: decision.reason ?? "Blocked unsafe URL" };
+    const decision = await validateTopLevelNavigation(finalUrl);
+    if (!decision.ok) {
+      setBlockedState("Blocked by Research Browser policy.");
+      return { ok: false, error: decision.error ?? "Blocked by Research Browser policy." };
     }
 
     // Narrow the type — auto-create above guarantees researchView is non-null here.

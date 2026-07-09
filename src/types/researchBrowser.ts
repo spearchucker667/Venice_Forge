@@ -1,6 +1,7 @@
 export interface ResearchBrowserState {
   visible: boolean;
   url: string | null;
+  displayUrl?: string | null;
   title: string;
   canGoBack: boolean;
   canGoForward: boolean;

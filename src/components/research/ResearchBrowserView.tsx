@@ -27,6 +27,7 @@ interface ResearchBrowserViewProps {
 const MIN_BROWSER_VIEWPORT_SIZE = 100;
 const MIN_BROWSER_TOOLBAR_HEIGHT = 32;
 const GEOMETRY_EPSILON = 1;
+const INTERNAL_HOME_DISPLAY = "Venice Research Home";
 const importMetaEnv = (import.meta as { env?: Record<string, string | boolean | undefined> }).env;
 const DEBUG_BOUNDS =
   importMetaEnv?.DEV === true && importMetaEnv.VITE_RESEARCH_BROWSER_DEBUG_BOUNDS === "1";
@@ -104,6 +105,13 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
   const initialUrlConsumedRef = useRef(false);
   const browserAvailable = browserState !== null && browserState.error !== "Unavailable in web mode";
 
+  const updateAddressFromState = (state: ResearchBrowserState) => {
+    const nextAddress = state.displayUrl ?? state.url ?? "";
+    if (nextAddress) {
+      setAddress(nextAddress);
+    }
+  };
+
   useEffect(() => {
     let unmounted = false;
 
@@ -120,7 +128,7 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
       const stateRes = await researchBrowserBridge.getState();
       if (!unmounted && stateRes.ok && stateRes.state) {
         setBrowserState(stateRes.state);
-        setAddress(stateRes.state.url || "");
+        updateAddressFromState(stateRes.state);
       }
 
       // If an initialUrl was provided and has not been consumed yet, navigate
@@ -152,7 +160,7 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
       if (!unmounted) {
         setBrowserState(state);
         if (state.url && !state.loading) {
-          setAddress(state.url);
+          updateAddressFromState(state);
         }
         if (state.error) {
           setLastErrorUrl(state.url);
@@ -237,6 +245,7 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
   const handleNavigate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!address.trim()) return;
+    if (address.trim() === INTERNAL_HOME_DISPLAY) return;
     setLastErrorUrl(null);
     const result = await researchBrowserBridge.navigate({ urlOrQuery: address });
     if (!result.ok && result.error) {
@@ -269,8 +278,10 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
     );
   }
 
-  const isJinaSupported = browserState?.url && (browserState.url.startsWith("http://") || browserState.url.startsWith("https://"));
-  const errorUrl = browserState?.error ? lastErrorUrl || browserState.url : null;
+  const actualUrl = browserState?.url ?? null;
+  const displayUrl = browserState?.displayUrl ?? actualUrl;
+  const isJinaSupported = actualUrl && (actualUrl.startsWith("http://") || actualUrl.startsWith("https://"));
+  const errorUrl = browserState?.error ? lastErrorUrl || displayUrl : null;
 
   return (
     <div
@@ -350,7 +361,8 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
             className="w-full bg-[var(--surface-base)] border border-[var(--border-subtle)] rounded-full px-8 py-1 text-sm focus:outline-none focus:border-[var(--brand-primary)] focus:ring-1 focus:ring-[var(--brand-primary)]"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            placeholder="Search or enter URL"
+            placeholder="Search or enter website"
+            aria-label="Search or enter website"
           />
           {browserState?.loading && (
             <div className="absolute right-3 flex items-center pointer-events-none">
@@ -359,7 +371,7 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
           )}
         </form>
 
-        {browserState?.url && (
+        {actualUrl && actualUrl.startsWith("http") && (
           <button
             className="p-1.5 rounded hover:bg-[var(--surface-hover)] transition-colors"
             onClick={handleOpenExternal}
@@ -373,10 +385,10 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
         {isJinaSupported && onCaptureWithJina && (
           <button 
             className="flex items-center gap-1 px-3 py-1 bg-[var(--brand-primary)] text-[var(--brand-primary-fg,var(--surface))] text-xs font-medium rounded hover:bg-opacity-90 transition-colors"
-            onClick={() => browserState.url && onCaptureWithJina(browserState.url)}
+            onClick={() => actualUrl && onCaptureWithJina(actualUrl)}
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-            Capture via Jina
+            Capture
           </button>
         )}
       </div>

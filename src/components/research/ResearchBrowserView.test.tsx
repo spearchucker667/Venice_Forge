@@ -44,6 +44,7 @@ class TestResizeObserver {
 const readyState: ResearchBrowserState = {
   visible: false,
   url: null,
+  displayUrl: null,
   title: "",
   canGoBack: false,
   canGoForward: false,
@@ -115,7 +116,7 @@ describe("ResearchBrowserView", () => {
   it("renders the toolbar address input before the native browser viewport", async () => {
     render(<ResearchBrowserView />);
 
-    const input = await screen.findByPlaceholderText("Search or enter URL");
+    const input = await screen.findByPlaceholderText("Search or enter website");
     const viewport = await screen.findByTestId("research-browser-viewport");
 
     expect(input.compareDocumentPosition(viewport) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -124,10 +125,28 @@ describe("ResearchBrowserView", () => {
   it("submits address input through the research browser bridge without changing routes", async () => {
     render(<ResearchBrowserView />);
 
-    const input = await screen.findByPlaceholderText("Search or enter URL");
+    const input = await screen.findByPlaceholderText("Search or enter website");
     await userEvent.type(input, "venice.ai{enter}");
 
     expect(bridge.navigate).toHaveBeenCalledWith({ urlOrQuery: "venice.ai" });
+  });
+
+  it("shows internal home display text instead of a local file path", async () => {
+    bridge.getState.mockResolvedValueOnce({
+      ok: true,
+      state: {
+        ...readyState,
+        url: "data:text/html;charset=utf-8,%3Chtml%3E%3C%2Fhtml%3E",
+        displayUrl: "Venice Research Home",
+        securityLabel: "internal",
+      },
+    });
+
+    render(<ResearchBrowserView />);
+
+    const input = await screen.findByPlaceholderText("Search or enter website");
+    await waitFor(() => expect((input as HTMLInputElement).value).toBe("Venice Research Home"));
+    expect((input as HTMLInputElement).value).not.toContain("file:///");
   });
 
   it("does not show the native browser view for a minuscule viewport", async () => {

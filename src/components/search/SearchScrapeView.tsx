@@ -379,7 +379,7 @@ export function SearchScrapeView() {
   );
 
   return (
-    <div className="flex flex-col h-full bg-surface">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-surface">
       <div className="flex-none p-5 border-b border-border/50 bg-surface">
         <div className="flex items-center justify-between">
           <div>
@@ -404,9 +404,9 @@ export function SearchScrapeView() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-5 space-y-6">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5">
         {error && (
-          <div role="alert" className="p-3 bg-danger/10 border border-danger/20 text-danger rounded-lg text-sm leading-relaxed">
+          <div role="alert" className="mb-6 p-3 bg-danger/10 border border-danger/20 text-danger rounded-lg text-sm leading-relaxed">
             {error}
           </div>
         )}
@@ -519,7 +519,7 @@ export function SearchScrapeView() {
         )}
 
         {subTab === "browser" && (
-          <div className="h-[calc(100vh-220px)] min-h-[400px]">
+          <div className="flex min-h-0 flex-1">
             <ResearchBrowserView
               initialUrl={pendingBrowserUrl}
               onInitialUrlConsumed={() => setPendingBrowserUrl(null)}
