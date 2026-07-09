@@ -21,6 +21,13 @@ let researchViewAttached = false;
 
 let lastBlockedError: string | null = null;
 
+// Subresource / iframe block telemetry. These counters are intentionally
+// separate from `lastBlockedError`: a single blocked tracker or ad iframe on
+// an otherwise-valid page must NOT surface as "Blocked by Research Browser
+// policy." in the toolbar. They are surface as diagnostics only.
+let blockedSubresourceCount = 0;
+let lastBlockedSubresourceUrl: string | null = null;
+
 const INTERNAL_RESEARCH_HOME_DISPLAY = "Venice Research Home";
 
 let currentThemeSnapshot: ResearchBrowserThemeSnapshot = getFallbackResearchBrowserThemeSnapshot();
@@ -84,6 +91,8 @@ function getViewState(): ResearchBrowserState {
       loading: false,
       error: lastBlockedError,
       securityLabel: "internal",
+      blockedSubresourceCount,
+      lastBlockedSubresourceUrl,
     };
   }
 
@@ -91,6 +100,10 @@ function getViewState(): ResearchBrowserState {
   const url = wc.getURL();
   const isHome = isInternalResearchHomeUrl(url);
 
+  // Security label is driven entirely by top-level state (lastBlockedError
+  // + URL scheme). Subresource telemetry is intentionally not folded into
+  // the label — one blocked tracker must not flip the whole page to
+  // "blocked".
   let securityLabel: ResearchBrowserState["securityLabel"] = "secure";
   if (lastBlockedError) securityLabel = "blocked";
   else if (isHome) securityLabel = "internal";
@@ -107,15 +120,34 @@ function getViewState(): ResearchBrowserState {
     loading: wc.isLoading(),
     error: lastBlockedError,
     securityLabel,
+    blockedSubresourceCount,
+    lastBlockedSubresourceUrl,
   };
 }
 
 function clearBlockedState() {
   lastBlockedError = null;
+  // Reset subresource telemetry on every top-level clearing so the
+  // diagnostics drawer reflects the current page, not the lifetime of
+  // the BrowserView.
+  blockedSubresourceCount = 0;
+  lastBlockedSubresourceUrl = null;
 }
 
 function setBlockedState(reason: string) {
   lastBlockedError = reason;
+  broadcastState();
+}
+
+/**
+ * Record a subresource / iframe block without surfacing it as the
+ * user-visible page error. Modern sites commonly have one or two blocked
+ * trackers or ads — that is not an indication the main document is
+ * broken. The counters drive a diagnostics surface only.
+ */
+function recordBlockedSubresource(url: string): void {
+  blockedSubresourceCount += 1;
+  lastBlockedSubresourceUrl = url;
   broadcastState();
 }
 
@@ -311,7 +343,9 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
       if (isSubFrameRequest(details) || details.resourceType) {
         if (!isAllowedSubresourceUrl(details.url)) {
           callback({ cancel: true });
-          setBlockedState("Blocked by Research Browser policy.");
+          // Subresource / iframe blocks are NOT user-visible page-level
+          // failures. Record telemetry only; do NOT set lastBlockedError.
+          recordBlockedSubresource(details.url);
           return;
         }
       }
@@ -400,11 +434,14 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
 
     // Block sub-frame navigation to unsafe URLs while allowing the browser
     // primitives modern sites commonly use for empty/blob/data frames.
+    // NOTE: sub-frame blocks record telemetry only. They MUST NOT surface
+    // as the user-visible page error, otherwise a single blocked ad iframe
+    // toggles the whole Research Browser toolbar to "Blocked".
     wc.on("will-frame-navigate", (details) => {
       if (isInternalResearchHomeUrl(details.url)) return;
       if (!isAllowedSubresourceUrl(details.url)) {
         details.preventDefault();
-        setBlockedState("Blocked by Research Browser policy.");
+        recordBlockedSubresource(details.url);
       }
     });
 

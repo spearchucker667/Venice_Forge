@@ -420,6 +420,71 @@ describe("Research Browser Server Main Process Integration", () => {
       expect(validateResearchBrowserNetworkUrl).not.toHaveBeenCalled();
     });
 
+    it("records blocked subresource telemetry without surfacing a user-visible page error", async () => {
+      // Regression guard: a single blocked tracker / iframe MUST NOT flip
+      // the toolbar to "Blocked by Research Browser policy." It records
+      // a counter on state instead.
+      mockWindow.webContents.send.mockClear();
+      const onBeforeRequestHandler = (mockSession.webRequest.onBeforeRequest as any).mock.calls[0][1];
+      const callback = vi.fn();
+
+      // Two clearly disallowed schemes at the subresource layer so we
+      // exercise the recordBlockedSubresource path through cancel:true.
+      onBeforeRequestHandler(
+        { url: "file:///etc/passwd", resourceType: "script" },
+        callback,
+      );
+      onBeforeRequestHandler(
+        { url: "javascript:alert(1)", resourceType: "script" },
+        callback,
+      );
+
+      expect(callback).toHaveBeenNthCalledWith(1, { cancel: true });
+      expect(callback).toHaveBeenNthCalledWith(2, { cancel: true });
+
+      // The state broadcast must carry the telemetry counters but NOT a
+      // populated page-level error / "blocked" security label.
+      const lastStateCall = mockWindow.webContents.send.mock.calls
+        .filter((call) => call[0] === "researchBrowser:onStateChanged")
+        .pop();
+      expect(lastStateCall).toBeDefined();
+      const broadcastState = lastStateCall![1] as Record<string, unknown>;
+      expect(broadcastState.error).toBeNull();
+      expect(broadcastState.securityLabel).not.toBe("blocked");
+      expect(broadcastState.blockedSubresourceCount).toBeGreaterThanOrEqual(2);
+      expect(typeof broadcastState.lastBlockedSubresourceUrl).toBe("string");
+    });
+
+    it("keeps the toolbar valid when a top-level page loads but contains blocked subresources", async () => {
+      // Companion regression guard: the error key returned by getState()
+      // after a main-frame load + a harmless blocked subresource must
+      // remain null. Mirrors how the browser toolbar reads `state.error`
+      // to render the "Blocked by Research Browser policy." title.
+      const getStateHandler = ipcHandlers.get("researchBrowser:getState");
+      const onBeforeRequestHandler = (mockSession.webRequest.onBeforeRequest as any).mock.calls[0][1];
+      const callback = vi.fn();
+
+      onBeforeRequestHandler(
+        { url: "https://mainframe.example/" , resourceType: "mainFrame" },
+        callback,
+      );
+      onBeforeRequestHandler(
+        { url: "file:///etc/passwd", resourceType: "script" },
+        callback,
+      );
+
+      const stateResponse = await getStateHandler!();
+      expect(stateResponse.ok).toBe(true);
+      const state = (stateResponse.state ?? {}) as Record<string, unknown>;
+      expect(state.error).toBeNull();
+      expect(state.securityLabel).toBe("secure");
+      // Count is module-level cumulative. Each test adds; we just assert
+      // this run produced at least one blocked subresource and recorded
+      // the URL we sent.
+      expect(state.blockedSubresourceCount).toBeGreaterThanOrEqual(1);
+      expect(state.lastBlockedSubresourceUrl).toBe("file:///etc/passwd");
+    });
+
     it("strictly validates main-frame requests through the network policy", async () => {
       const onBeforeRequestHandler = (mockSession.webRequest.onBeforeRequest as any).mock.calls[0][1];
       const callback = vi.fn();

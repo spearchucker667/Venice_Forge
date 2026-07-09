@@ -21,6 +21,7 @@ function buildDisplayUrl(url: string): string {
 
 export async function promptExternalLink(win: BrowserWindow, url: string): Promise<{ opened: boolean; canceled: boolean; error?: string }> {
   try {
+    // verify-no-native-dialogs: allow — intentional external-link confirmation
     const { response } = await dialog.showMessageBox(win, {
       type: "question",
       buttons: ["Open in browser", "Cancel"],

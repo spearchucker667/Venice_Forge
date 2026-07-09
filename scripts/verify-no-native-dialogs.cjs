@@ -2,6 +2,16 @@
 /**
  * Verify that no production code uses native blocking dialogs.
  *
+ * This checker covers both browser-style blocking dialogs
+ * (window.alert/confirm/prompt) and Electron-native modal dialogs
+ * (dialog.showMessageBox / showErrorBox / showMessageBoxSync).
+ *
+ * Intentional file-picker dialogs (Electron dialog.showOpenDialog /
+ * showSaveDialog) and intentional confirm dialogs are allowed via
+ * explicit per-line override comments at the call site:
+ *
+ *     // verify-no-native-dialogs: allow
+ *
  * Allowed exceptions:
  * - Test fixture strings containing alert/confirm/prompt (e.g. "javascript:alert(1)")
  * - Lines marked with an explicit override comment:
@@ -23,6 +33,15 @@ const DIALOG_PATTERNS = [
   /(?<!\.)\bconfirm\(/,
   /(?<!\.)\bprompt\(/,
   /(?<!\.)\balert\(/,
+  // Electron native modal dialogs (file pickers are separate).
+  /\bdialog\.showMessageBox\s*\(/,
+  /\bdialog\.showMessageBoxSync\s*\(/,
+  /\bdialog\.showErrorBox\s*\(/,
+  // Electron file-picker dialogs — these are UI pickers, not blocking
+  // alert dialogs, but are listed here so any future misuse is caught
+  // by the verifier. Legitimate uses are marked with an override comment.
+  /\bdialog\.showOpenDialog\s*\(/,
+  /\bdialog\.showSaveDialog\s*\(/,
 ];
 
 const OVERRIDE_COMMENT = /verify-no-native-dialogs:\s*allow/;
@@ -97,7 +116,10 @@ function main() {
       const line = lines[i];
       const lineNumber = i + 1;
 
-      if (OVERRIDE_COMMENT.test(line)) continue;
+      // The override marker may be either on the same line as the dialog
+      // call or on the immediately preceding line.
+      const prevLine = i > 0 ? lines[i - 1] : "";
+      if (OVERRIDE_COMMENT.test(line) || OVERRIDE_COMMENT.test(prevLine)) continue;
 
       for (const pattern of DIALOG_PATTERNS) {
         const match = pattern.exec(line);

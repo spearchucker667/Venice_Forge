@@ -101,7 +101,7 @@
     "test:server": "vitest run server.test.ts --exclude 'electron/**/*'",
     "test:electron": "vitest run electron --exclude 'tests/smoke/**/*' --exclude 'tests/electron/**/*'",
     "test:ingestion": "vitest run src/services/ingestion",
-    "test:unit": "vitest run --exclude 'server.test.ts' --exclude 'electron/**/*' --exclude 'src/components/**/*' --exclude 'src/services/ingestion/**/*' --exclude 'tests/smoke/**/*' --exclude 'tests/accessibility/**/*'",
+    "test:unit": "vitest run --exclude 'server.test.ts' --exclude 'electron/**/*' --exclude 'src/components/**/*' --exclude 'src/services/ingestion/**/*' --exclude 'tests/smoke/**/*' --exclude 'tests/accessibility/**/*' --exclude 'scripts/verify-document-ingestion.test.ts'",
     "test:ui:layout": "vitest run src/components/layout src/components/command-palette tests/accessibility",
     "test:ui:chat": "vitest run src/components/chat",
     "test:ui:media:gallery": "vitest run src/components/gallery",

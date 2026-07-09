@@ -8,6 +8,14 @@ export interface ResearchBrowserState {
   loading: boolean;
   error: string | null;
   securityLabel: "secure" | "insecure" | "blocked" | "internal";
+  /** Cumulative count of subresource / iframe blocks since the last
+   * top-level navigation. Telemetry only — does NOT drive `error` or
+   * `securityLabel`. */
+  blockedSubresourceCount?: number;
+  /** Most recent subresource URL that was blocked, or null if no
+   * subresource has been blocked in this navigation. Hidden from the
+   * toolbar; surfaced in the diagnostics drawer. */
+  lastBlockedSubresourceUrl?: string | null;
 }
 
 export interface ResearchBrowserNavigateInput {

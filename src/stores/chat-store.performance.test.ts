@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest'
 
 /**
  * Regression/performance guard: P1-006 chat-store subscription O(n²).
@@ -64,6 +64,13 @@ beforeAll(async () => {
   await vi.runAllTimersAsync()
 })
 
+// Restore real timers unconditionally so fake timers never bleed into
+// sibling test files (this is a known contributor to non-terminating
+// `test:unit` runs in aggregate Vitest execution).
+afterAll(() => {
+  vi.useRealTimers()
+})
+
 describe('chat-store subscription performance (P1-006 regression)', () => {
   beforeEach(() => {
     saveMock.mockClear()
@@ -106,35 +113,38 @@ describe('chat-store subscription performance (P1-006 regression)', () => {
     // about. The subscription itself must not rely on .find to locate the
     // previous conversation.
     const findSpy = vi.spyOn(Array.prototype, 'find')
+    try {
+      useChatStore.getState().addMessage(target, { role: 'user', content: 'ping' })
 
-    useChatStore.getState().addMessage(target, { role: 'user', content: 'ping' })
+      // The subscription should have marked only the mutated conversation
+      // dirty — not every conversation, and not zero.
+      const dirty = _debugGetDirtyConversationIds()
+      expect(dirty).toContain(target)
+      expect(dirty).not.toContain(active)
+      expect(dirty.length).toBe(1)
 
-    // The subscription should have marked only the mutated conversation
-    // dirty — not every conversation, and not zero.
-    const dirty = _debugGetDirtyConversationIds()
-    expect(dirty).toContain(target)
-    expect(dirty).not.toContain(active)
-    expect(dirty.length).toBe(1)
-
-    // Assert the subscription did not use Array.prototype.find on the
-    // conversations array. Other code paths may legitimately call find,
-    // so we only assert that no find call was made with a predicate that
-    // compares `p.id === c.id` (the old O(n²) pattern).
-    const oldPatternCalls = findSpy.mock.calls.filter((call) => {
-      const predicate = call[0]
-      if (typeof predicate !== 'function') return false
-      // Exercise the predicate with a dummy object to inspect its source.
-      // The old predicate was `(p) => p.id === c.id`.
-      try {
-        const fnString = predicate.toString()
-        return /p\.id\s*===\s*c\.id/.test(fnString)
-      } catch {
-        return false
-      }
-    })
-    expect(oldPatternCalls).toHaveLength(0)
-
-    findSpy.mockRestore()
+      // Assert the subscription did not use Array.prototype.find on the
+      // conversations array. Other code paths may legitimately call find,
+      // so we only assert that no find call was made with a predicate that
+      // compares `p.id === c.id` (the old O(n²) pattern).
+      const oldPatternCalls = findSpy.mock.calls.filter((call) => {
+        const predicate = call[0]
+        if (typeof predicate !== 'function') return false
+        // Exercise the predicate with a dummy object to inspect its source.
+        // The old predicate was `(p) => p.id === c.id`.
+        try {
+          const fnString = predicate.toString()
+          return /p\.id\s*===\s*c\.id/.test(fnString)
+        } catch {
+          return false
+        }
+      })
+      expect(oldPatternCalls).toHaveLength(0)
+    } finally {
+      // Restore in finally so test failures do not leak the spy into
+      // sibling tests where Array.prototype.find would unexpectedly fail.
+      findSpy.mockRestore()
+    }
   })
 
   it('scales linearly: mutating one conversation in a 100-item list marks only that id dirty', async () => {

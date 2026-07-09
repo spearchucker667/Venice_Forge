@@ -16,6 +16,21 @@ export interface StorageMaintenanceApplyResult {
   requested: number;
   succeeded: string[];
   failed: Array<{ id: string; reason: string }>;
+  /**
+   * Set to true when the action was surfaced as a dry-run-only option and
+   * the apply call intentionally rejected it. Callers should not surface a
+   * generic error toast — this is an expected, recoverable failure mode
+   * for actions that are listed in the plan but are not user-executable.
+   */
+  dryRunOnly?: boolean;
+  /**
+   * Stable reason code for typed consumers. Always mirrors the
+   * `failed[i].reason` text but is easier to assert against.
+   */
+  reasonCode?:
+    | "dry-run-only"
+    | "not-implemented"
+    | "error";
 }
 
 export function createStorageMaintenancePlan(inventory: StorageInventoryResult): StorageMaintenancePlan {
@@ -96,6 +111,7 @@ export async function applyMaintenanceAction(actionId: string): Promise<StorageM
                     result.succeeded.push("character-image-cache");
                 } else {
                     result.failed.push({ id: actionId, reason: cacheResult.error ?? "Unknown error" });
+                    result.reasonCode = "error";
                 }
                 break;
             }
@@ -103,11 +119,27 @@ export async function applyMaintenanceAction(actionId: string): Promise<StorageM
                 // Handled by UI/Store
                 result.succeeded.push("refresh");
                 break;
+            case "archive-orphans":
+                // The plan advertises this action as `dryRunOnly: true`. It is
+                // surfaced in the UI for visibility but is intentionally not
+                // executable yet (orphan-archival semantics across prompts,
+                // scenes, workflows, and media are still being finalized).
+                // Return a typed rejection so callers can render a stable
+                // message instead of a generic "not implemented" error.
+                result.failed.push({
+                    id: actionId,
+                    reason: "This action is dry-run-only and is not currently executable. Use the maintenance issues list for analysis.",
+                });
+                result.dryRunOnly = true;
+                result.reasonCode = "dry-run-only";
+                break;
             default:
                 result.failed.push({ id: actionId, reason: "Action not implemented or supported in this version." });
+                result.reasonCode = "not-implemented";
         }
     } catch (err) {
         result.failed.push({ id: actionId, reason: err instanceof Error ? err.message : String(err) });
+        result.reasonCode = "error";
     }
 
     return result;

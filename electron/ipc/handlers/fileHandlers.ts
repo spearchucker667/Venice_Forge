@@ -103,6 +103,7 @@ export function registerFileHandlers(): void {
       const sanitizedFilename = path.basename(
         typeof defaultPath === "string" ? defaultPath : "venice-forge-export.json"
       );
+      // verify-no-native-dialogs: allow — intentional save dialog for export
       const result = await dialog.showSaveDialog({
         title: "Export Venice Forge data",
         defaultPath: sanitizedFilename,
@@ -125,6 +126,7 @@ export function registerFileHandlers(): void {
       const sanitizedFilename = path.basename(
         typeof defaultPath === "string" ? defaultPath : "theme.yaml"
       );
+      // verify-no-native-dialogs: allow — intentional save dialog for theme export
       const result = await dialog.showSaveDialog({
         title: "Export Venice Forge theme",
         defaultPath: sanitizedFilename,
@@ -188,6 +190,7 @@ export function registerFileHandlers(): void {
 
   registerIpcChannel("app:loadYamlFile", async () => {
     try {
+      // verify-no-native-dialogs: allow — intentional open dialog for theme import
       const result = await dialog.showOpenDialog({
         title: "Import Venice Forge theme",
         filters: [{ name: "YAML", extensions: ["yaml", "yml"] }],
@@ -212,6 +215,7 @@ export function registerFileHandlers(): void {
 
   registerIpcChannel("app:loadJsonFile", async () => {
     try {
+      // verify-no-native-dialogs: allow — intentional open dialog for data import
       const result = await dialog.showOpenDialog({
         title: "Import Venice Forge data",
         filters: [{ name: "JSON", extensions: ["json"] }],
@@ -236,6 +240,7 @@ export function registerFileHandlers(): void {
 
   registerIpcChannel("app:readLocalFile", async () => {
     try {
+      // verify-no-native-dialogs: allow — intentional open dialog for text attachment
       const result = await dialog.showOpenDialog({
         title: "Import text attachment",
         properties: ["openFile"],

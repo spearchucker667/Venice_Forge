@@ -85,6 +85,7 @@ export function registerConfigIpcHandlers() {
 
   handleIpc("config:exportTemplate", async () => {
     try {
+      // verify-no-native-dialogs: allow — intentional save dialog for config template export
       const result = await dialog.showSaveDialog({
         title: "Export Venice Forge config template",
         defaultPath: "venice-forge.config.example.yaml",

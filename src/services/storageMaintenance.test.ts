@@ -5,6 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createStorageMaintenancePlan, applyMaintenanceAction } from "./storageMaintenance";
 import { desktopCharacterImage } from "./desktopBridge";
+import type { StorageInventoryResult } from "../types/storage-privacy";
 
 // Polyfill localStorage for Node 26+ so vi.spyOn can intercept removeItem.
 const localStorageStore: Record<string, string> = {}
@@ -77,5 +78,38 @@ describe("storageMaintenance", () => {
     const result = await applyMaintenanceAction("clear-character-image-cache");
     expect(desktopCharacterImage.clearCache).toHaveBeenCalled();
     expect(result.succeeded).toContain("character-image-cache");
+  });
+
+  // Regression guard: archive-orphans is dryRunOnly in the plan; apply must
+  // return a typed rejection (`dryRunOnly: true`, `reasonCode: "dry-run-only"`)
+  // instead of the generic "not implemented" string from the default switch arm.
+  it("rejects archive-orphans as a typed dry-run-only result", async () => {
+    const inventoryWithIssues: StorageInventoryResult ={
+      stores: [],
+      issues: [{ id: "issue-1", severity: "warn", sourceCategory: "prompts", message: "missing project", repairable: true }],
+      generatedAt: new Date().toISOString(),
+    };
+    const plan = createStorageMaintenancePlan(inventoryWithIssues);
+    const archiveOrphans = plan.actions.find((a) => a.id === "archive-orphans");
+    expect(archiveOrphans).toBeDefined();
+    expect(archiveOrphans?.dryRunOnly).toBe(true);
+
+    const result = await applyMaintenanceAction("archive-orphans");
+    expect(result.succeeded).toHaveLength(0);
+    expect(result.failed).toHaveLength(1);
+    expect(result.failed[0]?.id).toBe("archive-orphans");
+    expect(result.dryRunOnly).toBe(true);
+    expect(result.reasonCode).toBe("dry-run-only");
+    // The dry-run-only message must not include "not implemented".
+    expect(result.failed[0]?.reason).not.toMatch(/not implemented/i);
+  });
+
+  // Regression guard: unknown action ids still fall through to the generic
+  // not-implemented result with the stable reasonCode.
+  it("rejects unknown actions with a typed not-implemented result", async () => {
+    const result = await applyMaintenanceAction("delete-everything");
+    expect(result.succeeded).toHaveLength(0);
+    expect(result.reasonCode).toBe("not-implemented");
+    expect(result.dryRunOnly).toBeUndefined();
   });
 });
