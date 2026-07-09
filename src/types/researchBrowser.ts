@@ -20,6 +20,29 @@ export interface ResearchBrowserBoundsInput {
   width: number;
   height: number;
   visible: boolean;
+  geometry?: ResearchBrowserBoundsTelemetry;
+}
+
+export interface ResearchBrowserRectTelemetry {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  top: number;
+  left: number;
+  right: number;
+  bottom: number;
+}
+
+export interface ResearchBrowserBoundsTelemetry {
+  shell: ResearchBrowserRectTelemetry;
+  toolbar: ResearchBrowserRectTelemetry;
+  viewport: ResearchBrowserRectTelemetry;
+  devicePixelRatio: number;
+  visualViewport?: {
+    offsetTop: number;
+    offsetLeft: number;
+  };
 }
 
 export interface ResearchBrowserScrapeResult {

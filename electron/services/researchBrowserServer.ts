@@ -5,7 +5,8 @@ import type {
   ResearchBrowserBoundsInput, 
   ResearchBrowserNavigateInput, 
   ResearchBrowserScrapeResult, 
-  ResearchBrowserPageMetadata 
+  ResearchBrowserPageMetadata,
+  ResearchBrowserBoundsTelemetry,
 } from "../../src/types/researchBrowser";
 
 let researchView: WebContentsView | null = null;
@@ -124,6 +125,47 @@ function clampResearchBrowserBounds(input: ResearchBrowserBoundsInput, host: { w
   const x = Math.min(Math.max(0, Math.floor(input.x)), Math.max(0, maxWidth - width));
   const y = Math.min(Math.max(0, Math.floor(input.y)), Math.max(0, maxHeight - height));
   return { x, y, width, height, visible: input.visible };
+}
+
+function normalizeResearchBrowserBounds(input: ResearchBrowserBoundsInput): ResearchBrowserBoundsInput {
+  return {
+    x: Math.max(0, Math.floor(input.x)),
+    y: Math.max(0, Math.floor(input.y)),
+    width: Math.max(1, Math.floor(input.width)),
+    height: Math.max(1, Math.floor(input.height)),
+    visible: input.visible,
+    ...(input.geometry ? { geometry: input.geometry } : {}),
+  };
+}
+
+function isResearchBrowserBoundsDebugEnabled(): boolean {
+  return !app.isPackaged && process.env.VITE_RESEARCH_BROWSER_DEBUG_BOUNDS === "1";
+}
+
+function validateBoundsTelemetry(
+  input: ResearchBrowserBoundsInput,
+  geometry: ResearchBrowserBoundsTelemetry | undefined,
+): string | null {
+  if (!geometry) return null;
+  if (geometry.toolbar.height < 32) {
+    return "Invalid Research Browser bounds: toolbar is too small.";
+  }
+  if (geometry.viewport.width < 100 || geometry.viewport.height < 100) {
+    return "Invalid Research Browser bounds: viewport is too small.";
+  }
+  if (geometry.viewport.top < geometry.toolbar.bottom) {
+    return "Invalid Research Browser bounds: viewport overlaps toolbar.";
+  }
+  if (input.y < geometry.toolbar.bottom) {
+    return "Invalid Research Browser bounds: native view would cover toolbar.";
+  }
+  if (input.x < geometry.shell.left || input.y < geometry.shell.top) {
+    return "Invalid Research Browser bounds: native view starts outside shell.";
+  }
+  if (input.x + input.width > geometry.shell.right || input.y + input.height > geometry.shell.bottom) {
+    return "Invalid Research Browser bounds: native view exceeds shell.";
+  }
+  return null;
 }
 
 let ipcHandlersRegistered = false;
@@ -356,10 +398,37 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     }
 
     const contentBounds = mainWindowRef.getContentBounds();
-    const safeBounds = clampResearchBrowserBounds(input, {
-      width: contentBounds.width,
-      height: contentBounds.height,
-    });
+    const safeBounds = input.geometry
+      ? normalizeResearchBrowserBounds(input)
+      : clampResearchBrowserBounds(input, {
+          width: contentBounds.width,
+          height: contentBounds.height,
+        });
+
+    const telemetryError = validateBoundsTelemetry(safeBounds, input.geometry);
+    if (isResearchBrowserBoundsDebugEnabled()) {
+      // eslint-disable-next-line no-console -- opt-in dev-only geometry telemetry; never logs URLs or page text.
+      console.debug("[research-browser] main bounds", {
+        contentBounds,
+        requestedBounds: {
+          x: input.x,
+          y: input.y,
+          width: input.width,
+          height: input.height,
+          visible: input.visible,
+        },
+        finalBounds: safeBounds,
+        geometry: input.geometry,
+        telemetryError,
+      });
+    }
+    if (telemetryError && input.visible) {
+      currentBounds = { ...safeBounds, visible: false };
+      detachResearchView();
+      setBlockedState(telemetryError);
+      return { ok: false, error: telemetryError };
+    }
+
     currentBounds = safeBounds;
 
     if (safeBounds.visible) {

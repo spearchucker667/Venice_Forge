@@ -295,6 +295,68 @@ describe("Research Browser Server Main Process Integration", () => {
       expect(mockWindow.contentView.removeChildView).toHaveBeenCalledTimes(1);
     });
 
+    it("rejects visible bounds when telemetry shows the native view would cover the toolbar", async () => {
+      const createHandler = ipcHandlers.get("researchBrowser:create");
+      await createHandler!(null);
+
+      const setBoundsHandler = ipcHandlers.get("researchBrowser:setBounds");
+      const result = await setBoundsHandler!(null, {
+        x: 0,
+        y: 30,
+        width: 1000,
+        height: 700,
+        visible: true,
+        geometry: {
+          shell: { x: 0, y: 0, width: 1000, height: 760, top: 0, left: 0, right: 1000, bottom: 760 },
+          toolbar: { x: 0, y: 0, width: 1000, height: 48, top: 0, left: 0, right: 1000, bottom: 48 },
+          viewport: { x: 0, y: 30, width: 1000, height: 700, top: 30, left: 0, right: 1000, bottom: 730 },
+          devicePixelRatio: 1,
+        },
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.error).toMatch(/viewport overlaps toolbar|native view would cover toolbar/);
+      expect(mockWindow.contentView.addChildView).not.toHaveBeenCalled();
+      expect(mockWindow.webContents.send).toHaveBeenCalledWith(
+        "researchBrowser:onStateChanged",
+        expect.objectContaining({
+          visible: false,
+          error: expect.stringMatching(/Invalid Research Browser bounds/),
+        }),
+      );
+    });
+
+    it("preserves valid renderer-measured telemetry bounds instead of clamping them into the toolbar", async () => {
+      mockWindow.getContentBounds.mockReturnValueOnce({ width: 1280, height: 800 });
+      const createHandler = ipcHandlers.get("researchBrowser:create");
+      await createHandler!(null);
+
+      const setBoundsHandler = ipcHandlers.get("researchBrowser:setBounds");
+      const result = await setBoundsHandler!(null, {
+        x: 352,
+        y: 292,
+        width: 1162,
+        height: 698,
+        visible: true,
+        geometry: {
+          shell: { x: 351, y: 216, width: 1164, height: 774, top: 216, left: 351, right: 1515, bottom: 990 },
+          toolbar: { x: 352, y: 246, width: 1162, height: 46, top: 246, left: 352, right: 1514, bottom: 292 },
+          viewport: { x: 352, y: 292, width: 1162, height: 698, top: 292, left: 352, right: 1514, bottom: 990 },
+          devicePixelRatio: 1,
+        },
+      });
+
+      expect(result).toEqual({ ok: true });
+      expect(mockWindow.contentView.addChildView).toHaveBeenCalledTimes(1);
+      const view = (mockWebContentsView as any).mock.results[0].value;
+      expect(view.setBounds).toHaveBeenCalledWith({
+        x: 352,
+        y: 292,
+        width: 1162,
+        height: 698,
+      });
+    });
+
     it("should reject invalid parameter types on setBounds", async () => {
       const setBoundsHandler = ipcHandlers.get("researchBrowser:setBounds");
       const badInput = { x: "invalid", y: 50, width: 600, height: 400, visible: true };

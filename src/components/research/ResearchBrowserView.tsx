@@ -1,6 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import { researchBrowserBridge } from "../../services/researchBrowserBridge";
-import type { ResearchBrowserState } from "../../types/researchBrowser";
+import type {
+  ResearchBrowserBoundsTelemetry,
+  ResearchBrowserRectTelemetry,
+  ResearchBrowserState,
+} from "../../types/researchBrowser";
 
 interface ResearchBrowserViewProps {
   onCaptureWithJina?: (url: string) => void;
@@ -21,11 +25,79 @@ interface ResearchBrowserViewProps {
 }
 
 const MIN_BROWSER_VIEWPORT_SIZE = 100;
+const MIN_BROWSER_TOOLBAR_HEIGHT = 32;
+const GEOMETRY_EPSILON = 1;
+const importMetaEnv = (import.meta as { env?: Record<string, string | boolean | undefined> }).env;
+const DEBUG_BOUNDS =
+  importMetaEnv?.DEV === true && importMetaEnv.VITE_RESEARCH_BROWSER_DEBUG_BOUNDS === "1";
+
+function rectToTelemetry(rect: DOMRect): ResearchBrowserRectTelemetry {
+  return {
+    x: Math.round(rect.x),
+    y: Math.round(rect.y),
+    width: Math.round(rect.width),
+    height: Math.round(rect.height),
+    top: Math.round(rect.top),
+    left: Math.round(rect.left),
+    right: Math.round(rect.right),
+    bottom: Math.round(rect.bottom),
+  };
+}
+
+function buildGeometryTelemetry(
+  shellRect: DOMRect,
+  toolbarRect: DOMRect,
+  viewportRect: DOMRect,
+): ResearchBrowserBoundsTelemetry {
+  const visualViewport = window.visualViewport
+    ? {
+        offsetTop: Math.round(window.visualViewport.offsetTop),
+        offsetLeft: Math.round(window.visualViewport.offsetLeft),
+      }
+    : undefined;
+
+  return {
+    shell: rectToTelemetry(shellRect),
+    toolbar: rectToTelemetry(toolbarRect),
+    viewport: rectToTelemetry(viewportRect),
+    devicePixelRatio: window.devicePixelRatio || 1,
+    ...(visualViewport ? { visualViewport } : {}),
+  };
+}
+
+function validateBrowserGeometry(geometry: ResearchBrowserBoundsTelemetry): string | null {
+  if (geometry.toolbar.height < MIN_BROWSER_TOOLBAR_HEIGHT) {
+    return "Research Browser toolbar is not measurable; native browser view hidden.";
+  }
+  if (
+    geometry.viewport.width < MIN_BROWSER_VIEWPORT_SIZE ||
+    geometry.viewport.height < MIN_BROWSER_VIEWPORT_SIZE
+  ) {
+    return "Research Browser viewport is too small; native browser view hidden.";
+  }
+  if (geometry.viewport.top + GEOMETRY_EPSILON < geometry.toolbar.bottom) {
+    return "Research Browser viewport overlaps the toolbar; native browser view hidden.";
+  }
+  if (geometry.viewport.left + GEOMETRY_EPSILON < geometry.shell.left) {
+    return "Research Browser viewport starts outside the browser shell; native browser view hidden.";
+  }
+  if (geometry.viewport.right > geometry.shell.right + GEOMETRY_EPSILON) {
+    return "Research Browser viewport exceeds the browser shell width; native browser view hidden.";
+  }
+  if (geometry.viewport.bottom > geometry.shell.bottom + GEOMETRY_EPSILON) {
+    return "Research Browser viewport exceeds the browser shell height; native browser view hidden.";
+  }
+
+  return null;
+}
 
 export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUrlConsumed }: ResearchBrowserViewProps) {
   const [browserState, setBrowserState] = useState<ResearchBrowserState | null>(null);
   const [address, setAddress] = useState("");
   const [lastErrorUrl, setLastErrorUrl] = useState<string | null>(null);
+  const [boundsError, setBoundsError] = useState<string | null>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   // Track whether the initialUrl has been consumed so it is only navigated once.
@@ -97,30 +169,44 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
   }, []);
 
   useEffect(() => {
-    if (!browserAvailable || !viewportRef.current) return;
+    if (!browserAvailable || !shellRef.current || !toolbarRef.current || !viewportRef.current) return;
 
     let debounceTimer: ReturnType<typeof setTimeout>;
 
     const updateBounds = async () => {
-      if (!viewportRef.current) return;
-      const rect = viewportRef.current.getBoundingClientRect();
-      const width = Math.round(rect.width);
-      const height = Math.round(rect.height);
-      if (width < MIN_BROWSER_VIEWPORT_SIZE || height < MIN_BROWSER_VIEWPORT_SIZE) {
+      if (!shellRef.current || !toolbarRef.current || !viewportRef.current) return;
+      const shellRect = shellRef.current.getBoundingClientRect();
+      const toolbarRect = toolbarRef.current.getBoundingClientRect();
+      const viewportRect = viewportRef.current.getBoundingClientRect();
+      const geometry = buildGeometryTelemetry(shellRect, toolbarRect, viewportRect);
+      const geometryError = validateBrowserGeometry(geometry);
+
+      if (DEBUG_BOUNDS) {
+        // eslint-disable-next-line no-console -- opt-in dev-only geometry telemetry; never logs URLs or page text.
+        console.debug("[research-browser] renderer bounds", geometry);
+      }
+
+      if (geometryError) {
+        setBoundsError(geometryError);
         await researchBrowserBridge.setVisible(false);
         return;
       }
+      setBoundsError(null);
+
+      const width = Math.round(viewportRect.width);
+      const height = Math.round(viewportRect.height);
       // getBoundingClientRect() returns coordinates relative to the renderer
       // viewport (top-left of the web content area). WebContentsView.setBounds()
       // also takes coordinates in the BrowserWindow content-area coordinate space.
       // With a standard (non-hidden) titlebar, these coordinate spaces are the
       // same — no offset correction is needed.
       await researchBrowserBridge.setBounds({
-        x: Math.round(rect.x),
-        y: Math.round(rect.y),
+        x: Math.round(viewportRect.x),
+        y: Math.round(viewportRect.y),
         width,
         height,
         visible: true,
+        geometry,
       });
     };
 
@@ -134,6 +220,8 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(updateBounds, 50);
       });
+      resizeObserverRef.current.observe(shellRef.current);
+      resizeObserverRef.current.observe(toolbarRef.current);
       resizeObserverRef.current.observe(viewportRef.current);
     }
     window.addEventListener("resize", handleWindowResize);
@@ -185,7 +273,11 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
   const errorUrl = browserState?.error ? lastErrorUrl || browserState.url : null;
 
   return (
-    <div className="mesh-panel flex flex-col h-full w-full bg-[var(--surface-sunken)] rounded-lg border border-[var(--border-subtle)] overflow-hidden">
+    <div
+      ref={shellRef}
+      data-testid="research-browser-shell"
+      className={`mesh-panel flex flex-col h-full w-full bg-[var(--surface-sunken)] rounded-lg border border-[var(--border-subtle)] overflow-hidden ${DEBUG_BOUNDS ? "outline outline-1 outline-[var(--tone-info,var(--brand-primary))]" : ""}`}
+    >
       <div className="flex flex-col">
         {browserState?.loading && (
           <div className="h-0.5 bg-[var(--surface-base)]">
@@ -206,7 +298,11 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
       </div>
 
       {/* Browser Toolbar */}
-      <div className="flex items-center gap-2 p-2 bg-[var(--surface-raised)] border-b border-[var(--border-subtle)]">
+      <div
+        ref={toolbarRef}
+        data-testid="research-browser-toolbar"
+        className={`flex items-center gap-2 p-2 bg-[var(--surface-raised)] border-b border-[var(--border-subtle)] ${DEBUG_BOUNDS ? "outline outline-1 outline-[var(--tone-warning,var(--brand-primary))] outline-offset-[-1px]" : ""}`}
+      >
         <div className="flex gap-1">
           <button 
             className="p-1.5 rounded hover:bg-[var(--surface-hover)] disabled:opacity-30 transition-colors"
@@ -289,8 +385,17 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
       <div
         ref={viewportRef}
         data-testid="research-browser-viewport"
-        className="research-browser-viewport flex-1 min-h-0 w-full relative"
-      />
+        className={`research-browser-viewport flex-1 min-h-0 w-full relative ${DEBUG_BOUNDS ? "outline outline-1 outline-[var(--tone-success,var(--brand-primary))] outline-offset-[-2px]" : ""}`}
+      >
+        {boundsError && (
+          <div
+            role="alert"
+            className="absolute inset-0 flex items-center justify-center bg-[var(--surface-sunken)] p-4 text-center text-sm text-[var(--tone-error)]"
+          >
+            {boundsError}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

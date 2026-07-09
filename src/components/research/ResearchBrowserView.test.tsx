@@ -52,6 +52,44 @@ const readyState: ResearchBrowserState = {
   securityLabel: "internal",
 };
 
+function domRect(input: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}): DOMRect {
+  return {
+    x: input.x,
+    y: input.y,
+    width: input.width,
+    height: input.height,
+    top: input.y,
+    left: input.x,
+    right: input.x + input.width,
+    bottom: input.y + input.height,
+    toJSON: () => ({}),
+  } as DOMRect;
+}
+
+function installRectMock(rects?: {
+  shell?: DOMRect;
+  toolbar?: DOMRect;
+  viewport?: DOMRect;
+  fallback?: DOMRect;
+}): void {
+  const shell = rects?.shell ?? domRect({ x: 0, y: 0, width: 1000, height: 760 });
+  const toolbar = rects?.toolbar ?? domRect({ x: 0, y: 0, width: 1000, height: 48 });
+  const viewport = rects?.viewport ?? domRect({ x: 0, y: 48, width: 1000, height: 712 });
+  const fallback = rects?.fallback ?? shell;
+
+  HTMLElement.prototype.getBoundingClientRect = vi.fn(function getRect(this: HTMLElement) {
+    if (this.dataset.testid === "research-browser-shell") return shell;
+    if (this.dataset.testid === "research-browser-toolbar") return toolbar;
+    if (this.dataset.testid === "research-browser-viewport") return viewport;
+    return fallback;
+  });
+}
+
 describe("ResearchBrowserView", () => {
   const originalResizeObserver = globalThis.ResizeObserver;
   const originalGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
@@ -66,6 +104,7 @@ describe("ResearchBrowserView", () => {
     bridge.getState.mockResolvedValue({ ok: true, state: readyState });
     bridge.onStateChanged.mockReturnValue(vi.fn());
     globalThis.ResizeObserver = TestResizeObserver;
+    installRectMock();
   });
 
   afterEach(() => {
@@ -92,75 +131,48 @@ describe("ResearchBrowserView", () => {
   });
 
   it("does not show the native browser view for a minuscule viewport", async () => {
-    HTMLElement.prototype.getBoundingClientRect = vi.fn(() => ({
-      x: 12,
-      y: 34,
-      width: 80,
-      height: 90,
-      top: 34,
-      left: 12,
-      right: 92,
-      bottom: 124,
-      toJSON: () => ({}),
-    }));
+    installRectMock({
+      shell: domRect({ x: 0, y: 0, width: 1000, height: 180 }),
+      toolbar: domRect({ x: 0, y: 0, width: 1000, height: 48 }),
+      viewport: domRect({ x: 12, y: 48, width: 80, height: 90 }),
+    });
 
     render(<ResearchBrowserView />);
 
     await waitFor(() => expect(bridge.setVisible).toHaveBeenCalledWith(false));
     expect(bridge.setBounds).not.toHaveBeenCalledWith(expect.objectContaining({ visible: true }));
+    await screen.findByText("Research Browser viewport is too small; native browser view hidden.");
   });
 
   it("sets bounds from the dedicated browser viewport", async () => {
-    HTMLElement.prototype.getBoundingClientRect = vi.fn(function getRect(this: HTMLElement) {
-      if (this.dataset.testid === "research-browser-viewport") {
-        return {
-          x: 40,
-          y: 120,
-          width: 900,
-          height: 640,
-          top: 120,
-          left: 40,
-          right: 940,
-          bottom: 760,
-          toJSON: () => ({}),
-        };
-      }
-      return {
-        x: 0,
-        y: 0,
-        width: 1200,
-        height: 800,
-        top: 0,
-        left: 0,
-        right: 1200,
-        bottom: 800,
-        toJSON: () => ({}),
-      };
+    installRectMock({
+      shell: domRect({ x: 0, y: 0, width: 1200, height: 800 }),
+      toolbar: domRect({ x: 0, y: 70, width: 1200, height: 50 }),
+      viewport: domRect({ x: 40, y: 120, width: 900, height: 640 }),
     });
 
     render(<ResearchBrowserView />);
 
-    await waitFor(() => expect(bridge.setBounds).toHaveBeenCalledWith({
+    await waitFor(() => expect(bridge.setBounds).toHaveBeenCalledWith(expect.objectContaining({
       x: 40,
       y: 120,
       width: 900,
       height: 640,
       visible: true,
-    }));
+      geometry: expect.objectContaining({
+        shell: expect.objectContaining({ x: 0, y: 0, width: 1200, height: 800 }),
+        toolbar: expect.objectContaining({ x: 0, y: 70, width: 1200, height: 50 }),
+        viewport: expect.objectContaining({ x: 40, y: 120, width: 900, height: 640 }),
+      }),
+    })));
   });
 
   it("hides the native browser view on unmount", async () => {
-    HTMLElement.prototype.getBoundingClientRect = vi.fn(() => ({
-      x: 0,
-      y: 100,
-      width: 800,
-      height: 600,
-      top: 100,
-      left: 0,
-      right: 800,
-      bottom: 700,
-      toJSON: () => ({}),
-    }));
+    installRectMock({
+      shell: domRect({ x: 0, y: 0, width: 800, height: 700 }),
+      toolbar: domRect({ x: 0, y: 52, width: 800, height: 48 }),
+      viewport: domRect({ x: 0, y: 100, width: 800, height: 600 }),
+    });
 
     const { unmount } = render(<ResearchBrowserView />);
     await waitFor(() => expect(bridge.setBounds).toHaveBeenCalled());
@@ -171,6 +183,20 @@ describe("ResearchBrowserView", () => {
 
     expect(bridge.setVisible).toHaveBeenCalledWith(false);
     expect(bridge.destroy).toHaveBeenCalled();
+  });
+
+  it("hides the native browser view when viewport geometry would cover the toolbar", async () => {
+    installRectMock({
+      shell: domRect({ x: 0, y: 0, width: 1000, height: 760 }),
+      toolbar: domRect({ x: 0, y: 0, width: 1000, height: 48 }),
+      viewport: domRect({ x: 0, y: 30, width: 1000, height: 700 }),
+    });
+
+    render(<ResearchBrowserView />);
+
+    await waitFor(() => expect(bridge.setVisible).toHaveBeenCalledWith(false));
+    expect(bridge.setBounds).not.toHaveBeenCalledWith(expect.objectContaining({ visible: true }));
+    await screen.findByText("Research Browser viewport overlaps the toolbar; native browser view hidden.");
   });
 
   // VERIFY-RB-001 regression guard — navigate-before-create (Bug 2):
