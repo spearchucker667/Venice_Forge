@@ -145,28 +145,33 @@ backlog files were removed.
   - Attempted headed packaged-app screenshot from `release/mac-arm64/Venice Forge.app`; this showed the original failure, but that release bundle was built before this patch and is not valid evidence for the current source fix.
   - Attempted current-source headed launch with `npm run dev:electron`; the app launched, but desktop focus/click automation repeatedly targeted Safari/Antigravity instead of the Venice Forge window, so the Research Browser subtab could not be operated reliably. The dev session was stopped with Ctrl-C.
 
-- **2026-07-08 Windows Credential Manager Bridge + Node Policy Fix — COMPLETE (current session):**
+- **2026-07-08 Windows Credential Manager Bridge + Node Policy Fix — CODE HARDENED; REAL WINDOWS SMOKE STILL REQUIRED (current session):**
 
-  Completed the remaining P1 work-order item from the 2026-07-08 deep bug review and resolved the Node-version ambiguity in CI.
+  Completed the remaining P1 work-order item from the 2026-07-08 deep bug review and resolved the Node-version ambiguity in CI. A follow-up hardening pass addressed the remaining policy gaps in the Credential Manager integration so the bridge no longer silently falls back to DPAPI/safeStorage on runtime failures.
 
   **Fixes / coverage added:**
   - `package.json`: pinned `engines.node` to `>=22.13.0 <23.0.0` (was `>=22.13.0`).
   - `.github/workflows/ci.yml`: reduced the matrix to `[22]` (was `[22, 24]`) so CI stays aligned with the pinned Node policy.
   - `electron/services/windowsCredentialStore.ts` (new): synchronous PowerShell bridge to Windows Credential Manager using `CredWriteW` / `CredReadW` / `CredDeleteW`. Secrets are passed via stdin; target names are sanitized; non-Windows calls fail closed.
-  - `electron/services/secureStore.ts`: strict password credentials (`password`, `master_password`, `profile_password*`, `*_password`) now route to Windows Credential Manager on Windows. `setCredential` writes there and removes any legacy local DPAPI copy; `getCredential` reads Credential Manager first and falls back to the local store only for legacy migration; `deleteCredential` also deletes the Credential Manager entry.
+  - `electron/services/secureStore.ts`:
+    - Strict password credentials (`password`, `master_password`, `profile_password*`, `*_password`) route to Windows Credential Manager on Windows.
+    - `useWindowsCredentialManager()` now honors `VENICE_FORGE_USE_WINDOWS_CREDENTIAL_MANAGER=false` only in `NODE_ENV === "test"`; release/runtime builds cannot opt password credentials back into DPAPI/safeStorage.
+    - `setCredential` writes to Credential Manager and removes any legacy local DPAPI copy; write failures fail closed.
+    - `getCredential` reads Credential Manager first. A clean "not found" result falls back to the local store for legacy migration; bridge/runtime errors (e.g., CredReadW access denied) propagate instead of silently reading DPAPI-backed local storage.
+    - `deleteCredential` removes the OS Credential Manager entry first and only deletes the local legacy row after the OS deletion succeeds (or is confirmed absent). Delete failures propagate so the UI does not falsely report success while the OS credential remains.
   - `electron/services/windowsCredentialStore.test.ts` (new): 14 tests covering platform gating, target sanitization, write/read/delete success, not-found handling, PowerShell error propagation, and stdin-based secret passing.
-  - `electron/services/secureStore.test.ts`: added 5 regressions proving Windows routing, fail-closed write errors, local-store fallback, Credential Manager deletion, and that non-strict credentials stay on the safeStorage path.
+  - `electron/services/secureStore.test.ts`: added 8 regressions proving Windows routing, fail-closed write errors, local-store fallback only on not-found, fail-closed CredReadW bridge errors, delete-failure preservation of the local row, and that the runtime env disable flag is ignored outside test mode.
 
   **Validation:**
   - `npm run lint:eslint` — PASS.
   - `npm run typecheck` — PASS (renderer + electron main).
-  - `npx vitest run electron/services/secureStore.test.ts electron/services/windowsCredentialStore.test.ts` — PASS (49 tests).
-  - `npm test` — PASS (3713 passed, 1 skipped).
-  - `npm run verify:contracts` — PASS.
-  - `npm run verify:safety-guard`, `verify:image-policy`, `verify:network-boundaries`, `verify:work-orders` — PASS.
-  - `npm run build` and `npm run verify:dist` — PASS.
-  - `npm run verify:ci-contract` — PASS (Node 22 matrix verified).
-  - Note: the PowerShell bridge is mocked in tests and must be validated on a real Windows runner before release.
+  - `npx vitest run src/components/research/ResearchBrowserView.test.tsx electron/services/researchBrowserServer.test.ts electron/security/researchBrowserNetworkPolicy.test.ts electron/services/secureStore.test.ts electron/services/windowsCredentialStore.test.ts --fileParallelism=false` — PASS (112 tests).
+  - `npx vitest run electron/services/secureStore.test.ts electron/services/windowsCredentialStore.test.ts` — PASS (52 tests).
+  - `npm run verify:research-browser` — PASS (169 tests across 11 files).
+  - `npm run verify:network-boundaries` — PASS.
+  - `npm run verify:web-contents-view` — PASS.
+  - `npm run build` — PASS.
+  - Note: the PowerShell bridge is mocked in tests and must be validated on a real Windows runner before release. No real Windows smoke test (save verifier, verify entry in Credential Manager, unlock after restart, delete/change password, PowerShell-unavailable path) has been run.
 
 - **2026-07-08 Research Browser Splash Page Load Fix — COMPLETE (current session):**
 
@@ -4205,6 +4210,19 @@ backlog files were removed.
 ---
 
 ## Session History
+
+### 2026-07-09 - Windows Credential Manager hardening pass
+
+- **Scope:** Follow-up hardening of the Windows Credential Manager integration added in the prior session. Addressed two remaining policy risks: a runtime env escape hatch that could allow strict password credentials to fall back to DPAPI/safeStorage, and `getCredential`/`deleteCredential` paths that silently swallowed bridge/runtime errors.
+- **Env escape hatch:** `useWindowsCredentialManager()` in `electron/services/secureStore.ts` now honors `VENICE_FORGE_USE_WINDOWS_CREDENTIAL_MANAGER=false` only when `NODE_ENV === "test"`. Release/runtime builds ignore the flag, so strict password credentials always route to Credential Manager on Windows.
+- **Fail-closed reads:** `getCredential()` now propagates `CredReadW` bridge/runtime errors instead of catching all errors and falling through to the local DPAPI-backed store. Only a clean Credential Manager "not found" result allows legacy local-store migration.
+- **Fail-closed deletes:** `deleteCredential()` now removes the OS credential first and only deletes the local legacy row after the OS deletion succeeds (or is confirmed absent). A delete failure propagates so the UI cannot report success while the OS credential remains.
+- **Regression coverage:** Added 3 new tests in `electron/services/secureStore.test.ts`:
+  - `getCredential` fails closed on CredReadW error and does not return local DPAPI value.
+  - `deleteCredential` propagates CredDeleteW failure and preserves the local row.
+  - `VENICE_FORGE_USE_WINDOWS_CREDENTIAL_MANAGER=false` is ignored outside test mode.
+- **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; focused tests PASS (112 tests across Research Browser and secure-store suites); `npm run verify:research-browser` PASS (169 tests); `npm run verify:network-boundaries` PASS; `npm run verify:web-contents-view` PASS; `npm run build` PASS.
+- **Remaining risk:** The PowerShell bridge is still mocked in unit tests. Real Windows smoke (save master-password verifier, confirm entry in Credential Manager, unlock after restart, change/delete password, PowerShell-unavailable path) has not been run. Do not mark the P1 work-order fully closed until that smoke passes.
 
 ### 2026-07-08 - Research Browser native view bounds and toolbar visibility fix
 

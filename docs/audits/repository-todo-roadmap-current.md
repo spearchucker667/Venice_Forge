@@ -868,7 +868,12 @@ Electron `safeStorage` is approved for profile-password verifier storage on **ma
 ### Implementation
 
 - `electron/services/windowsCredentialStore.ts` (new): synchronous PowerShell bridge calling `CredWriteW` / `CredReadW` / `CredDeleteW`. Secrets are passed via stdin; target names are sanitized to `[a-zA-Z0-9_.:-]{1,256}`; non-Windows platforms fail closed.
-- `electron/services/secureStore.ts`: strict password credentials (`password`, `master_password`, `profile_password*`, `*_password`) now route to Windows Credential Manager on Windows via the bridge. `setCredential` removes any legacy DPAPI-backed local copy after a successful write; `getCredential` reads Credential Manager first and falls back to the local store only for legacy migration; `deleteCredential` also deletes the Credential Manager entry. Fail-closed behavior, lockout counters, and Linux plaintext-fallback refusal remain enforced.
+- `electron/services/secureStore.ts`: strict password credentials (`password`, `master_password`, `profile_password*`, `*_password`) route to Windows Credential Manager on Windows via the bridge.
+  - `useWindowsCredentialManager()` honors `VENICE_FORGE_USE_WINDOWS_CREDENTIAL_MANAGER=false` only in `NODE_ENV === "test"`; release/runtime builds cannot disable Credential Manager and revert password credentials to DPAPI/safeStorage.
+  - `setCredential` writes to Credential Manager and removes any legacy DPAPI-backed local copy after a successful write; write failures fail closed.
+  - `getCredential` reads Credential Manager first. A clean "not found" result falls back to the local store for legacy migration; bridge/runtime errors (e.g., CredReadW access denied) propagate instead of silently reading DPAPI-backed local storage.
+  - `deleteCredential` removes the OS credential first and only deletes the local legacy row after the OS deletion succeeds (or is confirmed absent). Delete failures propagate so the UI cannot report success while the OS credential remains.
+  - Fail-closed behavior, lockout counters, and Linux plaintext-fallback refusal remain enforced.
 - The verifier itself is still a salted PBKDF2 record; the plaintext password is never persisted.
 
 ### Files involved
@@ -884,15 +889,16 @@ Electron `safeStorage` is approved for profile-password verifier storage on **ma
 
 | Command | Result |
 | --- | --- |
-| `npx vitest run electron/services/secureStore.test.ts electron/services/windowsCredentialStore.test.ts` | Pass (49 tests) |
-| `npm test` | Pass (3713 passed, 1 skipped) |
+| `npx vitest run electron/services/secureStore.test.ts electron/services/windowsCredentialStore.test.ts` | Pass (52 tests) |
+| `npx vitest run src/components/research/ResearchBrowserView.test.tsx electron/services/researchBrowserServer.test.ts electron/security/researchBrowserNetworkPolicy.test.ts electron/services/secureStore.test.ts electron/services/windowsCredentialStore.test.ts --fileParallelism=false` | Pass (112 tests) |
 | `npm run lint:eslint` | Pass (0 warnings) |
 | `npm run typecheck` | Pass (renderer + electron main) |
-| `npm run verify:contracts` | Pass |
-| `npm run verify:safety-guard` | Pass |
-| `npm run verify:ci-contract` | Pass |
+| `npm run verify:research-browser` | Pass (169 tests) |
+| `npm run verify:network-boundaries` | Pass |
+| `npm run verify:web-contents-view` | Pass |
+| `npm run build` | Pass |
 
-**Note:** The PowerShell bridge is mocked in unit tests and must be validated on a real Windows runner before release. If the bridge fails at runtime, the code fails closed rather than silently reverting to DPAPI for password credentials.
+**Note:** The PowerShell bridge is mocked in unit tests and must be validated on a real Windows runner before release. Real Windows smoke (save master-password verifier, verify entry in Credential Manager, unlock after restart, change/delete password, PowerShell-unavailable path) has not been run. Do not mark the P1 work-order fully closed until that smoke passes.
 
 ---
 

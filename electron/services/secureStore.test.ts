@@ -97,6 +97,7 @@ describe("secureStore", () => {
       });
   });
   afterEach(() => {
+    vi.unstubAllEnvs();
     if (originalPlaintextFlag === undefined) {
       delete process.env.VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE;
     } else {
@@ -555,5 +556,66 @@ describe("secureStore", () => {
 
     expect(writeWindowsCredentialMock).not.toHaveBeenCalled();
     expect(getCredential("profile_secret")).toBe("value");
+  });
+
+  it("getCredential fails closed when CredReadW throws and does not fall back to local DPAPI", () => {
+    vi.mocked(isWindowsCredentialStoreAvailableMock).mockReturnValue(true);
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    // Seed a legacy encrypted local row that must NOT be returned on bridge failure.
+    const legacyValue = "legacy-local-value";
+    fs.writeFileSync(
+      STORE_PATH,
+      JSON.stringify({
+        cred_master_password: Buffer.from(`enc:${legacyValue}`).toString("base64"),
+        credEncrypted_master_password: "true",
+      }),
+      "utf-8",
+    );
+    __clearCacheForTests();
+    vi.mocked(readWindowsCredentialMock).mockImplementation(() => {
+      throw new Error("CredReadW failed: 5");
+    });
+
+    expect(() => getCredential("master_password")).toThrow(/CredReadW failed/);
+  });
+
+  it("deleteCredential propagates Credential Manager delete failure and preserves the local row", () => {
+    vi.mocked(isWindowsCredentialStoreAvailableMock).mockReturnValue(true);
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    credentialVault.set("VeniceForge:credential:master_password", "value");
+    fs.writeFileSync(
+      STORE_PATH,
+      JSON.stringify({
+        cred_master_password: "value",
+        credEncrypted_master_password: "true",
+      }),
+      "utf-8",
+    );
+    __clearCacheForTests();
+    vi.mocked(deleteWindowsCredentialMock).mockImplementation(() => {
+      throw new Error("CredDeleteW failed: 5");
+    });
+
+    expect(() => deleteCredential("master_password")).toThrow(/CredDeleteW failed/);
+
+    // The local row must remain because the OS credential was not removed.
+    const raw = fs.readFileSync(STORE_PATH, "utf-8");
+    expect(raw).toContain("cred_master_password");
+  });
+
+  it("VENICE_FORGE_USE_WINDOWS_CREDENTIAL_MANAGER=false is ignored outside test mode", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    process.env.VENICE_FORGE_USE_WINDOWS_CREDENTIAL_MANAGER = "false";
+    vi.mocked(isWindowsCredentialStoreAvailableMock).mockReturnValue(true);
+    vi.mocked(mockedSafeStorage.isEncryptionAvailable).mockReturnValue(true);
+    const record = JSON.stringify({ v: 1, hash: "h" });
+
+    setCredential("master_password", record);
+
+    // The disable flag was ignored, so the credential still routed to Credential Manager.
+    expect(writeWindowsCredentialMock).toHaveBeenCalledWith(
+      "VeniceForge:credential:master_password",
+      record,
+    );
   });
 });
