@@ -405,25 +405,23 @@ See `docs/DOCS_INDEX.md` for the authoritative list. Quick map:
 
 | Path | Purpose |
 |------|---------|
-| `docs/ABOUT.md` | Project overview |
+| `docs/ABOUT.md` | Product overview |
 | `docs/FAQ.md` | End-user FAQ |
-| `docs/SUPPORT.md` / `SUPPORT.md` | Support channels |
-| `docs/LEGAL.md` / `LEGAL.md` | Terms + notices |
-| `docs/legal/PRIVACY.md` / `PRIVACY.md` | Privacy |
-| `docs/SECURITY.md` mirror in repo root | Security mirrors |
-| `docs/DOCS_INDEX.md` | Doc index |
+| `docs/SUPPORT.md` | Support channel references (root SUPPORT.md is canonical) |
+| `docs/legal/*` | Detailed disclaimer, notice, privacy, third-party notices, trademarks |
+| `docs/DOCS_INDEX.md` | Navigation index map |
 | `docs/FILE_TREE.md` | This file |
+| `docs/ROADMAP.md` | Canonical open TODO roadmap |
 | `docs/design/*` | First-party design notes (RP, Lorebooks, Media Studio, Memory, Public-Profile Discovery, Repository Tree, Scene Generation, Theme System, Venice UI Extraction) |
-| `docs/DEVELOPMENT/*` | Building, BRIDGE, CONFIG, JINA_PROVIDER, macOS, platform-support, storage-policy, troubleshooting |
+| `docs/DEVELOPMENT/*` | Building, BRIDGE, CONFIG, JINA_PROVIDER, macOS, platform-support, storage-policy, troubleshooting, research-browser |
 | `docs/RELEASE/*` | release, repository-settings, SIGNED_ARTIFACT_EVIDENCE, signing-and-notarization |
-| `docs/legal/*` | DISCLAIMER, NOTICE, PRIVACY, THIRD_PARTY_NOTICES, TRADEMARKS |
 | `docs/reference/*` | Venice API reference (`Venice_api_LLM_info.md`) + Swagger source (`Venice_swagger_api.yaml`) |
-| `docs/audits/*` | Historical + current audit reports (CHANGELOG, exhaustive bug hunt, release safety gate, repository-todo-roadmap) |
-| `docs/archives/*` | Pre-roadmap-location archives (VENICE_FORGE_TODO, VENICE_FORGE_ZIP_AUDIT_HANDOFF) |
-| `docs/reports/CANONICAL_REPORT_INDEX.md` + `historical/*` | Issuer's index + ledger |
-| `docs/superpowers/specs/*`, `plans/*` | SPM plan + spec drafts (separate from release-readiness docs) |
-| `docs/AGENTS/AGENTS.md`, `docs/AGENTS/agent-reinitialization.md`, `docs/AGENTS/gemini.md`, `docs/AGENTS/scratch_summary.md` | Local-only agent memory (gitignored redirect-friendly docs folder) |
+| `docs/audits/*` | Historical audit reports and verification fixtures (agent-repair-status, bug-cross-reference, CHANGELOG, docstrings-and-coverage-baseline, docstrings-and-coverage-final, document-ingestion-plan, exhaustive-bug-hunt, p0-closure-evidence, release_safety_gate, RESEARCH_PROVIDERS, security-quality-static-audit, work-orders) |
+| `docs/archives/README.md` | History note on stale file removal |
+| `docs/reports/CANONICAL_REPORT_INDEX.md` + `historical/*` | Report index and historical audits (final-massive-bug-hunt-with-proof, etc.) |
+| `docs/superpowers/specs/*`, `plans/*` | SPM plan + spec drafts |
 | `docs/summary_of_work.md` | Canonical AI/dev-agent session handoff ledger |
+
 
 ---
 

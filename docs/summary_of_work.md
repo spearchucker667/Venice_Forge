@@ -1,10 +1,13 @@
 # Summary of Work
 
+> This is an append-only agent/session ledger. It is not the public product roadmap or source-of-truth user documentation. See `docs/ROADMAP.md` and `docs/DOCS_INDEX.md`.
+
 > Canonical handoff ledger for AI/dev-agent sessions.
 >
 > Every agent that modifies this repository must update this document
 > before ending its session. See `AGENTS.md` § *Mandatory Session
 > Handoff* for the contract.
+
 
 ---
 
@@ -4298,7 +4301,14 @@ backlog files were removed.
 
 ## Session History
 
+### 2026-07-08 - Web-browsing / Research Browser bug review & Windows Credential Manager integration
+
+- **Scope:** Reviewed all web-browsing surfaces: Research Mini Browser (Electron main), renderer bridge, search/scrape UI, research providers, and network policy. Fixed config drift where three `research.*` settings were exposed in the schema but ignored. Hardened Jina error surfacing in the renderer. Replaced Windows `safeStorage` DPAPI backend with Windows Credential Manager native bridge.
+- **Files changed:** `electron/services/researchBrowserServer.ts`, `electron/services/researchBrowserServer.test.ts`, `src/components/search/SearchScrapeView.tsx`, `scripts/verify-web-contents-view.cjs`, `src/services/veniceClient.edge.test.ts`, `secureStore.ts`, `docs/summary_of_work.md`.
+- **Result:** All verification checks passed.
+
 ### 2026-07-09 - Research Browser elastic layout, internal home, and browsing policy fix
+
 
 - **Scope:** Completed the next Research Browser integration pass after the coordinate-space fix. The browser now uses elastic app-shell layout instead of fixed `100vh` math, the internal home page no longer exposes a local filesystem path, and the main-process policy distinguishes strict top-level navigation from ordinary page resources and safe popup routing.
 - **Files changed:** `src/components/search/SearchScrapeView.tsx`, `src/components/research/ResearchBrowserView.tsx`, `src/types/researchBrowser.ts`, `electron/services/researchBrowserServer.ts`, `public/research-browser-home.html`, `src/components/search/SearchScrapeView.test.tsx`, `src/components/research/ResearchBrowserView.test.tsx`, `electron/services/researchBrowserServer.test.ts`, `src/shared/urlSecurity.test.ts`, `docs/summary_of_work.md`.
@@ -10411,180 +10421,53 @@ Addressed missing features and major bugs identified in the prior discovery audi
 ## Latest Session Summary
 
 **Date:** 2026-07-08
-**Session type:** Webbrowsing / Research Browser bug review
-**Target snapshot:** `Windows-Venice-API-connector-clean-20260708-111500.zip`
+**Session type:** Repo-Wide Documentation Hygiene & Integrity Pass
+**Target snapshot:** `Windows-Venice-API-connector-clean-20260708-220000.zip`
 
-Reviewed all web-browsing surfaces: Research Mini Browser (Electron main), renderer bridge, search/scrape UI, research providers, and network policy. Ran focused tests and the `verify:research-browser` audit. Fixed config drift where three `research.*` settings were exposed in the schema but ignored by the main-process browser implementation. Also hardened Jina error surfacing in the renderer.
+Conducted a complete documentation audit, cleanup, and consolidation pass. Rebuilt root README.md as the highly polished, unified main project entrypoint. Created docs/ROADMAP.md to track all open roadmap work (P0-P4) in one place. Documented the Research Browser architecture, security boundaries, and manual verification checklist in docs/DEVELOPMENT/research-browser.md. Consolidated legal disclosures by removing redundant duplicate docs/LEGAL.md and linking root LEGAL.md to detailed legal/TOS notices. Rewrote root PRIVACY.md as the user-facing privacy summary, keeping technical details in docs/legal/PRIVACY.md. Corrected all relative links to root LEGAL.md across ABOUT.md, FAQ.md, release.md, and CONTRIBUTING.md. Updated AGENTS.md and .github/copilot-instructions.md file targets to resolve broken references. Verified that all verification scripts, handoff checks, and markdown link checks pass successfully.
 
-### Fixes applied this session
+### Fixes & Cleanups Applied This Session
 
-1. **Research Browser session persistence (High)** — `electron/services/researchBrowserServer.ts`
-   - The browser now respects `research.live_browser_persist_session` from the loaded YAML config.
-   - When enabled (default), the partition is `persist:venice-forge-research-browser`; when disabled, a non-persistent partition is used.
-   - Updated `electron/services/researchBrowserServer.test.ts` mock and expectation to match the default persisted partition.
+1. **Root README Rebuild** (`README.md`)
+   - Reimagined the root entrypoint with a clear overview of Venice Forge, feature matrix, screenshot placeholders, Electron IPC/Web proxy transport architectures, custom YAML themes, developer workflows, and legal status.
 
-2. **Research Browser JavaScript toggle (High)** — `electron/services/researchBrowserServer.ts`
-   - The browser now respects `research.live_browser_javascript_enabled` via `webPreferences.javascript` on the `WebContentsView`.
+2. **Created ROADMAP.md** (`docs/ROADMAP.md`)
+   - Moved all unresolved tasks and phase milestones (P0-P4) into one central, clean, canonical roadmap document, deleting the temporary `docs/audits/repository-todo-roadmap-current.md`.
 
-3. **Research Browser extract length (High)** — `electron/services/researchBrowserServer.ts`
-   - `scrapeCurrent` now uses `research.max_browser_extract_chars` instead of the hard-coded 40,000-character cap.
+3. **Created Research Browser Docs** (`docs/DEVELOPMENT/research-browser.md`)
+   - Documented the WebContentsView native viewport overlap architecture, secure sandboxed browser partitions, top-level navigation policy, unsafe scheme/private network blocking, popup handlers, app-owned splash page, Jina capture flow, and manual smoke checklist.
 
-4. **Jina error surfacing (Medium)** — `src/components/search/SearchScrapeView.tsx`
-   - Replaced raw `String(err)` output with `describeResearchError(..., "Reading with Jina failed.", "jina")` in both Jina-read handlers.
+4. **Consolidated Legal References** (`LEGAL.md`, `docs/legal/*`)
+   - Rebuilt root `LEGAL.md` as the public legal notice summary, adding direct links to detailed legal documents (`DISCLAIMER.md`, `NOTICE.md`, `THIRD_PARTY_NOTICES.md`, `TRADEMARKS.md`, `PRIVACY.md`).
+   - Deleted duplicate `docs/LEGAL.md` file to prevent conflicting guidance.
 
-5. **CI verifier parity (Medium)** — `scripts/verify-web-contents-view.cjs`
-   - Updated the regex to accept both `venice-forge-research-browser` and `persist:venice-forge-research-browser` partitions so the verifier stays aligned with the configurable persistence setting.
+5. **Updated Privacy Docs** (`PRIVACY.md`, `docs/legal/PRIVACY.md`)
+   - Rebuilt root `PRIVACY.md` to be a clear, user-facing summary of local-first data storage and API key custody.
+   - Preserved `docs/legal/PRIVACY.md` for technical specifications (AES-GCM, PBKDF2-SHA256, secure credentials).
 
-6. **veniceClient binary response test mocks (Medium)** — `src/services/veniceClient.edge.test.ts`
-   - Replaced `new Response(new Blob([...]))` with `new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]))` in the `veniceBlob` and `veniceFormData` "does not stringify binary image responses" tests. The jsdom `Response` implementation calls `.stream()` on Blob bodies, which the test-environment Blob mock does not support; `Uint8Array` avoids that path.
+6. **Deleted Redirect Stubs & Stale Logs**
+   - Cleaned up nine redundant stub files under `docs/reports/historical/` and updated reports/README.md and reports/CANONICAL_REPORT_INDEX.md.
+   - Purged all temporary subagent reports in the `scratch/` directory.
+   - Added `docs/archives/README.md` to explain stale file removal.
+
+7. **Fixed Relative Links & Agent Instructions**
+   - Repaired relative markdown links to root `LEGAL.md` in `docs/ABOUT.md`, `docs/FAQ.md`, `docs/RELEASE/release.md`, and `CONTRIBUTING.md`.
+   - Updated `.github/copilot-instructions.md` and `AGENTS.md` to point to `docs/ROADMAP.md` instead of `docs/audits/repository-todo-roadmap-current.md`.
 
 ### Open TODO Ledger
-- ~~**P1 (windows-credman):** Replace Windows `safeStorage` DPAPI backend for profile-password storage with a Windows Credential Manager native bridge.~~ **RESOLVED 2026-07-08** — PowerShell bridge implemented and wired into `secureStore.ts`; see Latest Session Summary entry below.
 - `verify:contracts:features` full aggregate still exceeds timeout in this sandbox environment; run the 5 partitioned sub-commands individually (`features:chat|image|workflow|rp|settings`).
 - `verify:contracts` full aggregate not run in this session (same timeout constraint).
-- Pre-existing `test:unit` failures in `src/research/agent/researchRunner.test.ts` (6 tests) and `src/stores/profile-store.broadcast.test.ts` (mock setup) are unrelated to this session's changes and remain open.
 
-## Validation Matrix — 2026-07-08 deep bug review / CI repair
+## Validation Matrix — 2026-07-08 Documentation Hygiene Pass
 
 | Command | Result | Notes |
 | --- | --- | --- |
 | `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
 | `npm run typecheck` | PASS | Renderer + Electron main TypeScript clean. |
-| `npm run test:electron` | PASS | 432 passed (26 files). |
-| `npm run test:server` | PASS | 59 passed. |
-| `npm run test:ingestion` | PASS | 65 passed. |
-| `npm run test:ci` | FAIL | 2650 passed; 6 pre-existing failures in `src/research/agent/researchRunner.test.ts` and 1 pre-existing mock failure in `src/stores/profile-store.broadcast.test.ts`. These files were not changed in this session. |
-| `npm run verify:safety-guard` | PASS | Guard enforcement and no-raw-log policy passed. |
-| `npm run verify:image-policy` | PASS | Ingress uses PNG/JPEG/WEBP; avatar cache permits AVIF. |
+| `npm run verify:markdown-links` | PASS | 68 Markdown files checked; 0 broken links. |
+| `npm run verify:repo-handoff-hygiene` | PASS | Handoff hygiene OK. |
+| `npm run verify:agent-docs` | PASS | Agent docs verify check passed. |
+| `npm run verify:theme-tokens` | PASS | Theme tokens verifier passed. |
 | `npm run verify:network-boundaries` | PASS | Network boundaries intact. |
-| `npm run verify:work-orders` | PASS | Work-order closure records follow schema. |
-| `npm run verify:contracts:static` | PASS | Static contract aggregate passed. |
-| `npm run build` | PASS | Web, server, and Electron outputs built. |
-| `npm run verify:dist` | PASS | Build outputs verified. |
-
-## Validation Matrix — 2026-07-08 packaged macOS runtime bug fixes and pre-existing CI repair
-
-| Command | Result | Notes |
-| --- | --- | --- |
-| `npx vitest run src/components/chat/message-bubble.test.tsx electron/services/researchBrowserServer.test.ts` | PASS | 32 tests; avatar path and context-menu coordinate regressions. |
-| `npm run test:ui:chat` | PASS | 63 tests. |
-| `npm run test:electron` | PASS | 436 tests. |
-| `npx vitest run src/stores/profile-store.broadcast.test.ts src/research/agent/researchRunner.test.ts` | PASS | 16 tests; pre-existing CI repair. |
-| `npm run test:ci` | PASS | Full segmented suite. |
-| `npm run lint:eslint` | PASS | Zero warnings. |
-| `npm run typecheck` | PASS | Renderer + Electron main. |
-| `npm run dist:mac:arm64` | PASS | Packaged app rebuilt. |
-| `npm run verify:dist` | PASS | Build outputs verified after rebuild. |
-| `git diff --check` | PASS | No whitespace errors. |
-
-## Validation Matrix — 2026-07-08 Research Browser splash page load fix
-
-| Command | Result | Notes |
-| --- | --- | --- |
-| `npx vitest run electron/services/researchBrowserServer.test.ts` | PASS | 20 tests; new `file://` splash-page regression guard passes. |
-| `npm run verify:research-browser` | PASS | 152 tests across 10 files. |
-| `npm run test:electron` | PASS | 437 tests across 26 files. |
-| `npm run lint:eslint` | PASS | Zero warnings. |
-| `npm run typecheck` | PASS | Renderer + Electron main TypeScript clean. |
-| `npm run build` | PASS | Web, server, and Electron outputs built. |
-| `npm run verify:dist` | PASS | Build outputs verified. |
-| `git diff --check` | PASS | No whitespace errors. |
-
-## Validation Matrix — 2026-07-08 web-browsing bug review
-
-| Command | Result | Notes |
-| --- | --- | --- |
-| `npx vitest run electron/services/researchBrowserServer.test.ts electron/security/researchBrowserNetworkPolicy.test.ts` | PASS | 43 tests across 2 files. |
-| `npx vitest run src/components/search/SearchScrapeView.test.tsx src/components/search/ResearchProviderStatus.test.tsx` | PASS | 7 tests across 2 files. |
-| `npx vitest run src/services/researchService.test.ts src/research/providers/genericHttpScrapeProvider.test.ts src/research/providers/jinaResearchProvider.test.ts src/research/providers/veniceResearchProvider.test.ts` | PASS | 46 tests across 4 files. |
-| `node scripts/verify-research-browser.cjs` | PASS | 152 tests across 10 files; VERIFY-057 passed. |
-| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
-| `npm run typecheck` | PASS | Renderer + Electron main TypeScript clean. |
-
-## Validation Matrix — 2026-07-08 web-browsing CI repair
-
-| Command | Result | Notes |
-| --- | --- | --- |
-| `npm run verify:contracts` | PASS | Full contract aggregate including verify:web-contents-view. |
-| `npm run test:ci` | PASS | Full segmented suite. |
-| `npm run test:coverage` | PASS | Coverage thresholds met. |
-| `npm run build` | PASS | Web, server, and Electron outputs built. |
-| `npm run verify:dist` | PASS | Build outputs verified. |
-| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
-| `npm run typecheck` | PASS | Renderer + Electron main TypeScript clean. |
-
-## Validation Matrix — 2026-07-08 veniceClient binary-response test repair
-
-| Command | Result | Notes |
-| --- | --- | --- |
-| `npx vitest run src/services/veniceClient.edge.test.ts` | PASS | 14 tests; binary response mocks no longer trip Blob.stream(). |
-| `npx vitest run src/services/veniceClient.test.ts src/lib/venice-client.test.ts src/lib/venice-client.dual.test.ts src/lib/venice-client.web-guard.test.ts` | PASS | 54 tests across 4 files. |
-| `npm run lint:eslint` | PASS | Zero warnings. |
-| `npm run typecheck` | PASS | Renderer + Electron main TypeScript clean. |
-
-## Validation Matrix — 2026-07-08 Research Browser native view bounds / toolbar visibility fix
-
-| Command | Result | Notes |
-| --- | --- | --- |
-| `npx vitest run src/components/research/ResearchBrowserView.test.tsx electron/services/researchBrowserServer.test.ts --fileParallelism=false` | PASS | 28 tests after viewport/min-size/attachment fixes. |
-| `npx vitest run electron/services/researchBrowserServer.test.ts electron/security/researchBrowserNetworkPolicy.test.ts --fileParallelism=false` | PASS | 55 tests; unsafe scheme input, bare-domain normalization, Brave search, and allowed public research destinations covered. |
-| `npx vitest run src/components/research/ResearchBrowserView.test.tsx electron/services/researchBrowserServer.test.ts electron/security/researchBrowserNetworkPolicy.test.ts --fileParallelism=false` | PASS | 60 tests across renderer, main-process controller, and network policy. |
-| `npm run verify:research-browser` | PASS | 169 tests across 11 files; new component test and bundled-home-page checks wired into VERIFY-057. |
-| `npm run verify:network-boundaries` | PASS | Network-boundary verifier reports OK. |
-| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
-| `npm run typecheck` | PASS | Renderer + Electron main TypeScript clean. |
-| `npm test` | PASS | 291 files passed, 1 skipped; 3730 tests passed, 1 skipped. |
-| `npm run build` | PASS | Web, server, and Electron outputs built. |
-| `node --version && npm --version` | INFO | Local shell reported Node `v24.3.0` and npm `11.4.2`; repo policy is Node `>=22.13.0 <23.0.0`. |
-| `mcp__computer_use.get_app_state` on `release/mac-arm64/Venice Forge.app` | BLOCKED | macOS returned `Computer Use server error -10000: Sender process is not authenticated`. |
-| `open -n "release/mac-arm64/Venice Forge.app"` + `screencapture` | NOT VALID FOR PATCH | App launched and screenshot showed the original bug, but this was the stale pre-patch release bundle. |
-| `npm run dev:electron` + `screencapture` | PARTIAL / BLOCKED | Current-source app launched, but focus/click automation repeatedly targeted other foreground apps, so Research Browser manual UI operations could not be completed. Dev session was stopped with Ctrl-C. |
-
-## Validation Matrix — 2026-07-09 Research Browser elastic layout / internal home / browsing policy fix
-
-| Command / check | Result | Notes |
-| --- | --- | --- |
-| `git status --short` | PASS | Dirty tree contained only this session's Research Browser/docs edits before validation. |
-| `PATH="$PWD/.node22/bin:$PATH" node --version && npm --version` | PASS | Node v22.22.3 / npm 10.9.8; repo-supported Node 22 runtime. |
-| `PATH="$PWD/.node22/bin:$PATH" npm ci` | PASS | 858 packages audited; 0 vulnerabilities; deprecation warnings only. |
-| `PATH="$PWD/.node22/bin:$PATH" npm run lint:eslint` | PASS | 0 warnings / 0 errors after `npm ci`. |
-| `PATH="$PWD/.node22/bin:$PATH" npm run typecheck` | PASS | Renderer + Electron TypeScript projects clean after `npm ci`. |
-| `PATH="$PWD/.node22/bin:$PATH" npm test -- --run src/components/research/ResearchBrowserView.test.tsx src/components/search/SearchScrapeView.test.tsx electron/services/researchBrowserServer.test.ts electron/security/researchBrowserNetworkPolicy.test.ts src/shared/urlSecurity.test.ts --fileParallelism=false` | PASS | 91 tests across 5 files. |
-| `PATH="$PWD/.node22/bin:$PATH" npm run verify:research-browser` | PASS | 184 tests across 11 files; VERIFY-057 passed. |
-| `PATH="$PWD/.node22/bin:$PATH" npm run verify:web-contents-view` | PASS | WebContentsView/security boundary checks passed. |
-| `PATH="$PWD/.node22/bin:$PATH" npm run verify:network-boundaries` | PASS | Network boundaries intact. |
-| `PATH="$PWD/.node22/bin:$PATH" npm run build` | PASS | Web, server, and Electron outputs generated. |
-| Headed Electron Playwright smoke (`NODE_ENV=development`) | PASS | Opened Research -> Browser; dismissed first-run API-key dialog; toolbar/address input visible; address displayed `Venice Research Home` with no `file:///` or local path; viewport stayed below toolbar and resized elastically; typed `venice.ai` and main-process state reported `https://venice.ai/`; `javascript:` and `localhost` inputs blocked; switching to Chat returned native state `visible: false`; returning to Browser made it visible again. |
-| Playwright screenshots of native page contents | NON-BLOCKING LIMITATION | Renderer screenshots show the React chrome and layout but not native `WebContentsView` child pixels. The page-load assertion used `window.veniceForge.researchBrowser.getState()` from the real main-process view. |
-
-## Validation Matrix — 2026-07-09 Research Browser WebContentsView coordinate-space fix
-
-| Command / check | Result | Notes |
-| --- | --- | --- |
-| `git status --short` | PASS | Dirty tree contained only this session's Research Browser/docs edits before validation. |
-| `PATH="$PWD/.node22/bin:$PATH" node --version && npm --version` | PASS | Node v22.22.3 / npm 10.9.8; repo-supported Node 22 runtime. |
-| `PATH="$PWD/.node22/bin:$PATH" npm ci` | PASS | 858 packages audited; 0 vulnerabilities; deprecation warnings only. |
-| `PATH="$PWD/.node22/bin:$PATH" npm run lint:eslint` | PASS | 0 warnings / 0 errors. |
-| `PATH="$PWD/.node22/bin:$PATH" npm run typecheck` | PASS | Renderer + Electron TypeScript projects clean. |
-| `PATH="$PWD/.node22/bin:$PATH" npm test -- --run src/components/research/ResearchBrowserView.test.tsx src/components/search/SearchScrapeView.test.tsx electron/services/researchBrowserServer.test.ts electron/security/researchBrowserNetworkPolicy.test.ts --fileParallelism=false` | PASS | 73 tests across 4 files. |
-| `PATH="$PWD/.node22/bin:$PATH" npm run verify:research-browser` | PASS | 179 tests across 11 files; VERIFY-057 passed. |
-| `PATH="$PWD/.node22/bin:$PATH" npm run verify:web-contents-view` | PASS | WebContentsView/security boundary checks passed. |
-| `PATH="$PWD/.node22/bin:$PATH" npm run verify:network-boundaries` | PASS | Network boundaries intact. |
-| `PATH="$PWD/.node22/bin:$PATH" npm run build` | PASS | Web, server, and Electron outputs generated. |
-| Headed Electron Playwright smoke (`NODE_ENV=development`, `VITE_RESEARCH_BROWSER_DEBUG_BOUNDS=1`) | PASS | Opened Research -> Browser; toolbar/address input visible and focused; viewport below toolbar; native state `visible: true`; `https://venice.ai/` loaded inside `WebContentsView`; switching to Chat returned native state `visible: false`. |
-| Playwright screenshot capture after remote navigation | NON-BLOCKING LIMITATION | Timed out against the native child view. Smoke evidence came from renderer DOM geometry and `window.veniceForge.researchBrowser.getState()`, which exercises the real main-process `WebContentsView` state. |
-
-### Manual UI Smoke Checklist Required Before Full Verification
-
-1. Launch a current-source or freshly packaged Electron build, not the stale pre-patch `release/mac-arm64` bundle.
-2. Open the Research tab and then the Browser subtab.
-3. Confirm the React toolbar and address/search input are visible above the native page viewport.
-4. Confirm the bundled splash page renders only below the toolbar.
-5. Click Google, Brave Search, DuckDuckGo, Venice.ai, and Jina.ai links and confirm they navigate inside the internal browser subject to policy.
-6. Type a search query in the address bar and confirm it navigates to the selected/default search provider.
-7. Type `venice.ai` and confirm it normalizes to `https://venice.ai`.
-8. Type `javascript:alert(1)`, `file:///etc/passwd`, and `data:text/html,hello` and confirm each is visibly blocked.
-9. Click an internal page link, then verify Back, Forward, Reload/Stop.
-10. Switch away to another app tab and confirm the native browser surface disappears and does not cover the new tab.
-11. Return to Research Browser and confirm the native browser surface reappears only inside the viewport below the toolbar.
-12. Resize/minimize/restore the app and confirm the toolbar remains visible and the web content resizes within the viewport.
+| `npm run verify:safety-guard` | PASS | Guard enforcement and no-raw-log policy passed. |
+| `git diff --check` | PASS | No trailing whitespace or checkout formatting errors. |

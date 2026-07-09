@@ -90,3 +90,6 @@ venice-forge.log
 # on heuristic sk-/vn- matches inside prior agent tool-call JSON. Untracked at
 # HEAD; kept on disk for forensic continuity until explicitly purged.
 /patch_*.txt
+
+# Local scratch space
+scratch/

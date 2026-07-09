@@ -8,10 +8,9 @@
 
 # Venice Forge
 
-<p align="center">
-  <strong>Unofficial local-first desktop workspace for the Venice API.</strong><br>
-  <em>Chat, image generation, media workflows, research, characters, prompts, projects, and local creative asset management.</em>
-</p>
+**Unofficial local-first desktop workspace for the Venice API.**
+
+*An advanced frontend client for streaming chat, image studio pipelines, research synthesis, roleplay scripting, and local creative asset management.*
 
 <p align="center">
   <a href="https://github.com/spearchucker667/Venice_Forge/actions/workflows/ci.yml">
@@ -40,831 +39,235 @@
   </a>
 </p>
 
+---
+
+> [!IMPORTANT]
+> **Venice Forge is an unofficial third-party project.** It is not affiliated with, endorsed by, sponsored by, or maintained by Venice.ai (Venice.ai, Inc.). Venice brand assets, names, and trademark marks are the property of Venice.ai, Inc.
+
+> [!WARNING]
+> The `main` branch is active development and may be unstable. Normal users should install a tagged release from [GitHub Releases](https://github.com/spearchucker667/Venice_Forge/releases).
+
+---
+
+## Overview
+
+Venice Forge is an unofficial, local-first creative desktop client for the [Venice API](https://docs.venice.ai). Designed as a premium, secure workspace, it empowers authors, artists, developers, and researchers with advanced local tooling that goes far beyond generic web interfaces.
+
+
+By prioritizing local data ownership, Venice Forge runs all storage operations locally on your machine—utilizing IndexedDB with AES-GCM encryption in the browser/renderer and secure OS-level keychain boundaries for credentials.
+
+---
+
+## Feature Highlights
+
+- **Streaming AI Conversations:** Experience highly responsive model outputs with full Markdown and LaTeX support.
+- **Projects & Workspaces:** Organize your chat histories, generation parameters, and media assets into logical local projects.
+- **Model-Aware Image Generation:** Image Studio UI dynamically hides fields unsupported by the selected image model, preventing payload errors.
+- **Media Studio Command Center:** Gallery view equipped with multi-select bulk operations, lineage graph tracing, visual diff comparison, and metadata-preserving exports.
+- **Research Workspace & Embedded Browser:** Synthesize facts using Venice/Jina-backed search, scraping, and social discovery within an isolated sandbox.
+- **Prompt Library:** Cleanly version, tags, and reuse system or user prompts with automatic secret filtering on import/export.
+- **RP Studio & Scene Composer:** Custom local character card editing (Tavern compatible), persona stacks, scenario definitions, lorebooks, and modular scene prompt compilation.
+- **Token-Based Styling:** Dynamic premium glassmorphism theme system supporting standard dark/light modes and fully custom YAML theme imports.
+
+---
+
+## Screenshots
+
 <p align="center">
   <img width="1774" height="998" alt="Venice Forge application preview" src="./assets/preview.jpg" />
 </p>
 
 ---
 
-## Important Notice
+## Core App Areas
 
-> [!WARNING]
-> The `main` branch is active development and may be unstable. It can include incomplete features, schema migrations, experimental UI, and breaking changes. Normal users should install a tagged release from [GitHub Releases](https://github.com/spearchucker667/Venice_Forge/releases). Developers running `main` should back up local profile/app data before launching.
-
-> [!IMPORTANT]
-> **Venice Forge is unofficial.**  
-> Venice Forge is an independent, third-party desktop client for the Venice API. It is not affiliated with, endorsed by, sponsored by, or maintained by Venice.ai, Inc.
->
-> Venice names, marks, API references, and compatibility language are used only for nominative identification. Official Venice brand assets remain the property of Venice.ai, Inc. This project's MIT License covers only the original code and documentation in this repository.
->
-> A Venice API key is required for live model discovery, chat, generation, research, and provider-backed workflows.
-
-> [!WARNING]
-> **User responsibility required.**  
-> Venice Forge is a local desktop client for external AI services. Users are responsible for their own prompts, generated content, storage choices, exports, and compliance with applicable laws and provider terms.
->
-> Do not use this project to create, request, store, distribute, or facilitate child sexual exploitation material, non-consensual sexual content, harassment, doxxing, illegal instructions, or other unlawful abuse.
-
-> [!NOTE]
-> Venice Forge is maintained against the Node 22 validation matrix documented below. Before publishing release artifacts, run the full CI gate and the platform-specific packaging verifier for the target OS.
-
-## Quick Start
-
-1. Download a build from [GitHub Releases](https://github.com/spearchucker667/Venice_Forge/releases).
-
-   Windows:
-
-   - `Venice-Forge-<version>-x64-Setup.exe`
-   - `Venice-Forge-<version>-x64-Portable.exe`
-
-   macOS:
-
-   - `Venice-Forge-<version>-arm64.dmg`
-   - `Venice-Forge-<version>-x64.dmg`
-
-   Linux, when CI artifacts are available:
-
-   - AppImage
-   - `.deb`
-   - `.rpm`
-
-2. Install and launch Venice Forge.
-
-3. Complete the first-launch onboarding splash (age acknowledgement and initial preferences). It is shown once and can be skipped.
-
-4. Open **Config**.
-
-5. Add your Venice API key.
-
-6. Test the connection.
-
-7. Start using Chat, Image Studio, Media Studio, Research, Characters, RP Studio, Workflows, and local workspace tools.
+| Area | Status | Purpose |
+| :--- | :---: | :--- |
+| **Chat** | Beta | Streaming conversations, projects, prompt injects, attachments, classical/agent modes |
+| **Image Studio** | Beta | Model-aware image generation, recipe editing, upscaling, enhancer controls |
+| **Media Studio** | Beta | Visual gallery, multi-image comparison, lineage tracking, metadata bundle exports |
+| **Prompts** | Beta | Prompt Library with global/project scopes, version chains, and Tag manager |
+| **Audio/Music/Video** | Experimental | Whisper transcripts, speech generation, lyrics-driven music, and async video queues |
+| **Research** | Experimental | Integrated search/scrape runner with Jina and Venice search synthesis |
+| **Characters & RP** | Experimental | Local Tavern character cards, personas, lorebooks, and scene compiler |
+| **Workflows & Canvas** | Experimental | Template-based automation chains and interactive playground builder |
 
 ---
 
-## What Venice Forge Does
+## Research Browser and Jina Research
 
-Venice Forge is a local-first creative desktop workspace for the Venice API.
+Venice Forge includes an embedded **Research Browser** that utilizes Electron's native `WebContentsView` architecture rather than dangerous Webviews or iframes.
 
-Core capabilities:
 
-- Streaming AI chat
-- Persistent conversations and local chat history
-- Image generation, editing, combining, upscaling, and recipe reuse
-- Media gallery with metadata, lineage, export, compare, tagging, favorites, and project scoping
-- Prompt Library with versioning, import/export, project/global scope, favorites, archives, and secret filtering
-- Research workspace using Venice and optional Jina-backed search/scrape flows
-- Character browsing and character chat using Venice-hosted characters
-- Optional character chat scene generation (manual on-demand or automatic marker-based) scoped to the current conversation
-- Local RP Studio for character cards, personas, scenarios, lorebooks, prompt stacks, and scene context
-- Scene Composer for reusable image prompt components
-- Workflow templates and visual workflow execution planning
-- Audio transcription and text-to-speech
-- Music generation
-- Video generation and video upscaling job queues
-- Embeddings generation
-- Theme editor and token-based custom themes
-- Secure desktop API-key handling through OS secure storage
-- Local storage diagnostics, import/export, and privacy tooling
+- **Architectural Isolation:** The renderer-side address bar and toolbar drive an independent, main-process-managed browser view.
+- **Security Constraints:** The browser blocks unsafe scheme loads (e.g. `file://`, `data://` from untrusted origins), restricts private subnet access (`127.0.0.1`, `localhost` ranges), enforces a robust CSP, and safely routes standard `target="_blank"` popups.
+- **Jina Integration:** The browser is wired into the Venice/Jina scraper. When scraping a page, Jina-backed proxies format clean markdown captures which are screened locally for content safety.
+- **Experimental Status:** Because Electron `WebContentsView` geometry and window z-indexing require precise OS-level rendering, the Research Browser is classified as **Experimental** and requires manual headed smoke validation.
 
 ---
 
-## Main Application Areas
+## Characters, RP Studio, Memory, and Lorebooks
 
-| Area | Purpose |
-| --- | --- |
-| **Chat** | Streaming conversations, system prompts, attachments, persistent history, memory injection, chat forking, Agent/Classical mode controls, and optional character-bound scene generation |
-| **Image Studio** | Image generation, editing, multi-image combine/reference flows, upscaling, model-aware controls, seed handling, negative prompts, styles, steps, and capabilities display |
-| **Media Studio** | Search, filter, inspect, tag, favorite, export, compare, bulk-select, assign to project, trace lineage, reuse recipes, regenerate, remix, upscale, and route media into other studios |
-| **Prompts** | Prompt Library with version chains, tags, favorites, archives, safe import/export, and apply/save handoffs across Chat, Image Studio, Media Studio, Research, and workflows |
-| **Audio Studio** | Text-to-speech and Whisper transcription |
-| **Music Studio** | Text-to-music generation, lyrics, duration control, and instrumental mode |
-| **Video Studio** | Async text-to-video, image-to-video, video-to-video, reference-to-video, and video-upscale queues |
-| **Embeddings** | Text embedding generation with model and dimension visibility |
-| **Research** | Venice/Jina search, scraping, public-profile discovery, persistent research sessions, findings, sources, citations, and summaries |
-| **Characters** | Browse Venice-hosted characters and start character chats with `venice_parameters.character_slug` |
-| **RP Studio** | Local character authoring/runtime with personas, lorebooks, scenarios, multi-character chats, scene image generation, and prompt assembly tracing |
-| **Scene Composer** | Reusable scene components compiled into generation-ready recipes |
-| **Workflows** | Visual and template-based model chains for multi-step creative tasks |
-| **Playground** | Conversational workflow builder/editor with a live canvas |
-| **Config** | API keys, model defaults, local config, themes, data import/export, secure-store controls, and diagnostics |
-| **Status** | Runtime info, transport mode, rate-limit headers, logs, and sanitized diagnostics |
-
-The canonical tab registry lives in:
-
-```text
-src/config/tabs.ts
-```
-
-Some legacy items, such as model catalog and batch prompting, are exposed as Config sub-views rather than separate top-level tabs.
+Roleplay and creative writing features are consolidated into a comprehensive **RP Studio**:
+- **Character Cards:** Create, edit, and export Tavern V1/V2 and native character cards. Imports run a strict secret-stripping filter.
+- **Personas & Scenarios:** Manage user identity stacks and contextual background circumstances separately.
+- **Lorebooks:** Define key-value triggers that inject world context or character history into the prompt window dynamically.
+- **Memory Injection:** Active chats automatically query IndexedDB-backed semantic memories. Injected context is disclosed to users via a collapsible audit pill in the conversation UI.
 
 ---
 
-## Architecture
+## Image, Media, Audio, Music, Video, and Embeddings
 
-Venice Forge supports both desktop and web-mode development.
-
-### Desktop Mode
-
-```text
-Electron main process
-  ├─ OS secure storage for API keys
-  ├─ IPC request validation
-  ├─ HTTPS Venice/Jina client boundaries
-  ├─ encrypted Conversation Vault access
-  ├─ legacy chat-history migration support
-  └─ packaging/runtime integration
-
-React renderer
-  ├─ studios and workspace UI
-  ├─ encrypted IndexedDB stores
-  ├─ local project/media/prompt/research state
-  └─ no raw API-key access
-```
-
-### Web Mode
-
-```text
-React renderer
-  └─ Express proxy server
-       ├─ .env API key access
-       ├─ Venice/Jina request validation
-       └─ provider response screening
-```
-
-### Security Model
-
-Core invariants:
-
-- Renderer does not receive raw desktop API keys.
-- Desktop keys are stored through OS secure storage.
-- Web-mode Venice keys live in server-side `.env`.
-- Venice and Jina requests pass through allowlisted, validated request paths.
-- Local Family Safe Mode is separate from provider-side Venice `safe_mode`
-  parameters.
-- Family Safe Mode is local and privacy-preserving in scope: it performs no
-  network moderation calls, blocked request text is not sent upstream, and
-  blocked Jina/scrape response text is not returned to the renderer.
-- Secret-like values are stripped from safe exports and diagnostics.
-- Prompt text is not logged.
-- No telemetry or analytics are collected by Venice Forge.
-- External URL opening is constrained by trusted URL validation.
-
-### Traffic Inspector
-
-Traffic Inspector is the local request/response diagnostics surface. It records
-masked request metadata, response status, latency, sanitized body excerpts, and
-local safety-preview decisions for supported Venice, image, video, Jina, and
-scrape paths. It must not be treated as a raw network dump: authorization
-headers and key-like values are redacted, safe diagnostics are a separate
-redacted export surface, and raw prompt text is not written to application logs.
-
-### Profiles and Credentials
-
-Profiles separate renderer storage, fixed app store IDs, and secure credential
-slots by active profile. Storage records use a profile-scoped physical key while
-callers continue to see the logical record ID, so profiles can both persist
-records such as `venice-chat` and `venice-workflows` without collision.
-
-Venice and Jina API keys are stored through Electron `safeStorage` in desktop
-mode. The renderer never receives the raw key material.
-
-#### Master password
-
-A master password can be configured in desktop mode to gate changes to Family
-Safe Mode settings. The plaintext password is sent to the main process over the
-typed `masterPassword:*` IPC bridge; the salted PBKDF2-SHA256 verifier is
-derived, stored, and verified only in the Electron main process
-(`electron/services/secureStore.ts`). The renderer never sees the verifier. Five
-consecutive failed verification attempts trigger a 60-second main-process
-lockout that clears only on success or after cooldown.
-
-#### Profile password
-
-In desktop mode, the Profiles panel can set, remove, and verify a per-profile
-password before switching into a locked profile. Like the master password, the
-verifier is a salted PBKDF2-SHA256 record held in `safeStorage`; verification
-uses `crypto.timingSafeEqual` and is enforced in the main process. Per-profile
-lockout is keyed by `profileId` so one profile's lockout does not affect
-another, and the IPC response surfaces remaining lockout time without revealing
-whether the profile exists. This is an in-app profile-switch gate, not a
-substitute for OS account security, disk encryption, or an unattended-session
-lock.
-
-#### Profile deletion
-
-Deleting a profile best-effort purges profile-scoped data: Venice and Jina API
-keys for that profile, the profile password verifier, profile-scoped
-`localStorage` keys, and IndexedDB records tagged with the profile id. The
-active profile is switched safely to `default` if it was the one deleted.
-Filesystem chat history under `userData/chat-history/` is not keyed by profile
-and remains intact.
-
-### Family Safe Mode vs Provider `safe_mode`
-
-Family Safe Mode is Venice Forge's local on-device guard. It screens supported
-prompt-like fields before provider dispatch and screens supported Jina/scrape
-text responses before renderer delivery. Provider `safe_mode` is the Venice API
-request parameter controlled separately by Venice API Safe Mode and is only sent
-to endpoints that support it. Adult Mode skips the local Family Safe Mode guard;
-it does not automatically change provider `safe_mode`.
-
-Read:
-
-- [docs/ABOUT.md](docs/ABOUT.md)
-- [SECURITY.md](SECURITY.md)
-- [docs/legal/PRIVACY.md](docs/legal/PRIVACY.md)
+Venice Forge provides a rich multimedia pipeline:
+- **Image Generation:** The Image Studio handles prompts, negatives, seeds, aspect ratios, and model-specific parameters.
+- **Media Studio:** The gallery indexes all outputs. You can select up to 4 images for a side-by-side field diff comparison, walk the parent-child lineage tree of remixed images, and export clean ZIP bundles with sidecar JSON metadata.
+- **Audio & Music:** Supports Whisper-powered transcriptions, Text-to-Speech speech queues, and lyrics-driven Music generation.
+- **Video:** Queues asynchronous text/image-to-video requests and polls progress cleanly.
+- **Embeddings:** Evaluates text strings against available embedding models to inspect raw vector arrays.
 
 ---
 
-## Repository Source Map
+## Profiles, Privacy, Local Storage, and Secure Credentials
 
-| Concern | Canonical location |
-| --- | --- |
-| Tab registry | `src/config/tabs.ts` |
-| Desktop main process | `electron/` |
-| Renderer application | `src/` |
-| Local storage services | `src/services/` |
-| Theme system | `src/theme/`, `src/styles/`, `docs/design/THEME_SYSTEM.md` |
-| Release workflow | `.github/workflows/` |
-| Release documentation | `docs/RELEASE/` |
-| Security policy | `SECURITY.md` |
-| Privacy documentation | `docs/legal/PRIVACY.md` |
-| Current audit ledger | `docs/summary_of_work.md` |
-| Historical audit reports | `docs/reports/historical/` |
+Privacy is the core design pillar of Venice Forge:
+- **No Telemetry:** The application does not collect analytics, telemetry, or crash reports.
+- **Secure Key Storage:** plain-text API credentials never sit in database files. On macOS, credentials use the native Keychain; on Windows, a scoped PowerShell bridge writes/reads password-critical keys directly from **Windows Credential Manager**, falling back safely to DPAPI for normal settings.
+- **Profiles & Isolation:** Profiles separate settings, conversations, and API keys. Locked profiles can be password-protected; PBKDF2-SHA256 verifiers are managed entirely in the main process with a 5-attempt brute-force lockout.
+- **Data Redaction:** The Traffic Inspector, application log files, and diagnostics exports automatically strip bearer tokens, API keys (`sk-...`, `vn-...`), local system paths, and raw prompt/response bodies.
+- **Local Family Safe Mode:** Run-time guardrails screen outgoing prompts and inbound scrape responses locally. This is independent of the provider-side Venice API `safe_mode`.
 
 ---
 
-## Requirements
+## Theme System
 
-| Requirement | Version / Notes |
-| --- | --- |
-| Node.js | `22.13+` |
-| npm | `10+` |
-| Windows | Windows 10/11 |
-| macOS | macOS 13+ |
-| Linux | Experimental; release packaging handled by CI |
-| Venice API key | Required for live API usage |
-| Jina API key | Optional, used for Jina-backed research/search flows |
+The user interface uses a token-based styling model matching dynamic glassmorphism aesthetics.
+- **YAML Themes:** Built-in and user-supplied themes live under `config/themes/` using standard CSS variable key-value maps.
+- **Built-in Catalog (35 Themes):**
+  - *Dracula & Dark Palettes:* Basalt Noir, catppuccin, dracula, gruvbox_dark, midnight-velvet, monokai, nord, obsidian-bloom, one_dark, rosepine, solarized_dark, synthwave-harbor, tokyo_night, venice.
+  - *Light & High Contrast:* amber-archive, arctic-glass, aurora-boreal, circuit-mint, copper, cyber-orchid, dark, desert-copperfield, ember-monastery, github_light, glacial-ink, harbor-fog, light, moss-circuit, neon-dusk, porcelain-daybreak, sakura-terminal, solar-ash, solarized_light, toxic-limewire, ultraviolet-rain.
+- **Visual Parity:** Custom themes automatically style the main workspace, sidebar lists, settings, inputs, and the Research Browser home splash.
 
 ---
 
-## Development Setup
+## Quick Start for Users
 
-Clone and install:
+1. Download the installer or portable binary for your OS from [GitHub Releases](https://github.com/spearchucker667/Venice_Forge/releases).
+2. Install and launch **Venice Forge**.
+3. Navigate to the **Config** tab.
+4. Input your Venice API Key (and optionally your Jina API Key for advanced web scraping).
+5. Click **Test Connection**.
+6. Switch back to **Chat** or **Image Studio** to begin.
+
+---
+
+## Developer Setup
+
+Ensure you have Node.js (`>=22.13.0 <23.0.0`) and npm (`>=10.0.0`) installed.
 
 ```bash
+# Clone the repository
 git clone https://github.com/spearchucker667/Venice_Forge.git
 cd Venice_Forge
 
+# Install dependencies exactly
 npm ci
+
+# Launch desktop development mode (Electron with Vite HMR)
 npm run dev:electron
 ```
 
-Web-mode development:
-
+To run in **Web-only proxy mode** (useful for server setups or browser testing):
 ```bash
+# Start concurrently (Express proxy server + Vite dev server)
 npm run dev
 ```
 
-Or run the two processes separately:
+---
+
+## Validation / CI Gates
+
+Before submitting a pull request, you must verify that all linting, typing, tests, and contract verifications pass:
 
 ```bash
-npm run dev:server
-npm run dev:web
+# 1. Run ESLint (zero warnings enforced)
+npm run lint:eslint
+
+# 2. Run TypeScript compiler typechecks
+npm run typecheck
+
+# 3. Run full Vitest suite serially
+npm test
+
+# 4. Run safety, markdown links, and other local contract checks
+npm run verify:contracts
+
+# 5. Build production bundles
+npm run build
 ```
-
-The Vite renderer proxies `/api/*` to `http://127.0.0.1:3000` by
-default. Set `VITE_API_PROXY_TARGET` when the Express proxy uses a
-different host or port.
-
-> [!NOTE]
-> Running from `main` is for development only. The branch may contain unstable
-> work-in-progress features and schema migrations. Back up local profile/app
-> data before launching, and run `npm run lint:eslint`, `npm run typecheck`,
-> `npm test`, and `npm run verify:contracts` before opening a PR or packaging.
 
 ---
 
-## Local Configuration
+## Repository Map
 
-Venice Forge can be configured from the app UI or from local YAML files.
+For a complete breakdown of every file, see [FILE_TREE.md](docs/FILE_TREE.md). Below is the high-level outline:
 
-Initialize local config templates:
+```text
+.
+├── electron/              # Main process, preload, IPC, native OS services
+│   ├── ipc/               # IPC handlers partitioned by domain
+│   └── services/          # Secure storage, logger, updater, guard pipelines
+├── src/                   # React renderer, stores, services, visual views
+│   ├── components/        # UI views (chat, image, media, settings, etc.)
+│   ├── services/          # Venice API client, export, IndexedDB adapters
+│   ├── stores/            # Zustand 5 slice stores (auth, settings, media)
+│   └── theme/             # Token mappings, built-in YAML palettes, apply helpers
+├── config/themes/         # Built-in YAML theme definitions
+├── public/                # Static assets and browser default home page
+├── docs/                  # Design, release, development, and legal docs
+├── scripts/               # Build, verify, release, and hygiene scripts
+├── tests/                 # Playwright smoke tests and accessibility suites
+└── package.json           # Scripts, engines, and dependencies
+```
+
+---
+
+## Configuration
+
+Local overrides can be declared in YAML format. The app will search for `.config/config.yaml` or `.config/config.local.yaml` (which are gitignored to prevent credential leaks).
 
 ```bash
+# Initialize local configuration files from templates
 npm run config:init
-```
 
-Validate local config:
-
-```bash
-npm run config:validate
-```
-
-Print the sanitized effective config:
-
-```bash
+# Print the sanitized effective configuration
 npm run config:print
 ```
 
-Plaintext API keys placed in local YAML are imported into OS-level secure storage on startup and then redacted from the file.
-
-Read:
-
-- [docs/DEVELOPMENT/CONFIG.md](docs/DEVELOPMENT/CONFIG.md)
-- [.env.example](.env.example)
+Refer to [CONFIG.md](docs/DEVELOPMENT/CONFIG.md) for a detailed list of configuration keys.
 
 ---
 
-## Environment Variables
-
-Web mode uses `.env`.
-
-Copy the template:
-
-```bash
-cp .env.example .env
-```
-
-Common values:
-
-```bash
-VENICE_API_KEY="your-venice-inference-key"
-PORT=3000
-HOST=127.0.0.1
-NODE_ENV=development
-VENICE_FORGE_DEBUG_DEVTOOLS=false
-VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=false
-```
-
-Notes:
-
-- Desktop Venice keys are stored through OS secure storage.
-- Web-mode Venice keys belong in the Express server `.env`.
-- Desktop Jina keys are stored through OS secure storage.
-- Web-mode Jina credentials belong in the Express server `.env`; renderer-supplied `Authorization` and `x-jina-api-key` values are dropped by the proxy.
-- Never commit `.env`, local config files containing secrets, generated logs, release artifacts, or exported private workspace data.
-
----
-
-## Key Development Commands
-
-| Command | Purpose |
-| --- | --- |
-| `npm run dev:electron` | Start Electron app with live reload |
-| `npm run dev:web` | Start Vite renderer only; `/api/*` proxies to Express |
-| `npm run dev:server` | Start Express proxy only |
-| `npm run dev` | Start server + web renderer |
-| `npm run lint:eslint` | Run ESLint |
-| `npm run typecheck` | TypeScript check for renderer and Electron code |
-| `npm test` | Run Vitest suite |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run build` | Build production renderer/main output |
-| `npm run clean` | Remove generated output |
-| `npm run verify:safety-guard` | Verify local safety guard enforcement |
-| `npm run verify:markdown-links` | Validate local Markdown links and heading fragments |
-| `npm run verify:workspace-contracts` | Verify workspace/project/recipe contracts |
-| `npm run verify:model-aware-recipes` | Verify model-aware image controls and recipe compatibility |
-| `npm run verify:media-studio-power-tools` | Verify Media Studio bulk/compare/lineage/export/handoff contracts |
-| `npm run verify:prompt-library` | Verify Prompt Library data/UI/import/export contracts |
-| `npm run verify:storage-privacy` | Verify storage/privacy dashboard contracts |
-| `npm run verify:contracts` | Run the aggregate contract verifier suite |
-| `npm run verify:release-packaging-hardening` | Verify release, CI, packaging, artifact, and dist hygiene invariants |
-| `npm run verify:archive-clean` | Fail on tracked archive/build/secret contaminants |
-| `npm run verify:dist` | Verify build outputs after `npm run build` |
-| `npm run ci` | Run the full local CI parity chain |
-| `npm run profile:media-studio` | Profile encrypted Media Studio storage behavior |
-
-For the complete command list:
-
-```bash
-cat package.json
-```
-
----
-
-## Validation Gate
-
-Before opening a PR, tagging a release, or publishing artifacts, run:
-
-```bash
-npm run clean
-npm ci
-npm run lint:eslint
-npm run typecheck
-npm test
-npm run verify:contracts
-npm run verify:archive-clean
-npm run build
-npm run verify:dist
-npm run ci
-```
-
-If any command fails, treat the failure as release-blocking until the root cause is understood.
-
----
-
-## Build and Package
-
-### Windows
-
-```bash
-npm run clean
-npm ci
-npm run build
-npm run dist:win
-npm run checksum:release
-npm run verify:dist:win
-```
-
-Expected outputs in `release/`:
-
-```text
-Venice-Forge-<version>-x64-Setup.exe
-Venice-Forge-<version>-x64-Portable.exe
-```
-
-### macOS
-
-```bash
-npm run clean
-npm ci
-npm run build
-npm run dist:mac
-npm run checksum:release
-npm run verify:dist:mac
-```
-
-Expected outputs in `release/`:
-
-```text
-Venice-Forge-<version>-arm64.dmg
-Venice-Forge-<version>-arm64.zip
-Venice-Forge-<version>-x64.dmg
-Venice-Forge-<version>-x64.zip
-```
-
-### Linux
-
-Linux release artifacts are produced by CI when configured:
-
-```text
-AppImage
-.deb
-.rpm
-```
-
-Linux support is strictly experimental and community-supported. Local cross-building from Windows/macOS is not maintained. Build on a Linux runner for reliable Linux packages.
-
----
-
-## Signing and Notarization
-
-Local builds are unsigned by default.
-
-Expected behavior:
-
-- Windows may show SmartScreen warnings.
-- macOS may show Gatekeeper warnings.
-- Official release signing depends on configured release workflow credentials.
-
-macOS local-build quarantine workaround:
-
-```bash
-xattr -dr com.apple.quarantine "/path/to/Venice Forge.app"
-```
-
-Read:
-
-- [docs/RELEASE/signing-and-notarization.md](docs/RELEASE/signing-and-notarization.md)
-- [docs/RELEASE/release.md](docs/RELEASE/release.md)
-
----
-
-## Data Storage and Privacy
-
-| Data | Location | Protection |
-| --- | --- | --- |
-| Desktop API keys | macOS Keychain / Windows DPAPI | OS secure storage |
-| Profile password verifier | Electron `safeStorage` | Salted PBKDF2-SHA256 verifier; verified in main process with `crypto.timingSafeEqual`; per-profile lockout after failed attempts |
-| Web-mode Venice key | Express server `.env` | Server-side only |
-| Logs | Application support directory | Plain text, local disk |
-| Desktop Conversation Vault | `conversations/records/**/*.v1.json.enc` under app data | AES-256-GCM with OS-protected vault key |
-| Legacy desktop chat history | `chat-history/*.json` | Migration/backup surface; plaintext if legacy files still exist |
-| Settings | IndexedDB | AES-GCM through app storage service |
-| Conversations | IndexedDB | AES-GCM through app storage service |
-| Memories | IndexedDB | AES-GCM through app storage service |
-| Files and attachments | IndexedDB | AES-GCM through app storage service |
-| Images/videos/media metadata | IndexedDB | AES-GCM through app storage service |
-| Character cards/personas/lorebooks/RP assets | IndexedDB | AES-GCM through app storage service |
-| Prompts/research/scenes/workflows | IndexedDB | AES-GCM through app storage service |
-| Exports | User-selected path | Versioned JSON; secret-like fields stripped |
-
-Encryption scope:
-
-- IndexedDB-backed encrypted stores are protected by `src/services/storageService.ts`.
-- Desktop Conversation Vault files are protected by `electron/services/conversationVault.ts`.
-- Legacy `chat-history/*.json` files may still exist from older installs or backups and are plaintext until migrated or removed by the user.
-- Browser-managed AES-GCM reduces casual disk inspection risk but does not protect against malware, active XSS, browser compromise, same-user OS compromise, or process-memory access.
-
-Import/export behavior:
-
-- JSON schema validation
-- Size limits
-- Backup-before-import
-- Merge by ID
-- Secret stripping before export
-- Future-version rejection where applicable
-
----
-
-## Safety and Reporting
-
-Venice Forge includes local safety controls, but users remain responsible for their use of the application and provider endpoints.
-
-Current guard contract:
-
-- Family Safe Mode is a local, on-device guardrail. It is enabled by default,
-  but it is **not** a complete protection guarantee.
-- Supported prompt-like request fields are screened before provider dispatch.
-- Jina/scrape text responses are screened locally before the renderer sees
-  them; large bodies are sampled against the first 8 KiB.
-- Aggregate audit counters record counts plus last timestamp/reason metadata
-  only; they do not store raw prompt text or blocked raw response content.
-
-Report abuse or security concerns through the appropriate channel:
-
-1. **Child exploitation / CSAM:** [NCMEC CyberTipline](https://report.cybertip.org/)
-2. **Venice.ai Trust & Safety:** [venice.ai/support](https://venice.ai/support)
-3. **Venice Forge vulnerabilities:** GitHub private vulnerability reporting for this repository
-
-Security policy:
-
-- [SECURITY.md](SECURITY.md)
-
----
-
-## Regression Guards and Audit Trail
-
-Venice Forge uses named regression guards to prevent accidental weakening of security, persistence, packaging, accessibility, privacy, and workspace contracts.
-
-Canonical audit and guard documentation lives in:
-
-- [docs/summary_of_work.md](docs/summary_of_work.md)
-- [docs/DOCS_INDEX.md](docs/DOCS_INDEX.md)
-- [docs/audits/repository-todo-roadmap-current.md](docs/audits/repository-todo-roadmap-current.md)
-- [docs/reports/historical/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md](docs/reports/historical/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md)
-- [docs/reports/historical/DOCS_CANONICALIZATION_AND_STALE_PRUNE.md](docs/reports/historical/DOCS_CANONICALIZATION_AND_STALE_PRUNE.md)
-- [docs/reports/historical/AUDIT_FOLLOWUP_2026_06_05.md](docs/reports/historical/AUDIT_FOLLOWUP_2026_06_05.md)
-- [docs/reports/historical/POST_VENICE_JINA_AUDIT_2026_06_06.md](docs/reports/historical/POST_VENICE_JINA_AUDIT_2026_06_06.md)
-
-Run the high-level verification suite:
-
-```bash
-npm run typecheck
-npm test
-npm run verify:safety-guard
-npm run verify:markdown-links
-npm run verify:release-packaging-hardening
-npm run verify:contracts
-```
-
-For maintainer guidance on adding new endpoints safely, testing safety changes,
-and fixture hygiene, see [SECURITY.md](SECURITY.md).
-
----
-
-## Theming
-
-Venice Forge includes a token-based theme system with 35 built-in themes:
-
-**New in this release:**
-
-- Obsidian Bloom (dark)
-- Harbor Fog (light)
-- Circuit Mint (dark)
-- Amber Archive (light)
-- Neon Dusk (dark)
-
-**Complete built-in catalog:**
-
-- Aurora Boreal, Sakura Terminal, Basalt Noir, Solar Ash, Cyber Orchid
-- Arctic Glass, Desert Copperfield, Toxic LimeWire, Midnight Velvet, Porcelain Daybreak
-- Synthwave Harbor, Moss Circuit, Ember Monastery, Glacial Ink, Ultraviolet Rain
-- Venice Parity Dark, Forge Graphite, Forge Daylight, Forge Copper, Forge Dracula
-- GruvBox Dark, Rosé Pine, Nord, Tokyo Night, Catppuccin
-- Solarized Dark, Solarized Light, One Dark, Monokai, GitHub Light
-- Obsidian Bloom, Harbor Fog, Circuit Mint, Amber Archive, Neon Dusk
-
-Theme features:
-
-- Runtime CSS token application
-- WCAG AA contrast validation across all built-in themes
-- Expanded pair matrix: foreground/background, foreground/surface, accent foreground/accent, button/status/selection pairs, focus/disabled/foregroundSubtle minimums
-- Live Theme Maker
-- YAML import/export
-- Encrypted custom-theme persistence
-- Legacy theme compatibility paths
-
-
-
----
-
-## Troubleshooting
-
-| Symptom | Fix |
-| --- | --- |
-| Missing app icon | `npm run generate:icon && npm run verify:icon` |
-| Packaging fails | `npm run clean && npm ci && npm run build` before packaging |
-| SmartScreen or Gatekeeper warning | Expected for unsigned local builds |
-| No API key prompt | Open **Config**, save key, test connection |
-| Chat history not loading | Inspect Conversation Vault status and legacy `chat-history`; corrupted legacy files are backed up as `.backup-{timestamp}` |
-| `400` from chat/image requests | Verify selected model and payload parameters |
-| `401` / `403` | Verify API key validity and scope |
-| `429` | Check reset information in **Status** |
-| Research provider failure | Check Venice/Jina config, provider limits, and logs |
-| Transport failure | Open **Status**, export sanitized diagnostics, inspect logs folder |
-| Markdown badge error | Verify workflow path, release/tag existence, or use a static badge |
-| Release artifact missing | Confirm the tag, workflow run, packaging target, and GitHub Release upload step |
-
-Read:
-
-- [docs/DEVELOPMENT/troubleshooting.md](docs/DEVELOPMENT/troubleshooting.md)
-- [docs/SUPPORT.md](docs/SUPPORT.md)
-
----
-
-## Documentation Index
-
-### Start Here
-
-- [docs/ABOUT.md](docs/ABOUT.md) — architecture, modes, security posture
-- [docs/FAQ.md](docs/FAQ.md) — common questions
-- [CONTRIBUTING.md](CONTRIBUTING.md) — contribution workflow
-
-### Development
-
-- [docs/DEVELOPMENT/building.md](docs/DEVELOPMENT/building.md)
-- [docs/DEVELOPMENT/platform-support.md](docs/DEVELOPMENT/platform-support.md)
-- [docs/DEVELOPMENT/troubleshooting.md](docs/DEVELOPMENT/troubleshooting.md)
-- [docs/DEVELOPMENT/macos.md](docs/DEVELOPMENT/macos.md)
-
-### Release
-
-- [docs/RELEASE/release.md](docs/RELEASE/release.md)
-- [docs/RELEASE/signing-and-notarization.md](docs/RELEASE/signing-and-notarization.md)
-
-### Feature References
-
-- [docs/DEVELOPMENT/JINA_PROVIDER.md](docs/DEVELOPMENT/JINA_PROVIDER.md)
-- [docs/DEVELOPMENT/CONFIG.md](docs/DEVELOPMENT/CONFIG.md)
-
-### Governance
-
-- [SECURITY.md](SECURITY.md)
-- [docs/LEGAL.md](docs/LEGAL.md)
-- [docs/legal/PRIVACY.md](docs/legal/PRIVACY.md)
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-- [docs/SUPPORT.md](docs/SUPPORT.md)
-
-### Project Ledger
-
-- [docs/summary_of_work.md](docs/summary_of_work.md)
-
----
-
-## Known Limitations
-
-- The `main` branch is active development and may be unstable; normal users should install a tagged release.
-- Running from source can include incomplete features, schema migrations, experimental UI, and breaking changes. Back up local profile/app data before launching.
-- Local builds are unsigned unless signing credentials are configured.
-- Auto-update behavior depends on release workflow configuration and GitHub Releases.
-- Legacy desktop `chat-history` files, if present from older installs, are plaintext JSON.
-- Profile password unlock is an in-app profile-switch gate. It is not a substitute for OS account security, disk encryption, or an unattended-session lock.
-- IndexedDB encryption is not a malware/XSS/browser-compromise boundary.
-- Same-user OS compromise and process-memory access are outside the local threat model.
-- Linux packaging is CI-oriented; local cross-builds are not supported.
-- Provider behavior, available models, model capabilities, and API limits may change upstream.
-- Family Safe Mode is a local guardrail, not a legal/compliance guarantee.
-- Family Safe Mode coverage is explicit, not automatic. New prompt-carrying
-  endpoints and new scrape/response paths must be wired and tested
-  intentionally.
-- Jina/scrape response-body screening samples only the first 8 KiB of text.
-- Release badges only reflect the configured badge source; static badges must be updated when the release version changes.
+## Legal, Privacy, Safety, and Abuse Policy
+
+- **Unofficial Status:** Venice Forge is an independent frontend wrapper. Venice.ai does not offer direct support for this client.
+- **Abuse Prohibitions:** Venice Forge must not be used to facilitate illegal content generation or harassment.
+- **Vulnerability Disclosures:** Report security flaws or potential data leaks privately via GitHub Vulnerability Reporting.
+- **Full Terms:** Read [LEGAL.md](LEGAL.md) and [PRIVACY.md](PRIVACY.md).
 
 ---
 
 ## Contributing
 
-Contributions are welcome.
-
-Before opening a pull request:
-
-```bash
-npm run typecheck
-npm test
-npm run verify:markdown-links
-npm run verify:contracts
-npm run verify:archive-clean
-```
-
-Read:
-
-- [CONTRIBUTING.md](CONTRIBUTING.md)
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-- [SECURITY.md](SECURITY.md)
-
-Use:
-
-- [GitHub Issues](https://github.com/spearchucker667/Venice_Forge/issues) for bugs and feature requests
-- GitHub private vulnerability reporting for security issues
-- [docs/SUPPORT.md](docs/SUPPORT.md) for support routing
+We welcome community enhancements. Please review [CONTRIBUTING.md](CONTRIBUTING.md) and ensure all validation checks pass locally before opening a pull request.
 
 ---
 
-## Roadmap
+## Support
 
-Active work is tracked in:
-
-- [docs/summary_of_work.md](docs/summary_of_work.md)
-- [docs/audits/repository-todo-roadmap-current.md](docs/audits/repository-todo-roadmap-current.md)
-
-Current priorities:
-
-- Workspace/project cohesion
-- Media recipe and lineage improvements
-- Research session polish
-- Prompt/scene/workflow reuse
-- Storage/privacy dashboard hardening
-- Release packaging hardening
-- Documentation canonicalization
-- Test coverage expansion
-- Accessibility and keyboard-navigation polish
-- Security and safety regression coverage
-
----
-
-## Legal and Trademark
-
-Venice Forge is an unofficial, independent, third-party client for the Venice API.
-
-It is not:
-
-- affiliated with Venice.ai, Inc.
-- endorsed by Venice.ai, Inc.
-- sponsored by Venice.ai, Inc.
-- maintained by Venice.ai, Inc.
-- an official Venice product
-
-Venice names, marks, API references, and brand assets belong to Venice.ai, Inc. They are referenced only for nominative compatibility identification.
-
-Review:
-
-- [Venice Terms of Service](https://venice.ai/legal/tos)
-- [Venice Privacy Information](https://venice.ai/privacy)
-- [Venice API Documentation](https://docs.venice.ai)
-- [docs/LEGAL.md](docs/LEGAL.md)
-
----
-
-## Credits
-
-Venice Forge credits the [openvenice](https://github.com/spearchucker667/openvenice) repository and its creator, [nikshepsvn](https://github.com/nikshepsvn), for UI, workflow, studio-layout, and conceptual inspiration.
-
-Venice Forge remains a separate custom codebase and integration engine, not a direct port.
-
-Built with:
-
-- [React](https://react.dev/)
-- [Electron](https://www.electronjs.org/)
-- [Vite](https://vitejs.dev/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
-
-Powered by the [Venice API](https://docs.venice.ai/).
+For issues with this client application, please open an issue on our [GitHub Tracker](https://github.com/spearchucker667/Venice_Forge/issues). For API account, token billing, or model-level concerns, refer to official [Venice.ai Support](https://venice.ai/support). See also [SUPPORT.md](SUPPORT.md).
 
 ---
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
-
-The MIT License does not grant rights to Venice.ai trademarks, logos, brand assets, API terms, or third-party materials.
-
----
-
-## Quick Links
-
-- [GitHub Releases](https://github.com/spearchucker667/Venice_Forge/releases)
-- [GitHub Issues](https://github.com/spearchucker667/Venice_Forge/issues)
-- [GitHub Actions](https://github.com/spearchucker667/Venice_Forge/actions)
-- [Venice.ai](https://venice.ai)
-- [Venice API Docs](https://docs.venice.ai)
-- [Venice API](https://api.venice.ai)
-
----
-
-<p align="center">
-  <strong>Venice Forge is not affiliated with Venice.ai, Inc.</strong>
-</p>
+Venice Forge is open-source software licensed under the [MIT License](LICENSE).

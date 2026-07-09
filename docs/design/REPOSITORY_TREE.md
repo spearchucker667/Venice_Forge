@@ -11,11 +11,11 @@ Express/Vite web development mode.
 > `media`); the legacy `gallery` id is preserved as a tab-registry alias for
 > back-compat. This map is intentionally structural rather than a complete
 > tracked-file manifest; use `git ls-files` for the exact current file list.
-> The current TODO source of truth is
-> `docs/audits/repository-todo-roadmap-current.md`; historical reports under
+> The current TODO source of truth is `docs/ROADMAP.md`; historical reports under
 > `docs/reports/historical/` are evidence snapshots only.
 >
 > **Clean audit ZIP policy:** The `scripts/clean-repo-zip.sh` archive includes
+
 > tracked source, required static packaging assets (`build/icon.*`), and
 > canonical documentation. It excludes generated outputs (`dist/`,
 > `dist-electron/`, `release/`, `coverage/`), dependency trees (`node_modules/`),

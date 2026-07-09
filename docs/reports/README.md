@@ -8,8 +8,8 @@ Current operational truth lives in:
 
 - `docs/summary_of_work.md`
 - `docs/DOCS_INDEX.md`
-- `docs/audits/repository-todo-roadmap-current.md`
-- `docs/archives/VENICE_FORGE_TODO.md` only when an active handoff explicitly names it
+- `docs/ROADMAP.md`
+
 
 ## Historical Reports
 

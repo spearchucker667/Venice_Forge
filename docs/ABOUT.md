@@ -14,8 +14,9 @@ Current public readiness status:
 - CI runs lint, typecheck, tests, and build on the supported Node 22 runtime.
 - Release automation builds Windows NSIS/portable `.exe` artifacts and macOS DMG/ZIP artifacts.
 - Root support, security, contribution, code of conduct, issue template, PR template, and Dependabot metadata are present.
-- Legal/TOS notes are maintained in [LEGAL.md](LEGAL.md).
+- Legal/TOS notes are maintained in [LEGAL.md](../LEGAL.md).
 - FAQ and troubleshooting guides are maintained in [FAQ.md](FAQ.md) and [DEVELOPMENT/troubleshooting.md](DEVELOPMENT/troubleshooting.md).
+
 
 ## Goals
 
@@ -26,7 +27,7 @@ Current public readiness status:
 - **Reproducible builds.** TypeScript strict mode, Node 22 CI, and `npm ci` ensure every build starts from a known state.
 
 > [!NOTE]
-> Venice Forge is currently in a "restructuring" phase following a major codebase merge. Architectural consistency is being actively restored.
+> Venice Forge is fully stabilized under v2.1.2 following a major codebase merge, security triage, and validation pass.
 
 ## Architecture
 
@@ -165,8 +166,8 @@ User input
 
 - [README.md](../README.md) — Setup and usage
 - [SECURITY.md](../SECURITY.md) — Full security model
+- [LEGAL.md](../LEGAL.md) — Legal and Venice terms coverage
 - [docs/RELEASE/release.md](RELEASE/release.md) — Release and signing process
-- [docs/LEGAL.md](LEGAL.md) — Legal and Venice terms coverage
-- [docs/REPOSITORY_TREE.md](design/REPOSITORY_TREE.md) — Repository structure
+- [docs/design/REPOSITORY_TREE.md](design/REPOSITORY_TREE.md) — Repository structure
 - [CONTRIBUTING.md](../CONTRIBUTING.md) — How to contribute
-- [CHANGELOG.md](audits/CHANGELOG.md) — Version history
+- [docs/audits/CHANGELOG.md](audits/CHANGELOG.md) — Version history

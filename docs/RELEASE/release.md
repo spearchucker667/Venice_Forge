@@ -7,7 +7,8 @@
 1. Update `version` in `package.json`.
 2. Run `npm install` so `package-lock.json` stays in sync.
 3. Update `docs/audits/CHANGELOG.md` with the new version section.
-4. Confirm `README.md`, `AGENTS.md`, [LEGAL.md](../LEGAL.md), [SECURITY.md](../../SECURITY.md), `SUPPORT.md`, `PRIVACY.md`, [repository-settings.md](repository-settings.md), and this checklist match the release.
+4. Confirm `README.md`, `AGENTS.md`, [LEGAL.md](../../LEGAL.md), [SECURITY.md](../../SECURITY.md), `SUPPORT.md`, `PRIVACY.md`, [repository-settings.md](repository-settings.md), and this checklist match the release.
+
    - Validate Family Safe Mode and Adult Mode independently, including proof that Adult Mode does not invoke the local rule engine and that Venice API Safe Mode changes only the provider request parameter.
    - Reconfirm that public docs do not overclaim safety/privacy behavior. Family Safe Mode must be described as local, privacy-preserving in scope, and non-comprehensive.
    - **Trigger:** Update this checklist and the linked docs whenever artifact filenames, signing steps, verification commands, or the release workflow changes.
@@ -106,7 +107,8 @@ For local single-architecture builds, use:
 - [ ] `verify:dist:portable` passes (`Venice-Forge-<version>-x64-Portable.exe` + `.sha256`).
 - [ ] SHA-256 checksum files match the final uploaded `.exe` files.
 - [ ] Release notes state whether artifacts are signed or unsigned.
-- [ ] Legal/TOS notes in [LEGAL.md](../LEGAL.md) still link to current Venice pages.
+- [ ] Legal/TOS notes in [LEGAL.md](../../LEGAL.md) still link to current Venice pages.
+
 
 ## Publish
 

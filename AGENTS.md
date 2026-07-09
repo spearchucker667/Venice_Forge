@@ -26,7 +26,7 @@ Required updates:
    archives, renames, or changes the authority/status of documentation,
    audit reports, TODO files, release notes, or historical evidence.
 7. Keep one canonical TODO roadmap:
-   `docs/audits/repository-todo-roadmap-current.md`. Treat this as a
+   `docs/ROADMAP.md`. Treat this as a
    priority documentation rule. Do not create new standalone TODO,
    roadmap, audit-status, or cross-check documents for current work when
    the canonical roadmap or this ledger can be updated instead. If a
@@ -379,7 +379,7 @@ No live vision flag from Venice API. Use `modelSupportsVision(modelId)` in `src/
 - When changing behavior, packaging, or storage, also update:
 - `README.md`, `docs/audits/CHANGELOG.md` (under `[Unreleased]`), `AGENTS.md`, `.github/copilot-instructions.md`
 - `docs/summary_of_work.md` — the canonical AI/dev-agent session handoff ledger. See § *Mandatory Session Handoff* above.
-- `docs/ABOUT.md`, `docs/FAQ.md`, `SECURITY.md`, `docs/RELEASE/release.md`, `docs/LEGAL.md`
+- `docs/ABOUT.md`, `docs/FAQ.md`, `SECURITY.md`, `docs/RELEASE/release.md`, `LEGAL.md`
 
 ---
 

@@ -1,81 +1,103 @@
-# Documentation Index
+# Venice Forge Documentation Index
 
-This index separates current source-of-truth documents from historical audit
-evidence. If a historical report conflicts with live source, package scripts, or
-`docs/summary_of_work.md`, rerun validation and trust the live repository.
+This is the canonical source-of-truth navigation map for all documentation in this repository.
 
-## Current Source of Truth
+---
 
-| Area | Document |
-|---|---|
-| Project overview | [README.md](../README.md) |
-| Product overview | [ABOUT.md](ABOUT.md) |
-| User FAQ | [FAQ.md](FAQ.md) |
-| Support | [SUPPORT.md](SUPPORT.md) |
-| Agent instructions | [../AGENTS.md](../AGENTS.md) |
-| Agent/session handoff ledger | [summary_of_work.md](summary_of_work.md) |
-| Current TODO roadmap | [audits/repository-todo-roadmap-current.md](audits/repository-todo-roadmap-current.md) |
-| Canonical report index | [reports/CANONICAL_REPORT_INDEX.md](reports/CANONICAL_REPORT_INDEX.md) |
-| Contributor workflow | [../CONTRIBUTING.md](../CONTRIBUTING.md) |
-| Security policy | [../SECURITY.md](../SECURITY.md) |
-| Privacy policy | [../PRIVACY.md](../PRIVACY.md) |
-| Legal notices | [../LEGAL.md](../LEGAL.md), [legal/NOTICE.md](legal/NOTICE.md), [legal/THIRD_PARTY_NOTICES.md](legal/THIRD_PARTY_NOTICES.md) |
-| Release process | [RELEASE/release.md](RELEASE/release.md) |
-| Signed artifact evidence | [RELEASE/SIGNED_ARTIFACT_EVIDENCE.md](RELEASE/SIGNED_ARTIFACT_EVIDENCE.md) |
-| Signing/notarization | [RELEASE/signing-and-notarization.md](RELEASE/signing-and-notarization.md) |
-| Repository settings | [RELEASE/repository-settings.md](RELEASE/repository-settings.md) |
-| Platform support | [DEVELOPMENT/platform-support.md](DEVELOPMENT/platform-support.md) |
-| Configuration | [DEVELOPMENT/CONFIG.md](DEVELOPMENT/CONFIG.md) |
-| Storage policy | [DEVELOPMENT/storage-policy.md](DEVELOPMENT/storage-policy.md) |
-| Repository map | [design/REPOSITORY_TREE.md](design/REPOSITORY_TREE.md) |
-| File tree (current) | [FILE_TREE.md](FILE_TREE.md) |
-| Theme system | [design/THEME_SYSTEM.md](design/THEME_SYSTEM.md) |
+## 1. Start Here
 
-## Current Audit Evidence
+- [README.md](../README.md) — The main user-facing repository landing page and setup guide.
+- [ABOUT.md](ABOUT.md) — Product goals, architecture, data flow, and overview of tabs.
+- [FAQ.md](FAQ.md) — Frequently asked questions about privacy, credentials, safety, and compatibility.
+- [SUPPORT.md](SUPPORT.md) — Where to get help, how to request features, and what info to provide.
 
-| Area | Document |
-|---|---|
-| v2.1.0 closed bug map | [audits/bug-cross-reference-v2.1.0.md](audits/bug-cross-reference-v2.1.0.md) |
-| v2.1.0 repair evidence | [audits/agent-repair-status-2026-06-16.yaml](audits/agent-repair-status-2026-06-16.yaml) |
-| P0 closure evidence | [audits/p0-closure-evidence-2026-06-16.yaml](audits/p0-closure-evidence-2026-06-16.yaml) |
-| Work-order records | [audits/work-orders-2026-06-15.yaml](audits/work-orders-2026-06-15.yaml) |
-| Exhaustive bug-hunt audit | [audits/exhaustive-bug-hunt-2026-06-19.md](audits/exhaustive-bug-hunt-2026-06-19.md) |
-| Release safety gate | [audits/release_safety_gate_2026-06-19.md](audits/release_safety_gate_2026-06-19.md) |
-| Security / quality static audit | [audits/security-quality-static-audit-2026-06-19.md](audits/security-quality-static-audit-2026-06-19.md) |
-| Historical bug-hunt summary (VF-AUDIT-001..011) | [reports/historical/BUG_HUNT_SUMMARY.md](reports/historical/BUG_HUNT_SUMMARY.md) |
-| Audit changelog | [audits/CHANGELOG.md](audits/CHANGELOG.md) |
-| Historical coverage baseline | [audits/docstrings-and-coverage-baseline.md](audits/docstrings-and-coverage-baseline.md) |
-| Historical coverage final report | [audits/docstrings-and-coverage-final.md](audits/docstrings-and-coverage-final.md) |
+---
 
-## Historical Reports
+## 2. User Docs
 
-The files under [reports/historical](reports/historical/) are retained for
-traceability. They are not current TODO lists. See
-[reports/CANONICAL_REPORT_INDEX.md](reports/CANONICAL_REPORT_INDEX.md) for the
-complete report authority map. Each retained report should have a historical or
-superseded banner near the top.
+- [ABOUT.md](ABOUT.md) — Comprehensive overview of features, tabs, and local-first goals.
+- [FAQ.md](FAQ.md) — Answers to questions on local key custody, safety modes, and configurations.
+- [SUPPORT.md](SUPPORT.md) — User support guidelines.
+- [LEGAL.md](../LEGAL.md) — Root legal notice, copyright statement, and trademark disclaimers.
+- [PRIVACY.md](../PRIVACY.md) — User privacy model summary.
 
-| Report | Use |
-|---|---|
-| [AUDIT_FOLLOWUP_2026_06_05.md](reports/historical/AUDIT_FOLLOWUP_2026_06_05.md) | Early audit-followup evidence. |
-| [BUG_HUNT_REVIEW.md](reports/historical/BUG_HUNT_REVIEW.md) | Superseded bug-hunt review. |
-| [CI_FAILURE_AND_BUG_HUNT_2026_06_09.md](reports/historical/CI_FAILURE_AND_BUG_HUNT_2026_06_09.md) | Historical CI failure and bug repair notes. |
-| [DOCS_CANONICALIZATION_AND_STALE_PRUNE.md](reports/historical/DOCS_CANONICALIZATION_AND_STALE_PRUNE.md) | Prior docs cleanup evidence. |
-| [EXHAUSTIVE_REPO_SCAN_TODO.md](reports/historical/EXHAUSTIVE_REPO_SCAN_TODO.md) | Historical exhaustive scan TODO input. |
-| [FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md](reports/historical/FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md) | Historical release-blocking audit input. |
-| [HQE_AUDIT_REPORT.md](reports/historical/HQE_AUDIT_REPORT.md) | Historical HQE audit. |
-| [POST_VENICE_JINA_AUDIT_2026_06_06.md](reports/historical/POST_VENICE_JINA_AUDIT_2026_06_06.md) | Historical Venice/Jina audit. |
-| [SWARM_AUDIT_2026_06_09.md](reports/historical/SWARM_AUDIT_2026_06_09.md) | Historical swarm audit. |
-| [VENICE_UI_PARITY_REFERENCE.md](reports/historical/VENICE_UI_PARITY_REFERENCE.md) | Historical UI reference only. |
+---
 
-## Retired In This Hygiene Pass
+## 3. Developer Docs
 
-- `docs/audits/Repository TODO Roadmap — Venice Forge.md` was merged into the
-  current roadmap and deleted.
-- `docs/audits/roadmap-verification-2026-06-16.yaml` was deleted with the old
-  roadmap.
-- `docs/audits/current-audit-cross-check-status.md` and
-  `docs/audits/current-audit-cross-check-status.yaml` were deleted because the
-  closed findings are covered by the repair evidence and current ledger.
-- `docs/VENICE_FORGE_TODO.md` and `docs/VENICE_FORGE_ZIP_AUDIT_HANDOFF.md` were
-  completed and moved to [archives/](archives/) as historical evidence.
+- [CONTRIBUTING.md](../CONTRIBUTING.md) — Branch conventions, validation commands, and PR checklist.
+- [AGENTS.md](../AGENTS.md) — Crucial guidance for AI coding agents and session handoffs.
+- [CLAUDE.md](../CLAUDE.md) — Pointer to AGENTS.md for Anthropic agents.
+- [GEMINI.md](../GEMINI.md) — Pointer to AGENTS.md for Gemini agents.
+- [DEVELOPMENT/building.md](DEVELOPMENT/building.md) — Local building, compilation, and packaging.
+- [DEVELOPMENT/troubleshooting.md](DEVELOPMENT/troubleshooting.md) — Solutions for common dev environment or build failures.
+- [DEVELOPMENT/platform-support.md](DEVELOPMENT/platform-support.md) — Desktop OS compatibility matrices.
+- [DEVELOPMENT/CONFIG.md](DEVELOPMENT/CONFIG.md) — Local YAML configuration options and secure key import.
+- [DEVELOPMENT/storage-policy.md](DEVELOPMENT/storage-policy.md) — IndexedDB storage configuration, encryption, and folder layouts.
+- [DEVELOPMENT/BRIDGE.md](DEVELOPMENT/BRIDGE.md) — Headless loopback bridge specifications.
+- [DEVELOPMENT/JINA_PROVIDER.md](DEVELOPMENT/JINA_PROVIDER.md) — Jina-backed search and scrape integrations.
+- [DEVELOPMENT/research-browser.md](DEVELOPMENT/research-browser.md) — Electron WebContentsView boundary model, CSPs, and headed smoke checklist.
+
+---
+
+## 4. Architecture / Design Docs
+
+- [design/THEME_SYSTEM.md](design/THEME_SYSTEM.md) — Theme variables, contrast checking, and custom YAML palette integration.
+- [design/CHARACTER_RP.md](design/CHARACTER_RP.md) — Local Character RP architecture and memory boundaries.
+- [design/MEDIA_STUDIO.md](design/MEDIA_STUDIO.md) — Media Studio command center actions, visual diffs, and lineage trees.
+- [design/MEMORY.md](design/MEMORY.md) — Semantic memory store structure and injection disclosures.
+- [design/LOREBOOKS.md](design/LOREBOOKS.md) — Lorebook JSON formats and key trigger injection.
+- [design/SCENE_GENERATION.md](design/SCENE_GENERATION.md) — Dynamic scene-generation rules and background asset maps.
+- [design/PUBLIC_PROFILE_DISCOVERY.md](design/PUBLIC_PROFILE_DISCOVERY.md) — platform-specific site query logic.
+- [design/REPOSITORY_TREE.md](design/REPOSITORY_TREE.md) — Detailed codebase design layout.
+- [FILE_TREE.md](FILE_TREE.md) — Practical file tree of the actual directories.
+
+---
+
+## 5. Security / Privacy / Legal Docs
+
+- [SECURITY.md](../SECURITY.md) — Vulnerability reporting policy, encryption algorithms, and suppression lists.
+- [PRIVACY.md](../PRIVACY.md) — User-facing privacy summary.
+- [LEGAL.md](../LEGAL.md) — Public legal notices and unofficial client disclaimers.
+- [legal/PRIVACY.md](legal/PRIVACY.md) — Detailed technical privacy and local credential storage model.
+- [legal/DISCLAIMER.md](legal/DISCLAIMER.md) — Liability exclusions and warranty waivers.
+- [legal/NOTICE.md](legal/NOTICE.md) — Copyright attributions and third-party notices.
+- [legal/THIRD_PARTY_NOTICES.md](legal/THIRD_PARTY_NOTICES.md) — Dependency licenses and brand attributions.
+- [legal/TRADEMARKS.md](legal/TRADEMARKS.md) — Venice.ai and external trademark nominative-use notices.
+
+---
+
+## 6. Release Docs
+
+- [RELEASE/release.md](RELEASE/release.md) — Release requirements, versioning, and publishing checklist.
+- [RELEASE/signing-and-notarization.md](RELEASE/signing-and-notarization.md) — Certificate setups and macOS app quarantine workarounds.
+- [RELEASE/repository-settings.md](RELEASE/repository-settings.md) — GitHub environments and branch protections.
+- [RELEASE/SIGNED_ARTIFACT_EVIDENCE.md](RELEASE/SIGNED_ARTIFACT_EVIDENCE.md) — Cryptographic verification hashes of released binaries.
+
+---
+
+## 7. Roadmap / Current Work
+
+- [ROADMAP.md](ROADMAP.md) — Canonical task ledger with priorities (P0 to P4) and verification checklist.
+- [summary_of_work.md](summary_of_work.md) — Append-only agent/session log showing detailed work histories.
+
+---
+
+## 8. Historical Reports
+
+- [reports/README.md](reports/README.md) — Guideline explaining audit history and historical report rules.
+- [reports/CANONICAL_REPORT_INDEX.md](reports/CANONICAL_REPORT_INDEX.md) — Navigator for past validation audits.
+- [reports/historical/final-massive-bug-hunt-with-proof.md](reports/historical/final-massive-bug-hunt-with-proof.md) — Historical audit log of closed validation checks from the v2.1.0 release boundary.
+
+---
+
+## 9. Retired / Deleted During Hygiene
+
+The following files were removed, merged, or archived during the repository-wide documentation hygiene pass:
+- `docs/audits/repository-todo-roadmap-current.md` — Merged into the clean [ROADMAP.md](ROADMAP.md).
+- `docs/audits/research-browser-plan.md` — Merged into [DEVELOPMENT/research-browser.md](DEVELOPMENT/research-browser.md).
+- `docs/LEGAL.md` — Deleted as a duplicate of the root [LEGAL.md](../LEGAL.md).
+- `docs/archives/VENICE_FORGE_TODO.md` — Superseded by the new [ROADMAP.md](ROADMAP.md).
+- `docs/archives/VENICE_FORGE_ZIP_AUDIT_HANDOFF.md` — Superseded by [summary_of_work.md](summary_of_work.md).
+- `scratch/` — Directory added to `.gitignore` and all transient agent notes removed.
+- Historical stub files under `docs/reports/historical/` (including `AUDIT_FOLLOWUP_2026_06_05.md`, `BUG_HUNT_REVIEW.md`, `CI_FAILURE_AND_BUG_HUNT_2026_06_09.md`, `DOCS_CANONICALIZATION_AND_STALE_PRUNE.md`, `EXHAUSTIVE_REPO_SCAN_TODO.md`, `FINAL_MASSIVE_BUG_HUNT_WITH_PROOF.md`, `HQE_AUDIT_REPORT.md`, `POST_VENICE_JINA_AUDIT_2026_06_06.md`, `SWARM_AUDIT_2026_06_09.md`) — Deleted as they were redundant 207-byte redirect stubs.

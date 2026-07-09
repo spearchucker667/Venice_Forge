@@ -82,9 +82,17 @@ If you encounter a safety guard bypass or AI-generated material that constitutes
 2. **Venice.ai:** Report the incident to the official Venice Trust & Safety team at [venice.ai/support](https://venice.ai/support).
 3. **Venice Forge Maintainers:** Report any bypass of the application's safety guard using the GitHub private vulnerability reporting feature on this repository. Do not share explicit material directly with maintainers.
 
-Venice's own privacy material describes multiple privacy modes with different protections and trade-offs. Users should consult Venice's current privacy pages before sending sensitive content.
+## Detailed Legal Documents
+
+For specific notices, licenses, disclaimers, and attributions, see the following documents:
+- [General Disclaimer](docs/legal/DISCLAIMER.md) — Exclusions of liability and warranty waivers.
+- [Copyright Notice](docs/legal/NOTICE.md) — Copyright statements and author attributions.
+- [Third-Party Notices](docs/legal/THIRD_PARTY_NOTICES.md) — Attributions for upstream packages and open-source assets.
+- [Trademark Attributions](docs/legal/TRADEMARKS.md) — Venice.ai and external trademark nominative-use notices.
+- [Detailed Privacy & Security Model](docs/legal/PRIVACY.md) — Plaintext key redactions, safety guards, and IPC validation.
 
 ## Release Disclaimers
+
 
 - Local builds are unsigned unless the maintainer configures code-signing certificates.
 - Unsigned Windows installers may trigger SmartScreen or antivirus warnings.
