@@ -172,4 +172,72 @@ describe("ResearchBrowserView", () => {
     expect(bridge.setVisible).toHaveBeenCalledWith(false);
     expect(bridge.destroy).toHaveBeenCalled();
   });
+
+  // VERIFY-RB-001 regression guard — navigate-before-create (Bug 2):
+  // When ResearchBrowserView mounts with an initialUrl, it must call navigate
+  // after create() succeeds, not before. This proves the renderer-side half of
+  // the fix for the "Not initialized" race.
+  it("navigates to initialUrl after create() completes, not before", async () => {
+    const callOrder: string[] = [];
+    bridge.create.mockImplementation(async () => {
+      callOrder.push("create");
+      return { ok: true };
+    });
+    bridge.navigate.mockImplementation(async () => {
+      callOrder.push("navigate");
+      return { ok: true, state: readyState };
+    });
+
+    render(<ResearchBrowserView initialUrl="https://venice.ai" onInitialUrlConsumed={vi.fn()} />);
+
+    await waitFor(() => expect(bridge.navigate).toHaveBeenCalledWith({ urlOrQuery: "https://venice.ai" }));
+    expect(callOrder).toEqual(["create", "navigate"]);
+  });
+
+  // VERIFY-RB-002 regression guard — onInitialUrlConsumed fires exactly once.
+  it("calls onInitialUrlConsumed once after navigating to initialUrl", async () => {
+    const onConsumed = vi.fn();
+
+    render(<ResearchBrowserView initialUrl="https://venice.ai" onInitialUrlConsumed={onConsumed} />);
+
+    await waitFor(() => expect(bridge.navigate).toHaveBeenCalled());
+    expect(onConsumed).toHaveBeenCalledTimes(1);
+  });
+
+  // VERIFY-RB-003 regression guard — navigate errors are surfaced in the UI.
+  it("shows navigation error in the status bar when navigate returns an error", async () => {
+    bridge.navigate.mockResolvedValueOnce({ ok: false, error: "Blocked unsafe URL" });
+
+    render(<ResearchBrowserView initialUrl="javascript:alert(1)" onInitialUrlConsumed={vi.fn()} />);
+
+    await waitFor(() => expect(bridge.navigate).toHaveBeenCalled());
+    await screen.findByText("Blocked unsafe URL");
+  });
+
+  // VERIFY-RB-004 regression guard — initialUrl is not re-navigated on re-render.
+  it("does not navigate again if the component re-renders with the same initialUrl", async () => {
+    const onConsumed = vi.fn();
+
+    const { rerender } = render(
+      <ResearchBrowserView initialUrl="https://venice.ai" onInitialUrlConsumed={onConsumed} />
+    );
+
+    await waitFor(() => expect(bridge.navigate).toHaveBeenCalledTimes(1));
+
+    // Re-render with same prop (parent hasn't cleared it yet).
+    rerender(<ResearchBrowserView initialUrl="https://venice.ai" onInitialUrlConsumed={onConsumed} />);
+
+    // navigate should still have been called exactly once.
+    expect(bridge.navigate).toHaveBeenCalledTimes(1);
+  });
+
+  // VERIFY-RB-005 regression guard — when no initialUrl is provided, navigate is
+  // not called on mount (existing behaviour preserved).
+  it("does not call navigate on mount when no initialUrl is given", async () => {
+    render(<ResearchBrowserView />);
+
+    // Let the async init settle.
+    await waitFor(() => expect(bridge.create).toHaveBeenCalled());
+    expect(bridge.navigate).not.toHaveBeenCalled();
+  });
 });

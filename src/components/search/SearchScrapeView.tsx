@@ -35,6 +35,10 @@ import { DEFAULT_CHAT_MODEL } from "../../constants/venice";
 
 export function SearchScrapeView() {
   const [subTab, setSubTab] = useState<SubTab>("workspace");
+  // Pending URL from a search-result "Open in Browser" click. Stored here so
+  // ResearchBrowserView can navigate to it after the WebContentsView is created
+  // on mount, avoiding the navigate-before-create race (Bug 2).
+  const [pendingBrowserUrl, setPendingBrowserUrl] = useState<string | null>(null);
   const selectedModel = useSettingsStore((s) => s.selectedModels.chat) || DEFAULT_CHAT_MODEL;
   const localFamilySafeModeEnabled = useSettingsStore((s) => s.localFamilySafeModeEnabled);
   const veniceKeyConfigured = useAuthStore((s) => s.isConfigured);
@@ -420,8 +424,14 @@ export function SearchScrapeView() {
                 loading={loading}
                 runSearch={runSearch}
                 searchResults={searchResults}
-                onOpenInBrowser={async (url) => {
-                  await researchBrowserBridge.navigate({ urlOrQuery: url });
+                onOpenInBrowser={(url) => {
+                  // Set the pending URL first, then switch tabs. The Browser
+                  // subtab will consume it via the initialUrl prop after
+                  // ResearchBrowserView mounts and creates the WebContentsView.
+                  // Calling navigate() here directly would race against the
+                  // WebContentsView creation (which happens on mount) and fail
+                  // with "Not initialized" if the tab was not already open.
+                  setPendingBrowserUrl(url);
                   setSubTab("browser");
                 }}
                 onScrapeWithVenice={async (url) => {
@@ -511,6 +521,8 @@ export function SearchScrapeView() {
         {subTab === "browser" && (
           <div className="h-[calc(100vh-220px)] min-h-[400px]">
             <ResearchBrowserView
+              initialUrl={pendingBrowserUrl}
+              onInitialUrlConsumed={() => setPendingBrowserUrl(null)}
               onCaptureWithJina={async (url) => {
                 setUrl(url);
                 setScrapeOutput("Reading with Jina...");

@@ -137,11 +137,16 @@ vi.mock("./configService", () => ({
   })),
 }));
 
-// Now setup imports from electron (retrieves the mock instances) and the server setup
+// These are test-only exports injected by the vi.mock factory above and are
+// not part of the real Electron type declarations.
 import { 
+  // @ts-expect-error — test-only export from vi.mock factory
   _mockWebContents as mockWebContents, 
+  // @ts-expect-error — test-only export from vi.mock factory
   _mockWebContentsView as mockWebContentsView,
+  // @ts-expect-error — test-only export from vi.mock factory
   _mockSession as mockSession, 
+  // @ts-expect-error — test-only export from vi.mock factory
   _mockPopup as mockPopup,
   BrowserWindow,
   shell,
@@ -189,7 +194,7 @@ describe("Research Browser Server Main Process Integration", () => {
       const createHandler = ipcHandlers.get("researchBrowser:create");
       expect(createHandler).toBeDefined();
 
-      const result = await createHandler();
+      const result = await createHandler!();
       expect(result).toEqual({ ok: true });
 
       const { session } = await import("electron");
@@ -215,7 +220,7 @@ describe("Research Browser Server Main Process Integration", () => {
 
     it("loads the bundled splash page on create", async () => {
       const createHandler = ipcHandlers.get("researchBrowser:create");
-      await createHandler();
+      await createHandler!();
 
       expect(mockWebContents.loadFile).toHaveBeenCalledTimes(1);
       expect((mockWebContents.loadFile as any).mock.calls[0][0]).toMatch(/research-browser-home\.html$/);
@@ -223,17 +228,17 @@ describe("Research Browser Server Main Process Integration", () => {
 
     it("should tear down the view on destroy", async () => {
       const createHandler = ipcHandlers.get("researchBrowser:create");
-      await createHandler();
+      await createHandler!(null);
 
       const destroyHandler = ipcHandlers.get("researchBrowser:destroy");
-      const result = await destroyHandler();
+      const result = await destroyHandler!(null);
       expect(result).toEqual({ ok: true });
       expect(mockWebContents.close).toHaveBeenCalled();
     });
 
     it("should tear down an existing view when setup is called for a recreated window", async () => {
       const createHandler = ipcHandlers.get("researchBrowser:create");
-      await createHandler();
+      await createHandler!(null);
 
       expect(mockWebContentsView).toHaveBeenCalledTimes(1);
 
@@ -242,7 +247,7 @@ describe("Research Browser Server Main Process Integration", () => {
 
       expect(mockWebContents.close).toHaveBeenCalled();
 
-      const result = await createHandler();
+      const result = await createHandler!(null);
       expect(result).toEqual({ ok: true });
       expect(mockWebContentsView).toHaveBeenCalledTimes(2);
     });
@@ -251,13 +256,13 @@ describe("Research Browser Server Main Process Integration", () => {
   describe("bounds and visibility constraints", () => {
     it("should clamp and position bounds within main window constraints", async () => {
       const createHandler = ipcHandlers.get("researchBrowser:create");
-      await createHandler();
+      await createHandler!(null);
 
       const setBoundsHandler = ipcHandlers.get("researchBrowser:setBounds");
 
       // Set valid visible bounds
       const boundsInput = { x: 50, y: 50, width: 600, height: 400, visible: true };
-      const result = await setBoundsHandler(null, boundsInput);
+      const result = await setBoundsHandler!(null, boundsInput);
       expect(result).toEqual({ ok: true });
 
       // Verify that children are properly added and bounds set
@@ -266,26 +271,26 @@ describe("Research Browser Server Main Process Integration", () => {
 
     it("does not re-add the WebContentsView when setVisible(true) follows visible bounds", async () => {
       const createHandler = ipcHandlers.get("researchBrowser:create");
-      await createHandler();
+      await createHandler!(null);
 
       const setBoundsHandler = ipcHandlers.get("researchBrowser:setBounds");
       const setVisibleHandler = ipcHandlers.get("researchBrowser:setVisible");
 
-      await setBoundsHandler(null, { x: 50, y: 50, width: 600, height: 400, visible: true });
-      await setVisibleHandler(null, true);
+      await setBoundsHandler!(null, { x: 50, y: 50, width: 600, height: 400, visible: true });
+      await setVisibleHandler!(null, true);
 
       expect(mockWindow.contentView.addChildView).toHaveBeenCalledTimes(1);
     });
 
     it("detaches the WebContentsView when visibility is disabled", async () => {
       const createHandler = ipcHandlers.get("researchBrowser:create");
-      await createHandler();
+      await createHandler!(null);
 
       const setBoundsHandler = ipcHandlers.get("researchBrowser:setBounds");
       const setVisibleHandler = ipcHandlers.get("researchBrowser:setVisible");
 
-      await setBoundsHandler(null, { x: 50, y: 50, width: 600, height: 400, visible: true });
-      await setVisibleHandler(null, false);
+      await setBoundsHandler!(null, { x: 50, y: 50, width: 600, height: 400, visible: true });
+      await setVisibleHandler!(null, false);
 
       expect(mockWindow.contentView.removeChildView).toHaveBeenCalledTimes(1);
     });
@@ -293,14 +298,14 @@ describe("Research Browser Server Main Process Integration", () => {
     it("should reject invalid parameter types on setBounds", async () => {
       const setBoundsHandler = ipcHandlers.get("researchBrowser:setBounds");
       const badInput = { x: "invalid", y: 50, width: 600, height: 400, visible: true };
-      const result = await setBoundsHandler(null, badInput);
+      const result = await setBoundsHandler!(null, badInput);
       expect(result.ok).toBe(false);
       expect(result.error).toMatch(/Invalid bounds parameters/);
     });
 
     it("should enforce boolean visibility check on setVisible", async () => {
       const setVisibleHandler = ipcHandlers.get("researchBrowser:setVisible");
-      const result = await setVisibleHandler(null, "not-a-boolean");
+      const result = await setVisibleHandler!(null, "not-a-boolean");
       expect(result.ok).toBe(false);
       expect(result.error).toMatch(/Invalid boolean/);
     });
@@ -309,7 +314,7 @@ describe("Research Browser Server Main Process Integration", () => {
   describe("navigation and URL rules execution", () => {
     beforeEach(async () => {
       const createHandler = ipcHandlers.get("researchBrowser:create");
-      await createHandler();
+      await createHandler!();
     });
 
     it("allows file:// requests so the splash page can load without hitting the network policy", async () => {
@@ -327,7 +332,7 @@ describe("Research Browser Server Main Process Integration", () => {
     it("should load URL when validation passes", async () => {
       const navigateHandler = ipcHandlers.get("researchBrowser:navigate");
       mockWebContents.loadURL.mockClear();
-      const result = await navigateHandler(null, { urlOrQuery: "https://safe.com" });
+      const result = await navigateHandler!(null, { urlOrQuery: "https://safe.com" });
 
       expect(result.ok).toBe(true);
       expect(mockWebContents.loadURL).toHaveBeenCalledWith("https://safe.com");
@@ -336,7 +341,7 @@ describe("Research Browser Server Main Process Integration", () => {
     it("should block loading when URL validation fails", async () => {
       const navigateHandler = ipcHandlers.get("researchBrowser:navigate");
       mockWebContents.loadURL.mockClear();
-      const result = await navigateHandler(null, { urlOrQuery: "https://blocked-site.com" });
+      const result = await navigateHandler!(null, { urlOrQuery: "https://blocked-site.com" });
 
       expect(result.ok).toBe(false);
       expect(result.error).toBe("Blocked unsafe URL");
@@ -346,7 +351,7 @@ describe("Research Browser Server Main Process Integration", () => {
     it("should construct search queries for non-URLs", async () => {
       const navigateHandler = ipcHandlers.get("researchBrowser:navigate");
       mockWebContents.loadURL.mockClear();
-      await navigateHandler(null, { urlOrQuery: "quantum computing research", searchProvider: "google" });
+      await navigateHandler!(null, { urlOrQuery: "quantum computing research", searchProvider: "google" });
 
       expect(mockWebContents.loadURL).toHaveBeenCalledWith(
         "https://www.google.com/search?q=quantum%20computing%20research"
@@ -357,7 +362,7 @@ describe("Research Browser Server Main Process Integration", () => {
       const navigateHandler = ipcHandlers.get("researchBrowser:navigate");
       mockWebContents.loadURL.mockClear();
 
-      await navigateHandler(null, { urlOrQuery: "venice.ai" });
+      await navigateHandler!(null, { urlOrQuery: "venice.ai" });
 
       expect(mockWebContents.loadURL).toHaveBeenCalledWith("https://venice.ai");
     });
@@ -366,7 +371,7 @@ describe("Research Browser Server Main Process Integration", () => {
       const navigateHandler = ipcHandlers.get("researchBrowser:navigate");
       mockWebContents.loadURL.mockClear();
 
-      await navigateHandler(null, { urlOrQuery: "venice ai api docs", searchProvider: "brave" });
+      await navigateHandler!(null, { urlOrQuery: "venice ai api docs", searchProvider: "brave" });
 
       expect(mockWebContents.loadURL).toHaveBeenCalledWith(
         "https://search.brave.com/search?q=venice%20ai%20api%20docs",
@@ -381,7 +386,7 @@ describe("Research Browser Server Main Process Integration", () => {
       const navigateHandler = ipcHandlers.get("researchBrowser:navigate");
       mockWebContents.loadURL.mockClear();
 
-      const result = await navigateHandler(null, { urlOrQuery });
+      const result = await navigateHandler!(null, { urlOrQuery });
 
       expect(result.ok).toBe(false);
       expect(result.error).toBe("Blocked unsafe URL");
@@ -393,13 +398,13 @@ describe("Research Browser Server Main Process Integration", () => {
       const openExternalHandler = ipcHandlers.get("researchBrowser:openExternal");
 
       // Blocked untrusted URL
-      const untrustedResult = await openExternalHandler(null, "http://untrusted.com");
+      const untrustedResult = await openExternalHandler!(null, "http://untrusted.com");
       expect(untrustedResult.ok).toBe(false);
       expect(untrustedResult.error).toBe("Blocked URL");
 
       // Allowed trusted URL
       vi.mocked(dialog.showMessageBox).mockResolvedValueOnce({ response: 0 } as any);
-      const trustedResult = await openExternalHandler(null, "https://trusted.com/home");
+      const trustedResult = await openExternalHandler!(null, "https://trusted.com/home");
       expect(trustedResult.ok).toBe(true);
       expect(shell.openExternal).toHaveBeenCalledWith("https://trusted.com/home");
     });
@@ -409,7 +414,7 @@ describe("Research Browser Server Main Process Integration", () => {
       const openExternalHandler = ipcHandlers.get("researchBrowser:openExternal");
 
       vi.mocked(dialog.showMessageBox).mockResolvedValueOnce({ response: 1 } as any);
-      const result = await openExternalHandler(null, "https://trusted.com/home");
+      const result = await openExternalHandler!(null, "https://trusted.com/home");
 
       expect(result.ok).toBe(false);
       expect(result.error).toBe("Canceled");
@@ -417,10 +422,42 @@ describe("Research Browser Server Main Process Integration", () => {
     });
   });
 
+  // VERIFY-RB-008 / VERIFY-RB-009 — navigate auto-creates the view (Bug 2, main-process side)
+  describe("navigate before create — auto-create behavior", () => {
+    it("VERIFY-RB-008: navigate succeeds and loads URL even when called before create", async () => {
+      // At this point resetResearchBrowserIpcForTesting() was already called in beforeEach,
+      // so researchView is null. Call navigate directly without calling create first.
+      const navigateHandler = ipcHandlers.get("researchBrowser:navigate");
+      mockWebContents.loadURL.mockClear();
+
+      const result = await navigateHandler!(null, { urlOrQuery: "https://safe.com" });
+
+      // Should succeed — auto-created the view internally.
+      expect(result.ok).toBe(true);
+      expect(mockWebContents.loadURL).toHaveBeenCalledWith("https://safe.com");
+      // A single WebContentsView should have been created.
+      expect(mockWebContentsView).toHaveBeenCalledTimes(1);
+    });
+
+    it("VERIFY-RB-009: calling create after navigate does not produce a duplicate WebContentsView", async () => {
+      const navigateHandler = ipcHandlers.get("researchBrowser:navigate");
+      const createHandler = ipcHandlers.get("researchBrowser:create");
+
+      // navigate auto-creates the view
+      await navigateHandler!(null, { urlOrQuery: "https://safe.com" });
+      expect(mockWebContentsView).toHaveBeenCalledTimes(1);
+
+      // Explicit create call afterwards should be a no-op (view already exists)
+      const createResult = await createHandler!();
+      expect(createResult).toEqual({ ok: true });
+      expect(mockWebContentsView).toHaveBeenCalledTimes(1); // still only 1
+    });
+  });
+
   describe("context menu behavior", () => {
     beforeEach(async () => {
       const createHandler = ipcHandlers.get("researchBrowser:create");
-      await createHandler();
+      await createHandler!();
     });
 
     it("shows a context menu with explicit coordinates relative to the parent window", () => {
@@ -475,7 +512,7 @@ describe("Research Browser Server Main Process Integration", () => {
   describe("data scraping and content safety filters", () => {
     beforeEach(async () => {
       const createHandler = ipcHandlers.get("researchBrowser:create");
-      await createHandler();
+      await createHandler!();
     });
 
     it("should scrape current page content and execute safety screening", async () => {

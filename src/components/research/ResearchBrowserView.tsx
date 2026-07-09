@@ -4,16 +4,32 @@ import type { ResearchBrowserState } from "../../types/researchBrowser";
 
 interface ResearchBrowserViewProps {
   onCaptureWithJina?: (url: string) => void;
+  /**
+   * Optional URL or search query to navigate to immediately after the browser
+   * view has been created and bounds are set for the first time. This is used
+   * by SearchScrapeView when a search-result "Open in Browser" click triggers
+   * navigation before the Browser subtab has mounted (and therefore before the
+   * WebContentsView exists in the main process).
+   */
+  initialUrl?: string | null;
+  /**
+   * Called once after the initialUrl has been consumed (navigate called). Use
+   * this to clear the pending URL state in the parent so it is not replayed on
+   * subsequent mounts.
+   */
+  onInitialUrlConsumed?: () => void;
 }
 
 const MIN_BROWSER_VIEWPORT_SIZE = 100;
 
-export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewProps) {
+export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUrlConsumed }: ResearchBrowserViewProps) {
   const [browserState, setBrowserState] = useState<ResearchBrowserState | null>(null);
   const [address, setAddress] = useState("");
   const [lastErrorUrl, setLastErrorUrl] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  // Track whether the initialUrl has been consumed so it is only navigated once.
+  const initialUrlConsumedRef = useRef(false);
   const browserAvailable = browserState !== null && browserState.error !== "Unavailable in web mode";
 
   useEffect(() => {
@@ -33,6 +49,28 @@ export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewPr
       if (!unmounted && stateRes.ok && stateRes.state) {
         setBrowserState(stateRes.state);
         setAddress(stateRes.state.url || "");
+      }
+
+      // If an initialUrl was provided and has not been consumed yet, navigate
+      // to it now that the WebContentsView is guaranteed to exist in the main
+      // process. Do this before the first setBounds so the page starts loading
+      // immediately and the user sees navigation on first paint.
+      if (!unmounted && initialUrl && !initialUrlConsumedRef.current) {
+        initialUrlConsumedRef.current = true;
+        onInitialUrlConsumed?.();
+        const navResult = await researchBrowserBridge.navigate({ urlOrQuery: initialUrl });
+        if (!unmounted) {
+          setAddress(initialUrl);
+          if (!navResult.ok && navResult.error) {
+            setBrowserState((prev) => prev
+              ? { ...prev, error: navResult.error ?? "Navigation failed" }
+              : {
+                  visible: false, url: null, title: "", canGoBack: false, canGoForward: false,
+                  loading: false, error: navResult.error ?? "Navigation failed", securityLabel: "blocked",
+                }
+            );
+          }
+        }
       }
     }
 
@@ -72,6 +110,11 @@ export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewPr
         await researchBrowserBridge.setVisible(false);
         return;
       }
+      // getBoundingClientRect() returns coordinates relative to the renderer
+      // viewport (top-left of the web content area). WebContentsView.setBounds()
+      // also takes coordinates in the BrowserWindow content-area coordinate space.
+      // With a standard (non-hidden) titlebar, these coordinate spaces are the
+      // same — no offset correction is needed.
       await researchBrowserBridge.setBounds({
         x: Math.round(rect.x),
         y: Math.round(rect.y),
@@ -107,15 +150,21 @@ export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewPr
     e.preventDefault();
     if (!address.trim()) return;
     setLastErrorUrl(null);
-    await researchBrowserBridge.navigate({ urlOrQuery: address });
+    const result = await researchBrowserBridge.navigate({ urlOrQuery: address });
+    if (!result.ok && result.error) {
+      setBrowserState((prev) => prev
+        ? { ...prev, error: result.error ?? "Navigation failed" }
+        : {
+            visible: false, url: null, title: "", canGoBack: false, canGoForward: false,
+            loading: false, error: result.error ?? "Navigation failed", securityLabel: "blocked",
+          }
+      );
+    }
   };
 
   const handleOpenExternal = async () => {
     if (!browserState?.url) return;
-    const result = await researchBrowserBridge.openExternal(browserState.url);
-    if (!result.ok) {
-      // Silently ignore; external link opening has its own confirmation dialog
-    }
+    await researchBrowserBridge.openExternal(browserState.url);
   };
 
   if (browserState?.error === "Unavailable in web mode") {
@@ -236,7 +285,7 @@ export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewPr
         )}
       </div>
 
-      {/* Browser View Container */}
+      {/* Browser View Container — the native WebContentsView is composited here */}
       <div
         ref={viewportRef}
         data-testid="research-browser-viewport"

@@ -53,8 +53,11 @@ vi.mock('./ProfileDiscoveryTab', () => ({
   ProfileDiscoveryTab: () => null,
 }));
 
+// Mock ResearchBrowserView to capture the initialUrl prop so we can assert
+// the pending-URL pattern is being used correctly.
+const mockResearchBrowserView = vi.fn();
 vi.mock('../research/ResearchBrowserView', () => ({
-  ResearchBrowserView: () => null,
+  ResearchBrowserView: (props: Record<string, unknown>) => mockResearchBrowserView(props),
 }));
 
 vi.mock('../../stores/research-store', () => ({
@@ -71,16 +74,43 @@ vi.mock('../../services/researchService', () => ({
   runResearchScrape: vi.fn(),
 }));
 
+// Mock the bridge — the critical assertion is that SearchScrapeView does NOT
+// call navigate directly when "Open in Browser" is clicked.
+const mockBridge = vi.hoisted(() => ({
+  navigate: vi.fn(),
+  openExternal: vi.fn(),
+}));
+vi.mock('../../services/researchBrowserBridge', () => ({
+  researchBrowserBridge: mockBridge,
+}));
+
+vi.mock('../../services/desktopBridge', () => ({
+  isElectron: vi.fn(() => false),
+}));
+
+vi.mock('../../shared/urlSecurity', () => ({
+  isTrustedExternalUrl: vi.fn(() => false),
+}));
+
 vi.mock('./SearchTab', () => ({
-  SearchTab: ({ onScrapeWithVenice }: {
+  SearchTab: ({ onScrapeWithVenice, onOpenInBrowser }: {
     onScrapeWithVenice?: (url: string) => void;
+    onOpenInBrowser?: (url: string) => void;
   }) => (
-    <button
-      type="button"
-      onClick={() => onScrapeWithVenice?.('https://clicked.example/article')}
-    >
-      Scrape clicked result
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => onScrapeWithVenice?.('https://clicked.example/article')}
+      >
+        Scrape clicked result
+      </button>
+      <button
+        type="button"
+        onClick={() => onOpenInBrowser?.('https://open-in-browser.example/page')}
+      >
+        Open in Browser
+      </button>
+    </>
   ),
 }));
 
@@ -89,6 +119,7 @@ const mockVeniceFetch = vi.mocked(veniceFetch);
 describe('SearchScrapeView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockResearchBrowserView.mockReturnValue(null);
     mockVeniceFetch.mockResolvedValue({
       data: { text: 'clicked result text' },
       response: {} as Response,
@@ -111,5 +142,58 @@ describe('SearchScrapeView', () => {
         }),
       ),
     );
+  });
+
+  // VERIFY-RB-006 regression guard — navigate-before-create (Bug 2, renderer side):
+  // When "Open in Browser" is clicked in the Search tab, SearchScrapeView must
+  // NOT call researchBrowserBridge.navigate() directly. Instead it must switch
+  // to the Browser subtab and pass the pending URL via the initialUrl prop to
+  // ResearchBrowserView, which calls navigate after create() succeeds.
+  it('does not call bridge.navigate directly when "Open in Browser" is clicked — uses pending URL pattern instead', async () => {
+    render(<SearchScrapeView />);
+
+    // Switch to the Search/Scrape subtab to expose the SearchTab
+    fireEvent.click(screen.getByRole('button', { name: 'Search / Scrape' }));
+    // Click "Open in Browser" on a search result
+    fireEvent.click(screen.getByRole('button', { name: 'Open in Browser' }));
+
+    // The bridge.navigate must NOT have been called by SearchScrapeView itself.
+    expect(mockBridge.navigate).not.toHaveBeenCalled();
+
+    // The Browser subtab should now be active and ResearchBrowserView should
+    // receive the pending URL as the initialUrl prop.
+    await waitFor(() =>
+      expect(mockResearchBrowserView).toHaveBeenCalledWith(
+        expect.objectContaining({ initialUrl: 'https://open-in-browser.example/page' }),
+      ),
+    );
+  });
+
+  // VERIFY-RB-007 regression guard — pendingBrowserUrl is cleared after consumed.
+  it('clears the pending URL when onInitialUrlConsumed is called', async () => {
+    render(<SearchScrapeView />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Search / Scrape' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open in Browser' }));
+
+    // Wait for the Browser subtab to render with the pending URL
+    await waitFor(() =>
+      expect(mockResearchBrowserView).toHaveBeenCalledWith(
+        expect.objectContaining({ initialUrl: 'https://open-in-browser.example/page' }),
+      ),
+    );
+
+    // Simulate ResearchBrowserView calling onInitialUrlConsumed
+    const allCalls = mockResearchBrowserView.mock.calls as Array<[Record<string, unknown>]>;
+    const lastCallArgs = allCalls.at(-1)?.[0] ?? {};
+    const onConsumed = lastCallArgs?.onInitialUrlConsumed as (() => void) | undefined;
+    expect(onConsumed).toBeDefined();
+    onConsumed?.();
+
+    // After consumption, the initialUrl prop should be null/cleared on next render
+    await waitFor(() => {
+      const latestArgs = (mockResearchBrowserView.mock.calls as Array<[Record<string, unknown>]>).at(-1)?.[0] ?? {};
+      expect(latestArgs?.initialUrl).toBeNull();
+    });
   });
 });

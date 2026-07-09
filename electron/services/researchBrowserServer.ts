@@ -152,7 +152,13 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     ipcMain.handle(channel, rateLimitIpcHandler(channel, handler));
   };
 
-  handleIpc("researchBrowser:create", async () => {
+  /**
+   * Creates the research WebContentsView if it does not already exist.
+   * Extracted so both the `create` and `navigate` IPC handlers can call it,
+   * enabling navigate-before-create to succeed (the renderer may call navigate
+   * before the Browser subtab has mounted and triggered `create`).
+   */
+  async function createResearchViewIfNeeded(): Promise<{ ok: boolean; error?: string }> {
     if (researchView) return { ok: true };
 
     const config = getCurrentConfig();
@@ -300,6 +306,10 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     }
 
     return { ok: true };
+  }
+
+  handleIpc("researchBrowser:create", async () => {
+    return createResearchViewIfNeeded();
   });
 
   handleIpc("researchBrowser:destroy", async () => {
@@ -372,7 +382,20 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
 
   handleIpc("researchBrowser:navigate", async (_event, input: ResearchBrowserNavigateInput) => {
     if (!input || typeof input.urlOrQuery !== "string") return { ok: false, error: "Invalid input" };
-    if (!researchView) return { ok: false, error: "Not initialized" };
+
+    // Auto-create the WebContentsView if it does not exist yet. This allows
+    // navigate to be called before the Browser subtab has mounted (and therefore
+    // before the renderer has called create). The renderer-side pending-URL
+    // pattern (initialUrl prop) already handles the common case, but this
+    // belt-and-suspenders fix ensures the main process never returns
+    // "Not initialized" for a normal navigation request.
+    if (!researchView) {
+      const createResult = await createResearchViewIfNeeded();
+      if (!createResult.ok) {
+        return { ok: false, error: createResult.error ?? "Failed to initialize browser" };
+      }
+    }
+
     let finalUrl = input.urlOrQuery.trim();
     const hasExplicitScheme = /^[a-z][a-z0-9+.-]*:/i.test(finalUrl);
 
@@ -415,6 +438,9 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
       setBlockedState(`Blocked unsafe URL: ${decision.reason ?? finalUrl}`);
       return { ok: false, error: decision.reason ?? "Blocked unsafe URL" };
     }
+
+    // Narrow the type — auto-create above guarantees researchView is non-null here.
+    if (!researchView) return { ok: false, error: "Failed to initialize browser" };
 
     try {
       await researchView.webContents.loadURL(finalUrl);

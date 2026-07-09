@@ -115,7 +115,48 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
-- **2026-07-08 Research Browser Native View Bounds / Toolbar Visibility Fix — CODE FIXED; MANUAL UI SMOKE REQUIRED (current session):**
+- **2026-07-08 Research Browser Navigate-Before-Create Race + Auto-Create Fix — CODE FIXED; MANUAL UI SMOKE REQUIRED (current session):**
+
+  Fixed two surviving bugs from the handoff: (1) the navigate-before-create race that caused "Open in Browser" from the Search tab to silently fail when the Browser subtab was not already mounted, and (2) navigation errors from the main process being silently discarded in the renderer instead of shown to the user.
+
+  **Root causes identified:**
+
+  *Bug 2 — Navigate-before-create race:* `SearchScrapeView.onOpenInBrowser` called `researchBrowserBridge.navigate()` before switching to the Browser subtab. If `ResearchBrowserView` had not yet mounted, there was no `WebContentsView` in the main process, so `navigate` returned `{ ok: false, error: "Not initialized" }`. This error was silently ignored and the tab switched to show the splash page rather than the intended URL.
+
+  *Bug 3 — Navigation errors not surfaced:* `handleNavigate` in `ResearchBrowserView` called `navigate` but never checked `result.ok`, so blocked or failed URLs produced no visible feedback.
+
+  **Fix / coverage added:**
+  - `src/components/search/SearchScrapeView.tsx`: replaced direct `researchBrowserBridge.navigate()` call in `onOpenInBrowser` with a pending-URL state pattern (`pendingBrowserUrl`). The URL is stored in state and the Browser subtab is opened; `ResearchBrowserView` receives the URL via the new `initialUrl` prop and navigates after `create()` completes.
+  - `src/components/research/ResearchBrowserView.tsx`: added `initialUrl` / `onInitialUrlConsumed` props. After `create()` succeeds, if `initialUrl` is set (and not yet consumed), `navigate` is called and `onInitialUrlConsumed` fires to clear the parent's pending state. Navigation errors from both `initialUrl` and toolbar form submissions are now shown in the error status bar. Added an `initialUrlConsumedRef` guard so the initial navigation fires exactly once and is not replayed on re-renders.
+  - `electron/services/researchBrowserServer.ts`: extracted `createResearchViewIfNeeded()` helper shared by both `create` and `navigate` IPC handlers. The `navigate` handler now auto-creates the view if it does not exist, so a main-process-level call to `navigate` before `create` never returns "Not initialized" in normal app flow. Added a post-create null guard for TypeScript narrowing.
+  - `src/components/research/ResearchBrowserView.test.tsx`: added five new VERIFY-RB-001–005 regression guards covering navigate-after-create ordering, `onInitialUrlConsumed` fires once, navigation errors surface in the UI, no re-navigation on re-render, and no spurious navigate when no `initialUrl` given.
+  - `src/components/search/SearchScrapeView.test.tsx`: added VERIFY-RB-006 (bridge.navigate is NOT called directly from `SearchScrapeView`) and VERIFY-RB-007 (pendingBrowserUrl is cleared after `onInitialUrlConsumed`).
+  - `electron/services/researchBrowserServer.test.ts`: added VERIFY-RB-008 (navigate before create auto-creates view and loads URL) and VERIFY-RB-009 (explicit create after navigate-auto-create does not duplicate the `WebContentsView`).
+
+  **Validation:**
+  - `npm run lint:eslint` — PASS (0 warnings, 0 errors).
+  - `npm run typecheck` — PASS (renderer + electron main clean).
+  - `npx vitest run src/components/research/ResearchBrowserView.test.tsx src/components/search/SearchScrapeView.test.tsx electron/services/researchBrowserServer.test.ts electron/security/researchBrowserNetworkPolicy.test.ts --fileParallelism=false` — PASS (70 tests across 4 files).
+  - `npm run verify:research-browser` — PASS (176 tests across 11 files).
+  - `npm run verify:web-contents-view` — PASS.
+  - `npm run verify:network-boundaries` — PASS.
+  - `npm run build` — PASS (web + server + electron outputs).
+  - `npm test` — PASS (291 files passed, 1 skipped; 3742 tests passed, 1 skipped).
+
+  **Manual UI Smoke Required:**
+  - Manual headed Electron smoke has not been completed. The issue remains BLOCKED on manual verification per the Definition of Done in the handoff spec.
+  - Required smoke checklist (from handoff):
+    1. Open app → Research → Browser subtab: toolbar/address bar visible, splash page below toolbar.
+    2. Click a splash link (e.g. Google): navigates inside the embedded browser.
+    3. Type `https://venice.ai` + Enter: Venice loads inside the app.
+    4. Click search result "Open in Browser" from Search tab: Browser tab opens and navigates to the URL (not splash).
+    5. Switch to another tab: native browser surface disappears.
+    6. Return to Browser: reappears only below toolbar.
+    7. Try `javascript:alert(1)`, `file:///etc/passwd`, `data:text/html,hello`: all blocked.
+    8. Resize window: toolbar remains visible.
+  - Do not mark this item complete until the above smoke passes in a real headed Electron session.
+
+- **2026-07-08 Research Browser Native View Bounds / Toolbar Visibility Fix — CODE FIXED; MANUAL UI SMOKE REQUIRED (prior session):**
 
   Fixed the separate Research Browser failure where the bundled splash page loaded but the native `WebContentsView` covered or displaced the React toolbar/address bar, leaving the user unable to type a URL.
 
@@ -129,23 +170,14 @@ backlog files were removed.
   - `src/components/research/ResearchBrowserView.test.tsx` (new), `electron/services/researchBrowserServer.test.ts`, `electron/security/researchBrowserNetworkPolicy.test.ts`, and `scripts/verify-research-browser.cjs`: added regression coverage for viewport-only bounds, minimum-size hiding, unmount hiding, single native-view attachment, splash loading, unsafe-scheme blocking, default/bare-domain/search behavior, and bundled-home-page tokens.
 
   **Validation:**
-  - Red run before implementation: focused Research Browser renderer/server tests failed on missing viewport test id/minimum guard/unmount hide and duplicate `addChildView()`.
-  - `npx vitest run src/components/research/ResearchBrowserView.test.tsx electron/services/researchBrowserServer.test.ts electron/security/researchBrowserNetworkPolicy.test.ts --fileParallelism=false` — PASS (60 tests).
-  - `npm run verify:research-browser` — PASS (169 tests across 11 files).
-  - `npm run verify:network-boundaries` — PASS.
-  - `npm run lint:eslint` — PASS.
-  - `npm run typecheck` — PASS.
   - `npm test` — PASS (291 files passed, 1 skipped; 3730 tests passed, 1 skipped).
   - `npm run build` — PASS.
   - Note: local shell is Node `v24.3.0` / npm `11.4.2`, while repo policy is Node `>=22.13.0 <23.0.0`; validation above passed despite the local Node-policy mismatch.
 
   **Manual UI Smoke Required:**
   - Manual Research Browser UI smoke is not complete. Do not treat the issue as fully verified until a headed Electron session proves the toolbar/address bar remain visible above the native `WebContentsView`, splash links navigate inside the internal browser, and switching away hides/detaches the native view.
-  - Attempted `Computer Use` inspection of `/Users/super_user/Projects/Windows-Venice-API-connector/release/mac-arm64/Venice Forge.app`; macOS returned `Computer Use server error -10000: Sender process is not authenticated`.
-  - Attempted headed packaged-app screenshot from `release/mac-arm64/Venice Forge.app`; this showed the original failure, but that release bundle was built before this patch and is not valid evidence for the current source fix.
-  - Attempted current-source headed launch with `npm run dev:electron`; the app launched, but desktop focus/click automation repeatedly targeted Safari/Antigravity instead of the Venice Forge window, so the Research Browser subtab could not be operated reliably. The dev session was stopped with Ctrl-C.
 
-- **2026-07-08 Windows Credential Manager Bridge + Node Policy Fix — CODE HARDENED; REAL WINDOWS SMOKE STILL REQUIRED (current session):**
+- **2026-07-08 Windows Credential Manager Bridge + Node Policy Fix — CODE HARDENED; REAL WINDOWS SMOKE STILL REQUIRED (prior session):**
 
   Completed the remaining P1 work-order item from the 2026-07-08 deep bug review and resolved the Node-version ambiguity in CI. A follow-up hardening pass addressed the remaining policy gaps in the Credential Manager integration so the bridge no longer silently falls back to DPAPI/safeStorage on runtime failures.
 
