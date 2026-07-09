@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
 import { researchBrowserBridge } from "../../services/researchBrowserBridge";
+import { useConfigStore } from "../../stores/config-store";
 import type {
   ResearchBrowserBoundsTelemetry,
   ResearchBrowserRectTelemetry,
   ResearchBrowserState,
+  ResearchBrowserThemeSnapshot,
 } from "../../types/researchBrowser";
 
 interface ResearchBrowserViewProps {
@@ -66,6 +68,41 @@ function buildGeometryTelemetry(
   };
 }
 
+/** Reads the active app theme off `document.documentElement` and projects it
+ *  into the snapshot schema the main process builder expects. Snapshots are
+ *  pushed via `researchBrowserBridge.setTheme` so the in-app home page matches
+ *  the surrounding UI, regardless of OS prefers-color-scheme.
+ *
+ *  Falls back to the dark slate palette if a token is not yet bound by
+ *  `applyTheme` (e.g. before the first theme render). */
+function readThemeSnapshot(): ResearchBrowserThemeSnapshot {
+  const root = document.documentElement;
+  const styles = getComputedStyle(root);
+  const get = (token: string, fallback: string) => {
+    const raw = styles.getPropertyValue(token).trim();
+    return raw || fallback;
+  };
+  const colorScheme = (styles.getPropertyValue("color-scheme") || "dark").trim();
+  const mode = colorScheme.includes("light") ? "light" : "dark";
+  return {
+    mode,
+    background: get("--surface-sunken", mode === "light" ? "#f7f8fb" : "#101318"),
+    surface: get("--surface-base", mode === "light" ? "#ffffff" : "#141821"),
+    surfaceElevated: get("--surface-raised", mode === "light" ? "#ffffff" : "#171c24"),
+    surfaceMuted: get("--surface-hover", mode === "light" ? "#eef0f4" : "#222a36"),
+    border: get("--border-subtle", mode === "light" ? "#d7dce5" : "#2d3542"),
+    borderStrong: get("--border-strong", mode === "light" ? "#b3bac8" : "#3a4452"),
+    foreground: get("--text-primary", mode === "light" ? "#172033" : "#eef2f7"),
+    foregroundMuted: get("--text-muted", mode === "light" ? "#5d697d" : "#a9b3c2"),
+    foregroundSubtle: get("--text-subtle", mode === "light" ? "#7a8699" : "#7a8699"),
+    accent: get("--brand-primary", mode === "light" ? "#b42318" : "#f97066"),
+    accentHover: get("--brand-primary-hover", mode === "light" ? "#8a1c12" : "#ff8a80"),
+    accentForeground: get("--brand-primary-fg", mode === "light" ? "#ffffff" : "#0a0a0c"),
+    focusRing: get("--tone-info", mode === "light" ? "#1f6feb" : "#6ee7d3"),
+    glow: get("--glow-primary", "rgba(110,231,211,0.18)"),
+  };
+}
+
 function validateBrowserGeometry(geometry: ResearchBrowserBoundsTelemetry): string | null {
   if (geometry.toolbar.height < MIN_BROWSER_TOOLBAR_HEIGHT) {
     return "Research Browser toolbar is not measurable; native browser view hidden.";
@@ -104,6 +141,37 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
   // Track whether the initialUrl has been consumed so it is only navigated once.
   const initialUrlConsumedRef = useRef(false);
   const browserAvailable = browserState !== null && browserState.error !== "Unavailable in web mode";
+
+  /** Push the active app theme into the WebContentsView so the in-app home
+   *  page matches the surrounding UI. Polls once per second and once on
+   *  `applyTheme:complete` custom events emitted by the theme system; the
+   *  view is unharmed if no events ever fire (the fallback snapshot mirrors
+   *  the dark Forge Dracula palette). */
+  useEffect(() => {
+    if (!browserAvailable) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const push = () => {
+      if (cancelled) return;
+      void researchBrowserBridge.setTheme(readThemeSnapshot());
+    };
+    push();
+    const onThemeChange = () => push();
+    window.addEventListener("applyTheme:complete", onThemeChange);
+    timer = setInterval(push, 1000);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("applyTheme:complete", onThemeChange);
+      if (timer) clearInterval(timer);
+    };
+  }, [browserAvailable]);
+
+  /** Renderer-side alias for the live config gate. Reads the snake_case key
+   *  from the sanitized config (the schema validator normalises the stored
+   *  value); defaults to false when no config has loaded yet. */
+  const allowExternalOpen = (
+    useConfigStore.getState().config?.research?.live_browser_allow_external_open === true
+  );
 
   const updateAddressFromState = (state: ResearchBrowserState) => {
     const nextAddress = state.displayUrl ?? state.url ?? "";
@@ -171,8 +239,10 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
     return () => {
       unmounted = true;
       unsubscribe();
+      // Do not destroy the WebContentsView on ordinary unmount. Hiding lets
+      // re-mount keep the existing session, history, and theme snapshot so
+      // the user does not have to re-navigate. The session is reused.
       void researchBrowserBridge.setVisible(false);
-      researchBrowserBridge.destroy();
     };
   }, []);
 
@@ -218,7 +288,11 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
       });
     };
 
-    updateBounds();
+    // Wrap the first measurement in a rAF so the layout has had a chance to
+    // settle (fonts, flex, etc.) before we copy sizes into the WebContentsView.
+    const rafId = requestAnimationFrame(() => {
+      void updateBounds();
+    });
     const handleWindowResize = () => {
       void updateBounds();
     };
@@ -234,9 +308,25 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
     }
     window.addEventListener("resize", handleWindowResize);
 
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    const handleVisualViewportChange = () => {
+      // Mobile / pinned-window viewport shifts also resize the shell — keep
+      // the WebContentsView in sync so it never drifts off the toolbar.
+      void updateBounds();
+    };
+    if (vv) {
+      vv.addEventListener("resize", handleVisualViewportChange);
+      vv.addEventListener("scroll", handleVisualViewportChange);
+    }
+
     return () => {
+      cancelAnimationFrame(rafId);
       clearTimeout(debounceTimer);
       window.removeEventListener("resize", handleWindowResize);
+      if (vv) {
+        vv.removeEventListener("resize", handleVisualViewportChange);
+        vv.removeEventListener("scroll", handleVisualViewportChange);
+      }
       resizeObserverRef.current?.disconnect();
       void researchBrowserBridge.setVisible(false);
     };
@@ -261,12 +351,14 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
 
   const handleOpenExternal = async () => {
     if (!browserState?.url) return;
-    await researchBrowserBridge.openExternal(browserState.url);
+    const allowExternalOpen = useConfigStore.getState().config?.research?.live_browser_allow_external_open === true;
+    if (!allowExternalOpen) return;
+    await researchBrowserBridge.requestOpenInSystemBrowser(browserState.url);
   };
 
   if (browserState?.error === "Unavailable in web mode") {
     return (
-      <div className="mesh-panel flex items-center justify-center h-full w-full bg-[var(--surface-sunken)] p-4 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)]">
+      <div className="mesh-panel research-browser-unavailable">
         <div className="text-center">
           <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -287,22 +379,23 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
     <div
       ref={shellRef}
       data-testid="research-browser-shell"
-      className={`mesh-panel flex flex-col h-full w-full bg-[var(--surface-sunken)] rounded-lg border border-[var(--border-subtle)] overflow-hidden ${DEBUG_BOUNDS ? "outline outline-1 outline-[var(--tone-info,var(--brand-primary))]" : ""}`}
+      className="mesh-panel research-browser-shell flex flex-col h-full w-full"
+      data-debug-bounds={DEBUG_BOUNDS ? "true" : "false"}
     >
       <div className="flex flex-col">
         {browserState?.loading && (
-          <div className="h-0.5 bg-[var(--surface-base)]">
-            <div className="h-full bg-[var(--brand-primary)] animate-[loadingBar_2s_ease-in-out_infinite] w-[30%]" />
+          <div className="research-browser-loading-bar">
+            <div className="research-browser-loading-bar-fill" />
           </div>
         )}
         {browserState?.error && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--tone-error-bg,var(--surface-raised))] border-b border-[var(--border-subtle)] text-[var(--tone-error)] text-xs">
+          <div className="research-browser-error-strip">
             <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <span className="truncate">{browserState.error}</span>
             {errorUrl && (
-              <span className="text-[var(--text-muted)] truncate hidden sm:inline">({errorUrl})</span>
+              <span className="research-browser-error-strip-url truncate hidden sm:inline">({errorUrl})</span>
             )}
           </div>
         )}
@@ -312,11 +405,12 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
       <div
         ref={toolbarRef}
         data-testid="research-browser-toolbar"
-        className={`flex items-center gap-2 p-2 bg-[var(--surface-raised)] border-b border-[var(--border-subtle)] ${DEBUG_BOUNDS ? "outline outline-1 outline-[var(--tone-warning,var(--brand-primary))] outline-offset-[-1px]" : ""}`}
+        className="research-browser-toolbar"
+        data-debug-bounds={DEBUG_BOUNDS ? "true" : "false"}
       >
         <div className="flex gap-1">
-          <button 
-            className="p-1.5 rounded hover:bg-[var(--surface-hover)] disabled:opacity-30 transition-colors"
+          <button
+            className="research-browser-icon-button"
             disabled={!browserState?.canGoBack}
             onClick={() => researchBrowserBridge.back()}
             title="Back"
@@ -324,8 +418,8 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           </button>
-          <button 
-            className="p-1.5 rounded hover:bg-[var(--surface-hover)] disabled:opacity-30 transition-colors"
+          <button
+            className="research-browser-icon-button"
             disabled={!browserState?.canGoForward}
             onClick={() => researchBrowserBridge.forward()}
             title="Forward"
@@ -333,8 +427,8 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
           </button>
-          <button 
-            className="p-1.5 rounded hover:bg-[var(--surface-hover)] transition-colors"
+          <button
+            className="research-browser-icon-button"
             onClick={() => browserState?.loading ? researchBrowserBridge.stop() : researchBrowserBridge.reload()}
             title={browserState?.loading ? "Stop" : "Reload"}
             aria-label={browserState?.loading ? "Stop" : "Reload"}
@@ -358,7 +452,7 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
           </div>
           <input
             type="text"
-            className="w-full bg-[var(--surface-base)] border border-[var(--border-subtle)] rounded-full px-8 py-1 text-sm focus:outline-none focus:border-[var(--brand-primary)] focus:ring-1 focus:ring-[var(--brand-primary)]"
+            className="research-browser-address"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="Search or enter website"
@@ -371,20 +465,21 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
           )}
         </form>
 
-        {actualUrl && actualUrl.startsWith("http") && (
+        {actualUrl && actualUrl.startsWith("http") && allowExternalOpen && (
           <button
-            className="p-1.5 rounded hover:bg-[var(--surface-hover)] transition-colors"
+            className="research-browser-icon-button"
             onClick={handleOpenExternal}
             title="Open in system browser"
             aria-label="Open in system browser"
+            data-testid="research-browser-open-external"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
           </button>
         )}
 
         {isJinaSupported && onCaptureWithJina && (
-          <button 
-            className="flex items-center gap-1 px-3 py-1 bg-[var(--brand-primary)] text-[var(--brand-primary-fg,var(--surface))] text-xs font-medium rounded hover:bg-opacity-90 transition-colors"
+          <button
+            className="research-browser-capture-button"
             onClick={() => actualUrl && onCaptureWithJina(actualUrl)}
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
@@ -397,12 +492,13 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
       <div
         ref={viewportRef}
         data-testid="research-browser-viewport"
-        className={`research-browser-viewport flex-1 min-h-0 w-full relative ${DEBUG_BOUNDS ? "outline outline-1 outline-[var(--tone-success,var(--brand-primary))] outline-offset-[-2px]" : ""}`}
+        className="research-browser-viewport"
+        data-debug-bounds={DEBUG_BOUNDS ? "true" : "false"}
       >
         {boundsError && (
           <div
             role="alert"
-            className="absolute inset-0 flex items-center justify-center bg-[var(--surface-sunken)] p-4 text-center text-sm text-[var(--tone-error)]"
+            className="research-browser-viewport-error"
           >
             {boundsError}
           </div>

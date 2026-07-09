@@ -75,6 +75,12 @@ export interface SanitizedConfigSnapshot {
     default_provider: "venice" | "jina" | "auto";
     enable_jina: boolean;
     enable_social_discovery: boolean;
+    enable_live_browser: boolean;
+    live_browser_search_provider: string;
+    live_browser_persist_session: boolean;
+    live_browser_javascript_enabled: boolean;
+    live_browser_allow_external_open: boolean;
+    max_browser_extract_chars: number;
   };
   characters: {
     enabled: boolean;

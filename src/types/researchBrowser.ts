@@ -70,6 +70,24 @@ export interface ResearchBrowserPageMetadata {
   description?: string;
 }
 
+export interface ResearchBrowserThemeSnapshot {
+  mode: "dark" | "light";
+  background: string;
+  surface: string;
+  surfaceElevated: string;
+  surfaceMuted: string;
+  border: string;
+  borderStrong: string;
+  foreground: string;
+  foregroundMuted: string;
+  foregroundSubtle: string;
+  accent: string;
+  accentHover: string;
+  accentForeground: string;
+  focusRing: string;
+  glow: string;
+}
+
 export interface ResearchBrowserPreloadApi {
   create(): Promise<{ ok: boolean; error?: string }>;
   destroy(): Promise<{ ok: boolean; error?: string }>;
@@ -81,7 +99,12 @@ export interface ResearchBrowserPreloadApi {
   reload(): Promise<{ ok: boolean; state?: ResearchBrowserState; error?: string }>;
   stop(): Promise<{ ok: boolean; state?: ResearchBrowserState; error?: string }>;
   getState(): Promise<{ ok: boolean; state?: ResearchBrowserState; error?: string }>;
-  openExternal(url: string): Promise<{ ok: boolean; error?: string }>;
+  /** Renderer-initiated request for the main process to escalte to the system
+   *  browser for a URL. Always gated by `research.liveBrowserAllowExternalOpen`. */
+  requestOpenInSystemBrowser(url: string): Promise<{ ok: boolean; reason?: string; error?: string }>;
+  /** Pushes the renderer's current theme snapshot to the main-process browser
+   *  so the in-app home/splash matches the active app theme. */
+  setTheme(snapshot: ResearchBrowserThemeSnapshot): Promise<{ ok: boolean; error?: string }>;
   scrapeCurrent(): Promise<{ ok: boolean; source?: ResearchBrowserScrapeResult; error?: string }>;
   captureMetadata(): Promise<{ ok: boolean; metadata?: ResearchBrowserPageMetadata; error?: string }>;
   onStateChanged(callback: (state: ResearchBrowserState) => void): () => void;

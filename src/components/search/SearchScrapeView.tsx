@@ -470,7 +470,7 @@ export function SearchScrapeView() {
                 }}
                 onOpenExternal={async (url) => {
                   if (isElectron()) {
-                    await researchBrowserBridge.openExternal(url);
+                    await researchBrowserBridge.requestOpenInSystemBrowser(url);
                   } else if (isTrustedExternalUrl(url)) {
                     window.open(url, "_blank", "noopener,noreferrer");
                   }
