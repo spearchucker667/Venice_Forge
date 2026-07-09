@@ -77,6 +77,10 @@ const INVALID_BROWSER_TOKENS = [
   "--tone-success",
   "--tone-info",
   "--glow-primary",
+  // Removed in 2026-07: text tier uses --text-primary / --text-muted /
+  // --foreground-subtle only (see VERIFY-RB-THEME-001 in
+  // src/components/research/ResearchBrowserView.test.tsx).
+  "--text-subtle",
 ];
 
 function isSourceFile(entry) {

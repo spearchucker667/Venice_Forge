@@ -82,8 +82,13 @@ function readThemeSnapshot(): ResearchBrowserThemeSnapshot {
     const raw = styles.getPropertyValue(token).trim();
     return raw || fallback;
   };
-  const colorScheme = (styles.getPropertyValue("color-scheme") || "dark").trim();
-  const mode = colorScheme.includes("light") ? "light" : "dark";
+  // Active theme mode is set on `document.documentElement.dataset.themeMode`
+  // by `applyTheme()`. We deliberately do NOT infer mode from the CSS
+  // `color-scheme` property — `src/styles/theme.css` sets it to
+  // `light dark`, which would always match `"light"` and decay to the wrong
+  // fallback palette.
+  const datasetMode = root.dataset.themeMode;
+  const mode: "light" | "dark" = datasetMode === "light" ? "light" : "dark";
   return {
     mode,
     background: get("--bg", mode === "light" ? "#f7f8fb" : "#101318"),
@@ -94,7 +99,7 @@ function readThemeSnapshot(): ResearchBrowserThemeSnapshot {
     borderStrong: get("--border-strong", mode === "light" ? "#b3bac8" : "#3a4452"),
     foreground: get("--text-primary", mode === "light" ? "#172033" : "#eef2f7"),
     foregroundMuted: get("--text-muted", mode === "light" ? "#5d697d" : "#a9b3c2"),
-    foregroundSubtle: get("--text-subtle", mode === "light" ? "#7a8699" : "#7a8699"),
+    foregroundSubtle: get("--foreground-subtle", mode === "light" ? "#7a8699" : "#7a8699"),
     accent: get("--accent", mode === "light" ? "#b42318" : "#f97066"),
     accentHover: get("--accent-hover", mode === "light" ? "#8a1c12" : "#ff8a80"),
     accentForeground: get("--accent-fg", mode === "light" ? "#ffffff" : "#0a0a0c"),
@@ -166,11 +171,11 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
     };
   }, [browserAvailable]);
 
-  /** Renderer-side alias for the live config gate. Reads the snake_case key
-   *  from the sanitized config (the schema validator normalises the stored
-   *  value); defaults to false when no config has loaded yet. */
-  const allowExternalOpen = (
-    useConfigStore.getState().config?.research?.live_browser_allow_external_open === true
+  /** Renderer-side alias for the live config gate. Subscribed through the
+   *  Zustand selector so the button re-renders reactively when the gate flips,
+   *  matching the pattern in `SearchScrapeView.tsx`. */
+  const allowExternalOpen = useConfigStore(
+    (s) => s.config?.research?.live_browser_allow_external_open ?? false,
   );
 
   const updateAddressFromState = (state: ResearchBrowserState) => {
@@ -249,7 +254,7 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
   useEffect(() => {
     if (!browserAvailable || !shellRef.current || !toolbarRef.current || !viewportRef.current) return;
 
-    let debounceTimer: ReturnType<typeof setTimeout>;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     const updateBounds = async () => {
       if (!shellRef.current || !toolbarRef.current || !viewportRef.current) return;
@@ -288,22 +293,29 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
       });
     };
 
-    // Wrap the first measurement in a rAF so the layout has had a chance to
-    // settle (fonts, flex, etc.) before we copy sizes into the WebContentsView.
-    const rafId = requestAnimationFrame(() => {
-      void updateBounds();
-    });
+    // Wrap every layout-affecting notification in a single rAF so that
+    // bursts of resize/theme/visualViewport events coalesce into one
+    // measurement after the browser has had a chance to settle layout.
+    let rafId: number | null = null;
+    const scheduleUpdateBounds = () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        void updateBounds();
+      });
+    };
+    scheduleUpdateBounds();
     const handleWindowResize = () => {
-      void updateBounds();
+      scheduleUpdateBounds();
     };
     const handleThemeLayoutChange = () => {
-      void updateBounds();
+      scheduleUpdateBounds();
     };
 
     if (typeof ResizeObserver !== "undefined") {
       resizeObserverRef.current = new ResizeObserver(() => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(updateBounds, 50);
+        if (debounceTimer !== null) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => scheduleUpdateBounds(), 50);
       });
       resizeObserverRef.current.observe(shellRef.current);
       resizeObserverRef.current.observe(toolbarRef.current);
@@ -316,7 +328,7 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
     const handleVisualViewportChange = () => {
       // Mobile / pinned-window viewport shifts also resize the shell — keep
       // the WebContentsView in sync so it never drifts off the toolbar.
-      void updateBounds();
+      scheduleUpdateBounds();
     };
     if (vv) {
       vv.addEventListener("resize", handleVisualViewportChange);
@@ -324,8 +336,8 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
     }
 
     return () => {
-      cancelAnimationFrame(rafId);
-      clearTimeout(debounceTimer);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      if (debounceTimer !== null) clearTimeout(debounceTimer);
       window.removeEventListener("resize", handleWindowResize);
       window.removeEventListener("applyTheme:complete", handleThemeLayoutChange);
       if (vv) {

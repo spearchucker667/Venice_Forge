@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useConfigStore } from "../../stores/config-store";
 import type { ResearchBrowserState } from "../../types/researchBrowser";
+import { BUILTIN_THEMES } from "../../theme/themes";
+import { applyTheme } from "../../theme/applyTheme";
 import { ResearchBrowserView } from "./ResearchBrowserView";
 
 const bridge = vi.hoisted(() => ({
@@ -197,6 +199,7 @@ describe("ResearchBrowserView", () => {
 
   it("pushes a theme snapshot from the active app theme variables", async () => {
     document.documentElement.style.colorScheme = "light";
+    document.documentElement.dataset.themeMode = "light";
     document.documentElement.style.setProperty("--bg", "#fafafa");
     document.documentElement.style.setProperty("--surface", "#ffffff");
     document.documentElement.style.setProperty("--surface-elevated", "#f2f3f5");
@@ -205,7 +208,7 @@ describe("ResearchBrowserView", () => {
     document.documentElement.style.setProperty("--border-strong", "#aab0bd");
     document.documentElement.style.setProperty("--text-primary", "#182033");
     document.documentElement.style.setProperty("--text-muted", "#5c6678");
-    document.documentElement.style.setProperty("--text-subtle", "#788294");
+    document.documentElement.style.setProperty("--foreground-subtle", "#788294");
     document.documentElement.style.setProperty("--accent", "#b42318");
     document.documentElement.style.setProperty("--accent-hover", "#8a1c12");
     document.documentElement.style.setProperty("--accent-fg", "#ffffff");
@@ -230,6 +233,36 @@ describe("ResearchBrowserView", () => {
       accentForeground: "#ffffff",
       focusRing: "#1f6feb",
       glow: "rgba(31,111,235,0.18)",
+    })));
+  });
+
+  // VERIFY-RB-THEME-001 regression guard — mode must be derived from
+  // dataset.themeMode, not the CSS `color-scheme` property. The active
+  // theme uses `html { color-scheme: light dark }`, so an inference from
+  // color-scheme would always read "light" and match the wrong palette.
+  it("reports dark mode when dataset.themeMode is dark even if color-scheme advertises both", async () => {
+    document.documentElement.style.colorScheme = "light dark";
+    document.documentElement.dataset.themeMode = "dark";
+    document.documentElement.style.setProperty("--bg", "#0f1218");
+    document.documentElement.style.setProperty("--surface", "#161b22");
+    document.documentElement.style.setProperty("--surface-elevated", "#1b2129");
+    document.documentElement.style.setProperty("--surface-muted", "#222a36");
+    document.documentElement.style.setProperty("--border", "#2d3542");
+    document.documentElement.style.setProperty("--border-strong", "#3a4452");
+    document.documentElement.style.setProperty("--text-primary", "#eef2f7");
+    document.documentElement.style.setProperty("--text-muted", "#a9b3c2");
+    document.documentElement.style.setProperty("--foreground-subtle", "#7a8699");
+    document.documentElement.style.setProperty("--accent", "#f97066");
+    document.documentElement.style.setProperty("--accent-hover", "#ff8a80");
+    document.documentElement.style.setProperty("--accent-fg", "#0a0a0c");
+    document.documentElement.style.setProperty("--info", "#6ee7d3");
+    document.documentElement.style.setProperty("--glow", "rgba(110,231,211,0.18)");
+
+    render(<ResearchBrowserView />);
+
+    await waitFor(() => expect(bridge.setTheme).toHaveBeenCalledWith(expect.objectContaining({
+      mode: "dark",
+      background: "#0f1218",
     })));
   });
 
@@ -382,5 +415,27 @@ describe("ResearchBrowserView", () => {
     // Let the async init settle.
     await waitFor(() => expect(bridge.create).toHaveBeenCalled());
     expect(bridge.navigate).not.toHaveBeenCalled();
+  });
+
+  // VERIFY-RB-THEME-002 regression guard — applyTheme() must dispatch the
+  // `applyTheme:complete` event with a typed detail payload so that
+  // ResearchBrowserView's `handleThemeLayoutChange` listener fires even
+  // when the renderer never gets a chance to observe the dataset change
+  // (e.g. the user re-applies a builtin before the toolbar mounts).
+  it("dispatches applyTheme:complete with mode + themeId detail when applyTheme() is invoked", async () => {
+    const listener = vi.fn();
+    window.addEventListener("applyTheme:complete", listener as EventListener);
+
+    applyTheme(BUILTIN_THEMES[0]);
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    const detail = (listener.mock.calls[0][0] as CustomEvent).detail;
+    expect(detail).toEqual(expect.objectContaining({
+      mode: expect.stringMatching(/^(light|dark)$/),
+      themeId: BUILTIN_THEMES[0].id,
+    }));
+    // Cleanup the listener we attached here so other tests / teardown
+    // remain unaffected.
+    window.removeEventListener("applyTheme:complete", listener as EventListener);
   });
 });

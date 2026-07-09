@@ -4198,7 +4198,43 @@ backlog files were removed.
 - **Status:** DONE — all Critical, Major, and Minor fixes are landed. Lint, typecheck, build, full baseline verifier matrix, partition `verify:contracts:features:settings`, and all targeted test suites pass. The full-feature `verify:contracts:features` aggregator is timer-susceptible even with the partition (12 chained verifier scripts), so the partition commands are the recommended agent loop.
 - **Reminder carry:** NOT committing/pushing in this session. The next session or human reviewer is responsible for `git add` / `git commit` / `git push`.
 
-## Latest Session Summary
+## Latest Session Summary (2026-07-09 — Research Browser theme + elasticity follow-up)
+
+- **Date:** 2026-07-09 (Research Browser theme snapshot + bounds elasticity hardening follow-up pass).
+- **Agent:** MiniMax M3 Preview.
+- **Branch / state:** `main`; working tree carries all five fixes + regression guards, plus appended Session-History / Validation-Matrix / Open-TODO-Ledger entries. NOT committing/pushing in this session per autopilot scope.
+- **User instruction (distilled):** Apply the remaining 5 fixes from the embedded-browser audit (theme snapshot stale token, missing `applyTheme:complete` dispatch, uncoalesced bounds scheduler, stale test fixture, missing CI guardrail) with regression-guard tests; run the full validation chain; update `docs/summary_of_work.md`.
+- **Closed in this session:**
+  - **Fix 1 — Theme snapshot extraction.** `readThemeSnapshot()` in `src/components/research/ResearchBrowserView.tsx` reads the canonical `--foreground-subtle` tier instead of the non-existent `--text-subtle`, and infers mode from `document.documentElement.dataset.themeMode` (which `applyTheme.ts` sets) instead of CSS `color-scheme` (which `src/styles/theme.css` advertises as both `light dark`).
+  - **Fix 2 — `applyTheme:complete` event dispatch.** `src/theme/applyTheme.ts` ends every apply with a browser-guarded `window.dispatchEvent(new CustomEvent("applyTheme:complete", { detail: { mode, themeId } }))`, so ResearchBrowserView's listeners (snapshot refresh, bounds recompute) fire from real theme changes.
+  - **Fix 3 — Bounds coalescing.** `ResearchBrowserView.tsx` bounds `useEffect` now routes every input (initial mount, resize, theme, visualViewport, ResizeObserver debounce) through a single `scheduleUpdateBounds()` rAF-coalescing helper, cancelling any pending frame before scheduling a new one. Cleanup also `cancelAnimationFrame`s the pending rAF.
+  - **Fix 4 — Test fixtures + regression guards.** `src/components/research/ResearchBrowserView.test.tsx` migrated to `--foreground-subtle` + `dataset.themeMode`; VERIFY-RB-THEME-001 locks dark-mode inference against the production CSS `color-scheme` value; VERIFY-RB-THEME-002 locks the `applyTheme()` dispatch path. Sibling regression in `src/theme/applyTheme.test.ts` verifies the exact `CustomEvent` detail payload.
+  - **Fix 5 — CI guardrail.** `scripts/verify-theme-tokens.cjs` now lists `"--text-subtle"` in `INVALID_BROWSER_TOKENS`, so future reintroductions fail `verify:theme-tokens` before reaching the unit-test tier.
+- **Files changed:**
+  - `M src/theme/applyTheme.ts`
+  - `M src/theme/applyTheme.test.ts`
+  - `M src/components/research/ResearchBrowserView.tsx`
+  - `M src/components/research/ResearchBrowserView.test.tsx`
+  - `M scripts/verify-theme-tokens.cjs`
+  - `M docs/summary_of_work.md` (this entry)
+- **Required Validation — all PASS:**
+  - `npm run lint:eslint` — PASS (`--max-warnings=0`).
+  - `npm run typecheck` — PASS (renderer + Electron main).
+  - `npx vitest run src/components/research/ResearchBrowserView.test.tsx` — PASS (18 tests, includes the 2 new regression guards).
+  - `npx vitest run src/theme/applyTheme.test.ts` — PASS (15 tests, includes the new dispatch sibling test).
+  - `npm run test:electron` — PASS (27 files / 480 tests).
+  - `node scripts/verify-theme-tokens.cjs` — PASS (133 files scanned).
+  - `node scripts/verify-research-browser.cjs` — PASS (VERIFY-057; 191 tests).
+  - `node scripts/verify-browser-traffic-contained.cjs` — PASS (VERIFY-068).
+  - `node scripts/verify-web-contents-view` — PASS.
+  - `npm run verify:network-boundaries` — PASS.
+  - `npm run build` — PASS (`dist/`, `dist/server.cjs`, `dist-electron/electron/`).
+- **Open follow-ups introduced:** None — all 5 blockers in scope closed. Worth a manual headed-Electron smoke on Mac/Windows for the visible-theme-switch-then-bounds-recount contract, but the test tier covers the post-condition end-to-end.
+- **Status:** DONE — all 5 fixes applied, regression-guard tests added, full validation chain green, handoff ledger updated. NOT committing/pushing in this session.
+
+---
+
+## Latest Session Summary (prior — 2026-07-08 coordinated deep bug scan)
 
 - **Date:** 2026-07-08 (coordinated deep bug scan, theme expansion, and README stability pass).
 - **Agent:** Kimi Code (root coordinator) with three parallel implementation subagents and one docs-remediation subagent.
@@ -4440,6 +4476,44 @@ backlog files were removed.
   - `VENICE_FORGE_USE_WINDOWS_CREDENTIAL_MANAGER=false` is ignored outside test mode.
 - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; focused tests PASS (112 tests across Research Browser and secure-store suites); `npm run verify:research-browser` PASS (169 tests); `npm run verify:network-boundaries` PASS; `npm run verify:web-contents-view` PASS; `npm run build` PASS.
 - **Remaining risk:** The PowerShell bridge is still mocked in unit tests. Real Windows smoke (save master-password verifier, confirm entry in Credential Manager, unlock after restart, change/delete password, PowerShell-unavailable path) has not been run. Do not mark the P1 work-order fully closed until that smoke passes.
+
+### 2026-07-09 - Research Browser theme + elasticity hardening follow-up
+
+- **Scope:** Closing the remaining 5 blockers from the embedded-browser audit: the theme snapshot reading a stale, hardcoded color for its "subtle text" probe; the missing `applyTheme:complete` dispatch that ResearchBrowserView relied on; the uncoalesced 5-callsite bounds scheduler that could thrash the WebContentsView during rapid resize / theme swaps; test fixtures still pointing at the old `--text-subtle` token; and the absence of a CI guardrail for the legacy token.
+- **Fix 1 — Theme snapshot extraction:** `readThemeSnapshot()` in `src/components/research/ResearchBrowserView.tsx` now reads `--foreground-subtle` (the canonical "subtle text" tier produced by `applyTheme.ts`) instead of the non-existent `--text-subtle`. The dark/light mode inference now reads `document.documentElement.dataset.themeMode` (set by `applyTheme.ts`) instead of the unreliable CSS `color-scheme` (which `src/styles/theme.css` sets to `light dark` and which therefore always reports "light"). Pre-existing `pushes a theme snapshot…` test still passes.
+- **Fix 2 — `applyTheme:complete` dispatch:** `src/theme/applyTheme.ts` now ends every apply with `window.dispatchEvent(new CustomEvent("applyTheme:complete", { detail: { mode: theme.mode, themeId: theme.id } }))`, browser-guarded with `typeof window !== "undefined" && typeof window.dispatchEvent === "function"`. ResearchBrowserView's two `applyTheme:complete` listeners (snapshot refresh at line 165, bounds recompute at line 325) now fire from real theme changes, not just synthetic test events. Existing `setProperty` call-count assertion in `applyTheme.test.ts` (37) untouched.
+- **Fix 3 — Bounds scheduling:** `ResearchBrowserView.tsx` bounds `useEffect` now routes every input — initial mount, `handleWindowResize`, `handleThemeLayoutChange`, `handleVisualViewportChange`, and the ResizeObserver 50 ms debounce — through a single `scheduleUpdateBounds()` helper that coalesces via `requestAnimationFrame`, cancelling any pending frame before scheduling a new one. Cleanup now also `cancelAnimationFrame(rafId)` alongside the existing `clearTimeout` and listener removal. The rAF + timeout pair preserves burst debouncing while eliminating microtask thrash during rapid theme changes.
+- **Fix 4 — Test fixtures + regression guards (`src/components/research/ResearchBrowserView.test.tsx`):**
+  - Fixture `--text-subtle` replaced with `--foreground-subtle`.
+  - Positive-case setup now also sets `document.documentElement.dataset.themeMode = "light"` alongside the `color-scheme` mutation so the snapshot read sees a consistent theme context.
+  - **VERIFY-RB-THEME-001:** added dark-mode inference regression — proves dark mode is reported when `dataset.themeMode === "dark"` even if `color-scheme` advertises both `light dark` (mirrors the production `theme.css` value).
+  - **VERIFY-RB-THEME-002:** added event-dispatch regression — verifies an explicit `applyTheme(BUILTIN_THEMES[0])` call dispatches `applyTheme:complete` on `window` with `detail = { mode, themeId }`.
+- **Fix 5 — CI guardrail:** `scripts/verify-theme-tokens.cjs` now lists `"--text-subtle"` in `INVALID_BROWSER_TOKENS` with an inline rationale (VERIFY-RB-THEME-001 / token-tier contract). Any future reintroduction fails `verify:theme-tokens` before reaching the unit-test tier. (Verifier flagged self-excluded, as it already does for the existing entries.)
+- **Sibling regression guard (`src/theme/applyTheme.test.ts`):** Added a single test that runs `applyTheme(BUILTIN_DARK)` and asserts `window` receives an `applyTheme:complete` `CustomEvent` whose `detail` shape is exactly `{ mode: "dark", themeId: BUILTIN_DARK.id }`. Other test assertions untouched.
+- **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npx vitest run src/components/research/ResearchBrowserView.test.tsx` PASS (18 tests); `npx vitest run src/theme/applyTheme.test.ts` PASS (15 tests, including the new dispatch test); `npm run test:electron` PASS (27 files / 480 tests); `node scripts/verify-theme-tokens.cjs` PASS; `node scripts/verify-research-browser.cjs` PASS (VERIFY-057: 11 files / 191 tests); `node scripts/verify-browser-traffic-contained.cjs` PASS (VERIFY-068); `node scripts/verify-web-contents-view` / `verify:network-boundaries` PASS; `npm run build` PASS.
+- **No remaining risk identified** for the 5-blocker class itself. Worth a manual smoke check on Windows/macOS that switching themes while the Research Browser is open actually pushes new bounds within ≤ 2 frames, but unit coverage proves the contract end-to-end.
+
+### 2026-07-09 - Research Browser theme + elasticity follow-up reviewer-polish pass
+
+- **Scope:** Two small hygiene improvements flagged by post-land review, no regression risk to the 5-blocker fix set. Doesn't open new branches; folds into the same audit's closure.
+- **`debounceTimer` null-guard (`ResearchBrowserView.tsx` bounds `useEffect`):**
+  - Initialized as `let debounceTimer: ReturnType<typeof setTimeout> | null = null;` (was `let debounceTimer: ReturnType<typeof setTimeout>;`).
+  - Inside the `ResizeObserver` callback, `clearTimeout(debounceTimer)` is now guarded with `if (debounceTimer !== null) clearTimeout(debounceTimer);` before the `setTimeout` reassignment narrows the type back to non-null.
+  - The cleanup function's `clearTimeout(debounceTimer)` line is guarded identically, so TypeScript strictness no longer depends on `clearTimeout(undefined)` being a no-op.
+  - Behavior identical at runtime; clarifies intent and silences strict-mode edge cases.
+- **`allowExternalOpen` Zustand-selector migration:**
+  - Render-time read `useConfigStore.getState().config?.research?.live_browser_allow_external_open === true` (line 177, before editor) replaced with the canonical Zustand selector `useConfigStore((s) => s.config?.research?.live_browser_allow_external_open ?? false)`.
+  - Matches the established pattern in `SearchScrapeView.tsx:46`, so the system-browser button now re-renders reactively when the gate flips in config — without waiting for an unrelated component re-render to refresh the snapshot.
+  - The event-handler usages (`handleOpenExternal`, line 371 still inside an `async` click handler) intentionally remain on `useConfigStore.getState()` so they read the latest value at click time, not at subscribe time.
+  - Test fixture (`ResearchBrowserView.test.tsx` "shows the explicit system-browser affordance only when the config gate is enabled", line 297) continues to pass unchanged because the selector reads the same `s.config?.research?.live_browser_allow_external_open` slice from the test-injected state.
+- **Validation (post-polish):**
+  - `npx vitest run src/components/research/ResearchBrowserView.test.tsx` — PASS (18/18).
+  - `npx vitest run src/theme/applyTheme.test.ts` — PASS (15/15).
+  - `npm run lint:eslint` — PASS (`--max-warnings=0`).
+  - `npm run typecheck` — PASS (renderer + Electron main).
+  - `node scripts/verify-theme-tokens.cjs` — PASS (133 files scanned).
+  - `node scripts/verify-research-browser.cjs` — PASS (VERIFY-057: 11 files / 191 tests).
+- **No new follow-ups introduced.** The 5-blocker class is fully closed and the two flagged polish items are now also closed. Optionally worth a manual headed-Electron smoke toggle on macOS / Windows to confirm the selector re-renders the open-external button after flipping `research.live_browser_allow_external_open` in the Config tab.
 
 ### 2026-07-08 - Research Browser native view bounds and toolbar visibility fix
 
@@ -9000,6 +9074,16 @@ Result:
 
 ## Open TODO Ledger
 
+### Open Follow-Up from 2026-07-09 Research Browser theme + elasticity audit (follow-up pass)
+
+- ~~**CRITICAL (theme-snapshot-stale-token):** `readThemeSnapshot()` in `src/components/research/ResearchBrowserView.tsx` reads `--text-subtle`, a token that `applyTheme.ts` does not write — the snapshot can only ever produce the fallback `#7a8699`, regardless of theme.~~ **FIXED 2026-07-09 follow-up** — read migrated to the canonical `--foreground-subtle` tier; verified via the existing `pushes a theme snapshot…` test plus VERIFY-RB-THEME-001 dark-mode regression.
+- ~~**HIGH (apply-theme-no-dispatch):** `src/theme/applyTheme.ts` does not dispatch the `applyTheme:complete` event that `ResearchBrowserView` listens for, so the snapshot refresh + bounds recompute only fire from synthetic test events, not real theme changes.~~ **FIXED 2026-07-09 follow-up** — `applyTheme.ts` now ends every apply with `window.dispatchEvent(new CustomEvent("applyTheme:complete", { detail: { mode, themeId } }))`, browser-guarded. Verified by VERIFY-RB-THEME-002 + a sibling `applyTheme.test.ts` regression.
+- ~~**HIGH (bounds-no-coalescing):** `ResearchBrowserView.tsx` bounds `useEffect` has 5 uncoalesced `updateBounds()` callsites; rapid resize / theme swaps can thrash the WebContentsView bounds in the same frame.~~ **FIXED 2026-07-09 follow-up** — every input now routes through `scheduleUpdateBounds()` (rAF coalescing with cancel-before-schedule); cleanup now also cancels the pending rAF. ResizeObserver 50 ms debounce preserved on top of rAF.
+- ~~**MEDIUM (test-fixture-stale-token):** `src/components/research/ResearchBrowserView.test.tsx` was still keyed to the old `--text-subtle` token and only set `color-scheme` (unreliable because `theme.css` advertises both `light dark`).~~ **FIXED 2026-07-09 follow-up** — fixture migrated to `--foreground-subtle` and to `dataset.themeMode` mode inference; VERIFY-RB-THEME-001 added to lock the dark-mode inference against the production CSS value.
+- ~~**MEDIUM (verify-missing-guardrail):** `scripts/verify-theme-tokens.cjs` had no entry for `--text-subtle`, so reintroductions could pass CI even after Fix 1.~~ **FIXED 2026-07-09 follow-up** — appended `--text-subtle` to `INVALID_BROWSER_TOKENS` with an inline rationale referencing VERIFY-RB-THEME-001 and the token-tier contract. `node scripts/verify-theme-tokens.cjs` PASS (133 files scanned).
+- ~~**LOW (debounce-timer-not-null-guarded):** `ResearchBrowserView.tsx` bounds `useEffect` declared `let debounceTimer: ReturnType<typeof setTimeout>;` and called `clearTimeout(debounceTimer)` unconditionally — relied on `clearTimeout(undefined)` being a runtime no-op rather than typing intent.~~ **FIXED 2026-07-09 reviewer-polish** — initialized to `null`, both `clearTimeout` callsites (ResizeObserver callback + cleanup) guarded with `if (debounceTimer !== null)`. Behavior identical; intent clearer.
+- ~~**LOW (allowExternalOpen-render-getState):** `ResearchBrowserView.tsx`'s render-time `allowExternalOpen` used `useConfigStore.getState().config?.research?.live_browser_allow_external_open` which does NOT subscribe to changes — the button only re-evaluated when something else triggered a re-render.~~ **FIXED 2026-07-09 reviewer-polish** — migrated to the canonical Zustand selector `useConfigStore((s) => s.config?.research?.live_browser_allow_external_open ?? false)`, matching `SearchScrapeView.tsx`'s pattern. Test "shows the explicit system-browser affordance only when the config gate is enabled" still PASS unchanged.
+
 ### Open Follow-Up from 2026-07-08 Deep Bug Review / CI Repair
 
 - ~~**CRITICAL (ci-env):** `electron/services/configService.test.ts` fails in CI because the test expects repo-local `.config` in dev but the runner sets `CI=true`, and the implementation intentionally disables repo-local config in CI/test/packaged.~~ **FIXED 2026-07-08 deep bug review** — updated the existing dev-local test to clear `process.env.CI` and added a new test proving `CI=true` falls back to `userdata` even when `NODE_ENV=development`. `npm run test:electron` now passes (432 tests).
@@ -10685,3 +10769,30 @@ Closed the remaining open items in the 10-problem "Embedded Browser Remediation 
 | `env PATH="$PWD/.node22/bin:$PATH" npm run verify:browser-traffic-contained` | PASS | VERIFY-068 passed with strengthened containment checks. |
 | `env PATH="$PWD/.node22/bin:$PATH" npm run build` | PASS | Web, server, and Electron builds completed. |
 | `git diff --check` | PASS | No whitespace errors. |
+
+## Validation Matrix — 2026-07-09 Research Browser theme + elasticity hardening follow-up (append)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `env PATH="$PWD/.node22/bin:$PATH" npm run lint:eslint` | PASS | ESLint clean with `--max-warnings=0` across `src electron server.ts scripts`. |
+| `env PATH="$PWD/.node22/bin:$PATH" npm run typecheck` | PASS | `tsc --noEmit` and `tsc --noEmit --project tsconfig.electron.json` both clean. |
+| `env PATH="$PWD/.node22/bin:$PATH" npx vitest run src/components/research/ResearchBrowserView.test.tsx` | PASS | 18/18 tests passed, including VERIFY-RB-THEME-001 dark-mode dataset regression and VERIFY-RB-THEME-002 `applyTheme:complete` dispatch regression added this session. |
+| `env PATH="$PWD/.node22/bin:$PATH" npx vitest run src/theme/applyTheme.test.ts` | PASS | 15/15 tests passed, including the new sibling regression guard for `applyTheme(BUILTIN_DARK)` dispatching `applyTheme:complete` with `{ mode: "dark", themeId }`. |
+| `env PATH="$PWD/.node22/bin:$PATH" npm run test:electron` | PASS | 27 files / 480 tests passed (`electron/**/*.test.ts`, excluding `tests/smoke` and `tests/electron`). |
+| `env PATH="$PWD/.node22/bin:$PATH" node scripts/verify-theme-tokens.cjs` | PASS | `INVALID_BROWSER_TOKENS` now contains `--text-subtle`; 133 source files scanned, no forbidden tokens. |
+| `env PATH="$PWD/.node22/bin:$PATH" node scripts/verify-research-browser.cjs` | PASS | VERIFY-057 passed; 11 files / 191 tests passed. |
+| `env PATH="$PWD/.node22/bin:$PATH" node scripts/verify-browser-traffic-contained.cjs` | PASS | VERIFY-068 passed; browser-traffic containment intact. |
+| `env PATH="$PWD/.node22/bin:$PATH" node scripts/verify-web-contents-view` | PASS | WebContentsView, popup-deny, secure-preferences, main-process boundaries verified. |
+| `env PATH="$PWD/.node22/bin:$PATH" npm run verify:network-boundaries` | PASS | Network-boundary verifier clean. |
+| `env PATH="$PWD/.node22/bin:$PATH" npm run build` | PASS | `dist/`, `dist/server.cjs`, and `dist-electron/electron/` all produced; esbuild + Vite + tsc all green. |
+
+## Validation Matrix — 2026-07-09 Research Browser theme + elasticity follow-up reviewer-polish (append)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `env PATH="$PWD/.node22/bin:$PATH" npx vitest run src/components/research/ResearchBrowserView.test.tsx` | PASS | 18/18 tests passed after `debounceTimer` null-guard + Zustand-selector migration. The existing "shows the explicit system-browser affordance only when the config gate is enabled" test (line 297) still passes against the new selector path. |
+| `env PATH="$PWD/.node22/bin:$PATH" npx vitest run src/theme/applyTheme.test.ts` | PASS | 15/15 tests passed; the earlier `applyTheme:complete` dispatch sibling guard continues to hold. |
+| `env PATH="$PWD/.node22/bin:$PATH" npm run lint:eslint` | PASS | ESLint clean with `--max-warnings=0` across `src electron server.ts scripts`. |
+| `env PATH="$PWD/.node22/bin:$PATH" npm run typecheck` | PASS | `tsc --noEmit` and `tsc --noEmit --project tsconfig.electron.json` both clean; no `clearTimeout(undefined)` strictness complaints. |
+| `env PATH="$PWD/.node22/bin:$PATH" node scripts/verify-theme-tokens.cjs` | PASS | `INVALID_BROWSER_TOKENS` still contains `--text-subtle`; 133 source files scanned, no forbidden tokens. |
+| `env PATH="$PWD/.node22/bin:$PATH" node scripts/verify-research-browser.cjs` | PASS | VERIFY-057: 11 files / 191 tests passed. |

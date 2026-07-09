@@ -40,6 +40,22 @@ describe("applyTheme", () => {
     expect(setPropertySpy).toHaveBeenCalledWith("--bg", BUILTIN_LIGHT.tokens.background);
     expect(document.documentElement.dataset.themeMode).toBe("light");
   });
+
+  // VERIFY-RB-THEME-002 regression guard — emits an `applyTheme:complete`
+  // window event so dependent components (e.g. ResearchBrowserView's
+  // toolbar / WebContentsView bounds recompute) can react synchronously.
+  it("dispatches applyTheme:complete on window with mode + themeId detail", () => {
+    const listener = vi.fn();
+    window.addEventListener("applyTheme:complete", listener as EventListener);
+    try {
+      applyTheme(BUILTIN_DARK);
+      expect(listener).toHaveBeenCalledTimes(1);
+      const detail = (listener.mock.calls[0][0] as CustomEvent).detail;
+      expect(detail).toEqual({ mode: "dark", themeId: BUILTIN_DARK.id });
+    } finally {
+      window.removeEventListener("applyTheme:complete", listener as EventListener);
+    }
+  });
 });
 
 describe("resolveInitialTheme", () => {

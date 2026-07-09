@@ -60,6 +60,13 @@ export function applyTheme(theme: Theme): void {
   };
   Object.entries(map).forEach(([k, v]) => root.style.setProperty(k, v));
   root.dataset.themeMode = theme.mode;
+  // Notify subscribers (e.g. ResearchBrowserView) that the active theme
+  // tokens have been reapplied. Guarded for non-browser/jest environments.
+  if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+    window.dispatchEvent(new CustomEvent("applyTheme:complete", {
+      detail: { mode: theme.mode, themeId: theme.id },
+    }));
+  }
 }
 
 /**
