@@ -1,39 +1,81 @@
-export const INTERNAL_RESEARCH_HOME_DISPLAY = "Venice Research Home";
+/** @fileoverview Single source of truth for the in-app Research Browser's
+ *  internal home / splash page. Builds a static HTML payload from a
+ *  `ResearchBrowserThemeSnapshot` so the home matches the active app theme
+ *  rather than the OS prefers-color-scheme or hardcoded fallbacks.
+ *
+ *  Encoded data URLs are fingerprinted with a sentinel prefix so the main
+ *  process can recognise "internal home" without re-decoding the body, and
+ *  so equality checks remain stable even when the theme snapshot changes.
+ */
 
-export interface ResearchBrowserThemeVars {
-  vfBg: string;
-  vfPanel: string;
-  vfText: string;
-  vfMuted: string;
-  vfAccent: string;
-  vfBorder: string;
+import type { ResearchBrowserThemeSnapshot } from "../../src/types/researchBrowser";
+
+/** Prefix placed at the start of every home data URL so the main process
+ *  can identify "we are currently showing the internal home page" without
+ *  decoding the HTML body. */
+const RESEARCH_HOME_URL_PREFIX = "data:text/html;charset=utf-8;__venice_research_internal_home__=1,";
+
+const FALLBACK_THEME: ResearchBrowserThemeSnapshot = {
+  mode: "dark",
+  background: "#101318",
+  surface: "#171c24",
+  surfaceElevated: "#1f2530",
+  surfaceMuted: "#222a36",
+  border: "#2d3542",
+  borderStrong: "#3a4452",
+  foreground: "#eef2f7",
+  foregroundMuted: "#a9b3c2",
+  foregroundSubtle: "#7a8699",
+  accent: "#f97066",
+  accentHover: "#ff8a80",
+  accentForeground: "#0a0a0c",
+  focusRing: "#6ee7d3",
+  glow: "rgba(110,231,211,0.18)",
+};
+
+/** Returns the default theme snapshot. Used when the renderer has not yet
+ *  published one or when the main process needs to build the home before
+ *  any IPC setTheme call has arrived. */
+export function getFallbackResearchBrowserThemeSnapshot(): ResearchBrowserThemeSnapshot {
+  return { ...FALLBACK_THEME };
 }
 
-export function buildResearchBrowserHomeHtml(themeVars: ResearchBrowserThemeVars): string {
-  // We remove 'unsafe-inline' from style-src to harden CSP.
-  // The variables are injected into the style block securely by direct interpolation,
-  // but since we aren't loading external styles, we might need 'unsafe-inline' for the <style> block itself.
-  // Actually, to fully harden CSP, we should use a hash or nonce, but a simple hardened CSP without external domains:
-  // "default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; font-src 'none'; script-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none';"
-  // The instruction says "Harden CSP... removing style-src 'unsafe-inline' where possible, or tightly scoping it".
-  // Since we use a data URI, 'unsafe-inline' for styles is common unless we use style attributes.
+/** Returns true when `url` is the data URL for the internal home page, in
+ *  any theme flavour. Theme swaps change the encoded payload but never the
+ *  sentinel prefix. */
+export function isInternalResearchHomeUrl(url: string): boolean {
+  return url.startsWith(RESEARCH_HOME_URL_PREFIX);
+}
+
+/** Produces the data URL that the WebContentsView is loaded with when the
+ *  user requests the internal home. The sentinel prefix lets the main
+ *  process recognise the URL without parsing HTML. */
+export function buildResearchBrowserHomeDataUrl(theme: ResearchBrowserThemeSnapshot): string {
+  const html = buildResearchBrowserHomeHtml(theme);
+  return `${RESEARCH_HOME_URL_PREFIX}${encodeURIComponent(html)}`;
+}
+
+/** HTML string for the in-app home / splash page. Strict CSP, neutral of
+ *  the OS theme — colors are read from the supplied theme snapshot. */
+export function buildResearchBrowserHomeHtml(theme: ResearchBrowserThemeSnapshot): string {
+  const t = { ...FALLBACK_THEME, ...theme };
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; font-src 'none'; script-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none';">
-  <title>${INTERNAL_RESEARCH_HOME_DISPLAY}</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; script-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none'; navigate-to https: http:;">
+  <title>${escapeText("Venice Research Home")}</title>
   <style>
     :root {
-      color-scheme: light dark;
-      --vf-bg: ${themeVars.vfBg || "#f7f8fb"};
-      --vf-panel: ${themeVars.vfPanel || "#ffffff"};
-      --vf-text: ${themeVars.vfText || "#172033"};
-      --vf-muted: ${themeVars.vfMuted || "#5d697d"};
-      --vf-accent: ${themeVars.vfAccent || "#b42318"};
-      --vf-border: ${themeVars.vfBorder || "#d7dce5"};
-      --vf-link-bg: color-mix(in srgb, var(--vf-accent) 10%, transparent);
+      color-scheme: ${t.mode};
+      --vf-bg: ${t.background};
+      --vf-panel: ${t.surfaceElevated};
+      --vf-text: ${t.foreground};
+      --vf-muted: ${t.foregroundMuted};
+      --vf-accent: ${t.accent};
+      --vf-border: ${t.border};
+      --vf-link-bg: ${t.glow};
     }
     * { box-sizing: border-box; }
     html, body { min-height: 100%; margin: 0; }
@@ -93,19 +135,9 @@ export function buildResearchBrowserHomeHtml(themeVars: ResearchBrowserThemeVars
 </html>`;
 }
 
-export function getResearchHomeDataUrl(themeVars?: ResearchBrowserThemeVars): string {
-  const vars = themeVars || {
-    vfBg: "var(--surface-sunken, #101318)",
-    vfPanel: "var(--surface-raised, #171c24)",
-    vfText: "var(--text-primary, #eef2f7)",
-    vfMuted: "var(--text-muted, #a9b3c2)",
-    vfAccent: "var(--brand-primary, #f97066)",
-    vfBorder: "var(--border-subtle, #2d3542)",
-  };
-  return `data:text/html;charset=utf-8,${encodeURIComponent(buildResearchBrowserHomeHtml(vars))}`;
-}
-
-export function isInternalResearchHomeUrl(url: string): boolean {
-  // It starts with data:text/html and contains our title
-  return url.startsWith("data:text/html") && decodeURIComponent(url).includes(INTERNAL_RESEARCH_HOME_DISPLAY);
+function escapeText(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }

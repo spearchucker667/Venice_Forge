@@ -43,7 +43,7 @@ export function SearchScrapeView() {
   const selectedModel = useSettingsStore((s) => s.selectedModels.chat) || DEFAULT_CHAT_MODEL;
   const localFamilySafeModeEnabled = useSettingsStore((s) => s.localFamilySafeModeEnabled);
   const veniceKeyConfigured = useAuthStore((s) => s.isConfigured);
-  const allowExternalOpen = useConfigStore((s) => s.config?.research.liveBrowserAllowExternalOpen ?? false);
+  const allowExternalOpen = useConfigStore((s) => s.config?.research.live_browser_allow_external_open ?? false);
 
   function requireVeniceApiKey(where: string): boolean {
     if (veniceKeyConfigured) return true;

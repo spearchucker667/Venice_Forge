@@ -141,7 +141,7 @@ vi.mock("./configService", () => ({
     research: {
       live_browser_persist_session: true,
       live_browser_javascript_enabled: true,
-      liveBrowserAllowExternalOpen: true,
+      live_browser_allow_external_open: true,
       max_browser_extract_chars: 40_000,
     },
   })),
@@ -190,6 +190,7 @@ describe("Research Browser Server Main Process Integration", () => {
       "researchBrowser:stop",
       "researchBrowser:getState",
       "researchBrowser:requestOpenInSystemBrowser",
+      "researchBrowser:setTheme",
       "researchBrowser:scrapeCurrent",
       "researchBrowser:captureMetadata",
     ];
@@ -234,7 +235,8 @@ describe("Research Browser Server Main Process Integration", () => {
 
       expect(mockWebContents.loadURL).toHaveBeenCalledTimes(1);
       const homeUrl = (mockWebContents.loadURL as any).mock.calls[0][0] as string;
-      expect(homeUrl).toMatch(/^data:text\/html;charset=utf-8,/);
+      expect(homeUrl).toMatch(/^data:text\/html;charset=utf-8;/);
+      expect(homeUrl).toMatch(/__venice_research_internal_home__=1/);
       expect(decodeURIComponent(homeUrl)).toContain("Venice Research Home");
       expect(homeUrl).not.toContain("/Users/");
     });
@@ -523,32 +525,32 @@ describe("Research Browser Server Main Process Integration", () => {
     });
 
   it("should restrict external navigation to trusted HTTPS destinations", async () => {
-      const { dialog } = await import("electron");
-      const openExternalHandler = ipcHandlers.get("researchBrowser:requestOpenInSystemBrowser");
+    const { dialog } = await import("electron");
+    const openExternalHandler = ipcHandlers.get("researchBrowser:requestOpenInSystemBrowser");
 
-      // Blocked untrusted URL
-      const untrustedResult = await openExternalHandler!(null, "http://untrusted.com");
-      expect(untrustedResult.ok).toBe(false);
-      expect(untrustedResult.error).toBe("Blocked URL");
+    // Blocked untrusted URL
+    const untrustedResult = await openExternalHandler!(null, "http://untrusted.com");
+    expect(untrustedResult.ok).toBe(false);
+    expect(untrustedResult.error).toBe("Blocked URL");
 
-      // Allowed trusted URL
-      vi.mocked(dialog.showMessageBox).mockResolvedValueOnce({ response: 0 } as any);
-      const trustedResult = await openExternalHandler!(null, "https://trusted.com/home");
-      expect(trustedResult.ok).toBe(true);
-      expect(shell.openExternal).toHaveBeenCalledWith("https://trusted.com/home");
-    });
+    // Allowed trusted URL
+    vi.mocked(dialog.showMessageBox).mockResolvedValueOnce({ response: 0 } as any);
+    const trustedResult = await openExternalHandler!(null, "https://trusted.com/home");
+    expect(trustedResult.ok).toBe(true);
+    expect(shell.openExternal).toHaveBeenCalledWith("https://trusted.com/home");
+  });
 
-    it("should not open trusted external links when confirmation is canceled", async () => {
-      const { dialog, shell } = await import("electron");
-      const openExternalHandler = ipcHandlers.get("researchBrowser:requestOpenInSystemBrowser");
+  it("should not open trusted external links when confirmation is canceled", async () => {
+    const { dialog, shell } = await import("electron");
+    const openExternalHandler = ipcHandlers.get("researchBrowser:requestOpenInSystemBrowser");
 
-      vi.mocked(dialog.showMessageBox).mockResolvedValueOnce({ response: 1 } as any);
-      const result = await openExternalHandler!(null, "https://trusted.com/home");
+    vi.mocked(dialog.showMessageBox).mockResolvedValueOnce({ response: 1 } as any);
+    const result = await openExternalHandler!(null, "https://trusted.com/home");
 
-      expect(result.ok).toBe(false);
-      expect(result.error).toBe("Canceled");
-      expect(shell.openExternal).not.toHaveBeenCalledWith("https://trusted.com/home");
-    });
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("Canceled");
+    expect(shell.openExternal).not.toHaveBeenCalledWith("https://trusted.com/home");
+  });
   });
 
   // VERIFY-RB-008 / VERIFY-RB-009 — navigate auto-creates the view (Bug 2, main-process side)

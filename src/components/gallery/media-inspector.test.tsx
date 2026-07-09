@@ -66,7 +66,17 @@ beforeEach(() => {
         disable_thinking: false,
       },
       memory: { enable_memory_retrieval: true, show_pulled_context_before_sending: false },
-      research: { default_provider: "venice", enable_jina: false, enable_social_discovery: false },
+      research: {
+        default_provider: "venice",
+        enable_jina: false,
+        enable_social_discovery: false,
+        enable_live_browser: false,
+        live_browser_search_provider: "google",
+        live_browser_persist_session: false,
+        live_browser_javascript_enabled: false,
+        live_browser_allow_external_open: false,
+        max_browser_extract_chars: 40_000,
+      },
       characters: { enabled: true, include_adult_characters: false, default_character_slug: "" },
       safety: { local_family_safe_mode_enabled: true, venice_api_safe_mode: true },
       developer: {

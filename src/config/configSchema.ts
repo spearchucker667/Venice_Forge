@@ -157,7 +157,11 @@ export interface YamlResearch {
   live_browser_search_provider: VeniceSearchProvider;
   live_browser_persist_session: boolean;
   live_browser_javascript_enabled: boolean;
-  liveBrowserAllowExternalOpen: boolean;
+  /** When true, the in-app Research Browser may escalate to the system
+   *  browser via a confirmation dialog for any URL it cannot render itself.
+   *  Defaults to false (locks normal browsing traffic in-app). The runtime
+   *  accessor is `research.liveBrowserAllowExternalOpen`. */
+  live_browser_allow_external_open: boolean;
   max_browser_extract_chars: number;
 }
 
@@ -503,7 +507,7 @@ export function validateConfig(raw: unknown): ConfigValidationResult {
     live_browser_search_provider: clampEnum(researchRaw.live_browser_search_provider, ["brave", "google"] as const, "google"),
     live_browser_persist_session: clampBool(researchRaw.live_browser_persist_session, true),
     live_browser_javascript_enabled: clampBool(researchRaw.live_browser_javascript_enabled, true),
-    liveBrowserAllowExternalOpen: clampBool(researchRaw.liveBrowserAllowExternalOpen, false),
+    live_browser_allow_external_open: clampBool(researchRaw.live_browser_allow_external_open, false),
     max_browser_extract_chars: clampInteger(researchRaw.max_browser_extract_chars, 1000, 100_000, 40_000),
   };
 
@@ -641,7 +645,7 @@ export function emptyConfig(): YamlConfig {
       disable_thinking: false,
     },
     memory: { enable_memory_retrieval: true, show_pulled_context_before_sending: false },
-    research: { default_provider: "venice", default_search_provider: "brave", default_reader_provider: "jina", enable_jina: false, enable_social_discovery: false, enable_live_browser: false, live_browser_search_provider: "google", live_browser_persist_session: true, live_browser_javascript_enabled: true, liveBrowserAllowExternalOpen: false, max_browser_extract_chars: 40_000 },
+    research: { default_provider: "venice", default_search_provider: "brave", default_reader_provider: "jina", enable_jina: false, enable_social_discovery: false, enable_live_browser: false, live_browser_search_provider: "google", live_browser_persist_session: true, live_browser_javascript_enabled: true, live_browser_allow_external_open: false, max_browser_extract_chars: 40_000 },
     characters: { enabled: true, include_adult_characters: false, default_character_slug: "" },
     safety: { local_family_safe_mode_enabled: true, venice_api_safe_mode: true },
     developer: { verbose_config_logging: false, allow_config_key_import: true, force_import_keys: false, force_apply_config: false },

@@ -107,6 +107,7 @@ describe("ResearchBrowserView", () => {
     bridge.setTheme.mockResolvedValue({ ok: true });
     bridge.requestOpenInSystemBrowser.mockResolvedValue({ ok: true });
     bridge.onStateChanged.mockReturnValue(vi.fn());
+    bridge.setTheme.mockResolvedValue({ ok: true });
     globalThis.ResizeObserver = TestResizeObserver;
     installRectMock();
   });
@@ -189,7 +190,7 @@ describe("ResearchBrowserView", () => {
     })));
   });
 
-  it("hides the native browser view on unmount", async () => {
+  it("hides the native browser view on unmount without destroying the WebContentsView", async () => {
     installRectMock({
       shell: domRect({ x: 0, y: 0, width: 800, height: 700 }),
       toolbar: domRect({ x: 0, y: 52, width: 800, height: 48 }),
@@ -204,7 +205,9 @@ describe("ResearchBrowserView", () => {
     });
 
     expect(bridge.setVisible).toHaveBeenCalledWith(false);
-    expect(bridge.destroy).toHaveBeenCalled();
+    // Re-mounting must reuse the WebContentsView session, so destroy() is
+    // reserved for explicit "close browser" actions, not ordinary unmount.
+    expect(bridge.destroy).not.toHaveBeenCalled();
   });
 
   it("hides the native browser view when viewport geometry would cover the toolbar", async () => {

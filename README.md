@@ -209,6 +209,8 @@ npm run verify:release-packaging-hardening
 npm run verify:dist
 ```
 
+Release-readiness is enforced by `verify:release-packaging-hardening` (Phase 2J / VERIFY-052) and the `verify:dist` build-output gate. Maintainers must run `npm run verify:contracts` and `npm run verify:dist` before tagging a release, in addition to the steps above.
+
 ---
 
 ## Repository Map

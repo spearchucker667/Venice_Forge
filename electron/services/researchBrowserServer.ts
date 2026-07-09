@@ -1,13 +1,18 @@
 import { BrowserWindow, WebContentsView, ipcMain, session, app, Menu, clipboard } from "electron";
-import { getResearchHomeDataUrl, isInternalResearchHomeUrl, ResearchBrowserThemeVars } from "./researchBrowserHome";
-import type { 
-  ResearchBrowserState, 
-  ResearchBrowserBoundsInput, 
-  ResearchBrowserNavigateInput, 
-  ResearchBrowserScrapeResult, 
+import type {
+  ResearchBrowserState,
+  ResearchBrowserBoundsInput,
+  ResearchBrowserNavigateInput,
+  ResearchBrowserScrapeResult,
   ResearchBrowserPageMetadata,
   ResearchBrowserBoundsTelemetry,
+  ResearchBrowserThemeSnapshot,
 } from "../../src/types/researchBrowser";
+import {
+  buildResearchBrowserHomeDataUrl,
+  getFallbackResearchBrowserThemeSnapshot,
+  isInternalResearchHomeUrl as isInternalResearchHomeUrlExternal,
+} from "./researchBrowserHome";
 
 let researchView: WebContentsView | null = null;
 let mainWindowRef: BrowserWindow | null = null;
@@ -15,7 +20,18 @@ let currentBounds: ResearchBrowserBoundsInput | null = null;
 let researchViewAttached = false;
 
 let lastBlockedError: string | null = null;
+
 const INTERNAL_RESEARCH_HOME_DISPLAY = "Venice Research Home";
+
+let currentThemeSnapshot: ResearchBrowserThemeSnapshot = getFallbackResearchBrowserThemeSnapshot();
+
+function isInternalResearchHomeUrl(url: string): boolean {
+  return isInternalResearchHomeUrlExternal(url);
+}
+
+function getCurrentResearchHomeDataUrl(): string {
+  return buildResearchBrowserHomeDataUrl(currentThemeSnapshot);
+}
 
 function attachResearchView(): void {
   if (!mainWindowRef || mainWindowRef.isDestroyed() || !researchView || researchViewAttached) return;
@@ -411,7 +427,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     });
 
     try {
-      await wc.loadURL(getResearchHomeDataUrl());
+      await wc.loadURL(getCurrentResearchHomeDataUrl());
     } catch {
       wc.loadURL("about:blank");
     }
@@ -621,23 +637,16 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     return { ok: true, state: getViewState() };
   });
 
-  handleIpc("researchBrowser:setTheme", async (_event, themeVars: Record<string, string>) => {
-    if (!researchView) return { ok: false, error: "Not created" };
-    // Only reload the home page if we're currently looking at it
-    const currentUrl = researchView.webContents.getURL();
-    if (isInternalResearchHomeUrl(currentUrl)) {
-      await researchView.webContents.loadURL(getResearchHomeDataUrl(themeVars as unknown as ResearchBrowserThemeVars));
-    }
-    return { ok: true };
-  });
-
   handleIpc("researchBrowser:requestOpenInSystemBrowser", async (_event, url: string) => {
     if (typeof url !== "string") return { ok: false, error: "Invalid url type" };
-    const config = getCurrentConfig();
-    if (!config.research.liveBrowserAllowExternalOpen) {
-      return { ok: false, error: "External open is disabled by configuration" };
-    }
     if (!mainWindowRef || mainWindowRef.isDestroyed()) return { ok: false, error: "Window unavailable" };
+    if (!getCurrentConfig().research.live_browser_allow_external_open) {
+      return {
+        ok: false,
+        reason: "external_open_disabled",
+        error: "External open is disabled. Set research.liveBrowserAllowExternalOpen to true in config to enable.",
+      };
+    }
     if (!isTrustedExternalUrl(url)) {
       return { ok: false, error: "Blocked URL" };
     }
@@ -645,6 +654,28 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     if (result.error) return { ok: false, error: result.error };
     if (result.canceled) return { ok: false, error: "Canceled" };
     return { ok: result.opened };
+  });
+
+  handleIpc("researchBrowser:setTheme", async (_event, snapshot: ResearchBrowserThemeSnapshot) => {
+    if (!snapshot || typeof snapshot !== "object") {
+      return { ok: false, error: "Invalid theme snapshot" };
+    }
+    currentThemeSnapshot = {
+      ...currentThemeSnapshot,
+      ...snapshot,
+    };
+    if (
+      researchView &&
+      isInternalResearchHomeUrl(researchView.webContents.getURL())
+    ) {
+      try {
+        await researchView.webContents.loadURL(getCurrentResearchHomeDataUrl());
+      } catch {
+        // Ignore reload errors — the home data URL is unique per theme;
+        // the next user navigation will rebuild it.
+      }
+    }
+    return { ok: true };
   });
 
   handleIpc("researchBrowser:scrapeCurrent", async (): Promise<{ ok: boolean; source?: ResearchBrowserScrapeResult; error?: string }> => {

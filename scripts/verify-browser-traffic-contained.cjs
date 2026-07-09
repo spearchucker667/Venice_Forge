@@ -35,8 +35,8 @@ for (const file of CHECK_FILES) {
 const serverPath = path.join(ELECTRON_DIR, "services/researchBrowserServer.ts");
 if (fs.existsSync(serverPath)) {
   const content = fs.readFileSync(serverPath, "utf8");
-  if (!content.includes("liveBrowserAllowExternalOpen")) {
-    console.error(`❌ researchBrowserServer.ts missing liveBrowserAllowExternalOpen check`);
+  if (!content.includes("live_browser_allow_external_open")) {
+    console.error(`❌ researchBrowserServer.ts missing live_browser_allow_external_open check`);
     failed = true;
   }
 }

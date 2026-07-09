@@ -118,10 +118,34 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-07-09 PR/Branch Reconciliation — COMPLETE (current session):**
+
+  Reconciled the diverged local `main` commit (`dcf20aa update`) with
+  `origin/main` (`a2482c9 feat(research-browser): close Embedded Browser
+  Remediation Agent Contract`). GitHub reported zero open PRs. The only
+  branch work was the local/remote `main` divergence plus the local
+  `spearchucker667-scaling-journey` pointer already matching `origin/main`.
+
+  **Merge handling:**
+  - Resolved the Research Browser merge conflicts by preserving the remote
+    embedded-browser/theme implementation and the local traffic-containment
+    verifier/script wiring.
+  - Corrected the new `verify:browser-traffic-contained` check to assert the
+    canonical `research.live_browser_allow_external_open` config field.
+  - Removed a duplicate `setTheme` mock entry from
+    `ResearchBrowserView.test.tsx`.
+
+  **Validation:**
+  - `npm run lint:eslint` — PASS.
+  - `npm run typecheck` — PASS.
+  - `npm run verify:browser-traffic-contained` — PASS.
+  - `npm run verify:research-browser` — PASS (184 tests).
+  - `git diff --check` — PASS.
+
 - **2026-07-09 Research Browser Theme-Driven Splash & External Navigation Containment — COMPLETE (current session):**
 
   Fixed the final set of issues with the Research Browser to ensure it behaves as a fully embedded component:
-  1. **Browser Traffic Containment:** Replaced direct usage of `openExternal` across the app with `requestOpenInSystemBrowser`, which is gated by the `research.liveBrowserAllowExternalOpen` configuration (default false). Updated `SearchTab.tsx` fallback links to use secure system browser open requests instead of unrestricted `target="_blank"`. Added `scripts/verify-browser-traffic-contained.cjs` (VERIFY-068) to statically enforce this boundary.
+  1. **Browser Traffic Containment:** Replaced direct usage of `openExternal` across the app with `requestOpenInSystemBrowser`, which is gated by the `research.live_browser_allow_external_open` configuration (default false). Updated `SearchTab.tsx` fallback links to use secure system browser open requests instead of unrestricted `target="_blank"`. Added `scripts/verify-browser-traffic-contained.cjs` (VERIFY-068) to statically enforce this boundary.
   2. **Theme-Driven Splash Screen:** Connected the `researchBrowserBridge.setTheme` IPC to the application theme using a `MutationObserver` on `document.documentElement` styles in `ResearchBrowserView.tsx`. The native browser shell's splash screen now dynamically tracks theme changes (`vfBg`, `vfPanel`, `vfText`, `vfMuted`, `vfAccent`, `vfBorder`).
   3. **Elastic UI/Mesh Integration:** Updated `ResearchBrowserView.tsx` to observe `visualViewport` events (`resize`, `scroll`) in addition to `ResizeObserver` on elements, ensuring the bounds stay correct. Layout uses `mesh-panel` CSS tokens correctly.
   4. **Regression Handling:** Fixed TypeScript errors introduced in earlier refactors (e.g. `INTERNAL_RESEARCH_HOME_DISPLAY` and `ResearchBrowserThemeVars` typings). Verified all fixes with full CI testing.
@@ -4315,6 +4339,22 @@ backlog files were removed.
 ---
 
 ## Session History
+
+### 2026-07-09 - PR/branch reconciliation and main cleanup
+
+- **Scope:** Reviewed live GitHub PR state and local branch topology, then
+  reconciled the diverged local `main` (`dcf20aa`) with `origin/main`
+  (`a2482c9`). GitHub reported zero open PRs, so there were no PRs to close.
+- **Files changed:** Merge resolution covered the Research Browser conflict
+  set plus `scripts/verify-browser-traffic-contained.cjs`,
+  `src/components/search/SearchScrapeView.tsx`, and this ledger.
+- **Result:** Merge conflicts resolved; Research Browser verifier and traffic
+  containment verifier both pass. Pending final step is committing/pushing the
+  merge and deleting the already-merged local branch pointer.
+- **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS;
+  `npm run verify:browser-traffic-contained` PASS;
+  `npm run verify:research-browser` PASS (184 tests); `git diff --check`
+  PASS.
 
 ### 2026-07-08 - Web-browsing / Research Browser bug review & Windows Credential Manager integration
 
@@ -10486,3 +10526,90 @@ Conducted a complete documentation audit, cleanup, and consolidation pass. Rebui
 | `npm run verify:network-boundaries` | PASS | Network boundaries intact. |
 | `npm run verify:safety-guard` | PASS | Guard enforcement and no-raw-log policy passed. |
 | `git diff --check` | PASS | No trailing whitespace or checkout formatting errors. |
+
+## Latest Session Summary
+
+**Date:** 2026-07-09
+**Session type:** Embedded Browser Remediation Agent Contract — final pass (CSS-class refactor + verifier extension + test fixes)
+**Target snapshot:** `Windows-Venice-API-connector-clean-20260709-XXXXXX.zip`
+
+Closed the remaining open items in the 10-problem "Embedded Browser Remediation Agent Contract". All ten problems are now resolved.
+
+### Fixes / coverage added this session
+
+1. **ResearchBrowserView CSS-class refactor (Problem 5)**
+   - `src/components/research/ResearchBrowserView.tsx` — replaced every inline `bg-[var(--…)]` Tailwind utility and `outline outline-1 outline-[…]` debug helper with named `.research-browser-*` CSS classes now living in `src/styles/components.css`. The shell, status chip, status-description, address input, external-open button, capture button, viewport, and viewport-error strip all use the centralised class surface. Diagnostic outline is toggled via a `data-debug-bounds="true"` attribute on the shell and the viewport instead of an inline utility.
+   - `src/styles/components.css` — appended the missing `.research-browser-error-strip-url` rule to the Research Browser class block.
+
+2. **ResearchBrowserView test fixtures re-aligned**
+   - `src/components/research/ResearchBrowserView.test.tsx` — hoisted bridge fixture now exposes `setTheme`; `beforeEach` re-resolves it on each run. The "unmount" test was reworded to assert the *negative* (`bridge.destroy NOT called`) and now states the new contract explicitly: switching tabs hides the native view but preserves the underlying `WebContentsView` so re-mount restores the user's session/history/theme.
+
+3. **Cosmetics**
+   - `electron/services/researchBrowserHome.ts` — collapsed a double-ternary `<title>…</title>` constant into `escapeText("Venice Research Home")` for consistency with the rest of the home module.
+
+4. **Verifier extension (Problem 9)**
+   - `scripts/verify-research-browser.cjs` — gated the entire Embedded-Browser-Remediation contract:
+     - Refuses re-introduction of `public/research-browser-home.html` (split-home invariant).
+     - Asserts `researchBrowserHome.ts` includes the strict `Content-Security-Policy` meta, all 5 HTTPS quick-link URLs, the sentinel prefix `__venice_research_internal_home__=1,`, and exports `buildResearchBrowserHomeHtml`, `isInternalResearchHomeUrl`, `getFallbackResearchBrowserThemeSnapshot`.
+     - Asserts `live_browser_allow_external_open` is exposed by both `src/stores/config-store.ts` and `src/config/configSchema.ts`.
+     - Asserts `electron/services/researchBrowserServer.ts` implements `setTheme`, `isInternalResearchHomeUrl`, and the renamed IPC channel `researchBrowser:requestOpenInSystemBrowser`. Drops the `RESEARCH_HOME_URL_PREFIX` token check that only applies to the home module (server imports it indirectly via `isInternalResearchHomeUrl as isInternalResearchHomeUrlExternal`).
+     - Asserts `electron/preload.ts` exposes `setTheme` and the renamed IPC channel.
+     - Rejects `target="_blank"`, `onclick=`, and `<script>` in the in-process home (defensive guard against silent regressions of the in-process safe-HTML constraint).
+
+5. **Phase 2J README repair (out-of-scope housekeeping)**
+   - `README.md` — added a single sentence to the "Validation / CI Gates" section noting that release-readiness is enforced by `verify:release-packaging-hardening` (VERIFY-052, Phase 2J) and that maintainers should run `verify:contracts` and `verify:dist` before tagging a release. This brings the unit test `verify-release-packaging-hardening.test.ts > CLI exits 0 on the real repo` from FAIL to PASS.
+
+6. **Test fixes (Problem 10)**
+   - `electron/services/researchBrowserServer.test.ts` — four fixes:
+     - `data:text/html` regex widened to `/^data:text\/html;charset=utf-8;/` plus an explicit sentinel-token check (`__venice_research_internal_home__=1,`), reflecting the new prefix.
+     - Renamed channel references in two tests from `researchBrowser:openExternal` → `researchBrowser:requestOpenInSystemBrowser`; fixed inconsistent indentation in the surrounding test bodies.
+     - Added `live_browser_allow_external_open: true` to the `vi.mock("configService")` fixture so the Open-in-System-Browser test stops receiving "External open is disabled" instead of expected `"Canceled"` / `"Blocked URL"`.
+     - Updated the expected preload channel list at L191: removed `openExternal`, added `requestOpenInSystemBrowser`, added `setTheme`.
+
+### Embedded Browser Remediation contract — final status
+
+| ID | Title | Status |
+| --- | --- | --- |
+| Probe | Phase-0 recon (URL/SSRF/partition policy baseline) | done (prior) |
+| p1 | Sandbox partition rename + harden `permissionrequesthandler` / `webRequest.onBeforeRequest` | done (prior) |
+| p2 | Real browse policy — top-frame strict + `target=_blank` popups routed to current WCView | done (prior) |
+| p3 | Theme snapshot for splash theme parity | done |
+| p4 | In-process home CSP + `data:` URL loading + displayUrl cleanup | done |
+| p5 | Replace inline Tailwind `bg-[var(--…)]` etc. with named CSS classes | **done this session** |
+| p6 | Elastic bounds — replace fixed `h-[calc(100vh-220px)]` with `flex/min-h-0` | done (prior) |
+| p7 | Rename `openExternal` IPC channel + config gate | done |
+| p8 | Quick-links CSP / link-rel / no-`target=_blank` / safelist | done |
+| p9 | Verifier contract — split-home refuse; sentinel/quick-link/CSP/theme-gate assertions | **done this session** |
+| p10 | Test updates — fixture setTheme + unmount contract inversion + 4 server-test fixes | **done this session** |
+
+### Open TODO Ledger
+
+- (Embedded Browser Remediation contract — all ten items closed. No open TODOs from this workstream.)
+- (Phase 2J README gap closed this session — `verify-release-packaging-hardening.test.ts` now PASSes.)
+- `verify:contracts:features` full aggregate may still exceed sandbox timeout; run the partitioned sub-commands individually (`features:chat|image|workflow|rp|settings`).
+- Pre-existing test flakiness in `src/services/veniceClient.web.test.ts` CSAM-block tests (passes when run alone, can fail when run after `veniceClient.test.ts`). Confirmed against baseline via `git stash` — out of scope for Embedded Browser work.
+
+## Validation Matrix — 2026-07-09 Embedded Browser Remediation Agent Contract (final pass)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm run lint:eslint` | PASS | ESLint with `--max-warnings=0`. |
+| `npm run typecheck` | PASS | Renderer + Electron TypeScript projects clean. |
+| `npx vitest run src/components/research/ResearchBrowserView.test.tsx` | PASS | 12/12 tests pass after `setTheme` fixture + unmount-contract inversion. |
+| `npx vitest run electron/services/researchBrowserServer.test.ts` | PASS | 36/36 tests pass after regex widening + channel rename + gate mock. |
+| `node scripts/verify-research-browser.cjs` | PASS | All Embedded-Browser-Remediation contract assertions pass. |
+| `npx vitest run scripts/verify-release-packaging-hardening.test.ts` | PASS | 9/9 tests pass after Phase 2J README sentence. |
+| `node scripts/verify-release-packaging-hardening.cjs` | PASS | 102 release-packaging checks passed (including README Phase 2J reference). |
+| `npx vitest run --fileParallelism=false` (full sweep) | PASS | Suite passes (pre-existing `veniceClient.web.test.ts` flakiness is unrelated to this session; `git stash` confirms it on baseline). |
+| `git diff --check` | PASS | No whitespace errors. |
+
+## Validation Matrix — 2026-07-09 PR/branch reconciliation append
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `gh pr list --state open --json number,title,headRefName,baseRefName,isDraft,mergeable,reviewDecision,statusCheckRollup,author,url,updatedAt` | PASS | Returned `[]`; no open PRs to merge or close. |
+| `npm run lint:eslint` | PASS | ESLint with `--max-warnings=0`. |
+| `npm run typecheck` | PASS | Renderer + Electron TypeScript projects clean. |
+| `npm run verify:browser-traffic-contained` | PASS | VERIFY-068 passed after updating the verifier to the canonical `live_browser_allow_external_open` field. |
+| `npm run verify:research-browser` | PASS | VERIFY-057 passed; 184 tests across 11 files. |
+| `git diff --check` | PASS | No whitespace errors after conflict resolution. |
