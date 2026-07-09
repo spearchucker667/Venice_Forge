@@ -141,6 +141,8 @@ backlog files were removed.
   - `npm run verify:browser-traffic-contained` — PASS.
   - `npm run verify:research-browser` — PASS (184 tests).
   - `git diff --check` — PASS.
+  - Final branch/PR cleanup — PASS: only `main` remains locally and remotely;
+    `gh pr list --state open` returned `[]`.
 
 - **2026-07-09 Research Browser Theme-Driven Splash & External Navigation Containment — COMPLETE (current session):**
 
@@ -4348,9 +4350,9 @@ backlog files were removed.
 - **Files changed:** Merge resolution covered the Research Browser conflict
   set plus `scripts/verify-browser-traffic-contained.cjs`,
   `src/components/search/SearchScrapeView.tsx`, and this ledger.
-- **Result:** Merge conflicts resolved; Research Browser verifier and traffic
-  containment verifier both pass. Pending final step is committing/pushing the
-  merge and deleting the already-merged local branch pointer.
+- **Result:** Merge conflicts resolved, `main` pushed to `origin/main`, the
+  stale auxiliary worktree was removed, and the already-merged local branch
+  pointer was deleted. Only `main` remains locally and remotely.
 - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS;
   `npm run verify:browser-traffic-contained` PASS;
   `npm run verify:research-browser` PASS (184 tests); `git diff --check`
@@ -10613,3 +10615,7 @@ Closed the remaining open items in the 10-problem "Embedded Browser Remediation 
 | `npm run verify:browser-traffic-contained` | PASS | VERIFY-068 passed after updating the verifier to the canonical `live_browser_allow_external_open` field. |
 | `npm run verify:research-browser` | PASS | VERIFY-057 passed; 184 tests across 11 files. |
 | `git diff --check` | PASS | No whitespace errors after conflict resolution. |
+| `git push origin main` | PASS | Pushed merge commit `bb31ec1` to `origin/main`. |
+| `git branch -D spearchucker667-scaling-journey` | PASS | Deleted local branch after removing its stale auxiliary worktree. |
+| `git ls-remote --heads origin` | PASS | Only `refs/heads/main` remains at `bb31ec1`. |
+| `git branch --all --verbose --no-abbrev` | PASS | Only local `main`, `origin/main`, and `origin/HEAD -> origin/main` remain. |
