@@ -71,8 +71,6 @@ By prioritizing local data ownership, Venice Forge runs all storage operations l
 
 ---
 
-## Screenshots
-
 <p align="center">
   <img width="1774" height="998" alt="Venice Forge application preview" src="./assets/preview.jpg" />
 </p>
