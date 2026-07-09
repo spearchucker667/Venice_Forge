@@ -6,12 +6,15 @@ interface ResearchBrowserViewProps {
   onCaptureWithJina?: (url: string) => void;
 }
 
+const MIN_BROWSER_VIEWPORT_SIZE = 100;
+
 export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewProps) {
   const [browserState, setBrowserState] = useState<ResearchBrowserState | null>(null);
   const [address, setAddress] = useState("");
   const [lastErrorUrl, setLastErrorUrl] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const browserAvailable = browserState !== null && browserState.error !== "Unavailable in web mode";
 
   useEffect(() => {
     let unmounted = false;
@@ -50,42 +53,55 @@ export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewPr
     return () => {
       unmounted = true;
       unsubscribe();
+      void researchBrowserBridge.setVisible(false);
       researchBrowserBridge.destroy();
     };
   }, []);
 
   useEffect(() => {
-    if (!containerRef.current || browserState?.error === "Unavailable in web mode") return;
+    if (!browserAvailable || !viewportRef.current) return;
 
     let debounceTimer: ReturnType<typeof setTimeout>;
 
     const updateBounds = async () => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
+      if (!viewportRef.current) return;
+      const rect = viewportRef.current.getBoundingClientRect();
+      const width = Math.round(rect.width);
+      const height = Math.round(rect.height);
+      if (width < MIN_BROWSER_VIEWPORT_SIZE || height < MIN_BROWSER_VIEWPORT_SIZE) {
+        await researchBrowserBridge.setVisible(false);
+        return;
+      }
       await researchBrowserBridge.setBounds({
         x: Math.round(rect.x),
         y: Math.round(rect.y),
-        width: Math.round(rect.width),
-        height: Math.round(rect.height),
+        width,
+        height,
         visible: true,
       });
     };
 
     updateBounds();
+    const handleWindowResize = () => {
+      void updateBounds();
+    };
 
     if (typeof ResizeObserver !== "undefined") {
       resizeObserverRef.current = new ResizeObserver(() => {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(updateBounds, 50);
       });
-      resizeObserverRef.current.observe(containerRef.current);
+      resizeObserverRef.current.observe(viewportRef.current);
     }
+    window.addEventListener("resize", handleWindowResize);
 
     return () => {
       clearTimeout(debounceTimer);
+      window.removeEventListener("resize", handleWindowResize);
       resizeObserverRef.current?.disconnect();
+      void researchBrowserBridge.setVisible(false);
     };
-  }, [browserState?.error]);
+  }, [browserAvailable]);
 
   const handleNavigate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -221,9 +237,10 @@ export function ResearchBrowserView({ onCaptureWithJina }: ResearchBrowserViewPr
       </div>
 
       {/* Browser View Container */}
-      <div 
-        ref={containerRef} 
-        className="flex-1 w-full h-full relative"
+      <div
+        ref={viewportRef}
+        data-testid="research-browser-viewport"
+        className="research-browser-viewport flex-1 min-h-0 w-full relative"
       />
     </div>
   );

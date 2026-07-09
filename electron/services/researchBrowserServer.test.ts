@@ -16,6 +16,7 @@ vi.mock("electron", () => {
     isLoading: vi.fn(() => false),
     on: vi.fn(),
     setWindowOpenHandler: vi.fn(),
+    loadFile: vi.fn(async () => {}),
     loadURL: vi.fn(async () => {}),
     goBack: vi.fn(),
     goForward: vi.fn(),
@@ -75,6 +76,10 @@ vi.mock("electron", () => {
     clipboard: {
       writeText: vi.fn(),
     },
+    app: {
+      isPackaged: false,
+      getAppPath: vi.fn(() => "/repo"),
+    },
     // Test-only exports for direct validation access
     _mockWebContents: mockWebContents,
     _mockSession: mockSession,
@@ -87,7 +92,12 @@ vi.mock("electron", () => {
 // Mock security dependencies
 vi.mock("../security/researchBrowserNetworkPolicy", () => ({
   validateResearchBrowserNetworkUrl: vi.fn(async (url: string) => {
-    if (url.includes("blocked")) {
+    if (
+      url.includes("blocked") ||
+      url.startsWith("javascript:") ||
+      url.startsWith("file:") ||
+      url.startsWith("data:")
+    ) {
       return { allowed: false, reason: "Blocked unsafe URL" };
     }
     return { allowed: true, url };
@@ -203,6 +213,14 @@ describe("Research Browser Server Main Process Integration", () => {
       expect(popupHandler()).toEqual({ action: "deny" });
     });
 
+    it("loads the bundled splash page on create", async () => {
+      const createHandler = ipcHandlers.get("researchBrowser:create");
+      await createHandler();
+
+      expect(mockWebContents.loadFile).toHaveBeenCalledTimes(1);
+      expect((mockWebContents.loadFile as any).mock.calls[0][0]).toMatch(/research-browser-home\.html$/);
+    });
+
     it("should tear down the view on destroy", async () => {
       const createHandler = ipcHandlers.get("researchBrowser:create");
       await createHandler();
@@ -244,6 +262,32 @@ describe("Research Browser Server Main Process Integration", () => {
 
       // Verify that children are properly added and bounds set
       expect(mockWindow.contentView.addChildView).toHaveBeenCalled();
+    });
+
+    it("does not re-add the WebContentsView when setVisible(true) follows visible bounds", async () => {
+      const createHandler = ipcHandlers.get("researchBrowser:create");
+      await createHandler();
+
+      const setBoundsHandler = ipcHandlers.get("researchBrowser:setBounds");
+      const setVisibleHandler = ipcHandlers.get("researchBrowser:setVisible");
+
+      await setBoundsHandler(null, { x: 50, y: 50, width: 600, height: 400, visible: true });
+      await setVisibleHandler(null, true);
+
+      expect(mockWindow.contentView.addChildView).toHaveBeenCalledTimes(1);
+    });
+
+    it("detaches the WebContentsView when visibility is disabled", async () => {
+      const createHandler = ipcHandlers.get("researchBrowser:create");
+      await createHandler();
+
+      const setBoundsHandler = ipcHandlers.get("researchBrowser:setBounds");
+      const setVisibleHandler = ipcHandlers.get("researchBrowser:setVisible");
+
+      await setBoundsHandler(null, { x: 50, y: 50, width: 600, height: 400, visible: true });
+      await setVisibleHandler(null, false);
+
+      expect(mockWindow.contentView.removeChildView).toHaveBeenCalledTimes(1);
     });
 
     it("should reject invalid parameter types on setBounds", async () => {
@@ -307,6 +351,41 @@ describe("Research Browser Server Main Process Integration", () => {
       expect(mockWebContents.loadURL).toHaveBeenCalledWith(
         "https://www.google.com/search?q=quantum%20computing%20research"
       );
+    });
+
+    it("normalizes bare domains to HTTPS URLs", async () => {
+      const navigateHandler = ipcHandlers.get("researchBrowser:navigate");
+      mockWebContents.loadURL.mockClear();
+
+      await navigateHandler(null, { urlOrQuery: "venice.ai" });
+
+      expect(mockWebContents.loadURL).toHaveBeenCalledWith("https://venice.ai");
+    });
+
+    it("constructs Brave search URLs when requested", async () => {
+      const navigateHandler = ipcHandlers.get("researchBrowser:navigate");
+      mockWebContents.loadURL.mockClear();
+
+      await navigateHandler(null, { urlOrQuery: "venice ai api docs", searchProvider: "brave" });
+
+      expect(mockWebContents.loadURL).toHaveBeenCalledWith(
+        "https://search.brave.com/search?q=venice%20ai%20api%20docs",
+      );
+    });
+
+    it.each([
+      "javascript:alert(1)",
+      "file:///etc/passwd",
+      "data:text/html,hello",
+    ])("blocks unsafe scheme input instead of converting it to search: %s", async (urlOrQuery) => {
+      const navigateHandler = ipcHandlers.get("researchBrowser:navigate");
+      mockWebContents.loadURL.mockClear();
+
+      const result = await navigateHandler(null, { urlOrQuery });
+
+      expect(result.ok).toBe(false);
+      expect(result.error).toBe("Blocked unsafe URL");
+      expect(mockWebContents.loadURL).not.toHaveBeenCalled();
     });
 
   it("should restrict external navigation to trusted HTTPS destinations", async () => {

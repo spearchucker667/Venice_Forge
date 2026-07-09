@@ -3,55 +3,124 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'none'; script-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none';">
   <title>Venice Research Browser</title>
   <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f7f8fb;
+      --panel: #ffffff;
+      --panel-border: #d7dce5;
+      --text: #172033;
+      --muted: #5d697d;
+      --link: #0f766e;
+      --link-bg: #e7f5f2;
+      --link-border: #9fd4ca;
+      --accent: #b42318;
+      --shadow: 0 18px 60px rgba(15, 23, 42, 0.12);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101318;
+        --panel: #171c24;
+        --panel-border: #2d3542;
+        --text: #eef2f7;
+        --muted: #a9b3c2;
+        --link: #5eead4;
+        --link-bg: #12312d;
+        --link-border: #1f6f64;
+        --accent: #f97066;
+        --shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      background: var(--bg);
+      color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #0d0d0d;
-      color: #e5e5e5;
+    }
+
+    main {
+      width: min(720px, calc(100vw - 32px));
+      padding: 34px;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    p {
+      max-width: 56ch;
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.55;
+    }
+
+    nav {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    a {
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
-      margin: 0;
+      min-height: 46px;
+      padding: 10px 14px;
+      border: 1px solid var(--link-border);
+      border-radius: 8px;
+      background: var(--link-bg);
+      color: var(--link);
+      font-weight: 700;
+      text-decoration: none;
     }
-    .container {
-      text-align: center;
-      max-width: 600px;
-      padding: 2rem;
-    }
-    h1 {
-      font-size: 2rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-      color: #fff;
-    }
-    p {
-      color: #a3a3a3;
-      font-size: 1rem;
-      line-height: 1.5;
-    }
-    .icon {
-      margin-bottom: 1rem;
-    }
-    .icon svg {
-      width: 48px;
-      height: 48px;
-      color: #7c3aed;
+
+    a:focus-visible {
+      outline: 3px solid var(--link);
+      outline-offset: 3px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="icon">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"></circle>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-      </svg>
-    </div>
+  <main>
+    <p class="eyebrow">Local start page</p>
     <h1>Research Browser</h1>
-    <p>Enter a URL or search query in the address bar above to begin your research.</p>
-  </div>
+    <p>Enter a URL or search query in the toolbar above, or start from one of these trusted research destinations.</p>
+    <nav aria-label="Research Browser quick links">
+      <a href="https://www.google.com/">Google</a>
+      <a href="https://search.brave.com/">Brave Search</a>
+      <a href="https://duckduckgo.com/">DuckDuckGo</a>
+      <a href="https://venice.ai/">Venice.ai</a>
+      <a href="https://jina.ai/">Jina.ai</a>
+    </nav>
+  </main>
 </body>
 </html>

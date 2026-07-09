@@ -115,6 +115,36 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-07-08 Research Browser Native View Bounds / Toolbar Visibility Fix — CODE FIXED; MANUAL UI SMOKE REQUIRED (current session):**
+
+  Fixed the separate Research Browser failure where the bundled splash page loaded but the native `WebContentsView` covered or displaced the React toolbar/address bar, leaving the user unable to type a URL.
+
+  **Root cause:** `src/components/research/ResearchBrowserView.tsx` did not enforce a durable native-page viewport contract before showing the Electron `WebContentsView`; it sent visible bounds without a minimum measured viewport guard and did not explicitly hide the native surface during component teardown. `electron/services/researchBrowserServer.ts` also used `currentBounds.visible` as the attachment guard, so `setVisible(true)` could call `addChildView()` again after visible bounds had already attached the same view.
+
+  **Fix / coverage added:**
+  - `src/components/research/ResearchBrowserView.tsx`: introduced an explicit `research-browser-viewport` ref/test id, measures only that viewport, hides the native view below `100x100`, resizes on `ResizeObserver` / window resize, and hides the native view on unmount/effect cleanup before destroy.
+  - `electron/services/researchBrowserServer.ts`: added `researchViewAttached` plus `attachResearchView()` / `detachResearchView()` helpers so repeated visible-bounds or visible-state calls cannot re-add the same `WebContentsView`; detach now runs for hidden/destroy paths.
+  - `electron/services/researchBrowserServer.ts`: tightened address normalization so explicit unsafe schemes (`javascript:`, `file:`, `data:`) are blocked by policy instead of becoming search queries, while bare domains still normalize to HTTPS and Brave/Google search remains supported.
+  - `public/research-browser-home.html`: upgraded the bundled local splash page with CSP-safe styling and normal HTTPS quick links for Google, Brave Search, DuckDuckGo, Venice.ai, and Jina.ai.
+  - `src/components/research/ResearchBrowserView.test.tsx` (new), `electron/services/researchBrowserServer.test.ts`, `electron/security/researchBrowserNetworkPolicy.test.ts`, and `scripts/verify-research-browser.cjs`: added regression coverage for viewport-only bounds, minimum-size hiding, unmount hiding, single native-view attachment, splash loading, unsafe-scheme blocking, default/bare-domain/search behavior, and bundled-home-page tokens.
+
+  **Validation:**
+  - Red run before implementation: focused Research Browser renderer/server tests failed on missing viewport test id/minimum guard/unmount hide and duplicate `addChildView()`.
+  - `npx vitest run src/components/research/ResearchBrowserView.test.tsx electron/services/researchBrowserServer.test.ts electron/security/researchBrowserNetworkPolicy.test.ts --fileParallelism=false` — PASS (60 tests).
+  - `npm run verify:research-browser` — PASS (169 tests across 11 files).
+  - `npm run verify:network-boundaries` — PASS.
+  - `npm run lint:eslint` — PASS.
+  - `npm run typecheck` — PASS.
+  - `npm test` — PASS (291 files passed, 1 skipped; 3730 tests passed, 1 skipped).
+  - `npm run build` — PASS.
+  - Note: local shell is Node `v24.3.0` / npm `11.4.2`, while repo policy is Node `>=22.13.0 <23.0.0`; validation above passed despite the local Node-policy mismatch.
+
+  **Manual UI Smoke Required:**
+  - Manual Research Browser UI smoke is not complete. Do not treat the issue as fully verified until a headed Electron session proves the toolbar/address bar remain visible above the native `WebContentsView`, splash links navigate inside the internal browser, and switching away hides/detaches the native view.
+  - Attempted `Computer Use` inspection of `/Users/super_user/Projects/Windows-Venice-API-connector/release/mac-arm64/Venice Forge.app`; macOS returned `Computer Use server error -10000: Sender process is not authenticated`.
+  - Attempted headed packaged-app screenshot from `release/mac-arm64/Venice Forge.app`; this showed the original failure, but that release bundle was built before this patch and is not valid evidence for the current source fix.
+  - Attempted current-source headed launch with `npm run dev:electron`; the app launched, but desktop focus/click automation repeatedly targeted Safari/Antigravity instead of the Venice Forge window, so the Research Browser subtab could not be operated reliably. The dev session was stopped with Ctrl-C.
+
 - **2026-07-08 Windows Credential Manager Bridge + Node Policy Fix — COMPLETE (current session):**
 
   Completed the remaining P1 work-order item from the 2026-07-08 deep bug review and resolved the Node-version ambiguity in CI.
@@ -4175,6 +4205,18 @@ backlog files were removed.
 ---
 
 ## Session History
+
+### 2026-07-08 - Research Browser native view bounds and toolbar visibility fix
+
+- **Scope:** Fixed the Research Browser case where the splash page loaded but the Electron `WebContentsView` covered the React toolbar/address bar. Automated validation passed; manual headed UI smoke remains required.
+- **Renderer bounds contract:** `ResearchBrowserView` now has an explicit `research-browser-viewport`, measures only that element, refuses to show the native view below `100x100`, responds to `ResizeObserver` and window resize, and hides the native view during cleanup/unmount.
+- **Main-process attachment lifecycle:** `researchBrowserServer` now tracks `researchViewAttached` separately from bounds state and routes all show/hide/destroy paths through guarded attach/detach helpers, preventing repeated `addChildView()` calls for the same `WebContentsView`.
+- **Navigation policy:** explicit unsafe schemes (`javascript:`, `file:`, `data:`) are blocked instead of converted to search queries; bare domains still normalize to HTTPS and Google/Brave query search still works.
+- **Bundled start page:** `public/research-browser-home.html` now has a CSP-safe local start page with normal HTTPS links for Google, Brave Search, DuckDuckGo, Venice.ai, and Jina.ai.
+- **Regression coverage:** Added `ResearchBrowserView.test.tsx`; expanded server and network-policy tests; wired the new component test and splash tokens into `verify:research-browser`.
+- **Validation:** focused Research Browser tests PASS (60 tests); `npm run verify:research-browser` PASS (169 tests); `npm run verify:network-boundaries` PASS; `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm test` PASS (3730 passed, 1 skipped); `npm run build` PASS.
+- **Environment note:** validation ran under local Node `v24.3.0` / npm `11.4.2`; repo policy is Node `>=22.13.0 <23.0.0`.
+- **Manual UI Smoke Required:** Manual Research Browser UI smoke was attempted but not completed. `Computer Use` failed with `server error -10000: Sender process is not authenticated`; a headed packaged-app screenshot reproduced the old bug from the stale pre-patch `release/mac-arm64` bundle; current-source `npm run dev:electron` launched but coordinate/focus automation targeted other foreground apps, so the Research Browser subtab could not be operated reliably. Full verification still requires a human or working headed UI automation session to complete the checklist.
 
 ### 2026-07-08 - Packaged macOS runtime bug fixes and pre-existing CI repair
 
@@ -8735,6 +8777,7 @@ Result:
 - ~~**MEDIUM (character-context-mime):** Character context file validation covers extension and size but not MIME type; PDF extraction errors can leak raw messages.~~ **FIXED 2026-07-08 deep bug review** — `src/components/rp-studio/CharacterEditor.tsx` now enforces MIME type where available and normalizes PDF extraction errors to safe UI messages. Tests added.
 - ~~**MEDIUM (character-model-selection):** Character editor settings lack a model selection dropdown for hosted characters.~~ **FIXED 2026-07-08 deep bug review** — added `selectedModel`/`getEffectiveModel` to `src/stores/character-store.ts`, wired a model dropdown in `src/components/CharactersView.tsx`, and applied user override > character modelId > settings fallback when starting chat. Tests added.
 - ~~**CRITICAL (research-browser-black-screen):** Research Browser sub-tab opens to a black screen and cannot be closed, forcing the user to force-quit the app.~~ **FIXED 2026-07-08** — `webRequest.onBeforeRequest` in `electron/services/researchBrowserServer.ts` was cancelling the local `file://` request issued by `webContents.loadFile()` for the splash page because the network policy only allows `http:`/`https:`. The handler now short-circuits `file://` requests; navigation to `file://` is still blocked by `will-navigate` / `will-frame-navigate`. Regression test added.
+- ~~**HIGH (research-browser-toolbar-covered):** Research Browser splash loads, but the native `WebContentsView` can cover the React toolbar/address bar, preventing URL entry.~~ **FIXED 2026-07-08** — `ResearchBrowserView` now measures only a dedicated `research-browser-viewport`, hides the native view below `100x100`, hides on cleanup/unmount, and `researchBrowserServer` tracks native-view attachment separately so repeated visible calls cannot re-add the same `WebContentsView`. Regression coverage added to `ResearchBrowserView.test.tsx`, `researchBrowserServer.test.ts`, and `verify:research-browser`.
 - ~~**P1 (windows-credman):** Profile password storage on Windows currently uses Electron `safeStorage` (DPAPI), not Windows Credential Manager (`CredRead`/`CredWrite`) as the work-order requires.~~ **FIXED 2026-07-08** — implemented a tightly scoped PowerShell bridge in `electron/services/windowsCredentialStore.ts` that calls `CredWriteW` / `CredReadW` / `CredDeleteW`; `electron/services/secureStore.ts` now routes strict password credentials (`password`, `master_password`, `profile_password*`, `*_password`) to Windows Credential Manager on Windows and removes any legacy DPAPI-backed local copy. Full regression coverage added in `electron/services/windowsCredentialStore.test.ts` and `electron/services/secureStore.test.ts`. The PowerShell bridge is best-effort and must be validated on a real Windows runner before release; if it fails, the code fails closed rather than silently reverting to DPAPI for password credentials.
 
 ### Open Follow-Up from 2026-07-08 Final Hardening Pass (20260708-010525)
@@ -10360,3 +10403,35 @@ Reviewed all web-browsing surfaces: Research Mini Browser (Electron main), rende
 | `npm run lint:eslint` | PASS | Zero warnings. |
 | `npm run typecheck` | PASS | Renderer + Electron main TypeScript clean. |
 
+## Validation Matrix — 2026-07-08 Research Browser native view bounds / toolbar visibility fix
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npx vitest run src/components/research/ResearchBrowserView.test.tsx electron/services/researchBrowserServer.test.ts --fileParallelism=false` | PASS | 28 tests after viewport/min-size/attachment fixes. |
+| `npx vitest run electron/services/researchBrowserServer.test.ts electron/security/researchBrowserNetworkPolicy.test.ts --fileParallelism=false` | PASS | 55 tests; unsafe scheme input, bare-domain normalization, Brave search, and allowed public research destinations covered. |
+| `npx vitest run src/components/research/ResearchBrowserView.test.tsx electron/services/researchBrowserServer.test.ts electron/security/researchBrowserNetworkPolicy.test.ts --fileParallelism=false` | PASS | 60 tests across renderer, main-process controller, and network policy. |
+| `npm run verify:research-browser` | PASS | 169 tests across 11 files; new component test and bundled-home-page checks wired into VERIFY-057. |
+| `npm run verify:network-boundaries` | PASS | Network-boundary verifier reports OK. |
+| `npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
+| `npm run typecheck` | PASS | Renderer + Electron main TypeScript clean. |
+| `npm test` | PASS | 291 files passed, 1 skipped; 3730 tests passed, 1 skipped. |
+| `npm run build` | PASS | Web, server, and Electron outputs built. |
+| `node --version && npm --version` | INFO | Local shell reported Node `v24.3.0` and npm `11.4.2`; repo policy is Node `>=22.13.0 <23.0.0`. |
+| `mcp__computer_use.get_app_state` on `release/mac-arm64/Venice Forge.app` | BLOCKED | macOS returned `Computer Use server error -10000: Sender process is not authenticated`. |
+| `open -n "release/mac-arm64/Venice Forge.app"` + `screencapture` | NOT VALID FOR PATCH | App launched and screenshot showed the original bug, but this was the stale pre-patch release bundle. |
+| `npm run dev:electron` + `screencapture` | PARTIAL / BLOCKED | Current-source app launched, but focus/click automation repeatedly targeted other foreground apps, so Research Browser manual UI operations could not be completed. Dev session was stopped with Ctrl-C. |
+
+### Manual UI Smoke Checklist Required Before Full Verification
+
+1. Launch a current-source or freshly packaged Electron build, not the stale pre-patch `release/mac-arm64` bundle.
+2. Open the Research tab and then the Browser subtab.
+3. Confirm the React toolbar and address/search input are visible above the native page viewport.
+4. Confirm the bundled splash page renders only below the toolbar.
+5. Click Google, Brave Search, DuckDuckGo, Venice.ai, and Jina.ai links and confirm they navigate inside the internal browser subject to policy.
+6. Type a search query in the address bar and confirm it navigates to the selected/default search provider.
+7. Type `venice.ai` and confirm it normalizes to `https://venice.ai`.
+8. Type `javascript:alert(1)`, `file:///etc/passwd`, and `data:text/html,hello` and confirm each is visibly blocked.
+9. Click an internal page link, then verify Back, Forward, Reload/Stop.
+10. Switch away to another app tab and confirm the native browser surface disappears and does not cover the new tab.
+11. Return to Research Browser and confirm the native browser surface reappears only inside the viewport below the toolbar.
+12. Resize/minimize/restore the app and confirm the toolbar remains visible and the web content resizes within the viewport.

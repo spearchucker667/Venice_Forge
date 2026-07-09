@@ -14,6 +14,7 @@ const requiredFiles = [
   "src/services/researchSummaries.test.ts",
   "src/components/research/ResearchWorkspaceView.tsx",
   "src/components/research/ResearchWorkspaceView.test.tsx",
+  "src/components/research/ResearchBrowserView.test.tsx",
   "src/components/SearchScrapeView.tsx",
   "src/components/command-palette/CommandPalette.tsx",
   // Phase 2I+ additions
@@ -80,6 +81,31 @@ for (const token of ["ResearchProviderStatus", "browser", "ResearchBrowserView",
 }
 console.log("✅ SearchScrapeView browser integration verified.");
 
+const browserView = readFileSync("src/components/research/ResearchBrowserView.tsx", "utf8");
+for (const token of ["research-browser-viewport", "MIN_BROWSER_VIEWPORT_SIZE", "setVisible(false)", "getBoundingClientRect"]) {
+  if (!browserView.includes(token)) {
+    console.error(`[verify:research-browser] ResearchBrowserView missing native viewport safety token: ${token}`);
+    process.exit(1);
+  }
+}
+console.log("✅ ResearchBrowserView native viewport safety verified.");
+
+const browserHome = readFileSync("public/research-browser-home.html", "utf8");
+for (const token of [
+  "Content-Security-Policy",
+  "https://www.google.com/",
+  "https://search.brave.com/",
+  "https://duckduckgo.com/",
+  "https://venice.ai/",
+  "https://jina.ai/",
+]) {
+  if (!browserHome.includes(token)) {
+    console.error(`[verify:research-browser] Research Browser home page missing token: ${token}`);
+    process.exit(1);
+  }
+}
+console.log("✅ Research Browser bundled home page verified.");
+
 const aiResearch = readFileSync("src/components/search/AiResearchTab.tsx", "utf8");
 for (const token of ["researchBudget", "maxQueries", "maxResultsPerQuery", "maxPages", "maxCharsPerPage", "researchRunMode", "retrieve-only", "retrieve-and-synthesize"]) {
   if (!aiResearch.includes(token)) {
@@ -106,6 +132,7 @@ const tests = [
   "src/services/researchService.test.ts",
   "src/services/researchSummaries.test.ts",
   "src/components/research/ResearchWorkspaceView.test.tsx",
+  "src/components/research/ResearchBrowserView.test.tsx",
   "src/components/search/ResearchProviderStatus.test.tsx",
   "src/services/diagnosticsService.test.ts",
   "src/components/command-palette/CommandPalette.test.tsx"

@@ -73,12 +73,18 @@ describe("research browser network policy", () => {
     expect(decision.reason).toMatch(/DNS lookup failed/);
   });
 
-  it("allows public hostnames resolving only to public addresses", async () => {
-    const decision = await validateResearchBrowserNetworkUrl("https://example.com/", lookup(["93.184.216.34"]));
+  it.each([
+    "https://google.com/",
+    "https://search.brave.com/",
+    "https://duckduckgo.com/",
+    "https://venice.ai/",
+    "https://jina.ai/",
+  ])("allows trusted public research destination: %s", async (url) => {
+    const decision = await validateResearchBrowserNetworkUrl(url, lookup(["93.184.216.34"]));
 
     expect(decision).toEqual({
       allowed: true,
-      url: "https://example.com/",
+      url,
       resolvedAddresses: ["93.184.216.34"],
     });
   });

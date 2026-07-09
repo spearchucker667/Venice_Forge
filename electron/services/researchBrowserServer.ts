@@ -11,17 +11,35 @@ import type {
 let researchView: WebContentsView | null = null;
 let mainWindowRef: BrowserWindow | null = null;
 let currentBounds: ResearchBrowserBoundsInput | null = null;
+let researchViewAttached = false;
 
 let lastBlockedError: string | null = null;
+
+function attachResearchView(): void {
+  if (!mainWindowRef || mainWindowRef.isDestroyed() || !researchView || researchViewAttached) return;
+  mainWindowRef.contentView.addChildView(researchView);
+  researchViewAttached = true;
+}
+
+function detachResearchView(): void {
+  if (!mainWindowRef || mainWindowRef.isDestroyed() || !researchView || !researchViewAttached) return;
+  try {
+    mainWindowRef.contentView.removeChildView(researchView);
+  } finally {
+    researchViewAttached = false;
+  }
+}
 
 function teardownResearchView(parentWindow: BrowserWindow | null): void {
   if (!researchView) return;
 
-  if (parentWindow && !parentWindow.isDestroyed() && currentBounds?.visible) {
+  if (parentWindow && !parentWindow.isDestroyed() && researchViewAttached) {
     try {
       parentWindow.contentView.removeChildView(researchView);
     } catch {
       // The view may already have been detached during BrowserWindow teardown.
+    } finally {
+      researchViewAttached = false;
     }
   }
 
@@ -33,6 +51,7 @@ function teardownResearchView(parentWindow: BrowserWindow | null): void {
 
   researchView = null;
   currentBounds = null;
+  researchViewAttached = false;
   lastBlockedError = null;
 }
 
@@ -114,6 +133,7 @@ export function resetResearchBrowserIpcForTesting(): void {
   researchView = null;
   mainWindowRef = null;
   currentBounds = null;
+  researchViewAttached = false;
   lastBlockedError = null;
 }
 
@@ -297,7 +317,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     if (currentBounds) {
       currentBounds.visible = visible;
       if (visible) {
-        mainWindowRef.contentView.addChildView(researchView);
+        attachResearchView();
         researchView.setBounds({
           x: currentBounds.x,
           y: currentBounds.y,
@@ -305,7 +325,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
           height: currentBounds.height,
         });
       } else {
-        mainWindowRef.contentView.removeChildView(researchView);
+        detachResearchView();
       }
     }
     broadcastState();
@@ -330,13 +350,12 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
       width: contentBounds.width,
       height: contentBounds.height,
     });
-    const wasVisible = currentBounds?.visible ?? false;
     currentBounds = safeBounds;
 
-    if (safeBounds.visible && !wasVisible) {
-      mainWindowRef.contentView.addChildView(researchView);
-    } else if (!safeBounds.visible && wasVisible) {
-      mainWindowRef.contentView.removeChildView(researchView);
+    if (safeBounds.visible) {
+      attachResearchView();
+    } else {
+      detachResearchView();
     }
 
     if (safeBounds.visible) {
@@ -355,6 +374,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
     if (!input || typeof input.urlOrQuery !== "string") return { ok: false, error: "Invalid input" };
     if (!researchView) return { ok: false, error: "Not initialized" };
     let finalUrl = input.urlOrQuery.trim();
+    const hasExplicitScheme = /^[a-z][a-z0-9+.-]*:/i.test(finalUrl);
 
     if (!finalUrl.startsWith("http://") && !finalUrl.startsWith("https://")) {
       let isAllowedUrl = false;
@@ -362,12 +382,14 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
         const parsed = new URL(finalUrl);
         if (parsed.protocol === "http:" || parsed.protocol === "https:") {
           isAllowedUrl = true;
+        } else if (hasExplicitScheme) {
+          isAllowedUrl = true;
         }
       } catch {
         // ignore
       }
 
-      if (!isAllowedUrl) {
+      if (!isAllowedUrl && !hasExplicitScheme) {
         if (!finalUrl.includes(" ") && finalUrl.includes(".")) {
           try {
             new URL(`https://${finalUrl}`);
@@ -379,7 +401,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
         }
       }
       
-      if (!isAllowedUrl) {
+      if (!isAllowedUrl && !hasExplicitScheme) {
         if (input.searchProvider === "brave") {
           finalUrl = `https://search.brave.com/search?q=${encodeURIComponent(input.urlOrQuery)}`;
         } else {
