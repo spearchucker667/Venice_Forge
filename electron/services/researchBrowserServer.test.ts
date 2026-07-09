@@ -237,7 +237,9 @@ describe("Research Browser Server Main Process Integration", () => {
       const homeUrl = (mockWebContents.loadURL as any).mock.calls[0][0] as string;
       expect(homeUrl).toMatch(/^data:text\/html;charset=utf-8;/);
       expect(homeUrl).toMatch(/__venice_research_internal_home__=1/);
-      expect(decodeURIComponent(homeUrl)).toContain("Venice Research Home");
+      const decodedHome = decodeURIComponent(homeUrl);
+      expect(decodedHome).toContain("Venice Research Home");
+      expect(decodedHome).toContain("img-src 'none'; font-src 'none'; script-src 'none'");
       expect(homeUrl).not.toContain("/Users/");
     });
 
@@ -455,9 +457,31 @@ describe("Research Browser Server Main Process Integration", () => {
       expect(mockWindow.webContents.send).toHaveBeenCalledWith(
         "researchBrowser:onStateChanged",
         expect.objectContaining({
-          error: "Popup blocked. Open externally if you trust this site.",
+          error: "Popup blocked by browser policy.",
         }),
       );
+    });
+
+    it("rejects external-open requests by default when the config gate is disabled", async () => {
+      const { getCurrentConfig } = await import("./configService");
+      vi.mocked(getCurrentConfig).mockReturnValueOnce({
+        research: {
+          live_browser_persist_session: true,
+          live_browser_javascript_enabled: true,
+          live_browser_allow_external_open: false,
+          max_browser_extract_chars: 40_000,
+        },
+      } as any);
+      const openExternalHandler = ipcHandlers.get("researchBrowser:requestOpenInSystemBrowser");
+
+      const result = await openExternalHandler!(null, "https://trusted.com/home");
+
+      expect(result).toEqual({
+        ok: false,
+        reason: "external_open_disabled",
+        error: "External open is disabled. Set research.live_browser_allow_external_open to true in config to enable.",
+      });
+      expect(shell.openExternal).not.toHaveBeenCalledWith("https://trusted.com/home");
     });
 
     it("should load URL when validation passes", async () => {

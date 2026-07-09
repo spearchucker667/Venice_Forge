@@ -118,6 +118,32 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-07-09 Embedded Browser UI/Theming/Containment Follow-Up — COMPLETE (current session):**
+
+  Fixed the remaining Research Browser issues found after the branch
+  reconciliation pass: browser chrome and theme snapshot extraction now use the
+  actual app theme variables (`--bg`, `--surface`, `--accent`, etc.); the stale
+  hardcoded `assets/browser-splash.html` path was deleted; the internal home CSP
+  now blocks images, fonts, and scripts; popup-blocked wording no longer
+  suggests an external fallback; search-result primary URL rendering no longer
+  external-opens when the in-app Browser callback is absent; and static
+  verifiers now lock the WebContentsView, theme-token, and traffic-containment
+  contracts.
+
+  **Validation (Node v22.22.3 / npm 10.9.8 via `.node22/bin`):**
+  - `npm ci` — PASS.
+  - `npm run lint:eslint` — PASS.
+  - `npm run typecheck` — PASS.
+  - `npm run test:electron` — PASS (480 tests).
+  - `npm run test:ui:research` — PASS (35 tests).
+  - `npm run verify:web-contents-view` — PASS.
+  - `npm run verify:research-browser` — PASS (189 tests).
+  - `npm run verify:theme-tokens` — PASS.
+  - `npm run verify:network-boundaries` — PASS.
+  - `npm run verify:browser-traffic-contained` — PASS.
+  - `npm run build` — PASS.
+  - `git diff --check` — PASS.
+
 - **2026-07-09 PR/Branch Reconciliation — COMPLETE (current session):**
 
   Reconciled the diverged local `main` commit (`dcf20aa update`) with
@@ -4341,6 +4367,29 @@ backlog files were removed.
 ---
 
 ## Session History
+
+### 2026-07-09 - Embedded Browser UI, theming, elasticity, and containment follow-up
+
+- **Scope:** Reconciled the live Research Browser implementation against the
+  stricter embedded-browser task prompt. Replaced invalid browser-only theme
+  tokens with the app's actual semantic tokens, deleted the stale hardcoded
+  splash asset, tightened home-page CSP, removed external-browser fallback
+  wording from popup blocks, kept primary search-result browsing inside the
+  app, refreshed bounds on theme changes, and strengthened static verifiers.
+- **Files changed:** `src/components/research/ResearchBrowserView.tsx`,
+  `src/styles/components.css`, `src/components/research/ResearchWorkspaceView.tsx`,
+  `src/components/search/SearchTab.tsx`, `electron/services/researchBrowserHome.ts`,
+  `electron/services/researchBrowserServer.ts`, verifier scripts, targeted tests,
+  `AGENTS.md`, and this ledger.
+- **Result:** Automated validation passed under Node 22. Manual headed Electron
+  QA was not run in this session; the browser behavior is covered by unit and
+  static verifier evidence.
+- **Validation:** `npm ci` PASS; `npm run lint:eslint` PASS; `npm run typecheck`
+  PASS; `npm run test:electron` PASS; `npm run test:ui:research` PASS;
+  `npm run verify:web-contents-view` PASS; `npm run verify:research-browser`
+  PASS; `npm run verify:theme-tokens` PASS; `npm run verify:network-boundaries`
+  PASS; `npm run verify:browser-traffic-contained` PASS; `npm run build` PASS;
+  `git diff --check` PASS.
 
 ### 2026-07-09 - PR/branch reconciliation and main cleanup
 
@@ -10619,3 +10668,20 @@ Closed the remaining open items in the 10-problem "Embedded Browser Remediation 
 | `git branch -D spearchucker667-scaling-journey` | PASS | Deleted local branch after removing its stale auxiliary worktree. |
 | `git ls-remote --heads origin` | PASS | Only `refs/heads/main` remains at `bb31ec1`. |
 | `git branch --all --verbose --no-abbrev` | PASS | Only local `main`, `origin/main`, and `origin/HEAD -> origin/main` remain. |
+
+## Validation Matrix — 2026-07-09 Embedded Browser UI/theming/containment follow-up
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `env PATH="$PWD/.node22/bin:$PATH" node -v && env PATH="$PWD/.node22/bin:$PATH" npm -v && env PATH="$PWD/.node22/bin:$PATH" npm ci` | PASS | Node `v22.22.3`; npm `10.9.8`; 857 packages installed; 0 vulnerabilities. |
+| `env PATH="$PWD/.node22/bin:$PATH" npm run lint:eslint` | PASS | ESLint completed with `--max-warnings=0`. |
+| `env PATH="$PWD/.node22/bin:$PATH" npm run typecheck` | PASS | Renderer + Electron TypeScript projects clean. |
+| `env PATH="$PWD/.node22/bin:$PATH" npm run test:electron` | PASS | 27 files / 480 tests passed. |
+| `env PATH="$PWD/.node22/bin:$PATH" npm run test:ui:research` | PASS | 4 files / 35 tests passed. |
+| `env PATH="$PWD/.node22/bin:$PATH" npm run verify:web-contents-view` | PASS | WebContentsView, no webview/iframe, secure preferences, popup deny, in-app popup routing verified. |
+| `env PATH="$PWD/.node22/bin:$PATH" npm run verify:research-browser` | PASS | VERIFY-057 passed; 11 files / 189 tests passed. |
+| `env PATH="$PWD/.node22/bin:$PATH" npm run verify:theme-tokens` | PASS | Invalid browser theme token scan included `src/styles`, research/search components, Electron browser services, and assets. |
+| `env PATH="$PWD/.node22/bin:$PATH" npm run verify:network-boundaries` | PASS | Network boundary verifier passed. |
+| `env PATH="$PWD/.node22/bin:$PATH" npm run verify:browser-traffic-contained` | PASS | VERIFY-068 passed with strengthened containment checks. |
+| `env PATH="$PWD/.node22/bin:$PATH" npm run build` | PASS | Web, server, and Electron builds completed. |
+| `git diff --check` | PASS | No whitespace errors. |

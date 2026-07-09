@@ -28,6 +28,14 @@ const ROOT = path.resolve(__dirname, "..");
 const ALLOW_COMMENT = "THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR";
 
 const SCAN_ROOTS = ["src/App.tsx", "src/components"];
+const INVALID_BROWSER_TOKEN_SCAN_ROOTS = [
+  "src/components/research",
+  "src/components/search",
+  "src/styles",
+  "electron/services/researchBrowserHome.ts",
+  "electron/services/researchBrowserServer.ts",
+  "assets",
+];
 
 const FORBIDDEN = [
   { pattern: /\btext-white(?:\/|\b)/, name: "text-white" },
@@ -55,11 +63,36 @@ const FORBIDDEN = [
   { pattern: /\bbg-bg-overlay\b/, name: "hardcoded bg-bg-overlay" },
 ];
 
+const INVALID_BROWSER_TOKENS = [
+  "--surface-sunken",
+  "--surface-base",
+  "--surface-raised",
+  "--surface-hover",
+  "--border-subtle",
+  "--brand-primary",
+  "--brand-primary-hover",
+  "--brand-primary-fg",
+  "--tone-error",
+  "--tone-warning",
+  "--tone-success",
+  "--tone-info",
+  "--glow-primary",
+];
+
 function isSourceFile(entry) {
   return (
     (entry.endsWith(".tsx") || entry.endsWith(".ts")) &&
     !entry.endsWith(".test.ts") &&
     !entry.endsWith(".test.tsx")
+  );
+}
+
+function isThemeScanFile(entry) {
+  return (
+    entry.endsWith(".tsx") ||
+    entry.endsWith(".ts") ||
+    entry.endsWith(".css") ||
+    entry.endsWith(".html")
   );
 }
 
@@ -84,6 +117,32 @@ function collectScanFiles(root, scanRoots) {
         if (s.isDirectory()) {
           walk(full);
         } else if (s.isFile() && isSourceFile(entry)) {
+          files.add(toPosixPath(path.relative(root, full)));
+        }
+      }
+    }
+    walk(abs);
+  }
+  return files;
+}
+
+function collectTokenScanFiles(root, scanRoots) {
+  const files = new Set();
+  for (const target of scanRoots) {
+    const abs = path.resolve(root, target);
+    if (!fs.existsSync(abs)) continue;
+    const stat = fs.statSync(abs);
+    if (stat.isFile()) {
+      files.add(toPosixPath(path.relative(root, abs)));
+      continue;
+    }
+    function walk(dir) {
+      for (const entry of fs.readdirSync(dir)) {
+        const full = path.join(dir, entry);
+        const s = fs.statSync(full);
+        if (s.isDirectory()) {
+          walk(full);
+        } else if (s.isFile() && isThemeScanFile(entry)) {
           files.add(toPosixPath(path.relative(root, full)));
         }
       }
@@ -122,9 +181,23 @@ function verifyThemeTokens(root, options = {}) {
     allViolations.push(...fileViolations);
   }
 
+  const invalidBrowserTokenFiles = collectTokenScanFiles(root, options.invalidTokenScanRoots ?? INVALID_BROWSER_TOKEN_SCAN_ROOTS);
+  for (const file of invalidBrowserTokenFiles) {
+    const content = fs.readFileSync(path.resolve(root, file), "utf8");
+    const lines = content.split(/\r?\n/);
+    lines.forEach((line, idx) => {
+      if (line.includes(allowComment)) return;
+      for (const token of INVALID_BROWSER_TOKENS) {
+        if (line.includes(token)) {
+          allViolations.push(`${file}:${idx + 1}: invalid browser theme token ${token}: ${line.trim()}`);
+        }
+      }
+    });
+  }
+
   return {
     ok: allViolations.length === 0,
-    filesScanned: files.size,
+    filesScanned: files.size + invalidBrowserTokenFiles.size,
     violations: allViolations,
   };
 }
@@ -153,9 +226,13 @@ function main() {
 module.exports = {
   ALLOW_COMMENT,
   FORBIDDEN,
+  INVALID_BROWSER_TOKENS,
+  INVALID_BROWSER_TOKEN_SCAN_ROOTS,
   SCAN_ROOTS,
   collectScanFiles,
+  collectTokenScanFiles,
   isSourceFile,
+  isThemeScanFile,
   scanFile,
   toPosixPath,
   verifyThemeTokens,

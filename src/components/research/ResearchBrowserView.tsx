@@ -86,20 +86,20 @@ function readThemeSnapshot(): ResearchBrowserThemeSnapshot {
   const mode = colorScheme.includes("light") ? "light" : "dark";
   return {
     mode,
-    background: get("--surface-sunken", mode === "light" ? "#f7f8fb" : "#101318"),
-    surface: get("--surface-base", mode === "light" ? "#ffffff" : "#141821"),
-    surfaceElevated: get("--surface-raised", mode === "light" ? "#ffffff" : "#171c24"),
-    surfaceMuted: get("--surface-hover", mode === "light" ? "#eef0f4" : "#222a36"),
-    border: get("--border-subtle", mode === "light" ? "#d7dce5" : "#2d3542"),
+    background: get("--bg", mode === "light" ? "#f7f8fb" : "#101318"),
+    surface: get("--surface", mode === "light" ? "#ffffff" : "#141821"),
+    surfaceElevated: get("--surface-elevated", mode === "light" ? "#ffffff" : "#171c24"),
+    surfaceMuted: get("--surface-muted", mode === "light" ? "#eef0f4" : "#222a36"),
+    border: get("--border", mode === "light" ? "#d7dce5" : "#2d3542"),
     borderStrong: get("--border-strong", mode === "light" ? "#b3bac8" : "#3a4452"),
     foreground: get("--text-primary", mode === "light" ? "#172033" : "#eef2f7"),
     foregroundMuted: get("--text-muted", mode === "light" ? "#5d697d" : "#a9b3c2"),
     foregroundSubtle: get("--text-subtle", mode === "light" ? "#7a8699" : "#7a8699"),
-    accent: get("--brand-primary", mode === "light" ? "#b42318" : "#f97066"),
-    accentHover: get("--brand-primary-hover", mode === "light" ? "#8a1c12" : "#ff8a80"),
-    accentForeground: get("--brand-primary-fg", mode === "light" ? "#ffffff" : "#0a0a0c"),
-    focusRing: get("--tone-info", mode === "light" ? "#1f6feb" : "#6ee7d3"),
-    glow: get("--glow-primary", "rgba(110,231,211,0.18)"),
+    accent: get("--accent", mode === "light" ? "#b42318" : "#f97066"),
+    accentHover: get("--accent-hover", mode === "light" ? "#8a1c12" : "#ff8a80"),
+    accentForeground: get("--accent-fg", mode === "light" ? "#ffffff" : "#0a0a0c"),
+    focusRing: get("--info", mode === "light" ? "#1f6feb" : "#6ee7d3"),
+    glow: get("--glow", "rgba(110,231,211,0.18)"),
   };
 }
 
@@ -296,6 +296,9 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
     const handleWindowResize = () => {
       void updateBounds();
     };
+    const handleThemeLayoutChange = () => {
+      void updateBounds();
+    };
 
     if (typeof ResizeObserver !== "undefined") {
       resizeObserverRef.current = new ResizeObserver(() => {
@@ -307,6 +310,7 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
       resizeObserverRef.current.observe(viewportRef.current);
     }
     window.addEventListener("resize", handleWindowResize);
+    window.addEventListener("applyTheme:complete", handleThemeLayoutChange);
 
     const vv = typeof window !== "undefined" ? window.visualViewport : null;
     const handleVisualViewportChange = () => {
@@ -323,6 +327,7 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
       cancelAnimationFrame(rafId);
       clearTimeout(debounceTimer);
       window.removeEventListener("resize", handleWindowResize);
+      window.removeEventListener("applyTheme:complete", handleThemeLayoutChange);
       if (vv) {
         vv.removeEventListener("resize", handleVisualViewportChange);
         vv.removeEventListener("scroll", handleVisualViewportChange);
@@ -444,10 +449,10 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
         <form onSubmit={handleNavigate} className="flex-1 flex items-center relative">
           <div className="absolute left-3 flex items-center pointer-events-none">
             {browserState?.securityLabel === "secure" && (
-              <svg className="w-3 h-3 text-[var(--tone-success)]" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
+              <svg className="w-3 h-3 text-[var(--success)]" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
             )}
             {browserState?.securityLabel === "insecure" && (
-              <svg className="w-3 h-3 text-[var(--tone-error)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              <svg className="w-3 h-3 text-[var(--danger)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             )}
           </div>
           <input

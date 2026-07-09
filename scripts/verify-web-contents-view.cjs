@@ -1,41 +1,46 @@
-const fs = require('fs');
-const path = require('path');
+#!/usr/bin/env node
+"use strict";
 
-const fileToCheck = path.join(__dirname, '../electron/services/researchBrowserServer.ts');
+const fs = require("fs");
+const path = require("path");
 
-if (!fs.existsSync(fileToCheck)) {
-  console.error(`❌ FAIL: Missing file ${fileToCheck}`);
+const ROOT = path.resolve(__dirname, "..");
+const serverPath = path.join(ROOT, "electron/services/researchBrowserServer.ts");
+
+if (!fs.existsSync(serverPath)) {
+  console.error(`❌ FAIL: Missing file ${serverPath}`);
   process.exit(1);
 }
 
-const content = fs.readFileSync(fileToCheck, 'utf-8');
+const server = fs.readFileSync(serverPath, "utf8");
+const rendererBrowser = fs.readFileSync(path.join(ROOT, "src/components/research/ResearchBrowserView.tsx"), "utf8");
 
 const assertions = [
-  { regex: /new\s+WebContentsView/, msg: "Must use WebContentsView (not BrowserView or webview)" },
-  { regex: /session\.fromPartition\(["'](?:persist:)?venice-forge-research-browser["']\)/, msg: "Must use isolated venice-forge-research-browser partition" },
-  { regex: /nodeIntegration:\s*false/, msg: "Must disable nodeIntegration" },
-  { regex: /contextIsolation:\s*true/, msg: "Must enable contextIsolation" },
-  { regex: /sandbox:\s*true/, msg: "Must enable sandbox" },
-  { regex: /webSecurity:\s*true/, msg: "Must enable webSecurity" },
-  { regex: /allowRunningInsecureContent:\s*false/, msg: "Must disable allowRunningInsecureContent" },
-  { regex: /experimentalFeatures:\s*false/, msg: "Must disable experimentalFeatures" },
-  { regex: /\.on\(["']will-navigate["']/, msg: "Must intercept will-navigate" },
-  { regex: /\.setWindowOpenHandler/, msg: "Must intercept setWindowOpenHandler" },
+  { ok: /new\s+WebContentsView/.test(server), msg: "uses WebContentsView" },
+  { ok: !/<webview\b/i.test(`${server}\n${rendererBrowser}`), msg: "does not use <webview>" },
+  { ok: !/<iframe\b/i.test(`${server}\n${rendererBrowser}`), msg: "does not use an iframe browser implementation" },
+  { ok: /session\.fromPartition\(["'](?:persist:)?venice-forge-research-browser["']\)/.test(server), msg: "uses isolated browser session partition" },
+  { ok: /nodeIntegration:\s*false/.test(server), msg: "disables nodeIntegration" },
+  { ok: /contextIsolation:\s*true/.test(server), msg: "enables contextIsolation" },
+  { ok: /sandbox:\s*true/.test(server), msg: "enables sandbox" },
+  { ok: /webSecurity:\s*true/.test(server), msg: "enables webSecurity" },
+  { ok: /allowRunningInsecureContent:\s*false/.test(server), msg: "disables allowRunningInsecureContent" },
+  { ok: /setPermissionRequestHandler[\s\S]*callback\(false\)/.test(server), msg: "blocks permission requests" },
+  { ok: /setPermissionCheckHandler[\s\S]*return false/.test(server), msg: "blocks permission checks" },
+  { ok: /\.on\(["']will-navigate["']/.test(server), msg: "intercepts will-navigate" },
+  { ok: /\.on\(["']will-redirect["']/.test(server), msg: "intercepts will-redirect" },
+  { ok: /\.on\(["']will-frame-navigate["']/.test(server), msg: "intercepts will-frame-navigate" },
+  { ok: /\.setWindowOpenHandler/.test(server), msg: "intercepts setWindowOpenHandler" },
+  { ok: /return \{ action: "deny" \};/.test(server), msg: "always denies Electron new-window creation" },
+  { ok: /navigateCurrentViewIfSafe\(url\)/.test(server), msg: "safe popups navigate inside the current view" },
+  { ok: !/setWindowOpenHandler[\s\S]*shell\.openExternal/.test(server), msg: "popup handling has no default shell.openExternal path" },
 ];
 
 let failed = false;
-
 for (const assertion of assertions) {
-  if (!assertion.regex.test(content)) {
-    console.error(`❌ FAIL: ${assertion.msg}`);
-    failed = true;
-  } else {
-    console.log(`✅ PASS: ${assertion.msg}`);
-  }
+  if (!assertion.ok) failed = true;
+  console.log(`${assertion.ok ? "✅ PASS" : "❌ FAIL"}: ${assertion.msg}`);
 }
 
-if (failed) {
-  process.exit(1);
-} else {
-  console.log("✅ WebContentsView boundaries verified successfully.");
-}
+if (failed) process.exit(1);
+console.log("✅ WebContentsView boundaries verified successfully.");

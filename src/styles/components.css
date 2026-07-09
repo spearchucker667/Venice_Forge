@@ -150,13 +150,13 @@
  * resolve to a single, auditable definition and there is exactly one place
  * that owns the colors, borders, and motion for the browser chrome. */
 .research-browser-shell {
-  background: var(--surface-sunken);
-  border: 1px solid var(--border-subtle);
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
   overflow: hidden;
 }
 .research-browser-shell[data-debug-bounds="true"] {
-  outline: 1px solid var(--tone-info, var(--brand-primary));
+  outline: 1px solid var(--info, var(--accent));
   outline-offset: -1px;
 }
 
@@ -165,18 +165,18 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem;
-  background: var(--surface-raised);
-  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-elevated);
+  border-bottom: 1px solid var(--border);
 }
 .research-browser-toolbar[data-debug-bounds="true"] {
-  outline: 1px solid var(--tone-warning, var(--brand-primary));
+  outline: 1px solid var(--warning, var(--accent));
   outline-offset: -1px;
 }
 
 .research-browser-address {
   width: 100%;
-  background: var(--surface-base);
-  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 9999px;
   padding: 0.25rem 2rem;
   font-size: 0.875rem;
@@ -184,8 +184,8 @@
 }
 .research-browser-address:focus {
   outline: none;
-  border-color: var(--brand-primary);
-  box-shadow: 0 0 0 1px var(--brand-primary);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 .research-browser-icon-button {
@@ -194,7 +194,7 @@
   transition: background-color var(--motion-fast) var(--motion-ease);
 }
 .research-browser-icon-button:hover:not(:disabled) {
-  background: var(--surface-hover);
+  background: var(--surface-muted);
 }
 .research-browser-icon-button:disabled {
   opacity: 0.3;
@@ -203,13 +203,13 @@
 
 .research-browser-loading-bar {
   height: 0.125rem;
-  background: var(--surface-base);
+  background: var(--surface);
   overflow: hidden;
 }
 .research-browser-loading-bar > .research-browser-loading-bar-fill {
   height: 100%;
   width: 30%;
-  background: var(--brand-primary);
+  background: var(--accent);
   animation: loadingBar 2s ease-in-out infinite;
 }
 @keyframes loadingBar {
@@ -223,9 +223,9 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.375rem 0.75rem;
-  background: var(--tone-error-bg, var(--surface-raised));
-  border-bottom: 1px solid var(--border-subtle);
-  color: var(--tone-error);
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface-elevated));
+  border-bottom: 1px solid var(--border);
+  color: var(--danger);
   font-size: 0.75rem;
 }
 .research-browser-error-strip-url {
@@ -240,8 +240,8 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.25rem 0.75rem;
-  background: var(--brand-primary);
-  color: var(--brand-primary-fg, var(--surface));
+  background: var(--accent);
+  color: var(--accent-fg);
   font-size: 0.75rem;
   font-weight: 500;
   border-radius: 0.375rem;
@@ -258,7 +258,7 @@
   width: 100%;
 }
 .research-browser-viewport[data-debug-bounds="true"] {
-  outline: 1px solid var(--tone-success, var(--brand-primary));
+  outline: 1px solid var(--success, var(--accent));
   outline-offset: -2px;
 }
 
@@ -269,8 +269,8 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: var(--surface-sunken);
-  color: var(--tone-error);
+  background: var(--bg);
+  color: var(--danger);
   text-align: center;
   font-size: 0.875rem;
 }
@@ -282,8 +282,8 @@
   height: 100%;
   width: 100%;
   padding: 1rem;
-  background: var(--surface-sunken);
-  border: 1px solid var(--border-subtle);
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
   color: var(--text-muted);
   text-align: center;

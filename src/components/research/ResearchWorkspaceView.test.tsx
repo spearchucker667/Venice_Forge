@@ -274,7 +274,7 @@ describe('ResearchWorkspaceView', () => {
 
     const { container } = render(<ResearchWorkspaceView />);
     const resizer = container.querySelector('.cursor-col-resize');
-    const browserColumn = container.querySelector('.bg-surface-sunken') as HTMLElement | null;
+    const browserColumn = screen.getByTestId('mock-research-browser-view').parentElement as HTMLElement | null;
 
     expect(resizer).toBeInstanceOf(HTMLElement);
     expect(browserColumn).toBeInstanceOf(HTMLElement);

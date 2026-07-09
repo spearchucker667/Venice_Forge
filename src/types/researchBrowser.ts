@@ -100,7 +100,7 @@ export interface ResearchBrowserPreloadApi {
   stop(): Promise<{ ok: boolean; state?: ResearchBrowserState; error?: string }>;
   getState(): Promise<{ ok: boolean; state?: ResearchBrowserState; error?: string }>;
   /** Renderer-initiated request for the main process to escalte to the system
-   *  browser for a URL. Always gated by `research.liveBrowserAllowExternalOpen`. */
+   *  browser for a URL. Always gated by `research.live_browser_allow_external_open`. */
   requestOpenInSystemBrowser(url: string): Promise<{ ok: boolean; reason?: string; error?: string }>;
   /** Pushes the renderer's current theme snapshot to the main-process browser
    *  so the in-app home/splash matches the active app theme. */

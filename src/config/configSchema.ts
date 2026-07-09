@@ -159,8 +159,7 @@ export interface YamlResearch {
   live_browser_javascript_enabled: boolean;
   /** When true, the in-app Research Browser may escalate to the system
    *  browser via a confirmation dialog for any URL it cannot render itself.
-   *  Defaults to false (locks normal browsing traffic in-app). The runtime
-   *  accessor is `research.liveBrowserAllowExternalOpen`. */
+   *  Defaults to false and locks normal browsing traffic in-app. */
   live_browser_allow_external_open: boolean;
   max_browser_extract_chars: number;
 }

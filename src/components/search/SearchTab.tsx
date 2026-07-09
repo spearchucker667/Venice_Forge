@@ -81,13 +81,9 @@ export function SearchTab({
                   {url}
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => onRequestOpenInSystemBrowser && onRequestOpenInSystemBrowser(url)}
-                  className="text-accent hover:underline break-all text-[11px] block mb-2 text-left cursor-pointer"
-                >
+                <span className="text-accent break-all text-[11px] block mb-2">
                   {url}
-                </button>
+                </span>
               )}
               <div className="text-text-secondary leading-relaxed mb-2">
                 {r.snippet || r.content || r.description || ""}

@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useConfigStore } from "../../stores/config-store";
 import type { ResearchBrowserState } from "../../types/researchBrowser";
 import { ResearchBrowserView } from "./ResearchBrowserView";
 
@@ -107,14 +108,18 @@ describe("ResearchBrowserView", () => {
     bridge.setTheme.mockResolvedValue({ ok: true });
     bridge.requestOpenInSystemBrowser.mockResolvedValue({ ok: true });
     bridge.onStateChanged.mockReturnValue(vi.fn());
-    bridge.setTheme.mockResolvedValue({ ok: true });
+    useConfigStore.setState({ config: null });
     globalThis.ResizeObserver = TestResizeObserver;
     installRectMock();
+    document.documentElement.removeAttribute("style");
+    document.documentElement.style.colorScheme = "dark";
   });
 
   afterEach(() => {
     globalThis.ResizeObserver = originalResizeObserver;
     HTMLElement.prototype.getBoundingClientRect = originalGetBoundingClientRect;
+    document.documentElement.removeAttribute("style");
+    useConfigStore.setState({ config: null });
   });
 
   it("renders the toolbar address input before the native browser viewport", async () => {
@@ -188,6 +193,93 @@ describe("ResearchBrowserView", () => {
         viewport: expect.objectContaining({ x: 40, y: 120, width: 900, height: 640 }),
       }),
     })));
+  });
+
+  it("pushes a theme snapshot from the active app theme variables", async () => {
+    document.documentElement.style.colorScheme = "light";
+    document.documentElement.style.setProperty("--bg", "#fafafa");
+    document.documentElement.style.setProperty("--surface", "#ffffff");
+    document.documentElement.style.setProperty("--surface-elevated", "#f2f3f5");
+    document.documentElement.style.setProperty("--surface-muted", "#e6e8ec");
+    document.documentElement.style.setProperty("--border", "#cfd3dc");
+    document.documentElement.style.setProperty("--border-strong", "#aab0bd");
+    document.documentElement.style.setProperty("--text-primary", "#182033");
+    document.documentElement.style.setProperty("--text-muted", "#5c6678");
+    document.documentElement.style.setProperty("--text-subtle", "#788294");
+    document.documentElement.style.setProperty("--accent", "#b42318");
+    document.documentElement.style.setProperty("--accent-hover", "#8a1c12");
+    document.documentElement.style.setProperty("--accent-fg", "#ffffff");
+    document.documentElement.style.setProperty("--info", "#1f6feb");
+    document.documentElement.style.setProperty("--glow", "rgba(31,111,235,0.18)");
+
+    render(<ResearchBrowserView />);
+
+    await waitFor(() => expect(bridge.setTheme).toHaveBeenCalledWith(expect.objectContaining({
+      mode: "light",
+      background: "#fafafa",
+      surface: "#ffffff",
+      surfaceElevated: "#f2f3f5",
+      surfaceMuted: "#e6e8ec",
+      border: "#cfd3dc",
+      borderStrong: "#aab0bd",
+      foreground: "#182033",
+      foregroundMuted: "#5c6678",
+      foregroundSubtle: "#788294",
+      accent: "#b42318",
+      accentHover: "#8a1c12",
+      accentForeground: "#ffffff",
+      focusRing: "#1f6feb",
+      glow: "rgba(31,111,235,0.18)",
+    })));
+  });
+
+  it("reapplies bounds after app theme changes because toolbar dimensions can shift", async () => {
+    render(<ResearchBrowserView />);
+
+    await waitFor(() => expect(bridge.setBounds).toHaveBeenCalled());
+    const before = bridge.setBounds.mock.calls.length;
+
+    window.dispatchEvent(new Event("applyTheme:complete"));
+
+    await waitFor(() => expect(bridge.setBounds.mock.calls.length).toBeGreaterThan(before));
+  });
+
+  it("hides the explicit system-browser affordance by default", async () => {
+    bridge.getState.mockResolvedValueOnce({
+      ok: true,
+      state: {
+        ...readyState,
+        url: "https://venice.ai",
+        displayUrl: "https://venice.ai",
+        securityLabel: "secure",
+      },
+    });
+
+    render(<ResearchBrowserView />);
+
+    await screen.findByDisplayValue("https://venice.ai");
+    expect(screen.queryByTestId("research-browser-open-external")).toBeNull();
+  });
+
+  it("shows the explicit system-browser affordance only when the config gate is enabled", async () => {
+    useConfigStore.setState({
+      config: {
+        research: { live_browser_allow_external_open: true },
+      } as any,
+    });
+    bridge.getState.mockResolvedValueOnce({
+      ok: true,
+      state: {
+        ...readyState,
+        url: "https://venice.ai",
+        displayUrl: "https://venice.ai",
+        securityLabel: "secure",
+      },
+    });
+
+    render(<ResearchBrowserView />);
+
+    await screen.findByTestId("research-browser-open-external");
   });
 
   it("hides the native browser view on unmount without destroying the WebContentsView", async () => {

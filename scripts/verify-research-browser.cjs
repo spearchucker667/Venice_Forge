@@ -94,8 +94,8 @@ console.log("✅ ResearchBrowserView native viewport safety verified.");
 // — Problems 3-8). The in-app home lives in a TS module so the theme snapshot
 // can be embedded into it at build time. The split is intentional; if a
 // "public/research-browser-home.html" file appears, the verifier refuses.
-if (existsSync("public/research-browser-home.html")) {
-  console.error("[verify:research-browser] public/research-browser-home.html re-introduced — split-out home module must own the home page.");
+if (existsSync("public/research-browser-home.html") || existsSync("assets/browser-splash.html")) {
+  console.error("[verify:research-browser] stale browser home/splash HTML re-introduced — split-out home module must own the home page.");
   process.exit(1);
 }
 
@@ -123,6 +123,10 @@ if (/target\s*=\s*"_blank"/i.test(browserHome) || /\bonclick\s*=\s*/i.test(brows
 }
 if (/<script\b/i.test(browserHome)) {
   console.error("[verify:research-browser] Home page contains <script> tags — must be CSP-locked with script-src 'none'.");
+  process.exit(1);
+}
+if (!browserHome.includes("img-src 'none'; font-src 'none';")) {
+  console.error("[verify:research-browser] Home page CSP must block images and fonts.");
   process.exit(1);
 }
 console.log("✅ Research Browser in-app home page verified (split module + sentinel + quick links + strict CSP).");

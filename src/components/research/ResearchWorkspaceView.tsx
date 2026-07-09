@@ -596,7 +596,7 @@ export const ResearchWorkspaceView: React.FC = () => {
               {/* Research Browser Column */}
               <div 
                 ref={browserColRef}
-                className={`flex flex-col h-full bg-surface-sunken shrink-0 ${isDragging ? 'pointer-events-none select-none' : ''}`}
+                className={`flex flex-col h-full bg-bg shrink-0 ${isDragging ? 'pointer-events-none select-none' : ''}`}
               >
                 <ResearchBrowserView onCaptureWithJina={handleCaptureWithJina} />
               </div>

@@ -64,7 +64,7 @@ export function buildResearchBrowserHomeHtml(theme: ResearchBrowserThemeSnapshot
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; script-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none'; navigate-to https: http:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; font-src 'none'; script-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none'; navigate-to https: http:;">
   <title>${escapeText("Venice Research Home")}</title>
   <style>
     :root {

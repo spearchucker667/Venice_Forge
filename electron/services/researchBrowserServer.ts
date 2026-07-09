@@ -177,7 +177,7 @@ async function navigateCurrentViewIfSafe(url: string): Promise<void> {
   if (!researchView) return;
   const decision = await validateTopLevelNavigation(url);
   if (!decision.ok) {
-    setBlockedState("Popup blocked. Open externally if you trust this site.");
+    setBlockedState("Popup blocked by browser policy.");
     return;
   }
   clearBlockedState();
@@ -185,7 +185,7 @@ async function navigateCurrentViewIfSafe(url: string): Promise<void> {
     await researchView.webContents.loadURL(url);
     broadcastState();
   } catch {
-    setBlockedState("Popup blocked. Open externally if you trust this site.");
+    setBlockedState("Popup blocked by browser policy.");
   }
 }
 
@@ -421,7 +421,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
       if (assertSafeUrl(url)) {
         void navigateCurrentViewIfSafe(url);
       } else {
-        setBlockedState("Popup blocked. Open externally if you trust this site.");
+        setBlockedState("Popup blocked by browser policy.");
       }
       return { action: "deny" };
     });
@@ -644,7 +644,7 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
       return {
         ok: false,
         reason: "external_open_disabled",
-        error: "External open is disabled. Set research.liveBrowserAllowExternalOpen to true in config to enable.",
+        error: "External open is disabled. Set research.live_browser_allow_external_open to true in config to enable.",
       };
     }
     if (!isTrustedExternalUrl(url)) {
