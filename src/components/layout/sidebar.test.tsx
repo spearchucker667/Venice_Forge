@@ -205,6 +205,26 @@ describe('Sidebar controls', () => {
     expect(useProjectStore.getState().projects).toEqual(projects)
   })
 
+  // VERIFY-074 regression guard: character names are prefixed in the sidebar.
+  it('renders character-prefixed conversation titles in the sidebar', () => {
+    useChatStore.setState({
+      conversations: [{
+        id: 'chat-char',
+        title: 'Planets',
+        model: 'test-model',
+        messages: [],
+        createdAt: 1,
+        updatedAt: 1,
+        metadata: { tags: [], pinned: false, archived: false, source: 'character', messageCount: 0, character: { name: 'Ada' } },
+      }],
+      activeConversationId: null,
+      _hasLoadedHistory: true,
+    })
+
+    render(<Sidebar />)
+    expect(screen.getByRole('button', { name: 'Ada: Planets' })).toBeInTheDocument()
+  })
+
   it('lets keyboard users select a conversation from the conversation list', async () => {
     useChatStore.setState({
       conversations: [{

@@ -107,6 +107,14 @@ interface ChatState {
   addMessage: (conversationId: string, message: ChatMessage) => void
   appendToLastAssistant: (conversationId: string, token: string) => void
   appendReasoningToLastAssistant: (conversationId: string, token: string) => void
+  updateMessage: (conversationId: string, messageId: string, update: { content: ConversationMessage['content']; updatedAt: number }) => boolean
+  truncateConversationAfterMessage: (
+    conversationId: string,
+    messageId: string,
+    options: { includeSelected: boolean },
+  ) => { removed: ConversationMessage[]; retained: ConversationMessage[] } | null
+  forkConversation: (conversationId: string, messageId: string) => string | null
+  setConversationModel: (conversationId: string, model: string) => void
   deleteMessage: (conversationId: string, index: number) => void
   setMessageMetadata: (conversationId: string, messageIndex: number, metadataPatch: Record<string, unknown>) => void
   setConversationMemoryEnabled: (conversationId: string, enabled: boolean) => void
@@ -138,6 +146,26 @@ function touchConversation(conv: Conversation, now: number = Date.now()): Conver
   return { ...conv, messages, updatedAt: now, metadata }
 }
 
+function legacyMessageId(conversationId: string, message: ConversationMessage, index: number): string {
+  const seed = `${conversationId}\0${index}\0${message.timestamp ?? 0}\0${message.role}\0${contentToSearchText(message.content)}`
+  let hash = 2166136261
+  for (let i = 0; i < seed.length; i += 1) {
+    hash ^= seed.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  return `legacy-${(hash >>> 0).toString(16)}-${index}`
+}
+
+export function ensureStableMessageIds(conversation: Conversation): Conversation {
+  let changed = false
+  const messages = (conversation.messages ?? []).map((message, index) => {
+    if (typeof message.id === 'string' && message.id.length > 0) return message
+    changed = true
+    return { ...message, id: legacyMessageId(conversation.id, message, index) }
+  })
+  return changed ? touchConversation({ ...conversation, messages }, conversation.updatedAt) : conversation
+}
+
 export const useChatStore = create<ChatState>()(
   persist(
     (set, get) => ({
@@ -155,7 +183,7 @@ export const useChatStore = create<ChatState>()(
       _hasLoadedHistory: false,
       pendingContext: null,
 
-      setConversations: (conversations) => set({ conversations, _hasLoadedHistory: true }),
+      setConversations: (conversations) => set({ conversations: conversations.map(ensureStableMessageIds), _hasLoadedHistory: true }),
       setPendingContext: (context) => set({ pendingContext: context }),
 
       createConversation: (model) => {
@@ -290,7 +318,7 @@ export const useChatStore = create<ChatState>()(
         return id
       },
 
-      setActiveConversation: (id) => set({ activeConversationId: id }),
+      setActiveConversation: (id) => set({ activeConversationId: id, pendingContext: null }),
 
       deleteConversation: async (id) => {
         await get().deleteConversations([id])
@@ -424,6 +452,98 @@ export const useChatStore = create<ChatState>()(
             return touchConversation({ ...c, messages: msgs })
           }),
         })),
+
+      updateMessage: (conversationId, messageId, update) => {
+        let updated = false
+        set((s) => ({
+          conversations: s.conversations.map((c) => {
+            if (c.id !== conversationId) return c
+            const messages = (c.messages ?? []).map((message) => {
+              if (message.id !== messageId) return message
+              updated = true
+              return {
+                ...message,
+                content: typeof update.content === 'string'
+                  ? update.content
+                  : update.content.map((part) => ({ ...part })),
+                updatedAt: update.updatedAt,
+              }
+            })
+            return updated ? touchConversation({ ...c, messages }, update.updatedAt) : c
+          }),
+        }))
+        return updated
+      },
+
+      truncateConversationAfterMessage: (conversationId, messageId, options) => {
+        let result: { removed: ConversationMessage[]; retained: ConversationMessage[] } | null = null
+        set((s) => ({
+          conversations: s.conversations.map((c) => {
+            if (c.id !== conversationId) return c
+            const index = (c.messages ?? []).findIndex((message) => message.id === messageId)
+            if (index < 0) return c
+            const cutAt = options.includeSelected ? index : index + 1
+            const retained = c.messages.slice(0, cutAt)
+            const removed = c.messages.slice(cutAt)
+            result = { retained, removed }
+            return touchConversation({ ...c, messages: retained })
+          }),
+        }))
+        return result
+      },
+
+      forkConversation: (conversationId, messageId) => {
+        const source = get().conversations.find((conversation) => conversation.id === conversationId)
+        const selectedIndex = source?.messages.findIndex((message) => message.id === messageId) ?? -1
+        if (!source || selectedIndex < 0) return null
+        const now = Date.now()
+        const forkId = generateId()
+        const messages = source.messages.slice(0, selectedIndex + 1).map((message) => ({
+          ...message,
+          id: generateId(),
+          content: typeof message.content === 'string'
+            ? message.content
+            : message.content.map((part) => ({ ...part })),
+          metadata: message.metadata ? { ...message.metadata } : undefined,
+        }))
+        const fork: Conversation = touchConversation({
+          ...source,
+          id: forkId,
+          title: `${source.title} — Fork`,
+          messages,
+          createdAt: now,
+          updatedAt: now,
+          parentConversationId: source.id,
+          forkedFromMessageIds: [messageId],
+          forkedFrom: { conversationId: source.id, messageId, createdAt: now },
+          metadata: source.metadata ? { ...source.metadata, tags: [...source.metadata.tags] } : undefined,
+          memory: source.memory ? {
+            ...source.memory,
+            topics: [...source.memory.topics],
+            entities: [...source.memory.entities],
+            userFacts: source.memory.userFacts.map((fact) => ({ ...fact })),
+            projectRefs: [...source.memory.projectRefs],
+          } : undefined,
+        }, now)
+        set((s) => ({
+          conversations: [fork, ...s.conversations],
+          activeConversationId: forkId,
+          pendingContext: null,
+        }))
+        return forkId
+      },
+
+      setConversationModel: (conversationId, model) => {
+        const normalized = model.trim()
+        if (!normalized) return
+        set((s) => ({
+          conversations: s.conversations.map((conversation) =>
+            conversation.id === conversationId
+              ? touchConversation({ ...conversation, model: normalized })
+              : conversation,
+          ),
+        }))
+      },
 
       deleteMessage: (conversationId, index) =>
         set((s) => ({

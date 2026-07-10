@@ -219,7 +219,7 @@ describe("character-card-store", () => {
   // exception text (paths, driver internals, secrets) in store state or toasts.
   describe("safe persistence error handling (T-185)", () => {
     const rawError = new Error(
-      "ENOSPC: no space left on device at /Users/super_user/.secret/path",
+      "ENOSPC: no space left on device at /Users/example/.secret/path",
     );
 
     it("load surfaces a safe generic error and toast when listCharacterCards fails", async () => {
@@ -332,4 +332,3 @@ describe("useFilteredCharacterCards", () => {
     expect(result.current).toHaveLength(60);
   });
 });
-

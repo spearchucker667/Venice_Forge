@@ -1,5 +1,5 @@
 import { ipcMain, dialog, BrowserWindow } from "electron";
-import { setSyncFolder, getSyncFolder, writePacket, startSyncWatcher, stopSyncWatcher } from "../../services/syncFolderWatcher";
+import { setSyncFolder, getSyncFolder, getSyncStatus, setSyncEmissionSuppressed, startSyncWatcher, stopSyncWatcher, pauseSyncWatcher } from "../../services/syncFolderWatcher";
 import { redactErrorMessage } from "../../../src/shared/redaction";
 
 export function registerSyncHandlers(): void {
@@ -19,7 +19,8 @@ export function registerSyncHandlers(): void {
         return { ok: true, canceled: true };
       }
       
-      return { ok: true, path: result.filePaths[0] };
+      const configured = await setSyncFolder(result.filePaths[0]);
+      return configured.ok ? { ok: true, path: result.filePaths[0] } : configured;
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "Unknown error";
       return { ok: false, error: redactErrorMessage(errorMsg) };
@@ -27,11 +28,14 @@ export function registerSyncHandlers(): void {
   });
 
   ipcMain.handle("sync:getSyncFolder", async () => {
-    return { ok: true, path: getSyncFolder() };
+    return { ok: true, path: getSyncFolder(), ...getSyncStatus() };
   });
 
   ipcMain.handle("sync:setSyncFolder", async (_event, input: { path: string }) => {
-    return await setSyncFolder(input.path);
+    if (!input || typeof input.path !== "string" || input.path !== getSyncFolder()) {
+      return { ok: false, error: "Sync folders must be approved through the main-process folder picker." };
+    }
+    return { ok: true };
   });
 
   ipcMain.handle("sync:startSync", async (_event, params: { password: string }) => {
@@ -41,8 +45,21 @@ export function registerSyncHandlers(): void {
   ipcMain.handle("sync:stopSync", async () => {
     return await stopSyncWatcher();
   });
+  ipcMain.handle("sync:pauseSync", async () => pauseSyncWatcher());
+  ipcMain.handle("sync:getStatus", async () => ({ ok: true, ...getSyncStatus() }));
+
+  ipcMain.handle("sync:setEmissionSuppressed", async (_event, input: { suppressed: boolean }) => {
+    try {
+      setSyncEmissionSuppressed(input.suppressed === true);
+      return { ok: true };
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
+      return { ok: false, error: redactErrorMessage(errorMsg) };
+    }
+  });
 
   ipcMain.handle("sync:writePacket", async (_event, input: { storeName: string; id: string; recordJson: string }) => {
+    const { writePacket } = await import("../../services/syncFolderWatcher");
     return await writePacket(input.storeName, input.id, input.recordJson);
   });
 
@@ -54,7 +71,7 @@ export function registerSyncHandlers(): void {
       return { ok: true, data: encrypted };
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "Unknown error";
-      return { ok: false, error: errorMsg };
+      return { ok: false, error: redactErrorMessage(errorMsg) };
     }
   });
 
@@ -65,7 +82,7 @@ export function registerSyncHandlers(): void {
       return { ok: true, data: decrypted };
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "Unknown error";
-      return { ok: false, error: errorMsg };
+      return { ok: false, error: redactErrorMessage(errorMsg) };
     }
   });
 }

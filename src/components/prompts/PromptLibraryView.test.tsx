@@ -132,6 +132,9 @@ describe("PromptLibraryView (VERIFY-046)", () => {
     fireEvent.click(screen.getByTestId("prompt-library-archive"));
     await flush();
     expect(usePromptLibraryStore.getState().prompts[0]!.archivedAt).not.toBeNull();
+    expect(screen.getByTestId("prompt-library-empty-detail")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("prompt-library-archive-filter"));
+    await flush();
     fireEvent.click(screen.getByTestId("prompt-library-archive"));
     await flush();
     expect(usePromptLibraryStore.getState().prompts[0]!.archivedAt).toBeNull();
@@ -184,5 +187,99 @@ describe("PromptLibraryView (VERIFY-046)", () => {
     const items = within(list).getAllByRole("button");
     expect(items[0]?.textContent).toMatch(/Alpha/);
     expect(items[1]?.textContent).toMatch(/Beta/);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Phase 5 — Prompt library selection behaviour (VERIFY-075 / VERIFY-076)
+  // ---------------------------------------------------------------------------
+
+  it("deleting the active middle prompt selects the next visible prompt", async () => {
+    await usePromptLibraryStore.getState().createPrompt({ title: "A", kind: "general", content: "a", scope: "global" });
+    const b = await usePromptLibraryStore.getState().createPrompt({ title: "B", kind: "general", content: "b", scope: "global" });
+    const c = await usePromptLibraryStore.getState().createPrompt({ title: "C", kind: "general", content: "c", scope: "global" });
+    usePromptLibraryStore.setState({ activePromptId: b.id });
+    render(<PromptLibraryView />);
+
+    fireEvent.click(screen.getByTestId("prompt-library-delete-arm"));
+    fireEvent.change(screen.getByTestId("prompt-library-delete-confirm"), { target: { value: "B" } });
+    fireEvent.click(screen.getByTestId("prompt-library-delete"));
+    await flush();
+
+    expect(usePromptLibraryStore.getState().prompts).toHaveLength(2);
+    expect(usePromptLibraryStore.getState().activePromptId).toBe(c.id);
+    expect(screen.getByTestId("prompt-library-title") as HTMLInputElement).toHaveValue("C");
+  });
+
+  it("deleting the active last prompt selects the previous visible prompt", async () => {
+    await usePromptLibraryStore.getState().createPrompt({ title: "A", kind: "general", content: "a", scope: "global" });
+    const b = await usePromptLibraryStore.getState().createPrompt({ title: "B", kind: "general", content: "b", scope: "global" });
+    const c = await usePromptLibraryStore.getState().createPrompt({ title: "C", kind: "general", content: "c", scope: "global" });
+    usePromptLibraryStore.setState({ activePromptId: c.id });
+    render(<PromptLibraryView />);
+
+    fireEvent.click(screen.getByTestId("prompt-library-delete-arm"));
+    fireEvent.change(screen.getByTestId("prompt-library-delete-confirm"), { target: { value: "C" } });
+    fireEvent.click(screen.getByTestId("prompt-library-delete"));
+    await flush();
+
+    expect(usePromptLibraryStore.getState().activePromptId).toBe(b.id);
+    expect(screen.getByTestId("prompt-library-title") as HTMLInputElement).toHaveValue("B");
+  });
+
+  it("deleting the only prompt clears the detail pane", async () => {
+    const a = await usePromptLibraryStore.getState().createPrompt({ title: "Only", kind: "general", content: "x", scope: "global" });
+    usePromptLibraryStore.setState({ activePromptId: a.id });
+    render(<PromptLibraryView />);
+
+    fireEvent.click(screen.getByTestId("prompt-library-delete-arm"));
+    fireEvent.change(screen.getByTestId("prompt-library-delete-confirm"), { target: { value: "Only" } });
+    fireEvent.click(screen.getByTestId("prompt-library-delete"));
+    await flush();
+
+    expect(usePromptLibraryStore.getState().prompts).toHaveLength(0);
+    expect(usePromptLibraryStore.getState().activePromptId).toBeNull();
+    expect(screen.getByTestId("prompt-library-empty-detail")).toBeInTheDocument();
+  });
+
+  it("filtering hides the selected prompt and selects the first visible one", async () => {
+    const a = await usePromptLibraryStore.getState().createPrompt({ title: "Alpha", kind: "image", content: "a", scope: "global" });
+    const b = await usePromptLibraryStore.getState().createPrompt({ title: "Beta", kind: "chat", content: "b", scope: "global" });
+    usePromptLibraryStore.setState({ activePromptId: b.id });
+    render(<PromptLibraryView />);
+
+    fireEvent.change(screen.getByTestId("prompt-library-kind-filter"), { target: { value: "image" } });
+    await flush();
+
+    expect(usePromptLibraryStore.getState().activePromptId).toBe(a.id);
+    expect(screen.getByTestId("prompt-library-title") as HTMLInputElement).toHaveValue("Alpha");
+    expect(screen.queryByTestId("prompt-library-item-beta")).not.toBeInTheDocument();
+  });
+
+  it("filtering clears the pane when no prompts are visible", async () => {
+    await usePromptLibraryStore.getState().createPrompt({ title: "Alpha", kind: "image", content: "a", scope: "global" });
+    usePromptLibraryStore.setState({ activePromptId: null });
+    render(<PromptLibraryView />);
+
+    fireEvent.change(screen.getByTestId("prompt-library-search"), { target: { value: "zzz" } });
+    await flush();
+
+    expect(screen.getByTestId("prompt-library-empty-detail")).toBeInTheDocument();
+  });
+
+  it("detail editor cannot save a deleted record (VERIFY-076)", async () => {
+    const item = await usePromptLibraryStore.getState().createPrompt({ title: "Ghost", kind: "general", content: "x", scope: "global" });
+    usePromptLibraryStore.setState({ activePromptId: item.id });
+    const { unmount } = render(<PromptLibraryView />);
+
+    // Simulate the prompt being removed externally while the detail is still
+    // mounted (e.g. a sync delete or another UI action).
+    await act(async () => {
+      await usePromptLibraryStore.getState().deletePrompt(item.id);
+    });
+    unmount();
+
+    // Attempting to update the deleted id must be a no-op.
+    await usePromptLibraryStore.getState().updatePrompt(item.id, { title: "Resurrected" });
+    expect(usePromptLibraryStore.getState().prompts).toHaveLength(0);
   });
 });

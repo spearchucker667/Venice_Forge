@@ -31,7 +31,7 @@ Use this order:
 2. Otherwise audit the live repository at:
 
 ```bash
-cd /Users/super_user/Projects/Windows-Venice-API-connector
+cd /Users/super_user/Projects/Venice_Forge
 ```
 
 3. If neither source is available, stop and report:
@@ -554,7 +554,7 @@ Observed runtime evidence:
 line 4: Cannot find latest-mac.yml in release artifacts
 line 5: Check for updates failed
 URL observed:
-https://github.com/spearchucker667/Venice-API-connector/releases/download/v1.0.2/latest-mac.yml
+https://github.com/spearchucker667/Venice_Forge/releases/download/v1.0.2/latest-mac.yml
 ```
 
 Audit requirements:
@@ -563,7 +563,7 @@ Audit requirements:
 * Inspect release workflow artifact upload.
 * Inspect macOS artifact generation.
 * Inspect `latest-mac.yml` generation.
-* Inspect repo rename drift between `Windows-Venice-API-connector`, `Venice-API-connector`, and current release URLs.
+* Inspect repository-identity drift against `spearchucker667/Venice_Forge` and current release URLs.
 * Confirm updater is disabled or clearly marked for unsigned/local builds if release metadata is unavailable.
 * Confirm update failures are user-friendly and non-fatal.
 

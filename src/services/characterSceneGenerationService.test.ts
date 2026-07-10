@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { generateCharacterScene, type CharacterSceneGenerationDependencies } from './characterSceneGenerationService';
 import { CharacterSceneRateLimiter } from './characterSceneRateLimiter';
+import { buildSceneReferencePlan } from './sceneReferencePlanner';
+import { buildSceneReferenceEntities } from './sceneReferenceResolver';
 import type { Conversation } from '../types/conversation';
 import type { MediaItem } from '../types/media';
 
@@ -55,6 +57,9 @@ function makeDeps(overrides: Partial<CharacterSceneGenerationDependencies> = {})
     extractImages: vi.fn().mockReturnValue(['data:image/png;base64,ABC']),
     isValidImageResponse: vi.fn().mockReturnValue(true),
     generateId: vi.fn().mockReturnValue('req-1'),
+    buildSceneReferenceEntities,
+    buildSceneReferencePlan,
+    getSceneReferenceSource: () => ({ cards: [], personas: [] }),
     ...overrides,
   };
 }
@@ -139,5 +144,99 @@ describe('generateCharacterScene', () => {
     expect(result.status).toBe('failed');
     expect(result.error).toBe('Character scene generation failed. Please try again.');
     expect(result.error).not.toContain('IDB write failed');
+  });
+
+  // VERIFY-084 — scene references flow through to the payload for supported models.
+  const validPng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=';
+
+  it('passes detected character references to buildImagePayload when model supports references', async () => {
+    const buildImagePayloadSpy = vi.fn().mockReturnValue({ model: 'image-model', prompt: 'custom prompt', width: 1024, height: 1024 });
+    const deps = makeDeps({
+      buildImagePayload: buildImagePayloadSpy,
+      getImageModelCapabilities: vi.fn().mockReturnValue({
+        supportsVariants: true,
+        supportsNegativePrompt: true,
+        supportsSeed: true,
+        supportsStyle: true,
+        supportsSteps: true,
+        supportsCfgScale: true,
+        supportsHideWatermark: true,
+        supportsReturnBinary: false,
+        supportsReferences: true,
+        referenceLimit: 2,
+      }),
+      getSceneReferenceSource: () => ({
+        cards: [
+          {
+            schema: 'CharacterCardV1',
+            id: 'picnic-bot',
+            name: 'Picnic Bot',
+            description: '',
+            systemPrompt: '',
+            tags: [],
+            adult: false,
+            exampleDialogues: [],
+            createdAt: 1,
+            updatedAt: 1,
+            avatar: { mimeType: 'image/png', data: validPng, byteLength: 100 },
+          },
+        ],
+        personas: [],
+      }),
+    });
+    await generateCharacterScene({ conversation: makeConversation(), source: 'on_demand', promptOverride: 'Picnic Bot in a meadow' }, deps);
+    expect(buildImagePayloadSpy).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        prompt: 'Picnic Bot in a meadow',
+        supportsReferences: true,
+        references: expect.arrayContaining([
+          expect.objectContaining({ entityId: 'picnic-bot', mimeType: 'image/png', data: validPng }),
+        ]),
+      }),
+      'Picnic Bot in a meadow',
+      undefined,
+    );
+  });
+
+  it('drops references when the model does not support them', async () => {
+    const buildImagePayloadSpy = vi.fn().mockReturnValue({ model: 'image-model', prompt: 'custom prompt', width: 1024, height: 1024 });
+    const deps = makeDeps({
+      buildImagePayload: buildImagePayloadSpy,
+      getImageModelCapabilities: vi.fn().mockReturnValue({
+        supportsVariants: true,
+        supportsNegativePrompt: true,
+        supportsSeed: true,
+        supportsStyle: true,
+        supportsSteps: true,
+        supportsCfgScale: true,
+        supportsHideWatermark: true,
+        supportsReturnBinary: false,
+        supportsReferences: false,
+        referenceLimit: 0,
+      }),
+      getSceneReferenceSource: () => ({
+        cards: [
+          {
+            schema: 'CharacterCardV1',
+            id: 'picnic-bot',
+            name: 'Picnic Bot',
+            description: '',
+            systemPrompt: '',
+            tags: [],
+            adult: false,
+            exampleDialogues: [],
+            createdAt: 1,
+            updatedAt: 1,
+            avatar: { mimeType: 'image/png', data: validPng, byteLength: 100 },
+          },
+        ],
+        personas: [],
+      }),
+    });
+    await generateCharacterScene({ conversation: makeConversation(), source: 'on_demand', promptOverride: 'Picnic Bot in a meadow' }, deps);
+    const draft = buildImagePayloadSpy.mock.calls[0]![1] as { supportsReferences: boolean; references?: unknown[] };
+    expect(draft.supportsReferences).toBe(false);
+    expect(draft.references?.length ?? 0).toBe(0);
   });
 });

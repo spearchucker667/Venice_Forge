@@ -21,7 +21,7 @@ describe("logger redaction", () => {
   });
 
   it("redacts raw absolute paths from console.warn", () => {
-    const rawPath = "/Users/super_user/Projects/Windows-Venice-API-connector/secret.yaml";
+    const rawPath = "/Users/example/Projects/legacy-repository-name/secret.yaml";
     logger.warn("load failed at", rawPath);
 
     expect(warnSpy).toHaveBeenCalled();

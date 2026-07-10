@@ -1,5 +1,11 @@
 # Audit Validation Report: AUDIT-022 through AUDIT-051
 
+> Historical snapshot. This report records the repository name and local path
+> used when the audit was performed. The current Electron repository is
+> `/Users/super_user/Projects/Venice_Forge` and the current GitHub repository
+> is `spearchucker667/Venice_Forge`. Do not use paths in this report as active
+> setup instructions.
+
 **Repository:** /Users/super_user/Projects/Windows-Venice-API-connector
 **Validation Date:** 2026-06-17
 **Method:** File inspection, grep, evidence-based pass/fail determination

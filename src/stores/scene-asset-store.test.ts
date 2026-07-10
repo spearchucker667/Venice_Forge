@@ -75,7 +75,7 @@ describe("T-188 — scene-asset persistence errors are surfaced safely", () => {
   });
 
   it("load stores a generic error, toasts safely, and logs a redacted diagnostic when persistence fails", async () => {
-    mocks.listAssets.mockRejectedValue(new Error("ENOENT: /Users/super_user/.secret/path"));
+    mocks.listAssets.mockRejectedValue(new Error("ENOENT: /Users/example/.secret/path"));
 
     await useSceneAssetStore.getState().load();
 
@@ -87,7 +87,7 @@ describe("T-188 — scene-asset persistence errors are surfaced safely", () => {
     expect(mocks.loggerError).toHaveBeenCalledTimes(1);
     const logged = mocks.loggerError.mock.calls[0]?.[1] as string | undefined;
     expect(typeof logged).toBe("string");
-    expect(logged).not.toContain("/Users/super_user/.secret/path");
+    expect(logged).not.toContain("/Users/example/.secret/path");
   });
 
   it("upsert stores a generic error, toasts safely, and logs a redacted diagnostic when persistence fails", async () => {

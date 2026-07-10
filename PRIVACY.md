@@ -37,6 +37,6 @@ Your local data is protected from casual disk inspection:
 
 ## 5. Further Reading
 For complete specifications on data storage, network allowlists, and safety guards, see:
-- [Detailed Privacy & Security Model](file:///Users/super_user/Projects/Windows-Venice-API-connector/docs/legal/PRIVACY.md)
-- [Vulnerability Reporting Policy (SECURITY.md)](file:///Users/super_user/Projects/Windows-Venice-API-connector/SECURITY.md)
-- [Legal Notice & Disclaimers (LEGAL.md)](file:///Users/super_user/Projects/Windows-Venice-API-connector/LEGAL.md)
+- [Detailed Privacy & Security Model](docs/legal/PRIVACY.md)
+- [Vulnerability Reporting Policy](SECURITY.md)
+- [Legal Notice & Disclaimers](LEGAL.md)

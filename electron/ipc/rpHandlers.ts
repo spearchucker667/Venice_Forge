@@ -18,6 +18,7 @@
 
 import { ipcMain } from "electron";
 import { rateLimitIpcHandler } from "../utils/rateLimit";
+import { emitSyncPacket, emitSyncTombstone } from "../services/syncBridge";
 import {
   listCharacterCards,
   readCharacterCard,
@@ -82,6 +83,9 @@ export function registerRpIpcHandlers(): void {
       // Read back the persisted card (with avatar hydrated) for the renderer.
       const id = (card as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await readCharacterCard(id) : null;
+      if (persisted) {
+        await emitSyncPacket("character_cards", persisted.id, persisted);
+      }
       return { ok: true, card: persisted };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -93,7 +97,11 @@ export function registerRpIpcHandlers(): void {
   handleIpc("characterCards:delete", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id" };
-      return await deleteCharacterCard(id);
+      const result = await deleteCharacterCard(id);
+      if (result.ok) {
+        await emitSyncTombstone("character_cards", id);
+      }
+      return result;
     } catch (err) {
       const message = redactErrorMessage(err);
       logError("characterCards:delete failed", message);
@@ -131,6 +139,9 @@ export function registerRpIpcHandlers(): void {
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", persona: null };
       const id = (persona as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await personaStore.read(id) : null;
+      if (persisted) {
+        await emitSyncPacket("personas", persisted.id, persisted);
+      }
       return { ok: true, persona: persisted as UserPersonaV1 | null };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -142,7 +153,11 @@ export function registerRpIpcHandlers(): void {
   handleIpc("personas:delete", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id" };
-      return await personaStore.remove(id);
+      const result = await personaStore.remove(id);
+      if (result.ok) {
+        await emitSyncTombstone("personas", id);
+      }
+      return result;
     } catch (err) {
       const message = redactErrorMessage(err);
       logError("personas:delete failed", message);
@@ -180,6 +195,9 @@ export function registerRpIpcHandlers(): void {
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", lorebook: null };
       const id = (lorebook as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await lorebookStore.read(id) : null;
+      if (persisted) {
+        await emitSyncPacket("lorebooks", persisted.id, persisted);
+      }
       return { ok: true, lorebook: persisted as LorebookV1 | null };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -191,7 +209,11 @@ export function registerRpIpcHandlers(): void {
   handleIpc("lorebooks:delete", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id" };
-      return await lorebookStore.remove(id);
+      const result = await lorebookStore.remove(id);
+      if (result.ok) {
+        await emitSyncTombstone("lorebooks", id);
+      }
+      return result;
     } catch (err) {
       const message = redactErrorMessage(err);
       logError("lorebooks:delete failed", message);
@@ -229,6 +251,9 @@ export function registerRpIpcHandlers(): void {
       if (!result.ok) return { ok: false, error: result.error, chat: null };
       const id = (chat as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await readRpChat(id) : null;
+      if (persisted) {
+        await emitSyncPacket("rp_chats", persisted.id, persisted);
+      }
       return { ok: true, chat: persisted };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -240,7 +265,11 @@ export function registerRpIpcHandlers(): void {
   handleIpc("rpChats:delete", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id" };
-      return await deleteRpChat(id);
+      const result = await deleteRpChat(id);
+      if (result.ok) {
+        await emitSyncTombstone("rp_chats", id);
+      }
+      return result;
     } catch (err) {
       const message = redactErrorMessage(err);
       logError("rpChats:delete failed", message);
@@ -280,6 +309,9 @@ export function registerRpIpcHandlers(): void {
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", asset: null };
       const id = (asset as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await rpAssetStore.read(id) : null;
+      if (persisted) {
+        await emitSyncPacket("rp_assets", persisted.id, persisted);
+      }
       return { ok: true, asset: persisted as RpAssetV1 | null };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -291,7 +323,11 @@ export function registerRpIpcHandlers(): void {
   handleIpc("rpAssets:delete", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id" };
-      return await rpAssetStore.remove(id);
+      const result = await rpAssetStore.remove(id);
+      if (result.ok) {
+        await emitSyncTombstone("rp_assets", id);
+      }
+      return result;
     } catch (err) {
       const message = redactErrorMessage(err);
       logError("rpAssets:delete failed", message);
@@ -329,6 +365,9 @@ export function registerRpIpcHandlers(): void {
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", scenario: null };
       const id = (scenario as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await scenarioStore.read(id) : null;
+      if (persisted) {
+        await emitSyncPacket("rpScenarios", persisted.id, persisted);
+      }
       return { ok: true, scenario: persisted as ScenarioV1 | null };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -340,7 +379,11 @@ export function registerRpIpcHandlers(): void {
   handleIpc("scenarios:delete", async (_event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id" };
-      return await scenarioStore.remove(id);
+      const result = await scenarioStore.remove(id);
+      if (result.ok) {
+        await emitSyncTombstone("rpScenarios", id);
+      }
+      return result;
     } catch (err) {
       const message = redactErrorMessage(err);
       logError("scenarios:delete failed", message);

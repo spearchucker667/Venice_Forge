@@ -67,7 +67,7 @@ describe("T-187 — scenario persistence errors are surfaced safely", () => {
 
   it("load stores a redacted error and toasts safely when persistence fails", async () => {
     mocks.listScenarios.mockRejectedValue(
-      new Error("ENOENT: /Users/super_user/.secret/path with sk-live-12345"),
+      new Error("ENOENT: /Users/example/.secret/path with sk-live-12345"),
     );
 
     await useScenarioStore.getState().load();
@@ -75,7 +75,7 @@ describe("T-187 — scenario persistence errors are surfaced safely", () => {
     expect(useScenarioStore.getState().hasLoaded).toBe(false);
     expect(useScenarioStore.getState().isLoading).toBe(false);
     const error = useScenarioStore.getState().error;
-    expect(error).not.toContain("/Users/super_user/.secret/path");
+    expect(error).not.toContain("/Users/example/.secret/path");
     expect(error).not.toContain("sk-live-12345");
     expect(mocks.toastError).toHaveBeenCalledWith(
       "Could not load scenarios",

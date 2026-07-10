@@ -16,13 +16,17 @@ import type { CharacterSceneGenerationResult } from '../types/characterSceneGene
 import type { IngestedAttachment } from '../types/ingestion'
 import { MAX_TOTAL_CONTEXT_BYTES } from '../services/ingestion/ingestionLimits'
 import * as logger from '../shared/logger'
+import { generateId } from '../lib/utils'
 
 /** Safe, non-disclosing error text appended to assistant messages when a
  *  chat stream fails. Never include raw exception text, paths, or secrets. */
 const SAFE_STREAM_ERROR_MESSAGE = 'Sorry, something went wrong. Please try again.'
-async function pullMemoryContextForSend(userMessage: string) {
+async function pullMemoryContextForSend(userMessage: string, conversationId: string) {
   try {
-    return await desktopConversations.pullContext({ message: userMessage });
+    return await desktopConversations.pullContext({
+      message: userMessage,
+      excludeConversationIds: [conversationId],
+    });
   } catch (err) {
     logger.warn('useChat memory retrieval skipped', err);
     return {
@@ -50,6 +54,7 @@ type InjectedContextSource = NonNullable<ChatMessage['metadata']>['injectedConte
 export function useChat() {
   const sceneAbortRef = useRef<AbortController | null>(null)
   const stopRequestedRef = useRef(false)
+  const memoryRequestRef = useRef<{ conversationId: string; requestId: string } | null>(null)
   const [memoryStatus, setMemoryStatus] = useState<ChatMemoryStatus>('idle')
   const addMessage = useChatStore((s) => s.addMessage)
   const deleteMessage = useChatStore((s) => s.deleteMessage)
@@ -185,23 +190,34 @@ export function useChat() {
         setPendingContext(null)
         setMemoryStatus(contextToInject ? 'injected' : 'idle')
       } else if (memoryDecision.mode === 'disabled_for_message') {
+        memoryRequestRef.current = null
         setPendingContext(null)
         setMemoryStatus('disabled')
       } else if (!enableMemoryRetrieval || !chatMemoryEnabled || isCharacterConversation) {
-        if (pendingContext?.message === userMessage) setPendingContext(null)
+        memoryRequestRef.current = null
+        if (pendingContext?.conversationId === convId || pendingContext?.message === userMessage) setPendingContext(null)
         setMemoryStatus('disabled')
-      } else if (pendingContext && pendingContext.message === userMessage) {
+      } else if (pendingContext
+        && pendingContext.conversationId === convId
+        && pendingContext.message === userMessage) {
         contextToInject = pendingContext.injectedText;
         contextSource = 'memory'
         setPendingContext(null);
         setMemoryStatus('injected')
       } else if (showPulledContextBeforeSending) {
         setMemoryStatus('loading')
-        const res = await pullMemoryContextForSend(userMessage);
+        const requestId = generateId()
+        memoryRequestRef.current = { conversationId: convId, requestId }
+        const res = await pullMemoryContextForSend(userMessage, convId);
+        const requestStillActive = memoryRequestRef.current?.requestId === requestId
+          && useChatStore.getState().activeConversationId === convId
+        if (!requestStillActive) return
         if (res.ok && res.context && res.context.injectedText) {
           setPendingContext({
             ...res.context,
             message: userMessage,
+            conversationId: convId,
+            requestId,
           });
           setMemoryStatus('injected')
           return;
@@ -213,7 +229,11 @@ export function useChat() {
         }
       } else {
         setMemoryStatus('loading')
-        const res = await pullMemoryContextForSend(userMessage);
+        const requestId = generateId()
+        memoryRequestRef.current = { conversationId: convId, requestId }
+        const res = await pullMemoryContextForSend(userMessage, convId);
+        if (memoryRequestRef.current?.requestId !== requestId
+          || useChatStore.getState().activeConversationId !== convId) return
         if (res.ok && res.context && res.context.injectedText) {
           contextToInject = res.context.injectedText;
           contextSource = 'memory'

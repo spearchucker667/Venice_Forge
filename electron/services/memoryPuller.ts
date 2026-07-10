@@ -320,12 +320,15 @@ export async function pullContext(input: {
   maxItems?: number;
   maxTokens?: number;
   includeArchived?: boolean;
+  excludeConversationIds?: string[];
 }): Promise<PulledMemoryContext> {
   const maxItems = input.maxItems ?? 5;
   const maxTokens = input.maxTokens ?? 1200;
   const includeArchived = input.includeArchived ?? false;
 
-  const results = await searchIndex(input.message, { includeArchived });
+  const excluded = new Set(input.excludeConversationIds ?? []);
+  const results = (await searchIndex(input.message, { includeArchived }))
+    .filter((result) => !excluded.has(result.id));
   const topResults = results.slice(0, maxItems);
 
   const facts: MemoryFact[] = [];

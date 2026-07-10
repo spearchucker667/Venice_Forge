@@ -1,5 +1,32 @@
 # Venice Forge — Copilot Instructions
 
+## Canonical Repository
+
+- Local path: `/Users/super_user/Projects/Venice_Forge`
+- GitHub: `spearchucker667/Venice_Forge`
+- Application: Venice Forge Electron desktop app
+- Stack: Electron 42, React 19, TypeScript strict, Zustand, Vitest
+- Node: `>=22.13.0 <23.0.0`
+
+Do not use historical paths such as
+`/Users/super_user/Projects/Windows-Venice-API-connector`. Before editing,
+run the local-only repository-root bootstrap check in `AGENTS.md`. Never put
+that absolute-path assertion in CI.
+
+```bash
+EXPECTED_ROOT="/Users/super_user/Projects/Venice_Forge"
+if [[ "$(pwd -P)" != "$EXPECTED_ROOT" ]]; then
+  echo "Wrong repository root."
+  echo "Expected: $EXPECTED_ROOT"
+  echo "Actual:   $(pwd -P)"
+  exit 1
+fi
+test -f package.json
+test -f AGENTS.md
+test -d src
+test -d electron
+```
+
 ## Project Overview
 
 Venice Forge is a **dual-platform (Windows + macOS) Electron desktop app** (also runnable as a Vite/Express web app) for the [Venice API](https://venice.ai). It provides chat, image generation, media workflows, research, characters, RP Studio, prompts, scenes, workflows, projects, and local creative asset management — all privacy-focused with no telemetry.

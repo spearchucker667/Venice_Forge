@@ -1,5 +1,8 @@
+// Regression guards: VERIFY-066 (accessible New Chat label), VERIFY-073
+// (header model selector updates conversation.model and respects persisted model).
 import '@testing-library/jest-dom/vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Header } from './header'
 import { useSettingsStore } from '../../stores/settings-store'
@@ -7,11 +10,13 @@ import { useChatStore } from '../../stores/chat-store'
 import { useAuthStore } from '../../stores/auth-store'
 import { TAB_IDS, resolveTab } from '../../config/tabs'
 
+const modelsData = vi.hoisted(() => ({ value: [] as Array<{ id: string; model_spec?: { name?: string } }> }));
+
 vi.mock('../../hooks/use-models', () => ({
-  useModels: (type?: string) => ({
-    data: type ? [{ id: 'mock-' + type, model_spec: { name: 'Mock ' + type } }] : []
-  })
-}))
+  useModels: (_type?: string) => ({
+    data: modelsData.value,
+  }),
+}));
 
 describe('Header component', () => {
   beforeEach(() => {
@@ -22,12 +27,14 @@ describe('Header component', () => {
       toggleSidebar: vi.fn(),
     })
     useChatStore.setState({
+      conversations: [],
       activeConversationId: null,
       setActiveConversation: vi.fn(),
     })
     useAuthStore.setState({
       apiKey: 'test-key',
     })
+    modelsData.value = []
   })
 
   it('renders correctly for every TAB_IDS entry', () => {
@@ -92,5 +99,58 @@ describe('Header component', () => {
     useChatStore.setState({ activeConversationId: 'conv-1' })
     render(<Header onOpenApiKey={vi.fn()} />)
     expect(screen.getByLabelText('New chat')).toBeInTheDocument()
+  })
+
+  // VERIFY-073 regression guard: changing the header model selector writes
+  // the new model back to the active conversation.
+  it('updates the active conversation model when the header selector changes', async () => {
+    useChatStore.setState({
+      conversations: [{
+        id: 'conv-1',
+        title: 'Test Chat',
+        model: 'model-a',
+        createdAt: 1,
+        updatedAt: 1,
+        messages: [],
+        metadata: { tags: [], pinned: false, archived: false, source: 'chat', messageCount: 0 },
+      }],
+      activeConversationId: 'conv-1',
+    })
+    modelsData.value = [
+      { id: 'model-a', model_spec: { name: 'Model A' } },
+      { id: 'model-b', model_spec: { name: 'Model B' } },
+    ]
+
+    render(<Header onOpenApiKey={vi.fn()} />)
+    await userEvent.click(screen.getByLabelText('Selected model'))
+    await userEvent.click(screen.getByRole('option', { name: 'Model B' }))
+
+    const conv = useChatStore.getState().conversations.find((c) => c.id === 'conv-1')!
+    expect(conv.model).toBe('model-b')
+  })
+
+  // VERIFY-073 regression guard: a persisted conversation model takes
+  // precedence over the global selected model in the header selector.
+  it('shows the persisted conversation model instead of the global selection', () => {
+    useSettingsStore.setState({ selectedModels: { chat: 'global-model' } })
+    useChatStore.setState({
+      conversations: [{
+        id: 'conv-1',
+        title: 'Test Chat',
+        model: 'persisted-model',
+        createdAt: 1,
+        updatedAt: 1,
+        messages: [],
+        metadata: { tags: [], pinned: false, archived: false, source: 'chat', messageCount: 0 },
+      }],
+      activeConversationId: 'conv-1',
+    })
+    modelsData.value = [
+      { id: 'persisted-model', model_spec: { name: 'Persisted Model' } },
+      { id: 'global-model', model_spec: { name: 'Global Model' } },
+    ]
+
+    render(<Header onOpenApiKey={vi.fn()} />)
+    expect(screen.getByLabelText('Selected model')).toHaveTextContent('Persisted Model')
   })
 })

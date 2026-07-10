@@ -178,7 +178,7 @@ beforeEach(() => {
 describe("RpChatView — T-076 stream error handling", () => {
   it("does not render raw Venice stream error text in the UI", async () => {
     const rawError =
-      "500 Venice/server retryable error: fetch failed /Users/super_user/.venice/api-key leaked";
+      "500 Venice/server retryable error: fetch failed /Users/example/.venice/api-key leaked";
     mocks.veniceStreamChatMock.mockRejectedValueOnce(new Error(rawError));
 
     render(

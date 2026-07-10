@@ -166,7 +166,7 @@ describe('Research Workspace Store', () => {
   // T-196 regression guard: raw load exceptions must be redacted before logging.
   it('redacts raw load exceptions before logging', async () => {
     useResearchStore.setState({ hydrated: false, isInitialLoading: false });
-    const rawError = new Error('IDB read failed at /Users/super_user/.config with sk-1234567890abcdef');
+    const rawError = new Error('IDB read failed at /Users/example/.config with sk-1234567890abcdef');
     vi.mocked(StorageService.getItems).mockRejectedValueOnce(rawError);
     const loggerError = vi.spyOn(logger, 'error').mockImplementation(() => {});
 

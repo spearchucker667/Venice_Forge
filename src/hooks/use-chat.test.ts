@@ -1,4 +1,7 @@
-/** @fileoverview Unit tests for the use-chat hook character_slug threading. */
+/** @fileoverview Unit tests for the use-chat hook character_slug threading.
+ *  Regression guards: VERIFY-070 (memory isolation), VERIFY-071 (message
+ *  operations), VERIFY-073 (model hot swap).
+ */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
@@ -90,6 +93,10 @@ describe("use-chat character_slug threading", () => {
   beforeEach(() => {
     resetStores();
     vi.clearAllMocks();
+    // Fully reset the one-time mock queues so a test that sets up a pending
+    // promise cannot leak into the next test's send/stream cycle.
+    mockedPullContext.mockReset();
+    mockedVeniceStreamChat.mockReset();
     mockedPullContext.mockResolvedValue({
       ok: false,
       context: { injectedText: "", facts: [], summaries: [], tokenEstimate: 0 },
@@ -258,7 +265,7 @@ describe("use-chat character_slug threading", () => {
       enableMemoryRetrieval: true,
       showPulledContextBeforeSending: false,
     });
-    mockedPullContext.mockRejectedValueOnce(new Error("memory index unavailable at /Users/super_user/private"));
+    mockedPullContext.mockRejectedValueOnce(new Error("memory index unavailable at /Users/example/private"));
     mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
 
     const convId = useChatStore.getState().createConversation("llama-3.3-70b");
@@ -270,10 +277,118 @@ describe("use-chat character_slug threading", () => {
       await result.current.send("Send anyway", "llama-3.3-70b");
     });
 
-    expect(mockedPullContext).toHaveBeenCalledWith({ message: "Send anyway" });
+    expect(mockedPullContext).toHaveBeenCalledWith(expect.objectContaining({
+      message: "Send anyway",
+      excludeConversationIds: [expect.any(String)],
+    }));
     expect(mockedVeniceStreamChat).toHaveBeenCalled();
     const conv = useChatStore.getState().conversations[0];
     expect(conv.messages.some((m) => m.role === "user" && m.content === "Send anyway")).toBe(true);
+  });
+
+  // VERIFY-070 regression guard: switching chats while memory is loading must
+  // discard the stale result and never show the preview popup for the old chat.
+  it("discards stale memory results when the active conversation changes mid-retrieval", async () => {
+    useSettingsStore.setState({
+      enableMemoryRetrieval: true,
+      showPulledContextBeforeSending: true,
+    });
+
+    let resolvePull: (value: { ok: true; context: { injectedText: string; facts: []; summaries: []; tokenEstimate: number } }) => void = () => {};
+    mockedPullContext.mockImplementationOnce(() => new Promise((resolve) => { resolvePull = resolve; }));
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    const convA = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().setConversationMemoryEnabled(convA, true);
+    useChatStore.setState({ activeConversationId: convA });
+
+    const convB = useChatStore.getState().createConversation("llama-3.3-70b");
+
+    const { result } = renderHook(() => useChat());
+    let sendPromise: Promise<void> | undefined;
+    act(() => {
+      sendPromise = result.current.send("Stale message", "llama-3.3-70b");
+    });
+
+    // Let the send flow reach the await pullContext.
+    await act(async () => { await Promise.resolve(); });
+
+    // Switch away before the memory call resolves.
+    act(() => { useChatStore.setState({ activeConversationId: convB }); });
+
+    await act(async () => {
+      resolvePull({
+        ok: true,
+        context: { injectedText: "STALE_CONTEXT", facts: [], summaries: [], tokenEstimate: 1 },
+      });
+    });
+
+    await act(async () => { await sendPromise; });
+
+    expect(useChatStore.getState().pendingContext).toBeNull();
+    // No message should have been sent for the stale chat.
+    const convAAfter = useChatStore.getState().conversations.find((c) => c.id === convA)!;
+    expect(convAAfter.messages.some((m) => m.content === "Stale message")).toBe(false);
+    expect(JSON.stringify(convAAfter.messages)).not.toContain("STALE_CONTEXT");
+  });
+
+  // VERIFY-070 regression guard: a single user send cycle shows the memory
+  // preview at most once. If pending context already exists for the same
+  // message, it is consumed directly without a second retrieval call.
+  it("shows the memory preview at most once per send cycle", async () => {
+    useSettingsStore.setState({
+      enableMemoryRetrieval: true,
+      showPulledContextBeforeSending: true,
+    });
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().setConversationMemoryEnabled(convId, true);
+    useChatStore.setState({
+      pendingContext: {
+        message: "Reuse context",
+        injectedText: "[Local Memory Context]\nREUSE_ME",
+        facts: [],
+        summaries: [],
+        tokenEstimate: 1,
+        conversationId: convId,
+      },
+      activeConversationId: convId,
+    });
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("Reuse context", "llama-3.3-70b");
+    });
+
+    expect(mockedPullContext).not.toHaveBeenCalled();
+    expect(result.current.memoryStatus).toBe("injected");
+    const conv = useChatStore.getState().conversations.find((c) => c.id === convId)!;
+    const userMessage = conv.messages.find((m) => m.role === "user")!;
+    expect(userMessage.metadata?.injectedContext).toBe("[Local Memory Context]\nREUSE_ME");
+  });
+
+  // VERIFY-070 regression guard: when memory retrieval is disabled globally,
+  // no pullContext call is made and no preview popup is surfaced.
+  it("performs zero retrieval and zero popup when memory is disabled", async () => {
+    useSettingsStore.setState({
+      enableMemoryRetrieval: false,
+      showPulledContextBeforeSending: true,
+    });
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().setConversationMemoryEnabled(convId, true);
+    useChatStore.setState({ activeConversationId: convId });
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("No memory", "llama-3.3-70b");
+    });
+
+    expect(mockedPullContext).not.toHaveBeenCalled();
+    expect(result.current.memoryStatus).toBe("disabled");
+    expect(useChatStore.getState().pendingContext).toBeNull();
   });
 
   it("exposes memoryStatus 'injected' when memory context is retrieved", async () => {
@@ -694,7 +809,7 @@ describe("use-chat character_slug threading", () => {
 
   describe("safe error handling (T-114/T-115)", () => {
     it("send appends a generic error message, never raw exception text", async () => {
-      const sensitive = "API error at /Users/super_user/secret/path with token venice_abc123";
+      const sensitive = "API error at /Users/example/secret/path with token venice_abc123";
       mockedVeniceStreamChat.mockRejectedValueOnce(new Error(sensitive));
 
       const { result } = renderHook(() => useChat());

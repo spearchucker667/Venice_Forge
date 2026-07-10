@@ -44,6 +44,9 @@ export function toConversationRecord(conv: Conversation): ConversationRecordV1 {
     updatedAt,
     model: conv.model,
     systemPrompt: conv.systemPrompt,
+    parentConversationId: conv.parentConversationId,
+    forkedFromMessageIds: conv.forkedFromMessageIds,
+    forkedFrom: conv.forkedFrom,
     messages,
     metadata: {
       tags: conv.metadata?.tags ?? DEFAULT_TAGS,
@@ -55,6 +58,8 @@ export function toConversationRecord(conv: Conversation): ConversationRecordV1 {
       lastSummaryAt: conv.metadata?.lastSummaryAt,
       migratedFrom: conv.metadata?.migratedFrom,
       character: conv.metadata?.character,
+      memoryRetrievalEnabled: conv.metadata?.memoryRetrievalEnabled,
+      includePriorConversationContext: conv.metadata?.includePriorConversationContext,
     },
     memory: {
       summary: conv.memory?.summary ?? conv.title ?? '',

@@ -16,6 +16,7 @@ import {
 } from "./desktopBridge";
 import type { SyncStoreName } from "../types/sync";
 import { BACKUP_SCHEMA_VERSION, SALT_BYTE_LENGTH, IV_BYTE_LENGTH, deriveBackupKey, toBase64, EncryptedBackupManifest } from "./backupCryptoWeb";
+import { sanitizePortableData } from "./syncDataSanitizer";
 
 
 /** Fetch all records for a specific store, routing to IPC if needed in Desktop mode. */
@@ -63,7 +64,7 @@ export async function createEncryptedBackup(password: string): Promise<Encrypted
 
   for (const storeName of STORE_NAMES) {
     if (storeName === "diagnostics") continue;
-    data[storeName] = await fetchStoreRecords(storeName as SyncStoreName);
+    data[storeName] = sanitizePortableData(await fetchStoreRecords(storeName as SyncStoreName)) as unknown[];
   }
 
   const jsonPayload = JSON.stringify(data);
@@ -98,7 +99,7 @@ export async function createEncryptedBackup(password: string): Promise<Encrypted
 
 export async function downloadEncryptedBackup(manifest: EncryptedBackupManifest): Promise<boolean> {
   const jsonManifest = JSON.stringify(manifest, null, 2);
-  const filename = `venice-backup-${new Date().toISOString().slice(0, 10)}.enc`;
+  const filename = `venice-forge-${new Date().toISOString().slice(0, 10)}.vfbackup`;
 
   if (isElectron()) {
     return await desktopFiles.exportJson(manifest, filename);
@@ -120,4 +121,3 @@ export async function downloadEncryptedBackup(manifest: EncryptedBackupManifest)
     return false;
   }
 }
-

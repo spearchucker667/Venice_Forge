@@ -15,6 +15,7 @@ import {
   listConversations,
   saveConversation,
 } from "../../services/chatStorage";
+import { emitSyncPacket, emitSyncTombstone } from "../../services/syncBridge";
 import { getLastApiError, getLogsDir, logError, openLogsFolder } from "../../services/logger";
 import { getSecureStoreStatus, isApiKeyConfigured } from "../../services/secureStore";
 import {
@@ -278,12 +279,16 @@ export function registerSystemHandlers(): void {
       if (!p.conversation || typeof p.conversation !== "object") {
         return { ok: false, error: "Missing conversation" };
       }
-      const payloadBytes = Buffer.byteLength(JSON.stringify(p.conversation), "utf8");
+      const conversation = p.conversation as Conversation;
+      const payloadBytes = Buffer.byteLength(JSON.stringify(conversation), "utf8");
       if (payloadBytes > VENICE_MAX_BODY_BYTES) {
         logError("chat:save rejected: payload too large", `${payloadBytes} bytes`);
         return { ok: false, error: IPC_PAYLOAD_TOO_LARGE };
       }
-      const result = await saveConversation(p.conversation as Conversation);
+      const result = await saveConversation(conversation);
+      if (result.ok) {
+        await emitSyncPacket("conversations", conversation.id, conversation);
+      }
       return result;
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -297,7 +302,11 @@ export function registerSystemHandlers(): void {
       if (typeof id !== "string" || id.length > 128) {
         return { ok: false, error: "Invalid conversation id" };
       }
-      return await deleteConversation(id);
+      const result = await deleteConversation(id);
+      if (result.ok) {
+        await emitSyncTombstone("conversations", id);
+      }
+      return result;
     } catch (err) {
       const message = redactErrorMessage(err);
       logError("chat:delete failed", message);
@@ -365,7 +374,11 @@ export function registerSystemHandlers(): void {
         return { ok: false, error: IPC_PAYLOAD_TOO_LARGE };
       }
       const { saveConversation } = await import("../../services/conversationVault");
-      return await saveConversation(rec);
+      const result = await saveConversation(rec);
+      if (result.ok) {
+        await emitSyncPacket("conversations", rec.id, rec);
+      }
+      return result;
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
@@ -377,7 +390,11 @@ export function registerSystemHandlers(): void {
         return { ok: false, error: "Invalid conversation id" };
       }
       const { deleteConversation } = await import("../../services/conversationVault");
-      return await deleteConversation(id);
+      const result = await deleteConversation(id);
+      if (result.ok) {
+        await emitSyncTombstone("conversations", id);
+      }
+      return result;
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
@@ -428,10 +445,16 @@ export function registerSystemHandlers(): void {
         maxItems?: number;
         maxTokens?: number;
         includeArchived?: boolean;
+        excludeConversationIds?: string[];
       } = { message: inp.message };
       cleanInput.maxItems = Math.min(50, Math.max(1, typeof inp.maxItems === "number" && Number.isFinite(inp.maxItems) ? inp.maxItems : 5));
       cleanInput.maxTokens = Math.min(8192, Math.max(1, typeof inp.maxTokens === "number" && Number.isFinite(inp.maxTokens) ? inp.maxTokens : 1200));
       if (typeof inp.includeArchived === "boolean") cleanInput.includeArchived = inp.includeArchived;
+      if (Array.isArray(inp.excludeConversationIds)) {
+        cleanInput.excludeConversationIds = inp.excludeConversationIds
+          .filter((id): id is string => typeof id === "string" && /^[a-zA-Z0-9_.-]{1,128}$/.test(id))
+          .slice(0, 50);
+      }
 
       // SAFETY Stage 1: Screen user prompt message before searching memory
       const decision = checkLocalFamilyGuard({

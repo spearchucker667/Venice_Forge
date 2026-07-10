@@ -23,6 +23,7 @@ import { toast } from "../../stores/toast-store";
 import type { Tab } from "../../stores/settings-store";
 import { isSupportedImageFile, readImageAttachment } from "../../services/attachmentService";
 import { askDecision } from "../ui/modal-requests";
+import { getCharacterTokenBudget } from "../../services/rpTokenCounter";
 
 /** Module-scoped WeakMap mapping each example object (by identity) to a stable
  *  client-side React key. Lives outside the component so keys survive remounts
@@ -55,6 +56,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const tokenBudget = useMemo(() => draft ? getCharacterTokenBudget(draft) : null, [draft]);
 
   useEffect(() => {
     setDraft(initial ?? null);
@@ -254,6 +256,10 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
       setError("Image (avatar) is required.");
       return;
     }
+    if (tokenBudget?.overLimit) {
+      setError(`Character exceeds the supported context budget by ${Math.abs(tokenBudget.remainingInputTokens).toLocaleString()} estimated tokens.`);
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -433,6 +439,16 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          {tokenBudget && (
+            <div
+              className={`text-right text-[11px] ${tokenBudget.overLimit ? "text-danger" : "text-text-muted"}`}
+              data-testid="character-token-budget"
+              aria-label={`Estimated tokens ${tokenBudget.compiled.count.toLocaleString()} of ${tokenBudget.inputBudget.toLocaleString()}`}
+            >
+              <div>Estimated tokens: {tokenBudget.compiled.count.toLocaleString()} / {tokenBudget.inputBudget.toLocaleString()}</div>
+              <div>Raw estimate {tokenBudget.raw.count.toLocaleString()} · output reserve {tokenBudget.reservedOutputTokens.toLocaleString()}</div>
+            </div>
+          )}
           <GhostButton onClick={handleDelete}>Delete</GhostButton>
           <GhostButton onClick={() => void handleArchive()}>
             {draft.archivedAt ? "Unarchive" : "Archive"}
@@ -441,8 +457,8 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
             onClick={handleSave}
             loading={saving}
             size="sm"
-            disabled={disabled}
-            ariaLabel={disabled ? "Save (waiting for config to load)" : "Save"}
+            disabled={disabled || tokenBudget?.overLimit === true}
+            ariaLabel={disabled ? "Save (waiting for config to load)" : tokenBudget?.overLimit ? "Save (character exceeds token budget)" : "Save"}
           >
             Save
           </PrimaryButton>

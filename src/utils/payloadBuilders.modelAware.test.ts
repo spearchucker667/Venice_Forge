@@ -81,4 +81,38 @@ describe("buildImagePayload — model-aware sanitization (VERIFY-043)", () => {
     });
     expect(off).not.toHaveProperty("variants");
   });
+
+  // VERIFY-082 — reference images are emitted only for supported models.
+  it("emits reference_image_urls when supportsReferences is true", () => {
+    const payload = buildImagePayload("flux-dev", {
+      prompt: "Alice in a garden",
+      supportsReferences: true,
+      references: [
+        { entityId: "alice", mimeType: "image/png", contentHash: "abc", data: "iVBORw0KGgo=" },
+      ],
+    });
+    expect(payload).toHaveProperty("reference_image_urls");
+    expect(Array.isArray(payload.reference_image_urls)).toBe(true);
+    expect((payload.reference_image_urls as string[])[0]).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it("drops reference_image_urls when supportsReferences is false", () => {
+    const payload = buildImagePayload("flux-dev", {
+      prompt: "Alice in a garden",
+      supportsReferences: false,
+      references: [
+        { entityId: "alice", mimeType: "image/png", contentHash: "abc", data: "iVBORw0KGgo=" },
+      ],
+    });
+    expect(payload).not.toHaveProperty("reference_image_urls");
+  });
+
+  it("drops reference_image_urls when references array is empty", () => {
+    const payload = buildImagePayload("flux-dev", {
+      prompt: "Alice in a garden",
+      supportsReferences: true,
+      references: [],
+    });
+    expect(payload).not.toHaveProperty("reference_image_urls");
+  });
 });

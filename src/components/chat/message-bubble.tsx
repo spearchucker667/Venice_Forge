@@ -107,18 +107,24 @@ interface MessageBubbleProps {
   index: number
   onCopy: () => void
   onDelete: () => void
+  onEdit?: (content: ChatMessage['content']) => void
+  onDeleteFromHere?: () => void
+  onRegenerateFromHere?: () => void
+  onForkFromHere?: () => void
   onRegenerate?: () => void
   onGenerateScene?: () => void
   isCharacterBound?: boolean
   assistantAvatarUrl?: string
 }
 
-function MessageBubbleImpl({ message, onCopy, onDelete, onRegenerate, onGenerateScene, isCharacterBound, assistantAvatarUrl }: MessageBubbleProps) {
+function MessageBubbleImpl({ message, onCopy, onDelete, onEdit, onDeleteFromHere, onRegenerateFromHere, onForkFromHere, onRegenerate, onGenerateScene, isCharacterBound, assistantAvatarUrl }: MessageBubbleProps) {
   useKatexCss()
 
   const [hovering, setHovering] = useState(false)
   const [copied, setCopied] = useState(false)
   const [reasoningOpen, setReasoningOpen] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editText, setEditText] = useState('')
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
@@ -163,6 +169,19 @@ function MessageBubbleImpl({ message, onCopy, onDelete, onRegenerate, onGenerate
     copyTimeoutRef.current = setTimeout(() => setCopied(false), 1500)
   }
 
+  const beginEdit = () => {
+    setEditText(content)
+    setIsEditing(true)
+  }
+
+  const saveEdit = () => {
+    const nextContent: ChatMessage['content'] = typeof message.content === 'string'
+      ? editText
+      : message.content.map((part) => part.type === 'text' ? { ...part, text: editText } : { ...part })
+    onEdit?.(nextContent)
+    setIsEditing(false)
+  }
+
   const injectedContextDisclosure = injectedContext ? (
     <details className="mt-3 rounded-lg border border-border/50 bg-surface-elevated/30 text-left text-[12px] text-text-secondary">
       <summary className="cursor-pointer select-none px-3 py-2 font-medium text-text-primary">
@@ -175,7 +194,7 @@ function MessageBubbleImpl({ message, onCopy, onDelete, onRegenerate, onGenerate
   ) : null
 
   const actions = (
-    <div className={`flex items-center gap-0.5 h-6 transition-opacity duration-150 ${hovering ? 'opacity-100' : 'opacity-0'}`}>
+    <div className={`flex items-center gap-0.5 h-6 transition-opacity duration-150 focus-within:opacity-100 ${hovering ? 'opacity-100' : 'opacity-0'}`}>
       <ActionBtn label={copied ? 'Copied' : 'Copy'} onClick={handleCopy}>
         {copied ? (
           <svg aria-hidden="true" focusable="false" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
@@ -183,6 +202,14 @@ function MessageBubbleImpl({ message, onCopy, onDelete, onRegenerate, onGenerate
           <svg aria-hidden="true" focusable="false" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
         )}
       </ActionBtn>
+      {onEdit && (
+        <ActionBtn label="Edit message" onClick={beginEdit}>
+          <svg aria-hidden="true" focusable="false" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4Z"/></svg>
+        </ActionBtn>
+      )}
+      {onForkFromHere && <ActionBtn label="Fork chat from here" onClick={onForkFromHere}>⑂</ActionBtn>}
+      {onDeleteFromHere && <ActionBtn label="Delete from here" onClick={onDeleteFromHere}>⌫</ActionBtn>}
+      {onRegenerateFromHere && <ActionBtn label="Regenerate from here" onClick={onRegenerateFromHere}>↻</ActionBtn>}
       {!isUser && onRegenerate && (
         <ActionBtn label="Regenerate" onClick={onRegenerate}>
           <svg aria-hidden="true" focusable="false" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg>
@@ -227,9 +254,29 @@ function MessageBubbleImpl({ message, onCopy, onDelete, onRegenerate, onGenerate
                 })}
                 </div>
               )}
-            <div className="text-text-primary text-[15.5px] leading-relaxed whitespace-pre-wrap break-words">
-              {content}
-            </div>
+            {isEditing ? (
+              <div className="space-y-2">
+                <textarea
+                  aria-label="Edit message text"
+                  autoFocus
+                  value={editText}
+                  onChange={(event) => setEditText(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') setIsEditing(false)
+                    if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) saveEdit()
+                  }}
+                  className="min-h-24 w-full resize-y rounded-md border border-border bg-surface p-2 text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                />
+                <div className="flex justify-end gap-2">
+                  <button type="button" onClick={() => setIsEditing(false)} className="rounded-md px-2 py-1 text-sm text-text-secondary hover:bg-surface">Cancel</button>
+                  <button type="button" onClick={saveEdit} className="rounded-md bg-accent px-2 py-1 text-sm text-accent-fg">Save</button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-text-primary text-[15.5px] leading-relaxed whitespace-pre-wrap break-words">
+                {content}
+              </div>
+            )}
             {redTeamMode && localSafetyDecision && (
               <div className="mt-2 text-[11px] font-mono p-2 bg-surface border border-border/40 rounded-md text-left text-text-secondary select-text space-y-1">
                 <div className="flex items-center gap-1.5">
@@ -288,7 +335,25 @@ function MessageBubbleImpl({ message, onCopy, onDelete, onRegenerate, onGenerate
           </div>
         )}
 
-        {content ? (
+        {isEditing ? (
+          <div className="space-y-2">
+            <textarea
+              aria-label="Edit message text"
+              autoFocus
+              value={editText}
+              onChange={(event) => setEditText(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') setIsEditing(false)
+                if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) saveEdit()
+              }}
+              className="min-h-28 w-full resize-y rounded-md border border-border bg-surface p-2 text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setIsEditing(false)} className="rounded-md px-2 py-1 text-sm text-text-secondary hover:bg-surface-elevated">Cancel</button>
+              <button type="button" onClick={saveEdit} className="rounded-md bg-accent px-2 py-1 text-sm text-accent-fg">Save</button>
+            </div>
+          </div>
+        ) : content ? (
           redTeamMode ? (
             <div className="space-y-2">
               <div className="bg-surface-elevated/40 border border-border rounded-lg p-3 font-mono text-[13px] whitespace-pre-wrap break-all leading-relaxed select-text">

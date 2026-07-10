@@ -37,6 +37,9 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [DEVELOPMENT/BRIDGE.md](DEVELOPMENT/BRIDGE.md) — Headless loopback bridge specifications.
 - [DEVELOPMENT/JINA_PROVIDER.md](DEVELOPMENT/JINA_PROVIDER.md) — Jina-backed search and scrape integrations.
 - [DEVELOPMENT/research-browser.md](DEVELOPMENT/research-browser.md) — Electron WebContentsView boundary model, CSPs, and headed smoke checklist.
+- [chat-model-selection.md](chat-model-selection.md) — Per-conversation model precedence, provider defaults, and fallback reconciliation.
+- [memory-isolation.md](memory-isolation.md) — Conversation-scoped memory retrieval, exclusions, and preview lifecycle.
+- [rp-token-counting.md](rp-token-counting.md) — Compiled prompt estimates and over-budget save behavior.
 
 ---
 
@@ -50,6 +53,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [design/SCENE_GENERATION.md](design/SCENE_GENERATION.md) — Dynamic scene-generation rules and background asset maps.
 - [design/PUBLIC_PROFILE_DISCOVERY.md](design/PUBLIC_PROFILE_DISCOVERY.md) — platform-specific site query logic.
 - [design/REPOSITORY_TREE.md](design/REPOSITORY_TREE.md) — Detailed codebase design layout.
+- [backup-and-sync.md](backup-and-sync.md) — Manual encrypted backups and encrypted sync-folder operation.
 - [FILE_TREE.md](FILE_TREE.md) — Practical file tree of the actual directories.
 
 ---
@@ -64,6 +68,8 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [legal/NOTICE.md](legal/NOTICE.md) — Copyright attributions and third-party notices.
 - [legal/THIRD_PARTY_NOTICES.md](legal/THIRD_PARTY_NOTICES.md) — Dependency licenses and brand attributions.
 - [legal/TRADEMARKS.md](legal/TRADEMARKS.md) — Venice.ai and external trademark nominative-use notices.
+- [security-model.md](security-model.md) — Credential, IPC, safety, and portable-data boundaries.
+- [sync-threat-model.md](sync-threat-model.md) — Attacker model and mitigations for untrusted sync folders.
 
 ---
 
@@ -88,6 +94,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [reports/README.md](reports/README.md) — Guideline explaining audit history and historical report rules.
 - [reports/CANONICAL_REPORT_INDEX.md](reports/CANONICAL_REPORT_INDEX.md) — Navigator for past validation audits.
 - [reports/historical/final-massive-bug-hunt-with-proof.md](reports/historical/final-massive-bug-hunt-with-proof.md) — Historical audit log of closed validation checks from the v2.1.0 release boundary.
+- [audits/exhaustive-bug-hunt-2026-06-19.md](audits/exhaustive-bug-hunt-2026-06-19.md) — Historical snapshot; paths inside describe the repository at audit time and are not setup instructions.
 
 ---
 

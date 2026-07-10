@@ -24,9 +24,7 @@ Instead of relying on a real-time sync folder, you can generate a single `.vfbac
 1. On your destination machine, go to **Config** > **Data & Storage** > **Backup & Sync**.
 2. Click **Import Backup** and select your `.vfbackup` file.
 3. Enter the exact passphrase used to encrypt the backup.
-4. You will be asked if you want to **Merge** or **Replace** the existing data.
-   - **Merge**: Adds new records and keeps the newest version of modified records. (Creates conflict copies if both machines edited the same item).
-   - **Replace**: Completely wipes the current machine's data and replaces it with the backup. A safety backup of the current state is automatically created before replacement.
+4. Review the decrypted record-count preview, then confirm the merge. Existing divergent records are preserved as conflict copies where supported. Replace mode is not exposed until its pre-replacement safety-backup contract is implemented and tested.
 
 ## Sync Folder Setup (Automated Sync)
 
@@ -41,7 +39,7 @@ If you use multiple machines frequently and want automated, continuous syncing, 
 3. Under the "Sync Folder" section, click **Choose Folder**.
 4. Select the folder you created in step 1.
 5. You will be prompted to enter a Sync Passphrase. **Both machines must use the same passphrase.**
-6. The app will immediately begin encrypting your data and writing `.enc` packet files into the folder.
+6. The app reconciles existing encrypted packets and then watches for changes. Pause clears the in-memory passphrase; resume requires entering it again.
 
 ### Adding a Second Machine
 1. Wait for your cloud provider (e.g., Dropbox) to finish syncing the `.enc` files to your second machine.
@@ -57,6 +55,10 @@ To keep you safe, the following data is **never** synced or backed up, even if y
 - Your Jina API Key.
 - Operating system level secrets.
 - Absolute file paths specific to your machine.
+
+Persona images and other user-authored media are included in manual encrypted backups. Sync packets remain encrypted and are subject to the active store/data classification; credentials and sync-folder configuration are always removed.
+
+Packets are AES-256-GCM envelopes written atomically under `.vfbackup/blobs/`. Store names and record IDs are allowlisted, records must agree with their envelope ID, oversized or malformed packets are rejected, and abandoned temporary files are removed when the watcher starts.
 
 You must manually configure your API keys on each device you use.
 

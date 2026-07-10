@@ -14,7 +14,7 @@
  */
 
 import { isElectron, desktopPersonas } from "../desktopBridge";
-import type { UserPersonaV1 } from "../../types/rp";
+import type { PersonaImage, UserPersonaV1 } from "../../types/rp";
 import { isValidRpId, MAX_TAGS } from "../../types/rp";
 import { assessPersonaImport } from "../../shared/safety/characterImportSafety";
 import { SafetyGuardBlockedError } from "../../shared/safety";
@@ -24,6 +24,19 @@ import { getEffectiveRendererLocalFamilySafeModeEnabled } from "../../safetyHydr
 const STORE = "personas" as const;
 const ID_RE = isValidRpId;
 const MAX_LIST_PERSONAS = 1_000;
+export const MAX_PERSONA_IMAGE_BYTES = 5 * 1024 * 1024;
+
+export function normalizePersonaImage(input: unknown): PersonaImage | undefined {
+  if (!input || typeof input !== "object") return undefined;
+  const raw = input as Record<string, unknown>;
+  if (raw.mimeType !== "image/png" && raw.mimeType !== "image/jpeg" && raw.mimeType !== "image/webp") return undefined;
+  if (typeof raw.data !== "string" || !/^[A-Za-z0-9+/]*={0,2}$/.test(raw.data)) return undefined;
+  if (typeof raw.byteLength !== "number" || !Number.isSafeInteger(raw.byteLength)
+    || raw.byteLength < 1 || raw.byteLength > MAX_PERSONA_IMAGE_BYTES) return undefined;
+  const image: PersonaImage = { mimeType: raw.mimeType, data: raw.data, byteLength: raw.byteLength };
+  if (typeof raw.contentHash === "string" && /^[a-f0-9]{64}$/i.test(raw.contentHash)) image.contentHash = raw.contentHash;
+  return image;
+}
 
 /**
  * Coerces an unknown value into a valid `UserPersonaV1`.
@@ -65,6 +78,8 @@ export function normalizePersona(input: unknown): UserPersonaV1 | null {
   };
   if (reference) out.reference = reference;
   if (projectId) out.projectId = projectId;
+  const image = normalizePersonaImage(r.image);
+  if (image) out.image = image;
   return out;
 }
 

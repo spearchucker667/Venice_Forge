@@ -13,10 +13,14 @@ import { buildImagePayload, type ImageDraftLike } from '../utils/payloadBuilders
 import { getImageModelCapabilities, type ImageModelCapabilities } from '../config/image-model-capabilities';
 import { veniceFetch } from './veniceClient';
 import { useMediaStore } from '../stores/media-store';
+import { useCharacterCardStore } from '../stores/character-card-store';
+import { usePersonaStore } from '../stores/persona-store';
 import { processBase64Image } from '../utils/imageProcessor';
 import { isValidImageResponse } from '../utils/veniceValidation';
 import { extractImages } from '../utils/image';
 import { useSettingsStore } from '../stores/settings-store';
+import { buildSceneReferencePlan, type SceneReferencePlan } from './sceneReferencePlanner';
+import { buildSceneReferenceEntities, type SceneReferenceSource } from './sceneReferenceResolver';
 import type { Conversation } from '../types/conversation';
 import type { MediaItem } from '../types/media';
 import type {
@@ -51,6 +55,9 @@ export interface CharacterSceneGenerationDependencies {
   extractImages: typeof extractImages;
   isValidImageResponse: typeof isValidImageResponse;
   generateId: () => string;
+  buildSceneReferenceEntities: typeof buildSceneReferenceEntities;
+  buildSceneReferencePlan: typeof buildSceneReferencePlan;
+  getSceneReferenceSource: () => SceneReferenceSource;
 }
 
 const defaultDeps: CharacterSceneGenerationDependencies = {
@@ -65,6 +72,12 @@ const defaultDeps: CharacterSceneGenerationDependencies = {
   extractImages,
   isValidImageResponse,
   generateId,
+  buildSceneReferenceEntities,
+  buildSceneReferencePlan,
+  getSceneReferenceSource: () => ({
+    cards: useCharacterCardStore.getState().cards,
+    personas: usePersonaStore.getState().personas,
+  }),
 };
 
 export async function generateCharacterScene(
@@ -116,6 +129,15 @@ export async function generateCharacterScene(
     const model = options.model || character.modelId || useSettingsStore.getState().selectedModels.image || 'flux-dev';
     const caps = deps.getImageModelCapabilities(model) as ImageModelCapabilities;
 
+    const referenceSource = deps.getSceneReferenceSource();
+    const referenceEntities = deps.buildSceneReferenceEntities(referenceSource);
+    const referencePlan: SceneReferencePlan = deps.buildSceneReferencePlan({
+      sceneDescription: prompt,
+      entities: referenceEntities,
+      modelSupportsReferences: caps.supportsReferences === true,
+      referenceLimit: caps.referenceLimit ?? 0,
+    });
+
     const draft: ImageDraftLike = {
       prompt,
       negative: negativePrompt,
@@ -133,6 +155,8 @@ export async function generateCharacterScene(
       supportsCfgScale: caps.supportsCfgScale !== false,
       supportsHideWatermark: caps.supportsHideWatermark !== false,
       supportsReturnBinary: caps.supportsReturnBinary !== false,
+      supportsReferences: caps.supportsReferences === true,
+      references: referencePlan.references,
     };
 
     const payload = deps.buildImagePayload(model, draft, prompt, undefined);

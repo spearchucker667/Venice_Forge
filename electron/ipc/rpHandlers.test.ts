@@ -74,6 +74,20 @@ describe("rpHandlers", () => {
     expect(result.persona?.name).toBe("Test");
   });
 
+  it("personas:save read-back preserves the persona image", async () => {
+    registerRpIpcHandlers();
+    const handler = vi.mocked(ipcMain.handle).mock.calls.find((call) => call[0] === "personas:save")?.[1] as (...args: any[]) => any;
+
+    const image = { mimeType: "image/png", data: "iVBORw0KGgo=", byteLength: 12 };
+    const persona = { id: "p-img", name: "WithImage", image };
+    vi.mocked(personaStore.save).mockResolvedValueOnce({ ok: true });
+    vi.mocked(personaStore.read).mockResolvedValueOnce(persona as any);
+
+    const result = await handler({} as any, persona);
+    expect(result.ok).toBe(true);
+    expect(result.persona?.image).toEqual(image);
+  });
+
   it("handles invalid IDs in delete operations", async () => {
     registerRpIpcHandlers();
     const handler = vi.mocked(ipcMain.handle).mock.calls.find((call) => call[0] === "rpChats:delete")?.[1] as (...args: any[]) => any;

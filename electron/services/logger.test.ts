@@ -90,10 +90,10 @@ describe("logger redaction", () => {
   });
 
   it("redacts local file paths from log messages", () => {
-    logError("failed to read", "/Users/somebody/Projects/Windows-Venice-API-connector/.env");
+    logError("failed to read", "/Users/example/Projects/legacy-repository-name/.env");
     const log = fs.readFileSync(TEST_LOG, "utf-8");
     expect(log).toContain("[REDACTED-PATH]");
-    expect(log).not.toContain("/Users/somebody/Projects/Windows-Venice-API-connector/.env");
+    expect(log).not.toContain("/Users/example/Projects/legacy-repository-name/.env");
   });
 
   it("redacts secrets inside metadata objects", () => {

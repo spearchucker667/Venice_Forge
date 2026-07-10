@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
+// Regression guards: VERIFY-071 (inline edit), VERIFY-074 (character display title).
 import "@testing-library/jest-dom/vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ChatMessage } from "../../types/venice";
 import { MessageBubble } from "./message-bubble";
@@ -169,6 +171,65 @@ describe("MessageBubble accessibility", () => {
     );
 
     expect(screen.getByAltText("AI avatar")).toHaveAttribute("src", "file:///cached/alan.png");
+  });
+});
+
+// VERIFY-071 regression guard: inline message editing enters/cancels/saves
+// without network calls, preserves attachments, and later messages are untouched.
+describe("MessageBubble inline editing", () => {
+  it("enters edit mode and cancels without calling onEdit", async () => {
+    const onEdit = vi.fn();
+    const message: ChatMessage = { role: "user", content: "Editable text" };
+    render(<MessageBubble message={message} index={0} onCopy={() => {}} onDelete={() => {}} onEdit={onEdit} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Edit message" }));
+    const textarea = screen.getByRole("textbox", { name: "Edit message text" });
+    expect(textarea).toBeInTheDocument();
+
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "Changed");
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(onEdit).not.toHaveBeenCalled();
+    expect(screen.getByText("Editable text")).toBeInTheDocument();
+  });
+
+  it("saves edited text and preserves later messages (no API call, no regeneration)", async () => {
+    const onEdit = vi.fn();
+    const message: ChatMessage = { role: "user", content: "Old text" };
+    render(<MessageBubble message={message} index={0} onCopy={() => {}} onDelete={() => {}} onEdit={onEdit} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Edit message" }));
+    const textarea = screen.getByRole("textbox", { name: "Edit message text" });
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "New text");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onEdit).toHaveBeenCalledWith("New text");
+  });
+
+  it("preserves image attachments while updating the text part", async () => {
+    const onEdit = vi.fn();
+    const message: ChatMessage = {
+      role: "user",
+      content: [
+        { type: "text", text: "Look" },
+        { type: "image_url", image_url: { url: "data:image/png;base64,abc" } },
+      ],
+    };
+    render(<MessageBubble message={message} index={0} onCopy={() => {}} onDelete={() => {}} onEdit={onEdit} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Edit message" }));
+    const textarea = screen.getByRole("textbox", { name: "Edit message text" });
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "Look closely");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onEdit).toHaveBeenCalledWith([
+      { type: "text", text: "Look closely" },
+      { type: "image_url", image_url: { url: "data:image/png;base64,abc" } },
+    ]);
   });
 });
 

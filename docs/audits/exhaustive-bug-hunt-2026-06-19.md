@@ -1,5 +1,11 @@
 # Venice Forge v2.1.0 — Exhaustive Bug Hunt & Security Audit
 
+> Historical snapshot. This report records the repository name and local path
+> used when the audit was performed. The current Electron repository is
+> `/Users/super_user/Projects/Venice_Forge` and the current GitHub repository
+> is `spearchucker667/Venice_Forge`. Do not use paths in this report as active
+> setup instructions.
+
 **Date:** 2026-06-19  
 **Auditor:** Antigravity (senior automated review pass)  
 **Repository:** `Windows-Venice-API-connector` (`spearchucker667/Venice_Forge`)  
@@ -39,7 +45,7 @@
 
 **Severity:** Medium — API contract violation; breaks uniform error handling in client code.
 
-**File:** [`server.ts`](file:///Users/super_user/Projects/Windows-Venice-API-connector/server.ts)
+**File:** [`server.ts`](../../server.ts)
 
 **Evidence (line numbers):**
 - **Venice proxy** (lines 512–517): `{ error, reasonCode, category, severity }` — all fields present.
@@ -61,14 +67,14 @@
 
 **Severity:** Low–Medium — incorrect last-resort fallback if the canonical constant changes.
 
-**File:** [`src/components/chat/chat-view.tsx`](file:///Users/super_user/Projects/Windows-Venice-API-connector/src/components/chat/chat-view.tsx#L38)
+**File:** [`src/components/chat/chat-view.tsx`](../../src/components/chat/chat-view.tsx)
 
 **Evidence (line 38):**
 ```ts
 const model = selectedModel || models?.[0]?.id || 'llama-3.3-70b'
 ```
 
-**Constants file:** [`src/constants/venice.ts`](file:///Users/super_user/Projects/Windows-Venice-API-connector/src/constants/venice.ts#L122)
+**Constants file:** [`src/constants/venice.ts`](../../src/constants/venice.ts)
 ```ts
 export const DEFAULT_CHAT_MODEL = "venice-uncensored";
 ```
@@ -76,9 +82,9 @@ export const DEFAULT_CHAT_MODEL = "venice-uncensored";
 **Impact:** The `chat-view.tsx` tertiary fallback (`'llama-3.3-70b'`) contradicts the repository-wide `DEFAULT_CHAT_MODEL` constant (`"venice-uncensored"`). If `selectedModels.chat` is empty and the model catalog fails to load, the chat view uses a different model than `CharactersView.tsx` (which does use `DEFAULT_CHAT_MODEL`) and `chat-store.ts`.
 
 **Additional hardcoded occurrences:**
-- [`src/components/CharactersView.tsx`](file:///Users/super_user/Projects/Windows-Venice-API-connector/src/components/CharactersView.tsx#L189): `|| "llama-3.3-70b"` — also bypasses `DEFAULT_CHAT_MODEL`
-- [`src/stores/media-send-to.ts`](file:///Users/super_user/Projects/Windows-Venice-API-connector/src/stores/media-send-to.ts#L185): `|| "venice-uncensored-1-2"` — an old versioned model ID, not the canonical constant
-- [`src/components/workflows/workflows-view.tsx`](file:///Users/super_user/Projects/Windows-Venice-API-connector/src/components/workflows/workflows-view.tsx#L62): Template defaults use `'llama-3.3-70b'` (acceptable as illustrative template data, but undocumented as intentional)
+- [`src/components/CharactersView.tsx`](../../src/components/CharactersView.tsx): `|| "llama-3.3-70b"` — also bypasses `DEFAULT_CHAT_MODEL`
+- [`src/stores/media-send-to.ts`](../../src/stores/media-send-to.ts): `|| "venice-uncensored-1-2"` — an old versioned model ID, not the canonical constant
+- [`src/components/workflows/workflows-view.tsx`](../../src/components/workflows/workflows-view.tsx): Template defaults use `'llama-3.3-70b'` (acceptable as illustrative template data, but undocumented as intentional)
 
 ---
 
@@ -86,7 +92,7 @@ export const DEFAULT_CHAT_MODEL = "venice-uncensored";
 
 **Severity:** Low — race condition degrades the half-open "single probe request" guarantee; functional impact is limited (overshoot, not silent bypass).
 
-**File:** [`server.ts`](file:///Users/super_user/Projects/Windows-Venice-API-connector/server.ts#L404-L416)
+**File:** [`server.ts`](../../server.ts)
 
 **Evidence:**
 ```ts
@@ -113,7 +119,7 @@ app.use("/api/venice", (req, res, next) => {
 
 **Severity:** Low — regression guard has incomplete coverage; theme-token violations in newly-added components go undetected.
 
-**File:** [`tests/theme/meshSurfaceInvariant.test.ts`](file:///Users/super_user/Projects/Windows-Venice-API-connector/tests/theme/meshSurfaceInvariant.test.ts)
+**File:** [`tests/theme/meshSurfaceInvariant.test.ts`](../../tests/theme/meshSurfaceInvariant.test.ts)
 
 **Evidence:** `SCAN_FILES` is a hard-coded list of 6 files. Confirmed `border-border` usages exist in at minimum:
 - `src/components/research/ResearchWorkspaceView.tsx`
@@ -147,8 +153,8 @@ VERIFY IDs in AGENTS.md NOT in code: VERIFY-021, -022, -023, -030, -031, -032, -
 **Severity:** Informational — orphaned VERIFY ID.
 
 **Files:**
-- [`src/services/storagePrivacyService.test.ts`](file:///Users/super_user/Projects/Windows-Venice-API-connector/src/services/storagePrivacyService.test.ts#L60) — `T-168 / VERIFY-168`
-- [`src/services/storagePrivacyService.ts`](file:///Users/super_user/Projects/Windows-Venice-API-connector/src/services/storagePrivacyService.ts#L199) — comment reference
+- [`src/services/storagePrivacyService.test.ts`](../../src/services/storagePrivacyService.test.ts) — `T-168 / VERIFY-168`
+- [`src/services/storagePrivacyService.ts`](../../src/services/storagePrivacyService.ts) — comment reference
 
 **Impact:** The guard exists and executes. It is simply not registered in the canonical table, so it cannot be audited from the AGENTS.md tracking document.
 

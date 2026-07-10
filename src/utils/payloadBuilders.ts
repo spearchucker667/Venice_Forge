@@ -250,6 +250,17 @@ export interface ImageDraftLike {
   supportsCfgScale?: boolean;
   supportsHideWatermark?: boolean;
   supportsReturnBinary?: boolean;
+  supportsReferences?: boolean;
+  /** Optional reference images for models that support character/style
+   *  consistency. Each entry carries the base64 image payload and a
+   *  stable content hash for identity. The builder emits
+   *  `reference_image_urls` only when `supportsReferences` is true. */
+  references?: Array<{
+    entityId: string;
+    mimeType: string;
+    contentHash: string;
+    data: string;
+  }>;
 }
 
 /** Clamp a number to an inclusive integer range. */
@@ -257,6 +268,14 @@ function clampInt(value: unknown, min: number, max: number): number {
   const n = Math.round(Number(value));
   if (!Number.isFinite(n)) return min;
   return Math.max(min, Math.min(max, n));
+}
+
+/** Convert a raw base64 string or an existing data URL into a Venice-compatible
+ *  reference image data URL. */
+function toReferenceDataUrl(data: string, mimeType: string): string {
+  if (data.startsWith("data:")) return data;
+  const normalizedMime = /^image\/(png|jpeg|webp)$/i.test(mimeType) ? mimeType.toLowerCase() : "image/png";
+  return `data:${normalizedMime};base64,${data}`;
 }
 
 /** Clamp a number to an inclusive float range. */
@@ -412,6 +431,14 @@ export function buildImagePayload(
   if (seedState && draft.supportsSeed !== false) {
     const serialized = serializeSeed(seedState, false);
     if ("seed" in serialized) payload.seed = serialized.seed;
+  }
+
+  // Reference images: only emit when the model explicitly supports them.
+  // Unsupported models must remain text-only to avoid foreign-field 400s.
+  if (draft.supportsReferences && Array.isArray(draft.references) && draft.references.length > 0) {
+    payload.reference_image_urls = draft.references.map((ref) =>
+      toReferenceDataUrl(ref.data, ref.mimeType)
+    );
   }
 
   return applyVeniceApiSafeMode("/image/generate", payload, normalized.safeMode);

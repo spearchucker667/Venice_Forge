@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// Regression guards: VERIFY-074 (character display title in history).
 import "@testing-library/jest-dom/vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -103,6 +104,25 @@ describe("HistoryView Component", () => {
     render(<HistoryView />);
     expect(screen.getByText("First Chat")).toBeInTheDocument();
     expect(screen.getByText("Second Chat")).toBeInTheDocument();
+  });
+
+  // VERIFY-074 regression guard: character conversations are prefixed in history.
+  it("prefixes character names in the history list", () => {
+    const conv: Conversation = {
+      ...createMockConversation("c1", "Discussion", "Hello"),
+      metadata: {
+        tags: [],
+        pinned: false,
+        archived: false,
+        source: "character",
+        messageCount: 1,
+        character: { name: "Ada" },
+      },
+    };
+    useChatStore.setState({ conversations: [conv] });
+
+    render(<HistoryView />);
+    expect(screen.getByText("Ada: Discussion")).toBeInTheDocument();
   });
 
   it("switches to active conversation and chat tab on select", () => {

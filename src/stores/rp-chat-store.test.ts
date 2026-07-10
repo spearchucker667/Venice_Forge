@@ -204,7 +204,7 @@ describe("T-189 RP chat persistence failures do not expose raw errors", () => {
 
   it("redacts load errors in state", async () => {
     mocks.listRpChats.mockRejectedValueOnce(
-      new Error("read failed /Users/super_user/.config sk-1234567890abcdef"),
+      new Error("read failed /Users/example/.config sk-1234567890abcdef"),
     );
 
     await useRpChatStore.getState().load();

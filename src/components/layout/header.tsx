@@ -19,8 +19,8 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   const { activeTab, selectedModels, setSelectedModel, toggleSidebar } = useSettingsStore(
     useShallow((s) => ({ activeTab: s.activeTab, selectedModels: s.selectedModels, setSelectedModel: s.setSelectedModel, toggleSidebar: s.toggleSidebar })),
   )
-  const { activeConversationId, setActiveConversation } = useChatStore(
-    useShallow((s) => ({ activeConversationId: s.activeConversationId, setActiveConversation: s.setActiveConversation }))
+  const { activeConversationId, conversations, setActiveConversation, setConversationModel } = useChatStore(
+    useShallow((s) => ({ activeConversationId: s.activeConversationId, conversations: s.conversations, setActiveConversation: s.setActiveConversation, setConversationModel: s.setConversationModel }))
   )
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   
@@ -28,7 +28,10 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   const hasOwnSelector = !tabDesc?.modelType
   const modelType = tabDesc?.modelType || 'text'
   const { data: models } = useModels(hasOwnSelector ? undefined : modelType)
-  const currentModel = hasOwnSelector ? '' : (selectedModels[activeTab] || models?.[0]?.id || '')
+  const activeConversationModel = activeTab === 'chat'
+    ? conversations.find((conversation) => conversation.id === activeConversationId)?.model
+    : undefined
+  const currentModel = hasOwnSelector ? '' : (activeConversationModel || selectedModels[activeTab] || '')
   const modelOptions = hasOwnSelector ? [] : (models?.map((m) => ({ value: m.id, label: (modelType === 'image' || modelType === 'video') ? formatModelLabelWithCost(m) : m.model_spec?.name || m.id })) ?? [])
 
   return (
@@ -66,7 +69,13 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
           <div className="flex items-center gap-1.5">
             <Select
               value={currentModel}
-              onChange={(v) => setSelectedModel(activeTab, v)}
+              onChange={(v) => {
+                if (activeTab === 'chat' && activeConversationId) {
+                  setConversationModel(activeConversationId, v)
+                  return
+                }
+                setSelectedModel(activeTab, v)
+              }}
               options={modelOptions}
               searchable
               placeholder="Select model…"

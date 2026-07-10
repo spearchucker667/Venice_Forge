@@ -1,5 +1,7 @@
 # Contributing to Venice Forge
 
+The canonical repository is `spearchucker667/Venice_Forge`. Dependency changes must update both `package.json` and the npm-generated `package-lock.json`; run `npm run verify:lockfile` with the supported Node 22/npm 10 toolchain.
+
 Thank you for your interest in contributing to **Venice Forge**! This document provides guidelines and workflows for contributors.
 
 ## Code of Conduct

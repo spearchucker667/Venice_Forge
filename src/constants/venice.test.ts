@@ -90,8 +90,8 @@ describe("modelSupportsVision", () => {
 });
 
 describe("DEFAULT_CHAT_MODEL", () => {
-  it("is set to venice-uncensored", () => {
-    expect(DEFAULT_CHAT_MODEL).toBe("venice-uncensored");
+  it("is set to the centrally configured GLM 4.6 fallback", () => {
+    expect(DEFAULT_CHAT_MODEL).toBe("zai-org-glm-4.6");
   });
 });
 

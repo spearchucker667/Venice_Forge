@@ -43,6 +43,14 @@ const KIND_OPTIONS: Array<{ value: PromptKind; label: string }> = [
 
 type SortKey = "newest" | "oldest" | "title" | "kind" | "favorite";
 
+export function reconcileSelectedPrompt(
+  selectedId: string | null,
+  visiblePrompts: readonly PromptLibraryItem[],
+): string | null {
+  if (selectedId && visiblePrompts.some((prompt) => prompt.id === selectedId)) return selectedId;
+  return visiblePrompts[0]?.id ?? null;
+}
+
 export function PromptLibraryView() {
   const ensureLoaded = usePromptLibraryStore((s) => s.ensureLoaded);
   const hydrated = usePromptLibraryStore((s) => s.hydrated);
@@ -130,9 +138,14 @@ export function PromptLibraryView() {
   }, [prompts]);
 
   const active = useMemo(
-    () => prompts.find((p) => p.id === activePromptId) ?? null,
-    [prompts, activePromptId],
+    () => filtered.find((p) => p.id === activePromptId) ?? null,
+    [filtered, activePromptId],
   );
+
+  useEffect(() => {
+    const reconciled = reconcileSelectedPrompt(activePromptId, filtered);
+    if (reconciled !== activePromptId) setActivePrompt(reconciled);
+  }, [activePromptId, filtered, setActivePrompt]);
 
   return (
     <div className="flex h-full w-full min-h-0 text-text-primary">
@@ -316,7 +329,12 @@ export function PromptLibraryView() {
               else await archivePrompt(active.id);
             }}
             onDelete={async () => {
+              const deletedIndex = filtered.findIndex((prompt) => prompt.id === active.id);
+              const replacement = filtered[deletedIndex + 1]?.id
+                ?? filtered[deletedIndex - 1]?.id
+                ?? null;
               await deletePrompt(active.id);
+              setActivePrompt(replacement);
               toast.success("Prompt deleted");
             }}
             onCreateWorkflow={async () => {

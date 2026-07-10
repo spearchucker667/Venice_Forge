@@ -152,28 +152,25 @@ export function useDataStorageActions(
       const json = await desktopFiles.importJsonString();
       if (!json) return;
 
-      const { parseAndImportBackup } = await import("../services/backupImportService");
+      const { parseAndImportBackup, previewBackup } = await import("../services/backupImportService");
       const manifest = JSON.parse(json);
-      
-      const summary = await parseAndImportBackup(manifest, password);
-      
-      toast.success(
-        `Import complete: ${summary.recordsImported} imported, ${summary.recordsSkipped} skipped, ${summary.tombstonesApplied} tombstones applied.`
-      );
-      
-      // Reload UI or specific stores as needed.
-      if (typeof window !== "undefined") {
-         window.dispatchEvent(new Event("venice:backup-imported"));
-      }
-      
-      // Hydrate stores.
-      const convs = await listConversations();
-      useChatStore.setState({ conversations: convs });
+      const preview = await previewBackup(manifest, password);
+      setPendingConfirm({
+        message: `Import ${preview.totalRecords.toLocaleString()} encrypted backup records?`,
+        detail: preview.stores.map((store) => `${store.storeName}: ${store.records}`).join(" · "),
+        onConfirm: async () => {
+          const summary = await parseAndImportBackup(manifest, password);
+          toast.success(`Import complete: ${summary.recordsImported} imported, ${summary.recordsSkipped} skipped, ${summary.tombstonesApplied} tombstones applied.`);
+          window.dispatchEvent(new Event("venice:backup-imported"));
+          const convs = await listConversations();
+          useChatStore.getState().setConversations(convs);
+        },
+      });
 
     } catch {
       toast.error("Import failed. Please check the file and try again.");
     }
-  }, []);
+  }, [setPendingConfirm]);
 
   return { clearLocalSettings, clearAllHistory, exportData, importData };
 }

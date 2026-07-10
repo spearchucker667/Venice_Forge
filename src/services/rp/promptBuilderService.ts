@@ -105,12 +105,13 @@ function entryTriggers(entry: LorebookEntryV1, recentText: string): boolean {
 }
 
 /** Assembles the active-character roster text block (one entry per character). */
-function buildCharactersBlock(characters: CharacterCardV1[]): string {
+export function buildCharactersBlock(characters: CharacterCardV1[]): string {
   if (characters.length === 0) return "";
   return characters
     .map((c) => {
       const desc = c.description ? c.description.trim() : "";
       const sys = c.systemPrompt ? c.systemPrompt.trim() : "";
+      const instructions = c.instructions ? c.instructions.trim() : "";
       const ex = c.exampleDialogues
         .filter((d) => d.speaker && d.text)
         .map((d) => `  ${d.speaker}: ${d.text}`)
@@ -118,6 +119,7 @@ function buildCharactersBlock(characters: CharacterCardV1[]): string {
       return block(
         `[Character: ${c.name}]`,
         desc,
+        instructions ? `[Creator instructions]\n${instructions}` : undefined,
         sys,
         ex ? `Example exchanges:\n${ex}` : undefined,
       );

@@ -87,7 +87,10 @@ export interface PromptLibraryState {
   getPrompt: (promptId: string) => PromptLibraryItem | null;
   getCurrentVersion: (promptId: string) => PromptVersion | null;
 
-  importPrompts: (payload: unknown) => Promise<PromptLibraryImportResult>;
+  importPrompts: (
+    payload: unknown,
+    options?: { reconcile?: boolean },
+  ) => Promise<PromptLibraryImportResult>;
   exportPrompts: (promptIds: string[]) => PromptLibraryExport;
 }
 
@@ -113,6 +116,50 @@ async function persistOne(prompt: PromptLibraryItem): Promise<void> {
 
 async function deleteOne(promptId: string): Promise<void> {
   await StorageService.deleteItem("promptLibrary", promptId);
+}
+
+/** Normalised identity key used for import/sync reconciliation. */
+function reconcileKey(title: string, kind: PromptKind, scope: PromptScope): string {
+  return `${scope}:${kind}:${title.trim().toLowerCase()}`;
+}
+
+/** Build a reconciled prompt from an imported record and an existing record.
+ *  The existing id and history are preserved; the imported current version
+ *  content is appended as a new version and metadata is refreshed. */
+function reconcilePrompt(
+  existing: PromptLibraryItem,
+  imported: PromptLibraryItem,
+  now: string,
+): PromptLibraryItem {
+  const currentImported = getCurrentPromptVersion(imported);
+  const lastVersion = existing.versions[existing.versions.length - 1];
+  const nextNumber = (lastVersion?.version ?? 0) + 1;
+  const newVersion = createPromptVersion(
+    {
+      promptId: existing.id,
+      version: nextNumber,
+      title: currentImported?.title ?? imported.title,
+      content: currentImported?.content ?? imported.versions[0]!.content,
+      negativeContent: currentImported?.negativeContent,
+      notes: currentImported?.notes ?? `Synced from import at ${now}`,
+      source: { type: "import" },
+      createdBy: "import",
+    },
+    now,
+  );
+  return {
+    ...existing,
+    title: imported.title,
+    kind: imported.kind,
+    description: imported.description,
+    tags: imported.tags,
+    modelHints: imported.modelHints,
+    favorite: imported.favorite,
+    archivedAt: imported.archivedAt ?? existing.archivedAt,
+    currentVersionId: newVersion.id,
+    versions: [...existing.versions, newVersion],
+    updatedAt: now,
+  };
 }
 
 export const usePromptLibraryStore = create<PromptLibraryState>((set, get) => ({
@@ -376,12 +423,46 @@ export const usePromptLibraryStore = create<PromptLibraryState>((set, get) => ({
     return getCurrentPromptVersion(item ?? null);
   },
 
-  importPrompts: async (payload) => {
+  importPrompts: async (payload, options) => {
     const now = nowIso();
-    const result = parsePromptLibraryImport(payload, now);
-    // Persist imported items + merge into store (rejected-by-sanitiser
-    // items are already filtered out of result.imported).
-    for (const fresh of result.imported) {
+    const parsed = parsePromptLibraryImport(payload, now);
+    const result: PromptLibraryImportResult = {
+      imported: [],
+      reconciled: [],
+      skipped: parsed.skipped,
+    };
+
+    const existingByKey = options?.reconcile
+      ? new Map(
+          get().prompts.map((p) => [
+            reconcileKey(p.title, p.kind, p.scope),
+            p,
+          ]),
+        )
+      : null;
+
+    for (const fresh of parsed.imported) {
+      const key = reconcileKey(fresh.title, fresh.kind, fresh.scope);
+      const match = existingByKey?.get(key);
+
+      if (match) {
+        const reconciled = reconcilePrompt(match, fresh, now);
+        try {
+          await persistOne(reconciled);
+        } catch (err) {
+          result.skipped.push({
+            reason: `Reconciliation persistence failed: ${redactErrorMessage(err)}`,
+            title: fresh.title,
+          });
+          continue;
+        }
+        set((s) => ({
+          prompts: s.prompts.map((p) => (p.id === reconciled.id ? reconciled : p)),
+        }));
+        result.reconciled.push(reconciled);
+        continue;
+      }
+
       try {
         await persistOne(fresh);
       } catch (err) {
@@ -395,6 +476,7 @@ export const usePromptLibraryStore = create<PromptLibraryState>((set, get) => ({
         if (s.prompts.some((p) => p.id === fresh.id)) return s;
         return { prompts: [fresh, ...s.prompts] };
       });
+      result.imported.push(fresh);
     }
     return result;
   },

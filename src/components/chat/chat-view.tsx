@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useChatStore } from '../../stores/chat-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useChat } from '../../hooks/use-chat'
 import { toast } from '../../stores/toast-store'
 import { DEFAULT_CHAT_MODEL, modelSupportsVision } from '../../constants/venice'
+import { resolveDefaultChatModel } from '../../services/defaultModelResolver'
 import { useCharacterImage } from '../../hooks/useCharacterImage'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { MessageBubble } from './message-bubble'
@@ -23,16 +24,24 @@ import type { Conversation } from '../../types/conversation'
 import type { ChatMemoryDecision } from '../../hooks/use-chat'
 import { buildChatPayloadContext, buildPriorConversationContextText } from '../../utils/chatPayloadContext'
 import { redactErrorMessage } from '../../shared/redaction'
+import { contentToSearchText } from '../../utils/messageContent'
 
 interface MessageBubbleCallbacks {
   onCopy: () => void
   onDelete: () => void
+  onEdit?: (content: Conversation['messages'][number]['content']) => void
+  onDeleteFromHere?: () => void
+  onRegenerateFromHere?: () => void
+  onForkFromHere?: () => void
   onRegenerate?: () => void
   onGenerateScene?: () => void
 }
 
 export function ChatView() {
   const deleteMessage = useChatStore((s) => s.deleteMessage)
+  const updateMessage = useChatStore((s) => s.updateMessage)
+  const truncateConversationAfterMessage = useChatStore((s) => s.truncateConversationAfterMessage)
+  const forkConversation = useChatStore((s) => s.forkConversation)
   const conversation = useChatStore((s) => {
     const id = s.activeConversationId
     return id ? s.conversations.find((c) => c.id === id) : undefined
@@ -42,7 +51,11 @@ export function ChatView() {
   const selectedModel = useSettingsStore((s) => s.selectedModels.chat)
   const currentProjectId = useSettingsStore((s) => s.activeProjectId)
   const { data: models } = useModels('text')
-  const model = selectedModel || models?.[0]?.id || DEFAULT_CHAT_MODEL
+  const resolvedDefault = useMemo(
+    () => models ? resolveDefaultChatModel(models).modelId : DEFAULT_CHAT_MODEL,
+    [models],
+  )
+  const model = conversation?.model || selectedModel || resolvedDefault
   const liveModelRecord = models?.find((m) => m.id === model)
   const liveVisionSupports: boolean | null =
     liveModelRecord?.model_spec?.capabilities?.supportsVision ?? null
@@ -61,6 +74,59 @@ export function ChatView() {
   // stale memory state.
   const effectiveMemoryStatus = enableMemoryRetrieval ? memoryStatus : 'disabled'
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [activeSearchMatch, setActiveSearchMatch] = useState(0)
+  const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLocaleLowerCase())
+  const searchMatches = useMemo(() => {
+    if (!deferredSearchQuery || !conversation) return []
+    const matches: Array<{ messageId: string; offset: number }> = []
+    for (const message of conversation.messages) {
+      const text = contentToSearchText(message.content).toLocaleLowerCase()
+      let offset = text.indexOf(deferredSearchQuery)
+      while (offset >= 0) {
+        matches.push({ messageId: message.id, offset })
+        offset = text.indexOf(deferredSearchQuery, offset + Math.max(1, deferredSearchQuery.length))
+      }
+    }
+    return matches
+  }, [conversation, deferredSearchQuery])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLocaleLowerCase() === 'f') {
+        event.preventDefault()
+        setSearchOpen(true)
+      } else if (event.key === 'Escape' && searchOpen) {
+        setSearchOpen(false)
+        setSearchQuery('')
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [searchOpen])
+
+  useEffect(() => {
+    setActiveSearchMatch((current) => searchMatches.length === 0 ? 0 : Math.min(current, searchMatches.length - 1))
+  }, [searchMatches.length])
+
+  useEffect(() => {
+    const active = searchMatches[activeSearchMatch]
+    if (!active) return
+    const element = Array.from(document.querySelectorAll<HTMLElement>('[data-message-id]'))
+      .find((candidate) => candidate.dataset.messageId === active.messageId)
+    element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [activeSearchMatch, searchMatches])
+
+  useEffect(() => {
+    if (!conversation || !models?.length) return
+    if (models.some((candidate) => candidate.id === conversation.model)) return
+    useChatStore.getState().setConversationModel(conversation.id, resolvedDefault)
+    toast.warn(
+      'Model unavailable',
+      `The previously selected model is unavailable. This chat now uses ${resolvedDefault}.`,
+    )
+  }, [conversation, models, resolvedDefault])
 
   const [includePriorContext, setIncludePriorContext] = useState(false)
   const [selectedPriorConversationIds, setSelectedPriorConversationIds] = useState<string[]>([])
@@ -227,6 +293,42 @@ export function ChatView() {
       if (!msg) continue
       map.set(msg.id, {
         onCopy: () => {},
+        onEdit: isStreaming ? undefined : (content) => {
+          const liveConvId = conversationIdRef.current
+          if (liveConvId) updateMessage(liveConvId, msg.id, { content, updatedAt: Date.now() })
+        },
+        onDeleteFromHere: isStreaming ? undefined : async () => {
+          const liveMessages = messagesRef.current
+          const liveConvId = conversationIdRef.current
+          if (!liveMessages || !liveConvId) return
+          const index = liveMessages.findIndex((message) => message.id === msg.id)
+          if (index < 0) return
+          const count = liveMessages.length - index
+          const confirmed = await askDecision({
+            title: 'Delete from here?',
+            detail: `Delete this message and ${count - 1} message${count - 1 === 1 ? '' : 's'} after it (${count} total).`,
+            actionLabel: 'Delete messages',
+            danger: true,
+          })
+          if (confirmed) truncateConversationAfterMessage(liveConvId, msg.id, { includeSelected: true })
+        },
+        onRegenerateFromHere: !isStreaming && msg.role === 'user' ? async () => {
+          const liveConvId = conversationIdRef.current
+          if (!liveConvId) return
+          const confirmed = await askDecision({
+            title: 'Regenerate from here?',
+            detail: 'Keep this user message, remove all later messages, and generate a new branch.',
+            actionLabel: 'Regenerate branch',
+            danger: true,
+          })
+          if (!confirmed) return
+          truncateConversationAfterMessage(liveConvId, msg.id, { includeSelected: false })
+          await regenerate(model)
+        } : undefined,
+        onForkFromHere: isStreaming ? undefined : () => {
+          const liveConvId = conversationIdRef.current
+          if (liveConvId) forkConversation(liveConvId, msg.id)
+        },
         onDelete: () => {
           const liveMessages = messagesRef.current
           const liveConvId = conversationIdRef.current
@@ -245,7 +347,7 @@ export function ChatView() {
       })
     }
     return map
-  }, [conversation?.id, messageCount, model, characterSlug, deleteMessage, regenerate, createScene])
+  }, [conversation?.id, messageCount, model, characterSlug, deleteMessage, updateMessage, truncateConversationAfterMessage, forkConversation, regenerate, createScene, isStreaming])
 
   const lastContent = conversation?.messages[messageCount - 1]?.content
   const lastLen = typeof lastContent === 'string' ? lastContent.length : 0
@@ -256,6 +358,24 @@ export function ChatView() {
 
   return (
     <div className="flex flex-col h-full">
+      {searchOpen && (
+        <div role="search" className="flex items-center gap-2 soft-separator-y bg-surface-elevated px-4 py-2">
+          <input
+            autoFocus
+            aria-label="Search current conversation"
+            value={searchQuery}
+            onChange={(event) => { setSearchQuery(event.target.value); setActiveSearchMatch(0) }}
+            placeholder="Search this conversation"
+            className="min-w-0 flex-1 rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+          />
+          <span aria-live="polite" className="text-xs text-text-muted">
+            {searchMatches.length === 0 ? '0 matches' : `${activeSearchMatch + 1} of ${searchMatches.length}`}
+          </span>
+          <button type="button" aria-label="Previous match" disabled={searchMatches.length === 0} onClick={() => setActiveSearchMatch((value) => (value - 1 + searchMatches.length) % searchMatches.length)} className="rounded p-1 text-text-secondary hover:bg-surface">↑</button>
+          <button type="button" aria-label="Next match" disabled={searchMatches.length === 0} onClick={() => setActiveSearchMatch((value) => (value + 1) % searchMatches.length)} className="rounded p-1 text-text-secondary hover:bg-surface">↓</button>
+          <button type="button" aria-label="Close conversation search" onClick={() => { setSearchOpen(false); setSearchQuery('') }} className="rounded p-1 text-text-secondary hover:bg-surface">×</button>
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto">
         {!conversation || conversation.messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-6 gap-6">
@@ -343,18 +463,29 @@ export function ChatView() {
             <div className="w-full max-w-[960px] mx-auto py-5 px-4 sm:px-5 flex flex-col gap-5">
               {conversation.messages.map((msg, i) => {
                 const cb = messageCallbacks.get(msg.id)
+                const activeMatchMessageId = searchMatches[activeSearchMatch]?.messageId
                 return (
+                  <div
+                    data-message-id={msg.id}
+                    data-search-match={deferredSearchQuery && contentToSearchText(msg.content).toLocaleLowerCase().includes(deferredSearchQuery) ? 'true' : undefined}
+                    className={activeMatchMessageId === msg.id ? 'rounded-lg outline outline-2 outline-accent outline-offset-4' : undefined}
+                  >
                   <MessageBubble
                     key={msg.id}
                     message={msg}
                     index={i}
                     onCopy={cb?.onCopy ?? (() => {})}
                     onDelete={cb?.onDelete ?? (() => {})}
+                    onEdit={cb?.onEdit}
+                    onDeleteFromHere={cb?.onDeleteFromHere}
+                    onRegenerateFromHere={cb?.onRegenerateFromHere}
+                    onForkFromHere={cb?.onForkFromHere}
                     onRegenerate={cb?.onRegenerate}
                     onGenerateScene={cb?.onGenerateScene}
                     isCharacterBound={isCharacterBound}
                     assistantAvatarUrl={assistantAvatarUrl}
                   />
+                  </div>
                 )
               })}
               <div ref={messagesEndRef} />
@@ -491,14 +622,6 @@ export function ChatView() {
         </div>
       )}
 
-      <PriorConversationContextSelector
-        includePriorContext={includePriorContext}
-        onIncludeChange={setIncludePriorContext}
-        conversations={availablePriorConversations}
-        selectedIds={selectedPriorConversationIds}
-        onSelectedIdsChange={setSelectedPriorConversationIds}
-        activeConversation={conversation}
-      />
       <ChatInput
         onSend={handleSend}
         onStop={stop}
@@ -507,6 +630,16 @@ export function ChatView() {
         disableImageAttach={!visionSupported}
         visionUnsupportedModelId={model}
         memoryStatus={effectiveMemoryStatus}
+        settingsControl={(
+          <PriorConversationContextSelector
+            includePriorContext={includePriorContext}
+            onIncludeChange={setIncludePriorContext}
+            conversations={availablePriorConversations}
+            selectedIds={selectedPriorConversationIds}
+            onSelectedIdsChange={setSelectedPriorConversationIds}
+            activeConversation={conversation}
+          />
+        )}
       />
     </div>
   )
@@ -529,6 +662,23 @@ function PriorConversationContextSelector({
 }) {
   const setConversationMemoryEnabled = useChatStore((s) => s.setConversationMemoryEnabled)
   const memoryEnabled = activeConversation?.metadata?.memoryRetrievalEnabled === true
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open])
   const toggleId = (id: string) => {
     onSelectedIdsChange(selectedIds.includes(id)
       ? selectedIds.filter((value) => value !== id)
@@ -536,8 +686,19 @@ function PriorConversationContextSelector({
   }
 
   return (
-    <div className="border-t border-border/50 bg-surface px-4 sm:px-6 py-2">
-      <div className="w-full max-w-[860px] mx-auto rounded-lg border border-border bg-surface-elevated px-3 py-2">
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        aria-label="Chat context settings"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className="rounded-lg px-2 py-1.5 text-[12px] text-text-muted hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+      >
+        ⚙ Chat context · {memoryEnabled ? 'memory on' : 'memory off'} · {includePriorContext ? `${selectedIds.length} prior` : 'prior off'}
+      </button>
+      {open && (
+      <div role="dialog" aria-label="Chat context" className="absolute bottom-full left-0 z-30 mb-2 w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-border bg-surface-elevated px-3 py-3 shadow-xl">
+        <div className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-text-muted">Chat context</div>
         {activeConversation && (
           <label className="mb-2 flex items-center justify-between gap-3 text-[13px] text-text-primary">
             <span>Include memory retrieval for this chat</span>
@@ -587,6 +748,7 @@ function PriorConversationContextSelector({
           </div>
         )}
       </div>
+      )}
     </div>
   )
 }

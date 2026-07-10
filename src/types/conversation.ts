@@ -15,6 +15,7 @@ export interface ConversationMessage {
   content: string | ContentPart[];
   reasoning_content?: string;
   timestamp: number;
+  updatedAt?: number;
   metadata?: {
     model?: string;
     safetyDecisionId?: string;
@@ -40,6 +41,11 @@ export interface Conversation {
   parentConversationId?: string;
   /** Message ids that were selected when forking. */
   forkedFromMessageIds?: string[];
+  forkedFrom?: {
+    conversationId: string;
+    messageId: string;
+    createdAt: number;
+  };
   metadata?: {
     tags: string[];
     pinned: boolean;
@@ -59,6 +65,7 @@ export interface Conversation {
      *  the slug that was active when the chat began. */
     character?: ConversationCharacterMeta;
     memoryRetrievalEnabled?: boolean;
+    includePriorConversationContext?: boolean;
   };
   memory?: {
     summary: string;

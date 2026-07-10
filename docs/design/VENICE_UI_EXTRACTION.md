@@ -1,6 +1,6 @@
 # Venice UI Extraction Roadmap
 
-This document outlines the extraction of the Venice.ai design system from captured DOM/CSS, the donor `donor-repo` repository, and the target integration into the `Venice-API-connector` local repository.
+This document outlines the extraction of the Venice.ai design system from captured DOM/CSS, the donor `donor-repo` repository, and the target integration into the Venice Forge Electron repository.
 
 ## 1. Discovery
 We have analyzed the current primary repository, the `donor-repo` donor repo, and are actively running Playwright to capture the live design of `https://venice.ai`.

@@ -4,9 +4,15 @@ import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { TAB_REGISTRY } from '../../config/tabs'
 import { useProjectStore } from '../../stores/project-store'
+import { usePromptLibraryStore } from '../../stores/prompt-library-store'
 import { useSettingsStore } from '../../stores/settings-store'
+import { toast } from '../../stores/toast-store'
 import { ModalRequestHost } from '../ui/modal-requests'
 import { CommandPalette } from './CommandPalette'
+
+vi.mock('../../utils/file-reader', () => ({
+  readBoundedJsonFile: vi.fn(),
+}));
 
 function PaletteHarness() {
   const [open, setOpen] = React.useState(false)
@@ -494,4 +500,54 @@ describe("CommandPalette — Phase 2H Storage / Privacy commands", () => {
     })
     expect(exportSafeSummary).toHaveBeenCalled()
   })
+})
+
+// Phase 5: VERIFY-075 Prompt Library import/sync reconciliation surfaced in Command Palette
+describe("CommandPalette — Phase 5 Prompt Library import reconciliation", () => {
+  beforeEach(() => {
+    usePromptLibraryStore.setState({
+      prompts: [],
+      activePromptId: null,
+      hydrated: true,
+      loading: false,
+      loadError: null,
+    });
+  });
+
+  it("imports prompts with reconcile=true and surfaces imported + synced counts", async () => {
+    const { readBoundedJsonFile } = await import('../../utils/file-reader');
+    vi.mocked(readBoundedJsonFile).mockResolvedValue({
+      version: 1,
+      app: 'Venice Forge',
+      exportedAt: new Date().toISOString(),
+      prompts: [],
+    } as never);
+
+    const importPrompts = vi.spyOn(usePromptLibraryStore.getState(), 'importPrompts').mockResolvedValue({
+      imported: [{ id: 'p-new', title: 'New', kind: 'general', scope: 'global' }] as never[],
+      reconciled: [{ id: 'p-existing', title: 'Existing', kind: 'general', scope: 'global' }] as never[],
+      skipped: [],
+    });
+    const success = vi.spyOn(toast, 'success').mockReturnValue(1);
+
+    const createElementSpy = vi.spyOn(document, 'createElement');
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
+    let input: HTMLInputElement | null = null;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("command-palette-import-prompts"))
+      input = createElementSpy.mock.results.find((r) => r.value?.type === 'file')?.value ?? null;
+    });
+
+    if (!input) throw new Error('file input was not created');
+    const file = new File(['{}'], 'prompts.json', { type: 'application/json' });
+    Object.defineProperty(input, 'files', { value: [file] });
+    await act(async () => {
+      fireEvent.change(input!);
+    });
+
+    await vi.waitFor(() => expect(importPrompts).toHaveBeenCalled());
+    expect(importPrompts).toHaveBeenCalledWith(expect.anything(), { reconcile: true });
+    expect(success).toHaveBeenCalledWith(expect.stringMatching(/imported 1 prompt/));
+    expect(success).toHaveBeenCalledWith(expect.stringMatching(/synced 1 prompt/));
+  });
 })

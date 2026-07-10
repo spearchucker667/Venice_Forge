@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+// Regression guards: VERIFY-071 (message operations), VERIFY-072 (conversation search),
+// VERIFY-073 (model hot swap/fallback).
 import "@testing-library/jest-dom/vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -53,8 +55,10 @@ class MockFileReader {
   }
 }
 
+const modelsData = vi.hoisted(() => ({ value: [] as Array<{ id: string; model_spec?: { name?: string; capabilities?: { supportsVision?: boolean } } }> }));
+
 vi.mock("../../hooks/use-models", () => ({
-  useModels: () => ({ data: [] }),
+  useModels: (_type?: string) => ({ data: modelsData.value }),
 }));
 
 vi.mock("../../hooks/use-chat", () => ({
@@ -132,6 +136,7 @@ describe("ChatView", () => {
         enable_web_search: "off",
       },
     });
+    modelsData.value = [];
   });
 
   afterEach(() => {
@@ -266,6 +271,7 @@ describe("ChatView", () => {
     });
 
     render(<ChatView />);
+    await userEvent.click(screen.getByRole("button", { name: "Chat context settings" }));
     expect(screen.getByLabelText("Include prior conversation context")).not.toBeChecked();
 
     await userEvent.type(screen.getByLabelText("Message input"), "Hello");
@@ -308,6 +314,7 @@ describe("ChatView", () => {
 
     render(<ChatView />);
 
+    await userEvent.click(screen.getByRole("button", { name: "Chat context settings" }));
     await userEvent.click(screen.getByLabelText("Include prior conversation context"));
     await userEvent.click(screen.getByRole("button", { name: /add prior alpha/i }));
     await userEvent.type(screen.getByLabelText("Message input"), "Use context");
@@ -368,6 +375,240 @@ describe("ChatView", () => {
       undefined,
       "",
       { mode: "disabled_for_message", source: "preview" },
+    );
+  });
+
+  // VERIFY-071 regression guard: delete-from-here confirms, truncates, and
+  // returns the removed slice. The UI does not currently expose an undo
+  // button; the store slice is surfaced for future undo/toast support.
+  it("deletes from a message onward after confirmation and removes later messages", async () => {
+    vi.mocked(askDecision).mockResolvedValueOnce(true);
+    useChatStore.setState({
+      conversations: [
+        {
+          id: "del-from-here",
+          title: "Delete test",
+          model: "llama-3.3-70b",
+          createdAt: 1,
+          updatedAt: 1,
+          messages: [
+            { id: "m1", role: "user", content: "One", timestamp: 1 },
+            { id: "m2", role: "assistant", content: "Two", timestamp: 2 },
+            { id: "m3", role: "user", content: "Three", timestamp: 3 },
+          ],
+          metadata: { tags: [], pinned: false, archived: false, source: "chat", messageCount: 3 },
+          memory: { summary: "", topics: [], entities: [], userFacts: [], projectRefs: [] },
+        },
+      ],
+      activeConversationId: "del-from-here",
+    });
+
+    render(<ChatView />);
+    // Delete from the second message so the first message remains.
+    await userEvent.click(screen.getAllByRole("button", { name: "Delete from here" })[1]);
+
+    const conv = useChatStore.getState().conversations.find((c) => c.id === "del-from-here")!;
+    expect(conv.messages).toHaveLength(1);
+    expect(conv.messages[0].content).toBe("One");
+  });
+
+  // VERIFY-071 regression guard: regenerate-from-here keeps the selected user
+  // message, truncates everything after it, and triggers a generation.
+  it("regenerates from a user message after confirmation", async () => {
+    vi.mocked(askDecision).mockResolvedValueOnce(true);
+    useChatStore.setState({
+      conversations: [
+        {
+          id: "regen-from-here",
+          title: "Regen test",
+          model: "llama-3.3-70b",
+          createdAt: 1,
+          updatedAt: 1,
+          messages: [
+            { id: "m1", role: "user", content: "Prompt", timestamp: 1 },
+            { id: "m2", role: "assistant", content: "Old", timestamp: 2 },
+          ],
+          metadata: { tags: [], pinned: false, archived: false, source: "chat", messageCount: 2 },
+          memory: { summary: "", topics: [], entities: [], userFacts: [], projectRefs: [] },
+        },
+      ],
+      activeConversationId: "regen-from-here",
+    });
+
+    render(<ChatView />);
+    await userEvent.click(screen.getByRole("button", { name: "Regenerate from here" }));
+
+    const conv = useChatStore.getState().conversations.find((c) => c.id === "regen-from-here")!;
+    expect(conv.messages).toHaveLength(1);
+    expect(conv.messages[0].content).toBe("Prompt");
+    expect(chatHookMocks.regenerate).toHaveBeenCalledWith("llama-3.3-70b");
+  });
+
+  // VERIFY-071 regression guard: fork creates a new active conversation,
+  // preserves model/character binding, and leaves the original immutable.
+  it("forks from a message and preserves character binding while leaving the original unchanged", async () => {
+    useChatStore.setState({
+      conversations: [
+        {
+          id: "fork-source",
+          title: "Chat with Ada",
+          model: "venice-uncensored-1-2",
+          createdAt: 1,
+          updatedAt: 1,
+          messages: [
+            { id: "m1", role: "user", content: "Hello", timestamp: 1 },
+            { id: "m2", role: "assistant", content: "Hi", timestamp: 2 },
+          ],
+          metadata: {
+            tags: [],
+            pinned: false,
+            archived: false,
+            source: "character",
+            messageCount: 2,
+            character: { slug: "ada", name: "Ada", modelId: "venice-uncensored-1-2" },
+          },
+          memory: { summary: "", topics: [], entities: [], userFacts: [], projectRefs: [] },
+        },
+      ],
+      activeConversationId: "fork-source",
+    });
+
+    render(<ChatView />);
+    await userEvent.click(screen.getAllByRole("button", { name: "Fork chat from here" })[0]);
+
+    const state = useChatStore.getState();
+    const forkId = state.activeConversationId;
+    expect(forkId).not.toBe("fork-source");
+    const fork = state.conversations.find((c) => c.id === forkId)!;
+    expect(fork.model).toBe("venice-uncensored-1-2");
+    expect(fork.metadata?.character?.slug).toBe("ada");
+    expect(fork.messages).toHaveLength(1);
+    expect(fork.messages[0].content).toBe("Hello");
+
+    const original = state.conversations.find((c) => c.id === "fork-source")!;
+    expect(original.messages).toHaveLength(2);
+  });
+
+  // VERIFY-072 regression guard: in-conversation search opens with Ctrl+F,
+  // navigates matches, reports no-results, finds text inside structured content,
+  // and closes on Escape.
+  it("searches the current conversation with keyboard shortcuts and navigation", async () => {
+    useChatStore.setState({
+      conversations: [
+        {
+          id: "search-conv",
+          title: "Search test",
+          model: "llama-3.3-70b",
+          createdAt: 1,
+          updatedAt: 1,
+          messages: [
+            { id: "m1", role: "user", content: "alpha beta", timestamp: 1 },
+            { id: "m2", role: "assistant", content: "beta gamma", timestamp: 2 },
+            { id: "m3", role: "user", content: [{ type: "text", text: "gamma delta" }], timestamp: 3 },
+          ],
+          metadata: { tags: [], pinned: false, archived: false, source: "chat", messageCount: 3 },
+          memory: { summary: "", topics: [], entities: [], userFacts: [], projectRefs: [] },
+        },
+      ],
+      activeConversationId: "search-conv",
+    });
+
+    render(<ChatView />);
+    expect(screen.queryByRole("search")).not.toBeInTheDocument();
+
+    await userEvent.keyboard("{Control>}f{/Control}");
+    const input = screen.getByLabelText("Search current conversation");
+    expect(input).toBeInTheDocument();
+
+    await userEvent.type(input, "beta");
+    expect(screen.getByText("1 of 2")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Next match" }));
+    expect(screen.getByText("2 of 2")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Previous match" }));
+    expect(screen.getByText("1 of 2")).toBeInTheDocument();
+
+    await userEvent.clear(input);
+    await userEvent.type(input, "gamma");
+    expect(screen.getByText("1 of 2")).toBeInTheDocument();
+
+    await userEvent.clear(input);
+    await userEvent.type(input, "no-match");
+    expect(screen.getByText("0 matches")).toBeInTheDocument();
+
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("search")).not.toBeInTheDocument();
+  });
+
+  // VERIFY-073 regression guard: when the persisted conversation model is not
+  // in the live model list, ChatView falls back to the resolved default.
+  it("falls back to the resolved default when the persisted model is unavailable", async () => {
+    const warnSpy = vi.spyOn(toast, "warn");
+    modelsData.value = [{ id: "fallback-model", model_spec: { name: "Fallback" } }];
+    useChatStore.setState({
+      conversations: [
+        {
+          id: "unavailable-model",
+          title: "Unavailable model",
+          model: "legacy-model",
+          createdAt: 1,
+          updatedAt: 1,
+          messages: [{ id: "m1", role: "user", content: "Hello", timestamp: 1 }],
+          metadata: { tags: [], pinned: false, archived: false, source: "chat", messageCount: 1 },
+          memory: { summary: "", topics: [], entities: [], userFacts: [], projectRefs: [] },
+        },
+      ],
+      activeConversationId: "unavailable-model",
+    });
+
+    render(<ChatView />);
+    await waitFor(() =>
+      expect(warnSpy).toHaveBeenCalledWith(
+        "Model unavailable",
+        expect.stringContaining("fallback-model"),
+      ),
+    );
+
+    const conv = useChatStore.getState().conversations.find((c) => c.id === "unavailable-model")!;
+    expect(conv.model).toBe("fallback-model");
+  });
+
+  // VERIFY-073 regression guard: a persisted conversation model wins over the
+  // global selected model and is used when sending.
+  it("uses the persisted conversation model instead of the global selection", async () => {
+    modelsData.value = [
+      { id: "persisted-model", model_spec: { name: "Persisted" } },
+      { id: "global-model", model_spec: { name: "Global" } },
+    ];
+    useSettingsStore.setState({ selectedModels: { chat: "global-model" } });
+    useChatStore.setState({
+      conversations: [
+        {
+          id: "persisted-model-conv",
+          title: "Persisted model chat",
+          model: "persisted-model",
+          createdAt: 1,
+          updatedAt: 1,
+          messages: [],
+          metadata: { tags: [], pinned: false, archived: false, source: "chat", messageCount: 0 },
+          memory: { summary: "", topics: [], entities: [], userFacts: [], projectRefs: [] },
+        },
+      ],
+      activeConversationId: "persisted-model-conv",
+    });
+
+    render(<ChatView />);
+    const input = screen.getByLabelText("Message input");
+    await userEvent.type(input, "Use persisted model");
+    await userEvent.keyboard("{Enter}");
+
+    expect(chatHookMocks.send).toHaveBeenCalledWith(
+      "Use persisted model",
+      "persisted-model",
+      undefined,
+      "",
+      { mode: "auto", source: "global" },
     );
   });
 });

@@ -28,6 +28,12 @@ const fixtures = vi.hoisted(() => {
     createdAt: 1_700_000_000_000,
     updatedAt: 1_700_000_000_000,
   };
+  const overloadedCard = {
+    ...sampleCard,
+    id: "card_overloaded_001",
+    name: "Overloaded",
+    description: "x".repeat(130_000),
+  };
   const sampleScene = {
     id: "scene_001",
     title: "Mountain Sunset",
@@ -82,7 +88,7 @@ const fixtures = vi.hoisted(() => {
     createdAt: "2025-01-01T00:00:00.000Z",
     updatedAt: "2025-01-01T00:00:00.000Z",
   };
-  return { sampleCard, sampleScene, samplePrompt };
+  return { sampleCard, sampleScene, samplePrompt, overloadedCard };
 });
 
 const mocks = vi.hoisted(() => ({
@@ -114,8 +120,13 @@ vi.mock("../../stores/settings-store", () => {
 });
 
 vi.mock("../../stores/character-card-store", () => {
-  const cards = [fixtures.sampleCard];
-  const state = { cards, upsert: mocks.upsertMock, remove: mocks.removeMock };
+  let cards = [fixtures.sampleCard];
+  const state = {
+    get cards() { return cards; },
+    setCards(next: typeof cards) { cards = next; },
+    upsert: mocks.upsertMock,
+    remove: mocks.removeMock,
+  };
   const fn = (selector: (s: unknown) => unknown) => selector(state);
   (fn as unknown as { getState: () => unknown }).getState = () => state;
   return { useCharacterCardStore: fn };
@@ -168,6 +179,7 @@ vi.mock("../../services/pdfParserService", () => ({
 }));
 
 import { CharacterEditor } from "./CharacterEditor";
+import { useCharacterCardStore } from "../../stores/character-card-store";
 
 const { sampleCard } = fixtures;
 
@@ -541,5 +553,35 @@ describe("CharacterEditor — guard regressions (RELEASE-BLOCKER #6)", () => {
     });
     const saved = mocks.upsertMock.mock.calls[0]![0] as { modelId?: string };
     expect(saved.modelId).toBe(targetValue);
+  });
+});
+
+// VERIFY-079 regression guard — CharacterEditor displays the estimated token budget
+// and disables Save when the character exceeds the model input budget.
+describe("CharacterEditor — token budget display", () => {
+  const { overloadedCard } = fixtures;
+
+  beforeEach(() => {
+    (useCharacterCardStore.getState() as any).setCards([fixtures.sampleCard, overloadedCard]);
+  });
+
+  it("renders the estimated token budget for the current character", () => {
+    render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    const budget = screen.getByTestId("character-token-budget");
+    expect(budget).toBeInTheDocument();
+    expect(budget.textContent).toContain("Estimated tokens:");
+    expect(budget.textContent).toContain("output reserve");
+  });
+
+  it("disables Save and shows the over-limit state when the character exceeds the budget", async () => {
+    mocks.upsertMock.mockReset();
+    render(<CharacterEditor cardId="card_overloaded_001" onClose={() => {}} />);
+
+    const budget = screen.getByTestId("character-token-budget");
+    expect(budget).toHaveClass("text-danger");
+
+    const saveBtn = screen.getByRole("button", { name: /Save \(character exceeds token budget\)/i });
+    expect(saveBtn).toBeDisabled();
+    expect(mocks.upsertMock).not.toHaveBeenCalled();
   });
 });

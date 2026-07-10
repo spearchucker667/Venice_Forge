@@ -1,5 +1,11 @@
 # Venice UI Parity Reference
 
+> Historical snapshot. This report records the repository name and local path
+> used when the audit was performed. The current Electron repository is
+> `/Users/super_user/Projects/Venice_Forge` and the current GitHub repository
+> is `spearchucker667/Venice_Forge`. Do not use paths in this report as active
+> setup instructions.
+
 > [!NOTE]
 > Historical design reference. Archived on 2026-06-15.
 > The implementation map below cites paths that existed during the 2026-06-03

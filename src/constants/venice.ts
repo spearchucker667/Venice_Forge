@@ -3,6 +3,7 @@
 /** Default models used when the Venice API model list is unavailable. */
 export const FALLBACK_MODELS = {
   text: [
+    { id: "zai-org-glm-4.6", type: "text", name: "zai-org-glm-4.6", traits: ["configured-default"], isFallback: true, source: "fallback" },
     { id: "venice-uncensored", type: "text", name: "venice-uncensored", traits: ["fallback"], isFallback: true, source: "fallback" },
     { id: "venice-uncensored-1-2", type: "text", name: "venice-uncensored-1-2", traits: ["fallback"], isFallback: true, source: "fallback" },
     { id: "llama-3.3-70b", type: "text", name: "llama-3.3-70b", traits: ["fallback"], isFallback: true, source: "fallback" },
@@ -124,8 +125,8 @@ Do not invent facts, file paths, media IDs, tool results, or successful actions 
 
 Use clear markdown for structured responses. Use \`\`\`language\`\`\` fenced blocks for all code. Use $$...$$ for display math and $...$ for inline math. Match the user's language throughout.`;
 
-/** The default model used when creating a new standard chat if no other model is selected. */
-export const DEFAULT_CHAT_MODEL = "venice-uncensored";
+/** Centrally configured fallback; live provider default metadata takes precedence. */
+export const DEFAULT_CHAT_MODEL = "zai-org-glm-4.6";
 
 /** The default model used for workflows, web search, and data processing tasks. */
 export const DEFAULT_WORKFLOW_MODEL = "llama-3.3-70b";

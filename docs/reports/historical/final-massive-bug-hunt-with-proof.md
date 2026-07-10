@@ -1,5 +1,11 @@
 # Final Massive Bug Hunt With Proof
 
+> Historical snapshot. This report records the repository name and local path
+> used when the audit was performed. The current Electron repository is
+> `/Users/super_user/Projects/Venice_Forge` and the current GitHub repository
+> is `spearchucker667/Venice_Forge`. Do not use paths in this report as active
+> setup instructions.
+
 > Audit date: 2026-06-18 (current session)
 > Auditor: Senior Principal Engineer — Final Release-Blocking Audit
 > Repo: `spearchucker667/Venice_Forge` @ `main`

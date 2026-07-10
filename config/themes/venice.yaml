@@ -6,16 +6,16 @@
 accent: "#63b3ed"
 background: "#050a0f"
 details: "Venice Parity Dark"
-foreground: "#f4f6f8"
+foreground: "#d9dee5"
 terminal_colors:
   bright:
-    black: "#687483"
+    black: "#7a8694"
     blue: "#2b6cb0"
     cyan: "#7da7ff"
     green: "#74d66a"
     magenta: "#63b3ed"
     red: "#ef4444"
-    white: "#f4f6f8"
+    white: "#d9dee5"
     yellow: "#d6a84f"
   normal:
     black: "#050a0f"
@@ -24,5 +24,5 @@ terminal_colors:
     green: "#74d66a"
     magenta: "#63b3ed"
     red: "#ef4444"
-    white: "#a6b0bc"
+    white: "#a3adba"
     yellow: "#d6a84f"

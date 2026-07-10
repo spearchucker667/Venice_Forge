@@ -471,11 +471,18 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
                     maxItems: 500,
                     itemKey: 'prompts'
                   });
-                  const result = await usePromptLibraryStore.getState().importPrompts(payload);
-                  toast.success(
-                    `Imported ${result.imported.length} prompt${result.imported.length === 1 ? '' : 's'}` +
-                      (result.skipped.length > 0 ? ` (skipped ${result.skipped.length})` : ''),
-                  );
+                  const result = await usePromptLibraryStore.getState().importPrompts(payload, { reconcile: true });
+                  const parts: string[] = [];
+                  if (result.imported.length > 0) {
+                    parts.push(`imported ${result.imported.length} prompt${result.imported.length === 1 ? '' : 's'}`);
+                  }
+                  if (result.reconciled.length > 0) {
+                    parts.push(`synced ${result.reconciled.length} prompt${result.reconciled.length === 1 ? '' : 's'}`);
+                  }
+                  if (result.skipped.length > 0) {
+                    parts.push(`skipped ${result.skipped.length}`);
+                  }
+                  toast.success(parts.length > 0 ? `Prompt library: ${parts.join(', ')}` : 'Prompt library up to date');
                 } catch (err) {
                   toast.error('Could not import', redactErrorMessage(err));
                 }

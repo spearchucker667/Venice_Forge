@@ -6,6 +6,7 @@ import { toast } from '../../stores/toast-store'
 import type { Conversation } from '../../types/conversation'
 import { contentToSearchText } from '../../utils/messageContent'
 import { askDecision } from '../ui/modal-requests'
+import { getConversationDisplayTitle } from '../../utils/conversationDisplayTitle'
 
 function formatRelativeTime(date: number): string {
   const now = Date.now()
@@ -241,7 +242,7 @@ export default function HistoryView() {
                 </div>
                 
                 <h3 className="text-[15px] font-semibold text-text-primary leading-tight line-clamp-2 mb-2 group-hover:text-accent transition-colors">
-                  {conv.title || 'Untitled Conversation'}
+                  {getConversationDisplayTitle(conv)}
                 </h3>
                 
                 <div className="flex-1" />

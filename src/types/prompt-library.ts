@@ -120,6 +120,7 @@ export interface PromptLibraryImportSkip {
 
 export interface PromptLibraryImportResult {
   imported: PromptLibraryItem[];
+  reconciled: PromptLibraryItem[];
   skipped: PromptLibraryImportSkip[];
 }
 
@@ -572,15 +573,15 @@ export function parsePromptLibraryImport(
   const skipped: PromptLibraryImportSkip[] = [];
   if (!isRecord(input)) {
     skipped.push({ reason: "Payload is not an object" });
-    return { imported: out, skipped };
+    return { imported: out, reconciled: [], skipped };
   }
   if (input.app !== "Venice Forge") {
     skipped.push({ reason: `Unknown app identifier (${String(input.app)})` });
-    return { imported: out, skipped };
+    return { imported: out, reconciled: [], skipped };
   }
   if (input.version !== 1) {
     skipped.push({ reason: `Unsupported export version (${String(input.version)})` });
-    return { imported: out, skipped };
+    return { imported: out, reconciled: [], skipped };
   }
   const rawPrompts = asArray<unknown>(input.prompts);
   const existingIds = new Set<string>();
@@ -618,7 +619,7 @@ export function parsePromptLibraryImport(
     existingIds.add(fresh.id);
     out.push(fresh);
   }
-  return { imported: out, skipped };
+  return { imported: out, reconciled: [], skipped };
 }
 
 /**

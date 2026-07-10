@@ -163,7 +163,7 @@ describe("chat-stream-manager", () => {
     useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
     useChatStore.getState().addMessage(convId, { role: "assistant", content: "" });
 
-    const sensitive = "Network error at /Users/super_user/secret/path";
+    const sensitive = "Network error at /Users/example/secret/path";
     mockedVeniceStreamChat.mockRejectedValue(new Error(sensitive));
 
     const promise = startStream(convId, "llama-3.3-70b");

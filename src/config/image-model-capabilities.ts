@@ -56,6 +56,19 @@ export interface ImageModelCapabilities {
    * as `supportsHideWatermark`. Defaults to `true` for backwards compat.
    */
   supportsReturnBinary?: boolean;
+  /**
+   * Whether the image model supports reference images (e.g. character
+   * consistency or style references). When `false` or undefined the
+   * payload builder drops reference images and generation falls back to
+   * text-only, which is the safe default for the current Venice image
+   * endpoint matrix.
+   */
+  supportsReferences?: boolean;
+  /**
+   * Maximum number of reference images the model accepts in a single
+   * request. Omitted or zero means no references are accepted.
+   */
+  referenceLimit?: number;
   /** Map from canonical model ID patterns — used for models not yet in the catalog. */
   patternMatch?: RegExp;
 }
@@ -119,6 +132,8 @@ const IMAGE_MODEL_CAPABILITIES: ImageModelCapabilities[] = [
     supportsNegativePrompt: true,
     supportsSeed: true,
     supportsVariants: true,
+    supportsReferences: false,
+    referenceLimit: 0,
     patternMatch: /^flux/i,
   },
   {
@@ -130,6 +145,8 @@ const IMAGE_MODEL_CAPABILITIES: ImageModelCapabilities[] = [
     supportsNegativePrompt: true,
     supportsSeed: true,
     supportsVariants: true,
+    supportsReferences: false,
+    referenceLimit: 0,
   },
   {
     modelId: "z-image-turbo",
@@ -140,6 +157,8 @@ const IMAGE_MODEL_CAPABILITIES: ImageModelCapabilities[] = [
     supportsNegativePrompt: true,
     supportsSeed: true,
     supportsVariants: true,
+    supportsReferences: false,
+    referenceLimit: 0,
     patternMatch: /^z-image/i,
   },
   {
@@ -151,6 +170,8 @@ const IMAGE_MODEL_CAPABILITIES: ImageModelCapabilities[] = [
     supportsNegativePrompt: true,
     supportsSeed: true,
     supportsVariants: true,
+    supportsReferences: false,
+    referenceLimit: 0,
     patternMatch: /^hidream/i,
   },
   {
@@ -162,6 +183,8 @@ const IMAGE_MODEL_CAPABILITIES: ImageModelCapabilities[] = [
     supportsNegativePrompt: true,
     supportsSeed: true,
     supportsVariants: true,
+    supportsReferences: false,
+    referenceLimit: 0,
     patternMatch: /^sdxl/i,
   },
   {
@@ -176,7 +199,21 @@ const IMAGE_MODEL_CAPABILITIES: ImageModelCapabilities[] = [
     supportsNegativePrompt: true,
     supportsSeed: true,
     supportsVariants: true,
+    supportsReferences: false,
+    referenceLimit: 0,
     patternMatch: /^nano/i,
+  },
+  {
+    modelId: "venice-character-reference-v1",
+    label: "Venice Character Reference (Beta)",
+    dimensionMode: "widthHeight",
+    widthHeightOptions: SD_WIDTH_HEIGHT_PAIRS,
+    defaultDimensions: { width: 1024, height: 1024 },
+    supportsNegativePrompt: true,
+    supportsSeed: true,
+    supportsVariants: true,
+    supportsReferences: true,
+    referenceLimit: 2,
   },
 ];
 
@@ -248,6 +285,8 @@ export function getImageModelCapabilities(modelId: string): ImageModelCapabiliti
     supportsNegativePrompt: true,
     supportsSeed: true,
     supportsVariants: true,
+    supportsReferences: false,
+    referenceLimit: 0,
   };
 }
 
@@ -498,6 +537,11 @@ export function getRecipeCapabilityList(capabilities: ImageModelCapabilities): s
   if (capabilities.supportsSteps === false) list.push("No steps");
   if (capabilities.supportsCfgScale === false) list.push("No CFG");
   if (capabilities.supportsStyle === false) list.push("No style preset");
+  if (capabilities.supportsReferences) {
+    list.push(`${capabilities.referenceLimit ?? 0} reference${capabilities.referenceLimit === 1 ? "" : "s"}`);
+  } else {
+    list.push("No references");
+  }
   if (capabilities.qualities && capabilities.qualities.length > 0) {
     list.push("Quality");
   }

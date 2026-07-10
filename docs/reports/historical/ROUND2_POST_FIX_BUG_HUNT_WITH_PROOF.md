@@ -1,5 +1,11 @@
 # Round 2 Post-Fix Bug Hunt With Proof
 
+> Historical snapshot. This report records the repository name and local path
+> used when the audit was performed. The current Electron repository is
+> `/Users/super_user/Projects/Venice_Forge` and the current GitHub repository
+> is `spearchucker667/Venice_Forge`. Do not use paths in this report as active
+> setup instructions.
+
 ## 1. Executive verdict
 - PASS — Previous blockers are closed and no new release blockers found.
 

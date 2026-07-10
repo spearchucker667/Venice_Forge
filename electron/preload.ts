@@ -335,7 +335,7 @@ const veniceForge = {
     search(query: string, options?: { limit?: number; includeArchived?: boolean }): Promise<{ ok: boolean; results: SearchResult[]; error?: string }> {
       return ipcRenderer.invoke("conversations:search", query, options);
     },
-    pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean }): Promise<{ ok: boolean; context: PulledMemoryContext; error?: string }> {
+    pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean; excludeConversationIds?: string[] }): Promise<{ ok: boolean; context: PulledMemoryContext; error?: string }> {
       return ipcRenderer.invoke("conversations:pullContext", input);
     },
     rebuildIndex(): Promise<{ ok: boolean; itemsIndexed: number; error?: string }> {
@@ -535,6 +535,15 @@ const veniceForge = {
     },
     stopSync(): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("sync:stopSync");
+    },
+    pauseSync(): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("sync:pauseSync");
+    },
+    getStatus(): Promise<{ ok: boolean; status: "stopped" | "paused" | "running"; configured: boolean }> {
+      return ipcRenderer.invoke("sync:getStatus");
+    },
+    setEmissionSuppressed(input: { suppressed: boolean }): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("sync:setEmissionSuppressed", input);
     },
     writePacket(input: { storeName: string; id: string; recordJson: string }): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("sync:writePacket", input);

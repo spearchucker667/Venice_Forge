@@ -35,4 +35,19 @@ describe("backupCrypto", () => {
       )
     ).rejects.toThrow(); // AES-GCM auth tag will fail
   });
+
+  it("rejects tampered ciphertext and authentication tags", async () => {
+    const encrypted = await encryptPayload("secret", "password");
+    const [ciphertext, tag] = encrypted.ciphertext.split(":");
+    const tamperedCiphertext = `${ciphertext.slice(0, -2)}AA:${tag}`;
+    const tamperedTag = `${ciphertext}:${tag.slice(0, -2)}AA`;
+    await expect(decryptPayload(tamperedCiphertext, encrypted.salt, encrypted.iv, "password")).rejects.toThrow();
+    await expect(decryptPayload(tamperedTag, encrypted.salt, encrypted.iv, "password")).rejects.toThrow();
+  });
+
+  it("rejects malformed envelopes and invalid Base64", async () => {
+    await expect(decryptPayload("missing-tag", "not base64", "also bad", "password")).rejects.toThrow(/Invalid Base64 salt/);
+    const encrypted = await encryptPayload("secret", "password");
+    await expect(decryptPayload("invalid", encrypted.salt, encrypted.iv, "password")).rejects.toThrow(/missing auth tag/);
+  });
 });

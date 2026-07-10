@@ -25,6 +25,11 @@ import { usePromptLibraryStore } from "../../stores/prompt-library-store";
 import { toast } from "../../stores/toast-store";
 import { copyText } from "../../stores/media-send-to";
 import { compileSceneToRecipe } from "../../services/sceneCompiler";
+import { getImageModelCapabilities } from "../../config/image-model-capabilities";
+import { buildSceneReferencePlan } from "../../services/sceneReferencePlanner";
+import { buildSceneReferenceEntities } from "../../services/sceneReferenceResolver";
+import { useCharacterCardStore } from "../../stores/character-card-store";
+import { usePersonaStore } from "../../stores/persona-store";
 
 const COMPONENT_KIND_OPTIONS: Array<{ value: SceneComponentKind; label: string }> = [
   { value: "subject", label: "Subject" },
@@ -299,6 +304,118 @@ export function SceneComposerView() {
   );
 }
 
+function SceneReferencePanel({ sceneDescription, modelId }: { sceneDescription: string; modelId: string }) {
+  const caps = useMemo(() => getImageModelCapabilities(modelId), [modelId]);
+  const cards = useCharacterCardStore((s) => s.cards);
+  const personas = usePersonaStore((s) => s.personas);
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
+
+  const plan = useMemo(() => {
+    const entities = buildSceneReferenceEntities({ cards, personas });
+    return buildSceneReferencePlan({
+      sceneDescription,
+      entities,
+      modelSupportsReferences: caps.supportsReferences === true,
+      referenceLimit: caps.referenceLimit ?? 0,
+      removedEntityIds: removedIds,
+    });
+  }, [sceneDescription, cards, personas, caps, removedIds]);
+
+  if (plan.detectedEntities.length === 0 && plan.omitted.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      className="rounded-md border border-border p-3 space-y-2"
+      data-testid="scene-reference-panel"
+    >
+      <div className="flex items-center gap-2">
+        <h3 className="text-[12px] font-semibold uppercase tracking-wide text-text-muted">
+          Character / Persona references
+        </h3>
+        <span className="text-[10.5px] text-text-muted ml-auto">
+          {caps.supportsReferences
+            ? `${plan.references.length}/${caps.referenceLimit ?? 0} used`
+            : "Model does not support references"}
+        </span>
+      </div>
+
+      {plan.references.length > 0 && (
+        <ul className="space-y-1.5" data-testid="scene-reference-included">
+          {plan.references.map((ref) => {
+            const entity = plan.detectedEntities.find((e) => e.id === ref.entityId);
+            return (
+              <li
+                key={ref.entityId}
+                className="flex items-center gap-2 text-[11.5px] rounded-md border border-border/60 px-2 py-1"
+              >
+                <span className="inline-block w-6 h-6 rounded bg-muted shrink-0 overflow-hidden">
+                  <img
+                    src={`data:${ref.mimeType};base64,${ref.data}`}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                </span>
+                <span className="truncate">{entity?.name ?? ref.entityId}</span>
+                <span className="text-text-muted text-[10px]">({entity?.type ?? "unknown"})</span>
+                <button
+                  type="button"
+                  onClick={() => setRemovedIds((prev) => Array.from(new Set([...prev, ref.entityId])))}
+                  className="ml-auto rounded border border-border px-1.5 py-0.5 text-[10px] hover:border-red-400 hover:text-red-300"
+                  data-testid={`scene-reference-remove-${ref.entityId}`}
+                >
+                  Remove
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {removedIds.length > 0 && (
+        <div className="flex flex-wrap gap-1.5" data-testid="scene-reference-removed">
+          {removedIds.map((id) => {
+            const entity = plan.detectedEntities.find((e) => e.id === id);
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setRemovedIds((prev) => prev.filter((x) => x !== id))}
+                className="text-[10.5px] rounded border border-border px-1.5 py-0.5 hover:border-accent hover:text-accent"
+                data-testid={`scene-reference-restore-${id}`}
+              >
+                Restore {entity?.name ?? id}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {plan.omitted.length > 0 && (
+        <ul className="space-y-1" data-testid="scene-reference-omitted">
+          {plan.omitted.map((o) => {
+            const entity = plan.detectedEntities.find((e) => e.id === o.entityId);
+            const reasonLabels: Record<string, string> = {
+              "not-mentioned": "not mentioned",
+              "no-image": "no image",
+              "model-unsupported": "model unsupported",
+              "reference-limit": "reference limit",
+              "unsafe-or-invalid": "unsafe or invalid",
+            };
+            return (
+              <li key={o.entityId} className="text-[11px] text-text-muted">
+                <span className="line-through">{entity?.name ?? o.entityId}</span>
+                {" "}— {reasonLabels[o.reason] ?? o.reason}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 interface SceneDetailProps {
   item: SceneComposerItem;
   projects: Array<{ id: string; name: string }>;
@@ -321,6 +438,7 @@ interface SceneDetailProps {
 
 function SceneDetail(props: SceneDetailProps) {
   const { item, projects, onUpdate, onAddVersion, onSetCurrentVersion, onToggleFavorite, onArchive, onDelete, onCreateWorkflow } = props;
+  const selectedImageModel = useSettingsStore((s) => s.selectedModels.image);
   const currentVersion: SceneVersion =
     item.versions.find((v) => v.id === item.currentVersionId) ??
     item.versions[0]!;
@@ -344,6 +462,15 @@ function SceneDetail(props: SceneDetailProps) {
       negativeContent: version.negativeContent,
     };
   };
+
+  useEffect(() => {
+    void ensurePromptsLoaded();
+  }, [ensurePromptsLoaded]);
+
+  const recipeResult = useMemo(
+    () => compileSceneToRecipe(item, currentVersion, { resolvePrompt: resolvePromptRef }),
+    [item, currentVersion, resolvePromptRef],
+  );
 
   const [title, setTitle] = useState(item.title);
   const [description, setDescription] = useState(item.description ?? "");
@@ -577,6 +704,12 @@ function SceneDetail(props: SceneDetailProps) {
       </header>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-4">
+        {/* Reference preview */}
+        <SceneReferencePanel
+          sceneDescription={recipeResult.recipe.prompt}
+          modelId={item.defaultModel?.trim() || selectedImageModel || "flux-dev"}
+        />
+
         {/* Component grid */}
         <div data-testid="scene-composer-components">
           <div className="flex items-center gap-2 mb-2">

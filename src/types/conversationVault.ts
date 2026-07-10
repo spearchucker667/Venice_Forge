@@ -58,6 +58,7 @@ export interface ConversationMessage {
   content: string | ContentPart[];
   reasoning_content?: string;
   timestamp: number;
+  updatedAt?: number;
   metadata?: {
     model?: string;
     safetyDecisionId?: string;
@@ -88,6 +89,13 @@ export interface ConversationRecordV1 {
   updatedAt: number;
   model: string;
   systemPrompt?: string;
+  parentConversationId?: string;
+  forkedFromMessageIds?: string[];
+  forkedFrom?: {
+    conversationId: string;
+    messageId: string;
+    createdAt: number;
+  };
   messages: ConversationMessage[];
   metadata: {
     tags: string[];
@@ -104,6 +112,7 @@ export interface ConversationRecordV1 {
     };
     character?: ConversationCharacterMeta;
     memoryRetrievalEnabled?: boolean;
+    includePriorConversationContext?: boolean;
   };
   memory: {
     summary: string;
@@ -182,4 +191,6 @@ export interface PulledMemoryContext {
   summaries: string[];
   tokenEstimate: number;
   message?: string;
+  conversationId?: string;
+  requestId?: string;
 }

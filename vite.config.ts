@@ -43,9 +43,10 @@ export default defineConfig(() => {
               if (id.includes('/pdfjs-dist/')) return 'vendor-pdfjs';
               if (id.includes('/lucide-react/')) return 'vendor-lucide';
               if (id.includes('@xyflow') || id.includes('reactflow')) return 'vendor-xyflow';
+              if (id.includes('@tanstack')) return 'vendor-tanstack';
               if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/react-router/') || id.includes('/zustand/')) return 'vendor-react';
               if (id.includes('/framer-motion/')) return 'vendor-framer';
-              if (id.includes('/react-markdown/') || id.includes('/remark/') || id.includes('/rehype/') || id.includes('/markdown/')) return 'vendor-markdown';
+              if (id.includes('/react-markdown/') || id.includes('/remark/') || id.includes('/rehype/') || id.includes('/markdown/') || id.includes('/micromark') || id.includes('/mdast-') || id.includes('/hast-') || id.includes('/unist-') || id.includes('/hastscript/') || id.includes('/ccount/') || id.includes('/longest-streak/')) return 'vendor-markdown';
               if (id.includes('/katex/') || id.includes('/mathjax/')) return 'vendor-math';
               if (id.includes('/monaco-editor/') || id.includes('/@monaco/')) return 'vendor-monaco';
               if (id.includes('/d3/') || id.includes('/d3-')) return 'vendor-d3';

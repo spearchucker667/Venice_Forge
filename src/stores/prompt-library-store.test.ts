@@ -418,6 +418,17 @@ describe("prompt-library-store (VERIFY-046)", () => {
       await usePromptLibraryStore.getState().updatePrompt("missing", { title: "x" });
       expect(usePromptLibraryStore.getState().prompts).toHaveLength(0);
     });
+    it("updatePrompt does nothing after the prompt has been deleted (VERIFY-076)", async () => {
+      const created = await usePromptLibraryStore.getState().createPrompt({
+        title: "T",
+        kind: "general",
+        content: "c",
+        scope: "global",
+      });
+      await usePromptLibraryStore.getState().deletePrompt(created.id);
+      await usePromptLibraryStore.getState().updatePrompt(created.id, { title: "Changed" });
+      expect(usePromptLibraryStore.getState().prompts).toHaveLength(0);
+    });
     it("setCurrentVersion does nothing if prompt not found, or version not found, or already current", async () => {
       const p = await usePromptLibraryStore.getState().createPrompt({ title: "t", kind: "general", content: "c", scope: "global" });
       await usePromptLibraryStore.getState().setCurrentVersion("missing", "v");
@@ -527,6 +538,114 @@ describe("prompt-library-store (VERIFY-046)", () => {
       
       useProjectStore.setState({ projects: [] });
       expect(resolvePromptProjectId(undefined)).toBeNull();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Phase 5 — Prompt library selection reconciliation (VERIFY-075 / VERIFY-076)
+  // ---------------------------------------------------------------------------
+
+  describe("import reconciliation", () => {
+    it("with reconcile=true updates an existing prompt instead of duplicating", async () => {
+      const existing = await usePromptLibraryStore.getState().createPrompt({
+        title: "Mountains",
+        kind: "image",
+        content: "v1 body",
+        scope: "global",
+      });
+      const exported = usePromptLibraryStore.getState().exportPrompts([existing.id]);
+      // Mutate the exported content so the import differs from the existing record.
+      exported.prompts[0]!.versions[0]!.content = "v2 synced body";
+
+      const result = await usePromptLibraryStore.getState().importPrompts(exported, { reconcile: true });
+
+      expect(result.imported).toHaveLength(0);
+      expect(result.reconciled).toHaveLength(1);
+      expect(result.skipped).toHaveLength(0);
+      expect(usePromptLibraryStore.getState().prompts).toHaveLength(1);
+      const updated = usePromptLibraryStore.getState().prompts[0]!;
+      expect(updated.id).toBe(existing.id);
+      expect(updated.versions).toHaveLength(2);
+      expect(updated.versions.map((v) => v.version)).toEqual([1, 2]);
+      expect(updated.versions[1]!.content).toBe("v2 synced body");
+    });
+
+    it("with reconcile=true creates new records for non-matching prompts", async () => {
+      await usePromptLibraryStore.getState().createPrompt({
+        title: "Existing",
+        kind: "image",
+        content: "existing body",
+        scope: "global",
+      });
+      const exported = usePromptLibraryStore.getState().exportPrompts([]);
+      exported.prompts = [
+        {
+          id: "plib-imported-1",
+          title: "Brand New",
+          kind: "chat",
+          scope: "global",
+          currentVersionId: "v-imported-1",
+          versions: [
+            {
+              id: "v-imported-1",
+              promptId: "plib-imported-1",
+              version: 1,
+              title: "Brand New",
+              content: "new body",
+              createdAt: new Date().toISOString(),
+            },
+          ],
+          tags: [],
+          favorite: false,
+          archivedAt: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        } as PromptLibraryItem,
+      ];
+
+      const result = await usePromptLibraryStore.getState().importPrompts(exported, { reconcile: true });
+
+      expect(result.imported).toHaveLength(1);
+      expect(result.reconciled).toHaveLength(0);
+      expect(usePromptLibraryStore.getState().prompts).toHaveLength(2);
+      const created = result.imported[0]!;
+      expect(created.title).toBe("Brand New");
+      expect(created.id).not.toBe("plib-imported-1");
+    });
+
+    it("with reconcile=false always creates new records (legacy behaviour)", async () => {
+      const existing = await usePromptLibraryStore.getState().createPrompt({
+        title: "Mountains",
+        kind: "image",
+        content: "v1 body",
+        scope: "global",
+      });
+      const exported = usePromptLibraryStore.getState().exportPrompts([existing.id]);
+      exported.prompts[0]!.versions[0]!.content = "v2 body";
+
+      const result = await usePromptLibraryStore.getState().importPrompts(exported);
+
+      expect(result.imported).toHaveLength(1);
+      expect(result.reconciled).toHaveLength(0);
+      expect(usePromptLibraryStore.getState().prompts).toHaveLength(2);
+    });
+
+    it("reconciliation matches by normalised title, kind, and scope", async () => {
+      const existing = await usePromptLibraryStore.getState().createPrompt({
+        title: "Mountains",
+        kind: "image",
+        content: "v1",
+        scope: "global",
+        tags: ["nature"],
+      });
+      const exported = usePromptLibraryStore.getState().exportPrompts([existing.id]);
+      exported.prompts[0]!.title = "  MOUNTAINS  ";
+      exported.prompts[0]!.versions[0]!.content = "synced";
+
+      const result = await usePromptLibraryStore.getState().importPrompts(exported, { reconcile: true });
+
+      expect(result.reconciled).toHaveLength(1);
+      expect(usePromptLibraryStore.getState().prompts).toHaveLength(1);
     });
   });
 

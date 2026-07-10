@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
 import { cn } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
 import { redactErrorMessage } from '../../shared/redaction'
@@ -15,6 +15,7 @@ interface ChatInputProps {
   disableImageAttach?: boolean
   visionUnsupportedModelId?: string
   memoryStatus?: ChatMemoryStatus
+  settingsControl?: ReactNode
 }
 
 const SUPPORTED_ATTACHMENT_ACCEPT = [
@@ -85,7 +86,7 @@ const SUPPORTED_ATTACHMENT_ACCEPT = [
   'image/*',
 ].join(',')
 
-export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageAttach, visionUnsupportedModelId = 'Selected model', memoryStatus = 'idle' }: ChatInputProps) {
+export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageAttach, visionUnsupportedModelId = 'Selected model', memoryStatus = 'idle', settingsControl }: ChatInputProps) {
   const [value, setValue] = useState('')
   const [attachments, setAttachments] = useState<IngestedAttachment[]>([])
   const [dragOver, setDragOver] = useState(false)
@@ -260,6 +261,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
                 </svg>
               </button>
               <MemoryStatusIndicator status={memoryStatus} />
+              {settingsControl}
             </div>
             {isStreaming ? (
               <button

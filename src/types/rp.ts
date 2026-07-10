@@ -184,6 +184,7 @@ export interface UserPersonaV1 {
   /** Optional third-person reference used by the model. Defaults to name. */
   reference?: string;
   tags: string[];
+  image?: PersonaImage;
   createdAt: number;
   updatedAt: number;
   // ---- Phase 2F additions (OPTIONAL — v1 records load unchanged) ----
@@ -197,6 +198,13 @@ export interface UserPersonaV1 {
   revisionId?: string;
   baseRevisionId?: string;
   deviceId?: string;
+}
+
+export interface PersonaImage {
+  mimeType: "image/png" | "image/jpeg" | "image/webp";
+  data: string;
+  byteLength: number;
+  contentHash?: string;
 }
 
 export type RpRole = "system" | "user" | "character" | "narrator" | "tool";

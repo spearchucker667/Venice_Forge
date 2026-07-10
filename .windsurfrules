@@ -1,5 +1,28 @@
 Read [AGENTS.md](AGENTS.md) first and treat it as the source of truth for architecture, commands, security rules, and coding conventions. Follow the mandatory [docs/summary_of_work.md](docs/summary_of_work.md) handoff described there.
 
+## Canonical Repository
+- Local path: `/Users/super_user/Projects/Venice_Forge`
+- GitHub: `spearchucker667/Venice_Forge`
+- Application: Venice Forge Electron desktop app
+- Stack: Electron 42, React 19, TypeScript strict, Zustand, Vitest
+- Node: `>=22.13.0 <23.0.0`
+
+Do not use `/Users/super_user/Projects/Windows-Venice-API-connector`. Run the local-only root bootstrap check in AGENTS.md before editing; never add it to CI.
+
+```bash
+EXPECTED_ROOT="/Users/super_user/Projects/Venice_Forge"
+if [[ "$(pwd -P)" != "$EXPECTED_ROOT" ]]; then
+  echo "Wrong repository root."
+  echo "Expected: $EXPECTED_ROOT"
+  echo "Actual:   $(pwd -P)"
+  exit 1
+fi
+test -f package.json
+test -f AGENTS.md
+test -d src
+test -d electron
+```
+
 Key rules:
 - Use TypeScript strict patterns and existing React/Electron/Express architecture.
 - Keep Venice API traffic on the existing veniceClient, IPC, or Express proxy paths.

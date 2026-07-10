@@ -14,31 +14,69 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
+  lint-and-typecheck:
     runs-on: ubuntu-22.04
     timeout-minutes: 30
-
-    strategy:
-      matrix:
-        node-version: [22]
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Use Node.js 22
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22
           cache: npm
       - run: npm ci
-      - name: Audit dependencies (release gate)
-        run: npm audit --audit-level=moderate
-        # Moderate+ vulnerabilities fail the build for production and build-time dependencies.
-        # High-only would be too permissive for a security-sensitive third-party client.
       - run: npm run lint:eslint
       - run: npm run typecheck
+
+  unit-and-integration-tests:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       - run: npm run test:ci
+
+  coverage:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       - run: npm run test:coverage
-      - run: npm run build
+
+  contracts:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       - run: npm run verify:contracts
+      - run: npm audit --audit-level=moderate
+
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    needs: [lint-and-typecheck, unit-and-integration-tests, contracts]
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
       - run: npm run verify:dist
 
   # Windows-sensitive-tests: targets the path-handling and Electron-specific
@@ -68,16 +106,16 @@ jobs:
         run: npm run typecheck
       - name: Run Electron main-process tests on Windows
         run: npm run test:electron
-      - name: Run renderer tests on Windows
-        run: npm run test:ui
+      - name: Run Windows-sensitive bridge and storage tests
+        run: npx vitest run src/services/desktopBridge.test.ts tests/storage --fileParallelism=false
       - name: Verify safety guard
         run: npm run verify:safety-guard
       - name: Verify markdown links
         run: npm run verify:markdown-links
+      - name: Verify repository identity
+        run: npm run verify:repository-identity
       - name: Audit dependencies (release gate)
         run: npm audit --audit-level=moderate
-      - name: Verify workspace contracts
-        run: npm run verify:contracts
       - name: Build
         run: npm run build
       - name: Verify build output
@@ -101,16 +139,16 @@ jobs:
         run: npm run typecheck
       - name: Run Electron main-process tests on macOS
         run: npm run test:electron
-      - name: Run renderer tests on macOS
-        run: npm run test:ui
+      - name: Run macOS-sensitive bridge and storage tests
+        run: npx vitest run src/services/desktopBridge.test.ts tests/storage --fileParallelism=false
       - name: Verify safety guard
         run: npm run verify:safety-guard
       - name: Verify markdown links
         run: npm run verify:markdown-links
+      - name: Verify repository identity
+        run: npm run verify:repository-identity
       - name: Audit dependencies (release gate)
         run: npm audit --audit-level=moderate
-      - name: Verify workspace contracts
-        run: npm run verify:contracts
       - name: Build
         run: npm run build
       - name: Verify build output
@@ -123,7 +161,7 @@ jobs:
   electron-smoke-macos:
     runs-on: macos-14
     timeout-minutes: 45
-    needs: build-and-test
+    needs: build
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Use Node.js 22
@@ -134,6 +172,8 @@ jobs:
       - run: npm ci
       - name: Package macOS app
         run: npm run dist:mac:arm64
+      - name: Verify macOS artifact
+        run: npm run verify:dist:mac
       - name: Run packaged Electron smoke test
         run: npx vitest run tests/smoke/electron-smoke.test.ts
         env:
@@ -143,7 +183,7 @@ jobs:
   electron-smoke-windows:
     runs-on: windows-2022
     timeout-minutes: 45
-    needs: build-and-test
+    needs: build
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Use Node.js 22

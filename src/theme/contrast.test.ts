@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { contrastRatio, isAAPass } from "./contrast";
-import { BUILTIN_DRACULA, BUILTIN_THEMES } from "./themes";
+import { BUILTIN_COPPER, BUILTIN_DARK, BUILTIN_DRACULA, BUILTIN_THEMES, BUILTIN_VENICE } from "./themes";
 
 describe("contrastRatio", () => {
   it("returns 21:1 for black on white", () => {
@@ -112,6 +112,16 @@ describe("Forge Dracula WCAG AA regression guard", () => {
 
   it("surfaceElevated differs from surface", () => {
     expect(t.surfaceElevated).not.toBe(t.surface);
+  });
+});
+
+// VERIFY-092 regression guard: softened body text must stay AA and avoid pure white
+describe("softened dark-theme body text", () => {
+  it.each([BUILTIN_VENICE, BUILTIN_DARK, BUILTIN_COPPER])("$name avoids pure white and remains AA", (theme) => {
+    expect(theme.tokens.textPrimary.toLowerCase()).not.toBe("#ffffff");
+    expect(isAAPass(theme.tokens.textPrimary, theme.tokens.background)).toBe(true);
+    expect(isAAPass(theme.tokens.textSecondary, theme.tokens.background)).toBe(true);
+    expect(isAAPass(theme.tokens.textMuted, theme.tokens.background)).toBe(true);
   });
 });
 

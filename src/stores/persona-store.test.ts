@@ -35,6 +35,14 @@ const basePersona = (): UserPersonaV1 => ({
   scope: "global",
 });
 
+const imageFixture = {
+  mimeType: "image/png" as const,
+  data: "iVBORw0KGgo=",
+  byteLength: 12,
+};
+
+const personaWithImage = (): UserPersonaV1 => ({ ...basePersona(), image: imageFixture });
+
 describe("persona-store", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -146,5 +154,31 @@ describe("persona-store", () => {
     const found = usePersonaStore.getState().getById("p_1");
     expect(found).not.toBeUndefined();
     expect(found!.id).toBe("p_1");
+  });
+
+  // VERIFY-080 regression guard — persona image export/import round-trip.
+  describe("Persona image export/import", () => {
+    it("exportPersonas includes persona images in the envelope", () => {
+      usePersonaStore.setState({ personas: [personaWithImage()] });
+      const json = usePersonaStore.getState().exportPersonas();
+      const parsed = JSON.parse(json);
+      expect(parsed.version).toBeDefined();
+      expect(parsed.app).toBe("Venice Forge");
+      expect(parsed.personas).toHaveLength(1);
+      expect(parsed.personas[0].image).toEqual(imageFixture);
+    });
+
+    it("importPersonas restores a persona image", async () => {
+      usePersonaStore.setState({ personas: [personaWithImage()] });
+      const envelope = usePersonaStore.getState().exportPersonas();
+      usePersonaStore.setState({ personas: [] });
+      vi.mocked(personaService.normalizePersona).mockImplementation((p) => p as UserPersonaV1);
+      vi.mocked(personaService.savePersona).mockImplementation(async (p) => p as UserPersonaV1);
+
+      const count = await usePersonaStore.getState().importPersonas(envelope);
+      expect(count).toBe(1);
+      expect(usePersonaStore.getState().personas).toHaveLength(1);
+      expect(usePersonaStore.getState().personas[0].image).toEqual(imageFixture);
+    });
   });
 });

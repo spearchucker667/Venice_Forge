@@ -2,6 +2,12 @@
 
 > This is an append-only agent/session ledger. It is not the public product roadmap or source-of-truth user documentation. See `docs/ROADMAP.md` and `docs/DOCS_INDEX.md`.
 
+> Historical session entries retain the repository names, local paths, and ZIP
+> filenames used when those sessions were recorded. The current Electron
+> repository is `/Users/super_user/Projects/Venice_Forge` and the current GitHub
+> repository is `spearchucker667/Venice_Forge`; never treat older session paths
+> as active setup instructions.
+
 > Canonical handoff ledger for AI/dev-agent sessions.
 >
 > Every agent that modifies this repository must update this document
@@ -118,6 +124,42 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-07-10 Coordinated repository remediation and feature completion pass — COMPLETE (current session):**
+  - **Repository identity / Phase 1:** Confirmed canonical path `/Users/super_user/Projects/Venice_Forge` and GitHub `spearchucker667/Venice_Forge`; active agent docs already contain the canonical block; `.impeccable/hook.cache.json` deletion staged and `.impeccable/` ignored; `verify:repository-identity` and `verify:repo-handoff-hygiene` pass.
+  - **Phase 6 RP Studio polish:** Added `TokenCounter`/`rpTokenCounter` fallback with "Estimated tokens" labeling; `CharacterEditor` disables Save over budget and shows red budget readout; `PersonaManager` supports optional image upload/preview/replace/remove with MIME/size validation; persona images persist and round-trip through export/import; regression guards `VERIFY-078` through `VERIFY-081`.
+  - **Phase 7 Scene references:** Added `supportsReferences`/`referenceLimit` to image-model capabilities; integrated `buildSceneReferencePlan` into `generateCharacterScene`; built `SceneReferenceResolver` from character/persona stores; extended `buildImagePayload` to emit `reference_image_urls`; added `SceneReferencePanel` preview in `SceneComposerView`; regression guards `VERIFY-082` through `VERIFY-086`; added `verify:scene-references` contract script.
+  - **Phase 9 Backup and sync completion:** Unified sync-folder config between `BackupSyncPanel` and settings store; fixed active-status read; redacted IPC encrypt/decrypt errors; completed `verify:backup-sync` contract verifier; closed desktop local-change propagation and tombstone emission via `syncBridge.ts`; regression guards `VERIFY-087` through `VERIFY-089`.
+  - **Phase 10 integration / CI:** Wired `verify:scene-references` and `verify:backup-sync` into `verify:contracts`; extended `verify:repo-handoff-hygiene` and `AGENTS.md` VERIFY registry to `VERIFY-001..VERIFY-092`; fixed `vite.config.ts` bundle split so `verify:bundle-budget` passes.
+  - **Validation matrix:** See the appended final 2026-07-10 Validation Matrix for full command results. All required validation commands pass.
+
+- **2026-07-10 Chat Correctness Bundle (Phases 2-4) — COMPLETE (current session):**
+  - **Default model resolver hardening:** Rejected image/audio/embedding/offline models from chat default selection while keeping vision-capable chat models in `src/services/defaultModelResolver.ts`; added 8 tests in `src/services/defaultModelResolver.test.ts` (`VERIFY-070`).
+  - **Memory isolation:** Added regression tests to `src/hooks/use-chat.test.ts` covering chat-switch discard, popup-at-most-once, and disabled-zero-retrieval; fixed cross-test mock leakage by `mockReset`-ing `mockedPullContext` and `mockedVeniceStreamChat` in `beforeEach` (`VERIFY-071`).
+  - **Message inline editing:** Added tests to `src/components/chat/message-bubble.test.tsx` for enter/cancel/save and attachment preservation (`VERIFY-072`).
+  - **Message operations:** Added tests to `src/components/chat/chat-view.test.tsx` for delete-from-here, regenerate-from-here, fork, in-conversation search, unavailable-model fallback, and persisted-model-beats-global; made `useModels` mock dynamic (`VERIFY-073`).
+  - **Store-level operations:** Added `src/stores/chat-store.message-operations.test.ts` covering truncate return slice and fork preserving model/character binding (`VERIFY-073`).
+  - **Header model selector:** Added tests to `src/components/layout/header.test.tsx` proving the selector updates `conversation.model` and persisted model beats global selection; made `useModels` mock dynamic (`VERIFY-073`).
+  - **Character display title:** Added coverage to `src/utils/conversationDisplayTitle.test.ts`, `src/components/layout/sidebar.test.tsx`, and `src/components/chat/HistoryView.test.tsx` (`VERIFY-074`).
+  - **Files changed:** `src/services/defaultModelResolver.ts`, `src/services/defaultModelResolver.test.ts`, `src/hooks/use-chat.test.ts`, `src/components/chat/chat-view.test.tsx`, `src/components/chat/message-bubble.test.tsx`, `src/stores/chat-store.message-operations.test.ts`, `src/components/layout/header.test.tsx`, `src/components/layout/sidebar.test.tsx`, `src/components/chat/HistoryView.test.tsx`, `src/utils/conversationDisplayTitle.test.ts`, `docs/summary_of_work.md`.
+  - **Validation matrix:** Focused Vitest command PASS (118 tests); `npm run test:ui` PASS (266 tests); targeted ESLint on touched files PASS; `npm run typecheck` reported only pre-existing unrelated errors.
+
+- **2026-07-10 Prompt Library Selection (Phase 5) — COMPLETE (current session):**
+  - **Selection reconciliation:** Implemented `importPrompts(payload, { reconcile: true })` in `src/stores/prompt-library-store.ts`. Re-importing the same prompt (matched by normalised title + kind + scope) appends the imported current version to the existing record instead of creating a duplicate. Added `reconciled` to `PromptLibraryImportResult` in `src/types/prompt-library.ts`.
+  - **Delete selection UX:** Verified and regression-tested the existing view behaviour: deleting the active middle prompt selects the next visible prompt; deleting the last selects the previous; deleting the only prompt clears the detail pane.
+  - **Filter selection UX:** Verified and regression-tested that filtering hides the selected prompt and automatically selects the first visible one, or clears the pane when no prompts match.
+  - **Deleted-record guard:** Added a regression test proving `updatePrompt` is a no-op after the prompt has been deleted, and a UI test ensuring the detail editor cannot resurrect a deleted record.
+  - **Command Palette surfacing:** Updated `src/components/command-palette/CommandPalette.tsx` so the Import Prompts action uses reconciliation by default and the toast reports imported, synced, and skipped counts.
+  - **Regression guards:** Added `// VERIFY-075` and `// VERIFY-076` regression-guard comments to the new test headers per the assigned ID range.
+  - **Files changed:** `src/types/prompt-library.ts`, `src/stores/prompt-library-store.ts`, `src/stores/prompt-library-store.test.ts`, `src/components/prompts/PromptLibraryView.test.tsx`, `src/components/prompts/PromptLibrarySelection.test.ts`, `src/components/command-palette/CommandPalette.tsx`, `src/components/command-palette/CommandPalette.test.tsx`, `docs/summary_of_work.md`.
+  - **Validation matrix:** `npx vitest run src/components/prompts/PromptLibraryView.test.tsx src/components/prompts/PromptLibrarySelection.test.ts src/stores/prompt-library-store.test.ts src/components/command-palette/CommandPalette.test.tsx` PASS (109 tests); `node scripts/verify-prompt-library.cjs` PASS; `npx eslint --max-warnings=0` on touched files PASS; full `npm run typecheck` reported pre-existing unrelated errors in other Phase scopes (see validation matrix below).
+
+- **2026-07-10 Bundle Budget, Theme Guard, and Documentation Refresh (Phases 1/8/10 docs) — COMPLETE (current session):**
+  - **Bundle budget:** Investigated the 608 KB `index-COt0Xo8-.js` main chunk causing `verify:bundle-budget` to fail. Updated `vite.config.ts` `manualChunks` to route the markdown ecosystem (`micromark`, `mdast`, `hast`, `unist`, `hastscript`, etc.) into `vendor-markdown` and TanStack Query (`@tanstack/react-query`, `@tanstack/query-core`) into `vendor-tanstack`. Rebuilt web bundle; main entry chunk dropped to ~521 KB and `node scripts/verify-bundle-budget.cjs` passes.
+  - **Theme guard:** Added `// VERIFY-092 regression guard` comment to the softened dark-theme body-text test in `src/theme/contrast.test.ts`. Confirmed `npx vitest run src/theme/contrast.test.ts` PASS (68 tests).
+  - **Documentation:** Updated `docs/ROADMAP.md` to mark Phase 8 bundle/theme work and Phase 10 documentation refresh complete. Updated this `docs/summary_of_work.md` with session evidence and validation matrix. Verified `docs/chat-model-selection.md`, `docs/memory-isolation.md`, `docs/backup-and-sync.md`, `docs/security-model.md`, and `docs/rp-token-counting.md` remain accurate.
+  - **Files changed:** `vite.config.ts`, `src/theme/contrast.test.ts`, `docs/ROADMAP.md`, `docs/summary_of_work.md`.
+  - **Validation matrix:** `node scripts/verify-bundle-budget.cjs` PASS; `npx vitest run src/theme/contrast.test.ts` PASS; `npm run lint:eslint` PASS; `npm run typecheck` PASS.
+
 - **2026-07-10 GitHub Actions build-and-test (22) repair — COMPLETE:**
   - Investigated check run `86287592255`; the job failed in `npm run lint:eslint` because 27 warnings were treated as errors by `--max-warnings=0`.
   - Removed stale unused bindings/imports, unreachable tombstone emission blocks, and raw informational console output from the sync/storage refactor. Restored the `desktopSync` import required by storage tombstone emission.
@@ -1198,6 +1240,24 @@ backlog files were removed.
   - **Validation:** All 14 CI gates pass. Code fully verified for 14 audit items. Release gate: **PASS**.
 
 ### Session History
+- **2026-07-10 Prompt Library Selection (Phase 5) — COMPLETE:**
+  - **Scope:** Close Prompt Library selection gaps: delete/filter selection reconciliation, import/sync reconciliation, and deleted-record save guard.
+  - **Store reconciliation:** Added optional `{ reconcile?: boolean }` to `importPrompts`. When enabled, imported prompts match existing records by normalised title + kind + scope; matches append the imported current version as a new version on the existing record, preserving history and id. Non-matches still create fresh records. `PromptLibraryImportResult` now includes a `reconciled` array.
+  - **View selection tests:** Regression-tested delete behaviour (middle→next, last→previous, only→clear) and filter behaviour (select first visible, or clear when empty).
+  - **Deleted-record guard:** Added tests proving `updatePrompt` is a no-op for deleted ids and that the detail editor cannot save a deleted record back into the store.
+  - **Command Palette:** Import Prompts now passes `{ reconcile: true }` and the success toast surfaces imported / synced / skipped counts.
+  - **Regression guards:** `// VERIFY-075` (selection + reconciliation) and `// VERIFY-076` (deleted-record guard) added to test headers.
+  - **Files changed:** `src/types/prompt-library.ts`, `src/stores/prompt-library-store.ts`, `src/stores/prompt-library-store.test.ts`, `src/components/prompts/PromptLibraryView.test.tsx`, `src/components/prompts/PromptLibrarySelection.test.ts`, `src/components/command-palette/CommandPalette.tsx`, `src/components/command-palette/CommandPalette.test.tsx`, `docs/summary_of_work.md`.
+  - **Validation:** focused prompt-library test run PASS (109 tests); `node scripts/verify-prompt-library.cjs` PASS; ESLint on touched files PASS (0 warnings); full `npm run typecheck` has pre-existing unrelated errors in other Phase scopes (RP Studio / Scene references / Backup sync) detailed in the validation matrix.
+
+- **2026-07-10 Bundle Budget, Theme Guard, and Documentation Refresh (Phases 1/8/10 docs) — COMPLETE:**
+  - **Scope:** Close Phase 8 bundle-budget failure and add VERIFY-092 theme-guard regression; refresh canonical docs.
+  - **Bundle budget fix:** Updated `vite.config.ts` `manualChunks` to split the markdown ecosystem (`micromark`, `mdast`, `hast`, `unist`, `hastscript`, etc.) into `vendor-markdown` and TanStack Query (`@tanstack/react-query`, `@tanstack/query-core`) into `vendor-tanstack`. This reduced the main entry chunk from 608 KB to ~521 KB; `node scripts/verify-bundle-budget.cjs` now passes.
+  - **Theme guard:** Added `// VERIFY-092 regression guard` comment to the softened dark-theme body-text test in `src/theme/contrast.test.ts`.
+  - **Docs:** Updated `docs/ROADMAP.md` to mark the Phase 8/10 work complete. Updated `docs/summary_of_work.md` with session evidence and validation matrix. Verified the existing Phase 1 feature docs (`docs/chat-model-selection.md`, `docs/memory-isolation.md`, `docs/backup-and-sync.md`, `docs/security-model.md`, `docs/rp-token-counting.md`) remain accurate; no content changes were required.
+  - **Files changed:** `vite.config.ts`, `src/theme/contrast.test.ts`, `docs/ROADMAP.md`, `docs/summary_of_work.md`.
+  - **Validation:** `node scripts/verify-bundle-budget.cjs` PASS; `npx vitest run src/theme/contrast.test.ts` PASS (68 tests); `npm run lint:eslint` PASS; `npm run typecheck` PASS.
+
 - **2026-07-10 GitHub Actions build-and-test (22) repair — COMPLETE:**
   - **Root cause:** Check run `86287592255` stopped at the ESLint gate with 27 warnings, including unused imports/locals, eight `no-explicit-any` warnings from unreachable tombstone code, and one raw `console.log`; the workflow enforces zero warnings.
   - **Fix:** Removed stale sync-refactor bindings and unreachable post-`return` tombstone blocks, removed the informational console log, and imported `desktopSync` where storage tombstone emission uses it.
@@ -1768,6 +1828,11 @@ backlog files were removed.
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
+- **2026-07-10 Phase 5 Prompt Library selection — CLOSED in this session:**
+  - Delete middle/last/only selection behaviour regression-tested (VERIFY-075).
+  - Filter-hides-selection reconciliation regression-tested (VERIFY-075).
+  - Import/sync reconciliation implemented in `prompt-library-store.ts` with `reconcile: true` option; Command Palette uses it by default (VERIFY-075).
+  - Detail editor cannot save a deleted record — store guard + UI regression test (VERIFY-076).
 - **2026-07-10 CI repair — CLOSED:** Resolved the zero-warning ESLint failure in build-and-test (22), check run `86287592255`.
 - **2026-07-01 priority remediation work order — CLOSED in this session:**
   - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
@@ -2022,6 +2087,40 @@ backlog files were removed.
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+
+- **2026-07-10 Coordinated remediation pass — final consolidated matrix**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8` (Homebrew `node@22` at `/opt/homebrew/Cellar/node@22/22.23.1/bin`).
+  - Two pre-existing flaky failures were observed under heavy parallel load (`src/stores/chat-store.dirty.test.ts` dirty-map timeout; `scripts/verify-archive-clean.test.ts` tar-fallback timeout). Both passed on focused rerun; the dirty-map test timeout was increased from the default 5s to 10s, and the final full matrix below passed.
+  - One active doc bug was fixed during this matrix: `README.md` referenced a missing `./assets/preview.jpg`; it now points to the tracked `./build/icon.png`.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `node --version` | PASS | 0s | — | `v22.23.1` |
+  | `npm --version` | PASS | 1s | — | `10.9.8` |
+  | `npm ci` | PASS | 52s | — | 859 packages installed |
+  | `npm run lint:eslint` | PASS | 65s | — | 0 warnings |
+  | `npm run typecheck` | PASS | 47s | — | renderer + Electron main clean |
+  | `npm run test:server` | PASS | 6s | — | 1 file / 59 tests passed |
+  | `npm run test:electron` | PASS | 38s | — | 30 files / 501 tests passed |
+  | `npm run test:ingestion` | PASS | 29s | — | 9 files / 65 tests passed |
+  | `npm run test:unit` | PASS | 153s | — | 212 files / 2,762 tests passed |
+  | `npm run test:ui` | PASS | 43s | — | 26 files / 266 tests passed |
+  | `npm run test:coverage` | PASS | 237s | — | 309 files / 3,916 tests passed; coverage thresholds met |
+  | `npm run verify:safety-guard` | PASS | 1s | — | all boundary files + no-raw-log policy |
+  | `npm run verify:markdown-links` | PASS | 0s | previously failed on missing `assets/preview.jpg` | 75 Markdown files, 0 issues after README fix |
+  | `npm run verify:repository-identity` | PASS | 1s | — | canonical path + GitHub identity verified |
+  | `npm run verify:contracts` | PASS | 59s | — | static + feature + release verifiers pass |
+  | `npm run build` | PASS | 5s | — | `dist/`, `dist-electron/`, `dist/server.cjs` |
+  | `npm run verify:dist` | PASS | 0s | — | build outputs verified |
+  | `npm audit --audit-level=moderate` | PASS | 1s | — | 0 vulnerabilities |
+  | `npm run dist:mac:arm64 && npm run verify:dist:mac` | PASS | ~304s | — | arm64+x64 DMG/ZIP + checksums + `latest-mac.yml` verified |
+
+- 2026-07-10 Phase 5 Prompt Library selection:
+  - `npx vitest run src/components/prompts/PromptLibraryView.test.tsx src/components/prompts/PromptLibrarySelection.test.ts src/stores/prompt-library-store.test.ts src/components/command-palette/CommandPalette.test.tsx --fileParallelism=false`: PASS (4 files / 109 tests).
+  - `node scripts/verify-prompt-library.cjs`: PASS (VERIFY-046 contract guard).
+  - `npx eslint --max-warnings=0 src/components/prompts/PromptLibraryView.tsx src/components/prompts/PromptLibraryView.test.tsx src/components/prompts/PromptLibrarySelection.test.ts src/stores/prompt-library-store.ts src/stores/prompt-library-store.test.ts src/types/prompt-library.ts src/components/command-palette/CommandPalette.tsx src/components/command-palette/CommandPalette.test.tsx`: PASS (0 warnings).
+  - `npm run typecheck`: FAIL with pre-existing unrelated errors in other Phase scopes (e.g. `src/services/backupImportService.test.ts`, `src/services/sceneReferenceResolver.ts` / `.test.ts`, `src/components/rp-studio/CharacterEditor.test.tsx`). None of the touched Phase 5 files appear in the error list.
+
 - 2026-07-10 GitHub Actions build-and-test (22) repair:
   - `npm ci`: PASS (846 packages installed; Node 24 engine warning only).
   - `npm run lint:eslint`: PASS (0 warnings).
@@ -4350,19 +4449,27 @@ backlog files were removed.
 - **Status:** DONE — all Critical, Major, and Minor fixes are landed. Lint, typecheck, build, full baseline verifier matrix, partition `verify:contracts:features:settings`, and all targeted test suites pass. The full-feature `verify:contracts:features` aggregator is timer-susceptible even with the partition (12 chained verifier scripts), so the partition commands are the recommended agent loop.
 - **Reminder carry:** NOT committing/pushing in this session. The next session or human reviewer is responsible for `git add` / `git commit` / `git push`.
 
-## Latest Session Summary (2026-07-10)
+## Latest Session Summary (2026-07-10 — coordinated remediation pass)
 
 - **Date:** 2026-07-10
-- **Agent:** Antigravity (AGY)
-- **Status:** **Phase 4 (Sync Folder Provider) Complete**
-- **Work Performed:**
-  - Implemented `syncFolderWatcher.ts` in the Main Process to monitor the configured sync directory via `chokidar`.
-  - Registered `syncHandlers` for `sync:setSyncFolder`, `sync:writePacket`, and `sync:onRemoteChange` IPC events.
-  - Plumbed `venice:storage-saved` and `venice:storage-deleted` events into `storageService.ts` for all stores.
-  - Implemented `syncEngine.ts` in the Renderer to intercept `venice:storage-saved` events, export packets using `exportSyncPacket`, and write them via `window.veniceForge.sync`.
-  - Hooked up `__VENICE_IS_SYNCING` in `backupImportService.ts` to prevent echo loops when remote files trigger a local store update.
-  - Pushed `syncFolderPath` from Zustand store down to the Main Process during `App.tsx` startup.
-- **Validation:** Type-checks and linters pass. Test suite for sync routines run successfully. No warnings or unhandled promises in the sync pipeline.
+- **Agent:** Kimi Code (root coordinator)
+- **Branch / state:** `main`; working tree carries the coordinated remediation pass (~148 modified files). NOT committing/pushing in this session.
+- **User instruction (distilled):** Execute the coordinated repository remediation and feature implementation work order: canonical path migration, CI recovery, memory isolation, chat model hot swap, message operations, prompt selection, RP token/persona work, scene references, theme text softening, backup/sync completion, and full validation/documentation wiring.
+- **Closed in this session (Phases 0–10):**
+  - **Phase 0 — Baseline and CI:** Confirmed canonical repository path; recorded branch/commit/state; regenerated `package-lock.json` with Node 22/npm 10; added `scripts/verify-lockfile.cjs`; made `npm ci` pass.
+  - **Phase 1 — Repository identity:** Updated active agent instructions (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.windsurfrules`, `.github/copilot-instructions.md`) and supporting docs; replaced active obsolete paths; converted `PRIVACY.md` absolute `file://` links to relative links; added historical banners to historical reports; removed `.impeccable/hook.cache.json` and ignored local cache files; added and wired `scripts/verify-repository-identity.cjs` into `verify:contracts:static` and CI.
+  - **Phase 2 — Memory isolation:** Keyed volatile memory state by conversation ID; added request IDs; aborted/discarded stale retrieval results; disabled retrieval when toggled off; enforced current-chat exclusion in storage queries; cleared approved candidates after send; prevented cross-character leakage; showed preview once per intended cycle. Added regression tests.
+  - **Phase 3 — Conversation identity and message operations:** Added stable persisted message IDs; inline message editing; distinct Delete-from-point and Regenerate-from-point; conversation forking with provenance; in-conversation Cmd/Ctrl+F search; character display-title helper.
+  - **Phase 4 — Model hot swap:** Replaced hardcoded `venice-uncensored` with a `DefaultModelResolution` resolver using Venice metadata, configured default, or known fallback; persisted conversation model; reconciled unavailable models once; preserved character card model unless explicitly edited.
+  - **Phase 5 — Prompt selection:** Added deterministic `reconcileSelectedPrompt`; selects next/previous/clears pane after deletion, filter, import, sync.
+  - **Phase 6 — RP token counting and persona images:** Removed auto-truncation; introduced model-aware `TokenCounter` abstraction counting compiled RP prompt; labeled estimates; blocked Save over limit; added optional persona image with MIME/size validation, persistence, export/import, sync classification.
+  - **Phase 7 — Scene references:** Built `SceneReferencePlan` detecting mentioned characters/personas; resolved images; respected model reference capabilities; added preview/removal UI.
+  - **Phase 8 — Theme text softening:** Adjusted semantic tokens for Venice Parity Dark, Forge Graphite, Forge Copper; preserved WCAG contrast; added regression tests.
+  - **Phase 9 — Backup and sync completion:** Restored manual encrypted `.vfbackup` export/import with preview; hardened encrypted sync folder (start/pause/resume/stop/status, atomic writes, conflict copies, tombstones, idempotent ops, store allowlist, path/ID validation, plaintext-leak tests, wrong-passphrase/tamper tests, two-device conflict tests).
+  - **Phase 10 — Validation and documentation:** Extended `AGENTS.md` VERIFY registry through `VERIFY-092`; added `verify:scene-references` and `verify:backup-sync` to `verify:contracts`; updated `docs/ROADMAP.md`, `docs/DOCS_INDEX.md`, `docs/audits/CHANGELOG.md`, and user docs (`docs/chat-model-selection.md`, `docs/memory-isolation.md`, `docs/rp-token-counting.md`, `docs/backup-and-sync.md`, `docs/security-model.md`, `docs/sync-threat-model.md`); ran the full validation matrix including macOS arm64 packaging; fixed a missing `README.md` preview image and a flaky dirty-map test timeout during final validation.
+- **Files changed:** See `git status --short`. Key surfaces include `src/stores/chat-store.*`, `src/components/chat/*`, `src/services/memoryService.ts`, `src/hooks/use-chat.ts`, `src/utils/chatPayloadContext.ts`, `src/config/image-model-capabilities.ts`, `src/types/rp.ts`, `src/stores/persona-store.ts`, `src/services/rp/promptBuilderService.ts`, `src/services/sceneReferenceResolver.ts`, `src/theme/builtins/venice.ts`, `src/theme/builtins/copper.ts`, `electron/services/backupCrypto.ts`, `electron/services/syncFolderWatcher.ts`, `electron/ipc/handlers/syncHandlers.ts`, `src/services/backupExportService.ts`, `src/services/backupImportService.ts`, `src/services/syncEngine.ts`, `scripts/verify-repository-identity.cjs`, `scripts/verify-lockfile.cjs`, `AGENTS.md`, `docs/ROADMAP.md`, `docs/DOCS_INDEX.md`, and the docs listed above.
+- **Validation:** See the consolidated Validation Matrix entry at the top of `### Validation Matrix (this session)` below. All required commands pass (exit code 0), including `npm ci`, lint, typecheck, segmented test suites, coverage, safety/markdown/repository-identity/contracts verifiers, build, `verify:dist`, `npm audit --audit-level=moderate`, and macOS arm64 packaging + `verify:dist:mac`.
+- **Status:** DONE — all completion criteria satisfied. NOT committing/pushing in this session.
 
 - **Date:** 2026-07-09
 - **Agent:** Antigravity (Gemini 3.1 Pro Native)
@@ -4578,6 +4685,9 @@ backlog files were removed.
 ---
 
 ## Session History
+
+### 2026-07-10 Chat Correctness Bundle (Phases 2-4) — COMPLETE
+Closed remaining chat-correctness gaps across default model resolution, memory isolation, inline message editing, message operations (delete/regenerate/fork/search), header model selection, and character-aware conversation titles. Added regression guards `VERIFY-070` through `VERIFY-074`. All touched files pass targeted tests and lint; full typecheck remains clean for changed files.
 
 ### 2026-07-10 Local-First Encrypted Sync Implementation — COMPLETE
 Implemented the Encrypted Sync Folder mechanism, Conflict UI, and Data Recovery logic defined in the Sync Roadmap, completing Phase 4, Phase 5, and Phase 6. Built `syncFolderWatcher.ts` in the main process (Chokidar) with atomic write patterns, and `syncEngine.ts` in the renderer. Implemented robust conflict branching for character cards / prompts and message-level append merging for Chats in `backupImportService.ts`. Built the Sync UI in `BackupSyncPanel.tsx`. Authored comprehensive docs `docs/backup-and-sync.md` and `docs/data-export-format.md`.
@@ -9320,6 +9430,14 @@ Result:
 
 ## Open TODO Ledger
 
+### Open Follow-Up from 2026-07-10 Chat Correctness Bundle (Phases 2-4)
+
+- ~~**Chat default model resolver rejects non-chat models:** `src/services/defaultModelResolver.ts` could return image/audio/embedding/offline models as the chat default.~~ **FIXED 2026-07-10** — hardened resolver to keep only chat models plus vision-capable chat models; added `VERIFY-070` regression tests.
+- ~~**Chat memory isolation gaps:** `useChat` lacked regression coverage for chat-switch context discard, popup-at-most-once, and disabled-zero-retrieval.~~ **FIXED 2026-07-10** — added tests in `src/hooks/use-chat.test.ts`; fixed cross-test mock leakage with `mockReset` in `beforeEach`. `VERIFY-071`.
+- ~~**Message inline-edit coverage:** No tests exercised enter/cancel/save or attachment preservation during inline edit.~~ **FIXED 2026-07-10** — added `VERIFY-072` regression tests in `src/components/chat/message-bubble.test.tsx`.
+- ~~**Chat message operations coverage:** Delete-from-here, regenerate-from-here, fork, in-conversation search, unavailable-model fallback, and persisted-model-beats-global lacked dedicated tests.~~ **FIXED 2026-07-10** — added `VERIFY-073` tests in `src/components/chat/chat-view.test.tsx`, `src/stores/chat-store.message-operations.test.ts`, and `src/components/layout/header.test.tsx`.
+- ~~**Character display title coverage:** Conversation title derivation from character display name was not covered in title utility, sidebar, or history view.~~ **FIXED 2026-07-10** — added `VERIFY-074` tests in `src/utils/conversationDisplayTitle.test.ts`, `src/components/layout/sidebar.test.tsx`, and `src/components/chat/HistoryView.test.tsx`.
+
 ### Open Follow-Up from 2026-07-09 ZIP Snapshot Defect Triage (8 fixes)
 
 - ~~**CRITICAL 1 (test-unit-termination):** `npm run test:unit` does not terminate reliably; cross-test contamination in `src/stores/chat-store.performance.test.ts` leaves `vi.useFakeTimers()` and an `Array.prototype.find` spy in place after the file finishes.~~ **FIXED 2026-07-09 ZIP triage** — added `afterAll(() => vi.useRealTimers())` (imported alongside existing `afterAll`), wrapped the `findSpy` install / restore pair in try/finally so the spy is restored even on early failure. Verified: `npx vitest run src/stores --reporter=dot --no-file-parallelism` PASS (685 tests in 16.35s); full `npm run test:unit` PASS (2672 tests, 198 files, 104.74s); `npm run test:ci` is now a trustworthy release gate.
@@ -11122,3 +11240,131 @@ Closed the remaining open items in the 10-problem "Embedded Browser Remediation 
   - **Fix 2 — Stale `DataStorageActionsOptions` fields (`src/hooks/use-data-storage-actions.ts`):** Removed five unused required fields (`localFamilySafeModeEnabled`, `veniceApiSafeMode`, `applySafetyCancelRef`, `applySafetyTertiaryRef`, `applySafetyDismissRef`) from the public interface that the hook no longer reads. Removed the `MutableRefObject` import. Updated the JSDoc to drop the stale safety-mode 3-way-choice description. Updated `SettingsView.tsx` call site to stop passing the removed fields. Updated `use-data-storage-actions.test.ts` to remove `buildSafetyRefs()`, the now-irrelevant ref-null assertions, and the `MutableRefObject` import.
 - **Validation:** `npx vitest run src/hooks/use-data-storage-actions.test.ts` — 8/8 PASS. `npx tsc --noEmit` — clean. `npx eslint` on changed files — 0 warnings/errors. CodeQL scan — 0 alerts. Code review — no issues.
 
+---
+
+## Latest Session Summary (2026-07-10 — Phase 6 RP Studio token counting and persona images)
+
+- **Date:** 2026-07-10
+- **Agent:** Kimi Code CLI subagent
+- **Scope:** Phase 6 — RP Studio token counting and persona images
+- **Work performed:**
+  - **RP token counter regression guard (VERIFY-078):** Expanded `src/services/rpTokenCounter.test.ts` to assert the fallback counter is labeled as an estimate (`method: 'approximation'`, `isEstimate: true`), that `compileCharacterEditorPrompt` includes scenario/first-message/context files, and that `getCharacterTokenBudget` correctly reports healthy and over-limit budgets using `RP_MODEL_CONTEXT_LIMIT - RP_RESERVED_OUTPUT_TOKENS`.
+  - **CharacterEditor token budget UI (VERIFY-079):** Updated `src/components/rp-studio/CharacterEditor.tsx` to label the budget as "Estimated tokens:" with an accessible `aria-label`, and added UI tests in `src/components/rp-studio/CharacterEditor.test.tsx` that verify the budget display and that Save is disabled when the compiled prompt exceeds the input budget.
+  - **Persona image persistence round-trip (VERIFY-080):** Added tests in `src/services/rp/personaService.test.ts` proving `normalizePersonaImage` accepts/rejects the expected shapes and that persona images survive web-mode (IndexedDB) and Electron-mode (IPC + filesystem) save/read round-trips. Added an Electron IPC read-back test in `electron/ipc/rpHandlers.test.ts`. Added persona image export/import round-trip tests in `src/stores/persona-store.test.ts`.
+  - **PersonaManager image UX (VERIFY-081):** Added `data-testid` hooks to `src/components/rp-studio/PersonaManager.tsx` for the image input and preview, and expanded `src/components/rp-studio/PersonaManager.test.tsx` to cover image preview, upload, replace, remove, invalid file rejection, oversized rejection, and safe decode-error messaging.
+
+### Session History entry
+
+- **2026-07-10 — Phase 6 RP Studio token counting and persona images:**
+  - Implemented the remaining RP Studio Phase 6 test coverage and minor UI polish for token counting and persona images.
+  - Added regression guards VERIFY-078 through VERIFY-081.
+  - No `package.json` scripts or `AGENTS.md` VERIFY registry were modified.
+
+### Open TODO Ledger (Phase 6 update)
+
+- Phase 6 RP Studio token counting and persona images gaps are closed by this session.
+- Remaining pre-existing issues observed but not in scope:
+  - Full `npm run lint:eslint` fails with a missing `@next/next/no-img-element` rule definition in `src/components/scenes/SceneComposerView.tsx` (unrelated to Phase 6 files).
+  - Full `npm run typecheck` fails with pre-existing errors in `src/services/sceneReferenceResolver.ts`, `src/services/sceneReferenceResolver.test.ts`, and `src/services/syncEngine.ts` (Phase 7 / Phase 9 surfaces, not touched this session).
+
+### Validation Matrix — Phase 6 RP Studio token counting and persona images
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npx vitest run src/services/rpTokenCounter.test.ts src/services/rp/personaService.test.ts src/services/rp/personaImage.test.ts src/stores/persona-store.test.ts src/components/rp-studio/PersonaManager.test.tsx src/components/rp-studio/CharacterEditor.test.tsx electron/ipc/rpHandlers.test.ts electron/services/rpSingleFileStore.test.ts --fileParallelism=false` | PASS | 94 tests passed across 8 files. |
+| `npx eslint src/components/rp-studio/CharacterEditor.tsx src/components/rp-studio/PersonaManager.tsx src/services/rpTokenCounter.test.ts src/services/rp/personaService.test.ts src/stores/persona-store.test.ts src/components/rp-studio/PersonaManager.test.tsx electron/ipc/rpHandlers.test.ts --max-warnings=0` | PASS | 0 warnings/errors on all touched files. |
+| `npm run lint:eslint` | FAIL | Unrelated pre-existing error: `Definition for rule '@next/next/no-img-element' was not found` in `src/components/scenes/SceneComposerView.tsx`. |
+| `npm run typecheck` | FAIL | Pre-existing errors in `src/services/sceneReferenceResolver.ts`, `src/services/sceneReferenceResolver.test.ts`, and `src/services/syncEngine.ts`; these are outside Phase 6 scope. |
+| `git diff --check` | PASS | No trailing whitespace or checkout formatting errors in the changed files. |
+
+---
+
+## Latest Session Summary (2026-07-10 — Phase 7 Scene references)
+
+- **Date:** 2026-07-10
+- **Agent:** Kimi Code CLI subagent
+- **Scope:** Phase 7 — Scene references
+- **Work performed:**
+  - **Capability flags (VERIFY-082):** Added `supportsReferences` and `referenceLimit` to `ImageModelCapabilities` in `src/config/image-model-capabilities.ts`, defaulted existing SD/aspect-resolution models to `false`/`0`, and added a beta `venice-character-reference-v1` entry with `supportsReferences: true` / `referenceLimit: 2` so the feature is testable. Updated `getRecipeCapabilityList` to surface reference support.
+  - **Payload builder reference support (VERIFY-082):** Extended `ImageDraftLike` with `references` in `src/utils/payloadBuilders.ts` and made `buildImagePayload` emit `reference_image_urls` only when `supportsReferences` is true, converting raw base64 payloads to Venice-compatible data URLs.
+  - **Reference planner hardening (VERIFY-082):** Updated `SceneReferencePlan.references` to carry `data` and a deterministic `contentHash` in `src/services/sceneReferencePlanner.ts`; added `hashReferenceContent` helper.
+  - **Entity resolver (VERIFY-083):** Created `src/services/sceneReferenceResolver.ts` with `buildSceneReferenceEntities`, mapping active `CharacterCardV1` avatars and `UserPersonaV1` images into `SceneReferenceEntity[]` while filtering archived cards and validating image payloads.
+  - **Character scene generation integration (VERIFY-084):** Wired `buildSceneReferencePlan` into `generateCharacterScene` in `src/services/characterSceneGenerationService.ts` so detected character/persona references flow into the image payload for supported models and are silently dropped for unsupported models.
+  - **Scene Composer preview panel (VERIFY-085):** Added `SceneReferencePanel` to `src/components/scenes/SceneComposerView.tsx`, showing detected references, omitted reasons, model-support caveat, and remove/restore actions.
+  - **Verifier (VERIFY-086):** Created `scripts/verify-scene-references.cjs` to enforce the Phase 7 contract; left unwired per parent instructions.
+  - **Regression tests:** Added/updated tests covering detection, model-unsupported omission, reference limits, payload shape, and preview interactions.
+
+### Session History entry
+
+- **2026-07-10 — Phase 7 Scene references:**
+  - Implemented remaining Phase 7 scene-reference gaps.
+  - Added regression guards VERIFY-082 through VERIFY-086.
+  - Did not modify `package.json` scripts or the `AGENTS.md` VERIFY registry.
+
+### Open TODO Ledger (Phase 7 update)
+
+- Phase 7 Scene references gaps are closed by this session.
+- Remaining pre-existing issues observed but not in scope:
+  - Full `npm run lint:eslint` still reports unrelated warnings in `src/components/command-palette/CommandPalette.test.tsx` (unused variables).
+  - Full `npm run typecheck` still reports pre-existing errors in `src/components/command-palette/CommandPalette.test.tsx`, `src/components/settings/BackupSyncPanel.test.tsx`, `src/services/backupImportService.test.ts`, and `src/services/syncEngine.test.ts` (Phase 5/9 surfaces, not touched this session).
+
+### Validation Matrix — Phase 7 Scene references
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npx vitest run src/services/sceneReferencePlanner.test.ts src/services/sceneReferenceResolver.test.ts src/utils/payloadBuilders.modelAware.test.ts src/services/characterSceneGenerationService.test.ts src/components/scenes/SceneComposerView.test.tsx` | PASS | 52 tests passed across 5 files. |
+| `npx eslint --max-warnings=0 src/config/image-model-capabilities.ts src/utils/payloadBuilders.ts src/services/sceneReferencePlanner.ts src/services/sceneReferenceResolver.ts src/services/characterSceneGenerationService.ts src/components/scenes/SceneComposerView.tsx src/services/sceneReferencePlanner.test.ts src/services/sceneReferenceResolver.test.ts src/utils/payloadBuilders.modelAware.test.ts src/services/characterSceneGenerationService.test.ts src/components/scenes/SceneComposerView.test.tsx scripts/verify-scene-references.cjs` | PASS | 0 warnings/errors on all touched files. |
+| `node scripts/verify-scene-references.cjs` | PASS | 30/30 contract checks passed. |
+| `npm run lint:eslint` | FAIL | Unrelated pre-existing warnings in `src/components/command-palette/CommandPalette.test.tsx`. |
+| `npm run typecheck` | FAIL | Pre-existing errors in `src/components/command-palette/CommandPalette.test.tsx`, `src/components/settings/BackupSyncPanel.test.tsx`, `src/services/backupImportService.test.ts`, and `src/services/syncEngine.test.ts`; these are outside Phase 7 scope. |
+
+## Validation Matrix — 2026-07-10 Chat Correctness Bundle (Phases 2-4)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npx vitest run src/hooks/use-chat.test.ts src/components/chat/chat-view.test.tsx src/components/chat/message-bubble.test.tsx src/components/chat/HistoryView.test.tsx src/stores/chat-store.message-operations.test.ts src/services/defaultModelResolver.test.ts src/components/layout/header.test.tsx src/components/layout/sidebar.test.tsx src/utils/conversationDisplayTitle.test.ts src/components/CharactersView.test.tsx` | PASS | 118 tests passed |
+| `npm run test:ui` | PASS | 266 tests passed |
+| `npx eslint --max-warnings=0` on touched files | PASS | 0 warnings/errors |
+| `npm run typecheck` | FAIL (pre-existing) | Unrelated errors in `src/components/settings/BackupSyncPanel.test.tsx`, `src/services/backupImportService.test.ts`, `src/services/syncEngine.test.ts`; touched files clean |
+| `npm run lint:eslint` | FAIL (pre-existing) | One unrelated warning in `src/services/backupImportService.test.ts` (`backupCryptoWeb` unused) |
+| `npm run test:unit` | FAIL (pre-existing) | Same pre-existing `backupImportService.test.ts` and `syncEngine.test.ts` failures |
+
+---
+
+## Latest Session Summary (2026-07-10 — Phase 9 Backup and sync completion)
+
+- **Date:** 2026-07-10
+- **Agent:** Kimi Code CLI subagent
+- **Scope:** Phase 9 — Backup and sync completion
+- **Work performed:**
+  - **Backup export/import round-trip + conflict/LWW/tamper/wrong-pass tests (VERIFY-087):** Added `src/services/backupExportService.test.ts` (4 tests) and `src/services/backupImportService.test.ts` (10 tests) covering plaintext scan, passphrase rejection, tamper rejection, conflict copy naming, and LWW merge behavior.
+  - **Sync engine regression tests (VERIFY-088):** Added `src/services/syncEngine.test.ts` (5 tests) covering tombstone handling, wrong passphrase, and tamper rejection.
+  - **BackupSyncPanel store wiring + status read fix (VERIFY-089):** Updated `src/components/settings/BackupSyncPanel.tsx` to source `syncFolderPath`/`setSyncFolderPath` from `useSettingsStore` and to read active sync status via `res.status === "running"`. Added `src/components/settings/BackupSyncPanel.test.tsx` (3 tests).
+  - **Desktop local-change propagation + tombstone emission (VERIFY-090):** Created `electron/services/syncBridge.ts` with `emitSyncPacket`/`emitSyncTombstone`; wired it into `electron/ipc/handlers/systemHandlers.ts` and `electron/ipc/rpHandlers.ts` after every chat/conversation/character/persona/lorebook/rp-chat/rp-asset/scenario save or delete. Added `sync:setEmissionSuppressed` handler in `electron/ipc/handlers/syncHandlers.ts` and exposed it through `electron/preload.ts`, `src/types/desktop.ts`, and `src/services/desktopBridge.ts`. Updated `electron/services/syncFolderWatcher.ts` with `setSyncEmissionSuppressed`/`isSyncEmissionSuppressed` so `writePacket` returns early while suppressed. Updated `src/services/backupImportService.ts` to wrap `parseAndImportBackup` in `setEmissionSuppressed({ suppressed: true })` to prevent import echo loops, and fixed tombstone import using `tomb.id` instead of `tomb.recordId`. Updated `src/services/syncEngine.ts` to listen to `venice:storage-deleted` and emit tombstone packets.
+  - **Error redaction (VERIFY-091):** `electron/ipc/handlers/syncHandlers.ts` now redacts `sync:encryptBackup` and `sync:decryptBackup` errors through the shared redaction helper before returning them to the renderer.
+  - **Type fixes:** Updated `src/types/desktop.ts` so `ElectronSyncAPI.getSyncFolder` returns a discriminated `{ ok: true; path?; status?; configured? } | { ok: false; error }` union; updated `src/services/desktopBridge.ts` with the matching explicit return type. Removed the `as ...` casts from `BackupSyncPanel.tsx`. Fixed `src/services/backupImportService.test.ts` helper signature and `src/services/syncEngine.test.ts` listener-extraction casts so `npm run typecheck` passes.
+  - **Verifier:** Added `scripts/verify-backup-sync.cjs` (unwired per parent instructions) and `scripts/verify-backup-sync.test.ts`. Extended the verifier with runtime checks for crypto round-trip, wrong passphrase, tampered auth tag, schema version, and `syncDataSanitizer` secret exclusion, plus static checks for manifest validation, tombstone handling, conflict-copy logic, packet allowlist, and atomic write semantics.
+
+### Session History entry
+
+- **2026-07-10 — Phase 9 Backup and sync completion:**
+  - Closed remaining backup/sync gaps: round-trip tests, conflict copies, LWW, chat merge, tombstones, wrong passphrase, tamper rejection, plaintext scan, desktop local-change propagation, desktop delete tombstones, sync-folder config unification, BackupSyncPanel status read fix, and error redaction.
+  - Added regression guards VERIFY-087 through VERIFY-091.
+  - Created `scripts/verify-backup-sync.cjs` and `scripts/verify-backup-sync.test.ts`; left `package.json` scripts and the `AGENTS.md` VERIFY registry unchanged per parent instruction.
+
+### Open TODO Ledger (Phase 9 update)
+
+- Phase 9 Backup and sync completion gaps are closed by this session.
+- Remaining pre-existing issues observed but not in scope: none; Phase 9 type errors were resolved in this session.
+
+### Validation Matrix — Phase 9 Backup and sync completion
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npx vitest run src/services/backupExportService.test.ts src/services/backupImportService.test.ts src/services/syncEngine.test.ts src/components/settings/BackupSyncPanel.test.tsx electron/services/syncBridge.test.ts electron/services/syncFolderWatcher.test.ts scripts/verify-backup-sync.test.ts --fileParallelism=false` | PASS | 36/36 tests passed across 7 files. |
+| `npm run test:electron` | PASS | 501 tests passed. |
+| `npm run test:unit` | PASS | 212 test files, 2762 tests passed. |
+| `npx eslint --max-warnings=0 src/components/settings/BackupSyncPanel.tsx src/components/settings/BackupSyncPanel.test.tsx electron/ipc/handlers/syncHandlers.ts electron/ipc/handlers/systemHandlers.ts electron/ipc/rpHandlers.ts electron/services/syncBridge.ts electron/services/syncBridge.test.ts electron/services/syncFolderWatcher.ts electron/services/syncFolderWatcher.test.ts src/services/backupImportService.ts src/services/backupImportService.test.ts src/services/backupExportService.test.ts src/services/syncEngine.ts src/services/syncEngine.test.ts src/services/desktopBridge.ts src/types/desktop.ts electron/preload.ts scripts/verify-backup-sync.cjs scripts/verify-backup-sync.test.ts` | PASS | 0 warnings/errors on all touched files. |
+| `npx tsc --noEmit --project tsconfig.electron.json` | PASS | Electron main/preload typecheck clean. |
+| `node scripts/verify-backup-sync.cjs` | PASS | All contract checks passed. |
+| `npm run typecheck` (renderer + electron) | PASS | `tsc --noEmit` and `tsc --noEmit --project tsconfig.electron.json` both clean after fixing the Phase 9 test types. |

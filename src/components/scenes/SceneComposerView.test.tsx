@@ -7,6 +7,8 @@ import { SceneComposerView } from "./SceneComposerView";
 import { useSceneComposerStore } from "../../stores/scene-composer-store";
 import { useSettingsStore } from "../../stores/settings-store";
 import { useProjectStore } from "../../stores/project-store";
+import { useCharacterCardStore } from "../../stores/character-card-store";
+import { usePersonaStore } from "../../stores/persona-store";
 import { toast } from "../../stores/toast-store";
 
 vi.mock("../../stores/toast-store", () => ({
@@ -45,6 +47,23 @@ function setupStore() {
     activeProjectId: null,
   });
   useProjectStore.setState({ projects: [], loading: false, loaded: true });
+  useCharacterCardStore.setState({
+    cards: [],
+    isLoading: false,
+    hasLoaded: true,
+    error: null,
+    searchQuery: "",
+    includeAdult: false,
+    editingId: null,
+  });
+  usePersonaStore.setState({
+    personas: [],
+    isLoading: false,
+    hasLoaded: true,
+    error: null,
+    activePersonaId: null,
+    searchQuery: "",
+  });
 }
 
 describe("SceneComposerView", () => {
@@ -311,6 +330,118 @@ describe("SceneComposerView", () => {
     render(<SceneComposerView />);
     await waitFor(() => {
       expect(screen.getByTestId("scene-composer-no-components")).toBeDefined();
+    });
+  });
+
+  // VERIFY-085 — Scene Composer reference preview panel.
+  const validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
+
+  it("renders the reference preview panel when a character is detected", async () => {
+    const store = useSceneComposerStore.getState();
+    await store.ensureLoaded();
+    const scene = await store.createScene({ title: "Ref Test", defaultModel: "venice-character-reference-v1" });
+    await store.addSceneVersion(scene.id, {
+      components: [{ kind: "subject", content: "Picnic Bot in a garden" }],
+      sourceType: "manual",
+    });
+    useCharacterCardStore.setState({
+      cards: [
+        {
+          schema: "CharacterCardV1",
+          id: "picnic-bot",
+          name: "Picnic Bot",
+          description: "",
+          systemPrompt: "",
+          tags: [],
+          adult: false,
+          exampleDialogues: [],
+          createdAt: 1,
+          updatedAt: 1,
+          avatar: { mimeType: "image/png", data: validPng, byteLength: 100 },
+        },
+      ],
+      hasLoaded: true,
+    });
+    render(<SceneComposerView />);
+    await waitFor(() => {
+      expect(screen.getByTestId("scene-reference-panel")).toBeDefined();
+    });
+    expect(screen.getByTestId("scene-reference-included")).toBeDefined();
+    expect(screen.getByText("Picnic Bot")).toBeDefined();
+  });
+
+  it("shows the unsupported-model caveat when the scene model does not support references", async () => {
+    const store = useSceneComposerStore.getState();
+    await store.ensureLoaded();
+    const scene = await store.createScene({ title: "Ref Test", defaultModel: "flux-dev" });
+    await store.addSceneVersion(scene.id, {
+      components: [{ kind: "subject", content: "Picnic Bot in a garden" }],
+      sourceType: "manual",
+    });
+    useCharacterCardStore.setState({
+      cards: [
+        {
+          schema: "CharacterCardV1",
+          id: "picnic-bot",
+          name: "Picnic Bot",
+          description: "",
+          systemPrompt: "",
+          tags: [],
+          adult: false,
+          exampleDialogues: [],
+          createdAt: 1,
+          updatedAt: 1,
+          avatar: { mimeType: "image/png", data: validPng, byteLength: 100 },
+        },
+      ],
+      hasLoaded: true,
+    });
+    render(<SceneComposerView />);
+    await waitFor(() => {
+      expect(screen.getByTestId("scene-reference-panel")).toBeDefined();
+    });
+    expect(screen.getByText(/does not support references/i)).toBeDefined();
+    expect(screen.getByTestId("scene-reference-omitted")).toBeDefined();
+  });
+
+  it("lets the user remove and restore a detected reference", async () => {
+    const store = useSceneComposerStore.getState();
+    await store.ensureLoaded();
+    const scene = await store.createScene({ title: "Ref Test", defaultModel: "venice-character-reference-v1" });
+    await store.addSceneVersion(scene.id, {
+      components: [{ kind: "subject", content: "Picnic Bot in a garden" }],
+      sourceType: "manual",
+    });
+    useCharacterCardStore.setState({
+      cards: [
+        {
+          schema: "CharacterCardV1",
+          id: "picnic-bot",
+          name: "Picnic Bot",
+          description: "",
+          systemPrompt: "",
+          tags: [],
+          adult: false,
+          exampleDialogues: [],
+          createdAt: 1,
+          updatedAt: 1,
+          avatar: { mimeType: "image/png", data: validPng, byteLength: 100 },
+        },
+      ],
+      hasLoaded: true,
+    });
+    render(<SceneComposerView />);
+    const user = userEvent.setup();
+    await waitFor(() => {
+      expect(screen.getByTestId("scene-reference-remove-picnic-bot")).toBeDefined();
+    });
+    await user.click(screen.getByTestId("scene-reference-remove-picnic-bot"));
+    await waitFor(() => {
+      expect(screen.getByTestId("scene-reference-restore-picnic-bot")).toBeDefined();
+    });
+    await user.click(screen.getByTestId("scene-reference-restore-picnic-bot"));
+    await waitFor(() => {
+      expect(screen.getByTestId("scene-reference-remove-picnic-bot")).toBeDefined();
     });
   });
 });

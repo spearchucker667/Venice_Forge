@@ -31,7 +31,7 @@ describe('ErrorBoundary — T-093: default fallback must not render raw secrets 
 
   it('redacts local file paths from the displayed stack trace', () => {
     const error = new Error('render failed')
-    error.stack = `Error: render failed\n    at Thrower (/Users/super_user/Projects/app/src/thrower.tsx:5:10)\n    at div`
+    error.stack = `Error: render failed\n    at Thrower (/Users/example/Projects/app/src/thrower.tsx:5:10)\n    at div`
     render(
       <ErrorBoundary>
         <Thrower error={error} />
@@ -40,7 +40,7 @@ describe('ErrorBoundary — T-093: default fallback must not render raw secrets 
 
     const pre = getDetailsPre()
     expect(pre).toHaveTextContent('[REDACTED-PATH]')
-    expect(pre).not.toHaveTextContent('/Users/super_user/Projects/app')
+    expect(pre).not.toHaveTextContent('/Users/example/Projects/app')
   })
 
   it('redacts source URLs from the displayed stack trace', () => {
@@ -62,7 +62,7 @@ describe('ErrorBoundary — T-092: logging must not leak raw secrets or paths', 
   it('logs redacted error details and component stacks', () => {
     const loggerSpy = vi.spyOn(logger, 'error').mockImplementation(() => {})
     const error = new Error('request failed with Bearer vn-abcdef1234567890')
-    error.stack = `Error: request failed with Bearer vn-abcdef1234567890\n    at Thrower (/Users/super_user/Projects/app/src/thrower.tsx:5:10)`
+    error.stack = `Error: request failed with Bearer vn-abcdef1234567890\n    at Thrower (/Users/example/Projects/app/src/thrower.tsx:5:10)`
 
     render(
       <ErrorBoundary>
@@ -74,7 +74,7 @@ describe('ErrorBoundary — T-092: logging must not leak raw secrets or paths', 
     const logArgs = loggerSpy.mock.calls[0]
     const loggedPayload = JSON.stringify(logArgs)
     expect(loggedPayload).not.toContain('vn-abcdef1234567890')
-    expect(loggedPayload).not.toContain('/Users/super_user/Projects/app')
+    expect(loggedPayload).not.toContain('/Users/example/Projects/app')
     expect(loggedPayload).not.toContain('http://localhost:5173/src/thrower.tsx')
     expect(loggedPayload).toContain('[REDACTED]')
     expect(loggedPayload).toContain('[REDACTED-PATH]')

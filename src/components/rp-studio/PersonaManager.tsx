@@ -8,6 +8,8 @@ import { GhostButton, Label, PrimaryButton, TextArea, ErrorText, EmptyState } fr
 import { Spinner } from "../ui/spinner";
 import { formatRelativeTime, truncate } from "./_shared";
 import type { UserPersonaV1 } from "../../types/rp";
+import { MAX_PERSONA_IMAGE_BYTES } from "../../services/rp/personaService";
+import { isSupportedImageFile, readImageAttachment } from "../../services/attachmentService";
 
 
 export function PersonaManager({ disabled = false }: { disabled?: boolean } = {}) {
@@ -175,6 +177,7 @@ export function PersonaEditor({ personaId, onClose, onSave, disabled = false }: 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState("");
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   if (!draft) return <EmptyState>Persona not found.</EmptyState>;
 
@@ -204,6 +207,21 @@ export function PersonaEditor({ personaId, onClose, onSave, disabled = false }: 
     }
   };
 
+  const handleImage = async (file: File) => {
+    if (!isSupportedImageFile(file) || file.size > MAX_PERSONA_IMAGE_BYTES) {
+      setError(`Persona image must be PNG, JPEG, or WebP and no larger than ${MAX_PERSONA_IMAGE_BYTES / 1024 / 1024} MiB.`);
+      return;
+    }
+    const attachment = await readImageAttachment(file);
+    const match = attachment.content.match(/^data:(image\/(?:png|jpeg|webp));base64,(.+)$/);
+    if (!match) {
+      setError("Persona image could not be decoded safely.");
+      return;
+    }
+    update("image", { mimeType: match[1] as NonNullable<UserPersonaV1["image"]>["mimeType"], data: match[2], byteLength: file.size });
+    setError(null);
+  };
+
   return (
     <div className="flex flex-col h-full min-h-0">
       <div className="flex items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
@@ -224,6 +242,28 @@ export function PersonaEditor({ personaId, onClose, onSave, disabled = false }: 
       </div>
       {error && <div className="px-4 py-3"><ErrorText>{error}</ErrorText></div>}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        <div>
+          <Label htmlFor="persona-image">Persona image</Label>
+          <input ref={imageInputRef} id="persona-image" type="file" accept="image/png,image/jpeg,image/webp" data-testid="persona-image-input" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleImage(file); event.target.value = ""; }} />
+          <div className="flex items-center gap-3">
+            {draft.image && (
+              <img
+                src={`data:${draft.image.mimeType};base64,${draft.image.data}`}
+                alt="Persona preview"
+                data-testid="persona-image-preview"
+                className="h-16 w-16 rounded-full border border-border object-cover"
+              />
+            )}
+            <GhostButton onClick={() => imageInputRef.current?.click()}>
+              {draft.image ? "Replace image" : "Add image"}
+            </GhostButton>
+            {draft.image && (
+              <GhostButton onClick={() => update("image", undefined)}>
+                Remove image
+              </GhostButton>
+            )}
+          </div>
+        </div>
         <div>
           <Label htmlFor="persona-name">Name</Label>
           <input

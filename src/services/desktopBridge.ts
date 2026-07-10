@@ -429,7 +429,7 @@ export const desktopSync = {
     if (isElectron()) return window.veniceForge!.sync.chooseSyncFolder();
     return { ok: false, error: "Not in Electron" };
   },
-  async getSyncFolder() {
+  async getSyncFolder(): Promise<{ ok: true; path?: string | null; status?: "stopped" | "paused" | "running"; configured?: boolean } | { ok: false; error: string }> {
     if (isElectron()) return window.veniceForge!.sync.getSyncFolder();
     return { ok: false, error: "Not in Electron" };
   },
@@ -444,6 +444,18 @@ export const desktopSync = {
   async stopSync() {
     if (isElectron()) return window.veniceForge!.sync.stopSync();
     return { ok: false, error: "Not in Electron" };
+  },
+  async pauseSync() {
+    if (isElectron()) return window.veniceForge!.sync.pauseSync();
+    return { ok: false, error: "Not in Electron" };
+  },
+  async getStatus() {
+    if (isElectron()) return window.veniceForge!.sync.getStatus();
+    return { ok: false, status: "stopped" as const, configured: false };
+  },
+  async setEmissionSuppressed(params: { suppressed: boolean }): Promise<{ ok: boolean; error?: string }> {
+    if (isElectron()) return window.veniceForge!.sync.setEmissionSuppressed(params);
+    return { ok: true };
   },
   async writePacket(params: { storeName: string; id: string; recordJson: string }): Promise<{ ok: boolean; error?: string }> {
     if (isElectron()) return window.veniceForge!.sync.writePacket(params);
@@ -599,7 +611,7 @@ export const desktopConversations = {
     if (!isElectron()) return { ok: false, error: "Conversation vault is only available in desktop mode." };
     return window.veniceForge!.conversations.delete(id);
   },
-  async pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean }): Promise<{
+  async pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean; excludeConversationIds?: string[] }): Promise<{
     ok: boolean; context: import("../types/conversationVault").PulledMemoryContext; error?: string;
   }> {
     if (!isElectron()) return { ok: false, context: { injectedText: "", facts: [], summaries: [], tokenEstimate: 0 }, error: "Conversation vault is only available in desktop mode." };

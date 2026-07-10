@@ -6,16 +6,16 @@
 accent: "#1a6fd6"
 background: "#0d1117"
 details: "Forge Graphite"
-foreground: "#e6edf3"
+foreground: "#d0d7de"
 terminal_colors:
   bright:
-    black: "#6b7686"
+    black: "#808b9b"
     blue: "#3581e6"
     cyan: "#58a6ff"
     green: "#3fb950"
     magenta: "#1a6fd6"
     red: "#f85149"
-    white: "#e6edf3"
+    white: "#d0d7de"
     yellow: "#d29922"
   normal:
     black: "#0d1117"

@@ -375,6 +375,14 @@ describe("ConversationVault core and services", () => {
       expect(context.injectedText).toContain("Image persistence issues");
     });
 
+    it("17b. excludes the active conversation in the storage query", async () => {
+      const record = makeRecord({ title: "Current chat", memory: { summary: "Must not retrieve itself", topics: [], entities: [], userFacts: [], projectRefs: [] } });
+      await saveConversation(record);
+      const context = await pullContext({ message: "Current chat", excludeConversationIds: [record.id] });
+      expect(context.injectedText).toBe("");
+      expect(context.summaries).toEqual([]);
+    });
+
     it("18. Context Size limitation caps and truncates long contexts", async () => {
       const longFactText = "A".repeat(5000);
       const r = makeRecord({

@@ -12,6 +12,15 @@ let watcher: FSWatcher | null = null;
 let currentSyncPath: string | null = null;
 let mainWindowRef: BrowserWindow | null = null;
 let currentPassword: string | null = null;
+let syncStatus: "stopped" | "paused" | "running" = "stopped";
+let localEmissionSuppressed = false;
+const processedOperationIds = new Set<string>();
+const MAX_PACKET_BYTES = 50 * 1024 * 1024;
+export const SYNC_STORE_ALLOWLIST = new Set([
+  "images", "chats", "settings", "conversations", "ai_memory", "files", "character_cards",
+  "personas", "lorebooks", "rp_chats", "rp_assets", "projects", "promptLibrary", "scenes",
+  "rpScenarios", "workflowTemplates", "researchSessions", "visualWorkflows", "playground", "tombstones",
+]);
 
 /** Initialize the watcher. Must provide the mainWindow to send events back. */
 export async function initSyncFolderWatcher(mainWindow: BrowserWindow) {
@@ -20,7 +29,9 @@ export async function initSyncFolderWatcher(mainWindow: BrowserWindow) {
 }
 
 export async function startSyncWatcher(password: string): Promise<{ ok: boolean; error?: string }> {
+  if (!password) return { ok: false, error: "Sync passphrase is required." };
   currentPassword = password;
+  syncStatus = "running";
   if (currentSyncPath) {
     return await setSyncFolder(currentSyncPath);
   }
@@ -33,7 +44,30 @@ export async function stopSyncWatcher(): Promise<{ ok: boolean; error?: string }
     await watcher.close();
     watcher = null;
   }
+  syncStatus = "stopped";
   return { ok: true };
+}
+
+export async function pauseSyncWatcher(): Promise<{ ok: boolean; error?: string }> {
+  if (watcher) await watcher.close();
+  watcher = null;
+  currentPassword = null;
+  syncStatus = "paused";
+  return { ok: true };
+}
+
+export function getSyncStatus() {
+  return { status: syncStatus, configured: Boolean(currentSyncPath) };
+}
+
+/** Temporarily suppresses local sync emission (used during bulk import). */
+export function setSyncEmissionSuppressed(suppressed: boolean): void {
+  localEmissionSuppressed = suppressed;
+}
+
+/** Returns whether local sync emission is currently suppressed. */
+export function isSyncEmissionSuppressed(): boolean {
+  return localEmissionSuppressed;
 }
 
 /** Set the sync folder and start watching. */
@@ -55,6 +89,9 @@ export async function setSyncFolder(syncPath: string): Promise<{ ok: boolean; er
     await fs.mkdir(vfbackupPath, { recursive: true });
     await fs.mkdir(path.join(vfbackupPath, "blobs"), { recursive: true });
     await fs.mkdir(path.join(vfbackupPath, "objects"), { recursive: true });
+    for (const entry of await fs.readdir(path.join(vfbackupPath, "blobs"))) {
+      if (entry.endsWith(".tmp")) await fs.rm(path.join(vfbackupPath, "blobs", entry), { force: true });
+    }
 
     // Only start watching if we have a password
     if (currentPassword) {
@@ -68,9 +105,9 @@ export async function setSyncFolder(syncPath: string): Promise<{ ok: boolean; er
       watcher.on("add", handleRemoteChange);
       watcher.on("change", handleRemoteChange);
       
-      logInfo("syncFolderWatcher", `Started watching sync folder blobs: ${vfbackupPath}`);
+      logInfo("syncFolderWatcher", "Started watching approved encrypted sync folder");
     } else {
-      logInfo("syncFolderWatcher", `Sync folder set to ${syncPath}, but sync paused (no password)`);
+      logInfo("syncFolderWatcher", "Encrypted sync folder configured; sync is paused");
     }
 
     return { ok: true };
@@ -94,11 +131,13 @@ async function handleRemoteChange(filePath: string) {
   const filename = path.basename(filePath);
 
   try {
+    const stat = await fs.stat(filePath);
+    if (stat.size > MAX_PACKET_BYTES) throw new Error("Encrypted packet exceeds maximum size");
     const data = await fs.readFile(filePath, "utf8");
     const manifest: EncryptedBackupManifest = JSON.parse(data);
 
     // Ensure valid version
-    if (manifest.version !== 2) {
+    if (manifest.version !== 2 || typeof manifest.salt !== "string" || typeof manifest.iv !== "string" || typeof manifest.ciphertext !== "string") {
       logError("syncFolderWatcher", `Unsupported backup version for ${filename}`);
       return;
     }
@@ -109,7 +148,8 @@ async function handleRemoteChange(filePath: string) {
     logInfo("syncFolderWatcher", `Detected remote change for ${filename}`);
     
     // We expect the parsed JSON to contain storeName and id
-    if (!parsed._storeName || !parsed._id || !parsed.data) {
+    if (!parsed._storeName || !SYNC_STORE_ALLOWLIST.has(parsed._storeName) || !parsed._id || !parsed.data
+      || typeof parsed._operationId !== "string" || !/^[a-f0-9]{64}$/.test(parsed._operationId)) {
       logError("syncFolderWatcher", `Decrypted payload missing metadata for ${filename}`);
       return;
     }
@@ -119,6 +159,9 @@ async function handleRemoteChange(filePath: string) {
       // Ignore our own echoes
       return;
     }
+    if (processedOperationIds.has(parsed._operationId)) return;
+    processedOperationIds.add(parsed._operationId);
+    if (processedOperationIds.size > 10_000) processedOperationIds.delete(processedOperationIds.values().next().value as string);
 
     mainWindowRef.webContents.send("sync:onRemoteChange", { 
       storeName: parsed._storeName,
@@ -133,26 +176,21 @@ async function handleRemoteChange(filePath: string) {
 
 /** Write an encrypted packet to the sync folder. */
 export async function writePacket(storeName: string, id: string, recordJson: string): Promise<{ ok: boolean; error?: string }> {
+  if (localEmissionSuppressed) return { ok: true };
   if (!currentSyncPath) return { ok: false, error: "Sync folder not configured." };
   if (!currentPassword) return { ok: false, error: "Sync is not active (no password)." };
 
   // Strict path traversal and semantic validation for storeName and id
-  const ALLOWED_STORES = [
-    "images", "chats", "settings", "diagnostics", "conversations", "ai_memory", 
-    "files", "character_cards", "personas", "lorebooks", "rp_chats", "rp_assets", 
-    "projects", "promptLibrary", "scenes", "rpScenarios", "workflowTemplates", 
-    "researchSessions", "visualWorkflows", "playground", "tombstones"
-  ];
-
-  if (!ALLOWED_STORES.includes(storeName)) {
+  if (!SYNC_STORE_ALLOWLIST.has(storeName)) {
     return { ok: false, error: `Invalid storeName: ${storeName}` };
   }
   
-  if (!id || typeof id !== "string" || id.includes("/") || id.includes("\\") || id.includes("..")) {
+  if (!id || typeof id !== "string" || !/^[a-zA-Z0-9_.:-]{1,256}$/.test(id) || id.includes("..")) {
     return { ok: false, error: "Invalid id" };
   }
 
   try {
+    if (Buffer.byteLength(recordJson, "utf8") > MAX_PACKET_BYTES) return { ok: false, error: "Payload exceeds maximum allowed size" };
     const parsedRecord = JSON.parse(recordJson);
     if (!parsedRecord || typeof parsedRecord !== "object" || Array.isArray(parsedRecord)) {
       return { ok: false, error: "recordJson must be a valid object" };
@@ -163,9 +201,11 @@ export async function writePacket(storeName: string, id: string, recordJson: str
       return { ok: false, error: "Record ID mismatch between envelope and payload" };
     }
 
+    const operationId = crypto.createHash("sha256").update(`${storeName}\0${id}\0${recordJson}`).digest("hex");
     const payload = JSON.stringify({
       _storeName: storeName,
       _id: id,
+      _operationId: operationId,
       _sourceDeviceId: await getDeviceId(),
       data: parsedRecord
     });
@@ -204,9 +244,13 @@ export async function writePacket(storeName: string, id: string, recordJson: str
     }
 
     // Atomic write
-    const tmpPath = `${filePath}.tmp`;
-    await fs.writeFile(tmpPath, manifestJson, "utf8");
-    await fs.rename(tmpPath, filePath);
+    const tmpPath = `${filePath}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`;
+    try {
+      await fs.writeFile(tmpPath, manifestJson, { encoding: "utf8", flag: "wx" });
+      await fs.rename(tmpPath, filePath);
+    } finally {
+      await fs.rm(tmpPath, { force: true });
+    }
 
     return { ok: true };
   } catch (err: unknown) {

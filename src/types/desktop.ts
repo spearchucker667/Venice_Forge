@@ -272,7 +272,7 @@ export interface VeniceForgeConversations {
   delete(id: string): Promise<{ ok: boolean; error?: string }>;
   archive(id: string): Promise<{ ok: boolean; error?: string }>;
   search(query: string, options?: { limit?: number; includeArchived?: boolean }): Promise<{ ok: boolean; results: SearchResult[]; error?: string }>;
-  pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean }): Promise<{ ok: boolean; context: PulledMemoryContext; error?: string }>;
+  pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean; excludeConversationIds?: string[] }): Promise<{ ok: boolean; context: PulledMemoryContext; error?: string }>;
   rebuildIndex(): Promise<{ ok: boolean; itemsIndexed: number; error?: string }>;
   migrateLegacyHistory(): Promise<{ ok: boolean; migrated: number; failed: number; skipped: number; error?: string }>;
   detectLegacyHistory(): Promise<boolean>;
@@ -331,7 +331,7 @@ export interface ElectronSyncAPI {
   chooseSyncFolder(): Promise<{ ok: boolean; path?: string; canceled?: boolean; error?: string }>;
   
   /** Retrieves the currently configured sync folder path (if any). */
-  getSyncFolder(): Promise<{ ok: boolean; path?: string }>;
+  getSyncFolder(): Promise<{ ok: true; path?: string | null; status?: "stopped" | "paused" | "running"; configured?: boolean } | { ok: false; error: string }>;
   
   /** Sets and initializes a sync folder. */
   setSyncFolder(input: { path: string }): Promise<{ ok: boolean; error?: string }>;
@@ -341,7 +341,12 @@ export interface ElectronSyncAPI {
   
   /** Stops the sync watcher and clears the password from main process memory. */
   stopSync(): Promise<{ ok: boolean; error?: string }>;
-  
+  pauseSync(): Promise<{ ok: boolean; error?: string }>;
+  getStatus(): Promise<{ ok: boolean; status: "stopped" | "paused" | "running"; configured: boolean }>;
+
+  /** Suppresses local sync emission during bulk import to avoid echo loops. */
+  setEmissionSuppressed(input: { suppressed: boolean }): Promise<{ ok: boolean; error?: string }>;
+
   /** Writes a SyncObject to the sync folder. Encryption happens in main process. */
   writePacket(input: { storeName: string; id: string; recordJson: string }): Promise<{ ok: boolean; error?: string }>;
   

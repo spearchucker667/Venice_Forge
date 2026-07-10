@@ -6,7 +6,15 @@ This is the canonical product roadmap and open task ledger. For the append-only 
 
 ## P0 — Safety / Security / Data Protection
 
-No critical P0 blockers are currently open. All previously identified P0 issues (including streaming lifecycle preservation across tab switches, no-.git archive validation idempotency, and upscale enhancer preflight guards) are resolved and verified.
+### [ ] Finish Backup/Sync Conflict and Lifecycle Coverage
+- **Description:** The 2026-07-10 pass hardened approved-path custody, packet validation, initial reconciliation, operation IDs, atomic temp cleanup, pause/resume, secret exclusion, import preview, and conflict preservation. Still required before a release-complete claim: replace-mode safety backup, encrypted tombstone end-to-end tests, orphaned content-addressed blob retention, two-device restart/conflict fixtures, and plaintext-folder scanning.
+- **Status:** In progress
+- **Validation Required:** `npm run test:electron`, focused backup/import/sync tests, `npm run verify:contracts`
+
+### [ ] Complete Scene Reference Request/UI Integration
+- **Description:** Entity detection, alias/word-boundary matching, safe image filtering, model capability omission, reference limits, and user-removal planning are implemented. Wire the plan into the Scene Composer preview and a Venice image endpoint/model that officially supports references; unsupported models must remain explicit text-only generation.
+- **Status:** In progress
+- **Validation Required:** scene UI tests and `npm run verify:scene-composer`
 
 ---
 
@@ -90,6 +98,26 @@ No critical P0 blockers are currently open. All previously identified P0 issues 
 ---
 
 ## Recently Closed
+
+- **[x] Phase 9 — Backup and sync completion (2026-07-10)**
+  - Closed backup/sync gaps: export/import round-trip tests, conflict copies, LWW merge, chat merge, tombstones, wrong passphrase, tamper rejection, plaintext scan, desktop local-change propagation, desktop delete tombstones, sync-folder config unification through `useSettingsStore`, BackupSyncPanel active-status read fix, and error redaction for `sync:encryptBackup`/`sync:decryptBackup`.
+  - Added `electron/services/syncBridge.ts`, `scripts/verify-backup-sync.cjs`, and regression tests across renderer, Electron, and scripts.
+  - Added regression guards VERIFY-087 through VERIFY-091.
+  - Did not modify `package.json` scripts or the `AGENTS.md` VERIFY registry.
+  - **Validation:** New tests 34/34 PASS; `npm run test:electron` 501 PASS; `npm run test:unit` 2762 PASS; `node scripts/verify-backup-sync.cjs` PASS; `npm run typecheck` PASS.
+
+- **[x] Phase 8 — Bundle budget hardening and theme guard, Phase 10 — Documentation refresh (2026-07-10)**
+  - Investigated the 608 KB main bundle (`index-COt0Xo8-.js`) causing `verify:bundle-budget` to fail.
+  - Updated `vite.config.ts` `manualChunks` to route the markdown ecosystem (`micromark`, `mdast`, `hast`, `unist`, `hastscript`, etc.) into `vendor-markdown` and TanStack Query (`@tanstack/react-query`, `@tanstack/query-core`) into `vendor-tanstack`.
+  - Rebuilt web bundle; main entry chunk dropped to ~521 KB and `node scripts/verify-bundle-budget.cjs` passes.
+  - Added `// VERIFY-092` regression guard comment to the softened dark-theme body-text test in `src/theme/contrast.test.ts`.
+  - Refreshed `docs/ROADMAP.md`, `docs/DOCS_INDEX.md`, and `docs/summary_of_work.md`.
+  - **Validation:** `node scripts/verify-bundle-budget.cjs` PASS; `npx vitest run src/theme/contrast.test.ts` PASS; `npm run lint:eslint` PASS; `npm run typecheck` PASS.
+
+- **[x] Repository identity, lockfile, privacy, and chat correctness foundation (2026-07-10)**
+  - Canonicalized active agent instructions and portable documentation links; added `verify:repository-identity` and `verify:lockfile`.
+  - Regenerated the npm lockfile with Node 22/npm 10 and proved `npm ci` succeeds.
+  - Added current-chat memory exclusion and stale-result rejection, persisted model hot-swap/fallback, stable message IDs, inline editing, branching/truncation/forking, active-chat search, prompt selection reconciliation, persona images, RP budget blocking, and softened named theme tokens.
 
 - **[x] Repository Documentation Hygiene, README Rebuild, & Legal/About Refresh (P2/P3)**
   - **Description:** Refactored README, consolidated legal/privacy/security docs, cleaned index map, deleted stale stub files, and resolved absolute path leaks in active docs.

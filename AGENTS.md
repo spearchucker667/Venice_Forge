@@ -9,6 +9,40 @@
 
 ---
 
+## Canonical Repository
+
+- Local path: `/Users/super_user/Projects/Venice_Forge`
+- GitHub: `spearchucker667/Venice_Forge`
+- Application: Venice Forge Electron desktop app
+- Stack: Electron 42, React 19, TypeScript strict, Zustand, Vitest
+- Node: `>=22.13.0 <23.0.0`
+
+Do not use historical paths such as
+`/Users/super_user/Projects/Windows-Venice-API-connector`.
+Before changing files, run `pwd` and confirm the repository root contains
+`package.json`, `AGENTS.md`, `electron/`, and `src/`:
+
+```bash
+EXPECTED_ROOT="/Users/super_user/Projects/Venice_Forge"
+
+if [[ "$(pwd -P)" != "$EXPECTED_ROOT" ]]; then
+  echo "Wrong repository root."
+  echo "Expected: $EXPECTED_ROOT"
+  echo "Actual:   $(pwd -P)"
+  exit 1
+fi
+
+test -f package.json
+test -f AGENTS.md
+test -d src
+test -d electron
+```
+
+This is a local agent bootstrap check only. Never add the absolute-path
+assertion to CI because hosted checkout paths are different.
+
+---
+
 ## Mandatory Session Handoff: `docs/summary_of_work.md`
 
 At the end of every coding, audit, refactor, documentation, or test
@@ -86,7 +120,7 @@ npm run test:electron   # electron/**/*.test.ts (main / IPC / services)
 npm run test:ingestion  # src/services/ingestion/*.test.ts
 npm run test:ui         # src/components/**/*.test.{ts,tsx} + tests/accessibility
 npm run test:unit       # remaining src/tests/scripts unit tests (catch-all excludes)
-npm run test:ci         # full suite with v8 coverage (used by CI/release workflows)
+npm run test:ci         # segmented correctness suite without coverage
 ```
 The union of `test:server`, `test:electron`, `test:ingestion`, `test:ui`, and `test:unit` covers every test file except `tests/smoke/electron-smoke.test.ts`, which is handled by `npm run smoke:electron`.
 
@@ -107,7 +141,7 @@ npm run build:web        # Only renderer → dist/ (sets ELECTRON_BUILD=true)
 npm run build:server     # Only proxy → dist/server.cjs
 npm run smoke:electron   # tests/smoke/electron-smoke.test.ts (Playwright; skipped when no display)
 npm run test:coverage    # v8 coverage; current enforced thresholds branches 61 / functions 68 / lines 73 / statements 70 (long-term target 70/80/80/80)
-npm run test:ci          # full suite with v8 coverage (CI/release gate)
+npm run test:ci          # segmented correctness suite (CI/release gate)
 npm run profile:media-studio # Isolated Electron profile with 1,000 encrypted media records
 npm run verify:dist      # Build outputs only; does not require release/
 npm run verify:build-output  # Alias of verify:dist (semantically clearer name)
@@ -177,7 +211,7 @@ guard fails CI if a future change weakens the protection. When adding a
 new guard, append it to the list below and reference the ID in the
 test's comment header.
 
-The primary active sequence is `VERIFY-001` through `VERIFY-068`.
+The primary active sequence is `VERIFY-001` through `VERIFY-092`.
 `VERIFY-168` is an intentional legacy bridge for the older T-168 storage
 privacy redaction finding and is allowlisted by `verify:repo-handoff-hygiene`;
 do not add new out-of-sequence IDs without updating that verifier and this
@@ -253,6 +287,26 @@ registry.
 | `VERIFY-066` | Accessible labels and skip link — header icon-only actions (e.g., New chat) expose `aria-label`; `App.tsx` renders a keyboard-accessible "Skip to main content" link targeting the `<main>` region; regression-guarded by `src/components/layout/header.test.tsx` and `src/App.skip-link.test.ts`. | `src/components/layout/header.tsx`, `src/App.tsx`, `src/components/layout/header.test.tsx`, `src/App.skip-link.test.ts` |
 | `VERIFY-067` | `/image/upscale` prompt extraction and safety preflight — `promptPayloadExtractor.ts` extracts `enhancePrompt`/`enhance_prompt`/`prompt` from `/image/upscale`; unsafe enhancer prompts are blocked by local Family Safe Mode before network dispatch; no raw prompt text is logged; regression-guarded by `src/shared/safety/promptPayloadExtractor.test.ts`. | `src/shared/safety/promptPayloadExtractor.ts`, `src/shared/safety/promptPayloadExtractor.test.ts` |
 | `VERIFY-068` | Browser traffic containment — normal browsing traffic remains inside the ResearchBrowserView. The `openExternal` API has been replaced by the `research.live_browser_allow_external_open` gated `requestOpenInSystemBrowser`. Search tabs and standard flows do not use `target="_blank"` unrestrictedly. Regression-guarded by `verify:browser-traffic-contained`. | `src/components/search/SearchTab.tsx`, `electron/services/researchBrowserServer.ts`, `scripts/verify-browser-traffic-contained.cjs` |
+| `VERIFY-069` | Repository identity and path hygiene — active agent docs use the canonical Electron path/repository, historical path evidence is bannered, local cache files and private `file:///Users` links are rejected. | `scripts/verify-repository-identity.test.ts` |
+| `VERIFY-070` | Chat memory isolation — switching conversations discards in-flight memory results; the popup appears at most once per send cycle; disabled memory performs zero retrieval and zero popup. | `src/hooks/use-chat.test.ts` |
+| `VERIFY-071` | Conversation message operations — stable IDs, inline edit (no regeneration/API call), delete-from-here, regenerate-from-here, fork provenance, and truncation/fork store-level invariants. | `src/components/chat/chat-view.test.tsx`, `src/components/chat/message-bubble.test.tsx`, `src/stores/chat-store.message-operations.test.ts` |
+| `VERIFY-072` | In-conversation search — Ctrl/Cmd+F opens a search bar, navigates matches, highlights without mutating messages, and closes on Escape. | `src/components/chat/chat-view.test.tsx` |
+| `VERIFY-073` | Chat model hot swap — default resolver rejects image/audio/embedding/offline models; header model selection persists on the conversation; unavailable models fall back once; persisted model beats global selection. | `src/services/defaultModelResolver.test.ts`, `src/components/layout/header.test.tsx`, `src/components/chat/chat-view.test.tsx` |
+| `VERIFY-074` | Character display titles — character-bound conversations are prefixed with the character name in history, sidebar, and search without double prefixes or corrupting stored titles. | `src/utils/conversationDisplayTitle.test.ts`, `src/components/chat/HistoryView.test.tsx`, `src/components/layout/sidebar.test.tsx` |
+| `VERIFY-075` | Prompt Library selection reconciliation — deleting the active prompt selects next/previous/null deterministically; filtering/import/sync reconcile the detail pane. | `src/components/prompts/PromptLibraryView.test.tsx`, `src/components/prompts/PromptLibrarySelection.test.ts`, `src/stores/prompt-library-store.test.ts`, `src/components/command-palette/CommandPalette.test.tsx` |
+| `VERIFY-076` | Prompt Library deleted-record guard — the detail editor cannot save a prompt that has been deleted. | `src/components/prompts/PromptLibraryView.test.tsx`, `src/stores/prompt-library-store.test.ts` |
+| `VERIFY-078` | RP token counter fallback — estimates are labeled "Estimated tokens"; budget/over-limit math is accurate; no auto-truncation. | `src/services/rpTokenCounter.test.ts` |
+| `VERIFY-079` | RP CharacterEditor token budget UI — displays estimated tokens and disables Save when the compiled prompt exceeds the model budget. | `src/components/rp-studio/CharacterEditor.test.tsx` |
+| `VERIFY-080` | Persona image persistence — safe upload validation; image survives save/read round-trips and export/import. | `src/services/rp/personaService.test.ts`, `src/services/rp/personaImage.test.ts`, `electron/ipc/rpHandlers.test.ts`, `src/stores/persona-store.test.ts` |
+| `VERIFY-081` | PersonaManager image UX — upload, preview, replace, remove, invalid-MIME rejection, oversized rejection, and safe decode-error messaging. | `src/components/rp-studio/PersonaManager.test.tsx` |
+| `VERIFY-082` | Scene reference capability/payload — reference images are emitted only for models that support references and omitted otherwise. | `src/utils/payloadBuilders.modelAware.test.ts`, `src/services/sceneReferencePlanner.test.ts` |
+| `VERIFY-083` | Scene reference entity resolver — active character/persona avatars are mapped to `SceneReferenceEntity[]` for scene planning. | `src/services/sceneReferenceResolver.test.ts` |
+| `VERIFY-084` | Character scene generation references — mentioned characters/personas flow into the image payload; unsupported models drop them. | `src/services/characterSceneGenerationService.test.ts` |
+| `VERIFY-085` | Scene Composer reference preview panel — detected references, omitted reasons, and user remove/restore interactions. | `src/components/scenes/SceneComposerView.test.tsx` |
+| `VERIFY-087` | Manual encrypted backup export round-trip — renderer export path encrypts and packages syncable stores excluding secrets. | `src/services/backupExportService.test.ts` |
+| `VERIFY-088` | Manual encrypted backup import — preview, conflict resolution, LWW, chat merge, tombstone propagation, wrong passphrase, tamper rejection, plaintext scan. | `src/services/backupImportService.test.ts` |
+| `VERIFY-089` | Sync engine local forwarding — desktop saves/deletes are forwarded as encrypted sync/tombstone packets. | `src/services/syncEngine.test.ts` |
+| `VERIFY-092` | Theme text softening — Venice Parity Dark, Forge Graphite, and Forge Copper avoid pure-white body text while preserving WCAG AA contrast. | `src/theme/contrast.test.ts` |
 | `VERIFY-168` | Safe summary redacts user titles and names from issue messages | `src/services/storagePrivacyService.test.ts` |
 ---
 

@@ -4,10 +4,12 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   generateId,
   normalizePersona,
+  normalizePersonaImage,
   listPersonas,
   readPersona,
   savePersona,
   deletePersona,
+  MAX_PERSONA_IMAGE_BYTES,
 } from "./personaService";
 import type { UserPersonaV1 } from "../../types/rp";
 import * as desktopBridge from "../desktopBridge";
@@ -44,6 +46,15 @@ const basePersona = (): UserPersonaV1 => ({
   updatedAt: 1700000000000,
   scope: "global",
 });
+
+const imageFixture = {
+  mimeType: "image/png" as const,
+  data: "iVBORw0KGgo=",
+  byteLength: 12,
+  contentHash: "abcd".repeat(16),
+};
+
+const personaWithImage = (): UserPersonaV1 => ({ ...basePersona(), image: imageFixture });
 
 describe("personaService", () => {
   beforeEach(() => {
@@ -167,6 +178,48 @@ describe("personaService", () => {
         action: "block",
       } as any);
       await expect(savePersona(basePersona())).rejects.toThrow(SafetyGuardBlockedError);
+    });
+  });
+
+  // VERIFY-080 regression guard — persona images survive normalize/save/read round-trips
+  // in both web (IndexedDB) and Electron (IPC + filesystem) modes.
+  describe("Persona image persistence", () => {
+    it("normalizePersonaImage preserves a valid image and its optional contentHash", () => {
+      const out = normalizePersonaImage(imageFixture);
+      expect(out).toEqual(imageFixture);
+    });
+
+    it("normalizePersonaImage rejects invalid mime types and oversized images", () => {
+      expect(normalizePersonaImage({ ...imageFixture, mimeType: "image/svg+xml" })).toBeUndefined();
+      expect(normalizePersonaImage({ ...imageFixture, byteLength: MAX_PERSONA_IMAGE_BYTES + 1 })).toBeUndefined();
+      expect(normalizePersonaImage({ ...imageFixture, data: "not-base64!" })).toBeUndefined();
+    });
+
+    it("web mode save + read round-trips a persona image", async () => {
+      vi.mocked(desktopBridge.isElectron).mockReturnValue(false);
+      vi.spyOn(StorageService, "getItem").mockResolvedValue(personaWithImage());
+      vi.spyOn(StorageService, "saveItem").mockResolvedValue(undefined as any);
+
+      const saved = await savePersona(personaWithImage());
+      expect(saved.image).toEqual(imageFixture);
+
+      const loaded = await readPersona("p_test_01");
+      expect(loaded).not.toBeNull();
+      expect(loaded!.image).toEqual(imageFixture);
+    });
+
+    it("Electron IPC save + read round-trips a persona image", async () => {
+      vi.mocked(desktopBridge.isElectron).mockReturnValue(true);
+      vi.mocked(desktopBridge.desktopPersonas.save).mockResolvedValue({ ok: true, persona: personaWithImage() });
+      vi.mocked(desktopBridge.desktopPersonas.get).mockResolvedValue({ ok: true, persona: personaWithImage() });
+
+      const saved = await savePersona(personaWithImage());
+      expect(saved.image).toEqual(imageFixture);
+
+      const loaded = await readPersona("p_test_01");
+      expect(loaded).not.toBeNull();
+      expect(loaded!.image).toEqual(imageFixture);
+      expect(desktopBridge.desktopPersonas.get).toHaveBeenCalledWith("p_test_01");
     });
   });
 });
