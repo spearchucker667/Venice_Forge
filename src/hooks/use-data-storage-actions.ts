@@ -27,16 +27,11 @@
  *      `createExportPayload` sanitizer; it never re-emits raw secrets.
  *    - `importData` writes a pre-import backup **before** touching any
  *      store, so an aborted or partial import can always be recovered.
- *    - The safety-mode 3-way choice (P0) is preserved: when the
- *      imported payload would disable either Family Safe Mode or
- *      Venice API Safe Mode, the user must pick
- *      `import-all` / `keep-current` / `cancel` before any settings
- *      are written.
  *    - Both destructive ops (`clearLocalSettings`, `clearAllHistory`)
  *      are gated by the caller's `setPendingConfirm` confirm/cancel
  *      modal; the hook itself never invokes a modal directly.
  */
-import { useCallback, type MutableRefObject } from "react";
+import { useCallback } from "react";
 import { useChatStore } from "../stores/chat-store";
 import { toast } from "../stores/toast-store";
 import { isElectron, desktopFiles, desktopConfig } from "../services/desktopBridge";
@@ -62,18 +57,6 @@ export interface DataStorageActionsOptions {
     detail?: string;
     onConfirm: () => Promise<void> | void;
   }) => void;
-  /** Current safety-mode values; read by the export payload and the import safety-merge. */
-  localFamilySafeModeEnabled: boolean;
-  veniceApiSafeMode: boolean;
-  /**
-   * Refs the modal uses to resolve the safety 4-way choice. The hook
-   * writes the cancel/tertiary/dismiss resolvers into these refs;
-   * the modal's Cancel / "Keep current safety" / Dismiss buttons then
-   * resolve the safety-choice Promise through the refs.
-   */
-  applySafetyCancelRef: MutableRefObject<(() => void) | null>;
-  applySafetyTertiaryRef: MutableRefObject<(() => void) | null>;
-  applySafetyDismissRef: MutableRefObject<(() => void) | null>;
 }
 
 /** Return shape: 4 async action functions grouped for caller convenience. */

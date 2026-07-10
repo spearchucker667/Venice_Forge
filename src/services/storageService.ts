@@ -469,7 +469,10 @@ const StorageService = {
       window.dispatchEvent(new CustomEvent("venice:storage-deleted", { detail: { store, id } }));
       
       const veniceWindow = window as Window & { __VENICE_IS_SYNCING?: boolean };
-      if (veniceWindow.__VENICE_IS_SYNCING !== true && isElectron()) {
+      // Exclude the tombstones store itself (prevents self-referential propagation) and the
+      // diagnostics store (explicitly excluded from sync, so tombstones for it are meaningless).
+      const isSyncExcludedStore = store === "tombstones" || store === "diagnostics";
+      if (veniceWindow.__VENICE_IS_SYNCING !== true && isElectron() && !isSyncExcludedStore) {
         desktopSync.writePacket({ storeName: "tombstones", id, recordJson: JSON.stringify({ storeName: store, id, deletedAt: Date.now() }) })
           .catch((err: unknown) => console.error("Failed to emit tombstone:", err));
       }
