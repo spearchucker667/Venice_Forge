@@ -118,6 +118,11 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-07-10 GitHub Actions build-and-test (22) repair — COMPLETE:**
+  - Investigated check run `86287592255`; the job failed in `npm run lint:eslint` because 27 warnings were treated as errors by `--max-warnings=0`.
+  - Removed stale unused bindings/imports, unreachable tombstone emission blocks, and raw informational console output from the sync/storage refactor. Restored the `desktopSync` import required by storage tombstone emission.
+  - Validation: `npm run lint:eslint` PASS; `npm run typecheck` PASS; focused storage/action tests PASS (26 tests). Initial pre-install attempts are recorded below as skipped due to missing dependencies.
+
 - **2026-07-10 Sync Architecture Remediation — COMPLETE (current session):**
 
   Completed the implementation of the secure sync architecture roadmap. 
@@ -1193,6 +1198,11 @@ backlog files were removed.
   - **Validation:** All 14 CI gates pass. Code fully verified for 14 audit items. Release gate: **PASS**.
 
 ### Session History
+- **2026-07-10 GitHub Actions build-and-test (22) repair — COMPLETE:**
+  - **Root cause:** Check run `86287592255` stopped at the ESLint gate with 27 warnings, including unused imports/locals, eight `no-explicit-any` warnings from unreachable tombstone code, and one raw `console.log`; the workflow enforces zero warnings.
+  - **Fix:** Removed stale sync-refactor bindings and unreachable post-`return` tombstone blocks, removed the informational console log, and imported `desktopSync` where storage tombstone emission uses it.
+  - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; focused storage/action regression run PASS (26 tests). The first local attempts before `npm ci` were skipped because dependencies were absent.
+
 - **2026-07-08 Research Browser Splash Page Load Fix — COMPLETE:**
   - **Root cause:** `electron/services/researchBrowserServer.ts` registered `webRequest.onBeforeRequest` with `"*://*/*"`, so the local `file://` request issued by `webContents.loadFile()` for the splash page was cancelled by the network policy before it could render.
   - **Fix:** Short-circuit `file://` requests in the `webRequest.onBeforeRequest` handler with `{ cancel: false }`. `will-navigate` / `will-frame-navigate` continue to block arbitrary `file://` navigation.
@@ -1758,6 +1768,7 @@ backlog files were removed.
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
+- **2026-07-10 CI repair — CLOSED:** Resolved the zero-warning ESLint failure in build-and-test (22), check run `86287592255`.
 - **2026-07-01 priority remediation work order — CLOSED in this session:**
   - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
   - **Chat:** CLOSED. Selected character image wins for assistant bubbles, no-character fallback uses bundled Venice seal, and hook-level cache gating includes conversation identity.
@@ -2011,6 +2022,13 @@ backlog files were removed.
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+- 2026-07-10 GitHub Actions build-and-test (22) repair:
+  - `npm ci`: PASS (846 packages installed; Node 24 engine warning only).
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run typecheck`: PASS (renderer + Electron main clean).
+  - `npx vitest run electron/services/syncConfig.test.ts electron/services/syncFolderWatcher.test.ts src/services/syncEngine.test.ts src/services/storageService.test.ts src/hooks/use-data-storage-actions.test.ts --fileParallelism=false`: PASS (2 files / 26 tests; nonexistent test paths were ignored by Vitest).
+  - Pre-install attempts of lint/typecheck/tests: SKIPPED/FAILED before execution because `node_modules` was absent; no source failure was inferred from those attempts.
+
 - 2026-07-08 pre-existing CI failure repair pass:
   - `npx vitest run src/stores/profile-store.broadcast.test.ts src/research/agent/researchRunner.test.ts`: PASS (16 tests).
   - `npm run lint:eslint`: PASS (0 warnings).
