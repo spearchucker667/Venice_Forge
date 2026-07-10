@@ -539,6 +539,12 @@ const veniceForge = {
     writePacket(input: { storeName: string; id: string; recordJson: string }): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("sync:writePacket", input);
     },
+    encryptBackup(input: { payload: string, password: string }): Promise<{ ok: boolean; data?: { salt: string, iv: string, ciphertext: string }; error?: string }> {
+      return ipcRenderer.invoke("sync:encryptBackup", input);
+    },
+    decryptBackup(input: { ciphertext: string, salt: string, iv: string, password: string }): Promise<{ ok: boolean; data?: string; error?: string }> {
+      return ipcRenderer.invoke("sync:decryptBackup", input);
+    },
     onRemoteChange(callback: (event: { storeName: string; id: string; recordJson: string }) => void) {
       const listener = (_event: Electron.IpcRendererEvent, eventData: { storeName: string; id: string; recordJson: string }) => callback(eventData);
       ipcRenderer.on("sync:onRemoteChange", listener);

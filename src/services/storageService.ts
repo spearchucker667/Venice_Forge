@@ -6,6 +6,7 @@ import { assertValidId, isValidId } from "../utils/idValidation";
 import { encryptData, decryptDataResult, type EncryptedPayload } from "./cryptoService";
 import { applyMigrations } from "./dbMigrations";
 import { DEFAULT_PROFILE_ID, getActiveProfileId } from "./activeProfile";
+import { isElectron } from "./desktopBridge";
 
 type StoreName = (typeof STORE_NAMES)[number];
 
@@ -466,6 +467,15 @@ const StorageService = {
     const result = await this.deleteRawProfileRows(db, store, id, activeProfile);
     if (result && typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("venice:storage-deleted", { detail: { store, id } }));
+      
+      const w = window as any;
+      if (w.__VENICE_IS_SYNCING !== true && isElectron()) {
+        const desktopSync = w.veniceForge?.sync;
+        if (desktopSync && desktopSync.writePacket) {
+          desktopSync.writePacket("tombstones", id, JSON.stringify({ storeName: store, id, deletedAt: Date.now() }))
+            .catch((err: unknown) => console.error("Failed to emit tombstone:", err));
+        }
+      }
     }
     return result;
   },

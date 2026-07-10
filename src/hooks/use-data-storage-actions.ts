@@ -89,8 +89,8 @@ export interface DataStorageActionsOptions {
 export interface DataStorageActions {
   clearLocalSettings: () => Promise<void>;
   clearAllHistory: () => Promise<void>;
-  exportData: () => Promise<void>;
-  importData: () => Promise<void>;
+  exportData: (password: string) => Promise<void>;
+  importData: (password: string) => Promise<void>;
 }
 
 /**
@@ -177,39 +177,16 @@ export function useDataStorageActions(
     });
   }, [setPendingConfirm]);
 
-  const exportData = useCallback(async () => {
+  const exportData = useCallback(async (password: string) => {
     try {
-      const [images, chats, settings, conversations, memories] = await Promise.all([
-        StorageService.getItems("images"),
-        StorageService.getItems("chats"),
-        StorageService.getItems("settings"),
-        listConversations(),
-        listMemories(),
-      ]);
-      const appVersion = await desktopApp.getVersion();
-      const persistedSafetySettings = buildSafetyEntry(
-        localFamilySafeModeEnabled,
-        veniceApiSafeMode,
-      );
-      const payload: ExportPayload = createExportPayload(
-        {
-          images,
-          chats,
-          settings: [...settings, persistedSafetySettings],
-          conversations,
-          ai_memory: memories,
-        } as RawExportData,
-        appVersion,
-      );
-      const ok = await desktopFiles.exportJson(
-        payload,
-        `venice-forge-export-${new Date().toISOString().slice(0, 10)}.json`,
-      );
-      if (ok) toast.success("Data exported successfully.");
-    } catch {
-      toast.error("Export failed. Please try again.");
+      const { createEncryptedBackup, downloadEncryptedBackup } = await import("../services/backupExportService");
+      const manifest = await createEncryptedBackup(password);
+      const ok = await downloadEncryptedBackup(manifest);
+      if (ok) toast.success("Encrypted backup exported successfully.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Export failed. Please try again.");
     }
-  }, [localFamilySafeModeEnabled, veniceApiSafeMode]);
+  }, []);
 
   /**
    * Import is gated by a 3-way safety choice (P0) when the imported
@@ -219,181 +196,33 @@ export function useDataStorageActions(
    * the SettingsView modal uses; callers do not need to pass anything
    * extra.
    */
-  const importData = useCallback(async () => {
+  const importData = useCallback(async (password: string) => {
     try {
       const json = await desktopFiles.importJsonString();
       if (!json) return;
 
-      // 1. Pre-import backup (always written, even if the user later
-      //    cancels the safety choice).
-      const [imagesBefore, chatsBefore, settingsBefore, conversationsBefore, memoriesBefore] =
-        await Promise.all([
-          StorageService.getItems("images"),
-          StorageService.getItems("chats"),
-          StorageService.getItems("settings"),
-          listConversations(),
-          listMemories(),
-        ]);
-      const backup: ExportPayload = createExportPayload(
-        {
-          images: imagesBefore,
-          chats: chatsBefore,
-          settings: [
-            ...settingsBefore,
-            buildSafetyEntry(localFamilySafeModeEnabled, veniceApiSafeMode),
-          ],
-          conversations: conversationsBefore,
-          ai_memory: memoriesBefore,
-        } as RawExportData,
-        await desktopApp.getVersion(),
+      const { parseAndImportBackup } = await import("../services/backupImportService");
+      const manifest = JSON.parse(json);
+      
+      const summary = await parseAndImportBackup(manifest, password);
+      
+      toast.success(
+        `Import complete: ${summary.recordsImported} imported, ${summary.recordsSkipped} skipped, ${summary.tombstonesApplied} tombstones applied.`
       );
-      const dateTimeStr = new Date()
-        .toISOString()
-        .slice(0, 19)
-        .replace("T", "_")
-        .replace(/:/g, "-");
-      const backupOk = await desktopFiles.exportJson(
-        backup,
-        `venice-forge-pre-import-backup-${dateTimeStr}.json`,
-      );
-      if (!backupOk) {
-        toast.error("Pre-import backup could not be saved. Import aborted.");
-        return;
+      
+      // Reload UI or specific stores as needed.
+      if (typeof window !== "undefined") {
+         window.dispatchEvent(new Event("venice:backup-imported"));
       }
-
-      // 2. Parse + validate.
-      const { payload, summary } = validateImportJson(json);
-
-      // P0: parse + extract safety settings BEFORE writing anything.
-      const importedSafetyEntry = payload.data.settings.find(
-        (entry) => entry.id === SAFETY_ENTRY_ID,
-      );
-      const rawSafety = importedSafetyEntry?.value;
-      const value =
-        rawSafety && typeof rawSafety === "object"
-          ? (rawSafety as Record<string, unknown>)
-          : null;
-      const familyEnabled =
-        value && typeof value.localFamilySafeModeEnabled === "boolean"
-          ? value.localFamilySafeModeEnabled
-          : true;
-      const apiSafeMode =
-        value && typeof value.veniceApiSafeMode === "boolean" ? value.veniceApiSafeMode : true;
-      const wouldDisable = !familyEnabled || !apiSafeMode;
-
-      // 3. Safety-mode 3-way choice (only when the payload would
-      //    actually disable something; otherwise default to
-      //    "import-all").
-      let safetyChoice: "import-all" | "keep-current" | "cancel" = "import-all";
-      if (value && wouldDisable) {
-        safetyChoice = await new Promise<"import-all" | "keep-current" | "cancel">(
-          (resolve) => {
-            setPendingConfirm({
-              message: "This backup would change one or more safety settings.",
-              detail:
-                "Family Safe Mode is Venice Forge's local family-oriented filter. " +
-                "Adult Mode bypasses only that local filter. " +
-                "Venice API Safe Mode is a separate provider-side setting and is not affected by Adult Mode. " +
-                "Choose how to handle these imported safety settings.",
-              onConfirm: () => resolve("import-all"),
-            });
-            applySafetyCancelRef.current = null;
-            applySafetyTertiaryRef.current = () => resolve("keep-current");
-            applySafetyDismissRef.current = () => resolve("cancel");
-          },
-        );
-        applySafetyCancelRef.current = null;
-        applySafetyTertiaryRef.current = null;
-        applySafetyDismissRef.current = null;
-      }
-
-      if (safetyChoice === "cancel") {
-        toast.info("Import cancelled. No settings were written.");
-        return;
-      }
-
-      // 4. Write non-safety data FIRST so a safety-write failure
-      //    can't half-import.
-      await Promise.all(
-        payload.data.images.map((img) => StorageService.saveItem("images", img)),
-      );
-      await Promise.all(
-        payload.data.chats.map((chat) => StorageService.saveItem("chats", chat)),
-      );
-
-      if (safetyChoice === "import-all") {
-        await Promise.all(
-          payload.data.settings.map((s) => StorageService.saveItem("settings", s)),
-        );
-        if (value) {
-          setLocalFamilySafeModeEnabled(familyEnabled);
-          setVeniceApiSafeMode(apiSafeMode);
-          if (isElectron()) {
-            await desktopConfig.writeSanitized({
-              safety: {
-                local_family_safe_mode_enabled: familyEnabled,
-                venice_api_safe_mode: apiSafeMode,
-              },
-            });
-          }
-        }
-      } else {
-        // "keep-current": drop the safety entry from the imported
-        // settings, then persist the rest. The caller's current
-        // safety state (Zustand + YAML + Electron runtime snapshot)
-        // is left untouched.
-        const filteredSettings = payload.data.settings.filter(
-          (entry) => entry.id !== SAFETY_ENTRY_ID,
-        );
-        await Promise.all(
-          filteredSettings.map((s) => StorageService.saveItem("settings", s)),
-        );
-        toast.info("Imported data kept current safety settings.");
-      }
-
-      const convResults = await Promise.all(
-        payload.data.conversations.map((conv) => saveConversation(conv as unknown as Conversation)),
-      );
-      const failedConvCount = convResults.filter((ok) => !ok).length;
-      if (failedConvCount > 0) {
-        throw new Error(`Failed to import ${failedConvCount} conversation(s).`);
-      }
-
-      await Promise.all(
-        payload.data.ai_memory.map((mem) => {
-          const id = typeof mem.id === "string" && mem.id ? mem.id : crypto.randomUUID();
-          const createdAt = typeof mem.timestamp === "number" ? mem.timestamp : Date.now();
-          return upsertMemory({
-            id,
-            content: (mem.content as string) || "",
-            createdAt,
-            tags: Array.isArray(mem.tags) ? (mem.tags as string[]) : [],
-            conversationId:
-              typeof mem.conversationId === "string" ? mem.conversationId : undefined,
-          });
-        }),
-      );
-
-      // 5. Hydrate stores.
-      const convs: Conversation[] = await listConversations();
+      
+      // Hydrate stores.
+      const convs = await listConversations();
       useChatStore.setState({ conversations: convs });
 
-      toast.success(
-        `Imported ${summary.conversationsFound} conversations and ${summary.aiMemoryFound} memories successfully.`,
-      );
-    } catch {
-      toast.error("Import failed. Please check the file and try again.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Import failed. Please try again.");
     }
-  }, [
-    setPendingConfirm,
-    setLocalFamilySafeModeEnabled,
-    setVeniceApiSafeMode,
-    localFamilySafeModeEnabled,
-    veniceApiSafeMode,
-    applySafetyCancelRef,
-    applySafetyTertiaryRef,
-    applySafetyDismissRef,
-  ]);
+  }, []);
 
   return { clearLocalSettings, clearAllHistory, exportData, importData };
 }

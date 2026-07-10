@@ -5,18 +5,24 @@ import { FolderOpen, HardDrive, ShieldCheck, Activity } from "lucide-react";
 
 export function BackupSyncPanel() {
   const [syncFolder, setSyncFolder] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [passphrase, setPassphrase] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function loadSyncFolder() {
+    async function loadSyncState() {
       if (!isElectron()) {
         setIsLoading(false);
         return;
       }
       try {
-        const res = await desktopSync.getSyncFolder() as { ok: boolean; path?: string; error?: string };
+        const res = await desktopSync.getSyncFolder() as { ok: boolean; path?: string; active?: boolean; error?: string };
         if (res.ok && res.path) {
           setSyncFolder(res.path);
+          if (res.active) {
+            setIsSyncing(true);
+            setPassphrase("********"); // Dummy mask for UI
+          }
         }
       } catch (err) {
         console.error("Failed to load sync folder:", err);
@@ -24,7 +30,7 @@ export function BackupSyncPanel() {
         setIsLoading(false);
       }
     }
-    loadSyncFolder();
+    loadSyncState();
   }, []);
 
   const handleChooseFolder = async () => {
@@ -35,6 +41,7 @@ export function BackupSyncPanel() {
         toast.error(res.error || "Failed to choose sync folder.");
         return;
       }
+      // Note: backend chooseSyncFolder should now persist the path and return it.
       setSyncFolder(res.path);
       toast.success(`Sync folder set to: ${res.path}`);
     } catch (err) {
@@ -43,18 +50,37 @@ export function BackupSyncPanel() {
     }
   };
 
-  const handleClearFolder = async () => {
+  const handleStartSync = async () => {
+    if (!passphrase) {
+      toast.error("Please enter a sync passphrase.");
+      return;
+    }
     try {
-      const res = await desktopSync.setSyncFolder({ path: "" });
+      const res = await desktopSync.startSync({ password: passphrase }) as { ok: boolean; error?: string };
       if (!res.ok) {
-        toast.error(res.error || "Failed to clear sync folder.");
+        toast.error(res.error || "Failed to start sync.");
         return;
       }
-      setSyncFolder(null);
-      toast.success("Sync disabled.");
+      setIsSyncing(true);
+      toast.success("Sync started.");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
-      toast.error(`Failed to clear sync folder: ${msg}`);
+      toast.error(`Failed to start sync: ${msg}`);
+    }
+  };
+
+  const handleStopSync = async () => {
+    try {
+      const res = await desktopSync.stopSync() as { ok: boolean; error?: string };
+      if (!res.ok) {
+        toast.error(res.error || "Failed to stop sync.");
+        return;
+      }
+      setIsSyncing(false);
+      toast.success("Sync stopped.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed to stop sync: ${msg}`);
     }
   };
 
@@ -95,7 +121,7 @@ export function BackupSyncPanel() {
             </div>
           </div>
           <div className="px-3 py-1 bg-surface rounded text-xs font-medium text-text-secondary border border-border/50">
-            {syncFolder ? "Active" : "Off"}
+            {isSyncing ? "Active" : syncFolder ? "Paused" : "Off"}
           </div>
         </div>
         
@@ -110,15 +136,35 @@ export function BackupSyncPanel() {
             >
               {syncFolder ? "Change Folder" : "Choose Folder"}
             </button>
-            {syncFolder && (
-              <button
-                onClick={handleClearFolder}
-                className="px-4 py-2 bg-surface text-error rounded-lg text-sm font-medium hover:bg-surface-elevated transition-colors border border-border/50"
-              >
-                Disable
-              </button>
-            )}
           </div>
+
+          {syncFolder && (
+            <div className="pt-2 flex items-center space-x-4">
+              <input
+                type="password"
+                placeholder="Enter Encryption Passphrase"
+                value={passphrase}
+                onChange={(e) => setPassphrase(e.target.value)}
+                disabled={isSyncing}
+                className="flex-1 bg-surface border border-border/50 rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-accent"
+              />
+              {isSyncing ? (
+                <button
+                  onClick={handleStopSync}
+                  className="px-4 py-2 bg-surface text-error rounded-lg text-sm font-medium hover:bg-surface-elevated transition-colors border border-border/50 whitespace-nowrap"
+                >
+                  Stop Sync
+                </button>
+              ) : (
+                <button
+                  onClick={handleStartSync}
+                  className="px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm font-medium hover:bg-accent-light transition-colors whitespace-nowrap"
+                >
+                  Start Sync
+                </button>
+              )}
+            </div>
+          )}
           
           <div className="flex flex-col gap-2 p-3 bg-accent/5 border border-accent/10 rounded-lg text-sm text-text-secondary">
             <div className="flex items-center space-x-2">

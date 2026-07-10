@@ -14,6 +14,8 @@ import {
   desktopScenarios,
 } from "./desktopBridge";
 import type { SyncStoreName } from "../types/sync";
+import { BACKUP_SCHEMA_VERSION, deriveBackupKey, fromBase64, EncryptedBackupManifest } from "./backupCryptoWeb";
+import { desktopSync } from "./desktopBridge";
 
 interface SyncableRecord {
   id: string;
@@ -101,6 +103,32 @@ export async function deleteStoreRecord(storeName: SyncStoreName, recordId: stri
   await StorageService.deleteItem(storeName, recordId);
 }
 
+/** Fetches records from a specific store, routing to IPC if needed in Desktop mode. */
+export async function fetchStoreRecords(storeName: SyncStoreName): Promise<SyncableRecord[]> {
+  if (isElectron()) {
+    switch (storeName) {
+      case "conversations":
+        const res = await desktopChat.list();
+        return res.ok ? (res.conversations as unknown as SyncableRecord[]) : [];
+      case "character_cards":
+        return await desktopCharacterCards.list() as unknown as SyncableRecord[];
+      case "personas":
+        return await desktopPersonas.list() as unknown as SyncableRecord[];
+      case "lorebooks":
+        return await desktopLorebooks.list() as unknown as SyncableRecord[];
+      case "rp_chats":
+        const rpRes = await desktopRpChats.list();
+        return rpRes.ok ? (rpRes.chats as unknown as SyncableRecord[]) : [];
+      case "rp_assets":
+        return await desktopRpAssets.list() as unknown as SyncableRecord[];
+      case "rpScenarios":
+        return await desktopScenarios.list() as unknown as SyncableRecord[];
+    }
+  }
+
+  return await StorageService.getItems(storeName) as SyncableRecord[];
+}
+
 /** 
  * Validates, decrypts, and applies a single decrypted packet.
  * @param storeName The store to apply to.
@@ -117,6 +145,13 @@ export async function importDecryptedPacket(
       (window as VeniceWindowWithSyncFlag).__VENICE_IS_SYNCING = true;
     }
 
+    if (storeName === "tombstones") {
+      const tomb = JSON.parse(recordJson) as { deletedAt: number, storeName: SyncStoreName, id: string };
+      await TombstoneService.recordTombstone(tomb.storeName, tomb.id);
+      await deleteStoreRecord(tomb.storeName, tomb.id);
+      return { ok: true };
+    }
+
     const imported = JSON.parse(recordJson) as SyncableRecord;
     
     // Check against tombstone locally
@@ -130,7 +165,7 @@ export async function importDecryptedPacket(
       return { ok: true };
     }
 
-    const localRecords = await StorageService.getItems(storeName) as SyncableRecord[];
+    const localRecords = await fetchStoreRecords(storeName);
     const local = localRecords.find(r => r.id === id);
 
     if (!local) {
@@ -191,16 +226,84 @@ export async function importDecryptedPacket(
       }
     }
 
-    if (typeof window !== "undefined") {
-      (window as VeniceWindowWithSyncFlag).__VENICE_IS_SYNCING = false;
-    }
     return { ok: true };
-  } catch (err) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Unknown error";
+    console.error(`Error importing packet for ${storeName}/${id}:`, err);
+    return { ok: false, error: errorMsg };
+  } finally {
     if (typeof window !== "undefined") {
       (window as VeniceWindowWithSyncFlag).__VENICE_IS_SYNCING = false;
     }
-    const errorMsg = err instanceof Error ? err.message : "Unknown error during import.";
-    return { ok: false, error: errorMsg };
   }
 }
 
+/** Parses a manual backup manifest and previews the number of records. */
+export async function previewBackup(manifest: EncryptedBackupManifest): Promise<{ totalRecords: number }> {
+  if (manifest.version !== BACKUP_SCHEMA_VERSION) {
+    throw new Error(`Unsupported backup version: ${manifest.version}`);
+  }
+  // We can't really know totalRecords without decrypting, but we can do a dummy return or decrypt and count.
+  return { totalRecords: -1 }; // Or throw "Must decrypt to count"
+}
+
+/** 
+ * Fully decrypts and imports an EncryptedBackupManifest.
+ * Returns a summary of the import operation.
+ */
+export async function parseAndImportBackup(
+  manifest: EncryptedBackupManifest,
+  password: string
+): Promise<ImportSummary> {
+  if (manifest.version !== BACKUP_SCHEMA_VERSION) {
+    throw new Error(`Unsupported backup version: ${manifest.version}`);
+  }
+
+  let decryptedJson: string;
+
+  if (isElectron()) {
+    const res = await desktopSync.decryptBackup(manifest.ciphertext, manifest.salt, manifest.iv, password);
+    if (!res.ok || !res.data) throw new Error(res.error || "Decryption failed in main process. Invalid password?");
+    decryptedJson = res.data;
+  } else {
+    // Web Crypto Fallback
+    const key = await deriveBackupKey(password, fromBase64(manifest.salt));
+    try {
+      const decryptedBuffer = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: fromBase64(manifest.iv) },
+        key,
+        fromBase64(manifest.ciphertext)
+      );
+      decryptedJson = new TextDecoder().decode(decryptedBuffer);
+    } catch (e) {
+      throw new Error("Failed to decrypt backup. Invalid password or corrupt data.");
+    }
+  }
+
+  const data = JSON.parse(decryptedJson) as Record<string, SyncableRecord[]>;
+  let importedCount = 0;
+  let skippedCount = 0;
+  let tombstoneCount = 0;
+
+  for (const storeName of Object.keys(data)) {
+    const records = data[storeName];
+    if (!Array.isArray(records)) continue;
+
+    for (const record of records) {
+      const recordJson = JSON.stringify(record);
+      // We can re-use importDecryptedPacket for conflict resolution
+      const res = await importDecryptedPacket(storeName as SyncStoreName, record.id, recordJson);
+      if (res.ok) {
+        if (storeName === "tombstones") {
+          tombstoneCount++;
+        } else {
+          importedCount++;
+        }
+      } else {
+        skippedCount++;
+      }
+    }
+  }
+
+  return { recordsImported: importedCount, recordsSkipped: skippedCount, tombstonesApplied: tombstoneCount };
+}

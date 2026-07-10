@@ -168,7 +168,7 @@ describe("useDataStorageActions", () => {
     );
     await expect(
       act(async () => {
-        await result.current.exportData();
+        await result.current.exportData("test-password");
       }),
     ).resolves.toBeUndefined();
   });
@@ -186,7 +186,7 @@ describe("useDataStorageActions", () => {
     );
     await expect(
       act(async () => {
-        await result.current.importData();
+        await result.current.importData("test-password");
       }),
     ).resolves.toBeUndefined();
     // The safety-choice refs must not be written when the file picker
@@ -213,7 +213,7 @@ describe("useDataStorageActions", () => {
     );
 
     await act(async () => {
-      await result.current.exportData();
+      await result.current.exportData("test-password");
     });
 
     expect(toast.error).toHaveBeenCalledWith("Export failed. Please try again.");
@@ -239,7 +239,7 @@ describe("useDataStorageActions", () => {
     );
 
     await act(async () => {
-      await result.current.importData();
+      await result.current.importData("test-password");
     });
 
     expect(toast.error).toHaveBeenCalledWith(

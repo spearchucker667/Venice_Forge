@@ -5,18 +5,17 @@ import { logInfo, logError } from "./logger";
 import { redactErrorMessage } from "../../src/shared/redaction";
 import { BrowserWindow } from "electron";
 import { encryptPayload, decryptPayload, EncryptedBackupManifest } from "./backupCrypto";
+import { getSyncPath, setSyncPath, getDeviceId } from "./syncConfig";
 
 let watcher: FSWatcher | null = null;
 let currentSyncPath: string | null = null;
 let mainWindowRef: BrowserWindow | null = null;
 let currentPassword: string | null = null;
 
-// Track recently written hashes to avoid echo loops
-const recentWrites = new Set<string>();
-
 /** Initialize the watcher. Must provide the mainWindow to send events back. */
-export function initSyncFolderWatcher(mainWindow: BrowserWindow) {
+export async function initSyncFolderWatcher(mainWindow: BrowserWindow) {
   mainWindowRef = mainWindow;
+  currentSyncPath = await getSyncPath();
 }
 
 export async function startSyncWatcher(password: string): Promise<{ ok: boolean; error?: string }> {
@@ -45,6 +44,7 @@ export async function setSyncFolder(syncPath: string): Promise<{ ok: boolean; er
     }
 
     currentSyncPath = syncPath;
+    await setSyncPath(syncPath);
     if (!syncPath) {
       return { ok: true };
     }
@@ -60,7 +60,7 @@ export async function setSyncFolder(syncPath: string): Promise<{ ok: boolean; er
       watcher = chokidar.watch(path.join(vfbackupPath, "blobs"), {
         ignored: /(^|[/\\])\../, // ignore dotfiles
         persistent: true,
-        ignoreInitial: true,
+        ignoreInitial: false, // We DO want to process existing files on startup
         depth: 0 // only watch blobs directly in blobs folder
       });
 
@@ -92,12 +92,6 @@ async function handleRemoteChange(filePath: string) {
 
   const filename = path.basename(filePath);
 
-  // If we just wrote this file, ignore it to prevent loop
-  if (recentWrites.has(filename)) {
-    recentWrites.delete(filename);
-    return;
-  }
-
   try {
     const data = await fs.readFile(filePath, "utf8");
     const manifest: EncryptedBackupManifest = JSON.parse(data);
@@ -118,6 +112,12 @@ async function handleRemoteChange(filePath: string) {
       logError("syncFolderWatcher", `Decrypted payload missing metadata for ${filename}`);
       return;
     }
+    
+    const localDeviceId = await getDeviceId();
+    if (parsed._sourceDeviceId === localDeviceId) {
+      // Ignore our own echoes
+      return;
+    }
 
     mainWindowRef.webContents.send("sync:onRemoteChange", { 
       storeName: parsed._storeName,
@@ -135,21 +135,43 @@ export async function writePacket(storeName: string, id: string, recordJson: str
   if (!currentSyncPath) return { ok: false, error: "Sync folder not configured." };
   if (!currentPassword) return { ok: false, error: "Sync is not active (no password)." };
 
-  // Strict path traversal validation for storeName and id
-  if (storeName.includes("/") || storeName.includes("\\") || storeName.includes("..")) {
-    return { ok: false, error: "Invalid storeName" };
+  // Strict path traversal and semantic validation for storeName and id
+  const ALLOWED_STORES = [
+    "images", "chats", "settings", "diagnostics", "conversations", "ai_memory", 
+    "files", "character_cards", "personas", "lorebooks", "rp_chats", "rp_assets", 
+    "projects", "promptLibrary", "scenes", "rpScenarios", "workflowTemplates", 
+    "researchSessions", "visualWorkflows", "playground", "tombstones"
+  ];
+
+  if (!ALLOWED_STORES.includes(storeName)) {
+    return { ok: false, error: `Invalid storeName: ${storeName}` };
   }
-  if (id.includes("/") || id.includes("\\") || id.includes("..")) {
+  
+  if (!id || typeof id !== "string" || id.includes("/") || id.includes("\\") || id.includes("..")) {
     return { ok: false, error: "Invalid id" };
   }
 
   try {
     const parsedRecord = JSON.parse(recordJson);
+    if (!parsedRecord || typeof parsedRecord !== "object" || Array.isArray(parsedRecord)) {
+      return { ok: false, error: "recordJson must be a valid object" };
+    }
+    
+    // Ensure the inner record id matches the wrapper id
+    if (parsedRecord.id !== id) {
+      return { ok: false, error: "Record ID mismatch between envelope and payload" };
+    }
+
     const payload = JSON.stringify({
       _storeName: storeName,
       _id: id,
+      _sourceDeviceId: await getDeviceId(),
       data: parsedRecord
     });
+    
+    if (payload.length > 50 * 1024 * 1024) { // 50MB reasonable max
+      return { ok: false, error: "Payload exceeds maximum allowed size" };
+    }
 
     const encrypted = await encryptPayload(payload, currentPassword);
 
@@ -163,10 +185,10 @@ export async function writePacket(storeName: string, id: string, recordJson: str
 
     const manifestJson = JSON.stringify(manifest, null, 2);
 
-    // Hash the contents to create a content-addressed filename
+    // Hash the canonical payload for idempotent naming
     const crypto = require("crypto");
-    const hash = crypto.createHash("sha256").update(manifestJson).digest("hex");
-    const filename = `${hash}.json`;
+    const canonicalHash = crypto.createHash("sha256").update(payload).digest("hex");
+    const filename = `${canonicalHash}.json`;
 
     const vfbackupPath = path.join(currentSyncPath, ".vfbackup");
     const blobsPath = path.join(vfbackupPath, "blobs");
@@ -181,34 +203,15 @@ export async function writePacket(storeName: string, id: string, recordJson: str
       // File doesn't exist, proceed
     }
 
-    // Add to recent writes so the watcher ignores the echo
-    recentWrites.add(filename);
-
-    setTimeout(() => {
-      recentWrites.delete(filename);
-    }, 5000);
-
     // Atomic write
     const tmpPath = `${filePath}.tmp`;
     await fs.writeFile(tmpPath, manifestJson, "utf8");
     await fs.rename(tmpPath, filePath);
 
-    // Optionally write an object record that points to this hash
-    const objectDir = path.join(vfbackupPath, "objects", storeName);
-    await fs.mkdir(objectDir, { recursive: true });
-    
-    // Replace problematic characters in ID for filename
-    const safeId = id.replace(/[^a-zA-Z0-9_-]/g, "_");
-    const objectPath = path.join(objectDir, `${safeId}.json`);
-    const objectTmpPath = `${objectPath}.tmp`;
-    await fs.writeFile(objectTmpPath, JSON.stringify({ hash, updatedAt: new Date().toISOString() }), "utf8");
-    await fs.rename(objectTmpPath, objectPath);
-
-    logInfo("syncFolderWatcher", `Wrote sync packet ${filename} for ${storeName}/${id}`);
     return { ok: true };
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Unknown error";
-    logError("syncFolderWatcher", `Failed to write sync packet for ${storeName}/${id}: ${redactErrorMessage(errorMsg)}`);
+    logError("syncFolderWatcher", `Failed to write packet: ${redactErrorMessage(errorMsg)}`);
     return { ok: false, error: redactErrorMessage(errorMsg) };
   }
 }

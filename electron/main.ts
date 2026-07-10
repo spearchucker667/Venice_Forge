@@ -9,6 +9,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import { registerIpcHandlers } from "./ipc/handlers";
 import { initializeConfig } from "./services/configService";
+import { initSyncFolderWatcher } from "./services/syncFolderWatcher";
 import { logError, logInfo } from "./services/logger";
 import { redactErrorMessage } from "../src/shared/redaction";
 import { checkPathContained } from "./utils/navigation";
@@ -171,6 +172,7 @@ function createWindow(): BrowserWindow {
 
   win.once("ready-to-show", () => win.show());
   setupResearchBrowserIpc(win);
+  initSyncFolderWatcher(win).catch((err: unknown) => logError("Failed to init sync folder watcher", err));
   return win;
 }
 
