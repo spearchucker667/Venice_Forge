@@ -14,7 +14,6 @@ import {
   desktopScenarios,
 } from "./desktopBridge";
 import type { SyncStoreName } from "../types/sync";
-import { deriveBackupKey, fromBase64, type EncryptedBackupManifest } from "./backupExportService";
 
 interface SyncableRecord {
   id: string;
@@ -103,151 +102,91 @@ export async function deleteStoreRecord(storeName: SyncStoreName, recordId: stri
 }
 
 /** 
- * Validates, decrypts, and applies an encrypted backup manifest.
- * @param manifest The encrypted manifest object.
- * @param password The user-provided passphrase for decryption.
- * @returns An import summary with counts of imported, skipped, and tombstones applied.
+ * Validates, decrypts, and applies a single decrypted packet.
+ * @param storeName The store to apply to.
+ * @param id The record ID.
+ * @param recordJson The decrypted JSON payload.
  */
-export async function importEncryptedBackup(
-  manifest: EncryptedBackupManifest,
-  password: string
-): Promise<{ ok: boolean; summary?: ImportSummary; error?: string }> {
+export async function importDecryptedPacket(
+  storeName: SyncStoreName,
+  id: string,
+  recordJson: string
+): Promise<{ ok: boolean; error?: string }> {
   try {
     if (typeof window !== "undefined") {
       (window as VeniceWindowWithSyncFlag).__VENICE_IS_SYNCING = true;
     }
-    
-    const salt = fromBase64(manifest.salt);
-    const iv = fromBase64(manifest.iv);
-    const ciphertext = fromBase64(manifest.ciphertext);
 
-    const key = await deriveBackupKey(password, salt);
+    const imported = JSON.parse(recordJson) as SyncableRecord;
     
-    let plaintextBuffer: ArrayBuffer;
-    try {
-      plaintextBuffer = await crypto.subtle.decrypt(
-        { name: "AES-GCM", iv },
-        key,
-        ciphertext
-      );
-    } catch {
-      if (typeof window !== "undefined") {
-        (window as VeniceWindowWithSyncFlag).__VENICE_IS_SYNCING = false;
-      }
-      return { ok: false, error: "Decryption failed. Incorrect password or corrupted data." };
+    // Check against tombstone locally
+    const tombstoneId = `${storeName}:${id}`;
+    const localTombstone = await StorageService.getItem("tombstones", tombstoneId) as { deletedAt: number } | null;
+    
+    const importedUpdatedAt = imported.updatedAt || 0;
+
+    if (localTombstone && localTombstone.deletedAt > importedUpdatedAt) {
+      // Local tombstone is newer, meaning it was deleted recently. Skip import.
+      return { ok: true };
     }
 
-    const plaintextStr = new TextDecoder().decode(plaintextBuffer);
-    const data = JSON.parse(plaintextStr) as Record<string, unknown[]>;
+    const localRecords = await StorageService.getItems(storeName) as SyncableRecord[];
+    const local = localRecords.find(r => r.id === id);
 
-    const summary: ImportSummary = {
-      recordsImported: 0,
-      recordsSkipped: 0,
-      tombstonesApplied: 0,
-    };
-
-    // We must process tombstones first to build a map of deleted records.
-    const importedTombstones = (data["tombstones"] || []) as Array<{ id: string, storeName: SyncStoreName, recordId: string, deletedAt: number }>;
-    
-    // First, apply all imported tombstones that are newer than local tombstones.
-    for (const tombstone of importedTombstones) {
-      const localTombstone = await StorageService.getItem("tombstones", tombstone.id) as { deletedAt: number } | null;
-      if (!localTombstone || localTombstone.deletedAt < tombstone.deletedAt) {
-        await TombstoneService.recordTombstone(tombstone.storeName, tombstone.recordId, "import");
-        // Ensure the record is deleted locally
-        await deleteStoreRecord(tombstone.storeName, tombstone.recordId);
-        summary.tombstonesApplied++;
-      }
-    }
-
-    // Now, iterate through all stores and merge records
-    const { fetchStoreRecords } = await import("./backupExportService");
-    
-    for (const storeName of STORE_NAMES) {
-      if (storeName === "diagnostics" || storeName === "tombstones") continue;
-
-      const importedRecords = (data[storeName] || []) as SyncableRecord[];
-      if (!importedRecords.length) continue;
-
-      const localRecords = (await fetchStoreRecords(storeName)) as SyncableRecord[];
-      const localMap = new Map(localRecords.map((r) => [r.id, r]));
-
-      for (const imported of importedRecords) {
-        if (!imported.id) {
-          summary.recordsSkipped++;
-          continue;
-        }
-
-        // Check against tombstone locally
-        const tombstoneId = `${storeName}:${imported.id}`;
-        const localTombstone = await StorageService.getItem("tombstones", tombstoneId) as { deletedAt: number } | null;
+    if (!local) {
+      // Record doesn't exist locally, so save it
+      await saveStoreRecord(storeName, imported);
+    } else {
+      // Both exist, check for divergence
+      const isConflict = 
+        imported.deviceId && local.deviceId && imported.deviceId !== local.deviceId &&
+        imported.revisionId && local.revisionId && 
+        imported.revisionId !== local.revisionId &&
+        imported.baseRevisionId !== local.revisionId && 
+        local.baseRevisionId !== imported.revisionId;
         
-        const importedUpdatedAt = imported.updatedAt || 0;
+      if (isConflict) {
+        const preserveStores = ["character_cards", "promptLibrary", "personas", "lorebooks", "rpScenarios", "projects", "scenes"];
+        const mergeStores = ["chats", "rp_chats", "conversations"];
 
-        if (localTombstone && localTombstone.deletedAt > importedUpdatedAt) {
-          // Local tombstone is newer, meaning it was deleted recently. Skip import.
-          summary.recordsSkipped++;
-          continue;
-        }
-
-        const local = localMap.get(imported.id);
-        if (!local) {
-          // Record doesn't exist locally, so save it
-          await saveStoreRecord(storeName, imported);
-          summary.recordsImported++;
-        } else {
-          // Both exist, check for divergence
-          const isConflict = 
-            imported.deviceId && local.deviceId && imported.deviceId !== local.deviceId &&
-            imported.revisionId && local.revisionId && 
-            imported.revisionId !== local.revisionId &&
-            imported.baseRevisionId !== local.revisionId && 
-            local.baseRevisionId !== imported.revisionId;
-            
-          if (isConflict) {
-            if (storeName === "character_cards" || storeName === "promptLibrary") {
-              // Preserve conflict copy
-              const newId = `${imported.id}_conflict_${Date.now()}`;
-              const conflictRecord = {
-                ...imported,
-                id: newId,
-                name: imported.name ? `${imported.name} (Conflict from ${imported.deviceId || "Remote"})` : undefined,
-                title: imported.title ? `${imported.title} (Conflict from ${imported.deviceId || "Remote"})` : undefined,
-              };
-              await saveStoreRecord(storeName, conflictRecord);
-              summary.recordsImported++;
-              continue;
-            } else if (storeName === "chats" || storeName === "rp_chats") {
-              // Message-level append merge
-              const localMessages = local.messages || [];
-              const importedMessages = imported.messages || [];
-              
-              const localMsgIds = new Set(localMessages.map((m: Record<string, unknown>) => m.id));
-              const newMessages = importedMessages.filter((m: Record<string, unknown>) => !localMsgIds.has(m.id));
-              
-              if (newMessages.length > 0) {
-                const mergedRecord = {
-                  ...local,
-                  messages: [...localMessages, ...newMessages].sort((a: Record<string, unknown>, b: Record<string, unknown>) => (a.createdAt as number) - (b.createdAt as number)),
-                  updatedAt: Math.max(local.updatedAt || 0, importedUpdatedAt)
-                };
-                await saveStoreRecord(storeName, mergedRecord);
-                summary.recordsImported++;
-              } else {
-                summary.recordsSkipped++;
-              }
-              continue;
-            }
-          }
+        if (preserveStores.includes(storeName)) {
+          // Preserve conflict copy
+          const newId = `${id}_conflict_${Date.now()}`;
+          const conflictRecord = {
+            ...imported,
+            id: newId,
+            name: imported.name ? `${imported.name} (Conflict from ${imported.deviceId || "Remote"})` : undefined,
+            title: imported.title ? `${imported.title} (Conflict from ${imported.deviceId || "Remote"})` : undefined,
+          };
+          await saveStoreRecord(storeName, conflictRecord);
+        } else if (mergeStores.includes(storeName)) {
+          // Message-level append merge
+          const localMessages = local.messages || [];
+          const importedMessages = imported.messages || [];
           
-          // No conflict, or type doesn't support branching, just use last-write-wins
+          const localMsgIds = new Set(localMessages.map((m: Record<string, unknown>) => m.id));
+          const newMessages = importedMessages.filter((m: Record<string, unknown>) => !localMsgIds.has(m.id as string));
+          
+          if (newMessages.length > 0) {
+            const mergedRecord = {
+              ...local,
+              messages: [...localMessages, ...newMessages].sort((a: Record<string, unknown>, b: Record<string, unknown>) => (a.createdAt as number) - (b.createdAt as number)),
+              updatedAt: Math.max(local.updatedAt || 0, importedUpdatedAt)
+            };
+            await saveStoreRecord(storeName, mergedRecord);
+          }
+        } else {
+          // No conflict merge logic, just LWW
           const localUpdate = local.updatedAt || 0;
           if (importedUpdatedAt > localUpdate) {
             await saveStoreRecord(storeName, imported);
-            summary.recordsImported++;
-          } else {
-            summary.recordsSkipped++;
           }
+        }
+      } else {
+        // No conflict, just use last-write-wins
+        const localUpdate = local.updatedAt || 0;
+        if (importedUpdatedAt > localUpdate) {
+          await saveStoreRecord(storeName, imported);
         }
       }
     }
@@ -255,7 +194,7 @@ export async function importEncryptedBackup(
     if (typeof window !== "undefined") {
       (window as VeniceWindowWithSyncFlag).__VENICE_IS_SYNCING = false;
     }
-    return { ok: true, summary };
+    return { ok: true };
   } catch (err) {
     if (typeof window !== "undefined") {
       (window as VeniceWindowWithSyncFlag).__VENICE_IS_SYNCING = false;
@@ -264,3 +203,4 @@ export async function importEncryptedBackup(
     return { ok: false, error: errorMsg };
   }
 }
+

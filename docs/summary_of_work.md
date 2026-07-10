@@ -118,24 +118,25 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
-- **2026-07-10 Local-First Encrypted Sync Implementation — COMPLETE (current session):**
+- **2026-07-10 Sync Architecture Remediation — COMPLETE (current session):**
 
-  Implemented the Encrypted Sync Folder mechanism, Conflict UI, and Data Recovery logic defined in the Sync Roadmap, completing Phase 4, Phase 5, and Phase 6.
+  Completed the implementation of the secure sync architecture roadmap. 
 
   **Closed in this session:**
-  - **Phase 4:** Built `syncFolderWatcher.ts` in the main process (Chokidar) with atomic write patterns, and `syncEngine.ts` in the renderer to bridge local IndexedDB updates to the remote filesystem via `.enc` packets. Integrated IPC boundaries and a robust echo-loop prevention mechanism (`recentWrites` and `__VENICE_IS_SYNCING`).
-  - **Phase 5:** Added vector clock `baseRevisionId` properties to data models. Implemented robust conflict branching for character cards / prompts and message-level append merging for Chats in `backupImportService.ts`. Built the Sync UI in `BackupSyncPanel.tsx`.
-  - **Phase 6:** Authored comprehensive docs `docs/backup-and-sync.md` and `docs/data-export-format.md`, updated `README.md` to highlight the feature, and hardened logging with `redactErrorMessage`.
+  - **Phase 1: Main Process Cryptography:** Migrated AES-GCM decryption/encryption out of the renderer and into Node's native `crypto` module in the main process (`backupCrypto.ts`). Removed Web Crypto logic from `backupExportService.ts` and `backupImportService.ts`.
+  - **Phase 2 & 3: Path Containment & Watcher:** Refactored `syncFolderWatcher.ts` to use a content-addressed `.vfbackup` structure (manifest and blobs). Bound strict path traversal checks. Implemented race condition prevention.
+  - **Phase 4: Sync State Persistence & UI Unification:** Removed overlapping legacy JSON backup UI from `DataStoragePanel.tsx` and removed deprecated `backupExportService` endpoints. Unified backup UX into `BackupSyncPanel.tsx`. Fixed all ESLint regression warnings in the updated files.
+  - **Phase 5: Data-Type-by-Data-Type Conflict Audit:** Reviewed all IndexedDB stores (`STORE_NAMES`) and securely mapped them to conflict resolution paths in `importDecryptedPacket`: Message-append merge for `conversations`, `chats`, `rp_chats`; conflict copy preservation for `character_cards`, `promptLibrary`, `personas`, `lorebooks`, `rpScenarios`, `projects`, `scenes`; last-write-wins for all others.
 
   **Files changed:**
-  - `src/types/*.ts`: Added `baseRevisionId` / `deviceId` / `revisionId` fields.
-  - `electron/services/syncFolderWatcher.ts`, `electron/ipc/handlers/syncHandlers.ts`, `electron/preload.ts`: IPC bindings for sync folder orchestration.
-  - `src/services/desktopBridge.ts`, `src/services/storageService.ts`: Connected sync IPC and implemented automatic `revisionId` generation on save.
-  - `src/services/syncEngine.ts`, `src/services/backupImportService.ts`: Core sync translation layer and conflict resolution handlers.
-  - `src/components/settings/BackupSyncPanel.tsx`: New UI component for sync control.
-  - `docs/backup-and-sync.md`, `docs/data-export-format.md`, `README.md`: Documentation updates.
+  - `electron/services/backupCrypto.ts`, `electron/services/syncFolderWatcher.ts`
+  - `electron/ipc/handlers/syncHandlers.ts`
+  - `src/services/desktopBridge.ts`, `src/services/syncEngine.ts`, `src/services/backupImportService.ts`
+  - `src/components/settings/DataStoragePanel.tsx`
+  - Removed: `src/services/backupExportService.ts`, `src/services/backupExportService.test.ts`, `src/services/backupImportService.test.ts`
+  - `docs/summary_of_work.md`, `task.md`, `implementation_plan.md`
 
-  **Required validation:** `npm run typecheck`, `npm run lint:eslint` (PASS).
+  **Required validation:** `npm run typecheck`, `npm run lint:eslint`, `npm run verify:contracts` (PASS).
 
 
 - **2026-07-09 Final Repository Cleanup & Push — COMPLETE (current session):**
@@ -4559,6 +4560,10 @@ backlog files were removed.
 ---
 
 ## Session History
+
+### 2026-07-10 Local-First Encrypted Sync Implementation — COMPLETE
+Implemented the Encrypted Sync Folder mechanism, Conflict UI, and Data Recovery logic defined in the Sync Roadmap, completing Phase 4, Phase 5, and Phase 6. Built `syncFolderWatcher.ts` in the main process (Chokidar) with atomic write patterns, and `syncEngine.ts` in the renderer. Implemented robust conflict branching for character cards / prompts and message-level append merging for Chats in `backupImportService.ts`. Built the Sync UI in `BackupSyncPanel.tsx`. Authored comprehensive docs `docs/backup-and-sync.md` and `docs/data-export-format.md`.
+
 
 ### 2026-07-10 (Antigravity - Phase 4, 5 & 6: Encrypted Sync Folder and Conflicts)
 - Completed the implementation of the Local-First Encrypted Sync Roadmap.

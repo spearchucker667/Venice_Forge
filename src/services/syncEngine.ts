@@ -1,6 +1,5 @@
-import { importEncryptedBackup } from "./backupImportService";
+import { importDecryptedPacket } from "./backupImportService";
 import { desktopSync } from "./desktopBridge";
-import { exportSyncPacket } from "./backupExportService";
 import type { SyncStoreName } from "../types/sync";
 
 let remoteChangeListenerCleanup: (() => void) | null = null;
@@ -14,20 +13,23 @@ export async function initSyncEngine(password: string) {
     return;
   }
 
+  // Pass password to main process to start the watcher and enable decryption
+  const startResult = await desktopSync.startSync({ password });
+  if (!startResult.ok) {
+    console.error("[SyncEngine] Failed to start sync in main process:", startResult.error);
+    return;
+  }
+
   // Register the remote change listener
   remoteChangeListenerCleanup = desktopSync.onRemoteChange(async (event) => {
     try {
-      const { filename, base64Data } = event;
-      // console.log(`[SyncEngine] Received remote change: ${filename}`);
+      const { storeName, id, recordJson } = event;
       
-      const jsonStr = Buffer.from(base64Data, "base64").toString("utf-8");
-      const packet = JSON.parse(jsonStr);
-
-      const result = await importEncryptedBackup(packet, currentPassword);
+      const result = await importDecryptedPacket(storeName as SyncStoreName, id, recordJson);
       if (!result.ok) {
-        console.error(`[SyncEngine] Failed to import packet ${filename}:`, result.error);
+        console.error(`[SyncEngine] Failed to import packet ${storeName}/${id}:`, result.error);
       } else {
-        console.warn(`[SyncEngine] Imported packet ${filename}: skipped=${result.summary?.recordsSkipped}, imported=${result.summary?.recordsImported}`);
+        console.log(`[SyncEngine] Imported packet ${storeName}/${id}`);
       }
     } catch (err) {
       console.error(`[SyncEngine] Error applying remote change:`, err);
@@ -44,6 +46,11 @@ export function stopSyncEngine() {
     remoteChangeListenerCleanup();
     remoteChangeListenerCleanup = null;
   }
+  
+  if (typeof window !== "undefined") {
+    desktopSync.stopSync().catch(err => console.error("[SyncEngine] Failed to stop sync in main process:", err));
+  }
+
   if (typeof window !== "undefined") {
     window.removeEventListener("venice:storage-saved", handleStorageSaved);
   }
@@ -70,12 +77,8 @@ export async function emitLocalChange(storeName: SyncStoreName, record: unknown,
   if (typeof window === "undefined" || !currentPassword) return;
 
   try {
-    const packet = await exportSyncPacket(storeName, record, currentPassword);
-    const jsonStr = JSON.stringify(packet);
-    const base64Data = Buffer.from(jsonStr, "utf-8").toString("base64");
-    
-    const filename = `${storeName}_${id}.enc`;
-    await desktopSync.writePacket({ filename, base64Data });
+    const recordJson = JSON.stringify(record);
+    await desktopSync.writePacket({ storeName, id, recordJson });
   } catch (err) {
     console.error(`[SyncEngine] Failed to emit local change for ${storeName} ${id}:`, err);
   }

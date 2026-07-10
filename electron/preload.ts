@@ -530,11 +530,17 @@ const veniceForge = {
     setSyncFolder(input: { path: string }): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("sync:setSyncFolder", input);
     },
-    writePacket(input: { filename: string; base64Data: string }): Promise<{ ok: boolean; error?: string }> {
+    startSync(input: { password: string }): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("sync:startSync", input);
+    },
+    stopSync(): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("sync:stopSync");
+    },
+    writePacket(input: { storeName: string; id: string; recordJson: string }): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("sync:writePacket", input);
     },
-    onRemoteChange(callback: (event: { filename: string; base64Data: string }) => void) {
-      const listener = (_event: Electron.IpcRendererEvent, eventData: { filename: string; base64Data: string }) => callback(eventData);
+    onRemoteChange(callback: (event: { storeName: string; id: string; recordJson: string }) => void) {
+      const listener = (_event: Electron.IpcRendererEvent, eventData: { storeName: string; id: string; recordJson: string }) => callback(eventData);
       ipcRenderer.on("sync:onRemoteChange", listener);
       return () => {
         ipcRenderer.removeListener("sync:onRemoteChange", listener);

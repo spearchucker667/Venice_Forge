@@ -437,11 +437,19 @@ export const desktopSync = {
     if (isElectron()) return window.veniceForge!.sync.setSyncFolder(params);
     return { ok: false, error: "Not in Electron" };
   },
-  async writePacket(params: { filename: string; base64Data: string }) {
+  async startSync(params: { password: string }) {
+    if (isElectron()) return window.veniceForge!.sync.startSync(params);
+    return { ok: false, error: "Not in Electron" };
+  },
+  async stopSync() {
+    if (isElectron()) return window.veniceForge!.sync.stopSync();
+    return { ok: false, error: "Not in Electron" };
+  },
+  async writePacket(params: { storeName: string; id: string; recordJson: string }) {
     if (isElectron()) return window.veniceForge!.sync.writePacket(params);
     return { ok: false, error: "Not in Electron" };
   },
-  onRemoteChange(callback: (event: { filename: string; base64Data: string }) => void) {
+  onRemoteChange(callback: (event: { storeName: string; id: string; recordJson: string }) => void) {
     if (isElectron()) return window.veniceForge!.sync.onRemoteChange(callback);
     return () => {};
   },

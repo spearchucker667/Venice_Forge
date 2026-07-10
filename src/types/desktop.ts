@@ -336,11 +336,17 @@ export interface ElectronSyncAPI {
   /** Sets and initializes a sync folder. */
   setSyncFolder(input: { path: string }): Promise<{ ok: boolean; error?: string }>;
   
-  /** Writes an encrypted packet (SyncObject) to the sync folder. */
-  writePacket(input: { filename: string; base64Data: string }): Promise<{ ok: boolean; error?: string }>;
+  /** Starts the sync watcher with the given password. Main process uses this to decrypt incoming sync blobs. */
+  startSync(input: { password: string }): Promise<{ ok: boolean; error?: string }>;
   
-  /** Registers a listener for remote changes detected by the filesystem watcher. */
-  onRemoteChange(callback: (event: { filename: string; base64Data: string }) => void): () => void;
+  /** Stops the sync watcher and clears the password from main process memory. */
+  stopSync(): Promise<{ ok: boolean; error?: string }>;
+  
+  /** Writes a SyncObject to the sync folder. Encryption happens in main process. */
+  writePacket(input: { storeName: string; id: string; recordJson: string }): Promise<{ ok: boolean; error?: string }>;
+  
+  /** Registers a listener for decrypted remote changes detected by the filesystem watcher. */
+  onRemoteChange(callback: (event: { storeName: string; id: string; recordJson: string }) => void): () => void;
 }
 
 declare global {

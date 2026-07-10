@@ -34,7 +34,17 @@ export function registerSyncHandlers(): void {
     return await setSyncFolder(input.path);
   });
 
-  ipcMain.handle("sync:writePacket", async (_event, input: { filename: string; base64Data: string }) => {
-    return await writePacket(input.filename, input.base64Data);
+  ipcMain.handle("sync:startSync", async (_event, params: { password: string }) => {
+    const { startSyncEngine } = await import("../../services/syncFolderWatcher");
+    return await startSyncEngine(params.password);
+  });
+
+  ipcMain.handle("sync:stopSync", async () => {
+    const { stopSyncEngine } = await import("../../services/syncFolderWatcher");
+    return await stopSyncEngine();
+  });
+
+  ipcMain.handle("sync:writePacket", async (_event, input: { storeName: string; id: string; recordJson: string }) => {
+    return await writePacket(input.storeName, input.id, input.recordJson);
   });
 }
