@@ -470,11 +470,8 @@ const StorageService = {
       
       const w = window as any;
       if (w.__VENICE_IS_SYNCING !== true && isElectron()) {
-        const desktopSync = w.veniceForge?.sync;
-        if (desktopSync && desktopSync.writePacket) {
-          desktopSync.writePacket("tombstones", id, JSON.stringify({ storeName: store, id, deletedAt: Date.now() }))
-            .catch((err: unknown) => console.error("Failed to emit tombstone:", err));
-        }
+        desktopSync.writePacket({ storeName: "tombstones", id, recordJson: JSON.stringify({ storeName: store, id, deletedAt: Date.now() }) })
+          .catch((err: unknown) => console.error("Failed to emit tombstone:", err));
       }
     }
     return result;

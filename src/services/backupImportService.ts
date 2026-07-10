@@ -107,18 +107,20 @@ export async function deleteStoreRecord(storeName: SyncStoreName, recordId: stri
 export async function fetchStoreRecords(storeName: SyncStoreName): Promise<SyncableRecord[]> {
   if (isElectron()) {
     switch (storeName) {
-      case "conversations":
+      case "conversations": {
         const res = await desktopChat.list();
         return res.ok ? (res.conversations as unknown as SyncableRecord[]) : [];
+      }
       case "character_cards":
         return await desktopCharacterCards.list() as unknown as SyncableRecord[];
       case "personas":
         return await desktopPersonas.list() as unknown as SyncableRecord[];
       case "lorebooks":
         return await desktopLorebooks.list() as unknown as SyncableRecord[];
-      case "rp_chats":
+      case "rp_chats": {
         const rpRes = await desktopRpChats.list();
         return rpRes.ok ? (rpRes.chats as unknown as SyncableRecord[]) : [];
+      }
       case "rp_assets":
         return await desktopRpAssets.list() as unknown as SyncableRecord[];
       case "rpScenarios":

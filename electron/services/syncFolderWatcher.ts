@@ -1,5 +1,6 @@
 import chokidar, { FSWatcher } from "chokidar";
 import path from "path";
+import crypto from "crypto";
 import { promises as fs } from "fs";
 import { logInfo, logError } from "./logger";
 import { redactErrorMessage } from "../../src/shared/redaction";
@@ -186,7 +187,6 @@ export async function writePacket(storeName: string, id: string, recordJson: str
     const manifestJson = JSON.stringify(manifest, null, 2);
 
     // Hash the canonical payload for idempotent naming
-    const crypto = require("crypto");
     const canonicalHash = crypto.createHash("sha256").update(payload).digest("hex");
     const filename = `${canonicalHash}.json`;
 
