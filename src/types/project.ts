@@ -23,6 +23,12 @@ export interface Project {
   };
   /** Version for future migrations (additive). */
   version?: typeof PROJECT_VERSION;
+  // ---- Phase 2G Sync Metadata ----
+  deletedAt?: number | null;
+  schemaVersion?: number;
+  revisionId?: string;
+  baseRevisionId?: string;
+  deviceId?: string;
 }
 
 import type { ImageModelCapabilities } from '../config/image-model-capabilities'

@@ -4,6 +4,7 @@ import { useChatStore } from './stores/chat-store'
 import { useAuthStore } from './stores/auth-store'
 import { useConfigStore } from './stores/config-store'
 import { ensureProjectsLoaded } from './stores/project-store'
+import { desktopSync } from './services/desktopBridge'
 import { Sidebar } from './components/layout/sidebar'
 import { Header } from './components/layout/header'
 import { ApiKeyDialog } from './components/layout/api-key-dialog'
@@ -203,6 +204,16 @@ export function App() {
   useEffect(() => {
     ensureProjectsLoaded().catch(() => {})
   }, []);
+
+  // Sync Folder Initialization
+  const syncFolderPath = useSettingsStore((s) => s.syncFolderPath);
+  useEffect(() => {
+    if (typeof window !== "undefined" && syncFolderPath) {
+      desktopSync.setSyncFolder({ path: syncFolderPath }).catch((err: unknown) => {
+        console.error("Failed to initialize sync folder on boot:", err);
+      });
+    }
+  }, [syncFolderPath]);
 
   const normalisedActiveTab = normaliseTab(activeTab)
   const ActiveView = views[normalisedActiveTab] ?? views.chat

@@ -520,6 +520,28 @@ const veniceForge = {
     },
   },
 
+  sync: {
+    chooseSyncFolder(): Promise<{ ok: boolean; path?: string; canceled?: boolean; error?: string }> {
+      return ipcRenderer.invoke("sync:chooseSyncFolder");
+    },
+    getSyncFolder(): Promise<{ ok: boolean; path?: string }> {
+      return ipcRenderer.invoke("sync:getSyncFolder");
+    },
+    setSyncFolder(input: { path: string }): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("sync:setSyncFolder", input);
+    },
+    writePacket(input: { filename: string; base64Data: string }): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("sync:writePacket", input);
+    },
+    onRemoteChange(callback: (event: { filename: string; base64Data: string }) => void) {
+      const listener = (_event: Electron.IpcRendererEvent, eventData: { filename: string; base64Data: string }) => callback(eventData);
+      ipcRenderer.on("sync:onRemoteChange", listener);
+      return () => {
+        ipcRenderer.removeListener("sync:onRemoteChange", listener);
+      };
+    },
+  },
+
   researchBrowser: {
     create() { return ipcRenderer.invoke("researchBrowser:create"); },
     destroy() { return ipcRenderer.invoke("researchBrowser:destroy"); },

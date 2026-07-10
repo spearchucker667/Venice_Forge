@@ -20,6 +20,7 @@ import { UpdatesPanel } from "./UpdatesPanel";
 import { ConfigPanel } from "./ConfigPanel";
 import { AboutPanel } from "./AboutPanel";
 import { ProfilePanel } from "./ProfilePanel";
+import { BackupSyncPanel } from "./BackupSyncPanel";
 import type { PendingConfirm } from "./types";
 
 export function SettingsView() {
@@ -348,6 +349,9 @@ export function SettingsView() {
           <button onClick={() => setActiveSection("data")} className={sectionButtonClass("data")}>
             Data & Storage
           </button>
+          <button onClick={() => setActiveSection("backup-sync")} className={sectionButtonClass("backup-sync")}>
+            Backup & Sync
+          </button>
           <button onClick={() => setActiveSection("about")} className={sectionButtonClass("about")}>
             About & Legal
           </button>
@@ -430,6 +434,10 @@ export function SettingsView() {
               clearLocalSettings={clearLocalSettings}
               clearAllHistory={clearAllHistory}
             />
+          )}
+
+          {activeSection === "backup-sync" && (
+            <BackupSyncPanel />
           )}
 
           {activeSection === "about" && <AboutPanel />}

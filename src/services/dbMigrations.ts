@@ -210,6 +210,7 @@ export const MIGRATIONS: MigrationStep[] = [
         "researchSessions",
         "visualWorkflows",
         "playground",
+        "tombstones",
       ] as const;
       for (const name of stores) {
         if (!db.objectStoreNames.contains(name)) continue;
@@ -217,6 +218,15 @@ export const MIGRATIONS: MigrationStep[] = [
         if (!store.indexNames.contains("profileId")) {
           store.createIndex("profileId", "profileId", { unique: false });
         }
+      }
+    },
+  },
+  {
+    toVersion: 16,
+    description: "Add tombstones store for Phase 2G Sync hard deletes",
+    up(db) {
+      if (!db.objectStoreNames.contains("tombstones")) {
+        db.createObjectStore("tombstones", { keyPath: "id" });
       }
     },
   },

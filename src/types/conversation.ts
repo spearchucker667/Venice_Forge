@@ -67,6 +67,12 @@ export interface Conversation {
     userFacts: MemoryFact[];
     projectRefs: string[];
   };
+  // ---- Phase 2G Sync Metadata ----
+  deletedAt?: number | null;
+  schemaVersion?: number;
+  revisionId?: string;
+  baseRevisionId?: string;
+  deviceId?: string;
 }
 
 /** Shape of a conversation as stored on disk by the main process. */

@@ -96,6 +96,12 @@ export interface PromptLibraryItem {
   createdAt: string;
   updatedAt: string;
   metadata?: Record<string, unknown>;
+  // ---- Phase 2G Sync Metadata ----
+  deletedAt?: number | null;
+  schemaVersion?: number;
+  revisionId?: string;
+  baseRevisionId?: string;
+  deviceId?: string;
 }
 
 export const PROMPT_LIBRARY_VERSION = 1 as const;

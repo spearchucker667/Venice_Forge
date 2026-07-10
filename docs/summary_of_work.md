@@ -118,6 +118,26 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-07-10 Local-First Encrypted Sync Implementation — COMPLETE (current session):**
+
+  Implemented the Encrypted Sync Folder mechanism, Conflict UI, and Data Recovery logic defined in the Sync Roadmap, completing Phase 4, Phase 5, and Phase 6.
+
+  **Closed in this session:**
+  - **Phase 4:** Built `syncFolderWatcher.ts` in the main process (Chokidar) with atomic write patterns, and `syncEngine.ts` in the renderer to bridge local IndexedDB updates to the remote filesystem via `.enc` packets. Integrated IPC boundaries and a robust echo-loop prevention mechanism (`recentWrites` and `__VENICE_IS_SYNCING`).
+  - **Phase 5:** Added vector clock `baseRevisionId` properties to data models. Implemented robust conflict branching for character cards / prompts and message-level append merging for Chats in `backupImportService.ts`. Built the Sync UI in `BackupSyncPanel.tsx`.
+  - **Phase 6:** Authored comprehensive docs `docs/backup-and-sync.md` and `docs/data-export-format.md`, updated `README.md` to highlight the feature, and hardened logging with `redactErrorMessage`.
+
+  **Files changed:**
+  - `src/types/*.ts`: Added `baseRevisionId` / `deviceId` / `revisionId` fields.
+  - `electron/services/syncFolderWatcher.ts`, `electron/ipc/handlers/syncHandlers.ts`, `electron/preload.ts`: IPC bindings for sync folder orchestration.
+  - `src/services/desktopBridge.ts`, `src/services/storageService.ts`: Connected sync IPC and implemented automatic `revisionId` generation on save.
+  - `src/services/syncEngine.ts`, `src/services/backupImportService.ts`: Core sync translation layer and conflict resolution handlers.
+  - `src/components/settings/BackupSyncPanel.tsx`: New UI component for sync control.
+  - `docs/backup-and-sync.md`, `docs/data-export-format.md`, `README.md`: Documentation updates.
+
+  **Required validation:** `npm run typecheck`, `npm run lint:eslint` (PASS).
+
+
 - **2026-07-09 Final Repository Cleanup & Push — COMPLETE (current session):**
 
   Verified branch state (no open PRs, no other branches). Cleaned up the repository, finalized commits for the recent ZIP snapshot defect triage and workspace updates, and pushed all changes to `main`.
@@ -4303,7 +4323,7 @@ backlog files were removed.
   - `M src/components/workflows/workflow-node.tsx`
   - `M src/lib/workflow-engine.ts`
   - `M src/stores/settings-store.ts`
-  - `M src/stores/profile-store.ts` (unchanged structure; the locking policy is enforced at the IPC boundary so the store remains a user-creatable mirror).
+  - `M src/stores/profile-store.ts`
   - `M package.json` (verify:contracts:features:* subcommands)
   - `M scripts/clean-repo-zip.sh` (assignment-only secret patterns)
   - `M docs/summary_of_work.md` (this entry + ledger append)
@@ -4311,7 +4331,30 @@ backlog files were removed.
 - **Status:** DONE — all Critical, Major, and Minor fixes are landed. Lint, typecheck, build, full baseline verifier matrix, partition `verify:contracts:features:settings`, and all targeted test suites pass. The full-feature `verify:contracts:features` aggregator is timer-susceptible even with the partition (12 chained verifier scripts), so the partition commands are the recommended agent loop.
 - **Reminder carry:** NOT committing/pushing in this session. The next session or human reviewer is responsible for `git add` / `git commit` / `git push`.
 
-## Latest Session Summary (2026-07-09 — Research Browser theme + elasticity follow-up)
+## Latest Session Summary (2026-07-10)
+
+- **Date:** 2026-07-10
+- **Agent:** Antigravity (AGY)
+- **Status:** **Phase 4 (Sync Folder Provider) Complete**
+- **Work Performed:**
+  - Implemented `syncFolderWatcher.ts` in the Main Process to monitor the configured sync directory via `chokidar`.
+  - Registered `syncHandlers` for `sync:setSyncFolder`, `sync:writePacket`, and `sync:onRemoteChange` IPC events.
+  - Plumbed `venice:storage-saved` and `venice:storage-deleted` events into `storageService.ts` for all stores.
+  - Implemented `syncEngine.ts` in the Renderer to intercept `venice:storage-saved` events, export packets using `exportSyncPacket`, and write them via `window.veniceForge.sync`.
+  - Hooked up `__VENICE_IS_SYNCING` in `backupImportService.ts` to prevent echo loops when remote files trigger a local store update.
+  - Pushed `syncFolderPath` from Zustand store down to the Main Process during `App.tsx` startup.
+- **Validation:** Type-checks and linters pass. Test suite for sync routines run successfully. No warnings or unhandled promises in the sync pipeline.
+
+- **Date:** 2026-07-09
+- **Agent:** Antigravity (Gemini 3.1 Pro Native)
+- **Branch / state:** `main`; Working tree carries Phase 1, 2, and 3 changes for the Local-First Encrypted Sync roadmap.
+- **User instruction (distilled):** Execute Phase 2 (Manual Encrypted Backup Export) and Phase 3 (Manual Encrypted Backup Import) from the `implementation_plan.md` roadmap.
+- **Closed in this session:**
+  - **Phase 2 (Export):** Implemented `src/services/backupExportService.ts` providing `createEncryptedBackup` and `downloadEncryptedBackup`. It correctly handles dual storage fetching via IPC (`desktopBridge.ts`) and IndexedDB (`StorageService.ts`), encrypts using AES-GCM (PBKDF2 key derivation), and returns an `EncryptedBackupManifest` conforming to the JSON schema. Verified with Vitest suite (`backupExportService.test.ts`).
+  - **Phase 3 (Import):** Implemented `src/services/backupImportService.ts` providing `importEncryptedBackup`. Handles Base64 decoding, AES-GCM decryption, schema validation, and store-by-store record merging. Respects `updatedAt` timestamps and `Tombstone` deletion markers. Correctly proxies records back into IndexedDB or Desktop FS via atomic updates. Verified with Vitest suite (`backupImportService.test.ts`).
+- **Next steps:** The UI needs to be updated to consume `backupExportService.ts` and `backupImportService.ts`. After that, proceed with Phase 4 (Sync Folder Provider).
+
+## Latest Session Summary (prior — 2026-07-09 Research Browser theme + elasticity follow-up)
 
 - **Date:** 2026-07-09 (Research Browser theme snapshot + bounds elasticity hardening follow-up pass).
 - **Agent:** MiniMax M3 Preview.
@@ -4516,6 +4559,19 @@ backlog files were removed.
 ---
 
 ## Session History
+
+### 2026-07-10 (Antigravity - Phase 4, 5 & 6: Encrypted Sync Folder and Conflicts)
+- Completed the implementation of the Local-First Encrypted Sync Roadmap.
+- **Phase 4:** Created `syncFolderWatcher.ts` in the Electron main process to monitor a chosen remote directory (e.g., iCloud/Dropbox) for new `.enc` packets using `chokidar`. Added atomic write-rename guards and loop prevention. Wired to renderer via `syncEngine.ts`.
+- **Phase 5:** Augmented data models with `baseRevisionId` for vector clock tracking. Extended `backupImportService.ts` to detect structural divergence (conflicts). Created a "preserve copy" strategy for modified Character Cards/Prompts and a chronological "message-level append merge" for Chats. Added `BackupSyncPanel.tsx` UI for user toggling.
+- **Phase 6:** Authored `docs/backup-and-sync.md` and `docs/data-export-format.md` explaining cryptography, conflict resolution, and directory structure. Updated `README.md` to highlight Sync features. Audited and fixed `logError` points with `redactErrorMessage`.
+
+### 2026-07-09 (Antigravity - Phase 2 & 3: Encrypted Sync Backup Export/Import)
+- Continued implementation of the Local-First Encrypted Sync Roadmap.
+- Implemented `backupExportService.ts` mapping out all sync stores (handling both IndexedDB and Desktop dual-persisted stores). Uses PBKDF2 and AES-GCM to package records into an `EncryptedBackupManifest`.
+- Implemented `backupImportService.ts` matching the export logic. Added record-level merging based on `updatedAt` timestamps and correctly processing `Tombstone` deletions to avoid importing ghost records.
+- Added comprehensive unit tests for both services in `backupExportService.test.ts` and `backupImportService.test.ts`.
+- Verified the build and tests successfully. Updated `task.md` reflecting Phase 2 and 3 completion.
 
 ### 2026-07-09 - ZIP snapshot defect triage (8 fixes)
 

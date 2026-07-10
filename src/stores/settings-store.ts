@@ -117,6 +117,10 @@ interface SettingsState {
   setCharacterSceneGenerationEnabled: (enabled: boolean) => void
   characterSceneGenerationMode: 'manual' | 'auto'
   setCharacterSceneGenerationMode: (mode: 'manual' | 'auto') => void
+
+  // Sync Provider Settings
+  syncFolderPath: string
+  setSyncFolderPath: (path: string) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -172,6 +176,9 @@ export const useSettingsStore = create<SettingsState>()(
       setCharacterSceneGenerationEnabled: (enabled) => set({ characterSceneGenerationEnabled: enabled }),
       characterSceneGenerationMode: 'manual',
       setCharacterSceneGenerationMode: (mode) => set({ characterSceneGenerationMode: mode }),
+
+      syncFolderPath: '',
+      setSyncFolderPath: (path) => set({ syncFolderPath: path }),
     }),
     {
       name: 'venice-settings',
@@ -198,6 +205,7 @@ export const useSettingsStore = create<SettingsState>()(
           // Session-only: never persisted (covered by `partialize`), but defend
           // against a hand-edited localStorage entry by coercing back to null.
           pendingSettingsSection: coerceSettingsSection(state.pendingSettingsSection),
+          syncFolderPath: state.syncFolderPath ?? '',
         } as SettingsState
       },
       merge: (persisted, current) => ({

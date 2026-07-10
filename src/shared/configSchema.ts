@@ -100,6 +100,9 @@ export function validateAppSettings(raw: unknown): Record<string, unknown> {
   if (record.appearanceMode === "light" || record.appearanceMode === "dark") {
     valid.appearanceMode = record.appearanceMode;
   }
+  if (typeof record.syncFolderPath === "string") {
+    valid.syncFolderPath = record.syncFolderPath;
+  }
   if (typeof record.customTheme === "object" && record.customTheme !== null) {
     const t = record.customTheme as Record<string, unknown>;
     const isThemeValid =

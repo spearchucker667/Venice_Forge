@@ -9,6 +9,7 @@ import { registerApiKeyHandlers } from "./apiKeyHandlers";
 import { registerJinaHandlers } from "./jinaHandlers";
 import { registerFileHandlers } from "./fileHandlers";
 import { registerSystemHandlers } from "./systemHandlers";
+import { registerSyncHandlers } from "./syncHandlers";
 
 let ipcHandlersRegistered = false;
 
@@ -29,6 +30,7 @@ export function registerIpcHandlers(): void {
   registerJinaHandlers();
   registerFileHandlers();
   registerSystemHandlers();
+  registerSyncHandlers();
 
   // ── Config (local master YAML) ──
   // SECURITY: The renderer never receives raw API keys. The sanitized view

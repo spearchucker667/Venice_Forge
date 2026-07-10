@@ -140,6 +140,12 @@ export interface CharacterCardV1 {
   metadata?: Record<string, unknown>;
   /** Unix ms. `undefined` = active; non-null = archived at that time. */
   archivedAt?: number | null;
+  // ---- Phase 2G Sync Metadata ----
+  deletedAt?: number | null;
+  schemaVersion?: number;
+  revisionId?: string;
+  baseRevisionId?: string;
+  deviceId?: string;
 }
 
 /** One immutable snapshot in a character card's revision history. */
@@ -185,6 +191,12 @@ export interface UserPersonaV1 {
   projectId?: string | null;
   /** Phase 2F scope discriminator. `undefined` is treated as `"global"`. */
   scope?: "global" | "project";
+  // ---- Phase 2G Sync Metadata ----
+  deletedAt?: number | null;
+  schemaVersion?: number;
+  revisionId?: string;
+  baseRevisionId?: string;
+  deviceId?: string;
 }
 
 export type RpRole = "system" | "user" | "character" | "narrator" | "tool";
@@ -238,6 +250,12 @@ export interface RpChatV1 {
   };
   createdAt: number;
   updatedAt: number;
+  // ---- Phase 2G Sync Metadata ----
+  deletedAt?: number | null;
+  schemaVersion?: number;
+  revisionId?: string;
+  baseRevisionId?: string;
+  deviceId?: string;
 }
 
 export type LorebookInsertionMode = "before_char" | "after_char" | "at_depth";
@@ -283,6 +301,12 @@ export interface LorebookV1 {
   characterId?: string | null;
   /** Phase 2F scope discriminator. `undefined` is treated as `"global"`. */
   scope?: "global" | "project" | "character";
+  // ---- Phase 2G Sync Metadata ----
+  deletedAt?: number | null;
+  schemaVersion?: number;
+  revisionId?: string;
+  baseRevisionId?: string;
+  deviceId?: string;
 }
 
 export type RpMemoryScope = "pinned" | "long-term" | "character";
@@ -448,6 +472,12 @@ export interface ScenarioV1 {
   archivedAt?: number | null;
   createdAt: number;
   updatedAt: number;
+  // ---- Phase 2G Sync Metadata ----
+  deletedAt?: number | null;
+  schemaVersion?: number;
+  revisionId?: string;
+  baseRevisionId?: string;
+  deviceId?: string;
 }
 
 /** Sanitized export envelope for character cards (Phase 2F). */

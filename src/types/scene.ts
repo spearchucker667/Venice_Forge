@@ -109,6 +109,12 @@ export interface SceneComposerItem {
   updatedAt: string;
 
   metadata?: Record<string, unknown>;
+  // ---- Phase 2G Sync Metadata ----
+  deletedAt?: number | null;
+  schemaVersion?: number;
+  revisionId?: string;
+  baseRevisionId?: string;
+  deviceId?: string;
 }
 
 export interface SceneComposerExport {

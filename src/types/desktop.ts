@@ -314,6 +314,7 @@ export interface VeniceForge {
   files: VeniceForgeFiles;
   chat: VeniceForgeChat;
   conversations: VeniceForgeConversations;
+  sync: ElectronSyncAPI;
   updates: VeniceForgeUpdates;
   config: VeniceForgeConfig;
   characterCards: VeniceForgeCharacterCards;
@@ -323,6 +324,23 @@ export interface VeniceForge {
   rpAssets: VeniceForgeRpAssets;
   scenarios: VeniceForgeScenarios;
   researchBrowser?: import('./researchBrowser').ResearchBrowserPreloadApi;
+}
+
+export interface ElectronSyncAPI {
+  /** Opens a directory picker for the user to choose the sync folder. */
+  chooseSyncFolder(): Promise<{ ok: boolean; path?: string; canceled?: boolean; error?: string }>;
+  
+  /** Retrieves the currently configured sync folder path (if any). */
+  getSyncFolder(): Promise<{ ok: boolean; path?: string }>;
+  
+  /** Sets and initializes a sync folder. */
+  setSyncFolder(input: { path: string }): Promise<{ ok: boolean; error?: string }>;
+  
+  /** Writes an encrypted packet (SyncObject) to the sync folder. */
+  writePacket(input: { filename: string; base64Data: string }): Promise<{ ok: boolean; error?: string }>;
+  
+  /** Registers a listener for remote changes detected by the filesystem watcher. */
+  onRemoteChange(callback: (event: { filename: string; base64Data: string }) => void): () => void;
 }
 
 declare global {

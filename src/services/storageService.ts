@@ -44,6 +44,7 @@ const ENCRYPTED_STORES: StoreName[] = [
   "researchSessions",
   "visualWorkflows",
   "playground",
+  "tombstones",
 ];
 
 export interface GetItemsResult<T = unknown> {
@@ -223,11 +224,17 @@ const StorageService = {
     const timestamp = typeof item.timestamp === "number" ? item.timestamp : Date.now();
     const activeProfile = getActiveProfileId();
     const physicalId = await findWritablePhysicalId(db, store, activeProfile, id);
+    
+    // For syncable objects, automatically bump revision tracking
+    const oldRevisionId = typeof item.revisionId === "string" ? item.revisionId : undefined;
+    const newRevisionId = crypto.randomUUID();
 
     let payload: Record<string, unknown> = {
       ...item,
       id,
       timestamp,
+      revisionId: newRevisionId,
+      baseRevisionId: oldRevisionId,
       [PROFILE_ID_FIELD]: activeProfile,
     };
     if (ENCRYPTED_STORES.includes(store)) {
@@ -251,7 +258,14 @@ const StorageService = {
     return new Promise((resolve, reject) => {
       const tx = db.transaction(store, "readwrite");
       tx.objectStore(store).put(payload);
-      tx.oncomplete = () => resolve({ ...item, id, timestamp } as T & { id: string; timestamp: number }); // Return logical record to caller
+      tx.oncomplete = () => {
+        const finalRecord = { ...item, id, timestamp, revisionId: newRevisionId, baseRevisionId: oldRevisionId } as T & { id: string; timestamp: number; revisionId?: string; baseRevisionId?: string; };
+        // Dispatch event for Sync Engine
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("venice:storage-saved", { detail: { store, record: finalRecord, id } }));
+        }
+        resolve(finalRecord);
+      };
       tx.onerror = () => reject(tx.error);
     });
   },
@@ -449,7 +463,11 @@ const StorageService = {
     assertValidId(id, "deleteItem");
     const db = await this.openDB();
     const activeProfile = getActiveProfileId();
-    return this.deleteRawProfileRows(db, store, id, activeProfile);
+    const result = await this.deleteRawProfileRows(db, store, id, activeProfile);
+    if (result && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("venice:storage-deleted", { detail: { store, id } }));
+    }
+    return result;
   },
 
   /**

@@ -60,6 +60,7 @@ By prioritizing local data ownership, Venice Forge runs all storage operations l
 
 ## Feature Highlights
 
+- **Local-First Backup & Sync:** Manually export/import encrypted backups, or use a background sync folder (e.g. iCloud, Dropbox) with automated end-to-end encrypted packet syncing and robust conflict resolution.
 - **Streaming AI Conversations:** Experience highly responsive model outputs with full Markdown and LaTeX support.
 - **Projects & Workspaces:** Organize your chat histories, generation parameters, and media assets into logical local projects.
 - **Model-Aware Image Generation:** Image Studio UI dynamically hides fields unsupported by the selected image model, preventing payload errors.

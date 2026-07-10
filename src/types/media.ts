@@ -78,6 +78,12 @@ export interface MediaItem extends GalleryImage {
 
   /** API cost metadata captured at generation time. */
   cost?: MediaCost;
+  // ---- Phase 2G Sync Metadata ----
+  deletedAt?: number | null;
+  schemaVersion?: number;
+  revisionId?: string;
+  baseRevisionId?: string;
+  deviceId?: string;
 }
 
 export interface MediaCost {

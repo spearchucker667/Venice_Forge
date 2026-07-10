@@ -423,6 +423,30 @@ export const desktopFileReader = {
   },
 };
 
+/** Proxies sync folder commands. */
+export const desktopSync = {
+  async chooseSyncFolder() {
+    if (isElectron()) return window.veniceForge!.sync.chooseSyncFolder();
+    return { ok: false, error: "Not in Electron" };
+  },
+  async getSyncFolder() {
+    if (isElectron()) return window.veniceForge!.sync.getSyncFolder();
+    return { ok: false, error: "Not in Electron" };
+  },
+  async setSyncFolder(params: { path: string }) {
+    if (isElectron()) return window.veniceForge!.sync.setSyncFolder(params);
+    return { ok: false, error: "Not in Electron" };
+  },
+  async writePacket(params: { filename: string; base64Data: string }) {
+    if (isElectron()) return window.veniceForge!.sync.writePacket(params);
+    return { ok: false, error: "Not in Electron" };
+  },
+  onRemoteChange(callback: (event: any) => void) {
+    if (isElectron()) return window.veniceForge!.sync.onRemoteChange(callback);
+    return () => {};
+  }
+};
+
 /** Media Studio bridge. In Electron, delegates to the typed IPC channels
  *  defined on the preload bridge; in web mode, falls back to a browser
  *  download anchor (export) or to a "desktop-only" error (reveal / meta /
