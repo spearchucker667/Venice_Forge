@@ -39,19 +39,10 @@
 import { useCallback, type MutableRefObject } from "react";
 import { useChatStore } from "../stores/chat-store";
 import { toast } from "../stores/toast-store";
-import { isElectron, desktopApp, desktopFiles, desktopConfig } from "../services/desktopBridge";
-import {
-  listConversations,
-  saveConversation,
-} from "../services/chatStorage";
-import type { Conversation } from "../types/conversation";
-import { listMemories, upsertMemory, type Memory } from "../services/memoryService";
-import {
-  createExportPayload,
-  validateImportJson,
-  type ExportPayload,
-  type RawExportData,
-} from "../services/exportImport";
+import { isElectron, desktopFiles, desktopConfig } from "../services/desktopBridge";
+import { listConversations } from "../services/chatStorage";
+import type { Memory } from "../services/memoryService";
+import type { ExportPayload } from "../services/exportImport";
 import StorageService from "../services/storageService";
 import { STORE_NAMES } from "../constants/venice";
 
@@ -94,24 +85,6 @@ export interface DataStorageActions {
 }
 
 /**
- * Persisted family-safe-mode setting entry. The export / import round-trip
- * uses a stable id `family-safe-mode-settings` so the import safety-mode
- * 3-way choice can find it.
- */
-const SAFETY_ENTRY_ID = "family-safe-mode-settings" as const;
-
-function buildSafetyEntry(
-  localFamilySafeModeEnabled: boolean,
-  veniceApiSafeMode: boolean,
-): Record<string, unknown> {
-  return {
-    id: SAFETY_ENTRY_ID,
-    timestamp: Date.now(),
-    value: { localFamilySafeModeEnabled, veniceApiSafeMode },
-  };
-}
-
-/**
  * Custom hook that owns the Data & Storage async operations for the
  * Settings panel. The hook reads no global state directly; it depends
  * on the local React state setters passed in via `options`, which
@@ -126,11 +99,6 @@ export function useDataStorageActions(
     setLocalFamilySafeModeEnabled,
     setVeniceApiSafeMode,
     setPendingConfirm,
-    localFamilySafeModeEnabled,
-    veniceApiSafeMode,
-    applySafetyCancelRef,
-    applySafetyTertiaryRef,
-    applySafetyDismissRef,
   } = options;
 
   const clearLocalSettings = useCallback(async () => {

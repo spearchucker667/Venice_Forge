@@ -468,8 +468,8 @@ const StorageService = {
     if (result && typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("venice:storage-deleted", { detail: { store, id } }));
       
-      const w = window as any;
-      if (w.__VENICE_IS_SYNCING !== true && isElectron()) {
+      const veniceWindow = window as Window & { __VENICE_IS_SYNCING?: boolean };
+      if (veniceWindow.__VENICE_IS_SYNCING !== true && isElectron()) {
         desktopSync.writePacket({ storeName: "tombstones", id, recordJson: JSON.stringify({ storeName: store, id, deletedAt: Date.now() }) })
           .catch((err: unknown) => console.error("Failed to emit tombstone:", err));
       }

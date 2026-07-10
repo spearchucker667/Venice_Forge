@@ -1,7 +1,6 @@
 /** @fileoverview Service for manually importing an encrypted backup of all syncable tables. */
 
 import StorageService from "./storageService";
-import { STORE_NAMES } from "../constants/venice";
 import { TombstoneService } from "./tombstoneService";
 import {
   isElectron,
@@ -277,7 +276,7 @@ export async function parseAndImportBackup(
         fromBase64(manifest.ciphertext)
       );
       decryptedJson = new TextDecoder().decode(decryptedBuffer);
-    } catch (e) {
+    } catch {
       throw new Error("Failed to decrypt backup. Invalid password or corrupt data.");
     }
   }

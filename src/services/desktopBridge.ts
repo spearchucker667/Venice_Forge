@@ -598,15 +598,6 @@ export const desktopConversations = {
   async delete(id: string): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Conversation vault is only available in desktop mode." };
     return window.veniceForge!.conversations.delete(id);
-    // Emit tombstone
-    const w = window as any;
-    if (w.__VENICE_IS_SYNCING !== true) {
-      const desktopSync = w.veniceForge?.sync;
-      if (desktopSync && desktopSync.writePacket) {
-        desktopSync.writePacket("tombstones", id, JSON.stringify({ storeName: "conversations", id, deletedAt: Date.now() }))
-          .catch((err: unknown) => console.error("Failed to emit tombstone:", err));
-      }
-    }
   },
   async pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean }): Promise<{
     ok: boolean; context: import("../types/conversationVault").PulledMemoryContext; error?: string;
@@ -680,15 +671,6 @@ export const desktopChat = {
   async delete(id: string): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Chat filesystem storage is only available in desktop mode." };
     return window.veniceForge!.chat.delete(id);
-    // Emit tombstone
-    const w = window as any;
-    if (w.__VENICE_IS_SYNCING !== true) {
-      const desktopSync = w.veniceForge?.sync;
-      if (desktopSync && desktopSync.writePacket) {
-        desktopSync.writePacket("tombstones", id, JSON.stringify({ storeName: "chats", id, deletedAt: Date.now() }))
-          .catch((err: unknown) => console.error("Failed to emit tombstone:", err));
-      }
-    }
   },
 };
 
@@ -716,15 +698,6 @@ export const desktopCharacterCards = {
   async delete(id: string): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Character card filesystem storage is only available in desktop mode." };
     return window.veniceForge!.characterCards.delete(id);
-    // Emit tombstone
-    const w = window as any;
-    if (w.__VENICE_IS_SYNCING !== true) {
-      const desktopSync = w.veniceForge?.sync;
-      if (desktopSync && desktopSync.writePacket) {
-        desktopSync.writePacket("tombstones", id, JSON.stringify({ storeName: "character_cards", id, deletedAt: Date.now() }))
-          .catch((err: unknown) => console.error("Failed to emit tombstone:", err));
-      }
-    }
   },
 };
 
@@ -745,15 +718,6 @@ export const desktopPersonas = {
   async delete(id: string): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Persona filesystem storage is only available in desktop mode." };
     return window.veniceForge!.personas.delete(id);
-    // Emit tombstone
-    const w = window as any;
-    if (w.__VENICE_IS_SYNCING !== true) {
-      const desktopSync = w.veniceForge?.sync;
-      if (desktopSync && desktopSync.writePacket) {
-        desktopSync.writePacket("tombstones", id, JSON.stringify({ storeName: "personas", id, deletedAt: Date.now() }))
-          .catch((err: unknown) => console.error("Failed to emit tombstone:", err));
-      }
-    }
   },
 };
 
@@ -774,15 +738,6 @@ export const desktopLorebooks = {
   async delete(id: string): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Lorebook filesystem storage is only available in desktop mode." };
     return window.veniceForge!.lorebooks.delete(id);
-    // Emit tombstone
-    const w = window as any;
-    if (w.__VENICE_IS_SYNCING !== true) {
-      const desktopSync = w.veniceForge?.sync;
-      if (desktopSync && desktopSync.writePacket) {
-        desktopSync.writePacket("tombstones", id, JSON.stringify({ storeName: "lorebooks", id, deletedAt: Date.now() }))
-          .catch((err: unknown) => console.error("Failed to emit tombstone:", err));
-      }
-    }
   },
 };
 
@@ -803,15 +758,6 @@ export const desktopRpChats = {
   async delete(id: string): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "RP chat filesystem storage is only available in desktop mode." };
     return window.veniceForge!.rpChats.delete(id);
-    // Emit tombstone
-    const w = window as any;
-    if (w.__VENICE_IS_SYNCING !== true) {
-      const desktopSync = w.veniceForge?.sync;
-      if (desktopSync && desktopSync.writePacket) {
-        desktopSync.writePacket("tombstones", id, JSON.stringify({ storeName: "rp_chats", id, deletedAt: Date.now() }))
-          .catch((err: unknown) => console.error("Failed to emit tombstone:", err));
-      }
-    }
   },
 };
 
@@ -832,15 +778,6 @@ export const desktopRpAssets = {
   async delete(id: string): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "RP asset filesystem storage is only available in desktop mode." };
     return window.veniceForge!.rpAssets.delete(id);
-    // Emit tombstone
-    const w = window as any;
-    if (w.__VENICE_IS_SYNCING !== true) {
-      const desktopSync = w.veniceForge?.sync;
-      if (desktopSync && desktopSync.writePacket) {
-        desktopSync.writePacket("tombstones", id, JSON.stringify({ storeName: "rp_assets", id, deletedAt: Date.now() }))
-          .catch((err: unknown) => console.error("Failed to emit tombstone:", err));
-      }
-    }
   },
 };
 
@@ -861,15 +798,6 @@ export const desktopScenarios = {
   async delete(id: string): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Scenario filesystem storage is only available in desktop mode." };
     return window.veniceForge!.scenarios.delete(id);
-    // Emit tombstone
-    const w = window as any;
-    if (w.__VENICE_IS_SYNCING !== true) {
-      const desktopSync = w.veniceForge?.sync;
-      if (desktopSync && desktopSync.writePacket) {
-        desktopSync.writePacket("tombstones", id, JSON.stringify({ storeName: "rpScenarios", id, deletedAt: Date.now() }))
-          .catch((err: unknown) => console.error("Failed to emit tombstone:", err));
-      }
-    }
   },
 };
 
