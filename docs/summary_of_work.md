@@ -4453,7 +4453,7 @@ backlog files were removed.
 
 - **Date:** 2026-07-10
 - **Agent:** Kimi Code (root coordinator)
-- **Branch / state:** `main`; working tree carries the coordinated remediation pass (~148 modified files). NOT committing/pushing in this session.
+- **Branch / state:** `main`; committed and pushed as `ac22c80` (`chore: coordinated remediation pass (phases 0-10)`).
 - **User instruction (distilled):** Execute the coordinated repository remediation and feature implementation work order: canonical path migration, CI recovery, memory isolation, chat model hot swap, message operations, prompt selection, RP token/persona work, scene references, theme text softening, backup/sync completion, and full validation/documentation wiring.
 - **Closed in this session (Phases 0–10):**
   - **Phase 0 — Baseline and CI:** Confirmed canonical repository path; recorded branch/commit/state; regenerated `package-lock.json` with Node 22/npm 10; added `scripts/verify-lockfile.cjs`; made `npm ci` pass.
@@ -4469,7 +4469,7 @@ backlog files were removed.
   - **Phase 10 — Validation and documentation:** Extended `AGENTS.md` VERIFY registry through `VERIFY-092`; added `verify:scene-references` and `verify:backup-sync` to `verify:contracts`; updated `docs/ROADMAP.md`, `docs/DOCS_INDEX.md`, `docs/audits/CHANGELOG.md`, and user docs (`docs/chat-model-selection.md`, `docs/memory-isolation.md`, `docs/rp-token-counting.md`, `docs/backup-and-sync.md`, `docs/security-model.md`, `docs/sync-threat-model.md`); ran the full validation matrix including macOS arm64 packaging; fixed a missing `README.md` preview image and a flaky dirty-map test timeout during final validation.
 - **Files changed:** See `git status --short`. Key surfaces include `src/stores/chat-store.*`, `src/components/chat/*`, `src/services/memoryService.ts`, `src/hooks/use-chat.ts`, `src/utils/chatPayloadContext.ts`, `src/config/image-model-capabilities.ts`, `src/types/rp.ts`, `src/stores/persona-store.ts`, `src/services/rp/promptBuilderService.ts`, `src/services/sceneReferenceResolver.ts`, `src/theme/builtins/venice.ts`, `src/theme/builtins/copper.ts`, `electron/services/backupCrypto.ts`, `electron/services/syncFolderWatcher.ts`, `electron/ipc/handlers/syncHandlers.ts`, `src/services/backupExportService.ts`, `src/services/backupImportService.ts`, `src/services/syncEngine.ts`, `scripts/verify-repository-identity.cjs`, `scripts/verify-lockfile.cjs`, `AGENTS.md`, `docs/ROADMAP.md`, `docs/DOCS_INDEX.md`, and the docs listed above.
 - **Validation:** See the consolidated Validation Matrix entry at the top of `### Validation Matrix (this session)` below. All required commands pass (exit code 0), including `npm ci`, lint, typecheck, segmented test suites, coverage, safety/markdown/repository-identity/contracts verifiers, build, `verify:dist`, `npm audit --audit-level=moderate`, and macOS arm64 packaging + `verify:dist:mac`.
-- **Status:** DONE — all completion criteria satisfied. NOT committing/pushing in this session.
+- **Status:** DONE — all completion criteria satisfied; changes committed and pushed to `origin/main`.
 
 - **Date:** 2026-07-09
 - **Agent:** Antigravity (Gemini 3.1 Pro Native)

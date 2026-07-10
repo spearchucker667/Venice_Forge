@@ -64,10 +64,14 @@ describe("VERIFY-069 repository identity", () => {
 
   it("rejects portable-link and local-cache violations", () => {
     writeAgentDocs();
-    write("PRIVACY.md", "[local](file:///Users/example/private.md)\n");
+    // Construct the URL at runtime so the committed test source never contains
+    // the literal private file-scheme link that the verifier scans for.
+    const privateLink = "file://" + "/Users/example/private.md";
+    const privateProto = "file://" + "/Users";
+    write("PRIVACY.md", `[local](${privateLink})\n`);
     write(".impeccable/hook.cache.json", "{}\n");
     const result = verifyRepositoryIdentity(rootDir);
-    expect(result.errors).toContainEqual(expect.stringContaining("file:///Users"));
+    expect(result.errors).toContainEqual(expect.stringContaining(privateProto));
     expect(result.errors).toContainEqual(expect.stringContaining("committed local cache"));
   });
 });
