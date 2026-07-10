@@ -28,8 +28,6 @@ export async function initSyncEngine(password: string) {
       const result = await importDecryptedPacket(storeName as SyncStoreName, id, recordJson);
       if (!result.ok) {
         console.error(`[SyncEngine] Failed to import packet ${storeName}/${id}:`, result.error);
-      } else {
-        console.log(`[SyncEngine] Imported packet ${storeName}/${id}`);
       }
     } catch (err) {
       console.error(`[SyncEngine] Error applying remote change:`, err);

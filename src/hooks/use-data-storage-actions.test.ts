@@ -10,7 +10,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import StorageService from "../services/storageService";
-import type { MutableRefObject } from "react";
 
 // VERIFY-055 regression guard: export/import failure paths must surface
 // safe, generic toast messages and never emit raw exception text that
@@ -87,14 +86,6 @@ function buildSetters() {
   };
 }
 
-function buildSafetyRefs() {
-  return {
-    applySafetyCancelRef: { current: null } as MutableRefObject<(() => void) | null>,
-    applySafetyTertiaryRef: { current: null } as MutableRefObject<(() => void) | null>,
-    applySafetyDismissRef: { current: null } as MutableRefObject<(() => void) | null>,
-  };
-}
-
 describe("useDataStorageActions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -102,14 +93,8 @@ describe("useDataStorageActions", () => {
 
   it("returns the 4 expected action functions", () => {
     const setters = buildSetters();
-    const refs = buildSafetyRefs();
     const { result } = renderHook(() =>
-      useDataStorageActions({
-        ...setters,
-        localFamilySafeModeEnabled: true,
-        veniceApiSafeMode: true,
-        ...refs,
-      }),
+      useDataStorageActions({ ...setters }),
     );
     expect(typeof result.current.clearLocalSettings).toBe("function");
     expect(typeof result.current.clearAllHistory).toBe("function");
@@ -119,14 +104,8 @@ describe("useDataStorageActions", () => {
 
   it("clearLocalSettings delegates to setPendingConfirm (does not call setters directly)", async () => {
     const setters = buildSetters();
-    const refs = buildSafetyRefs();
     const { result } = renderHook(() =>
-      useDataStorageActions({
-        ...setters,
-        localFamilySafeModeEnabled: true,
-        veniceApiSafeMode: true,
-        ...refs,
-      }),
+      useDataStorageActions({ ...setters }),
     );
     await act(async () => {
       await result.current.clearLocalSettings();
@@ -141,14 +120,8 @@ describe("useDataStorageActions", () => {
 
   it("clearAllHistory delegates to setPendingConfirm", async () => {
     const setters = buildSetters();
-    const refs = buildSafetyRefs();
     const { result } = renderHook(() =>
-      useDataStorageActions({
-        ...setters,
-        localFamilySafeModeEnabled: true,
-        veniceApiSafeMode: true,
-        ...refs,
-      }),
+      useDataStorageActions({ ...setters }),
     );
     await act(async () => {
       await result.current.clearAllHistory();
@@ -158,14 +131,8 @@ describe("useDataStorageActions", () => {
 
   it("exportData returns cleanly when the IPC stub resolves", async () => {
     const setters = buildSetters();
-    const refs = buildSafetyRefs();
     const { result } = renderHook(() =>
-      useDataStorageActions({
-        ...setters,
-        localFamilySafeModeEnabled: true,
-        veniceApiSafeMode: true,
-        ...refs,
-      }),
+      useDataStorageActions({ ...setters }),
     );
     await expect(
       act(async () => {
@@ -176,41 +143,24 @@ describe("useDataStorageActions", () => {
 
   it("importData returns cleanly when the file picker is cancelled (IPC returns null)", async () => {
     const setters = buildSetters();
-    const refs = buildSafetyRefs();
     const { result } = renderHook(() =>
-      useDataStorageActions({
-        ...setters,
-        localFamilySafeModeEnabled: true,
-        veniceApiSafeMode: true,
-        ...refs,
-      }),
+      useDataStorageActions({ ...setters }),
     );
     await expect(
       act(async () => {
         await result.current.importData("test-password");
       }),
     ).resolves.toBeUndefined();
-    // The safety-choice refs must not be written when the file picker
-    // was cancelled.
-    expect(refs.applySafetyCancelRef.current).toBeNull();
-    expect(refs.applySafetyTertiaryRef.current).toBeNull();
-    expect(refs.applySafetyDismissRef.current).toBeNull();
   });
 
   it("T-119 / VERIFY-055: exportData failure toasts a safe message, not raw exception text", async () => {
     const setters = buildSetters();
-    const refs = buildSafetyRefs();
     vi.spyOn(StorageService, "getItems").mockRejectedValueOnce(
       new Error("ENOENT: /Users/sensitive/path/to-secret.json"),
     );
 
     const { result } = renderHook(() =>
-      useDataStorageActions({
-        ...setters,
-        localFamilySafeModeEnabled: true,
-        veniceApiSafeMode: true,
-        ...refs,
-      }),
+      useDataStorageActions({ ...setters }),
     );
 
     await act(async () => {
@@ -225,18 +175,12 @@ describe("useDataStorageActions", () => {
 
   it("T-120 / VERIFY-055: importData failure toasts a safe message, not raw exception text", async () => {
     const setters = buildSetters();
-    const refs = buildSafetyRefs();
     vi.mocked(desktopFiles).importJsonString.mockRejectedValueOnce(
       new Error("Unexpected token at /Users/sensitive/path/backup.json:12"),
     );
 
     const { result } = renderHook(() =>
-      useDataStorageActions({
-        ...setters,
-        localFamilySafeModeEnabled: true,
-        veniceApiSafeMode: true,
-        ...refs,
-      }),
+      useDataStorageActions({ ...setters }),
     );
 
     await act(async () => {
@@ -252,23 +196,14 @@ describe("useDataStorageActions", () => {
   });
 
   it("clearLocalSettings and clearAllHistory are referentially stable across re-renders", () => {
-    // These two functions do not depend on the safety flags, so they
-    // are memoized once and stay referentially equal across renders.
     const setters = buildSetters();
-    const refs = buildSafetyRefs();
     const { result, rerender } = renderHook(() =>
-      useDataStorageActions({
-        ...setters,
-        localFamilySafeModeEnabled: true,
-        veniceApiSafeMode: true,
-        ...refs,
-      }),
+      useDataStorageActions({ ...setters }),
     );
     const first = {
       clearLocalSettings: result.current.clearLocalSettings,
       clearAllHistory: result.current.clearAllHistory,
     };
-    // Re-render with the same flags — functions should remain equal.
     rerender();
     expect(result.current.clearLocalSettings).toBe(first.clearLocalSettings);
     expect(result.current.clearAllHistory).toBe(first.clearAllHistory);

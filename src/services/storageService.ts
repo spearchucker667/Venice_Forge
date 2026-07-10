@@ -6,7 +6,7 @@ import { assertValidId, isValidId } from "../utils/idValidation";
 import { encryptData, decryptDataResult, type EncryptedPayload } from "./cryptoService";
 import { applyMigrations } from "./dbMigrations";
 import { DEFAULT_PROFILE_ID, getActiveProfileId } from "./activeProfile";
-import { isElectron } from "./desktopBridge";
+import { desktopSync, isElectron } from "./desktopBridge";
 
 type StoreName = (typeof STORE_NAMES)[number];
 
@@ -468,8 +468,11 @@ const StorageService = {
     if (result && typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("venice:storage-deleted", { detail: { store, id } }));
       
-      const w = window as any;
-      if (w.__VENICE_IS_SYNCING !== true && isElectron()) {
+      const veniceWindow = window as Window & { __VENICE_IS_SYNCING?: boolean };
+      // Exclude the tombstones store itself (prevents self-referential propagation) and the
+      // diagnostics store (explicitly excluded from sync, so tombstones for it are meaningless).
+      const isSyncExcludedStore = store === "tombstones" || store === "diagnostics";
+      if (veniceWindow.__VENICE_IS_SYNCING !== true && isElectron() && !isSyncExcludedStore) {
         desktopSync.writePacket({ storeName: "tombstones", id, recordJson: JSON.stringify({ storeName: store, id, deletedAt: Date.now() }) })
           .catch((err: unknown) => console.error("Failed to emit tombstone:", err));
       }

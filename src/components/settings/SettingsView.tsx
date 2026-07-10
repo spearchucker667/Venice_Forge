@@ -90,11 +90,6 @@ export function SettingsView() {
     setLocalFamilySafeModeEnabled,
     setVeniceApiSafeMode,
     setPendingConfirm,
-    localFamilySafeModeEnabled,
-    veniceApiSafeMode,
-    applySafetyCancelRef,
-    applySafetyTertiaryRef,
-    applySafetyDismissRef,
   });
 
   // Load models

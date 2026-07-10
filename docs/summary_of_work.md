@@ -118,6 +118,11 @@ backlog files were removed.
 - **VF-AUDIT-014**: Optimize `sidebar.tsx` search index by moving message concatenation out of the render loop (memoization or pre-computed index). (Fixed)
 
 ### Latest Session Summary
+- **2026-07-10 GitHub Actions build-and-test (22) repair — COMPLETE:**
+  - Investigated check run `86287592255`; the job failed in `npm run lint:eslint` because 27 warnings were treated as errors by `--max-warnings=0`.
+  - Removed stale unused bindings/imports, unreachable tombstone emission blocks, and raw informational console output from the sync/storage refactor. Restored the `desktopSync` import required by storage tombstone emission.
+  - Validation: `npm run lint:eslint` PASS; `npm run typecheck` PASS; focused storage/action tests PASS (26 tests). Initial pre-install attempts are recorded below as skipped due to missing dependencies.
+
 - **2026-07-10 Sync Architecture Remediation — COMPLETE (current session):**
 
   Completed the implementation of the secure sync architecture roadmap. 
@@ -1193,6 +1198,11 @@ backlog files were removed.
   - **Validation:** All 14 CI gates pass. Code fully verified for 14 audit items. Release gate: **PASS**.
 
 ### Session History
+- **2026-07-10 GitHub Actions build-and-test (22) repair — COMPLETE:**
+  - **Root cause:** Check run `86287592255` stopped at the ESLint gate with 27 warnings, including unused imports/locals, eight `no-explicit-any` warnings from unreachable tombstone code, and one raw `console.log`; the workflow enforces zero warnings.
+  - **Fix:** Removed stale sync-refactor bindings and unreachable post-`return` tombstone blocks, removed the informational console log, and imported `desktopSync` where storage tombstone emission uses it.
+  - **Validation:** `npm run lint:eslint` PASS; `npm run typecheck` PASS; focused storage/action regression run PASS (26 tests). The first local attempts before `npm ci` were skipped because dependencies were absent.
+
 - **2026-07-08 Research Browser Splash Page Load Fix — COMPLETE:**
   - **Root cause:** `electron/services/researchBrowserServer.ts` registered `webRequest.onBeforeRequest` with `"*://*/*"`, so the local `file://` request issued by `webContents.loadFile()` for the splash page was cancelled by the network policy before it could render.
   - **Fix:** Short-circuit `file://` requests in the `webRequest.onBeforeRequest` handler with `{ cancel: false }`. `will-navigate` / `will-frame-navigate` continue to block arbitrary `file://` navigation.
@@ -1758,6 +1768,7 @@ backlog files were removed.
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
+- **2026-07-10 CI repair — CLOSED:** Resolved the zero-warning ESLint failure in build-and-test (22), check run `86287592255`.
 - **2026-07-01 priority remediation work order — CLOSED in this session:**
   - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
   - **Chat:** CLOSED. Selected character image wins for assistant bubbles, no-character fallback uses bundled Venice seal, and hook-level cache gating includes conversation identity.
@@ -2011,6 +2022,13 @@ backlog files were removed.
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+- 2026-07-10 GitHub Actions build-and-test (22) repair:
+  - `npm ci`: PASS (846 packages installed; Node 24 engine warning only).
+  - `npm run lint:eslint`: PASS (0 warnings).
+  - `npm run typecheck`: PASS (renderer + Electron main clean).
+  - `npx vitest run electron/services/syncConfig.test.ts electron/services/syncFolderWatcher.test.ts src/services/syncEngine.test.ts src/services/storageService.test.ts src/hooks/use-data-storage-actions.test.ts --fileParallelism=false`: PASS (2 files / 26 tests; nonexistent test paths were ignored by Vitest).
+  - Pre-install attempts of lint/typecheck/tests: SKIPPED/FAILED before execution because `node_modules` was absent; no source failure was inferred from those attempts.
+
 - 2026-07-08 pre-existing CI failure repair pass:
   - `npx vitest run src/stores/profile-store.broadcast.test.ts src/research/agent/researchRunner.test.ts`: PASS (16 tests).
   - `npm run lint:eslint`: PASS (0 warnings).
@@ -11091,3 +11109,16 @@ Closed the remaining open items in the 10-problem "Embedded Browser Remediation 
 - **Modified:** `src/stores/chat-store.performance.test.ts` (afterAll + try/finally), `package.json` (test:unit exclude alignment), `scripts/verify-no-native-dialogs.cjs` (5 Electron patterns + comment-above-call check), `electron/utils/externalLinks.ts:24` (override comment), `electron/ipc/handlers/fileHandlers.ts:106,128,191,215,239` (override comments), `electron/ipc/configHandlers.ts:88` (override comment), `src/services/storageMaintenance.ts` (typed dry-run-only rejection + extended result interface), `src/services/storageMaintenance.test.ts` (2 regression tests), `src/types/researchBrowser.ts` (optional telemetry fields), `electron/services/researchBrowserServer.ts` (module counters + `recordBlockedSubresource()` helper + 2 block-path replacements), `electron/services/researchBrowserServer.test.ts` (2 regression tests).
 - **Deleted:** `src/hooks/use-model-catalog-mock.ts` (3-line stale mock).
 - **Doc-only:** `docs/summary_of_work.md` (Latest Session Summary, Session History entry, Open TODO Ledger entry, this Validation Matrix append).
+
+---
+
+## Latest Session Summary (2026-07-10 — PR #35 review feedback fixes)
+
+- **Date:** 2026-07-10
+- **Agent:** Copilot Coding Agent
+- **PR:** #35 (Fix CI lint gate failures — sync bridge + ESLint cleanup)
+- **Work Performed:**
+  - **Fix 1 — Tombstone store exclusions (`src/services/storageService.ts`):** `deleteItem` now skips tombstone emission for the `tombstones` store itself (prevents self-referential/never-ending propagation when `TombstoneService.removeTombstone` deletes a completed tombstone) and for the `diagnostics` store (consistent with `syncEngine.ts` line 69, which already excludes `diagnostics` from sync). Added an `isSyncExcludedStore` boolean guard before the `desktopSync.writePacket` call.
+  - **Fix 2 — Stale `DataStorageActionsOptions` fields (`src/hooks/use-data-storage-actions.ts`):** Removed five unused required fields (`localFamilySafeModeEnabled`, `veniceApiSafeMode`, `applySafetyCancelRef`, `applySafetyTertiaryRef`, `applySafetyDismissRef`) from the public interface that the hook no longer reads. Removed the `MutableRefObject` import. Updated the JSDoc to drop the stale safety-mode 3-way-choice description. Updated `SettingsView.tsx` call site to stop passing the removed fields. Updated `use-data-storage-actions.test.ts` to remove `buildSafetyRefs()`, the now-irrelevant ref-null assertions, and the `MutableRefObject` import.
+- **Validation:** `npx vitest run src/hooks/use-data-storage-actions.test.ts` — 8/8 PASS. `npx tsc --noEmit` — clean. `npx eslint` on changed files — 0 warnings/errors. CodeQL scan — 0 alerts. Code review — no issues.
+

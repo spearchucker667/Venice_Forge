@@ -2,7 +2,7 @@ import { app } from "electron";
 import path from "path";
 import { promises as fs } from "fs";
 import crypto from "crypto";
-import { logInfo, logError } from "./logger";
+import { logError } from "./logger";
 
 export interface SyncConfig {
   syncPath: string | null;
