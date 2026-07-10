@@ -11109,3 +11109,16 @@ Closed the remaining open items in the 10-problem "Embedded Browser Remediation 
 - **Modified:** `src/stores/chat-store.performance.test.ts` (afterAll + try/finally), `package.json` (test:unit exclude alignment), `scripts/verify-no-native-dialogs.cjs` (5 Electron patterns + comment-above-call check), `electron/utils/externalLinks.ts:24` (override comment), `electron/ipc/handlers/fileHandlers.ts:106,128,191,215,239` (override comments), `electron/ipc/configHandlers.ts:88` (override comment), `src/services/storageMaintenance.ts` (typed dry-run-only rejection + extended result interface), `src/services/storageMaintenance.test.ts` (2 regression tests), `src/types/researchBrowser.ts` (optional telemetry fields), `electron/services/researchBrowserServer.ts` (module counters + `recordBlockedSubresource()` helper + 2 block-path replacements), `electron/services/researchBrowserServer.test.ts` (2 regression tests).
 - **Deleted:** `src/hooks/use-model-catalog-mock.ts` (3-line stale mock).
 - **Doc-only:** `docs/summary_of_work.md` (Latest Session Summary, Session History entry, Open TODO Ledger entry, this Validation Matrix append).
+
+---
+
+## Latest Session Summary (2026-07-10 — PR #35 review feedback fixes)
+
+- **Date:** 2026-07-10
+- **Agent:** Copilot Coding Agent
+- **PR:** #35 (Fix CI lint gate failures — sync bridge + ESLint cleanup)
+- **Work Performed:**
+  - **Fix 1 — Tombstone store exclusions (`src/services/storageService.ts`):** `deleteItem` now skips tombstone emission for the `tombstones` store itself (prevents self-referential/never-ending propagation when `TombstoneService.removeTombstone` deletes a completed tombstone) and for the `diagnostics` store (consistent with `syncEngine.ts` line 69, which already excludes `diagnostics` from sync). Added an `isSyncExcludedStore` boolean guard before the `desktopSync.writePacket` call.
+  - **Fix 2 — Stale `DataStorageActionsOptions` fields (`src/hooks/use-data-storage-actions.ts`):** Removed five unused required fields (`localFamilySafeModeEnabled`, `veniceApiSafeMode`, `applySafetyCancelRef`, `applySafetyTertiaryRef`, `applySafetyDismissRef`) from the public interface that the hook no longer reads. Removed the `MutableRefObject` import. Updated the JSDoc to drop the stale safety-mode 3-way-choice description. Updated `SettingsView.tsx` call site to stop passing the removed fields. Updated `use-data-storage-actions.test.ts` to remove `buildSafetyRefs()`, the now-irrelevant ref-null assertions, and the `MutableRefObject` import.
+- **Validation:** `npx vitest run src/hooks/use-data-storage-actions.test.ts` — 8/8 PASS. `npx tsc --noEmit` — clean. `npx eslint` on changed files — 0 warnings/errors. CodeQL scan — 0 alerts. Code review — no issues.
+
