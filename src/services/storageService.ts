@@ -6,7 +6,7 @@ import { assertValidId, isValidId } from "../utils/idValidation";
 import { encryptData, decryptDataResult, type EncryptedPayload } from "./cryptoService";
 import { applyMigrations } from "./dbMigrations";
 import { DEFAULT_PROFILE_ID, getActiveProfileId } from "./activeProfile";
-import { isElectron } from "./desktopBridge";
+import { desktopSync, isElectron } from "./desktopBridge";
 
 type StoreName = (typeof STORE_NAMES)[number];
 
