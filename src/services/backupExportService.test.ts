@@ -5,7 +5,6 @@ import {
   fetchStoreRecords,
   toBase64,
   BACKUP_SCHEMA_VERSION,
-  PBKDF2_ITERATIONS,
   SALT_BYTE_LENGTH,
   IV_BYTE_LENGTH
 } from "./backupExportService";

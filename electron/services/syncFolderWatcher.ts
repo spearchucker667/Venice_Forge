@@ -2,7 +2,7 @@ import chokidar, { FSWatcher } from "chokidar";
 import path from "path";
 import { promises as fs } from "fs";
 import { logInfo, logError } from "./logger";
-import { redactErrorMessage } from "../../../src/shared/redaction";
+import { redactErrorMessage } from "../../src/shared/redaction";
 import { BrowserWindow } from "electron";
 
 let watcher: FSWatcher | null = null;

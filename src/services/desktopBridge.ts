@@ -441,10 +441,10 @@ export const desktopSync = {
     if (isElectron()) return window.veniceForge!.sync.writePacket(params);
     return { ok: false, error: "Not in Electron" };
   },
-  onRemoteChange(callback: (event: any) => void) {
+  onRemoteChange(callback: (event: { filename: string; base64Data: string }) => void) {
     if (isElectron()) return window.veniceForge!.sync.onRemoteChange(callback);
     return () => {};
-  }
+  },
 };
 
 /** Media Studio bridge. In Electron, delegates to the typed IPC channels

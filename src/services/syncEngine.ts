@@ -15,9 +15,9 @@ export async function initSyncEngine(password: string) {
   }
 
   // Register the remote change listener
-  remoteChangeListenerCleanup = desktopSync.onRemoteChange(async (event: unknown) => {
+  remoteChangeListenerCleanup = desktopSync.onRemoteChange(async (event) => {
     try {
-      const { filename, base64Data } = event as { filename: string; base64Data: string };
+      const { filename, base64Data } = event;
       // console.log(`[SyncEngine] Received remote change: ${filename}`);
       
       const jsonStr = Buffer.from(base64Data, "base64").toString("utf-8");
@@ -27,7 +27,7 @@ export async function initSyncEngine(password: string) {
       if (!result.ok) {
         console.error(`[SyncEngine] Failed to import packet ${filename}:`, result.error);
       } else {
-        console.log(`[SyncEngine] Imported packet ${filename}: skipped=${result.summary?.recordsSkipped}, imported=${result.summary?.recordsImported}`);
+        console.warn(`[SyncEngine] Imported packet ${filename}: skipped=${result.summary?.recordsSkipped}, imported=${result.summary?.recordsImported}`);
       }
     } catch (err) {
       console.error(`[SyncEngine] Error applying remote change:`, err);
@@ -49,8 +49,13 @@ export function stopSyncEngine() {
   }
 }
 
+type VeniceWindowWithSyncFlag = Window & {
+  __VENICE_IS_SYNCING?: boolean;
+};
+
 function handleStorageSaved(e: Event) {
-  if (typeof window !== "undefined" && (window as any).__VENICE_IS_SYNCING) {
+  const veniceWindow = window as VeniceWindowWithSyncFlag;
+  if (typeof window !== "undefined" && veniceWindow.__VENICE_IS_SYNCING) {
     return;
   }
   const customEvent = e as CustomEvent<{ store: SyncStoreName; record: unknown; id: string }>;

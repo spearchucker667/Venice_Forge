@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { importEncryptedBackup, saveStoreRecord, deleteStoreRecord } from "./backupImportService";
+import { importEncryptedBackup } from "./backupImportService";
 import { createEncryptedBackup } from "./backupExportService";
 import StorageService from "./storageService";
 import * as desktopBridge from "./desktopBridge";

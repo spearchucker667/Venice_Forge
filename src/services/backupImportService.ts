@@ -25,8 +25,12 @@ interface SyncableRecord {
   deviceId?: string;
   name?: string;
   title?: string;
-  messages?: any[];
+  messages?: Record<string, unknown>[];
 }
+
+type VeniceWindowWithSyncFlag = Window & {
+  __VENICE_IS_SYNCING?: boolean;
+};
 
 export interface ImportSummary {
   recordsImported: number;
@@ -39,25 +43,25 @@ export async function saveStoreRecord(storeName: SyncStoreName, record: unknown)
   if (isElectron()) {
     switch (storeName) {
       case "conversations":
-        await desktopChat.save(record as any);
+        await desktopChat.save(record as never);
         return;
       case "character_cards":
-        await desktopCharacterCards.save(record as any);
+        await desktopCharacterCards.save(record as never);
         return;
       case "personas":
-        await desktopPersonas.save(record as any);
+        await desktopPersonas.save(record as never);
         return;
       case "lorebooks":
-        await desktopLorebooks.save(record as any);
+        await desktopLorebooks.save(record as never);
         return;
       case "rp_chats":
-        await desktopRpChats.save(record as any);
+        await desktopRpChats.save(record as never);
         return;
       case "rp_assets":
-        await desktopRpAssets.save(record as any);
+        await desktopRpAssets.save(record as never);
         return;
       case "rpScenarios":
-        await desktopScenarios.save(record as any);
+        await desktopScenarios.save(record as never);
         return;
     }
   }
@@ -110,7 +114,7 @@ export async function importEncryptedBackup(
 ): Promise<{ ok: boolean; summary?: ImportSummary; error?: string }> {
   try {
     if (typeof window !== "undefined") {
-      (window as any).__VENICE_IS_SYNCING = true;
+      (window as VeniceWindowWithSyncFlag).__VENICE_IS_SYNCING = true;
     }
     
     const salt = fromBase64(manifest.salt);
@@ -126,9 +130,9 @@ export async function importEncryptedBackup(
         key,
         ciphertext
       );
-    } catch (err) {
+    } catch {
       if (typeof window !== "undefined") {
-        (window as any).__VENICE_IS_SYNCING = false;
+        (window as VeniceWindowWithSyncFlag).__VENICE_IS_SYNCING = false;
       }
       return { ok: false, error: "Decryption failed. Incorrect password or corrupted data." };
     }
@@ -218,13 +222,13 @@ export async function importEncryptedBackup(
               const localMessages = local.messages || [];
               const importedMessages = imported.messages || [];
               
-              const localMsgIds = new Set(localMessages.map((m: any) => m.id));
-              const newMessages = importedMessages.filter((m: any) => !localMsgIds.has(m.id));
+              const localMsgIds = new Set(localMessages.map((m: Record<string, unknown>) => m.id));
+              const newMessages = importedMessages.filter((m: Record<string, unknown>) => !localMsgIds.has(m.id));
               
               if (newMessages.length > 0) {
                 const mergedRecord = {
                   ...local,
-                  messages: [...localMessages, ...newMessages].sort((a: any, b: any) => a.createdAt - b.createdAt),
+                  messages: [...localMessages, ...newMessages].sort((a: Record<string, unknown>, b: Record<string, unknown>) => (a.createdAt as number) - (b.createdAt as number)),
                   updatedAt: Math.max(local.updatedAt || 0, importedUpdatedAt)
                 };
                 await saveStoreRecord(storeName, mergedRecord);
@@ -249,12 +253,12 @@ export async function importEncryptedBackup(
     }
 
     if (typeof window !== "undefined") {
-      (window as any).__VENICE_IS_SYNCING = false;
+      (window as VeniceWindowWithSyncFlag).__VENICE_IS_SYNCING = false;
     }
     return { ok: true, summary };
   } catch (err) {
     if (typeof window !== "undefined") {
-      (window as any).__VENICE_IS_SYNCING = false;
+      (window as VeniceWindowWithSyncFlag).__VENICE_IS_SYNCING = false;
     }
     const errorMsg = err instanceof Error ? err.message : "Unknown error during import.";
     return { ok: false, error: errorMsg };
