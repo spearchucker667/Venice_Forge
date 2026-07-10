@@ -16,6 +16,7 @@ import {
 import type { SyncStoreName } from "../types/sync";
 import { BACKUP_SCHEMA_VERSION, deriveBackupKey, fromBase64, EncryptedBackupManifest } from "./backupCryptoWeb";
 import { STORE_NAMES } from "../constants/venice";
+import { validateTombstone } from "../shared/syncProtocol";
 
 interface SyncableRecord {
   id: string;
@@ -140,20 +141,30 @@ export async function fetchStoreRecords(storeName: SyncStoreName): Promise<Synca
         const res = await desktopChat.list();
         return res.ok ? (res.conversations as unknown as SyncableRecord[]) : [];
       }
-      case "character_cards":
-        return await desktopCharacterCards.list() as unknown as SyncableRecord[];
-      case "personas":
-        return await desktopPersonas.list() as unknown as SyncableRecord[];
-      case "lorebooks":
-        return await desktopLorebooks.list() as unknown as SyncableRecord[];
+      case "character_cards": {
+        const res = await desktopCharacterCards.list();
+        return res.ok ? (res.cards as unknown as SyncableRecord[]) : [];
+      }
+      case "personas": {
+        const res = await desktopPersonas.list();
+        return res.ok ? (res.personas as unknown as SyncableRecord[]) : [];
+      }
+      case "lorebooks": {
+        const res = await desktopLorebooks.list();
+        return res.ok ? (res.lorebooks as unknown as SyncableRecord[]) : [];
+      }
       case "rp_chats": {
         const rpRes = await desktopRpChats.list();
         return rpRes.ok ? (rpRes.chats as unknown as SyncableRecord[]) : [];
       }
-      case "rp_assets":
-        return await desktopRpAssets.list() as unknown as SyncableRecord[];
-      case "rpScenarios":
-        return await desktopScenarios.list() as unknown as SyncableRecord[];
+      case "rp_assets": {
+        const res = await desktopRpAssets.list();
+        return res.ok ? (res.assets as unknown as SyncableRecord[]) : [];
+      }
+      case "rpScenarios": {
+        const res = await desktopScenarios.list();
+        return res.ok ? (res.scenarios as unknown as SyncableRecord[]) : [];
+      }
     }
   }
 
@@ -179,9 +190,13 @@ export async function importDecryptedPacket(
     }
 
     if (storeName === "tombstones") {
-      const tomb = JSON.parse(recordJson) as { deletedAt: number, storeName: SyncStoreName, recordId: string };
-      await TombstoneService.recordTombstone(tomb.storeName, tomb.recordId);
-      await deleteStoreRecord(tomb.storeName, tomb.recordId);
+      const parsed = JSON.parse(recordJson);
+      const validation = validateTombstone(parsed);
+      if (!validation.ok) {
+        return { ok: false, error: `Malformed tombstone: ${validation.error}` };
+      }
+      await TombstoneService.recordTombstone(validation.tombstone.storeName, validation.tombstone.recordId);
+      await deleteStoreRecord(validation.tombstone.storeName, validation.tombstone.recordId);
       return { ok: true };
     }
 

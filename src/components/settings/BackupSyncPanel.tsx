@@ -3,12 +3,14 @@ import { isElectron, desktopSync } from "../../services/desktopBridge";
 import { useSettingsStore } from "../../stores/settings-store";
 import { toast } from "../../stores/toast-store";
 import { FolderOpen, HardDrive, ShieldCheck, Activity } from "lucide-react";
+import { initSyncEngine, pauseSyncEngine } from "../../services/syncEngine";
 
 export function BackupSyncPanel() {
   const settingsSyncFolder = useSettingsStore((s) => s.syncFolderPath);
   const setSettingsSyncFolder = useSettingsStore((s) => s.setSyncFolderPath);
   const [syncFolder, setSyncFolder] = useState<string | null>(settingsSyncFolder || null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
   const passphraseRef = React.useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -63,10 +65,11 @@ export function BackupSyncPanel() {
       toast.error("Please enter a sync passphrase.");
       return;
     }
+    setIsTransitioning(true);
     try {
-      const res = await desktopSync.startSync({ password: passphrase }) as { ok: boolean; error?: string };
-      if (!res.ok) {
-        toast.error(res.error || "Failed to start sync.");
+      const result = await initSyncEngine(passphrase);
+      if (!result.ok) {
+        toast.error(result.error || "Failed to start sync.");
         return;
       }
       setIsSyncing(true);
@@ -75,6 +78,26 @@ export function BackupSyncPanel() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       toast.error(`Failed to start sync: ${msg}`);
+    } finally {
+      setIsTransitioning(false);
+    }
+  };
+
+  const handlePauseSync = async () => {
+    setIsTransitioning(true);
+    try {
+      const result = await pauseSyncEngine();
+      if (!result.ok) {
+        toast.error(result.error || "Failed to pause sync.");
+        return;
+      }
+      setIsSyncing(false);
+      toast.success("Sync paused. Re-enter the passphrase to resume.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed to pause sync: ${msg}`);
+    } finally {
+      setIsTransitioning(false);
     }
   };
 
@@ -118,7 +141,7 @@ export function BackupSyncPanel() {
             {isSyncing ? "Active" : syncFolder ? "Paused" : "Off"}
           </div>
         </div>
-        
+
         <div className="p-4 space-y-4">
           <div className="flex items-center space-x-4">
             <div className="flex-1 bg-surface border border-border/50 rounded-lg px-3 py-2 text-sm text-text-primary truncate">
@@ -126,7 +149,8 @@ export function BackupSyncPanel() {
             </div>
             <button
               onClick={handleChooseFolder}
-              className="px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm font-medium hover:bg-accent-light transition-colors"
+              disabled={isTransitioning}
+              className="px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm font-medium hover:bg-accent-light transition-colors disabled:opacity-50"
             >
               {syncFolder ? "Change Folder" : "Choose Folder"}
             </button>
@@ -138,31 +162,29 @@ export function BackupSyncPanel() {
                 ref={passphraseRef}
                 type="password"
                 placeholder="Enter Encryption Passphrase"
-                disabled={isSyncing}
+                disabled={isSyncing || isTransitioning}
                 className="flex-1 bg-surface border border-border/50 rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-accent"
               />
               {isSyncing ? (
                 <button
-                  onClick={async () => {
-                    const res = await desktopSync.pauseSync();
-                    if (res.ok) { setIsSyncing(false); toast.success("Sync paused. Re-enter the passphrase to resume."); }
-                    else toast.error(res.error || "Failed to pause sync.");
-                  }}
-                  className="px-4 py-2 bg-surface text-error rounded-lg text-sm font-medium hover:bg-surface-elevated transition-colors border border-border/50 whitespace-nowrap"
+                  onClick={handlePauseSync}
+                  disabled={isTransitioning}
+                  className="px-4 py-2 bg-surface text-error rounded-lg text-sm font-medium hover:bg-surface-elevated transition-colors border border-border/50 whitespace-nowrap disabled:opacity-50"
                 >
                   Pause Sync
                 </button>
               ) : (
                 <button
                   onClick={handleStartSync}
-                  className="px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm font-medium hover:bg-accent-light transition-colors whitespace-nowrap"
+                  disabled={isTransitioning}
+                  className="px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm font-medium hover:bg-accent-light transition-colors whitespace-nowrap disabled:opacity-50"
                 >
                   Start Sync
                 </button>
               )}
             </div>
           )}
-          
+
           <div className="flex flex-col gap-2 p-3 bg-accent/5 border border-accent/10 rounded-lg text-sm text-text-secondary">
             <div className="flex items-center space-x-2">
               <ShieldCheck size={16} className="text-success" />
@@ -175,7 +197,7 @@ export function BackupSyncPanel() {
           </div>
         </div>
       </div>
-      
+
       {/* Conflicts & Logs section (Phase 5 UI) */}
       <div className="border border-border/50 rounded-xl bg-surface-elevated overflow-hidden">
          <div className="p-4 border-b border-border/50 bg-surface-elevated/50 flex items-center justify-between">
@@ -193,8 +215,8 @@ export function BackupSyncPanel() {
         </div>
         <div className="p-4">
           <p className="text-sm text-text-secondary italic">
-            {syncFolder 
-              ? "Sync is active. New changes will be automatically merged. (Conflict resolution UI is under development)." 
+            {syncFolder
+              ? "Sync is active. New changes will be automatically merged. (Conflict resolution UI is under development)."
               : "Enable sync to monitor activity."}
           </p>
         </div>

@@ -63,7 +63,7 @@ export function ChatView() {
     model,
     liveVisionSupports === null ? null : { supportsVision: liveVisionSupports },
   )
-  const { send, stop, regenerate, isStreaming, createScene, memoryStatus } = useChat()
+  const { send, stop, regenerate, isStreaming, createScene, memoryStatus, resetMemoryPreview } = useChat()
   const activeCharacterImage = useCharacterImage(conversation?.metadata?.character, {
     cacheKey: conversation?.id,
   })
@@ -533,7 +533,10 @@ export function ChatView() {
                 Disable Memory for This Message
               </button>
               <button
-                onClick={() => setPendingContext(null)}
+                onClick={() => {
+                  if (conversation) resetMemoryPreview(conversation.id)
+                  setPendingContext(null)
+                }}
                 className="text-[11px] text-text-muted hover:text-text-primary transition-colors cursor-pointer"
                 title="Cancel"
               >
@@ -661,6 +664,7 @@ function PriorConversationContextSelector({
   activeConversation?: Conversation;
 }) {
   const setConversationMemoryEnabled = useChatStore((s) => s.setConversationMemoryEnabled)
+  const { resetMemoryPreview } = useChat()
   const memoryEnabled = activeConversation?.metadata?.memoryRetrievalEnabled === true
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -719,6 +723,18 @@ function PriorConversationContextSelector({
             className="h-4 w-4 accent-accent"
           />
         </label>
+        {memoryEnabled && (
+          <button
+            type="button"
+            onClick={() => {
+              if (activeConversation) resetMemoryPreview(activeConversation.id)
+              setOpen(false)
+            }}
+            className="mt-2 text-[11px] text-text-muted hover:text-text-primary underline underline-offset-2"
+          >
+            Require memory preview before next send
+          </button>
+        )}
         {includePriorContext && (
           <div className="mt-2 space-y-2">
             <p className="text-[11.5px] leading-snug text-text-muted">

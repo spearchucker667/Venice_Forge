@@ -272,7 +272,7 @@ export interface VeniceForgeConversations {
   delete(id: string): Promise<{ ok: boolean; error?: string }>;
   archive(id: string): Promise<{ ok: boolean; error?: string }>;
   search(query: string, options?: { limit?: number; includeArchived?: boolean }): Promise<{ ok: boolean; results: SearchResult[]; error?: string }>;
-  pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean; excludeConversationIds?: string[] }): Promise<{ ok: boolean; context: PulledMemoryContext; error?: string }>;
+  pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean; excludeConversationIds?: string[]; characterId?: string }): Promise<{ ok: boolean; context: PulledMemoryContext; error?: string }>;
   rebuildIndex(): Promise<{ ok: boolean; itemsIndexed: number; error?: string }>;
   migrateLegacyHistory(): Promise<{ ok: boolean; migrated: number; failed: number; skipped: number; error?: string }>;
   detectLegacyHistory(): Promise<boolean>;

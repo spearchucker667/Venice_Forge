@@ -8,6 +8,7 @@
 import { getSyncStatus, writePacket } from "./syncFolderWatcher";
 import { redactErrorMessage } from "../../src/shared/redaction";
 import { logError } from "./logger";
+import { createTombstone } from "../../src/shared/syncProtocol";
 
 /** Maps the IPC store namespace to the portable sync store name. */
 export const SYNC_STORE_NAME_MAP: Record<string, string> = {
@@ -55,7 +56,7 @@ export async function emitSyncTombstone(storeName: string, id: string): Promise<
   if (!status.configured || status.status !== "running") return;
 
   try {
-    const tombstone = { storeName: syncStoreName, id, deletedAt: Date.now() };
+    const tombstone = createTombstone(syncStoreName as import("../../src/types/sync").SyncStoreName, id);
     const res = await writePacket("tombstones", id, JSON.stringify(tombstone));
     if (!res.ok) {
       logError("syncBridge", `Failed to emit tombstone for ${syncStoreName}/${id}: ${res.error || "unknown"}`);

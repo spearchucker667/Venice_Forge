@@ -446,6 +446,7 @@ export function registerSystemHandlers(): void {
         maxTokens?: number;
         includeArchived?: boolean;
         excludeConversationIds?: string[];
+        characterId?: string;
       } = { message: inp.message };
       cleanInput.maxItems = Math.min(50, Math.max(1, typeof inp.maxItems === "number" && Number.isFinite(inp.maxItems) ? inp.maxItems : 5));
       cleanInput.maxTokens = Math.min(8192, Math.max(1, typeof inp.maxTokens === "number" && Number.isFinite(inp.maxTokens) ? inp.maxTokens : 1200));
@@ -454,6 +455,9 @@ export function registerSystemHandlers(): void {
         cleanInput.excludeConversationIds = inp.excludeConversationIds
           .filter((id): id is string => typeof id === "string" && /^[a-zA-Z0-9_.-]{1,128}$/.test(id))
           .slice(0, 50);
+      }
+      if (typeof inp.characterId === "string" && inp.characterId.length > 0 && /^[a-zA-Z0-9_.-]{1,128}$/.test(inp.characterId)) {
+        cleanInput.characterId = inp.characterId;
       }
 
       // SAFETY Stage 1: Screen user prompt message before searching memory

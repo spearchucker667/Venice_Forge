@@ -125,7 +125,7 @@ describe("backupImportService", () => {
     const password = "correct-password";
     const payload = {
       conversations: [{ id: "conv-1", updatedAt: 1000, messages: [] }],
-      tombstones: [{ id: "tomb-1", storeName: "conversations", recordId: "conv-2", deletedAt: 2000 }],
+      tombstones: [{ id: "conversations:conv-2", storeName: "conversations", recordId: "conv-2", deletedAt: 2000 }],
     };
     const manifest = makeManifest(payload);
 
@@ -283,5 +283,74 @@ describe("backupImportService", () => {
     const preview = await previewBackup(manifest, "password");
     expect(preview.totalRecords).toBe(2);
     expect(preview.stores.map((s) => s.storeName).sort()).toEqual(["conversations", "settings"]);
+  });
+
+  describe("Electron wrapper unwrapping", () => {
+    beforeEach(() => {
+      mockIsElectron.mockReturnValue(true);
+    });
+
+    const stores = [
+      {
+        storeName: "character_cards" as const,
+        bridge: desktopBridge.desktopCharacterCards,
+        listKey: "cards",
+        localId: "card-1",
+      },
+      {
+        storeName: "personas" as const,
+        bridge: desktopBridge.desktopPersonas,
+        listKey: "personas",
+        localId: "persona-1",
+      },
+      {
+        storeName: "lorebooks" as const,
+        bridge: desktopBridge.desktopLorebooks,
+        listKey: "lorebooks",
+        localId: "lorebook-1",
+      },
+      {
+        storeName: "rp_assets" as const,
+        bridge: desktopBridge.desktopRpAssets,
+        listKey: "assets",
+        localId: "asset-1",
+      },
+      {
+        storeName: "rpScenarios" as const,
+        bridge: desktopBridge.desktopScenarios,
+        listKey: "scenarios",
+        localId: "scenario-1",
+      },
+    ];
+
+    it.each(stores)("unwraps $storeName wrapper to find existing local record", async ({ storeName, bridge, listKey, localId }) => {
+      const existing = { id: localId, updatedAt: 2000 };
+      vi.mocked(bridge.list).mockResolvedValueOnce({ ok: true, [listKey]: [existing], error: undefined } as never);
+      const res = await importDecryptedPacket(storeName, localId, JSON.stringify({ id: localId, updatedAt: 1000 }));
+      expect(res.ok).toBe(true);
+      // Because local is newer, no save should happen.
+      expect(mockSaveItem).not.toHaveBeenCalled();
+    });
+
+    it("unwraps rp_chats wrapper to find existing local record", async () => {
+      const existing = { id: "rpchat-1", updatedAt: 2000 };
+      vi.mocked(desktopBridge.desktopRpChats.list).mockResolvedValueOnce({ ok: true, chats: [existing], error: undefined } as never);
+      const res = await importDecryptedPacket("rp_chats", "rpchat-1", JSON.stringify({ id: "rpchat-1", updatedAt: 1000 }));
+      expect(res.ok).toBe(true);
+      expect(mockSaveItem).not.toHaveBeenCalled();
+    });
+
+    it("handles failed Electron list by treating it as empty", async () => {
+      vi.mocked(desktopBridge.desktopCharacterCards.list).mockResolvedValueOnce({ ok: false, cards: [], error: "disk error" } as never);
+      const res = await importDecryptedPacket("character_cards", "card-1", JSON.stringify({ id: "card-1", updatedAt: 1000 }));
+      expect(res.ok).toBe(true);
+      expect(desktopBridge.desktopCharacterCards.save).toHaveBeenCalled();
+    });
+
+    it("rejects a malformed tombstone missing recordId", async () => {
+      const res = await importDecryptedPacket("tombstones", "conv-1", JSON.stringify({ storeName: "conversations", id: "conv-1", deletedAt: Date.now() }));
+      expect(res.ok).toBe(false);
+      expect(mockRecordTombstone).not.toHaveBeenCalled();
+    });
   });
 });

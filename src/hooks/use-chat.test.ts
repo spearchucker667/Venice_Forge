@@ -441,6 +441,136 @@ describe("use-chat character_slug threading", () => {
     expect(conv.messages.some((m) => m.role === "user" && m.content === "No preview available")).toBe(true);
   });
 
+  // VERIFY-070 regression guard: memory preview appears once per conversation,
+  // not once per message. After the first preview, subsequent sends retrieve
+  // memory silently without reopening the popup.
+  it("shows the memory preview only once per conversation", async () => {
+    useSettingsStore.setState({
+      enableMemoryRetrieval: true,
+      showPulledContextBeforeSending: true,
+    });
+    mockedPullContext.mockResolvedValue({
+      ok: true,
+      context: { injectedText: "Preview context", facts: [], summaries: [], tokenEstimate: 1 },
+    });
+    mockedVeniceStreamChat.mockResolvedValue(undefined);
+
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().setConversationMemoryEnabled(convId, true);
+    useChatStore.setState({ activeConversationId: convId });
+
+    const { result } = renderHook(() => useChat());
+
+    // First send: should set pendingContext and not call the stream yet.
+    await act(async () => {
+      await result.current.send("First", "llama-3.3-70b");
+    });
+    expect(mockedPullContext).toHaveBeenCalledTimes(1);
+    expect(useChatStore.getState().pendingContext).not.toBeNull();
+    expect(mockedVeniceStreamChat).not.toHaveBeenCalled();
+
+    // Confirm the pending context.
+    await act(async () => {
+      await result.current.send("First", "llama-3.3-70b", undefined, "", {
+        mode: "approved_context",
+        approvedContext: useChatStore.getState().pendingContext?.injectedText,
+      });
+    });
+    expect(mockedVeniceStreamChat).toHaveBeenCalled();
+
+    // Second send in the same conversation should retrieve silently, not show preview.
+    mockedPullContext.mockClear();
+    mockedVeniceStreamChat.mockClear();
+    await act(async () => {
+      await result.current.send("Second", "llama-3.3-70b");
+    });
+    expect(mockedPullContext).toHaveBeenCalledTimes(1);
+    expect(useChatStore.getState().pendingContext).toBeNull();
+    expect(mockedVeniceStreamChat).toHaveBeenCalled();
+  });
+
+  // VERIFY-070 regression guard: character chats default to memory off, but an
+  // explicit per-conversation enablement must be honored and scoped to the
+  // character. The request path must not silently ignore the toggle.
+  it("honors explicit memory enablement for character conversations", async () => {
+    useSettingsStore.setState({
+      enableMemoryRetrieval: true,
+      showPulledContextBeforeSending: false,
+    });
+    mockedPullContext.mockResolvedValue({
+      ok: true,
+      context: { injectedText: "Character context", facts: [], summaries: [], tokenEstimate: 1 },
+    });
+    mockedVeniceStreamChat.mockResolvedValue(undefined);
+
+    const convId = useChatStore.getState().createCharacterConversation(CHARACTER as never, "llama-3.3-70b");
+    useChatStore.getState().setConversationMemoryEnabled(convId, true);
+    useChatStore.setState({ activeConversationId: convId });
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("Hello character", "llama-3.3-70b");
+    });
+
+    expect(mockedPullContext).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Hello character", characterId: CHARACTER.id }),
+    );
+    expect(result.current.memoryStatus).toBe("injected");
+  });
+
+  // VERIFY-070 regression guard: a character chat with memory left off performs
+  // zero retrieval calls.
+  it("performs zero retrieval for character conversations with memory disabled", async () => {
+    useSettingsStore.setState({
+      enableMemoryRetrieval: true,
+      showPulledContextBeforeSending: false,
+    });
+    mockedVeniceStreamChat.mockResolvedValue(undefined);
+
+    const convId = useChatStore.getState().createCharacterConversation(CHARACTER as never, "llama-3.3-70b");
+    useChatStore.setState({ activeConversationId: convId });
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("Hello character", "llama-3.3-70b");
+    });
+
+    expect(mockedPullContext).not.toHaveBeenCalled();
+    expect(result.current.memoryStatus).toBe("disabled");
+  });
+
+  // VERIFY-070 regression guard: the explicit reset action re-enables the
+  // one-shot preview for the conversation.
+  it("resetMemoryPreview re-enables the memory preview", async () => {
+    useSettingsStore.setState({
+      enableMemoryRetrieval: true,
+      showPulledContextBeforeSending: true,
+    });
+    mockedPullContext.mockResolvedValue({
+      ok: true,
+      context: { injectedText: "Preview context", facts: [], summaries: [], tokenEstimate: 1 },
+    });
+    mockedVeniceStreamChat.mockResolvedValue(undefined);
+
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().setConversationMemoryEnabled(convId, true);
+    useChatStore.setState({ activeConversationId: convId });
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("First", "llama-3.3-70b");
+    });
+    expect(useChatStore.getState().pendingContext).not.toBeNull();
+
+    await act(async () => {
+      result.current.resetMemoryPreview(convId);
+      await result.current.send("Second", "llama-3.3-70b");
+    });
+
+    expect(mockedPullContext).toHaveBeenCalledTimes(2);
+    expect(useChatStore.getState().pendingContext).not.toBeNull();
+  });
+
   it("does NOT abort the in-flight stream when the hook unmounts", async () => {
     let capturedSignal: AbortSignal | undefined;
     mockedVeniceStreamChat.mockImplementationOnce((_payload, opts) => {

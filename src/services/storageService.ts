@@ -7,6 +7,7 @@ import { encryptData, decryptDataResult, type EncryptedPayload } from "./cryptoS
 import { applyMigrations } from "./dbMigrations";
 import { DEFAULT_PROFILE_ID, getActiveProfileId } from "./activeProfile";
 import { desktopSync, isElectron } from "./desktopBridge";
+import { createTombstone } from "../shared/syncProtocol";
 
 type StoreName = (typeof STORE_NAMES)[number];
 
@@ -473,7 +474,8 @@ const StorageService = {
       // diagnostics store (explicitly excluded from sync, so tombstones for it are meaningless).
       const isSyncExcludedStore = store === "tombstones" || store === "diagnostics";
       if (veniceWindow.__VENICE_IS_SYNCING !== true && isElectron() && !isSyncExcludedStore) {
-        desktopSync.writePacket({ storeName: "tombstones", id, recordJson: JSON.stringify({ storeName: store, id, deletedAt: Date.now() }) })
+        const tombstone = createTombstone(store, id);
+        desktopSync.writePacket({ storeName: "tombstones", id, recordJson: JSON.stringify(tombstone) })
           .catch((err: unknown) => console.error("Failed to emit tombstone:", err));
       }
     }

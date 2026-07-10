@@ -21,11 +21,42 @@ import { generateId } from '../lib/utils'
 /** Safe, non-disclosing error text appended to assistant messages when a
  *  chat stream fails. Never include raw exception text, paths, or secrets. */
 const SAFE_STREAM_ERROR_MESSAGE = 'Sorry, something went wrong. Please try again.'
-async function pullMemoryContextForSend(userMessage: string, conversationId: string) {
+
+interface ConversationMemoryRuntimeState {
+  conversationId: string
+  activeRequestId: string | null
+  previewShown: boolean
+}
+
+const conversationMemoryState = new Map<string, ConversationMemoryRuntimeState>()
+
+function getMemoryState(conversationId: string): ConversationMemoryRuntimeState {
+  if (!conversationMemoryState.has(conversationId)) {
+    conversationMemoryState.set(conversationId, {
+      conversationId,
+      activeRequestId: null,
+      previewShown: false,
+    })
+  }
+  return conversationMemoryState.get(conversationId)!
+}
+
+function setPreviewShown(conversationId: string, shown: boolean): void {
+  const state = getMemoryState(conversationId)
+  state.previewShown = shown
+}
+
+function setActiveRequestId(conversationId: string, requestId: string | null): void {
+  const state = getMemoryState(conversationId)
+  state.activeRequestId = requestId
+}
+
+async function pullMemoryContextForSend(userMessage: string, conversationId: string, characterId?: string) {
   try {
     return await desktopConversations.pullContext({
       message: userMessage,
       excludeConversationIds: [conversationId],
+      characterId,
     });
   } catch (err) {
     logger.warn('useChat memory retrieval skipped', err);
@@ -64,6 +95,10 @@ export function useChat() {
   const createConversation = useChatStore((s) => s.createConversation)
   const characterSceneGenerationEnabled = useSettingsStore((s) => s.characterSceneGenerationEnabled)
   const characterSceneGenerationMode = useSettingsStore((s) => s.characterSceneGenerationMode)
+
+  const resetMemoryPreview = useCallback((conversationId: string) => {
+    setPreviewShown(conversationId, false)
+  }, [])
 
   const runSceneGeneration = useCallback(
     async (
@@ -179,7 +214,9 @@ export function useChat() {
       const conv = useChatStore.getState().conversations.find((c) => c.id === convId)
       const chatMemoryEnabled = conv?.metadata?.memoryRetrievalEnabled === true
       const isCharacterConversation = !!conv?.metadata?.character
+      const characterId = conv?.metadata?.character?.id
       const streamModel = isCharacterConversation && conv?.model ? conv.model : model
+      const memoryState = getMemoryState(convId)
 
       let contextToInject = "";
       let contextSource: InjectedContextSource | undefined;
@@ -187,13 +224,19 @@ export function useChat() {
       if (memoryDecision.mode === 'approved_context') {
         contextToInject = memoryDecision.approvedContext?.trim() ?? ''
         contextSource = 'approved_context'
+        setPreviewShown(convId, true)
+        setActiveRequestId(convId, null)
+        memoryRequestRef.current = null
         setPendingContext(null)
         setMemoryStatus(contextToInject ? 'injected' : 'idle')
       } else if (memoryDecision.mode === 'disabled_for_message') {
+        setPreviewShown(convId, true)
+        setActiveRequestId(convId, null)
         memoryRequestRef.current = null
         setPendingContext(null)
         setMemoryStatus('disabled')
-      } else if (!enableMemoryRetrieval || !chatMemoryEnabled || isCharacterConversation) {
+      } else if (!enableMemoryRetrieval || !chatMemoryEnabled) {
+        setActiveRequestId(convId, null)
         memoryRequestRef.current = null
         if (pendingContext?.conversationId === convId || pendingContext?.message === userMessage) setPendingContext(null)
         setMemoryStatus('disabled')
@@ -202,17 +245,26 @@ export function useChat() {
         && pendingContext.message === userMessage) {
         contextToInject = pendingContext.injectedText;
         contextSource = 'memory'
+        setPreviewShown(convId, true)
+        setActiveRequestId(convId, null)
         setPendingContext(null);
         setMemoryStatus('injected')
-      } else if (showPulledContextBeforeSending) {
+      } else if (showPulledContextBeforeSending && !memoryState.previewShown) {
         setMemoryStatus('loading')
         const requestId = generateId()
         memoryRequestRef.current = { conversationId: convId, requestId }
-        const res = await pullMemoryContextForSend(userMessage, convId);
+        setActiveRequestId(convId, requestId)
+        const res = await pullMemoryContextForSend(userMessage, convId, characterId);
         const requestStillActive = memoryRequestRef.current?.requestId === requestId
           && useChatStore.getState().activeConversationId === convId
-        if (!requestStillActive) return
+          && getMemoryState(convId).activeRequestId === requestId
+        if (!requestStillActive) {
+          setMemoryStatus('idle')
+          return
+        }
         if (res.ok && res.context && res.context.injectedText) {
+          setPreviewShown(convId, true)
+          setActiveRequestId(convId, null)
           setPendingContext({
             ...res.context,
             message: userMessage,
@@ -222,6 +274,7 @@ export function useChat() {
           setMemoryStatus('injected')
           return;
         }
+        setActiveRequestId(convId, null)
         if (!res.ok) {
           setMemoryStatus('failed')
         } else {
@@ -231,12 +284,19 @@ export function useChat() {
         setMemoryStatus('loading')
         const requestId = generateId()
         memoryRequestRef.current = { conversationId: convId, requestId }
-        const res = await pullMemoryContextForSend(userMessage, convId);
-        if (memoryRequestRef.current?.requestId !== requestId
-          || useChatStore.getState().activeConversationId !== convId) return
+        setActiveRequestId(convId, requestId)
+        const res = await pullMemoryContextForSend(userMessage, convId, characterId);
+        const requestStillActive = memoryRequestRef.current?.requestId === requestId
+          && useChatStore.getState().activeConversationId === convId
+          && getMemoryState(convId).activeRequestId === requestId
+        if (!requestStillActive) {
+          setMemoryStatus('idle')
+          return
+        }
         if (res.ok && res.context && res.context.injectedText) {
           contextToInject = res.context.injectedText;
           contextSource = 'memory'
+          setPreviewShown(convId, true)
           setMemoryStatus('injected')
         } else if (!res.ok) {
           setMemoryStatus('failed')
@@ -245,6 +305,7 @@ export function useChat() {
         } else {
           setMemoryStatus('idle')
         }
+        setActiveRequestId(convId, null)
       }
 
       if (explicitContext?.trim() && contextToInject.trim()) {
@@ -363,5 +424,5 @@ export function useChat() {
     setStreaming(false)
   }, [setStreaming])
 
-  return { send, stop, regenerate, isStreaming, createScene, memoryStatus }
+  return { send, stop, regenerate, isStreaming, createScene, memoryStatus, resetMemoryPreview }
 }

@@ -335,7 +335,7 @@ const veniceForge = {
     search(query: string, options?: { limit?: number; includeArchived?: boolean }): Promise<{ ok: boolean; results: SearchResult[]; error?: string }> {
       return ipcRenderer.invoke("conversations:search", query, options);
     },
-    pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean; excludeConversationIds?: string[] }): Promise<{ ok: boolean; context: PulledMemoryContext; error?: string }> {
+    pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean; excludeConversationIds?: string[]; characterId?: string }): Promise<{ ok: boolean; context: PulledMemoryContext; error?: string }> {
       return ipcRenderer.invoke("conversations:pullContext", input);
     },
     rebuildIndex(): Promise<{ ok: boolean; itemsIndexed: number; error?: string }> {

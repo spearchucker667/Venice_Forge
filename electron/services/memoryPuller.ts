@@ -321,6 +321,7 @@ export async function pullContext(input: {
   maxTokens?: number;
   includeArchived?: boolean;
   excludeConversationIds?: string[];
+  characterId?: string;
 }): Promise<PulledMemoryContext> {
   const maxItems = input.maxItems ?? 5;
   const maxTokens = input.maxTokens ?? 1200;
@@ -331,12 +332,22 @@ export async function pullContext(input: {
     .filter((result) => !excluded.has(result.id));
   const topResults = results.slice(0, maxItems);
 
+  const characterId = input.characterId;
+
   const facts: MemoryFact[] = [];
   const summaries: string[] = [];
 
   for (const r of topResults) {
     const record = await getConversation(r.id);
     if (!record) continue;
+
+    // Character-scope isolation: when a character chat explicitly enables
+    // memory, only return context from conversations bound to the same
+    // character. This prevents Character A's history from leaking into
+    // Character B's chat.
+    if (characterId && record.metadata?.character?.id !== characterId) {
+      continue;
+    }
 
     if (record.memory.summary) {
       summaries.push(record.memory.summary);

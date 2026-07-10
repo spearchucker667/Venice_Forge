@@ -611,7 +611,7 @@ export const desktopConversations = {
     if (!isElectron()) return { ok: false, error: "Conversation vault is only available in desktop mode." };
     return window.veniceForge!.conversations.delete(id);
   },
-  async pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean; excludeConversationIds?: string[] }): Promise<{
+  async pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean; excludeConversationIds?: string[]; characterId?: string }): Promise<{
     ok: boolean; context: import("../types/conversationVault").PulledMemoryContext; error?: string;
   }> {
     if (!isElectron()) return { ok: false, context: { injectedText: "", facts: [], summaries: [], tokenEstimate: 0 }, error: "Conversation vault is only available in desktop mode." };
