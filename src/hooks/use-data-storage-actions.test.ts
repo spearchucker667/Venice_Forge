@@ -9,6 +9,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
+import StorageService from "../services/storageService";
 import type { MutableRefObject } from "react";
 
 // VERIFY-055 regression guard: export/import failure paths must surface
@@ -199,7 +200,7 @@ describe("useDataStorageActions", () => {
   it("T-119 / VERIFY-055: exportData failure toasts a safe message, not raw exception text", async () => {
     const setters = buildSetters();
     const refs = buildSafetyRefs();
-    vi.mocked(desktopFiles).exportJson.mockRejectedValueOnce(
+    vi.spyOn(StorageService, "getItems").mockRejectedValueOnce(
       new Error("ENOENT: /Users/sensitive/path/to-secret.json"),
     );
 

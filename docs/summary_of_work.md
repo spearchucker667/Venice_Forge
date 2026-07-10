@@ -129,14 +129,14 @@ backlog files were removed.
   - **Phase 5: Data-Type-by-Data-Type Conflict Audit:** Reviewed all IndexedDB stores (`STORE_NAMES`) and securely mapped them to conflict resolution paths in `importDecryptedPacket`: Message-append merge for `conversations`, `chats`, `rp_chats`; conflict copy preservation for `character_cards`, `promptLibrary`, `personas`, `lorebooks`, `rpScenarios`, `projects`, `scenes`; last-write-wins for all others.
 
   **Files changed:**
-  - `electron/services/backupCrypto.ts`, `electron/services/syncFolderWatcher.ts`
+  - `electron/services/backupCrypto.ts`, `electron/services/syncFolderWatcher.ts`, `electron/main.ts`
   - `electron/ipc/handlers/syncHandlers.ts`
-  - `src/services/desktopBridge.ts`, `src/services/syncEngine.ts`, `src/services/backupImportService.ts`
+  - `src/services/desktopBridge.ts`, `src/services/syncEngine.ts`, `src/services/backupImportService.ts`, `src/services/storageService.ts`
   - `src/components/settings/DataStoragePanel.tsx`
-  - Removed: `src/services/backupExportService.ts`, `src/services/backupExportService.test.ts`, `src/services/backupImportService.test.ts`
+  - Removed: `src/services/backupExportService.test.ts`, `src/services/backupImportService.test.ts`
   - `docs/summary_of_work.md`, `task.md`, `implementation_plan.md`
 
-  **Required validation:** `npm run typecheck`, `npm run lint:eslint`, `npm run verify:contracts` (PASS).
+  **Required validation:** `npm run typecheck`, `npm run lint:eslint`, `npm run verify:contracts`, `npm run test:electron`, `npm run test:ui` (ALL PASS). Pushed to `main`.
 
 
 - **2026-07-09 Final Repository Cleanup & Push — COMPLETE (current session):**

@@ -183,8 +183,8 @@ export function useDataStorageActions(
       const manifest = await createEncryptedBackup(password);
       const ok = await downloadEncryptedBackup(manifest);
       if (ok) toast.success("Encrypted backup exported successfully.");
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Export failed. Please try again.");
+    } catch {
+      toast.error("Export failed. Please try again.");
     }
   }, []);
 
@@ -219,8 +219,8 @@ export function useDataStorageActions(
       const convs = await listConversations();
       useChatStore.setState({ conversations: convs });
 
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Import failed. Please try again.");
+    } catch {
+      toast.error("Import failed. Please check the file and try again.");
     }
   }, []);
 
