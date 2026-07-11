@@ -17,6 +17,7 @@ work done*.md
 *work*done*.md
 *session*.json
 *session*.md
+!docs/archives/session-history-pre-2026-07-11.md
 chat-history/
 docs/audits/*
 !docs/audits/*.md

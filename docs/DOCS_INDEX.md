@@ -85,7 +85,8 @@ This is the canonical source-of-truth navigation map for all documentation in th
 ## 7. Roadmap / Current Work
 
 - [ROADMAP.md](ROADMAP.md) — Canonical task ledger with priorities (P0 to P4) and verification checklist.
-- [summary_of_work.md](summary_of_work.md) — Append-only agent/session log showing detailed work histories.
+- [summary_of_work.md](summary_of_work.md) — Active session ledger (recent sessions only).
+- [archives/session-history-pre-2026-07-11.md](archives/session-history-pre-2026-07-11.md) — Archived dated session records.
 
 ---
 
