@@ -173,7 +173,7 @@ jobs:
       - name: Package macOS app
         run: npm run dist:mac:arm64
       - name: Verify macOS artifact
-        run: npm run verify:dist:mac
+        run: node scripts/verify-dist.cjs --mac --arch arm64
       - name: Run packaged Electron smoke test
         run: npx vitest run tests/smoke/electron-smoke.test.ts
         env:

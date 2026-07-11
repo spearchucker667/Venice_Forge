@@ -11,6 +11,11 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
+- **2026-07-11 Hosted macOS smoke verifier repair — COMPLETE (current session):**
+  - The first hosted CI run for commit `aaebc65` built the macOS ARM64 DMG/ZIP successfully, then failed before launch because the smoke job invoked the dual-architecture `verify:dist:mac` contract and incorrectly required absent x64 artifacts.
+  - Scoped the smoke-job verification to the architecture it actually packages: `node scripts/verify-dist.cjs --mac --arch arm64`. Release workflows that build both architectures continue to use the dual-architecture verifier.
+  - Validation: `scripts/verify-dist.test.ts` PASS (12 tests); `npm run verify:ci-contract` PASS; `git diff --check` PASS. A follow-up commit and hosted rerun are required for final closure.
+
 - **2026-07-11 Dirty snapshot repair publication closure — COMPLETE locally; push authorized (current session):**
   - Installed and activated the repository-required Node `v22.23.1` / npm `10.9.8` toolchain through the existing `fnm` manager, then regenerated dependencies with `npm ci --no-audit --no-fund`.
   - Reviewed the complete dirty diff and retained only the intentional archive hygiene, sync durability/order/import/sanitization/journal repairs, regression tests, and canonical roadmap/handoff updates.
@@ -354,6 +359,7 @@
 
 ### Session History
 
+- **2026-07-11 — Hosted macOS smoke verifier repair:** Corrected the ARM64-only smoke job so artifact verification matches the architecture produced, without weakening dual-architecture release verification.
 - **2026-07-11 — Dirty snapshot repair publication closure:** Revalidated the complete repair set under Node 22, repaired stale VERIFY-093/local-scratch verifier handling, and prepared the intentional diff for direct `main` publication.
 - **2026-07-11 — Dirty snapshot audit continuation, journal and startup rollback:** Enforced the journal hard bound for all-recent-tombstone workloads and stopped retry scheduling after failed startup. Historical packet retention remains open.
 - **2026-07-11 — Dirty snapshot audit continuation, deterministic conflicts and CI closure:** Closed replay-stable conflict identity, shared main/renderer packet sanitization, UI aggregate exit, and coverage aggregate exit. Kept threshold policy and larger sync architecture work open.
@@ -649,6 +655,16 @@
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+
+- **2026-07-11 Hosted macOS smoke verifier repair**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | Hosted `electron-smoke-macos` artifact verification | FAIL | <1s verifier step | ARM64 packaging succeeded, but the dual-architecture verifier required `Venice-Forge-2.1.2-x64.dmg`. | GitHub Actions job `86592786691`; workflow mismatch repaired |
+  | `npx vitest run scripts/verify-dist.test.ts` | PASS | <1s | — | 12/12 tests pass |
+  | `npm run verify:ci-contract` | PASS | <1s | — | CI contract check passes |
+  | `git diff --check` | PASS | <1s | — | No whitespace errors |
 
 - **2026-07-11 Dirty snapshot repair publication closure**
   - Node/toolchain: `v22.23.1` / `npm 10.9.8` (repository requirement satisfied).
