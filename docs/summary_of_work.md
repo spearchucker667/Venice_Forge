@@ -11,6 +11,14 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
+- **2026-07-11 Task 6 review fixes: complete origin-aware delete handlers and sync emission gating — COMPLETE (current session):**
+  - Completed RP delete handler updates in `electron/ipc/rpHandlers.ts`: `characterCards:delete`, `personas:delete`, `lorebooks:delete`, `rpChats:delete`, `rpAssets:delete`, and `scenarios:delete` now accept `{ id, origin }` payloads via `parseDeletePayload`, validate origin through `validateMutationOrigin`, and forward only `id` to downstream storage.
+  - Fixed `isValidId` import path in `electron/ipc/rpHandlers.ts` (moved to `src/utils/idValidation`).
+  - Updated `src/services/syncEngine.ts`: `handleStorageSaved` and `handleStorageDeleted` skip sync emission when `event.detail.origin` is present and not `"local-user"`; undefined origin preserves existing back-compat behavior.
+  - Updated affected tests: `electron/ipc/rpHandlers.test.ts` invalid-ID case now uses `{ id: 123 }`; added regression tests for non-object payloads, invalid origins, `{ id, origin }` acceptance, remote-sync/manual-import suppression, local-user emission, and omitted-origin back-compat.
+  - Validation: focused tests (5 files / 129 tests) PASS; `npm run test:electron` (30 files / 507 tests) PASS; `npm run typecheck` PASS; `npm run lint:eslint` PASS (0 warnings).
+  - Files changed: `electron/ipc/rpHandlers.ts`, `electron/ipc/rpHandlers.test.ts`, `src/services/syncEngine.ts`, `src/services/syncEngine.test.ts`, `electron/ipc/handlers/systemHandlers.ts`, `docs/summary_of_work.md`, `.superpowers/sdd/task-6-report.md`.
+
 - **2026-07-11 Task 5: Preserve remote tombstone `deletedAt` and `deviceId` — COMPLETE (current session):**
   - Updated `src/services/backupImportService.ts`: `importDecryptedPacket` now persists validated remote tombstones via `TombstoneService.saveTombstone(validation.tombstone)` instead of `recordTombstone(...)`, preserving the original `deletedAt` and `deviceId` metadata.
   - Updated `src/services/backupImportService.test.ts`: mocked `saveTombstone`, replaced `recordTombstone` assertions, and added TDD regression test `preserves remote tombstone deletedAt and deviceId` that failed before the fix and passes after it.
@@ -128,6 +136,7 @@
 - **2026-07-11 Release readiness work order — IN PROGRESS:**
   - **Task 4: Authoritative `deleteSyncableRecord` coordinator — CLOSED in this session.**
   - **Task 5: Preserve remote tombstone `deletedAt` and `deviceId` — CLOSED in this session.**
+  - **Task 6 review fixes: origin-aware delete handlers and sync emission gating — CLOSED in this session.**
   - Remaining tasks from the work order are delegated to subsequent sessions.
 - **2026-07-01 priority remediation work order — CLOSED in this session:**
   - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
@@ -479,3 +488,13 @@
   - `npm run typecheck`: PASS (renderer + Electron main clean).
   - `npm run lint:eslint`: PASS (0 warnings).
 
+- **2026-07-11 Task 6 review fixes verification**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
+  - Note: requested `electron/ipc/handlers/systemHandlers.test.ts` does not exist; `electron/ipc/handlers.test.ts` was used instead.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run electron/ipc/validation.test.ts electron/ipc/handlers.test.ts electron/ipc/rpHandlers.test.ts src/services/storageService.test.ts src/services/syncEngine.test.ts` | PASS | ~2s | — | 5 files / 129 tests pass |
+  | `npm run test:electron` | PASS | ~7s | — | 30 files / 507 tests pass |
+  | `npm run typecheck` | PASS | ~48s | — | renderer + Electron main clean |
+  | `npm run lint:eslint` | PASS | ~66s | — | 0 warnings |
