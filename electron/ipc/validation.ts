@@ -15,6 +15,7 @@ import {
   isAllowedVeniceRequest,
 } from "../../src/shared/validation";
 import { VENICE_API_HOST } from "../../src/shared/apiConfig";
+import type { MutationOrigin } from "../../src/types/sync";
 
 /** Describes a validated Venice IPC request ready for the main process.
  *
@@ -77,6 +78,29 @@ function parseEndpoint(endpoint: string): URL {
     throw new Error("Venice endpoint must stay on the Venice API origin.");
   }
   return parsed;
+}
+
+/** Allowed mutation origins for storage write/delete operations. Only
+ *  `local-user` mutations should automatically emit sync packets. */
+const MUTATION_ORIGINS = new Set<string>([
+  "local-user",
+  "remote-sync",
+  "manual-import",
+  "migration",
+]);
+
+/** Validates a mutation origin value, defaulting omitted values to
+ *  `"local-user"` for back-compat.
+ *  @param origin The raw origin value from an IPC payload.
+ *  @returns A valid MutationOrigin.
+ *  @throws If the origin is provided but not one of the allowed values.
+ */
+export function validateMutationOrigin(origin: unknown): MutationOrigin {
+  if (origin === undefined) return "local-user";
+  if (typeof origin !== "string" || !MUTATION_ORIGINS.has(origin)) {
+    throw new Error(`Invalid mutation origin: ${origin}`);
+  }
+  return origin as MutationOrigin;
 }
 
 /** Validates that a user-provided API key is a non-empty string within length limits.

@@ -13,6 +13,7 @@ import type {
   ScenarioV1,
   UserPersonaV1,
 } from "../types/rp";
+import type { MutationOrigin } from "../types/sync";
 import { veniceFetch } from "./veniceClient";
 import {
   buildInspectorTelemetryPatch,
@@ -607,13 +608,16 @@ export const desktopConversations = {
     if (!isElectron()) return { ok: false, record: null, error: "Conversation vault is only available in desktop mode." };
     return window.veniceForge!.conversations.get(id);
   },
-  async save(record: import("../types/conversationVault").ConversationRecordV1): Promise<{ ok: boolean; id: string; error?: string }> {
+  async save(
+    record: import("../types/conversationVault").ConversationRecordV1,
+    origin: MutationOrigin = "local-user",
+  ): Promise<{ ok: boolean; id: string; error?: string }> {
     if (!isElectron()) return { ok: false, id: record.id, error: "Conversation vault is only available in desktop mode." };
-    return window.veniceForge!.conversations.save(record);
+    return window.veniceForge!.conversations.save(record, origin);
   },
-  async delete(id: string): Promise<{ ok: boolean; error?: string }> {
+  async delete(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Conversation vault is only available in desktop mode." };
-    return window.veniceForge!.conversations.delete(id);
+    return window.veniceForge!.conversations.delete(id, origin);
   },
   async pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean; excludeConversationIds?: string[]; characterId?: string }): Promise<{
     ok: boolean; context: import("../types/conversationVault").PulledMemoryContext; error?: string;
@@ -680,13 +684,13 @@ export const desktopChat = {
     if (!isElectron()) return { ok: false, conversation: null, error: "Chat filesystem storage is only available in desktop mode." };
     return window.veniceForge!.chat.get(id);
   },
-  async save(conversation: Conversation): Promise<{ ok: boolean; error?: string }> {
+  async save(conversation: Conversation, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Chat filesystem storage is only available in desktop mode." };
-    return window.veniceForge!.chat.save(conversation);
+    return window.veniceForge!.chat.save(conversation, origin);
   },
-  async delete(id: string): Promise<{ ok: boolean; error?: string }> {
+  async delete(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Chat filesystem storage is only available in desktop mode." };
-    return window.veniceForge!.chat.delete(id);
+    return window.veniceForge!.chat.delete(id, origin);
   },
 };
 
@@ -707,13 +711,13 @@ export const desktopCharacterCards = {
     if (!isElectron()) return { ok: false, card: null, error: "Character card filesystem storage is only available in desktop mode." };
     return window.veniceForge!.characterCards.get(id);
   },
-  async save(card: CharacterCardV1): Promise<{ ok: boolean; card: CharacterCardV1 | null; error?: string }> {
+  async save(card: CharacterCardV1, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; card: CharacterCardV1 | null; error?: string }> {
     if (!isElectron()) return { ok: false, card: null, error: "Character card filesystem storage is only available in desktop mode." };
-    return window.veniceForge!.characterCards.save(card);
+    return window.veniceForge!.characterCards.save(card, origin);
   },
-  async delete(id: string): Promise<{ ok: boolean; error?: string }> {
+  async delete(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Character card filesystem storage is only available in desktop mode." };
-    return window.veniceForge!.characterCards.delete(id);
+    return window.veniceForge!.characterCards.delete(id, origin);
   },
 };
 
@@ -727,13 +731,13 @@ export const desktopPersonas = {
     if (!isElectron()) return { ok: false, persona: null, error: "Persona filesystem storage is only available in desktop mode." };
     return window.veniceForge!.personas.get(id);
   },
-  async save(persona: UserPersonaV1): Promise<{ ok: boolean; persona: UserPersonaV1 | null; error?: string }> {
+  async save(persona: UserPersonaV1, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; persona: UserPersonaV1 | null; error?: string }> {
     if (!isElectron()) return { ok: false, persona: null, error: "Persona filesystem storage is only available in desktop mode." };
-    return window.veniceForge!.personas.save(persona);
+    return window.veniceForge!.personas.save(persona, origin);
   },
-  async delete(id: string): Promise<{ ok: boolean; error?: string }> {
+  async delete(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Persona filesystem storage is only available in desktop mode." };
-    return window.veniceForge!.personas.delete(id);
+    return window.veniceForge!.personas.delete(id, origin);
   },
 };
 
@@ -747,13 +751,13 @@ export const desktopLorebooks = {
     if (!isElectron()) return { ok: false, lorebook: null, error: "Lorebook filesystem storage is only available in desktop mode." };
     return window.veniceForge!.lorebooks.get(id);
   },
-  async save(lorebook: LorebookV1): Promise<{ ok: boolean; lorebook: LorebookV1 | null; error?: string }> {
+  async save(lorebook: LorebookV1, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; lorebook: LorebookV1 | null; error?: string }> {
     if (!isElectron()) return { ok: false, lorebook: null, error: "Lorebook filesystem storage is only available in desktop mode." };
-    return window.veniceForge!.lorebooks.save(lorebook);
+    return window.veniceForge!.lorebooks.save(lorebook, origin);
   },
-  async delete(id: string): Promise<{ ok: boolean; error?: string }> {
+  async delete(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Lorebook filesystem storage is only available in desktop mode." };
-    return window.veniceForge!.lorebooks.delete(id);
+    return window.veniceForge!.lorebooks.delete(id, origin);
   },
 };
 
@@ -767,13 +771,13 @@ export const desktopRpChats = {
     if (!isElectron()) return { ok: false, chat: null, error: "RP chat filesystem storage is only available in desktop mode." };
     return window.veniceForge!.rpChats.get(id);
   },
-  async save(chat: RpChatV1): Promise<{ ok: boolean; chat: RpChatV1 | null; error?: string }> {
+  async save(chat: RpChatV1, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; chat: RpChatV1 | null; error?: string }> {
     if (!isElectron()) return { ok: false, chat: null, error: "RP chat filesystem storage is only available in desktop mode." };
-    return window.veniceForge!.rpChats.save(chat);
+    return window.veniceForge!.rpChats.save(chat, origin);
   },
-  async delete(id: string): Promise<{ ok: boolean; error?: string }> {
+  async delete(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "RP chat filesystem storage is only available in desktop mode." };
-    return window.veniceForge!.rpChats.delete(id);
+    return window.veniceForge!.rpChats.delete(id, origin);
   },
 };
 
@@ -787,13 +791,13 @@ export const desktopRpAssets = {
     if (!isElectron()) return { ok: false, asset: null, error: "RP asset filesystem storage is only available in desktop mode." };
     return window.veniceForge!.rpAssets.get(id);
   },
-  async save(asset: RpAssetV1): Promise<{ ok: boolean; asset: RpAssetV1 | null; error?: string }> {
+  async save(asset: RpAssetV1, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; asset: RpAssetV1 | null; error?: string }> {
     if (!isElectron()) return { ok: false, asset: null, error: "RP asset filesystem storage is only available in desktop mode." };
-    return window.veniceForge!.rpAssets.save(asset);
+    return window.veniceForge!.rpAssets.save(asset, origin);
   },
-  async delete(id: string): Promise<{ ok: boolean; error?: string }> {
+  async delete(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "RP asset filesystem storage is only available in desktop mode." };
-    return window.veniceForge!.rpAssets.delete(id);
+    return window.veniceForge!.rpAssets.delete(id, origin);
   },
 };
 
@@ -807,13 +811,13 @@ export const desktopScenarios = {
     if (!isElectron()) return { ok: false, scenario: null, error: "Scenario filesystem storage is only available in desktop mode." };
     return window.veniceForge!.scenarios.get(id);
   },
-  async save(scenario: ScenarioV1): Promise<{ ok: boolean; scenario: ScenarioV1 | null; error?: string }> {
+  async save(scenario: ScenarioV1, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; scenario: ScenarioV1 | null; error?: string }> {
     if (!isElectron()) return { ok: false, scenario: null, error: "Scenario filesystem storage is only available in desktop mode." };
-    return window.veniceForge!.scenarios.save(scenario);
+    return window.veniceForge!.scenarios.save(scenario, origin);
   },
-  async delete(id: string): Promise<{ ok: boolean; error?: string }> {
+  async delete(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Scenario filesystem storage is only available in desktop mode." };
-    return window.veniceForge!.scenarios.delete(id);
+    return window.veniceForge!.scenarios.delete(id, origin);
   },
 };
 

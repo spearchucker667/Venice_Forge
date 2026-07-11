@@ -6,6 +6,7 @@ import { assertValidId, isValidId } from "../utils/idValidation";
 import { encryptData, decryptDataResult, type EncryptedPayload } from "./cryptoService";
 import { applyMigrations } from "./dbMigrations";
 import { DEFAULT_PROFILE_ID, getActiveProfileId } from "./activeProfile";
+import type { MutationOrigin } from "../types/sync";
 
 
 type StoreName = (typeof STORE_NAMES)[number];
@@ -18,6 +19,8 @@ const LOGICAL_ID_FIELD = "logicalId";
  * suppress local re-emission and preserve exact record shapes. */
 export interface StorageMutationOptions {
   bypassSyncEcho?: boolean;
+  /** Origin of the mutation. Defaults to `"local-user"` when omitted. */
+  origin?: MutationOrigin;
 }
 
 /** List of store names whose records are encrypted before persistence. */
@@ -300,13 +303,15 @@ const StorageService = {
       }
     }
 
+    const origin = options?.origin ?? "local-user";
+
     return new Promise((resolve, reject) => {
       const tx = db.transaction(store, "readwrite");
       tx.objectStore(store).put(payload);
       tx.oncomplete = () => {
         // Dispatch event for Sync Engine
         if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("venice:storage-saved", { detail: { store, record: finalRecord, id } }));
+          window.dispatchEvent(new CustomEvent("venice:storage-saved", { detail: { store, record: finalRecord, id, origin } }));
         }
         resolve(finalRecord);
       };
@@ -509,7 +514,8 @@ const StorageService = {
     const activeProfile = getActiveProfileId();
     const result = await this.deleteRawProfileRows(db, store, id, activeProfile);
     if (result && typeof window !== "undefined" && !options?.bypassSyncEcho) {
-      window.dispatchEvent(new CustomEvent("venice:storage-deleted", { detail: { store, id } }));
+      const origin = options?.origin ?? "local-user";
+      window.dispatchEvent(new CustomEvent("venice:storage-deleted", { detail: { store, id, origin } }));
     }
     return result;
   },

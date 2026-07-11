@@ -97,6 +97,48 @@ describe("storageService", () => {
     expect(saved.timestamp).toBeDefined();
   });
 
+  /** Default mutation origin is local-user and is emitted on save/delete events. */
+  it("emits storage mutation events with a default local-user origin", async () => {
+    const saveHandler = vi.fn();
+    const deleteHandler = vi.fn();
+    window.addEventListener("venice:storage-saved", saveHandler);
+    window.addEventListener("venice:storage-deleted", deleteHandler);
+
+    await StorageService.saveItem("images", { id: "origin-1", prompt: "a" });
+    await StorageService.deleteItem("images", "origin-1");
+
+    expect(saveHandler).toHaveBeenCalledTimes(1);
+    const saveDetail = (saveHandler.mock.calls[0][0] as CustomEvent).detail;
+    expect(saveDetail.origin).toBe("local-user");
+
+    expect(deleteHandler).toHaveBeenCalledTimes(1);
+    const deleteDetail = (deleteHandler.mock.calls[0][0] as CustomEvent).detail;
+    expect(deleteDetail.origin).toBe("local-user");
+
+    window.removeEventListener("venice:storage-saved", saveHandler);
+    window.removeEventListener("venice:storage-deleted", deleteHandler);
+  });
+
+  /** Explicit mutation origin is forwarded through storage events. */
+  it("forwards explicit mutation origins through storage events", async () => {
+    const saveHandler = vi.fn();
+    const deleteHandler = vi.fn();
+    window.addEventListener("venice:storage-saved", saveHandler);
+    window.addEventListener("venice:storage-deleted", deleteHandler);
+
+    await StorageService.saveItem("images", { id: "origin-2", prompt: "b" }, { origin: "remote-sync" });
+    await StorageService.deleteItem("images", "origin-2", { origin: "manual-import" });
+
+    expect(saveHandler).toHaveBeenCalledTimes(1);
+    expect((saveHandler.mock.calls[0][0] as CustomEvent).detail.origin).toBe("remote-sync");
+
+    expect(deleteHandler).toHaveBeenCalledTimes(1);
+    expect((deleteHandler.mock.calls[0][0] as CustomEvent).detail.origin).toBe("manual-import");
+
+    window.removeEventListener("venice:storage-saved", saveHandler);
+    window.removeEventListener("venice:storage-deleted", deleteHandler);
+  });
+
   // BUG-001 regression guard: silently dropped decrypt records must be logged
   /** Verifies that decryption failures are logged as warnings instead of crashing. */
   it("warns when records fail decryption", async () => {

@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_VENICE_IPC_BODY_BYTES,
   validateApiKeyInput,
+  validateMutationOrigin,
   validateVeniceIpcRequest,
 } from "./validation";
 
@@ -72,6 +73,18 @@ describe("Electron IPC validation", () => {
     expect(validateApiKeyInput("  vn-test-key  ")).toBe("vn-test-key");
     expect(() => validateApiKeyInput("")).toThrow(/enter/i);
     expect(() => validateApiKeyInput("x".repeat(513))).toThrow(/too long/i);
+  });
+
+  /** Validates mutation origin values and defaults omitted origins to local-user. */
+  it("validates mutation origin values", () => {
+    expect(validateMutationOrigin("local-user")).toBe("local-user");
+    expect(validateMutationOrigin("remote-sync")).toBe("remote-sync");
+    expect(validateMutationOrigin("manual-import")).toBe("manual-import");
+    expect(validateMutationOrigin("migration")).toBe("migration");
+    expect(validateMutationOrigin(undefined)).toBe("local-user");
+    expect(() => validateMutationOrigin("unknown")).toThrow(/invalid mutation origin/i);
+    expect(() => validateMutationOrigin(123)).toThrow(/invalid mutation origin/i);
+    expect(() => validateMutationOrigin(null)).toThrow(/invalid mutation origin/i);
   });
 
   /** Rejects bodies with circular references (M-024). */

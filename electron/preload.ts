@@ -11,6 +11,7 @@ import type {
   ResearchBrowserNavigateInput,
   ResearchBrowserBoundsInput
 } from "../src/types/researchBrowser";
+import type { MutationOrigin } from "../src/types/sync";
 
 /** Represents a Venice API request sent from the renderer to the main process. */
 type VeniceRequest = {
@@ -300,12 +301,12 @@ const veniceForge = {
       return ipcRenderer.invoke("chat:get", id);
     },
     /** Saves a conversation atomically to disk. */
-    save(conversation: Conversation): Promise<{ ok: boolean; error?: string }> {
-      return ipcRenderer.invoke("chat:save", { conversation });
+    save(conversation: Conversation, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("chat:save", { conversation, origin });
     },
     /** Deletes a conversation by id. */
-    delete(id: string): Promise<{ ok: boolean; error?: string }> {
-      return ipcRenderer.invoke("chat:delete", id);
+    delete(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("chat:delete", { id, origin });
     },
   },
 
@@ -323,14 +324,14 @@ const veniceForge = {
     get(id: string): Promise<{ ok: boolean; record: ConversationRecordV1 | null; error?: string }> {
       return ipcRenderer.invoke("conversations:get", id);
     },
-    save(record: ConversationRecordV1): Promise<{ ok: boolean; id: string; error?: string }> {
-      return ipcRenderer.invoke("conversations:save", record);
+    save(record: ConversationRecordV1, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; id: string; error?: string }> {
+      return ipcRenderer.invoke("conversations:save", { record, origin });
     },
-    delete(id: string): Promise<{ ok: boolean; error?: string }> {
-      return ipcRenderer.invoke("conversations:delete", id);
+    delete(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("conversations:delete", { id, origin });
     },
-    archive(id: string): Promise<{ ok: boolean; error?: string }> {
-      return ipcRenderer.invoke("conversations:archive", id);
+    archive(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("conversations:archive", { id, origin });
     },
     search(query: string, options?: { limit?: number; includeArchived?: boolean }): Promise<{ ok: boolean; results: SearchResult[]; error?: string }> {
       return ipcRenderer.invoke("conversations:search", query, options);
@@ -436,11 +437,11 @@ const veniceForge = {
     get(id: string): Promise<{ ok: boolean; card: CharacterCardV1 | null; error?: string }> {
       return ipcRenderer.invoke("characterCards:get", id);
     },
-    save(card: CharacterCardV1): Promise<{ ok: boolean; card: CharacterCardV1 | null; error?: string }> {
-      return ipcRenderer.invoke("characterCards:save", card);
+    save(card: CharacterCardV1, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; card: CharacterCardV1 | null; error?: string }> {
+      return ipcRenderer.invoke("characterCards:save", { card, origin });
     },
-    delete(id: string): Promise<{ ok: boolean; error?: string }> {
-      return ipcRenderer.invoke("characterCards:delete", id);
+    delete(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("characterCards:delete", { id, origin });
     },
   },
 
@@ -451,11 +452,11 @@ const veniceForge = {
     get(id: string): Promise<{ ok: boolean; persona: UserPersonaV1 | null; error?: string }> {
       return ipcRenderer.invoke("personas:get", id);
     },
-    save(persona: UserPersonaV1): Promise<{ ok: boolean; persona: UserPersonaV1 | null; error?: string }> {
-      return ipcRenderer.invoke("personas:save", persona);
+    save(persona: UserPersonaV1, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; persona: UserPersonaV1 | null; error?: string }> {
+      return ipcRenderer.invoke("personas:save", { persona, origin });
     },
-    delete(id: string): Promise<{ ok: boolean; error?: string }> {
-      return ipcRenderer.invoke("personas:delete", id);
+    delete(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("personas:delete", { id, origin });
     },
   },
 
@@ -466,11 +467,11 @@ const veniceForge = {
     get(id: string): Promise<{ ok: boolean; lorebook: LorebookV1 | null; error?: string }> {
       return ipcRenderer.invoke("lorebooks:get", id);
     },
-    save(lorebook: LorebookV1): Promise<{ ok: boolean; lorebook: LorebookV1 | null; error?: string }> {
-      return ipcRenderer.invoke("lorebooks:save", lorebook);
+    save(lorebook: LorebookV1, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; lorebook: LorebookV1 | null; error?: string }> {
+      return ipcRenderer.invoke("lorebooks:save", { lorebook, origin });
     },
-    delete(id: string): Promise<{ ok: boolean; error?: string }> {
-      return ipcRenderer.invoke("lorebooks:delete", id);
+    delete(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("lorebooks:delete", { id, origin });
     },
   },
 
@@ -481,11 +482,11 @@ const veniceForge = {
     get(id: string): Promise<{ ok: boolean; chat: RpChatV1 | null; error?: string }> {
       return ipcRenderer.invoke("rpChats:get", id);
     },
-    save(chat: RpChatV1): Promise<{ ok: boolean; chat: RpChatV1 | null; error?: string }> {
-      return ipcRenderer.invoke("rpChats:save", chat);
+    save(chat: RpChatV1, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; chat: RpChatV1 | null; error?: string }> {
+      return ipcRenderer.invoke("rpChats:save", { chat, origin });
     },
-    delete(id: string): Promise<{ ok: boolean; error?: string }> {
-      return ipcRenderer.invoke("rpChats:delete", id);
+    delete(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("rpChats:delete", { id, origin });
     },
   },
 
@@ -496,11 +497,11 @@ const veniceForge = {
     get(id: string): Promise<{ ok: boolean; asset: RpAssetV1 | null; error?: string }> {
       return ipcRenderer.invoke("rpAssets:get", id);
     },
-    save(asset: RpAssetV1): Promise<{ ok: boolean; asset: RpAssetV1 | null; error?: string }> {
-      return ipcRenderer.invoke("rpAssets:save", asset);
+    save(asset: RpAssetV1, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; asset: RpAssetV1 | null; error?: string }> {
+      return ipcRenderer.invoke("rpAssets:save", { asset, origin });
     },
-    delete(id: string): Promise<{ ok: boolean; error?: string }> {
-      return ipcRenderer.invoke("rpAssets:delete", id);
+    delete(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("rpAssets:delete", { id, origin });
     },
   },
 
@@ -512,11 +513,11 @@ const veniceForge = {
     get(id: string): Promise<{ ok: boolean; scenario: ScenarioV1 | null; error?: string }> {
       return ipcRenderer.invoke("scenarios:get", id);
     },
-    save(scenario: ScenarioV1): Promise<{ ok: boolean; scenario: ScenarioV1 | null; error?: string }> {
-      return ipcRenderer.invoke("scenarios:save", scenario);
+    save(scenario: ScenarioV1, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; scenario: ScenarioV1 | null; error?: string }> {
+      return ipcRenderer.invoke("scenarios:save", { scenario, origin });
     },
-    delete(id: string): Promise<{ ok: boolean; error?: string }> {
-      return ipcRenderer.invoke("scenarios:delete", id);
+    delete(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("scenarios:delete", { id, origin });
     },
   },
 

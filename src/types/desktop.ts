@@ -12,6 +12,7 @@ import type {
   UserPersonaV1,
 } from "./rp";
 import type { ApiConnectivityStatus } from "./api-connectivity";
+import type { MutationOrigin } from "./sync";
 
 /** Manages the Venice API key in secure OS-level storage. */
 export interface VeniceForgeApiKey {
@@ -149,56 +150,56 @@ export interface VeniceForgeChat {
     error?: string;
   }>;
   get(id: string): Promise<{ ok: boolean; conversation: Conversation | null; error?: string }>;
-  save(conversation: Conversation): Promise<{ ok: boolean; error?: string }>;
-  delete(id: string): Promise<{ ok: boolean; error?: string }>;
+  save(conversation: Conversation, origin?: MutationOrigin): Promise<{ ok: boolean; error?: string }>;
+  delete(id: string, origin?: MutationOrigin): Promise<{ ok: boolean; error?: string }>;
 }
 
 /** Character RP Studio: local character card persistence. */
 export interface VeniceForgeCharacterCards {
   list(): Promise<{ ok: boolean; cards: CharacterCardV1[]; error?: string }>;
   get(id: string): Promise<{ ok: boolean; card: CharacterCardV1 | null; error?: string }>;
-  save(card: CharacterCardV1): Promise<{ ok: boolean; card: CharacterCardV1 | null; error?: string }>;
-  delete(id: string): Promise<{ ok: boolean; error?: string }>;
+  save(card: CharacterCardV1, origin?: MutationOrigin): Promise<{ ok: boolean; card: CharacterCardV1 | null; error?: string }>;
+  delete(id: string, origin?: MutationOrigin): Promise<{ ok: boolean; error?: string }>;
 }
 
 /** Character RP Studio: user persona persistence. */
 export interface VeniceForgePersonas {
   list(): Promise<{ ok: boolean; personas: UserPersonaV1[]; error?: string }>;
   get(id: string): Promise<{ ok: boolean; persona: UserPersonaV1 | null; error?: string }>;
-  save(persona: UserPersonaV1): Promise<{ ok: boolean; persona: UserPersonaV1 | null; error?: string }>;
-  delete(id: string): Promise<{ ok: boolean; error?: string }>;
+  save(persona: UserPersonaV1, origin?: MutationOrigin): Promise<{ ok: boolean; persona: UserPersonaV1 | null; error?: string }>;
+  delete(id: string, origin?: MutationOrigin): Promise<{ ok: boolean; error?: string }>;
 }
 
 /** Character RP Studio: lorebook persistence. */
 export interface VeniceForgeLorebooks {
   list(): Promise<{ ok: boolean; lorebooks: LorebookV1[]; error?: string }>;
   get(id: string): Promise<{ ok: boolean; lorebook: LorebookV1 | null; error?: string }>;
-  save(lorebook: LorebookV1): Promise<{ ok: boolean; lorebook: LorebookV1 | null; error?: string }>;
-  delete(id: string): Promise<{ ok: boolean; error?: string }>;
+  save(lorebook: LorebookV1, origin?: MutationOrigin): Promise<{ ok: boolean; lorebook: LorebookV1 | null; error?: string }>;
+  delete(id: string, origin?: MutationOrigin): Promise<{ ok: boolean; error?: string }>;
 }
 
 /** Character RP Studio: multi-character chat persistence. */
 export interface VeniceForgeRpChats {
   list(): Promise<{ ok: boolean; chats: RpChatV1[]; error?: string }>;
   get(id: string): Promise<{ ok: boolean; chat: RpChatV1 | null; error?: string }>;
-  save(chat: RpChatV1): Promise<{ ok: boolean; chat: RpChatV1 | null; error?: string }>;
-  delete(id: string): Promise<{ ok: boolean; error?: string }>;
+  save(chat: RpChatV1, origin?: MutationOrigin): Promise<{ ok: boolean; chat: RpChatV1 | null; error?: string }>;
+  delete(id: string, origin?: MutationOrigin): Promise<{ ok: boolean; error?: string }>;
 }
 
 /** Character RP Studio: generated asset metadata persistence. */
 export interface VeniceForgeRpAssets {
   list(chatId?: string): Promise<{ ok: boolean; assets: RpAssetV1[]; error?: string }>;
   get(id: string): Promise<{ ok: boolean; asset: RpAssetV1 | null; error?: string }>;
-  save(asset: RpAssetV1): Promise<{ ok: boolean; asset: RpAssetV1 | null; error?: string }>;
-  delete(id: string): Promise<{ ok: boolean; error?: string }>;
+  save(asset: RpAssetV1, origin?: MutationOrigin): Promise<{ ok: boolean; asset: RpAssetV1 | null; error?: string }>;
+  delete(id: string, origin?: MutationOrigin): Promise<{ ok: boolean; error?: string }>;
 }
 
 /** Character RP Studio: standalone scenario persistence (Phase 2F). */
 export interface VeniceForgeScenarios {
   list(): Promise<{ ok: boolean; scenarios: ScenarioV1[]; truncated: boolean; totalScanned: number; error?: string }>;
   get(id: string): Promise<{ ok: boolean; scenario: ScenarioV1 | null; error?: string }>;
-  save(scenario: ScenarioV1): Promise<{ ok: boolean; scenario: ScenarioV1 | null; error?: string }>;
-  delete(id: string): Promise<{ ok: boolean; error?: string }>;
+  save(scenario: ScenarioV1, origin?: MutationOrigin): Promise<{ ok: boolean; scenario: ScenarioV1 | null; error?: string }>;
+  delete(id: string, origin?: MutationOrigin): Promise<{ ok: boolean; error?: string }>;
 }
 
 /** Sanitized config payload returned to the renderer. Mirrors the
@@ -268,9 +269,9 @@ export interface VeniceForgeConversations {
     dateTo?: number;
   }): Promise<{ ok: boolean; records: ConversationRecordV1[]; error?: string }>;
   get(id: string): Promise<{ ok: boolean; record: ConversationRecordV1 | null; error?: string }>;
-  save(record: ConversationRecordV1): Promise<{ ok: boolean; id: string; error?: string }>;
-  delete(id: string): Promise<{ ok: boolean; error?: string }>;
-  archive(id: string): Promise<{ ok: boolean; error?: string }>;
+  save(record: ConversationRecordV1, origin?: MutationOrigin): Promise<{ ok: boolean; id: string; error?: string }>;
+  delete(id: string, origin?: MutationOrigin): Promise<{ ok: boolean; error?: string }>;
+  archive(id: string, origin?: MutationOrigin): Promise<{ ok: boolean; error?: string }>;
   search(query: string, options?: { limit?: number; includeArchived?: boolean }): Promise<{ ok: boolean; results: SearchResult[]; error?: string }>;
   pullContext(input: { message: string; maxItems?: number; maxTokens?: number; includeArchived?: boolean; excludeConversationIds?: string[]; characterId?: string }): Promise<{ ok: boolean; context: PulledMemoryContext; error?: string }>;
   rebuildIndex(): Promise<{ ok: boolean; itemsIndexed: number; error?: string }>;
