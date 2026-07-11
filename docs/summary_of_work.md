@@ -11,7 +11,17 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
-- **2026-07-11 Task 3: Exact tombstone persistence API — COMPLETE (current session):**
+- **2026-07-11 Task 4: Authoritative `deleteSyncableRecord` coordinator — COMPLETE (current session):**
+  - Created `src/services/syncDeleteCoordinator.ts` exporting `deleteSyncableRecord(storeName, recordId, deviceId?)`, the single entry point for deleting syncable records.
+  - Coordinator ordering: creates canonical tombstone → persists it via `TombstoneService.saveTombstone` → deletes the target via `StorageService.deleteItem(..., { bypassSyncEcho: true })` with `__VENICE_IS_SYNCING` raised to prevent echo → emits the exact encrypted tombstone via `desktopSync.writePacket`.
+  - Wired `src/services/syncEngine.ts` so `handleStorageDeleted` routes syncable-store deletions through the coordinator; removed the obsolete `emitLocalTombstone` export/function.
+  - Removed the obsolete direct `desktopSync.writePacket` tombstone emission block from `src/services/storageService.ts:507-525`; `StorageService.deleteItem` now only dispatches `venice:storage-deleted`.
+  - Added `src/services/syncDeleteCoordinator.test.ts` with TDD regression tests: ordering proof (`saveTombstone` before `deleteItem`, tombstone packet emitted once) and resurrection guard (stale object packet cannot resurrect a locally deleted record because the local tombstone wins).
+  - Updated `src/services/syncEngine.test.ts` to mock the coordinator and assert the event listener routes deletes and ignores diagnostics.
+  - Files changed: `src/services/syncDeleteCoordinator.ts`, `src/services/syncDeleteCoordinator.test.ts`, `src/services/syncEngine.ts`, `src/services/syncEngine.test.ts`, `src/services/storageService.ts`, `docs/summary_of_work.md`.
+  - Validation: `npx vitest run src/services/syncDeleteCoordinator.test.ts src/services/syncEngine.test.ts src/services/storageService.test.ts` PASS (3 files / 34 tests); `npm run typecheck` PASS; `npm run lint:eslint` PASS.
+
+- **2026-07-11 Task 3: Exact tombstone persistence API — COMPLETE (previous session):**
   - Added `TombstoneService.saveTombstone(tombstone)` which persists the full tombstone object exactly (including `deletedAt` and `deviceId`) using a new `bypassSyncEcho` storage-mutation option.
   - Refactored `TombstoneService.recordTombstone` to delegate to `saveTombstone`; preserved backward compatibility for the legacy `(storeName, recordId, deviceId?)` signature while also accepting an options bag `{ deletedAt?, deviceId? }`.
   - Added `StorageMutationOptions` to `src/services/storageService.ts` with `bypassSyncEcho?: boolean`; `saveItem` and `deleteItem` now accept the options bag. When `bypassSyncEcho` is true, `saveItem` preserves the caller's exact record shape and skips local revision/timestamp metadata so sync-internal records round-trip unchanged.
@@ -99,6 +109,8 @@
   - Import/sync reconciliation implemented in `prompt-library-store.ts` with `reconcile: true` option; Command Palette uses it by default (VERIFY-075).
   - Detail editor cannot save a deleted record — store guard + UI regression test (VERIFY-076).
 - **2026-07-10 CI repair — CLOSED:** Resolved the zero-warning ESLint failure in build-and-test (22), check run `86287592255`.
+- **2026-07-11 Release readiness work order — IN PROGRESS:**
+  - **Task 4: Authoritative `deleteSyncableRecord` coordinator — CLOSED in this session.** Remaining tasks from the work order are delegated to subsequent sessions.
 - **2026-07-01 priority remediation work order — CLOSED in this session:**
   - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
   - **Chat:** CLOSED. Selected character image wins for assistant bubbles, no-character fallback uses bundled Venice seal, and hook-level cache gating includes conversation identity.
@@ -427,4 +439,9 @@
   - `npm run typecheck`: PASS (renderer + Electron main clean).
   - `npx vitest run electron/services/syncConfig.test.ts electron/services/syncFolderWatcher.test.ts src/services/syncEngine.test.ts src/services/storageService.test.ts src/hooks/use-data-storage-actions.test.ts --fileParallelism=false`: PASS (2 files / 26 tests; nonexistent test paths were ignored by Vitest).
   - Pre-install attempts of lint/typecheck/tests: SKIPPED/FAILED before execution because `node_modules` was absent; no source failure was inferred from those attempts.
+
+- 2026-07-11 Task 4 Authoritative `deleteSyncableRecord` coordinator:
+  - `npx vitest run src/services/syncDeleteCoordinator.test.ts src/services/syncEngine.test.ts src/services/storageService.test.ts --fileParallelism=false`: PASS (3 files / 34 tests).
+  - `npm run typecheck`: PASS (renderer + Electron main clean).
+  - `npm run lint:eslint`: PASS (0 warnings).
 
