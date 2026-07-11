@@ -32,6 +32,7 @@ import {
   isSyncEmissionSuppressed,
   startSyncWatcher,
   stopSyncWatcher,
+  pauseSyncWatcher,
   acknowledgeOperation,
   loadAppliedOperationsJournal,
   isOperationApplied,
@@ -41,6 +42,13 @@ import {
   __registerInFlightOperationForTests,
   __clearInFlightOperationsForTests,
 } from "./syncFolderWatcher";
+import {
+  initSyncRetryQueue,
+  stopSyncRetryQueue,
+  scheduleRetry,
+  getPendingRetries,
+  clearPendingRetries,
+} from "./syncRetryQueue";
 import { promises as fs } from "fs";
 import { app } from "electron";
 import { createTombstone } from "../../src/shared/syncProtocol";
@@ -65,11 +73,14 @@ const tmpDir = "/tmp/sync-test";
 
 describe("syncFolderWatcher", () => {
   beforeEach(async () => {
+    vi.useRealTimers();
     vi.resetAllMocks();
     vi.mocked(app.getPath).mockReturnValue("/tmp/userData");
     setSyncEmissionSuppressed(false);
     resetAppliedOperationsJournal();
     __clearInFlightOperationsForTests();
+    stopSyncRetryQueue();
+    clearPendingRetries();
     await fs.rm("/tmp/userData/sync", { recursive: true, force: true });
     await fs.mkdir(tmpDir, { recursive: true });
     await fs.rm(tmpDir, { recursive: true, force: true });
@@ -220,5 +231,110 @@ describe("syncFolderWatcher", () => {
     for (const id of ids) {
       expect(journal.operations.some((op: { operationId: string }) => op.operationId === id)).toBe(true);
     }
+  });
+
+  it("requeues an operation after a negative acknowledgment", async () => {
+    const validOpId = "e".repeat(64);
+    const filePath = `${tmpDir}/negative-ack.json`;
+    __registerInFlightOperationForTests(validOpId, "conversations", "device-2", filePath, 0);
+
+    const ackResult = await acknowledgeOperation(validOpId, false);
+
+    expect(ackResult).toEqual({ ok: true });
+    expect(isOperationInFlight(validOpId)).toBe(false);
+    const pending = getPendingRetries();
+    expect(pending.has(validOpId)).toBe(true);
+    expect(pending.get(validOpId)).toMatchObject({
+      operationId: validOpId,
+      filePath,
+      attempts: 1,
+      lastError: "Negative acknowledgment",
+    });
+  });
+
+  it("requeues an unacknowledged operation after timeout", async () => {
+    vi.useFakeTimers();
+    const validOpId = "f".repeat(64);
+    const filePath = `${tmpDir}/timeout-ack.json`;
+    __registerInFlightOperationForTests(validOpId, "conversations", "device-2", filePath, 0, true);
+
+    vi.advanceTimersByTime(30_000);
+
+    expect(isOperationInFlight(validOpId)).toBe(false);
+    const pending = getPendingRetries();
+    expect(pending.has(validOpId)).toBe(true);
+    expect(pending.get(validOpId)).toMatchObject({
+      operationId: validOpId,
+      filePath,
+      attempts: 1,
+      lastError: "Acknowledgment timeout",
+    });
+  });
+
+  it("requeues in-flight operations when the sync watcher is stopped", async () => {
+    const validOpId = "g".repeat(64);
+    const filePath = `${tmpDir}/stop-requeue.json`;
+    __registerInFlightOperationForTests(validOpId, "conversations", "device-2", filePath, 0);
+
+    await stopSyncWatcher();
+
+    expect(isOperationInFlight(validOpId)).toBe(false);
+    const pending = getPendingRetries();
+    expect(pending.has(validOpId)).toBe(true);
+    expect(pending.get(validOpId)).toMatchObject({
+      operationId: validOpId,
+      filePath,
+      attempts: 1,
+      lastError: "Watcher stopped",
+    });
+  });
+
+  it("requeues in-flight operations when the sync watcher is paused", async () => {
+    const validOpId = "h".repeat(64);
+    const filePath = `${tmpDir}/pause-requeue.json`;
+    __registerInFlightOperationForTests(validOpId, "conversations", "device-2", filePath, 2);
+
+    await pauseSyncWatcher();
+
+    expect(isOperationInFlight(validOpId)).toBe(false);
+    const pending = getPendingRetries();
+    expect(pending.has(validOpId)).toBe(true);
+    expect(pending.get(validOpId)).toMatchObject({
+      operationId: validOpId,
+      filePath,
+      attempts: 3,
+      lastError: "Watcher paused",
+    });
+  });
+
+  it("delivers retries via the scheduler after exponential backoff", async () => {
+    vi.useFakeTimers();
+    const spy = vi.fn();
+    initSyncRetryQueue(spy);
+
+    const validOpId = "i".repeat(64);
+    const filePath = `${tmpDir}/scheduler.json`;
+    scheduleRetry(validOpId, filePath, 0);
+
+    const pending = getPendingRetries();
+    expect(pending.has(validOpId)).toBe(true);
+
+    vi.advanceTimersByTime(5000);
+
+    expect(spy).toHaveBeenCalledWith(filePath);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(getPendingRetries().has(validOpId)).toBe(false);
+  });
+
+  it("gives up after the maximum number of retry attempts", async () => {
+    const validOpId = "j".repeat(64);
+    const filePath = `${tmpDir}/max-attempts.json`;
+    scheduleRetry(validOpId, filePath, 10);
+
+    expect(getPendingRetries().has(validOpId)).toBe(false);
+    expect(logError).toHaveBeenCalledWith(
+      "syncRetryQueue",
+      expect.stringMatching(/exceeded max retry attempts/),
+    );
   });
 });

@@ -8,6 +8,7 @@ import { BrowserWindow, app } from "electron";
 import { encryptPayload, decryptPayload, EncryptedBackupManifest } from "./backupCrypto";
 import { getSyncPath, setSyncPath, getDeviceId } from "./syncConfig";
 import { enqueueRemoteApply } from "./syncApplyQueue";
+import { initSyncRetryQueue, scheduleRetry } from "./syncRetryQueue";
 
 let watcher: FSWatcher | null = null;
 let currentSyncPath: string | null = null;
@@ -15,7 +16,9 @@ let mainWindowRef: BrowserWindow | null = null;
 let currentPassword: string | null = null;
 let syncStatus: "stopped" | "paused" | "running" = "stopped";
 let localEmissionSuppressed = false;
-const inFlightOperations = new Map<string, { storeName: string; sourceDeviceId?: string }>();
+const inFlightOperations = new Map<string, { storeName: string; sourceDeviceId?: string; filePath: string; attempts: number }>();
+const inFlightTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+const ACK_TIMEOUT_MS = 30_000;
 const MAX_PACKET_BYTES = 50 * 1024 * 1024;
 
 const JOURNAL_VERSION = 1;
@@ -169,9 +172,31 @@ export function isOperationInFlight(operationId: string): boolean {
 
 const OPERATION_ID_RE = /^[a-f0-9]{64}$/;
 
-/** Bounded retry scheduling will be implemented in Task 12. */
-function scheduleRetry(inFlight: { storeName: string; sourceDeviceId?: string }): void {
-  void inFlight;
+function clearAckTimeout(operationId: string): void {
+  const timeout = inFlightTimeouts.get(operationId);
+  if (timeout) {
+    clearTimeout(timeout);
+    inFlightTimeouts.delete(operationId);
+  }
+}
+
+function startAckTimeout(operationId: string, filePath: string, attempts: number): void {
+  const timeout = setTimeout(() => {
+    inFlightTimeouts.delete(operationId);
+    if (inFlightOperations.has(operationId)) {
+      inFlightOperations.delete(operationId);
+      scheduleRetry(operationId, filePath, attempts, "Acknowledgment timeout");
+    }
+  }, ACK_TIMEOUT_MS);
+  inFlightTimeouts.set(operationId, timeout);
+}
+
+function requeueInFlightOperations(lastError?: string): void {
+  for (const [operationId, op] of inFlightOperations) {
+    clearAckTimeout(operationId);
+    scheduleRetry(operationId, op.filePath, op.attempts, lastError);
+  }
+  inFlightOperations.clear();
 }
 
 export async function acknowledgeOperation(operationId: string, ok: boolean): Promise<{ ok: boolean; error?: string }> {
@@ -182,16 +207,17 @@ export async function acknowledgeOperation(operationId: string, ok: boolean): Pr
   if (!inFlight) {
     return { ok: false, error: "No such in-flight operation." };
   }
+  clearAckTimeout(operationId);
   inFlightOperations.delete(operationId);
   if (!ok) {
-    scheduleRetry(inFlight);
+    scheduleRetry(operationId, inFlight.filePath, inFlight.attempts, "Negative acknowledgment");
     return { ok: true };
   }
   try {
     await recordAppliedOperation(operationId, inFlight.storeName, "applied", inFlight.sourceDeviceId);
     return { ok: true };
   } catch (err: unknown) {
-    scheduleRetry(inFlight);
+    scheduleRetry(operationId, inFlight.filePath, inFlight.attempts, "Journal write failure");
     const rawMessage = err instanceof Error ? err.message : String(err);
     const redacted = redactErrorMessage(rawMessage);
     logError("syncFolderWatcher", `Failed to record applied operation ${operationId}: ${redacted}`);
@@ -204,12 +230,36 @@ export function __registerInFlightOperationForTests(
   operationId: string,
   storeName: string,
   sourceDeviceId?: string,
+  filePath?: string,
+  attempts?: number,
+  startTimeout = false,
 ): void {
-  inFlightOperations.set(operationId, { storeName, sourceDeviceId });
+  const actualFilePath = filePath ?? "/dev/null/test.json";
+  const actualAttempts = attempts ?? 0;
+  inFlightOperations.set(operationId, {
+    storeName,
+    sourceDeviceId,
+    filePath: actualFilePath,
+    attempts: actualAttempts,
+  });
+  if (startTimeout) {
+    startAckTimeout(operationId, actualFilePath, actualAttempts);
+  }
+}
+
+/** Test-only helper to manually start an acknowledgment timeout. */
+export function __startAckTimeoutForTests(operationId: string, filePath: string, attempts?: number): void {
+  if (!inFlightOperations.has(operationId)) {
+    throw new Error("Operation is not in-flight");
+  }
+  startAckTimeout(operationId, filePath, attempts ?? 0);
 }
 
 /** Test-only helper to clear the in-flight operation map. */
 export function __clearInFlightOperationsForTests(): void {
+  for (const operationId of inFlightOperations.keys()) {
+    clearAckTimeout(operationId);
+  }
   inFlightOperations.clear();
 }
 
@@ -218,6 +268,11 @@ export async function initSyncFolderWatcher(mainWindow: BrowserWindow) {
   mainWindowRef = mainWindow;
   currentSyncPath = await getSyncPath();
   await loadAppliedOperationsJournal();
+  initSyncRetryQueue((filePath) => {
+    handleRemoteChange(filePath).catch((err: unknown) => {
+      logError("syncFolderWatcher", `Retry delivery failed: ${redactErrorMessage(err)}`);
+    });
+  });
 }
 
 export async function startSyncWatcher(password: string): Promise<{ ok: boolean; error?: string }> {
@@ -236,6 +291,7 @@ export async function stopSyncWatcher(): Promise<{ ok: boolean; error?: string }
     await watcher.close();
     watcher = null;
   }
+  requeueInFlightOperations("Watcher stopped");
   syncStatus = "stopped";
   return { ok: true };
 }
@@ -244,6 +300,7 @@ export async function pauseSyncWatcher(): Promise<{ ok: boolean; error?: string 
   if (watcher) await watcher.close();
   watcher = null;
   currentPassword = null;
+  requeueInFlightOperations("Watcher paused");
   syncStatus = "paused";
   return { ok: true };
 }
@@ -316,7 +373,7 @@ export function getSyncFolder(): string | null {
 }
 
 /** Handle incoming changes from the filesystem. */
-async function handleRemoteChange(filePath: string) {
+export async function handleRemoteChange(filePath: string) {
   if (!mainWindowRef || mainWindowRef.isDestroyed()) return;
   if (!currentPassword) return;
 
@@ -359,7 +416,13 @@ async function handleRemoteChange(filePath: string) {
       await loadAppliedOperationsJournal();
       if (isOperationApplied(parsed._operationId) || isOperationInFlight(parsed._operationId)) return;
 
-      inFlightOperations.set(parsed._operationId, { storeName: parsed._storeName, sourceDeviceId: parsed._sourceDeviceId });
+      inFlightOperations.set(parsed._operationId, {
+        storeName: parsed._storeName,
+        sourceDeviceId: parsed._sourceDeviceId,
+        filePath,
+        attempts: 0,
+      });
+      startAckTimeout(parsed._operationId, filePath, 0);
 
       mainWindowRef.webContents.send("sync:onRemoteChange", {
         storeName: parsed._storeName,
