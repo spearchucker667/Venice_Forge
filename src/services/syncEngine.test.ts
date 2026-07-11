@@ -200,4 +200,52 @@ describe("syncEngine", () => {
     expect(window.removeEventListener).toHaveBeenCalledWith("venice:storage-saved", expect.any(Function));
     expect(window.removeEventListener).toHaveBeenCalledWith("venice:storage-deleted", expect.any(Function));
   });
+
+  it("skips sync emission for venice:storage-saved when origin is not local-user", async () => {
+    await initSyncEngine("password");
+    const savedCalls = (window.addEventListener as ReturnType<typeof vi.fn>).mock.calls as Array<[string, (e: Event) => void]>;
+    const savedHandler = savedCalls.find((call) => call[0] === "venice:storage-saved")?.[1];
+    if (!savedHandler) throw new Error("venice:storage-saved handler not registered");
+
+    savedHandler(new CustomEvent("venice:storage-saved", { detail: { store: "conversations", record: { id: "conv-1" }, id: "conv-1", origin: "remote-sync" } }));
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockWritePacket).not.toHaveBeenCalled();
+  });
+
+  it("skips sync emission for venice:storage-deleted when origin is not local-user", async () => {
+    await initSyncEngine("password");
+    const deletedCalls = (window.addEventListener as ReturnType<typeof vi.fn>).mock.calls as Array<[string, (e: Event) => void]>;
+    const deletedHandler = deletedCalls.find((call) => call[0] === "venice:storage-deleted")?.[1];
+    if (!deletedHandler) throw new Error("venice:storage-deleted handler not registered");
+
+    deletedHandler(new CustomEvent("venice:storage-deleted", { detail: { store: "conversations", id: "conv-1", origin: "manual-import" } }));
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockDeleteSyncableRecord).not.toHaveBeenCalled();
+  });
+
+  it("still emits sync packets for local-user origin", async () => {
+    await initSyncEngine("password");
+    const savedCalls = (window.addEventListener as ReturnType<typeof vi.fn>).mock.calls as Array<[string, (e: Event) => void]>;
+    const savedHandler = savedCalls.find((call) => call[0] === "venice:storage-saved")?.[1];
+    if (!savedHandler) throw new Error("venice:storage-saved handler not registered");
+
+    savedHandler(new CustomEvent("venice:storage-saved", { detail: { store: "conversations", record: { id: "conv-1" }, id: "conv-1", origin: "local-user" } }));
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockWritePacket).toHaveBeenCalledWith({ storeName: "conversations", id: "conv-1", recordJson: expect.any(String) });
+  });
+
+  it("emits sync packets when origin is omitted for back-compat", async () => {
+    await initSyncEngine("password");
+    const savedCalls = (window.addEventListener as ReturnType<typeof vi.fn>).mock.calls as Array<[string, (e: Event) => void]>;
+    const savedHandler = savedCalls.find((call) => call[0] === "venice:storage-saved")?.[1];
+    if (!savedHandler) throw new Error("venice:storage-saved handler not registered");
+
+    savedHandler(new CustomEvent("venice:storage-saved", { detail: { store: "conversations", record: { id: "conv-1" }, id: "conv-1" } }));
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockWritePacket).toHaveBeenCalledWith({ storeName: "conversations", id: "conv-1", recordJson: expect.any(String) });
+  });
 });

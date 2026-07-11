@@ -91,9 +91,38 @@ describe("rpHandlers", () => {
   it("handles invalid IDs in delete operations", async () => {
     registerRpIpcHandlers();
     const handler = vi.mocked(ipcMain.handle).mock.calls.find((call) => call[0] === "rpChats:delete")?.[1] as (...args: any[]) => any;
-    
-    const result = await handler({} as any, 123); // not a string
+
+    const result = await handler({} as any, { id: 123 }); // id is not a string
     expect(result.ok).toBe(false);
     expect(result.error).toBe("Invalid id");
+  });
+
+  it("rejects delete payloads that are not objects", async () => {
+    registerRpIpcHandlers();
+    const handler = vi.mocked(ipcMain.handle).mock.calls.find((call) => call[0] === "rpChats:delete")?.[1] as (...args: any[]) => any;
+
+    const result = await handler({} as any, "legacy-string-id");
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("Invalid payload");
+  });
+
+  it("rejects delete payloads with an invalid mutation origin", async () => {
+    registerRpIpcHandlers();
+    const handler = vi.mocked(ipcMain.handle).mock.calls.find((call) => call[0] === "rpChats:delete")?.[1] as (...args: any[]) => any;
+
+    const result = await handler({} as any, { id: "valid-id", origin: "bad-origin" });
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/invalid mutation origin/i);
+  });
+
+  it("accepts delete payloads with { id, origin } and forwards only id to storage", async () => {
+    registerRpIpcHandlers();
+    const handler = vi.mocked(ipcMain.handle).mock.calls.find((call) => call[0] === "personas:delete")?.[1] as (...args: any[]) => any;
+
+    vi.mocked(personaStore.remove).mockResolvedValueOnce({ ok: true });
+
+    const result = await handler({} as any, { id: "persona-1", origin: "local-user" });
+    expect(result.ok).toBe(true);
+    expect(personaStore.remove).toHaveBeenCalledWith("persona-1");
   });
 });

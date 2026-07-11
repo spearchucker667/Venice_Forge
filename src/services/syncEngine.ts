@@ -1,6 +1,6 @@
 import { importDecryptedPacket } from "./backupImportService";
 import { desktopSync } from "./desktopBridge";
-import type { SyncStoreName } from "../types/sync";
+import type { MutationOrigin, SyncStoreName } from "../types/sync";
 import { sanitizePortableData } from "./syncDataSanitizer";
 import { validateTombstone } from "../shared/syncProtocol";
 import { deleteSyncableRecord } from "./syncDeleteCoordinator";
@@ -149,11 +149,14 @@ function handleStorageSaved(e: Event) {
   if (typeof window !== "undefined" && veniceWindow.__VENICE_IS_SYNCING) {
     return;
   }
-  const customEvent = e as CustomEvent<{ store: SyncStoreName; record: unknown; id: string }>;
-  const { store, record, id } = customEvent.detail;
+  const customEvent = e as CustomEvent<{ store: SyncStoreName; record: unknown; id: string; origin?: MutationOrigin }>;
+  const { store, record, id, origin } = customEvent.detail;
   // Diagnostics is explicitly excluded from sync. Tombstones are sync metadata
   // and are emitted by the authoritative delete coordinator, not re-routed here.
   if (store === "diagnostics" || store === "tombstones") return;
+  // Only local-user mutations should auto-emit sync packets. Undefined origin
+  // is treated as local-user for back-compat with older storage event emitters.
+  if (origin !== undefined && origin !== "local-user") return;
   emitLocalChange(store, record, id);
 }
 
@@ -162,11 +165,14 @@ async function handleStorageDeleted(e: Event) {
   if (typeof window !== "undefined" && veniceWindow.__VENICE_IS_SYNCING) {
     return;
   }
-  const customEvent = e as CustomEvent<{ store: SyncStoreName; id: string }>;
-  const { store, id } = customEvent.detail;
+  const customEvent = e as CustomEvent<{ store: SyncStoreName; id: string; origin?: MutationOrigin }>;
+  const { store, id, origin } = customEvent.detail;
   // Diagnostics is explicitly excluded from sync. Tombstones are sync metadata
   // and are emitted by the authoritative delete coordinator, not re-routed here.
   if (store === "diagnostics" || store === "tombstones") return;
+  // Only local-user mutations should auto-emit sync tombstones. Undefined origin
+  // is treated as local-user for back-compat with older storage event emitters.
+  if (origin !== undefined && origin !== "local-user") return;
   try {
     await deleteSyncableRecord(store, id);
   } catch (err) {

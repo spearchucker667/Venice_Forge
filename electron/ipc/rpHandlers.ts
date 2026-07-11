@@ -37,9 +37,31 @@ import {
   rpAssetStore,
   scenarioStore,
 } from "../services/rpStores";
+import { isValidId } from "../../src/utils/idValidation";
 import type { UserPersonaV1, LorebookV1, RpAssetV1, ScenarioV1 } from "../../src/types/rp";
 import { redactErrorMessage } from "../../src/shared/redaction";
 import { logError } from "../services/logger";
+import { validateMutationOrigin } from "./validation";
+
+/** Parses a delete payload from the renderer. Accepts the shape `{ id, origin }`
+ *  introduced in Task 6 and defaults missing origins to `"local-user"` for
+ *  back-compat.
+ *  @returns A tuple `[error, payload]` where exactly one entry is defined. */
+function parseDeletePayload(raw: unknown): [string, null] | [null, { id: string; origin: import("../../src/types/sync").MutationOrigin }] {
+  if (!raw || typeof raw !== "object") {
+    return ["Invalid payload", null];
+  }
+  const p = raw as Record<string, unknown>;
+  if (typeof p.id !== "string" || !isValidId(p.id)) {
+    return ["Invalid id", null];
+  }
+  try {
+    const origin = validateMutationOrigin(p.origin);
+    return [null, { id: p.id, origin }];
+  } catch (err) {
+    return [err instanceof Error ? err.message : "Invalid origin", null];
+  }
+}
 
 /** Coerces a chatId param from IPC into a validated string, or returns null. */
 function chatIdFilter(raw: unknown): string | undefined {
@@ -94,9 +116,13 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("characterCards:delete", async (_event, id: unknown) => {
+  handleIpc("characterCards:delete", async (_event, payload: unknown) => {
     try {
-      if (typeof id !== "string") return { ok: false, error: "Invalid id" };
+      const [error, parsed] = parseDeletePayload(payload);
+      if (error || !parsed) {
+        return { ok: false, error: error ?? "Invalid payload" };
+      }
+      const { id } = parsed;
       const result = await deleteCharacterCard(id);
       if (result.ok) {
         await emitSyncTombstone("character_cards", id);
@@ -150,9 +176,13 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("personas:delete", async (_event, id: unknown) => {
+  handleIpc("personas:delete", async (_event, payload: unknown) => {
     try {
-      if (typeof id !== "string") return { ok: false, error: "Invalid id" };
+      const [error, parsed] = parseDeletePayload(payload);
+      if (error || !parsed) {
+        return { ok: false, error: error ?? "Invalid payload" };
+      }
+      const { id } = parsed;
       const result = await personaStore.remove(id);
       if (result.ok) {
         await emitSyncTombstone("personas", id);
@@ -206,9 +236,13 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("lorebooks:delete", async (_event, id: unknown) => {
+  handleIpc("lorebooks:delete", async (_event, payload: unknown) => {
     try {
-      if (typeof id !== "string") return { ok: false, error: "Invalid id" };
+      const [error, parsed] = parseDeletePayload(payload);
+      if (error || !parsed) {
+        return { ok: false, error: error ?? "Invalid payload" };
+      }
+      const { id } = parsed;
       const result = await lorebookStore.remove(id);
       if (result.ok) {
         await emitSyncTombstone("lorebooks", id);
@@ -262,9 +296,13 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("rpChats:delete", async (_event, id: unknown) => {
+  handleIpc("rpChats:delete", async (_event, payload: unknown) => {
     try {
-      if (typeof id !== "string") return { ok: false, error: "Invalid id" };
+      const [error, parsed] = parseDeletePayload(payload);
+      if (error || !parsed) {
+        return { ok: false, error: error ?? "Invalid payload" };
+      }
+      const { id } = parsed;
       const result = await deleteRpChat(id);
       if (result.ok) {
         await emitSyncTombstone("rp_chats", id);
@@ -320,9 +358,13 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("rpAssets:delete", async (_event, id: unknown) => {
+  handleIpc("rpAssets:delete", async (_event, payload: unknown) => {
     try {
-      if (typeof id !== "string") return { ok: false, error: "Invalid id" };
+      const [error, parsed] = parseDeletePayload(payload);
+      if (error || !parsed) {
+        return { ok: false, error: error ?? "Invalid payload" };
+      }
+      const { id } = parsed;
       const result = await rpAssetStore.remove(id);
       if (result.ok) {
         await emitSyncTombstone("rp_assets", id);
@@ -376,9 +418,13 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("scenarios:delete", async (_event, id: unknown) => {
+  handleIpc("scenarios:delete", async (_event, payload: unknown) => {
     try {
-      if (typeof id !== "string") return { ok: false, error: "Invalid id" };
+      const [error, parsed] = parseDeletePayload(payload);
+      if (error || !parsed) {
+        return { ok: false, error: error ?? "Invalid payload" };
+      }
+      const { id } = parsed;
       const result = await scenarioStore.remove(id);
       if (result.ok) {
         await emitSyncTombstone("rpScenarios", id);

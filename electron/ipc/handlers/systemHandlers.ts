@@ -29,10 +29,31 @@ import { VENICE_MAX_BODY_BYTES } from "../../../src/shared/limits";
 
 const IPC_PAYLOAD_TOO_LARGE = "Conversation payload is too large.";
 import { registerIpcChannel } from "./common";
+import { validateMutationOrigin } from "../validation";
 
 interface LookupResult {
   address: string;
   family: number;
+}
+
+/** Parses a delete/archive payload from the renderer. Accepts the shape
+ *  `{ id, origin }` introduced in Task 6 and defaults missing origins to
+ *  `"local-user"` for back-compat.
+ *  @returns A tuple `[error, payload]` where exactly one entry is defined. */
+function parseDeletePayload(raw: unknown): [string, null] | [null, { id: string; origin: import("../../../src/types/sync").MutationOrigin }] {
+  if (!raw || typeof raw !== "object") {
+    return ["Invalid payload", null];
+  }
+  const p = raw as Record<string, unknown>;
+  if (typeof p.id !== "string" || p.id.length === 0) {
+    return ["Invalid id", null];
+  }
+  try {
+    const origin = validateMutationOrigin(p.origin);
+    return [null, { id: p.id, origin }];
+  } catch (err) {
+    return [err instanceof Error ? err.message : "Invalid origin", null];
+  }
 }
 
 export function registerSystemHandlers(): void {
@@ -297,9 +318,14 @@ export function registerSystemHandlers(): void {
     }
   });
 
-  registerIpcChannel("chat:delete", async (_event, id: unknown) => {
+  registerIpcChannel("chat:delete", async (_event, payload: unknown) => {
     try {
-      if (typeof id !== "string" || id.length > 128) {
+      const [error, parsed] = parseDeletePayload(payload);
+      if (error || !parsed) {
+        return { ok: false, error: error ?? "Invalid payload" };
+      }
+      const { id } = parsed;
+      if (id.length > 128) {
         return { ok: false, error: "Invalid conversation id" };
       }
       const result = await deleteConversation(id);
@@ -384,9 +410,14 @@ export function registerSystemHandlers(): void {
     }
   });
 
-  registerIpcChannel("conversations:delete", async (_event, id: unknown) => {
+  registerIpcChannel("conversations:delete", async (_event, payload: unknown) => {
     try {
-      if (typeof id !== "string" || id.length > 128 || id.includes("\0") || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(id)) {
+      const [error, parsed] = parseDeletePayload(payload);
+      if (error || !parsed) {
+        return { ok: false, error: error ?? "Invalid payload" };
+      }
+      const { id } = parsed;
+      if (id.length > 128 || id.includes("\0") || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(id)) {
         return { ok: false, error: "Invalid conversation id" };
       }
       const { deleteConversation } = await import("../../services/conversationVault");
@@ -400,9 +431,14 @@ export function registerSystemHandlers(): void {
     }
   });
 
-  registerIpcChannel("conversations:archive", async (_event, id: unknown) => {
+  registerIpcChannel("conversations:archive", async (_event, payload: unknown) => {
     try {
-      if (typeof id !== "string" || id.length > 128 || id.includes("\0") || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(id)) {
+      const [error, parsed] = parseDeletePayload(payload);
+      if (error || !parsed) {
+        return { ok: false, error: error ?? "Invalid payload" };
+      }
+      const { id } = parsed;
+      if (id.length > 128 || id.includes("\0") || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(id)) {
         return { ok: false, error: "Invalid conversation id" };
       }
       const { archiveConversation } = await import("../../services/conversationVault");
