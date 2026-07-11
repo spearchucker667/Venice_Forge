@@ -17,7 +17,7 @@ Repository: Windows-Venice-API-connector
 Product: Venice Forge
 Version target: v2.1.0 or current working tree
 Stack: Electron 42 + React 19 + Vite + TypeScript + Express 4
-Primary local path: /Users/super_user/Projects/Windows-Venice-API-connector
+Primary local path: /Users/super_user/Projects/Venice_Forge/
 ```
 
 Your job is to find, confirm, classify, and document defects. You do **not** implement fixes unless explicitly instructed in a separate task.
@@ -95,7 +95,7 @@ A valid finding must be supported by exact repository evidence. Do not produce v
 Work only inside:
 
 ```bash
-cd /Users/super_user/Projects/Windows-Venice-API-connector
+cd /Users/super_user/Projects/Venice_Forge/
 ```
 
 If this path is unavailable, stop and report:

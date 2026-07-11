@@ -9,7 +9,7 @@
 ## Metadata
 
 - **Repository:** Windows-Venice-API-connector / Venice Forge
-- **Local path:** /Users/super_user/Projects/Windows-Venice-API-connector
+- **Local path:** /Users/super_user/Projects/Venice_Forge/
 - **HEAD:** fc66cb447e105150eb9d80fb253f18b634955db4
 - **Branch:** main
 - **Validation date:** 2026-06-19

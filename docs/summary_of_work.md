@@ -11,6 +11,12 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
+- **2026-07-11 Local path normalization — COMPLETE (current session):**
+  - Reconciled absolute local-path mentions across active agent docs and historical references so the repository consistently points at the canonical Venice Forge root.
+  - Kept the active agent-doc warnings aligned with `scripts/verify-repository-identity.cjs` by using the canonical repository root in the thin pointer files while leaving historical evidence under `docs/reports/historical/` as archival context.
+  - Validation: `npm run verify:repository-identity` PASS; `npm run verify:agent-docs` PASS; `npm run verify:markdown-links` PASS; `git diff --check` PASS.
+  - Files changed: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.windsurfrules`, `.github/copilot-instructions.md`, `docs/reports/historical/*`, `docs/superpowers/plans/2026-07-11-release-readiness-work-order.md`, `scripts/verify-repository-identity.cjs`, `scripts/verify-repository-identity.test.ts`.
+
 - **2026-07-11 Tasks 16-18: memory-index migration and deterministic unit domains — COMPLETE (current session):**
   - Reviewed `kimi-export-session_-20260711-205818.md` and resumed from the release-readiness work order after Task 15. The prior Task 15 implementation was already present in commits `9ccb6f5` / `16253c2`; this session continued with the next pending tasks.
   - **Task 16: Bump memory index schema and auto-migrate — CLOSED in this session.**
@@ -299,6 +305,7 @@
 
 ### Open TODO Ledger
 - Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
+- **2026-07-11 Local path normalization — CLOSED in this session.**
 - **2026-07-10 Phase 5 Prompt Library selection — CLOSED in this session:**
   - Delete middle/last/only selection behaviour regression-tested (VERIFY-075).
   - Filter-hides-selection reconciliation regression-tested (VERIFY-075).
@@ -575,6 +582,16 @@
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+
+- **2026-07-11 Local path normalization**
+  - Node/toolchain: `v24.3.0` / `npm 11.4.2`.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npm run verify:repository-identity` | PASS | <1s | Initial pass failed because the active pointer docs still referenced the obsolete path; fixed by restoring the canonical root string. | `git mode` |
+  | `npm run verify:agent-docs` | PASS | <1s | — | Agent doc verification passed |
+  | `npm run verify:markdown-links` | PASS | <1s | — | 77 Markdown files checked |
+  | `git diff --check` | PASS | <1s | — | clean diff |
 
 - **2026-07-11 Tasks 16-18: memory-index migration and deterministic unit domains**
   - Node/toolchain: `v24.3.0` / `npm 11.4.2` (local drift from repo target `>=22.13.0 <23.0.0`; CI should continue using Node 22).

@@ -12,7 +12,7 @@
 - Node: `>=22.13.0 <23.0.0`
 
 Do not use historical paths such as
-/Users/super_user/Projects/Windows-Venice-API-connector. Before editing,
+/Users/super_user/Projects/Venice_Forge. Before editing,
 run the local-only repository-root bootstrap check in `AGENTS.md`. Never put
 that absolute-path assertion in CI.
 

@@ -50,7 +50,7 @@ describe("VERIFY-069 repository identity", () => {
 
   it("reports obsolete active paths with file and line", () => {
     writeAgentDocs();
-    write("README.md", "ok\n/Users/super_user/Projects/Windows-Venice-API-connector\n");
+    write("README.md", "ok\n/Users/super_user/Projects/Venice_Forge/\n");
     const result = verifyRepositoryIdentity(rootDir);
     expect(result.passed).toBe(false);
     expect(result.errors).toContainEqual(expect.stringContaining("README.md:2:"));
@@ -58,7 +58,7 @@ describe("VERIFY-069 repository identity", () => {
 
   it("requires a banner before allowing historical paths", () => {
     writeAgentDocs();
-    write("docs/reports/historical/old.md", "/Users/super_user/Projects/Windows-Venice-API-connector\n");
+    write("docs/reports/historical/old.md", "/Users/super_user/Projects/Venice_Forge/\n");
     expect(verifyRepositoryIdentity(rootDir).errors).toContainEqual(expect.stringContaining("Historical snapshot banner"));
   });
 

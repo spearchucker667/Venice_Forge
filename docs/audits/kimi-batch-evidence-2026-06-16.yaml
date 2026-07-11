@@ -10,7 +10,7 @@ batch_report:
   batch_id: kimi_batch_cross_check_2026_06_16
   status: complete
   provenance:
-    repo_path: /Users/super_user/Projects/Windows-Venice-API-connector
+    repo_path: /Users/super_user/Projects/Venice_Forge/
     branch: main
     head: 1de7d42
     remote: https://github.com/spearchucker667/Venice_Forge.git

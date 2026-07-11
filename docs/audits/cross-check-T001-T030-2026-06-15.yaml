@@ -23,7 +23,7 @@ report:
     closed in the current source tree, with the canonical validation gate
     executed on Node 22.
 provenance:
-  repository: /Users/super_user/Projects/Windows-Venice-API-connector
+  repository: /Users/super_user/Projects/Venice_Forge/
   dirty_files:
     - docs/summary_of_work.md
     - electron/services/characterImageCache.test.ts

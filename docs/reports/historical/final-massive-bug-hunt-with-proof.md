@@ -26,7 +26,7 @@ All core validation gates pass (lint, typecheck, 3,232 tests, 22+ verify scripts
 
 | Property | Value |
 |---|---|
-| Path | `/Users/super_user/Projects/Windows-Venice-API-connector` |
+| Path | `/Users/super_user/Projects/Venice_Forge/` |
 | Branch | `main` |
 | Starting HEAD | `118b0e506753d357bc03368a2accf5aa46010119` ("records") |
 | Node | `v22.22.3` (>=22.13.0 <23) |

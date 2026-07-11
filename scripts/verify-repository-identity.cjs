@@ -7,7 +7,7 @@ const { spawnSync } = require("node:child_process");
 const CANONICAL_PATH = "/Users/super_user/Projects/Venice_Forge";
 const CANONICAL_REPOSITORY = "spearchucker667/Venice_Forge";
 const OBSOLETE_PATHS = [
-  "/Users/super_user/Projects/Windows-Venice-API-connector",
+  "/Users/super_user/Projects/Venice_Forge/",
   "/Users/super_user/Projects/Venice-API-connector",
   "/Users/super_user/Projects/Venice-Forge-Mac",
   "/Users/super_user/Projects/VeniceForgeMac",

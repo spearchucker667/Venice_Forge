@@ -19,7 +19,7 @@
 | BUG-005 (sidebar mock) | `desktopConversations` got mock, `desktopChat` didn't | FAIL (fixed in this round) |
 
 ## 3. Repo state
-- Path: `/Users/super_user/Projects/Windows-Venice-API-connector`
+- Path: `/Users/super_user/Projects/Venice_Forge/`
 - Branch: `pr-26`
 - Starting HEAD: `97242f3`
 - Ending HEAD: Uncommitted state matching `97242f3` + fixes

@@ -6,7 +6,7 @@
 > is `spearchucker667/Venice_Forge`. Do not use paths in this report as active
 > setup instructions.
 
-**Repository:** /Users/super_user/Projects/Windows-Venice-API-connector
+**Repository:** /Users/super_user/Projects/Venice_Forge/
 **Validation Date:** 2026-06-17
 **Method:** File inspection, grep, evidence-based pass/fail determination
 
