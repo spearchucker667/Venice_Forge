@@ -11,6 +11,12 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
+- **2026-07-11 Task 5: Preserve remote tombstone `deletedAt` and `deviceId` — COMPLETE (current session):**
+  - Updated `src/services/backupImportService.ts`: `importDecryptedPacket` now persists validated remote tombstones via `TombstoneService.saveTombstone(validation.tombstone)` instead of `recordTombstone(...)`, preserving the original `deletedAt` and `deviceId` metadata.
+  - Updated `src/services/backupImportService.test.ts`: mocked `saveTombstone`, replaced `recordTombstone` assertions, and added TDD regression test `preserves remote tombstone deletedAt and deviceId` that failed before the fix and passes after it.
+  - Validation: `npx vitest run src/services/backupImportService.test.ts` PASS (19 tests); `npx eslint --max-warnings=0` on touched files PASS; `npx tsc --noEmit -p tsconfig.json` PASS.
+  - Files changed: `src/services/backupImportService.ts`, `src/services/backupImportService.test.ts`, `docs/summary_of_work.md`.
+
 - **2026-07-11 Task 4 review fixes — COMPLETE (current session):**
   - Fixed `scripts/verify-backup-sync.cjs`: dropped the removed `emitLocalTombstone` export requirement from `src/services/syncEngine.ts` and now requires `deleteSyncableRecord` from `src/services/syncDeleteCoordinator.ts`.
   - Fixed `src/services/syncEngine.ts`: `handleStorageSaved` now ignores the `tombstones` store in addition to `diagnostics`, preventing duplicate tombstone packets when `TombstoneService.saveTombstone` writes locally. `handleStorageDeleted` is now async and logs errors from `deleteSyncableRecord` instead of fire-and-forget.
@@ -120,7 +126,9 @@
   - Detail editor cannot save a deleted record — store guard + UI regression test (VERIFY-076).
 - **2026-07-10 CI repair — CLOSED:** Resolved the zero-warning ESLint failure in build-and-test (22), check run `86287592255`.
 - **2026-07-11 Release readiness work order — IN PROGRESS:**
-  - **Task 4: Authoritative `deleteSyncableRecord` coordinator — CLOSED in this session.** Remaining tasks from the work order are delegated to subsequent sessions.
+  - **Task 4: Authoritative `deleteSyncableRecord` coordinator — CLOSED in this session.**
+  - **Task 5: Preserve remote tombstone `deletedAt` and `deviceId` — CLOSED in this session.**
+  - Remaining tasks from the work order are delegated to subsequent sessions.
 - **2026-07-01 priority remediation work order — CLOSED in this session:**
   - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
   - **Chat:** CLOSED. Selected character image wins for assistant bubbles, no-character fallback uses bundled Venice seal, and hook-level cache gating includes conversation identity.
@@ -374,6 +382,15 @@
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+
+- **2026-07-11 Task 5 focused verification**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run src/services/backupImportService.test.ts` | PASS | ~1s | — | 19/19 tests pass |
+  | `npx eslint --max-warnings=0 src/services/backupImportService.ts src/services/backupImportService.test.ts` | PASS | ~10s | — | 0 warnings |
+  | `npx tsc --noEmit -p tsconfig.json` | PASS | ~30s | — | renderer clean |
 
 - **2026-07-11 Task 3 focused verification**
   - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
