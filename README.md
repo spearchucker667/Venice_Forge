@@ -73,7 +73,7 @@ By prioritizing local data ownership, Venice Forge runs all storage operations l
 ---
 
 <p align="center">
-  <img width="512" height="512" alt="Venice Forge icon" src="./build/icon.png" />
+  <img width="512" height="512" alt="Venice Forge icon" src="./assets/preview.png" />
 </p>
 
 ---
