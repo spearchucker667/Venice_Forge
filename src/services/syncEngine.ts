@@ -2,7 +2,8 @@ import { importDecryptedPacket } from "./backupImportService";
 import { desktopSync } from "./desktopBridge";
 import type { SyncStoreName } from "../types/sync";
 import { sanitizePortableData } from "./syncDataSanitizer";
-import { createTombstone, validateTombstone } from "../shared/syncProtocol";
+import { validateTombstone } from "../shared/syncProtocol";
+import { deleteSyncableRecord } from "./syncDeleteCoordinator";
 
 let remoteChangeListenerCleanup: (() => void) | null = null;
 let syncActive = false;
@@ -162,8 +163,10 @@ function handleStorageDeleted(e: Event) {
   }
   const customEvent = e as CustomEvent<{ store: SyncStoreName; id: string }>;
   const { store, id } = customEvent.detail;
+  // Diagnostics is explicitly excluded from sync. Tombstones are sync metadata
+  // and are emitted by the authoritative delete coordinator, not re-routed here.
   if (store === "diagnostics" || store === "tombstones") return;
-  emitLocalTombstone(store, id);
+  void deleteSyncableRecord(store, id);
 }
 
 /** Called by StorageService/Zustand when a local record is saved/deleted. */
@@ -178,14 +181,4 @@ export async function emitLocalChange(storeName: SyncStoreName, record: unknown,
   }
 }
 
-/** Emits a tombstone packet for a local deletion. */
-export async function emitLocalTombstone(storeName: SyncStoreName, id: string) {
-  if (typeof window === "undefined" || !syncActive) return;
 
-  try {
-    const tombstone = createTombstone(storeName, id);
-    await desktopSync.writePacket({ storeName: "tombstones", id: tombstone.id, recordJson: JSON.stringify(tombstone) });
-  } catch (err) {
-    console.error(`[SyncEngine] Failed to emit tombstone for ${storeName} ${id}:`, err);
-  }
-}

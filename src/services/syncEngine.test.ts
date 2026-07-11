@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { initSyncEngine, stopSyncEngine, pauseSyncEngine } from "./syncEngine";
 import * as desktopBridge from "./desktopBridge";
 import { importDecryptedPacket } from "./backupImportService";
+import * as syncDeleteCoordinator from "./syncDeleteCoordinator";
 
 vi.mock("./desktopBridge", () => ({
   isElectron: vi.fn().mockReturnValue(true),
@@ -22,6 +23,10 @@ vi.mock("./backupImportService", () => ({
   importDecryptedPacket: vi.fn().mockResolvedValue({ ok: true }),
 }));
 
+vi.mock("./syncDeleteCoordinator", () => ({
+  deleteSyncableRecord: vi.fn().mockResolvedValue({ ok: true, tombstone: { id: "conversations:conv-1", storeName: "conversations", recordId: "conv-1", deletedAt: Date.now() } }),
+}));
+
 const mockStartSync = vi.mocked(desktopBridge.desktopSync.startSync);
 const mockStopSync = vi.mocked(desktopBridge.desktopSync.stopSync);
 const mockPauseSync = vi.mocked(desktopBridge.desktopSync.pauseSync);
@@ -29,6 +34,7 @@ const mockWritePacket = vi.mocked(desktopBridge.desktopSync.writePacket);
 const mockAcknowledgeOperation = vi.mocked(desktopBridge.desktopSync.acknowledgeOperation);
 const mockOnRemoteChange = vi.mocked(desktopBridge.desktopSync.onRemoteChange);
 const mockImportDecryptedPacket = vi.mocked(importDecryptedPacket);
+const mockDeleteSyncableRecord = vi.mocked(syncDeleteCoordinator.deleteSyncableRecord);
 
 describe("syncEngine", () => {
   beforeEach(() => {
@@ -115,7 +121,7 @@ describe("syncEngine", () => {
     expect(mockWritePacket).toHaveBeenCalledWith({ storeName: "conversations", id: "conv-1", recordJson: expect.any(String) });
   });
 
-  it("forwards venice:storage-deleted events as canonical tombstone packets", async () => {
+  it("routes venice:storage-deleted events through the authoritative delete coordinator", async () => {
     await initSyncEngine("password");
     const deletedCalls = (window.addEventListener as ReturnType<typeof vi.fn>).mock.calls as Array<[string, (e: Event) => void]>;
     const deletedHandler = deletedCalls.find((call) => call[0] === "venice:storage-deleted")?.[1];
@@ -124,18 +130,21 @@ describe("syncEngine", () => {
     deletedHandler(new CustomEvent("venice:storage-deleted", { detail: { store: "conversations", id: "conv-1" } }));
 
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(mockWritePacket).toHaveBeenCalledWith({
-      storeName: "tombstones",
-      id: "conversations:conv-1",
-      recordJson: expect.stringContaining("\"recordId\":\"conv-1\""),
-    });
-    const written = mockWritePacket.mock.calls.find((call) => call[0].storeName === "tombstones")?.[0];
-    if (!written) throw new Error("tombstone writePacket call not found");
-    const parsed = JSON.parse(written.recordJson);
-    expect(parsed.id).toBe("conversations:conv-1");
-    expect(parsed.storeName).toBe("conversations");
-    expect(parsed.recordId).toBe("conv-1");
-    expect(typeof parsed.deletedAt).toBe("number");
+    expect(mockDeleteSyncableRecord).toHaveBeenCalledWith("conversations", "conv-1");
+    // The coordinator is responsible for emission; syncEngine no longer calls writePacket directly.
+    expect(mockWritePacket).not.toHaveBeenCalledWith(expect.objectContaining({ storeName: "tombstones" }));
+  });
+
+  it("ignores venice:storage-deleted events for non-syncable stores", async () => {
+    await initSyncEngine("password");
+    const deletedCalls = (window.addEventListener as ReturnType<typeof vi.fn>).mock.calls as Array<[string, (e: Event) => void]>;
+    const deletedHandler = deletedCalls.find((call) => call[0] === "venice:storage-deleted")?.[1];
+    if (!deletedHandler) throw new Error("venice:storage-deleted handler not registered");
+
+    deletedHandler(new CustomEvent("venice:storage-deleted", { detail: { store: "diagnostics", id: "diag-1" } }));
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockDeleteSyncableRecord).not.toHaveBeenCalled();
   });
 
   it("does not emit when __VENICE_IS_SYNCING is true", async () => {

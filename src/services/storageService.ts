@@ -6,8 +6,7 @@ import { assertValidId, isValidId } from "../utils/idValidation";
 import { encryptData, decryptDataResult, type EncryptedPayload } from "./cryptoService";
 import { applyMigrations } from "./dbMigrations";
 import { DEFAULT_PROFILE_ID, getActiveProfileId } from "./activeProfile";
-import { desktopSync, isElectron } from "./desktopBridge";
-import { createTombstone } from "../shared/syncProtocol";
+
 
 type StoreName = (typeof STORE_NAMES)[number];
 
@@ -511,16 +510,6 @@ const StorageService = {
     const result = await this.deleteRawProfileRows(db, store, id, activeProfile);
     if (result && typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("venice:storage-deleted", { detail: { store, id } }));
-
-      const veniceWindow = window as Window & { __VENICE_IS_SYNCING?: boolean };
-      // Exclude the tombstones store itself (prevents self-referential propagation) and the
-      // diagnostics store (explicitly excluded from sync, so tombstones for it are meaningless).
-      const isSyncExcludedStore = store === "tombstones" || store === "diagnostics";
-      if (veniceWindow.__VENICE_IS_SYNCING !== true && isElectron() && !isSyncExcludedStore) {
-        const tombstone = createTombstone(store, id);
-        desktopSync.writePacket({ storeName: "tombstones", id, recordJson: JSON.stringify(tombstone) })
-          .catch((err: unknown) => console.error("Failed to emit tombstone:", err));
-      }
     }
     return result;
   },
