@@ -12,6 +12,7 @@ vi.mock("./desktopBridge", () => ({
     stopSync: vi.fn().mockResolvedValue({ ok: true }),
     pauseSync: vi.fn().mockResolvedValue({ ok: true }),
     writePacket: vi.fn().mockResolvedValue({ ok: true }),
+    acknowledgeOperation: vi.fn().mockResolvedValue({ ok: true }),
     onRemoteChange: vi.fn().mockReturnValue(() => {}),
     setEmissionSuppressed: vi.fn().mockResolvedValue({ ok: true }),
   },
@@ -25,6 +26,7 @@ const mockStartSync = vi.mocked(desktopBridge.desktopSync.startSync);
 const mockStopSync = vi.mocked(desktopBridge.desktopSync.stopSync);
 const mockPauseSync = vi.mocked(desktopBridge.desktopSync.pauseSync);
 const mockWritePacket = vi.mocked(desktopBridge.desktopSync.writePacket);
+const mockAcknowledgeOperation = vi.mocked(desktopBridge.desktopSync.acknowledgeOperation);
 const mockOnRemoteChange = vi.mocked(desktopBridge.desktopSync.onRemoteChange);
 const mockImportDecryptedPacket = vi.mocked(importDecryptedPacket);
 
@@ -68,6 +70,37 @@ describe("syncEngine", () => {
     expect(secondCleanup).not.toHaveBeenCalled();
   });
 
+  it("awaits stop before start so a delayed stop cannot terminate a new watcher", async () => {
+    const stopOrder: string[] = [];
+    mockStopSync.mockImplementation(async () => {
+      stopOrder.push("stop-start");
+      return { ok: true };
+    });
+    mockStartSync.mockImplementation(async () => {
+      stopOrder.push("start");
+      return { ok: true };
+    });
+
+    await initSyncEngine("password");
+    expect(stopOrder).toEqual(["stop-start", "start"]);
+  });
+
+  it("does not attach listeners when main process start fails", async () => {
+    mockStartSync.mockResolvedValueOnce({ ok: false, error: "main start failed" });
+    const result = await initSyncEngine("password");
+    expect(result).toEqual({ ok: false, status: "error", error: "main start failed" });
+    expect(window.addEventListener).not.toHaveBeenCalled();
+  });
+
+  it("keeps listeners attached when pause fails", async () => {
+    await initSyncEngine("password");
+    const removeCallsBeforePause = (window.removeEventListener as ReturnType<typeof vi.fn>).mock.calls.length;
+    mockPauseSync.mockResolvedValueOnce({ ok: false, error: "main pause failed" });
+    const result = await pauseSyncEngine();
+    expect(result).toEqual({ ok: false, status: "error", error: "main pause failed" });
+    expect((window.removeEventListener as ReturnType<typeof vi.fn>).mock.calls.length).toBe(removeCallsBeforePause);
+  });
+
   it("forwards venice:storage-saved events as sync packets", async () => {
     await initSyncEngine("password");
     const savedCalls = (window.addEventListener as ReturnType<typeof vi.fn>).mock.calls as Array<[string, (e: Event) => void]>;
@@ -93,7 +126,7 @@ describe("syncEngine", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(mockWritePacket).toHaveBeenCalledWith({
       storeName: "tombstones",
-      id: "conv-1",
+      id: "conversations:conv-1",
       recordJson: expect.stringContaining("\"recordId\":\"conv-1\""),
     });
     const written = mockWritePacket.mock.calls.find((call) => call[0].storeName === "tombstones")?.[0];
@@ -121,23 +154,26 @@ describe("syncEngine", () => {
   it("imports remote changes via importDecryptedPacket", async () => {
     await initSyncEngine("password");
     const remoteCallback = mockOnRemoteChange.mock.calls[0][0];
-    await remoteCallback({ storeName: "conversations", id: "conv-1", recordJson: '{"id":"conv-1"}' });
+    await remoteCallback({ storeName: "conversations", id: "conv-1", operationId: "op-1", recordJson: '{"id":"conv-1"}' });
     expect(mockImportDecryptedPacket).toHaveBeenCalledWith("conversations", "conv-1", '{"id":"conv-1"}');
+    expect(mockAcknowledgeOperation).toHaveBeenCalledWith({ operationId: "op-1", ok: true });
   });
 
   it("rejects malformed tombstones from remote changes", async () => {
     await initSyncEngine("password");
     const remoteCallback = mockOnRemoteChange.mock.calls[0][0];
-    await remoteCallback({ storeName: "tombstones", id: "conv-1", recordJson: '{"storeName":"conversations","id":"conv-1","deletedAt":12345}' });
+    await remoteCallback({ storeName: "tombstones", id: "conv-1", operationId: "op-2", recordJson: '{"storeName":"conversations","id":"conv-1","deletedAt":12345}' });
     expect(mockImportDecryptedPacket).not.toHaveBeenCalled();
+    expect(mockAcknowledgeOperation).toHaveBeenCalledWith({ operationId: "op-2", ok: false });
   });
 
   it("forwards valid remote tombstones to importDecryptedPacket", async () => {
     await initSyncEngine("password");
     const remoteCallback = mockOnRemoteChange.mock.calls[0][0];
     const recordJson = JSON.stringify({ id: "conversations:conv-1", storeName: "conversations", recordId: "conv-1", deletedAt: Date.now() });
-    await remoteCallback({ storeName: "tombstones", id: "conv-1", recordJson });
+    await remoteCallback({ storeName: "tombstones", id: "conv-1", operationId: "op-3", recordJson });
     expect(mockImportDecryptedPacket).toHaveBeenCalledWith("tombstones", "conv-1", recordJson);
+    expect(mockAcknowledgeOperation).toHaveBeenCalledWith({ operationId: "op-3", ok: true });
   });
 
   it("returns structured error when main process start fails", async () => {

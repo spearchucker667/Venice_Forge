@@ -5,7 +5,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
-import { useChat } from "./use-chat";
+import { useChat, clearAllMemoryState } from "./use-chat";
 import { useChatStore } from "../stores/chat-store";
 import { useCharacterStore } from "../stores/character-store";
 import { useSettingsStore } from "../stores/settings-store";
@@ -56,6 +56,7 @@ const LOCAL_CARD: CharacterCardV1 = {
 };
 
 function resetStores() {
+  clearAllMemoryState();
   useChatStore.setState({
     conversations: [],
     activeConversationId: null,
@@ -487,6 +488,39 @@ describe("use-chat character_slug threading", () => {
     expect(mockedPullContext).toHaveBeenCalledTimes(1);
     expect(useChatStore.getState().pendingContext).toBeNull();
     expect(mockedVeniceStreamChat).toHaveBeenCalled();
+  });
+
+  // VERIFY-070 regression guard: an empty first retrieval still counts as the
+  // one preview attempt for the conversation; the next send does not retry.
+  it("does not retry the preview after a first retrieval returns no context", async () => {
+    useSettingsStore.setState({
+      enableMemoryRetrieval: true,
+      showPulledContextBeforeSending: true,
+    });
+    mockedPullContext.mockResolvedValue({
+      ok: true,
+      context: { injectedText: "", facts: [], summaries: [], tokenEstimate: 0 },
+    });
+    mockedVeniceStreamChat.mockResolvedValue(undefined);
+
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().setConversationMemoryEnabled(convId, true);
+    useChatStore.setState({ activeConversationId: convId });
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("First", "llama-3.3-70b");
+    });
+    expect(result.current.memoryStatus).toBe("idle");
+    expect(mockedPullContext).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await result.current.send("Second", "llama-3.3-70b");
+    });
+    // The second send no longer reopens the preview, but may still retrieve
+    // silently according to the user's memory settings.
+    expect(useChatStore.getState().pendingContext).toBeNull();
+    expect(mockedVeniceStreamChat).toHaveBeenCalledTimes(2);
   });
 
   // VERIFY-070 regression guard: character chats default to memory off, but an

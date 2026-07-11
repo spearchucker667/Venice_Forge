@@ -461,7 +461,11 @@ export const desktopSync = {
     if (isElectron()) return window.veniceForge!.sync.writePacket(params);
     return { ok: false, error: "Not supported in Web" };
   },
-  onRemoteChange(callback: (event: { storeName: string; id: string; recordJson: string }) => void) {
+  async acknowledgeOperation(params: { operationId: string; ok: boolean }): Promise<{ ok: boolean; error?: string }> {
+    if (isElectron()) return window.veniceForge!.sync.acknowledgeOperation(params);
+    return { ok: false, error: "Not supported in Web" };
+  },
+  onRemoteChange(callback: (event: { storeName: string; id: string; operationId: string; recordJson: string }) => void) {
     if (isElectron()) return window.veniceForge!.sync.onRemoteChange(callback);
     return () => {};
   },

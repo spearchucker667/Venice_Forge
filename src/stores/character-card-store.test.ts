@@ -90,6 +90,18 @@ describe("character-card-store", () => {
     );
   });
 
+  it("upsert rejects a character that exceeds the token budget", async () => {
+    const overloaded = baseCard({
+      description: "x".repeat(32_000),
+      systemPrompt: "y".repeat(32_000),
+      scenario: "w".repeat(32_000),
+      firstMessage: "z".repeat(32_000),
+    });
+    const saved = await useCharacterCardStore.getState().upsert(overloaded);
+    expect(saved).toBeNull();
+    expect(useCharacterCardStore.getState().error).toMatch(/exceeds the supported context budget/);
+  });
+
   it("remove deletes a card and clears editingId when matching", async () => {
     const saved = await useCharacterCardStore.getState().upsert(baseCard());
     expect(saved).not.toBeNull();

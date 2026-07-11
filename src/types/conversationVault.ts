@@ -159,6 +159,9 @@ export interface MemoryIndexEntryV1 {
   messageCount: number;
   pinned: boolean;
   archived: boolean;
+  /** Optional character binding so character-scoped retrieval can filter
+   *  before applying the result limit. */
+  characterId?: string;
 }
 
 export interface MemoryIndexV1 {

@@ -45,7 +45,24 @@ const LOCAL_CACHE_PATTERNS = [
 ];
 const TEXT_FILE_RE = /\.(?:cjs|mjs|js|jsx|ts|tsx|md|ya?ml|json|txt|rules)$/i;
 
-function trackedFiles(rootDir) {
+const EXCLUDED_ARCHIVE_DIRS = new Set([
+  "_REPO_EXTRACT_METADATA",
+  "node_modules",
+  ".git",
+  "dist",
+  "dist-electron",
+  "release",
+  "coverage",
+  ".vite",
+  ".turbo",
+  ".cache",
+]);
+
+function isExcludedArchiveDir(relativePath) {
+  return EXCLUDED_ARCHIVE_DIRS.has(relativePath.split("/")[0]);
+}
+
+function trackedFilesFromGit(rootDir) {
   const result = spawnSync("git", ["ls-files", "-z"], {
     cwd: rootDir,
     encoding: "utf8",
@@ -54,6 +71,44 @@ function trackedFiles(rootDir) {
     throw new Error(result.stderr || "git ls-files failed");
   }
   return result.stdout.split("\0").filter(Boolean);
+}
+
+function readArchiveFileList(rootDir) {
+  const listPath = path.join(rootDir, "_REPO_EXTRACT_METADATA", "final-file-list.txt");
+  if (!fs.existsSync(listPath)) return null;
+  return fs
+    .readFileSync(listPath, "utf8")
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => line.replace(/^\.\//, ""))
+    .filter((relativePath) => !relativePath.startsWith("_REPO_EXTRACT_METADATA/"));
+}
+
+function parseArchiveMetadata(rootDir) {
+  const infoPath = path.join(rootDir, "_REPO_EXTRACT_METADATA", "EXTRACT_INFO.txt");
+  if (!fs.existsSync(infoPath)) return null;
+  const content = fs.readFileSync(infoPath, "utf8");
+  const metadata = {};
+  for (const line of content.split(/\r?\n/)) {
+    const idx = line.indexOf("=");
+    if (idx > 0) {
+      metadata[line.slice(0, idx)] = line.slice(idx + 1);
+    }
+  }
+  return metadata;
+}
+
+function trackedFiles(rootDir) {
+  if (fs.existsSync(path.join(rootDir, ".git"))) {
+    return { mode: "git", files: trackedFilesFromGit(rootDir) };
+  }
+
+  const archiveFiles = readArchiveFileList(rootDir);
+  if (archiveFiles) {
+    return { mode: "archive", files: archiveFiles };
+  }
+
+  return { mode: "unknown", files: [] };
 }
 
 function isHistorical(relativePath) {
@@ -70,10 +125,26 @@ function reportLine(errors, relativePath, lineNumber, message) {
 
 function verifyRepositoryIdentity(rootDir) {
   const errors = [];
-  const files = trackedFiles(rootDir);
+  const { mode, files } = trackedFiles(rootDir);
+
+  if (mode === "unknown") {
+    errors.push("repository-identity: unable to determine discovery mode (no .git or archive metadata)");
+    return { passed: false, errors };
+  }
+
+  if (mode === "archive") {
+    const metadata = parseArchiveMetadata(rootDir);
+    if (!metadata || metadata.repo_name !== "Venice_Forge") {
+      errors.push("archive metadata missing or repo_name is not Venice_Forge");
+    }
+    if (!metadata || !metadata.commit) {
+      errors.push("archive metadata missing commit");
+    }
+  }
 
   for (const relativePath of files) {
     if (!fs.existsSync(path.join(rootDir, relativePath))) continue;
+    if (mode === "archive" && isExcludedArchiveDir(relativePath)) continue;
     if (LOCAL_CACHE_PATTERNS.some((pattern) => pattern.test(relativePath))) {
       reportLine(errors, relativePath, 1, "committed local cache is not allowed");
     }
@@ -95,6 +166,7 @@ function verifyRepositoryIdentity(rootDir) {
   }
 
   for (const relativePath of files) {
+    if (mode === "archive" && isExcludedArchiveDir(relativePath)) continue;
     if (!TEXT_FILE_RE.test(relativePath) && !ACTIVE_DOCS.has(relativePath)) continue;
     const absolutePath = path.join(rootDir, relativePath);
     let content;
@@ -153,7 +225,8 @@ function main() {
     result.errors.forEach((error) => console.error(`- ${error}`));
     process.exit(1);
   }
-  console.log("[verify:repository-identity] OK");
+  const { mode } = trackedFiles(rootDir);
+  console.log(`[verify:repository-identity] OK (${mode} mode)`);
 }
 
 module.exports = {

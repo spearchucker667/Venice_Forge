@@ -177,5 +177,58 @@ if (!ciYaml.includes('RUN_ELECTRON_SMOKE: \'true\'')) {
 }
 console.log("✓ Windows packaged smoke job exists");
 
+// 6. Verify that every Vitest script that names explicit file or directory
+// arguments points to an existing path. This prevents silent narrowing of
+// coverage when a test file is renamed or removed.
+const vitestRunRegex = /vitest\s+run\b/;
+const shellMetaRegex = /^(&&|\|\||;|>|\|)/;
+
+function tokenize(script) {
+  const tokens = [];
+  const regex = /'([^']*)'|"([^"]*)"|(\S+)/g;
+  let match;
+  while ((match = regex.exec(script)) !== null) {
+    tokens.push(match[1] ?? match[2] ?? match[3]);
+  }
+  return tokens;
+}
+
+const missingPaths = [];
+for (const [name, script] of Object.entries(pkg.scripts || {})) {
+  if (!vitestRunRegex.test(script)) continue;
+
+  const parts = script.split(vitestRunRegex);
+  const afterRun = parts.slice(2).join("");
+  const tokens = tokenize(afterRun);
+
+  for (let i = 0; i < tokens.length; i += 1) {
+    const arg = tokens[i];
+    if (shellMetaRegex.test(arg)) break;
+    if (arg.startsWith("-")) {
+      // Skip flag and its value when the flag expects one.
+      if (arg === "--exclude" || arg === "--reporter" || arg === "--config" || arg === "--project") {
+        i += 1;
+      }
+      continue;
+    }
+    // Ignore glob/wildcard patterns; they are intentional path expressions.
+    if (/[*?]/.test(arg)) continue;
+
+    const resolved = path.resolve(root, arg);
+    if (!fs.existsSync(resolved)) {
+      missingPaths.push({ script: name, arg, resolved });
+    }
+  }
+}
+
+if (missingPaths.length > 0) {
+  console.error("❌ Some Vitest scripts reference missing paths:");
+  for (const { script, arg, resolved } of missingPaths) {
+    console.error(`  - ${script}: ${arg} (${resolved})`);
+  }
+  process.exit(1);
+}
+console.log("✓ All explicit Vitest paths exist");
+
 console.log("CI contract check: PASS");
 process.exit(0);

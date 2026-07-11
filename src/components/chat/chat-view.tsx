@@ -80,13 +80,11 @@ export function ChatView() {
   const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLocaleLowerCase())
   const searchMatches = useMemo(() => {
     if (!deferredSearchQuery || !conversation) return []
-    const matches: Array<{ messageId: string; offset: number }> = []
+    const matches: string[] = []
     for (const message of conversation.messages) {
       const text = contentToSearchText(message.content).toLocaleLowerCase()
-      let offset = text.indexOf(deferredSearchQuery)
-      while (offset >= 0) {
-        matches.push({ messageId: message.id, offset })
-        offset = text.indexOf(deferredSearchQuery, offset + Math.max(1, deferredSearchQuery.length))
+      if (text.includes(deferredSearchQuery)) {
+        matches.push(message.id)
       }
     }
     return matches
@@ -114,7 +112,7 @@ export function ChatView() {
     const active = searchMatches[activeSearchMatch]
     if (!active) return
     const element = Array.from(document.querySelectorAll<HTMLElement>('[data-message-id]'))
-      .find((candidate) => candidate.dataset.messageId === active.messageId)
+      .find((candidate) => candidate.dataset.messageId === active)
     element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [activeSearchMatch, searchMatches])
 
@@ -448,6 +446,7 @@ export function ChatView() {
                             : c,
                         ),
                       }));
+                      useChatStore.getState().setConversationModel(convId, resolvedDefault);
                       toast.info(
                         "Character unbound",
                         "This conversation will now use the default model.",
@@ -463,28 +462,31 @@ export function ChatView() {
             <div className="w-full max-w-[960px] mx-auto py-5 px-4 sm:px-5 flex flex-col gap-5">
               {conversation.messages.map((msg, i) => {
                 const cb = messageCallbacks.get(msg.id)
-                const activeMatchMessageId = searchMatches[activeSearchMatch]?.messageId
+                const activeMatchMessageId = searchMatches[activeSearchMatch]
+                const containsQuery = deferredSearchQuery
+                  ? contentToSearchText(msg.content).toLocaleLowerCase().includes(deferredSearchQuery)
+                  : false
                 return (
                   <div
+                    key={msg.id}
                     data-message-id={msg.id}
-                    data-search-match={deferredSearchQuery && contentToSearchText(msg.content).toLocaleLowerCase().includes(deferredSearchQuery) ? 'true' : undefined}
+                    data-search-match={containsQuery ? 'true' : undefined}
                     className={activeMatchMessageId === msg.id ? 'rounded-lg outline outline-2 outline-accent outline-offset-4' : undefined}
                   >
-                  <MessageBubble
-                    key={msg.id}
-                    message={msg}
-                    index={i}
-                    onCopy={cb?.onCopy ?? (() => {})}
-                    onDelete={cb?.onDelete ?? (() => {})}
-                    onEdit={cb?.onEdit}
-                    onDeleteFromHere={cb?.onDeleteFromHere}
-                    onRegenerateFromHere={cb?.onRegenerateFromHere}
-                    onForkFromHere={cb?.onForkFromHere}
-                    onRegenerate={cb?.onRegenerate}
-                    onGenerateScene={cb?.onGenerateScene}
-                    isCharacterBound={isCharacterBound}
-                    assistantAvatarUrl={assistantAvatarUrl}
-                  />
+                    <MessageBubble
+                      message={msg}
+                      index={i}
+                      onCopy={cb?.onCopy ?? (() => {})}
+                      onDelete={cb?.onDelete ?? (() => {})}
+                      onEdit={cb?.onEdit}
+                      onDeleteFromHere={cb?.onDeleteFromHere}
+                      onRegenerateFromHere={cb?.onRegenerateFromHere}
+                      onForkFromHere={cb?.onForkFromHere}
+                      onRegenerate={cb?.onRegenerate}
+                      onGenerateScene={cb?.onGenerateScene}
+                      isCharacterBound={isCharacterBound}
+                      assistantAvatarUrl={assistantAvatarUrl}
+                    />
                   </div>
                 )
               })}

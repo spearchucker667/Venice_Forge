@@ -74,4 +74,44 @@ describe("VERIFY-069 repository identity", () => {
     expect(result.errors).toContainEqual(expect.stringContaining(privateProto));
     expect(result.errors).toContainEqual(expect.stringContaining("committed local cache"));
   });
+
+  it("supports archive mode using _REPO_EXTRACT_METADATA", () => {
+    writeAgentDocs();
+    // Remove the Git worktree to force archive-mode discovery.
+    fs.rmSync(path.join(rootDir, ".git"), { recursive: true, force: true });
+
+    const metaDir = path.join(rootDir, "_REPO_EXTRACT_METADATA");
+    fs.mkdirSync(metaDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(metaDir, "EXTRACT_INFO.txt"),
+      "repo_name=Venice_Forge\ncommit=deadbeef\nbranch=main\n",
+    );
+    fs.writeFileSync(
+      path.join(metaDir, "final-file-list.txt"),
+      "./AGENTS.md\n./README.md\n",
+    );
+
+    expect(verifyRepositoryIdentity(rootDir)).toEqual({ passed: true, errors: [] });
+  });
+
+  it("archive mode fails without valid metadata", () => {
+    writeAgentDocs();
+    fs.rmSync(path.join(rootDir, ".git"), { recursive: true, force: true });
+
+    const metaDir = path.join(rootDir, "_REPO_EXTRACT_METADATA");
+    fs.mkdirSync(metaDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(metaDir, "EXTRACT_INFO.txt"),
+      "repo_name=WrongRepo\ncommit=\n",
+    );
+    fs.writeFileSync(
+      path.join(metaDir, "final-file-list.txt"),
+      "./AGENTS.md\n",
+    );
+
+    const result = verifyRepositoryIdentity(rootDir);
+    expect(result.passed).toBe(false);
+    expect(result.errors.some((e) => e.includes("repo_name"))).toBe(true);
+    expect(result.errors.some((e) => e.includes("commit"))).toBe(true);
+  });
 });

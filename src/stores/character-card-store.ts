@@ -22,6 +22,7 @@ import type { CharacterCardV1, CharacterCardExport, CharacterCardVersion } from 
 import { RP_CARD_EXPORT_VERSION } from "../types/rp";
 import { toast } from "./toast-store";
 import { useRpChatStore } from "./rp-chat-store";
+import { validateCharacterForPersistence } from "../services/rpTokenCounter";
 
 const PAGE_SIZE = 60;
 
@@ -114,6 +115,12 @@ export const useCharacterCardStore = create<CharacterCardState>((set, get) => ({
       const msg = "Invalid character card data.";
       set({ error: msg });
       toast.error("Could not save character", msg);
+      return null;
+    }
+    const budgetCheck = validateCharacterForPersistence(normalized);
+    if (!budgetCheck.ok) {
+      set({ error: budgetCheck.message });
+      toast.error("Could not save character", budgetCheck.message);
       return null;
     }
     try {

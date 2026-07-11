@@ -44,7 +44,7 @@ describe("syncBridge", () => {
     await emitSyncTombstone("conversations", "conv-1");
     expect(mockWritePacket).toHaveBeenCalledWith(
       "tombstones",
-      "conv-1",
+      "conversations:conv-1",
       expect.stringContaining('"storeName":"conversations"')
     );
   });

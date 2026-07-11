@@ -57,7 +57,7 @@ export async function emitSyncTombstone(storeName: string, id: string): Promise<
 
   try {
     const tombstone = createTombstone(syncStoreName as import("../../src/types/sync").SyncStoreName, id);
-    const res = await writePacket("tombstones", id, JSON.stringify(tombstone));
+    const res = await writePacket("tombstones", tombstone.id, JSON.stringify(tombstone));
     if (!res.ok) {
       logError("syncBridge", `Failed to emit tombstone for ${syncStoreName}/${id}: ${res.error || "unknown"}`);
     }

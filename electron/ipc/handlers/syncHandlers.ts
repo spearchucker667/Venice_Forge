@@ -1,5 +1,5 @@
 import { ipcMain, dialog, BrowserWindow } from "electron";
-import { setSyncFolder, getSyncFolder, getSyncStatus, setSyncEmissionSuppressed, startSyncWatcher, stopSyncWatcher, pauseSyncWatcher } from "../../services/syncFolderWatcher";
+import { setSyncFolder, getSyncFolder, getSyncStatus, setSyncEmissionSuppressed, startSyncWatcher, stopSyncWatcher, pauseSyncWatcher, acknowledgeOperation } from "../../services/syncFolderWatcher";
 import { redactErrorMessage } from "../../../src/shared/redaction";
 
 export function registerSyncHandlers(): void {
@@ -61,6 +61,13 @@ export function registerSyncHandlers(): void {
   ipcMain.handle("sync:writePacket", async (_event, input: { storeName: string; id: string; recordJson: string }) => {
     const { writePacket } = await import("../../services/syncFolderWatcher");
     return await writePacket(input.storeName, input.id, input.recordJson);
+  });
+
+  ipcMain.handle("sync:acknowledgeOperation", async (_event, input: { operationId: string; ok: boolean }) => {
+    if (!input || typeof input.operationId !== "string" || typeof input.ok !== "boolean") {
+      return { ok: false, error: "Invalid acknowledgment payload." };
+    }
+    return await acknowledgeOperation(input.operationId, input.ok);
   });
 
   // Manual Backup Support

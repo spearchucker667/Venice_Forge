@@ -162,6 +162,7 @@ export async function updateIndexForRecord(record: ConversationRecordV1): Promis
     messageCount: record.messages.length,
     pinned: !!record.metadata.pinned,
     archived: !!record.metadata.archived,
+    characterId: record.metadata?.character?.id,
   };
 
   const existingIdx = index.records.findIndex((r) => r.id === record.id);
@@ -188,11 +189,12 @@ export async function removeRecordFromIndex(id: string): Promise<void> {
  */
 export async function searchIndex(
   query: string,
-  options?: { limit?: number; includeArchived?: boolean }
+  options?: { limit?: number; includeArchived?: boolean; characterId?: string }
 ): Promise<SearchResult[]> {
   const index = await loadIndex();
   const limit = options?.limit ?? 50;
   const includeArchived = options?.includeArchived ?? false;
+  const characterId = options?.characterId;
 
   let terms = query
     .toLowerCase()
@@ -211,6 +213,7 @@ export async function searchIndex(
 
   for (const entry of index.records) {
     if (!includeArchived && entry.archived) continue;
+    if (characterId && entry.characterId !== characterId) continue;
 
     let score = 0;
     const matchedFields: SearchResult["matchedFields"] = [];
@@ -328,11 +331,9 @@ export async function pullContext(input: {
   const includeArchived = input.includeArchived ?? false;
 
   const excluded = new Set(input.excludeConversationIds ?? []);
-  const results = (await searchIndex(input.message, { includeArchived }))
+  const results = (await searchIndex(input.message, { includeArchived, characterId: input.characterId }))
     .filter((result) => !excluded.has(result.id));
   const topResults = results.slice(0, maxItems);
-
-  const characterId = input.characterId;
 
   const facts: MemoryFact[] = [];
   const summaries: string[] = [];
@@ -340,14 +341,6 @@ export async function pullContext(input: {
   for (const r of topResults) {
     const record = await getConversation(r.id);
     if (!record) continue;
-
-    // Character-scope isolation: when a character chat explicitly enables
-    // memory, only return context from conversations bound to the same
-    // character. This prevents Character A's history from leaking into
-    // Character B's chat.
-    if (characterId && record.metadata?.character?.id !== characterId) {
-      continue;
-    }
 
     if (record.memory.summary) {
       summaries.push(record.memory.summary);
@@ -430,6 +423,7 @@ export async function rebuildIndex(): Promise<number> {
       messageCount: record.messages.length,
       pinned: !!record.metadata.pinned,
       archived: !!record.metadata.archived,
+      characterId: record.metadata?.character?.id,
     });
     itemsIndexed++;
   }

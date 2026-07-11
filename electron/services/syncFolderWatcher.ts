@@ -4,7 +4,7 @@ import crypto from "crypto";
 import { promises as fs } from "fs";
 import { logInfo, logError } from "./logger";
 import { redactErrorMessage } from "../../src/shared/redaction";
-import { BrowserWindow } from "electron";
+import { BrowserWindow, app } from "electron";
 import { encryptPayload, decryptPayload, EncryptedBackupManifest } from "./backupCrypto";
 import { getSyncPath, setSyncPath, getDeviceId } from "./syncConfig";
 
@@ -14,18 +14,160 @@ let mainWindowRef: BrowserWindow | null = null;
 let currentPassword: string | null = null;
 let syncStatus: "stopped" | "paused" | "running" = "stopped";
 let localEmissionSuppressed = false;
-const processedOperationIds = new Set<string>();
+const inFlightOperations = new Map<string, { storeName: string; sourceDeviceId?: string }>();
 const MAX_PACKET_BYTES = 50 * 1024 * 1024;
+
+const JOURNAL_VERSION = 1;
+const MAX_JOURNAL_ENTRIES = 50_000;
+const JOURNAL_COMPACTION_DAYS = 7;
+
+interface AppliedOperationEntry {
+  operationId: string;
+  storeName: string;
+  appliedAt: string;
+  sourceDeviceId?: string;
+  result: "applied" | "ignored" | "conflict-preserved";
+}
+
+interface AppliedOperationsJournal {
+  version: number;
+  operations: AppliedOperationEntry[];
+  lastCompactedAt?: string;
+}
+
+let appliedOperationsJournal: AppliedOperationsJournal = { version: JOURNAL_VERSION, operations: [] };
+let journalLoaded = false;
+let journalPath: string | null = null;
+
 export const SYNC_STORE_ALLOWLIST = new Set([
   "images", "chats", "settings", "conversations", "ai_memory", "files", "character_cards",
   "personas", "lorebooks", "rp_chats", "rp_assets", "projects", "promptLibrary", "scenes",
   "rpScenarios", "workflowTemplates", "researchSessions", "visualWorkflows", "playground", "tombstones",
 ]);
 
+function getJournalDirectory(): string {
+  return path.join(app.getPath("userData"), "sync");
+}
+
+function getJournalPath(): string {
+  if (!journalPath) {
+    journalPath = path.join(getJournalDirectory(), "applied-operations.json");
+  }
+  return journalPath;
+}
+
+export async function loadAppliedOperationsJournal(): Promise<void> {
+  if (journalLoaded) return;
+  try {
+    const filePath = getJournalPath();
+    await fs.mkdir(getJournalDirectory(), { recursive: true });
+    const data = await fs.readFile(filePath, "utf8");
+    const parsed = JSON.parse(data) as AppliedOperationsJournal;
+    if (parsed.version !== JOURNAL_VERSION || !Array.isArray(parsed.operations)) {
+      throw new Error("Corrupt applied-operations journal");
+    }
+    appliedOperationsJournal = parsed;
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+      logError("syncFolderWatcher", `Failed to load applied-operations journal: ${redactErrorMessage(err)}`);
+    }
+    appliedOperationsJournal = { version: JOURNAL_VERSION, operations: [] };
+  }
+  journalLoaded = true;
+}
+
+async function saveAppliedOperationsJournal(): Promise<void> {
+  const filePath = getJournalPath();
+  const tmpPath = `${filePath}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`;
+  try {
+    await fs.mkdir(getJournalDirectory(), { recursive: true });
+    await fs.writeFile(tmpPath, JSON.stringify(appliedOperationsJournal, null, 2), { encoding: "utf8", flag: "wx" });
+    await fs.rename(tmpPath, filePath);
+  } catch (err: unknown) {
+    logError("syncFolderWatcher", `Failed to save applied-operations journal: ${redactErrorMessage(err)}`);
+    await fs.rm(tmpPath, { force: true });
+    throw err;
+  }
+}
+
+function compactJournal(): void {
+  if (appliedOperationsJournal.operations.length <= MAX_JOURNAL_ENTRIES) return;
+
+  const cutoff = Date.now() - JOURNAL_COMPACTION_DAYS * 24 * 60 * 60 * 1000;
+  // Never evict tombstone operations; they must remain applied to prevent
+  // resurrection of deleted records on restart.
+  const isEvictable = (entry: AppliedOperationEntry) =>
+    entry.storeName !== "tombstones" && new Date(entry.appliedAt).getTime() < cutoff;
+
+  const evictableCount = appliedOperationsJournal.operations.filter(isEvictable).length;
+  const target = MAX_JOURNAL_ENTRIES;
+  const needToRemove = appliedOperationsJournal.operations.length - target;
+  const removeCount = Math.min(needToRemove, evictableCount);
+
+  if (removeCount > 0) {
+    let removed = 0;
+    appliedOperationsJournal.operations = appliedOperationsJournal.operations.filter((entry) => {
+      if (removed < removeCount && isEvictable(entry)) {
+        removed++;
+        return false;
+      }
+      return true;
+    });
+  }
+
+  appliedOperationsJournal.lastCompactedAt = new Date().toISOString();
+}
+
+export async function recordAppliedOperation(
+  operationId: string,
+  storeName: string,
+  result: AppliedOperationEntry["result"] = "applied",
+  sourceDeviceId?: string,
+): Promise<void> {
+  await loadAppliedOperationsJournal();
+  if (appliedOperationsJournal.operations.some((op) => op.operationId === operationId)) return;
+
+  appliedOperationsJournal.operations.push({
+    operationId,
+    storeName,
+    appliedAt: new Date().toISOString(),
+    sourceDeviceId,
+    result,
+  });
+
+  compactJournal();
+  await saveAppliedOperationsJournal();
+}
+
+export function isOperationApplied(operationId: string): boolean {
+  return appliedOperationsJournal.operations.some((op) => op.operationId === operationId);
+}
+
+export function isOperationInFlight(operationId: string): boolean {
+  return inFlightOperations.has(operationId);
+}
+
+export async function acknowledgeOperation(operationId: string, ok: boolean): Promise<{ ok: boolean; error?: string }> {
+  const inFlight = inFlightOperations.get(operationId);
+  inFlightOperations.delete(operationId);
+  if (!ok) {
+    return { ok: true };
+  }
+  try {
+    await recordAppliedOperation(operationId, inFlight?.storeName ?? "unknown", "applied", inFlight?.sourceDeviceId);
+    return { ok: true };
+  } catch (err: unknown) {
+    const error = err instanceof Error ? err.message : "Unknown error";
+    logError("syncFolderWatcher", `Failed to record applied operation ${operationId}: ${redactErrorMessage(error)}`);
+    return { ok: false, error: redactErrorMessage(error) };
+  }
+}
+
 /** Initialize the watcher. Must provide the mainWindow to send events back. */
 export async function initSyncFolderWatcher(mainWindow: BrowserWindow) {
   mainWindowRef = mainWindow;
   currentSyncPath = await getSyncPath();
+  await loadAppliedOperationsJournal();
 }
 
 export async function startSyncWatcher(password: string): Promise<{ ok: boolean; error?: string }> {
@@ -159,13 +301,16 @@ async function handleRemoteChange(filePath: string) {
       // Ignore our own echoes
       return;
     }
-    if (processedOperationIds.has(parsed._operationId)) return;
-    processedOperationIds.add(parsed._operationId);
-    if (processedOperationIds.size > 10_000) processedOperationIds.delete(processedOperationIds.values().next().value as string);
 
-    mainWindowRef.webContents.send("sync:onRemoteChange", { 
+    await loadAppliedOperationsJournal();
+    if (isOperationApplied(parsed._operationId) || isOperationInFlight(parsed._operationId)) return;
+
+    inFlightOperations.set(parsed._operationId, { storeName: parsed._storeName, sourceDeviceId: parsed._sourceDeviceId });
+
+    mainWindowRef.webContents.send("sync:onRemoteChange", {
       storeName: parsed._storeName,
       id: parsed._id,
+      operationId: parsed._operationId,
       recordJson: JSON.stringify(parsed.data)
     });
   } catch (err: unknown) {

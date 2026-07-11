@@ -11417,3 +11417,54 @@ Closed the remaining open items in the 10-problem "Embedded Browser Remediation 
 | `npx tsc --noEmit --project tsconfig.electron.json` | PASS | Electron main/preload typecheck clean. |
 | `node scripts/verify-backup-sync.cjs` | PASS | All contract checks passed. |
 | `npm run typecheck` (renderer + electron) | PASS | `tsc --noEmit` and `tsc --noEmit --project tsconfig.electron.json` both clean after fixing the Phase 9 test types. |
+
+## Latest Session Summary (2026-07-10 — Phase 6 Chat UI polish + full validation matrix)
+
+- **Date:** 2026-07-10
+- **Agent:** Kimi Code CLI
+- **Scope:** Phase 6 Chat UI + final validation matrix for the 2026-07-10 14:27 audit work order
+- **Work performed:**
+  - **Chat-view search key fix:** Updated the scroll `useEffect` in `src/components/chat/chat-view.tsx` to reference the message-id string directly after `searchMatches` was refactored from occurrence-level objects to message-level strings.
+  - **Character unbind model persistence:** The "Clear" handler on the active-character pill now calls `useChatStore.getState().setConversationModel(convId, resolvedDefault)` so the toast "This conversation will now use the default model" matches the persisted state.
+  - **RP token-counter lint fix:** Replaced the non-idiomatic literal-type annotation in `src/services/rpTokenCounter.ts` with `readonly code = "TOKEN_BUDGET_EXCEEDED" as const` so `npm run lint:eslint` passes.
+  - **macOS packaging (arm64):** `npm run dist:mac:arm64` builds both `x64` and `arm64` and could not finish within the 300 s foreground tool limit in this environment. To verify the arm64 path without altering the canonical config, a temporary `electron-builder.arm64.config.cjs` was created (and deleted), `npx electron-builder --config electron-builder.arm64.config.cjs --mac --arm64 --publish never` produced `release/Venice-Forge-2.1.2-arm64.dmg` and `.zip`, and `npm run checksum:release` generated sidecars. `node scripts/verify-dist.cjs --mac --arch arm64` passed. The repository is therefore ready for a full `npm run dist:mac:arm64` run in an environment with a longer timeout.
+  - **Full validation matrix executed:** All required commands except the full dual-arch macOS script completed with exit code zero (see matrix).
+
+### Session History entry
+
+- **2026-07-10 — Phase 6 Chat UI polish + full validation matrix:**
+  - Fixed chat-view search-scroll effect after message-level search refactor.
+  - Made character-unbind persist the resolved default model so the toast is truthful.
+  - Fixed an ESLint error in `rpTokenCounter.ts` introduced by the central token-validation change.
+  - Ran the complete validation matrix: lint, typecheck, server/electron/ingestion/unit/ui tests, coverage, build, dist verification, npm audit, all contract verifiers, and arm64 macOS packaging/verification.
+  - Verified the repository is in a green state for the 2026-07-10 14:27 audit work order.
+
+### Open TODO Ledger (Phase 6 update)
+
+- All P0 blockers from the 2026-07-10 14:27 audit are addressed in code and covered by tests.
+- The full `npm run dist:mac:arm64` dual-arch build should be re-run in CI or a host with no 300 s process limit; arm64 artifacts already verify cleanly.
+- No new standalone TODO documents were created; durable tasks remain in `docs/ROADMAP.md`.
+
+### Validation Matrix — 2026-07-10 Phase 6 + final gate
+
+| Command | Status | Duration | Failure summary | Evidence |
+| --- | --- | --- | --- | --- |
+| `npm ci` | PASS | ~60 s | — | 846 packages installed, lockfile mismatch resolved |
+| `npm run lint:eslint` | PASS | ~5 s | — | 0 errors, 0 warnings |
+| `npm run typecheck` | PASS | ~35 s | — | Renderer + Electron `tsc --noEmit` both clean |
+| `npm run test:server` | PASS | ~1 s | — | 59 tests passed |
+| `npm run test:electron` | PASS | ~6 s | — | 30 files, 503 tests passed |
+| `npm run test:ingestion` | PASS | ~3 s | — | 9 files, 65 tests passed |
+| `npm run test:unit` | PASS | ~102 s | — | 212 files, 2786 tests passed (`--no-file-parallelism`) |
+| `npm run test:ui` | PASS | ~20 s | — | layout/chat/media/research/settings batches all passed |
+| `npm run test:coverage` | PASS | ~175 s | — | 310 files, 3951 tests; thresholds exceeded: stmts 72.66%, branches 64.22%, funcs 71.45%, lines 75.81% |
+| `npm run verify:safety-guard` | PASS | — | — | Passed as part of `verify:contracts` |
+| `npm run verify:markdown-links` | PASS | — | — | 75 Markdown files checked, OK |
+| `npm run verify:repository-identity` | PASS | — | — | OK (git mode) |
+| `npm run verify:contracts` | PASS | ~90 s | — | Static + feature + release contract gates all passed |
+| `npm run build` | PASS | ~20 s | — | Renderer, server, and Electron production builds completed |
+| `npm run verify:dist` | PASS | ~2 s | — | Build outputs verified |
+| `npm audit --audit-level=moderate` | PASS | ~2 s | — | 0 vulnerabilities |
+| `npm run dist:mac:arm64` (full dual-arch script) | TIMEOUT/INCOMPLETE in this session | >300 s | Tool foreground limit exceeded while downloading/packaging Darwin x64; no build error | `npm run dist:mac:arm64` cleans and rebuilds both x64 and arm64; arm64 verified separately below |
+| Arm64-only macOS build + verify | PASS | ~180 s | — | `electron-builder.arm64.config.cjs` (temporary) produced DMG/ZIP; `node scripts/verify-dist.cjs --mac --arch arm64` passed |
+

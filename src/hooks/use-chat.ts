@@ -26,6 +26,7 @@ interface ConversationMemoryRuntimeState {
   conversationId: string
   activeRequestId: string | null
   previewShown: boolean
+  previewAttempted: boolean
 }
 
 const conversationMemoryState = new Map<string, ConversationMemoryRuntimeState>()
@@ -36,6 +37,7 @@ function getMemoryState(conversationId: string): ConversationMemoryRuntimeState 
       conversationId,
       activeRequestId: null,
       previewShown: false,
+      previewAttempted: false,
     })
   }
   return conversationMemoryState.get(conversationId)!
@@ -46,10 +48,33 @@ function setPreviewShown(conversationId: string, shown: boolean): void {
   state.previewShown = shown
 }
 
+function setPreviewAttempted(conversationId: string, attempted: boolean): void {
+  const state = getMemoryState(conversationId)
+  state.previewAttempted = attempted
+}
+
 function setActiveRequestId(conversationId: string, requestId: string | null): void {
   const state = getMemoryState(conversationId)
   state.activeRequestId = requestId
 }
+
+export function clearConversationMemoryState(conversationId: string): void {
+  conversationMemoryState.delete(conversationId)
+}
+
+export function clearAllMemoryState(): void {
+  conversationMemoryState.clear()
+}
+
+// Drop memory runtime state for conversations that are deleted so a reused id
+// does not inherit stale preview decisions.
+useChatStore.subscribe((state, prevState) => {
+  if (!prevState || state.conversations.length >= prevState.conversations.length) return
+  const surviving = new Set(state.conversations.map((c) => c.id))
+  for (const id of Array.from(conversationMemoryState.keys())) {
+    if (!surviving.has(id)) conversationMemoryState.delete(id)
+  }
+})
 
 async function pullMemoryContextForSend(userMessage: string, conversationId: string, characterId?: string) {
   try {
@@ -98,6 +123,7 @@ export function useChat() {
 
   const resetMemoryPreview = useCallback((conversationId: string) => {
     setPreviewShown(conversationId, false)
+    setPreviewAttempted(conversationId, false)
   }, [])
 
   const runSceneGeneration = useCallback(
@@ -225,12 +251,14 @@ export function useChat() {
         contextToInject = memoryDecision.approvedContext?.trim() ?? ''
         contextSource = 'approved_context'
         setPreviewShown(convId, true)
+        setPreviewAttempted(convId, true)
         setActiveRequestId(convId, null)
         memoryRequestRef.current = null
         setPendingContext(null)
         setMemoryStatus(contextToInject ? 'injected' : 'idle')
       } else if (memoryDecision.mode === 'disabled_for_message') {
         setPreviewShown(convId, true)
+        setPreviewAttempted(convId, true)
         setActiveRequestId(convId, null)
         memoryRequestRef.current = null
         setPendingContext(null)
@@ -249,7 +277,7 @@ export function useChat() {
         setActiveRequestId(convId, null)
         setPendingContext(null);
         setMemoryStatus('injected')
-      } else if (showPulledContextBeforeSending && !memoryState.previewShown) {
+      } else if (showPulledContextBeforeSending && !memoryState.previewShown && !memoryState.previewAttempted) {
         setMemoryStatus('loading')
         const requestId = generateId()
         memoryRequestRef.current = { conversationId: convId, requestId }
@@ -262,6 +290,7 @@ export function useChat() {
           setMemoryStatus('idle')
           return
         }
+        setPreviewAttempted(convId, true)
         if (res.ok && res.context && res.context.injectedText) {
           setPreviewShown(convId, true)
           setActiveRequestId(convId, null)
@@ -293,6 +322,7 @@ export function useChat() {
           setMemoryStatus('idle')
           return
         }
+        setPreviewAttempted(convId, true)
         if (res.ok && res.context && res.context.injectedText) {
           contextToInject = res.context.injectedText;
           contextSource = 'memory'

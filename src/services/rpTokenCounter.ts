@@ -57,3 +57,24 @@ export function getCharacterTokenBudget(card: CharacterCardV1) {
     overLimit: compiled.count > inputBudget,
   }
 }
+
+export class CharacterValidationError extends Error {
+  readonly code = "TOKEN_BUDGET_EXCEEDED" as const;
+  constructor(message: string) {
+    super(message);
+    this.name = "CharacterValidationError";
+  }
+}
+
+export function validateCharacterForPersistence(
+  card: CharacterCardV1,
+): { ok: true } | { ok: false; message: string } {
+  const budget = getCharacterTokenBudget(card);
+  if (budget.overLimit) {
+    return {
+      ok: false,
+      message: `Character exceeds the supported context budget by ${Math.abs(budget.remainingInputTokens).toLocaleString()} estimated tokens.`,
+    };
+  }
+  return { ok: true };
+}

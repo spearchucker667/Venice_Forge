@@ -1,16 +1,15 @@
 // VERIFY-091 regression guard: sync folder watcher validates, encrypts, and suppresses local emission.
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  setSyncFolder,
-  getSyncStatus,
-  writePacket,
-  setSyncEmissionSuppressed,
-  isSyncEmissionSuppressed,
-  startSyncWatcher,
-  stopSyncWatcher,
-} from "./syncFolderWatcher";
-import { promises as fs } from "fs";
+
+vi.mock("electron", () => ({
+  BrowserWindow: {
+    fromWebContents: vi.fn(),
+  },
+  app: {
+    getPath: vi.fn(),
+  },
+}));
 
 vi.mock("chokidar", () => ({
   default: {
@@ -25,14 +24,21 @@ vi.mock("chokidar", () => ({
   })),
 }));
 
-vi.mock("electron", () => ({
-  BrowserWindow: {
-    fromWebContents: vi.fn(),
-  },
-  app: {
-    getPath: vi.fn().mockReturnValue("/tmp/userData"),
-  },
-}));
+import {
+  setSyncFolder,
+  getSyncStatus,
+  writePacket,
+  setSyncEmissionSuppressed,
+  isSyncEmissionSuppressed,
+  startSyncWatcher,
+  stopSyncWatcher,
+  acknowledgeOperation,
+  loadAppliedOperationsJournal,
+  isOperationApplied,
+} from "./syncFolderWatcher";
+import { promises as fs } from "fs";
+import { app } from "electron";
+import { createTombstone } from "../../src/shared/syncProtocol";
 
 vi.mock("./syncConfig", () => ({
   getSyncPath: vi.fn().mockResolvedValue(null),
@@ -54,6 +60,7 @@ const tmpDir = "/tmp/sync-test";
 describe("syncFolderWatcher", () => {
   beforeEach(async () => {
     vi.resetAllMocks();
+    vi.mocked(app.getPath).mockReturnValue("/tmp/userData");
     setSyncEmissionSuppressed(false);
     await fs.mkdir(tmpDir, { recursive: true });
     await fs.rm(tmpDir, { recursive: true, force: true });
@@ -126,5 +133,30 @@ describe("syncFolderWatcher", () => {
     expect(result2.ok).toBe(true);
     const blobs2 = await fs.readdir(`${tmpDir}/.vfbackup/blobs`);
     expect(blobs2.length).toBe(1);
+  });
+
+  it("accepts a tombstone packet whose envelope id equals the tombstone id", async () => {
+    await setSyncFolder(tmpDir);
+    await startSyncWatcher("password");
+
+    const tombstone = createTombstone("conversations", "conv-1");
+    const result = await writePacket("tombstones", tombstone.id, JSON.stringify(tombstone));
+    expect(result.ok).toBe(true);
+  });
+
+  it("records acknowledged operations and prevents duplicate processing", async () => {
+    await setSyncFolder(tmpDir);
+    await startSyncWatcher("password");
+
+    const ackResult = await acknowledgeOperation("op-abc", true);
+    expect(ackResult).toEqual({ ok: true });
+
+    const journalPath = "/tmp/userData/sync/applied-operations.json";
+    const journalData = await fs.readFile(journalPath, "utf8");
+    const journal = JSON.parse(journalData);
+    expect(journal.operations.some((op: { operationId: string }) => op.operationId === "op-abc")).toBe(true);
+
+    await loadAppliedOperationsJournal();
+    expect(isOperationApplied("op-abc")).toBe(true);
   });
 });

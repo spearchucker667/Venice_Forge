@@ -349,9 +349,12 @@ export interface ElectronSyncAPI {
 
   /** Writes a SyncObject to the sync folder. Encryption happens in main process. */
   writePacket(input: { storeName: string; id: string; recordJson: string }): Promise<{ ok: boolean; error?: string }>;
-  
+
+  /** Acknowledges that a remote operation was applied (or failed) in the renderer. */
+  acknowledgeOperation(input: { operationId: string; ok: boolean }): Promise<{ ok: boolean; error?: string }>;
+
   /** Listen for changes from the watcher */
-  onRemoteChange(callback: (event: { storeName: string; id: string; recordJson: string }) => void): () => void;
+  onRemoteChange(callback: (event: { storeName: string; id: string; operationId: string; recordJson: string }) => void): () => void;
   
   /** Encrypt a manual backup payload */
   encryptBackup(input: { payload: string, password: string }): Promise<{ ok: boolean; data?: { salt: string, iv: string, ciphertext: string }; error?: string }>;

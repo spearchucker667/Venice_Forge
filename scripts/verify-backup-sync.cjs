@@ -128,7 +128,8 @@ function runStaticChecks() {
 
   mustContain(SYNC_ENGINE_FILE, "src/services/syncEngine.ts exports", [
     "export async function initSyncEngine",
-    "export function stopSyncEngine",
+    "export async function stopSyncEngine",
+    "export async function pauseSyncEngine",
     "export async function emitLocalChange",
     "export async function emitLocalTombstone",
   ]);
