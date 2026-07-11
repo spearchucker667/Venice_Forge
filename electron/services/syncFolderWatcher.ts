@@ -7,6 +7,7 @@ import { redactErrorMessage } from "../../src/shared/redaction";
 import { BrowserWindow, app } from "electron";
 import { encryptPayload, decryptPayload, EncryptedBackupManifest } from "./backupCrypto";
 import { getSyncPath, setSyncPath, getDeviceId } from "./syncConfig";
+import { enqueueRemoteApply } from "./syncApplyQueue";
 
 let watcher: FSWatcher | null = null;
 let currentSyncPath: string | null = null;
@@ -302,16 +303,21 @@ async function handleRemoteChange(filePath: string) {
       return;
     }
 
-    await loadAppliedOperationsJournal();
-    if (isOperationApplied(parsed._operationId) || isOperationInFlight(parsed._operationId)) return;
+    const queueKey = `${parsed._storeName}:${parsed._id}`;
+    await enqueueRemoteApply(queueKey, async () => {
+      if (!mainWindowRef || mainWindowRef.isDestroyed()) return;
 
-    inFlightOperations.set(parsed._operationId, { storeName: parsed._storeName, sourceDeviceId: parsed._sourceDeviceId });
+      await loadAppliedOperationsJournal();
+      if (isOperationApplied(parsed._operationId) || isOperationInFlight(parsed._operationId)) return;
 
-    mainWindowRef.webContents.send("sync:onRemoteChange", {
-      storeName: parsed._storeName,
-      id: parsed._id,
-      operationId: parsed._operationId,
-      recordJson: JSON.stringify(parsed.data)
+      inFlightOperations.set(parsed._operationId, { storeName: parsed._storeName, sourceDeviceId: parsed._sourceDeviceId });
+
+      mainWindowRef.webContents.send("sync:onRemoteChange", {
+        storeName: parsed._storeName,
+        id: parsed._id,
+        operationId: parsed._operationId,
+        recordJson: JSON.stringify(parsed.data)
+      });
     });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Unknown error";
