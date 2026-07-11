@@ -1,3 +1,6 @@
+# Canonical path: /Users/super_user/Projects/Venice_Forge
+# Historical path `Windows-Venice-API-connector` must not be used.
+
 # Venice Forge — Copilot Instructions
 
 ## Canonical Repository

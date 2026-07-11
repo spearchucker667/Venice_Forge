@@ -1,26 +1,12 @@
 # Venice Forge — Agent Guide
 
-> Human contributors: start with [README.md](README.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
-> Optional local-only agent scratch files may exist at `docs/AGENTS/AGENTS.md`
-> and `docs/AGENTS/agent-reinitialization.md`. They are gitignored and are
-> not part of the committed source of truth.
-
-**Version:** 2.1.2 | **Stack:** React 19 + TS strict, Electron 42, Express 4, Vitest 4 | **Node:** 22.13+, npm 10+
-
----
-
-## Canonical Repository
-
-- Local path: `/Users/super_user/Projects/Venice_Forge`
-- GitHub: `spearchucker667/Venice_Forge`
-- Application: Venice Forge Electron desktop app
-- Stack: Electron 42, React 19, TypeScript strict, Zustand, Vitest
-- Node: `>=22.13.0 <23.0.0`
-
-Do not use historical paths such as
-`/Users/super_user/Projects/Windows-Venice-API-connector`.
-Before changing files, run `pwd` and confirm the repository root contains
-`package.json`, `AGENTS.md`, `electron/`, and `src/`:
+> **Canonical repository root:** `/Users/super_user/Projects/Venice_Forge`
+> **GitHub:** `spearchucker667/Venice_Forge`
+> **Version:** 2.1.2
+>
+> Do not use historical paths such as
+> `/Users/super_user/Projects/Windows-Venice-API-connector`. Always run the
+> local-only root bootstrap check below before editing.
 
 ```bash
 EXPECTED_ROOT="/Users/super_user/Projects/Venice_Forge"
