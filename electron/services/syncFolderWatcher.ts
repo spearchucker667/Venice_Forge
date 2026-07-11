@@ -291,6 +291,7 @@ export async function pauseSyncWatcher(): Promise<{ ok: boolean; error?: string 
   watcher = null;
   currentPassword = null;
   requeueInFlightOperations("Watcher paused");
+  stopSyncRetryQueue();
   syncStatus = "paused";
   return { ok: true };
 }

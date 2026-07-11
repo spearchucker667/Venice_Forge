@@ -17,6 +17,7 @@ import { isTrustedExternalUrl } from "./utils/urlSecurity";
 import { rendererCsp } from "./utils/rendererCsp";
 import { isAllowedCharacterImageCacheProtocolAccess } from "./utils/characterImageCacheProtocol";
 import { startBridgeServer, stopBridgeServer } from "./services/bridgeServer";
+import { stopSyncWatcher } from "./services/syncFolderWatcher";
 import { isValidBridgeHost } from "./utils/bridgeHost";
 import { getCharacterImageCacheDir, ALLOWED_CONTENT_TYPES } from "./services/characterImageCache";
 import { setupResearchBrowserIpc } from "./services/researchBrowserServer";
@@ -347,6 +348,7 @@ if (!gotLock) {
 
   app.on("will-quit", () => {
     stopBridgeServer();
+    void stopSyncWatcher();
   });
 
   app.on("web-contents-created", (_event, contents) => {
