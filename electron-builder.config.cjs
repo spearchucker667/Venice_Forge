@@ -77,8 +77,12 @@ const config = {
 
   mac: {
     target: [
-      { target: "dmg", arch: ["x64", "arm64"] },
-      { target: "zip", arch: ["x64", "arm64"] },
+      { target: "dmg", arch: process.env.ELECTRON_BUILDER_MAC_ARCH
+        ? [process.env.ELECTRON_BUILDER_MAC_ARCH]
+        : ["x64", "arm64"] },
+      { target: "zip", arch: process.env.ELECTRON_BUILDER_MAC_ARCH
+        ? [process.env.ELECTRON_BUILDER_MAC_ARCH]
+        : ["x64", "arm64"] },
     ],
     icon: "build/icon.icns",
     category: "public.app-category.productivity",

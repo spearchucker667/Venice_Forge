@@ -11468,3 +11468,32 @@ Closed the remaining open items in the 10-problem "Embedded Browser Remediation 
 | `npm run dist:mac:arm64` (full dual-arch script) | TIMEOUT/INCOMPLETE in this session | >300 s | Tool foreground limit exceeded while downloading/packaging Darwin x64; no build error | `npm run dist:mac:arm64` cleans and rebuilds both x64 and arm64; arm64 verified separately below |
 | Arm64-only macOS build + verify | PASS | ~180 s | — | `electron-builder.arm64.config.cjs` (temporary) produced DMG/ZIP; `node scripts/verify-dist.cjs --mac --arch arm64` passed |
 
+
+## Latest Session Summary (2026-07-10 — dist:mac:arm64 arch fix)
+
+- **Date:** 2026-07-10
+- **Agent:** Kimi Code CLI
+- **Scope:** Make `npm run dist:mac:arm64` actually build only arm64
+- **Work performed:**
+  - `electron-builder.config.cjs` now respects `ELECTRON_BUILDER_MAC_ARCH` to override the default dual-arch macOS target list.
+  - `package.json` `dist:mac:arm64` and `dist:mac:x64` scripts set that env var via `cross-env`, so each script builds only its named architecture.
+  - `dist:mac` (without env var) continues to build both `x64` and `arm64` as before.
+  - Verified `npm run dist:mac:arm64` now completes within the 300 s tool limit and passes `npm run verify:dist:mac -- --arch arm64`.
+
+### Session History entry
+
+- **2026-07-10 — dist:mac:arm64 arch fix:**
+  - Fixed `dist:mac:arm64` building both architectures by honoring `ELECTRON_BUILDER_MAC_ARCH` in `electron-builder.config.cjs`.
+  - Re-ran `npm run dist:mac:arm64` and `npm run verify:dist:mac -- --arch arm64`; both passed.
+  - Re-verified `npm run verify:dist`, `npm run lint:eslint`, and `npm run typecheck`; all passed.
+
+### Validation Matrix — dist:mac:arm64 arch fix
+
+| Command | Status | Duration | Failure summary | Evidence |
+| --- | --- | --- | --- | --- |
+| `npm run dist:mac:arm64` | PASS | ~90 s | — | Built arm64 DMG/ZIP + checksums |
+| `npm run verify:dist:mac -- --arch arm64` | PASS | ~2 s | — | Verified arm64 artifacts |
+| `npm run verify:dist` | PASS | ~2 s | — | Build outputs verified |
+| `npm run lint:eslint` | PASS | ~5 s | — | 0 errors, 0 warnings |
+| `npm run typecheck` | PASS | ~35 s | — | Renderer + Electron clean |
+
