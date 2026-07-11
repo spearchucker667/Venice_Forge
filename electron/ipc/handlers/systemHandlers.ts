@@ -57,14 +57,17 @@ function parseDeletePayload(raw: unknown): [string, null] | [null, { id: string;
 }
 
 /** Extracts and validates an optional mutation origin from a save payload.
- *  Defaults missing origins to `"local-user"` for back-compat. */
-function parseSaveOrigin(raw: unknown): import("../../../src/types/sync").MutationOrigin {
-  if (!raw || typeof raw !== "object") return "local-user";
+ *  Defaults missing origins to `"local-user"` for back-compat.
+ *  @returns A tuple `[error, origin]` where exactly one entry is defined. */
+function parseSaveOrigin(raw: unknown): [string, null] | [null, import("../../../src/types/sync").MutationOrigin] {
+  if (!raw || typeof raw !== "object") {
+    return [null, "local-user"];
+  }
   const p = raw as Record<string, unknown>;
   try {
-    return validateMutationOrigin(p.origin);
-  } catch {
-    return "local-user";
+    return [null, validateMutationOrigin(p.origin)];
+  } catch (err) {
+    return [err instanceof Error ? err.message : "Invalid origin", null];
   }
 }
 
@@ -318,9 +321,12 @@ export function registerSystemHandlers(): void {
         logError("chat:save rejected: payload too large", `${payloadBytes} bytes`);
         return { ok: false, error: IPC_PAYLOAD_TOO_LARGE };
       }
+      const [originError, origin] = parseSaveOrigin(payload);
+      if (originError) {
+        return { ok: false, error: originError };
+      }
       const result = await saveConversation(conversation);
-      if (result.ok) {
-        const origin = parseSaveOrigin(payload);
+      if (result.ok && origin === "local-user") {
         await emitSyncPacket("conversations", conversation.id, conversation, origin);
       }
       return result;
@@ -342,7 +348,7 @@ export function registerSystemHandlers(): void {
         return { ok: false, error: "Invalid conversation id" };
       }
       const result = await deleteConversation(id);
-      if (result.ok) {
+      if (result.ok && origin === "local-user") {
         await emitSyncTombstone("conversations", id, origin);
       }
       return result;
@@ -397,10 +403,16 @@ export function registerSystemHandlers(): void {
 
   registerIpcChannel("conversations:save", async (_event, record: unknown) => {
     try {
+      const [originError, origin] = parseSaveOrigin(record);
+      if (originError) {
+        return { ok: false, error: originError };
+      }
       if (!record || typeof record !== "object") {
         return { ok: false, error: "Invalid record structure" };
       }
-      const rec = record as ConversationRecordV1;
+      const rawRecord = record as Record<string, unknown>;
+      const { origin: _ignoredOrigin, ...recRest } = rawRecord;
+      const rec = recRest as unknown as ConversationRecordV1;
       if (rec.version !== 1 || typeof rec.id !== "string") {
         return { ok: false, error: "Invalid record structure" };
       }
@@ -414,8 +426,7 @@ export function registerSystemHandlers(): void {
       }
       const { saveConversation } = await import("../../services/conversationVault");
       const result = await saveConversation(rec);
-      if (result.ok) {
-        const origin = parseSaveOrigin(record);
+      if (result.ok && origin === "local-user") {
         await emitSyncPacket("conversations", rec.id, rec, origin);
       }
       return result;
@@ -436,7 +447,7 @@ export function registerSystemHandlers(): void {
       }
       const { deleteConversation } = await import("../../services/conversationVault");
       const result = await deleteConversation(id);
-      if (result.ok) {
+      if (result.ok && origin === "local-user") {
         await emitSyncTombstone("conversations", id, origin);
       }
       return result;

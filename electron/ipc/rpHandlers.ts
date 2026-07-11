@@ -64,14 +64,17 @@ function parseDeletePayload(raw: unknown): [string, null] | [null, { id: string;
 }
 
 /** Extracts and validates an optional mutation origin from a save payload.
- *  Defaults missing origins to `"local-user"` for back-compat. */
-function parseSaveOrigin(raw: unknown): import("../../src/types/sync").MutationOrigin {
-  if (!raw || typeof raw !== "object") return "local-user";
+ *  Defaults missing origins to `"local-user"` for back-compat.
+ *  @returns A tuple `[error, origin]` where exactly one entry is defined. */
+function parseSaveOrigin(raw: unknown): [string, null] | [null, import("../../src/types/sync").MutationOrigin] {
+  if (!raw || typeof raw !== "object") {
+    return [null, "local-user"];
+  }
   const p = raw as Record<string, unknown>;
   try {
-    return validateMutationOrigin(p.origin);
-  } catch {
-    return "local-user";
+    return [null, validateMutationOrigin(p.origin)];
+  } catch (err) {
+    return [err instanceof Error ? err.message : "Invalid origin", null];
   }
 }
 
@@ -112,13 +115,16 @@ export function registerRpIpcHandlers(): void {
 
   handleIpc("characterCards:save", async (_event, card: unknown) => {
     try {
+      const [originError, origin] = parseSaveOrigin(card);
+      if (originError) {
+        return { ok: false, error: originError, card: null };
+      }
       const result = await saveCharacterCard(card);
       if (!result.ok) return { ok: false, error: result.error, card: null };
       // Read back the persisted card (with avatar hydrated) for the renderer.
       const id = (card as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await readCharacterCard(id) : null;
-      if (persisted) {
-        const origin = parseSaveOrigin(card);
+      if (persisted && origin === "local-user") {
         await emitSyncPacket("character_cards", persisted.id, persisted, origin);
       }
       return { ok: true, card: persisted };
@@ -137,7 +143,7 @@ export function registerRpIpcHandlers(): void {
       }
       const { id, origin } = parsed;
       const result = await deleteCharacterCard(id);
-      if (result.ok) {
+      if (result.ok && origin === "local-user") {
         await emitSyncTombstone("character_cards", id, origin);
       }
       return result;
@@ -174,12 +180,15 @@ export function registerRpIpcHandlers(): void {
 
   handleIpc("personas:save", async (_event, persona: unknown) => {
     try {
+      const [originError, origin] = parseSaveOrigin(persona);
+      if (originError) {
+        return { ok: false, error: originError, persona: null };
+      }
       const result = await personaStore.save(persona);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", persona: null };
       const id = (persona as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await personaStore.read(id) : null;
-      if (persisted) {
-        const origin = parseSaveOrigin(persona);
+      if (persisted && origin === "local-user") {
         await emitSyncPacket("personas", persisted.id, persisted, origin);
       }
       return { ok: true, persona: persisted as UserPersonaV1 | null };
@@ -198,7 +207,7 @@ export function registerRpIpcHandlers(): void {
       }
       const { id, origin } = parsed;
       const result = await personaStore.remove(id);
-      if (result.ok) {
+      if (result.ok && origin === "local-user") {
         await emitSyncTombstone("personas", id, origin);
       }
       return result;
@@ -235,12 +244,15 @@ export function registerRpIpcHandlers(): void {
 
   handleIpc("lorebooks:save", async (_event, lorebook: unknown) => {
     try {
+      const [originError, origin] = parseSaveOrigin(lorebook);
+      if (originError) {
+        return { ok: false, error: originError, lorebook: null };
+      }
       const result = await lorebookStore.save(lorebook);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", lorebook: null };
       const id = (lorebook as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await lorebookStore.read(id) : null;
-      if (persisted) {
-        const origin = parseSaveOrigin(lorebook);
+      if (persisted && origin === "local-user") {
         await emitSyncPacket("lorebooks", persisted.id, persisted, origin);
       }
       return { ok: true, lorebook: persisted as LorebookV1 | null };
@@ -259,7 +271,7 @@ export function registerRpIpcHandlers(): void {
       }
       const { id, origin } = parsed;
       const result = await lorebookStore.remove(id);
-      if (result.ok) {
+      if (result.ok && origin === "local-user") {
         await emitSyncTombstone("lorebooks", id, origin);
       }
       return result;
@@ -296,12 +308,15 @@ export function registerRpIpcHandlers(): void {
 
   handleIpc("rpChats:save", async (_event, chat: unknown) => {
     try {
+      const [originError, origin] = parseSaveOrigin(chat);
+      if (originError) {
+        return { ok: false, error: originError, chat: null };
+      }
       const result = await saveRpChat(chat);
       if (!result.ok) return { ok: false, error: result.error, chat: null };
       const id = (chat as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await readRpChat(id) : null;
-      if (persisted) {
-        const origin = parseSaveOrigin(chat);
+      if (persisted && origin === "local-user") {
         await emitSyncPacket("rp_chats", persisted.id, persisted, origin);
       }
       return { ok: true, chat: persisted };
@@ -320,7 +335,7 @@ export function registerRpIpcHandlers(): void {
       }
       const { id, origin } = parsed;
       const result = await deleteRpChat(id);
-      if (result.ok) {
+      if (result.ok && origin === "local-user") {
         await emitSyncTombstone("rp_chats", id, origin);
       }
       return result;
@@ -359,12 +374,15 @@ export function registerRpIpcHandlers(): void {
 
   handleIpc("rpAssets:save", async (_event, asset: unknown) => {
     try {
+      const [originError, origin] = parseSaveOrigin(asset);
+      if (originError) {
+        return { ok: false, error: originError, asset: null };
+      }
       const result = await rpAssetStore.save(asset);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", asset: null };
       const id = (asset as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await rpAssetStore.read(id) : null;
-      if (persisted) {
-        const origin = parseSaveOrigin(asset);
+      if (persisted && origin === "local-user") {
         await emitSyncPacket("rp_assets", persisted.id, persisted, origin);
       }
       return { ok: true, asset: persisted as RpAssetV1 | null };
@@ -383,7 +401,7 @@ export function registerRpIpcHandlers(): void {
       }
       const { id, origin } = parsed;
       const result = await rpAssetStore.remove(id);
-      if (result.ok) {
+      if (result.ok && origin === "local-user") {
         await emitSyncTombstone("rp_assets", id, origin);
       }
       return result;
@@ -420,12 +438,15 @@ export function registerRpIpcHandlers(): void {
 
   handleIpc("scenarios:save", async (_event, scenario: unknown) => {
     try {
+      const [originError, origin] = parseSaveOrigin(scenario);
+      if (originError) {
+        return { ok: false, error: originError, scenario: null };
+      }
       const result = await scenarioStore.save(scenario);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", scenario: null };
       const id = (scenario as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await scenarioStore.read(id) : null;
-      if (persisted) {
-        const origin = parseSaveOrigin(scenario);
+      if (persisted && origin === "local-user") {
         await emitSyncPacket("rpScenarios", persisted.id, persisted, origin);
       }
       return { ok: true, scenario: persisted as ScenarioV1 | null };
@@ -444,7 +465,7 @@ export function registerRpIpcHandlers(): void {
       }
       const { id, origin } = parsed;
       const result = await scenarioStore.remove(id);
-      if (result.ok) {
+      if (result.ok && origin === "local-user") {
         await emitSyncTombstone("rpScenarios", id, origin);
       }
       return result;
