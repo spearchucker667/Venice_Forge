@@ -100,3 +100,43 @@ None. The task brief's example regression tests spy on `syncBridge.emitSyncPacke
 - `electron/ipc/rpHandlers.test.ts`
 - `docs/summary_of_work.md`
 - `.superpowers/sdd/task-7-report.md`
+
+---
+
+## Task 7 Remaining Review Fix
+
+### Issue
+
+The personas, lorebooks, rp_assets, and scenarios save handlers in `electron/ipc/rpHandlers.ts` were persisting the operation `origin` field into storage because the underlying single-file store validators accept extra properties. The leaked `origin` then re-emerged in sync packets.
+
+### Fix
+
+In `electron/ipc/rpHandlers.ts`, the four RP single-file save handlers now destructure `origin` out of the payload before calling `store.save`:
+
+- `personas:save`
+- `lorebooks:save`
+- `rpAssets:save`
+- `scenarios:save`
+
+Each handler passes only the cleaned record (without `origin`) to the store and to the read-back/sync path.
+
+### Regression test
+
+Added a parameterized test in `electron/ipc/rpHandlers.test.ts` that calls each of the four handlers with `origin: "local-user"` and asserts that the object passed to `store.save` does not contain an `origin` property.
+
+### Validation
+
+| Command | Result |
+| :------ | :----: |
+| `npx vitest run electron/ipc/rpHandlers.test.ts --fileParallelism=false` | PASS (1 file / 19 tests) |
+| `npx vitest run electron/services/syncBridge.test.ts --fileParallelism=false` | PASS (1 file / 12 tests) |
+| `npm run test:electron` | PASS (30 files / 535 tests) |
+| `npm run typecheck` | PASS (renderer + Electron main clean) |
+| `npm run lint:eslint` | PASS (0 warnings) |
+
+### Files changed
+
+- `electron/ipc/rpHandlers.ts`
+- `electron/ipc/rpHandlers.test.ts`
+- `docs/summary_of_work.md`
+- `.superpowers/sdd/task-7-report.md`

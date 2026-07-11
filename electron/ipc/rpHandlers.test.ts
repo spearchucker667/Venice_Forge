@@ -3,7 +3,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ipcMain } from "electron";
 import { registerRpIpcHandlers } from "./rpHandlers";
 import * as characterCardStorage from "../services/characterCardStorage";
-import { personaStore } from "../services/rpStores";
+import {
+  personaStore,
+  lorebookStore,
+  rpAssetStore,
+  scenarioStore,
+} from "../services/rpStores";
 import * as logger from "../services/logger";
 import * as syncBridge from "../services/syncBridge";
 
@@ -196,6 +201,25 @@ describe("rpHandlers", () => {
       await handler({} as any, { id: "p-1", origin: "local-user" });
       expect(syncBridge.emitSyncTombstone).toHaveBeenCalledTimes(1);
       expect(syncBridge.emitSyncTombstone).toHaveBeenCalledWith("personas", "p-1", "local-user");
+    });
+
+    it.each([
+      ["personas:save", personaStore, { id: "p-1", name: "Test" }] as const,
+      ["lorebooks:save", lorebookStore, { id: "l-1", name: "Test" }] as const,
+      ["rpAssets:save", rpAssetStore, { id: "a-1", name: "Test" }] as const,
+      ["scenarios:save", scenarioStore, { id: "s-1", name: "Test" }] as const,
+    ])("%s strips origin before persisting", async (channel, store, base) => {
+      registerRpIpcHandlers();
+      const handler = vi.mocked(ipcMain.handle).mock.calls.find((call) => call[0] === channel)?.[1] as (...args: any[]) => any;
+      vi.mocked(store.save).mockResolvedValueOnce({ ok: true });
+      vi.mocked(store.read).mockResolvedValueOnce(base as any);
+
+      await handler({} as any, { ...base, origin: "local-user" });
+
+      expect(store.save).toHaveBeenCalledTimes(1);
+      const saved = vi.mocked(store.save).mock.calls[0][0] as Record<string, unknown>;
+      expect(saved).toMatchObject(base);
+      expect(saved).not.toHaveProperty("origin");
     });
   });
 });

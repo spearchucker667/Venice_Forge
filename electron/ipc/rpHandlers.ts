@@ -184,9 +184,10 @@ export function registerRpIpcHandlers(): void {
       if (originError) {
         return { ok: false, error: originError, persona: null };
       }
-      const result = await personaStore.save(persona);
+      const { origin: _personaOrigin, ...record } = persona as Record<string, unknown>;
+      const result = await personaStore.save(record);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", persona: null };
-      const id = (persona as { id?: unknown })?.id;
+      const id = record.id;
       const persisted = typeof id === "string" ? await personaStore.read(id) : null;
       if (persisted && origin === "local-user") {
         await emitSyncPacket("personas", persisted.id, persisted, origin);
@@ -248,9 +249,10 @@ export function registerRpIpcHandlers(): void {
       if (originError) {
         return { ok: false, error: originError, lorebook: null };
       }
-      const result = await lorebookStore.save(lorebook);
+      const { origin: _lorebookOrigin, ...record } = lorebook as Record<string, unknown>;
+      const result = await lorebookStore.save(record);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", lorebook: null };
-      const id = (lorebook as { id?: unknown })?.id;
+      const id = record.id;
       const persisted = typeof id === "string" ? await lorebookStore.read(id) : null;
       if (persisted && origin === "local-user") {
         await emitSyncPacket("lorebooks", persisted.id, persisted, origin);
@@ -378,9 +380,10 @@ export function registerRpIpcHandlers(): void {
       if (originError) {
         return { ok: false, error: originError, asset: null };
       }
-      const result = await rpAssetStore.save(asset);
+      const { origin: _assetOrigin, ...record } = asset as Record<string, unknown>;
+      const result = await rpAssetStore.save(record);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", asset: null };
-      const id = (asset as { id?: unknown })?.id;
+      const id = record.id;
       const persisted = typeof id === "string" ? await rpAssetStore.read(id) : null;
       if (persisted && origin === "local-user") {
         await emitSyncPacket("rp_assets", persisted.id, persisted, origin);
@@ -442,9 +445,10 @@ export function registerRpIpcHandlers(): void {
       if (originError) {
         return { ok: false, error: originError, scenario: null };
       }
-      const result = await scenarioStore.save(scenario);
+      const { origin: _scenarioOrigin, ...record } = scenario as Record<string, unknown>;
+      const result = await scenarioStore.save(record);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", scenario: null };
-      const id = (scenario as { id?: unknown })?.id;
+      const id = record.id;
       const persisted = typeof id === "string" ? await scenarioStore.read(id) : null;
       if (persisted && origin === "local-user") {
         await emitSyncPacket("rpScenarios", persisted.id, persisted, origin);

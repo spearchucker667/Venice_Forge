@@ -11,6 +11,12 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
+- **2026-07-11 Task 7 remaining review fix: strip origin from RP single-file save payloads — COMPLETE (current session):**
+  - Fixed `personas:save`, `lorebooks:save`, `rpAssets:save`, and `scenarios:save` in `electron/ipc/rpHandlers.ts`: each handler now destructures the `origin` field out of the incoming payload before passing the cleaned record to its single-file store `save`, preventing operation metadata from leaking into persisted storage and re-emerging in sync packets.
+  - Added a regression test in `electron/ipc/rpHandlers.test.ts` that verifies each of the four single-file save handlers does not persist an `origin` field when called with `origin: "local-user"`.
+  - Validation: `npx vitest run electron/ipc/rpHandlers.test.ts` PASS (19 tests); `npx vitest run electron/services/syncBridge.test.ts` PASS (12 tests); `npm run test:electron` PASS (30 files / 535 tests); `npm run typecheck` PASS; `npm run lint:eslint` PASS (0 warnings).
+  - Files changed: `electron/ipc/rpHandlers.ts`, `electron/ipc/rpHandlers.test.ts`, `docs/summary_of_work.md`, `.superpowers/sdd/task-7-report.md`.
+
 - **2026-07-11 Task 7 review fixes: tighten origin validation and stop leaking origin into sync packets — COMPLETE (current session):**
   - Fixed inconsistent invalid-origin handling for saves vs. deletes in `electron/ipc/handlers/systemHandlers.ts` and `electron/ipc/rpHandlers.ts`: `parseSaveOrigin` now returns a `[error, origin]` tuple and rejects invalid origins instead of silently defaulting to `"local-user"`.
   - Fixed `conversations:save` in `electron/ipc/handlers/systemHandlers.ts`: the handler now strips the `origin` field from the incoming payload before persisting and emitting, so `origin` no longer leaks into the sync packet. Emission uses the cleaned record.
@@ -535,4 +541,15 @@
   | :------ | :----: | :------- | :-------------- | :------- |
   | `npx vitest run electron/services/syncBridge.test.ts electron/ipc/handlers.test.ts electron/ipc/rpHandlers.test.ts --fileParallelism=false` | PASS | ~1s | — | 3 files / 102 tests pass |
   | `npm run test:electron` | PASS | ~7s | — | 30 files / 527 tests pass |
+  | `npm run lint:eslint` | PASS | ~66s | — | 0 warnings |
+
+- **2026-07-11 Task 7 remaining review fix verification**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run electron/ipc/rpHandlers.test.ts --fileParallelism=false` | PASS | ~1s | — | 1 file / 19 tests pass |
+  | `npx vitest run electron/services/syncBridge.test.ts --fileParallelism=false` | PASS | ~1s | — | 1 file / 12 tests pass |
+  | `npm run test:electron` | PASS | ~6s | — | 30 files / 535 tests pass |
+  | `npm run typecheck` | PASS | ~48s | — | renderer + Electron main clean |
   | `npm run lint:eslint` | PASS | ~66s | — | 0 warnings |
