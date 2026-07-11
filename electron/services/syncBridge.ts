@@ -43,7 +43,7 @@ export async function emitSyncPacket(
   if (origin !== undefined && origin !== "local-user") return;
   const syncStoreName = SYNC_STORE_NAME_MAP[storeName] ?? storeName;
   const status = getSyncStatus();
-  if (!status.configured || status.status !== "running") return;
+  if (!status.configured || status.mainWatcher !== "running") return;
 
   try {
     const recordJson = JSON.stringify(record);
@@ -72,7 +72,7 @@ export async function emitSyncTombstone(
   if (origin !== undefined && origin !== "local-user") return;
   const syncStoreName = SYNC_STORE_NAME_MAP[storeName] ?? storeName;
   const status = getSyncStatus();
-  if (!status.configured || status.status !== "running") return;
+  if (!status.configured || status.mainWatcher !== "running") return;
 
   try {
     const tombstone = createTombstone(syncStoreName as import("../../src/types/sync").SyncStoreName, id);

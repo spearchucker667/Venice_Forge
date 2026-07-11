@@ -1,5 +1,5 @@
 import { ipcMain, dialog, BrowserWindow } from "electron";
-import { setSyncFolder, getSyncFolder, getSyncStatus, setSyncEmissionSuppressed, startSyncWatcher, stopSyncWatcher, pauseSyncWatcher, acknowledgeOperation } from "../../services/syncFolderWatcher";
+import { setSyncFolder, getSyncFolder, getSyncStatus, setSyncEmissionSuppressed, setRendererSessionAttached, startSyncWatcher, stopSyncWatcher, pauseSyncWatcher, acknowledgeOperation } from "../../services/syncFolderWatcher";
 import { redactErrorMessage } from "../../../src/shared/redaction";
 
 export function registerSyncHandlers(): void {
@@ -47,6 +47,16 @@ export function registerSyncHandlers(): void {
   });
   ipcMain.handle("sync:pauseSync", async () => pauseSyncWatcher());
   ipcMain.handle("sync:getStatus", async () => ({ ok: true, ...getSyncStatus() }));
+
+  ipcMain.handle("sync:rendererSessionAttached", async (_event, input: { attached: boolean }) => {
+    try {
+      setRendererSessionAttached(input.attached === true);
+      return { ok: true };
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
+      return { ok: false, error: redactErrorMessage(errorMsg) };
+    }
+  });
 
   ipcMain.handle("sync:setEmissionSuppressed", async (_event, input: { suppressed: boolean }) => {
     try {

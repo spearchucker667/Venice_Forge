@@ -11,6 +11,31 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
+- **2026-07-11 Task 14: Improve `startSyncWatcher` state transitions — COMPLETE (current session):**
+  - Defined richer `SyncRuntimeStatus` type in `src/types/desktop.ts` with `configured`, `mainWatcher` (`stopped` | `paused` | `running` | `error`), `rendererSessionAttached`, `authenticated`, and `degradedReason`.
+  - Updated `electron/services/syncFolderWatcher.ts`:
+    - `startSyncWatcher` now sets `mainWatcher: "running"` only after `setSyncFolder` succeeds.
+    - On failure (missing folder or `setSyncFolder` error), it clears `currentPassword`, sets `authenticated: false`, transitions `mainWatcher` to `"error"`, records `degradedReason`, and returns `{ ok: false, error }`.
+    - `stopSyncWatcher` and `pauseSyncWatcher` clear `authenticated` and `rendererSessionAttached`.
+    - Added `setRendererSessionAttached(attached)` to track renderer sync-session attachment.
+    - `getSyncStatus()` now returns the full `SyncRuntimeStatus` shape.
+  - Updated `electron/ipc/handlers/syncHandlers.ts` and `electron/preload.ts` to expose `sync:rendererSessionAttached` / `setRendererSessionAttached`.
+  - Updated `src/services/desktopBridge.ts` with the new `getSyncFolder` / `getStatus` return types and `desktopSync.setRendererSessionAttached`.
+  - Updated `src/services/syncEngine.ts` to notify the main process when the renderer session attaches (`true`) and detaches (`false`).
+  - Updated `src/services/syncDeleteCoordinator.ts` and `electron/services/syncBridge.ts` to gate emission on `mainWatcher === "running"` instead of the removed `status` field.
+  - Rewrote `src/components/settings/BackupSyncPanel.tsx`:
+    - Status pill now derives from `mainWatcher` and `rendererSessionAttached` (`Active` only when both are true; `Error` on failure; `Paused`/`Off` otherwise).
+    - Shows a "Reattach Session" button and warning text when the main watcher is running but the renderer session is detached.
+    - Lower status card displays detailed runtime-status messages including the `degradedReason` on error.
+  - Updated tests:
+    - `electron/services/syncFolderWatcher.test.ts`: added failure-path tests for missing folder and `setSyncFolder` failure; added renderer-session attachment test; updated status assertions to `mainWatcher`.
+    - `src/components/settings/BackupSyncPanel.test.tsx`: added active/paused/error/reattach tests; updated mocks to return `SyncRuntimeStatus`.
+    - `src/services/syncEngine.test.ts`: added assertions that renderer attachment/detachment notifications are sent.
+    - `electron/services/syncBridge.test.ts` and `src/services/syncDeleteCoordinator.test.ts`: updated mock status shapes.
+  - Updated `scripts/verify-backup-sync.cjs` to check `runtimeStatus.mainWatcher === "running"` instead of the old `res.status === "running"`.
+  - Validation: `npx vitest run electron/services/syncFolderWatcher.test.ts` PASS (29 tests); `npx vitest run src/components/settings/BackupSyncPanel.test.tsx` PASS (8 tests); `npx vitest run src/services/syncEngine.test.ts` PASS (18 tests); `npx vitest run src/services/syncDeleteCoordinator.test.ts electron/services/syncBridge.test.ts` PASS (14 tests); `npm run test:electron` PASS (31 files / 562 tests); `npm run typecheck` PASS; `npm run lint:eslint` PASS (0 warnings).
+  - Files changed: `electron/services/syncFolderWatcher.ts`, `electron/services/syncFolderWatcher.test.ts`, `electron/ipc/handlers/syncHandlers.ts`, `electron/preload.ts`, `electron/services/syncBridge.ts`, `electron/services/syncBridge.test.ts`, `src/types/desktop.ts`, `src/services/desktopBridge.ts`, `src/services/syncEngine.ts`, `src/services/syncEngine.test.ts`, `src/services/syncDeleteCoordinator.ts`, `src/services/syncDeleteCoordinator.test.ts`, `src/components/settings/BackupSyncPanel.tsx`, `src/components/settings/BackupSyncPanel.test.tsx`, `scripts/verify-backup-sync.cjs`, `docs/summary_of_work.md`, `.superpowers/sdd/task-14-report.md`.
+
 - **2026-07-11 Task 13: Enforce real applied-operation journal bounds — COMPLETE (current session):**
   - Implemented bounded compaction in `electron/services/syncFolderWatcher.ts`:
     - Always keeps tombstone entries younger than `JOURNAL_COMPACTION_DAYS`.
@@ -257,6 +282,7 @@
   - **Task 10: Serialize journal writes with a mutex — CLOSED in this session.**
   - **Task 12: Add bounded retry queue and acknowledgment timeout — CLOSED in this session; review fixes (retry counter preservation, paused/stopped persistence, scheduler lifecycle, main-process will-quit teardown, pause scheduler stop) also CLOSED.**
   - **Task 13: Enforce real applied-operation journal bounds — CLOSED in this session.**
+  - **Task 14: Improve `startSyncWatcher` state transitions — CLOSED in this session.**
   - Remaining tasks from the work order are delegated to subsequent sessions.
 - **2026-07-01 priority remediation work order — CLOSED in this session:**
   - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
@@ -511,6 +537,20 @@
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+
+- **2026-07-11 Task 14: Improve `startSyncWatcher` state transitions**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run electron/services/syncFolderWatcher.test.ts` | PASS | ~1s | — | 29/29 tests pass |
+  | `npx vitest run src/components/settings/BackupSyncPanel.test.tsx` | PASS | ~1s | — | 8/8 tests pass |
+  | `npx vitest run src/services/syncEngine.test.ts` | PASS | ~1s | — | 18/18 tests pass |
+  | `npx vitest run src/services/syncDeleteCoordinator.test.ts electron/services/syncBridge.test.ts` | PASS | ~1s | — | 2 files / 14 tests pass |
+  | `npm run test:electron` | PASS | ~7s | — | 31 files / 562 tests pass |
+  | `npm run typecheck` | PASS | ~48s | — | renderer + Electron main clean |
+  | `npm run lint:eslint` | PASS | ~66s | — | 0 warnings |
+  | `node scripts/verify-backup-sync.cjs` | FAIL | ~1s | Pre-existing stale verifier check: `backupImportService tombstone handling → "TombstoneService.recordTombstone"` does not exist; the source uses `TombstoneService.saveTombstone`. Not caused by this task. | 1 contract violation (unrelated) |
 
 - **2026-07-11 Task 12 final review fixes: will-quit teardown and pause scheduler stop**
   - Node/toolchain: `v22.23.1` / `npm 10.9.8`.

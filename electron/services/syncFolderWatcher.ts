@@ -14,7 +14,10 @@ let watcher: FSWatcher | null = null;
 let currentSyncPath: string | null = null;
 let mainWindowRef: BrowserWindow | null = null;
 let currentPassword: string | null = null;
-let syncStatus: "stopped" | "paused" | "running" = "stopped";
+let syncStatus: "stopped" | "paused" | "running" | "error" = "stopped";
+let rendererSessionAttached = false;
+let authenticated = false;
+let degradedReason: string | undefined;
 let localEmissionSuppressed = false;
 const inFlightOperations = new Map<string, { storeName: string; sourceDeviceId?: string; filePath: string; attempts: number }>();
 const inFlightTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
@@ -322,16 +325,33 @@ export async function initSyncFolderWatcher(mainWindow: BrowserWindow) {
 export async function startSyncWatcher(password: string): Promise<{ ok: boolean; error?: string }> {
   if (!password) return { ok: false, error: "Sync passphrase is required." };
   currentPassword = password;
-  syncStatus = "running";
+  authenticated = true;
+  degradedReason = undefined;
   initSyncRetryQueue((filePath, attempts) => handleRemoteChange(filePath, attempts));
-  if (currentSyncPath) {
-    return await setSyncFolder(currentSyncPath);
+  if (!currentSyncPath) {
+    currentPassword = null;
+    authenticated = false;
+    syncStatus = "error";
+    degradedReason = "Sync folder not configured.";
+    return { ok: false, error: degradedReason };
   }
+  const result = await setSyncFolder(currentSyncPath);
+  if (!result.ok) {
+    currentPassword = null;
+    authenticated = false;
+    syncStatus = "error";
+    degradedReason = result.error;
+    return { ok: false, error: result.error };
+  }
+  syncStatus = "running";
   return { ok: true };
 }
 
 export async function stopSyncWatcher(): Promise<{ ok: boolean; error?: string }> {
   currentPassword = null;
+  authenticated = false;
+  rendererSessionAttached = false;
+  degradedReason = undefined;
   if (watcher) {
     await watcher.close();
     watcher = null;
@@ -347,6 +367,9 @@ export async function pauseSyncWatcher(): Promise<{ ok: boolean; error?: string 
   if (watcher) await watcher.close();
   watcher = null;
   currentPassword = null;
+  authenticated = false;
+  rendererSessionAttached = false;
+  degradedReason = undefined;
   requeueInFlightOperations("Watcher paused");
   stopSyncRetryQueue();
   syncStatus = "paused";
@@ -354,7 +377,18 @@ export async function pauseSyncWatcher(): Promise<{ ok: boolean; error?: string 
 }
 
 export function getSyncStatus() {
-  return { status: syncStatus, configured: Boolean(currentSyncPath) };
+  return {
+    configured: Boolean(currentSyncPath),
+    mainWatcher: syncStatus,
+    rendererSessionAttached,
+    authenticated,
+    degradedReason,
+  };
+}
+
+/** Notifies the watcher whether the renderer sync session is attached. */
+export function setRendererSessionAttached(attached: boolean): void {
+  rendererSessionAttached = attached;
 }
 
 /** Temporarily suppresses local sync emission (used during bulk import). */

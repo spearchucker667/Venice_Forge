@@ -83,6 +83,15 @@ export interface VeniceForgeDiagnostics {
   lastApiError?: string;
 }
 
+/** Runtime status of the encrypted sync engine in the main process. */
+export interface SyncRuntimeStatus {
+  configured: boolean;
+  mainWatcher: "stopped" | "paused" | "running" | "error";
+  rendererSessionAttached: boolean;
+  authenticated: boolean;
+  degradedReason?: string;
+}
+
 /** Exposes application-level helpers available through the preload bridge. */
 export interface VeniceForgeApp {
   getVersion(): Promise<string>;
@@ -331,19 +340,22 @@ export interface ElectronSyncAPI {
   /** Opens a directory picker for the user to choose the sync folder. */
   chooseSyncFolder(): Promise<{ ok: boolean; path?: string; canceled?: boolean; error?: string }>;
   
-  /** Retrieves the currently configured sync folder path (if any). */
-  getSyncFolder(): Promise<{ ok: true; path?: string | null; status?: "stopped" | "paused" | "running"; configured?: boolean } | { ok: false; error: string }>;
-  
+  /** Retrieves the currently configured sync folder path (if any) and runtime status. */
+  getSyncFolder(): Promise<({ ok: true; path?: string | null } & SyncRuntimeStatus) | { ok: false; error: string }>;
+
   /** Sets and initializes a sync folder. */
   setSyncFolder(input: { path: string }): Promise<{ ok: boolean; error?: string }>;
-  
+
   /** Starts the sync watcher with the given password. Main process uses this to decrypt incoming sync blobs. */
   startSync(input: { password: string }): Promise<{ ok: boolean; error?: string }>;
-  
+
   /** Stops the sync watcher and clears the password from main process memory. */
   stopSync(): Promise<{ ok: boolean; error?: string }>;
   pauseSync(): Promise<{ ok: boolean; error?: string }>;
-  getStatus(): Promise<{ ok: boolean; status: "stopped" | "paused" | "running"; configured: boolean }>;
+  getStatus(): Promise<{ ok: boolean } & SyncRuntimeStatus>;
+
+  /** Notifies the main process that the renderer sync session has attached or detached. */
+  setRendererSessionAttached(input: { attached: boolean }): Promise<{ ok: boolean; error?: string }>;
 
   /** Suppresses local sync emission during bulk import to avoid echo loops. */
   setEmissionSuppressed(input: { suppressed: boolean }): Promise<{ ok: boolean; error?: string }>;

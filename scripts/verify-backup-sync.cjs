@@ -142,7 +142,7 @@ function runStaticChecks() {
   mustContain(BACKUP_PANEL_FILE, "BackupSyncPanel settings/status wiring", [
     "useSettingsStore",
     "setSyncFolderPath",
-    'res.status === "running"',
+    'runtimeStatus.mainWatcher === "running"',
   ]);
 
   mustContain(PRELOAD_FILE, "electron/preload.ts sync bridge", [

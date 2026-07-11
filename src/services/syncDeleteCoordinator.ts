@@ -57,7 +57,7 @@ export async function deleteSyncableRecord(
   if (isElectron()) {
     try {
       const status = await desktopSync.getStatus();
-      if (status.ok && status.status === "running") {
+      if (status.ok && status.mainWatcher === "running") {
         const emitResult = await desktopSync.writePacket({
           storeName: "tombstones",
           id: tombstone.id,

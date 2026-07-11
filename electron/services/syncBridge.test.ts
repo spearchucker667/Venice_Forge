@@ -5,7 +5,12 @@ import { emitSyncPacket, emitSyncTombstone, SYNC_STORE_NAME_MAP } from "./syncBr
 import * as syncFolderWatcher from "./syncFolderWatcher";
 
 vi.mock("./syncFolderWatcher", () => ({
-  getSyncStatus: vi.fn().mockReturnValue({ status: "running", configured: true }),
+  getSyncStatus: vi.fn().mockReturnValue({
+    configured: true,
+    mainWatcher: "running",
+    rendererSessionAttached: true,
+    authenticated: true,
+  }),
   writePacket: vi.fn().mockResolvedValue({ ok: true }),
 }));
 
@@ -20,7 +25,12 @@ const mockGetSyncStatus = vi.mocked(syncFolderWatcher.getSyncStatus);
 describe("syncBridge", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockGetSyncStatus.mockReturnValue({ status: "running", configured: true });
+    mockGetSyncStatus.mockReturnValue({
+      configured: true,
+      mainWatcher: "running",
+      rendererSessionAttached: true,
+      authenticated: true,
+    });
   });
 
   it("maps IPC store names to portable sync store names", () => {
@@ -35,7 +45,12 @@ describe("syncBridge", () => {
   });
 
   it("does not emit when sync is stopped", async () => {
-    mockGetSyncStatus.mockReturnValue({ status: "stopped", configured: true });
+    mockGetSyncStatus.mockReturnValue({
+      configured: true,
+      mainWatcher: "stopped",
+      rendererSessionAttached: false,
+      authenticated: false,
+    });
     await emitSyncPacket("conversations", "conv-1", { id: "conv-1" });
     expect(mockWritePacket).not.toHaveBeenCalled();
   });

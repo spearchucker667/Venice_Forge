@@ -11,7 +11,13 @@ import type { SyncStoreName } from "../types/sync";
 vi.mock("./desktopBridge", () => ({
   isElectron: vi.fn().mockReturnValue(true),
   desktopSync: {
-    getStatus: vi.fn().mockResolvedValue({ ok: true, status: "running" }),
+    getStatus: vi.fn().mockResolvedValue({
+      ok: true,
+      configured: true,
+      mainWatcher: "running",
+      rendererSessionAttached: true,
+      authenticated: true,
+    }),
     writePacket: vi.fn().mockResolvedValue({ ok: true }),
   },
 }));

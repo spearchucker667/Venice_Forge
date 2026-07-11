@@ -525,7 +525,7 @@ const veniceForge = {
     chooseSyncFolder(): Promise<{ ok: boolean; path?: string; canceled?: boolean; error?: string }> {
       return ipcRenderer.invoke("sync:chooseSyncFolder");
     },
-    getSyncFolder(): Promise<{ ok: boolean; path?: string }> {
+    getSyncFolder(): Promise<{ ok: boolean; path?: string | null } & import("../src/types/desktop").SyncRuntimeStatus> {
       return ipcRenderer.invoke("sync:getSyncFolder");
     },
     setSyncFolder(input: { path: string }): Promise<{ ok: boolean; error?: string }> {
@@ -540,8 +540,11 @@ const veniceForge = {
     pauseSync(): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("sync:pauseSync");
     },
-    getStatus(): Promise<{ ok: boolean; status: "stopped" | "paused" | "running"; configured: boolean }> {
+    getStatus(): Promise<{ ok: boolean } & import("../src/types/desktop").SyncRuntimeStatus> {
       return ipcRenderer.invoke("sync:getStatus");
+    },
+    setRendererSessionAttached(input: { attached: boolean }): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("sync:rendererSessionAttached", input);
     },
     setEmissionSuppressed(input: { suppressed: boolean }): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("sync:setEmissionSuppressed", input);

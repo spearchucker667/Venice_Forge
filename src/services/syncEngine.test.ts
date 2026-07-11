@@ -16,6 +16,7 @@ vi.mock("./desktopBridge", () => ({
     acknowledgeOperation: vi.fn().mockResolvedValue({ ok: true }),
     onRemoteChange: vi.fn().mockReturnValue(() => {}),
     setEmissionSuppressed: vi.fn().mockResolvedValue({ ok: true }),
+    setRendererSessionAttached: vi.fn().mockResolvedValue({ ok: true }),
   },
 }));
 
@@ -33,6 +34,7 @@ const mockPauseSync = vi.mocked(desktopBridge.desktopSync.pauseSync);
 const mockWritePacket = vi.mocked(desktopBridge.desktopSync.writePacket);
 const mockAcknowledgeOperation = vi.mocked(desktopBridge.desktopSync.acknowledgeOperation);
 const mockOnRemoteChange = vi.mocked(desktopBridge.desktopSync.onRemoteChange);
+const mockSetRendererSessionAttached = vi.mocked(desktopBridge.desktopSync.setRendererSessionAttached);
 const mockImportDecryptedPacket = vi.mocked(importDecryptedPacket);
 const mockDeleteSyncableRecord = vi.mocked(syncDeleteCoordinator.deleteSyncableRecord);
 
@@ -58,6 +60,7 @@ describe("syncEngine", () => {
     expect(mockOnRemoteChange).toHaveBeenCalled();
     expect(window.addEventListener).toHaveBeenCalledWith("venice:storage-saved", expect.any(Function));
     expect(window.addEventListener).toHaveBeenCalledWith("venice:storage-deleted", expect.any(Function));
+    expect(mockSetRendererSessionAttached).toHaveBeenCalledWith({ attached: true });
   });
 
   it("is idempotent and removes previous listeners before re-initializing", async () => {
@@ -193,11 +196,13 @@ describe("syncEngine", () => {
 
   it("pauses removes listeners and pauses main process", async () => {
     await initSyncEngine("password");
+    mockSetRendererSessionAttached.mockClear();
     const result = await pauseSyncEngine();
     expect(result).toEqual({ ok: true, status: "paused" });
     expect(mockPauseSync).toHaveBeenCalled();
     expect(window.removeEventListener).toHaveBeenCalledWith("venice:storage-saved", expect.any(Function));
     expect(window.removeEventListener).toHaveBeenCalledWith("venice:storage-deleted", expect.any(Function));
+    expect(mockSetRendererSessionAttached).toHaveBeenCalledWith({ attached: false });
   });
 
   it("skips sync emission for venice:storage-saved when origin is not local-user", async () => {

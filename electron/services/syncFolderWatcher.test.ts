@@ -29,6 +29,7 @@ vi.mock("chokidar", () => ({
 import {
   setSyncFolder,
   getSyncStatus,
+  setRendererSessionAttached,
   writePacket,
   setSyncEmissionSuppressed,
   isSyncEmissionSuppressed,
@@ -99,8 +100,10 @@ describe("syncFolderWatcher", () => {
 
   it("reports status as stopped when unconfigured", () => {
     const status = getSyncStatus();
-    expect(status.status).toBe("stopped");
+    expect(status.mainWatcher).toBe("stopped");
     expect(status.configured).toBe(false);
+    expect(status.rendererSessionAttached).toBe(false);
+    expect(status.authenticated).toBe(false);
   });
 
   it("sets the sync folder and creates .vfbackup structure", async () => {
@@ -111,10 +114,53 @@ describe("syncFolderWatcher", () => {
   });
 
   it("starts the watcher and updates status", async () => {
-    // Without a configured path, startSyncWatcher just stores the password and marks running.
+    await setSyncFolder(tmpDir);
     const startResult = await startSyncWatcher("password");
     expect(startResult.ok).toBe(true);
-    expect(getSyncStatus().status).toBe("running");
+    const status = getSyncStatus();
+    expect(status.mainWatcher).toBe("running");
+    expect(status.configured).toBe(true);
+    expect(status.authenticated).toBe(true);
+  });
+
+  it("refuses to start without a configured folder", async () => {
+    // Clear any folder left over from earlier tests in this module.
+    await setSyncFolder("");
+    await stopSyncWatcher();
+
+    const startResult = await startSyncWatcher("password");
+    expect(startResult.ok).toBe(false);
+    expect(startResult.error).toMatch(/Sync folder not configured/);
+    const status = getSyncStatus();
+    expect(status.mainWatcher).toBe("error");
+    expect(status.authenticated).toBe(false);
+    expect(status.degradedReason).toMatch(/Sync folder not configured/);
+  });
+
+  it("transitions to error and clears the password when folder setup fails", async () => {
+    // Seed a currentSyncPath so startSyncWatcher attempts to set the folder,
+    // then force mkdir to fail to simulate a permission/write error.
+    await setSyncFolder(tmpDir);
+    await stopSyncWatcher();
+    const mkdirSpy = vi.spyOn(fs, "mkdir").mockRejectedValueOnce(new Error("permission denied"));
+
+    const startResult = await startSyncWatcher("password");
+    expect(startResult.ok).toBe(false);
+    expect(startResult.error).toMatch(/permission denied/);
+    const status = getSyncStatus();
+    expect(status.mainWatcher).toBe("error");
+    expect(status.authenticated).toBe(false);
+    expect(status.degradedReason).toMatch(/permission denied/);
+    mkdirSpy.mockRestore();
+  });
+
+  it("tracks renderer session attachment", async () => {
+    await setSyncFolder(tmpDir);
+    await startSyncWatcher("password");
+    setRendererSessionAttached(true);
+    expect(getSyncStatus().rendererSessionAttached).toBe(true);
+    setRendererSessionAttached(false);
+    expect(getSyncStatus().rendererSessionAttached).toBe(false);
   });
 
   it("refuses to write a packet with an invalid store name", async () => {

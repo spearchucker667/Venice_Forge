@@ -2,7 +2,7 @@
 
 // Code Owner: fayeblade (@spearchucker667)
 import "../types/desktop";
-import type { VeniceForgeDiagnostics, VeniceForgeRequest, VeniceForgeResponse } from "../types/desktop";
+import type { SyncRuntimeStatus, VeniceForgeDiagnostics, VeniceForgeRequest, VeniceForgeResponse } from "../types/desktop";
 import type { ApiConnectivityStatus } from "../types/api-connectivity";
 import type { Conversation } from "../types/conversation";
 import type {
@@ -430,7 +430,7 @@ export const desktopSync = {
     if (isElectron()) return window.veniceForge!.sync.chooseSyncFolder();
     return { ok: false, error: "Not in Electron" };
   },
-  async getSyncFolder(): Promise<{ ok: true; path?: string | null; status?: "stopped" | "paused" | "running"; configured?: boolean } | { ok: false; error: string }> {
+  async getSyncFolder(): Promise<({ ok: true; path?: string | null } & SyncRuntimeStatus) | { ok: false; error: string }> {
     if (isElectron()) return window.veniceForge!.sync.getSyncFolder();
     return { ok: false, error: "Not in Electron" };
   },
@@ -450,9 +450,13 @@ export const desktopSync = {
     if (isElectron()) return window.veniceForge!.sync.pauseSync();
     return { ok: false, error: "Not in Electron" };
   },
-  async getStatus() {
+  async getStatus(): Promise<{ ok: boolean } & SyncRuntimeStatus> {
     if (isElectron()) return window.veniceForge!.sync.getStatus();
-    return { ok: false, status: "stopped" as const, configured: false };
+    return { ok: true, configured: false, mainWatcher: "stopped" as const, rendererSessionAttached: false, authenticated: false };
+  },
+  async setRendererSessionAttached(params: { attached: boolean }): Promise<{ ok: boolean; error?: string }> {
+    if (isElectron()) return window.veniceForge!.sync.setRendererSessionAttached(params);
+    return { ok: true };
   },
   async setEmissionSuppressed(params: { suppressed: boolean }): Promise<{ ok: boolean; error?: string }> {
     if (isElectron()) return window.veniceForge!.sync.setEmissionSuppressed(params);

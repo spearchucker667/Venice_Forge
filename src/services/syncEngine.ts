@@ -14,7 +14,15 @@ export interface SyncEngineStartResult {
   error?: string;
 }
 
-function detachRendererSyncListeners(): void {
+async function notifyRendererSessionAttached(attached: boolean): Promise<void> {
+  try {
+    await desktopSync.setRendererSessionAttached({ attached });
+  } catch (err) {
+    console.error(`[SyncEngine] Failed to notify renderer session ${attached ? "attached" : "detached"}:`, err);
+  }
+}
+
+async function detachRendererSyncListeners(): Promise<void> {
   syncActive = false;
   if (remoteChangeListenerCleanup) {
     remoteChangeListenerCleanup();
@@ -25,6 +33,8 @@ function detachRendererSyncListeners(): void {
     window.removeEventListener("venice:storage-saved", handleStorageSaved);
     window.removeEventListener("venice:storage-deleted", handleStorageDeleted);
   }
+
+  await notifyRendererSessionAttached(false);
 }
 
 function attachRendererSyncListeners(): void {
@@ -42,7 +52,7 @@ export async function initSyncEngine(password: string): Promise<SyncEngineStartR
 
   // Idempotent: detach renderer listeners and stop the main process before
   // starting, so a delayed prior stop cannot terminate a newly started watcher.
-  detachRendererSyncListeners();
+  await detachRendererSyncListeners();
 
   try {
     const stopResult = await desktopSync.stopSync();
@@ -95,11 +105,12 @@ export async function initSyncEngine(password: string): Promise<SyncEngineStartR
 
   attachRendererSyncListeners();
   syncActive = true;
+  await notifyRendererSessionAttached(true);
   return { ok: true, status: "running" };
 }
 
 export async function stopSyncEngine(): Promise<SyncEngineStartResult> {
-  detachRendererSyncListeners();
+  await detachRendererSyncListeners();
 
   if (typeof window !== "undefined") {
     try {
@@ -136,7 +147,7 @@ export async function pauseSyncEngine(): Promise<SyncEngineStartResult> {
     return { ok: false, status: "error", error };
   }
 
-  detachRendererSyncListeners();
+  await detachRendererSyncListeners();
   return { ok: true, status: "paused" };
 }
 

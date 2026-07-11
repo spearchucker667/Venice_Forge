@@ -18,6 +18,7 @@ vi.mock("../../services/desktopBridge", async (importOriginal) => {
       chooseSyncFolder: vi.fn(),
       pauseSync: vi.fn(),
       getStatus: vi.fn(),
+      setRendererSessionAttached: vi.fn(),
     },
   };
 });
@@ -35,18 +36,36 @@ const mockInitSyncEngine = vi.mocked(syncEngine.initSyncEngine);
 const mockPauseSyncEngine = vi.mocked(syncEngine.pauseSyncEngine);
 
 describe("BackupSyncPanel", () => {
+  function runtimeStatus(overrides: Partial<{
+    mainWatcher: "stopped" | "paused" | "running" | "error";
+    rendererSessionAttached: boolean;
+    authenticated: boolean;
+    configured: boolean;
+    degradedReason?: string;
+  }> = {}) {
+    return {
+      ok: true as const,
+      path: "/sync" as const,
+      configured: overrides.configured ?? true,
+      mainWatcher: overrides.mainWatcher ?? "stopped",
+      rendererSessionAttached: overrides.rendererSessionAttached ?? false,
+      authenticated: overrides.authenticated ?? false,
+      degradedReason: overrides.degradedReason,
+    };
+  }
+
   beforeEach(() => {
     vi.resetAllMocks();
     mockIsElectron.mockReturnValue(true);
-    mockGetSyncFolder.mockResolvedValue({ ok: true, path: "/sync", status: "stopped", configured: true });
+    mockGetSyncFolder.mockResolvedValue(runtimeStatus());
     mockChooseSyncFolder.mockResolvedValue({ ok: true, path: "/new-sync" });
     mockInitSyncEngine.mockResolvedValue({ ok: true, status: "running" });
     mockPauseSyncEngine.mockResolvedValue({ ok: true, status: "paused" });
     useSettingsStore.setState({ syncFolderPath: "" });
   });
 
-  it("shows active state when status is running", async () => {
-    mockGetSyncFolder.mockResolvedValue({ ok: true, path: "/sync", status: "running", configured: true });
+  it("shows active state when main watcher is running and renderer session is attached", async () => {
+    mockGetSyncFolder.mockResolvedValue(runtimeStatus({ mainWatcher: "running", rendererSessionAttached: true, authenticated: true }));
     render(<BackupSyncPanel />);
     await waitFor(() => expect(screen.getByText("Active")).toBeTruthy());
   });
@@ -56,8 +75,21 @@ describe("BackupSyncPanel", () => {
     await waitFor(() => expect(screen.getByText("Paused")).toBeTruthy());
   });
 
+  it("shows error state when main watcher reports an error", async () => {
+    mockGetSyncFolder.mockResolvedValue(runtimeStatus({ mainWatcher: "error", degradedReason: "disk full" }));
+    render(<BackupSyncPanel />);
+    await waitFor(() => expect(screen.getByText("Error")).toBeTruthy());
+    expect(screen.getByText(/disk full/)).toBeTruthy();
+  });
+
+  it("shows reattach button when main watcher is running but renderer session is detached", async () => {
+    mockGetSyncFolder.mockResolvedValue(runtimeStatus({ mainWatcher: "running", rendererSessionAttached: false, authenticated: true }));
+    render(<BackupSyncPanel />);
+    await waitFor(() => expect(screen.getByText("Reattach Session")).toBeTruthy());
+  });
+
   it("persists chosen folder to settings store", async () => {
-    mockGetSyncFolder.mockResolvedValue({ ok: true, path: null, status: "stopped", configured: false });
+    mockGetSyncFolder.mockResolvedValue({ ok: true, path: null, configured: false, mainWatcher: "stopped", rendererSessionAttached: false, authenticated: false });
     render(<BackupSyncPanel />);
     await waitFor(() => expect(screen.getByText("Choose Folder")).toBeTruthy());
 
@@ -70,7 +102,7 @@ describe("BackupSyncPanel", () => {
   });
 
   it("initializes the renderer sync engine when Start Sync is clicked", async () => {
-    mockGetSyncFolder.mockResolvedValue({ ok: true, path: "/sync", status: "stopped", configured: true });
+    mockGetSyncFolder.mockResolvedValue(runtimeStatus({ mainWatcher: "stopped" }));
     render(<BackupSyncPanel />);
     await waitFor(() => expect(screen.getByText("Start Sync")).toBeTruthy());
 
@@ -86,7 +118,7 @@ describe("BackupSyncPanel", () => {
   });
 
   it("does not transition to active when sync engine initialization fails", async () => {
-    mockGetSyncFolder.mockResolvedValue({ ok: true, path: "/sync", status: "stopped", configured: true });
+    mockGetSyncFolder.mockResolvedValue(runtimeStatus({ mainWatcher: "stopped" }));
     mockInitSyncEngine.mockResolvedValue({ ok: false, status: "error", error: "Main process refused to start." });
     render(<BackupSyncPanel />);
     await waitFor(() => expect(screen.getByText("Start Sync")).toBeTruthy());
@@ -99,12 +131,12 @@ describe("BackupSyncPanel", () => {
     await waitFor(() => {
       expect(mockInitSyncEngine).toHaveBeenCalledWith("bad");
     });
-    // Status remains Paused because the error path returns before setIsSyncing(true).
-    expect(screen.getByText("Paused")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("Error")).toBeTruthy());
+    expect(screen.getByText(/Main process refused to start/)).toBeTruthy();
   });
 
   it("pauses via the renderer sync engine when Pause Sync is clicked", async () => {
-    mockGetSyncFolder.mockResolvedValue({ ok: true, path: "/sync", status: "running", configured: true });
+    mockGetSyncFolder.mockResolvedValue(runtimeStatus({ mainWatcher: "running", rendererSessionAttached: true, authenticated: true }));
     render(<BackupSyncPanel />);
     await waitFor(() => expect(screen.getByText("Active")).toBeTruthy());
 

@@ -4,12 +4,20 @@ import { useSettingsStore } from "../../stores/settings-store";
 import { toast } from "../../stores/toast-store";
 import { FolderOpen, HardDrive, ShieldCheck, Activity } from "lucide-react";
 import { initSyncEngine, pauseSyncEngine } from "../../services/syncEngine";
+import type { SyncRuntimeStatus } from "../../types/desktop";
+
+const OFFLINE_STATUS: SyncRuntimeStatus = {
+  configured: false,
+  mainWatcher: "stopped",
+  rendererSessionAttached: false,
+  authenticated: false,
+};
 
 export function BackupSyncPanel() {
   const settingsSyncFolder = useSettingsStore((s) => s.syncFolderPath);
   const setSettingsSyncFolder = useSettingsStore((s) => s.setSyncFolderPath);
   const [syncFolder, setSyncFolder] = useState<string | null>(settingsSyncFolder || null);
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [runtimeStatus, setRuntimeStatus] = useState<SyncRuntimeStatus>(OFFLINE_STATUS);
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
   const passphraseRef = React.useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,12 +34,18 @@ export function BackupSyncPanel() {
       }
       try {
         const res = await desktopSync.getSyncFolder();
-        if (res.ok && res.path) {
-          setSyncFolder(res.path);
-          setSettingsSyncFolder(res.path);
-          if (res.status === "running") {
-            setIsSyncing(true);
+        if (res.ok) {
+          if (res.path) {
+            setSyncFolder(res.path);
+            setSettingsSyncFolder(res.path);
           }
+          setRuntimeStatus({
+            configured: res.configured,
+            mainWatcher: res.mainWatcher,
+            rendererSessionAttached: res.rendererSessionAttached,
+            authenticated: res.authenticated,
+            degradedReason: res.degradedReason,
+          });
         }
       } catch (err) {
         console.error("Failed to load sync folder:", err);
@@ -41,6 +55,9 @@ export function BackupSyncPanel() {
     }
     loadSyncState();
   }, [setSettingsSyncFolder]);
+
+  const isSyncActive = runtimeStatus.mainWatcher === "running" && runtimeStatus.rendererSessionAttached;
+  const isRendererDetached = runtimeStatus.mainWatcher === "running" && !runtimeStatus.rendererSessionAttached;
 
   const handleChooseFolder = async () => {
     try {
@@ -70,14 +87,34 @@ export function BackupSyncPanel() {
       const result = await initSyncEngine(passphrase);
       if (!result.ok) {
         toast.error(result.error || "Failed to start sync.");
+        setRuntimeStatus((prev) => ({
+          ...prev,
+          mainWatcher: "error",
+          rendererSessionAttached: false,
+          authenticated: false,
+          degradedReason: result.error || "Failed to start sync.",
+        }));
         return;
       }
-      setIsSyncing(true);
+      setRuntimeStatus((prev) => ({
+        ...prev,
+        mainWatcher: "running",
+        rendererSessionAttached: true,
+        authenticated: true,
+        degradedReason: undefined,
+      }));
       if (passphraseRef.current) passphraseRef.current.value = "";
       toast.success("Sync started.");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       toast.error(`Failed to start sync: ${msg}`);
+      setRuntimeStatus((prev) => ({
+        ...prev,
+        mainWatcher: "error",
+        rendererSessionAttached: false,
+        authenticated: false,
+        degradedReason: msg,
+      }));
     } finally {
       setIsTransitioning(false);
     }
@@ -89,13 +126,63 @@ export function BackupSyncPanel() {
       const result = await pauseSyncEngine();
       if (!result.ok) {
         toast.error(result.error || "Failed to pause sync.");
+        setRuntimeStatus((prev) => ({
+          ...prev,
+          mainWatcher: "error",
+          rendererSessionAttached: false,
+          authenticated: false,
+          degradedReason: result.error || "Failed to pause sync.",
+        }));
         return;
       }
-      setIsSyncing(false);
+      setRuntimeStatus((prev) => ({
+        ...prev,
+        mainWatcher: "paused",
+        rendererSessionAttached: false,
+        authenticated: false,
+        degradedReason: undefined,
+      }));
       toast.success("Sync paused. Re-enter the passphrase to resume.");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       toast.error(`Failed to pause sync: ${msg}`);
+      setRuntimeStatus((prev) => ({
+        ...prev,
+        mainWatcher: "error",
+        rendererSessionAttached: false,
+        authenticated: false,
+        degradedReason: msg,
+      }));
+    } finally {
+      setIsTransitioning(false);
+    }
+  };
+
+  const handleReattachSession = async () => {
+    const passphrase = passphraseRef.current?.value ?? "";
+    if (!passphrase) {
+      toast.error("Please enter the sync passphrase to reattach.");
+      return;
+    }
+    setIsTransitioning(true);
+    try {
+      const result = await initSyncEngine(passphrase);
+      if (!result.ok) {
+        toast.error(result.error || "Failed to reattach sync session.");
+        return;
+      }
+      setRuntimeStatus((prev) => ({
+        ...prev,
+        mainWatcher: "running",
+        rendererSessionAttached: true,
+        authenticated: true,
+        degradedReason: undefined,
+      }));
+      if (passphraseRef.current) passphraseRef.current.value = "";
+      toast.success("Sync session reattached.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed to reattach sync: ${msg}`);
     } finally {
       setIsTransitioning(false);
     }
@@ -138,7 +225,13 @@ export function BackupSyncPanel() {
             </div>
           </div>
           <div className="px-3 py-1 bg-surface rounded text-xs font-medium text-text-secondary border border-border/50">
-            {isSyncing ? "Active" : syncFolder ? "Paused" : "Off"}
+            {isSyncActive
+              ? "Active"
+              : runtimeStatus.mainWatcher === "error"
+                ? "Error"
+                : syncFolder
+                  ? "Paused"
+                  : "Off"}
           </div>
         </div>
 
@@ -162,16 +255,24 @@ export function BackupSyncPanel() {
                 ref={passphraseRef}
                 type="password"
                 placeholder="Enter Encryption Passphrase"
-                disabled={isSyncing || isTransitioning}
+                disabled={isSyncActive || isTransitioning}
                 className="flex-1 bg-surface border border-border/50 rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-accent"
               />
-              {isSyncing ? (
+              {isSyncActive ? (
                 <button
                   onClick={handlePauseSync}
                   disabled={isTransitioning}
                   className="px-4 py-2 bg-surface text-error rounded-lg text-sm font-medium hover:bg-surface-elevated transition-colors border border-border/50 whitespace-nowrap disabled:opacity-50"
                 >
                   Pause Sync
+                </button>
+              ) : isRendererDetached ? (
+                <button
+                  onClick={handleReattachSession}
+                  disabled={isTransitioning}
+                  className="px-4 py-2 bg-warning/15 text-warning rounded-lg text-sm font-medium hover:bg-warning/25 transition-colors border border-warning/30 whitespace-nowrap disabled:opacity-50"
+                >
+                  Reattach Session
                 </button>
               ) : (
                 <button
@@ -215,9 +316,15 @@ export function BackupSyncPanel() {
         </div>
         <div className="p-4">
           <p className="text-sm text-text-secondary italic">
-            {syncFolder
+            {isSyncActive
               ? "Sync is active. New changes will be automatically merged. (Conflict resolution UI is under development)."
-              : "Enable sync to monitor activity."}
+              : runtimeStatus.mainWatcher === "error"
+                ? `Sync error: ${runtimeStatus.degradedReason}`
+                : isRendererDetached
+                  ? "The main process watcher is running but the renderer session is detached. Re-enter the passphrase to reattach."
+                  : syncFolder
+                    ? "Sync is configured but not fully active. Enter the passphrase and start sync."
+                    : "Enable sync to monitor activity."}
           </p>
         </div>
       </div>
