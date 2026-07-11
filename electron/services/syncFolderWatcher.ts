@@ -192,7 +192,10 @@ export async function acknowledgeOperation(operationId: string, ok: boolean): Pr
     return { ok: true };
   } catch (err: unknown) {
     scheduleRetry(inFlight);
-    return { ok: false, error: String(err) };
+    const rawMessage = err instanceof Error ? err.message : String(err);
+    const redacted = redactErrorMessage(rawMessage);
+    logError("syncFolderWatcher", `Failed to record applied operation ${operationId}: ${redacted}`);
+    return { ok: false, error: redacted };
   }
 }
 

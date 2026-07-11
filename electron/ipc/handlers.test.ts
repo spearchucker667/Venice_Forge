@@ -1219,4 +1219,19 @@ describe("registerIpcHandlers", () => {
       expect(setProfilePassword).toHaveBeenCalledWith("secret", "work");
     });
   });
+
+  describe("sync:acknowledgeOperation", () => {
+    it("rejects an operationId that is not 64 lowercase hex characters", async () => {
+      const handler = capturedHandlers.get("sync:acknowledgeOperation");
+      const result = await handler!(null, { operationId: "op-abc", ok: true });
+      expect(result).toEqual({ ok: false, error: "Invalid operationId." });
+    });
+
+    it("delegates a valid 64-hex operationId to acknowledgeOperation", async () => {
+      const handler = capturedHandlers.get("sync:acknowledgeOperation");
+      const validOpId = "a".repeat(64);
+      const result = await handler!(null, { operationId: validOpId, ok: true });
+      expect(result).toEqual({ ok: false, error: "No such in-flight operation." });
+    });
+  });
 });

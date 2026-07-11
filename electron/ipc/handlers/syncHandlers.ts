@@ -63,9 +63,14 @@ export function registerSyncHandlers(): void {
     return await writePacket(input.storeName, input.id, input.recordJson);
   });
 
+  const OPERATION_ID_RE = /^[a-f0-9]{64}$/;
+
   ipcMain.handle("sync:acknowledgeOperation", async (_event, input: { operationId: string; ok: boolean }) => {
     if (!input || typeof input.operationId !== "string" || typeof input.ok !== "boolean") {
       return { ok: false, error: "Invalid acknowledgment payload." };
+    }
+    if (!OPERATION_ID_RE.test(input.operationId)) {
+      return { ok: false, error: "Invalid operationId." };
     }
     return await acknowledgeOperation(input.operationId, input.ok);
   });

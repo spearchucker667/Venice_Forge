@@ -44,6 +44,7 @@ import {
 import { promises as fs } from "fs";
 import { app } from "electron";
 import { createTombstone } from "../../src/shared/syncProtocol";
+import { logError } from "./logger";
 
 vi.mock("./syncConfig", () => ({
   getSyncPath: vi.fn().mockResolvedValue(null),
@@ -191,6 +192,21 @@ describe("syncFolderWatcher", () => {
     const ackResult = await acknowledgeOperation(validOpId, false);
     expect(ackResult).toEqual({ ok: true });
     expect(isOperationInFlight(validOpId)).toBe(false);
+  });
+
+  it("redacts and logs journal-write failures when acknowledging", async () => {
+    const validOpId = "d".repeat(64);
+    __registerInFlightOperationForTests(validOpId, "conversations");
+    const writeFileSpy = vi.spyOn(fs, "writeFile").mockRejectedValueOnce(new Error("disk full"));
+
+    const ackResult = await acknowledgeOperation(validOpId, true);
+
+    expect(ackResult).toEqual({ ok: false, error: "disk full" });
+    expect(logError).toHaveBeenCalledWith(
+      "syncFolderWatcher",
+      expect.stringMatching(/Failed to record applied operation [d]{64}: disk full/),
+    );
+    writeFileSpy.mockRestore();
   });
 
   it("preserves every acknowledgment under concurrent writes", async () => {
