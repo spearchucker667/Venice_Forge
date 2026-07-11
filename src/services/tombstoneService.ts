@@ -5,24 +5,40 @@
 
 import StorageService from "./storageService";
 import type { Tombstone, SyncStoreName } from "../types/sync";
+import { createTombstone } from "../shared/syncProtocol";
 
 export class TombstoneService {
+  /**
+   * Persists a tombstone exactly as provided, preserving fields such as
+   * `deletedAt` and `deviceId`. Sync echo is suppressed because tombstones
+   * are themselves sync metadata.
+   * @param tombstone The tombstone to persist.
+   */
+  static async saveTombstone(tombstone: Tombstone): Promise<void> {
+    await StorageService.saveItem("tombstones", tombstone as unknown as Record<string, unknown>, {
+      bypassSyncEcho: true,
+    });
+  }
+
   /**
    * Records a tombstone for a deleted record.
    * @param storeName The store from which the record was deleted.
    * @param recordId The ID of the deleted record.
-   * @param deviceId Optional ID of the device that performed the deletion.
+   * @param deviceIdOrOptions Optional device id or option bag.
    */
-  static async recordTombstone(storeName: SyncStoreName, recordId: string, deviceId?: string): Promise<void> {
-    const id = `${storeName}:${recordId}`;
-    const tombstone: Tombstone = {
-      id,
+  static async recordTombstone(
+    storeName: SyncStoreName,
+    recordId: string,
+    deviceIdOrOptions?: string | { deletedAt?: number; deviceId?: string },
+  ): Promise<void> {
+    const options = typeof deviceIdOrOptions === "string" ? { deviceId: deviceIdOrOptions } : deviceIdOrOptions;
+    const tombstone = createTombstone(
       storeName,
       recordId,
-      deletedAt: Date.now(),
-      deviceId,
-    };
-    await StorageService.saveItem("tombstones", tombstone as unknown as Record<string, unknown>);
+      options?.deviceId,
+      options?.deletedAt ?? Date.now(),
+    );
+    await this.saveTombstone(tombstone);
   }
 
   /**

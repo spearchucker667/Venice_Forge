@@ -11,6 +11,15 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
+- **2026-07-11 Task 3: Exact tombstone persistence API — COMPLETE (current session):**
+  - Added `TombstoneService.saveTombstone(tombstone)` which persists the full tombstone object exactly (including `deletedAt` and `deviceId`) using a new `bypassSyncEcho` storage-mutation option.
+  - Refactored `TombstoneService.recordTombstone` to delegate to `saveTombstone`; preserved backward compatibility for the legacy `(storeName, recordId, deviceId?)` signature while also accepting an options bag `{ deletedAt?, deviceId? }`.
+  - Added `StorageMutationOptions` to `src/services/storageService.ts` with `bypassSyncEcho?: boolean`; `saveItem` and `deleteItem` now accept the options bag. When `bypassSyncEcho` is true, `saveItem` preserves the caller's exact record shape and skips local revision/timestamp metadata so sync-internal records round-trip unchanged.
+  - Extended `VALID_ID_RE` in `src/utils/idValidation.ts` to allow `:` so composite tombstone ids (`storeName:recordId`) pass validation for both writes and reads.
+  - TDD evidence: new regression test `saves an exact tombstone including original deletedAt` initially failed (`saveTombstone` undefined, then ID validation failure, then null read-back); after implementation the focused test suite passes.
+  - Files changed: `src/services/tombstoneService.ts`, `src/services/tombstoneService.test.ts`, `src/services/storageService.ts`, `src/utils/idValidation.ts`, `docs/summary_of_work.md`.
+  - Validation: `npx vitest run src/services/tombstoneService.test.ts src/services/storageService.test.ts src/utils/idValidation.test.ts src/services/backupImportService.test.ts` PASS; `npm run typecheck` PASS.
+
 - **2026-07-10 Coordinated repository remediation and feature completion pass — COMPLETE (current session):**
   - **Repository identity / Phase 1:** Confirmed canonical path `/Users/super_user/Projects/Venice_Forge` and GitHub `spearchucker667/Venice_Forge`; active agent docs already contain the canonical block; `.impeccable/hook.cache.json` deletion staged and `.impeccable/` ignored; `verify:repository-identity` and `verify:repo-handoff-hygiene` pass.
   - **Phase 6 RP Studio polish:** Added `TokenCounter`/`rpTokenCounter` fallback with "Estimated tokens" labeling; `CharacterEditor` disables Save over budget and shows red budget readout; `PersonaManager` supports optional image upload/preview/replace/remove with MIME/size validation; persona images persist and round-trip through export/import; regression guards `VERIFY-078` through `VERIFY-081`.
@@ -343,6 +352,15 @@
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+
+- **2026-07-11 Task 3 focused verification**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run src/services/tombstoneService.test.ts` | PASS | 1s | — | 5/5 tests pass |
+  | `npx vitest run src/services/storageService.test.ts src/utils/idValidation.test.ts src/services/backupImportService.test.ts` | PASS | 2s | — | 40/40 tests pass |
+  | `npm run typecheck` | PASS | 48s | — | renderer + Electron main clean |
 
 - **2026-07-10 P0 blocker fix pass — fresh verification matrix**
   - Node/toolchain: `v24.3.0` / `npm 11.4.2` (local drift from the repo target `>=22.13.0 <23.0.0`; CI enforces Node 22).

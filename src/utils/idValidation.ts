@@ -3,7 +3,7 @@
  * and data corruption in IndexedDB operations (AUDIT-005).
  */
 
-const VALID_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/;
+const VALID_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,127}$/;
 const FORBIDDEN_IDS = new Set(["__proto__", "constructor", "prototype"]);
 
 // Windows reserved filenames (case-insensitive)
@@ -40,7 +40,7 @@ export function assertValidId(id: string, context?: string): void {
   if (!isValidId(id)) {
     throw new Error(
       `Invalid id${context ? ` (${context})` : ""}: "${id}". ` +
-        "Ids must be non-empty, <= 128 chars, and match [a-zA-Z0-9_.-]. " +
+        "Ids must be non-empty, <= 128 chars, and match [a-zA-Z0-9_.:-]. " +
         "Forbidden values: __proto__, constructor, prototype, and Windows reserved filenames."
     );
   }

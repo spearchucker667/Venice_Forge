@@ -15,6 +15,12 @@ type StoreName = (typeof STORE_NAMES)[number];
 export const PROFILE_ID_FIELD = "profileId";
 const LOGICAL_ID_FIELD = "logicalId";
 
+/** Options bag for storage mutations. Used by sync-originating writes to
+ * suppress local re-emission and preserve exact record shapes. */
+export interface StorageMutationOptions {
+  bypassSyncEcho?: boolean;
+}
+
 /** List of store names whose records are encrypted before persistence. */
 // diagnostics is intentionally excluded: it stores sanitized timing/status metadata
 // only (no raw prompts, no API keys), so encryption overhead is not warranted.
@@ -219,49 +225,86 @@ const StorageService = {
    * @param item The record to persist.
    * @returns A promise resolving to the saved record with generated id and timestamp.
    */
-  async saveItem<T extends Record<string, unknown>>(store: StoreName, item: T): Promise<T & { id: string; timestamp: number }> {
+  async saveItem<T extends Record<string, unknown>>(
+    store: StoreName,
+    item: T,
+    options?: StorageMutationOptions,
+  ): Promise<T & { id: string; timestamp?: number; revisionId?: string; baseRevisionId?: string }> {
     const db = await this.openDB();
     const id = typeof item.id === "string" ? item.id : crypto.randomUUID();
     assertValidId(id, "saveItem");
-    const timestamp = typeof item.timestamp === "number" ? item.timestamp : Date.now();
     const activeProfile = getActiveProfileId();
     const physicalId = await findWritablePhysicalId(db, store, activeProfile, id);
-    
-    // For syncable objects, automatically bump revision tracking
-    const oldRevisionId = typeof item.revisionId === "string" ? item.revisionId : undefined;
-    const newRevisionId = crypto.randomUUID();
 
-    let payload: Record<string, unknown> = {
-      ...item,
-      id,
-      timestamp,
-      revisionId: newRevisionId,
-      baseRevisionId: oldRevisionId,
-      [PROFILE_ID_FIELD]: activeProfile,
-    };
-    if (ENCRYPTED_STORES.includes(store)) {
-      const encryptedData = await encryptData(payload);
-      payload = {
-        id: physicalId,
-        [LOGICAL_ID_FIELD]: id,
-        timestamp,
-        [PROFILE_ID_FIELD]: activeProfile,
-        data: encryptedData,
-        _isEncryptedWrapper: true,
-      };
+    let payload: Record<string, unknown>;
+    let finalRecord: T & { id: string; timestamp?: number; revisionId?: string; baseRevisionId?: string };
+
+    if (options?.bypassSyncEcho) {
+      // Sync-internal writes (e.g., tombstones) must preserve the exact record
+      // shape supplied by the caller. We only ensure the logical id is present
+      // and keep the usual profile-isolation wrapper for encrypted stores.
+      finalRecord = { ...item, id } as T & { id: string };
+      payload = { ...item, id };
+      if (ENCRYPTED_STORES.includes(store)) {
+        const encryptedData = await encryptData(payload);
+        payload = {
+          id: physicalId,
+          [LOGICAL_ID_FIELD]: id,
+          [PROFILE_ID_FIELD]: activeProfile,
+          data: encryptedData,
+          _isEncryptedWrapper: true,
+        };
+      } else {
+        payload = {
+          ...payload,
+          id: physicalId,
+          [LOGICAL_ID_FIELD]: id,
+          [PROFILE_ID_FIELD]: activeProfile,
+        };
+      }
     } else {
+      const timestamp = typeof item.timestamp === "number" ? item.timestamp : Date.now();
+      // For syncable objects, automatically bump revision tracking
+      const oldRevisionId = typeof item.revisionId === "string" ? item.revisionId : undefined;
+      const newRevisionId = crypto.randomUUID();
+
       payload = {
-        ...payload,
-        id: physicalId,
-        [LOGICAL_ID_FIELD]: id,
+        ...item,
+        id,
+        timestamp,
+        revisionId: newRevisionId,
+        baseRevisionId: oldRevisionId,
+        [PROFILE_ID_FIELD]: activeProfile,
       };
+      finalRecord = { ...item, id, timestamp, revisionId: newRevisionId, baseRevisionId: oldRevisionId } as T & {
+        id: string;
+        timestamp: number;
+        revisionId?: string;
+        baseRevisionId?: string;
+      };
+      if (ENCRYPTED_STORES.includes(store)) {
+        const encryptedData = await encryptData(payload);
+        payload = {
+          id: physicalId,
+          [LOGICAL_ID_FIELD]: id,
+          timestamp,
+          [PROFILE_ID_FIELD]: activeProfile,
+          data: encryptedData,
+          _isEncryptedWrapper: true,
+        };
+      } else {
+        payload = {
+          ...payload,
+          id: physicalId,
+          [LOGICAL_ID_FIELD]: id,
+        };
+      }
     }
 
     return new Promise((resolve, reject) => {
       const tx = db.transaction(store, "readwrite");
       tx.objectStore(store).put(payload);
       tx.oncomplete = () => {
-        const finalRecord = { ...item, id, timestamp, revisionId: newRevisionId, baseRevisionId: oldRevisionId } as T & { id: string; timestamp: number; revisionId?: string; baseRevisionId?: string; };
         // Dispatch event for Sync Engine
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("venice:storage-saved", { detail: { store, record: finalRecord, id } }));
@@ -461,14 +504,14 @@ const StorageService = {
    *          profile was deleted, false otherwise (including row missing or
    *          owned by a different profile).
    */
-  async deleteItem(store: StoreName, id: string): Promise<boolean> {
+  async deleteItem(store: StoreName, id: string, _options?: StorageMutationOptions): Promise<boolean> {
     assertValidId(id, "deleteItem");
     const db = await this.openDB();
     const activeProfile = getActiveProfileId();
     const result = await this.deleteRawProfileRows(db, store, id, activeProfile);
     if (result && typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("venice:storage-deleted", { detail: { store, id } }));
-      
+
       const veniceWindow = window as Window & { __VENICE_IS_SYNCING?: boolean };
       // Exclude the tombstones store itself (prevents self-referential propagation) and the
       // diagnostics store (explicitly excluded from sync, so tombstones for it are meaningless).

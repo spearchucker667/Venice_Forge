@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { TombstoneService } from "./tombstoneService";
 import StorageService from "./storageService";
+import type { Tombstone } from "../types/sync";
 
 describe("TombstoneService", () => {
   beforeEach(() => {
@@ -14,6 +15,20 @@ describe("TombstoneService", () => {
     vi.restoreAllMocks();
   });
 
+  it("saves an exact tombstone including original deletedAt", async () => {
+    vi.restoreAllMocks();
+    const tombstone: Tombstone = {
+      id: "conversations:conv-1",
+      storeName: "conversations",
+      recordId: "conv-1",
+      deletedAt: 1_000_000,
+      deviceId: "device-a",
+    };
+    await TombstoneService.saveTombstone(tombstone);
+    const stored = await StorageService.getItem("tombstones", tombstone.id);
+    expect(stored).toEqual(tombstone);
+  });
+
   it("should record a tombstone", async () => {
     await TombstoneService.recordTombstone("chats", "chat-123", "device-a");
     expect(StorageService.saveItem).toHaveBeenCalledWith(
@@ -24,7 +39,8 @@ describe("TombstoneService", () => {
         recordId: "chat-123",
         deviceId: "device-a",
         deletedAt: expect.any(Number),
-      })
+      }),
+      { bypassSyncEcho: true },
     );
   });
 
