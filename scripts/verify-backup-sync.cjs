@@ -171,7 +171,7 @@ function runStaticChecks() {
 
   mustContain(BACKUP_IMPORT_FILE, "backupImportService tombstone handling", [
     'storeName === "tombstones"',
-    "TombstoneService.recordTombstone",
+    "TombstoneService.saveTombstone",
   ]);
 
   mustContain(BACKUP_IMPORT_FILE, "backupImportService conflict-copy logic", [
