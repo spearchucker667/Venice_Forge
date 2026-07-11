@@ -90,8 +90,8 @@ const vitestBin = path.join(
 const result = spawnSync(
   existsSync(vitestBin) ? vitestBin : "npm",
   existsSync(vitestBin)
-    ? ["run", ...tests, "--fileParallelism=false"]
-    : ["exec", "--no", "--", "vitest", "run", ...tests, "--fileParallelism=false"],
+    ? ["run", ...tests, "--no-file-parallelism"]
+    : ["exec", "--no", "--", "vitest", "run", ...tests, "--no-file-parallelism"],
   {
     stdio: "inherit",
     shell: process.platform === "win32",

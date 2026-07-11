@@ -1,5 +1,5 @@
 # Canonical path: /Users/super_user/Projects/Venice_Forge
-# Historical path `Windows-Venice-API-connector` must not be used.
+# Historical path Windows-Venice-API-connector must not be used.
 
 # Venice Forge — Copilot Instructions
 
@@ -12,7 +12,7 @@
 - Node: `>=22.13.0 <23.0.0`
 
 Do not use historical paths such as
-`/Users/super_user/Projects/Windows-Venice-API-connector`. Before editing,
+/Users/super_user/Projects/Windows-Venice-API-connector. Before editing,
 run the local-only repository-root bootstrap check in `AGENTS.md`. Never put
 that absolute-path assertion in CI.
 

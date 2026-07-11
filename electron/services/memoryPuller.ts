@@ -8,16 +8,19 @@ import type {
   ConversationRecordV1,
   MemoryIndexEntryV1,
   MemoryIndexV1,
+  MemoryIndexEntryV2,
+  MemoryIndexV2,
   SearchResult,
   PulledMemoryContext,
   MemoryFact,
 } from "../../src/types/conversationVault";
+import { MEMORY_INDEX_VERSION } from "../../src/constants/venice";
 import { logError } from "./logger";
 import { ConversationWriteQueue } from "./conversationWriteQueue";
 
 const indexWriteQueue = new ConversationWriteQueue();
 
-let cachedIndex: MemoryIndexV1 | null = null;
+let cachedIndex: MemoryIndexV2 | null = null;
 
 const STOP_WORDS = new Set([
   "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "arent", "as", "at",
@@ -43,34 +46,105 @@ export function _resetIndexCache_TEST_ONLY(): void {
   cachedIndex = null;
 }
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizeCharacterId(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function normalizeEntryToV2(entry: MemoryIndexEntryV1): MemoryIndexEntryV2 {
+  return {
+    ...entry,
+    characterId: normalizeCharacterId(entry.characterId),
+  };
+}
+
+async function migrateMemoryIndexV1ToV2(index: MemoryIndexV1): Promise<MemoryIndexV2> {
+  const records: MemoryIndexEntryV2[] = [];
+
+  for (const entry of index.records) {
+    const conversation = await getConversation(entry.id);
+    records.push({
+      ...entry,
+      characterId: normalizeCharacterId(conversation?.metadata?.character?.id ?? entry.characterId),
+    });
+  }
+
+  return {
+    version: MEMORY_INDEX_VERSION,
+    updatedAt: Date.now(),
+    records,
+  };
+}
+
+function createEmptyIndex(): MemoryIndexV2 {
+  return {
+    version: MEMORY_INDEX_VERSION,
+    updatedAt: Date.now(),
+    records: [],
+  };
+}
+
+async function parseAndMigrateIndex(raw: unknown): Promise<{ index: MemoryIndexV2; migrated: boolean } | null> {
+  if (!isObject(raw) || !Array.isArray(raw.records)) return null;
+
+  if (raw.version === MEMORY_INDEX_VERSION) {
+    const records = (raw.records as MemoryIndexEntryV1[]).map(normalizeEntryToV2);
+    const migrated = records.some((record, index) => record.characterId !== normalizeCharacterId((raw.records as MemoryIndexEntryV1[])[index]?.characterId));
+    return {
+      index: {
+        version: MEMORY_INDEX_VERSION,
+        updatedAt: typeof raw.updatedAt === "number" ? raw.updatedAt : Date.now(),
+        records,
+      },
+      migrated,
+    };
+  }
+
+  if (raw.version === 1) {
+    return {
+      index: await migrateMemoryIndexV1ToV2(raw as unknown as MemoryIndexV1),
+      migrated: true,
+    };
+  }
+
+  return null;
+}
+
 /**
- * Loads the memory index.
+ * Loads the memory index, migrating older index versions in place.
  */
-export async function loadIndex(): Promise<MemoryIndexV1> {
+export async function loadIndex(): Promise<MemoryIndexV2> {
   if (cachedIndex) return cachedIndex;
 
   const decrypted = await readEncryptedFile(INDEX_FILE, "memory-index", "global");
   if (decrypted) {
     try {
-      cachedIndex = JSON.parse(decrypted) as MemoryIndexV1;
-      return cachedIndex;
+      const result = await parseAndMigrateIndex(JSON.parse(decrypted));
+      if (result) {
+        cachedIndex = result.index;
+        if (result.migrated) {
+          await saveIndex(result.index);
+        }
+        return cachedIndex;
+      }
+      logError("Unsupported memory index schema", "Resetting memory index.");
     } catch {
       logError("Failed to parse memory index JSON", "Resetting memory index.");
     }
   }
 
-  cachedIndex = {
-    version: 1,
-    updatedAt: Date.now(),
-    records: [],
-  };
+  cachedIndex = createEmptyIndex();
   return cachedIndex;
 }
 
 /**
  * Saves the memory index.
  */
-export async function saveIndex(index: MemoryIndexV1): Promise<void> {
+export async function saveIndex(index: MemoryIndexV2): Promise<void> {
+  index.version = MEMORY_INDEX_VERSION;
   cachedIndex = index;
   index.updatedAt = Date.now();
   return indexWriteQueue.enqueue("index", async () => {
@@ -147,7 +221,7 @@ export async function updateIndexForRecord(record: ConversationRecordV1): Promis
   }
 
   const recordPath = getRecordPath(record.id, record.createdAt);
-  const entry: MemoryIndexEntryV1 = {
+  const entry: MemoryIndexEntryV2 = {
     id: record.id,
     title: record.title,
     recordPath,
@@ -162,7 +236,7 @@ export async function updateIndexForRecord(record: ConversationRecordV1): Promis
     messageCount: record.messages.length,
     pinned: !!record.metadata.pinned,
     archived: !!record.metadata.archived,
-    characterId: record.metadata?.character?.id,
+    characterId: normalizeCharacterId(record.metadata?.character?.id),
   };
 
   const existingIdx = index.records.findIndex((r) => r.id === record.id);
@@ -395,7 +469,7 @@ export async function pullContext(input: {
 export async function rebuildIndex(): Promise<number> {
   const manifest = await getOrLoadManifest();
   let itemsIndexed = 0;
-  const recordsToSave: MemoryIndexEntryV1[] = [];
+  const recordsToSave: MemoryIndexEntryV2[] = [];
 
   for (const c of manifest.conversations) {
     const record = await getConversation(c.id);
@@ -423,13 +497,13 @@ export async function rebuildIndex(): Promise<number> {
       messageCount: record.messages.length,
       pinned: !!record.metadata.pinned,
       archived: !!record.metadata.archived,
-      characterId: record.metadata?.character?.id,
+      characterId: normalizeCharacterId(record.metadata?.character?.id),
     });
     itemsIndexed++;
   }
 
-  const index: MemoryIndexV1 = {
-    version: 1,
+  const index: MemoryIndexV2 = {
+    version: MEMORY_INDEX_VERSION,
     updatedAt: Date.now(),
     records: recordsToSave,
   };

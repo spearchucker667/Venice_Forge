@@ -6,7 +6,7 @@
  *    - The CLI exits 0 in the current repo.
  *    - Ingestion service tests and UI component tests run in separate
  *      Vitest invocations.
- *    - The ingestion invocation uses `--fileParallelism=false`; the component
+ *    - The ingestion invocation uses `--no-file-parallelism`; the component
  *      invocation does not force serial execution.
  *    - The CLI exits non-zero with a clear diagnostic when a required file is
  *      missing.
@@ -82,9 +82,9 @@ describe("verify-document-ingestion (VERIFY-058)", () => {
     expect(combined).toEqual(expected);
   });
 
-  it("builds ingestion command with --fileParallelism=false", () => {
-    const cmd = buildVitestCommand(ingestionTests, ["--fileParallelism=false"]);
-    expect(cmd).toContain("--fileParallelism=false");
+  it("builds ingestion command with --no-file-parallelism", () => {
+    const cmd = buildVitestCommand(ingestionTests, ["--no-file-parallelism"]);
+    expect(cmd).toContain("--no-file-parallelism");
     for (const test of ingestionTests) {
       expect(cmd).toContain(test);
     }
@@ -94,6 +94,7 @@ describe("verify-document-ingestion (VERIFY-058)", () => {
     const cmd = buildVitestCommand(componentTests, []);
     expect(cmd).not.toContain("--fileParallelism=false");
     expect(cmd).not.toContain("--fileParallelism=true");
+    expect(cmd).not.toContain("--no-file-parallelism");
     for (const test of componentTests) {
       expect(cmd).toContain(test);
     }

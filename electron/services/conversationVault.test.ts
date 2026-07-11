@@ -55,6 +55,7 @@ import {
 } from "./conversationVault";
 
 import {
+  loadIndex,
   searchIndex,
   pullContext,
   rebuildIndex,
@@ -322,6 +323,99 @@ describe("ConversationVault core and services", () => {
 
       const searchWithArchived = await searchIndex("conversation tagmatch topicmatch", { includeArchived: true });
       expect(searchWithArchived.map((res) => res.id)).toContain(r2.id);
+    });
+
+    it("14b. migrates V1 memory index entries with characterId from conversation metadata", async () => {
+      const characterRecord = makeRecord({
+        title: "Aster character memory",
+        metadata: {
+          tags: ["character-memory"],
+          pinned: false,
+          archived: false,
+          source: "character",
+          messageCount: 1,
+          character: {
+            id: "character-aster",
+            name: "Aster",
+          },
+        },
+        memory: {
+          summary: "Aster remembers orbital mirrors.",
+          topics: ["orbital", "mirrors"],
+          entities: ["Aster"],
+          userFacts: [],
+          projectRefs: [],
+        },
+      });
+      const ordinaryRecord = makeRecord({
+        title: "Ordinary orbital notes",
+        metadata: {
+          tags: ["ordinary"],
+          pinned: false,
+          archived: false,
+          source: "chat",
+          messageCount: 1,
+        },
+        memory: {
+          summary: "Ordinary notes also mention orbital mirrors.",
+          topics: ["orbital", "mirrors"],
+          entities: [],
+          userFacts: [],
+          projectRefs: [],
+        },
+      });
+      await saveConversation(characterRecord);
+      await saveConversation(ordinaryRecord);
+
+      const legacyIndex = {
+        version: 1,
+        updatedAt: Date.now() - 1000,
+        records: [
+          {
+            id: characterRecord.id,
+            title: characterRecord.title,
+            recordPath: getRecordPath(characterRecord.id, characterRecord.createdAt),
+            createdAt: characterRecord.createdAt,
+            updatedAt: characterRecord.updatedAt,
+            model: characterRecord.model,
+            tags: characterRecord.metadata.tags,
+            summary: characterRecord.memory.summary,
+            topics: characterRecord.memory.topics,
+            entities: characterRecord.memory.entities,
+            keywords: ["orbital", "mirrors"],
+            messageCount: characterRecord.messages.length,
+            pinned: false,
+            archived: false,
+          },
+          {
+            id: ordinaryRecord.id,
+            title: ordinaryRecord.title,
+            recordPath: getRecordPath(ordinaryRecord.id, ordinaryRecord.createdAt),
+            createdAt: ordinaryRecord.createdAt,
+            updatedAt: ordinaryRecord.updatedAt,
+            model: ordinaryRecord.model,
+            tags: ordinaryRecord.metadata.tags,
+            summary: ordinaryRecord.memory.summary,
+            topics: ordinaryRecord.memory.topics,
+            entities: ordinaryRecord.memory.entities,
+            keywords: ["orbital", "mirrors"],
+            messageCount: ordinaryRecord.messages.length,
+            pinned: false,
+            archived: false,
+          },
+        ],
+      };
+
+      await writeEncryptedFile(INDEX_FILE, JSON.stringify(legacyIndex), "memory-index", "global");
+      _resetIndexCache_TEST_ONLY();
+
+      const scopedResults = await searchIndex("orbital mirrors", { characterId: "character-aster" });
+      expect(scopedResults.map((result) => result.id)).toEqual([characterRecord.id]);
+
+      const migrated = await loadIndex();
+      expect(migrated.version).toBe(2);
+      expect(migrated.records.find((record) => record.id === characterRecord.id)?.characterId).toBe("character-aster");
+      expect(migrated.records.find((record) => record.id === ordinaryRecord.id)?.characterId).toBeNull();
     });
 
     it("15. Pinned boosting: pinned conversations score higher", async () => {

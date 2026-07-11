@@ -79,7 +79,7 @@ const tests = [
 console.log("Running Phase 2I unit tests...");
 const result = spawnSync(
   "npx",
-  ["vitest", "run", ...tests, "--fileParallelism=false"],
+  ["vitest", "run", ...tests, "--no-file-parallelism"],
   {
     stdio: "inherit",
     shell: process.platform === "win32"

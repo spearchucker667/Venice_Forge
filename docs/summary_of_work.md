@@ -11,6 +11,24 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
+- **2026-07-11 Tasks 16-18: memory-index migration and deterministic unit domains — COMPLETE (current session):**
+  - Reviewed `kimi-export-session_-20260711-205818.md` and resumed from the release-readiness work order after Task 15. The prior Task 15 implementation was already present in commits `9ccb6f5` / `16253c2`; this session continued with the next pending tasks.
+  - **Task 16: Bump memory index schema and auto-migrate — CLOSED in this session.**
+    - Added `MEMORY_INDEX_VERSION = 2` in `src/constants/venice.ts`.
+    - Added `MemoryIndexEntryV2` / `MemoryIndexV2` in `src/types/conversationVault.ts`, making `characterId` explicit as `string | null`.
+    - Updated `electron/services/memoryPuller.ts` so `loadIndex()` migrates V1 indexes in place, resolves missing character IDs from conversation metadata, normalizes V2 entries with `characterId: null` for non-character chats, and saves migrated V2 data before querying.
+    - Updated index writes/rebuilds so new entries are V2 and character-scoped search can filter safely before truncation.
+    - Added regression coverage in `electron/services/conversationVault.test.ts` proving a seeded V1 index without `characterId` immediately supports character-scoped search after load.
+  - **Task 17: Add explicit serial flags to ingestion and workflow scripts — CLOSED in this session.**
+    - Updated `test:ingestion`, `test:workflow:core`, and `test:workflow:ui` to use `--no-file-parallelism`.
+    - Normalized affected verifier scripts (`verify-document-ingestion`, `verify-rp-studio-polish`, `verify-research-workspace`) to the same `--no-file-parallelism` flag and updated the document-ingestion verifier test.
+  - **Task 18: Split aggregate unit suite into fresh-process domains — CLOSED in this session.**
+    - Replaced monolithic `test:unit` with domain scripts for stores, services, hooks, lib, shared, utils, theme, scripts, and types, then composed `test:unit` from those fresh-process domains.
+    - Updated `package-scripts.test.ts` to lock the new domain-script contract.
+    - Fixed active agent-doc stale-path warnings that confused `verify-agent-docs` markdown-path extraction by removing inline-code formatting around the historical path while preserving the explicit warning.
+  - Validation: Task 16 focused vault/memory test PASS (31 tests); Task 17 required scripts PASS (`test:ingestion`, `test:workflow:core`, `test:workflow:ui`, `verify:workflow-templates`); changed verifier scripts PASS (`verify:document-ingestion`, `verify:rp-studio-polish`, `verify:research-workspace`); Task 18 individual domains PASS; composed `npm run test:unit` PASS; `npm run lint:eslint` PASS; `npm run typecheck` PASS.
+  - Files changed: `src/constants/venice.ts`, `src/types/conversationVault.ts`, `electron/services/memoryPuller.ts`, `electron/services/conversationVault.test.ts`, `package.json`, `package-scripts.test.ts`, `scripts/verify-document-ingestion.cjs`, `scripts/verify-document-ingestion.test.ts`, `scripts/verify-rp-studio-polish.cjs`, `scripts/verify-research-workspace.cjs`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.windsurfrules`, `.github/copilot-instructions.md`, `docs/summary_of_work.md`.
+
 - **2026-07-11 Task 15: Rebuild renderer sync session on reload — COMPLETE (current session):**
   - Added `reattachSyncEngine()` in `src/services/syncEngine.ts`:
     - Verifies via `desktopSync.getStatus()` that the main-process watcher is `running` and `authenticated` before reattaching, so a renderer reload can resume sync without re-entering the passphrase when the main process still holds it.
@@ -300,6 +318,9 @@
   - **Task 13: Enforce real applied-operation journal bounds — CLOSED in this session.**
   - **Task 14: Improve `startSyncWatcher` state transitions — CLOSED in this session.**
   - **Task 15: Rebuild renderer sync session on reload — CLOSED in this session.**
+  - **Task 16: Bump memory index schema and auto-migrate — CLOSED in this session.**
+  - **Task 17: Add explicit serial flags to ingestion and workflow scripts — CLOSED in this session.**
+  - **Task 18: Split aggregate unit suite into fresh-process domains — CLOSED in this session.**
   - Remaining tasks from the work order are delegated to subsequent sessions.
 - **2026-07-01 priority remediation work order — CLOSED in this session:**
   - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
@@ -554,6 +575,36 @@
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+
+- **2026-07-11 Tasks 16-18: memory-index migration and deterministic unit domains**
+  - Node/toolchain: `v24.3.0` / `npm 11.4.2` (local drift from repo target `>=22.13.0 <23.0.0`; CI should continue using Node 22).
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run electron/services/conversationVault.test.ts -t "migrates V1 memory index"` | PASS | ~1s | — | 1 test pass; focused V1→V2 migration regression |
+  | `npx vitest run electron/services/conversationVault.test.ts` | PASS | ~1s | — | 31/31 tests pass |
+  | `npx eslint --max-warnings=0 electron/services/memoryPuller.ts electron/services/conversationVault.test.ts src/types/conversationVault.ts src/constants/venice.ts` | PASS | ~5s | — | 0 warnings |
+  | `npm run test:ingestion` | PASS | ~7s | — | 9 files / 65 tests pass |
+  | `npm run test:workflow:core` | PASS | ~6s | — | 8 files / 103 tests pass |
+  | `npm run test:workflow:ui` | PASS | ~4s | — | 2 files / 14 tests pass |
+  | `npm run verify:workflow-templates` | PASS | ~9s | — | VERIFY-049 core + UI workflow validations pass |
+  | `npm run verify:document-ingestion` | PASS | ~16s | — | VERIFY-058 static checks + 118 tests pass |
+  | `npm run verify:rp-studio-polish` | PASS | ~11s | — | VERIFY-048 static checks + 136 tests pass |
+  | `npm run verify:research-workspace` | PASS | ~11s | — | VERIFY-051 static checks + 104 tests pass |
+  | `npm run test:unit:stores` | PASS | ~28s | — | 39 files / 698 tests pass |
+  | `npm run test:unit:services` | PASS | ~36s | — | 57 files / 566 tests pass |
+  | `npm run test:unit:hooks` | PASS | ~14s | — | 15 files / 93 tests pass |
+  | `npm run test:unit:lib` | PASS | ~9s | — | 12 files / 85 tests pass |
+  | `npm run test:unit:shared` | PASS | ~6s | — | 9 files / 257 tests pass |
+  | `npm run test:unit:utils` | PASS | ~12s | — | 19 files / 381 tests pass |
+  | `npm run test:unit:theme` | PASS | ~5s | — | 6 files / 118 tests pass |
+  | `npm run test:unit:scripts` | PASS | ~9s after fixes | Initial run exposed stale package-script expectation and agent-doc path-link parsing noise; fixed both. | 15 files / 111 tests pass |
+  | `npm run test:unit:types` | PASS | ~5s | — | 6 files / 102 tests pass |
+  | `npm run test:unit` | PASS | ~102s | — | Fresh-process stores/services/hooks/lib/shared/utils/theme/scripts/types domains all pass |
+  | `npm run verify:agent-docs` | PASS | <1s | — | Agent doc verification passed |
+  | `npx vitest run package-scripts.test.ts` | PASS | <1s | — | 7/7 tests pass |
+  | `npm run lint:eslint` | PASS | ~13s | — | 0 warnings |
+  | `npm run typecheck` | PASS | ~12s | — | Renderer + Electron main clean |
 
 - **2026-07-11 Task 15: Rebuild renderer sync session on reload**
   - Node/toolchain: `v22.23.1` / `npm 10.9.8`.

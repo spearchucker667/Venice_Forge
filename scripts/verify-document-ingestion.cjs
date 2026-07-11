@@ -184,7 +184,7 @@ function main() {
   verifySourceIntegrationTokens();
 
   if (!skipVitest) {
-    runVitest(ingestionTests, ["--fileParallelism=false"], "document ingestion service tests (serial)");
+    runVitest(ingestionTests, ["--no-file-parallelism"], "document ingestion service tests (serial)");
     runVitest(componentTests, [], "document ingestion component tests (parallel)");
   }
 

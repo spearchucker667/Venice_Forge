@@ -170,6 +170,17 @@ export interface MemoryIndexV1 {
   records: MemoryIndexEntryV1[];
 }
 
+export interface MemoryIndexEntryV2 extends Omit<MemoryIndexEntryV1, "characterId"> {
+  /** Explicitly null for non-character conversations so scoped retrieval is stable after migration. */
+  characterId: string | null;
+}
+
+export interface MemoryIndexV2 {
+  version: 2;
+  updatedAt: number;
+  records: MemoryIndexEntryV2[];
+}
+
 export interface SearchResult {
   id: string;
   title: string;

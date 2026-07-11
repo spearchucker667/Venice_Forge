@@ -54,7 +54,10 @@ describe("package.json test scripts", () => {
     expect(pkg.scripts["test:electron"]).toMatch(/^vitest run electron /);
     expect(pkg.scripts["test:ingestion"]).toMatch(/^vitest run src\/services\/ingestion/);
     expect(pkg.scripts["test:ui"]).toMatch(/^npm run test:ui:layout &&/);
-    expect(pkg.scripts["test:unit"]).toMatch(/^vitest run --exclude /);
+    expect(pkg.scripts["test:unit:stores"]).toMatch(/^vitest run src\/stores /);
+    expect(pkg.scripts["test:unit:services"]).toContain("--exclude 'src/services/ingestion/**/*'");
+    expect(pkg.scripts["test:unit:scripts"]).toContain("--exclude 'scripts/verify-document-ingestion.test.ts'");
+    expect(pkg.scripts["test:unit"]).toMatch(/^npm run test:unit:stores &&/);
     expect(pkg.scripts["test:ci"]).toMatch(/^npm run test:server &&/);
   });
 

@@ -134,6 +134,9 @@ export const DEFAULT_WORKFLOW_MODEL = "llama-3.3-70b";
 /** The default model used for the prompt enhancer feature. */
 export const DEFAULT_PROMPT_ENHANCER_MODEL = "venice-uncensored-1-2";
 
+/** Encrypted conversation-memory search index schema version. */
+export const MEMORY_INDEX_VERSION = 2;
+
 /** IndexedDB object store names used by the application. */
 export const STORE_NAMES = [
   "images",
