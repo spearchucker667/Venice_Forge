@@ -108,3 +108,37 @@
 - `electron/services/syncFolderWatcher.test.ts`
 - `docs/summary_of_work.md`
 - `.superpowers/sdd/task-12-report.md`
+
+---
+
+## Task 12 Final Review Fixes (subsequent session)
+
+### Issues fixed
+
+1. **Important — `electron/main.ts` `will-quit` handler tears down sync watcher**
+   - Imported `stopSyncWatcher` from `electron/services/syncFolderWatcher` into `electron/main.ts`.
+   - Updated the `app.on("will-quit", ...)` handler to call `void stopSyncWatcher()` after `stopBridgeServer()`.
+   - This ensures the sync watcher and the 5-second retry scheduler are stopped before the process exits, preventing the interval from keeping the process alive or waking it after windows close.
+
+2. **Important — `pauseSyncWatcher` stops the retry scheduler**
+   - `pauseSyncWatcher` in `electron/services/syncFolderWatcher.ts` now calls `stopSyncRetryQueue()` after requeuing in-flight operations.
+   - `startSyncWatcher` already restarts the scheduler via `initSyncRetryQueue`, so retries resume correctly when sync is re-enabled.
+
+### Validation
+
+- `npx vitest run electron/services/syncFolderWatcher.test.ts` — **PASS** (25 tests)
+- `npx vitest run electron/main.test.ts` — **PASS** (33 tests)
+- `npm run test:electron` — **PASS** (31 files / 558 tests)
+- `npm run typecheck` — **PASS**
+- `npm run lint:eslint` — **PASS** (0 warnings)
+
+### Files changed
+
+- `electron/main.ts`
+- `electron/services/syncFolderWatcher.ts`
+- `docs/summary_of_work.md`
+- `.superpowers/sdd/task-12-report.md`
+
+### Commit
+
+- `b708bf4` — fix(sync): stop retry scheduler on pause and in main will-quit handler

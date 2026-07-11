@@ -11,7 +11,17 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
-- **2026-07-11 Task 12 review fixes: bounded retry counter, paused/stopped persistence, scheduler lifecycle — COMPLETE (current session):**
+- **2026-07-11 Task 12 final review fixes: will-quit teardown and pause scheduler stop — COMPLETE (current session):**
+  - Fixed `electron/main.ts` `will-quit` handler:
+    - Now imports `stopSyncWatcher` from `./services/syncFolderWatcher`.
+    - Calls `void stopSyncWatcher()` after `stopBridgeServer()` so the sync watcher and retry scheduler are torn down before the process exits, preventing the 5-second retry interval from keeping the process alive or waking it after windows close.
+  - Fixed `electron/services/syncFolderWatcher.ts` `pauseSyncWatcher`:
+    - Now calls `stopSyncRetryQueue()` after requeuing in-flight operations so the retry scheduler does not continue running while sync is paused; `startSyncWatcher` restarts it on resume.
+  - Validation: `npx vitest run electron/services/syncFolderWatcher.test.ts` PASS (25 tests); `npx vitest run electron/main.test.ts` PASS (33 tests); `npm run test:electron` PASS (31 files / 558 tests); `npm run typecheck` PASS; `npm run lint:eslint` PASS (0 warnings).
+  - Files changed: `electron/main.ts`, `electron/services/syncFolderWatcher.ts`, `docs/summary_of_work.md`, `.superpowers/sdd/task-12-report.md`.
+  - Commit: `b708bf4` — fix(sync): stop retry scheduler on pause and in main will-quit handler.
+
+- **2026-07-11 Task 12 review fixes: bounded retry counter, paused/stopped persistence, scheduler lifecycle — COMPLETE (previous session):**
   - Fixed `electron/services/syncRetryQueue.ts`:
     - Retry callback now receives `(filePath, attempts)` so the scheduler redelivers the current attempt count instead of resetting it to 0.
     - The scheduler deletes a pending retry only after the callback reports success (`true`); failures and rejected deliveries keep the entry for the next scan.
@@ -232,7 +242,7 @@
   - **Task 8: Remove renderer-global `__VENICE_IS_SYNCING` suppression mechanism — CLOSED in this session.**
   - **Task 9: Add per-object remote apply queue — CLOSED in this session.**
   - **Task 10: Serialize journal writes with a mutex — CLOSED in this session.**
-  - **Task 12: Add bounded retry queue and acknowledgment timeout — CLOSED in this session; review fixes (retry counter preservation, paused/stopped persistence, scheduler lifecycle) also CLOSED.**
+  - **Task 12: Add bounded retry queue and acknowledgment timeout — CLOSED in this session; review fixes (retry counter preservation, paused/stopped persistence, scheduler lifecycle, main-process will-quit teardown, pause scheduler stop) also CLOSED.**
   - Remaining tasks from the work order are delegated to subsequent sessions.
 - **2026-07-01 priority remediation work order — CLOSED in this session:**
   - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
@@ -487,6 +497,17 @@
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+
+- **2026-07-11 Task 12 final review fixes: will-quit teardown and pause scheduler stop**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run electron/services/syncFolderWatcher.test.ts` | PASS | ~0.2s | — | 25/25 tests pass |
+  | `npx vitest run electron/main.test.ts` | PASS | ~0.1s | — | 33/33 tests pass |
+  | `npm run test:electron` | PASS | ~6s | — | 31 files / 558 tests pass |
+  | `npm run typecheck` | PASS | ~48s | — | renderer + Electron main clean |
+  | `npm run lint:eslint` | PASS | ~66s | — | 0 warnings |
 
 - **2026-07-11 Task 12 review fixes focused verification**
   - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
