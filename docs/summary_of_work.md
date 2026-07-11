@@ -11,6 +11,13 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
+- **2026-07-11 Task 9: Add per-object remote apply queue — COMPLETE (current session):**
+  - Created `electron/services/syncApplyQueue.ts` exporting `enqueueRemoteApply(queueKey, operation)` which chains per-key operations through a `Map<string, Promise<void>>` so that applies for the same logical object execute FIFO while different keys proceed concurrently.
+  - Wired the queue into `electron/services/syncFolderWatcher.ts:handleRemoteChange`: after decrypting and validating a remote packet, the apply phase (journal deduplication check, in-flight tracking, and `sync:onRemoteChange` IPC notification) is wrapped in `enqueueRemoteApply(`${storeName}:${id}`, ...)`.
+  - Added `electron/services/syncApplyQueue.test.ts` with regression tests: same-record serialization, different-key concurrency, failure isolation (a failed operation does not block subsequent same-key operations), deterministic tombstone-after-record ordering, and pending-map cleanup after the queue drains.
+  - Validation: `npx vitest run electron/services/syncApplyQueue.test.ts electron/services/syncFolderWatcher.test.ts` PASS (2 files / 14 tests); `npm run test:electron` PASS (31 files / 540 tests); `npx tsc --project tsconfig.electron.json --noEmit` PASS; `npx eslint electron/services/syncApplyQueue.ts electron/services/syncApplyQueue.test.ts electron/services/syncFolderWatcher.ts --max-warnings=0` PASS.
+  - Files changed: `electron/services/syncApplyQueue.ts`, `electron/services/syncApplyQueue.test.ts`, `electron/services/syncFolderWatcher.ts`, `docs/summary_of_work.md`, `.superpowers/sdd/task-9-report.md`.
+
 - **2026-07-11 Task 8: Remove renderer-global `__VENICE_IS_SYNCING` suppression mechanism — COMPLETE (current session):**
   - Removed the `__VENICE_IS_SYNCING` wrapper in `src/services/backupImportService.ts` and replaced it with `origin: "remote-sync"` propagation through `saveStoreRecord` and `deleteStoreRecord`.
   - Updated `saveStoreRecord` and `deleteStoreRecord` to accept a `MutationOrigin` parameter (default `"remote-sync"`) and forward it to both the Electron desktop bridge methods and `StorageService.saveItem` / `deleteItem`.
@@ -173,6 +180,7 @@
   - **Task 7: Make main-process save/delete handlers origin-aware — CLOSED in this session.**
   - **Task 7 review fixes — CLOSED in this session.**
   - **Task 8: Remove renderer-global `__VENICE_IS_SYNCING` suppression mechanism — CLOSED in this session.**
+  - **Task 9: Add per-object remote apply queue — CLOSED in this session.**
   - Remaining tasks from the work order are delegated to subsequent sessions.
 - **2026-07-01 priority remediation work order — CLOSED in this session:**
   - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
@@ -573,3 +581,13 @@
   | `npx vitest run src/services/backupImportService.test.ts src/services/syncEngine.test.ts src/services/syncDeleteCoordinator.test.ts --fileParallelism=false` | PASS | ~2s | — | 3 files / 41 tests pass |
   | `npm run typecheck` | PASS | ~48s | — | renderer + Electron main clean |
   | `npm run lint:eslint` | PASS | ~66s | — | 0 warnings |
+
+- **2026-07-11 Task 9 verification**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run electron/services/syncApplyQueue.test.ts electron/services/syncFolderWatcher.test.ts --fileParallelism=false` | PASS | ~0.3s | — | 2 files / 14 tests pass |
+  | `npm run test:electron` | PASS | ~7s | — | 31 files / 540 tests pass |
+  | `npx tsc --project tsconfig.electron.json --noEmit` | PASS | ~12s | — | Electron main clean |
+  | `npx eslint electron/services/syncApplyQueue.ts electron/services/syncApplyQueue.test.ts electron/services/syncFolderWatcher.ts --max-warnings=0` | PASS | ~10s | — | 0 warnings |
