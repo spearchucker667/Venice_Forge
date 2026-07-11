@@ -3,7 +3,7 @@ import { isElectron, desktopSync } from "../../services/desktopBridge";
 import { useSettingsStore } from "../../stores/settings-store";
 import { toast } from "../../stores/toast-store";
 import { FolderOpen, HardDrive, ShieldCheck, Activity } from "lucide-react";
-import { initSyncEngine, pauseSyncEngine } from "../../services/syncEngine";
+import { initSyncEngine, pauseSyncEngine, reattachSyncEngine } from "../../services/syncEngine";
 import type { SyncRuntimeStatus } from "../../types/desktop";
 
 const OFFLINE_STATUS: SyncRuntimeStatus = {
@@ -34,18 +34,46 @@ export function BackupSyncPanel() {
       }
       try {
         const res = await desktopSync.getSyncFolder();
-        if (res.ok) {
-          if (res.path) {
-            setSyncFolder(res.path);
-            setSettingsSyncFolder(res.path);
+        if (!res.ok) {
+          setIsLoading(false);
+          return;
+        }
+        if (res.path) {
+          setSyncFolder(res.path);
+          setSettingsSyncFolder(res.path);
+        }
+        const initialStatus: SyncRuntimeStatus = {
+          configured: res.configured,
+          mainWatcher: res.mainWatcher,
+          rendererSessionAttached: res.rendererSessionAttached,
+          authenticated: res.authenticated,
+          degradedReason: res.degradedReason,
+        };
+        setRuntimeStatus(initialStatus);
+
+        // After a renderer reload, the main watcher may still be running but
+        // the renderer session is detached. Reattach automatically if the main
+        // process still holds the passphrase; otherwise fall back to the manual
+        // "Reattach Session" button.
+        if (res.mainWatcher === "running" && !res.rendererSessionAttached) {
+          setIsTransitioning(true);
+          try {
+            const result = await reattachSyncEngine();
+            if (result.ok) {
+              setRuntimeStatus((prev) => ({
+                ...prev,
+                rendererSessionAttached: true,
+                degradedReason: undefined,
+              }));
+              toast.success("Sync session reattached.");
+            } else {
+              console.warn("[BackupSyncPanel] Automatic reattach failed:", result.error);
+            }
+          } catch (err) {
+            console.error("[BackupSyncPanel] Automatic reattach error:", err);
+          } finally {
+            setIsTransitioning(false);
           }
-          setRuntimeStatus({
-            configured: res.configured,
-            mainWatcher: res.mainWatcher,
-            rendererSessionAttached: res.rendererSessionAttached,
-            authenticated: res.authenticated,
-            degradedReason: res.degradedReason,
-          });
         }
       } catch (err) {
         console.error("Failed to load sync folder:", err);

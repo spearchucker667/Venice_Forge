@@ -27,6 +27,7 @@ vi.mock("../../services/syncEngine", () => ({
   initSyncEngine: vi.fn(),
   pauseSyncEngine: vi.fn(),
   stopSyncEngine: vi.fn(),
+  reattachSyncEngine: vi.fn(),
 }));
 
 const mockIsElectron = vi.mocked(desktopBridge.isElectron);
@@ -34,6 +35,7 @@ const mockGetSyncFolder = vi.mocked(desktopBridge.desktopSync.getSyncFolder);
 const mockChooseSyncFolder = vi.mocked(desktopBridge.desktopSync.chooseSyncFolder);
 const mockInitSyncEngine = vi.mocked(syncEngine.initSyncEngine);
 const mockPauseSyncEngine = vi.mocked(syncEngine.pauseSyncEngine);
+const mockReattachSyncEngine = vi.mocked(syncEngine.reattachSyncEngine);
 
 describe("BackupSyncPanel", () => {
   function runtimeStatus(overrides: Partial<{
@@ -61,6 +63,7 @@ describe("BackupSyncPanel", () => {
     mockChooseSyncFolder.mockResolvedValue({ ok: true, path: "/new-sync" });
     mockInitSyncEngine.mockResolvedValue({ ok: true, status: "running" });
     mockPauseSyncEngine.mockResolvedValue({ ok: true, status: "paused" });
+    mockReattachSyncEngine.mockResolvedValue({ ok: true, status: "running" });
     useSettingsStore.setState({ syncFolderPath: "" });
   });
 
@@ -82,9 +85,18 @@ describe("BackupSyncPanel", () => {
     expect(screen.getByText(/disk full/)).toBeTruthy();
   });
 
-  it("shows reattach button when main watcher is running but renderer session is detached", async () => {
+  it("automatically reattaches renderer session when main watcher is running but detached", async () => {
     mockGetSyncFolder.mockResolvedValue(runtimeStatus({ mainWatcher: "running", rendererSessionAttached: false, authenticated: true }));
     render(<BackupSyncPanel />);
+    await waitFor(() => expect(mockReattachSyncEngine).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByText("Active")).toBeTruthy());
+  });
+
+  it("shows reattach button when automatic reattachment fails", async () => {
+    mockGetSyncFolder.mockResolvedValue(runtimeStatus({ mainWatcher: "running", rendererSessionAttached: false, authenticated: true }));
+    mockReattachSyncEngine.mockResolvedValue({ ok: false, status: "error", error: "Main process lost the passphrase." });
+    render(<BackupSyncPanel />);
+    await waitFor(() => expect(mockReattachSyncEngine).toHaveBeenCalled());
     await waitFor(() => expect(screen.getByText("Reattach Session")).toBeTruthy());
   });
 

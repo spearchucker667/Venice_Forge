@@ -1,7 +1,7 @@
 // VERIFY-089 regression guard: sync engine forwards local saves/deletes to the desktop bridge,
 // uses the canonical tombstone schema, and is idempotent.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { initSyncEngine, stopSyncEngine, pauseSyncEngine } from "./syncEngine";
+import { initSyncEngine, stopSyncEngine, pauseSyncEngine, reattachSyncEngine } from "./syncEngine";
 import * as desktopBridge from "./desktopBridge";
 import { importDecryptedPacket } from "./backupImportService";
 import * as syncDeleteCoordinator from "./syncDeleteCoordinator";
@@ -12,6 +12,7 @@ vi.mock("./desktopBridge", () => ({
     startSync: vi.fn().mockResolvedValue({ ok: true }),
     stopSync: vi.fn().mockResolvedValue({ ok: true }),
     pauseSync: vi.fn().mockResolvedValue({ ok: true }),
+    getStatus: vi.fn().mockResolvedValue({ ok: true, configured: true, mainWatcher: "running", rendererSessionAttached: false, authenticated: true }),
     writePacket: vi.fn().mockResolvedValue({ ok: true }),
     acknowledgeOperation: vi.fn().mockResolvedValue({ ok: true }),
     onRemoteChange: vi.fn().mockReturnValue(() => {}),
@@ -31,6 +32,7 @@ vi.mock("./syncDeleteCoordinator", () => ({
 const mockStartSync = vi.mocked(desktopBridge.desktopSync.startSync);
 const mockStopSync = vi.mocked(desktopBridge.desktopSync.stopSync);
 const mockPauseSync = vi.mocked(desktopBridge.desktopSync.pauseSync);
+const mockGetStatus = vi.mocked(desktopBridge.desktopSync.getStatus);
 const mockWritePacket = vi.mocked(desktopBridge.desktopSync.writePacket);
 const mockAcknowledgeOperation = vi.mocked(desktopBridge.desktopSync.acknowledgeOperation);
 const mockOnRemoteChange = vi.mocked(desktopBridge.desktopSync.onRemoteChange);
@@ -251,5 +253,33 @@ describe("syncEngine", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(mockWritePacket).toHaveBeenCalledWith({ storeName: "conversations", id: "conv-1", recordJson: expect.any(String) });
+  });
+
+  it("reattaches without restarting the main watcher when it is already running", async () => {
+    mockGetStatus.mockResolvedValueOnce({ ok: true, configured: true, mainWatcher: "running", rendererSessionAttached: false, authenticated: true });
+    const result = await reattachSyncEngine();
+    expect(result).toEqual({ ok: true, status: "running" });
+    expect(mockStopSync).not.toHaveBeenCalled();
+    expect(mockStartSync).not.toHaveBeenCalled();
+    expect(mockOnRemoteChange).toHaveBeenCalled();
+    expect(window.addEventListener).toHaveBeenCalledWith("venice:storage-saved", expect.any(Function));
+    expect(window.addEventListener).toHaveBeenCalledWith("venice:storage-deleted", expect.any(Function));
+    expect(mockSetRendererSessionAttached).toHaveBeenCalledWith({ attached: true });
+  });
+
+  it("refuses to reattach when the main watcher is not running", async () => {
+    mockGetStatus.mockResolvedValueOnce({ ok: true, configured: true, mainWatcher: "paused", rendererSessionAttached: false, authenticated: true });
+    const result = await reattachSyncEngine();
+    expect(result).toEqual({ ok: false, status: "paused", error: expect.stringContaining("not running") });
+    expect(mockOnRemoteChange).not.toHaveBeenCalled();
+    expect(mockSetRendererSessionAttached).not.toHaveBeenCalledWith({ attached: true });
+  });
+
+  it("refuses to reattach when the main process is not authenticated", async () => {
+    mockGetStatus.mockResolvedValueOnce({ ok: true, configured: true, mainWatcher: "running", rendererSessionAttached: false, authenticated: false });
+    const result = await reattachSyncEngine();
+    expect(result).toEqual({ ok: false, status: "error", error: expect.stringContaining("not authenticated") });
+    expect(mockOnRemoteChange).not.toHaveBeenCalled();
+    expect(mockSetRendererSessionAttached).not.toHaveBeenCalledWith({ attached: true });
   });
 });

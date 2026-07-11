@@ -1,6 +1,7 @@
 import { importDecryptedPacket } from "./backupImportService";
 import { desktopSync } from "./desktopBridge";
 import type { MutationOrigin, SyncStoreName } from "../types/sync";
+import type { SyncRuntimeStatus } from "../types/desktop";
 import { sanitizePortableData } from "./syncDataSanitizer";
 import { validateTombstone } from "../shared/syncProtocol";
 import { deleteSyncableRecord } from "./syncDeleteCoordinator";
@@ -43,6 +44,35 @@ function attachRendererSyncListeners(): void {
   window.addEventListener("venice:storage-deleted", handleStorageDeleted);
 }
 
+function registerRemoteChangeListener(): void {
+  remoteChangeListenerCleanup = desktopSync.onRemoteChange(async (event) => {
+    const { storeName, id, operationId, recordJson } = event;
+    try {
+      if (storeName === "tombstones") {
+        const parsed = JSON.parse(recordJson);
+        const validation = validateTombstone(parsed);
+        if (!validation.ok) {
+          console.error(`[SyncEngine] Rejected malformed tombstone: ${validation.error}`);
+          await desktopSync.acknowledgeOperation({ operationId, ok: false });
+          return;
+        }
+        await importDecryptedPacket(storeName as SyncStoreName, id, recordJson);
+        await desktopSync.acknowledgeOperation({ operationId, ok: true });
+        return;
+      }
+
+      const result = await importDecryptedPacket(storeName as SyncStoreName, id, recordJson);
+      await desktopSync.acknowledgeOperation({ operationId, ok: result.ok });
+      if (!result.ok) {
+        console.error(`[SyncEngine] Failed to import packet ${storeName}/${id}:`, result.error);
+      }
+    } catch (err) {
+      console.error(`[SyncEngine] Error applying remote change:`, err);
+      await desktopSync.acknowledgeOperation({ operationId, ok: false }).catch(() => {});
+    }
+  });
+}
+
 export async function initSyncEngine(password: string): Promise<SyncEngineStartResult> {
   if (typeof window === "undefined") {
     const error = "Sync Engine disabled: No desktop bridge available (Web Mode)";
@@ -76,32 +106,59 @@ export async function initSyncEngine(password: string): Promise<SyncEngineStartR
   }
 
   // Register the remote change listener
-  remoteChangeListenerCleanup = desktopSync.onRemoteChange(async (event) => {
-    const { storeName, id, operationId, recordJson } = event;
-    try {
-      if (storeName === "tombstones") {
-        const parsed = JSON.parse(recordJson);
-        const validation = validateTombstone(parsed);
-        if (!validation.ok) {
-          console.error(`[SyncEngine] Rejected malformed tombstone: ${validation.error}`);
-          await desktopSync.acknowledgeOperation({ operationId, ok: false });
-          return;
-        }
-        await importDecryptedPacket(storeName as SyncStoreName, id, recordJson);
-        await desktopSync.acknowledgeOperation({ operationId, ok: true });
-        return;
-      }
+  registerRemoteChangeListener();
 
-      const result = await importDecryptedPacket(storeName as SyncStoreName, id, recordJson);
-      await desktopSync.acknowledgeOperation({ operationId, ok: result.ok });
-      if (!result.ok) {
-        console.error(`[SyncEngine] Failed to import packet ${storeName}/${id}:`, result.error);
-      }
-    } catch (err) {
-      console.error(`[SyncEngine] Error applying remote change:`, err);
-      await desktopSync.acknowledgeOperation({ operationId, ok: false }).catch(() => {});
+  attachRendererSyncListeners();
+  syncActive = true;
+  await notifyRendererSessionAttached(true);
+  return { ok: true, status: "running" };
+}
+
+export async function reattachSyncEngine(): Promise<SyncEngineStartResult> {
+  if (typeof window === "undefined") {
+    const error = "Sync Engine disabled: No desktop bridge available (Web Mode)";
+    console.warn(`[SyncEngine] ${error}`);
+    return { ok: false, status: "error", error };
+  }
+
+  // Verify the main process watcher is still running and holds the passphrase.
+  // This lets us reattach after a renderer reload without asking the user to
+  // re-enter their password.
+  let status: SyncRuntimeStatus;
+  try {
+    const res = await desktopSync.getStatus();
+    if (!res.ok) {
+      const error = res.degradedReason || "Failed to read sync status from main process.";
+      console.error(`[SyncEngine] ${error}`);
+      return { ok: false, status: "error", error };
     }
-  });
+    status = res;
+  } catch (err) {
+    const error = err instanceof Error ? err.message : "Unknown error reading sync status.";
+    console.error(`[SyncEngine] ${error}`);
+    return { ok: false, status: "error", error };
+  }
+
+  if (status.mainWatcher !== "running") {
+    return {
+      ok: false,
+      status: status.mainWatcher,
+      error: "Main sync watcher is not running. Enter the passphrase to start sync.",
+    };
+  }
+  if (!status.authenticated) {
+    return {
+      ok: false,
+      status: "error",
+      error: "Sync session is not authenticated. Enter the passphrase to start sync.",
+    };
+  }
+
+  // Idempotent cleanup before re-attaching.
+  await detachRendererSyncListeners();
+
+  // Re-register the remote change listener.
+  registerRemoteChangeListener();
 
   attachRendererSyncListeners();
   syncActive = true;
