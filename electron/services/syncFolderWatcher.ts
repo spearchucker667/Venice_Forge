@@ -22,7 +22,7 @@ const ACK_TIMEOUT_MS = 30_000;
 const MAX_PACKET_BYTES = 50 * 1024 * 1024;
 
 const JOURNAL_VERSION = 1;
-const MAX_JOURNAL_ENTRIES = 50_000;
+export const MAX_JOURNAL_ENTRIES = 50_000;
 const JOURNAL_COMPACTION_DAYS = 7;
 
 class AsyncSerialQueue {
@@ -35,6 +35,9 @@ class AsyncSerialQueue {
 }
 
 const journalQueue = new AsyncSerialQueue();
+
+const JOURNAL_FLUSH_DEBOUNCE_MS = 50;
+let appliedOperationFlushTimeout: ReturnType<typeof setTimeout> | null = null;
 
 interface AppliedOperationEntry {
   operationId: string;
@@ -53,6 +56,7 @@ interface AppliedOperationsJournal {
 let appliedOperationsJournal: AppliedOperationsJournal = { version: JOURNAL_VERSION, operations: [] };
 let journalLoaded = false;
 let journalPath: string | null = null;
+const appliedOperationIds = new Set<string>();
 
 export const SYNC_STORE_ALLOWLIST = new Set([
   "images", "chats", "settings", "conversations", "ai_memory", "files", "character_cards",
@@ -71,8 +75,8 @@ function getJournalPath(): string {
   return journalPath;
 }
 
-export async function loadAppliedOperationsJournal(): Promise<void> {
-  if (journalLoaded) return;
+export async function loadAppliedOperationsJournal(): Promise<AppliedOperationsJournal> {
+  if (journalLoaded) return appliedOperationsJournal;
   try {
     const filePath = getJournalPath();
     await fs.mkdir(getJournalDirectory(), { recursive: true });
@@ -88,7 +92,12 @@ export async function loadAppliedOperationsJournal(): Promise<void> {
     }
     appliedOperationsJournal = { version: JOURNAL_VERSION, operations: [] };
   }
+  appliedOperationIds.clear();
+  for (const op of appliedOperationsJournal.operations) {
+    appliedOperationIds.add(op.operationId);
+  }
   journalLoaded = true;
+  return appliedOperationsJournal;
 }
 
 async function saveAppliedOperationsJournal(): Promise<void> {
@@ -106,31 +115,70 @@ async function saveAppliedOperationsJournal(): Promise<void> {
 }
 
 function compactJournal(): void {
-  if (appliedOperationsJournal.operations.length <= MAX_JOURNAL_ENTRIES) return;
+  const total = appliedOperationsJournal.operations.length;
+  if (total <= MAX_JOURNAL_ENTRIES) return;
 
   const cutoff = Date.now() - JOURNAL_COMPACTION_DAYS * 24 * 60 * 60 * 1000;
-  // Never evict tombstone operations; they must remain applied to prevent
-  // resurrection of deleted records on restart.
-  const isEvictable = (entry: AppliedOperationEntry) =>
-    entry.storeName !== "tombstones" && new Date(entry.appliedAt).getTime() < cutoff;
 
-  const evictableCount = appliedOperationsJournal.operations.filter(isEvictable).length;
-  const target = MAX_JOURNAL_ENTRIES;
-  const needToRemove = appliedOperationsJournal.operations.length - target;
-  const removeCount = Math.min(needToRemove, evictableCount);
+  // Rule 1: always keep tombstone entries younger than JOURNAL_COMPACTION_DAYS.
+  const youngTombstones: AppliedOperationEntry[] = [];
+  const nonTombstones: AppliedOperationEntry[] = [];
 
-  if (removeCount > 0) {
-    let removed = 0;
-    appliedOperationsJournal.operations = appliedOperationsJournal.operations.filter((entry) => {
-      if (removed < removeCount && isEvictable(entry)) {
-        removed++;
-        return false;
+  for (const entry of appliedOperationsJournal.operations) {
+    if (entry.storeName === "tombstones") {
+      if (new Date(entry.appliedAt).getTime() >= cutoff) {
+        youngTombstones.push(entry);
       }
-      return true;
-    });
+    } else {
+      nonTombstones.push(entry);
+    }
   }
 
+  const tombstoneCount = youngTombstones.length;
+
+  // Rule 2: for non-tombstone applied operations, keep the most recent
+  // MAX_JOURNAL_ENTRIES - tombstoneCount entries.
+  const nonTombstoneBudget = Math.max(0, MAX_JOURNAL_ENTRIES - tombstoneCount);
+  // Operations are appended as they are applied, so appliedAt is monotonically
+  // increasing. Keep the tail (most recent) without a full sort.
+  const keptNonTombstones = nonTombstones.slice(-nonTombstoneBudget);
+
+  // Rule 3: if the total still exceeds MAX_JOURNAL_ENTRIES, remove oldest
+  // non-tombstone entries first.
+  while (youngTombstones.length + keptNonTombstones.length > MAX_JOURNAL_ENTRIES && keptNonTombstones.length > 0) {
+    keptNonTombstones.shift();
+  }
+
+  // Rebuild the journal preserving original order and the runtime id set.
+  const keptIds = new Set([...youngTombstones, ...keptNonTombstones].map((entry) => entry.operationId));
+  appliedOperationsJournal.operations = appliedOperationsJournal.operations.filter((entry) =>
+    keptIds.has(entry.operationId)
+  );
+  appliedOperationIds.clear();
+  for (const op of appliedOperationsJournal.operations) {
+    appliedOperationIds.add(op.operationId);
+  }
   appliedOperationsJournal.lastCompactedAt = new Date().toISOString();
+}
+
+function scheduleAppliedOperationsJournalFlush(): void {
+  if (appliedOperationFlushTimeout) return;
+  appliedOperationFlushTimeout = setTimeout(() => {
+    appliedOperationFlushTimeout = null;
+    flushAppliedOperationsJournal().catch((err) => {
+      logError("syncFolderWatcher", `Scheduled journal flush failed: ${redactErrorMessage(err)}`);
+    });
+  }, JOURNAL_FLUSH_DEBOUNCE_MS);
+}
+
+export async function flushAppliedOperationsJournal(): Promise<void> {
+  if (appliedOperationFlushTimeout) {
+    clearTimeout(appliedOperationFlushTimeout);
+    appliedOperationFlushTimeout = null;
+  }
+  return journalQueue.enqueue(async () => {
+    await saveAppliedOperationsJournal();
+  });
 }
 
 export async function recordAppliedOperation(
@@ -138,10 +186,11 @@ export async function recordAppliedOperation(
   storeName: string,
   result: AppliedOperationEntry["result"] = "applied",
   sourceDeviceId?: string,
+  flush = true,
 ): Promise<void> {
   return journalQueue.enqueue(async () => {
     await loadAppliedOperationsJournal();
-    if (appliedOperationsJournal.operations.some((op) => op.operationId === operationId)) return;
+    if (appliedOperationIds.has(operationId)) return;
 
     appliedOperationsJournal.operations.push({
       operationId,
@@ -150,18 +199,25 @@ export async function recordAppliedOperation(
       sourceDeviceId,
       result,
     });
+    appliedOperationIds.add(operationId);
 
     compactJournal();
-    await saveAppliedOperationsJournal();
+
+    if (flush) {
+      await saveAppliedOperationsJournal();
+    } else {
+      scheduleAppliedOperationsJournalFlush();
+    }
   });
 }
 
 export function isOperationApplied(operationId: string): boolean {
-  return appliedOperationsJournal.operations.some((op) => op.operationId === operationId);
+  return appliedOperationIds.has(operationId);
 }
 
 export function resetAppliedOperationsJournal(): void {
   appliedOperationsJournal = { version: JOURNAL_VERSION, operations: [] };
+  appliedOperationIds.clear();
   journalLoaded = false;
   journalPath = null;
 }
@@ -282,6 +338,7 @@ export async function stopSyncWatcher(): Promise<{ ok: boolean; error?: string }
   }
   requeueInFlightOperations("Watcher stopped");
   stopSyncRetryQueue();
+  await flushAppliedOperationsJournal().catch(() => undefined);
   syncStatus = "stopped";
   return { ok: true };
 }

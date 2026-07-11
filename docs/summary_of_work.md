@@ -11,6 +11,19 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
+- **2026-07-11 Task 13: Enforce real applied-operation journal bounds — COMPLETE (current session):**
+  - Implemented bounded compaction in `electron/services/syncFolderWatcher.ts`:
+    - Always keeps tombstone entries younger than `JOURNAL_COMPACTION_DAYS`.
+    - Caps non-tombstone applied operations at `MAX_JOURNAL_ENTRIES - tombstoneCount`, evicting oldest non-tombstones first if the total still exceeds `MAX_JOURNAL_ENTRIES`.
+    - Persists `lastCompactedAt` on every compaction.
+    - Added a runtime `appliedOperationIds` Set for O(1) duplicate checks and rebuilt it after loads/compaction/resets.
+  - Added `flushAppliedOperationsJournal()` and a debounced scheduled-flush path, plus an optional `flush` parameter on `recordAppliedOperation` (default `true`). Production acknowledgments (`acknowledgeOperation`) remain durable; bulk/test callers can defer flushing.
+  - `stopSyncWatcher` now awaits a final journal flush so pending applied-operation records are not lost when sync stops.
+  - Added regression test `does not exceed MAX_JOURNAL_ENTRIES after many operations` in `electron/services/syncFolderWatcher.test.ts` that writes `MAX_JOURNAL_ENTRIES + 100` operations and asserts the journal stays within the bound and carries `lastCompactedAt`.
+  - Added `VERIFY-093` to `AGENTS.md` regression-guard registry.
+  - Validation: `npx vitest run electron/services/syncFolderWatcher.test.ts` PASS (26 tests); `npm run test:electron` PASS (31 files / 559 tests); `npm run typecheck` PASS; `npm run lint:eslint` PASS (0 warnings).
+  - Files changed: `electron/services/syncFolderWatcher.ts`, `electron/services/syncFolderWatcher.test.ts`, `AGENTS.md`, `docs/summary_of_work.md`, `.superpowers/sdd/task-13-report.md`.
+
 - **2026-07-11 Task 12 final review fixes: will-quit teardown and pause scheduler stop — COMPLETE (current session):**
   - Fixed `electron/main.ts` `will-quit` handler:
     - Now imports `stopSyncWatcher` from `./services/syncFolderWatcher`.
@@ -243,6 +256,7 @@
   - **Task 9: Add per-object remote apply queue — CLOSED in this session.**
   - **Task 10: Serialize journal writes with a mutex — CLOSED in this session.**
   - **Task 12: Add bounded retry queue and acknowledgment timeout — CLOSED in this session; review fixes (retry counter preservation, paused/stopped persistence, scheduler lifecycle, main-process will-quit teardown, pause scheduler stop) also CLOSED.**
+  - **Task 13: Enforce real applied-operation journal bounds — CLOSED in this session.**
   - Remaining tasks from the work order are delegated to subsequent sessions.
 - **2026-07-01 priority remediation work order — CLOSED in this session:**
   - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
@@ -705,3 +719,13 @@
   | `npm run test:electron` | PASS | ~7s | — | 31 files / 553 tests pass |
   | `npx tsc --project tsconfig.electron.json --noEmit` | PASS | ~12s | — | Electron main clean |
   | `npx eslint electron/services/syncFolderWatcher.ts electron/services/syncRetryQueue.ts electron/services/syncFolderWatcher.test.ts --max-warnings=0` | PASS | ~10s | — | 0 warnings |
+
+- **2026-07-11 Task 13 verification**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run electron/services/syncFolderWatcher.test.ts --fileParallelism=false` | PASS | ~1s | — | 1 file / 26 tests pass |
+  | `npm run test:electron` | PASS | ~7s | — | 31 files / 559 tests pass |
+  | `npm run typecheck` | PASS | ~48s | — | renderer + Electron main clean |
+  | `npm run lint:eslint` | PASS | ~66s | — | 0 warnings |

@@ -41,6 +41,8 @@ import {
   isOperationInFlight,
   recordAppliedOperation,
   resetAppliedOperationsJournal,
+  flushAppliedOperationsJournal,
+  MAX_JOURNAL_ENTRIES,
   __registerInFlightOperationForTests,
   __clearInFlightOperationsForTests,
   initSyncFolderWatcher,
@@ -476,5 +478,16 @@ describe("syncFolderWatcher", () => {
 
     expect(spy).not.toHaveBeenCalled();
     expect(getPendingRetries().has(validOpId)).toBe(true);
+  });
+
+  // Task 13 regression guard: bounded applied-operations journal compaction.
+  it("does not exceed MAX_JOURNAL_ENTRIES after many operations", async () => {
+    for (let i = 0; i < MAX_JOURNAL_ENTRIES + 100; i++) {
+      await recordAppliedOperation(`op-${i}`, "conversations", "applied", undefined, false);
+    }
+    await flushAppliedOperationsJournal();
+    const journal = await loadAppliedOperationsJournal();
+    expect(journal.operations.length).toBeLessThanOrEqual(MAX_JOURNAL_ENTRIES);
+    expect(journal.lastCompactedAt).toBeDefined();
   });
 });
