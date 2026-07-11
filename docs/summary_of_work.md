@@ -11,7 +11,27 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
-- **2026-07-11 Task 12: Add bounded retry queue and acknowledgment timeout — COMPLETE (current session):**
+- **2026-07-11 Task 12 review fixes: bounded retry counter, paused/stopped persistence, scheduler lifecycle — COMPLETE (current session):**
+  - Fixed `electron/services/syncRetryQueue.ts`:
+    - Retry callback now receives `(filePath, attempts)` so the scheduler redelivers the current attempt count instead of resetting it to 0.
+    - The scheduler deletes a pending retry only after the callback reports success (`true`); failures and rejected deliveries keep the entry for the next scan.
+    - `initSyncRetryQueue` is now idempotent: it clears the previous interval and restarts with the latest callback.
+    - Synchronous callbacks delete the pending entry immediately; asynchronous callbacks delete after resolution.
+  - Fixed `electron/services/syncFolderWatcher.ts`:
+    - `handleRemoteChange(filePath, attempts = 0)` now returns `Promise<boolean>`: `false` when the watcher is not ready (window destroyed or no password), `true` when the operation is accepted or permanently abandoned (malformed/unreadable file).
+    - In-flight operations and ack timeouts carry the delivered `attempts` count; timeouts re-enqueue with `scheduleRetry(operationId, filePath, attempts, ...)` so `attemptsSoFar` increments each cycle.
+    - `stopSyncWatcher` now calls `stopSyncRetryQueue()`; `startSyncWatcher` restarts the scheduler via `initSyncRetryQueue`.
+    - Removed unused `__startAckTimeoutForTests` helper.
+  - Expanded `electron/services/syncFolderWatcher.test.ts`:
+    - Attempt count increments across scheduler redelivery and timeout cycles.
+    - Maximum attempts are enforced end-to-end (operation abandoned after attempt 10).
+    - Exponential backoff increases `nextAttemptAt` (1 s, 2 s, 16 s for attempts 1/2/5).
+    - Pending retries survive when the watcher is stopped/paused (`handleRemoteChange` returns `false`).
+    - `stopSyncWatcher` stops the retry scheduler.
+  - Validation: `npx vitest run electron/services/syncFolderWatcher.test.ts` PASS (25 tests); `npm run test:electron` PASS (31 files / 558 tests); `npm run typecheck` PASS; `npm run lint:eslint` PASS (0 warnings).
+  - Files changed: `electron/services/syncFolderWatcher.ts`, `electron/services/syncRetryQueue.ts`, `electron/services/syncFolderWatcher.test.ts`, `docs/summary_of_work.md`, `.superpowers/sdd/task-12-report.md`.
+
+- **2026-07-11 Task 12: Add bounded retry queue and acknowledgment timeout — COMPLETE (previous session):**
   - Created `electron/services/syncRetryQueue.ts` with `PendingRemoteOperation`, exponential backoff (1 s initial, capped at 5 min), max 10 attempts, and a 5 s scanning scheduler that re-delivers due retries via the supplied callback.
   - Updated `electron/services/syncFolderWatcher.ts`:
     - `inFlightOperations` now tracks `filePath` and `attempts`.
@@ -212,7 +232,7 @@
   - **Task 8: Remove renderer-global `__VENICE_IS_SYNCING` suppression mechanism — CLOSED in this session.**
   - **Task 9: Add per-object remote apply queue — CLOSED in this session.**
   - **Task 10: Serialize journal writes with a mutex — CLOSED in this session.**
-  - **Task 12: Add bounded retry queue and acknowledgment timeout — CLOSED in this session.**
+  - **Task 12: Add bounded retry queue and acknowledgment timeout — CLOSED in this session; review fixes (retry counter preservation, paused/stopped persistence, scheduler lifecycle) also CLOSED.**
   - Remaining tasks from the work order are delegated to subsequent sessions.
 - **2026-07-01 priority remediation work order — CLOSED in this session:**
   - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
@@ -467,6 +487,16 @@
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+
+- **2026-07-11 Task 12 review fixes focused verification**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run electron/services/syncFolderWatcher.test.ts` | PASS | ~0.2s | — | 25/25 tests pass |
+  | `npm run test:electron` | PASS | ~7s | — | 31 files / 558 tests pass |
+  | `npm run typecheck` | PASS | ~48s | — | renderer + Electron main clean |
+  | `npm run lint:eslint` | PASS | ~66s | — | 0 warnings |
 
 - **2026-07-11 Task 7 review fixes focused verification**
   - Node/toolchain: `v22.23.1` / `npm 10.9.8`.

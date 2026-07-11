@@ -8,7 +8,7 @@ import { BrowserWindow, app } from "electron";
 import { encryptPayload, decryptPayload, EncryptedBackupManifest } from "./backupCrypto";
 import { getSyncPath, setSyncPath, getDeviceId } from "./syncConfig";
 import { enqueueRemoteApply } from "./syncApplyQueue";
-import { initSyncRetryQueue, scheduleRetry } from "./syncRetryQueue";
+import { initSyncRetryQueue, scheduleRetry, stopSyncRetryQueue } from "./syncRetryQueue";
 
 let watcher: FSWatcher | null = null;
 let currentSyncPath: string | null = null;
@@ -247,14 +247,6 @@ export function __registerInFlightOperationForTests(
   }
 }
 
-/** Test-only helper to manually start an acknowledgment timeout. */
-export function __startAckTimeoutForTests(operationId: string, filePath: string, attempts?: number): void {
-  if (!inFlightOperations.has(operationId)) {
-    throw new Error("Operation is not in-flight");
-  }
-  startAckTimeout(operationId, filePath, attempts ?? 0);
-}
-
 /** Test-only helper to clear the in-flight operation map. */
 export function __clearInFlightOperationsForTests(): void {
   for (const operationId of inFlightOperations.keys()) {
@@ -268,17 +260,14 @@ export async function initSyncFolderWatcher(mainWindow: BrowserWindow) {
   mainWindowRef = mainWindow;
   currentSyncPath = await getSyncPath();
   await loadAppliedOperationsJournal();
-  initSyncRetryQueue((filePath) => {
-    handleRemoteChange(filePath).catch((err: unknown) => {
-      logError("syncFolderWatcher", `Retry delivery failed: ${redactErrorMessage(err)}`);
-    });
-  });
+  initSyncRetryQueue((filePath, attempts) => handleRemoteChange(filePath, attempts));
 }
 
 export async function startSyncWatcher(password: string): Promise<{ ok: boolean; error?: string }> {
   if (!password) return { ok: false, error: "Sync passphrase is required." };
   currentPassword = password;
   syncStatus = "running";
+  initSyncRetryQueue((filePath, attempts) => handleRemoteChange(filePath, attempts));
   if (currentSyncPath) {
     return await setSyncFolder(currentSyncPath);
   }
@@ -292,6 +281,7 @@ export async function stopSyncWatcher(): Promise<{ ok: boolean; error?: string }
     watcher = null;
   }
   requeueInFlightOperations("Watcher stopped");
+  stopSyncRetryQueue();
   syncStatus = "stopped";
   return { ok: true };
 }
@@ -351,8 +341,16 @@ export async function setSyncFolder(syncPath: string): Promise<{ ok: boolean; er
         depth: 0 // only watch blobs directly in blobs folder
       });
 
-      watcher.on("add", handleRemoteChange);
-      watcher.on("change", handleRemoteChange);
+      watcher.on("add", (filePath: string) => {
+        handleRemoteChange(filePath, 0).catch((err: unknown) => {
+          logError("syncFolderWatcher", `Remote change delivery failed: ${redactErrorMessage(err)}`);
+        });
+      });
+      watcher.on("change", (filePath: string) => {
+        handleRemoteChange(filePath, 0).catch((err: unknown) => {
+          logError("syncFolderWatcher", `Remote change delivery failed: ${redactErrorMessage(err)}`);
+        });
+      });
       
       logInfo("syncFolderWatcher", "Started watching approved encrypted sync folder");
     } else {
@@ -373,40 +371,43 @@ export function getSyncFolder(): string | null {
 }
 
 /** Handle incoming changes from the filesystem. */
-export async function handleRemoteChange(filePath: string) {
-  if (!mainWindowRef || mainWindowRef.isDestroyed()) return;
-  if (!currentPassword) return;
+export async function handleRemoteChange(filePath: string, attempts = 0): Promise<boolean> {
+  if (!mainWindowRef || mainWindowRef.isDestroyed()) return false;
+  if (!currentPassword) return false;
 
   const filename = path.basename(filePath);
 
   try {
     const stat = await fs.stat(filePath);
-    if (stat.size > MAX_PACKET_BYTES) throw new Error("Encrypted packet exceeds maximum size");
+    if (stat.size > MAX_PACKET_BYTES) {
+      logError("syncFolderWatcher", `Encrypted packet exceeds maximum size for ${filename}`);
+      return true;
+    }
     const data = await fs.readFile(filePath, "utf8");
     const manifest: EncryptedBackupManifest = JSON.parse(data);
 
     // Ensure valid version
     if (manifest.version !== 2 || typeof manifest.salt !== "string" || typeof manifest.iv !== "string" || typeof manifest.ciphertext !== "string") {
       logError("syncFolderWatcher", `Unsupported backup version for ${filename}`);
-      return;
+      return true;
     }
 
     const decrypted = await decryptPayload(manifest.ciphertext, manifest.salt, manifest.iv, currentPassword);
     const parsed = JSON.parse(decrypted);
 
     logInfo("syncFolderWatcher", `Detected remote change for ${filename}`);
-    
+
     // We expect the parsed JSON to contain storeName and id
     if (!parsed._storeName || !SYNC_STORE_ALLOWLIST.has(parsed._storeName) || !parsed._id || !parsed.data
       || typeof parsed._operationId !== "string" || !/^[a-f0-9]{64}$/.test(parsed._operationId)) {
       logError("syncFolderWatcher", `Decrypted payload missing metadata for ${filename}`);
-      return;
+      return true;
     }
-    
+
     const localDeviceId = await getDeviceId();
     if (parsed._sourceDeviceId === localDeviceId) {
       // Ignore our own echoes
-      return;
+      return true;
     }
 
     const queueKey = `${parsed._storeName}:${parsed._id}`;
@@ -420,9 +421,9 @@ export async function handleRemoteChange(filePath: string) {
         storeName: parsed._storeName,
         sourceDeviceId: parsed._sourceDeviceId,
         filePath,
-        attempts: 0,
+        attempts,
       });
-      startAckTimeout(parsed._operationId, filePath, 0);
+      startAckTimeout(parsed._operationId, filePath, attempts);
 
       mainWindowRef.webContents.send("sync:onRemoteChange", {
         storeName: parsed._storeName,
@@ -431,9 +432,11 @@ export async function handleRemoteChange(filePath: string) {
         recordJson: JSON.stringify(parsed.data)
       });
     });
+    return true;
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Unknown error";
     logError("syncFolderWatcher", `Failed to read/decrypt changed sync file ${filename}: ${redactErrorMessage(errorMsg)}`);
+    return true;
   }
 }
 

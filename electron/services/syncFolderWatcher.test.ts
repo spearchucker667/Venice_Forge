@@ -2,9 +2,11 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+const sendMock = vi.fn();
 vi.mock("electron", () => ({
-  BrowserWindow: {
-    fromWebContents: vi.fn(),
+  BrowserWindow: class MockBrowserWindow {
+    isDestroyed = vi.fn().mockReturnValue(false);
+    webContents = { send: sendMock };
   },
   app: {
     getPath: vi.fn(),
@@ -41,6 +43,7 @@ import {
   resetAppliedOperationsJournal,
   __registerInFlightOperationForTests,
   __clearInFlightOperationsForTests,
+  initSyncFolderWatcher,
 } from "./syncFolderWatcher";
 import {
   initSyncRetryQueue,
@@ -309,7 +312,7 @@ describe("syncFolderWatcher", () => {
 
   it("delivers retries via the scheduler after exponential backoff", async () => {
     vi.useFakeTimers();
-    const spy = vi.fn();
+    const spy = vi.fn().mockReturnValue(true);
     initSyncRetryQueue(spy);
 
     const validOpId = "i".repeat(64);
@@ -321,7 +324,7 @@ describe("syncFolderWatcher", () => {
 
     vi.advanceTimersByTime(5000);
 
-    expect(spy).toHaveBeenCalledWith(filePath);
+    expect(spy).toHaveBeenCalledWith(filePath, 1);
     expect(spy).toHaveBeenCalledTimes(1);
     expect(getPendingRetries().has(validOpId)).toBe(false);
   });
@@ -336,5 +339,142 @@ describe("syncFolderWatcher", () => {
       "syncRetryQueue",
       expect.stringMatching(/exceeded max retry attempts/),
     );
+  });
+
+  it("increments the attempt count across scheduler redelivery and timeout cycles", async () => {
+    vi.useFakeTimers();
+    const validOpId = "k".repeat(64);
+    const filePath = `${tmpDir}/cycle-attempts.json`;
+
+    // First timeout: attempt 0 in-flight -> pending attempts = 1
+    __registerInFlightOperationForTests(validOpId, "conversations", "device-2", filePath, 0, true);
+    vi.advanceTimersByTime(30_000);
+    expect(getPendingRetries().get(validOpId)?.attempts).toBe(1);
+
+    // Scheduler redelivers with attempts=1; simulate delivery by re-registering in-flight.
+    const redeliver = vi.fn((fp: string, attempts: number) => {
+      expect(fp).toBe(filePath);
+      __registerInFlightOperationForTests(validOpId, "conversations", "device-2", filePath, attempts, true);
+      return true;
+    });
+    initSyncRetryQueue(redeliver);
+    vi.advanceTimersByTime(5000);
+    expect(redeliver).toHaveBeenCalledWith(filePath, 1);
+
+    // Second timeout: attempt 1 in-flight -> pending attempts = 2
+    vi.advanceTimersByTime(30_000);
+    expect(getPendingRetries().get(validOpId)?.attempts).toBe(2);
+
+    // Third cycle: scheduler redelivers with attempts=2
+    redeliver.mockClear();
+    __clearInFlightOperationsForTests();
+    initSyncRetryQueue(redeliver);
+    vi.advanceTimersByTime(5000);
+    expect(redeliver).toHaveBeenCalledWith(filePath, 2);
+  });
+
+  it("enforces maximum retry attempts end-to-end", async () => {
+    vi.useFakeTimers();
+    const validOpId = "l".repeat(64);
+    const filePath = `${tmpDir}/end-to-end-max.json`;
+
+    let deliveredAttempts = -1;
+    initSyncRetryQueue((fp: string, attempts: number) => {
+      deliveredAttempts = attempts;
+      __clearInFlightOperationsForTests();
+      __registerInFlightOperationForTests(validOpId, "conversations", "device-2", fp, attempts, true);
+      return true;
+    });
+
+    // Seed initial in-flight operation at attempt 0.
+    __registerInFlightOperationForTests(validOpId, "conversations", "device-2", filePath, 0, true);
+
+    // Drive timeout -> scheduler -> redelivery cycles until the operation is abandoned.
+    let safety = 0;
+    while (safety++ < 50) {
+      if (isOperationInFlight(validOpId)) {
+        vi.advanceTimersByTime(30_000);
+        continue;
+      }
+      const pending = getPendingRetries().get(validOpId);
+      if (!pending) {
+        break;
+      }
+      const wait = pending.nextAttemptAt - Date.now();
+      const ticks = Math.ceil(Math.max(wait, 0) / 5000);
+      vi.advanceTimersByTime(Math.max(ticks, 1) * 5000);
+    }
+
+    expect(deliveredAttempts).toBe(10);
+    expect(getPendingRetries().has(validOpId)).toBe(false);
+    expect(isOperationInFlight(validOpId)).toBe(false);
+    expect(logError).toHaveBeenCalledWith(
+      "syncRetryQueue",
+      expect.stringMatching(/exceeded max retry attempts/),
+    );
+  });
+
+  it("increases nextAttemptAt with exponential backoff", () => {
+    vi.useRealTimers();
+    const validOpId = "m".repeat(64);
+    const filePath = `${tmpDir}/backoff.json`;
+    const base = Date.now();
+
+    scheduleRetry(validOpId, filePath, 0);
+    expect(getPendingRetries().get(validOpId)!.nextAttemptAt).toBeGreaterThanOrEqual(base + 1000);
+    expect(getPendingRetries().get(validOpId)!.nextAttemptAt).toBeLessThan(base + 2000);
+    clearPendingRetries();
+
+    scheduleRetry(validOpId, filePath, 1);
+    expect(getPendingRetries().get(validOpId)!.nextAttemptAt).toBeGreaterThanOrEqual(base + 2000);
+    expect(getPendingRetries().get(validOpId)!.nextAttemptAt).toBeLessThan(base + 4000);
+    clearPendingRetries();
+
+    scheduleRetry(validOpId, filePath, 4);
+    expect(getPendingRetries().get(validOpId)!.nextAttemptAt).toBeGreaterThanOrEqual(base + 16_000);
+    expect(getPendingRetries().get(validOpId)!.nextAttemptAt).toBeLessThan(base + 32_000);
+  });
+
+  it("does not drop pending retries while the watcher is stopped", async () => {
+    vi.useFakeTimers();
+    const { BrowserWindow } = await import("electron");
+    const mainWindow = new BrowserWindow();
+    await initSyncFolderWatcher(mainWindow);
+
+    const validOpId = "n".repeat(64);
+    const filePath = `${tmpDir}/stopped-retry.json`;
+    scheduleRetry(validOpId, filePath, 0);
+
+    await startSyncWatcher("password");
+    await stopSyncWatcher();
+
+    // The scheduler was stopped by stopSyncWatcher, so restart it manually to observe behavior.
+    initSyncRetryQueue((fp, attempts) => handleRemoteChange(fp, attempts));
+    vi.advanceTimersByTime(5000);
+
+    // Watcher is stopped (currentPassword is null), so handleRemoteChange rejects the delivery
+    // and the pending entry must remain intact.
+    expect(getPendingRetries().has(validOpId)).toBe(true);
+    expect(getPendingRetries().get(validOpId)).toMatchObject({
+      operationId: validOpId,
+      filePath,
+      attempts: 1,
+    });
+  });
+
+  it("stops the retry scheduler on stopSyncWatcher", async () => {
+    vi.useFakeTimers();
+    const spy = vi.fn().mockReturnValue(true);
+    initSyncRetryQueue(spy);
+
+    const validOpId = "o".repeat(64);
+    const filePath = `${tmpDir}/scheduler-stop.json`;
+    scheduleRetry(validOpId, filePath, 0);
+
+    await stopSyncWatcher();
+    vi.advanceTimersByTime(10_000);
+
+    expect(spy).not.toHaveBeenCalled();
+    expect(getPendingRetries().has(validOpId)).toBe(true);
   });
 });

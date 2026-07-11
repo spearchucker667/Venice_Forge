@@ -17,7 +17,7 @@ export interface PendingRemoteOperation {
   lastError?: string;
 }
 
-type RetryCallback = (filePath: string) => void;
+type RetryCallback = (filePath: string, attempts: number) => boolean | Promise<boolean>;
 
 const pendingRetries = new Map<string, PendingRemoteOperation>();
 let retryInterval: ReturnType<typeof setInterval> | null = null;
@@ -34,17 +34,37 @@ function computeNextAttemptAt(attempts: number): number {
   return Date.now() + backoff;
 }
 
+function deletePendingOperation(operationId: string): void {
+  pendingRetries.delete(operationId);
+}
+
+function handleRetryResult(operationId: string, result: boolean | Promise<boolean>): void {
+  if (result && typeof (result as Promise<boolean>).then === "function") {
+    (result as Promise<boolean>)
+      .then((accepted) => {
+        if (accepted) deletePendingOperation(operationId);
+      })
+      .catch((err: unknown) => {
+        logError("syncRetryQueue", `Retry callback failed for ${operationId}: ${redactErrorMessage(err)}`);
+      });
+  } else if (result) {
+    deletePendingOperation(operationId);
+  }
+}
+
 /** Start scanning for retries that are due. Idempotent. */
 export function initSyncRetryQueue(callback: RetryCallback): void {
   retryCallback = callback;
-  if (retryInterval) return;
+  if (retryInterval) {
+    clearInterval(retryInterval);
+  }
   retryInterval = setInterval(() => {
     const now = Date.now();
     for (const [operationId, op] of pendingRetries) {
       if (op.nextAttemptAt <= now) {
-        pendingRetries.delete(operationId);
         try {
-          retryCallback?.(op.filePath);
+          const result = retryCallback?.(op.filePath, op.attempts);
+          handleRetryResult(operationId, result ?? false);
         } catch (err: unknown) {
           logError("syncRetryQueue", `Retry callback failed for ${operationId}: ${redactErrorMessage(err)}`);
         }
