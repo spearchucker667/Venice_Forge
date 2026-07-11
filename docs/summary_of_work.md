@@ -11,7 +11,20 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
-- **2026-07-11 Task 11 review fixes: redact journal-write errors and validate operationId at IPC boundary — COMPLETE (current session):**
+- **2026-07-11 Task 12: Add bounded retry queue and acknowledgment timeout — COMPLETE (current session):**
+  - Created `electron/services/syncRetryQueue.ts` with `PendingRemoteOperation`, exponential backoff (1 s initial, capped at 5 min), max 10 attempts, and a 5 s scanning scheduler that re-delivers due retries via the supplied callback.
+  - Updated `electron/services/syncFolderWatcher.ts`:
+    - `inFlightOperations` now tracks `filePath` and `attempts`.
+    - `handleRemoteChange` starts a 30 s acknowledgment timeout when delivering an operation; unacknowledged operations are removed from in-flight and scheduled for retry.
+    - `acknowledgeOperation` clears the ack timeout and schedules a retry on negative acknowledgments or journal-write failures.
+    - `stopSyncWatcher` and `pauseSyncWatcher` requeue any remaining in-flight operations before clearing the map.
+    - `initSyncFolderWatcher` wires the retry queue callback to `handleRemoteChange`.
+  - Added tests in `electron/services/syncFolderWatcher.test.ts` for negative-ack retry, timeout requeue, stop requeue, pause requeue (preserving attempt count), scheduler delivery, and max-attempts give-up.
+  - Validation: `npx vitest run electron/services/syncFolderWatcher.test.ts` PASS (20 tests); `npm run test:electron` PASS (31 files / 553 tests); `npx tsc --project tsconfig.electron.json --noEmit` PASS; `npx eslint electron/services/syncFolderWatcher.ts electron/services/syncRetryQueue.ts electron/services/syncFolderWatcher.test.ts --max-warnings=0` PASS.
+  - Files changed: `electron/services/syncFolderWatcher.ts`, `electron/services/syncRetryQueue.ts`, `electron/services/syncFolderWatcher.test.ts`, `docs/summary_of_work.md`, `.superpowers/sdd/task-12-report.md`.
+  - Commit: `ec7fa4e` — feat(sync): retry queue, ack timeout, and stop requeue.
+
+- **2026-07-11 Task 11 review fixes: redact journal-write errors and validate operationId at IPC boundary — COMPLETE (previous session):**
   - Fixed `electron/services/syncFolderWatcher.ts`: `acknowledgeOperation` now redacts journal-write failures through `redactErrorMessage` before returning the error string, and logs the failure via `logError` for observability.
   - Fixed `electron/ipc/handlers/syncHandlers.ts`: the `sync:acknowledgeOperation` handler now validates `operationId` against `/^[a-f0-9]{64}$/` before delegating to `acknowledgeOperation`, returning `{ ok: false, error: "Invalid operationId." }` on mismatch.
   - Added regression tests in `electron/services/syncFolderWatcher.test.ts` proving journal-write failures are redacted and logged.
@@ -199,6 +212,7 @@
   - **Task 8: Remove renderer-global `__VENICE_IS_SYNCING` suppression mechanism — CLOSED in this session.**
   - **Task 9: Add per-object remote apply queue — CLOSED in this session.**
   - **Task 10: Serialize journal writes with a mutex — CLOSED in this session.**
+  - **Task 12: Add bounded retry queue and acknowledgment timeout — CLOSED in this session.**
   - Remaining tasks from the work order are delegated to subsequent sessions.
 - **2026-07-01 priority remediation work order — CLOSED in this session:**
   - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
@@ -630,3 +644,13 @@
   | `npm run test:electron` | PASS | ~7s | — | 31 files / 547 tests pass |
   | `npm run typecheck` | PASS | ~48s | — | renderer + Electron main clean |
   | `npm run lint:eslint` | PASS | ~66s | — | 0 warnings |
+
+- **2026-07-11 Task 12 verification**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run electron/services/syncFolderWatcher.test.ts --fileParallelism=false` | PASS | ~0.2s | — | 1 file / 20 tests pass |
+  | `npm run test:electron` | PASS | ~7s | — | 31 files / 553 tests pass |
+  | `npx tsc --project tsconfig.electron.json --noEmit` | PASS | ~12s | — | Electron main clean |
+  | `npx eslint electron/services/syncFolderWatcher.ts electron/services/syncRetryQueue.ts electron/services/syncFolderWatcher.test.ts --max-warnings=0` | PASS | ~10s | — | 0 warnings |
