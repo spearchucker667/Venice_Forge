@@ -9,6 +9,7 @@ import {
 import { TombstoneService } from "./tombstoneService";
 import StorageService from "./storageService";
 import * as desktopBridge from "./desktopBridge";
+import type { Tombstone } from "../types/sync";
 
 vi.mock("./backupCryptoWeb", async (importOriginal) => {
   const mod = await importOriginal<typeof import("./backupCryptoWeb")>();
@@ -77,7 +78,7 @@ vi.mock("./storageService", () => ({
 
 vi.mock("./tombstoneService", () => ({
   TombstoneService: {
-    recordTombstone: vi.fn().mockResolvedValue(undefined),
+    saveTombstone: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -85,7 +86,7 @@ const mockIsElectron = vi.mocked(desktopBridge.isElectron);
 const mockGetItems = vi.mocked(StorageService.getItems);
 const mockGetItem = vi.mocked(StorageService.getItem);
 const mockSaveItem = vi.mocked(StorageService.saveItem);
-const mockRecordTombstone = vi.mocked(TombstoneService.recordTombstone);
+const mockSaveTombstone = vi.mocked(TombstoneService.saveTombstone);
 
 function toBase64(str: string): string {
   if (typeof btoa !== "undefined") return btoa(str);
@@ -144,8 +145,25 @@ describe("backupImportService", () => {
     const summary = await parseAndImportBackup(manifest, password);
     expect(summary.recordsImported).toBe(1);
     expect(summary.tombstonesApplied).toBe(1);
-    expect(mockRecordTombstone).toHaveBeenCalledWith("conversations", "conv-2");
+    expect(mockSaveTombstone).toHaveBeenCalledWith(
+      expect.objectContaining({ storeName: "conversations", recordId: "conv-2", deletedAt: 2000 })
+    );
     expect(mockIsElectron()).toBe(false);
+  });
+
+  it("preserves remote tombstone deletedAt and deviceId", async () => {
+    const remote: Tombstone = {
+      id: "conversations:conv-1",
+      storeName: "conversations",
+      recordId: "conv-1",
+      deletedAt: 1_000_000,
+      deviceId: "device-a",
+    };
+    const res = await importDecryptedPacket("tombstones", remote.id, JSON.stringify(remote));
+    expect(res.ok).toBe(true);
+    expect(mockSaveTombstone).toHaveBeenCalledWith(
+      expect.objectContaining({ deletedAt: 1_000_000, deviceId: "device-a" })
+    );
   });
 
   it("rejects a wrong passphrase", async () => {
@@ -351,7 +369,7 @@ describe("backupImportService", () => {
     it("rejects a malformed tombstone missing recordId", async () => {
       const res = await importDecryptedPacket("tombstones", "conv-1", JSON.stringify({ storeName: "conversations", id: "conv-1", deletedAt: Date.now() }));
       expect(res.ok).toBe(false);
-      expect(mockRecordTombstone).not.toHaveBeenCalled();
+      expect(mockSaveTombstone).not.toHaveBeenCalled();
     });
   });
 });

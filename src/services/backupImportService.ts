@@ -195,7 +195,7 @@ export async function importDecryptedPacket(
       if (!validation.ok) {
         return { ok: false, error: `Malformed tombstone: ${validation.error}` };
       }
-      await TombstoneService.recordTombstone(validation.tombstone.storeName, validation.tombstone.recordId);
+      await TombstoneService.saveTombstone(validation.tombstone);
       await deleteStoreRecord(validation.tombstone.storeName, validation.tombstone.recordId);
       return { ok: true };
     }
