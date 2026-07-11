@@ -22,6 +22,17 @@ const JOURNAL_VERSION = 1;
 const MAX_JOURNAL_ENTRIES = 50_000;
 const JOURNAL_COMPACTION_DAYS = 7;
 
+class AsyncSerialQueue {
+  private tail: Promise<unknown> = Promise.resolve();
+  enqueue<T>(task: () => Promise<T>): Promise<T> {
+    const next = this.tail.then(task, task);
+    this.tail = next.catch(() => undefined);
+    return next;
+  }
+}
+
+const journalQueue = new AsyncSerialQueue();
+
 interface AppliedOperationEntry {
   operationId: string;
   storeName: string;
@@ -125,23 +136,31 @@ export async function recordAppliedOperation(
   result: AppliedOperationEntry["result"] = "applied",
   sourceDeviceId?: string,
 ): Promise<void> {
-  await loadAppliedOperationsJournal();
-  if (appliedOperationsJournal.operations.some((op) => op.operationId === operationId)) return;
+  return journalQueue.enqueue(async () => {
+    await loadAppliedOperationsJournal();
+    if (appliedOperationsJournal.operations.some((op) => op.operationId === operationId)) return;
 
-  appliedOperationsJournal.operations.push({
-    operationId,
-    storeName,
-    appliedAt: new Date().toISOString(),
-    sourceDeviceId,
-    result,
+    appliedOperationsJournal.operations.push({
+      operationId,
+      storeName,
+      appliedAt: new Date().toISOString(),
+      sourceDeviceId,
+      result,
+    });
+
+    compactJournal();
+    await saveAppliedOperationsJournal();
   });
-
-  compactJournal();
-  await saveAppliedOperationsJournal();
 }
 
 export function isOperationApplied(operationId: string): boolean {
   return appliedOperationsJournal.operations.some((op) => op.operationId === operationId);
+}
+
+export function resetAppliedOperationsJournal(): void {
+  appliedOperationsJournal = { version: JOURNAL_VERSION, operations: [] };
+  journalLoaded = false;
+  journalPath = null;
 }
 
 export function isOperationInFlight(operationId: string): boolean {

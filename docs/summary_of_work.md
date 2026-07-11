@@ -11,6 +11,13 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
+- **2026-07-11 Task 10: Serialize journal writes with a mutex — COMPLETE (current session):**
+  - Added `AsyncSerialQueue` to `electron/services/syncFolderWatcher.ts` and wrapped `recordAppliedOperation` so journal loads, mutations, and atomic saves execute serially.
+  - Added `resetAppliedOperationsJournal()` to enable deterministic test isolation; updated `electron/services/syncFolderWatcher.test.ts` to reset journal state and clean the journal directory in `beforeEach`.
+  - Added regression test `preserves every acknowledgment under concurrent writes` that fires 50 concurrent `recordAppliedOperation` calls and verifies every operation id persists in the journal; verified the test fails reliably when the mutex wrap is removed.
+  - Validation: `npx vitest run electron/services/syncFolderWatcher.test.ts` PASS (10 tests); `npm run test:electron` PASS (31 files / 541 tests); `npx tsc --project tsconfig.electron.json --noEmit` PASS; `npx eslint electron/services/syncFolderWatcher.ts electron/services/syncFolderWatcher.test.ts --max-warnings=0` PASS.
+  - Files changed: `electron/services/syncFolderWatcher.ts`, `electron/services/syncFolderWatcher.test.ts`, `docs/summary_of_work.md`, `.superpowers/sdd/task-10-report.md`.
+
 - **2026-07-11 Task 9: Add per-object remote apply queue — COMPLETE (current session):**
   - Created `electron/services/syncApplyQueue.ts` exporting `enqueueRemoteApply(queueKey, operation)` which chains per-key operations through a `Map<string, Promise<void>>` so that applies for the same logical object execute FIFO while different keys proceed concurrently.
   - Wired the queue into `electron/services/syncFolderWatcher.ts:handleRemoteChange`: after decrypting and validating a remote packet, the apply phase (journal deduplication check, in-flight tracking, and `sync:onRemoteChange` IPC notification) is wrapped in `enqueueRemoteApply(`${storeName}:${id}`, ...)`.
@@ -181,6 +188,7 @@
   - **Task 7 review fixes — CLOSED in this session.**
   - **Task 8: Remove renderer-global `__VENICE_IS_SYNCING` suppression mechanism — CLOSED in this session.**
   - **Task 9: Add per-object remote apply queue — CLOSED in this session.**
+  - **Task 10: Serialize journal writes with a mutex — CLOSED in this session.**
   - Remaining tasks from the work order are delegated to subsequent sessions.
 - **2026-07-01 priority remediation work order — CLOSED in this session:**
   - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
@@ -591,3 +599,13 @@
   | `npm run test:electron` | PASS | ~7s | — | 31 files / 540 tests pass |
   | `npx tsc --project tsconfig.electron.json --noEmit` | PASS | ~12s | — | Electron main clean |
   | `npx eslint electron/services/syncApplyQueue.ts electron/services/syncApplyQueue.test.ts electron/services/syncFolderWatcher.ts --max-warnings=0` | PASS | ~10s | — | 0 warnings |
+
+- **2026-07-11 Task 10 verification**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run electron/services/syncFolderWatcher.test.ts --fileParallelism=false` | PASS | ~0.2s | — | 1 file / 10 tests pass |
+  | `npm run test:electron` | PASS | ~7s | — | 31 files / 541 tests pass |
+  | `npx tsc --project tsconfig.electron.json --noEmit` | PASS | ~12s | — | Electron main clean |
+  | `npx eslint electron/services/syncFolderWatcher.ts electron/services/syncFolderWatcher.test.ts --max-warnings=0` | PASS | ~10s | — | 0 warnings |

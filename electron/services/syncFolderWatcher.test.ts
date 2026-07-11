@@ -35,6 +35,8 @@ import {
   acknowledgeOperation,
   loadAppliedOperationsJournal,
   isOperationApplied,
+  recordAppliedOperation,
+  resetAppliedOperationsJournal,
 } from "./syncFolderWatcher";
 import { promises as fs } from "fs";
 import { app } from "electron";
@@ -62,6 +64,8 @@ describe("syncFolderWatcher", () => {
     vi.resetAllMocks();
     vi.mocked(app.getPath).mockReturnValue("/tmp/userData");
     setSyncEmissionSuppressed(false);
+    resetAppliedOperationsJournal();
+    await fs.rm("/tmp/userData/sync", { recursive: true, force: true });
     await fs.mkdir(tmpDir, { recursive: true });
     await fs.rm(tmpDir, { recursive: true, force: true });
     await fs.mkdir(tmpDir, { recursive: true });
@@ -158,5 +162,18 @@ describe("syncFolderWatcher", () => {
 
     await loadAppliedOperationsJournal();
     expect(isOperationApplied("op-abc")).toBe(true);
+  });
+
+  it("preserves every acknowledgment under concurrent writes", async () => {
+    const ids = Array.from({ length: 50 }, (_, i) => `op-${i}`);
+    await Promise.all(ids.map((id) => recordAppliedOperation(id, "conversations", "applied")));
+
+    const journalPath = "/tmp/userData/sync/applied-operations.json";
+    const journalData = await fs.readFile(journalPath, "utf8");
+    const journal = JSON.parse(journalData);
+
+    for (const id of ids) {
+      expect(journal.operations.some((op: { operationId: string }) => op.operationId === id)).toBe(true);
+    }
   });
 });
