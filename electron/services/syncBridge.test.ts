@@ -59,4 +59,48 @@ describe("syncBridge", () => {
     await emitSyncTombstone("diagnostics", "diag-1");
     expect(mockWritePacket).not.toHaveBeenCalled();
   });
+
+  it("suppresses sync packets for non-local-user origins", async () => {
+    await emitSyncPacket("conversations", "conv-1", { id: "conv-1" }, "remote-sync");
+    await emitSyncPacket("conversations", "conv-1", { id: "conv-1" }, "manual-import");
+    await emitSyncPacket("conversations", "conv-1", { id: "conv-1" }, "migration");
+    expect(mockWritePacket).not.toHaveBeenCalled();
+  });
+
+  it("emits sync packets for local-user origin", async () => {
+    const record = { id: "conv-1", title: "Hello" };
+    await emitSyncPacket("conversations", "conv-1", record, "local-user");
+    expect(mockWritePacket).toHaveBeenCalledWith("conversations", "conv-1", JSON.stringify(record));
+  });
+
+  it("emits sync packets when origin is omitted (back-compat)", async () => {
+    const record = { id: "conv-1", title: "Hello" };
+    await emitSyncPacket("conversations", "conv-1", record);
+    expect(mockWritePacket).toHaveBeenCalledWith("conversations", "conv-1", JSON.stringify(record));
+  });
+
+  it("suppresses tombstones for non-local-user origins", async () => {
+    await emitSyncTombstone("conversations", "conv-1", "remote-sync");
+    await emitSyncTombstone("conversations", "conv-1", "manual-import");
+    await emitSyncTombstone("conversations", "conv-1", "migration");
+    expect(mockWritePacket).not.toHaveBeenCalled();
+  });
+
+  it("emits tombstones for local-user origin", async () => {
+    await emitSyncTombstone("conversations", "conv-1", "local-user");
+    expect(mockWritePacket).toHaveBeenCalledWith(
+      "tombstones",
+      "conversations:conv-1",
+      expect.stringContaining('"storeName":"conversations"')
+    );
+  });
+
+  it("emits tombstones when origin is omitted (back-compat)", async () => {
+    await emitSyncTombstone("conversations", "conv-1");
+    expect(mockWritePacket).toHaveBeenCalledWith(
+      "tombstones",
+      "conversations:conv-1",
+      expect.stringContaining('"storeName":"conversations"')
+    );
+  });
 });

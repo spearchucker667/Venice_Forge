@@ -125,6 +125,11 @@ vi.mock("../services/chatStorage", () => ({
   saveConversation: vi.fn(async () => ({ ok: true })),
 }));
 
+vi.mock("../services/syncBridge", () => ({
+  emitSyncPacket: vi.fn(async () => undefined),
+  emitSyncTombstone: vi.fn(async () => undefined),
+}));
+
 vi.mock("../services/memoryPuller", () => ({
   pullContext: vi.fn(async (input: unknown) => ({
     injectedText: "",
@@ -135,8 +140,17 @@ vi.mock("../services/memoryPuller", () => ({
   })),
 }));
 
+vi.mock("../services/conversationVault", () => ({
+  saveConversation: vi.fn(async () => ({ ok: true, id: "conv-1" })),
+  deleteConversation: vi.fn(async () => ({ ok: true })),
+  getConversation: vi.fn(async () => null),
+  listConversations: vi.fn(async () => []),
+  archiveConversation: vi.fn(async () => ({ ok: true })),
+}));
+
 import { registerIpcHandlers } from "./handlers";
 import { resetIpcRateLimitForTests } from "../utils/rateLimit";
+import * as syncBridge from "../services/syncBridge";
 import {
   clearProfilePassword,
   isProfilePasswordSet,
@@ -439,6 +453,79 @@ describe("registerIpcHandlers", () => {
 
       await handler!(null, { message: "hello", maxItems: "many", maxTokens: "huge" });
       expect(pullContext).toHaveBeenLastCalledWith({ message: "hello", maxItems: 5, maxTokens: 1200 });
+    });
+  });
+
+  describe("origin-aware sync emission", () => {
+    const ctx = () =>
+      ({ sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents });
+
+    it("chat:save forwards remote-sync origin to syncBridge", async () => {
+      const handler = capturedHandlers.get("chat:save");
+      const conversation = { id: "chat-1", title: "t", createdAt: 1, updatedAt: 1, model: "m", messages: [] };
+      await handler!(ctx(), { conversation, origin: "remote-sync" });
+      expect(syncBridge.emitSyncPacket).toHaveBeenCalledTimes(1);
+      expect(syncBridge.emitSyncPacket).toHaveBeenCalledWith("conversations", "chat-1", conversation, "remote-sync");
+    });
+
+    it("chat:save forwards local-user origin to syncBridge", async () => {
+      const handler = capturedHandlers.get("chat:save");
+      const conversation = { id: "chat-1", title: "t", createdAt: 1, updatedAt: 1, model: "m", messages: [] };
+      await handler!(ctx(), { conversation, origin: "local-user" });
+      expect(syncBridge.emitSyncPacket).toHaveBeenCalledTimes(1);
+      expect(syncBridge.emitSyncPacket).toHaveBeenCalledWith("conversations", "chat-1", conversation, "local-user");
+    });
+
+    it("chat:save defaults omitted origin to local-user", async () => {
+      const handler = capturedHandlers.get("chat:save");
+      const conversation = { id: "chat-1", title: "t", createdAt: 1, updatedAt: 1, model: "m", messages: [] };
+      await handler!(ctx(), { conversation });
+      expect(syncBridge.emitSyncPacket).toHaveBeenCalledTimes(1);
+      expect(syncBridge.emitSyncPacket).toHaveBeenCalledWith("conversations", "chat-1", conversation, "local-user");
+    });
+
+    it("chat:delete forwards remote-sync origin to syncBridge", async () => {
+      const handler = capturedHandlers.get("chat:delete");
+      await handler!(ctx(), { id: "chat-1", origin: "remote-sync" });
+      expect(syncBridge.emitSyncTombstone).toHaveBeenCalledTimes(1);
+      expect(syncBridge.emitSyncTombstone).toHaveBeenCalledWith("conversations", "chat-1", "remote-sync");
+    });
+
+    it("chat:delete forwards local-user origin to syncBridge", async () => {
+      const handler = capturedHandlers.get("chat:delete");
+      await handler!(ctx(), { id: "chat-1", origin: "local-user" });
+      expect(syncBridge.emitSyncTombstone).toHaveBeenCalledTimes(1);
+      expect(syncBridge.emitSyncTombstone).toHaveBeenCalledWith("conversations", "chat-1", "local-user");
+    });
+
+    it("conversations:save forwards remote-sync origin to syncBridge", async () => {
+      const handler = capturedHandlers.get("conversations:save");
+      const record = { version: 1, id: "conv-1", title: "t", createdAt: 1, updatedAt: 1, model: "m", messages: [], metadata: { tags: [], pinned: false, archived: false, source: "user", messageCount: 0 }, memory: { summary: "", topics: [], entities: [], projectRefs: [] } };
+      await handler!(ctx(), { ...record, origin: "remote-sync" });
+      expect(syncBridge.emitSyncPacket).toHaveBeenCalledTimes(1);
+      expect(syncBridge.emitSyncPacket).toHaveBeenCalledWith("conversations", "conv-1", expect.objectContaining({ id: "conv-1", origin: "remote-sync" }), "remote-sync");
+    });
+
+    it("conversations:save forwards local-user origin to syncBridge", async () => {
+      const handler = capturedHandlers.get("conversations:save");
+      const record = { version: 1, id: "conv-1", title: "t", createdAt: 1, updatedAt: 1, model: "m", messages: [], metadata: { tags: [], pinned: false, archived: false, source: "user", messageCount: 0 }, memory: { summary: "", topics: [], entities: [], projectRefs: [] } };
+      await handler!(ctx(), { ...record, origin: "local-user" });
+      expect(syncBridge.emitSyncPacket).toHaveBeenCalledTimes(1);
+      expect(syncBridge.emitSyncPacket).toHaveBeenCalledWith("conversations", "conv-1", expect.objectContaining({ id: "conv-1" }), "local-user");
+    });
+
+    it("conversations:delete forwards remote-sync origin to syncBridge", async () => {
+      const handler = capturedHandlers.get("conversations:delete");
+      await handler!(ctx(), { id: "conv-1", origin: "remote-sync" });
+      expect(syncBridge.emitSyncTombstone).toHaveBeenCalledTimes(1);
+      expect(syncBridge.emitSyncTombstone).toHaveBeenCalledWith("conversations", "conv-1", "remote-sync");
+    });
+
+    it("conversations:delete forwards local-user origin to syncBridge", async () => {
+      const handler = capturedHandlers.get("conversations:delete");
+      await handler!(ctx(), { id: "conv-1", origin: "local-user" });
+      expect(syncBridge.emitSyncTombstone).toHaveBeenCalledTimes(1);
+      expect(syncBridge.emitSyncTombstone).toHaveBeenCalledWith("conversations", "conv-1", "local-user");
     });
   });
 

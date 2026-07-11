@@ -5,6 +5,7 @@ import { registerRpIpcHandlers } from "./rpHandlers";
 import * as characterCardStorage from "../services/characterCardStorage";
 import { personaStore } from "../services/rpStores";
 import * as logger from "../services/logger";
+import * as syncBridge from "../services/syncBridge";
 
 vi.mock("electron", () => ({
   ipcMain: {
@@ -21,6 +22,10 @@ vi.mock("../services/rpStores", () => ({
   scenarioStore: { list: vi.fn(), read: vi.fn(), save: vi.fn(), remove: vi.fn() },
 }));
 vi.mock("../services/logger");
+vi.mock("../services/syncBridge", () => ({
+  emitSyncPacket: vi.fn(async () => undefined),
+  emitSyncTombstone: vi.fn(async () => undefined),
+}));
 
 describe("rpHandlers", () => {
   beforeEach(() => {
@@ -124,5 +129,64 @@ describe("rpHandlers", () => {
     const result = await handler({} as any, { id: "persona-1", origin: "local-user" });
     expect(result.ok).toBe(true);
     expect(personaStore.remove).toHaveBeenCalledWith("persona-1");
+  });
+
+  describe("origin-aware sync emission", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it("personas:save forwards remote-sync origin to syncBridge", async () => {
+      registerRpIpcHandlers();
+      const handler = vi.mocked(ipcMain.handle).mock.calls.find((call) => call[0] === "personas:save")?.[1] as (...args: any[]) => any;
+      vi.mocked(personaStore.save).mockResolvedValueOnce({ ok: true });
+      vi.mocked(personaStore.read).mockResolvedValueOnce({ id: "p-1", name: "Test" } as any);
+
+      await handler({} as any, { id: "p-1", name: "Test", origin: "remote-sync" });
+      expect(syncBridge.emitSyncPacket).toHaveBeenCalledTimes(1);
+      expect(syncBridge.emitSyncPacket).toHaveBeenCalledWith("personas", "p-1", { id: "p-1", name: "Test" }, "remote-sync");
+    });
+
+    it("personas:save forwards local-user origin to syncBridge", async () => {
+      registerRpIpcHandlers();
+      const handler = vi.mocked(ipcMain.handle).mock.calls.find((call) => call[0] === "personas:save")?.[1] as (...args: any[]) => any;
+      vi.mocked(personaStore.save).mockResolvedValueOnce({ ok: true });
+      vi.mocked(personaStore.read).mockResolvedValueOnce({ id: "p-1", name: "Test" } as any);
+
+      await handler({} as any, { id: "p-1", name: "Test", origin: "local-user" });
+      expect(syncBridge.emitSyncPacket).toHaveBeenCalledTimes(1);
+      expect(syncBridge.emitSyncPacket).toHaveBeenCalledWith("personas", "p-1", { id: "p-1", name: "Test" }, "local-user");
+    });
+
+    it("personas:save defaults omitted origin to local-user", async () => {
+      registerRpIpcHandlers();
+      const handler = vi.mocked(ipcMain.handle).mock.calls.find((call) => call[0] === "personas:save")?.[1] as (...args: any[]) => any;
+      vi.mocked(personaStore.save).mockResolvedValueOnce({ ok: true });
+      vi.mocked(personaStore.read).mockResolvedValueOnce({ id: "p-1", name: "Test" } as any);
+
+      await handler({} as any, { id: "p-1", name: "Test" });
+      expect(syncBridge.emitSyncPacket).toHaveBeenCalledTimes(1);
+      expect(syncBridge.emitSyncPacket).toHaveBeenCalledWith("personas", "p-1", { id: "p-1", name: "Test" }, "local-user");
+    });
+
+    it("personas:delete forwards remote-sync origin to syncBridge", async () => {
+      registerRpIpcHandlers();
+      const handler = vi.mocked(ipcMain.handle).mock.calls.find((call) => call[0] === "personas:delete")?.[1] as (...args: any[]) => any;
+      vi.mocked(personaStore.remove).mockResolvedValueOnce({ ok: true });
+
+      await handler({} as any, { id: "p-1", origin: "remote-sync" });
+      expect(syncBridge.emitSyncTombstone).toHaveBeenCalledTimes(1);
+      expect(syncBridge.emitSyncTombstone).toHaveBeenCalledWith("personas", "p-1", "remote-sync");
+    });
+
+    it("personas:delete forwards local-user origin to syncBridge", async () => {
+      registerRpIpcHandlers();
+      const handler = vi.mocked(ipcMain.handle).mock.calls.find((call) => call[0] === "personas:delete")?.[1] as (...args: any[]) => any;
+      vi.mocked(personaStore.remove).mockResolvedValueOnce({ ok: true });
+
+      await handler({} as any, { id: "p-1", origin: "local-user" });
+      expect(syncBridge.emitSyncTombstone).toHaveBeenCalledTimes(1);
+      expect(syncBridge.emitSyncTombstone).toHaveBeenCalledWith("personas", "p-1", "local-user");
+    });
   });
 });

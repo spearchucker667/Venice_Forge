@@ -9,6 +9,7 @@ import { getSyncStatus, writePacket } from "./syncFolderWatcher";
 import { redactErrorMessage } from "../../src/shared/redaction";
 import { logError } from "./logger";
 import { createTombstone } from "../../src/shared/syncProtocol";
+import type { MutationOrigin } from "../../src/types/sync";
 
 /** Maps the IPC store namespace to the portable sync store name. */
 export const SYNC_STORE_NAME_MAP: Record<string, string> = {
@@ -27,9 +28,19 @@ const NON_SYNCABLE_STORES = new Set(["diagnostics", "tombstones"]);
 /**
  * Emits an encrypted sync packet for a locally-saved record.
  * Errors are swallowed to avoid breaking the originating save operation.
+ *
+ * @param origin Mutation origin. Only `local-user` (or undefined for back-compat)
+ *   mutations emit sync packets; remote-sync / manual-import / migration
+ *   mutations are suppressed to avoid echo loops.
  */
-export async function emitSyncPacket(storeName: string, id: string, record: unknown): Promise<void> {
+export async function emitSyncPacket(
+  storeName: string,
+  id: string,
+  record: unknown,
+  origin?: MutationOrigin,
+): Promise<void> {
   if (!storeName || NON_SYNCABLE_STORES.has(storeName)) return;
+  if (origin !== undefined && origin !== "local-user") return;
   const syncStoreName = SYNC_STORE_NAME_MAP[storeName] ?? storeName;
   const status = getSyncStatus();
   if (!status.configured || status.status !== "running") return;
@@ -48,9 +59,17 @@ export async function emitSyncPacket(storeName: string, id: string, record: unkn
 /**
  * Emits a tombstone packet for a locally-deleted record so that other devices
  * can apply the deletion.
+ *
+ * @param origin Mutation origin. Only `local-user` (or undefined for back-compat)
+ *   deletions emit tombstones.
  */
-export async function emitSyncTombstone(storeName: string, id: string): Promise<void> {
+export async function emitSyncTombstone(
+  storeName: string,
+  id: string,
+  origin?: MutationOrigin,
+): Promise<void> {
   if (!storeName || NON_SYNCABLE_STORES.has(storeName)) return;
+  if (origin !== undefined && origin !== "local-user") return;
   const syncStoreName = SYNC_STORE_NAME_MAP[storeName] ?? storeName;
   const status = getSyncStatus();
   if (!status.configured || status.status !== "running") return;

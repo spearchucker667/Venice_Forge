@@ -56,6 +56,18 @@ function parseDeletePayload(raw: unknown): [string, null] | [null, { id: string;
   }
 }
 
+/** Extracts and validates an optional mutation origin from a save payload.
+ *  Defaults missing origins to `"local-user"` for back-compat. */
+function parseSaveOrigin(raw: unknown): import("../../../src/types/sync").MutationOrigin {
+  if (!raw || typeof raw !== "object") return "local-user";
+  const p = raw as Record<string, unknown>;
+  try {
+    return validateMutationOrigin(p.origin);
+  } catch {
+    return "local-user";
+  }
+}
+
 export function registerSystemHandlers(): void {
   registerIpcChannel("app:proxyScrape", async (_event, url: unknown) => {
     try {
@@ -308,7 +320,8 @@ export function registerSystemHandlers(): void {
       }
       const result = await saveConversation(conversation);
       if (result.ok) {
-        await emitSyncPacket("conversations", conversation.id, conversation);
+        const origin = parseSaveOrigin(payload);
+        await emitSyncPacket("conversations", conversation.id, conversation, origin);
       }
       return result;
     } catch (err) {
@@ -324,13 +337,13 @@ export function registerSystemHandlers(): void {
       if (error || !parsed) {
         return { ok: false, error: error ?? "Invalid payload" };
       }
-      const { id } = parsed;
+      const { id, origin } = parsed;
       if (id.length > 128) {
         return { ok: false, error: "Invalid conversation id" };
       }
       const result = await deleteConversation(id);
       if (result.ok) {
-        await emitSyncTombstone("conversations", id);
+        await emitSyncTombstone("conversations", id, origin);
       }
       return result;
     } catch (err) {
@@ -402,7 +415,8 @@ export function registerSystemHandlers(): void {
       const { saveConversation } = await import("../../services/conversationVault");
       const result = await saveConversation(rec);
       if (result.ok) {
-        await emitSyncPacket("conversations", rec.id, rec);
+        const origin = parseSaveOrigin(record);
+        await emitSyncPacket("conversations", rec.id, rec, origin);
       }
       return result;
     } catch (err) {
@@ -416,14 +430,14 @@ export function registerSystemHandlers(): void {
       if (error || !parsed) {
         return { ok: false, error: error ?? "Invalid payload" };
       }
-      const { id } = parsed;
+      const { id, origin } = parsed;
       if (id.length > 128 || id.includes("\0") || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(id)) {
         return { ok: false, error: "Invalid conversation id" };
       }
       const { deleteConversation } = await import("../../services/conversationVault");
       const result = await deleteConversation(id);
       if (result.ok) {
-        await emitSyncTombstone("conversations", id);
+        await emitSyncTombstone("conversations", id, origin);
       }
       return result;
     } catch (err) {

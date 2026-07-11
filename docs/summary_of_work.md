@@ -11,7 +11,15 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
-- **2026-07-11 Task 6 review fixes: complete origin-aware delete handlers and sync emission gating — COMPLETE (current session):**
+- **2026-07-11 Task 7: Make main-process save/delete handlers origin-aware — COMPLETE (current session):**
+  - Updated `electron/services/syncBridge.ts`: `emitSyncPacket` and `emitSyncTombstone` now accept an optional `origin` parameter and skip emission when `origin` is defined and not `"local-user"`; undefined origin preserves back-compat.
+  - Updated `electron/ipc/handlers/systemHandlers.ts`: `chat:save` and `conversations:save` parse/validate origin via `parseSaveOrigin` and forward it to `emitSyncPacket`; `chat:delete` and `conversations:delete` now forward the parsed origin to `emitSyncTombstone`.
+  - Updated `electron/ipc/rpHandlers.ts`: all RP save handlers (`characterCards:save`, `personas:save`, `lorebooks:save`, `rpChats:save`, `rpAssets:save`, `scenarios:save`) parse origin and forward it to `emitSyncPacket`; all RP delete handlers forward parsed origin to `emitSyncTombstone`.
+  - Added regression tests: `electron/services/syncBridge.test.ts` covers suppression for `remote-sync` / `manual-import` / `migration` and emission for `local-user` and omitted origin; `electron/ipc/handlers.test.ts` covers origin forwarding for `chat:save`, `chat:delete`, `conversations:save`, `conversations:delete`; `electron/ipc/rpHandlers.test.ts` covers origin forwarding for `personas:save` and `personas:delete`.
+  - Validation: focused tests (3 files / 102 tests) PASS; `npm run test:electron` (30 files / 527 tests) PASS.
+  - Files changed: `electron/services/syncBridge.ts`, `electron/services/syncBridge.test.ts`, `electron/ipc/handlers/systemHandlers.ts`, `electron/ipc/handlers.test.ts`, `electron/ipc/rpHandlers.ts`, `electron/ipc/rpHandlers.test.ts`, `docs/summary_of_work.md`, `.superpowers/sdd/task-7-report.md`.
+
+- **2026-07-11 Task 6 review fixes: complete origin-aware delete handlers and sync emission gating — COMPLETE (previous session):**
   - Completed RP delete handler updates in `electron/ipc/rpHandlers.ts`: `characterCards:delete`, `personas:delete`, `lorebooks:delete`, `rpChats:delete`, `rpAssets:delete`, and `scenarios:delete` now accept `{ id, origin }` payloads via `parseDeletePayload`, validate origin through `validateMutationOrigin`, and forward only `id` to downstream storage.
   - Fixed `isValidId` import path in `electron/ipc/rpHandlers.ts` (moved to `src/utils/idValidation`).
   - Updated `src/services/syncEngine.ts`: `handleStorageSaved` and `handleStorageDeleted` skip sync emission when `event.detail.origin` is present and not `"local-user"`; undefined origin preserves existing back-compat behavior.
@@ -137,6 +145,7 @@
   - **Task 4: Authoritative `deleteSyncableRecord` coordinator — CLOSED in this session.**
   - **Task 5: Preserve remote tombstone `deletedAt` and `deviceId` — CLOSED in this session.**
   - **Task 6 review fixes: origin-aware delete handlers and sync emission gating — CLOSED in this session.**
+  - **Task 7: Make main-process save/delete handlers origin-aware — CLOSED in this session.**
   - Remaining tasks from the work order are delegated to subsequent sessions.
 - **2026-07-01 priority remediation work order — CLOSED in this session:**
   - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
@@ -497,4 +506,13 @@
   | `npx vitest run electron/ipc/validation.test.ts electron/ipc/handlers.test.ts electron/ipc/rpHandlers.test.ts src/services/storageService.test.ts src/services/syncEngine.test.ts` | PASS | ~2s | — | 5 files / 129 tests pass |
   | `npm run test:electron` | PASS | ~7s | — | 30 files / 507 tests pass |
   | `npm run typecheck` | PASS | ~48s | — | renderer + Electron main clean |
+  | `npm run lint:eslint` | PASS | ~66s | — | 0 warnings |
+
+- **2026-07-11 Task 7 verification**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run electron/services/syncBridge.test.ts electron/ipc/handlers.test.ts electron/ipc/rpHandlers.test.ts --fileParallelism=false` | PASS | ~1s | — | 3 files / 102 tests pass |
+  | `npm run test:electron` | PASS | ~7s | — | 30 files / 527 tests pass |
   | `npm run lint:eslint` | PASS | ~66s | — | 0 warnings |

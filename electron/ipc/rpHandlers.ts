@@ -63,6 +63,18 @@ function parseDeletePayload(raw: unknown): [string, null] | [null, { id: string;
   }
 }
 
+/** Extracts and validates an optional mutation origin from a save payload.
+ *  Defaults missing origins to `"local-user"` for back-compat. */
+function parseSaveOrigin(raw: unknown): import("../../src/types/sync").MutationOrigin {
+  if (!raw || typeof raw !== "object") return "local-user";
+  const p = raw as Record<string, unknown>;
+  try {
+    return validateMutationOrigin(p.origin);
+  } catch {
+    return "local-user";
+  }
+}
+
 /** Coerces a chatId param from IPC into a validated string, or returns null. */
 function chatIdFilter(raw: unknown): string | undefined {
   if (typeof raw !== "string" || raw.length === 0 || raw.length > 128) return undefined;
@@ -106,7 +118,8 @@ export function registerRpIpcHandlers(): void {
       const id = (card as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await readCharacterCard(id) : null;
       if (persisted) {
-        await emitSyncPacket("character_cards", persisted.id, persisted);
+        const origin = parseSaveOrigin(card);
+        await emitSyncPacket("character_cards", persisted.id, persisted, origin);
       }
       return { ok: true, card: persisted };
     } catch (err) {
@@ -122,10 +135,10 @@ export function registerRpIpcHandlers(): void {
       if (error || !parsed) {
         return { ok: false, error: error ?? "Invalid payload" };
       }
-      const { id } = parsed;
+      const { id, origin } = parsed;
       const result = await deleteCharacterCard(id);
       if (result.ok) {
-        await emitSyncTombstone("character_cards", id);
+        await emitSyncTombstone("character_cards", id, origin);
       }
       return result;
     } catch (err) {
@@ -166,7 +179,8 @@ export function registerRpIpcHandlers(): void {
       const id = (persona as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await personaStore.read(id) : null;
       if (persisted) {
-        await emitSyncPacket("personas", persisted.id, persisted);
+        const origin = parseSaveOrigin(persona);
+        await emitSyncPacket("personas", persisted.id, persisted, origin);
       }
       return { ok: true, persona: persisted as UserPersonaV1 | null };
     } catch (err) {
@@ -182,10 +196,10 @@ export function registerRpIpcHandlers(): void {
       if (error || !parsed) {
         return { ok: false, error: error ?? "Invalid payload" };
       }
-      const { id } = parsed;
+      const { id, origin } = parsed;
       const result = await personaStore.remove(id);
       if (result.ok) {
-        await emitSyncTombstone("personas", id);
+        await emitSyncTombstone("personas", id, origin);
       }
       return result;
     } catch (err) {
@@ -226,7 +240,8 @@ export function registerRpIpcHandlers(): void {
       const id = (lorebook as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await lorebookStore.read(id) : null;
       if (persisted) {
-        await emitSyncPacket("lorebooks", persisted.id, persisted);
+        const origin = parseSaveOrigin(lorebook);
+        await emitSyncPacket("lorebooks", persisted.id, persisted, origin);
       }
       return { ok: true, lorebook: persisted as LorebookV1 | null };
     } catch (err) {
@@ -242,10 +257,10 @@ export function registerRpIpcHandlers(): void {
       if (error || !parsed) {
         return { ok: false, error: error ?? "Invalid payload" };
       }
-      const { id } = parsed;
+      const { id, origin } = parsed;
       const result = await lorebookStore.remove(id);
       if (result.ok) {
-        await emitSyncTombstone("lorebooks", id);
+        await emitSyncTombstone("lorebooks", id, origin);
       }
       return result;
     } catch (err) {
@@ -286,7 +301,8 @@ export function registerRpIpcHandlers(): void {
       const id = (chat as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await readRpChat(id) : null;
       if (persisted) {
-        await emitSyncPacket("rp_chats", persisted.id, persisted);
+        const origin = parseSaveOrigin(chat);
+        await emitSyncPacket("rp_chats", persisted.id, persisted, origin);
       }
       return { ok: true, chat: persisted };
     } catch (err) {
@@ -302,10 +318,10 @@ export function registerRpIpcHandlers(): void {
       if (error || !parsed) {
         return { ok: false, error: error ?? "Invalid payload" };
       }
-      const { id } = parsed;
+      const { id, origin } = parsed;
       const result = await deleteRpChat(id);
       if (result.ok) {
-        await emitSyncTombstone("rp_chats", id);
+        await emitSyncTombstone("rp_chats", id, origin);
       }
       return result;
     } catch (err) {
@@ -348,7 +364,8 @@ export function registerRpIpcHandlers(): void {
       const id = (asset as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await rpAssetStore.read(id) : null;
       if (persisted) {
-        await emitSyncPacket("rp_assets", persisted.id, persisted);
+        const origin = parseSaveOrigin(asset);
+        await emitSyncPacket("rp_assets", persisted.id, persisted, origin);
       }
       return { ok: true, asset: persisted as RpAssetV1 | null };
     } catch (err) {
@@ -364,10 +381,10 @@ export function registerRpIpcHandlers(): void {
       if (error || !parsed) {
         return { ok: false, error: error ?? "Invalid payload" };
       }
-      const { id } = parsed;
+      const { id, origin } = parsed;
       const result = await rpAssetStore.remove(id);
       if (result.ok) {
-        await emitSyncTombstone("rp_assets", id);
+        await emitSyncTombstone("rp_assets", id, origin);
       }
       return result;
     } catch (err) {
@@ -408,7 +425,8 @@ export function registerRpIpcHandlers(): void {
       const id = (scenario as { id?: unknown })?.id;
       const persisted = typeof id === "string" ? await scenarioStore.read(id) : null;
       if (persisted) {
-        await emitSyncPacket("rpScenarios", persisted.id, persisted);
+        const origin = parseSaveOrigin(scenario);
+        await emitSyncPacket("rpScenarios", persisted.id, persisted, origin);
       }
       return { ok: true, scenario: persisted as ScenarioV1 | null };
     } catch (err) {
@@ -424,10 +442,10 @@ export function registerRpIpcHandlers(): void {
       if (error || !parsed) {
         return { ok: false, error: error ?? "Invalid payload" };
       }
-      const { id } = parsed;
+      const { id, origin } = parsed;
       const result = await scenarioStore.remove(id);
       if (result.ok) {
-        await emitSyncTombstone("rpScenarios", id);
+        await emitSyncTombstone("rpScenarios", id, origin);
       }
       return result;
     } catch (err) {
