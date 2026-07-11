@@ -147,14 +147,13 @@ describe("syncEngine", () => {
     expect(mockDeleteSyncableRecord).not.toHaveBeenCalled();
   });
 
-  it("does not emit when __VENICE_IS_SYNCING is true", async () => {
-    (window as unknown as Record<string, boolean>).__VENICE_IS_SYNCING = true;
+  it("does not emit for remote-sync origin", async () => {
     await initSyncEngine("password");
     const savedCalls = (window.addEventListener as ReturnType<typeof vi.fn>).mock.calls as Array<[string, (e: Event) => void]>;
     const savedHandler = savedCalls.find((call) => call[0] === "venice:storage-saved")?.[1];
     if (!savedHandler) throw new Error("venice:storage-saved handler not registered");
 
-    savedHandler(new CustomEvent("venice:storage-saved", { detail: { store: "conversations", record: { id: "conv-1" }, id: "conv-1" } }));
+    savedHandler(new CustomEvent("venice:storage-saved", { detail: { store: "conversations", record: { id: "conv-1" }, id: "conv-1", origin: "remote-sync" } }));
 
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(mockWritePacket).not.toHaveBeenCalled();

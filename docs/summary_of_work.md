@@ -11,6 +11,16 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
+- **2026-07-11 Task 8: Remove renderer-global `__VENICE_IS_SYNCING` suppression mechanism — COMPLETE (current session):**
+  - Removed the `__VENICE_IS_SYNCING` wrapper in `src/services/backupImportService.ts` and replaced it with `origin: "remote-sync"` propagation through `saveStoreRecord` and `deleteStoreRecord`.
+  - Updated `saveStoreRecord` and `deleteStoreRecord` to accept a `MutationOrigin` parameter (default `"remote-sync"`) and forward it to both the Electron desktop bridge methods and `StorageService.saveItem` / `deleteItem`.
+  - Removed the `__VENICE_IS_SYNCING` guard in `src/services/syncEngine.ts` `handleStorageSaved` and `handleStorageDeleted`; remote-sync writes are now skipped based on `event.detail.origin !== "local-user"`.
+  - Removed the redundant `__VENICE_IS_SYNCING` flag wrapper in `src/services/syncDeleteCoordinator.ts`; the coordinator continues to rely on `bypassSyncEcho: true`.
+  - Updated `src/services/syncEngine.test.ts`: replaced the obsolete `__VENICE_IS_SYNCING` flag test with a regression test proving `remote-sync` origin writes do not emit sync packets.
+  - Updated `src/services/backupImportService.test.ts`: added regression tests verifying `remote-sync` origin is forwarded to IndexedDB storage and to Electron bridge save methods.
+  - Validation: `npx vitest run src/services/backupImportService.test.ts src/services/syncEngine.test.ts src/services/syncDeleteCoordinator.test.ts` PASS (3 files / 41 tests); `npm run typecheck` PASS (renderer + Electron main clean).
+  - Files changed: `src/services/backupImportService.ts`, `src/services/backupImportService.test.ts`, `src/services/syncEngine.ts`, `src/services/syncEngine.test.ts`, `src/services/syncDeleteCoordinator.ts`, `docs/summary_of_work.md`, `.superpowers/sdd/task-8-report.md`.
+
 - **2026-07-11 Task 7 remaining review fix: strip origin from RP single-file save payloads — COMPLETE (current session):**
   - Fixed `personas:save`, `lorebooks:save`, `rpAssets:save`, and `scenarios:save` in `electron/ipc/rpHandlers.ts`: each handler now destructures the `origin` field out of the incoming payload before passing the cleaned record to its single-file store `save`, preventing operation metadata from leaking into persisted storage and re-emerging in sync packets.
   - Added a regression test in `electron/ipc/rpHandlers.test.ts` that verifies each of the four single-file save handlers does not persist an `origin` field when called with `origin: "local-user"`.
@@ -162,6 +172,7 @@
   - **Task 6 review fixes: origin-aware delete handlers and sync emission gating — CLOSED in this session.**
   - **Task 7: Make main-process save/delete handlers origin-aware — CLOSED in this session.**
   - **Task 7 review fixes — CLOSED in this session.**
+  - **Task 8: Remove renderer-global `__VENICE_IS_SYNCING` suppression mechanism — CLOSED in this session.**
   - Remaining tasks from the work order are delegated to subsequent sessions.
 - **2026-07-01 priority remediation work order — CLOSED in this session:**
   - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
@@ -551,5 +562,14 @@
   | `npx vitest run electron/ipc/rpHandlers.test.ts --fileParallelism=false` | PASS | ~1s | — | 1 file / 19 tests pass |
   | `npx vitest run electron/services/syncBridge.test.ts --fileParallelism=false` | PASS | ~1s | — | 1 file / 12 tests pass |
   | `npm run test:electron` | PASS | ~6s | — | 30 files / 535 tests pass |
+  | `npm run typecheck` | PASS | ~48s | — | renderer + Electron main clean |
+  | `npm run lint:eslint` | PASS | ~66s | — | 0 warnings |
+
+- **2026-07-11 Task 8 verification**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run src/services/backupImportService.test.ts src/services/syncEngine.test.ts src/services/syncDeleteCoordinator.test.ts --fileParallelism=false` | PASS | ~2s | — | 3 files / 41 tests pass |
   | `npm run typecheck` | PASS | ~48s | — | renderer + Electron main clean |
   | `npm run lint:eslint` | PASS | ~66s | — | 0 warnings |

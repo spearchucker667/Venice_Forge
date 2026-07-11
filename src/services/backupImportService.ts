@@ -13,7 +13,7 @@ import {
   desktopScenarios,
   desktopSync,
 } from "./desktopBridge";
-import type { SyncStoreName } from "../types/sync";
+import type { SyncStoreName, MutationOrigin } from "../types/sync";
 import { BACKUP_SCHEMA_VERSION, deriveBackupKey, fromBase64, EncryptedBackupManifest } from "./backupCryptoWeb";
 import { STORE_NAMES } from "../constants/venice";
 import { validateTombstone } from "../shared/syncProtocol";
@@ -29,10 +29,6 @@ interface SyncableRecord {
   title?: string;
   messages?: Record<string, unknown>[];
 }
-
-type VeniceWindowWithSyncFlag = Window & {
-  __VENICE_IS_SYNCING?: boolean;
-};
 
 export interface ImportSummary {
   recordsImported: number;
@@ -70,67 +66,75 @@ async function decryptBackup(manifest: EncryptedBackupManifest, password: string
 }
 
 /** Saves a record to a specific store, routing to IPC if needed in Desktop mode. */
-export async function saveStoreRecord(storeName: SyncStoreName, record: unknown): Promise<void> {
+export async function saveStoreRecord(
+  storeName: SyncStoreName,
+  record: unknown,
+  origin: MutationOrigin = "remote-sync",
+): Promise<void> {
   if (isElectron()) {
     switch (storeName) {
       case "conversations":
-        await desktopChat.save(record as never);
+        await desktopChat.save(record as never, origin);
         return;
       case "character_cards":
-        await desktopCharacterCards.save(record as never);
+        await desktopCharacterCards.save(record as never, origin);
         return;
       case "personas":
-        await desktopPersonas.save(record as never);
+        await desktopPersonas.save(record as never, origin);
         return;
       case "lorebooks":
-        await desktopLorebooks.save(record as never);
+        await desktopLorebooks.save(record as never, origin);
         return;
       case "rp_chats":
-        await desktopRpChats.save(record as never);
+        await desktopRpChats.save(record as never, origin);
         return;
       case "rp_assets":
-        await desktopRpAssets.save(record as never);
+        await desktopRpAssets.save(record as never, origin);
         return;
       case "rpScenarios":
-        await desktopScenarios.save(record as never);
+        await desktopScenarios.save(record as never, origin);
         return;
     }
   }
 
   // Web mode OR IndexedDB-only stores
-  await StorageService.saveItem(storeName, record as Record<string, unknown>);
+  await StorageService.saveItem(storeName, record as Record<string, unknown>, { origin });
 }
 
 /** Deletes a record from a specific store, routing to IPC if needed in Desktop mode. */
-export async function deleteStoreRecord(storeName: SyncStoreName, recordId: string): Promise<void> {
+export async function deleteStoreRecord(
+  storeName: SyncStoreName,
+  recordId: string,
+  origin: MutationOrigin = "remote-sync",
+): Promise<void> {
   if (isElectron()) {
     switch (storeName) {
       case "conversations":
-        await desktopChat.delete(recordId);
+        await desktopChat.delete(recordId, origin);
         return;
       case "character_cards":
-        await desktopCharacterCards.delete(recordId);
+        await desktopCharacterCards.delete(recordId, origin);
         return;
       case "personas":
-        await desktopPersonas.delete(recordId);
+        await desktopPersonas.delete(recordId, origin);
         return;
       case "lorebooks":
-        await desktopLorebooks.delete(recordId);
+        await desktopLorebooks.delete(recordId, origin);
         return;
       case "rp_chats":
-        await desktopRpChats.delete(recordId);
+        await desktopRpChats.delete(recordId, origin);
         return;
       case "rp_assets":
-        await desktopRpAssets.delete(recordId);
+        await desktopRpAssets.delete(recordId, origin);
         return;
       case "rpScenarios":
-        await desktopScenarios.delete(recordId);
+        await desktopScenarios.delete(recordId, origin);
         return;
     }
   }
 
   // Web mode OR IndexedDB-only stores
-  await StorageService.deleteItem(storeName, recordId);
+  await StorageService.deleteItem(storeName, recordId, { origin });
 }
 
 /** Fetches records from a specific store, routing to IPC if needed in Desktop mode. */
@@ -185,9 +189,6 @@ export async function importDecryptedPacket(
   try {
     if (!IMPORTABLE_STORES.has(storeName)) return { ok: false, error: "Store is not allowed for import." };
     if (!/^[a-zA-Z0-9_.:-]{1,256}$/.test(id) || id.includes("..")) return { ok: false, error: "Invalid record ID." };
-    if (typeof window !== "undefined") {
-      (window as VeniceWindowWithSyncFlag).__VENICE_IS_SYNCING = true;
-    }
 
     if (storeName === "tombstones") {
       const parsed = JSON.parse(recordJson);
@@ -281,10 +282,6 @@ export async function importDecryptedPacket(
     const errorMsg = err instanceof Error ? err.message : "Unknown error";
     console.error(`Error importing packet for ${storeName}/${id}:`, err);
     return { ok: false, error: errorMsg };
-  } finally {
-    if (typeof window !== "undefined") {
-      (window as VeniceWindowWithSyncFlag).__VENICE_IS_SYNCING = false;
-    }
   }
 }
 

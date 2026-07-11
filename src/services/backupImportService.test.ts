@@ -166,6 +166,21 @@ describe("backupImportService", () => {
     );
   });
 
+  it("passes remote-sync origin to web-mode storage", async () => {
+    mockIsElectron.mockReturnValue(false);
+    const res = await importDecryptedPacket("conversations", "conv-1", JSON.stringify({ id: "conv-1", updatedAt: 2000, messages: [] }));
+    expect(res.ok).toBe(true);
+    expect(mockSaveItem).toHaveBeenCalledWith("conversations", expect.any(Object), { origin: "remote-sync" });
+  });
+
+  it("passes remote-sync origin to Electron bridge", async () => {
+    mockIsElectron.mockReturnValue(true);
+    vi.mocked(desktopBridge.desktopCharacterCards.list).mockResolvedValueOnce({ ok: true, cards: [], error: undefined } as never);
+    const res = await importDecryptedPacket("character_cards", "card-1", JSON.stringify({ id: "card-1", updatedAt: 2000 }));
+    expect(res.ok).toBe(true);
+    expect(desktopBridge.desktopCharacterCards.save).toHaveBeenCalledWith(expect.objectContaining({ id: "card-1" }), "remote-sync");
+  });
+
   it("rejects a wrong passphrase", async () => {
     const manifest = makeManifest({});
     vi.stubGlobal("crypto", {

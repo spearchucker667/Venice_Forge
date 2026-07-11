@@ -140,15 +140,7 @@ export async function pauseSyncEngine(): Promise<SyncEngineStartResult> {
   return { ok: true, status: "paused" };
 }
 
-type VeniceWindowWithSyncFlag = Window & {
-  __VENICE_IS_SYNCING?: boolean;
-};
-
 function handleStorageSaved(e: Event) {
-  const veniceWindow = window as VeniceWindowWithSyncFlag;
-  if (typeof window !== "undefined" && veniceWindow.__VENICE_IS_SYNCING) {
-    return;
-  }
   const customEvent = e as CustomEvent<{ store: SyncStoreName; record: unknown; id: string; origin?: MutationOrigin }>;
   const { store, record, id, origin } = customEvent.detail;
   // Diagnostics is explicitly excluded from sync. Tombstones are sync metadata
@@ -161,10 +153,6 @@ function handleStorageSaved(e: Event) {
 }
 
 async function handleStorageDeleted(e: Event) {
-  const veniceWindow = window as VeniceWindowWithSyncFlag;
-  if (typeof window !== "undefined" && veniceWindow.__VENICE_IS_SYNCING) {
-    return;
-  }
   const customEvent = e as CustomEvent<{ store: SyncStoreName; id: string; origin?: MutationOrigin }>;
   const { store, id, origin } = customEvent.detail;
   // Diagnostics is explicitly excluded from sync. Tombstones are sync metadata

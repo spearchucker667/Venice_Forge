@@ -21,17 +21,13 @@ export interface DeleteSyncableRecordResult {
   error?: string;
 }
 
-type VeniceWindowWithSyncFlag = Window & {
-  __VENICE_IS_SYNCING?: boolean;
-};
-
 /**
  * Authoritatively deletes a syncable record.
  *
  * The tombstone is persisted first so that a crash between deletion and
  * persistence can never leave a record deleted without a tombstone. The target
- * deletion runs with `bypassSyncEcho: true` and with the renderer sync flag
- * raised so the sync engine does not try to re-coordinate the same deletion.
+ * deletion runs with `bypassSyncEcho: true` so the sync engine does not try to
+ * re-coordinate the same deletion.
  *
  * Tombstone emission is gated to desktop mode and an active sync engine so web
  * mode does not generate console noise for a bridge that does not exist.
@@ -50,17 +46,12 @@ export async function deleteSyncableRecord(
     return { ok: false, tombstone, error };
   }
 
-  const veniceWindow = window as VeniceWindowWithSyncFlag;
-  const previousSyncFlag = veniceWindow.__VENICE_IS_SYNCING;
-  veniceWindow.__VENICE_IS_SYNCING = true;
   try {
     await StorageService.deleteItem(storeName, recordId, { bypassSyncEcho: true });
   } catch (err) {
     const error = err instanceof Error ? err.message : "Failed to delete target record";
     console.error(`[syncDeleteCoordinator] Failed to delete target for ${storeName}/${recordId}:`, err);
     return { ok: false, tombstone, error };
-  } finally {
-    veniceWindow.__VENICE_IS_SYNCING = previousSyncFlag;
   }
 
   if (isElectron()) {
