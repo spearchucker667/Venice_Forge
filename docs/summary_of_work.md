@@ -11,7 +11,17 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
-- **2026-07-11 Task 4: Authoritative `deleteSyncableRecord` coordinator — COMPLETE (current session):**
+- **2026-07-11 Task 4 review fixes — COMPLETE (current session):**
+  - Fixed `scripts/verify-backup-sync.cjs`: dropped the removed `emitLocalTombstone` export requirement from `src/services/syncEngine.ts` and now requires `deleteSyncableRecord` from `src/services/syncDeleteCoordinator.ts`.
+  - Fixed `src/services/syncEngine.ts`: `handleStorageSaved` now ignores the `tombstones` store in addition to `diagnostics`, preventing duplicate tombstone packets when `TombstoneService.saveTombstone` writes locally. `handleStorageDeleted` is now async and logs errors from `deleteSyncableRecord` instead of fire-and-forget.
+  - Hardened `src/services/syncDeleteCoordinator.ts`: catches errors from `saveTombstone`, `deleteItem`, and `desktopSync.writePacket`, returning `{ ok: false, error }` on persistence/emission failure. Tombstone emission is now gated on `isElectron()` and an active sync engine status to avoid web-mode console noise.
+  - Fixed `src/services/backupImportService.ts`: `importDecryptedPacket` now returns `{ ok: false, error: "Local tombstone is newer; record skipped." }` when a stale object packet would resurrect a locally deleted record, matching the task brief contract.
+  - Cleaned up `src/services/storageService.ts`: renamed `deleteItem` options parameter from `_options` to `options` and made `bypassSyncEcho` real by suppressing the `venice:storage-deleted` event when it is set.
+  - Updated affected tests: `syncDeleteCoordinator.test.ts` and `backupImportService.test.ts` now assert `result.ok` is `false` for the tombstone rejection path; `syncDeleteCoordinator.test.ts` mocks active Electron sync status so emission remains covered.
+  - Validation: focused Vitest suite PASS (3 files / 34 tests); `node scripts/verify-backup-sync.cjs` PASS; `npm run typecheck` PASS; `npm run lint:eslint` PASS (0 warnings). `backupImportService.test.ts` also passes after the contract change.
+  - Files changed: `scripts/verify-backup-sync.cjs`, `src/services/syncEngine.ts`, `src/services/syncDeleteCoordinator.ts`, `src/services/syncDeleteCoordinator.test.ts`, `src/services/backupImportService.ts`, `src/services/backupImportService.test.ts`, `src/services/storageService.ts`, `docs/summary_of_work.md`, `.superpowers/sdd/task-4-report.md`.
+
+- **2026-07-11 Task 4: Authoritative `deleteSyncableRecord` coordinator — COMPLETE (previous session):**
   - Created `src/services/syncDeleteCoordinator.ts` exporting `deleteSyncableRecord(storeName, recordId, deviceId?)`, the single entry point for deleting syncable records.
   - Coordinator ordering: creates canonical tombstone → persists it via `TombstoneService.saveTombstone` → deletes the target via `StorageService.deleteItem(..., { bypassSyncEcho: true })` with `__VENICE_IS_SYNCING` raised to prevent echo → emits the exact encrypted tombstone via `desktopSync.writePacket`.
   - Wired `src/services/syncEngine.ts` so `handleStorageDeleted` routes syncable-store deletions through the coordinator; removed the obsolete `emitLocalTombstone` export/function.
@@ -442,6 +452,13 @@
 
 - 2026-07-11 Task 4 Authoritative `deleteSyncableRecord` coordinator:
   - `npx vitest run src/services/syncDeleteCoordinator.test.ts src/services/syncEngine.test.ts src/services/storageService.test.ts --fileParallelism=false`: PASS (3 files / 34 tests).
+  - `npm run typecheck`: PASS (renderer + Electron main clean).
+  - `npm run lint:eslint`: PASS (0 warnings).
+
+- 2026-07-11 Task 4 review fixes:
+  - `npx vitest run src/services/syncDeleteCoordinator.test.ts src/services/syncEngine.test.ts src/services/storageService.test.ts --fileParallelism=false`: PASS (3 files / 34 tests).
+  - `npx vitest run src/services/backupImportService.test.ts --fileParallelism=false`: PASS (1 file / 18 tests).
+  - `node scripts/verify-backup-sync.cjs`: PASS (all Phase 9 Backup and Sync contract invariants).
   - `npm run typecheck`: PASS (renderer + Electron main clean).
   - `npm run lint:eslint`: PASS (0 warnings).
 
