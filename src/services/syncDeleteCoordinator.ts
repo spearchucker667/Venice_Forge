@@ -13,11 +13,12 @@ import { createTombstone } from "../shared/syncProtocol";
 import type { Tombstone, SyncStoreName } from "../types/sync";
 import { TombstoneService } from "./tombstoneService";
 import StorageService from "./storageService";
-import { desktopSync } from "./desktopBridge";
+import { desktopSync, isElectron } from "./desktopBridge";
 
 export interface DeleteSyncableRecordResult {
   ok: boolean;
   tombstone: Tombstone;
+  error?: string;
 }
 
 type VeniceWindowWithSyncFlag = Window & {
@@ -31,6 +32,9 @@ type VeniceWindowWithSyncFlag = Window & {
  * persistence can never leave a record deleted without a tombstone. The target
  * deletion runs with `bypassSyncEcho: true` and with the renderer sync flag
  * raised so the sync engine does not try to re-coordinate the same deletion.
+ *
+ * Tombstone emission is gated to desktop mode and an active sync engine so web
+ * mode does not generate console noise for a bridge that does not exist.
  */
 export async function deleteSyncableRecord(
   storeName: SyncStoreName,
@@ -38,25 +42,47 @@ export async function deleteSyncableRecord(
   deviceId?: string,
 ): Promise<DeleteSyncableRecordResult> {
   const tombstone = createTombstone(storeName, recordId, deviceId);
-  await TombstoneService.saveTombstone(tombstone);
+  try {
+    await TombstoneService.saveTombstone(tombstone);
+  } catch (err) {
+    const error = err instanceof Error ? err.message : "Failed to persist tombstone";
+    console.error(`[syncDeleteCoordinator] Failed to save tombstone for ${storeName}/${recordId}:`, err);
+    return { ok: false, tombstone, error };
+  }
 
   const veniceWindow = window as VeniceWindowWithSyncFlag;
   const previousSyncFlag = veniceWindow.__VENICE_IS_SYNCING;
   veniceWindow.__VENICE_IS_SYNCING = true;
   try {
     await StorageService.deleteItem(storeName, recordId, { bypassSyncEcho: true });
+  } catch (err) {
+    const error = err instanceof Error ? err.message : "Failed to delete target record";
+    console.error(`[syncDeleteCoordinator] Failed to delete target for ${storeName}/${recordId}:`, err);
+    return { ok: false, tombstone, error };
   } finally {
     veniceWindow.__VENICE_IS_SYNCING = previousSyncFlag;
   }
 
-  try {
-    await desktopSync.writePacket({
-      storeName: "tombstones",
-      id: tombstone.id,
-      recordJson: JSON.stringify(tombstone),
-    });
-  } catch (err) {
-    console.error(`[syncDeleteCoordinator] Failed to emit tombstone for ${storeName}/${recordId}:`, err);
+  if (isElectron()) {
+    try {
+      const status = await desktopSync.getStatus();
+      if (status.ok && status.status === "running") {
+        const emitResult = await desktopSync.writePacket({
+          storeName: "tombstones",
+          id: tombstone.id,
+          recordJson: JSON.stringify(tombstone),
+        });
+        if (!emitResult.ok) {
+          const error = emitResult.error || "Failed to emit tombstone packet";
+          console.error(`[syncDeleteCoordinator] Failed to emit tombstone for ${storeName}/${recordId}: ${error}`);
+          return { ok: false, tombstone, error };
+        }
+      }
+    } catch (err) {
+      const error = err instanceof Error ? err.message : "Failed to emit tombstone packet";
+      console.error(`[syncDeleteCoordinator] Failed to emit tombstone for ${storeName}/${recordId}:`, err);
+      return { ok: false, tombstone, error };
+    }
   }
 
   return { ok: true, tombstone };

@@ -21,7 +21,8 @@
  *  6. `src/services/backupImportService.ts` exports `parseAndImportBackup`,
  *     `previewBackup`, and `importDecryptedPacket`.
  *  7. `src/services/syncEngine.ts` exports `initSyncEngine`, `stopSyncEngine`,
- *     `emitLocalChange`, and `emitLocalTombstone`.
+ *     `pauseSyncEngine`, and `emitLocalChange`; `src/services/syncDeleteCoordinator.ts`
+ *     exports the authoritative `deleteSyncableRecord`.
  *  8. `src/components/settings/BackupSyncPanel.tsx` reads/writes the sync
  *     folder path through `useSettingsStore` and checks status via
  *     `res.status === "running"`.
@@ -55,6 +56,7 @@ const RP_HANDLERS_FILE = path.join(REPO, "electron/ipc/rpHandlers.ts");
 const BACKUP_EXPORT_FILE = path.join(REPO, "src/services/backupExportService.ts");
 const BACKUP_IMPORT_FILE = path.join(REPO, "src/services/backupImportService.ts");
 const SYNC_ENGINE_FILE = path.join(REPO, "src/services/syncEngine.ts");
+const SYNC_DELETE_COORDINATOR_FILE = path.join(REPO, "src/services/syncDeleteCoordinator.ts");
 const BACKUP_PANEL_FILE = path.join(REPO, "src/components/settings/BackupSyncPanel.tsx");
 const PRELOAD_FILE = path.join(REPO, "electron/preload.ts");
 
@@ -131,7 +133,10 @@ function runStaticChecks() {
     "export async function stopSyncEngine",
     "export async function pauseSyncEngine",
     "export async function emitLocalChange",
-    "export async function emitLocalTombstone",
+  ]);
+
+  mustContain(SYNC_DELETE_COORDINATOR_FILE, "src/services/syncDeleteCoordinator.ts exports", [
+    "export async function deleteSyncableRecord",
   ]);
 
   mustContain(BACKUP_PANEL_FILE, "BackupSyncPanel settings/status wiring", [

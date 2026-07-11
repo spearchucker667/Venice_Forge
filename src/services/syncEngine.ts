@@ -151,12 +151,13 @@ function handleStorageSaved(e: Event) {
   }
   const customEvent = e as CustomEvent<{ store: SyncStoreName; record: unknown; id: string }>;
   const { store, record, id } = customEvent.detail;
-  // Ignore diagnostics or non-sync stores
-  if (store === "diagnostics") return;
+  // Diagnostics is explicitly excluded from sync. Tombstones are sync metadata
+  // and are emitted by the authoritative delete coordinator, not re-routed here.
+  if (store === "diagnostics" || store === "tombstones") return;
   emitLocalChange(store, record, id);
 }
 
-function handleStorageDeleted(e: Event) {
+async function handleStorageDeleted(e: Event) {
   const veniceWindow = window as VeniceWindowWithSyncFlag;
   if (typeof window !== "undefined" && veniceWindow.__VENICE_IS_SYNCING) {
     return;
@@ -166,7 +167,11 @@ function handleStorageDeleted(e: Event) {
   // Diagnostics is explicitly excluded from sync. Tombstones are sync metadata
   // and are emitted by the authoritative delete coordinator, not re-routed here.
   if (store === "diagnostics" || store === "tombstones") return;
-  void deleteSyncableRecord(store, id);
+  try {
+    await deleteSyncableRecord(store, id);
+  } catch (err) {
+    console.error(`[SyncEngine] Failed to route deletion for ${store}/${id}:`, err);
+  }
 }
 
 /** Called by StorageService/Zustand when a local record is saved/deleted. */

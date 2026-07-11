@@ -503,12 +503,12 @@ const StorageService = {
    *          profile was deleted, false otherwise (including row missing or
    *          owned by a different profile).
    */
-  async deleteItem(store: StoreName, id: string, _options?: StorageMutationOptions): Promise<boolean> {
+  async deleteItem(store: StoreName, id: string, options?: StorageMutationOptions): Promise<boolean> {
     assertValidId(id, "deleteItem");
     const db = await this.openDB();
     const activeProfile = getActiveProfileId();
     const result = await this.deleteRawProfileRows(db, store, id, activeProfile);
-    if (result && typeof window !== "undefined") {
+    if (result && typeof window !== "undefined" && !options?.bypassSyncEcho) {
       window.dispatchEvent(new CustomEvent("venice:storage-deleted", { detail: { store, id } }));
     }
     return result;

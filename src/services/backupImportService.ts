@@ -210,8 +210,9 @@ export async function importDecryptedPacket(
     const importedUpdatedAt = imported.updatedAt || 0;
 
     if (localTombstone && localTombstone.deletedAt > importedUpdatedAt) {
-      // Local tombstone is newer, meaning it was deleted recently. Skip import.
-      return { ok: true };
+      // Local tombstone is newer, meaning it was deleted recently. Reject the
+      // stale packet so the caller (and remote sync ack) knows the record is gone.
+      return { ok: false, error: "Local tombstone is newer; record skipped." };
     }
 
     const localRecords = await fetchStoreRecords(storeName);

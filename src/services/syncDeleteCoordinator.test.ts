@@ -9,8 +9,9 @@ import * as desktopBridge from "./desktopBridge";
 import type { SyncStoreName } from "../types/sync";
 
 vi.mock("./desktopBridge", () => ({
-  isElectron: vi.fn().mockReturnValue(false),
+  isElectron: vi.fn().mockReturnValue(true),
   desktopSync: {
+    getStatus: vi.fn().mockResolvedValue({ ok: true, status: "running" }),
     writePacket: vi.fn().mockResolvedValue({ ok: true }),
   },
 }));
@@ -66,8 +67,9 @@ describe("syncDeleteCoordinator resurrection guard", () => {
     await deleteSyncableRecord("conversations", "conv-1");
     const stalePacket = createObjectPacket("conversations", "conv-1", { id: "conv-1", title: "x", updatedAt: 1 });
     const result = await importDecryptedPacket(stalePacket.storeName, stalePacket.id, stalePacket.recordJson);
-    // importDecryptedPacket reports success when it honours a newer local tombstone and skips the write.
-    expect(result.ok).toBe(true);
+    // A newer local tombstone rejects the stale packet so the sync ack reports the record is gone.
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/Local tombstone is newer/i);
     expect(await StorageService.getItem("conversations", "conv-1")).toBeNull();
   });
 });

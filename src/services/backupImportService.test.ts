@@ -257,7 +257,8 @@ describe("backupImportService", () => {
   it("honours local tombstones newer than the imported record", async () => {
     mockGetItem.mockResolvedValue({ deletedAt: 3000 });
     const res = await importDecryptedPacket("conversations", "conv-1", JSON.stringify({ id: "conv-1", updatedAt: 1000 }));
-    expect(res.ok).toBe(true);
+    expect(res.ok).toBe(false);
+    expect(res.error).toMatch(/Local tombstone is newer/i);
     expect(mockSaveItem).not.toHaveBeenCalled();
   });
 
