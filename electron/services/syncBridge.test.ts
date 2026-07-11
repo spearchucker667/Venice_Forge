@@ -44,6 +44,25 @@ describe("syncBridge", () => {
     expect(mockWritePacket).toHaveBeenCalledWith("conversations", "conv-1", JSON.stringify(record));
   });
 
+  it("sanitizes secrets and machine-local paths before main-process emission", async () => {
+    await emitSyncPacket("conversations", "conv-1", {
+      id: "conv-1",
+      apiKey: "venice_secret_value",
+      attachment: "/Users/alice/private/chat.txt",
+      nested: { authorization: "Bearer secret", title: "Safe" },
+    });
+
+    const recordJson = mockWritePacket.mock.calls[0][2];
+    expect(recordJson).not.toContain("venice_secret_value");
+    expect(recordJson).not.toContain("Bearer secret");
+    expect(recordJson).not.toContain("/Users/alice");
+    expect(JSON.parse(recordJson)).toEqual({
+      id: "conv-1",
+      attachment: "[redacted-local-path]",
+      nested: { title: "Safe" },
+    });
+  });
+
   it("does not emit when sync is stopped", async () => {
     mockGetSyncStatus.mockReturnValue({
       configured: true,

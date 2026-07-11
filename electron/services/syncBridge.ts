@@ -10,6 +10,7 @@ import { redactErrorMessage } from "../../src/shared/redaction";
 import { logError } from "./logger";
 import { createTombstone } from "../../src/shared/syncProtocol";
 import type { MutationOrigin } from "../../src/types/sync";
+import { sanitizePortableData } from "../../src/services/syncDataSanitizer";
 
 /** Maps the IPC store namespace to the portable sync store name. */
 export const SYNC_STORE_NAME_MAP: Record<string, string> = {
@@ -46,7 +47,7 @@ export async function emitSyncPacket(
   if (!status.configured || status.mainWatcher !== "running") return;
 
   try {
-    const recordJson = JSON.stringify(record);
+    const recordJson = JSON.stringify(sanitizePortableData(record));
     const res = await writePacket(syncStoreName, id, recordJson);
     if (!res.ok) {
       logError("syncBridge", `Failed to emit sync packet for ${syncStoreName}/${id}: ${res.error || "unknown"}`);

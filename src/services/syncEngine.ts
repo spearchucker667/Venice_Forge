@@ -4,7 +4,6 @@ import type { MutationOrigin, SyncStoreName } from "../types/sync";
 import type { SyncRuntimeStatus } from "../types/desktop";
 import { sanitizePortableData } from "./syncDataSanitizer";
 import { validateTombstone } from "../shared/syncProtocol";
-import { deleteSyncableRecord } from "./syncDeleteCoordinator";
 
 let remoteChangeListenerCleanup: (() => void) | null = null;
 let syncActive = false;
@@ -32,7 +31,6 @@ async function detachRendererSyncListeners(): Promise<void> {
 
   if (typeof window !== "undefined") {
     window.removeEventListener("venice:storage-saved", handleStorageSaved);
-    window.removeEventListener("venice:storage-deleted", handleStorageDeleted);
   }
 
   await notifyRendererSessionAttached(false);
@@ -41,7 +39,6 @@ async function detachRendererSyncListeners(): Promise<void> {
 function attachRendererSyncListeners(): void {
   if (typeof window === "undefined") return;
   window.addEventListener("venice:storage-saved", handleStorageSaved);
-  window.addEventListener("venice:storage-deleted", handleStorageDeleted);
 }
 
 function registerRemoteChangeListener(): void {
@@ -56,12 +53,12 @@ function registerRemoteChangeListener(): void {
           await desktopSync.acknowledgeOperation({ operationId, ok: false });
           return;
         }
-        await importDecryptedPacket(storeName as SyncStoreName, id, recordJson);
+        await importDecryptedPacket(storeName as SyncStoreName, id, recordJson, operationId);
         await desktopSync.acknowledgeOperation({ operationId, ok: true });
         return;
       }
 
-      const result = await importDecryptedPacket(storeName as SyncStoreName, id, recordJson);
+      const result = await importDecryptedPacket(storeName as SyncStoreName, id, recordJson, operationId);
       await desktopSync.acknowledgeOperation({ operationId, ok: result.ok });
       if (!result.ok) {
         console.error(`[SyncEngine] Failed to import packet ${storeName}/${id}:`, result.error);
@@ -220,22 +217,6 @@ function handleStorageSaved(e: Event) {
   emitLocalChange(store, record, id);
 }
 
-async function handleStorageDeleted(e: Event) {
-  const customEvent = e as CustomEvent<{ store: SyncStoreName; id: string; origin?: MutationOrigin }>;
-  const { store, id, origin } = customEvent.detail;
-  // Diagnostics is explicitly excluded from sync. Tombstones are sync metadata
-  // and are emitted by the authoritative delete coordinator, not re-routed here.
-  if (store === "diagnostics" || store === "tombstones") return;
-  // Only local-user mutations should auto-emit sync tombstones. Undefined origin
-  // is treated as local-user for back-compat with older storage event emitters.
-  if (origin !== undefined && origin !== "local-user") return;
-  try {
-    await deleteSyncableRecord(store, id);
-  } catch (err) {
-    console.error(`[SyncEngine] Failed to route deletion for ${store}/${id}:`, err);
-  }
-}
-
 /** Called by StorageService/Zustand when a local record is saved/deleted. */
 export async function emitLocalChange(storeName: SyncStoreName, record: unknown, id: string) {
   if (typeof window === "undefined" || !syncActive) return;
@@ -247,5 +228,3 @@ export async function emitLocalChange(storeName: SyncStoreName, record: unknown,
     console.error(`[SyncEngine] Failed to emit local change for ${storeName} ${id}:`, err);
   }
 }
-
-

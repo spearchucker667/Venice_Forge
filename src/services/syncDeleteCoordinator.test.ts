@@ -36,16 +36,17 @@ describe("syncDeleteCoordinator", () => {
   });
 
   it("persists local tombstone before deleting target and emits once", async () => {
-    const spyDelete = vi.spyOn(StorageService, "deleteItem").mockResolvedValue(true);
+    const spyDelete = vi.spyOn(StorageService, "deleteItemRaw").mockResolvedValue(true);
     const spySave = vi.spyOn(TombstoneService, "saveTombstone").mockResolvedValue(undefined);
     const spyWritePacket = vi.mocked(desktopBridge.desktopSync.writePacket);
 
     const result = await deleteSyncableRecord("conversations", "conv-1");
 
     expect(result.ok).toBe(true);
+    expect(result.deleted).toBe(true);
     expect(spySave).toHaveBeenCalledBefore(spyDelete);
     expect(spySave.mock.calls[0][0].recordId).toBe("conv-1");
-    expect(spyDelete).toHaveBeenCalledWith("conversations", "conv-1", { bypassSyncEcho: true });
+    expect(spyDelete).toHaveBeenCalledWith("conversations", "conv-1");
     expect(spyWritePacket).toHaveBeenCalledWith({
       storeName: "tombstones",
       id: "conversations:conv-1",
@@ -54,6 +55,17 @@ describe("syncDeleteCoordinator", () => {
 
     spyDelete.mockRestore();
     spySave.mockRestore();
+  });
+
+  it("does not delete the target when tombstone persistence fails", async () => {
+    const spyDelete = vi.spyOn(StorageService, "deleteItemRaw").mockResolvedValue(true);
+    vi.spyOn(TombstoneService, "saveTombstone").mockRejectedValue(new Error("tombstone write failed"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await deleteSyncableRecord("conversations", "conv-fail");
+
+    expect(result).toMatchObject({ ok: false, deleted: false, error: "tombstone write failed" });
+    expect(spyDelete).not.toHaveBeenCalled();
   });
 });
 

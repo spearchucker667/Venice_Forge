@@ -82,6 +82,11 @@ export function stopSyncRetryQueue(): void {
   retryCallback = null;
 }
 
+/** Exposed for runtime status tests and diagnostics. */
+export function isSyncRetryQueueRunning(): boolean {
+  return retryInterval !== null;
+}
+
 /**
  * Schedule a failed operation for retry.
  *

@@ -61,6 +61,7 @@ __MACOSX/
 .AppleDouble/
 ._*
 _REPO_EXTRACT_METADATA/
+.superpowers/
 # (node_modules/, dist/, dist-electron/, release/, coverage/ already ignored above)
 # Local desktop chat DBs and non-example configs (already covered by patterns above).
 

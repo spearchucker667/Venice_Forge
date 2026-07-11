@@ -48,6 +48,7 @@ const BAD_PATTERNS = [
   /(^|\/)\.integration-src\//,
   /(^|\/)\.vite\//,
   /(^|\/)\.design-captures\//,
+  /(^|\/)\.superpowers\//,
   // Secrets & local env (allow .env.example only)
   /(^|\/)\.env(?!\.example$)/,
   /(^|\/)\.env\.(?!example$).+$/i, // .env.local, .env.development, .env.production, etc.
@@ -139,6 +140,7 @@ function checkGitignore(root, violations) {
     { pattern: "release/", label: "release/" },
     { pattern: "coverage/", label: "coverage/" },
     { pattern: ".design-captures/", label: ".design-captures/" },
+    { pattern: ".superpowers/", label: ".superpowers/" },
     { pattern: ".config/*.local.yaml", label: ".config/*.local.yaml" },
     { pattern: ".config/*.local.yml", label: ".config/*.local.yml" },
     { pattern: ".config/*.yaml", label: ".config/*.yaml" },
@@ -175,6 +177,7 @@ function checkCleanScript(root, violations) {
     { pattern: "--exclude=release/", label: "release/" },
     { pattern: "--exclude=coverage/", label: "coverage/" },
     { pattern: "--exclude=.design-captures/", label: ".design-captures/" },
+    { pattern: "--exclude=.superpowers/", label: ".superpowers/" },
     { pattern: "--exclude=docs/AGENTS/", label: "docs/AGENTS/" },
     { pattern: "--exclude=docs/HQE_AUDIT_REPORT.md", label: "docs/HQE_AUDIT_REPORT.md" },
     { pattern: "--exclude=todo.md", label: "todo.md" },

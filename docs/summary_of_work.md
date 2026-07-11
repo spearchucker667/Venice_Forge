@@ -11,6 +11,55 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
+- **2026-07-11 Dirty snapshot repair publication closure — COMPLETE locally; push authorized (current session):**
+  - Installed and activated the repository-required Node `v22.23.1` / npm `10.9.8` toolchain through the existing `fnm` manager, then regenerated dependencies with `npm ci --no-audit --no-fund`.
+  - Reviewed the complete dirty diff and retained only the intentional archive hygiene, sync durability/order/import/sanitization/journal repairs, regression tests, and canonical roadmap/handoff updates.
+  - Fixed a final aggregate-contract integration bug discovered by Node 22 CI: `verify-repo-handoff-hygiene.cjs` still capped the allowed registry at `VERIFY-092` and scanned ignored `.superpowers/` scratch. It now recognizes documented `VERIFY-093` and excludes the archive-forbidden local scratch directory.
+  - The first `npm run ci` attempt passed lint, typecheck, every segmented test domain, npm audit, and build, then failed at `verify:repo-handoff-hygiene` for the stale verifier boundary above. After repair, the corrected verifier, full `verify:contracts`, `verify:dist`, and npm audit all pass.
+  - Final Node 22 evidence: server 59 tests; Electron 566 tests; ingestion 65 tests; all unit domains pass; all UI domains pass; build succeeds; 102 release-hardening checks pass; all static/feature/release contracts pass; dist outputs verify; audit reports zero vulnerabilities.
+  - Remaining roadmap work is not represented as closed: Electron-backed tombstone authority, persistent outbound outbox, trusted provenance, profile/sync-set isolation, historical packet retention/checkpointing, full multi-device convergence, and unrelated product roadmap tasks require subsequent architecture/product work or platform runners.
+
+- **2026-07-11 Dirty snapshot continuation — hard journal bound and startup rollback COMPLETE; broader work order IN PROGRESS (current session):**
+  - Fixed journal compaction for the audit’s adversarial case where more than `MAX_JOURNAL_ENTRIES` operations are all recent tombstones. Compaction now retains the newest 50,000 tombstone operations and always satisfies the advertised hard bound.
+  - Added a 50,100-recent-tombstone regression test proving the journal length, oldest retained operation, and newest retained operation.
+  - Added retry-scheduler diagnostics and completed failed-start rollback: missing-folder and folder-setup failures now stop the scheduler, clear authentication/password state, preserve the error status, and close any partially created watcher.
+  - Historical encrypted-packet replay after journal eviction is still open and explicitly requires checkpoint/current-state or remote garbage-collection semantics; this change does not misrepresent journal truncation as protocol retention.
+  - Validation: focused watcher test PASS (31 tests); `npm run test:electron` PASS (31 files / 566 tests); Electron typecheck PASS; corrected changed-file ESLint PASS; `npm run verify:backup-sync` PASS; `git diff --check` PASS. One initial ESLint command failed because it referenced nonexistent `electron/services/syncRetryQueue.test.ts`; retry tests are contained in `syncFolderWatcher.test.ts`, and the corrected command passed.
+
+- **2026-07-11 Dirty snapshot continuation — deterministic conflicts, packet sanitization, and aggregate CI exit COMPLETE; broader work order IN PROGRESS (current session):**
+  - Propagated remote `operationId` from `syncEngine` into `importDecryptedPacket()` and replaced `Date.now()` conflict suffixes with SHA-256 identities derived from store, target record, source device, remote/local revisions, and operation identity.
+  - Added replay coverage proving the same remote conflict resolves to the same conflict-record ID instead of creating an unbounded series of copies.
+  - Routed `syncBridge.emitSyncPacket()` through the same `sanitizePortableData()` boundary as renderer emission. Expanded sanitization to redact embedded macOS/Linux temporary/user paths and Windows user/temp paths in addition to secret-bearing keys.
+  - Added main-process bridge coverage that inspects the serialized packet before encryption and proves API-key, authorization, and absolute-path data are absent.
+  - Re-ran the previously unstable aggregates: `npm run test:ui` completed every layout/chat/media/research/settings domain and exited naturally; `npm run test:coverage` completed 314 files / 4,038 tests, emitted the final V8 report, and exited zero.
+  - Coverage result: 73.19% statements, 64.6% branches, 71.79% functions, 76.37% lines. The separate long-term threshold-schema roadmap task remains open.
+  - Validation: focused conflict/sanitizer/import/sync tests PASS (5 files / 58 tests); `npm run test:electron` PASS (31 files / 565 tests); `npm run test:unit:services` PASS (57 files / 569 tests); `npm run test:ui` PASS; `npm run test:coverage` PASS; `npm run typecheck` PASS; changed-file ESLint PASS; `npm run verify:backup-sync` PASS; `git diff --check` PASS.
+
+- **2026-07-11 Dirty snapshot continuation — remote apply ordering and import metadata repairs COMPLETE; broader work order IN PROGRESS (current session):**
+  - Repaired `syncFolderWatcher` queue identity so tombstones derive their key from the validated target `storeName` and `recordId`, matching ordinary object packets for the same logical record.
+  - Extended in-flight operations with completion signals. A per-object queue now remains locked until positive acknowledgment, negative acknowledgment/retry, timeout/retry, pause, or stop instead of ending immediately after `webContents.send()`.
+  - Added an encrypted-packet integration test proving a tombstone is not delivered while the preceding record for the same object remains unacknowledged.
+  - Added `toEpochMilliseconds()` for numeric epoch, ISO string, and `Date` normalization. Import rejects malformed timestamps and applies an explicit deletion-wins-ties policy.
+  - Added `StorageService.saveImportedItem()` and routed remote IndexedDB imports through it, preserving `revisionId`, `baseRevisionId`, timestamps, and record shape without mutation-event echo.
+  - Electron-backed tombstone persistence was mapped but remains open because a safe fix requires one main-process tombstone repository plus renderer/import lookup changes; it was not papered over in individual handlers.
+  - Validation: queue tests PASS (2 files / 35 tests); import/storage focused tests PASS (4 files / 50 tests); `npm run test:electron` PASS (31 files / 564 tests); `npm run test:unit:services` PASS (57 files / 568 tests, natural exit); `npm run typecheck` PASS; changed-file ESLint PASS; `npm run verify:backup-sync` PASS; `git diff --check` PASS.
+
+- **2026-07-11 Dirty snapshot work order — Phase 1 IndexedDB deletion repair COMPLETE; broader work order IN PROGRESS (current session):**
+  - Reconciled the 14:52 dirty-snapshot audit against commit `7fb1f9c` and confirmed the production IndexedDB path still deleted its target before the asynchronous `venice:storage-deleted` listener persisted a tombstone.
+  - Changed `StorageService.deleteItem()` so syncable `local-user` deletes enter `deleteSyncableRecord()` before target removal. Added `deleteItemRaw()` as the non-recursive low-level delete primitive used after tombstone persistence and by trusted non-local/bypass paths.
+  - Removed the obsolete renderer delete-event listener from `syncEngine`; local deletion durability no longer depends on listener attachment, renderer lifetime, or post-delete event delivery.
+  - Made `saveItem(..., { bypassSyncEcho: true })` honor its contract by suppressing `venice:storage-saved`, preventing internal tombstone writes from appearing as ordinary local mutations.
+  - Added regression coverage proving the public delete creates a durable tombstone, tombstone persistence precedes raw target deletion, and tombstone-write failure prevents target deletion.
+  - Remaining P0 work is recorded in `docs/ROADMAP.md`: Electron-backed tombstone coordination, persistent outbound outbox, trusted mutation provenance, acknowledgment-held logical-object queues, exact metadata/timestamp handling, profile isolation, portable serialization, retention policy, and aggregate test-process exit.
+  - Validation: focused 3-file batch PASS (41 tests); expanded 8-file storage/sync/store batch PASS (178 tests); full `npm run test:unit` PASS with every domain emitting a final summary and exiting naturally; `npm run typecheck` PASS; changed-file ESLint PASS; `npm run verify:backup-sync` PASS; `git diff --check` PASS.
+
+- **2026-07-11 Archive-clean repair and ZIP closure — COMPLETE (current session):**
+  - Reconciled the archive hygiene gate after `scripts/clean-repo-zip.sh` failed on tracked `.superpowers/sdd` report files by adding `.superpowers/` to `.gitignore`, excluding it in `scripts/clean-repo-zip.sh`, and teaching `scripts/verify-archive-clean.cjs` to treat `.superpowers/` as forbidden archive content.
+  - Removed the two tracked `.superpowers/sdd/task-7-report.md` and `.superpowers/sdd/task-12-report.md` files from the Git index so the repository no longer reports them as tracked source-archive contamination, while leaving the local files on disk.
+  - Removed the temporary `KEEP_CLEAN_REPO_STAGE` staging-preservation hook from `scripts/clean-repo-zip.sh` after confirming the fix with a clean re-run.
+  - Validation: `npm run verify:archive-clean` PASS; `ALLOW_DIRTY_REPO_EXTRACT=1 bash scripts/clean-repo-zip.sh` PASS twice, including the post-zip self-check.
+  - Files changed: `.gitignore`, `scripts/clean-repo-zip.sh`, `scripts/verify-archive-clean.cjs`, `.superpowers/sdd/task-7-report.md` (git index only), `.superpowers/sdd/task-12-report.md` (git index only).
+
 - **2026-07-11 Local path normalization — COMPLETE (current session):**
   - Reconciled absolute local-path mentions across active agent docs and historical references so the repository consistently points at the canonical Venice Forge root.
   - Kept the active agent-doc warnings aligned with `scripts/verify-repository-identity.cjs` by using the canonical repository root in the thin pointer files while leaving historical evidence under `docs/reports/historical/` as archival context.
@@ -303,8 +352,26 @@
   - Pushed to `origin/main`.
   - Confirmed no other PRs/branches to merge.
 
+### Session History
+
+- **2026-07-11 — Dirty snapshot repair publication closure:** Revalidated the complete repair set under Node 22, repaired stale VERIFY-093/local-scratch verifier handling, and prepared the intentional diff for direct `main` publication.
+- **2026-07-11 — Dirty snapshot audit continuation, journal and startup rollback:** Enforced the journal hard bound for all-recent-tombstone workloads and stopped retry scheduling after failed startup. Historical packet retention remains open.
+- **2026-07-11 — Dirty snapshot audit continuation, deterministic conflicts and CI closure:** Closed replay-stable conflict identity, shared main/renderer packet sanitization, UI aggregate exit, and coverage aggregate exit. Kept threshold policy and larger sync architecture work open.
+- **2026-07-11 — Dirty snapshot audit continuation, remote apply and import integrity:** Closed logical queue-key/ack-lifetime, timestamp normalization, deletion-tie, and exact IndexedDB imported-write defects. Retained larger architectural repairs in `docs/ROADMAP.md`.
+- **2026-07-11 — Dirty snapshot audit continuation:** Closed the renderer/IndexedDB portion of authoritative local deletion by routing the public delete API through durable tombstone persistence before raw target removal. The larger sync/release work order remains active in `docs/ROADMAP.md`.
+
 ### Open TODO Ledger
-- Current canonical roadmap: `docs/audits/repository-todo-roadmap-current.md`.
+- Current canonical roadmap: `docs/ROADMAP.md`.
+- **2026-07-11 Dirty snapshot work order — IN PROGRESS:** IndexedDB local-delete ordering is closed; Electron-backed deletion, outbound outbox, trust-boundary, deterministic apply/import, profile isolation, packet sanitization, retention, CI-exit, and clean-release phases remain open in the canonical roadmap.
+  - Remote apply logical-object queue identity and acknowledgment lifetime — CLOSED.
+  - ISO/numeric timestamp normalization and deletion-wins-ties — CLOSED.
+  - Exact remote IndexedDB revision/timestamp persistence — CLOSED.
+  - Deterministic conflict-copy identity and replay idempotency — CLOSED.
+  - Shared renderer/main portable secret and local-path sanitization — CLOSED.
+  - Aggregate `test:unit`, `test:ui`, and `test:coverage` natural process exit — CLOSED with current live-tree evidence.
+  - Applied-operation journal hard bound under recent-tombstone overflow — CLOSED.
+  - Failed sync-start retry-scheduler rollback — CLOSED.
+- **2026-07-11 Archive-clean repair — CLOSED in this session.**
 - **2026-07-11 Local path normalization — CLOSED in this session.**
 - **2026-07-10 Phase 5 Prompt Library selection — CLOSED in this session:**
   - Delete middle/last/only selection behaviour regression-tested (VERIFY-075).
@@ -582,6 +649,83 @@
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+
+- **2026-07-11 Dirty snapshot repair publication closure**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8` (repository requirement satisfied).
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npm ci --no-audit --no-fund` | PASS | ~13s | Deprecation warnings for existing transitive packages only. | 859 packages installed from lockfile |
+  | `npm run ci` | FAIL | ~3m | All lint/typecheck/tests/audit/build stages passed; contract phase failed because `verify-repo-handoff-hygiene.cjs` allowed only VERIFY-001..092 and scanned ignored `.superpowers/` scratch while VERIFY-093 is documented. | Failure repaired in verifier |
+  | `npm run verify:repo-handoff-hygiene` | PASS | <1s | — | VERIFY-093 recognized and `.superpowers/` excluded |
+  | `npm run verify:contracts` | PASS | ~1m | — | Static, feature, and release contract groups pass |
+  | `npm run verify:dist` | PASS | <1s | — | Version 2.1.2 build outputs verified |
+  | `npm audit --audit-level=moderate` | PASS | ~1s | — | 0 vulnerabilities |
+  | `git diff --check` | PASS | <1s | — | No whitespace errors before final staging |
+
+- **2026-07-11 Dirty snapshot continuation — hard journal bound and startup rollback**
+  - Node/toolchain: `v24.3.0` / `npm 11.4.2` (local drift from required Node 22/npm 10 baseline).
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run electron/services/syncFolderWatcher.test.ts --no-file-parallelism` | PASS | ~3s | — | 31/31 tests pass, including 50,100 recent tombstones |
+  | `npm run test:electron` | PASS | ~10s | — | 31 files / 566 tests pass |
+  | `npm run typecheck` | PASS | ~20s | — | Renderer and Electron TypeScript checks pass |
+  | `npx eslint electron/services/syncFolderWatcher.ts electron/services/syncFolderWatcher.test.ts electron/services/syncRetryQueue.ts electron/services/syncRetryQueue.test.ts --max-warnings=0` | FAIL | <1s | Referenced nonexistent `syncRetryQueue.test.ts`; retry tests live in `syncFolderWatcher.test.ts`. | Command/configuration error, not a source lint finding |
+  | `npx eslint electron/services/syncFolderWatcher.ts electron/services/syncFolderWatcher.test.ts electron/services/syncRetryQueue.ts --max-warnings=0` | PASS | ~3s | — | 0 warnings |
+  | `npm run verify:backup-sync` | PASS | <1s | Static verifier still lacks full multi-device convergence coverage. | All current VERIFY-087..VERIFY-091 invariants pass |
+  | `git diff --check` | PASS | <1s | — | No whitespace errors before ledger update |
+
+- **2026-07-11 Dirty snapshot continuation — deterministic conflicts, packet sanitization, and aggregate CI exit**
+  - Node/toolchain: `v24.3.0` / `npm 11.4.2` (local drift from required Node 22/npm 10 baseline).
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run electron/services/syncBridge.test.ts src/services/syncDataSanitizer.test.ts src/services/backupImportService.test.ts src/services/syncEngine.test.ts src/shared/syncConflictIdentity.test.ts --no-file-parallelism` | PASS | ~2s | — | 5 files / 58 tests pass |
+  | `npm run test:electron` | PASS | ~8s | — | 31 files / 565 tests pass |
+  | `npm run test:unit:services` | PASS | ~26s | — | 57 files / 569 tests pass and exits naturally |
+  | `npm run test:ui` | PASS | ~29s | — | Layout 6/64; chat 5/73; gallery 7/63; image 2/16; research/search 4/37; settings/privacy 2/13; every process exits naturally |
+  | `npm run test:coverage` | PASS | ~182s | Three non-fatal jsdom navigation warnings. | 314 files / 4,038 tests; statements 73.19%, branches 64.6%, functions 71.79%, lines 76.37%; final report emitted |
+  | `npm run typecheck` | PASS | ~20s | — | Renderer and Electron TypeScript checks pass |
+  | Changed-file ESLint with `--max-warnings=0` | PASS | ~3s | — | 0 warnings |
+  | `npm run verify:backup-sync` | PASS | <1s | Static contract verifier still lacks the full convergence simulation required by the audit. | All current VERIFY-087..VERIFY-091 invariants pass |
+  | `git diff --check` | PASS | <1s | — | No whitespace errors before ledger update |
+
+- **2026-07-11 Dirty snapshot continuation — remote apply ordering and import integrity**
+  - Node/toolchain: `v24.3.0` / `npm 11.4.2` (local drift from required Node 22/npm 10 baseline).
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run electron/services/syncFolderWatcher.test.ts electron/services/syncApplyQueue.test.ts --no-file-parallelism` | PASS | ~1s | Initial attempts exposed two test-fixture setup errors: missing import and watcher initialization order; corrected before passing run. | 2 files / 35 tests pass |
+  | `npx vitest run src/services/storageService.test.ts src/services/backupImportService.test.ts src/shared/syncTimestamp.test.ts src/services/syncDeleteCoordinator.test.ts --no-file-parallelism` | PASS | ~2s | Initial assertions still targeted the normal save mock after exact imported writes were introduced; updated to the imported-write contract. | 4 files / 50 tests pass |
+  | `npm run test:electron` | PASS | ~7s | — | 31 files / 564 tests pass |
+  | `npm run test:unit:services` | PASS | ~25s | — | 57 files / 568 tests pass and process exits naturally |
+  | `npm run typecheck` | PASS | ~20s | — | Renderer and Electron TypeScript checks pass |
+  | `npx eslint ... --max-warnings=0` on changed sync/import/storage files | PASS | ~3s | — | 0 warnings |
+  | `npm run verify:backup-sync` | PASS | <1s | Static contract verifier still lacks the full convergence simulation required by the audit. | All current VERIFY-087..VERIFY-091 invariants pass |
+  | `git diff --check` | PASS | <1s | — | No whitespace errors before ledger update |
+
+- **2026-07-11 Dirty snapshot work order — Phase 1 IndexedDB deletion repair**
+  - Node/toolchain: `v24.3.0` / `npm 11.4.2` (local drift from required Node 22/npm 10 baseline; focused validation also needs CI/Node 22 confirmation).
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run src/services/storageService.test.ts src/services/syncDeleteCoordinator.test.ts src/services/syncEngine.test.ts` | PASS | ~2s | Initial run exposed stale delete-listener assertions and internal save-event leakage; both were repaired before this passing rerun. | 3 files / 41 tests pass |
+  | `npx vitest run src/services/storageService.test.ts src/services/syncDeleteCoordinator.test.ts src/services/syncEngine.test.ts src/services/backupImportService.test.ts src/services/tombstoneService.test.ts src/stores/project-store.test.ts src/stores/prompt-library-store.test.ts src/stores/scene-composer-store.test.ts` | PASS | ~4s | — | 8 files / 178 tests pass |
+  | `npm run typecheck` | PASS | ~20s | — | Renderer and Electron TypeScript checks pass |
+  | `npx eslint src/services/storageService.ts src/services/storageService.test.ts src/services/syncDeleteCoordinator.ts src/services/syncDeleteCoordinator.test.ts src/services/syncEngine.ts src/services/syncEngine.test.ts --max-warnings=0` | PASS | ~3s | — | 0 warnings |
+  | `npm run verify:backup-sync` | PASS | <1s | Verifier remains primarily contract/static coverage; convergence expansion is still open. | All current VERIFY-087..VERIFY-091 invariants pass |
+  | `npm run test:unit` | PASS | ~88s | jsdom printed three non-fatal navigation warnings. | All 9 fresh-process domains completed and exited naturally: 39/698 stores, 57/564 services, 15/93 hooks, 12/85 lib, 9/257 shared, 19/381 utils, 6/118 theme, 15/111 scripts, 6/102 types |
+  | `git diff --check` | PASS | <1s | — | No whitespace errors before ledger update |
+
+- **2026-07-11 Archive-clean repair and ZIP closure**
+  - Node/toolchain: `v24.3.0` / `npm 11.4.2` (local runtime).
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npm run verify:archive-clean` | PASS | <1s | — | archive exclusion config and tracked files clean |
+  | `ALLOW_DIRTY_REPO_EXTRACT=1 bash scripts/clean-repo-zip.sh` | PASS | ~5s | Initial pass reported the expected dirty-worktree warning; archive validation, post-zip self-check, and SHA256 generation all passed. | ZIP `Venice_Forge-clean-20260711-145249-dirty.zip`; SHA256 `ae4d9a11ad816357b697e519f1f3147c048f360e6c487f4bc208e52ad3e2144f` |
+  | `ALLOW_DIRTY_REPO_EXTRACT=1 KEEP_CLEAN_REPO_STAGE=1 bash scripts/clean-repo-zip.sh` | PASS | ~5s | Temporary debug run preserved the staging tree for inspection; final validation still passed. | ZIP `Venice_Forge-clean-20260711-145236-dirty.zip`; SHA256 `8a15464e2f5f5d91b4c243f3ff643aa3f4e1b5f77c515f35c5f546dccdff8ecc` |
 
 - **2026-07-11 Local path normalization**
   - Node/toolchain: `v24.3.0` / `npm 11.4.2`.

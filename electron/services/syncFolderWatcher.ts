@@ -9,6 +9,7 @@ import { encryptPayload, decryptPayload, EncryptedBackupManifest } from "./backu
 import { getSyncPath, setSyncPath, getDeviceId } from "./syncConfig";
 import { enqueueRemoteApply } from "./syncApplyQueue";
 import { initSyncRetryQueue, scheduleRetry, stopSyncRetryQueue } from "./syncRetryQueue";
+import { validateTombstone } from "../../src/shared/syncProtocol";
 
 let watcher: FSWatcher | null = null;
 let currentSyncPath: string | null = null;
@@ -19,7 +20,15 @@ let rendererSessionAttached = false;
 let authenticated = false;
 let degradedReason: string | undefined;
 let localEmissionSuppressed = false;
-const inFlightOperations = new Map<string, { storeName: string; sourceDeviceId?: string; filePath: string; attempts: number }>();
+interface InFlightOperation {
+  storeName: string;
+  sourceDeviceId?: string;
+  filePath: string;
+  attempts: number;
+  complete?: () => void;
+}
+
+const inFlightOperations = new Map<string, InFlightOperation>();
 const inFlightTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 const ACK_TIMEOUT_MS = 30_000;
 const MAX_PACKET_BYTES = 50 * 1024 * 1024;
@@ -123,7 +132,8 @@ function compactJournal(): void {
 
   const cutoff = Date.now() - JOURNAL_COMPACTION_DAYS * 24 * 60 * 60 * 1000;
 
-  // Rule 1: always keep tombstone entries younger than JOURNAL_COMPACTION_DAYS.
+  // Prefer tombstone entries younger than JOURNAL_COMPACTION_DAYS, newest
+  // first when the tombstone set alone exceeds the journal's hard bound.
   const youngTombstones: AppliedOperationEntry[] = [];
   const nonTombstones: AppliedOperationEntry[] = [];
 
@@ -137,7 +147,8 @@ function compactJournal(): void {
     }
   }
 
-  const tombstoneCount = youngTombstones.length;
+  const keptYoungTombstones = youngTombstones.slice(-MAX_JOURNAL_ENTRIES);
+  const tombstoneCount = keptYoungTombstones.length;
 
   // Rule 2: for non-tombstone applied operations, keep the most recent
   // MAX_JOURNAL_ENTRIES - tombstoneCount entries.
@@ -146,14 +157,8 @@ function compactJournal(): void {
   // increasing. Keep the tail (most recent) without a full sort.
   const keptNonTombstones = nonTombstones.slice(-nonTombstoneBudget);
 
-  // Rule 3: if the total still exceeds MAX_JOURNAL_ENTRIES, remove oldest
-  // non-tombstone entries first.
-  while (youngTombstones.length + keptNonTombstones.length > MAX_JOURNAL_ENTRIES && keptNonTombstones.length > 0) {
-    keptNonTombstones.shift();
-  }
-
   // Rebuild the journal preserving original order and the runtime id set.
-  const keptIds = new Set([...youngTombstones, ...keptNonTombstones].map((entry) => entry.operationId));
+  const keptIds = new Set([...keptYoungTombstones, ...keptNonTombstones].map((entry) => entry.operationId));
   appliedOperationsJournal.operations = appliedOperationsJournal.operations.filter((entry) =>
     keptIds.has(entry.operationId)
   );
@@ -242,9 +247,11 @@ function clearAckTimeout(operationId: string): void {
 function startAckTimeout(operationId: string, filePath: string, attempts: number): void {
   const timeout = setTimeout(() => {
     inFlightTimeouts.delete(operationId);
-    if (inFlightOperations.has(operationId)) {
+    const inFlight = inFlightOperations.get(operationId);
+    if (inFlight) {
       inFlightOperations.delete(operationId);
       scheduleRetry(operationId, filePath, attempts, "Acknowledgment timeout");
+      inFlight.complete?.();
     }
   }, ACK_TIMEOUT_MS);
   inFlightTimeouts.set(operationId, timeout);
@@ -254,6 +261,7 @@ function requeueInFlightOperations(lastError?: string): void {
   for (const [operationId, op] of inFlightOperations) {
     clearAckTimeout(operationId);
     scheduleRetry(operationId, op.filePath, op.attempts, lastError);
+    op.complete?.();
   }
   inFlightOperations.clear();
 }
@@ -267,16 +275,21 @@ export async function acknowledgeOperation(operationId: string, ok: boolean): Pr
     return { ok: false, error: "No such in-flight operation." };
   }
   clearAckTimeout(operationId);
-  inFlightOperations.delete(operationId);
   if (!ok) {
+    inFlightOperations.delete(operationId);
     scheduleRetry(operationId, inFlight.filePath, inFlight.attempts, "Negative acknowledgment");
+    inFlight.complete?.();
     return { ok: true };
   }
   try {
     await recordAppliedOperation(operationId, inFlight.storeName, "applied", inFlight.sourceDeviceId);
+    inFlightOperations.delete(operationId);
+    inFlight.complete?.();
     return { ok: true };
   } catch (err: unknown) {
+    inFlightOperations.delete(operationId);
     scheduleRetry(operationId, inFlight.filePath, inFlight.attempts, "Journal write failure");
+    inFlight.complete?.();
     const rawMessage = err instanceof Error ? err.message : String(err);
     const redacted = redactErrorMessage(rawMessage);
     logError("syncFolderWatcher", `Failed to record applied operation ${operationId}: ${redacted}`);
@@ -306,6 +319,15 @@ export function __registerInFlightOperationForTests(
   }
 }
 
+function logicalQueueKey(parsed: Record<string, unknown>): string | null {
+  if (parsed._storeName !== "tombstones") {
+    return `${String(parsed._storeName)}:${String(parsed._id)}`;
+  }
+  const validation = validateTombstone(parsed.data);
+  if (!validation.ok) return null;
+  return `${validation.tombstone.storeName}:${validation.tombstone.recordId}`;
+}
+
 /** Test-only helper to clear the in-flight operation map. */
 export function __clearInFlightOperationsForTests(): void {
   for (const operationId of inFlightOperations.keys()) {
@@ -329,6 +351,7 @@ export async function startSyncWatcher(password: string): Promise<{ ok: boolean;
   degradedReason = undefined;
   initSyncRetryQueue((filePath, attempts) => handleRemoteChange(filePath, attempts));
   if (!currentSyncPath) {
+    stopSyncRetryQueue();
     currentPassword = null;
     authenticated = false;
     syncStatus = "error";
@@ -337,6 +360,11 @@ export async function startSyncWatcher(password: string): Promise<{ ok: boolean;
   }
   const result = await setSyncFolder(currentSyncPath);
   if (!result.ok) {
+    stopSyncRetryQueue();
+    if (watcher) {
+      await watcher.close();
+      watcher = null;
+    }
     currentPassword = null;
     authenticated = false;
     syncStatus = "error";
@@ -502,26 +530,33 @@ export async function handleRemoteChange(filePath: string, attempts = 0): Promis
       return true;
     }
 
-    const queueKey = `${parsed._storeName}:${parsed._id}`;
+    const queueKey = logicalQueueKey(parsed);
+    if (!queueKey) {
+      logError("syncFolderWatcher", `Malformed tombstone payload for ${filename}`);
+      return true;
+    }
     await enqueueRemoteApply(queueKey, async () => {
       if (!mainWindowRef || mainWindowRef.isDestroyed()) return;
 
       await loadAppliedOperationsJournal();
       if (isOperationApplied(parsed._operationId) || isOperationInFlight(parsed._operationId)) return;
 
-      inFlightOperations.set(parsed._operationId, {
-        storeName: parsed._storeName,
-        sourceDeviceId: parsed._sourceDeviceId,
-        filePath,
-        attempts,
-      });
-      startAckTimeout(parsed._operationId, filePath, attempts);
+      await new Promise<void>((resolve) => {
+        inFlightOperations.set(parsed._operationId, {
+          storeName: parsed._storeName,
+          sourceDeviceId: parsed._sourceDeviceId,
+          filePath,
+          attempts,
+          complete: resolve,
+        });
+        startAckTimeout(parsed._operationId, filePath, attempts);
 
-      mainWindowRef.webContents.send("sync:onRemoteChange", {
-        storeName: parsed._storeName,
-        id: parsed._id,
-        operationId: parsed._operationId,
-        recordJson: JSON.stringify(parsed.data)
+        mainWindowRef?.webContents.send("sync:onRemoteChange", {
+          storeName: parsed._storeName,
+          id: parsed._id,
+          operationId: parsed._operationId,
+          recordJson: JSON.stringify(parsed.data)
+        });
       });
     });
     return true;

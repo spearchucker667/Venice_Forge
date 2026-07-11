@@ -9,7 +9,9 @@ import { DEFAULT_PROFILE_ID, getActiveProfileId } from "./activeProfile";
 import type { MutationOrigin } from "../types/sync";
 
 
-type StoreName = (typeof STORE_NAMES)[number];
+export type StoreName = (typeof STORE_NAMES)[number];
+
+const NON_SYNCABLE_DELETE_STORES = new Set<StoreName>(["diagnostics", "tombstones"]);
 
 /** Marker field added to every record so reads can filter by active profile. */
 export const PROFILE_ID_FIELD = "profileId";
@@ -310,13 +312,24 @@ const StorageService = {
       tx.objectStore(store).put(payload);
       tx.oncomplete = () => {
         // Dispatch event for Sync Engine
-        if (typeof window !== "undefined") {
+        if (typeof window !== "undefined" && !options?.bypassSyncEcho) {
           window.dispatchEvent(new CustomEvent("venice:storage-saved", { detail: { store, record: finalRecord, id, origin } }));
         }
         resolve(finalRecord);
       };
       tx.onerror = () => reject(tx.error);
     });
+  },
+
+  /**
+   * Persists a validated imported record without regenerating revision or
+   * timestamp metadata and without emitting a local mutation event.
+   */
+  async saveImportedItem<T extends Record<string, unknown>>(
+    store: StoreName,
+    item: T,
+  ): Promise<T & { id: string; timestamp?: number; revisionId?: string; baseRevisionId?: string }> {
+    return this.saveItem(store, item, { bypassSyncEcho: true, origin: "remote-sync" });
   },
 
   /**
@@ -508,13 +521,37 @@ const StorageService = {
    *          profile was deleted, false otherwise (including row missing or
    *          owned by a different profile).
    */
-  async deleteItem(store: StoreName, id: string, options?: StorageMutationOptions): Promise<boolean> {
+  async deleteItemRaw(store: StoreName, id: string): Promise<boolean> {
     assertValidId(id, "deleteItem");
     const db = await this.openDB();
     const activeProfile = getActiveProfileId();
-    const result = await this.deleteRawProfileRows(db, store, id, activeProfile);
+    return this.deleteRawProfileRows(db, store, id, activeProfile);
+  },
+
+  /**
+   * Deletes a record through the durable tombstone coordinator when the
+   * mutation is a local-user delete of syncable data. Trusted import and
+   * migration callers bypass coordination and perform an exact raw delete.
+   */
+  async deleteItem(store: StoreName, id: string, options?: StorageMutationOptions): Promise<boolean> {
+    assertValidId(id, "deleteItem");
+    const origin = options?.origin ?? "local-user";
+    const shouldCoordinate =
+      origin === "local-user"
+      && !options?.bypassSyncEcho
+      && !NON_SYNCABLE_DELETE_STORES.has(store);
+
+    if (shouldCoordinate) {
+      // Dynamic import avoids a module-initialization cycle: the coordinator
+      // persists its tombstone through StorageService before deleting raw data.
+      const { deleteSyncableRecord } = await import("./syncDeleteCoordinator");
+      const result = await deleteSyncableRecord(store, id);
+      if (!result.ok) throw new Error(result.error ?? `Failed to delete ${store}/${id}`);
+      return result.deleted;
+    }
+
+    const result = await this.deleteItemRaw(store, id);
     if (result && typeof window !== "undefined" && !options?.bypassSyncEcho) {
-      const origin = options?.origin ?? "local-user";
       window.dispatchEvent(new CustomEvent("venice:storage-deleted", { detail: { store, id, origin } }));
     }
     return result;

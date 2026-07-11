@@ -72,6 +72,7 @@ vi.mock("./storageService", () => ({
     getItems: vi.fn(),
     getItem: vi.fn(),
     saveItem: vi.fn(),
+    saveImportedItem: vi.fn(),
     deleteItem: vi.fn(),
   },
 }));
@@ -86,6 +87,7 @@ const mockIsElectron = vi.mocked(desktopBridge.isElectron);
 const mockGetItems = vi.mocked(StorageService.getItems);
 const mockGetItem = vi.mocked(StorageService.getItem);
 const mockSaveItem = vi.mocked(StorageService.saveItem);
+const mockSaveImportedItem = vi.mocked(StorageService.saveImportedItem);
 const mockSaveTombstone = vi.mocked(TombstoneService.saveTombstone);
 
 function toBase64(str: string): string {
@@ -116,6 +118,7 @@ describe("backupImportService", () => {
     mockGetItems.mockResolvedValue([]);
     mockGetItem.mockResolvedValue(null);
     mockSaveItem.mockImplementation(async (_store, item) => ({ ...(item as object), id: (item as { id: string }).id, timestamp: Date.now() } as never));
+    mockSaveImportedItem.mockImplementation(async (_store, item) => item as never);
   });
 
   afterEach(() => {
@@ -170,7 +173,7 @@ describe("backupImportService", () => {
     mockIsElectron.mockReturnValue(false);
     const res = await importDecryptedPacket("conversations", "conv-1", JSON.stringify({ id: "conv-1", updatedAt: 2000, messages: [] }));
     expect(res.ok).toBe(true);
-    expect(mockSaveItem).toHaveBeenCalledWith("conversations", expect.any(Object), { origin: "remote-sync" });
+    expect(mockSaveImportedItem).toHaveBeenCalledWith("conversations", expect.any(Object));
   });
 
   it("passes remote-sync origin to Electron bridge", async () => {
@@ -220,14 +223,14 @@ describe("backupImportService", () => {
     mockGetItems.mockResolvedValue([{ id: "conv-1", updatedAt: 1000, messages: [] }]);
     const res = await importDecryptedPacket("conversations", "conv-1", JSON.stringify({ id: "conv-1", updatedAt: 2000, messages: [] }));
     expect(res.ok).toBe(true);
-    expect(mockSaveItem).toHaveBeenCalled();
+    expect(mockSaveImportedItem).toHaveBeenCalled();
   });
 
   it("skips import when local record is newer (LWW)", async () => {
     mockGetItems.mockResolvedValue([{ id: "conv-1", updatedAt: 2000, messages: [] }]);
     const res = await importDecryptedPacket("conversations", "conv-1", JSON.stringify({ id: "conv-1", updatedAt: 1000, messages: [] }));
     expect(res.ok).toBe(true);
-    expect(mockSaveItem).not.toHaveBeenCalled();
+    expect(mockSaveImportedItem).not.toHaveBeenCalled();
   });
 
   it("creates a conflict copy for preserve-stores when revisions diverge", async () => {
@@ -254,9 +257,36 @@ describe("backupImportService", () => {
     );
 
     expect(res.ok).toBe(true);
-    const saved = mockSaveItem.mock.calls[0][1] as { id: string; name: string };
-    expect(saved.id).toMatch(/card-1_conflict_\d+/);
+    const saved = mockSaveImportedItem.mock.calls[0][1] as { id: string; name: string };
+    expect(saved.id).toMatch(/^card-1_conflict_[a-f0-9]{16}$/);
     expect(saved.name).toContain("Conflict from device-b");
+  });
+
+  it("reuses the same conflict ID when the same remote conflict is replayed", async () => {
+    mockGetItems.mockResolvedValue([{
+      id: "card-replay",
+      updatedAt: 2000,
+      deviceId: "device-a",
+      revisionId: "rev-local",
+      baseRevisionId: "rev-base",
+      name: "Local",
+    }]);
+    const remote = JSON.stringify({
+      id: "card-replay",
+      updatedAt: 2000,
+      deviceId: "device-b",
+      revisionId: "rev-remote",
+      baseRevisionId: "rev-base",
+      name: "Remote",
+    });
+    const operationId = "a".repeat(64);
+
+    await importDecryptedPacket("character_cards", "card-replay", remote, operationId);
+    await importDecryptedPacket("character_cards", "card-replay", remote, operationId);
+
+    const conflictIds = mockSaveImportedItem.mock.calls.map((call) => (call[1] as { id: string }).id);
+    expect(conflictIds).toHaveLength(2);
+    expect(new Set(conflictIds).size).toBe(1);
   });
 
   it("merges chat messages across divergent revisions", async () => {
@@ -283,7 +313,7 @@ describe("backupImportService", () => {
     );
 
     expect(res.ok).toBe(true);
-    const saved = mockSaveItem.mock.calls[0][1] as { messages: { id: string }[] };
+    const saved = mockSaveImportedItem.mock.calls[0][1] as { messages: { id: string }[] };
     expect(saved.messages.map((m) => m.id)).toEqual(["m-1", "m-2"]);
   });
 
@@ -292,7 +322,41 @@ describe("backupImportService", () => {
     const res = await importDecryptedPacket("conversations", "conv-1", JSON.stringify({ id: "conv-1", updatedAt: 1000 }));
     expect(res.ok).toBe(false);
     expect(res.error).toMatch(/Local tombstone is newer/i);
-    expect(mockSaveItem).not.toHaveBeenCalled();
+    expect(mockSaveImportedItem).not.toHaveBeenCalled();
+  });
+
+  it("compares ISO updatedAt values against numeric tombstones", async () => {
+    const updatedAt = "2026-07-11T20:00:00.000Z";
+    mockGetItem.mockResolvedValue({ deletedAt: Date.parse(updatedAt) + 1 });
+
+    const res = await importDecryptedPacket("conversations", "conv-iso", JSON.stringify({ id: "conv-iso", updatedAt }));
+
+    expect(res.ok).toBe(false);
+    expect(res.error).toMatch(/Local tombstone is newer/i);
+    expect(mockSaveImportedItem).not.toHaveBeenCalled();
+  });
+
+  it("lets deletion win when tombstone and update timestamps are equal", async () => {
+    const timestamp = Date.parse("2026-07-11T20:00:00.000Z");
+    mockGetItem.mockResolvedValue({ deletedAt: timestamp });
+
+    const res = await importDecryptedPacket("conversations", "conv-tie", JSON.stringify({
+      id: "conv-tie",
+      updatedAt: new Date(timestamp).toISOString(),
+    }));
+
+    expect(res.ok).toBe(false);
+    expect(res.error).toMatch(/Local tombstone is newer/i);
+  });
+
+  it("rejects invalid imported timestamps", async () => {
+    const res = await importDecryptedPacket("conversations", "conv-invalid", JSON.stringify({
+      id: "conv-invalid",
+      updatedAt: "not-a-date",
+    }));
+
+    expect(res).toEqual({ ok: false, error: "Imported record has an invalid updatedAt timestamp." });
+    expect(mockSaveImportedItem).not.toHaveBeenCalled();
   });
 
   it("previews record counts without applying", async () => {

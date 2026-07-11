@@ -30,6 +30,10 @@ describe("storageService", () => {
     expect(deleted).toBe(true);
     const items = await StorageService.getItems<{ id: string; prompt: string }>("images");
     expect(items).toHaveLength(0);
+    expect(await StorageService.getItem("tombstones", "images:del-1")).toMatchObject({
+      storeName: "images",
+      recordId: "del-1",
+    });
   });
 
   /** Verifies clearing all items from a store. */
@@ -97,6 +101,25 @@ describe("storageService", () => {
     expect(saved.timestamp).toBeDefined();
   });
 
+  it("preserves imported revision and timestamp metadata exactly without emitting", async () => {
+    const saveHandler = vi.fn();
+    window.addEventListener("venice:storage-saved", saveHandler);
+    const imported = {
+      id: "import-exact-1",
+      updatedAt: "2026-07-11T20:00:00.000Z",
+      timestamp: 1_752_261_200_000,
+      revisionId: "revision-remote",
+      baseRevisionId: "revision-parent",
+    };
+
+    await StorageService.saveImportedItem("conversations", imported);
+    const stored = await StorageService.getItem<typeof imported>("conversations", imported.id);
+
+    expect(stored).toEqual(imported);
+    expect(saveHandler).not.toHaveBeenCalled();
+    window.removeEventListener("venice:storage-saved", saveHandler);
+  });
+
   /** Default mutation origin is local-user and is emitted on save/delete events. */
   it("emits storage mutation events with a default local-user origin", async () => {
     const saveHandler = vi.fn();
@@ -111,9 +134,7 @@ describe("storageService", () => {
     const saveDetail = (saveHandler.mock.calls[0][0] as CustomEvent).detail;
     expect(saveDetail.origin).toBe("local-user");
 
-    expect(deleteHandler).toHaveBeenCalledTimes(1);
-    const deleteDetail = (deleteHandler.mock.calls[0][0] as CustomEvent).detail;
-    expect(deleteDetail.origin).toBe("local-user");
+    expect(deleteHandler).not.toHaveBeenCalled();
 
     window.removeEventListener("venice:storage-saved", saveHandler);
     window.removeEventListener("venice:storage-deleted", deleteHandler);

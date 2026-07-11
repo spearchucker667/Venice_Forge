@@ -17,6 +17,7 @@ import { desktopSync, isElectron } from "./desktopBridge";
 
 export interface DeleteSyncableRecordResult {
   ok: boolean;
+  deleted: boolean;
   tombstone: Tombstone;
   error?: string;
 }
@@ -43,15 +44,16 @@ export async function deleteSyncableRecord(
   } catch (err) {
     const error = err instanceof Error ? err.message : "Failed to persist tombstone";
     console.error(`[syncDeleteCoordinator] Failed to save tombstone for ${storeName}/${recordId}:`, err);
-    return { ok: false, tombstone, error };
+    return { ok: false, deleted: false, tombstone, error };
   }
 
+  let deleted: boolean;
   try {
-    await StorageService.deleteItem(storeName, recordId, { bypassSyncEcho: true });
+    deleted = await StorageService.deleteItemRaw(storeName, recordId);
   } catch (err) {
     const error = err instanceof Error ? err.message : "Failed to delete target record";
     console.error(`[syncDeleteCoordinator] Failed to delete target for ${storeName}/${recordId}:`, err);
-    return { ok: false, tombstone, error };
+    return { ok: false, deleted: false, tombstone, error };
   }
 
   if (isElectron()) {
@@ -66,15 +68,15 @@ export async function deleteSyncableRecord(
         if (!emitResult.ok) {
           const error = emitResult.error || "Failed to emit tombstone packet";
           console.error(`[syncDeleteCoordinator] Failed to emit tombstone for ${storeName}/${recordId}: ${error}`);
-          return { ok: false, tombstone, error };
+          return { ok: false, deleted, tombstone, error };
         }
       }
     } catch (err) {
       const error = err instanceof Error ? err.message : "Failed to emit tombstone packet";
       console.error(`[syncDeleteCoordinator] Failed to emit tombstone for ${storeName}/${recordId}:`, err);
-      return { ok: false, tombstone, error };
+      return { ok: false, deleted, tombstone, error };
     }
   }
 
-  return { ok: true, tombstone };
+  return { ok: true, deleted, tombstone };
 }

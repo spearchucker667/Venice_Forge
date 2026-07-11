@@ -47,6 +47,7 @@ import {
   __registerInFlightOperationForTests,
   __clearInFlightOperationsForTests,
   initSyncFolderWatcher,
+  handleRemoteChange,
 } from "./syncFolderWatcher";
 import {
   initSyncRetryQueue,
@@ -54,11 +55,13 @@ import {
   scheduleRetry,
   getPendingRetries,
   clearPendingRetries,
+  isSyncRetryQueueRunning,
 } from "./syncRetryQueue";
 import { promises as fs } from "fs";
 import { app } from "electron";
 import { createTombstone } from "../../src/shared/syncProtocol";
 import { logError } from "./logger";
+import { encryptPayload } from "./backupCrypto";
 
 vi.mock("./syncConfig", () => ({
   getSyncPath: vi.fn().mockResolvedValue(null),
@@ -76,6 +79,23 @@ vi.mock("../../src/shared/redaction", () => ({
 }));
 
 const tmpDir = "/tmp/sync-test";
+
+async function writeRemotePacket(
+  fileName: string,
+  packet: { storeName: string; id: string; operationId: string; data: Record<string, unknown> },
+): Promise<string> {
+  const payload = JSON.stringify({
+    _storeName: packet.storeName,
+    _id: packet.id,
+    _operationId: packet.operationId,
+    _sourceDeviceId: "device-2",
+    data: packet.data,
+  });
+  const encrypted = await encryptPayload(payload, "password");
+  const filePath = `${tmpDir}/${fileName}`;
+  await fs.writeFile(filePath, JSON.stringify({ version: 2, exportedAt: new Date().toISOString(), ...encrypted }));
+  return filePath;
+}
 
 describe("syncFolderWatcher", () => {
   beforeEach(async () => {
@@ -135,6 +155,7 @@ describe("syncFolderWatcher", () => {
     expect(status.mainWatcher).toBe("error");
     expect(status.authenticated).toBe(false);
     expect(status.degradedReason).toMatch(/Sync folder not configured/);
+    expect(isSyncRetryQueueRunning()).toBe(false);
   });
 
   it("transitions to error and clears the password when folder setup fails", async () => {
@@ -151,6 +172,7 @@ describe("syncFolderWatcher", () => {
     expect(status.mainWatcher).toBe("error");
     expect(status.authenticated).toBe(false);
     expect(status.degradedReason).toMatch(/permission denied/);
+    expect(isSyncRetryQueueRunning()).toBe(false);
     mkdirSpy.mockRestore();
   });
 
@@ -232,6 +254,44 @@ describe("syncFolderWatcher", () => {
 
     await loadAppliedOperationsJournal();
     expect(isOperationApplied(validOpId)).toBe(true);
+  });
+
+  it("serializes a record and tombstone for the same logical object through acknowledgment", async () => {
+    const { BrowserWindow } = await import("electron");
+    await initSyncFolderWatcher(new BrowserWindow());
+    await setSyncFolder(tmpDir);
+    await startSyncWatcher("password");
+
+    const recordOperationId = "1".repeat(64);
+    const tombstoneOperationId = "2".repeat(64);
+    const recordPath = await writeRemotePacket("record.json", {
+      storeName: "conversations",
+      id: "conv-1",
+      operationId: recordOperationId,
+      data: { id: "conv-1", title: "Remote" },
+    });
+    const tombstone = createTombstone("conversations", "conv-1", "device-2");
+    const tombstonePath = await writeRemotePacket("tombstone.json", {
+      storeName: "tombstones",
+      id: tombstone.id,
+      operationId: tombstoneOperationId,
+      data: tombstone as unknown as Record<string, unknown>,
+    });
+
+    const recordApply = handleRemoteChange(recordPath);
+    await vi.waitFor(() => expect(sendMock).toHaveBeenCalledTimes(1));
+    const tombstoneApply = handleRemoteChange(tombstonePath);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(sendMock).toHaveBeenCalledTimes(1);
+
+    await acknowledgeOperation(recordOperationId, true);
+    await vi.waitFor(() => expect(sendMock).toHaveBeenCalledTimes(2));
+    expect(sendMock.mock.calls[1][1]).toMatchObject({
+      storeName: "tombstones",
+      operationId: tombstoneOperationId,
+    });
+    await acknowledgeOperation(tombstoneOperationId, true);
+    await Promise.all([recordApply, tombstoneApply]);
   });
 
   it("rejects an acknowledgment with an invalid operation id", async () => {
@@ -535,5 +595,17 @@ describe("syncFolderWatcher", () => {
     const journal = await loadAppliedOperationsJournal();
     expect(journal.operations.length).toBeLessThanOrEqual(MAX_JOURNAL_ENTRIES);
     expect(journal.lastCompactedAt).toBeDefined();
+  });
+
+  it("does not exceed MAX_JOURNAL_ENTRIES when every recent operation is a tombstone", async () => {
+    for (let i = 0; i < MAX_JOURNAL_ENTRIES + 100; i++) {
+      await recordAppliedOperation(`tombstone-op-${i}`, "tombstones", "applied", undefined, false);
+    }
+    await flushAppliedOperationsJournal();
+
+    const journal = await loadAppliedOperationsJournal();
+    expect(journal.operations).toHaveLength(MAX_JOURNAL_ENTRIES);
+    expect(journal.operations[0].operationId).toBe("tombstone-op-100");
+    expect(journal.operations.at(-1)?.operationId).toBe(`tombstone-op-${MAX_JOURNAL_ENTRIES + 99}`);
   });
 });

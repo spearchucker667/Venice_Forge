@@ -17,11 +17,13 @@ import type { SyncStoreName, MutationOrigin } from "../types/sync";
 import { BACKUP_SCHEMA_VERSION, deriveBackupKey, fromBase64, EncryptedBackupManifest } from "./backupCryptoWeb";
 import { STORE_NAMES } from "../constants/venice";
 import { validateTombstone } from "../shared/syncProtocol";
+import { toEpochMilliseconds } from "../shared/syncTimestamp";
+import { createConflictIdentity } from "../shared/syncConflictIdentity";
 
 interface SyncableRecord {
   id: string;
-  updatedAt?: number;
-  deletedAt?: number | null;
+  updatedAt?: number | string;
+  deletedAt?: number | string | null;
   revisionId?: string;
   baseRevisionId?: string;
   deviceId?: string;
@@ -98,6 +100,10 @@ export async function saveStoreRecord(
   }
 
   // Web mode OR IndexedDB-only stores
+  if (origin === "remote-sync") {
+    await StorageService.saveImportedItem(storeName, record as Record<string, unknown>);
+    return;
+  }
   await StorageService.saveItem(storeName, record as Record<string, unknown>, { origin });
 }
 
@@ -184,7 +190,8 @@ export async function fetchStoreRecords(storeName: SyncStoreName): Promise<Synca
 export async function importDecryptedPacket(
   storeName: SyncStoreName,
   id: string,
-  recordJson: string
+  recordJson: string,
+  operationId?: string,
 ): Promise<{ ok: boolean; error?: string }> {
   try {
     if (!IMPORTABLE_STORES.has(storeName)) return { ok: false, error: "Store is not allowed for import." };
@@ -208,9 +215,17 @@ export async function importDecryptedPacket(
     const tombstoneId = `${storeName}:${id}`;
     const localTombstone = await StorageService.getItem("tombstones", tombstoneId) as { deletedAt: number } | null;
     
-    const importedUpdatedAt = imported.updatedAt || 0;
+    const importedUpdatedAt = toEpochMilliseconds(imported.updatedAt);
+    if (imported.updatedAt !== undefined && importedUpdatedAt === null) {
+      return { ok: false, error: "Imported record has an invalid updatedAt timestamp." };
+    }
+    const importedUpdateEpoch = importedUpdatedAt ?? 0;
+    const localDeletedAt = toEpochMilliseconds(localTombstone?.deletedAt);
 
-    if (localTombstone && localTombstone.deletedAt > importedUpdatedAt) {
+    if (localTombstone && localDeletedAt === null) {
+      return { ok: false, error: "Local tombstone has an invalid deletedAt timestamp." };
+    }
+    if (localDeletedAt !== null && localDeletedAt >= importedUpdateEpoch) {
       // Local tombstone is newer, meaning it was deleted recently. Reject the
       // stale packet so the caller (and remote sync ack) knows the record is gone.
       return { ok: false, error: "Local tombstone is newer; record skipped." };
@@ -237,7 +252,15 @@ export async function importDecryptedPacket(
 
         if (preserveStores.includes(storeName)) {
           // Preserve conflict copy
-          const newId = `${id}_conflict_${Date.now()}`;
+          const conflictIdentity = await createConflictIdentity({
+            storeName,
+            recordId: id,
+            sourceDeviceId: imported.deviceId,
+            remoteRevisionId: imported.revisionId,
+            localRevisionId: local.revisionId,
+            operationId,
+          });
+          const newId = `${id}_conflict_${conflictIdentity.slice(0, 16)}`;
           const conflictRecord = {
             ...imported,
             id: newId,
@@ -257,21 +280,21 @@ export async function importDecryptedPacket(
             const mergedRecord = {
               ...local,
               messages: [...localMessages, ...newMessages].sort((a: Record<string, unknown>, b: Record<string, unknown>) => (a.createdAt as number) - (b.createdAt as number)),
-              updatedAt: Math.max(local.updatedAt || 0, importedUpdatedAt)
+              updatedAt: Math.max(toEpochMilliseconds(local.updatedAt) ?? 0, importedUpdateEpoch)
             };
             await saveStoreRecord(storeName, mergedRecord);
           }
         } else {
           // No conflict merge logic, just LWW
-          const localUpdate = local.updatedAt || 0;
-          if (importedUpdatedAt > localUpdate) {
+          const localUpdate = toEpochMilliseconds(local.updatedAt) ?? 0;
+          if (importedUpdateEpoch > localUpdate) {
             await saveStoreRecord(storeName, imported);
           }
         }
       } else {
         // No conflict, just use last-write-wins
-        const localUpdate = local.updatedAt || 0;
-        if (importedUpdatedAt > localUpdate) {
+        const localUpdate = toEpochMilliseconds(local.updatedAt) ?? 0;
+        if (importedUpdateEpoch > localUpdate) {
           await saveStoreRecord(storeName, imported);
         }
       }
