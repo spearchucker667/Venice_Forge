@@ -11,7 +11,23 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
-- **2026-07-11 Task 14: Improve `startSyncWatcher` state transitions — COMPLETE (current session):**
+- **2026-07-11 Task 15: Rebuild renderer sync session on reload — COMPLETE (current session):**
+  - Added `reattachSyncEngine()` in `src/services/syncEngine.ts`:
+    - Verifies via `desktopSync.getStatus()` that the main-process watcher is `running` and `authenticated` before reattaching, so a renderer reload can resume sync without re-entering the passphrase when the main process still holds it.
+    - Detaches any stale renderer listeners, re-registers the remote-change listener, re-attaches `venice:storage-saved` / `venice:storage-deleted` window listeners, sets `syncActive = true`, and notifies the main process `rendererSessionAttached = true`.
+    - Returns a structured error when running in web mode, when the watcher is not running, or when the main process is not authenticated.
+  - Extracted `registerRemoteChangeListener()` helper in `src/services/syncEngine.ts` to share the remote-change/tombstone handling logic between `initSyncEngine()` and `reattachSyncEngine()`.
+  - Updated `src/components/settings/BackupSyncPanel.tsx`:
+    - On mount, after loading runtime status, when `mainWatcher === "running" && !rendererSessionAttached`, the panel automatically calls `reattachSyncEngine()`.
+    - If automatic reattachment succeeds, the status pill transitions to `Active` and a success toast is shown.
+    - If automatic reattachment fails, the existing "Reattach Session" button remains available for manual passphrase re-entry.
+  - Updated tests:
+    - `src/services/syncEngine.test.ts`: added `getStatus` mock; added tests proving `reattachSyncEngine()` reattaches without stopping/starting the watcher, and refuses to reattach when the watcher is not running or not authenticated.
+    - `src/components/settings/BackupSyncPanel.test.tsx`: added `reattachSyncEngine` mock; added test proving automatic reattachment on mount and test proving the manual "Reattach Session" button is shown when automatic reattachment fails.
+  - Validation: `npx vitest run src/services/syncEngine.test.ts src/components/settings/BackupSyncPanel.test.tsx` PASS (2 files / 30 tests); `npm run test:electron` PASS (31 files / 562 tests); `npm run typecheck` PASS (renderer + Electron main clean); `npm run lint:eslint` PASS (0 warnings).
+  - Files changed: `src/services/syncEngine.ts`, `src/services/syncEngine.test.ts`, `src/components/settings/BackupSyncPanel.tsx`, `src/components/settings/BackupSyncPanel.test.tsx`, `docs/summary_of_work.md`, `.superpowers/sdd/task-15-report.md`.
+
+- **2026-07-11 Task 14: Improve `startSyncWatcher` state transitions — COMPLETE (previous session):**
   - Defined richer `SyncRuntimeStatus` type in `src/types/desktop.ts` with `configured`, `mainWatcher` (`stopped` | `paused` | `running` | `error`), `rendererSessionAttached`, `authenticated`, and `degradedReason`.
   - Updated `electron/services/syncFolderWatcher.ts`:
     - `startSyncWatcher` now sets `mainWatcher: "running"` only after `setSyncFolder` succeeds.
@@ -283,6 +299,7 @@
   - **Task 12: Add bounded retry queue and acknowledgment timeout — CLOSED in this session; review fixes (retry counter preservation, paused/stopped persistence, scheduler lifecycle, main-process will-quit teardown, pause scheduler stop) also CLOSED.**
   - **Task 13: Enforce real applied-operation journal bounds — CLOSED in this session.**
   - **Task 14: Improve `startSyncWatcher` state transitions — CLOSED in this session.**
+  - **Task 15: Rebuild renderer sync session on reload — CLOSED in this session.**
   - Remaining tasks from the work order are delegated to subsequent sessions.
 - **2026-07-01 priority remediation work order — CLOSED in this session:**
   - **P1 safety follow-up:** CLOSED in earlier session. PG-13 policy covers explicit nudity, erotic framing, visible genitals, and graphic gore preflight plus textual response screening.
@@ -537,6 +554,16 @@
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+
+- **2026-07-11 Task 15: Rebuild renderer sync session on reload**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run src/services/syncEngine.test.ts src/components/settings/BackupSyncPanel.test.tsx` | PASS | ~2s | — | 2 files / 30 tests pass |
+  | `npm run test:electron` | PASS | ~7s | — | 31 files / 562 tests pass |
+  | `npm run typecheck` | PASS | ~48s | — | renderer + Electron main clean |
+  | `npm run lint:eslint` | PASS | ~66s | — | 0 warnings |
 
 - **2026-07-11 Task 14: Improve `startSyncWatcher` state transitions**
   - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
