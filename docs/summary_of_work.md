@@ -11,7 +11,16 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
-- **2026-07-11 Task 11: Validate acknowledgments and require live in-flight operations — COMPLETE (current session):**
+- **2026-07-11 Task 11 review fixes: redact journal-write errors and validate operationId at IPC boundary — COMPLETE (current session):**
+  - Fixed `electron/services/syncFolderWatcher.ts`: `acknowledgeOperation` now redacts journal-write failures through `redactErrorMessage` before returning the error string, and logs the failure via `logError` for observability.
+  - Fixed `electron/ipc/handlers/syncHandlers.ts`: the `sync:acknowledgeOperation` handler now validates `operationId` against `/^[a-f0-9]{64}$/` before delegating to `acknowledgeOperation`, returning `{ ok: false, error: "Invalid operationId." }` on mismatch.
+  - Added regression tests in `electron/services/syncFolderWatcher.test.ts` proving journal-write failures are redacted and logged.
+  - Added regression tests in `electron/ipc/handlers.test.ts` proving the IPC boundary rejects non-64-hex operation IDs and delegates valid IDs.
+  - Validation: `npx vitest run electron/services/syncFolderWatcher.test.ts` PASS (14 tests); `npx vitest run electron/ipc/handlers.test.ts -t "sync:acknowledgeOperation"` PASS (2 tests); `npm run test:electron` PASS (31 files / 547 tests); `npm run typecheck` PASS; `npm run lint:eslint` PASS (0 warnings).
+  - Files changed: `electron/services/syncFolderWatcher.ts`, `electron/services/syncFolderWatcher.test.ts`, `electron/ipc/handlers/syncHandlers.ts`, `electron/ipc/handlers.test.ts`, `docs/summary_of_work.md`, `.superpowers/sdd/task-11-report.md`.
+  - Commit: `85b61c3` — fix(sync): redact journal-write errors and validate operationId at IPC boundary.
+
+- **2026-07-11 Task 11: Validate acknowledgments and require live in-flight operations — COMPLETE (previous session):**
   - Added strict operation-ID validation in `electron/services/syncFolderWatcher.ts`: `acknowledgeOperation` now rejects IDs that do not match `/^[a-f0-9]{64}$/` and rejects acknowledgments for operation IDs that are not currently in `inFlightOperations`.
   - Updated the success path to record applied operations using the live in-flight metadata (`storeName`, `sourceDeviceId`); added a no-op `scheduleRetry` placeholder for negative acknowledgments and record failures (bounded retry queue to be implemented in Task 12).
   - Added test-only helpers `__registerInFlightOperationForTests` and `__clearInFlightOperationsForTests` to seed/clear the in-flight map deterministically.
@@ -610,3 +619,14 @@
   | `npm run test:electron` | PASS | ~7s | — | 31 files / 541 tests pass |
   | `npx tsc --project tsconfig.electron.json --noEmit` | PASS | ~12s | — | Electron main clean |
   | `npx eslint electron/services/syncFolderWatcher.ts electron/services/syncFolderWatcher.test.ts --max-warnings=0` | PASS | ~10s | — | 0 warnings |
+
+- **2026-07-11 Task 11 review fixes verification**
+  - Node/toolchain: `v22.23.1` / `npm 10.9.8`.
+
+  | Command | Status | Duration | Failure summary | Evidence |
+  | :------ | :----: | :------- | :-------------- | :------- |
+  | `npx vitest run electron/services/syncFolderWatcher.test.ts --fileParallelism=false` | PASS | ~0.2s | — | 1 file / 14 tests pass |
+  | `npx vitest run electron/ipc/handlers.test.ts -t "sync:acknowledgeOperation" --fileParallelism=false` | PASS | ~0.3s | — | 2/2 targeted tests pass |
+  | `npm run test:electron` | PASS | ~7s | — | 31 files / 547 tests pass |
+  | `npm run typecheck` | PASS | ~48s | — | renderer + Electron main clean |
+  | `npm run lint:eslint` | PASS | ~66s | — | 0 warnings |
