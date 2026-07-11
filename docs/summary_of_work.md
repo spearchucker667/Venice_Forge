@@ -11,12 +11,13 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
-- **2026-07-11 Task 10: Serialize journal writes with a mutex — COMPLETE (current session):**
-  - Added `AsyncSerialQueue` to `electron/services/syncFolderWatcher.ts` and wrapped `recordAppliedOperation` so journal loads, mutations, and atomic saves execute serially.
-  - Added `resetAppliedOperationsJournal()` to enable deterministic test isolation; updated `electron/services/syncFolderWatcher.test.ts` to reset journal state and clean the journal directory in `beforeEach`.
-  - Added regression test `preserves every acknowledgment under concurrent writes` that fires 50 concurrent `recordAppliedOperation` calls and verifies every operation id persists in the journal; verified the test fails reliably when the mutex wrap is removed.
-  - Validation: `npx vitest run electron/services/syncFolderWatcher.test.ts` PASS (10 tests); `npm run test:electron` PASS (31 files / 541 tests); `npx tsc --project tsconfig.electron.json --noEmit` PASS; `npx eslint electron/services/syncFolderWatcher.ts electron/services/syncFolderWatcher.test.ts --max-warnings=0` PASS.
-  - Files changed: `electron/services/syncFolderWatcher.ts`, `electron/services/syncFolderWatcher.test.ts`, `docs/summary_of_work.md`, `.superpowers/sdd/task-10-report.md`.
+- **2026-07-11 Task 11: Validate acknowledgments and require live in-flight operations — COMPLETE (current session):**
+  - Added strict operation-ID validation in `electron/services/syncFolderWatcher.ts`: `acknowledgeOperation` now rejects IDs that do not match `/^[a-f0-9]{64}$/` and rejects acknowledgments for operation IDs that are not currently in `inFlightOperations`.
+  - Updated the success path to record applied operations using the live in-flight metadata (`storeName`, `sourceDeviceId`); added a no-op `scheduleRetry` placeholder for negative acknowledgments and record failures (bounded retry queue to be implemented in Task 12).
+  - Added test-only helpers `__registerInFlightOperationForTests` and `__clearInFlightOperationsForTests` to seed/clear the in-flight map deterministically.
+  - Updated `electron/services/syncFolderWatcher.test.ts`: the previous `acknowledgeOperation("op-abc", true)` test now registers a valid 64-hex operation before acking; added regression tests for invalid IDs, missing in-flight operations, and negative acknowledgments removing the operation from the in-flight map.
+  - Validation: `npx vitest run electron/services/syncFolderWatcher.test.ts` PASS (13 tests); `npm run test:electron` PASS (31 files / 544 tests); `npm run typecheck` PASS (renderer + Electron main clean); `npx eslint electron/services/syncFolderWatcher.ts electron/services/syncFolderWatcher.test.ts --max-warnings=0` PASS.
+  - Files changed: `electron/services/syncFolderWatcher.ts`, `electron/services/syncFolderWatcher.test.ts`, `docs/summary_of_work.md`, `.superpowers/sdd/task-11-report.md`.
 
 - **2026-07-11 Task 9: Add per-object remote apply queue — COMPLETE (current session):**
   - Created `electron/services/syncApplyQueue.ts` exporting `enqueueRemoteApply(queueKey, operation)` which chains per-key operations through a `Map<string, Promise<void>>` so that applies for the same logical object execute FIFO while different keys proceed concurrently.

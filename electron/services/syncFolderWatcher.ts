@@ -167,20 +167,47 @@ export function isOperationInFlight(operationId: string): boolean {
   return inFlightOperations.has(operationId);
 }
 
+const OPERATION_ID_RE = /^[a-f0-9]{64}$/;
+
+/** Bounded retry scheduling will be implemented in Task 12. */
+function scheduleRetry(inFlight: { storeName: string; sourceDeviceId?: string }): void {
+  void inFlight;
+}
+
 export async function acknowledgeOperation(operationId: string, ok: boolean): Promise<{ ok: boolean; error?: string }> {
+  if (!OPERATION_ID_RE.test(operationId)) {
+    return { ok: false, error: "operationId must be 64 lowercase hex characters." };
+  }
   const inFlight = inFlightOperations.get(operationId);
+  if (!inFlight) {
+    return { ok: false, error: "No such in-flight operation." };
+  }
   inFlightOperations.delete(operationId);
   if (!ok) {
+    scheduleRetry(inFlight);
     return { ok: true };
   }
   try {
-    await recordAppliedOperation(operationId, inFlight?.storeName ?? "unknown", "applied", inFlight?.sourceDeviceId);
+    await recordAppliedOperation(operationId, inFlight.storeName, "applied", inFlight.sourceDeviceId);
     return { ok: true };
   } catch (err: unknown) {
-    const error = err instanceof Error ? err.message : "Unknown error";
-    logError("syncFolderWatcher", `Failed to record applied operation ${operationId}: ${redactErrorMessage(error)}`);
-    return { ok: false, error: redactErrorMessage(error) };
+    scheduleRetry(inFlight);
+    return { ok: false, error: String(err) };
   }
+}
+
+/** Test-only helper to seed the in-flight operation map. */
+export function __registerInFlightOperationForTests(
+  operationId: string,
+  storeName: string,
+  sourceDeviceId?: string,
+): void {
+  inFlightOperations.set(operationId, { storeName, sourceDeviceId });
+}
+
+/** Test-only helper to clear the in-flight operation map. */
+export function __clearInFlightOperationsForTests(): void {
+  inFlightOperations.clear();
 }
 
 /** Initialize the watcher. Must provide the mainWindow to send events back. */

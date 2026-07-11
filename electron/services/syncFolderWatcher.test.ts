@@ -35,8 +35,11 @@ import {
   acknowledgeOperation,
   loadAppliedOperationsJournal,
   isOperationApplied,
+  isOperationInFlight,
   recordAppliedOperation,
   resetAppliedOperationsJournal,
+  __registerInFlightOperationForTests,
+  __clearInFlightOperationsForTests,
 } from "./syncFolderWatcher";
 import { promises as fs } from "fs";
 import { app } from "electron";
@@ -65,6 +68,7 @@ describe("syncFolderWatcher", () => {
     vi.mocked(app.getPath).mockReturnValue("/tmp/userData");
     setSyncEmissionSuppressed(false);
     resetAppliedOperationsJournal();
+    __clearInFlightOperationsForTests();
     await fs.rm("/tmp/userData/sync", { recursive: true, force: true });
     await fs.mkdir(tmpDir, { recursive: true });
     await fs.rm(tmpDir, { recursive: true, force: true });
@@ -152,16 +156,41 @@ describe("syncFolderWatcher", () => {
     await setSyncFolder(tmpDir);
     await startSyncWatcher("password");
 
-    const ackResult = await acknowledgeOperation("op-abc", true);
+    const validOpId = "a".repeat(64);
+    __registerInFlightOperationForTests(validOpId, "conversations", "device-2");
+
+    const ackResult = await acknowledgeOperation(validOpId, true);
     expect(ackResult).toEqual({ ok: true });
 
     const journalPath = "/tmp/userData/sync/applied-operations.json";
     const journalData = await fs.readFile(journalPath, "utf8");
     const journal = JSON.parse(journalData);
-    expect(journal.operations.some((op: { operationId: string }) => op.operationId === "op-abc")).toBe(true);
+    expect(journal.operations.some((op: { operationId: string }) => op.operationId === validOpId)).toBe(true);
 
     await loadAppliedOperationsJournal();
-    expect(isOperationApplied("op-abc")).toBe(true);
+    expect(isOperationApplied(validOpId)).toBe(true);
+  });
+
+  it("rejects an acknowledgment with an invalid operation id", async () => {
+    const ackResult = await acknowledgeOperation("op-abc", true);
+    expect(ackResult).toEqual({
+      ok: false,
+      error: "operationId must be 64 lowercase hex characters.",
+    });
+  });
+
+  it("rejects an acknowledgment for an operation that is not in flight", async () => {
+    const validOpId = "b".repeat(64);
+    const ackResult = await acknowledgeOperation(validOpId, true);
+    expect(ackResult).toEqual({ ok: false, error: "No such in-flight operation." });
+  });
+
+  it("removes the operation from in-flight when the acknowledgment is negative", async () => {
+    const validOpId = "c".repeat(64);
+    __registerInFlightOperationForTests(validOpId, "conversations");
+    const ackResult = await acknowledgeOperation(validOpId, false);
+    expect(ackResult).toEqual({ ok: true });
+    expect(isOperationInFlight(validOpId)).toBe(false);
   });
 
   it("preserves every acknowledgment under concurrent writes", async () => {
