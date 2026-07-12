@@ -5,10 +5,10 @@ import { RefreshCw } from 'lucide-react'
 export function Label({ children, htmlFor, hint }: { children: React.ReactNode; htmlFor?: string; hint?: string }) {
   return (
     <div className="flex items-baseline justify-between mb-1.5">
-      <label htmlFor={htmlFor} className="block text-[11.5px] font-semibold text-foreground-muted uppercase tracking-[0.08em]">
+      <label htmlFor={htmlFor} className="block text-[12px] font-semibold text-foreground-muted uppercase tracking-[0.08em]">
         {children}
       </label>
-      {hint && <span className="text-[11px] text-foreground-subtle">{hint}</span>}
+      {hint && <span className="text-[12px] text-foreground-subtle">{hint}</span>}
     </div>
   )
 }
@@ -143,12 +143,12 @@ export function ExamplePrompts({ items, onPick, title = 'Try one of these', onSh
   return (
     <div className="w-full max-w-md flex flex-col gap-2.5">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] uppercase tracking-[0.08em] text-text-muted font-semibold">{title}</div>
+        <div className="text-[12px] uppercase tracking-[0.08em] text-text-muted font-semibold">{title}</div>
         {onShuffle && (
           <button
             type="button"
             onClick={onShuffle}
-            className="text-[11px] text-[var(--color-accent)] hover:opacity-85 flex items-center gap-1 cursor-pointer transition-opacity"
+            className="text-[12px] text-[var(--color-accent)] hover:opacity-85 flex items-center gap-1 cursor-pointer transition-opacity"
             title="Shuffle suggestions"
           >
             <RefreshCw className="w-3 h-3 animate-hover-spin" />
@@ -186,7 +186,7 @@ export function Card({ children, className }: { children: React.ReactNode; class
 export function SectionHeading({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between mb-2.5">
-      <h3 className="text-[11px] uppercase tracking-[0.08em] text-text-muted font-semibold">{children}</h3>
+      <h3 className="text-[12px] uppercase tracking-[0.08em] text-text-muted font-semibold">{children}</h3>
       {action}
     </div>
   )
@@ -205,7 +205,7 @@ const TONE: Record<string, string> = {
 
 export function Badge({ children, tone = 'slate' }: { children: React.ReactNode; tone?: keyof typeof TONE }) {
   return (
-    <span className={cn('inline-flex items-center text-[10px] px-1.5 py-px rounded font-medium uppercase tracking-wider border', TONE[tone] ?? TONE.slate)}>
+    <span className={cn('inline-flex items-center text-[12px] px-1.5 py-px rounded font-medium uppercase tracking-wider border', TONE[tone] ?? TONE.slate)}>
       {children}
     </span>
   )

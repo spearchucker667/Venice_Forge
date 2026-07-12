@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef, useEffect } from 'react'
 import { useInspectorStore } from '../../stores/inspector-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { cn } from '../../lib/utils'
@@ -21,10 +21,35 @@ const FILTER_CHIPS: Array<{ id: InspectorLogFilter; label: string }> = [
 export function InspectorPane() {
   const showInspector = useSettingsStore((s) => s.showInspector)
   const setShowInspector = useSettingsStore((s) => s.setShowInspector)
+  const inspectorWidth = useSettingsStore((s) => s.inspectorWidth)
+  const setInspectorWidth = useSettingsStore((s) => s.setInspectorWidth)
   const logs = useInspectorStore((s) => s.logs)
   const clearLogs = useInspectorStore((s) => s.clearLogs)
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null)
   const [activeFilter, setActiveFilter] = useState<InspectorLogFilter>('all')
+
+  const dragRef = useRef<{ startX: number; startWidth: number } | null>(null)
+  const [dragWidth, setDragWidth] = useState<number | null>(null)
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    dragRef.current = { startX: e.clientX, startWidth: inspectorWidth }
+  }
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!dragRef.current) return
+    const delta = dragRef.current.startX - e.clientX
+    const newWidth = Math.max(300, Math.min(800, dragRef.current.startWidth + delta))
+    setDragWidth(newWidth)
+  }
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!dragRef.current) return
+    e.currentTarget.releasePointerCapture(e.pointerId)
+    if (dragWidth !== null) setInspectorWidth(dragWidth)
+    dragRef.current = null
+    setDragWidth(null)
+  }
 
   const filteredLogs = useMemo(
     () => logs.filter((log) => matchesInspectorFilter(log, activeFilter)),
@@ -54,9 +79,17 @@ export function InspectorPane() {
 
   return (
     <aside
-      className="w-[480px] soft-separator-x mesh-surface flex flex-col h-full shrink-0 min-w-0 shell-region"
+      className="relative soft-separator-x mesh-surface flex flex-col h-full shrink-0 min-w-0 shell-region"
       aria-label="Developer traffic inspector"
+      style={{ width: dragWidth ?? inspectorWidth }}
     >
+      <div 
+        className="absolute left-0 top-0 bottom-0 w-1.5 -ml-[0.75px] cursor-col-resize hover:bg-accent/50 z-50 transition-colors"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      />
       <div className="flex items-center justify-between px-3 h-14 soft-separator-y">
         <div className="flex items-center gap-2">
           <svg
@@ -81,7 +114,7 @@ export function InspectorPane() {
           <button
             onClick={clearLogs}
             title="Clear all logs"
-            className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded transition-colors cursor-pointer"
+            className="p-2 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded transition-colors cursor-pointer"
           >
             <svg
               width="14"
@@ -98,7 +131,7 @@ export function InspectorPane() {
           <button
             onClick={handleExport}
             title="Export redacted logs as JSON"
-            className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded transition-colors cursor-pointer"
+            className="p-2 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded transition-colors cursor-pointer"
           >
             <svg
               width="14"
@@ -140,7 +173,7 @@ export function InspectorPane() {
             type="button"
             onClick={() => setActiveFilter(chip.id)}
             className={cn(
-              'px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors cursor-pointer',
+              'px-2 py-0.5 rounded-full text-[12px] font-medium transition-colors cursor-pointer',
               activeFilter === chip.id
                 ? 'bg-accent/20 text-accent'
                 : 'bg-surface-elevated/50 text-text-muted hover:text-text-primary',
@@ -156,7 +189,7 @@ export function InspectorPane() {
           {filteredLogs.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-4 text-[12px] text-text-muted text-center">
               <span>No requests captured yet</span>
-              <span className="text-[10px] mt-1 opacity-60">
+              <span className="text-[12px] mt-1 opacity-60">
                 Send chat or generate images to inspect traffic.
               </span>
             </div>
@@ -178,13 +211,13 @@ export function InspectorPane() {
                       : 'hover:bg-surface-elevated/40 text-text-secondary',
                   )}
                 >
-                  <div className="flex items-center justify-between text-[11px]">
+                  <div className="flex items-center justify-between text-[12px]">
                     <span className="font-mono truncate uppercase select-none">
                       {log.method}
                     </span>
                     <span
                       className={cn(
-                        'font-mono px-1 rounded-[3px] text-[10px] select-none font-bold',
+                        'font-mono px-1 rounded-[3px] text-[12px] select-none font-bold',
                         isBlocked
                           ? 'bg-warning/20 text-warning'
                           : isError
@@ -201,12 +234,12 @@ export function InspectorPane() {
                   >
                     {log.endpoint}
                   </span>
-                  <div className="flex items-center justify-between text-[10px] text-text-muted font-mono select-none">
+                  <div className="flex items-center justify-between text-[12px] text-text-muted font-mono select-none">
                     <span className="uppercase">{log.transport}</span>
                     {log.durationMs !== undefined ? <span>{log.durationMs}ms</span> : null}
                   </div>
                   {log.guardOutcome ? (
-                    <span className="text-[10px] text-text-muted font-mono select-none">
+                    <span className="text-[12px] text-text-muted font-mono select-none">
                       guard: {log.guardOutcome}
                     </span>
                   ) : null}
@@ -219,7 +252,7 @@ export function InspectorPane() {
         <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 min-w-0">
           {selectedLog ? (
             <div className="space-y-4 text-[12px] min-w-0">
-              <div className="p-2 bg-surface-elevated/40 border border-border rounded-md font-mono select-all text-[11px] space-y-0.5">
+              <div className="p-2 bg-surface-elevated/40 border border-border rounded-md font-mono select-all text-[12px] space-y-0.5">
                 <div>
                   <span className="text-text-muted font-bold">Time:</span>{' '}
                   {new Date(selectedLog.timestamp).toLocaleTimeString()}
@@ -288,7 +321,7 @@ export function InspectorPane() {
                     </svg>
                     <span>Local Safety Evaluation</span>
                   </div>
-                  <div className="font-mono text-[11px] space-y-0.5 select-text">
+                  <div className="font-mono text-[12px] space-y-0.5 select-text">
                     {(() => {
                       const d = selectedLog.safetyDecision as Record<string, unknown> | null
                       if (!d) return null
@@ -412,7 +445,7 @@ export function InspectorPane() {
                 <span className="font-semibold text-text-secondary select-none">
                   Request Headers
                 </span>
-                <pre className="p-2 bg-surface-elevated/40 border border-border rounded-md font-mono text-[10px] overflow-x-auto select-all max-h-36">
+                <pre className="p-2 bg-surface-elevated/40 border border-border rounded-md font-mono text-[12px] overflow-x-auto select-all max-h-36">
                   {JSON.stringify(selectedLog.requestHeaders, null, 2)}
                 </pre>
               </div>
@@ -421,7 +454,7 @@ export function InspectorPane() {
                 <span className="font-semibold text-text-secondary select-none">
                   Request Body
                 </span>
-                <pre className="p-2 bg-surface-elevated/40 border border-border rounded-md font-mono text-[10px] overflow-x-auto select-all max-h-48">
+                <pre className="p-2 bg-surface-elevated/40 border border-border rounded-md font-mono text-[12px] overflow-x-auto select-all max-h-48">
                   {selectedLog.requestBody
                     ? JSON.stringify(selectedLog.requestBody, null, 2)
                     : '[Empty]'}
@@ -431,7 +464,7 @@ export function InspectorPane() {
               {selectedLog.error ? (
                 <div className="space-y-1">
                   <span className="font-semibold text-danger select-none">Error</span>
-                  <pre className="p-2 bg-danger/5 border border-danger/20 rounded-md font-mono text-[10px] overflow-x-auto text-danger select-all max-h-48 whitespace-pre-wrap">
+                  <pre className="p-2 bg-danger/5 border border-danger/20 rounded-md font-mono text-[12px] overflow-x-auto text-danger select-all max-h-48 whitespace-pre-wrap">
                     {selectedLog.error}
                   </pre>
                 </div>
@@ -440,7 +473,7 @@ export function InspectorPane() {
                   <span className="font-semibold text-text-secondary select-none">
                     Response Body
                   </span>
-                  <pre className="p-2 bg-surface-elevated/40 border border-border rounded-md font-mono text-[10px] overflow-x-auto select-all max-h-60">
+                  <pre className="p-2 bg-surface-elevated/40 border border-border rounded-md font-mono text-[12px] overflow-x-auto select-all max-h-60">
                     {selectedLog.responseBody
                       ? JSON.stringify(selectedLog.responseBody, null, 2)
                       : '[Pending or Empty]'}

@@ -261,7 +261,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                 />
                 <div className="flex gap-1.5">
                   <div className="flex-1">
-                    <label className="text-[11px] text-text-muted mb-0.5 block">Steps</label>
+                    <label className="text-[12px] text-text-muted mb-0.5 block">Steps</label>
                     <input
                       type="number"
                       value={data.steps ?? 20}
@@ -272,7 +272,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="text-[11px] text-text-muted mb-0.5 block">Size</label>
+                    <label className="text-[12px] text-text-muted mb-0.5 block">Size</label>
                     <select
                       value={`${data.width ?? 1024}x${data.height ?? 1024}`}
                       onChange={(e) => {
@@ -312,7 +312,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
             {data.nodeType === 'tts' && (
               <div className="flex flex-wrap gap-1.5">
                 <div className="flex-1 min-w-[80px]">
-                  <label className="text-[11px] text-text-muted mb-0.5 block">Voice</label>
+                  <label className="text-[12px] text-text-muted mb-0.5 block">Voice</label>
                   <input
                     value={data.voice ?? 'af_sky'}
                     onChange={(e) => updateNode({ voice: e.target.value })}
@@ -321,7 +321,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                   />
                 </div>
                 <div className="w-14">
-                  <label className="text-[11px] text-text-muted mb-0.5 block">Speed</label>
+                  <label className="text-[12px] text-text-muted mb-0.5 block">Speed</label>
                   <input
                     type="number"
                     value={data.speed ?? 1}
@@ -333,7 +333,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                   />
                 </div>
                 <div className="w-16">
-                  <label className="text-[11px] text-text-muted mb-0.5 block">Format</label>
+                  <label className="text-[12px] text-text-muted mb-0.5 block">Format</label>
                   <select
                     value={data.responseFormat ?? 'mp3'}
                     onChange={(e) => updateNode({ responseFormat: e.target.value })}
@@ -361,7 +361,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                 />
                 <div className="flex gap-1.5 items-end">
                   <div className="flex-1">
-                    <label className="text-[11px] text-text-muted mb-0.5 block">Duration (s)</label>
+                    <label className="text-[12px] text-text-muted mb-0.5 block">Duration (s)</label>
                     <input
                       type="number"
                       value={data.duration ?? 30}
@@ -389,7 +389,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
             {data.nodeType === 'video' && (
               <div className="flex flex-wrap gap-1.5">
                 <div className="flex-1 min-w-[60px]">
-                  <label className="text-[11px] text-text-muted mb-0.5 block">Aspect</label>
+                  <label className="text-[12px] text-text-muted mb-0.5 block">Aspect</label>
                   <select
                     value={data.videoAspectRatio ?? '16:9'}
                     onChange={(e) => updateNode({ videoAspectRatio: e.target.value })}
@@ -403,7 +403,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                   </select>
                 </div>
                 <div className="flex-1 min-w-[60px]">
-                  <label className="text-[11px] text-text-muted mb-0.5 block">Duration</label>
+                  <label className="text-[12px] text-text-muted mb-0.5 block">Duration</label>
                   <select
                     value={data.videoDuration ?? ''}
                     onChange={(e) => updateNode({ videoDuration: e.target.value })}
@@ -415,7 +415,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
                   </select>
                 </div>
                 <div className="flex-1 min-w-[60px]">
-                  <label className="text-[11px] text-text-muted mb-0.5 block">Resolution</label>
+                  <label className="text-[12px] text-text-muted mb-0.5 block">Resolution</label>
                   <select
                     value={data.videoResolution ?? ''}
                     onChange={(e) => updateNode({ videoResolution: e.target.value })}
@@ -444,7 +444,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-green-400/40" aria-hidden="true">
                 <polyline points={outputExpanded ? '18 15 12 9 6 15' : '6 9 12 15 18 9'} />
               </svg>
-              <span className="text-[11px] text-green-400/40 uppercase tracking-wider font-medium">Output</span>
+              <span className="text-[12px] text-green-400/40 uppercase tracking-wider font-medium">Output</span>
             </div>
             {result.output.startsWith('[audio:') ? (
               <div onClick={(e) => e.stopPropagation()}>
@@ -465,7 +465,7 @@ function WorkflowNodeComponent({ id, data }: NodeProps<WorkflowNode>) {
         )}
         {data.nodeType !== 'output' && result?.status === 'error' && (
           <div className="mt-1 p-2 rounded-lg bg-red-500/[0.04] border border-red-500/[0.08]">
-            <span className="text-[11px] text-red-400/40 uppercase tracking-wider font-medium">Error</span>
+            <span className="text-[12px] text-red-400/40 uppercase tracking-wider font-medium">Error</span>
             <p className="text-[13px] text-red-400/60 mt-0.5">{result.error}</p>
           </div>
         )}

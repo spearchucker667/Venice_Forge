@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useMemo, useId } from 'react'
+import {  useState, useRef, useEffect, useMemo, useId  } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '../../lib/utils'
 
 interface SelectProps {
@@ -23,6 +24,7 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
   const generatedId = useId()
   const triggerId = id ?? generatedId
   const listboxId = `${triggerId}-listbox`
+  const [rect, setRect] = useState<DOMRect | null>(null)
 
   const filtered = useMemo(() =>
     search ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase())) : options,
@@ -33,11 +35,26 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      // Need to also check if click is inside portal
+      if (ref.current && !ref.current.contains(e.target as Node) && listRef.current && !listRef.current.closest('.mesh-panel')?.contains(e.target as Node)) setOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  useEffect(() => {
+    if (!open) return
+    const update = () => {
+      if (ref.current) setRect(ref.current.getBoundingClientRect())
+    }
+    update()
+    window.addEventListener('resize', update)
+    window.addEventListener('scroll', update, true)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('scroll', update, true)
+    }
+  }, [open])
 
   useEffect(() => {
     if (open) {
@@ -119,6 +136,7 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
+        aria-activedescendant={open && !searchable && filtered[highlightedIndex] ? `${listboxId}-opt-${highlightedIndex}` : undefined}
         aria-label={ariaLabel}
         aria-labelledby={labelledBy}
         className={cn(
@@ -133,8 +151,9 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
         </svg>
       </button>
 
-      {open && (
+      {open && rect && createPortal(
         <div
+          style={{ position: 'fixed', top: rect.bottom + 4, left: rect.left, width: rect.width }}
           id={listboxId}
           role="listbox"
           aria-labelledby={triggerId}
@@ -145,6 +164,10 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
             <div className="p-1 border-b border-border/50">
               <input
                 ref={inputRef}
+                role="combobox"
+                aria-expanded={open}
+                aria-controls={listboxId}
+                aria-activedescendant={filtered[highlightedIndex] ? `${listboxId}-opt-${highlightedIndex}` : undefined}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search..."
@@ -160,6 +183,7 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
                 <div
                   key={o.value}
                   role="option"
+                  id={`${listboxId}-opt-${i}`}
                   aria-selected={o.value === value}
                   data-index={i}
                   data-highlighted={i === highlightedIndex}
@@ -179,7 +203,7 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
             )}
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   )
 }

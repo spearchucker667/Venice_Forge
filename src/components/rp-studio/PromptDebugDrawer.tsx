@@ -55,7 +55,7 @@ export function PromptDebugDrawer({ assembly, onClose }: Props) {
       <div className="ml-auto h-full w-full max-w-xl mesh-surface soft-separator-x flex flex-col">
         <div className="flex items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
           <h2 className="text-[14px] font-semibold text-text-primary">Prompt trace</h2>
-          <span className="text-[11px] text-text-muted">
+          <span className="text-[12px] text-text-muted">
             {totalIncludedChars.toLocaleString()} chars · {assembly.budgetExceeded ? "budget exceeded" : "within budget"}
           </span>
           <div className="ml-auto">
@@ -87,14 +87,14 @@ export function PromptDebugDrawer({ assembly, onClose }: Props) {
                     !entry.included && "opacity-50",
                   )}
                 >
-                  <span className="font-mono text-[10.5px] shrink-0 mt-0.5">{entry.kind}</span>
+                  <span className="font-mono text-[12px] shrink-0 mt-0.5">{entry.kind}</span>
                   <div className="flex-1 min-w-0">
                     <div className="truncate">{entry.label}</div>
                     {entry.reason && (
-                      <div className="text-[10.5px] text-text-muted mt-0.5">excluded: {entry.reason}</div>
+                      <div className="text-[12px] text-text-muted mt-0.5">excluded: {entry.reason}</div>
                     )}
                   </div>
-                  <span className="text-[10.5px] text-text-muted shrink-0">{entry.chars}ch</span>
+                  <span className="text-[12px] text-text-muted shrink-0">{entry.chars}ch</span>
                 </li>
               ))}
             </ul>
@@ -113,7 +113,7 @@ export function PromptDebugDrawer({ assembly, onClose }: Props) {
               ) : (
                 assembly.recentMessages.map((m, i) => (
                   <div key={i} className="bg-surface-elevated border border-border rounded-md p-2">
-                    <div className="text-[10.5px] uppercase tracking-wider text-text-muted">{m.role}{m.name ? ` · ${m.name}` : ""}</div>
+                    <div className="text-[12px] uppercase tracking-wider text-text-muted">{m.role}{m.name ? ` · ${m.name}` : ""}</div>
                     <div className="text-[12.5px] text-text-primary mt-1 whitespace-pre-wrap">{truncate(m.content, 600)}</div>
                   </div>
                 ))

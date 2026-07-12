@@ -50,10 +50,10 @@ export function BackgroundTaskBanner() {
     <div className="shrink-0 soft-separator-y bg-surface-elevated/50 p-2">
       <div className="flex items-center gap-2">
         <div className="flex-1 min-w-0">
-          <div className="text-[11px] font-medium text-text-primary truncate">
+          <div className="text-[12px] font-medium text-text-primary truncate">
             {activeTask.type === "video" ? "Video Generation" : "Music Generation"}
           </div>
-          <div className="text-[10px] text-text-secondary truncate">
+          <div className="text-[12px] text-text-secondary truncate">
             {formatStatus(activeTask)} {getProgressText(activeTask)}
           </div>
         </div>
@@ -64,7 +64,7 @@ export function BackgroundTaskBanner() {
               useBackgroundTaskStore.getState().cancelTask(activeTask.id);
             }
           }}
-          className="text-[10px] px-2 py-1 rounded border border-border hover:border-danger hover:text-danger"
+          className="text-[12px] px-2 py-1 rounded border border-border hover:border-danger hover:text-danger"
         >
           Cancel
         </button>

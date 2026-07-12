@@ -124,7 +124,7 @@ export function MediaToolbar({
           )}
         </div>
 
-        <label className="flex items-center gap-1 text-[11px] text-text-muted">
+        <label className="flex items-center gap-1 text-[12px] text-text-muted">
           <span>Sort</span>
           <select
             value={sort}
@@ -166,7 +166,7 @@ export function MediaToolbar({
           onChange={(v) => onFilterChange(v as MediaFilter)}
           ariaLabel="Filter media"
         />
-        <span className="ml-auto text-[11.5px] text-text-muted">
+        <span className="ml-auto text-[12px] text-text-muted">
           {totalCount} item{totalCount === 1 ? "" : "s"}
         </span>
       </div>
@@ -192,7 +192,7 @@ export function MediaToolbar({
               type="button"
               onClick={onSelectAll}
               data-testid="bulk-select-all"
-              className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
             >
               Select all
             </button>
@@ -200,7 +200,7 @@ export function MediaToolbar({
               type="button"
               onClick={onClearSelection}
               data-testid="bulk-clear-selection"
-              className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
             >
               Clear
             </button>
@@ -210,7 +210,7 @@ export function MediaToolbar({
                 onClick={onBatchCompare}
                 disabled={!compareReady}
                 data-testid="bulk-compare"
-                className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30 disabled:cursor-not-allowed"
+                className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 Compare
               </button>
@@ -221,7 +221,7 @@ export function MediaToolbar({
                 onClick={onBatchExport}
                 disabled={!hasSelection}
                 data-testid="bulk-export"
-                className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
+                className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
               >
                 Export
               </button>
@@ -232,13 +232,13 @@ export function MediaToolbar({
                 onClick={onBatchAddTag}
                 disabled={!hasSelection}
                 data-testid="bulk-add-tag"
-                className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
+                className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
               >
                 Add tag
               </button>
             )}
             {onBulkProjectIdChange && (
-              <label className="flex items-center gap-1 text-[11px] text-text-muted">
+              <label className="flex items-center gap-1 text-[12px] text-text-muted">
                 <span>Project</span>
                 <select
                   value={bulkProjectId ?? ""}
@@ -259,7 +259,7 @@ export function MediaToolbar({
                 onClick={onBatchAssignProject}
                 disabled={!hasSelection}
                 data-testid="bulk-assign-project"
-                className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
+                className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
               >
                 Apply
               </button>
@@ -269,7 +269,7 @@ export function MediaToolbar({
               onClick={onBatchFavorite}
               disabled={!hasSelection}
               data-testid="bulk-favorite"
-              className="rounded-md border border-rose-400/30 px-2 py-1 text-[11px] text-rose-300 hover:bg-rose-500/10 disabled:opacity-30"
+              className="rounded-md border border-rose-400/30 px-2 py-1 text-[12px] text-rose-300 hover:bg-rose-500/10 disabled:opacity-30"
             >
               {allFavorited ? "Unfavorite" : "Favorite"}
             </button>
@@ -277,7 +277,7 @@ export function MediaToolbar({
               type="button"
               onClick={onBatchUnfavorite}
               disabled={!hasSelection}
-              className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
+              className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
             >
               Unstar
             </button>
@@ -286,7 +286,7 @@ export function MediaToolbar({
               onClick={onBatchDelete}
               disabled={!hasSelection}
               data-testid="bulk-delete"
-              className="rounded-md border border-danger/30 px-2 py-1 text-[11px] text-text-danger hover:bg-danger/10 disabled:opacity-30"
+              className="rounded-md border border-danger/30 px-2 py-1 text-[12px] text-text-danger hover:bg-danger/10 disabled:opacity-30"
             >
               Delete
             </button>

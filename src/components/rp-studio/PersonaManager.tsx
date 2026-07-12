@@ -117,13 +117,13 @@ export function PersonaManager({ disabled = false }: { disabled?: boolean } = {}
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-[14px] font-semibold text-text-primary truncate">{p.name}</div>
                   {p.id === activePersonaId && (
-                    <span className="text-[10px] uppercase tracking-wider text-[var(--color-accent)] font-semibold">Active</span>
+                    <span className="text-[12px] uppercase tracking-wider text-[var(--color-accent)] font-semibold">Active</span>
                   )}
                 </div>
                 {p.description && (
                   <p className="text-[12.5px] text-text-secondary line-clamp-3">{truncate(p.description, 240)}</p>
                 )}
-                <div className="text-[11px] text-text-muted mt-0.5">{formatRelativeTime(p.updatedAt)}</div>
+                <div className="text-[12px] text-text-muted mt-0.5">{formatRelativeTime(p.updatedAt)}</div>
                 <div className="flex items-center gap-1.5 mt-2">
                   <button
                     type="button"
@@ -229,7 +229,7 @@ export function PersonaEditor({ personaId, onClose, onSave, disabled = false }: 
           type="button"
           onClick={onClose}
           aria-label="Back"
-          className="text-text-secondary hover:text-text-primary p-1.5 rounded-md hover:bg-surface-elevated"
+          className="text-text-secondary hover:text-text-primary p-2 rounded-md hover:bg-surface-elevated"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <polyline points="15 18 9 12 15 6" />
@@ -317,7 +317,7 @@ export function PersonaEditor({ personaId, onClose, onSave, disabled = false }: 
                   key={t}
                   type="button"
                   onClick={() => update("tags", draft.tags.filter((x) => x !== t))}
-                  className="text-[11.5px] px-2 py-0.5 rounded-md border border-border bg-surface-elevated text-text-secondary hover:text-text-primary"
+                  className="text-[12px] px-2 py-0.5 rounded-md border border-border bg-surface-elevated text-text-secondary hover:text-text-primary"
                 >
                   {t} ×
                 </button>

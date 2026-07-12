@@ -41,7 +41,7 @@ export function ApiKeysPanel({
         <div className="flex items-center justify-between">
           <h3 className="text-[14.5px] font-medium text-text-primary">Venice.ai Integration</h3>
           <span
-            className={`text-[11.5px] px-2 py-0.5 rounded font-medium ${
+            className={`text-[12px] px-2 py-0.5 rounded font-medium ${
               veniceConfigured
                 ? "bg-success/10 text-success border border-success/20"
                 : "bg-warning/10 text-warning border border-warning/20"
@@ -103,7 +103,7 @@ export function ApiKeysPanel({
         <div className="flex items-center justify-between">
           <h3 className="text-[14.5px] font-medium text-text-primary">Jina.ai Integration</h3>
           <span
-            className={`text-[11.5px] px-2 py-0.5 rounded font-medium ${
+            className={`text-[12px] px-2 py-0.5 rounded font-medium ${
               jinaKeyConfigured
                 ? "bg-success/10 text-success border border-success/20"
                 : "bg-surface border border-border text-text-muted"

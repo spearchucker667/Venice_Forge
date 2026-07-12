@@ -116,7 +116,7 @@ export function LorebookManager({ disabled = false }: { disabled?: boolean } = {
                 {l.description && (
                   <p className="text-[12.5px] text-text-secondary line-clamp-2">{truncate(l.description, 180)}</p>
                 )}
-                <div className="text-[11.5px] text-text-muted mt-0.5">
+                <div className="text-[12px] text-text-muted mt-0.5">
                   {l.entries.length} {l.entries.length === 1 ? "entry" : "entries"} · {formatRelativeTime(l.updatedAt)}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2">
@@ -219,7 +219,7 @@ export function LorebookEditor({ lorebookId, onClose, disabled = false }: { lore
           type="button"
           onClick={onClose}
           aria-label="Back"
-          className="text-text-secondary hover:text-text-primary p-1.5 rounded-md hover:bg-surface-elevated"
+          className="text-text-secondary hover:text-text-primary p-2 rounded-md hover:bg-surface-elevated"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <polyline points="15 18 9 12 15 6" />
@@ -319,15 +319,15 @@ function EntryRow({
           placeholder="trigger keys (comma-separated)"
           className="flex-1 bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
         />
-        <label className="flex items-center gap-1.5 text-[11.5px] text-text-secondary">
+        <label className="flex items-center gap-1.5 text-[12px] text-text-secondary">
           <input type="checkbox" checked={entry.enabled} onChange={(e) => onChange({ enabled: e.target.checked })} className="accent-[var(--color-accent)]" />
           enabled
         </label>
-        <label className="flex items-center gap-1.5 text-[11.5px] text-text-secondary">
+        <label className="flex items-center gap-1.5 text-[12px] text-text-secondary">
           <input type="checkbox" checked={entry.constant} onChange={(e) => onChange({ constant: e.target.checked })} className="accent-[var(--color-accent)]" />
           always
         </label>
-        <label className="flex items-center gap-1.5 text-[11.5px] text-text-secondary">
+        <label className="flex items-center gap-1.5 text-[12px] text-text-secondary">
           <input type="checkbox" checked={entry.matchWholeWords} onChange={(e) => onChange({ matchWholeWords: e.target.checked })} className="accent-[var(--color-accent)]" />
           whole words
         </label>
@@ -335,7 +335,7 @@ function EntryRow({
           type="button"
           onClick={onRemove}
           aria-label="Remove entry"
-          className="text-text-muted hover:text-rose-300 p-1"
+          className="text-text-muted hover:text-rose-300 p-2"
         >
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <line x1="18" y1="6" x2="6" y2="18" />

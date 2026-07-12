@@ -144,7 +144,7 @@ export function SceneGenerator({ filterChatId, onViewAsset, disabled = false }: 
             ariaLabel="Prompt override"
           />
           {!override.trim() && selectedChat && (
-            <div className="text-[11.5px] text-text-muted mt-1.5">
+            <div className="text-[12px] text-text-muted mt-1.5">
               Extracted: <span className="italic">{truncate(extractedPrompt, 200)}</span>
             </div>
           )}
@@ -180,7 +180,7 @@ export function SceneGenerator({ filterChatId, onViewAsset, disabled = false }: 
         </PrimaryButton>
       </div>
       <div className="w-72 shrink-0 soft-separator-x mesh-surface overflow-y-auto p-3 space-y-2">
-        <div className="text-[11px] uppercase tracking-[0.08em] text-text-muted font-semibold">
+        <div className="text-[12px] uppercase tracking-[0.08em] text-text-muted font-semibold">
           Recent scenes{filterChatId ? "" : " (this chat)"}
         </div>
         {filteredAssets.length === 0 ? (
@@ -197,11 +197,11 @@ export function SceneGenerator({ filterChatId, onViewAsset, disabled = false }: 
                 {a.url ? (
                   <img src={a.url} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-text-muted text-[11px]">no image</div>
+                  <div className="w-full h-full flex items-center justify-center text-text-muted text-[12px]">no image</div>
                 )}
               </div>
-              <div className="text-[11px] text-text-secondary truncate">{truncate(a.prompt, 100)}</div>
-              <div className="text-[10px] text-text-muted mt-0.5">{a.model} · {formatRelativeTime(a.createdAt)}</div>
+              <div className="text-[12px] text-text-secondary truncate">{truncate(a.prompt, 100)}</div>
+              <div className="text-[12px] text-text-muted mt-0.5">{a.model} · {formatRelativeTime(a.createdAt)}</div>
             </button>
           ))
         )}

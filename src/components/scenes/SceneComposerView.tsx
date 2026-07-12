@@ -130,7 +130,7 @@ export function SceneComposerView() {
                 const created = await createScene({ title: "Untitled scene" });
                 setActiveScene(created.id);
               }}
-              className="ml-auto rounded-md border border-border px-2 py-1 text-[11.5px] hover:border-accent hover:text-accent"
+              className="ml-auto rounded-md border border-border px-2 py-1 text-[12px] hover:border-accent hover:text-accent"
               data-testid="scene-composer-new"
             >
               New
@@ -147,7 +147,7 @@ export function SceneComposerView() {
             <select
               value={scopeFilter}
               onChange={(e) => setScopeFilter(e.target.value as SceneScope | "all")}
-              className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11.5px]"
+              className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px]"
               data-testid="scene-composer-scope-filter"
             >
               <option value="all">All scopes</option>
@@ -157,7 +157,7 @@ export function SceneComposerView() {
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11.5px]"
+              className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px]"
               data-testid="scene-composer-sort"
             >
               <option value="newest">Newest</option>
@@ -169,7 +169,7 @@ export function SceneComposerView() {
               type="button"
               onClick={() => setFavoritesOnly((v) => !v)}
               aria-pressed={favoritesOnly}
-              className={`rounded-md border px-2 py-0.5 text-[11.5px] ${
+              className={`rounded-md border px-2 py-0.5 text-[12px] ${
                 favoritesOnly
                   ? "border-amber-500/40 text-amber-300"
                   : "border-border text-text-secondary hover:border-accent hover:text-accent"
@@ -182,7 +182,7 @@ export function SceneComposerView() {
               type="button"
               onClick={() => setShowArchived((v) => !v)}
               aria-pressed={showArchived}
-              className={`rounded-md border px-2 py-0.5 text-[11.5px] ${
+              className={`rounded-md border px-2 py-0.5 text-[12px] ${
                 showArchived
                   ? "border-accent text-accent"
                   : "border-border text-text-secondary hover:border-accent hover:text-accent"
@@ -219,20 +219,20 @@ export function SceneComposerView() {
                         {s.favorite ? "★ " : ""}
                         {s.title}
                       </span>
-                      <span className="ml-auto text-[10.5px] text-text-muted">
+                      <span className="ml-auto text-[12px] text-text-muted">
                         {s.outputMediaIds.length > 0
                           ? `${s.outputMediaIds.length} output${s.outputMediaIds.length === 1 ? "" : "s"}`
                           : ""}
                       </span>
                     </div>
-                    <div className="text-[11px] text-text-muted mt-0.5 truncate">
+                    <div className="text-[12px] text-text-muted mt-0.5 truncate">
                       {s.scope === "project" ? "Project" : "Global"} ·{" "}
                       {s.versions.length} version{s.versions.length === 1 ? "" : "s"} ·{" "}
                       {s.versions[0]?.components.length ?? 0} component
                       {(s.versions[0]?.components.length ?? 0) === 1 ? "" : "s"}
                     </div>
                     {s.tags.length > 0 && (
-                      <div className="text-[10.5px] text-text-muted mt-0.5 truncate">
+                      <div className="text-[12px] text-text-muted mt-0.5 truncate">
                         {s.tags.map((t) => `#${t}`).join(" ")}
                       </div>
                     )}
@@ -334,7 +334,7 @@ function SceneReferencePanel({ sceneDescription, modelId }: { sceneDescription: 
         <h3 className="text-[12px] font-semibold uppercase tracking-wide text-text-muted">
           Character / Persona references
         </h3>
-        <span className="text-[10.5px] text-text-muted ml-auto">
+        <span className="text-[12px] text-text-muted ml-auto">
           {caps.supportsReferences
             ? `${plan.references.length}/${caps.referenceLimit ?? 0} used`
             : "Model does not support references"}
@@ -348,7 +348,7 @@ function SceneReferencePanel({ sceneDescription, modelId }: { sceneDescription: 
             return (
               <li
                 key={ref.entityId}
-                className="flex items-center gap-2 text-[11.5px] rounded-md border border-border/60 px-2 py-1"
+                className="flex items-center gap-2 text-[12px] rounded-md border border-border/60 px-2 py-1"
               >
                 <span className="inline-block w-6 h-6 rounded bg-muted shrink-0 overflow-hidden">
                   <img
@@ -358,11 +358,11 @@ function SceneReferencePanel({ sceneDescription, modelId }: { sceneDescription: 
                   />
                 </span>
                 <span className="truncate">{entity?.name ?? ref.entityId}</span>
-                <span className="text-text-muted text-[10px]">({entity?.type ?? "unknown"})</span>
+                <span className="text-text-muted text-[12px]">({entity?.type ?? "unknown"})</span>
                 <button
                   type="button"
                   onClick={() => setRemovedIds((prev) => Array.from(new Set([...prev, ref.entityId])))}
-                  className="ml-auto rounded border border-border px-1.5 py-0.5 text-[10px] hover:border-red-400 hover:text-red-300"
+                  className="ml-auto rounded border border-border px-1.5 py-0.5 text-[12px] hover:border-red-400 hover:text-red-300"
                   data-testid={`scene-reference-remove-${ref.entityId}`}
                 >
                   Remove
@@ -382,7 +382,7 @@ function SceneReferencePanel({ sceneDescription, modelId }: { sceneDescription: 
                 key={id}
                 type="button"
                 onClick={() => setRemovedIds((prev) => prev.filter((x) => x !== id))}
-                className="text-[10.5px] rounded border border-border px-1.5 py-0.5 hover:border-accent hover:text-accent"
+                className="text-[12px] rounded border border-border px-1.5 py-0.5 hover:border-accent hover:text-accent"
                 data-testid={`scene-reference-restore-${id}`}
               >
                 Restore {entity?.name ?? id}
@@ -404,7 +404,7 @@ function SceneReferencePanel({ sceneDescription, modelId }: { sceneDescription: 
               "unsafe-or-invalid": "unsafe or invalid",
             };
             return (
-              <li key={o.entityId} className="text-[11px] text-text-muted">
+              <li key={o.entityId} className="text-[12px] text-text-muted">
                 <span className="line-through">{entity?.name ?? o.entityId}</span>
                 {" "}— {reasonLabels[o.reason] ?? o.reason}
               </li>
@@ -636,7 +636,7 @@ function SceneDetail(props: SceneDetailProps) {
             {item.archivedAt ? "Unarchive" : "Archive"}
           </button>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-[11.5px] text-text-muted">
+        <div className="flex flex-wrap items-center gap-2 text-[12px] text-text-muted">
           <span>
             v{currentVersion.version} of {item.versions.length} ·{" "}
             {item.scope === "project"
@@ -658,46 +658,46 @@ function SceneDetail(props: SceneDetailProps) {
             value={tagsInput}
             onChange={(e) => setTagsInput(e.target.value)}
             placeholder="tags, comma separated"
-            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11.5px] flex-1 min-w-[200px]"
+            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px] flex-1 min-w-[200px]"
             data-testid="scene-composer-tags"
           />
           <button
             type="button"
             onClick={() => void persistMetadata()}
-            className="rounded-md border border-accent text-accent px-2 py-0.5 text-[11.5px]"
+            className="rounded-md border border-accent text-accent px-2 py-0.5 text-[12px]"
             data-testid="scene-composer-save-metadata"
           >
             Save metadata
           </button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="text-[11px] text-text-muted">Defaults:</label>
+          <label className="text-[12px] text-text-muted">Defaults:</label>
           <input
             value={defaultModel}
             onChange={(e) => setDefaultModel(e.target.value)}
             placeholder="Model (e.g. flux-dev)"
-            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11.5px] w-[160px]"
+            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px] w-[160px]"
             data-testid="scene-composer-default-model"
           />
           <input
             value={defaultWidth}
             onChange={(e) => setDefaultWidth(e.target.value)}
             placeholder="Width"
-            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11.5px] w-[70px]"
+            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px] w-[70px]"
             data-testid="scene-composer-default-width"
           />
           <input
             value={defaultHeight}
             onChange={(e) => setDefaultHeight(e.target.value)}
             placeholder="Height"
-            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11.5px] w-[70px]"
+            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px] w-[70px]"
             data-testid="scene-composer-default-height"
           />
           <input
             value={defaultAspectRatio}
             onChange={(e) => setDefaultAspectRatio(e.target.value)}
             placeholder="Aspect (e.g. 16:9)"
-            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11.5px] w-[100px]"
+            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px] w-[100px]"
             data-testid="scene-composer-default-aspect"
           />
         </div>
@@ -719,7 +719,7 @@ function SceneDetail(props: SceneDetailProps) {
             <button
               type="button"
               onClick={addComponent}
-              className="rounded-md border border-border px-2 py-0.5 text-[11.5px] hover:border-accent hover:text-accent"
+              className="rounded-md border border-border px-2 py-1.5 min-h-[32px] text-[12px] hover:border-accent hover:text-accent"
               data-testid="scene-composer-add-component"
             >
               + Add
@@ -740,7 +740,7 @@ function SceneDetail(props: SceneDetailProps) {
                   <select
                     value={c.kind}
                     onChange={(e) => updateComponent(c.key, { kind: e.target.value as SceneComponentKind })}
-                    className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11.5px] w-[110px] shrink-0"
+                    className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px] w-[110px] shrink-0"
                     data-testid={`scene-composer-component-kind-${c.key}`}
                   >
                     {COMPONENT_KIND_OPTIONS.map((k) => (
@@ -753,7 +753,7 @@ function SceneDetail(props: SceneDetailProps) {
                     value={c.title}
                     onChange={(e) => updateComponent(c.key, { title: e.target.value })}
                     placeholder="Optional label"
-                    className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11.5px] w-[120px] shrink-0"
+                    className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px] w-[120px] shrink-0"
                     data-testid={`scene-composer-component-title-${c.key}`}
                   />
                   <textarea
@@ -767,7 +767,7 @@ function SceneDetail(props: SceneDetailProps) {
                   <button
                     type="button"
                     onClick={() => updateComponent(c.key, { enabled: !c.enabled })}
-                    className={`rounded-md border px-1.5 py-0.5 text-[10.5px] shrink-0 ${
+                    className={`rounded-md border px-1.5 py-0.5 text-[12px] shrink-0 ${
                       c.enabled
                         ? "border-accent/40 text-accent"
                         : "border-border text-text-muted"
@@ -779,7 +779,7 @@ function SceneDetail(props: SceneDetailProps) {
                   <button
                     type="button"
                     onClick={() => removeComponent(c.key)}
-                    className="rounded-md border border-red-500/40 text-red-300 px-1.5 py-0.5 text-[10.5px] shrink-0"
+                    className="rounded-md border border-red-500/40 text-red-300 px-1.5 py-0.5 text-[12px] shrink-0"
                     data-testid={`scene-composer-component-remove-${c.key}`}
                   >
                     ✕
@@ -893,26 +893,26 @@ function SceneDetail(props: SceneDetailProps) {
                       {new Date(v.createdAt).toLocaleString()}
                     </span>
                     {v.id === item.currentVersionId && (
-                      <span className="text-accent text-[10.5px]">CURRENT</span>
+                      <span className="text-accent text-[12px]">CURRENT</span>
                     )}
                     <button
                       type="button"
                       onClick={() => void onSetCurrentVersion(v.id)}
                       disabled={v.id === item.currentVersionId}
-                      className="ml-auto rounded-md border border-border px-2 py-0.5 text-[11px] disabled:opacity-50"
+                      className="ml-auto rounded-md border border-border px-2 py-0.5 text-[12px] disabled:opacity-50"
                       data-testid={`scene-composer-use-version-${v.version}`}
                     >
                       Use this version
                     </button>
                   </div>
-                  <div className="text-[11px] text-text-muted mt-0.5">
+                  <div className="text-[12px] text-text-muted mt-0.5">
                     {v.components.length} component
                     {v.components.length === 1 ? "" : "s"}
                     {v.mediaRefs.length > 0 && ` · ${v.mediaRefs.length} media ref${v.mediaRefs.length === 1 ? "" : "s"}`}
                     {v.promptRefs.length > 0 && ` · ${v.promptRefs.length} prompt ref${v.promptRefs.length === 1 ? "" : "s"}`}
                   </div>
                   {v.notes && (
-                    <p className="text-[11px] text-text-muted mt-0.5">{v.notes}</p>
+                    <p className="text-[12px] text-text-muted mt-0.5">{v.notes}</p>
                   )}
                 </li>
               ))}

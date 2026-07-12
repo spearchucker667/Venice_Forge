@@ -435,7 +435,7 @@ export function CharacterLibrary({ onEdit }: Props) {
             aria-label="Search characters"
             className="w-full bg-surface border border-border rounded-lg px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
           />
-          <p className="mt-1 text-[10.5px] text-text-muted">
+          <p className="mt-1 text-[12px] text-text-muted">
             Local characters are stored in Venice Forge only. They are not hosted on Venice.ai.
           </p>
         </div>
@@ -561,7 +561,7 @@ function CardTile({
 
       <div className="min-h-0">
         <div className="text-[13.5px] font-semibold text-text-primary truncate">{card.name}</div>
-        <div className="text-[11.5px] text-text-muted mt-0.5">
+        <div className="text-[12px] text-text-muted mt-0.5">
           {formatRelativeTime(card.updatedAt)}
         </div>
         {card.description && (

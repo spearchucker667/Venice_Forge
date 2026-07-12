@@ -111,14 +111,14 @@ function MediaCardImpl({
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-text-muted">
             {isVideo ? <Video className="h-6 w-6" /> : <ImageIcon className="h-6 w-6" />}
-            <span className="text-[11px]">{loading ? "Loading…" : "Preview unavailable"}</span>
+            <span className="text-[12px]">{loading ? "Loading…" : "Preview unavailable"}</span>
           </div>
         )}
 
         {multiSelectMode && (
           <span
             className={cn(
-              "absolute left-2 top-2 grid h-5 w-5 place-items-center rounded border bg-surface/80 text-[10px] font-bold",
+              "absolute left-2 top-2 grid h-5 w-5 place-items-center rounded border bg-surface/80 text-[12px] font-bold",
               selected ? "border-accent bg-accent text-accent-fg" : "border-border text-text-muted",
             )}
             aria-hidden="true"
@@ -128,14 +128,14 @@ function MediaCardImpl({
         )}
 
         {item.favorite && (
-          <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md bg-overlay px-1.5 py-0.5 text-[10px] text-rose-200 backdrop-blur">
+          <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md bg-overlay px-1.5 py-0.5 text-[12px] text-rose-200 backdrop-blur">
             <Heart className="h-3 w-3 fill-current" />
             <span>Favorite</span>
           </span>
         )}
 
         {isVideo && duration && (
-          <span className="absolute bottom-2 right-2 rounded-md bg-overlay px-1.5 py-0.5 text-[10px] font-medium text-text-primary">
+          <span className="absolute bottom-2 right-2 rounded-md bg-overlay px-1.5 py-0.5 text-[12px] font-medium text-text-primary">
             {duration}
           </span>
         )}
@@ -151,7 +151,7 @@ function MediaCardImpl({
         <p className="line-clamp-2 text-[12.5px] text-text-primary" title={item.prompt}>
           {item.prompt || "Untitled"}
         </p>
-        <p className="truncate text-[10.5px] text-text-muted" title={item.model}>
+        <p className="truncate text-[12px] text-text-muted" title={item.model}>
           {item.model}
         </p>
         {item.tags.length > 0 && (
@@ -159,13 +159,13 @@ function MediaCardImpl({
             {item.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="rounded-md border border-border bg-surface-elevated px-1.5 py-0.5 text-[10px] text-text-secondary"
+                className="rounded-md border border-border bg-surface-elevated px-1.5 py-0.5 text-[12px] text-text-secondary"
               >
                 #{tag}
               </span>
             ))}
             {item.tags.length > 3 && (
-              <span className="text-[10px] text-text-muted">+{item.tags.length - 3} more</span>
+              <span className="text-[12px] text-text-muted">+{item.tags.length - 3} more</span>
             )}
           </div>
         )}
@@ -176,7 +176,7 @@ function MediaCardImpl({
             onClick={() => onToggleFavorite(item)}
             aria-label={item.favorite ? "Unfavorite" : "Mark as favorite"}
             className={cn(
-              "rounded-md border px-2 py-1 text-[11px] transition-colors",
+              "rounded-md border px-2 py-1 text-[12px] transition-colors",
               item.favorite
                 ? "border-rose-400/40 bg-rose-500/[0.08] text-rose-300"
                 : "border-border text-text-secondary hover:border-accent hover:text-accent",
@@ -188,7 +188,7 @@ function MediaCardImpl({
             type="button"
             onClick={() => onDelete(item)}
             aria-label="Delete"
-            className="ml-auto rounded-md border border-danger/30 px-2 py-1 text-[11px] text-danger hover:bg-danger/10"
+            className="ml-auto rounded-md border border-danger/30 px-2 py-1 text-[12px] text-danger hover:bg-danger/10"
           >
             <Trash2 className="h-3 w-3" />
           </button>

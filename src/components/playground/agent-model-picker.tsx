@@ -61,7 +61,7 @@ export function AgentModelPicker({ value, onChange }: Props) {
         <span className="flex items-center gap-1.5 min-w-0 flex-1">
           <span className="truncate text-text-secondary">{label}</span>
           {current?.recommended && (
-            <span className="shrink-0 text-[10px] px-1 py-px rounded bg-emerald-400/15 text-emerald-300 font-medium uppercase tracking-wider">Rec</span>
+            <span className="shrink-0 text-[12px] px-1 py-px rounded bg-emerald-400/15 text-emerald-300 font-medium uppercase tracking-wider">Rec</span>
           )}
         </span>
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
@@ -83,7 +83,7 @@ export function AgentModelPicker({ value, onChange }: Props) {
             <button
               onClick={() => setShowAll(!showAll)}
               className={cn(
-                'text-[11px] px-1.5 py-1 rounded border transition-colors',
+                'text-[12px] px-1.5 py-1 rounded border transition-colors',
                 showAll ? 'bg-surface-elevated border-border text-text-secondary' : 'border-border text-text-muted hover:text-text-secondary',
               )}
               title={showAll ? 'Showing all models' : 'Showing only schema-capable models'}
@@ -97,7 +97,7 @@ export function AgentModelPicker({ value, onChange }: Props) {
             )}
             {grouped.map((group) => (
               <div key={group.label}>
-                <div className="px-3 pt-2 pb-1 text-[10.5px] uppercase tracking-[0.08em] text-text-muted font-medium">{group.label}</div>
+                <div className="px-3 pt-2 pb-1 text-[12px] uppercase tracking-[0.08em] text-text-muted font-medium">{group.label}</div>
                 {group.items.map((m) => (
                   <button
                     key={m.id}
@@ -124,7 +124,7 @@ export function AgentModelPicker({ value, onChange }: Props) {
                       {m.capabilities.supportsWebSearch && <Badge tone="slate">Web</Badge>}
                       {m.uncensored && <Badge tone="rose">Uncensored</Badge>}
                     </div>
-                    <div className="text-[11px] text-text-muted mt-1 font-mono truncate">
+                    <div className="text-[12px] text-text-muted mt-1 font-mono truncate">
                       {m.id}{m.contextTokens ? ` · ${formatCtx(m.contextTokens)} ctx` : ''}
                     </div>
                   </button>
@@ -150,7 +150,7 @@ const TONE: Record<string, string> = {
 
 function Badge({ children, tone = 'slate' }: { children: React.ReactNode; tone?: keyof typeof TONE | string }) {
   return (
-    <span className={cn('text-[10px] px-1.5 py-px rounded font-medium uppercase tracking-wider', TONE[tone] ?? TONE.slate)}>
+    <span className={cn('text-[12px] px-1.5 py-px rounded font-medium uppercase tracking-wider', TONE[tone] ?? TONE.slate)}>
       {children}
     </span>
   )

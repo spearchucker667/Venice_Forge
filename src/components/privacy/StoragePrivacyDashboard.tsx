@@ -145,7 +145,7 @@ export function StoragePrivacyDashboard() {
               <div className="flex items-start justify-between">
                 <span className="text-xs font-medium uppercase tracking-wider text-text-muted">{store.label}</span>
                 {store.encrypted === true && (
-                    <span className="px-1.5 py-0.5 rounded bg-success/20 text-success text-[10px] font-bold">ENCRYPTED</span>
+                    <span className="px-1.5 py-0.5 rounded bg-success/20 text-success text-[12px] font-bold">ENCRYPTED</span>
                 )}
               </div>
               <div className="mt-2">
@@ -174,12 +174,12 @@ export function StoragePrivacyDashboard() {
                   <tr key={store.id} className="hover:bg-surface-muted">
                     <td className="px-4 py-4">
                       <div className="font-medium text-text-primary">{store.label}</div>
-                      <div className="text-[11px] text-text-muted font-mono">{store.storeName}</div>
+                      <div className="text-[12px] text-text-muted font-mono">{store.storeName}</div>
                     </td>
                     <td className="px-4 py-4 text-right tabular-nums">
                       {store.count ?? 0}
                       {store.archivedCount ? (
-                          <div className="text-[10px] text-text-muted">{store.archivedCount} archived</div>
+                          <div className="text-[12px] text-text-muted">{store.archivedCount} archived</div>
                       ) : null}
                     </td>
                     <td className="px-4 py-4">
@@ -216,7 +216,7 @@ export function StoragePrivacyDashboard() {
                   <div key={issue.id} className="p-3 rounded-lg border border-warning/20 bg-warning/5 flex items-start justify-between gap-4">
                     <div className="space-y-1">
                       <p className="text-sm text-warning">{issue.message}</p>
-                      <div className="flex gap-2 text-[10px] text-warning/60 uppercase font-bold">
+                      <div className="flex gap-2 text-[12px] text-warning/60 uppercase font-bold">
                         <span>Source: {issue.sourceCategory}</span>
                         <span>·</span>
                         <span>Target: {issue.targetCategory}</span>
@@ -285,7 +285,7 @@ export function StoragePrivacyDashboard() {
             </p>
             <ul className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
                 {["API Keys", "Bearer Tokens", "Raw Prompt Text", "Full Message History", "Media Blobs", "Absolute Local Paths"].map(ex => (
-                    <li key={ex} className="text-[11px] text-text-muted flex items-center gap-1.5">
+                    <li key={ex} className="text-[12px] text-text-muted flex items-center gap-1.5">
                         <span className="h-1 w-1 rounded-full bg-text-muted" />
                         {ex}
                     </li>
@@ -305,7 +305,7 @@ function Badge({ children, color }: { children: React.ReactNode; color: 'blue' |
         emerald: "bg-success/10 text-success border-success/20",
     };
     return (
-        <span className={`px-1.5 py-0.5 rounded border text-[10px] font-bold uppercase ${colors[color]}`}>
+        <span className={`px-1.5 py-0.5 rounded border text-[12px] font-bold uppercase ${colors[color]}`}>
             {children}
         </span>
     );

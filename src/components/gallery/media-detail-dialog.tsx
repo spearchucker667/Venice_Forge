@@ -75,14 +75,14 @@ export function MediaDetailDialog({
             <Badge tone="slate">{item.operation}</Badge>
             {dims && <Badge tone="slate">{dims}</Badge>}
             {duration && <Badge tone="rose">{duration}</Badge>}
-            {item.model && <span className="text-[11.5px] text-text-muted">{item.model}</span>}
+            {item.model && <span className="text-[12px] text-text-muted">{item.model}</span>}
           </div>
           <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => onToggleFavorite(item)}
               className={cn(
-                "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11.5px] transition-colors",
+                "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[12px] transition-colors",
                 item.favorite
                   ? "border-rose-400/40 bg-rose-500/10 text-rose-300"
                   : "border-border text-text-secondary hover:border-accent hover:text-accent",
@@ -94,7 +94,7 @@ export function MediaDetailDialog({
             <button
               type="button"
               onClick={() => onDelete(item)}
-              className="inline-flex items-center gap-1 rounded-md border border-danger/30 px-2 py-1 text-[11.5px] text-danger hover:bg-danger/10"
+              className="inline-flex items-center gap-1 rounded-md border border-danger/30 px-2 py-1 text-[12px] text-danger hover:bg-danger/10"
             >
               <Trash2 className="h-3.5 w-3.5" /> Delete
             </button>
@@ -102,7 +102,7 @@ export function MediaDetailDialog({
               ref={closeRef}
               type="button"
               onClick={onClose}
-              className="rounded-md border border-border px-2 py-1 text-[11.5px] text-text-secondary hover:border-accent hover:text-accent"
+              className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
             >
               Close (Esc)
             </button>
@@ -154,7 +154,7 @@ export function MediaDetailDialog({
           <p className="line-clamp-2 text-[12.5px] text-text-primary" title={item.prompt}>
             {item.prompt || "Untitled"}
           </p>
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-muted">
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-text-muted">
             {typeof item.seed === "number" && (
               <span>Seed: <span className="font-mono text-text-secondary">{item.seed}</span></span>
             )}
@@ -167,7 +167,7 @@ export function MediaDetailDialog({
               <span>CFG: <span className="text-text-secondary">{String(item.cfg)}</span></span>
             )}
           </div>
-          <p className="mt-0.5 text-[11px] text-text-muted">
+          <p className="mt-0.5 text-[12px] text-text-muted">
             {item.tags.length > 0 ? item.tags.map((t) => `#${t}`).join(" ") : "No tags"} ·{" "}
             {new Date(item.timestamp).toLocaleString()}
           </p>
@@ -175,7 +175,7 @@ export function MediaDetailDialog({
       </div>
 
       <aside className="hidden w-72 shrink-0 soft-separator-x mesh-surface p-4 text-text-primary lg:flex lg:flex-col">
-        <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">Filmstrip</h3>
+        <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-text-muted">Filmstrip</h3>
         <div className="grid grid-cols-3 gap-2 overflow-y-auto pr-1">
           {allItems.map((candidate) => {
             const cs = mediaItemSource(candidate);
@@ -204,7 +204,7 @@ export function MediaDetailDialog({
             );
           })}
         </div>
-        <p className="mt-3 text-[11px] text-text-muted">
+        <p className="mt-3 text-[12px] text-text-muted">
           {currentIndex + 1} / {allItems.length} · Use ←/→ to navigate
         </p>
       </aside>

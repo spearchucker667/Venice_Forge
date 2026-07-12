@@ -281,7 +281,7 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
           type="button"
           onClick={onBack}
           aria-label="Back"
-          className="text-text-secondary hover:text-text-primary p-1.5 rounded-md hover:bg-surface-elevated"
+          className="text-text-secondary hover:text-text-primary p-2 rounded-md hover:bg-surface-elevated"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <polyline points="15 18 9 12 15 6" />
@@ -404,7 +404,7 @@ function MessageBubble({ message, speaker }: { message: RpMessageV1; speaker?: C
   return (
     <div className={`flex gap-2.5 ${isUser ? "justify-end" : "justify-start"}`}>
       {!isUser && (
-        <div className="shrink-0 w-8 h-8 rounded-full overflow-hidden border border-border bg-surface-elevated flex items-center justify-center text-[11px] font-semibold text-text-muted">
+        <div className="shrink-0 w-8 h-8 rounded-full overflow-hidden border border-border bg-surface-elevated flex items-center justify-center text-[12px] font-semibold text-text-muted">
           {speaker ? (
             avatarDataUri(speaker.avatar) ? (
               <img src={avatarDataUri(speaker.avatar)} alt="" className="w-full h-full object-cover" />
@@ -421,7 +421,7 @@ function MessageBubble({ message, speaker }: { message: RpMessageV1; speaker?: C
       <div className={`max-w-[80%] flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
         <div className="flex items-center gap-2 mb-1">
           <span className="text-[12.5px] font-semibold text-text-primary">{name}</span>
-          <span className="text-[10.5px] text-text-muted">{formatRelativeTime(message.createdAt)}</span>
+          <span className="text-[12px] text-text-muted">{formatRelativeTime(message.createdAt)}</span>
         </div>
         <div className={`rounded-2xl px-3.5 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap ${isUser ? "bg-surface border border-border text-text-primary" : "bg-surface-elevated text-text-primary"} ${isNarrator ? "italic" : ""}`}>
           {message.content}

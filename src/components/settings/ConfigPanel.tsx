@@ -59,9 +59,9 @@ export function ConfigPanel(): React.ReactElement {
       <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-3">
         <h3 className="text-[15px] font-semibold text-text-primary">Local Master Config</h3>
         <p className="text-[12.5px] text-text-secondary">
-          Edit <code className="px-1 py-0.5 rounded bg-surface border border-border text-[11.5px]">config.yaml</code> and{" "}
-          <code className="px-1 py-0.5 rounded bg-surface border border-border text-[11.5px]">themes.yaml</code> on disk to configure Venice Forge without touching the UI. See{" "}
-          <code className="px-1 py-0.5 rounded bg-surface border border-border text-[11.5px]">docs/CONFIG.md</code> for the full schema.
+          Edit <code className="px-1 py-0.5 rounded bg-surface border border-border text-[12px]">config.yaml</code> and{" "}
+          <code className="px-1 py-0.5 rounded bg-surface border border-border text-[12px]">themes.yaml</code> on disk to configure Venice Forge without touching the UI. See{" "}
+          <code className="px-1 py-0.5 rounded bg-surface border border-border text-[12px]">docs/CONFIG.md</code> for the full schema.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
           <div className="rounded-lg border border-border p-3 bg-surface">
@@ -131,8 +131,8 @@ export function ConfigPanel(): React.ReactElement {
       <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-3">
         <h3 className="text-[15px] font-semibold text-text-primary">API Key Import</h3>
         <p className="text-[12.5px] text-text-secondary">
-          Plaintext keys in <code className="px-1 py-0.5 rounded bg-surface border border-border text-[11.5px]">config.yaml</code> are imported into OS secure storage on startup and redacted from the file (unless{" "}
-          <code className="px-1 py-0.5 rounded bg-surface border border-border text-[11.5px]">secrets.keep_plaintext_keys: true</code> is set).
+          Plaintext keys in <code className="px-1 py-0.5 rounded bg-surface border border-border text-[12px]">config.yaml</code> are imported into OS secure storage on startup and redacted from the file (unless{" "}
+          <code className="px-1 py-0.5 rounded bg-surface border border-border text-[12px]">secrets.keep_plaintext_keys: true</code> is set).
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
           <div className="rounded-lg border border-border p-3 bg-surface">
@@ -152,7 +152,7 @@ export function ConfigPanel(): React.ReactElement {
             {status?.keysRedacted.jina && <div className="text-text-muted mt-1">Plaintext redacted</div>}
           </div>
         </div>
-        <p className="text-[11.5px] text-text-muted">
+        <p className="text-[12px] text-text-muted">
           Raw keys are never sent to the renderer. Reset the secure store to clear stored keys; you can then re-enter them via the API Keys tab.
         </p>
         <button
@@ -189,7 +189,7 @@ export function ConfigPanel(): React.ReactElement {
           <h3 className="text-[15px] font-semibold text-text-primary">Effective Settings (preview)</h3>
           <p className="text-[12.5px] text-text-secondary">
             Read-only preview of the merged config currently in memory. The{" "}
-            <code className="px-1 py-0.5 rounded bg-surface border border-border text-[11.5px]">YAML</code> source remains the canonical source of truth — edit it on disk and click <em>Reload Config</em>.
+            <code className="px-1 py-0.5 rounded bg-surface border border-border text-[12px]">YAML</code> source remains the canonical source of truth — edit it on disk and click <em>Reload Config</em>.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
             <div>

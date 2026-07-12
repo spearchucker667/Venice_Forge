@@ -168,7 +168,7 @@ export function PromptLibraryView() {
                   setIsCreateModalOpen(true)
                 }
               }}
-              className="ml-auto rounded-md border border-border px-2 py-1 text-[11.5px] hover:border-accent hover:text-accent"
+              className="ml-auto rounded-md border border-border px-2 py-1 text-[12px] hover:border-accent hover:text-accent"
               data-testid="prompt-library-new"
             >
               New
@@ -185,7 +185,7 @@ export function PromptLibraryView() {
             <select
               value={kindFilter}
               onChange={(e) => setKindFilter(e.target.value as PromptKind | "all")}
-              className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11.5px]"
+              className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px]"
               data-testid="prompt-library-kind-filter"
             >
               <option value="all">All kinds</option>
@@ -198,7 +198,7 @@ export function PromptLibraryView() {
             <select
               value={scopeFilter}
               onChange={(e) => setScopeFilter(e.target.value as PromptScope | "all")}
-              className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11.5px]"
+              className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px]"
               data-testid="prompt-library-scope-filter"
             >
               <option value="all">All scopes</option>
@@ -208,7 +208,7 @@ export function PromptLibraryView() {
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11.5px]"
+              className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px]"
               data-testid="prompt-library-sort"
             >
               <option value="newest">Newest</option>
@@ -221,7 +221,7 @@ export function PromptLibraryView() {
               <select
                 value={tagFilter}
                 onChange={(e) => setTagFilter(e.target.value)}
-                className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11.5px]"
+                className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px]"
                 data-testid="prompt-library-tag-filter"
               >
                 <option value="">All tags</option>
@@ -236,7 +236,7 @@ export function PromptLibraryView() {
               type="button"
               onClick={() => setFavoritesOnly((value) => !value)}
               aria-pressed={favoritesOnly}
-              className={`rounded-md border px-2 py-0.5 text-[11.5px] ${
+              className={`rounded-md border px-2 py-0.5 text-[12px] ${
                 favoritesOnly
                   ? "border-amber-500/40 text-amber-300"
                   : "border-border text-text-secondary hover:border-accent hover:text-accent"
@@ -249,7 +249,7 @@ export function PromptLibraryView() {
               type="button"
               onClick={() => setShowArchived((value) => !value)}
               aria-pressed={showArchived}
-              className={`rounded-md border px-2 py-0.5 text-[11.5px] ${
+              className={`rounded-md border px-2 py-0.5 text-[12px] ${
                 showArchived
                   ? "border-accent text-accent"
                   : "border-border text-text-secondary hover:border-accent hover:text-accent"
@@ -289,18 +289,18 @@ export function PromptLibraryView() {
                         {p.favorite ? "★ " : ""}
                         {p.title}
                       </span>
-                      <span className="ml-auto text-[10px] uppercase tracking-wider text-text-muted bg-surface-elevated px-1.5 py-0.5 rounded border border-border">
+                      <span className="ml-auto text-[12px] uppercase tracking-wider text-text-muted bg-surface-elevated px-1.5 py-0.5 rounded border border-border">
                         {p.kind}
                       </span>
                     </div>
-                    <div className="text-[11px] text-text-muted mt-0.5 truncate">
+                    <div className="text-[12px] text-text-muted mt-0.5 truncate">
                       {p.scope === "project" ? "Project" : "Global"} ·{" "}
                       {p.versions.length} version{p.versions.length === 1 ? "" : "s"}
                     </div>
                     {p.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {p.tags.map((t) => (
-                          <span key={t} className="text-[9.5px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full border border-accent/20">
+                          <span key={t} className="text-[12px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full border border-accent/20">
                             #{t}
                           </span>
                         ))}
@@ -345,6 +345,7 @@ export function PromptLibraryView() {
               setActivePrompt(replacement);
               toast.success("Prompt deleted");
             }}
+            allTags={allTags}
             onCreateWorkflow={async () => {
               const w = await createWorkflow({
                 title: `Workflow: ${active.title}`,
@@ -377,6 +378,7 @@ export function PromptLibraryView() {
       </section>
       {isCreateModalOpen && (
         <PromptCreateModal
+          allTags={allTags}
           onClose={() => setIsCreateModalOpen(false)}
           onCreate={async (data) => {
             const created = await createPrompt({
@@ -416,10 +418,11 @@ interface PromptDetailProps {
   onArchive: () => Promise<void>;
   onDelete: () => Promise<void>;
   onCreateWorkflow: () => Promise<void>;
+  allTags: string[];
 }
 
 function PromptDetail(props: PromptDetailProps) {
-  const { item, projects, onUpdate, onAddVersion, onSetCurrentVersion, onToggleFavorite, onArchive, onDelete, onCreateWorkflow } = props;
+  const { item, projects, onUpdate, onAddVersion, onSetCurrentVersion, onToggleFavorite, onArchive, onDelete, onCreateWorkflow, allTags } = props;
   const current: PromptVersion =
     item.versions.find((v) => v.id === item.currentVersionId) ??
     item.versions[item.versions.length - 1]!;
@@ -437,6 +440,15 @@ function PromptDetail(props: PromptDetailProps) {
   // When the user switches active version, mirror its content into the
   // editor so the edits apply to the right version. The store remains
   // the source of truth for the persisted state.
+  
+  const isMetadataDirty =
+    title.trim() !== item.title ||
+    description.trim() !== (item.description ?? "") ||
+    kind !== item.kind ||
+    Array.from(new Set(tagsInput.split(/[,\s]+/).map((t) => t.trim().toLowerCase()).filter((t) => t.length > 0))).sort().join(",") !== [...item.tags].sort().join(",");
+
+  const isContentDirty = content !== current.content || negativeContent !== (current.negativeContent ?? "");
+
   useEffect(() => {
     setTitle(item.title);
     setDescription(item.description ?? "");
@@ -498,7 +510,7 @@ function PromptDetail(props: PromptDetailProps) {
             {item.archivedAt ? "Unarchive" : "Archive"}
           </button>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-[11.5px] text-text-muted">
+        <div className="flex flex-wrap items-center gap-2 text-[12px] text-text-muted">
           <span>
             v{current.version} of {item.versions.length} ·{" "}
             {item.scope === "project"
@@ -512,7 +524,7 @@ function PromptDetail(props: PromptDetailProps) {
           <select
             value={kind}
             onChange={(e) => setKind(e.target.value as PromptKind)}
-            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11.5px]"
+            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px]"
             data-testid="prompt-library-kind"
           >
             {KIND_OPTIONS.map((k) => (
@@ -525,13 +537,14 @@ function PromptDetail(props: PromptDetailProps) {
             value={tagsInput}
             onChange={(e) => setTagsInput(e.target.value)}
             placeholder="tags, comma separated"
-            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11.5px] flex-1 min-w-[200px]"
+            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px] flex-1 min-w-[200px]"
             data-testid="prompt-library-tags"
           />
           <button
             type="button"
+            disabled={!isMetadataDirty}
             onClick={() => void persistMetadata()}
-            className="rounded-md border border-accent text-accent px-2 py-0.5 text-[11.5px]"
+            className={`rounded-md border px-2 py-0.5 text-[12px] transition-colors ${isMetadataDirty ? 'border-accent text-accent' : 'border-border text-text-muted'}`}
             data-testid="prompt-library-save-metadata"
           >
             Save metadata
@@ -548,7 +561,7 @@ function PromptDetail(props: PromptDetailProps) {
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3">
         <div>
-          <label className="text-[11px] uppercase tracking-wide text-text-muted">Content</label>
+          <label className="text-[12px] uppercase tracking-wide text-text-muted">Content</label>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -557,7 +570,7 @@ function PromptDetail(props: PromptDetailProps) {
           />
         </div>
         <div>
-          <label className="text-[11px] uppercase tracking-wide text-text-muted">
+          <label className="text-[12px] uppercase tracking-wide text-text-muted">
             Negative content
           </label>
           <textarea
@@ -570,8 +583,9 @@ function PromptDetail(props: PromptDetailProps) {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
+            disabled={!isContentDirty}
             onClick={saveNewVersion}
-            className="rounded-md border border-accent text-accent px-2 py-1 text-[12px]"
+            className={`rounded-md border px-2 py-1 text-[12px] transition-colors ${isContentDirty ? 'border-accent text-accent' : 'border-border text-text-muted'}`}
             data-testid="prompt-library-save-version"
           >
             Save new version
@@ -696,22 +710,22 @@ function PromptDetail(props: PromptDetailProps) {
                       {new Date(v.createdAt).toLocaleString()}
                     </span>
                     {v.id === item.currentVersionId && (
-                      <span className="text-accent text-[10.5px]">CURRENT</span>
+                      <span className="text-accent text-[12px]">CURRENT</span>
                     )}
                     <button
                       type="button"
                       onClick={() => void onSetCurrentVersion(v.id)}
                       disabled={v.id === item.currentVersionId}
-                      className="ml-auto rounded-md border border-border px-2 py-0.5 text-[11px] disabled:opacity-50"
+                      className="ml-auto rounded-md border border-border px-2 py-0.5 text-[12px] disabled:opacity-50"
                       data-testid={`prompt-library-use-version-${v.version}`}
                     >
                       Use this version
                     </button>
                   </div>
                   {v.notes && (
-                    <p className="text-[11px] text-text-muted mt-0.5">{v.notes}</p>
+                    <p className="text-[12px] text-text-muted mt-0.5">{v.notes}</p>
                   )}
-                  <pre className="text-[11.5px] text-text-secondary whitespace-pre-wrap mt-1 line-clamp-3">
+                  <pre className="text-[12px] text-text-secondary whitespace-pre-wrap mt-1 line-clamp-3">
                     {v.content}
                   </pre>
                 </li>

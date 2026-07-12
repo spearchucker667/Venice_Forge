@@ -77,14 +77,14 @@ export function RecipeComparison({ original, sanitized, className }: RecipeCompa
       data-testid="recipe-comparison"
       aria-label="Recipe comparison"
     >
-      <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-text-secondary">
+      <div className="flex items-center justify-between text-[12px] uppercase tracking-wide text-text-secondary">
         <span>Recipe comparison</span>
         <span aria-live="polite">
           {changedCount === 0 ? "Identical" : `${changedCount} field${changedCount === 1 ? "" : "s"} will change`}
         </span>
       </div>
       <div className="mt-1.5 rounded-md border border-border/60 overflow-hidden">
-        <table className="w-full text-[11.5px]">
+        <table className="w-full text-[12px]">
           <thead className="bg-surface/60 text-text-secondary">
             <tr>
               <th className="text-left px-2 py-1 font-medium">Field</th>

@@ -493,7 +493,7 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
           ) : (
             <button 
               type="submit" 
-              className="absolute right-2 px-2 py-0.5 text-xs bg-[var(--surface-elevated)] border border-[var(--border)] rounded hover:bg-[var(--surface-muted)] transition-colors"
+              className="absolute right-2 px-2 py-1.5 min-h-[32px] text-xs bg-[var(--surface-elevated)] border border-[var(--border)] rounded hover:bg-[var(--surface-muted)] transition-colors"
               disabled={!address.trim()}
               aria-label="Go"
             >

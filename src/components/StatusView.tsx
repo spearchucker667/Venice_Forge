@@ -130,7 +130,7 @@ export function StatusView() {
         <Row k="Last reason" v={audit.lastReasonCode ?? 'none'} />
         <Row k="Last decision at" v={audit.lastDecisionAt ?? 'n/a'} mono />
         {Object.keys(audit.bySeverity).length > 0 && (
-          <div className="text-[11.5px] text-text-muted pt-1">
+          <div className="text-[12px] text-text-muted pt-1">
             By severity: {Object.entries(audit.bySeverity)
               .map(([k, v]) => `${k}=${v}`)
               .join(' · ')}
@@ -146,7 +146,7 @@ export function StatusView() {
             <Row k="Status" v={String(lastRequest.status || 'Pending')} />
             <Row k="Method" v={lastRequest.method} />
             {lastRequest.error && (
-              <div className="text-[11.5px] text-danger pt-1 break-words">
+              <div className="text-[12px] text-danger pt-1 break-words">
                 Last error: {lastRequest.error}
               </div>
             )}
@@ -155,7 +155,7 @@ export function StatusView() {
           <>
             <Chip>no requests yet (last error below if any)</Chip>
             {diag.lastApiError && (
-              <div className="text-[11.5px] text-danger pt-1 break-words">
+              <div className="text-[12px] text-danger pt-1 break-words">
                 Last error: {diag.lastApiError}
               </div>
             )}
@@ -163,7 +163,7 @@ export function StatusView() {
         )}
       </section>
 
-      <p className="text-[11px] text-text-muted">
+      <p className="text-[12px] text-text-muted">
         Status provides transport, storage, audit, and request diagnostics. Use the dedicated Library, Research, Settings, and workflow tabs for feature-specific controls.
       </p>
     </div>
@@ -174,7 +174,7 @@ function Row({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
   return (
     <div className="flex items-start gap-3 text-[12.5px]">
       <span className="text-text-muted min-w-[160px] shrink-0">{k}</span>
-      <span className={mono ? 'font-mono text-[11.5px] text-text-secondary break-all' : 'text-text-secondary'}>
+      <span className={mono ? 'font-mono text-[12px] text-text-secondary break-all' : 'text-text-secondary'}>
         {v}
       </span>
     </div>

@@ -517,7 +517,7 @@ export function ImageView() {
       {/* Model capability summary. Reflects the live registry so the user
           knows what is and is not available BEFORE they fill out the form. */}
       <div
-        className="text-[11px] text-text-secondary flex flex-wrap gap-x-2 gap-y-0.5 px-2 py-1.5 rounded-md bg-surface/40 border border-border/60"
+        className="text-[12px] text-text-secondary flex flex-wrap gap-x-2 gap-y-0.5 px-2 py-1.5 rounded-md bg-surface/40 border border-border/60"
         aria-label={`Capabilities for ${caps.label}: ${capabilitySummary.join(', ')}`}
         data-testid="image-capability-summary"
       >
@@ -541,7 +541,7 @@ export function ImageView() {
               type="button"
               onClick={() => void handleSavePromptToLibrary('image', prompt)}
               disabled={!prompt.trim()}
-              className="text-[11px] px-2 py-1 rounded-md border border-border text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50"
+              className="text-[12px] px-2 py-1 rounded-md border border-border text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50"
               aria-label="Save prompt to library"
               data-testid="image-save-prompt-to-library"
             >
@@ -551,7 +551,7 @@ export function ImageView() {
               type="button"
               onClick={handleEnhance}
               disabled={!prompt.trim() || enhancing || !enhancerEnabled}
-              className="text-[11px] px-2 py-1 rounded-md bg-accent/10 text-accent hover:bg-accent/20 border border-accent/30 transition-colors disabled:opacity-50 cursor-pointer"
+              className="text-[12px] px-2 py-1 rounded-md bg-accent/10 text-accent hover:bg-accent/20 border border-accent/30 transition-colors disabled:opacity-50 cursor-pointer"
               aria-label="Enhance prompt"
               title={
                 !enhancerEnabled
@@ -608,14 +608,14 @@ export function ImageView() {
             <button
               type="button"
               onClick={applyEnhancedPrompt}
-              className="px-3 py-1 text-[11.5px] rounded-md bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
+              className="px-3 py-1 text-[12px] rounded-md bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
             >
               Use enhanced prompt
             </button>
             <button
               type="button"
               onClick={cancelEnhanceReview}
-              className="px-3 py-1 text-[11.5px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+              className="px-3 py-1 text-[12px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
             >
               Keep original
             </button>
@@ -645,7 +645,7 @@ export function ImageView() {
                 if (previewTemplate.negativeText) setNegativePrompt((prev) => prev ? `${prev}, ${previewTemplate.negativeText}` : previewTemplate.negativeText!);
                 setPreviewTemplate(null);
               }}
-              className="px-3 py-1 text-[11.5px] rounded-md bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
+              className="px-3 py-1 text-[12px] rounded-md bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
             >
               Append
             </button>
@@ -656,14 +656,14 @@ export function ImageView() {
                 if (previewTemplate.negativeText) setNegativePrompt(previewTemplate.negativeText!);
                 setPreviewTemplate(null);
               }}
-              className="px-3 py-1 text-[11.5px] rounded-md border border-accent text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+              className="px-3 py-1 text-[12px] rounded-md border border-accent text-accent hover:bg-accent/10 transition-colors cursor-pointer"
             >
               Replace
             </button>
             <button
               type="button"
               onClick={() => setPreviewTemplate(null)}
-              className="px-3 py-1 text-[11.5px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+              className="px-3 py-1 text-[12px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -679,7 +679,7 @@ export function ImageView() {
               type="button"
               onClick={() => void handleSavePromptToLibrary('negative', negativePrompt)}
               disabled={!negativePrompt.trim()}
-              className="text-[11px] px-2 py-1 rounded-md border border-border text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50"
+              className="text-[12px] px-2 py-1 rounded-md border border-border text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50"
               aria-label="Save negative prompt to library"
               data-testid="image-save-negative-to-library"
             >
@@ -764,7 +764,7 @@ export function ImageView() {
               <button
                 type="button"
                 onClick={() => setSeedValue(randomSeed())}
-                className="px-2 py-1 text-[11px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+                className="px-2 py-1 text-[12px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
                 aria-label="Randomize seed"
               >
                 Randomize
@@ -772,7 +772,7 @@ export function ImageView() {
               <button
                 type="button"
                 onClick={() => setSeedMode('off')}
-                className="px-2 py-1 text-[11px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+                className="px-2 py-1 text-[12px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
                 aria-label="Clear seed"
               >
                 Clear

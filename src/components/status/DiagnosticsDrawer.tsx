@@ -69,7 +69,7 @@ const SEVERITY_LABEL: Record<StatusSeverity, string> = {
 function SeverityBadge({ severity }: { severity: StatusSeverity }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10.5px] font-medium ${SEVERITY_BADGE[severity]}`}
+      className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[12px] font-medium ${SEVERITY_BADGE[severity]}`}
       data-severity-badge={severity}
     >
       {SEVERITY_LABEL[severity]}
@@ -110,7 +110,7 @@ function Section({ sectionId, title, item, focused, children }: SectionProps) {
         {item.summary}
       </p>
       {item.detail && (
-        <p className="text-[11.5px] text-text-muted leading-relaxed">
+        <p className="text-[12px] text-text-muted leading-relaxed">
           {item.detail}
         </p>
       )}
@@ -223,7 +223,7 @@ export function DiagnosticsDrawer() {
             <h2 className="text-[14px] font-semibold text-text-primary">
               Diagnostics
             </h2>
-            <p className="text-[11.5px] text-text-muted mt-0.5">
+            <p className="text-[12px] text-text-muted mt-0.5">
               App health, model catalog, storage, safety, and provider state.
             </p>
           </div>
@@ -232,7 +232,7 @@ export function DiagnosticsDrawer() {
             onClick={closeDrawer}
             aria-label="Close"
             data-testid="diagnostics-close"
-            className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+            className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
           >
             Close
           </button>
@@ -244,7 +244,7 @@ export function DiagnosticsDrawer() {
             onClick={handleRefresh}
             disabled={isRefreshing}
             data-testid="diagnostics-refresh"
-            className="rounded-md border border-border px-2 py-1 text-[11.5px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50"
+            className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50"
           >
             {isRefreshing ? "Refreshing…" : "Refresh Diagnostics"}
           </button>
@@ -252,17 +252,17 @@ export function DiagnosticsDrawer() {
             type="button"
             onClick={handleCopySafeDiagnostics}
             data-testid="diagnostics-copy-safe"
-            className="rounded-md border border-border px-2 py-1 text-[11.5px] text-text-secondary hover:border-accent hover:text-accent"
+            className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
           >
             Copy Safe Diagnostics
           </button>
           {lastCopyedAt(lastCopyAt) && (
-            <span className="text-[10.5px] text-text-muted">copied at {lastCopyedAt(lastCopyAt)}</span>
+            <span className="text-[12px] text-text-muted">copied at {lastCopyedAt(lastCopyAt)}</span>
           )}
         </div>
 
         {lastRefreshedAt && (
-          <p className="text-[10.5px] text-text-muted">last refresh: {lastRefreshedAt}</p>
+          <p className="text-[12px] text-text-muted">last refresh: {lastRefreshedAt}</p>
         )}
 
         {sections.map(({ key, label, item }) => {
@@ -286,7 +286,7 @@ export function DiagnosticsDrawer() {
                     closeDrawer()
                   }}
                   data-testid="diagnostics-action-apiKey"
-                  className="rounded-md border border-border px-2 py-1 text-[11.5px] text-text-secondary hover:border-accent hover:text-accent"
+                  className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                 >
                   {item.actionLabel ?? "Open Config"}
                 </button>
@@ -296,7 +296,7 @@ export function DiagnosticsDrawer() {
                   type="button"
                   onClick={() => models.refetch()}
                   data-testid="diagnostics-action-api-refresh"
-                  className="rounded-md border border-border px-2 py-1 text-[11.5px] text-text-secondary hover:border-accent hover:text-accent"
+                  className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                 >
                   {models.isFetching ? "Refreshing models…" : "Refresh Models"}
                 </button>
@@ -307,12 +307,12 @@ export function DiagnosticsDrawer() {
                     type="button"
                     onClick={() => models.refetch()}
                     data-testid="diagnostics-action-model-refresh"
-                    className="rounded-md border border-border px-2 py-1 text-[11.5px] text-text-secondary hover:border-accent hover:text-accent"
+                    className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                   >
                     {models.isFetching ? "Refreshing models…" : "Refresh Models"}
                   </button>
                   {modelsError && (
-                    <p className="text-[11px] text-danger break-words">
+                    <p className="text-[12px] text-danger break-words">
                       Last refresh error: {modelsError}
                     </p>
                   )}
@@ -327,7 +327,7 @@ export function DiagnosticsDrawer() {
                     closeDrawer()
                   }}
                   data-testid="diagnostics-action-storage"
-                  className="rounded-md border border-border px-2 py-1 text-[11.5px] text-text-secondary hover:border-accent hover:text-accent"
+                  className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                 >
                   Open Status
                 </button>
@@ -340,7 +340,7 @@ export function DiagnosticsDrawer() {
                     closeDrawer()
                   }}
                   data-testid="diagnostics-action-privacy"
-                  className="rounded-md border border-border px-2 py-1 text-[11.5px] text-text-secondary hover:border-accent hover:text-accent"
+                  className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                 >
                   Open Privacy Dashboard
                 </button>
@@ -356,7 +356,7 @@ export function DiagnosticsDrawer() {
                     closeDrawer()
                   }}
                   data-testid="diagnostics-action-project"
-                  className="rounded-md border border-border px-2 py-1 text-[11.5px] text-text-secondary hover:border-accent hover:text-accent"
+                  className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                 >
                   {item.actionLabel ?? "Open Status"}
                 </button>
@@ -370,7 +370,7 @@ export function DiagnosticsDrawer() {
                     closeDrawer()
                   }}
                   data-testid="diagnostics-action-safety"
-                  className="rounded-md border border-border px-2 py-1 text-[11.5px] text-text-secondary hover:border-accent hover:text-accent"
+                  className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                 >
                   Open Config
                 </button>
@@ -384,13 +384,13 @@ export function DiagnosticsDrawer() {
                     closeDrawer()
                   }}
                   data-testid="diagnostics-action-provider"
-                  className="rounded-md border border-border px-2 py-1 text-[11.5px] text-text-secondary hover:border-accent hover:text-accent"
+                  className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                 >
                   Open Config
                 </button>
               )}
               {key === "desktop" && !isElectron() && (
-                <p className="text-[11.5px] text-text-muted">
+                <p className="text-[12px] text-text-muted">
                   Web mode: filesystem, reveals, and the system shell are
                   unavailable. Some desktop-only features (audio routing,
                   local YAML config) are disabled.
@@ -398,7 +398,7 @@ export function DiagnosticsDrawer() {
               )}
               {key === "diagnostics" && label === "Repair" && (
                 <div className="space-y-1.5">
-                  <p className="text-[11.5px] text-text-muted">
+                  <p className="text-[12px] text-text-muted">
                     Phase 2C ships read-only diagnostics. Destructive
                     repairs (reset keys, clear storage, delete all data)
                     are out of scope and live in their dedicated tabs.
@@ -407,7 +407,7 @@ export function DiagnosticsDrawer() {
                     type="button"
                     onClick={() => setFocusedSection("model")}
                     data-testid="diagnostics-action-jump-model"
-                    className="rounded-md border border-border px-2 py-1 text-[11.5px] text-text-secondary hover:border-accent hover:text-accent"
+                    className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                   >
                     Jump to Model
                   </button>

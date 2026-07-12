@@ -348,7 +348,7 @@ export function MediaInspector({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+          className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
         >
           Close
         </button>
@@ -385,7 +385,7 @@ export function MediaInspector({
               <Sparkles className="h-3 w-3" /> Parameters
             </span>
           </Label>
-          <div className="space-y-1 text-[11.5px] text-text-secondary">
+          <div className="space-y-1 text-[12px] text-text-secondary">
             {typeof item.seed === "number" && (
               <div className="flex justify-between">
                 <span className="text-text-muted">Seed</span>
@@ -443,7 +443,7 @@ export function MediaInspector({
       {item.enhancedPrompt && (
         <section>
           <Label>Enhanced Prompt</Label>
-          <p className="rounded-md border border-border bg-surface-elevated p-2 text-[11.5px] text-text-primary">
+          <p className="rounded-md border border-border bg-surface-elevated p-2 text-[12px] text-text-primary">
             {item.enhancedPrompt}
           </p>
         </section>
@@ -451,7 +451,7 @@ export function MediaInspector({
       {item.originalPrompt && item.originalPrompt !== item.prompt && (
         <section>
           <Label>Original Prompt</Label>
-          <p className="rounded-md border border-border bg-surface-elevated p-2 text-[11.5px] text-text-muted">
+          <p className="rounded-md border border-border bg-surface-elevated p-2 text-[12px] text-text-muted">
             {item.originalPrompt}
           </p>
         </section>
@@ -459,7 +459,7 @@ export function MediaInspector({
       {item.remixPrompt && (
         <section>
           <Label>Remix Prompt</Label>
-          <p className="rounded-md border border-border bg-surface-elevated p-2 text-[11.5px] text-text-primary">
+          <p className="rounded-md border border-border bg-surface-elevated p-2 text-[12px] text-text-primary">
             {item.remixPrompt}
           </p>
         </section>
@@ -473,7 +473,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleUseSettingsClick}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title="Load this image's settings into Image Studio (no generation)"
               data-testid="inspector-use-settings"
             >
@@ -484,7 +484,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={() => onUseRecipe(item)}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title="Load the generation recipe (prompt, model, seed, dimensions, etc.) into the appropriate studio"
               data-testid="inspector-use-recipe"
             >
@@ -495,7 +495,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleRegenerateClick}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title="Regenerate using this image's settings (new random seed)"
               data-testid="inspector-regenerate"
             >
@@ -506,7 +506,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleRegenerateSameSeedClick}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title="Regenerate using the same seed as this image"
               data-testid="inspector-regenerate-same-seed"
             >
@@ -517,7 +517,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleUpscaleClick}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title="Upscale / enhance this image"
               data-testid="inspector-upscale"
             >
@@ -528,7 +528,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleEditClick}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title="Open this image in the image editor"
               data-testid="inspector-edit"
             >
@@ -538,7 +538,7 @@ export function MediaInspector({
           <button
             type="button"
             onClick={handleCopyPrompt}
-            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
             title="Copy prompt text"
             data-testid="inspector-copy-prompt"
           >
@@ -548,7 +548,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleCopyNegative}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title="Copy negative prompt"
               data-testid="inspector-copy-negative"
             >
@@ -559,7 +559,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleCopySeed}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title={`Copy seed (${item.seed})`}
               data-testid="inspector-copy-seed"
             >
@@ -569,7 +569,7 @@ export function MediaInspector({
           <button
             type="button"
             onClick={handleCopyMetadata}
-            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
             title="Copy metadata as JSON"
             data-testid="inspector-copy-metadata"
           >
@@ -579,7 +579,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={() => void handleSaveRecipeToLibrary()}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title="Save recipe to Prompt Library"
               data-testid="inspector-save-recipe-to-library"
             >
@@ -590,7 +590,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleCopyRecipe}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title="Copy generation recipe as JSON"
               data-testid="inspector-copy-recipe"
             >
@@ -601,7 +601,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleExportRecipe}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title="Download generation recipe as a JSON file"
               data-testid="inspector-export-recipe"
             >
@@ -614,7 +614,7 @@ export function MediaInspector({
                 type="button"
                 onClick={handleEnhance}
                 disabled={enhanceState?.loading || !enhancerEnabled}
-                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-40"
                 title={
                   !enhancerEnabled
                     ? "Disabled: internal_prompt_enhancer.enabled is false in config.yaml"
@@ -628,7 +628,7 @@ export function MediaInspector({
                 type="button"
                 onClick={handleRemix}
                 disabled={enhanceState?.loading || !enhancerEnabled}
-                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-40"
                 title={
                   !enhancerEnabled
                     ? "Disabled: internal_prompt_enhancer.enabled is false in config.yaml"
@@ -646,14 +646,14 @@ export function MediaInspector({
       {/* ── Enhance / remix review modal ────────────────────────────── */}
       {enhanceState && !enhanceState.loading && enhanceState.result && (
         <section className="rounded-md border border-accent/40 bg-accent/[0.04] p-2.5">
-          <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-accent">
+          <h4 className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-accent">
             {enhanceState.mode === "enhance" ? "Enhanced" : "Remixed"} prompt
           </h4>
           <div className="space-y-2">
-            <p className="rounded-md border border-border bg-surface-elevated p-2 text-[11.5px] text-text-primary">
+            <p className="rounded-md border border-border bg-surface-elevated p-2 text-[12px] text-text-primary">
               {enhanceState.result}
             </p>
-            <p className="text-[10.5px] text-text-muted">
+            <p className="text-[12px] text-text-muted">
               Original: &ldquo;{item.prompt}&rdquo;
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -662,7 +662,7 @@ export function MediaInspector({
                   <button
                     type="button"
                     onClick={handleApplyEnhance}
-                    className="inline-flex items-center gap-1 rounded-md border border-accent px-2.5 py-1 text-[11px] text-accent hover:bg-accent/10"
+                    className="inline-flex items-center gap-1 rounded-md border border-accent px-2.5 py-1 text-[12px] text-accent hover:bg-accent/10"
                     data-testid="inspector-apply-enhance"
                   >
                     Apply
@@ -670,7 +670,7 @@ export function MediaInspector({
                   <button
                     type="button"
                     onClick={() => setEnhanceState(null)}
-                    className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+                    className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                   >
                     Cancel
                   </button>
@@ -681,7 +681,7 @@ export function MediaInspector({
                     <button
                       type="button"
                       onClick={handleApplyRemixToStudio}
-                      className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+                      className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                       data-testid="inspector-remix-apply-to-studio"
                     >
                       Apply to Image Studio
@@ -691,7 +691,7 @@ export function MediaInspector({
                     <button
                       type="button"
                       onClick={handleRemixAndGenerate}
-                      className="inline-flex items-center gap-1 rounded-md border border-accent px-2.5 py-1 text-[11px] text-accent hover:bg-accent/10"
+                      className="inline-flex items-center gap-1 rounded-md border border-accent px-2.5 py-1 text-[12px] text-accent hover:bg-accent/10"
                       data-testid="inspector-remix-and-generate"
                     >
                       Remix &amp; Generate
@@ -709,7 +709,7 @@ export function MediaInspector({
                         });
                         setEnhanceState(null);
                       }}
-                      className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+                      className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                       data-testid="inspector-remix-save"
                     >
                       Save remix
@@ -718,7 +718,7 @@ export function MediaInspector({
                   <button
                     type="button"
                     onClick={() => setEnhanceState(null)}
-                    className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+                    className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                   >
                     Cancel
                   </button>
@@ -732,7 +732,7 @@ export function MediaInspector({
       {/* ── Loading state ───────────────────────────────────────────── */}
       {enhanceState?.loading && (
         <section className="rounded-md border border-border p-2.5">
-          <p className="text-[11.5px] text-text-muted">
+          <p className="text-[12px] text-text-muted">
             {enhanceState.mode === "enhance" ? "Enhancing" : "Remixing"} prompt via internal LLM…
           </p>
         </section>
@@ -751,7 +751,7 @@ export function MediaInspector({
             {capabilities.video && <Badge tone="sky">video</Badge>}
             {capabilities.vision && <Badge tone="amber">vision</Badge>}
           </div>
-          <p className="mt-1.5 text-[11px] text-text-muted">
+          <p className="mt-1.5 text-[12px] text-text-muted">
             These endpoints are recognised for the source model. Re-running the
             same operation on this item will use them.
           </p>
@@ -791,7 +791,7 @@ export function MediaInspector({
                 key={tag}
                 onClick={() => void handleRemoveTag(tag)}
                 title="Remove tag"
-                className="inline-flex items-center gap-1 rounded-md border border-border bg-surface-elevated px-1.5 py-0.5 text-[11px] text-text-secondary hover:border-rose-400/40 hover:text-rose-300"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-surface-elevated px-1.5 py-0.5 text-[12px] text-text-secondary hover:border-rose-400/40 hover:text-rose-300"
               >
                 #{tag}
                 <span aria-hidden="true">×</span>
@@ -799,7 +799,7 @@ export function MediaInspector({
             ))}
           </div>
         ) : (
-          <p className="mt-1.5 text-[11px] text-text-muted">No tags yet.</p>
+          <p className="mt-1.5 text-[12px] text-text-muted">No tags yet.</p>
         )}
       </section>
 
@@ -818,7 +818,7 @@ export function MediaInspector({
             type="button"
             onClick={() => void handleSaveNote()}
             disabled={noteDraft === item.note}
-            className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[11.5px] text-text-secondary transition-colors hover:border-accent hover:text-accent disabled:opacity-30"
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[12px] text-text-secondary transition-colors hover:border-accent hover:text-accent disabled:opacity-30"
           >
             <NotebookPen className="h-3 w-3" /> Save note
           </button>
@@ -827,7 +827,7 @@ export function MediaInspector({
 
       {parentItem && (
         <section>
-          <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
+          <h4 className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-text-muted">
             Parent
           </h4>
           <button
@@ -836,14 +836,14 @@ export function MediaInspector({
             className="flex w-full items-center gap-2 rounded-md border border-border bg-surface-elevated p-2 text-left hover:border-accent"
           >
             <span className="line-clamp-1 text-[12px] text-text-primary">{parentItem.prompt || "Untitled"}</span>
-            <span className="ml-auto text-[10.5px] text-text-muted">View</span>
+            <span className="ml-auto text-[12px] text-text-muted">View</span>
           </button>
         </section>
       )}
 
       {childrenItems.length > 0 && (
         <section>
-          <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
+          <h4 className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-text-muted">
             Children ({childrenItems.length})
           </h4>
           <ul className="space-y-1.5">
@@ -855,7 +855,7 @@ export function MediaInspector({
                   className="flex w-full items-center gap-2 rounded-md border border-border bg-surface-elevated p-2 text-left hover:border-accent"
                 >
                   <span className="line-clamp-1 text-[12px] text-text-primary">{child.prompt || "Untitled"}</span>
-                  <span className="ml-auto text-[10.5px] text-text-muted">{child.operation}</span>
+                  <span className="ml-auto text-[12px] text-text-muted">{child.operation}</span>
                 </button>
               </li>
             ))}
@@ -868,10 +868,10 @@ export function MediaInspector({
           aria-label="Missing references"
           className="rounded-md border border-amber-400/30 bg-amber-500/[0.06] p-2.5"
         >
-          <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-200/90">
+          <h4 className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-amber-200/90">
             Missing references
           </h4>
-          <p className="mb-2 text-[11.5px] text-text-secondary">
+          <p className="mb-2 text-[12px] text-text-secondary">
             {hasDanglingParent && hasDanglingChildren
               ? "This item references records that no longer exist. Clear the stale pointers to repair the lineage."
               : hasDanglingParent
@@ -879,7 +879,7 @@ export function MediaInspector({
                 : `${missingChildIds.length} child ${missingChildIds.length === 1 ? "reference" : "references"} could not be resolved. Clear the stale pointer${missingChildIds.length === 1 ? "" : "s"} to repair the lineage.`}
           </p>
           {hasDanglingParent && (
-            <div className="mb-1.5 flex items-center gap-2 text-[11px] text-text-muted">
+            <div className="mb-1.5 flex items-center gap-2 text-[12px] text-text-muted">
               <span className="font-mono">parentId={item.parentId}</span>
               <button
                 type="button"
@@ -891,7 +891,7 @@ export function MediaInspector({
             </div>
           )}
           {hasDanglingChildren && (
-            <div className="flex items-center gap-2 text-[11px] text-text-muted">
+            <div className="flex items-center gap-2 text-[12px] text-text-muted">
               <span className="line-clamp-1 font-mono">
                 {missingChildIds.length === 1
                   ? `childrenIds: ${missingChildIds[0]}`

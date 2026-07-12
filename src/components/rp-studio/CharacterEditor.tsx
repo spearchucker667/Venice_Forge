@@ -426,7 +426,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
           type="button"
           onClick={onClose}
           aria-label="Back to library"
-          className="text-text-secondary hover:text-text-primary p-1.5 rounded-md hover:bg-surface-elevated transition-colors"
+          className="text-text-secondary hover:text-text-primary p-2 rounded-md hover:bg-surface-elevated transition-colors"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <polyline points="15 18 9 12 15 6" />
@@ -434,14 +434,14 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
         </button>
         <div className="min-w-0 flex-1">
           <h2 className="text-[15px] font-semibold text-text-primary truncate">{draft.name || "Untitled"}</h2>
-          <p className="text-[10.5px] text-text-muted truncate">
+          <p className="text-[12px] text-text-muted truncate">
             Local character — stored in Venice Forge, not hosted on Venice.ai
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2">
           {tokenBudget && (
             <div
-              className={`text-right text-[11px] ${tokenBudget.overLimit ? "text-danger" : "text-text-muted"}`}
+              className={`text-right text-[12px] ${tokenBudget.overLimit ? "text-danger" : "text-text-muted"}`}
               data-testid="character-token-budget"
               aria-label={`Estimated tokens ${tokenBudget.compiled.count.toLocaleString()} of ${tokenBudget.inputBudget.toLocaleString()}`}
             >
@@ -495,7 +495,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="mt-2 w-24 text-[11px] py-1 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
+              className="mt-2 w-24 text-[12px] py-1 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
             >
               {draft.avatar ? "Replace" : "Upload"} avatar
             </button>
@@ -503,7 +503,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
               <button
                 type="button"
                 onClick={() => update("avatar", undefined)}
-                className="mt-1 w-24 text-[11px] py-1 rounded-md text-text-muted hover:text-rose-300 transition-colors"
+                className="mt-1 w-24 text-[12px] py-1 rounded-md text-text-muted hover:text-rose-300 transition-colors"
               >
                 Remove
               </button>
@@ -665,7 +665,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   key={t}
                   type="button"
                   onClick={() => removeTag(t)}
-                  className="text-[11.5px] px-2 py-0.5 rounded-md border border-border bg-surface-elevated text-text-secondary hover:text-text-primary hover:border-accent/40 transition-colors"
+                  className="text-[12px] px-2 py-0.5 rounded-md border border-border bg-surface-elevated text-text-secondary hover:text-text-primary hover:border-accent/40 transition-colors"
                   aria-label={`Remove tag ${t}`}
                 >
                   {t} ×
@@ -759,7 +759,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
         <section className="space-y-2 pt-4 border-t border-border/50">
           <div className="flex items-center justify-between mb-2">
             <Label>Context Files</Label>
-            <label className="text-[11px] px-2 py-1 rounded-md border border-border bg-surface-elevated text-text-secondary hover:text-text-primary hover:border-accent/40 cursor-pointer transition-colors">
+            <label className="text-[12px] px-2 py-1 rounded-md border border-border bg-surface-elevated text-text-secondary hover:text-text-primary hover:border-accent/40 cursor-pointer transition-colors">
               Upload File (Max 5MB)
               <input type="file" className="hidden" onChange={handleContextFileUpload} accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown" />
             </label>
@@ -772,7 +772,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 <div key={f.id} className="flex gap-2 items-center justify-between bg-surface-elevated border border-border rounded-lg p-2">
                   <div className="flex flex-col min-w-0">
                     <span className="text-[12.5px] text-text-primary truncate">{f.name}</span>
-                    <span className="text-[11px] text-text-muted">{(f.size / 1024).toFixed(1)} KB</span>
+                    <span className="text-[12px] text-text-muted">{(f.size / 1024).toFixed(1)} KB</span>
                   </div>
                   <button type="button" onClick={() => removeContextFile(f.id)} className="text-text-muted hover:text-rose-300 p-1">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
@@ -814,7 +814,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                     <button
                       type="button"
                       onClick={() => void handleRestoreVersion(v.id)}
-                      className="text-[11px] px-2 py-0.5 rounded text-text-secondary hover:text-accent hover:bg-accent/10 transition-colors"
+                      className="text-[12px] px-2 py-0.5 rounded text-text-secondary hover:text-accent hover:bg-accent/10 transition-colors"
                     >
                       Restore
                     </button>
@@ -920,7 +920,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
           </div>
           {(typeof draft.metadata?.attachedSceneId === "string" ||
             typeof draft.metadata?.attachedPromptId === "string") && (
-            <div className="text-[11px] text-text-muted mt-1" data-testid="character-editor-workflow-summary">
+            <div className="text-[12px] text-text-muted mt-1" data-testid="character-editor-workflow-summary">
               {draft.metadata?.attachedSceneId ? (
                 <span>Scene: {String(draft.metadata.attachedSceneId).slice(0, 32)}</span>
               ) : null}

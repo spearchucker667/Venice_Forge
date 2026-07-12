@@ -57,7 +57,7 @@ export function RpStudioView() {
   return (
     <div className="flex flex-col h-full min-h-0">
       <div className="flex items-center gap-1 px-3 py-2 soft-separator-y mesh-header mesh-surface overflow-x-auto">
-        <div className="text-[11px] uppercase tracking-[0.08em] text-text-muted font-semibold mr-2 shrink-0">RP Studio</div>
+        <div className="text-[12px] uppercase tracking-[0.08em] text-text-muted font-semibold mr-2 shrink-0">RP Studio</div>
         {SUB_TABS.map((t) => (
           <button
             key={t.id}

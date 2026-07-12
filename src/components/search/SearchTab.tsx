@@ -76,12 +76,12 @@ export function SearchTab({
                 <button
                   type="button"
                   onClick={() => onOpenInBrowser(url)}
-                  className="text-accent hover:underline break-all text-[11px] block mb-2 text-left cursor-pointer"
+                  className="text-accent hover:underline break-all text-[12px] block mb-2 text-left cursor-pointer"
                 >
                   {url}
                 </button>
               ) : (
-                <span className="text-accent break-all text-[11px] block mb-2">
+                <span className="text-accent break-all text-[12px] block mb-2">
                   {url}
                 </span>
               )}
@@ -92,7 +92,7 @@ export function SearchTab({
                 {isElectron() && onOpenInBrowser && (
                   <button
                     onClick={() => onOpenInBrowser(url)}
-                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-[11px] hover:bg-surface-muted transition-colors"
+                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-[12px] hover:bg-surface-muted transition-colors"
                   >
                     Open in browser
                   </button>
@@ -100,7 +100,7 @@ export function SearchTab({
                 {onScrapeWithVenice && (
                   <button
                     onClick={() => onScrapeWithVenice(url)}
-                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-[11px] hover:bg-surface-muted transition-colors"
+                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-[12px] hover:bg-surface-muted transition-colors"
                   >
                     Scrape with Venice
                   </button>
@@ -108,7 +108,7 @@ export function SearchTab({
                 {onReadWithJina && (
                   <button
                     onClick={() => onReadWithJina(url)}
-                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-[11px] hover:bg-surface-muted transition-colors"
+                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-[12px] hover:bg-surface-muted transition-colors"
                   >
                     Read with Jina
                   </button>
@@ -116,7 +116,7 @@ export function SearchTab({
                 {onSaveToSession && (
                   <button
                     onClick={() => onSaveToSession(r)}
-                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-[11px] hover:bg-surface-muted transition-colors"
+                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-[12px] hover:bg-surface-muted transition-colors"
                   >
                     Save to session
                   </button>
@@ -124,7 +124,7 @@ export function SearchTab({
                 {onRequestOpenInSystemBrowser && isTrustedExternalUrl(url) && (
                   <button
                     onClick={() => onRequestOpenInSystemBrowser(url)}
-                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-[11px] hover:bg-surface-muted transition-colors"
+                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-[12px] hover:bg-surface-muted transition-colors"
                   >
                     Open external
                   </button>

@@ -188,7 +188,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
                 <div key={att.id} className="relative group shrink-0 flex items-center gap-2 h-16 px-3 bg-surface border border-border rounded-lg max-w-[200px]" title={att.name}>
                   <div className="flex flex-col flex-1 min-w-0">
                     <span className="text-[13px] font-medium text-text-primary truncate">{att.name}</span>
-                    <span className="text-[11px] text-text-muted uppercase tracking-wider">{att.kind}</span>
+                    <span className="text-[12px] text-text-muted uppercase tracking-wider">{att.kind}</span>
                   </div>
                   <button
                     onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
@@ -323,7 +323,7 @@ function MemoryStatusIndicator({ status }: { status: ChatMemoryStatus }) {
   }
   const { label, dot, title } = config[status]
   return (
-    <div className="flex items-center gap-1.5 text-[11px] text-text-muted" title={title}>
+    <div className="flex items-center gap-1.5 text-[12px] text-text-muted" title={title}>
       <span className={cn('w-1.5 h-1.5 rounded-full', dot)} />
       <span>{label}</span>
     </div>

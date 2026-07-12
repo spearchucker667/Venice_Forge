@@ -186,7 +186,7 @@ export function MemoryPanel() {
           <div className="flex items-center justify-between">
             <div>
               <label className="text-[13.5px] font-medium text-text-primary">Enable conversation recording</label>
-              <p className="text-[11.5px] text-text-muted mt-0.5">Allows the vault to analyze and extract facts from new threads.</p>
+              <p className="text-[12px] text-text-muted mt-0.5">Allows the vault to analyze and extract facts from new threads.</p>
             </div>
             <input
               type="checkbox"
@@ -200,7 +200,7 @@ export function MemoryPanel() {
           <div className="flex items-center justify-between border-t border-border/40 pt-3">
             <div>
               <label className="text-[13.5px] font-medium text-text-primary">Enable memory retrieval</label>
-              <p className="text-[11.5px] text-text-muted mt-0.5">Pulls relevant history facts dynamically to help future prompts.</p>
+              <p className="text-[12px] text-text-muted mt-0.5">Pulls relevant history facts dynamically to help future prompts.</p>
             </div>
             <input
               type="checkbox"
@@ -214,7 +214,7 @@ export function MemoryPanel() {
           <div className="flex items-center justify-between border-t border-border/40 pt-3">
             <div>
               <label className="text-[13.5px] font-medium text-text-primary">Show pulled context before sending</label>
-              <p className="text-[11.5px] text-text-muted mt-0.5">Displays a preview box above the chat input allowing fact pruning.</p>
+              <p className="text-[12px] text-text-muted mt-0.5">Displays a preview box above the chat input allowing fact pruning.</p>
             </div>
             <input
               type="checkbox"
@@ -228,7 +228,7 @@ export function MemoryPanel() {
           <div className="flex items-center justify-between border-t border-border/40 pt-3">
             <div>
               <label className="text-[13.5px] font-medium text-text-primary">Use AI summaries</label>
-              <p className="text-[11.5px] text-text-muted mt-0.5">Transmits summary material to Venice model for better fact discovery.</p>
+              <p className="text-[12px] text-text-muted mt-0.5">Transmits summary material to Venice model for better fact discovery.</p>
             </div>
             <input
               type="checkbox"
@@ -259,7 +259,7 @@ export function MemoryPanel() {
           </button>
         </div>
         {lastIndexed && (
-          <p className="text-[11.5px] text-text-muted">Last indexed at: {lastIndexed}</p>
+          <p className="text-[12px] text-text-muted">Last indexed at: {lastIndexed}</p>
         )}
       </div>
 
@@ -281,13 +281,13 @@ export function MemoryPanel() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] text-text-primary leading-normal break-words">{fact.text}</div>
-                  <div className="text-[10.5px] text-text-muted mt-1">
+                  <div className="text-[12px] text-text-muted mt-1">
                     Source: <span className="font-medium">{record.title}</span> • Confidence: {Math.round(fact.confidence * 100)}%
                   </div>
                 </div>
                 <button
                   onClick={() => handleForgetFact(fact.id, record)}
-                  className="shrink-0 px-2 py-1 text-[11px] font-medium text-danger bg-danger/10 hover:bg-danger/20 border border-transparent rounded transition-colors cursor-pointer"
+                  className="shrink-0 px-2 py-1 text-[12px] font-medium text-danger bg-danger/10 hover:bg-danger/20 border border-transparent rounded transition-colors cursor-pointer"
                 >
                   Forget
                 </button>

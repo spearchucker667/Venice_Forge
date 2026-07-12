@@ -304,7 +304,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
         <button
           onClick={onMobileClose}
           aria-label="Close menu"
-          className="md:hidden ml-auto p-1 text-text-secondary hover:text-text-primary rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+          className="md:hidden ml-auto p-2 text-text-secondary hover:text-text-primary rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
@@ -316,7 +316,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           Default project is ensured on load (safe for fresh/corrupt/migration). */}
       {expanded && (
         <div className="px-3 pt-1 pb-2 soft-separator-y shrink-0">
-          <div className="text-[10px] uppercase tracking-[0.08em] text-text-muted font-semibold mb-1.5 px-1 flex items-center justify-between">
+          <div className="text-[12px] uppercase tracking-[0.08em] text-text-muted font-semibold mb-1.5 px-1 flex items-center justify-between">
             <span>Project</span>
             <button
               onClick={async () => {
@@ -335,7 +335,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                   toast.error(msg)
                 }
               }}
-              className="text-[10px] normal-case tracking-normal border border-border rounded px-1.5 py-0.5 hover:bg-surface-elevated"
+              className="text-[12px] normal-case tracking-normal border border-border rounded px-1.5 py-0.5 hover:bg-surface-elevated"
               title="Create new project"
             >
               + New
@@ -368,7 +368,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           </button>
 
           {activeProjectId && (
-            <div className="mt-1.5 flex gap-1.5 text-[10px]">
+            <div className="mt-1.5 flex gap-1.5 text-[12px]">
               <button
                 onClick={async () => {
                   const current = projects.find((p) => p.id === activeProjectId)
@@ -433,7 +433,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           {navGroups.map((group) => (
             <div key={group.label} className={cn(expanded ? 'px-2' : 'md:px-1.5 px-2')}>
               {expanded && (
-                <div className="px-2 pb-1.5 text-[10.5px] uppercase tracking-[0.1em] text-text-muted font-semibold">
+                <div className="px-2 pb-1.5 text-[12px] uppercase tracking-[0.1em] text-text-muted font-semibold">
                   {group.label}
                 </div>
               )}
@@ -477,7 +477,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                 aria-controls="chat-history-list"
                 aria-label={historyExpanded ? "Collapse History" : "Expand History"}
                 title={historyExpanded ? "Collapse History" : "Expand History"}
-                className="flex items-center gap-1.5 text-[10.5px] font-semibold text-text-muted uppercase tracking-[0.1em] hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent rounded px-1 -ml-1 cursor-pointer"
+                className="flex items-center gap-1.5 text-[12px] font-semibold text-text-muted uppercase tracking-[0.1em] hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent rounded px-1 -ml-1 cursor-pointer"
               >
                 History
                 <svg
@@ -539,10 +539,10 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                       className="mesh-input w-full rounded-md px-2.5 py-1 text-[13px] text-text-primary outline-none focus:border-accent placeholder:text-text-muted"
                     />
                     {deferredSearch !== search && (
-                      <div role="status" className="pt-1 text-[10.5px] text-text-muted">Searching…</div>
+                      <div role="status" className="pt-1 text-[12px] text-text-muted">Searching…</div>
                     )}
                     {deferredSearch.trim() && searchResult.totalMatches > filtered.length && (
-                      <div role="status" className="pt-1 text-[10.5px] text-text-muted">
+                      <div role="status" className="pt-1 text-[12px] text-text-muted">
                         Showing first {filtered.length} of {searchResult.totalMatches} matches
                       </div>
                     )}
@@ -576,8 +576,8 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           {/* Traffic Inspector controls */}
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted leading-none">Traffic Inspector</span>
-              <p className="text-[10.5px] leading-snug text-text-muted mt-0.5 [@media(max-height:800px)]:hidden">
+              <span className="text-[12px] font-semibold uppercase tracking-wider text-text-muted leading-none">Traffic Inspector</span>
+              <p className="text-[12px] leading-snug text-text-muted mt-0.5 [@media(max-height:800px)]:hidden">
                 Shows raw model output and local safety decisions.
               </p>
             </div>
@@ -601,8 +601,8 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
 
           <div className="flex items-center justify-between gap-3 pt-2">
             <div className="min-w-0">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted leading-none">Family Safe Mode</span>
-              <p className="text-[10.5px] leading-snug text-text-muted mt-0.5 [@media(max-height:800px)]:hidden">
+              <span className="text-[12px] font-semibold uppercase tracking-wider text-text-muted leading-none">Family Safe Mode</span>
+              <p className="text-[12px] leading-snug text-text-muted mt-0.5 [@media(max-height:800px)]:hidden">
                 {localFamilySafeModeEnabled ? 'ON: local family filter runs.' : 'OFF: Adult Mode skips the local filter.'}
               </p>
             </div>
@@ -628,7 +628,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           <button
             onClick={() => setShowInspector(!showInspector)}
             className={cn(
-              "flex items-center justify-center gap-1.5 w-full py-1.5 px-2 border rounded-md text-[11px] font-semibold transition-colors cursor-pointer shrink-0",
+              "flex items-center justify-center gap-1.5 w-full py-1.5 px-2 border rounded-md text-[12px] font-semibold transition-colors cursor-pointer shrink-0",
               showInspector ? "bg-accent/10 border-accent text-accent" : "border-border text-text-secondary hover:border-accent hover:text-accent"
             )}
           >
@@ -639,7 +639,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           </button>
 
           <BackgroundTaskBanner />
-          <div className="pt-2 text-[11px] text-text-secondary flex flex-col gap-1 shrink-0 [@media(max-height:800px)]:hidden">
+          <div className="pt-2 text-[12px] text-text-secondary flex flex-col gap-1 shrink-0 [@media(max-height:800px)]:hidden">
             <div className="flex justify-between items-center leading-none"><span>New chat</span><kbd className="font-mono text-text-muted">⌘N</kbd></div>
             <div className="flex justify-between items-center leading-none"><span>Switch tab</span><kbd className="font-mono text-text-muted">⌘1-8</kbd></div>
           </div>
@@ -719,7 +719,7 @@ function ConversationRow({ conv, isActive, onSelect, onDelete, onExport }: {
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); cancelConfirm() }}
             aria-label="Confirm delete"
-            className="text-danger hover:underline px-1.5 text-[11px] font-semibold rounded cursor-pointer"
+            className="text-danger hover:underline px-1.5 text-[12px] font-semibold rounded cursor-pointer"
           >
             Delete?
           </button>

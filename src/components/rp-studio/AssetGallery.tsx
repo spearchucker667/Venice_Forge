@@ -96,12 +96,12 @@ export function AssetGallery() {
                       {a.url ? (
                         <img src={a.url} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-text-muted text-[11px]">no image</div>
+                        <div className="w-full h-full flex items-center justify-center text-text-muted text-[12px]">no image</div>
                       )}
                     </div>
                     <div className="p-2">
-                      <div className="text-[11px] text-text-secondary line-clamp-2">{truncate(a.prompt, 120)}</div>
-                      <div className="text-[10px] text-text-muted mt-0.5">{a.model} · {formatRelativeTime(a.createdAt)}</div>
+                      <div className="text-[12px] text-text-secondary line-clamp-2">{truncate(a.prompt, 120)}</div>
+                      <div className="text-[12px] text-text-muted mt-0.5">{a.model} · {formatRelativeTime(a.createdAt)}</div>
                     </div>
                   </button>
                   <div className="px-2 pb-2">
@@ -115,14 +115,14 @@ export function AssetGallery() {
                             cancelConfirmDelete();
                             setSelectedId(null);
                           }}
-                          className="flex-1 text-[11px] py-1 rounded border border-rose-500/30 text-rose-300 hover:bg-rose-500/10"
+                          className="flex-1 text-[12px] py-1 rounded border border-rose-500/30 text-rose-300 hover:bg-rose-500/10"
                         >
                           Delete?
                         </button>
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); cancelConfirmDelete(); }}
-                          className="text-[11px] py-1 px-2 rounded text-text-muted hover:text-text-primary"
+                          className="text-[12px] py-1 px-2 rounded text-text-muted hover:text-text-primary"
                         >
                           No
                         </button>
@@ -132,7 +132,7 @@ export function AssetGallery() {
                         type="button"
                         onClick={(e) => { e.stopPropagation(); armConfirmDelete(a.id); }}
                         aria-label="Delete asset"
-                        className="w-full text-[11px] py-1 rounded text-text-muted hover:text-rose-300 transition-colors"
+                        className="w-full text-[12px] py-1 rounded text-text-muted hover:text-rose-300 transition-colors"
                       >
                         Delete
                       </button>
@@ -151,11 +151,11 @@ export function AssetGallery() {
               {selected.url ? (
                 <img src={selected.url} alt="" className="w-full h-full object-contain" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-text-muted text-[11px]">no image</div>
+                <div className="w-full h-full flex items-center justify-center text-text-muted text-[12px]">no image</div>
               )}
             </div>
             <div className="text-[12px] text-text-secondary whitespace-pre-wrap">{selected.prompt}</div>
-            <div className="text-[11px] text-text-muted space-y-0.5">
+            <div className="text-[12px] text-text-muted space-y-0.5">
               <div>Model: {selected.model}</div>
               {selected.seed !== undefined && <div>Seed: {selected.seed}</div>}
               {selected.negativePrompt && <div>Negative: {selected.negativePrompt}</div>}

@@ -7,7 +7,7 @@ export function AboutPanel(): React.ReactElement {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <div className="text-[17px] font-semibold text-text-primary">{APP_NAME}</div>
-        <span className="text-[10px] px-1.5 py-0.5 rounded bg-warning/10 text-warning border border-warning/20 uppercase tracking-wider font-semibold">
+        <span className="text-[12px] px-1.5 py-0.5 rounded bg-warning/10 text-warning border border-warning/20 uppercase tracking-wider font-semibold">
           Unofficial
         </span>
       </div>
@@ -18,7 +18,7 @@ export function AboutPanel(): React.ReactElement {
         </p>
 
         <div className="p-3 bg-surface-elevated border border-border rounded-lg">
-          <div className="text-[11.5px] uppercase tracking-wider text-text-muted font-bold mb-1">Official Links</div>
+          <div className="text-[12px] uppercase tracking-wider text-text-muted font-bold mb-1">Official Links</div>
           <div className="flex flex-wrap gap-x-4 gap-y-1.5">
             <a href={OFFICIAL_LINKS.terms} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
               Terms of Service
@@ -32,7 +32,7 @@ export function AboutPanel(): React.ReactElement {
           </div>
         </div>
 
-        <div className="text-[11px] text-text-muted space-y-2">
+        <div className="text-[12px] text-text-muted space-y-2">
           <p>
             Venice , Venice.ai , and related logos are trademarks of Venice.ai, Inc. Use of these names is solely for nominative identification of API compatibility.
           </p>

@@ -187,7 +187,7 @@ function MessageBubbleImpl({ message, onCopy, onDelete, onEdit, onDeleteFromHere
       <summary className="cursor-pointer select-none px-3 py-2 font-medium text-text-primary">
         {injectedContextLabel} attached to this message
       </summary>
-      <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words border-t border-border/40 px-3 py-2 font-mono text-[11.5px] leading-relaxed text-text-muted">
+      <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words border-t border-border/40 px-3 py-2 font-mono text-[12px] leading-relaxed text-text-muted">
         {injectedContext}
       </pre>
     </details>
@@ -278,7 +278,7 @@ function MessageBubbleImpl({ message, onCopy, onDelete, onEdit, onDeleteFromHere
               </div>
             )}
             {redTeamMode && localSafetyDecision && (
-              <div className="mt-2 text-[11px] font-mono p-2 bg-surface border border-border/40 rounded-md text-left text-text-secondary select-text space-y-1">
+              <div className="mt-2 text-[12px] font-mono p-2 bg-surface border border-border/40 rounded-md text-left text-text-secondary select-text space-y-1">
                 <div className="flex items-center gap-1.5">
                   <span className="font-semibold text-text-muted">Safety:</span>
                   <span className={localSafetyDecision.allow ? "text-accent font-semibold" : "text-danger font-semibold"}>
@@ -360,7 +360,7 @@ function MessageBubbleImpl({ message, onCopy, onDelete, onEdit, onDeleteFromHere
                 {content}
               </div>
               {localSafetyDecision && (
-                <div className="text-[11px] font-mono p-2 bg-surface border border-border/40 rounded-md text-text-secondary select-text space-y-1">
+                <div className="text-[12px] font-mono p-2 bg-surface border border-border/40 rounded-md text-text-secondary select-text space-y-1">
                   <div className="flex items-center gap-1.5">
                     <span className="font-semibold text-text-muted">Safety:</span>
                     <span className={localSafetyDecision.allow ? "text-accent font-semibold" : "text-danger font-semibold"}>
@@ -429,7 +429,7 @@ function ActionBtn({ label, onClick, children }: { label: string; onClick: () =>
       onClick={onClick}
       title={label}
       aria-label={label}
-      className="p-1 text-text-muted/40 hover:text-text-secondary transition-colors rounded-md hover:bg-surface-elevated cursor-pointer"
+      className="p-2 text-text-muted/40 hover:text-text-secondary transition-colors rounded-md hover:bg-surface-elevated cursor-pointer"
     >
       {children}
     </button>

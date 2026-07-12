@@ -22,7 +22,7 @@ export function TabButton({
   const baseClasses = "group relative flex items-center gap-3 rounded-lg border border-transparent bg-transparent text-sm font-medium transition-all duration-150 focus:outline-none w-full overflow-hidden";
   
   const layoutClasses = iconOnly
-    ? "flex-col justify-center h-14 p-0 text-[10px] font-semibold uppercase tracking-wider"
+    ? "flex-col justify-center h-14 p-0 text-[12px] font-semibold uppercase tracking-wider"
     : "px-3 py-2.5 text-left";
 
   const stateClasses = active

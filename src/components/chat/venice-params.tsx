@@ -112,16 +112,16 @@ export function VeniceParams() {
             <div className="flex justify-between items-center mb-1">
               <label className="text-[13px] text-text-muted/40 font-medium block uppercase tracking-[0.08em]">App System Prompt</label>
               {(!hydrated || loading) ? (
-                <select disabled className="bg-surface-elevated border border-border rounded px-2 py-0.5 text-[11px] text-text-muted outline-none max-w-[200px] cursor-not-allowed">
+                <select disabled className="bg-surface-elevated border border-border rounded px-2 py-0.5 text-[12px] text-text-muted outline-none max-w-[200px] cursor-not-allowed">
                   <option>Loading library...</option>
                 </select>
               ) : loadError ? (
-                <select disabled className="bg-surface-elevated border border-border rounded px-2 py-0.5 text-[11px] text-red-400 outline-none max-w-[200px] cursor-not-allowed">
+                <select disabled className="bg-surface-elevated border border-border rounded px-2 py-0.5 text-[12px] text-red-400 outline-none max-w-[200px] cursor-not-allowed">
                   <option>Error loading library</option>
                 </select>
               ) : customPrompts.length > 0 && (
                 <select
-                  className="bg-surface-elevated border border-border rounded px-2 py-0.5 text-[11px] text-text-muted outline-none hover:text-text-secondary transition-colors max-w-[200px] cursor-pointer"
+                  className="bg-surface-elevated border border-border rounded px-2 py-0.5 text-[12px] text-text-muted outline-none hover:text-text-secondary transition-colors max-w-[200px] cursor-pointer"
                   onChange={(e) => {
                     const id = e.target.value;
                     if (id) {

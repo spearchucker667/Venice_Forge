@@ -52,7 +52,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
         type="button"
         onClick={toggleSidebar}
         aria-label="Toggle sidebar"
-        className="hidden md:block text-text-secondary hover:text-text-primary transition-colors p-1.5 -ml-1 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] cursor-pointer"
+        className="hidden md:block text-text-secondary hover:text-text-primary transition-colors p-2 -ml-1 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] cursor-pointer"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
           <path d="M3 4h18M3 12h12M3 20h18" />
@@ -69,7 +69,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
         )}
         <div className="flex flex-col min-w-0">
           <span className="text-[14px] font-semibold text-text-primary leading-none">{tabDesc?.label ?? activeTab}</span>
-          <span className="text-[11px] text-text-muted mt-0.5 leading-none truncate hidden sm:block">{tabDesc?.subtitle ?? ''}</span>
+          <span className="text-[12px] text-text-muted mt-0.5 leading-none truncate hidden sm:block">{tabDesc?.subtitle ?? ''}</span>
         </div>
       </div>
 

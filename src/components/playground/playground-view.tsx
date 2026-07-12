@@ -144,13 +144,13 @@ export function PlaygroundView() {
         <div className="flex items-center justify-between gap-2 px-3 h-11 border-b border-border/50 bg-surface shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-[14px] font-medium text-text-secondary shrink-0">Playground</span>
-            <span className="text-[11px] px-1.5 py-0.5 rounded bg-surface-elevated text-text-muted uppercase tracking-wider shrink-0">Agent</span>
+            <span className="text-[12px] px-1.5 py-0.5 rounded bg-surface-elevated text-text-muted uppercase tracking-wider shrink-0">Agent</span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0 min-w-0">
             <AgentModelPicker value={currentAgentModel} onChange={setPlaygroundAgentModel} />
             <button
               onClick={handleReset}
-              className="text-[12px] text-text-muted hover:text-text-secondary transition-colors px-1.5 py-1 rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent"
+              className="text-[12px] text-text-muted hover:text-text-secondary transition-colors px-3 py-1 rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent"
               title="Clear conversation"
             >
               Clear
@@ -205,7 +205,7 @@ export function PlaygroundView() {
             <button
               onClick={resetDraft}
               disabled={!canExport || isRunning}
-              className="text-text-muted hover:text-text-secondary transition-colors p-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="text-text-muted hover:text-text-secondary transition-colors p-2 disabled:opacity-30 disabled:cursor-not-allowed"
               title="Reset canvas"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /></svg>
@@ -246,7 +246,7 @@ export function PlaygroundView() {
               <button
                 onClick={handleSaveAsNew}
                 disabled={!canExport || isRunning}
-                className="text-text-muted hover:text-text-secondary transition-colors p-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
+                className="text-text-muted hover:text-text-secondary transition-colors p-2 disabled:opacity-30 disabled:cursor-not-allowed"
                 title="Save as a new workflow"
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="14" height="14" rx="2" /><path d="M7 21h12a2 2 0 002-2V9" /></svg>

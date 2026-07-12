@@ -115,7 +115,7 @@ export function RpChatList({ onOpen }: Props) {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="text-[14px] font-semibold text-text-primary truncate">{chat.title}</div>
-                      <div className="text-[11.5px] text-text-muted mt-0.5">
+                      <div className="text-[12px] text-text-muted mt-0.5">
                         {roster.length} {roster.length === 1 ? "character" : "characters"} · {formatRelativeTime(chat.updatedAt)}
                       </div>
                     </div>
@@ -133,7 +133,7 @@ export function RpChatList({ onOpen }: Props) {
                           <div
                             key={c.id}
                             title={c.name}
-                            className="w-7 h-7 rounded-full overflow-hidden border border-border bg-surface-elevated flex items-center justify-center text-[10px] font-semibold text-text-secondary"
+                            className="w-7 h-7 rounded-full overflow-hidden border border-border bg-surface-elevated flex items-center justify-center text-[12px] font-semibold text-text-secondary"
                           >
                             {src ? (
                               <img src={src} alt="" className="w-full h-full object-cover" />
@@ -144,7 +144,7 @@ export function RpChatList({ onOpen }: Props) {
                         );
                       })}
                       {roster.length > 5 && (
-                        <div className="w-7 h-7 rounded-full border border-border bg-surface-elevated flex items-center justify-center text-[10px] text-text-secondary">
+                        <div className="w-7 h-7 rounded-full border border-border bg-surface-elevated flex items-center justify-center text-[12px] text-text-secondary">
                           +{roster.length - 5}
                         </div>
                       )}

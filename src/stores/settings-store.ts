@@ -102,7 +102,9 @@ interface SettingsState {
   veniceApiSafeMode: boolean
   setVeniceApiSafeMode: (enabled: boolean) => void
   showInspector: boolean
+  inspectorWidth: number
   setShowInspector: (show: boolean) => void
+  setInspectorWidth: (width: number) => void
   
   // Memory Settings
   enableRecording: boolean
@@ -170,7 +172,9 @@ export const useSettingsStore = create<SettingsState>()(
       veniceApiSafeMode: true,
       setVeniceApiSafeMode: (enabled) => set({ veniceApiSafeMode: enabled }),
       showInspector: false,
+      inspectorWidth: 480,
       setShowInspector: (show) => set({ showInspector: show }),
+      setInspectorWidth: (width) => set({ inspectorWidth: width }),
 
       // Memory settings defaults
       enableRecording: true,

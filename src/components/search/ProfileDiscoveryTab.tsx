@@ -179,7 +179,7 @@ export function ProfileDiscoveryTab({
                 <div className="text-text-secondary">
                   {c.displayName || "Unknown Identity"} {c.handle && <span className="text-text-muted ml-1">@{c.handle.replace(/^@+/, "")}</span>}
                 </div>
-                <a href={safeHref(c.url)} target="_blank" rel="noreferrer" className="text-accent hover:underline break-all text-[11px] block">
+                <a href={safeHref(c.url)} target="_blank" rel="noreferrer" className="text-accent hover:underline break-all text-[12px] block">
                   {c.url}
                 </a>
                 {c.bioSnippet && <p className="text-[12px] text-text-muted italic leading-relaxed">{c.bioSnippet}</p>}

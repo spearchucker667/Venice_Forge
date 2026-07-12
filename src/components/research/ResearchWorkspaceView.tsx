@@ -357,7 +357,7 @@ export const ResearchWorkspaceView: React.FC = () => {
           <button
             type="button"
             onClick={handleCreateSession}
-            className="p-1 hover:bg-surface-elevated rounded text-text-secondary"
+            className="p-2 hover:bg-surface-elevated rounded text-text-secondary"
             aria-label="Create research session"
           >
             <span aria-hidden="true"><PlusIcon /></span>

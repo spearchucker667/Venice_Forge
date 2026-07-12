@@ -60,7 +60,7 @@ export function RecipeCompatibilityCard({
   if (!recipe || !report) {
     return (
       <div className={className} data-testid="recipe-compatibility-empty">
-        <div className="text-[11.5px] text-text-secondary">
+        <div className="text-[12px] text-text-secondary">
           This item has no recipe to compare against the current model.
         </div>
       </div>
@@ -83,7 +83,7 @@ export function RecipeCompatibilityCard({
           </span>
         </div>
         {report.unsupportedFields.length > 0 && (
-          <span className="text-[10.5px] opacity-80" title={report.unsupportedFields.join(", ")}>
+          <span className="text-[12px] opacity-80" title={report.unsupportedFields.join(", ")}>
             {report.unsupportedFields.length} unsupported field{report.unsupportedFields.length === 1 ? "" : "s"}
           </span>
         )}
@@ -93,7 +93,7 @@ export function RecipeCompatibilityCard({
           {report.issues.map((issue, idx) => (
             <li
               key={`${issue.field}-${idx}`}
-              className={`text-[11px] ${
+              className={`text-[12px] ${
                 issue.severity === "blocker"
                   ? "text-error"
                   : issue.severity === "warn"
@@ -111,7 +111,7 @@ export function RecipeCompatibilityCard({
           <button
             type="button"
             onClick={() => onUseWithCurrentModel(report.sanitizedRecipe)}
-            className="px-2 py-1 text-[11.5px] rounded-md bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
+            className="px-2 py-1 text-[12px] rounded-md bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
             data-testid="recipe-use-with-current-model"
           >
             Use with {caps.label}
@@ -121,7 +121,7 @@ export function RecipeCompatibilityCard({
           <button
             type="button"
             onClick={() => onUseOriginal(recipe)}
-            className="px-2 py-1 text-[11.5px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+            className="px-2 py-1 text-[12px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
             data-testid="recipe-use-original"
             title="Send the original recipe to Image Studio without sanitization"
           >
@@ -132,7 +132,7 @@ export function RecipeCompatibilityCard({
           <button
             type="button"
             onClick={onToggleComparison}
-            className="px-2 py-1 text-[11.5px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+            className="px-2 py-1 text-[12px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
             data-testid="recipe-toggle-comparison"
             aria-expanded={showComparison}
           >

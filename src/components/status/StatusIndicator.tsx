@@ -84,7 +84,7 @@ export function StatusIndicator({
     <Tag
       {...tagProps}
       className={[
-        "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11.5px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]",
+        "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[12px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]",
         TONE_CLASS[severity],
         interactive ? "cursor-pointer hover:brightness-110" : "",
         compact ? "min-w-0" : "",
@@ -97,7 +97,7 @@ export function StatusIndicator({
       />
       <span className="text-text-primary/80">{label}</span>
       {!compact && (
-        <span className="text-text-muted/70 text-[10.5px] hidden lg:inline">
+        <span className="text-text-muted/70 text-[12px] hidden lg:inline">
           {LABEL_PREFIX[severity]}
         </span>
       )}

@@ -666,7 +666,7 @@ export function MediaStudioView() {
             Browse, tag, edit, and export your generated media.
           </p>
         </div>
-        <div className="text-[11.5px] text-text-muted">
+        <div className="text-[12px] text-text-muted">
           {items.length} of {totalCount} item{totalCount === 1 ? "" : "s"} loaded
           {selectedMediaIds.length > 0 && <> · {selectedMediaIds.length} selected</>}
         </div>
@@ -863,7 +863,7 @@ export function MediaStudioView() {
               <button
                 type="button"
                 onClick={() => setLineageOpen(false)}
-                className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+                className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               >
                 Close
               </button>
@@ -874,7 +874,7 @@ export function MediaStudioView() {
 
       {/* Phase 2B: Bulk tag input row, visible in multi-select mode when items are selected. */}
       {multiSelectMode && selectedMediaIds.length > 0 && (
-        <div className="border-t border-border/50 bg-surface px-5 py-2 flex items-center gap-2 text-[11.5px]">
+        <div className="border-t border-border/50 bg-surface px-5 py-2 flex items-center gap-2 text-[12px]">
           <label className="text-text-muted">Quick tag:</label>
           <input
             type="text"
@@ -895,7 +895,7 @@ export function MediaStudioView() {
             onClick={() => void handleBatchAddTag()}
             disabled={!bulkTagInput.trim()}
             data-testid="bulk-tag-apply"
-            className="rounded-md border border-border px-2 py-1 text-[11px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
+            className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
           >
             Apply
           </button>
@@ -907,7 +907,7 @@ export function MediaStudioView() {
           recipe actions. This panel is a top-level launcher for the
           new Compare + Lineage modals and a send-to menu. */}
       {inspectorItem && (
-        <div className="border-t border-border/50 bg-surface px-5 py-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+        <div className="border-t border-border/50 bg-surface px-5 py-2 flex flex-wrap items-center gap-1.5 text-[12px]">
           <button
             type="button"
             onClick={() => setCompareOpen(true)}

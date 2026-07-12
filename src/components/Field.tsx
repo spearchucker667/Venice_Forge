@@ -26,7 +26,7 @@ export function Field({ label, children }: { label: string; children: React.Reac
       <label
         id={labelId}
         htmlFor={targetId}
-        className="text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted font-display"
+        className="text-[12px] font-bold uppercase tracking-[0.1em] text-text-muted font-display"
       >
         {label}
       </label>

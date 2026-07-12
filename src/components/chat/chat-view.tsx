@@ -411,7 +411,7 @@ export function ChatView() {
                   <button
                     type="button"
                     onClick={() => setStarters(getBalancedPromptStarters())}
-                    className="text-[11px] text-accent hover:text-accent-hover flex items-center gap-1 cursor-pointer transition-colors"
+                    className="text-[12px] text-accent hover:text-accent-hover flex items-center gap-1 cursor-pointer transition-colors"
                     title="Shuffle suggestions"
                   >
                     <RefreshCw className="w-3 h-3 animate-hover-spin" />
@@ -546,7 +546,7 @@ export function ChatView() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-[12px] font-semibold text-accent uppercase tracking-wider">Matched Local Memory Context</span>
-              <span className="text-[11px] text-text-muted">({pendingContext.facts?.length || 0} facts, {pendingContext.summaries?.length || 0} summaries matched)</span>
+              <span className="text-[12px] text-text-muted">({pendingContext.facts?.length || 0} facts, {pendingContext.summaries?.length || 0} summaries matched)</span>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -558,13 +558,13 @@ export function ChatView() {
                   }
                   send(pendingContext.message || "", model, undefined, "", decision)
                 }}
-                className="px-2.5 py-1 text-[11px] font-semibold rounded bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
+                className="px-2.5 py-1 text-[12px] font-semibold rounded bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
               >
                 Confirm & Send
               </button>
               <button
                 onClick={() => setIsEditingContext(!isEditingContext)}
-                className="px-2.5 py-1 text-[11px] font-medium rounded border border-border bg-surface hover:bg-surface-elevated text-text-secondary transition-colors cursor-pointer"
+                className="px-2.5 py-1 text-[12px] font-medium rounded border border-border bg-surface hover:bg-surface-elevated text-text-secondary transition-colors cursor-pointer"
               >
                 {isEditingContext ? "View List" : "Edit Text"}
               </button>
@@ -575,7 +575,7 @@ export function ChatView() {
                     source: 'preview',
                   })
                 }}
-                className="px-2.5 py-1 text-[11px] font-medium rounded border border-transparent bg-danger/10 hover:bg-danger/20 text-danger transition-colors cursor-pointer"
+                className="px-2.5 py-1 text-[12px] font-medium rounded border border-transparent bg-danger/10 hover:bg-danger/20 text-danger transition-colors cursor-pointer"
               >
                 Disable Memory for This Message
               </button>
@@ -584,7 +584,7 @@ export function ChatView() {
                   if (conversation) resetMemoryPreview(conversation.id)
                   setPendingContext(null)
                 }}
-                className="text-[11px] text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                className="text-[12px] text-text-muted hover:text-text-primary transition-colors cursor-pointer"
                 title="Cancel"
               >
                 Cancel
@@ -639,7 +639,7 @@ export function ChatView() {
                         injectedText
                       })
                     }}
-                    className="text-[10px] text-danger hover:underline cursor-pointer"
+                    className="text-[12px] text-danger hover:underline cursor-pointer"
                   >
                     Remove
                   </button>
@@ -651,13 +651,13 @@ export function ChatView() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleForgetFact(fact.id, fact.text)}
-                      className="text-[10px] text-danger hover:underline cursor-pointer"
+                      className="text-[12px] text-danger hover:underline cursor-pointer"
                     >
                       Forget Fact
                     </button>
                     <button
                       onClick={() => handleRemoveFact(fact.id)}
-                      className="text-[10px] text-text-muted hover:underline cursor-pointer"
+                      className="text-[12px] text-text-muted hover:underline cursor-pointer"
                     >
                       Remove
                     </button>
@@ -777,14 +777,14 @@ function PriorConversationContextSelector({
               if (activeConversation) resetMemoryPreview(activeConversation.id)
               setOpen(false)
             }}
-            className="mt-2 text-[11px] text-text-muted hover:text-text-primary underline underline-offset-2"
+            className="mt-2 text-[12px] text-text-muted hover:text-text-primary underline underline-offset-2"
           >
             Require memory preview before next send
           </button>
         )}
         {includePriorContext && (
           <div className="mt-2 space-y-2">
-            <p className="text-[11.5px] leading-snug text-text-muted">
+            <p className="text-[12px] leading-snug text-text-muted">
               Only selected local conversations are included in the next model request and sent to the Venice API.
               API keys, bearer tokens, and local file paths are redacted; long content is truncated to stay within bounds.
               Conversation history is never included in diagnostics or safe exports.
@@ -796,7 +796,7 @@ function PriorConversationContextSelector({
                   type="button"
                   aria-pressed={selectedIds.includes(item.id)}
                   onClick={() => toggleId(item.id)}
-                  className={`rounded-md border px-2 py-1 text-[11.5px] transition-colors ${
+                  className={`rounded-md border px-2 py-1 text-[12px] transition-colors ${
                     selectedIds.includes(item.id)
                       ? 'border-accent bg-accent/10 text-accent'
                       : 'border-border text-text-secondary hover:text-text-primary'
@@ -807,7 +807,7 @@ function PriorConversationContextSelector({
                 </button>
               ))}
             </div>
-            <div className="text-[11px] text-text-muted">{selectedIds.length} selected</div>
+            <div className="text-[12px] text-text-muted">{selectedIds.length} selected</div>
           </div>
         )}
       </div>
@@ -856,7 +856,7 @@ function ActiveCharacterPill({
         <span className="text-text-primary font-semibold">
           Chatting as <span data-testid="active-character-name">{character.name}</span>
         </span>
-        <span className="text-text-muted text-[11px] font-mono">
+        <span className="text-text-muted text-[12px] font-mono">
           {character.localCharacterId ? "Local character" : `/${character.slug}`}
           {character.modelId ? ` · ${character.modelId}` : ""}
         </span>
@@ -864,7 +864,7 @@ function ActiveCharacterPill({
       <button
         type="button"
         onClick={onClear}
-        className="ml-2 text-[11px] text-text-secondary hover:text-danger transition-colors cursor-pointer"
+        className="ml-2 text-[12px] text-text-secondary hover:text-danger transition-colors cursor-pointer"
         title="Stop chatting as this character"
         data-testid="active-character-clear"
       >

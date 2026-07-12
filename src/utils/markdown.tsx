@@ -28,7 +28,7 @@ export function minimalMarkdown(text: string) {
     
     codeBlocks.push(
       `<div class="code-block-wrapper relative group">` +
-      `<button type="button" class="copy-code-btn absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-[11px] px-1.5 py-0.5 rounded bg-surface-elevated border border-border text-text-secondary hover:text-text-primary" data-code="${encoded}" aria-label="Copy code" title="Copy">⎘</button>` +
+      `<button type="button" class="copy-code-btn absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-[12px] px-1.5 py-0.5 rounded bg-surface-elevated border border-border text-text-secondary hover:text-text-primary" data-code="${encoded}" aria-label="Copy code" title="Copy">⎘</button>` +
       `<pre><code>${escapeHtml(code)}</code></pre></div>`
     );
     return `${token}_${i}`;

@@ -227,7 +227,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-border/50 px-3 py-2">
-          <span className="text-[11px] uppercase tracking-[0.08em] text-text-muted pl-1">Command</span>
+          <span className="text-[12px] uppercase tracking-[0.08em] text-text-muted pl-1">Command</span>
           <input
             autoFocus
             value={query}
@@ -236,11 +236,11 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
             className="flex-1 bg-transparent text-[14px] placeholder:text-text-muted/60 focus:outline-none"
             aria-activedescendant={activeDescendantId}
           />
-          <span className="text-[10px] text-text-muted pr-1">ESC</span>
+          <span className="text-[12px] text-text-muted pr-1">ESC</span>
         </div>
 
         <div ref={listRef} className="max-h-[320px] overflow-auto py-1 text-sm">
-          <div className="px-2 py-1 text-[10px] uppercase tracking-[0.06em] text-text-muted">Tabs (canonical)</div>
+          <div className="px-2 py-1 text-[12px] uppercase tracking-[0.06em] text-text-muted">Tabs (canonical)</div>
           {filteredTabs.length === 0 && (
             <div className="px-3 py-2 text-text-muted/70 text-[12px]">No matching tabs</div>
           )}
@@ -252,11 +252,11 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               className="w-full text-left px-3 py-1.5 hover:bg-background flex items-center gap-2 data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             >
               <span>{t.label}</span>
-              <span className="ml-auto text-[10px] text-text-muted/60">{t.group}</span>
+              <span className="ml-auto text-[12px] text-text-muted/60">{t.group}</span>
             </button>
           ))}
 
-          <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">Projects &amp; Actions</div>
+          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">Projects &amp; Actions</div>
           <button data-command-item onClick={handleNewProject} className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent">
             New Project
           </button>
@@ -284,7 +284,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
               only when the gallery-view has registered its handlers. */}
           {hasMediaHandlers && (
             <div data-testid="command-palette-media-section">
-              <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">
+              <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">
                 Media Studio ({selectionCount} selected)
               </div>
               <button
@@ -364,7 +364,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
           {/* Phase 2D — Prompt Library commands. Always visible so the
               palette can route the user into the library; per-prompt
               actions appear when the user has an active prompt. */}
-          <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">Prompt Library</div>
+          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">Prompt Library</div>
           <button
             data-command-item
             onClick={() => {
@@ -513,7 +513,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
           {/* Phase 2E — Scene Composer commands. Always visible so the
               palette can route the user into the composer; per-scene
               actions appear when the user has scenes saved. */}
-          <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">Scene Composer</div>
+          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">Scene Composer</div>
           <button
             data-command-item
             onClick={() => {
@@ -589,7 +589,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
 
           {/* Phase 2F — RP Studio commands. Always visible so the
               palette can route the user into the RP Studio. */}
-          <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">RP Studio</div>
+          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">RP Studio</div>
           <button
             data-command-item
             onClick={() => {
@@ -674,7 +674,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
 
           {/* Phase 2I — Research Workspace commands. Always visible so the
               palette can route the user into the Research Workspace. */}
-          <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">Research Workspace</div>
+          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">Research Workspace</div>
           <button
             data-command-item
             onClick={() => {
@@ -765,7 +765,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
             Import Research Sessions…
           </button>
 
-          <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">Privacy &amp; Storage</div>
+          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">Privacy &amp; Storage</div>
           <button
             data-command-item
             onClick={() => {
@@ -815,7 +815,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
             Export Safe Privacy Summary
           </button>
 
-          <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">System</div>
+          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">System</div>
           <button
             data-command-item
             onClick={() => {
@@ -828,7 +828,7 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
           </button>
         </div>
 
-        <div className="border-t border-border/50 px-3 py-1.5 text-[10px] text-text-muted/70 flex justify-between">
+        <div className="border-t border-border/50 px-3 py-1.5 text-[12px] text-text-muted/70 flex justify-between">
           <span>⌘K to toggle</span>
           <span>↑↓ to navigate · Enter to choose</span>
         </div>

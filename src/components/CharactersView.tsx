@@ -89,21 +89,21 @@ function CharacterCard({
             </h3>
             {character.adult && (
               <span
-                className="text-[10px] px-1.5 py-0.5 rounded bg-warning/15 text-warning border border-warning/30 font-semibold uppercase tracking-wider"
+                className="text-[12px] px-1.5 py-0.5 rounded bg-warning/15 text-warning border border-warning/30 font-semibold uppercase tracking-wider"
                 title="Adult character"
               >
                 18+
               </span>
             )}
             {character.featured && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/15 text-accent border border-accent/30 font-semibold uppercase tracking-wider">
+              <span className="text-[12px] px-1.5 py-0.5 rounded bg-accent/15 text-accent border border-accent/30 font-semibold uppercase tracking-wider">
                 Featured
               </span>
             )}
           </div>
-          <div className="text-[11.5px] text-text-muted font-mono">/{character.slug}</div>
+          <div className="text-[12px] text-text-muted font-mono">/{character.slug}</div>
           {character.modelId && (
-            <div className="text-[11px] text-text-secondary mt-1">Model: <span className="font-mono">{character.modelId}</span></div>
+            <div className="text-[12px] text-text-secondary mt-1">Model: <span className="font-mono">{character.modelId}</span></div>
           )}
         </div>
       </div>
@@ -117,7 +117,7 @@ function CharacterCard({
           {character.tags.slice(0, 6).map((tag) => (
             <span
               key={tag}
-              className="text-[10.5px] px-2 py-0.5 rounded-full bg-surface border border-border text-text-secondary"
+              className="text-[12px] px-2 py-0.5 rounded-full bg-surface border border-border text-text-secondary"
             >
               {tag}
             </span>
@@ -125,7 +125,7 @@ function CharacterCard({
         </div>
       )}
       {(character.stats?.averageRating !== undefined || character.stats?.imports !== undefined) && (
-        <div className="flex items-center gap-3 text-[11.5px] text-text-muted">
+        <div className="flex items-center gap-3 text-[12px] text-text-muted">
           {character.stats?.averageRating !== undefined && (
             <span title="Average rating">★ {character.stats.averageRating.toFixed(2)}</span>
           )}
@@ -249,7 +249,7 @@ export function CharactersView() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <label className="text-[11.5px] uppercase tracking-wider text-text-muted font-semibold">
+              <label className="text-[12px] uppercase tracking-wider text-text-muted font-semibold">
                 Sort
               </label>
               <select
@@ -274,7 +274,7 @@ export function CharactersView() {
                   </option>
                 ))}
               </select>
-              <label className="text-[11.5px] uppercase tracking-wider text-text-muted font-semibold">
+              <label className="text-[12px] uppercase tracking-wider text-text-muted font-semibold">
                 Model
               </label>
               <select
@@ -346,7 +346,7 @@ export function CharactersView() {
 
         {grouped.standard.length > 0 && (
           <section className="mb-6">
-            <h3 className="text-[11.5px] uppercase tracking-[0.1em] text-text-muted font-semibold mb-3">
+            <h3 className="text-[12px] uppercase tracking-[0.1em] text-text-muted font-semibold mb-3">
               Characters
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -359,7 +359,7 @@ export function CharactersView() {
 
         {grouped.featured.length > 0 && (
           <section className="mb-6">
-            <h3 className="text-[11.5px] uppercase tracking-[0.1em] text-text-muted font-semibold mb-3">
+            <h3 className="text-[12px] uppercase tracking-[0.1em] text-text-muted font-semibold mb-3">
               Featured
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -372,7 +372,7 @@ export function CharactersView() {
 
         {grouped.adult.length > 0 && (
           <section className="mb-6">
-            <h3 className="text-[11.5px] uppercase tracking-[0.1em] text-text-muted font-semibold mb-3">
+            <h3 className="text-[12px] uppercase tracking-[0.1em] text-text-muted font-semibold mb-3">
               Adult
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

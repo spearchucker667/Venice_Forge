@@ -235,7 +235,7 @@ export default function HistoryView() {
                     ) : (
                       <MessageSquare size={13} />
                     )}
-                    <span className="text-[10px] font-bold uppercase tracking-wider truncate max-w-[120px]">
+                    <span className="text-[12px] font-bold uppercase tracking-wider truncate max-w-[120px]">
                       {conv.metadata?.character ? conv.metadata.character.name : conv.model}
                     </span>
                   </div>
@@ -246,7 +246,7 @@ export default function HistoryView() {
                         toggleSelection(conv.id)
                       }}
                       aria-pressed={selectedIds.includes(conv.id)}
-                      className="px-2 py-1.5 text-[11px] text-text-muted hover:text-accent hover:bg-accent/10 rounded-md transition-all cursor-pointer"
+                      className="px-2 py-1.5 text-[12px] text-text-muted hover:text-accent hover:bg-accent/10 rounded-md transition-all cursor-pointer"
                       title={selectedIds.includes(conv.id) ? 'Deselect conversation' : 'Select conversation'}
                     >
                       {selectedIds.includes(conv.id) ? 'Selected' : 'Select'}
@@ -275,7 +275,7 @@ export default function HistoryView() {
                 <div className="flex-1" />
 
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
-                  <div className="flex items-center gap-2.5 text-[11px] text-text-muted">
+                  <div className="flex items-center gap-2.5 text-[12px] text-text-muted">
                     <span className="flex items-center gap-1">
                       <MessageSquare size={11} className="opacity-50" />
                       {conv.messages.length}

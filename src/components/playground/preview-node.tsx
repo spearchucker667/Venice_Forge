@@ -67,11 +67,11 @@ function PreviewNodeComponent({ id, data }: NodeProps<PreviewNode>) {
 
       <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-border/50">
         <span className="text-[13.5px] font-medium text-text-secondary">{schema?.label ?? data.nodeType}</span>
-        {result?.status === 'running' && <span className="ml-auto text-[11px] text-text-muted">Running…</span>}
-        {result?.status === 'done' && <span className="ml-auto text-[11px] text-green-400/50">Done</span>}
-        {result?.status === 'error' && <span className="ml-auto text-[11px] text-red-400/60">Error</span>}
+        {result?.status === 'running' && <span className="ml-auto text-[12px] text-text-muted">Running…</span>}
+        {result?.status === 'done' && <span className="ml-auto text-[12px] text-green-400/50">Done</span>}
+        {result?.status === 'error' && <span className="ml-auto text-[12px] text-red-400/60">Error</span>}
         {!result?.status && meta.length > 0 && (
-          <span className="ml-auto text-[11px] text-text-muted truncate max-w-[140px]" title={meta.join(' · ')}>{meta.join(' · ')}</span>
+          <span className="ml-auto text-[12px] text-text-muted truncate max-w-[140px]" title={meta.join(' · ')}>{meta.join(' · ')}</span>
         )}
       </div>
 

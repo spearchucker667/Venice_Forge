@@ -18,7 +18,7 @@ export function BackgroundTaskCluster() {
   return (
     <div className="flex items-center gap-2">
       {activeTasks.map((task) => (
-        <div key={task.id} className="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-elevated border border-border text-[11px] text-text-secondary">
+        <div key={task.id} className="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-elevated border border-border text-[12px] text-text-secondary">
           <span className="flex h-2 w-2 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>

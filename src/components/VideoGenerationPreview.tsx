@@ -21,7 +21,7 @@ export function VideoGenerationPreview({
             </div>
             {draft.queueId && (
               <div className="text-xs text-text-muted mt-2">
-                Queue ID: <span className="font-mono text-[10px] bg-surface-elevated px-1 py-0.5 rounded">{draft.queueId}</span>
+                Queue ID: <span className="font-mono text-[12px] bg-surface-elevated px-1 py-0.5 rounded">{draft.queueId}</span>
               </div>
             )}
             {draft.status && (

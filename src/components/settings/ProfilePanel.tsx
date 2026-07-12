@@ -153,8 +153,8 @@ export function ProfilePanel() {
             <li key={p.id} className="flex items-center justify-between gap-3 p-3 border border-border rounded bg-surface">
               <div className="min-w-0">
                 <span className="text-[13px] font-medium text-text-primary">
-                  {p.name} {p.id === activeProfileId && <span className="ml-2 text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded">ACTIVE</span>}
-                  {p.hasPassword && <span className="ml-2 text-[10px] bg-warning/15 text-warning px-1.5 py-0.5 rounded">LOCKED</span>}
+                  {p.name} {p.id === activeProfileId && <span className="ml-2 text-[12px] bg-accent/20 text-accent px-1.5 py-0.5 rounded">ACTIVE</span>}
+                  {p.hasPassword && <span className="ml-2 text-[12px] bg-warning/15 text-warning px-1.5 py-0.5 rounded">LOCKED</span>}
                 </span>
               </div>
               <div className="flex flex-wrap justify-end gap-2">

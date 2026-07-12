@@ -233,12 +233,12 @@ export function MemoryManagerModal({ open, onClose }: MemoryManagerModalProps) {
                       </div>
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {mem.tags.map(tag => (
-                          <span key={tag} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-accent/10 text-accent border border-accent/20">
+                          <span key={tag} className="px-1.5 py-0.5 rounded text-[12px] font-medium bg-accent/10 text-accent border border-accent/20">
                             {tag}
                           </span>
                         ))}
-                        {!mem.tags.length && <span className="text-[10px] text-text-muted italic">No tags</span>}
-                        <span className="text-[10px] text-text-muted ml-auto my-auto">{new Date(mem.createdAt).toLocaleString()}</span>
+                        {!mem.tags.length && <span className="text-[12px] text-text-muted italic">No tags</span>}
+                        <span className="text-[12px] text-text-muted ml-auto my-auto">{new Date(mem.createdAt).toLocaleString()}</span>
                       </div>
                     </div>
                   ))

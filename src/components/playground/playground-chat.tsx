@@ -243,7 +243,7 @@ export function PlaygroundChat() {
                 </div>
 
                 {m.activity && m.activity.length > 0 && (
-                  <div className="max-w-[88%] flex flex-col gap-px text-[11.5px] font-mono text-text-muted px-1">
+                  <div className="max-w-[88%] flex flex-col gap-px text-[12px] font-mono text-text-muted px-1">
                     {m.activity.map((a, i) => (
                       <div key={i} className={cn('flex items-center gap-1.5', !a.ok && 'text-rose-300/85')}>
                         <span className="text-text-muted">·</span>
@@ -260,7 +260,7 @@ export function PlaygroundChat() {
                 )}
 
                 {m.patches && m.patches.length > 0 && !m.activity?.length && (
-                  <div className="max-w-[88%] px-3 py-1 text-[11px] text-text-muted font-mono tracking-wide">
+                  <div className="max-w-[88%] px-3 py-1 text-[12px] text-text-muted font-mono tracking-wide">
                     {m.patches.length} patch{m.patches.length === 1 ? '' : 'es'} applied
                   </div>
                 )}

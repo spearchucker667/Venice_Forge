@@ -49,7 +49,7 @@ export function AiResearchTab({
     setter: (n: number) => void
   ) => (
     <div className="flex flex-col gap-1">
-      <label className="text-[11px] text-text-muted">{label}</label>
+      <label className="text-[12px] text-text-muted">{label}</label>
       <input
         type="number"
         min={min}
@@ -178,7 +178,7 @@ export function AiResearchTab({
       {researchEvidenceSources && (
         <div className="rounded-lg bg-surface border border-border p-4 space-y-2">
           <div className="text-[12.5px] font-medium text-text-primary">Retrieved Evidence Sources</div>
-          <pre className="text-[11.5px] text-text-muted whitespace-pre-wrap font-mono">{researchEvidenceSources}</pre>
+          <pre className="text-[12px] text-text-muted whitespace-pre-wrap font-mono">{researchEvidenceSources}</pre>
         </div>
       )}
     </div>

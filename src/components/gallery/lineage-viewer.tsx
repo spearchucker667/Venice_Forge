@@ -183,7 +183,7 @@ export function LineageViewer({
       {chain.hasCycle && (
         <div
           role="alert"
-          className="mb-1.5 rounded-md border border-amber-400/30 bg-amber-500/[0.06] px-2 py-1 text-[11px] text-amber-200/90"
+          className="mb-1.5 rounded-md border border-amber-400/30 bg-amber-500/[0.06] px-2 py-1 text-[12px] text-amber-200/90"
           data-testid="lineage-cycle-warning"
         >
           Cycle detected in the lineage chain — showing a truncated view.
@@ -192,7 +192,7 @@ export function LineageViewer({
       {chain.hasMissing && !chain.hasCycle && (
         <div
           role="alert"
-          className="mb-1.5 rounded-md border border-amber-400/30 bg-amber-500/[0.06] px-2 py-1 text-[11px] text-amber-200/90"
+          className="mb-1.5 rounded-md border border-amber-400/30 bg-amber-500/[0.06] px-2 py-1 text-[12px] text-amber-200/90"
           data-testid="lineage-missing-warning"
         >
           Some lineage references are missing from the loaded set.
@@ -204,7 +204,7 @@ export function LineageViewer({
           {chain.ancestors.map((node, index) => (
             <li
               key={`a-${node.id}-${node.cycle ? "cycle" : node.missing ? "missing" : "item"}-${index}`}
-              className="flex items-center gap-1.5 text-[11.5px]"
+              className="flex items-center gap-1.5 text-[12px]"
               data-testid={`lineage-ancestor-${node.id}`}
               data-missing={node.missing}
               data-cycle={node.cycle}
@@ -229,7 +229,7 @@ export function LineageViewer({
       )}
 
       <div
-        className={`mt-1 flex items-center gap-1.5 rounded-md border border-accent/30 bg-accent/[0.06] px-2 py-1 text-[11.5px] ${
+        className={`mt-1 flex items-center gap-1.5 rounded-md border border-accent/30 bg-accent/[0.06] px-2 py-1 text-[12px] ${
           chain.ancestors.length > 0 ? "ml-3" : ""
         }`}
         data-testid="lineage-focus"
@@ -238,7 +238,7 @@ export function LineageViewer({
         <span className="line-clamp-1 text-text-primary">
           {item.prompt || item.id}
         </span>
-        <span className="ml-auto text-[10.5px] text-text-muted">{item.operation}</span>
+        <span className="ml-auto text-[12px] text-text-muted">{item.operation}</span>
       </div>
 
       {chain.descendants.length > 0 && (
@@ -246,7 +246,7 @@ export function LineageViewer({
           {chain.descendants.map((node, index) => (
             <li
               key={`d-${node.id}-${node.cycle ? "cycle" : node.missing ? "missing" : "item"}-${index}`}
-              className="ml-3 flex items-center gap-1.5 text-[11.5px]"
+              className="ml-3 flex items-center gap-1.5 text-[12px]"
               data-testid={`lineage-descendant-${node.id}`}
               data-missing={node.missing}
               data-cycle={node.cycle}
@@ -266,7 +266,7 @@ export function LineageViewer({
                 </button>
               )}
               {node.item && (
-                <span className="ml-auto text-[10.5px] text-text-muted">
+                <span className="ml-auto text-[12px] text-text-muted">
                   {node.item.operation}
                 </span>
               )}
@@ -276,7 +276,7 @@ export function LineageViewer({
       )}
 
       {chain.ancestors.length === 0 && chain.descendants.length === 0 && (
-        <p className="mt-1 text-[11px] text-text-muted">No lineage recorded.</p>
+        <p className="mt-1 text-[12px] text-text-muted">No lineage recorded.</p>
       )}
     </section>
   );

@@ -20,7 +20,7 @@ export function Chip({ children, tone = "default", className = "" }: ChipProps) 
   const toneClass = toneClasses[tone] || toneClasses.default;
 
   return (
-    <span className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-medium leading-normal border ${toneClass} ${className}`}>
+    <span className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[12px] font-medium leading-normal border ${toneClass} ${className}`}>
       {children}
     </span>
   );
