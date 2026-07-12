@@ -7,6 +7,7 @@
 > Do not use historical paths such as
 > /Users/super_user/Projects/Venice_Forge/. Always run the
 > local-only root bootstrap check below before editing.
+> Always work on `MAIN` branch
 
 ```bash
 EXPECTED_ROOT="/Users/super_user/Projects/Venice_Forge"
