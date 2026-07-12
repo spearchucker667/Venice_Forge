@@ -76,13 +76,18 @@ const tests = [
   "src/components/command-palette/CommandPalette.test.tsx"
 ];
 
+const path = require("node:path");
+const vitestPkg = require.resolve("vitest/package.json");
+const vitestDir = path.dirname(vitestPkg);
+const pkgJson = JSON.parse(readFileSync(vitestPkg, "utf8"));
+const vitestBin = path.resolve(vitestDir, pkgJson.bin.vitest || pkgJson.bin);
+
 console.log("Running Phase 2I unit tests...");
 const result = spawnSync(
-  "npx",
-  ["vitest", "run", ...tests, "--no-file-parallelism"],
+  process.execPath,
+  [vitestBin, "run", ...tests, "--no-file-parallelism"],
   {
-    stdio: "inherit",
-    shell: process.platform === "win32"
+    stdio: "inherit"
   }
 );
 

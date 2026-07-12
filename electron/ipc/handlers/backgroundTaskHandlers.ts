@@ -4,6 +4,7 @@
 
 import { ipcMain, type WebContents } from "electron";
 import type { BackgroundTaskCreateInput, BackgroundTaskIpcEnvelope, BackgroundTaskUpdate } from "../../../src/types/background-task";
+import { isValidTaskType, isValidTaskStatus } from "../../../src/types/background-task";
 import {
   initBackgroundTaskManager,
   createBackgroundTaskInMain,
@@ -82,8 +83,17 @@ export function registerBackgroundTaskHandlers(): void {
         return { ok: false, error: "Invalid task input." };
       }
       const createInput = input as BackgroundTaskCreateInput;
-      if (!createInput.type) {
-        return { ok: false, error: "Task type is required." };
+      if (!isValidTaskType(createInput.type)) {
+        return { ok: false, error: "Invalid task type." };
+      }
+      if (createInput.id && (typeof createInput.id !== 'string' || createInput.id.length > 128)) {
+        return { ok: false, error: "Invalid task ID." };
+      }
+      if (createInput.queueId && typeof createInput.queueId !== 'string') {
+        return { ok: false, error: "Invalid queue ID." };
+      }
+      if (createInput.profileId && typeof createInput.profileId !== 'string') {
+        return { ok: false, error: "Invalid profile ID." };
       }
       const task = await createBackgroundTaskInMain(createInput);
       return { ok: true, task };
@@ -105,7 +115,11 @@ export function registerBackgroundTaskHandlers(): void {
       if (!updates || typeof updates !== "object") {
         return { ok: false, error: "Invalid updates." };
       }
-      const task = await updateBackgroundTaskInMain(taskId, updates as BackgroundTaskUpdate);
+      const updatePayload = updates as BackgroundTaskUpdate;
+      if (updatePayload.status && !isValidTaskStatus(updatePayload.status)) {
+        return { ok: false, error: "Invalid status." };
+      }
+      const task = await updateBackgroundTaskInMain(taskId, updatePayload);
       return { ok: true, task };
     } catch (err: unknown) {
       return { ok: false, error: redactErrorMessage(err) };

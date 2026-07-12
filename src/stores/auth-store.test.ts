@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const bridgeMocks = vi.hoisted(() => ({
   setApiKey: vi.fn(),
   setJinaApiKey: vi.fn(),
+  setProviderApiKey: vi.fn(),
 }));
 
 vi.mock("../services/desktopBridge", () => ({
@@ -20,6 +21,11 @@ vi.mock("../services/desktopBridge", () => ({
     delete: vi.fn(),
     isConfigured: vi.fn(async () => false),
   },
+  desktopProviderApiKey: {
+    set: bridgeMocks.setProviderApiKey,
+    delete: vi.fn(),
+    isConfigured: vi.fn(async () => false),
+  }
 }));
 
 import { desktopApiKey, desktopJinaApiKey } from "../services/desktopBridge";

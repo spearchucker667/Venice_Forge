@@ -1556,7 +1556,7 @@ audit:
         - "Identify the top 20 most common arbitrary values and replace them with standard Tailwind utilities."
         - "Add an ESLint rule (or a custom one) that warns on new arbitrary values unless documented."
       verification:
-        - "Run a regex search for text-\[.*px\] and w-\[.*px\] and verify the count decreases over time."
+        - "Run a regex search for text-\\[.*px\\] and w-\\[.*px\\] and verify the count decreases over time."
       regression_risk: "low"
       depends_on: []
 

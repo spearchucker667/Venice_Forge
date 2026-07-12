@@ -38,6 +38,7 @@ export interface BuildStorageInventoryInput {
   lorebooks?: StorageInventoryRecord[];
   personas?: StorageInventoryRecord[];
   scenarios?: StorageInventoryRecord[];
+  rpChats?: StorageInventoryRecord[];
   workflows?: StorageInventoryRecord[];
   settings?: { veniceApiKey?: string };
   apiKey?: {
@@ -112,7 +113,7 @@ export function buildStorageInventory(input: BuildStorageInventoryInput): Storag
   addStore("workflows", "Workflow Templates", "workflows", input.workflows, "workflowTemplates");
 
   // RP categories
-  const rpCount = (input.characters?.length ?? 0) + (input.lorebooks?.length ?? 0) + (input.personas?.length ?? 0) + (input.scenarios?.length ?? 0);
+  const rpCount = (input.characters?.length ?? 0) + (input.lorebooks?.length ?? 0) + (input.personas?.length ?? 0) + (input.scenarios?.length ?? 0) + (input.rpChats?.length ?? 0);
   stores.push({
     id: "rp",
     label: "RP Studio",

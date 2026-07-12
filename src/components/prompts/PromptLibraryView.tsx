@@ -29,6 +29,7 @@ import { copyText } from "../../stores/media-send-to";
 import { useImageWorkspaceStore } from "../../stores/image-workspace-store";
 import { useChatStore } from "../../stores/chat-store";
 import { PromptCreateModal } from "./PromptCreateModal";
+import { Select } from "../ui/select";
 
 const KIND_OPTIONS: Array<{ value: PromptKind; label: string }> = [
   { value: "image", label: "Image" },
@@ -182,55 +183,51 @@ export function PromptLibraryView() {
             data-testid="prompt-library-search"
           />
           <div className="flex flex-wrap gap-1.5">
-            <select
+            <Select
               value={kindFilter}
-              onChange={(e) => setKindFilter(e.target.value as PromptKind | "all")}
-              className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px]"
+              onChange={(v) => setKindFilter(v as PromptKind | "all")}
+              options={[
+                { value: "all", label: "All kinds" },
+                ...KIND_OPTIONS,
+              ]}
+              className="w-[120px]"
               data-testid="prompt-library-kind-filter"
-            >
-              <option value="all">All kinds</option>
-              {KIND_OPTIONS.map((k) => (
-                <option key={k.value} value={k.value}>
-                  {k.label}
-                </option>
-              ))}
-            </select>
-            <select
+            />
+            <Select
               value={scopeFilter}
-              onChange={(e) => setScopeFilter(e.target.value as PromptScope | "all")}
-              className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px]"
+              onChange={(v) => setScopeFilter(v as PromptScope | "all")}
+              options={[
+                { value: "all", label: "All scopes" },
+                { value: "global", label: "Global" },
+                { value: "project", label: "Project" },
+              ]}
+              className="w-[120px]"
               data-testid="prompt-library-scope-filter"
-            >
-              <option value="all">All scopes</option>
-              <option value="global">Global</option>
-              <option value="project">Project</option>
-            </select>
-            <select
+            />
+            <Select
               value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
-              className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px]"
+              onChange={(v) => setSort(v as SortKey)}
+              options={[
+                { value: "newest", label: "Newest" },
+                { value: "oldest", label: "Oldest" },
+                { value: "title", label: "Title" },
+                { value: "kind", label: "Kind" },
+                { value: "favorite", label: "Favorite" },
+              ]}
+              className="w-[120px]"
               data-testid="prompt-library-sort"
-            >
-              <option value="newest">Newest</option>
-              <option value="oldest">Oldest</option>
-              <option value="title">Title</option>
-              <option value="kind">Kind</option>
-              <option value="favorite">Favorite</option>
-            </select>
+            />
             {allTags.length > 0 && (
-              <select
+              <Select
                 value={tagFilter}
-                onChange={(e) => setTagFilter(e.target.value)}
-                className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px]"
-                data-testid="prompt-library-tag-filter"
-              >
-                <option value="">All tags</option>
-                {allTags.map((t) => (
-                  <option key={t} value={t}>
-                    #{t}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setTagFilter(v)}
+                options={[
+                  { value: "", label: "All tags" },
+                  ...allTags.map((t) => ({ value: t, label: `#${t}` })),
+                ]}
+                searchable
+                className="w-[120px]"
+              />
             )}
             <button
               type="button"
@@ -345,7 +342,6 @@ export function PromptLibraryView() {
               setActivePrompt(replacement);
               toast.success("Prompt deleted");
             }}
-            allTags={allTags}
             onCreateWorkflow={async () => {
               const w = await createWorkflow({
                 title: `Workflow: ${active.title}`,
@@ -378,7 +374,6 @@ export function PromptLibraryView() {
       </section>
       {isCreateModalOpen && (
         <PromptCreateModal
-          allTags={allTags}
           onClose={() => setIsCreateModalOpen(false)}
           onCreate={async (data) => {
             const created = await createPrompt({
@@ -418,11 +413,10 @@ interface PromptDetailProps {
   onArchive: () => Promise<void>;
   onDelete: () => Promise<void>;
   onCreateWorkflow: () => Promise<void>;
-  allTags: string[];
 }
 
 function PromptDetail(props: PromptDetailProps) {
-  const { item, projects, onUpdate, onAddVersion, onSetCurrentVersion, onToggleFavorite, onArchive, onDelete, onCreateWorkflow, allTags } = props;
+  const { item, projects, onUpdate, onAddVersion, onSetCurrentVersion, onToggleFavorite, onArchive, onDelete, onCreateWorkflow } = props;
   const current: PromptVersion =
     item.versions.find((v) => v.id === item.currentVersionId) ??
     item.versions[item.versions.length - 1]!;
@@ -521,18 +515,12 @@ function PromptDetail(props: PromptDetailProps) {
           <span>· Updated {new Date(item.updatedAt).toLocaleString()}</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <select
+          <Select
             value={kind}
-            onChange={(e) => setKind(e.target.value as PromptKind)}
-            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px]"
-            data-testid="prompt-library-kind"
-          >
-            {KIND_OPTIONS.map((k) => (
-              <option key={k.value} value={k.value}>
-                {k.label}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setKind(v as PromptKind)}
+            options={KIND_OPTIONS}
+            className="w-[150px]"
+          />
           <input
             value={tagsInput}
             onChange={(e) => setTagsInput(e.target.value)}

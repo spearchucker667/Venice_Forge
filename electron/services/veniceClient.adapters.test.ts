@@ -14,10 +14,10 @@ vi.mock("https", () => ({
 
 // Mock secureStore to return different keys based on the provider
 vi.mock("./secureStore", () => ({
-  getApiKey: vi.fn((profileId, providerId) => {
+  getApiKey: vi.fn((_profileId, _providerId) => {
     return 'default-venice-key'
   }),
-  getProviderApiKey: vi.fn((providerId, profileId) => {
+  getProviderApiKey: vi.fn((providerId, _profileId) => {
     if (providerId === 'anthropic') return 'test-anthropic-key'
     if (providerId === 'together') return 'test-together-key'
     return null

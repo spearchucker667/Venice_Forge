@@ -1,5 +1,3 @@
-import { ModelCapabilities } from './venice'
-
 export type ProviderId = 
   | 'venice'
   | 'together'

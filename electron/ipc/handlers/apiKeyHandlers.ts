@@ -27,6 +27,7 @@ import { redactErrorMessage } from "../../../src/shared/redaction";
 import { isValidProfileStorageId } from "../../../src/utils/profileIdValidation";
 import type { ApiConnectivityFailureKind, ApiConnectivityStatus } from "../../../src/types/api-connectivity";
 import { registerIpcChannel } from "./common";
+import { PROVIDER_REGISTRY } from "../../../src/types/provider";
 
 /** Parses and validates a profile id for IPC use (storage-valid, including "default"). */
 function parseProfileId(profileId: unknown): string {
@@ -34,6 +35,13 @@ function parseProfileId(profileId: unknown): string {
     throw new Error("Invalid profile id.");
   }
   return profileId;
+}
+
+function parseProviderId(providerId: unknown): string {
+  if (typeof providerId !== "string" || !(providerId in PROVIDER_REGISTRY)) {
+    throw new Error(`Invalid provider ID: ${String(providerId)}`);
+  }
+  return providerId;
 }
 
 /** Parses an optional profile id, returning "default" when omitted. Throws on
@@ -313,20 +321,21 @@ export function registerApiKeyHandlers(): void {
   });
 
   registerIpcChannel("providerApiKey:isConfigured", (_event, payload: unknown) => {
-    const { providerId, profileId } = typeof payload === "object" && payload !== null && "providerId" in payload ? payload as { providerId: string, profileId?: unknown } : { providerId: String(payload), profileId: undefined };
+    const { providerId, profileId } = typeof payload === "object" && payload !== null && "providerId" in payload ? payload as { providerId: unknown, profileId?: unknown } : { providerId: payload, profileId: undefined };
     try {
-      return isProviderApiKeyConfigured(providerId, parseProfileIdOrDefault(profileId));
+      return isProviderApiKeyConfigured(parseProviderId(providerId), parseProfileIdOrDefault(profileId));
     } catch {
       return false;
     }
   });
 
   registerIpcChannel("providerApiKey:set", (_event, payload: unknown) => {
-    const { providerId, key, profileId } = payload as { providerId: string, key: unknown, profileId?: unknown };
+    const { providerId, key, profileId } = payload as { providerId: unknown, key: unknown, profileId?: unknown };
     try {
+      const validProviderId = parseProviderId(providerId);
       const validId = parseProfileIdOrDefault(profileId);
       const trimmed = validateApiKeyInput(key);
-      setProviderApiKey(providerId, trimmed, validId);
+      setProviderApiKey(validProviderId, trimmed, validId);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
@@ -334,9 +343,10 @@ export function registerApiKeyHandlers(): void {
   });
 
   registerIpcChannel("providerApiKey:delete", (_event, payload: unknown) => {
-    const { providerId, profileId } = payload as { providerId: string, profileId?: unknown };
+    const { providerId, profileId } = payload as { providerId: unknown, profileId?: unknown };
     try {
-      deleteProviderApiKey(providerId, parseProfileIdOrDefault(profileId));
+      const validProviderId = parseProviderId(providerId);
+      deleteProviderApiKey(validProviderId, parseProfileIdOrDefault(profileId));
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };

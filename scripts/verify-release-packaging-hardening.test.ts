@@ -138,6 +138,7 @@ function createMinimalValidRepo(prefix: string, opts: { releaseYml?: string } = 
   for (const ic of ["icon.ico", "icon.icns", "icon.png"]) {
     writeFileSync(join(root, "build", ic), "x");
   }
+  writeFileSync(join(root, "LEGAL.md"), "x");
 
   for (const doc of [
     "docs/RELEASE/release.md",

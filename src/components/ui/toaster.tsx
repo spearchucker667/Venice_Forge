@@ -45,7 +45,31 @@ export function Toaster() {
               {t.description && (
                 <div className="text-[12.5px] text-text-secondary mt-0.5 leading-relaxed break-words">{t.description}</div>
               )}
-              {t.action && (
+              {t.progressRatio !== undefined && (
+                <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-border">
+                  <div 
+                    className="h-full bg-accent transition-all duration-300 ease-out" 
+                    style={{ width: `${Math.max(0, Math.min(100, t.progressRatio * 100))}%` }}
+                  />
+                </div>
+              )}
+              {(t.actions && t.actions.length > 0) && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {t.actions.map(action => (
+                    <button
+                      key={action.id}
+                      onClick={() => {
+                        if (action.onClick) action.onClick();
+                        if (action.kind === 'dismiss') dismiss(t.id);
+                      }}
+                      className="rounded bg-surface-base px-2 py-1 text-xs font-medium text-text-primary hover:bg-surface-elevated hover:text-text-primary transition-colors border border-border"
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {t.action && !t.actions && (
                 <button
                   onClick={() => { t.action?.onClick(); dismiss(t.id) }}
                   className="mt-1.5 text-[12.5px] font-medium text-text-secondary hover:text-text-primary underline underline-offset-2"

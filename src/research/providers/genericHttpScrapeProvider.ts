@@ -51,6 +51,7 @@ export function isSafeUrl(url: string): boolean {
   // Block localhost and local/internal names
   if (
     hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
     hostname.endsWith(".local") ||
     hostname.endsWith(".internal")
   ) {

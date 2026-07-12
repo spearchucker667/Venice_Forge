@@ -79,7 +79,8 @@ describe("PromptLibraryView (VERIFY-046)", () => {
       await usePromptLibraryStore.getState().updatePrompt(ids[1]!, { kind: "chat" });
       await usePromptLibraryStore.getState().updatePrompt(ids[2]!, { kind: "general" });
     });
-    fireEvent.change(screen.getByTestId("prompt-library-kind-filter"), { target: { value: "chat" } });
+    fireEvent.click(screen.getByTestId("prompt-library-kind-filter"));
+    fireEvent.click(screen.getByRole("option", { name: "Chat" }));
     const list = screen.getByTestId("prompt-library-list");
     const items = within(list).getAllByRole("button");
     // Only the chat item should remain.
@@ -183,7 +184,8 @@ describe("PromptLibraryView (VERIFY-046)", () => {
     await usePromptLibraryStore.getState().createPrompt({ title: "P1", kind: "general", content: "c", scope: "project", projectId: "p-1" });
     await usePromptLibraryStore.getState().createPrompt({ title: "P2", kind: "general", content: "c", scope: "project", projectId: "p-2" });
     render(<PromptLibraryView />);
-    fireEvent.change(screen.getByTestId("prompt-library-scope-filter"), { target: { value: "project" } });
+    fireEvent.click(screen.getByTestId("prompt-library-scope-filter"));
+    fireEvent.click(screen.getByRole("option", { name: "Project" }));
     const list = screen.getByTestId("prompt-library-list");
     const items = within(list).getAllByRole("button");
     expect(items).toHaveLength(1);
@@ -194,7 +196,8 @@ describe("PromptLibraryView (VERIFY-046)", () => {
     await usePromptLibraryStore.getState().createPrompt({ title: "Beta", kind: "image", content: "x", scope: "global" });
     await usePromptLibraryStore.getState().createPrompt({ title: "Alpha", kind: "image", content: "x", scope: "global" });
     render(<PromptLibraryView />);
-    fireEvent.change(screen.getByTestId("prompt-library-sort"), { target: { value: "title" } });
+    fireEvent.click(screen.getByTestId("prompt-library-sort"));
+    fireEvent.click(screen.getByRole("option", { name: "Title" }));
     const list = screen.getByTestId("prompt-library-list");
     const items = within(list).getAllByRole("button");
     expect(items[0]?.textContent).toMatch(/Alpha/);
@@ -259,7 +262,8 @@ describe("PromptLibraryView (VERIFY-046)", () => {
     usePromptLibraryStore.setState({ activePromptId: b.id });
     render(<PromptLibraryView />);
 
-    fireEvent.change(screen.getByTestId("prompt-library-kind-filter"), { target: { value: "image" } });
+    fireEvent.click(screen.getByTestId("prompt-library-kind-filter"));
+    fireEvent.click(screen.getByRole("option", { name: "Image" }));
     await flush();
 
     expect(usePromptLibraryStore.getState().activePromptId).toBe(a.id);

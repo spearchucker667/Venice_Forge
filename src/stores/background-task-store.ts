@@ -6,6 +6,7 @@ import { MUSIC_SAFE_ERROR_MESSAGES, toUserFacingMusicError, toUserFacingVideoErr
 import { normalizeVideoRetrieveResult } from '../services/video-retrieve-normalizer'
 import type { BackgroundTask, BackgroundTaskCreateInput, BackgroundTaskIpcEnvelope, BackgroundTaskStatus } from '../types/background-task'
 import type { MusicRetrieveResponse } from '../types/venice'
+import { getActiveProfileId } from '../services/activeProfile'
 
 const POLL_INTERVAL_MS = 3000
 const MAX_ATTEMPTS = 200
@@ -40,14 +41,21 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
 
   applyEnvelope: (envelope) => {
     set((state) => {
+      const currentProfileId = getActiveProfileId()
       if (envelope.kind === 'snapshot' && envelope.tasks) {
-        const tasks = Object.fromEntries(envelope.tasks.map((t) => [t.id, t]))
+        const tasks = Object.fromEntries(
+          envelope.tasks
+            .filter((t) => t.profileId === currentProfileId)
+            .map((t) => [t.id, t])
+        )
         return { tasks }
       }
       if (envelope.kind === 'created' || envelope.kind === 'updated') {
         const updates: Record<string, BackgroundTask> = { ...state.tasks }
         for (const task of envelope.tasks ?? []) {
-          updates[task.id] = task
+          if (task.profileId === currentProfileId) {
+            updates[task.id] = task
+          }
         }
         return { tasks: updates }
       }
@@ -87,6 +95,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
       queueId,
       createdAt: now,
       updatedAt: now,
+      profileId: getActiveProfileId(),
       metadata
     }
     set((state) => ({ tasks: { ...state.tasks, [taskId]: localTask } }))
@@ -97,6 +106,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
         id: taskId,
         type,
         queueId,
+        profileId: getActiveProfileId(),
         metadata,
       }
       void desktopBackgroundTask.create(input)

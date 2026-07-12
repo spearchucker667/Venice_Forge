@@ -3,12 +3,17 @@ import { venice } from '../lib/venice-client'
 import type { ModelsResponse, VeniceModel, VideoConstraints } from '../types/venice'
 import { getEnabledProviderModels } from '../config/provider-models'
 
+import { useSettingsStore } from '../stores/settings-store'
+
 export function useModels(type?: string) {
+  const enabledProviders = useSettingsStore(s => s.enabledProviders)
+  const normalizedType = type === 'chat' ? 'text' : type === 'embeddings' ? 'embedding' : type;
+
   return useQuery({
-    queryKey: ['models', type],
+    queryKey: ['models', type, enabledProviders],
     queryFn: () =>
       venice<ModelsResponse>(
-        `/models${type ? `?type=${type}` : ''}`,
+        `/models${normalizedType ? `?type=${normalizedType}` : ''}`,
         { noAuth: true },
       ),
     staleTime: 5 * 60 * 1000,
@@ -16,10 +21,9 @@ export function useModels(type?: string) {
       const liveModels = data.data
         .filter((m) => !m.model_spec?.offline)
 
-      const fallbackModels = getEnabledProviderModels(type)
+      const fallbackModels = getEnabledProviderModels(normalizedType)
       
       return [...liveModels, ...fallbackModels]
-        .filter(m => !type || (type === 'image' && m.owned_by !== 'anthropic') || (type === 'chat' && !m.id.includes('FLUX')))
         .sort((a, b) => a.id.localeCompare(b.id))
     },
   })

@@ -5,7 +5,6 @@ import { AccessibleDialog } from '../ui/AccessibleDialog';
 
 interface Props {
   onClose: () => void;
-  allTags: string[];
   onCreate: (data: {
     title: string;
     kind: PromptKind;
@@ -29,7 +28,7 @@ const KIND_OPTIONS: Array<{ value: PromptKind; label: string }> = [
   { value: 'general', label: 'General' },
 ];
 
-export function PromptCreateModal({ onClose, onCreate, allTags }: Props) {
+export function PromptCreateModal({ onClose, onCreate }: Props) {
   const projects = useProjectStore((s) => s.projects);
   const [title, setTitle] = useState('');
   const [kind, setKind] = useState<PromptKind>('general');

@@ -114,10 +114,12 @@ export function getEnabledProviderModels(type?: string): VeniceModel[] {
   const enabledProviders = useSettingsStore.getState().enabledProviders
   const models: VeniceModel[] = []
 
+  const normalizedType = type === 'chat' ? 'text' : type === 'embeddings' ? 'embedding' : type;
+
   for (const [providerId, modelsForProvider] of Object.entries(FALLBACK_MODELS)) {
     if (enabledProviders[providerId]) {
       for (const m of modelsForProvider) {
-        if (!type || m._type === type) {
+        if (!normalizedType || m._type === normalizedType) {
           models.push(m)
         }
       }

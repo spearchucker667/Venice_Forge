@@ -12,6 +12,13 @@ vi.mock("../services/storageService", () => ({
   },
 }));
 
+vi.mock("../stores/toast-store", () => ({
+  toast: {
+    error: vi.fn(),
+  },
+}));
+import { toast } from "../stores/toast-store";
+
 const mockSaveItem = vi.mocked(StorageService.saveItem);
 
 describe("useSettingsPersistence", () => {
@@ -103,15 +110,7 @@ describe("useSettingsPersistence", () => {
     vi.advanceTimersByTime(600);
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "ADD_TOAST",
-        toast: expect.objectContaining({
-          type: "error",
-          message: "Failed to save settings to local storage.",
-        }),
-      })
-    );
+    expect(toast.error).toHaveBeenCalledWith("Failed to save settings to local storage.");
   });
 
   it("cancels pending save on unmount", () => {

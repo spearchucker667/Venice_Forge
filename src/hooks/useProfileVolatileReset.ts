@@ -38,6 +38,7 @@ import { useImageWorkspaceStore } from "../stores/image-workspace-store";
 import { useInspectorStore } from "../stores/inspector-store";
 import { useChatStore } from "../stores/chat-store";
 import { useWorkflowTemplateStore } from "../stores/workflow-template-store";
+import { useBackgroundTaskStore } from "../stores/background-task-store";
 
 /**
  * Reset every volatile in-memory cache that stores cross-profile data.
@@ -65,6 +66,11 @@ export function resetVolatileProfileState(): void {
   }
   try {
     useWorkflowTemplateStore.getState().setActiveWorkflow(null);
+  } catch {
+    /* store not yet initialised — ignore */
+  }
+  try {
+    useBackgroundTaskStore.setState({ tasks: {} });
   } catch {
     /* store not yet initialised — ignore */
   }

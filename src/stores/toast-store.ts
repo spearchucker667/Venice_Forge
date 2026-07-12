@@ -65,7 +65,7 @@ export const useToastStore = create<ToastState>((set) => ({
     set((s) => {
       const now = Date.now()
       const existing = s.toasts.find(x => x.dedupeKey === dedupeKey)
-      const { duration, ...toastProps } = t
+      const { duration: _duration, ...toastProps } = t
       if (existing) {
         returnId = existing.id
         return {

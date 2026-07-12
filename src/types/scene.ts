@@ -162,10 +162,10 @@ const MAX_TAG_LEN = 64;
 const MAX_TITLE_LEN = 200;
 const MAX_DESCRIPTION_LEN = 2_000;
 const MAX_VERSIONS = 200;
-const MAX_COMPONENTS = 128;
-const MAX_MEDIA_REFS = 64;
-const MAX_PROMPT_REFS = 64;
-const MAX_OUTPUT_MEDIA = 512;
+const MAX_COMPONENTS = 1000;
+const MAX_MEDIA_REFS = 1000;
+const MAX_PROMPT_REFS = 1000;
+const MAX_OUTPUT_MEDIA = 1000;
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -233,6 +233,11 @@ function redactSecrets(content: string): string {
     .replace(/(Authorization\s*:\s*)(Bearer|Token|Basic)\s+[A-Za-z0-9_.\-+/=]+/gi, "$1$2 [REDACTED]");
 }
 
+function hasUnauthorizedScheme(content: string): boolean {
+  if (typeof content !== "string" || content.length === 0) return false;
+  return /\b(?:javascript|data|vbscript|file):/i.test(content);
+}
+
 // ---------------------------------------------------------------------------
 // Sanitizers
 // ---------------------------------------------------------------------------
@@ -255,6 +260,7 @@ export function sanitizeSceneComponent(
   const rawContent = asString(input.content, "");
   if (!rawContent.trim()) return null;
   if (rawContent.length > MAX_TEXT) return null;
+  if (hasUnauthorizedScheme(rawContent)) return null;
   const content = redactSecrets(rawContent);
   const weightRaw = asNumber(input.weight, -1);
   const weight = weightRaw >= 0 ? weightRaw : undefined;

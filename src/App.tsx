@@ -41,7 +41,7 @@ export function isShortcutTargetEditable(event: KeyboardEvent): boolean {
 // them. Each lazy wrapper preserves the existing React.lazy / Suspense
 // fallback contract used by Workflows / Playground / RP Studio (P2-008).
 
-const LazyWorkflowsView = lazy(() => import('./components/workflows/workflows-view').then((m) => ({ default: m.WorkflowsView })))
+const LazyWorkflowsView = lazy(() => import('./components/workflows/WorkflowTemplatesView').then((m) => ({ default: m.WorkflowTemplatesView })))
 function WorkflowsViewLazy() {
   return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading workflows…</div>}><LazyWorkflowsView /></Suspense>
 }

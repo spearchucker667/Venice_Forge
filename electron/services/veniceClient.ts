@@ -256,6 +256,7 @@ export function parseSseLines(
   buffer: string,
   onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void,
   onMalformed?: (rawData: string) => void,
+  customExtractStreamDelta?: (data: string) => StreamDelta,
 ): SseParseResult {
   const lines = buffer.split(/\r?\n/);
   const tail = lines.pop() ?? "";
@@ -270,7 +271,8 @@ export function parseSseLines(
     if (dataLines.length === 0) return;
     const data = dataLines.join("\n");
     dataLines = [];
-    const delta = extractStreamDelta(data);
+    const extractFn = customExtractStreamDelta || extractStreamDelta;
+    const delta = extractFn(data);
     if (delta.malformed) {
       malformedFrameCount++;
       if (malformedSamples.length < 5) {
@@ -339,12 +341,12 @@ export function abortVeniceRequest(signalId: string): { ok: boolean } {
  */
 export async function performVeniceRequest(
   rawRequest: unknown,
-  options: { profileId?: string; onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void } = {}
+  options: { profileId?: string; onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void; body?: unknown } = {}
 ): Promise<VeniceIpcResponse> {
   const request = validateVeniceIpcRequest(rawRequest);
 
   // Check if this request should be routed to a fallback provider
-  const fallbackRouteResult = resolveProviderRoute(request, options.profileId);
+  const fallbackRouteResult = resolveProviderRoute(request as unknown as Record<string, unknown>, options.profileId);
   if (fallbackRouteResult && fallbackRouteResult.error) {
     return {
       ok: false,
@@ -384,9 +386,9 @@ export async function performVeniceRequest(
         bodyText = body;
         contentTypeOverride = `multipart/form-data; boundary=${boundary}`;
       } else {
-        const bodyObj = request.body && typeof request.body === 'object' ? request.body as Record<string, any> : null;
+        const bodyObj = request.body && typeof request.body === 'object' ? request.body as Record<string, unknown> : null;
         const requestBody = route && route.transformBody && bodyObj && typeof bodyObj.model === 'string'
-            ? route.transformBody(request.body, bodyObj.model.split(':').slice(1).join(':')) 
+            ? route.transformBody(bodyObj, bodyObj.model.split(':').slice(1).join(':')) 
             : request.body;
         bodyText = requestBody === undefined ? undefined : JSON.stringify(requestBody);
       }
@@ -438,11 +440,16 @@ export async function performVeniceRequest(
 
           if (options.onDelta && contentType.includes("event-stream") && res.statusCode && res.statusCode < 400) {
             sseBuffer += chunk.toString("utf-8");
-            const parsed = parseSseLines(sseBuffer, options.onDelta, (raw) => {
-              // SECURITY: redact any leaked secret-like values before logging.
-              const redacted = redactErrorMessage(raw);
-              logError("Malformed SSE frame from Venice upstream", { raw: redacted });
-            });
+            const parsed = parseSseLines(
+              sseBuffer, 
+              options.onDelta, 
+              (raw) => {
+                // SECURITY: redact any leaked secret-like values before logging.
+                const redacted = redactErrorMessage(raw);
+                logError("Malformed SSE frame from Venice upstream", { raw: redacted });
+              },
+              route?.extractStreamDelta
+            );
             sseBuffer = parsed.buffer;
             streamText += parsed.text;
           } else {
@@ -455,14 +462,18 @@ export async function performVeniceRequest(
             const parsed = parseSseLines(`${sseBuffer}\n`, options.onDelta, (raw) => {
               const redacted = redactErrorMessage(raw);
               logError("Malformed SSE frame from Venice upstream (tail)", { raw: redacted });
-            });
+            }, route?.extractStreamDelta);
             streamText += parsed.text;
           }
           const buffer = Buffer.concat(chunks);
-          const body =
+          let body =
             options.onDelta && contentType.includes("event-stream") && res.statusCode && res.statusCode < 400
               ? { text: streamText }
               : parseBody(buffer, contentType);
+              
+          if (route?.transformResponse && typeof body === 'object' && body !== null) {
+            body = route.transformResponse(body);
+          }
           resolve({
             ok: !!res.statusCode && res.statusCode >= 200 && res.statusCode < 300,
             status: res.statusCode || 0,

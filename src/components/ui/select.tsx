@@ -12,9 +12,10 @@ interface SelectProps {
   id?: string
   ariaLabel?: string
   labelledBy?: string
+  "data-testid"?: string
 }
 
-export function Select({ value, onChange, options, placeholder = 'Select...', searchable = false, className, id, ariaLabel, labelledBy }: SelectProps) {
+export function Select({ value, onChange, options, placeholder = 'Select...', searchable = false, className, id, ariaLabel, labelledBy, "data-testid": dataTestId }: SelectProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [highlightedIndex, setHighlightedIndex] = useState(0)
@@ -139,6 +140,7 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
         aria-activedescendant={open && !searchable && filtered[highlightedIndex] ? `${listboxId}-opt-${highlightedIndex}` : undefined}
         aria-label={ariaLabel}
         aria-labelledby={labelledBy}
+        data-testid={dataTestId}
         className={cn(
           'mesh-input w-full flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-[15px] hover:border-text-muted outline-none cursor-pointer',
           open && 'border-accent',
@@ -154,10 +156,6 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
       {open && rect && createPortal(
         <div
           style={{ position: 'fixed', top: rect.bottom + 4, left: rect.left, width: rect.width }}
-          id={listboxId}
-          role="listbox"
-          aria-labelledby={triggerId}
-          tabIndex={-1}
           className="mesh-panel absolute z-50 w-full mt-0.5 rounded-lg animate-scale-in overflow-hidden"
         >
           {searchable && (
@@ -166,6 +164,7 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
                 ref={inputRef}
                 role="combobox"
                 aria-expanded={open}
+                aria-autocomplete="list"
                 aria-controls={listboxId}
                 aria-activedescendant={filtered[highlightedIndex] ? `${listboxId}-opt-${highlightedIndex}` : undefined}
                 value={search}
@@ -175,7 +174,7 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
               />
             </div>
           )}
-          <div ref={listRef} className="max-h-60 overflow-y-auto p-0.5">
+          <div ref={listRef} id={listboxId} role="listbox" aria-labelledby={triggerId} tabIndex={-1} className="max-h-60 overflow-y-auto p-0.5">
             {filtered.length === 0 ? (
               <div className="px-2.5 py-2.5 text-[14px] text-text-muted text-center">No results</div>
             ) : (

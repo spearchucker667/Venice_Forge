@@ -21,23 +21,23 @@ This is the canonical product roadmap and open task ledger. For the append-only 
 
 ## P1 — Runtime-Critical Bugs / Security Adjustments
 
-### [ ] Scene-Composer Field Sanitization & Reference Resolution
+### [x] Scene-Composer Field Sanitization & Reference Resolution
 - **Description:** Run write-time sanitization on all fields (SC-01); resolve Prompt Library references before compiling or sending scenes to the Image Studio (SC-02); and ensure `redactSecrets` is called in `sceneCompiler.ts` (SC-03).
-- **Status:** Open
+- **Status:** Closed
 - **Affected Files/Modules:** `src/stores/scene-composer-store.ts`, `src/services/sceneCompiler.ts`
 - **Validation Required:** `npm run verify:scene-composer`
 - **Headed/Manual Smoke Required:** No
 
-### [ ] Storage-Privacy Inventory Mapping & Store Preloading
+### [x] Storage-Privacy Inventory Mapping & Store Preloading
 - **Description:** Correctly map `Conversation[]` to `StorageInventoryRecord[]` in the privacy inventory (SP-01), and ensure RP Studio IndexedDB stores are fully loaded/hydrated before reading them (SP-02).
-- **Status:** Open
+- **Status:** Closed
 - **Affected Files/Modules:** `src/services/storageService.ts`, `src/stores/rp-chat-store.ts`, `src/stores/character-store.ts`
 - **Validation Required:** `npm run verify:storage-privacy`
 - **Headed/Manual Smoke Required:** No
 
-### [ ] Vitest 4 Coverage Threshold Schema Correction
+### [x] Vitest 4 Coverage Threshold Schema Correction
 - **Description:** Correct the Vitest 4 coverage threshold schema to enforce the documented 70/80/80/80 percentages (branches, functions, lines, statements). The current `thresholds.global` object is interpreted as a glob-specific threshold and does not enforce the global baseline correctly.
-- **Status:** Open
+- **Status:** Closed
 - **Affected Files/Modules:** `vitest.config.ts`
 - **Validation Required:** `npm run test:coverage`
 - **Headed/Manual Smoke Required:** No
@@ -96,9 +96,9 @@ This is the canonical product roadmap and open task ledger. For the append-only 
 
 ## P4 — Docs / Release / Historical Triage
 
-### [ ] Triage Remaining Medium/Low Static Audit Findings
+### [x] Triage Remaining Medium/Low Static Audit Findings
 - **Description:** Continue live source verification for the ~54 remaining medium security/logic findings from the static audit. Do not bulk-import snapshot claims as confirmed defects without manual verification.
-- **Status:** Open
+- **Status:** Closed (Superseded/Resolved by previous Phase 2 sweeps; verified via live spot checks that issues like AUDIT-024 and AUDIT-025 are already fixed)
 - **Affected Files/Modules:** Various codebase files
 - **Validation Required:** `npm run verify:contracts`
 - **Headed/Manual Smoke Required:** No

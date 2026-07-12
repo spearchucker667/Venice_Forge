@@ -1,8 +1,18 @@
 import React, { useState } from 'react'
 import { useAuthStore } from '../../stores/auth-store'
 import { useSettingsStore } from '../../stores/settings-store'
-import { PROVIDER_REGISTRY } from '../../types/provider'
+import { PROVIDER_REGISTRY, type ProviderId } from '../../types/provider'
 import { PrimaryButton } from '../ui/shared'
+
+export function resolveFeatureAvailability(providerId: string, feature: string): boolean {
+  if (providerId === 'venice') return true
+  const def = PROVIDER_REGISTRY[providerId as ProviderId]
+  if (!def) return false
+  return (def.supportedTypes as string[]).includes(feature)
+}
+
+const ALL_FEATURES = ['chat', 'image', 'video', 'audio', 'embeddings', 'vision'] as const
+
 
 export function ProvidersPanel() {
   const { configuredProviders, setProviderApiKey, clearProviderApiKey } = useAuthStore()
@@ -88,6 +98,16 @@ export function ProvidersPanel() {
                 <div>
                   <h3 className="font-medium">{provider.label}</h3>
                   <p className="text-xs text-[var(--color-text-secondary)] mt-1">{provider.description}</p>
+                  <div className="flex gap-1 mt-2 flex-wrap">
+                    {ALL_FEATURES.map(f => {
+                      const isAvailable = resolveFeatureAvailability(provider.id, f)
+                      return (
+                        <span key={f} className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider ${isAvailable ? 'bg-[var(--color-bg-hover)] text-[var(--color-text-primary)]' : 'bg-transparent text-[var(--color-text-muted)] opacity-50 line-through'}`}>
+                          {f}
+                        </span>
+                      )
+                    })}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium text-[var(--color-text-secondary)]">
@@ -99,14 +119,14 @@ export function ProvidersPanel() {
                     aria-checked={isEnabled}
                     onClick={() => handleToggleEnable(provider.id, !isEnabled)}
                     disabled={!isConfigured}
-                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75 ${
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75 /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */ ${
                       isEnabled ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-bg-tertiary)]'
                     } ${!isConfigured ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <span className="sr-only">Enable {provider.label}</span>
                     <span
                       aria-hidden="true"
-                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */ ${
                         isEnabled ? 'translate-x-4' : 'translate-x-0'
                       }`}
                     />

@@ -12,7 +12,8 @@ describe('PromptCreateModal accessibility', () => {
 
   it('labels fields, starts on title, and preserves multi-word comma-separated tags', async () => {
     const onCreate = vi.fn(async () => undefined)
-    render(<PromptCreateModal onClose={vi.fn()} onCreate={onCreate} allTags={[]} />)
+    const onClose = vi.fn()
+    render(<PromptCreateModal onClose={onClose} onCreate={onCreate} />)
 
     expect(screen.getByRole('dialog', { name: 'Create New Prompt' })).toHaveAttribute('aria-modal', 'true')
     expect(screen.getByLabelText('Title *')).toHaveFocus()

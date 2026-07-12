@@ -34,6 +34,13 @@ async function main() {
   if (fs.existsSync(staleSrc)) {
     fs.rmSync(staleSrc, { recursive: true, force: true });
   }
+  
+  // Clear stale release artifacts before packaging (REL-001)
+  const releaseDir = path.join(root, "release");
+  if (fs.existsSync(releaseDir)) {
+    fs.rmSync(releaseDir, { recursive: true, force: true });
+  }
+  
   fs.mkdirSync(outdir, { recursive: true });
 
   await Promise.all([

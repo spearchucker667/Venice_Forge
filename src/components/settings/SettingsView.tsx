@@ -401,6 +401,8 @@ export function SettingsView() {
             />
           )}
 
+          {activeSection === "providers" && <ProvidersPanel />}
+
           {activeSection === "defaults" && (
             <DefaultsPanel
               currentChatModel={currentChatModel}

@@ -11,6 +11,7 @@ import { useSceneComposerStore } from "./scene-composer-store";
 import { useMediaStore } from "./media-store";
 import { useWorkflowTemplateStore } from "./workflow-template-store";
 import { useScenarioStore } from "./scenario-store";
+import { useRpChatStore } from "./rp-chat-store";
 import { useCharacterCardStore } from "./character-card-store";
 import { usePersonaStore } from "./persona-store";
 import * as logger from "../shared/logger";
@@ -102,6 +103,7 @@ export const useStoragePrivacyStore = create<StoragePrivacyState>((set, get) => 
         useLorebookStore.getState().load?.() || Promise.resolve(),
         usePersonaStore.getState().load?.() || Promise.resolve(),
         useScenarioStore.getState().load?.() || Promise.resolve(),
+        useRpChatStore.getState().load?.() || Promise.resolve(),
       ]);
 
       const [cacheInventory] = await Promise.all([
@@ -132,6 +134,7 @@ export const useStoragePrivacyStore = create<StoragePrivacyState>((set, get) => 
         lorebooks: useLorebookStore.getState().lorebooks.map(mapLorebookToStorageRecord),
         personas: usePersonaStore.getState().personas.map(mapPersonaToStorageRecord),
         scenarios: useScenarioStore.getState().scenarios.map(mapScenarioToStorageRecord),
+        rpChats: useRpChatStore.getState().chats.map((c) => ({ id: c.id, projectId: null, archivedAt: c.metadata?.archived ? 1 : null })),
         apiKey: {
           configured: veniceConfigured,
           storage: isElectron() ? "secure-storage" : "web-environment",

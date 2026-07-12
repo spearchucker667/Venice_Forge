@@ -118,6 +118,7 @@ const requiredFiles = [
   "docs/DEVELOPMENT/platform-support.md",
   "docs/DEVELOPMENT/troubleshooting.md",
   "AGENTS.md",
+  "LEGAL.md",
 ];
 for (const f of requiredFiles) checkFile(f);
 

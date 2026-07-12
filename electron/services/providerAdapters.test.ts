@@ -1,11 +1,11 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { resolveProviderRoute, providerAdapters } from './providerAdapters'
+import { resolveProviderRoute } from './providerAdapters'
 import { getProviderApiKey } from './secureStore'
 
 // Mock getProviderApiKey to return a fake key for testing
 vi.mock('./secureStore', () => ({
-  getProviderApiKey: vi.fn((providerId, profileId) => {
+  getProviderApiKey: vi.fn((providerId, _profileId) => {
     if (providerId === 'together') return 'fake-together-key'
     if (providerId === 'groq') return 'fake-groq-key'
     if (providerId === 'anthropic') return 'fake-anthropic-key'

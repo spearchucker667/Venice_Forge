@@ -12,17 +12,30 @@
 
 ### Latest Session Summary
 **Date:** 2026-07-12
-**Task:** Venice Forge Multi-Provider Fallback (Phases 5-9)
+**Task:** Triage Static Audit Findings, Research Fixes, and UI Hardening (Recovery & CI Polish)
 
 **Summary of Changes:**
-- **Phase 5 (Capability Catalog):** Implemented `src/config/provider-models.ts` with a hardcoded catalog of fallback models mapped to their respective providers. Merged this with Venice models in the `useModels` hook (`src/hooks/use-models.ts`). The static `ModelCapabilities` properties in these fallback models seamlessly integrate with the existing UI capability gating logic (`modelSupportsVision`, `supportsFunctionCalling`).
-- **Phases 6-8 (Adapter Implementation & Routing):** Created `electron/services/providerAdapters.ts` with adapters for `together`, `groq`, `anthropic`, and `mistral`, allowing dynamic translation of endpoints and payloads (e.g. Anthropic's message format). Updated `electron/services/veniceClient.ts`'s `performVeniceRequest` to detect provider fallback models (via their `providerId:modelName` syntax), extract the proper API key using the enhanced `secureStore.ts`, and dynamically reroute the `hostname`, `path`, `headers`, and `body`.
-- **Phase 9 (Validation):** Implemented end-to-end integration test mocks in `electron/services/providerAdapters.test.ts` and `electron/services/veniceClient.adapters.test.ts` to ensure multi-provider payloads transform successfully and headers are accurately swapped. Confirmed full passage of test suite without regressions.
+- **UI Hardening Recovery:** Recovered 150 lines of uncommitted UI feature work for `WorkflowTemplatesView.tsx` (version controls, import/export, run action previews) that were lost to an errant `git checkout` by restoring the file from raw tool_call payloads in the underlying system transcript logs.
+- **CI Fixes (WorkflowTemplatesView):** Resolved the `verify:no-native-dialogs` failure by wiring up `ConfirmModal` for workflow deletion instead of `confirm()`. Addressed the `verify:theme-tokens` failure by replacing hardcoded Tailwind utility colors (e.g. `text-white`, `bg-black/20`) with strict Venice semantic tokens (`text-text-primary`, `bg-surface`, `border-border`).
+- **Research Subsystem Fixes:** Resolved local Vitest resolution for `verify:research-workspace` (R-01) by properly resolving the local `vitest` bin. Added SSRF protection for `.localhost` in `src/research/providers/genericHttpScrapeProvider.ts` (R-02).
+- **Static Audit Triage:** Cross-referenced the ~54 remaining medium/low security findings from the historical static audit report and verified they were already resolved or superseded by recent architecture sweeps.
 
 **Validation:**
-- `npm run typecheck` passes cleanly.
-- `npm run test:electron` passes successfully (594 tests).
-- `npm run test:ui` passes successfully (269 tests).
+- `npm run ci` passes successfully, specifically validating `verify:no-native-dialogs`, `verify:theme-tokens`, and `test:workflow:ui` without regressions.
+
+- **2026-07-12 Triage Static Audit Findings, Research Fixes, and UI Hardening (current session)**
+  - Recovered uncommitted WorkflowTemplatesView UI controls from the system transcript and implemented them correctly.
+  - Replaced native `confirm()` with `ConfirmModal` and fixed raw token classes (`text-white`) to semantic tokens, resolving CI failures.
+  - Resolved `ROADMAP.md` items R-01 (vitest resolution) and R-02 (`.localhost` blocking).
+  - Triaged the remaining ~54 medium/low static audit findings.
+  - Cleared all ESLint warnings and test fixture errors to ensure `npm run ci` remains green.
+
+- **2026-07-12 Final CI/Build Pass, Provider Normalization, & UI Fixes (current session)**
+  - Addressed multi-provider fallback requirements by normalizing payload transformations and extracting stream deltas correctly for Anthropic, Cohere, and Google Vertex AI.
+  - Added strict adapter coverage checks in `verify-provider-adapters.cjs` and included it in the static contract suite.
+  - Refactored `PromptLibraryView.tsx` to use the accessible `Select` ARIA combobox instead of native select dropdowns, fulfilling the tag/edit lifecycle requirement.
+  - Repaired `useSettingsPersistence.test.ts` by checking for the `toast.error` API rather than a Redux `dispatch` payload.
+  - Resolved all remaining ESLint warnings (`any` types, unused imports in `auth-store.test.ts`).
 
 - **2026-07-12 Multi-Provider Fallback (Phases 5-9)**
   - Authored a static fallback model registry in `src/config/provider-models.ts` with local capability annotations (`supportsVision`, `supportsFunctionCalling`).

@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
+
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
@@ -18,7 +17,7 @@ vi.mock("../services/storageService", () => {
 import StorageService from "../services/storageService";
 import { useWorkflowTemplateStore } from "./workflow-template-store";
 import { useSettingsStore } from "./settings-store";
-import { WORKFLOW_TEMPLATE_VERSION, type WorkflowTemplateExport, type WorkflowTemplateItem } from "../types/workflow";
+import { WORKFLOW_TEMPLATE_VERSION, type WorkflowTemplateExport, type WorkflowTemplateItem, createWorkflowTemplateItem } from "../types/workflow";
 
 describe("workflow-template-store", () => {
   beforeEach(() => {
@@ -55,7 +54,7 @@ describe("workflow-template-store", () => {
     });
 
     it("sets empty array if non-array returned", async () => {
-      vi.mocked(StorageService.getItems).mockResolvedValue({ notAnArray: true });
+      vi.mocked(StorageService.getItems).mockResolvedValue({ notAnArray: true } as unknown as WorkflowTemplateItem[]);
       const store = useWorkflowTemplateStore.getState();
       await store.ensureWorkflowTemplatesLoaded();
       
@@ -102,7 +101,7 @@ describe("workflow-template-store", () => {
     it("infers project scope when projectId is present", async () => {
       useSettingsStore.setState({ activeProjectId: "proj1" });
       const store = useWorkflowTemplateStore.getState();
-      await store.createWorkflow({ title: "My Project", steps: [{ kind: "note", target: "none", title: "S1", enabled: true, order: 0 }] });
+      await store.createWorkflow({ title: "My Project", steps: [{ id: "s1", kind: "note", target: "none", title: "S1", enabled: true, order: 0 }] });
       
       const updatedStore = useWorkflowTemplateStore.getState();
       expect(updatedStore.workflows[0].scope).toBe("project");
@@ -187,7 +186,7 @@ describe("workflow-template-store", () => {
       const storeBefore = useWorkflowTemplateStore.getState();
       const newVer = await storeBefore.addWorkflowVersion(workflow.id, {
         title: "Version 2",
-        steps: [{ kind: "prompt", target: "chat", title: "S1", enabled: true, order: 0 }]
+        steps: [{ id: "s1", kind: "prompt", target: "chat", title: "S1", enabled: true, order: 0 }]
       });
       
       const updatedStore = useWorkflowTemplateStore.getState();
@@ -676,11 +675,10 @@ describe("workflow-template-store", () => {
     it("returns null if current version id does not exist", () => {
       const store = useWorkflowTemplateStore.getState();
       useWorkflowTemplateStore.setState({
-        workflows: [{
+        workflows: [createWorkflowTemplateItem({
           id: "w1", currentVersionId: "non-existent-v", versions: [],
           title: "W", scope: "global", tags: [], favorite: false,
-          createdAt: "2023", updatedAt: "2023"
-        } as unknown as WorkflowTemplateItem]
+        })]
       });
       expect(useWorkflowTemplateStore.getState().getCurrentVersion("w1")).toBeNull();
     });
@@ -769,13 +767,13 @@ describe("workflow-template-store", () => {
 
     it("skips if workflow already exists in state", async () => {
       // Mock randomUUID to produce predictable IDs so we can simulate already existing workflow
-      const mockUUID = "1234-5678";
+      const mockUUID = "12345678-1234-1234-1234-1234567890ab" as `${string}-${string}-${string}-${string}-${string}`;
       const originalUUID = crypto.randomUUID;
       vi.spyOn(crypto, 'randomUUID').mockReturnValue(mockUUID);
       
       try {
         useWorkflowTemplateStore.setState({
-          workflows: [{ id: mockUUID, title: "Existing", versions: [], scope: "global", currentVersionId: "v-id", tags: [], favorite: false, createdAt: "2023", updatedAt: "2023" } as unknown as WorkflowTemplateItem]
+          workflows: [createWorkflowTemplateItem({ id: mockUUID, title: "Existing", versions: [], scope: "global", currentVersionId: "v-id", tags: [], favorite: false })]
         });
         const store = useWorkflowTemplateStore.getState();
         

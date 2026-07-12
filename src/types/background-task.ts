@@ -16,6 +16,7 @@ export interface BackgroundTask {
   updatedAt: number
   metadata?: Record<string, unknown>
   queueId?: string
+  profileId?: string
 }
 
 export interface PersistedBackgroundTask {
@@ -28,6 +29,7 @@ export interface BackgroundTaskCreateInput {
   type: BackgroundTaskType
   queueId?: string
   metadata?: Record<string, unknown>
+  profileId?: string
 }
 
 export interface BackgroundTaskUpdate {
@@ -52,11 +54,11 @@ const VALID_STATUSES: BackgroundTaskStatus[] = ['idle', 'queued', 'processing', 
 const VALID_TYPES: BackgroundTaskType[] = ['video', 'music', 'image', 'research', 'document']
 const VALID_ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/
 
-function isValidTaskType(value: unknown): value is BackgroundTaskType {
+export function isValidTaskType(value: unknown): value is BackgroundTaskType {
   return typeof value === 'string' && VALID_TYPES.includes(value as BackgroundTaskType)
 }
 
-function isValidTaskStatus(value: unknown): value is BackgroundTaskStatus {
+export function isValidTaskStatus(value: unknown): value is BackgroundTaskStatus {
   return typeof value === 'string' && VALID_STATUSES.includes(value as BackgroundTaskStatus)
 }
 
@@ -78,6 +80,7 @@ export function isValidBackgroundTask(value: unknown): value is BackgroundTask {
     (task.error === undefined || typeof task.error === 'string') &&
     (task.resultUrl === undefined || typeof task.resultUrl === 'string') &&
     (task.queueId === undefined || typeof task.queueId === 'string') &&
+    (task.profileId === undefined || typeof task.profileId === 'string') &&
     (task.metadata === undefined || (typeof task.metadata === 'object' && task.metadata !== null))
   )
 }
@@ -119,6 +122,7 @@ export function createBackgroundTask(input: BackgroundTaskCreateInput): Backgrou
     type: input.type,
     status: 'queued',
     queueId: input.queueId,
+    profileId: input.profileId,
     metadata: input.metadata ? redactSecrets(input.metadata) : undefined,
     createdAt: now,
     updatedAt: now,

@@ -1,14 +1,18 @@
 import { useBackgroundTaskStore } from '../stores/background-task-store'
 import { toast } from '../stores/toast-store'
 import { BackgroundTask } from '../types/background-task'
-import { useChatStore } from '../stores/chat-store'
 import { useSettingsStore } from '../stores/settings-store'
 
 /**
  * Bridges background tasks to the toast notification system.
  * Keeps a toast alive and updated as long as the task is running.
  */
+let isInitialized = false
+
 export function initBackgroundTaskToastBridge() {
+  if (isInitialized) return
+  isInitialized = true
+
   let previousTasks: Record<string, BackgroundTask> = {}
 
   useBackgroundTaskStore.subscribe((state) => {
@@ -64,10 +68,14 @@ export function initBackgroundTaskToastBridge() {
             description: task.error || 'An error occurred.',
             persistent: false,
             duration: 6500,
-            action: {
-              label: 'Dismiss',
-              onClick: () => toast.dismiss(toast.getToasts().find(t => t.dedupeKey === dedupeKey)?.id ?? '')
-            }
+            actions: [
+              {
+                id: 'dismiss',
+                label: 'Dismiss',
+                kind: 'dismiss',
+                onClick: () => toast.dismiss(toast.getToasts().find(t => t.dedupeKey === dedupeKey)?.id ?? '')
+              }
+            ]
           })
         }
       }

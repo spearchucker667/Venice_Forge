@@ -102,14 +102,19 @@ export async function initBackgroundTaskManager(): Promise<void> {
 
   initializationPromise = (async () => {
     await loadBackgroundTasks();
-    // Resume polling for any non-terminal async tasks.
     for (const task of Object.values(state.tasks)) {
-      if (task.type === "video" || task.type === "music") {
-        if (!isTerminalStatus(task.status)) {
+      if (!isTerminalStatus(task.status)) {
+        if (task.type === "video" || task.type === "music") {
           startPolling(task.id);
+        } else {
+          // image, research, document are synchronous/streaming connections that die on restart
+          task.status = "failed";
+          task.error = "Application restarted during generation.";
+          task.updatedAt = Date.now();
         }
       }
     }
+    persist();
     initialized = true;
   })();
 
