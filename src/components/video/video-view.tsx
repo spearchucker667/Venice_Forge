@@ -235,33 +235,36 @@ export function VideoView() {
           />
         </div>
 
-        {/* Text / Image mode toggle */}
+        {/* Generation mode: text or image */}
         {(hasTextMode || hasImageMode) && (
-          <div className="flex gap-px bg-surface-elevated rounded-lg p-0.5 border border-border">
-            {hasTextMode && (
-              <button
-                onClick={() => setMode('text')}
-                aria-pressed={mode === 'text'}
-                className={cn(
-                  'flex-1 px-3 py-2.5 text-[15px] font-medium rounded-[7px] transition-all duration-150',
-                  mode === 'text' ? 'bg-accent text-accent-fg' : 'text-text-muted hover:text-text-muted',
-                )}
-              >
-                Text to Video
-              </button>
-            )}
-            {hasImageMode && (
-              <button
-                onClick={() => setMode('image')}
-                aria-pressed={mode === 'image'}
-                className={cn(
-                  'flex-1 px-3 py-2.5 text-[15px] font-medium rounded-[7px] transition-all duration-150',
-                  mode === 'image' ? 'bg-accent text-accent-fg' : 'text-text-muted hover:text-text-muted',
-                )}
-              >
-                Image to Video
-              </button>
-            )}
+          <div className="flex flex-col gap-2">
+            <Label>Generation Mode</Label>
+            <div className="flex gap-px bg-surface-elevated rounded-lg p-0.5 border border-border">
+              {hasTextMode && (
+                <button
+                  onClick={() => setMode('text')}
+                  aria-pressed={mode === 'text'}
+                  className={cn(
+                    'flex-1 px-3 py-2.5 text-[15px] font-medium rounded-[7px] transition-all duration-150',
+                    mode === 'text' ? 'bg-accent text-accent-fg' : 'text-text-muted hover:text-text-muted',
+                  )}
+                >
+                  Text to Video
+                </button>
+              )}
+              {hasImageMode && (
+                <button
+                  onClick={() => setMode('image')}
+                  aria-pressed={mode === 'image'}
+                  className={cn(
+                    'flex-1 px-3 py-2.5 text-[15px] font-medium rounded-[7px] transition-all duration-150',
+                    mode === 'image' ? 'bg-accent text-accent-fg' : 'text-text-muted hover:text-text-muted',
+                  )}
+                >
+                  Image to Video
+                </button>
+              )}
+            </div>
           </div>
         )}
 

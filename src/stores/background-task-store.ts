@@ -7,7 +7,8 @@ import type { VideoRetrieveResponse, MusicRetrieveResponse } from '../types/veni
 
 const POLL_INTERVAL_MS = 3000
 const MAX_ATTEMPTS = 200
-const MAX_GENERATION_MS = 120000
+// Increased timeout for video generation - 5 minutes for video models
+const MAX_GENERATION_MS = 300000 // 5 minutes (was 2 minutes)
 
 interface BackgroundTaskState {
   tasks: Record<string, BackgroundTask>
@@ -110,8 +111,13 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
       isPolling = true
       attempts += 1
 
-      if (Date.now() - startedAt > MAX_GENERATION_MS) {
-        capTimeout('Generation exceeded budget. Cancel and try again.')
+      // Check for video model specific timeout based on model metadata
+      const isVideoTask = task.type === 'video'
+      const effectiveTimeout = isVideoTask ? MAX_GENERATION_MS : 120000 // 2 minutes for non-video tasks
+      if (Date.now() - startedAt > effectiveTimeout) {
+        capTimeout(isVideoTask 
+          ? 'Video generation is taking longer than expected. The process will continue in the background.' 
+          : 'Generation exceeded budget. Cancel and try again.')
         isPolling = false
         return
       }

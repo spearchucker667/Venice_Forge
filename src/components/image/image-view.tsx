@@ -255,6 +255,24 @@ export function ImageView() {
     [],
   )
 
+  // Add effect to listen for save current prompt command
+  useEffect(() => {
+    const handleSaveCurrentPrompt = () => {
+      // Save both prompt and negative prompt
+      if (prompt.trim()) {
+        void handleSavePromptToLibrary('image', prompt);
+      }
+      if (negativePrompt.trim()) {
+        void handleSavePromptToLibrary('negative', negativePrompt);
+      }
+    };
+
+    window.addEventListener('saveCurrentPromptToLibrary', handleSaveCurrentPrompt);
+    return () => {
+      window.removeEventListener('saveCurrentPromptToLibrary', handleSaveCurrentPrompt);
+    };
+  }, [prompt, negativePrompt, handleSavePromptToLibrary]);
+
   const buildSeedState = useCallback((): ImageSeedState => {
     if (seedMode === 'fixed') return { mode: 'fixed', value: seedValue }
     return { mode: 'off', value: null }
@@ -527,7 +545,7 @@ export function ImageView() {
               aria-label="Save prompt to library"
               data-testid="image-save-prompt-to-library"
             >
-              Save prompt
+              Save to library
             </button>
             <button
               type="button"
@@ -554,7 +572,7 @@ export function ImageView() {
                   e.target.value = "";
                 }
               }}
-              className="relative z-40 text-[12px] bg-surface-elevated text-text-secondary border border-border rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-accent hover:text-text-secondary transition-colors cursor-pointer"
+              className="relative z-40 text-[12px] bg-surface-elevated text-text-secondary border border-border rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-accent hover:text-text-secondary transition-colors cursor-pointer min-w-[120px]"
               defaultValue=""
             >
               <option value="" disabled>Add Template...</option>

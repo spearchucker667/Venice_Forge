@@ -6,7 +6,7 @@ import type { VideoQueueRequest, VideoQueueResponse } from '../types/venice'
 import { useBackgroundTaskStore } from '../stores/background-task-store'
 
 const MAX_ERROR_LENGTH = 200
-const QUEUE_TIMEOUT_MS = 120000
+const QUEUE_TIMEOUT_MS = 300000 // 5 minutes for video queue requests
 
 export function toUserFacingVideoError(value: unknown, fallback: string): string {
   const normalized = value || fallback

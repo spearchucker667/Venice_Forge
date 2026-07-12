@@ -11,34 +11,42 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
-- **2026-07-11 Work order completion and final pipeline execution — COMPLETE (current session):**
+- **2026-07-12 UX Feedback Sweep — COMPLETE (current session):**
+  - **Background Task Banner:** Implemented a new `BackgroundTaskBanner` component in `src/components/background-task-banner.tsx` that displays active video/music generation tasks in the sidebar, allowing users to navigate while tasks are running. Updated `src/components/layout/sidebar.tsx` to include the banner at the bottom.
+  - **Image Studio UI Improvements:** Fixed template dropdown clipping by adding `min-w-[120px]` CSS class to prevent truncation. Added "Save Current Prompt to Library" command to the command palette (`src/components/command-palette/CommandPalette.tsx`) and implemented event listener in `src/components/image/image-view.tsx` to handle the command.
+  - **Prompt Library Empty State:** Improved the empty state message in `src/components/prompts/PromptLibraryView.tsx` to be more descriptive and prominent with "Create your first prompt" CTA.
+  - **Video Studio Timeout Fix:** Increased `QUEUE_TIMEOUT_MS` in `src/hooks/use-video.ts` from 2 minutes to 5 minutes to accommodate longer video generation times for models like `wan-2.6-text-to-video`. Improved UI clarity by labeling the mode toggle as "Generation Mode" in `src/components/video/video-view.tsx`.
+  - **Research Browser URL Display:** Enhanced research browser address bar CSS in `src/styles/components.css` with text-overflow ellipsis to handle long URLs gracefully.
+  - **Character Chat Greeting & Avatar:** Fixed character chat to display the character's first message as an initial assistant message when no messages exist. Updated `src/components/chat/chat-view.tsx` to properly access character card data and display the firstMessage. Ensured character avatar is displayed correctly using `useCharacterImage` hook.
+
+- **2026-07-11 Work order completion and final pipeline execution — COMPLETE (previous session):**
   - Executed final validation pipeline `npm run lint:eslint && npm run test:ci && npm run test:coverage && npm run verify:contracts && npm run build` successfully.
   - Repaired `docs/reference/Venice_swagger_api.yaml` metadata to satisfy `verify:venice-api-docs` contract which failed during the pipeline execution. Renamed `swagger.yaml` to `Venice_swagger_api.yaml` and added the missing `Source` and `Retrieved` metadata fields to the file header.
   - The pipeline finished with exit code 0, meeting the completion condition for the product defect audit and agent work order.
 
-- **2026-07-11 Phase 2: Central Background Task Manager — COMPLETE (current session):**
+- **2026-07-11 Phase 2: Central Background Task Manager — COMPLETE (previous session):**
   - **Phase 2:** Created a canonical background task architecture in `src/types/background-task.ts` and `src/stores/background-task-store.ts` that persists queue polling across React component unmounts. Implemented a persistent `BackgroundTaskCluster` in the Header to display active tasks globally. Refactored `useVideo`, `useMusic`, and image generation hooks to register and poll tasks through the central store, ensuring tab navigation doesn't cancel ongoing background tasks.
 
-- **2026-07-11 Phase 3: Video Model Authority & Pricing — COMPLETE (current session):**
+- **2026-07-11 Phase 3: Video Model Authority & Pricing — COMPLETE (previous session):**
   - **Phase 3:** Removed generic video pricing fallback in `formatModelLabelWithCost` and replaced it with truthful states (`live`, `catalog`, `estimate`, `unavailable`). Re-architected Video Studio model persistence by setting `TAB_REGISTRY.video.modelSelectorOwner = "view"` and delegating state to `selectedVideoModelGroup`, `selectedVideoMode`, and `selectedVideoModelId` in `useSettingsStore`. Video Studio queueing, retrieving, and resets now correctly read this canonical setting.
   - Validation: Type checking passes for renderer and electron main processes (`npm run typecheck`). Repository contracts successfully verified (`npm run verify:contracts`).
 
-- **2026-07-11 Phase 6 & 7: Research Browser Containment and Character Preset Unification — COMPLETE (current session):**
+- **2026-07-11 Phase 6 & 7: Research Browser Containment and Character Preset Unification — COMPLETE (previous session):**
   - **Phase 6:** Decoupled global `web-contents-created` policy in `electron/main.ts` and implemented exact bounding box measurements and clamping with `ResizeObserver` in `ResearchBrowserView.tsx`. Added 'Go' button and Enter submission to the address bar. Added packaged Electron smoke tests using Playwright to verify research browser geometry and containment in `tests/smoke/research-browser.test.ts`.
   - **Phase 7:** Unified character presets to support 'venice-hosted', 'local', and 'imported' types. Updated `chat-stream-manager.ts` to send only `character_slug` for hosted characters, avoiding fabricated instructions. Handled character greetings elegantly, inserting exactly one greeting from the character if missing in history. Surfaced character avatars natively across `HistoryView`, `Sidebar`, and `Header` components, unifying UI patterns. Added Character Chats section in the History filter.
   - Validation: Type checking passes for renderer and electron main processes (`npm run typecheck`). Playwright smoke test handles packaged app bounds verification.
 
-- **2026-07-11 Phase 4 & 5: Image Studio Layout and Prompt Library Modal — COMPLETE (current session):**
+- **2026-07-11 Phase 4 & 5: Image Studio Layout and Prompt Library Modal — COMPLETE (previous session):**
   - **Phase 4:** Refactored `ImageView` prompt field header into two rows. Made controls pane responsive by dropping the fixed `w-[400px]` width in `GenerationView` and using fluid bounds. Renamed "Save to library" to "Save prompt". Updated `PromptTemplate` and preset logic to support `positiveText` and `negativeText`, complete with an inline preview UI (Append/Replace/Cancel modes).
   - **Phase 5:** Implemented a new `PromptCreateModal` for the Prompt Library, rendering rich forms for metadata (Title, Kind, Scope, Project, Tags, Content, Negative Content). Refined Kind badges and Tag chips rendering in the Prompt Library list pane. Made the `PromptLibraryView` list pane responsive by converting its fixed width to a fluid clamp.
   - Validation: Visual updates are in place and type checking passes on edited components.
 
-- **2026-07-11 Hosted macOS smoke verifier repair — COMPLETE (current session):**
+- **2026-07-11 Hosted macOS smoke verifier repair — COMPLETE (previous session):**
   - The first hosted CI run for commit `aaebc65` built the macOS ARM64 DMG/ZIP successfully, then failed before launch because the smoke job invoked the dual-architecture `verify:dist:mac` contract and incorrectly required absent x64 artifacts.
   - Scoped the smoke-job verification to the architecture it actually packages: `node scripts/verify-dist.cjs --mac --arch arm64`. Release workflows that build both architectures continue to use the dual-architecture verifier.
   - Validation: `scripts/verify-dist.test.ts` PASS (12 tests); `npm run verify:ci-contract` PASS; `git diff --check` PASS. A follow-up commit and hosted rerun are required for final closure.
 
-- **2026-07-11 Dirty snapshot repair publication closure — COMPLETE locally; push authorized (current session):**
+- **2026-07-11 Dirty snapshot repair publication closure — COMPLETE locally; push authorized (previous session):**
   - Installed and activated the repository-required Node `v22.23.1` / npm `10.9.8` toolchain through the existing `fnm` manager, then regenerated dependencies with `npm ci --no-audit --no-fund`.
   - Reviewed the complete dirty diff and retained only the intentional archive hygiene, sync durability/order/import/sanitization/journal repairs, regression tests, and canonical roadmap/handoff updates.
   - Fixed a final aggregate-contract integration bug discovered by Node 22 CI: `verify-repo-handoff-hygiene.cjs` still capped the allowed registry at `VERIFY-092` and scanned ignored `.superpowers/` scratch. It now recognizes documented `VERIFY-093` and excludes the archive-forbidden local scratch directory.
@@ -46,8 +54,8 @@
   - Final Node 22 evidence: server 59 tests; Electron 566 tests; ingestion 65 tests; all unit domains pass; all UI domains pass; build succeeds; 102 release-hardening checks pass; all static/feature/release contracts pass; dist outputs verify; audit reports zero vulnerabilities.
   - Remaining roadmap work is not represented as closed: Electron-backed tombstone authority, persistent outbound outbox, trusted provenance, profile/sync-set isolation, historical packet retention/checkpointing, full multi-device convergence, and unrelated product roadmap tasks require subsequent architecture/product work or platform runners.
 
-- **2026-07-11 Dirty snapshot continuation — hard journal bound and startup rollback COMPLETE; broader work order IN PROGRESS (current session):**
-  - Fixed journal compaction for the audit’s adversarial case where more than `MAX_JOURNAL_ENTRIES` operations are all recent tombstones. Compaction now retains the newest 50,000 tombstone operations and always satisfies the advertised hard bound.
+- **2026-07-11 Dirty snapshot continuation — hard journal bound and startup rollback COMPLETE; broader work order IN PROGRESS (previous session):**
+  - Fixed journal compaction for the audit's adversarial case where more than `MAX_JOURNAL_ENTRIES` operations are all recent tombstones. Compaction now retains the newest 50,000 tombstone operations and always satisfies the advertised hard bound.
   - Added a 50,100-recent-tombstone regression test proving the journal length, oldest retained operation, and newest retained operation.
   - Added retry-scheduler diagnostics and completed failed-start rollback: missing-folder and folder-setup failures now stop the scheduler, clear authentication/password state, preserve the error status, and close any partially created watcher.
   - Historical encrypted-packet replay after journal eviction is still open and explicitly requires checkpoint/current-state or remote garbage-collection semantics; this change does not misrepresent journal truncation as protocol retention.

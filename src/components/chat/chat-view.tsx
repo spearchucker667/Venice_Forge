@@ -8,6 +8,7 @@ import { DEFAULT_CHAT_MODEL, modelSupportsVision } from '../../constants/venice'
 import { resolveDefaultChatModel } from '../../services/defaultModelResolver'
 import { useCharacterImage } from '../../hooks/useCharacterImage'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
+import { useCharacterCardStore } from '../../stores/character-card-store'
 import { MessageBubble } from './message-bubble'
 import { ChatInput } from './chat-input'
 import { IngestedAttachment } from '../../types/ingestion'
@@ -19,7 +20,7 @@ import * as logger from '../../shared/logger'
 import { getBalancedPromptStarters } from '../../services/promptStarterService'
 import { askDecision } from '../ui/modal-requests'
 import type { PromptStarter } from '../../data/promptStarters'
-import type { MemoryFact, ConversationRecordV1 } from '../../types/conversationVault'
+import type { MemoryFact, ConversationRecordV1, ConversationMessage } from '../../types/conversationVault'
 import type { Conversation } from '../../types/conversation'
 import type { ChatMemoryDecision } from '../../hooks/use-chat'
 import { buildChatPayloadContext, buildPriorConversationContextText } from '../../utils/chatPayloadContext'
@@ -265,6 +266,23 @@ export function ChatView() {
   const isCharacterBound = !!conversation?.metadata?.character?.slug
   const messageCount = conversation?.messages.length ?? 0
   const assistantAvatarUrl = isCharacterBound ? activeCharacterImage.imageUrl : undefined
+  
+  // For character-bound conversations with no messages, show the character's firstMessage as initial assistant message
+  const cards = useCharacterCardStore((s) => s.cards)
+  const firstCharacterMessage = useMemo(() => {
+    if (!isCharacterBound || messageCount > 0 || !conversation?.metadata?.character) return null
+    
+    // For local characters, we need to look up the actual card data
+    const characterMeta = conversation.metadata.character
+    if ('localCharacterId' in characterMeta && characterMeta.localCharacterId) {
+      const card = cards.find(c => c.id === characterMeta.localCharacterId)
+      return card?.firstMessage || null
+    }
+    
+    // For hosted characters, the firstMessage might be in the metadata
+    // Type assertion since firstMessage may not exist on all ConversationCharacterMeta variants
+    return (characterMeta as Partial<{ firstMessage: string }>).firstMessage || null
+  }, [isCharacterBound, messageCount, conversation?.metadata?.character, cards])
 
   useEffect(() => {
     if (messageCount === 0) {
@@ -460,6 +478,33 @@ export function ChatView() {
               <VeniceParams />
             </div>
             <div className="w-full max-w-[960px] mx-auto py-5 px-4 sm:px-5 flex flex-col gap-5">
+              {/* Display character's firstMessage as initial assistant message when no messages exist */}
+              {firstCharacterMessage && conversation.messages.length === 0 && (
+                <div
+                  key="first-character-message"
+                  className="rounded-lg outline outline-2 outline-accent outline-offset-4"
+                >
+                  <MessageBubble
+                    message={{
+                      id: "first-character-message",
+                      role: "assistant",
+                      content: firstCharacterMessage,
+                      timestamp: Date.now(),
+                    } as ConversationMessage}
+                    index={-1}
+                    onCopy={() => {}}
+                    onDelete={() => {}}
+                    onEdit={undefined}
+                    onDeleteFromHere={undefined}
+                    onRegenerateFromHere={undefined}
+                    onForkFromHere={undefined}
+                    onRegenerate={undefined}
+                    onGenerateScene={undefined}
+                    isCharacterBound={isCharacterBound}
+                    assistantAvatarUrl={assistantAvatarUrl}
+                  />
+                </div>
+              )}
               {conversation.messages.map((msg, i) => {
                 const cb = messageCallbacks.get(msg.id)
                 const activeMatchMessageId = searchMatches[activeSearchMatch]

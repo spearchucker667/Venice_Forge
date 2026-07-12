@@ -181,6 +181,10 @@
   padding: 0.25rem 2rem;
   font-size: 0.875rem;
   transition: border-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  direction: ltr;
 }
 .research-browser-address:focus {
   outline: none;

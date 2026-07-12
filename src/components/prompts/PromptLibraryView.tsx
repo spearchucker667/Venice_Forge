@@ -162,6 +162,12 @@ export function PromptLibraryView() {
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setIsCreateModalOpen(true)
+                }
+              }}
               className="ml-auto rounded-md border border-border px-2 py-1 text-[11.5px] hover:border-accent hover:text-accent"
               data-testid="prompt-library-new"
             >
@@ -260,7 +266,10 @@ export function PromptLibraryView() {
           ) : filtered.length === 0 ? (
             <div className="p-3 text-text-muted text-[12px]" data-testid="prompt-library-empty">
               {prompts.length === 0
-                ? "No saved prompts yet. Click \"New\" to create one."
+                ? <>
+                    <p>No saved prompts yet.</p>
+                    <p className="mt-1">Click the <strong className="text-text-primary">New</strong> button above to create your first prompt.</p>
+                  </>
                 : "No prompts match the current filters."}
             </div>
           ) : (

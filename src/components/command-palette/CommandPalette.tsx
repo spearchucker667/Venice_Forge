@@ -496,6 +496,19 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
           >
             Import Prompts…
           </button>
+          <button
+            data-command-item
+            onClick={() => {
+              // Dispatch a custom event that the image view can listen for
+              window.dispatchEvent(new CustomEvent('saveCurrentPromptToLibrary'));
+              onClose();
+              setQuery('');
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            data-testid="command-palette-save-current-prompt"
+          >
+            Save Current Prompt to Library
+          </button>
 
           {/* Phase 2E — Scene Composer commands. Always visible so the
               palette can route the user into the composer; per-scene

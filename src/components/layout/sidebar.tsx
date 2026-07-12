@@ -13,6 +13,7 @@ import { TAB_REGISTRY, TAB_GROUP_LABELS, type TabGroup, type TabId } from '../..
 import { contentToSearchText, contentToMarkdownText } from '../../utils/messageContent'
 import { DEFAULT_CHAT_MODEL } from '../../constants/venice'
 import { getConversationDisplayTitle } from '../../utils/conversationDisplayTitle'
+import { BackgroundTaskBanner } from '../background-task-banner'
 
 function ChatIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>)
@@ -161,6 +162,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
   const [historyExpanded, setHistoryExpanded] = useState(true)
   const chatOptionsRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  
 
   const toggleRedTeamMode = () => {
     const enabled = !redTeamMode
@@ -636,6 +638,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
             <span>{showInspector ? 'Hide Inspector' : 'Show Inspector'}</span>
           </button>
 
+          <BackgroundTaskBanner />
           <div className="pt-2 text-[11px] text-text-secondary flex flex-col gap-1 shrink-0 [@media(max-height:800px)]:hidden">
             <div className="flex justify-between items-center leading-none"><span>New chat</span><kbd className="font-mono text-text-muted">⌘N</kbd></div>
             <div className="flex justify-between items-center leading-none"><span>Switch tab</span><kbd className="font-mono text-text-muted">⌘1-8</kbd></div>
